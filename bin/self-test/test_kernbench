@@ -1,0 +1,8 @@
+import kernbench
+
+print sys.path
+
+job = job.job('myjob')
+
+print "TEST: initing kernbench"
+job.runtest('kernbench', 'kernbench', '2 5')

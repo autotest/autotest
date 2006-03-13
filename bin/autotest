@@ -1,0 +1,21 @@
+#!/usr/bin/python2.3
+
+import os,sys
+import job, kernel, test
+from autotest_utils import *
+
+autodirbin = os.path.abspath(os.path.dirname(sys.argv[0]))
+autodir = os.path.dirname(autodirbin)
+
+print 'AUTODIRBIN: ' + autodirbin
+print 'AUTODIR: ' + autodir
+
+sys.path.insert(0, autodirbin+'/tests')
+sys.path.insert(0, autodirbin)
+
+# Need to expand the dirname for this, as if they do "foo" and it's not in
+# the path, we need to do "./foo"
+fullpath = os.path.dirname(sys.argv[1]) + '/' + os.path.basename(sys.argv[1])
+
+argv = sys.argv[2:]
+execfile(fullpath)
