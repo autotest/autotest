@@ -1,9 +1,14 @@
 #!/usr/bin/python2.3
-
-import os,sys
+#
+# autotest <control file> - run the autotest control file specified.
+#
+import os, sys
 import job, kernel, test
 from autotest_utils import *
 
+# Use the name of the binary to find the real installation directory
+# aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
+# directory and ensure we have $AUTODIR in our environment.
 autodirbin = os.path.abspath(os.path.dirname(sys.argv[0]))
 autodir = os.path.dirname(autodirbin)
 
@@ -13,9 +18,28 @@ print 'AUTODIR: ' + autodir
 sys.path.insert(0, autodirbin+'/tests')
 sys.path.insert(0, autodirbin)
 
-# Need to expand the dirname for this, as if they do "foo" and it's not in
-# the path, we need to do "./foo"
-fullpath = os.path.dirname(sys.argv[1]) + '/' + os.path.basename(sys.argv[1])
+os.environ['AUTODIR'] = autodir
 
-argv = sys.argv[2:]
+### Need to expand the dirname for this, as if they do "foo" and it's not in
+### the path, we need to do "./foo"
+##fullpath = os.path.dirname(sys.argv[1]) + '/' + os.path.basename(sys.argv[1])
+##argv = sys.argv[2:]
+fullpath = sys.argv[1]
+
+# JOB: instantiate the job object ready for the control file.
+job = job.job();
+
+# Load in the users control file, may do any one of:
+#  1) execute in toto
+#  2) define steps, and select the first via next_step()
 execfile(fullpath)
+
+try:
+	init = step_init
+except NameError:
+	pass
+else:
+	job.step_engine([step_init])
+
+# If we get here, then we assume the job is complete and good.
+job.complete(0)
