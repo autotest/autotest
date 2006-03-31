@@ -12,7 +12,7 @@ class AsyncRun(threading.Thread):
 
 # JOB: the actual job against which we do everything.
 class job:
-	def __init__(self, jobtag='default'):
+	def __init__(self, control, jobtag='default'):
 		self.autodir = os.environ['AUTODIR']
 		self.tmpdir = self.autodir + '/tmp'
 		self.resultdir = self.autodir + '/results' + jobtag
@@ -22,6 +22,7 @@ class job:
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
 		
+		self.control = control
 		self.jobtab = jobtag
 
 		self.stdout = fd_stack(1, sys.stdout)
@@ -55,10 +56,10 @@ class job:
 	def complete(self, status):
 		# We are about to exit 'complete' so clean up the control file.
 		try:
-			os.unlink('state')
+			os.unlink(self.control + '.state')
 		except:
 			pass
-		os.rename(sys.argv[1], sys.argv[1] + '.complete')
+		os.rename(self.control, self.control + '.complete')
 
 		sys.exit(0)
 
@@ -68,21 +69,23 @@ class job:
 	steps = []
 	def next_step(self, step):
 		self.steps.append(step)
-		pickle.dump(self.steps, open('state', 'w'))
+		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
 	def step_engine(self, init):
 		# If there is a mid-job state file load that in and continue
 		# where it indicates.  Otherwise start stepping at the passed
 		# entry.
 		try:
-			self.steps = pickle.load(open('state', 'r'))
+			self.steps = pickle.load(open(self.control + '.state',
+				'r'))
 		except:
 			self.next_step(init)
 
 		# Run the step list.
 		while len(self.steps) > 0:
 			step = self.steps.pop()
-			pickle.dump(self.steps, open('state', 'w'))
+			pickle.dump(self.steps, open(self.control + '.state',
+				'w'))
 
 			cmd = step.pop(0)
 			cmd(*step)
