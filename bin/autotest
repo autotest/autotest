@@ -27,7 +27,7 @@ os.environ['AUTODIR'] = autodir
 fullpath = sys.argv[1]
 
 # JOB: instantiate the job object ready for the control file.
-job = job.job();
+job = job.job(fullpath);
 
 # Load in the users control file, may do any one of:
 #  1) execute in toto
