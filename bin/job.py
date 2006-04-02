@@ -15,6 +15,9 @@ class job:
 	def __init__(self, control, jobtag='default'):
 		self.autodir = os.environ['AUTODIR']
 		self.tmpdir = self.autodir + '/tmp'
+		if os.path.exists(self.tmpdir):
+			os.system('rm -rf ' + self.tmpdir)
+		os.mkdir(self.tmpdir)
 		self.resultdir = self.autodir + '/results' + jobtag
 		if os.path.exists(self.resultdir):
 			os.system('rm -rf ' + self.resultdir)
@@ -59,7 +62,8 @@ class job:
 			os.unlink(self.control + '.state')
 		except:
 			pass
-		os.rename(self.control, self.control + '.complete')
+		if os.path.exists(self.control):
+			os.rename(self.control, self.control + '.complete')
 
 		sys.exit(0)
 
