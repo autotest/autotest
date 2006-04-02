@@ -145,7 +145,7 @@ class fd_stack:
 
 	
 	def restore(self):
-		print_to_tty("ENTERING RESTORE %d" % self.fd)
+		# print_to_tty("ENTERING RESTORE %d" % self.fd)
 		# where_art_thy_filehandles()
 		(old_fd, old_filehandle) = self.stack.pop()
 		# print_to_tty("old_fd %d" % old_fd)
