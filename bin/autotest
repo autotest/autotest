@@ -23,9 +23,8 @@ os.environ['AUTODIRBIN'] = autodirbin
 
 ### Need to expand the dirname for this, as if they do "foo" and it's not in
 ### the path, we need to do "./foo"
-##fullpath = os.path.dirname(sys.argv[1]) + '/' + os.path.basename(sys.argv[1])
-##argv = sys.argv[2:]
-fullpath = sys.argv[1]
+fullpath = os.path.abspath(sys.argv[1])
+argv = sys.argv[2:]
 
 # JOB: instantiate the job object ready for the control file.
 job = job.job(fullpath);
