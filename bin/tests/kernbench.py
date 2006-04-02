@@ -6,8 +6,8 @@ class kernbench(test):
 	def setup(self,
 			iterations = 1,
 			threads = 2 * count_cpus(),
-			kernelver = autodir + '/src/linux-2.6.14.tar.bz2',
-			config = autodir + "/bin/tests/kernbench/config"):
+			kernelver = '/usr/local/src/linux-2.6.14.tar.bz2',
+			config =  os.environ['AUTODIRBIN'] + "/tests/kernbench/config"):
 		
 		print "kernbench -j %d -i %d -c %s -k %s" % (threads, iterations, config, kernelver)
 

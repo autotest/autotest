@@ -19,6 +19,7 @@ sys.path.insert(0, autodirbin+'/tests')
 sys.path.insert(0, autodirbin)
 
 os.environ['AUTODIR'] = autodir
+os.environ['AUTODIRBIN'] = autodirbin
 
 ### Need to expand the dirname for this, as if they do "foo" and it's not in
 ### the path, we need to do "./foo"
