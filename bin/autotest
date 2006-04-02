@@ -2,7 +2,7 @@
 #
 # autotest <control file> - run the autotest control file specified.
 #
-import os, sys
+import os, sys, shutil
 import job, kernel, test
 from autotest_utils import *
 
@@ -21,18 +21,18 @@ sys.path.insert(0, autodirbin)
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
 
-### Need to expand the dirname for this, as if they do "foo" and it's not in
-### the path, we need to do "./foo"
-fullpath = os.path.abspath(sys.argv[1])
-argv = sys.argv[2:]
+tmp_control_file = autodir + '/control'
+if os.path.exists(tmp_control_file):
+	os.remove(tmp_control_file)
+shutil.copyfile(os.path.abspath(sys.argv[1]), tmp_control_file)
 
 # JOB: instantiate the job object ready for the control file.
-job = job.job(fullpath);
+job = job.job(tmp_control_file);
 
 # Load in the users control file, may do any one of:
 #  1) execute in toto
 #  2) define steps, and select the first via next_step()
-execfile(fullpath)
+execfile(tmp_control_file)
 
 try:
 	init = step_init
