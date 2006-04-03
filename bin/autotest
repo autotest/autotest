@@ -21,10 +21,19 @@ sys.path.insert(0, autodirbin)
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
 
+# If we are envoked with a control file, clear up any old control file
+# and start that. 
 tmp_control_file = autodir + '/control'
-if os.path.exists(tmp_control_file):
-	os.remove(tmp_control_file)
-shutil.copyfile(os.path.abspath(sys.argv[1]), tmp_control_file)
+if (len(sys.argv) != 1):
+	if os.path.exists(tmp_control_file):
+		os.remove(tmp_control_file)
+	# XXX: we need to know about the state file ... fix me.
+	if os.path.exists(tmp_control_file + '.state'):
+		os.remove(tmp_control_file + '.state')
+	shutil.copyfile(os.path.abspath(sys.argv[1]), tmp_control_file)
+else:
+	if not os.path.exists(tmp_control_file):
+		sys.exit(0)
 
 # JOB: instantiate the job object ready for the control file.
 job = job.job(tmp_control_file);
