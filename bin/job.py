@@ -65,7 +65,7 @@ class job:
 		if os.path.exists(self.control):
 			os.rename(self.control, self.control + '.complete')
 
-		sys.exit(0)
+		sys.exit(status)
 
 	# STEPS: the stepping engine -- if the control file defines
 	#        step_init we will be using this engine to drive multiple
