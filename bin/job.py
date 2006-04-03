@@ -34,9 +34,9 @@ class job:
 	def kernel(self, topdir, base_tree):
 		return kernel.kernel(self, topdir, base_tree)
 
-
-	def runtest(self, tag, testname, test_args):
-		mytest = test.test(self, testname + '.' + tag)
+	def runtest(self, tag, testname, *test_args):
+		exec "import %s" % testname
+		exec "mytest = %s.%s(self, testname + '.' + tag)" % (testname, testname)
 		mytest.run(testname, test_args)
 
 	def noop(self, text):

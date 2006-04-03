@@ -11,7 +11,6 @@ class test:
 		os.mkdir(self.testdir + "/debug")
 		os.mkdir(self.testdir + "/analysis")
 
-
 	def run(self, testname, parameters):
 		os.chdir(self.testdir)
 		pid = os.fork()
@@ -19,4 +18,6 @@ class test:
 			os.waitpid (pid,0)
 		else:			# child
 			self.setup()
-			self.execute()
+			self.execute(*parameters)
+			# XXX: NO NO NO
+			sys.exit(0)
