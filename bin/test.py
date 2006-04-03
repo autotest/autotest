@@ -1,4 +1,4 @@
-import os
+import os, pickle, tempfile
 from autotest_utils import *
 
 class test:
@@ -12,12 +12,28 @@ class test:
 		os.mkdir(self.testdir + "/analysis")
 
 	def run(self, testname, parameters):
-		os.chdir(self.testdir)
 		pid = os.fork()
 		if pid:			# parent
-			os.waitpid (pid,0)
+			status = os.waitpid (pid,0)
+
+			ename = self.testdir + "/debug/error-%d" % pid
+			if (os.path.exists(ename)):
+				fd = file(ename, 'r')
+				err = pickle.load(fd)
+				fd.close()
+
+				raise err
+
 		else:			# child
-			self.setup()
-			self.execute(*parameters)
-			# XXX: NO NO NO
-			sys.exit(0)
+			try:
+				os.chdir(self.testdir)
+				self.setup()
+				self.execute(*parameters)
+
+			except Exception, detail:
+				ename = self.testdir + "/debug/error-%d" % (
+					os.getpid())
+				pickle.dump(detail, open(ename, "w"))
+				os._exit(1)
+
+			os._exit(0)
