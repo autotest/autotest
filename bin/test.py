@@ -34,6 +34,6 @@ class test:
 				ename = self.testdir + "/debug/error-%d" % (
 					os.getpid())
 				pickle.dump(detail, open(ename, "w"))
-				os._exit(1)
+				sys.exit(1)
 
-			os._exit(0)
+			sys.exit(0)
