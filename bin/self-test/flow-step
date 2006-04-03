@@ -1,0 +1,9 @@
+def step_init():
+	job.next_step([step_test])
+	print "build"
+	print "boot"
+	job.quit()
+
+def step_test():
+	print "test"
+	job.quit()

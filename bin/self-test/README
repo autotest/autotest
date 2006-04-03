@@ -1,0 +1,11 @@
+Flow Control Tests
+==================
+flow-simple -- simple non phased control script
+
+flow-step -- simple phased control script
+
+flow-step-parallel -- phased and parallel control script
+
+flow-step-parallel2 -- phased and parallel control script
+
+flow-step-iterate -- phases and iterative control script
