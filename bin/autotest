@@ -4,6 +4,7 @@
 #
 import os, sys, shutil
 import job, kernel, test
+from error import *
 from autotest_utils import *
 
 # Use the name of the binary to find the real installation directory
@@ -38,17 +39,25 @@ else:
 # JOB: instantiate the job object ready for the control file.
 job = job.job(tmp_control_file);
 
-# Load in the users control file, may do any one of:
-#  1) execute in toto
-#  2) define steps, and select the first via next_step()
-execfile(tmp_control_file)
-
 try:
-	init = step_init
-except NameError:
-	pass
-else:
-	job.step_engine([step_init])
+	# Load in the users control file, may do any one of:
+	#  1) execute in toto
+	#  2) define steps, and select the first via next_step()
+	execfile(tmp_control_file)
 
-# If we get here, then we assume the job is complete and good.
-job.complete(0)
+	try:
+		init = step_init
+	except NameError:
+		pass
+	else:
+		job.step_engine([step_init])
+
+	# If we get here, then we assume the job is complete and good.
+	job.complete(0)
+
+except JobError, instance:
+	print "JOB ERROR:" + instance.args[0]
+	job.complete(1)
+
+except:
+	raise
