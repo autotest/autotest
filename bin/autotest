@@ -13,8 +13,8 @@ from autotest_utils import *
 autodirbin = os.path.abspath(os.path.dirname(sys.argv[0]))
 autodir = os.path.dirname(autodirbin)
 
-print 'AUTODIRBIN: ' + autodirbin
-print 'AUTODIR: ' + autodir
+##print 'AUTODIRBIN: ' + autodirbin
+##print 'AUTODIR: ' + autodir
 
 sys.path.insert(0, autodirbin+'/tests')
 sys.path.insert(0, autodirbin)
