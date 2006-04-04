@@ -87,7 +87,7 @@ class job:
 
 		# Run the step list.
 		while len(self.steps) > 0:
-			step = self.steps.pop()
+			step = self.steps.pop(0)
 			pickle.dump(self.steps, open(self.control + '.state',
 				'w'))
 
