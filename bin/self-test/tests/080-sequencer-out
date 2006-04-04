@@ -1,0 +1,5 @@
+checkpoint 1 1
+checkpoint 2 3
+JOB ERROR:selftest: sequence was 2 when 3 expected
+--SELFTEST-- exit 1
+--SELFTEST-- exit 0

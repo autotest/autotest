@@ -1,0 +1,3 @@
+JOB ERROR:--SELFTEST-- JobError
+--SELFTEST-- exit 1
+--SELFTEST-- exit 0

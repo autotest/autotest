@@ -1,0 +1,3 @@
+job.runtest('test1', 'selftest', 1)
+job.runtest('test3', 'selftest', 3)
+job.runtest('test2', 'selftest', 2)

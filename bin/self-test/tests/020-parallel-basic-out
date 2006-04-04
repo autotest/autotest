@@ -1,0 +1,6 @@
+--SELFTEST-- loading test
+--STEPTEST-- payload1 start
+--STEPTEST-- payload2 start
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload2 complete
+--SELFTEST-- exit 0

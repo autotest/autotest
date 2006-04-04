@@ -1,0 +1,14 @@
+print "--SELFTEST-- loading test"
+
+def step_init():
+	job.next_step([step_two])
+	print "--STEPTEST-- step_init called"
+	job.quit()
+	
+def step_two():
+	job.next_step([step_three])
+	print "--STEPTEST-- step_two called"
+	job.quit()
+	
+def step_three():
+	print "--STEPTEST-- step_three called"
