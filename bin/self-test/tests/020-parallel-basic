@@ -1,0 +1,14 @@
+print "--SELFTEST-- loading test"
+
+def payload1():
+	print "--STEPTEST-- payload1 start"
+	os.system("sleep 2");
+	print "--STEPTEST-- payload1 complete"
+
+def payload2():
+	os.system("sleep 1");
+	print "--STEPTEST-- payload2 start"
+	os.system("sleep 2");
+	print "--STEPTEST-- payload2 complete"
+
+job.parallel([payload1], [payload2])
