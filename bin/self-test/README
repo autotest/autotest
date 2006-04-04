@@ -1,11 +1,9 @@
-Flow Control Tests
-==================
-flow-simple -- simple non phased control script
+Function Test Suite
+===================
+To run the function test suite:
 
-flow-step -- simple phased control script
+	sh test test
 
-flow-step-parallel -- phased and parallel control script
+To clean up afterwards:
 
-flow-step-parallel2 -- phased and parallel control script
-
-flow-step-iterate -- phases and iterative control script
+	sh test clean
