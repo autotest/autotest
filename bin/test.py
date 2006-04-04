@@ -1,5 +1,6 @@
 import os, pickle, tempfile
 from autotest_utils import *
+from error import *
 
 class test:
 	def __init__(self, job, testdir):
@@ -14,7 +15,7 @@ class test:
 	def run(self, testname, parameters):
 		pid = os.fork()
 		if pid:			# parent
-			status = os.waitpid (pid,0)
+			(pid, status) = os.waitpid (pid,0)
 
 			ename = self.testdir + "/debug/error-%d" % pid
 			if (os.path.exists(ename)):
@@ -23,6 +24,10 @@ class test:
 				fd.close()
 
 				raise err
+
+			if (status != 0):
+				raise TestError("test %s failed rc=%d" % (
+					testname, status))
 
 		else:			# child
 			try:
