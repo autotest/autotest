@@ -97,16 +97,18 @@ class kernel:
 		self.job.stderr.redirect(self.log_dir+'/stderr')
 		self.set_cross_compiler()
 		# setup_config_file(config_file, config_overrides)
-		os.system('make dep')		# Not needed on 2.6, but hard to tell
+
+		# Not needed on 2.6, but hard to tell -- handle failure
+		try:
+			system('make dep')
+		except CmdError:
+			pass
 		threads = 2 * count_cpus()
-		exitcode = os.system('make -j %d %s' % (threads, target))
+		system('make -j %d %s' % (threads, target))
 			# eg make bzImage, or make zImage
-		if exitcode:
-			exit (1)
 		if kernel_config.modules_needed('.config'):
-			exitcode = os.system('make modules')
-			if exitcode:
-				exit (1)
+			system('make modules')
+
 		self.job.stdout.restore()
 		self.job.stderr.restore()
 
@@ -114,11 +116,11 @@ class kernel:
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
 		build_string = "/usr/bin/time make %s -j %s vmlinux > /dev/null 2> %s" % (make_opts, threads, timefile)
 		print build_string
-		exitcode = os.system (build_string)
-		if exitcode or (not os.path.isfile('vmlinux')):
-			exit (1)
+		system(build_string)
+		if (not os.path.isfile('vmlinux')):
+			raise TestError("no vmlinux found, kernel build failed")
 		print "make clean"
-		os.system ("make clean")
+		system('make clean')
 
 	
 	def install(self, dir):
@@ -130,7 +132,7 @@ class kernel:
 		force_copy('.config', '/boot/config-autotest')
 	
 		if kernel_config.modules_needed('.config'):
-			os.system('make modules_install')
+			system('make modules_install')
 	
 	
 	def set_cross_compiler(self):
