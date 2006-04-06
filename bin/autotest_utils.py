@@ -1,4 +1,5 @@
 import os,os.path,shutil,urllib,sys,signal
+from error import *
 
 def grep(pattern, file):
 # This is mainly to fix the return code inversion from grep
@@ -13,14 +14,13 @@ def difflist(list1, list2):
 			diff.append(x)
 	return diff
 
-
 def cat_file_to_cmd(file, command):
 	if file.endswith('.bz2'):
-		os.system('bzcat ' + file + ' | ' + command)
+		system('bzcat ' + file + ' | ' + command)
 	elif file.endswith('.gz'):
-		os.system('zcat ' + file + ' | ' + command)
+		system('zcat ' + file + ' | ' + command)
 	else:
-		os.system('cat ' + file + ' | ' + command)
+		system('cat ' + file + ' | ' + command)
 	
 
 def get_file(src, dest):
@@ -80,15 +80,18 @@ def count_cpus():
 	return cpus
 
 
-# We have our own definiton of system here, as the stock os.system doesn't
+# We have our own definition of system here, as the stock os.system doesn't
 # correctly handle sigpipe (ie things like "yes | head" will hang because
 # yes doesn't get the SIGPIPE).
 def system(cmd):
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
-		os.system(cmd)
+		status = os.system(cmd)
 	finally:
 		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+	
+	if (status != 0):
+		raise CmdError(cmd, status)
 
 
 def where_art_thy_filehandles():

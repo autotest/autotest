@@ -6,6 +6,9 @@ P="test"
 
 me="../autotest"
 
+# XXX: the exit status that indicates a rerun ...
+rerun=5
+
 function runtests {
 	for i in \
 		"$@"
@@ -19,12 +22,12 @@ function runtests {
 			"$me" "$i"
 			rc="$?"
 			echo "--SELFTEST-- exit $rc"
-			while [ "$rc" != 0 ]; do
+			while [ "$rc" = "$rerun" ]; do
 				"$me"
 				rc="$?"
 				echo "--SELFTEST-- exit $rc"
 			done
-		} >"$i-tmp"
+		} >"$i-tmp" 2>&1
 
 		if [ ! -f "$i-out" ]; then
 			echo "$P: WARNING: $i: no results for test"
