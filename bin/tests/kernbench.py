@@ -27,4 +27,4 @@ class kernbench(test):
 			testkernel.build_timed(threads, '../log/time.%d' % i)
 
 		os.chdir(top_dir + '/log')
-		os.system("grep elapsed time.* > time")
+		system("grep elapsed time.* > time")
