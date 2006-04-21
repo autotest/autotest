@@ -12,7 +12,7 @@ class test:
 		os.mkdir(self.testdir + "/debug")
 		os.mkdir(self.testdir + "/analysis")
 
-	def __exec(self, testname, parameters):
+	def __exec(self, parameters):
 		sys.stdout.flush()
 		sys.stderr.flush()
 		pid = os.fork()
