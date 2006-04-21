@@ -13,6 +13,8 @@ class test:
 		os.mkdir(self.testdir + "/analysis")
 
 	def run(self, testname, parameters):
+		sys.stdout.flush()
+		sys.stderr.flush()
 		pid = os.fork()
 		if pid:			# parent
 			(pid, status) = os.waitpid (pid,0)
