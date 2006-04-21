@@ -17,7 +17,7 @@ class kernbench(test.test):
 
 		top_dir = self.job.tmpdir+'/kernbench'
 		kernel = self.job.kernel(top_dir, kernelver)
-		kernel.config([config])
+		kernel.config(config)
 
 
 		kernel.build_timed(threads)         # warmup run
