@@ -12,7 +12,7 @@ class test:
 		os.mkdir(self.testdir + "/debug")
 		os.mkdir(self.testdir + "/analysis")
 
-	def run(self, testname, parameters):
+	def __exec(self, testname, parameters):
 		sys.stdout.flush()
 		sys.stderr.flush()
 		pid = os.fork()
@@ -29,7 +29,7 @@ class test:
 
 			if (status != 0):
 				raise TestError("test %s failed rc=%d" % (
-					testname, status))
+					self.__class__.__name__, status))
 
 		else:			# child
 			try:
@@ -48,3 +48,17 @@ class test:
 	def setup(self):
 		pass
 
+	def run(self, testname, parameters):
+		status = self.testdir + "/status"
+		try:
+			self.__exec(parameters)
+		except Exception, detail:
+			fd = file(status, "w")
+			fd.write("FAIL " + detail.__str__() + "\n")
+			fd.close()
+
+			raise detail
+		else:
+			fd = file(status, "w")
+			fd.write("GOOD Completed Successfully\n")
+			fd.close()
