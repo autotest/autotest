@@ -30,15 +30,14 @@ class kernel:
 		self.get_kernel_tree(base_tree)
 
 
-	def patch(self, patches):
+	def patch(self, *patches):
 		self.job.stdout.redirect(self.log_dir+'/stdout')
 		local_patches = self.get_patches(patches)
 		self.apply_patches(local_patches)
 		self.job.stdout.restore()
 
 
-	def config(self, config_list):
-		config_file = config_list.pop()
+	def config(self, config_file, config_list = None):
 		self.job.stdout.redirect(self.log_dir+'/stdout')
 		config = kernel_config.kernel_config(self.build_dir, self.config_dir, config_file, config_list)
 		self.job.stdout.restore()
