@@ -3,7 +3,7 @@ class ltp(test.test):
 
 	# http://prdownloads.sourceforge.net/ltp/ltp-full-20060412.tgz
 	def setup(self, tarball = self.bindir+'ltp-full-20060412.tgz');
-		self.tarball = unmap_potential_url(url, self.tmpdir)
+		self.tarball = unmap_potential_url(tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
