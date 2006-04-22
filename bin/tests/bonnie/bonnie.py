@@ -7,9 +7,7 @@ class bonnie(test.test):
 	def setup(self)
 		self.tarball = self.bindir + 'bonnie++-1.03a.tgz'
 		# http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
-		os.chdir(self.srcdir . '/..')
-		system_raise('tar ztf ' + self.tarball)
-		os.rename('bonnie++-1.03a/', self.srcdir)
+		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
 		system_raise('./configure')
