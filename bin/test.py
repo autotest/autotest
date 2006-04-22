@@ -7,10 +7,14 @@ class test:
 		self.job = job
 		self.testdir = job.resultdir + '/' + testdir
 		os.mkdir(self.testdir)
-		os.mkdir(self.testdir + "/results")
-		os.mkdir(self.testdir + "/profiling")
-		os.mkdir(self.testdir + "/debug")
-		os.mkdir(self.testdir + "/analysis")
+		self.resultsdir = self.testdir + "/results"
+		os.mkdir(self.resultsdir)
+		self.profdir = self.testdir + "/profiling"
+		os.mkdir(self.profdir)
+		self.debugdir = self.testdir + "/debug"
+		os.mkdir(self.debugdir)
+		self.tmpdir = self.testdir + "/tmp"
+		os.mkdir(self.tmpdir)
 
 	def __exec(self, parameters):
 		sys.stdout.flush()
