@@ -13,7 +13,7 @@ class kernel:
 		if not self.top_dir.startswith(autodir):
 			raise
 		if os.path.isdir(self.top_dir):
-			os.system('rm -rf ' + self.top_dir)
+			system('rm -rf ' + self.top_dir)
 		os.mkdir(self.top_dir)
 
 		self.src_dir    = self.top_dir + '/src'

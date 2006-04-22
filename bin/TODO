@@ -9,3 +9,5 @@ kernbench results are a mess - clean them up to dump into correct dirs.
 Make test wrapper chdir before and after setup and execute phases - nappy change
 
 Fix lmbench's config stage stuff
+
+Redirect stdout and stderr for each test's setup and execute to 4 sep files
