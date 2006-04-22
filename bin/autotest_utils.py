@@ -17,7 +17,7 @@ def difflist(list1, list2):
 def cat_file_to_cmd(file, command):
 	if file.endswith('.bz2'):
 		system('bzcat ' + file + ' | ' + command)
-	elif file.endswith('.gz'):
+	elif (file.endswith('.gz') || file.endswith('.tgz')):
 		system('zcat ' + file + ' | ' + command)
 	else:
 		system('cat ' + file + ' | ' + command)
