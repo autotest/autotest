@@ -2,6 +2,8 @@ import test
 from autotest_utils import *
 
 class bonnie(test.test):
+	version = 1
+
 	def setup(self)
 		self.tarball = self.bindir + 'bonnie++-1.03a.tgz'
 		# http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
