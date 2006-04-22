@@ -1,9 +1,9 @@
 class dbench(test.test):
 	version = 1
 
-	def setup(self)
-		self.tarball = self.bindir + 'dbench-3.04.tar.gz'
-		# http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
+	# http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
+	def setup(self, tarball = self.bindir + 'dbench-3.04.tar.gz')
+		self.tarball = unmap_potential_url(tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
