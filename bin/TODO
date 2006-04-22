@@ -1,0 +1,10 @@
+Make test.py detect for source of a test at same version as current package,
+if not, run test.setup()
+
+Make sure build process dumps config errors in separate file from build
+errors (and warnings), from build output
+
+kernbench results are a mess - clean them up to dump into correct dirs.
+
+Make test wrapper chdir before and after setup and execute phases - nappy change
+
