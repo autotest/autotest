@@ -15,14 +15,41 @@ def difflist(list1, list2):
 	return diff
 
 def cat_file_to_cmd(file, command):
+	if not os.path.isfile(file):
+		raise NameError, 'invalid file %s to cat to command %s' % file, command
 	if file.endswith('.bz2'):
-		system('bzcat ' + file + ' | ' + command)
+		system_raise('bzcat ' + file + ' | ' + command)
 	elif (file.endswith('.gz') or file.endswith('.tgz')):
-		system('zcat ' + file + ' | ' + command)
+		system_raise('zcat ' + file + ' | ' + command)
 	else:
-		system('cat ' + file + ' | ' + command)
-	
+		system_raise('cat ' + file + ' | ' + command)
 
+	
+# Extract a tarball to a specified directory name instead of whatever 
+# the top level of a tarball is - useful for versioned directory names, etc
+def extract_tarball_to_dir(tarball, dir):
+	if os.path.exists(dir):
+		raise NameError, 'target %s already exists' % dir
+	pwd = os.getcwd()
+	os.chdir(os.path.dirname(os.path.abspath(dir)))
+	newdir = extract_tarball(tarball)
+	os.rename(newdir, dir)
+	os.chdir(pwd)
+
+
+# Returns the first found newly created directory by the tarball extraction
+def extract_tarball(tarball):
+	oldlist = os.listdir('.')
+	cat_file_to_cmd(tarball, 'tar xf -')
+	newlist = os.listdir('.')
+	newfiles = difflist(oldlist, newlist)   # what is new dir ?
+	new_dir = None
+	for newfile in newfiles:
+		if (os.path.isdir(newfile)):
+			return newfile
+	raise NameError, "extracting tarball produced no dir"
+
+	
 def get_file(src, dest):
 	# get a file, either from url or local
 	if (src.startswith('http://')) or (src.startswith('ftp://')):
