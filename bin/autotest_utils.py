@@ -3,7 +3,7 @@ from error import *
 
 def grep(pattern, file):
 # This is mainly to fix the return code inversion from grep
-	return not os.system('grep "' + pattern + '" "' + file + '"')
+	return not system('grep "' + pattern + '" "' + file + '"')
 	
 	
 def difflist(list1, list2):	
@@ -18,11 +18,11 @@ def cat_file_to_cmd(file, command):
 	if not os.path.isfile(file):
 		raise NameError, 'invalid file %s to cat to command %s' % file, command
 	if file.endswith('.bz2'):
-		system_raise('bzcat ' + file + ' | ' + command)
+		system('bzcat ' + file + ' | ' + command)
 	elif (file.endswith('.gz') or file.endswith('.tgz')):
-		system_raise('zcat ' + file + ' | ' + command)
+		system('zcat ' + file + ' | ' + command)
 	else:
-		system_raise('cat ' + file + ' | ' + command)
+		system('cat ' + file + ' | ' + command)
 
 	
 # Extract a tarball to a specified directory name instead of whatever 
@@ -110,20 +110,19 @@ def count_cpus():
 # We have our own definition of system here, as the stock os.system doesn't
 # correctly handle sigpipe 
 # (ie things like "yes | head" will hang because yes doesn't get the SIGPIPE).
-def system(cmd):
+# 
+# Also the stock os.system didn't raise errors based on exit status, this 
+# version does unless you explicitly specify ignorestatus=1
+def system(cmd, ignorestatus = 0):
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
 		status = os.system(cmd)
 	finally:
 		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
-	
-	if (status != 0):
+
+	if ((status != 0) and (ignorestatus != 0)):
 		raise CmdError(cmd, status)
-
-
-def system_raise(cmd):
-	if system(cmd):
-		raise UnhandledError('command %s failed' % cmd)
+	return status
 
 
 def where_art_thy_filehandles():

@@ -7,11 +7,11 @@ class bonnie(test.test):
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system_raise('./configure')
-		system_raise('make')
+		system('./configure')
+		system('make')
 		
 	def execute(self, iterations = 1, extra_args = None, user = 'root');
 		args = '-d ' + self.tmp_dir + ' -u ' + user + ' ' + extra_args
 
 		for i in range(1, iterations+1):
-			system_raise(self.srcdir + '/bonnie++ ' + args)
+			system(self.srcdir + '/bonnie++ ' + args)

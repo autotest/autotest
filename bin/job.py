@@ -16,11 +16,11 @@ class job:
 		self.autodir = os.environ['AUTODIR']
 		self.tmpdir = self.autodir + '/tmp'
 		if os.path.exists(self.tmpdir):
-			os.system('rm -rf ' + self.tmpdir)
+			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 		self.resultdir = self.autodir + '/results' + jobtag
 		if os.path.exists(self.resultdir):
-			os.system('rm -rf ' + self.resultdir)
+			system('rm -rf ' + self.resultdir)
 		os.mkdir(self.resultdir)
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
