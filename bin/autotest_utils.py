@@ -49,12 +49,17 @@ def extract_tarball(tarball):
 			return newfile
 	raise NameError, "extracting tarball produced no dir"
 
-	
+def is_url(path):
+	if (path.startswith('http://')) or (path.startswith('ftp://')):
+	# should cope with other url types here, but we don't handle them yet
+		return 1
+	return 0
+
 def get_file(src, dest):
 	if (src == dest):      # no-op here allows clean overrides in tests
 		return
 	# get a file, either from url or local
-	if (src.startswith('http://')) or (src.startswith('ftp://')):
+	if (is_url(src)):
 		print 'PWD: ' + os.getcwd()
 		print 'Fetching \n\t', src, '\n\t->', dest
 		try:
@@ -65,6 +70,15 @@ def get_file(src, dest):
 		return dest
 	shutil.copyfile(src, dest)
 	return dest
+
+
+def unmap_potential_url(src, destdir = '.'):
+	if is_url(src):
+		dest = destdir + '/' + os.path.basename(src)
+		get_file(src, dest)
+		return dest
+	return src
+
 
 def basename(path):
 	i = path.rfind('/');
