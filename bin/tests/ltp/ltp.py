@@ -12,10 +12,10 @@ class ltp(test.test):
 		os.chdir(self.srcdir)
 
 		cpus = count_cpus()
-		system('./configure')
-		system('make')
+		system('make -j' + cpus)
+		system('make install')
 		
-	def execute(self, iterations = 1, args = None);
-		for i in range(1, iterations+1):
-			args = args + ' -c '+self.srcdir+'/client_oplocks.txt'
-			system(self.srcdir + '/dbench ' + args)
+	def execute(self, args = None);
+		logfile = self.resultsdir + '/ltp.log'
+		args = '-q -l ' + logfile + ' ' + args
+		system(self.srcdir + './runalltests.sh ' + args)
