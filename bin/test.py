@@ -33,9 +33,17 @@ class test:
 
 		else:			# child
 			try:
-				os.chdir(self.testdir)
-				self.setup()
-				self.execute(*parameters)
+				try:
+					os.chdir(self.testdir)
+					self.setup()
+					self.execute(*parameters)
+
+				except AutotestError:
+					raise
+
+				except:
+					raise UnhandledError('running test ' + \
+						self.__class__.__name__ + "\n")
 
 			except Exception, detail:
 				ename = self.testdir + "/debug/error-%d" % (
@@ -44,6 +52,17 @@ class test:
 				sys.exit(1)
 
 			sys.exit(0)
+
+##	def __exec(self, parameters):
+##		try:
+##			os.chdir(self.testdir)
+##			self.setup()
+##			self.execute(*parameters)
+##		except AutotestError:
+##			raise
+##		except:
+##			raise UnhandledError('running test ' + \
+##				self.__class__.__name__ + "\n")
 
 	def setup(self):
 		pass
@@ -57,7 +76,7 @@ class test:
 			fd.write("FAIL " + detail.__str__() + "\n")
 			fd.close()
 
-			raise detail
+			raise
 		else:
 			fd = file(status, "w")
 			fd.write("GOOD Completed Successfully\n")
