@@ -1,0 +1,1 @@
+job.runtest('test1', 'selftest', 'throw')
