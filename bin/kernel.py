@@ -70,22 +70,8 @@ class kernel:
 		tarball = 'src/' + basename(base_tree)
 		get_file(base_tree, tarball)
 
-		oldlist = os.listdir(self.top_dir)
 		print 'Extracting kernel tarball:', tarball, '...'
-		cat_file_to_cmd(tarball, 'tar xf -')
-		newlist = os.listdir(self.top_dir)
-		newfiles = difflist(oldlist, newlist)	# what is new dir ?
-		kernel_dir = ''
-		for newfile in newfiles:
-			if (os.path.isdir(newfile)):
-				kernel_dir = newfile
-		if (kernel_dir == ''):
-			raise NameError, "extracting tarball produced no dir"
-		if not os.path.isdir(kernel_dir):
-			print "directory " + kernel_dir + " not present"
-			raise NameError, "directory " + kernel_dir + " not present"
-		print 'Extracted kernel tree:', kernel_dir
-		os.rename(kernel_dir, 'build')
+		extract_tarball_to_dir(tarball, 'build')
 	
 
 	def build(self, make_opts = ''):
