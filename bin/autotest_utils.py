@@ -51,6 +51,8 @@ def extract_tarball(tarball):
 
 	
 def get_file(src, dest):
+	if (src == dest):      # no-op here allows clean overrides in tests
+		return
 	# get a file, either from url or local
 	if (src.startswith('http://')) or (src.startswith('ftp://')):
 		print 'PWD: ' + os.getcwd()
@@ -61,7 +63,6 @@ def get_file(src, dest):
 			sys.stderr.write("Unable to retrieve %s (to %s)\n" % (src, dest))
 			sys.exit(1)
 		return dest
-	# elif os.path.isfile(src):
 	shutil.copyfile(src, dest)
 	return dest
 
