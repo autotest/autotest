@@ -1,6 +1,3 @@
-import test
-from autotest_utils import *
-
 class bonnie(test.test):
 	version = 1
 
@@ -14,10 +11,7 @@ class bonnie(test.test):
 		system_raise('make')
 		
 	def execute(self, iterations = 1, extra_args = None, user = 'root');
-		args = ['-d ' + self.tmp_dir]
-		args.append('-u ' + user)
-		args.append(extra_args)
-		system_raise(self.srcdir + '/bonnie++ ' + ' '.join(args))
+		args = '-d ' + self.tmp_dir + ' -u ' + user + ' ' + extra_args
 
 		for i in range(1, iterations+1):
-			kernel.build_timed(threads, '../log/time.%d' % i)
+			system_raise(self.srcdir + '/bonnie++ ' + args)
