@@ -17,7 +17,7 @@ def difflist(list1, list2):
 def cat_file_to_cmd(file, command):
 	if file.endswith('.bz2'):
 		system('bzcat ' + file + ' | ' + command)
-	elif (file.endswith('.gz') || file.endswith('.tgz')):
+	elif (file.endswith('.gz') or file.endswith('.tgz')):
 		system('zcat ' + file + ' | ' + command)
 	else:
 		system('cat ' + file + ' | ' + command)
@@ -51,9 +51,9 @@ def force_copy(src, dest):
 
 def get_target_arch():
 # Work out which CPU architecture we're running on
-	if not os.system("egrep '^cpu.*(RS64|POWER(3|4|5)|PPC970|Broadband Engine)' /proc/cpuinfo"):
+	if not system("egrep '^cpu.*(RS64|POWER(3|4|5)|PPC970|Broadband Engine)' /proc/cpuinfo"):
 		return 'ppc64'
-	elif not os.system("grep -q 'Opteron' /proc/cpuinfo"):
+	elif not system("grep -q 'Opteron' /proc/cpuinfo"):
 		# THIS IS WRONG, needs Intel too
 		return 'x86_64'
 	else:
@@ -81,8 +81,8 @@ def count_cpus():
 
 
 # We have our own definition of system here, as the stock os.system doesn't
-# correctly handle sigpipe (ie things like "yes | head" will hang because
-# yes doesn't get the SIGPIPE).
+# correctly handle sigpipe 
+# (ie things like "yes | head" will hang because yes doesn't get the SIGPIPE).
 def system(cmd):
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
@@ -92,6 +92,11 @@ def system(cmd):
 	
 	if (status != 0):
 		raise CmdError(cmd, status)
+
+
+def system_raise(cmd):
+	if system(cmd):
+		raise UnhandledError('command %s failed' % cmd)
 
 
 def where_art_thy_filehandles():
