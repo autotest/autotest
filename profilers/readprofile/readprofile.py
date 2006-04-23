@@ -22,6 +22,8 @@ class readprofile(profiler.profiler):
 
 
 	def stop(self):
+		# There's no real way to stop readprofile, so we stash the
+		# raw data at this point instead. BAD EXAMPLE TO COPY! ;-)
 		self.rawprofile = self.resultsdir + '/results/profile.raw'
 		shutil.copyfile('/proc/profile', rawprofile)
 		system('bzip2 ' + rawprofile)
