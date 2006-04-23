@@ -75,12 +75,13 @@ def get_file(src, dest):
 	return dest
 
 
-def unmap_potential_url(src, destdir = '.'):
+def unmap_url(srcdir, src, destdir = '.'):
 	if is_url(src):
 		dest = destdir + '/' + os.path.basename(src)
 		get_file(src, dest)
 		return dest
-	return src
+	else:
+		return srcdir + '/' + src
 
 
 def basename(path):

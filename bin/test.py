@@ -5,6 +5,7 @@ from error import *
 class test:
 	def __init__(self, job, testdir):
 		self.job = job
+		self.tests = job.autodir + '/tests'
 		self.testdir = job.resultdir + '/' + testdir
 		os.mkdir(self.testdir)
 		self.resultsdir = self.testdir + "/results"
