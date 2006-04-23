@@ -14,6 +14,7 @@ class AsyncRun(threading.Thread):
 class job:
 	def __init__(self, control, jobtag='default'):
 		self.autodir = os.environ['AUTODIR']
+		self.testdir = self.autodir + '/tests'
 		self.tmpdir = self.autodir + '/tmp'
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
@@ -35,8 +36,16 @@ class job:
 		return kernel.kernel(self, topdir, base_tree)
 
 	def runtest(self, tag, testname, *test_args):
+		sys.path.insert(0, self.testdir + '/' + testname)
 		exec "import %s" % testname
 		exec "mytest = %s.%s(self, testname + '.' + tag)" % (testname, testname)
+		mytest.bindir = self.testdir + '/' + testname
+		mytest.srcdir = mytest.bindir + '/' + testname
+		if os.path.exists(mytest.srcdir):
+			# Bad idea, as it'll always rebuild, but will do for now
+			system('rm -rf ' + mytest.srcdir)
+		mytest.tmpdir = self.tmpdir + '/' + testname
+		os.mkdir(mytest.tmpdir)
 		mytest.run(testname, test_args)
 
 	def noop(self, text):

@@ -5,21 +5,24 @@ from autotest_utils import *
 class lmbench(test.test):
 	version = 1
 
-	def setup(self):
-		self.tarball = self.bindir + 'lmbench3.tar.gz'
+	def setup(self, tarball = 'lmbench3.tar.gz'):
+		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		# http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
 		# + lmbench3.diff (removes Makefile references to bitkeeper)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
+		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
 		system('make')
 		
-	def execute(self, iterations = 1, mem = None, fastmem = 'NO', 
-			slowfs = 'NO', disks = None, disks_desc = None, 
-			mhz = None, remote = None, 
-			enough = '5000', sync_max = '1',
-			fsdir = self.tmpdir, file = self.tmpdir+'XXX')
-		config = open(self.srcdir + 'scripts/config-run', 'w')
+	def execute(self, iterations = 1, mem = '', fastmem = 'NO', 
+			slowfs = 'NO', disks = '', disks_desc = '', 
+			mhz = '', remote = '', enough = '5000', sync_max = '1',
+			fsdir = None, file = None):
+		if not fsdir:
+			fsdir = self.tmpdir
+		if not file:
+			file = self.tmpdir+'XXX'
+		config = open(self.srcdir + '/scripts/config-run', 'w')
 		config.write('MEM="' + mem + '"\n')
 		config.write('FASTMEM="' + fastmem + '"\n')
 		config.write('SLOWFS="' + slowfs + '"\n')
