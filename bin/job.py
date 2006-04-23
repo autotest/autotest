@@ -15,6 +15,7 @@ class job:
 	def __init__(self, control, jobtag='default'):
 		self.autodir = os.environ['AUTODIR']
 		self.testdir = self.autodir + '/tests'
+		self.profdir = self.autodir + '/profilers'
 		self.tmpdir = self.autodir + '/tmp'
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
