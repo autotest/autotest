@@ -1,0 +1,11 @@
+--- lockstat/Makefile	2006-04-22 18:17:20.000000000 -0700
++++ lockstat/Makefile.old	2006-04-22 18:23:51.000000000 -0700
+@@ -5,7 +5,7 @@
+ # other than the one currently installed on your machine, define it in
+ # your environment or on the make command line.
+ ifndef LINUX_INC_ROOT
+-LINUX_INC_ROOT = include
++LINUX_INC_ROOT = ../../linux/linux/include
+ endif
+ 
+ PROGS	= lockstat
