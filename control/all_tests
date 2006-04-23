@@ -1,0 +1,10 @@
+job.runtest('bonnie', 'bonnie')
+job.runtest('dbench', 'dbench')
+job.runtest('fsx', 'fsx')
+job.runtest('kernbench', 'kernbench', 2, 5)
+job.runtest('lmbench', 'lmbench')
+job.runtest('ltp', 'ltp')
+job.runtest('reaim', 'reaim')
+job.runtest('tbench', 'tbench')
+
+
