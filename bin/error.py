@@ -18,8 +18,7 @@ class TestError(AutotestError):
 # unless caught.
 class CmdError(TestError):
 	def __str__(self):
-		return "Command <" + self.args[0] + "> failed, rc=%d" % (
-			self.args[1])
+		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1])
 
 # UnhandledError: indicates an unhandled exception in a test.
 class UnhandledError(TestError):

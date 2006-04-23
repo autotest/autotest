@@ -1,5 +1,6 @@
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading
+import profiler
 
 # Parallel run interface.
 class AsyncRun(threading.Thread):
@@ -32,6 +33,8 @@ class job:
 
 		self.stdout = fd_stack(1, sys.stdout)
 		self.stderr = fd_stack(2, sys.stderr)
+
+		self.profiler = profiler.profiler(self)
 
 	def kernel(self, topdir, base_tree):
 		return kernel.kernel(self, topdir, base_tree)
