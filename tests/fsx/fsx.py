@@ -4,6 +4,9 @@
 # NOTE - this should also have the ability to mount a filesystem, 
 # run the tests, unmount it, then fsck the filesystem
 
+import test
+from autotest_utils import *
+
 class fsx(test.test):
 	version = 1
 

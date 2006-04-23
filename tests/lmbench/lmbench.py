@@ -1,4 +1,6 @@
 # This will need more work on the configuration stuff before it will function
+import test
+from autotest_utils import *
 
 class lmbench(test.test):
 	version = 1

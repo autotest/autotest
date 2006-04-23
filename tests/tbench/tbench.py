@@ -1,4 +1,5 @@
-import time
+import test,time
+from autotest_utils import *
 
 class tbench(test.test):
 	version = 1
