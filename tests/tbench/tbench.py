@@ -20,6 +20,8 @@ class tbench(test.test):
 			pid = os.fork()
 			if pid:				# parent
 				time.sleep(1)
+				client = self.srcdir + '/client.txt'
+				args = '-c ' + client + ' ' + args
 				system(self.srcdir + '/tbench ' + args)
 			else:				# child
 				server = self.srcdir + '/tbench_srv'
