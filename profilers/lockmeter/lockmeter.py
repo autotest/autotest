@@ -32,7 +32,7 @@ class lockmeter(profiler.profiler):
 
 
 	def report(self):
-		args = ' -m /boot/System.map'
+		args = ' -m ' + get_systemmap()
 		self.output = self.resultsdir + '/results/lockstat'
 		system(self.cmd + args + ' print > ' self.output)
 
