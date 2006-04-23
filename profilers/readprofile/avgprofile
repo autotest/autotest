@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+$iterations = shift(@ARGV);
+for ($i = 1 ; $i <= $iterations ; ++$i) {
+	open (FILE, "profile.$i") || die;
+	while (<FILE>) {
+		/\s*(\d*)\s*(\S*)/;
+		$map{$2} += $1;
+	}
+}
+
+foreach $key (keys %map) {
+	$value = int $map{$key}/5;
+	print "$value $key\n";
+}
