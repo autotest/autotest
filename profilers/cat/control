@@ -1,9 +1,0 @@
-for profiler in ['cat']:
-	try:
-		print "Testing profiler %s ..." % profiler
-		job.profilers.add(profiler)
-		job.profilers.start('/proc/meminfo', 'meminfo')
-		job.profilers.stop()
-	except:
-		print "Test of profiler %s failed" % profiler
-		raise

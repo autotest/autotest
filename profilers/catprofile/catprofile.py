@@ -2,7 +2,7 @@
 # really, really ought to autoswitch on a list of files or individual file
 import profiler, time
 
-class cat(profiler.profiler):
+class catprofile(profiler.profiler):
 	version = 1
 
 	def setup(self, filenames, output_filename, interval = 5):
