@@ -24,9 +24,10 @@ class readprofile(profiler.profiler):
 	def stop(self):
 		self.rawprofile = self.resultsdir + '/results/profile.raw'
 		shutil.copyfile('/proc/profile', rawprofile)
+		system('bzip2 ' + rawprofile)
 
 
-	def report(self)
+	def report(self):
 		args = ' -n'
 		args = args + ' -m /boot/System.map'
 		args = args + ' -r ' + self.rawprofile
