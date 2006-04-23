@@ -40,7 +40,6 @@ class test:
 			try:
 				try:
 					os.chdir(self.testdir)
-					self.setup()
 					self.execute(*parameters)
 
 				except AutotestError:
