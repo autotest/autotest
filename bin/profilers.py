@@ -4,7 +4,7 @@ import os
 from autotest_utils import *
 from error import *
 
-class profiler:
+class profilers:
 	def __init__(self, job):
 		self.job = job
 		self.list = []

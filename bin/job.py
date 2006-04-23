@@ -44,7 +44,7 @@ class job:
 		exec "import %s" % testname
 		exec "mytest = %s.%s(self, testname + '.' + tag)" % (testname, testname)
 		mytest.bindir = self.testdir + '/' + testname
-		mytest.srcdir = mytest.bindir + '/' + testname
+		mytest.srcdir = mytest.bindir + '/src'
 		if os.path.exists(mytest.srcdir):
 			# Bad idea, as it'll always rebuild, but will do for now
 			system('rm -rf ' + mytest.srcdir)
