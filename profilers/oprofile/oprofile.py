@@ -1,11 +1,14 @@
-import shutil
+# Will need some libaries to compile. Do 'apt-get build-dep oprofile'
+
+import shutil, profiler
+from autotest_utils import *
 
 class oprofile(profiler.profiler):
 	version = 1
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.1.tar.gz
-	def setup(self, tarball = self.bindir + 'oprofile-0.9.1.tar.bz2'):
-		self.tarball = unmap_potential_url(tarball, self.tmpdir)
+	def setup(self, tarball = 'oprofile-0.9.1.tar.bz2'):
+		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
@@ -39,7 +42,7 @@ class oprofile(profiler.profiler):
 	def report(self):
 		reportfile = self.resultsdir + '/results/oprofile.txt'
 		modules = ' -p ' + get_modules_dir()
-		system(self.opreport + ' -l ' + modules + ' > ' + reportfile
+		system(self.opreport + ' -l ' + modules + ' > ' + reportfile)
 		system(self.opcontrol + ' --shutdown')
 
 

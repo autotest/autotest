@@ -1,13 +1,20 @@
 import shutil
+from autotest_utils import *
 
-class readprofile(profiler.profiler):
+class readprofile:
 	version = 1
 
-# http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
-	def setup(self, tarball = self.bindir + 'util-linux-2.12r.tar.bz2'):
-		system('grep -iq " profile=" /proc/cmdline')
+	def __init__(self, job):
+		self.job = job
 
-		self.tarball = unmap_potential_url(tarball, self.tmpdir)
+# http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
+	def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
+		try:
+			system('grep -iq " profile=" /proc/cmdline')
+		except:
+			raise CmdError, 'readprofile not enabled'
+
+		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
@@ -31,7 +38,7 @@ class readprofile(profiler.profiler):
 
 	def report(self):
 		args = ' -n'
-		args = args + ' -m /boot/System.map'
+		args = args + ' -m ' + get_systemmap()
 		args = args + ' -r ' + self.rawprofile
 		self.txtprofile = self.resultsdir + '/results/profile.text'
 		system(self.cmd + args + ' | sort -nr > ' + self.txtprofile)
