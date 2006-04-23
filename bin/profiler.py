@@ -5,36 +5,44 @@ from autotest_utils import *
 from error import *
 
 class profiler:
-	list = []            # err, I think i can do that. maybe
+	def __init__(self, job):
+		self.job = job
+		self.list = []
+		self.profdir = job.autodir + '/profilers'
+		self.tmpdir = job.tmpdir
 
 	def add(self, profiler):
-		sys.path.insert(0, job.profdir + '/' + profiler)
+		sys.path.insert(0, self.job.profdir + '/' + profiler)
 		exec 'import ' + profiler
-		exec 'myprofiler = %s.%s(self)' % (profiler, profiler)
-		myprofiler.name = profiler
-		list.append(myprofiler)
+		exec 'newprofiler = %s.%s(self)' % (profiler, profiler)
+		newprofiler.name = profiler
+		newprofiler.bindir = self.profdir + '/' + profiler
+		newprofiler.srcdir = newprofiler.bindir + '/src'
+		newprofiler.tmpdir = self.tmpdir + '/' + profiler
+		newprofiler.setup()
+		self.list.append(newprofiler)
 
 
-	def del(self, profiler):
+	def delete(self, profiler):
 		nukeme = None
-		for p in list:
+		for p in self.list:
 			if (p.name == profiler):
 				nukeme = i
-		list.remove(i)
+		self.list.remove(i)
 
 
 	def start(self):
-		for p in list:
+		for p in self.list:
 			p.start()
 
 
 	def stop(self):
-		for p in list:
+		for p in self.list:
 			p.start()
 
 
 	def report(self):
-		for p in list:
+		for p in self.list:
 			p.report()
 
 
