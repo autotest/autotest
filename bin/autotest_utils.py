@@ -1,5 +1,6 @@
 import os,os.path,shutil,urllib,sys,signal
 from error import *
+import re
 
 def grep(pattern, file):
 # This is mainly to fix the return code inversion from grep
@@ -49,11 +50,13 @@ def extract_tarball(tarball):
 			return newfile
 	raise NameError, "extracting tarball produced no dir"
 
+
 def is_url(path):
 	if (path.startswith('http://')) or (path.startswith('ftp://')):
 	# should cope with other url types here, but we don't handle them yet
 		return 1
 	return 0
+
 
 def get_file(src, dest):
 	if (src == dest):      # no-op here allows clean overrides in tests
@@ -91,15 +94,50 @@ def force_copy(src, dest):
 	return shutil.copyfile(src, dest)
 
 
-def get_target_arch():
+def file_contains_pattern(file, pattern):
+	if not os.path.isfile(file):
+		raise NameError, 'file %s does not exist' % file
+	return not system('egrep -q ' + pattern + ' ' + file, ignorestatus = 1)
+
+
+def list_grep(list, pattern):
+	compiled = re.compile(pattern)
+	for line in list:
+		match = compiled.search(line)
+		if (match):
+			return 1
+	return 0
+
+
+def get_arch():
 # Work out which CPU architecture we're running on
-	if not system("egrep '^cpu.*(RS64|POWER(3|4|5)|PPC970|Broadband Engine)' /proc/cpuinfo"):
-		return 'ppc64'
-	elif not system("grep -q 'Opteron' /proc/cpuinfo"):
-		# THIS IS WRONG, needs Intel too
+	f = open('/proc/cpuinfo', 'r')
+	cpuinfo = f.readlines()
+	f.close()
+	if list_grep(cpuinfo, '^cpu.*(RS64|POWER3|Broadband Engine)'):
+		return 'power'
+	elif list_grep(cpuinfo, '^cpu.*POWER4'):
+		return 'power4'
+	elif list_grep(cpuinfo, '^cpu.*POWER5'):
+		return 'power5'
+	elif list_grep(cpuinfo, '^cpu.*POWER6'):
+		return 'power6'
+	elif list_grep(cpuinfo, '^cpu.*PPC970'):
+		return 'power970'
+	elif list_grep(cpuinfo, 'Opteron'):
+		return 'x86_64'
+	elif list_grep(cpuinfo, 'GenuineIntel') and list_grep(cpuinfo, '48 bits virtual'):
 		return 'x86_64'
 	else:
 		return 'i386'
+
+
+def get_target_arch():
+	arch = get_arch()
+	if arch.startswith('power'):
+		return 'ppc64'
+	else:
+		return arch
 
 
 def kernelexpand(kernel):
