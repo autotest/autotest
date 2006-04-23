@@ -21,4 +21,5 @@ class fsx(test.test):
 
 	def execute(self, repeat = '100000'):
 		args = '-N ' + repeat
+		os.chdir(self.tmpdir)
 		system(self.srcdir + '/fsx-linux ' + args + ' poo')
