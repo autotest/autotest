@@ -1,4 +1,4 @@
-import os,os.path,shutil,urllib,sys,signal
+import os,os.path,shutil,urllib,sys,signal,commands
 from error import *
 import re
 
@@ -111,12 +111,23 @@ def list_grep(list, pattern):
 
 def get_vmlinux():
 	# Ahem. This is crap. Pray harder. Bad Martin.
-	return '/boot/vmlinux'
+	vmlinux = '/boot/vmlinux'
+	if not os.path.isfile(vmlinux):
+		raise NameError, 'Cannot find vmlinux'
+	return vmlinux
 
 
 def get_systemmap():
 	# Ahem. This is crap. Pray harder. Bad Martin.
-	return '/boot/System.map'
+	map = '/boot/System.map'
+	if not os.path.isfile(map):
+		raise NameError, 'Cannot find System.map'
+	return map
+
+
+def get_modules_dir():
+	kernel_version = system_output('uname -r')
+	return '/lib/modules/%s/kernel' % kernel_version
 
 
 def get_arch():
@@ -183,9 +194,16 @@ def system(cmd, ignorestatus = 0):
 	finally:
 		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
-	if ((status != 0) and (ignorestatus != 0)):
+	if ((status != 0) and not ignorestatus):
 		raise CmdError(cmd, status)
 	return status
+
+
+def system_output(command, ignorestatus = 0):
+	(result, data) = commands.getstatusoutput(command)
+	if ((result != 0) and not ignorestatus):
+		raise CmdError, 'command failed: ' + command
+	return data
 
 
 def where_art_thy_filehandles():
