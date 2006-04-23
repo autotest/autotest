@@ -13,3 +13,5 @@ Fix lmbench's config stage stuff
 Redirect stdout and stderr for each test's setup and execute to 4 sep files
 
 make profilers/cat take either a single file or list of files, autoswitching
+
+Caching version of kernelexpand to grab new kernels
