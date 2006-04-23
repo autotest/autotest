@@ -109,6 +109,16 @@ def list_grep(list, pattern):
 	return 0
 
 
+def get_vmlinux():
+	# Ahem. This is crap. Pray harder. Bad Martin.
+	return '/boot/vmlinux'
+
+
+def get_systemmap():
+	# Ahem. This is crap. Pray harder. Bad Martin.
+	return '/boot/System.map'
+
+
 def get_arch():
 # Work out which CPU architecture we're running on
 	f = open('/proc/cpuinfo', 'r')
