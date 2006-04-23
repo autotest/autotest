@@ -3,7 +3,7 @@
 class lmbench(test.test):
 	version = 1
 
-	def setup(self)
+	def setup(self):
 		self.tarball = self.bindir + 'lmbench3.tar.gz'
 		# http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
 		# + lmbench3.diff (removes Makefile references to bitkeeper)
