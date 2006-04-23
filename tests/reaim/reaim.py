@@ -1,3 +1,6 @@
+import test
+from autotest_utils import *
+
 class reaim(test.test):
 	version = 1
 

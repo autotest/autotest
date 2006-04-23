@@ -1,6 +1,1 @@
-import kernbench
-
-print sys.path
-
-print "TEST: initing kernbench"
 job.runtest('kernbench', 'kernbench', 2, 5)
