@@ -19,7 +19,7 @@ class job:
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
-		self.resultdir = self.autodir + '/results' + jobtag
+		self.resultdir = self.autodir + '/results/' + jobtag
 		if os.path.exists(self.resultdir):
 			system('rm -rf ' + self.resultdir)
 		os.mkdir(self.resultdir)
