@@ -34,8 +34,18 @@ class selftest(test.test):
 	def __throw(self):
 		__does_not_exist = __does_not_exist_either
 
+	def __print(self, msg):
+		sys.stdout.write(msg)
+
+	def __warn(self, msg):
+		sys.stderr.write(msg)
+
 	def execute(self, cmd, *args):
 		if cmd == 'mark':
 			self.__mark(*args)
 		elif cmd == 'throw':
 			self.__throw(*args)
+		elif cmd == 'print':
+			self.__print(*args)
+		elif cmd == 'warn':
+			self.__warn(*args)

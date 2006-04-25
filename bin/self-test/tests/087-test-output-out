@@ -1,0 +1,7 @@
+stdout hello
+GOOD selftest.test1 Completed Successfully
+
+stderr hello
+GOOD selftest.test2 Completed Successfully
+
+--SELFTEST-- exit 0
