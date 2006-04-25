@@ -1,22 +1,12 @@
+FAIL selftest.test1 running test selftest
 Traceback (most recent call last):
-  File "../autotest", line 46, in ?
-    execfile(tmp_control_file)
-  File "/home/apw/views/autotest-r34-dev/current/control", line 1, in ?
-    job.runtest('test1', 'selftest', 'throw')
-  File "/home/apw/views/autotest-r34-dev/current/bin/job.py", line 40, in runtest
-    mytest.run(testname, test_args)
-  File "/home/apw/views/autotest-r34-dev/current/bin/test.py", line 73, in run
-    self.__exec(parameters)
-  File "/home/apw/views/autotest-r34-dev/current/bin/test.py", line 28, in __exec
-    raise err
-error.UnhandledError: running test selftest
-Traceback (most recent call last):
-  File "/home/apw/views/autotest-r34-dev/current/bin/test.py", line 39, in __exec
+  File "/home/apw/views/autotest-r99-dev/current/bin/test.py", line 55, in __exec
     self.execute(*parameters)
-  File "/home/apw/views/autotest-r34-dev/current/bin/tests/selftest/__init__.py", line 39, in execute
+  File "/home/apw/views/autotest-r99-dev/current/tests/selftest/selftest.py", line 41, in execute
     self.__throw(*args)
-  File "/home/apw/views/autotest-r34-dev/current/bin/tests/selftest/__init__.py", line 33, in __throw
+  File "/home/apw/views/autotest-r99-dev/current/tests/selftest/selftest.py", line 35, in __throw
     __does_not_exist = __does_not_exist_either
 NameError: global name '_selftest__does_not_exist_either' is not defined
 
---SELFTEST-- exit 1
+
+--SELFTEST-- exit 0

@@ -3,6 +3,8 @@ from autotest_utils import *
 from error import *
 
 class selftest(test.test):
+	version = 1
+
 	def setup(self):
 		name = self.job.resultdir + '/sequence'
 		if (not os.path.exists(name)):
