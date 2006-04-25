@@ -4,6 +4,8 @@ from error import *
 
 class test:
 	def __init__(self, job, testdir):
+		testname = self.__class__.__name__
+
 		self.job = job
 		self.tests = job.autodir + '/tests'
 		self.testdir = job.resultdir + '/' + testdir
@@ -14,8 +16,27 @@ class test:
 		os.mkdir(self.profdir)
 		self.debugdir = self.testdir + "/debug"
 		os.mkdir(self.debugdir)
-		self.tmpdir = self.testdir + "/tmp"
+
+		self.bindir = job.testdir + '/' + testname
+		self.srcdir = self.bindir + '/src'
+
+		self.tmpdir = job.tmpdir + '/' + testname
 		os.mkdir(self.tmpdir)
+		if os.path.exists(self.tmpdir):
+			system('rm -rf ' + self.tmpdir)
+		os.mkdir(self.tmpdir)
+
+		versionfile = self.srcdir + '/.version'
+		newversion = self.version
+		if os.path.exists(versionfile):
+			existing_version = pickle.load(open(versionfile, 'r'))
+			if (existing_version != newversion):
+				system('rm -rf ' + self.srcdir)
+		if not os.path.exists(self.srcdir):
+			# DANGER, will robinson. Error catching here ????
+			self.setup()
+			if os.path.exists(self.srcdir):
+				pickle.dump(newversion, open(versionfile, 'w'))
 
 	def __exec(self, parameters):
 		sys.stdout.flush()
@@ -100,24 +121,6 @@ def runtest(self, tag, testname, test_args):
 		exec "mytest = %s.%s(self, testname + '.' + tag)" % \
 			(testname, testname)
 
-		mytest.bindir = self.testdir + '/' + testname
-		mytest.srcdir = mytest.bindir + '/src'
-		mytest.tmpdir = self.tmpdir + '/' + testname
-		if os.path.exists(mytest.tmpdir):
-			system('rm -rf ' + mytest.tmpdir)
-		os.mkdir(mytest.tmpdir)
-
-		versionfile = mytest.srcdir + '/.version'
-		newversion = mytest.version
-		if os.path.exists(versionfile):
-			existing_version = pickle.load(open(versionfile, 'r'))
-			if (existing_version != newversion):
-				system('rm -rf ' + mytest.srcdir)
-		if not os.path.exists(mytest.srcdir):
-			# DANGER, will robinson. Error catching here ????
-			mytest.setup()
-			if os.path.exists(mytest.srcdir):
-				pickle.dump(newversion, open(versionfile, 'w'))
 		mytest.run(testname, test_args)
 
 	finally:
