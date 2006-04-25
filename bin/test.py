@@ -89,27 +89,36 @@ class test:
 
 # runtest: main interface for importing and instantiating new tests.
 def runtest(self, tag, testname, test_args):
-	sys.path.insert(0, self.testdir + '/' + testname)
-	exec "import %s" % testname
-	exec "mytest = %s.%s(self, testname + '.' + tag)" % (testname, testname)
+	testd = self.testdir + '/'+ testname
+	if not os.path.exists(testd):
+		raise TestError(testname + ": test does not exist")
+	
+	try:
+		sys.path.insert(0, testd)
 
-	mytest.bindir = self.testdir + '/' + testname
-	mytest.srcdir = mytest.bindir + '/src'
-	mytest.tmpdir = self.tmpdir + '/' + testname
-	if os.path.exists(mytest.tmpdir):
-		system('rm -rf ' + mytest.tmpdir)
-	os.mkdir(mytest.tmpdir)
+		exec "import %s" % testname
+		exec "mytest = %s.%s(self, testname + '.' + tag)" % \
+			(testname, testname)
 
-	versionfile = mytest.srcdir + '/.version'
-	newversion = mytest.version
-	if os.path.exists(versionfile):
-		existing_version = pickle.load(open(versionfile, 'r'))
-		if (existing_version != newversion):
-			system('rm -rf ' + mytest.srcdir)
-	if not os.path.exists(mytest.srcdir):
-		# DANGER, will robinson. Error catching here ????
-		mytest.setup()
-		if os.path.exists(mytest.srcdir):
-			pickle.dump(newversion, open(versionfile, 'w'))
-	mytest.run(testname, test_args)
+		mytest.bindir = self.testdir + '/' + testname
+		mytest.srcdir = mytest.bindir + '/src'
+		mytest.tmpdir = self.tmpdir + '/' + testname
+		if os.path.exists(mytest.tmpdir):
+			system('rm -rf ' + mytest.tmpdir)
+		os.mkdir(mytest.tmpdir)
 
+		versionfile = mytest.srcdir + '/.version'
+		newversion = mytest.version
+		if os.path.exists(versionfile):
+			existing_version = pickle.load(open(versionfile, 'r'))
+			if (existing_version != newversion):
+				system('rm -rf ' + mytest.srcdir)
+		if not os.path.exists(mytest.srcdir):
+			# DANGER, will robinson. Error catching here ????
+			mytest.setup()
+			if os.path.exists(mytest.srcdir):
+				pickle.dump(newversion, open(versionfile, 'w'))
+		mytest.run(testname, test_args)
+
+	finally:
+		sys.path.pop(0)
