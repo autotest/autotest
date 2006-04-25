@@ -51,7 +51,6 @@ class test:
 	def __exec(self, parameters):
 		try:
 			os.chdir(self.testdir)
-			self.setup()
 			self.execute(*parameters)
 		except AutotestError:
 			raise
