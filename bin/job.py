@@ -40,28 +40,7 @@ class job:
 		return kernel.kernel(self, topdir, base_tree)
 
 	def runtest(self, tag, testname, *test_args):
-		sys.path.insert(0, self.testdir + '/' + testname)
-		exec "import %s" % testname
-		exec "mytest = %s.%s(self, testname + '.' + tag)" % (testname, testname)
-		mytest.bindir = self.testdir + '/' + testname
-		mytest.srcdir = mytest.bindir + '/src'
-		mytest.tmpdir = self.tmpdir + '/' + testname
-		if os.path.exists(mytest.tmpdir):
-			system('rm -rf ' + mytest.tmpdir)
-		os.mkdir(mytest.tmpdir)
-
-		versionfile = mytest.srcdir + '/.version'
-		newversion = mytest.version
-		if os.path.exists(versionfile):
-			existing_version = pickle.load(open(versionfile, 'r'))
-			if (existing_version != newversion):
-				system('rm -rf ' + mytest.srcdir)
-		if not os.path.exists(mytest.srcdir):
-			# DANGER, will robinson. Error catching here ????
-			mytest.setup()
-			if os.path.exists(mytest.srcdir):
-				pickle.dump(newversion, open(versionfile, 'w'))
-		mytest.run(testname, test_args)
+		test.runtest(self, tag, testname, test_args)
 
 	def noop(self, text):
 		print "job: noop: " + text
