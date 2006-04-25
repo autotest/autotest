@@ -1,0 +1,2 @@
+job.runtest('test1', 'selftest', 'print', "stdout hello\n")
+job.runtest('test2', 'selftest', 'warn', "stderr hello\n")
