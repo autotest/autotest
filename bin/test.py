@@ -21,7 +21,6 @@ class test:
 		self.srcdir = self.bindir + '/src'
 
 		self.tmpdir = job.tmpdir + '/' + testname
-		os.mkdir(self.tmpdir)
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
@@ -38,78 +37,83 @@ class test:
 			if os.path.exists(self.srcdir):
 				pickle.dump(newversion, open(versionfile, 'w'))
 
-	def __exec(self, parameters):
-		sys.stdout.flush()
-		sys.stderr.flush()
-		pid = os.fork()
-		if pid:			# parent
-			(pid, status) = os.waitpid (pid,0)
-
-			ename = self.testdir + "/debug/error-%d" % pid
-			if (os.path.exists(ename)):
-				fd = file(ename, 'r')
-				err = pickle.load(fd)
-				fd.close()
-
-				raise err
-
-			if (status != 0):
-				raise TestError("test %s failed rc=%d" % (
-					self.__class__.__name__, status))
-
-		else:			# child
-			try:
-				try:
-					os.chdir(self.testdir)
-					self.execute(*parameters)
-
-				except AutotestError:
-					raise
-
-				except:
-					raise UnhandledError('running test ' + \
-						self.__class__.__name__ + "\n")
-
-			except Exception, detail:
-				ename = self.testdir + "/debug/error-%d" % (
-					os.getpid())
-				pickle.dump(detail, open(ename, "w"))
-				sys.exit(1)
-
-			sys.exit(0)
-
-##	def __exec(self, parameters):
-##		try:
-##			os.chdir(self.testdir)
-##			self.setup()
-##			self.execute(*parameters)
-##		except AutotestError:
-##			raise
-##		except:
-##			raise UnhandledError('running test ' + \
-##				self.__class__.__name__ + "\n")
 
 	def setup(self):
 		pass
 
-	def run(self, testname, parameters):
+
+	def record(self, msg):
 		status = self.testdir + "/status"
+		fd = file(status, "w")
+		fd.write(msg)
+		fd.close()
+
+	def __exec(self, parameters):
+		try:
+			os.chdir(self.testdir)
+			self.setup()
+			self.execute(*parameters)
+		except AutotestError:
+			raise
+		except:
+			raise UnhandledError('running test ' + \
+				self.__class__.__name__ + "\n")
+
+	def run(self, testname, parameters):
 		try:
 			self.__exec(parameters)
 		except Exception, detail:
-			fd = file(status, "w")
-			fd.write("FAIL " + detail.__str__() + "\n")
-			fd.close()
+			self.record("FAIL " + detail.__str__() + "\n")
 
 			raise
 		else:
-			fd = file(status, "w")
-			fd.write("GOOD Completed Successfully\n")
+			self.record("GOOD Completed Successfully\n")
+
+
+def fork_lambda(tmp, l):
+	sys.stdout.flush()
+	sys.stderr.flush()
+	pid = os.fork()
+	if pid:			# parent
+		(pid, status) = os.waitpid (pid,0)
+
+		ename = tmp + "/debug/error-%d" % pid
+		if (os.path.exists(ename)):
+			fd = file(ename, 'r')
+			err = pickle.load(fd)
 			fd.close()
 
+			raise err
+
+		if (status != 0):
+			raise TestError("test failed rc=%d" % (status))
+
+	else:			# child
+		try:
+			try:
+				l()
+
+			except AutotestError:
+				raise
+
+			except:
+				raise UnhandledError("test failed and threw:\n")
+
+		except Exception, detail:
+			ename = tmp + "/debug/error-%d" % (
+				os.getpid())
+			pickle.dump(detail, open(ename, "w"))
+
+			sys.stdout.flush()
+			sys.stderr.flush()
+			os._exit(1)
+
+		sys.stdout.flush()
+		sys.stderr.flush()
+		os._exit(0)
 
 # runtest: main interface for importing and instantiating new tests.
-def runtest(self, tag, testname, test_args):
+def __runtest(self, tag, testname, test_args):
 	testd = self.testdir + '/'+ testname
 	if not os.path.exists(testd):
 		raise TestError(testname + ": test does not exist")
@@ -120,8 +124,13 @@ def runtest(self, tag, testname, test_args):
 		exec "import %s" % testname
 		exec "mytest = %s.%s(self, testname + '.' + tag)" % \
 			(testname, testname)
-
-		mytest.run(testname, test_args)
-
 	finally:
 		sys.path.pop(0)
+
+	mytest.run(testname, test_args)
+
+
+def runtest(self, tag, testname, test_args):
+	##__runtest(self, tag, testname, test_args)
+	fork_lambda(self.resultdir,
+		lambda : __runtest(self, tag, testname, test_args))

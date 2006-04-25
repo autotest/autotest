@@ -39,8 +39,34 @@ class job:
 	def kernel(self, topdir, base_tree):
 		return kernel.kernel(self, topdir, base_tree)
 
+        def __runtest(self, tag, testname, test_args):
+                try:
+			test.runtest(self, tag, testname, test_args)
+                except AutotestError:
+                        raise
+                except:
+                        raise UnhandledError('running test ' + \
+                                self.__class__.__name__ + "\n")
+
 	def runtest(self, tag, testname, *test_args):
-		test.runtest(self, tag, testname, test_args)
+		name = testname + "." + tag
+		try:
+			try:
+				self.__runtest(tag, testname, test_args)
+			except Exception, detail:
+				self.record("FAIL " + name + " " + \
+					detail.__str__() + "\n")
+
+				raise
+			else:
+				self.record("GOOD " + name + \
+					" Completed Successfully\n")
+		except TestError:
+			return 0
+		except:
+			raise
+		else:
+			return 1
 
 	def noop(self, text):
 		print "job: noop: " + text
@@ -99,3 +125,9 @@ class job:
 		# all done, clean up and exit.
 		self.complete(0)
 
+	def record(self, msg):
+		print msg
+		status = self.resultdir + "/status"
+		fd = file(status, "a")
+		fd.write(msg)
+		fd.close()
