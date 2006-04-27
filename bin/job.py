@@ -143,3 +143,45 @@ from autotest_utils import *
 		fd = file(status, "a")
 		fd.write(msg)
 		fd.close()
+
+
+def runjob(control, cont = 0):
+	state = control + '.state'
+
+	# instantiate the job object ready for the control file.
+	myjob = None
+	try:
+		# Check that the control file is valid
+		if not os.path.exists(control):
+			raise JobError(control + ": control file not found")
+
+		# When continuing, the job is complete when there is no
+		# state file, ensure we don't try and continue.
+		if cont == 1 and not os.path.exists(state):
+			sys.exit(1)
+		if cont == 0 and os.path.exists(state):
+			os.unlink(state)
+
+		myjob = job(control)
+
+		# Load in the users control file, may do any one of:
+		#  1) execute in toto
+		#  2) define steps, and select the first via next_step()
+		myjob.step_engine()
+
+		# If we get here, then we assume the job is complete and good.
+		myjob.complete(0)
+
+	except JobContinue:
+		sys.exit(5)
+
+	except JobError, instance:
+		print "JOB ERROR: " + instance.args[0]
+		if myjob != None:
+			myjob.complete(1)
+
+	except:
+		# Ensure we cannot continue this job, it is in rictus.
+		if os.path.exists(state):
+			os.unlink(state)
+		raise

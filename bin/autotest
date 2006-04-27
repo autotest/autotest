@@ -40,43 +40,5 @@ if sys.argv[1] == '--continue':
 if len(sys.argv) != 2:
 	usage()
 
-control = sys.argv[1]
-state = sys.argv[1] + '.state'
-
-# Check that the control file is valid
-if not os.path.exists(control):
-	os.stderr.write(control + ": control file not found\n")
-	sys.exit(1)
-
-
-# When continuing, the job is complete when there is no state file,
-# ensure we don't try and continue.
-if cont == 1 and not os.path.exists(state):
-	sys.exit(1)
-if cont == 0 and os.path.exists(state):
-	os.unlink(state)
-
-# JOB: instantiate the job object ready for the control file.
-job = job.job(control);
-
-try:
-	# Load in the users control file, may do any one of:
-	#  1) execute in toto
-	#  2) define steps, and select the first via next_step()
-	job.step_engine()
-
-	# If we get here, then we assume the job is complete and good.
-	job.complete(0)
-
-except JobContinue:
-	sys.exit(5)
-
-except JobError, instance:
-	print "JOB ERROR:" + instance.args[0]
-	job.complete(1)
-
-except:
-        # Ensure we cannot continue this job, it is in rictus.
-	if os.path.exists(state):
-		os.unlink(state)
-	raise
+# JOB: run the specified job control file.
+job.runjob(sys.argv[1], cont)
