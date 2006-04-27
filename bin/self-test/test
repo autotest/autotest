@@ -18,7 +18,7 @@ function runtests {
 		"$@"
 	do
 		case "$i" in
-		*-out|*-tmp)	continue ;;
+		*-out|*-tmp|*.state)	continue ;;
 		esac
 
 		##echo "*** $i ...."
@@ -27,7 +27,7 @@ function runtests {
 			rc="$?"
 			echo "--SELFTEST-- exit $rc"
 			while [ "$rc" = "$rerun" ]; do
-				"$me"
+				"$me" --continue "$i"
 				rc="$?"
 				echo "--SELFTEST-- exit $rc"
 			done
@@ -52,7 +52,7 @@ function runtests {
 
 # Run all of the tests.
 case "$1" in
-clean)		rm -rf tests/*-tmp ;;
+clean)		rm -rf tests/*-tmp tests/*.state ;;
 test)		runtests tests/* ;;
 *)		echo "Usage: test <$P> test|clean" 1>&2
 		exit 2

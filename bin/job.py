@@ -91,8 +91,6 @@ class job:
 			os.unlink(self.control + '.state')
 		except:
 			pass
-		if os.path.exists(self.control):
-			os.rename(self.control, self.control + '.complete')
 		sys.exit(status)
 
 	# STEPS: the stepping engine -- if the control file defines
