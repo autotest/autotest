@@ -63,14 +63,7 @@ try:
 	# Load in the users control file, may do any one of:
 	#  1) execute in toto
 	#  2) define steps, and select the first via next_step()
-	execfile(control)
-
-	try:
-		init = step_init
-	except NameError:
-		pass
-	else:
-		job.step_engine([step_init])
+	job.step_engine()
 
 	# If we get here, then we assume the job is complete and good.
 	job.complete(0)
