@@ -1,6 +1,10 @@
 import sys
 from traceback import format_exception
 
+# Allow us to bail out requesting continuance.
+class JobContinue(SystemExit):
+	pass
+
 # AutotestError: the parent of all errors deliberatly thrown
 # within the client code.
 class AutotestError(Exception):
