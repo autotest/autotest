@@ -4,6 +4,10 @@
 #
 P="test"
 
+fix=`pwd`
+fix=`dirname $fix`
+fix=`dirname $fix`
+
 me="../autotest"
 
 # XXX: the exit status that indicates a rerun ...
@@ -27,7 +31,8 @@ function runtests {
 				rc="$?"
 				echo "--SELFTEST-- exit $rc"
 			done
-		} >"$i-tmp" 2>&1
+		} 2>&1 | sed -e "s@$fix@SRC@" -e "s@, line [0-9]*@, line N@" \
+			>"$i-tmp" 2>&1
 
 		if [ ! -f "$i-out" ]; then
 			echo "$P: WARNING: $i: no results for test"
