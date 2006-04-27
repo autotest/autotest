@@ -22,28 +22,48 @@ sys.path.insert(0, autodirbin)
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
 
-# If we are envoked with a control file, clear up any old control file
-# and start that. 
-tmp_control_file = autodir + '/control'
-if (len(sys.argv) != 1):
-	if os.path.exists(tmp_control_file):
-		os.remove(tmp_control_file)
-	# XXX: we need to know about the state file ... fix me.
-	if os.path.exists(tmp_control_file + '.state'):
-		os.remove(tmp_control_file + '.state')
-	shutil.copyfile(os.path.abspath(sys.argv[1]), tmp_control_file)
-else:
-	if not os.path.exists(tmp_control_file):
-		sys.exit(0)
+def usage():
+	os.stderr.write("Usage: autotest [--continue] <control file>\n");
+	sys.exit(1)
+
+# Usage check.
+if len(sys.argv) < 2:
+	usage()
+
+# A multi-phase job is continued using the --continue option.
+cont = 0
+if sys.argv[1] == '--continue':
+	sys.argv.pop(1)
+	cont = 1
+	
+# Check for a control file.
+if len(sys.argv) != 2:
+	usage()
+
+control = sys.argv[1]
+state = sys.argv[1] + '.state'
+
+# Check that the control file is valid
+if not os.path.exists(control):
+	os.stderr.write(control + ": control file not found\n")
+	sys.exit(1)
+
+
+# When continuing, the job is complete when there is no state file,
+# ensure we don't try and continue.
+if cont == 1 and not os.path.exists(state):
+	sys.exit(1)
+if cont == 0 and os.path.exists(state):
+	os.unlink(state)
 
 # JOB: instantiate the job object ready for the control file.
-job = job.job(tmp_control_file);
+job = job.job(control);
 
 try:
 	# Load in the users control file, may do any one of:
 	#  1) execute in toto
 	#  2) define steps, and select the first via next_step()
-	execfile(tmp_control_file)
+	execfile(control)
 
 	try:
 		init = step_init
@@ -63,4 +83,7 @@ except JobError, instance:
 	job.complete(1)
 
 except:
+        # Ensure we cannot continue this job, it is in rictus.
+	if os.path.exists(state):
+		os.unlink(state)
 	raise
