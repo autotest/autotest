@@ -1,10 +1,10 @@
 FAIL selftest.test1 running test selftest
 Traceback (most recent call last):
-  File "/home/apw/views/autotest-r99-dev/current/bin/test.py", line 54, in __exec
+  File "SRC/bin/test.py", line N, in __exec
     self.execute(*parameters)
-  File "/home/apw/views/autotest-r99-dev/current/tests/selftest/selftest.py", line 47, in execute
+  File "SRC/tests/selftest/selftest.py", line N, in execute
     self.__throw(*args)
-  File "/home/apw/views/autotest-r99-dev/current/tests/selftest/selftest.py", line 35, in __throw
+  File "SRC/tests/selftest/selftest.py", line N, in __throw
     __does_not_exist = __does_not_exist_either
 NameError: global name '_selftest__does_not_exist_either' is not defined
 
