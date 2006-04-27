@@ -26,7 +26,3 @@ class tbench(test.test):
 			else:				# child
 				server = self.srcdir + '/tbench_srv'
 				os.execlp(server, server)
-			system(self.srcdir + 'tbench_srv &')
-			
-			args = args + ' -c '+self.srcdir+'/client_oplocks.txt'
-			system(self.srcdir + '/dbench ' + args)
