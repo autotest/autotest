@@ -17,4 +17,4 @@ class ltp(test.test):
 	def execute(self, args = ''):
 		logfile = self.resultsdir + '/ltp.log'
 		args = '-q -l ' + logfile + ' ' + args
-		system(self.srcdir + './runalltests.sh ' + args)
+		system(self.srcdir + '/runalltests.sh ' + args)
