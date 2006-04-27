@@ -98,10 +98,20 @@ class job:
 	#        runs.
 	steps = []
 	def next_step(self, step):
+		step[0] = step[0].__name__
 		self.steps.append(step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
-	def step_engine(self, init):
+	def step_engine(self):
+		lcl = dict({'job': self})
+
+		str = """
+from error import *
+from autotest_utils import *
+"""
+		exec(str, lcl, lcl)
+		execfile(self.control, lcl, lcl)
+
 		# If there is a mid-job state file load that in and continue
 		# where it indicates.  Otherwise start stepping at the passed
 		# entry.
@@ -109,7 +119,8 @@ class job:
 			self.steps = pickle.load(open(self.control + '.state',
 				'r'))
 		except:
-			self.next_step(init)
+			if lcl.has_key('step_init'):
+				self.next_step([lcl['step_init']])
 
 		# Run the step list.
 		while len(self.steps) > 0:
@@ -118,7 +129,10 @@ class job:
 				'w'))
 
 			cmd = step.pop(0)
-			cmd(*step)
+			cmd = lcl[cmd]
+			lcl['__cmd'] = cmd
+			lcl['__args'] = step
+			exec("__cmd(*__args)", lcl, lcl)
 
 		# all done, clean up and exit.
 		self.complete(0)
