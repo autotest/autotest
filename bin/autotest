@@ -55,6 +55,9 @@ try:
 	# If we get here, then we assume the job is complete and good.
 	job.complete(0)
 
+except JobContinue:
+	sys.exit(5)
+
 except JobError, instance:
 	print "JOB ERROR:" + instance.args[0]
 	job.complete(1)

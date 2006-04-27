@@ -83,7 +83,7 @@ class job:
 
 	# XXX: should have a better name.
 	def quit(self):
-		sys.exit(5)
+		raise JobContinue("more to come")
 
 	def complete(self, status):
 		# We are about to exit 'complete' so clean up the control file.
