@@ -89,7 +89,7 @@ class kernel:
 		except CmdError:
 			pass
 		threads = 2 * count_cpus()
-		system('make -j %d %s' % (threads, target))
+		system('make -j %d %s %s' % (threads, make_opts, target))
 			# eg make bzImage, or make zImage
 		if kernel_config.modules_needed('.config'):
 			system('make modules')
