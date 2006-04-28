@@ -13,7 +13,8 @@ class dbench(test.test):
 		system('./configure')
 		system('make')
 		
-	def execute(self, iterations = 1, args = ''):
+	def execute(self, iterations = 1, nprocs = count_cpus(), args = ''):
 		for i in range(1, iterations+1):
-			args = args + ' -c '+self.srcdir+'/client_oplocks.txt'
+			args = args + ' -c '+self.srcdir+'/client.txt'
+			args += ' %s' % nprocs
 			system(self.srcdir + '/dbench ' + args)
