@@ -26,7 +26,7 @@ def apply_overrides(orig_file, changes_file, output_file):
 
 
 def diff_configs(old, new):
-	system('diff -u %s %s > %s' % (old, new, new + '.diff'))
+	system('diff -u %s %s > %s' % (old, new, new + '.diff'), ignorestatus=1)
 
 
 
