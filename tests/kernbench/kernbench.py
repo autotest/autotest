@@ -2,6 +2,8 @@ import test
 from autotest_utils import *
 
 class kernbench(test.test):
+	version = 1
+
 	def setup(self, kernelver = '/usr/local/src/linux-2.6.14.tar.bz2',
   		   config = os.environ['AUTODIR'] + "/tests/kernbench/config"):
 
