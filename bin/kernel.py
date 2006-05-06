@@ -1,4 +1,4 @@
-import os,os.path,shutil,urllib
+import os,os.path,shutil,urllib,copy,pickle
 from autotest_utils import *
 import kernel_config
 import test
@@ -99,11 +99,18 @@ class kernel:
 
 
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
+		os.chdir(self.build_dir)
+		print "make clean"
+		system('make clean')
 		build_string = "/usr/bin/time make %s -j %s vmlinux > /dev/null 2> %s" % (make_opts, threads, timefile)
 		print build_string
 		system(build_string)
 		if (not os.path.isfile('vmlinux')):
 			raise TestError("no vmlinux found, kernel build failed")
+
+
+	def clean(self):
+		os.chdir(self.build_dir) 
 		print "make clean"
 		system('make clean')
 
@@ -133,4 +140,12 @@ class kernel:
 			install_package('x86_64-cross')
 			os.environ['ARCH']='x86_64'
 			os.environ['CROSS_COMPILE']=autodir+'sources/x86_64-cross/bin'
+
+
+	# we can't pickle the backreference to job (it contains fd's), 
+	# nor would we want to
+	def pickle_dump(self, filename):
+		temp = copy.copy(self)
+		temp.job = None
+		pickle.dump(temp, open(filename, 'w'))
 
