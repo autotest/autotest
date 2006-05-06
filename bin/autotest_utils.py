@@ -215,6 +215,16 @@ def print_to_tty(string):
 	os.system("echo " + string + " >> /dev/tty")
 
 
+def dump_object(object):
+	for item in object.__dict__.iteritems():
+		print item
+		try:
+			(key,value) = item
+			dump_object(value)
+		except:
+			continue
+
+
 class fd_stack:
 	# Note that we need to redirect both the sys.stdout type descriptor
 	# (which print, etc use) and the low level OS numbered descriptor
