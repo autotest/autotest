@@ -13,4 +13,4 @@ print "TEST: installing kernel"
 # system.boot()          # does autotest by default
 
 print "TEST: initing kernbench"
-job.runtest('kernbench', 'kernbench', 2, 5)
+job.runtest(None, 'kernbench', 2, 5)
