@@ -1,1 +1,1 @@
-job.runtest('tbench', 'tbench')
+job.runtest(None, 'tbench')

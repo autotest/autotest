@@ -1,1 +1,1 @@
-job.runtest('kernbench', 'kernbench', 2, 5)
+job.runtest(None, 'kernbench', 2, 5)

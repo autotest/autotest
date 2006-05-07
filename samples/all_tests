@@ -1,10 +1,10 @@
-job.runtest('bonnie', 'bonnie')
-job.runtest('dbench', 'dbench')
-job.runtest('fsx', 'fsx')
-job.runtest('kernbench', 'kernbench', 2, 5)
-job.runtest('lmbench', 'lmbench')
-job.runtest('ltp', 'ltp')
-job.runtest('reaim', 'reaim')
-job.runtest('tbench', 'tbench')
+job.runtest(None, 'bonnie')
+job.runtest(None, 'dbench')
+job.runtest(None, 'fsx')
+job.runtest(None, 'kernbench', 2, 5)
+job.runtest(None, 'lmbench')
+job.runtest(None, 'ltp')
+job.runtest(None, 'reaim')
+job.runtest(None, 'tbench')
 
 

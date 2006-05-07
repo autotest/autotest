@@ -49,7 +49,9 @@ class job:
                                 self.__class__.__name__ + "\n")
 
 	def runtest(self, tag, testname, *test_args):
-		name = testname + "." + tag
+		name = testname 
+		if (tag):
+			name += '.' + tag
 		try:
 			try:
 				self.__runtest(tag, testname, test_args)
