@@ -1,1 +1,1 @@
-job.runtest('bonnie', 'bonnie')
+job.runtest(None, 'bonnie')

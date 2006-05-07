@@ -114,6 +114,9 @@ def fork_lambda(tmp, l):
 # runtest: main interface for importing and instantiating new tests.
 def __runtest(self, tag, testname, test_args):
 	testd = self.testdir + '/'+ testname
+	name = testname
+	if (tag):
+		name += '.' + tag
 	if not os.path.exists(testd):
 		raise TestError(testname + ": test does not exist")
 	
@@ -121,7 +124,7 @@ def __runtest(self, tag, testname, test_args):
 		sys.path.insert(0, testd)
 
 		exec "import %s" % testname
-		exec "mytest = %s.%s(self, testname + '.' + tag)" % \
+		exec "mytest = %s.%s(self, name)" % \
 			(testname, testname)
 	finally:
 		sys.path.pop(0)
