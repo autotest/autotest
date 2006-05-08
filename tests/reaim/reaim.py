@@ -20,5 +20,5 @@ class reaim(test.test):
 			testdir = None):
 		if not testdir:
 			testdir = self.tmpdir
-		args = '-f ' + ' '.join(workfile.short,start,end,increment)
-		system(self.srcdir + './reaim ' + args)
+		args = '-f ' + ' '.join((workfile,start,end,increment))
+		system(self.srcdir + '/reaim ' + args)
