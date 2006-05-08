@@ -20,3 +20,6 @@ make profilers/cat take either a single file or list of files, autoswitching
 Caching version of kernelexpand to grab new kernels
 
 Add local libaio to fsx
+
+The setup phase of the tests need to indicate a state of failure back
+	to subsequent iterations of the test
