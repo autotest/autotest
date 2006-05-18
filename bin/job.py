@@ -15,6 +15,7 @@ class AsyncRun(threading.Thread):
 class job:
 	def __init__(self, control, jobtag='default'):
 		self.autodir = os.environ['AUTODIR']
+		self.bindir = self.autodir + '/bin'
 		self.testdir = self.autodir + '/tests'
 		self.profdir = self.autodir + '/profilers'
 		self.tmpdir = self.autodir + '/tmp'
@@ -27,6 +28,7 @@ class job:
 		os.mkdir(self.resultdir)
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
+		os.mkdir(self.resultdir + "/sysinfo")
 		
 		self.control = control
 		self.jobtab = jobtag
@@ -35,6 +37,11 @@ class job:
 		self.stderr = fd_stack(2, sys.stderr)
 
 		self.profilers = profilers.profilers(self)
+	
+		pwd = os.getcwd()	
+		os.chdir(self.resultdir + "/sysinfo")
+		system(self.bindir + '/sysinfo.py')
+		os.chdir(pwd)
 
 	def kernel(self, topdir, base_tree):
 		return kernel.kernel(self, topdir, base_tree)
