@@ -23,7 +23,7 @@ class profilers:
 		self.list.append(newprofiler)
 
 
-	def delete(self, profiler):
+	def del(self, profiler):
 		nukeme = None
 		for p in self.list:
 			if (p.name == profiler):
