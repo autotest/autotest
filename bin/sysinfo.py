@@ -17,5 +17,6 @@ for command in commands:
 	run_command(command, os.path.basename(command))
 
 for file in files:
-	shutil.copyfile(file, os.path.basename(file))
+	if (os.path.exists(file)):
+		shutil.copyfile(file, os.path.basename(file))
 
