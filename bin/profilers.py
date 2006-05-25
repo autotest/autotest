@@ -1,5 +1,3 @@
-# This is rough pseudocode. IT WILL NOT WORK. BE NOT SUPRISED!
-
 import os
 from autotest_utils import *
 from error import *
@@ -11,6 +9,7 @@ class profilers:
 		self.profdir = job.autodir + '/profilers'
 		self.tmpdir = job.tmpdir
 
+	# add a profiler
 	def add(self, profiler):
 		sys.path.insert(0, self.job.profdir + '/' + profiler)
 		exec 'import ' + profiler
@@ -19,30 +18,41 @@ class profilers:
 		newprofiler.bindir = self.profdir + '/' + profiler
 		newprofiler.srcdir = newprofiler.bindir + '/src'
 		newprofiler.tmpdir = self.tmpdir + '/' + profiler
-		newprofiler.setup()
+		update_version(newprofiler.srcdir, newprofiler.version, newprofiler.setup)
 		self.list.append(newprofiler)
 
 
-	def del(self, profiler):
+	# remove a profiler
+	def delete(self, profiler):
 		nukeme = None
 		for p in self.list:
 			if (p.name == profiler):
-				nukeme = i
-		self.list.remove(i)
+				nukeme = p
+		self.list.remove(p)
 
 
-	def start(self):
+	# are any profilers enabled ?
+	def present(self):
+		if self.list:
+			return 1
+		else:
+			return 0
+
+
+	# Start all enabled profilers
+	def start(self, test):
 		for p in self.list:
-			p.start()
+			p.start(test)
 
 
-	def stop(self):
+	# Stop all enabled profilers
+	def stop(self, test):
 		for p in self.list:
-			p.start()
+			p.stop(test)
 
 
-	def report(self):
+	# Report on all enabled profilers
+	def report(self, test):
 		for p in self.list:
-			p.report()
-
+			p.report(test)
 

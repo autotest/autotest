@@ -51,6 +51,18 @@ def extract_tarball(tarball):
 	raise NameError, "extracting tarball produced no dir"
 
 
+def update_version(srcdir, new_version, install):
+	versionfile = srcdir + '/.version'
+	if os.path.exists(versionfile):
+		old_version = pickle.load(open(versionfile, 'r'))
+		if (old_version != new_version):
+			system('rm -rf ' + srcdir)
+	if not os.path.exists(srcdir):
+		install()
+		if os.path.exists(srcdir):
+			pickle.dump(new_version, open(versionfile, 'w'))
+                
+
 def is_url(path):
 	if (path.startswith('http://')) or (path.startswith('ftp://')):
 	# should cope with other url types here, but we don't handle them yet
