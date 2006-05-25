@@ -5,9 +5,6 @@ from autotest_utils import *
 class oprofile(profiler.profiler):
 	version = 1
 
-	def __init__(self, job):
-		self.job = job
-
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.1.tar.gz
 	def setup(self, tarball = 'oprofile-0.9.1.tar.bz2'):
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
