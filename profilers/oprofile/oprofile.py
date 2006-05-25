@@ -20,7 +20,7 @@ class oprofile(profiler.profiler):
 		system('make install')
 
 
-	def initialize():
+	def initialize(self):
 		arch = get_arch()
 		if (arch == 'i386'):
 			self.setup_i386()
@@ -35,7 +35,7 @@ class oprofile(profiler.profiler):
 		vmlinux = '--vmlinux=' + get_vmlinux()
 		system(self.opcontrol + ' --shutdown')
 		system('rm -rf /var/lib/oprofile/samples/current')
-		system(''.join(self.opcontrol, vmlinux, self.args, '--start'))
+		system(' '.join((self.opcontrol, vmlinux, self.args, '--start')))
 		system(self.opcontrol + ' --reset')
 
 
