@@ -11,9 +11,12 @@ class profilers:
 
 	# add a profiler
 	def add(self, profiler):
-		sys.path.insert(0, self.job.profdir + '/' + profiler)
-		exec 'import ' + profiler
-		exec 'newprofiler = %s.%s(self)' % (profiler, profiler)
+		try:
+			sys.path.insert(0, self.job.profdir + '/' + profiler)
+			exec 'import ' + profiler
+			exec 'newprofiler = %s.%s(self)' % (profiler, profiler)
+		finally:
+			sys.path.pop(0)
 		newprofiler.name = profiler
 		newprofiler.bindir = self.profdir + '/' + profiler
 		newprofiler.srcdir = newprofiler.bindir + '/src'

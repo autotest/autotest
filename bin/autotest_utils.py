@@ -1,4 +1,4 @@
-import os,os.path,shutil,urllib,sys,signal,commands
+import os,os.path,shutil,urllib,sys,signal,commands,pickle
 from error import *
 import re
 
@@ -53,9 +53,12 @@ def extract_tarball(tarball):
 
 def update_version(srcdir, new_version, install):
 	versionfile = srcdir + '/.version'
-	if os.path.exists(versionfile):
-		old_version = pickle.load(open(versionfile, 'r'))
-		if (old_version != new_version):
+	if os.path.exists(srcdir):
+		if os.path.exists(versionfile):
+			old_version = pickle.load(open(versionfile, 'r'))
+			if (old_version != new_version):
+				system('rm -rf ' + srcdir)
+		else:
 			system('rm -rf ' + srcdir)
 	if not os.path.exists(srcdir):
 		install()
