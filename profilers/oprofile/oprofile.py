@@ -1,9 +1,8 @@
-# Will need some libaries to compile. Do 'apt-get build-dep oprofile'
-
-import shutil
+# Will need some libaries to compile. Do 'apt-get build-dep oprofile' 
+import profiler, shutil
 from autotest_utils import *
 
-class oprofile:
+class oprofile(profiler.profiler):
 	version = 1
 
 	def __init__(self, job):
@@ -20,14 +19,16 @@ class oprofile:
 		system('make')
 		system('make install')
 
-		self.opreport = self.srcdir + 'pp/opcontrol'
-		self.opcontrol = self.srcdir + 'utils/opcontrol'
 
+	def initialize():
 		arch = get_arch()
 		if (arch == 'i386'):
 			self.setup_i386()
 		else:
 			raise UnknownError, 'Architecture %s not supported by oprofile wrapper' % arch
+
+		self.opreport = self.srcdir + '/pp/opcontrol'
+		self.opcontrol = self.srcdir + '/utils/opcontrol'
 
 
 	def start(self, test):
