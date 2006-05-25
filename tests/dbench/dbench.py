@@ -18,3 +18,11 @@ class dbench(test.test):
 			args = args + ' -c '+self.srcdir+'/client.txt'
 			args += ' %s' % nprocs
 			system(self.srcdir + '/dbench ' + args)
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(self.srcdir + '/dbench ' + args)
+			profilers.stop(self)
+			profilers.report(self)

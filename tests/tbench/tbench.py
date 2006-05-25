@@ -17,12 +17,24 @@ class tbench(test.test):
 		# only supports combined server+client model at the moment
 		# should support separate I suppose, but nobody uses it
 		for i in range(1, iterations+1):
-			pid = os.fork()
-			if pid:				# parent
-				time.sleep(1)
-				client = self.srcdir + '/client.txt'
-				args = '-c ' + client + ' ' + args
-				system(self.srcdir + '/tbench ' + args)
-			else:				# child
-				server = self.srcdir + '/tbench_srv'
-				os.execlp(server, server)
+			self.run_tbench()
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			self.run_tbench()
+			profilers.stop(self)
+			profilers.report(self)
+
+
+	def run_tbench(self):
+		pid = os.fork()
+		if pid:				# parent
+			time.sleep(1)
+			client = self.srcdir + '/client.txt'
+			args = '-c ' + client + ' ' + args
+			system(self.srcdir + '/tbench ' + args)
+		else:				# child
+			server = self.srcdir + '/tbench_srv'
+			os.execlp(server, server)

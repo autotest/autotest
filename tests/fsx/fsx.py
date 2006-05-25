@@ -23,3 +23,11 @@ class fsx(test.test):
 		args = '-N ' + repeat
 		os.chdir(self.tmpdir)
 		system(self.srcdir + '/fsx-linux ' + args + ' poo')
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(self.srcdir + '/fsx-linux ' + args + ' poo')
+			profilers.stop(self)
+			profilers.report(self)

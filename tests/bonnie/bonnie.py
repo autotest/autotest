@@ -18,3 +18,11 @@ class bonnie(test.test):
 
 		for i in range(1, iterations+1):
 			system(self.srcdir + '/bonnie++ ' + args)
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(self.srcdir + '/bonnie++ ' + args)
+			profilers.stop(self)
+			profilers.report(self)
