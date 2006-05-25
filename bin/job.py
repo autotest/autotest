@@ -1,6 +1,5 @@
 from autotest_utils import *
-import os, sys, kernel, test, pickle, threading
-import profilers
+import os, sys, kernel, test, pickle, threading, profilers
 
 # Parallel run interface.
 class AsyncRun(threading.Thread):
@@ -17,12 +16,12 @@ class job:
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = self.autodir + '/bin'
 		self.testdir = self.autodir + '/tests'
-		self.profdir = self.autodir + '/profilers'
 		self.tmpdir = self.autodir + '/tmp'
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 		self.resultdir = self.autodir + '/results/' + jobtag
+		self.profdir = self.autodir + '/profilers'
 		if os.path.exists(self.resultdir):
 			system('rm -rf ' + self.resultdir)
 		os.mkdir(self.resultdir)
@@ -37,7 +36,7 @@ class job:
 		self.stderr = fd_stack(2, sys.stderr)
 
 		self.profilers = profilers.profilers(self)
-	
+
 		pwd = os.getcwd()	
 		os.chdir(self.resultdir + "/sysinfo")
 		system(self.bindir + '/sysinfo.py')

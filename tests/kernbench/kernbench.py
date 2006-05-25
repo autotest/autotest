@@ -22,6 +22,15 @@ class kernbench(test.test):
 			logfile = self.resultsdir+'/time.%d' % i
 			kernel.build_timed(threads, logfile)
 
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			logfile = self.resultsdir+'/time.profile'
+			kernel.build_timed(threads, logfile)
+			profilers.stop(self)
+			profilers.report(self)
+
 		kernel.clean()		# Don't leave litter lying around
 		os.chdir(self.resultsdir)
 		system("grep elapsed time.* > time")
