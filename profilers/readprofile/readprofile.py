@@ -4,10 +4,6 @@ from autotest_utils import *
 class readprofile(profiler.profiler):
 	version = 1
 
-	def __init__(self, job):
-		self.job = job
-
-
 # http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
 	def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
 		try:
