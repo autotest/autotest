@@ -2,8 +2,12 @@
 # you might need to do 'cat < /dev/null > /usr/include/linux/config.h'. 
 # But read the FAQ first.
 
-class lockmeter(profiler.profiler):
+class lockmeter:
 	version = 1
+
+	def __init__(self, job):
+		self.job = job
+
 
 # ftp://oss.sgi.com/projects/lockmeter/download/lockstat-1.4.11.tar.gz
 # patched with lockstat.diff
@@ -21,18 +25,18 @@ class lockmeter(profiler.profiler):
 		self.cmd = self.srcdir + '/lockstat'
 
 
-	def start(self):
+	def start(self, test):
 		system(self.cmd + ' off')
 		system(self.cmd + ' reset')
 		system(self.cmd + ' on')
 
 
-	def stop(self):
+	def stop(self, test):
 		system(self.cmd + ' off')
 
 
-	def report(self):
+	def report(self, test):
 		args = ' -m ' + get_systemmap()
 		self.output = self.resultsdir + '/results/lockstat'
-		system(self.cmd + args + ' print > ' self.output)
+		system(self.cmd + args + ' print > ' + self.output)
 

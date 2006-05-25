@@ -17,3 +17,11 @@ class unixbench(test.test):
 			os.chdir(self.srcdir)
 			vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
 			system(vars + ' ./Run ' + args)
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(vars + ' ./Run ' + args)
+			profilers.stop(self)
+			profilers.report(self)

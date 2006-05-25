@@ -15,10 +15,19 @@ class reaim(test.test):
 		system('./configure')
 		system('make')
 		
-	def execute(self, workfile = 'workfile.short', 
+	def execute(self, iterations = 1, workfile = 'workfile.short', 
 			start = '1', end = '10', increment = '2',
 			testdir = None):
 		if not testdir:
 			testdir = self.tmpdir
 		args = '-f ' + ' '.join((workfile,start,end,increment))
-		system(self.srcdir + '/reaim ' + args)
+		for i in range(1, iterations+1):
+			system(self.srcdir + '/reaim ' + args)
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(self.srcdir + '/reaim ' + args)
+			profilers.stop(self)
+			profilers.report(self)
