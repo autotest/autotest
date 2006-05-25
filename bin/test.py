@@ -25,8 +25,8 @@ class test:
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
-		versionfile = self.srcdir + '/.version'
 		newversion = self.version
+		versionfile = self.srcdir + '/.version'
 		if os.path.exists(versionfile):
 			existing_version = pickle.load(open(versionfile, 'r'))
 			if (existing_version != newversion):
