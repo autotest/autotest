@@ -1,4 +1,4 @@
-import shutil
+import profiler,shutil
 from autotest_utils import *
 
 class readprofile:
