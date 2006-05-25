@@ -6,11 +6,6 @@ class readprofile(profiler.profiler):
 
 # http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
 	def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
-		try:
-			system('grep -iq " profile=" /proc/cmdline')
-		except:
-			raise CmdError, 'readprofile not enabled'
-
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -20,8 +15,17 @@ class readprofile(profiler.profiler):
 		system('make readprofile')
 
 
+	def initialize(self):
+		try:
+			system('grep -iq " profile=" /proc/cmdline')
+		except:
+			raise CmdError, 'readprofile not enabled'
+
+		self.cmd = self.srcdir + '/sys-utils/readprofile'
+
+
 	def start(self, test):
-		system(self.srcdir + '/sys-utils/readprofile -r')
+		system(self.cmd + ' -r')
 
 
 	def stop(self, test):
@@ -36,7 +40,7 @@ class readprofile(profiler.profiler):
 		args  = ' -n'
 		args += ' -m ' + get_systemmap()
 		args += ' -p ' + self.rawprofile
-		cmd = self.srcdir + '/sys-utils/readprofile ' + args
+		cmd = self.cmd + ' ' + args
 		txtprofile = test.profdir + '/profile.text'
 		system(cmd + ' | sort -nr > ' + txtprofile)
 		system('bzip2 ' + self.rawprofile)
