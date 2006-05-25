@@ -1,7 +1,7 @@
 import profiler,shutil
 from autotest_utils import *
 
-class readprofile:
+class readprofile(profiler.profiler):
 	version = 1
 
 	def __init__(self, job):
