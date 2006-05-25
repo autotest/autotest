@@ -2,9 +2,7 @@ for profiler in ['lockmeter']:
 	try:
 		print "Testing profiler %s ..." % profiler
 		job.profilers.add(profiler)
-		job.profilers.start()
 		job.runtest(None, 'sleeptest', 1)
-		job.profilers.stop()
 		job.profilers.delete(profiler)
 	except:
 		print "Test of profiler %s failed" % profiler
