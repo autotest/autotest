@@ -1,13 +1,10 @@
 # NOTE: if you get compile errors from config.h, referring you to a FAQ,
 # you might need to do 'cat < /dev/null > /usr/include/linux/config.h'. 
 # But read the FAQ first.
+import profiler
 
-class lockmeter:
+class lockmeter(profiler.profiler):
 	version = 1
-
-	def __init__(self, job):
-		self.job = job
-
 
 # ftp://oss.sgi.com/projects/lockmeter/download/lockstat-1.4.11.tar.gz
 # patched with lockstat.diff
