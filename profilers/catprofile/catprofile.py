@@ -1,9 +1,13 @@
 # sets up a subprocess to cat a file on a specified interval
 # really, really ought to autoswitch on a list of files or individual file
-import profiler, time
+import time
 
-class catprofile(profiler.profiler):
+class catprofile:
 	version = 1
+
+	def __init__(self, job):
+		self.job = job
+
 
 	def setup(self, filenames, output_filename, interval = 5):
 		self.filenames = filenames
@@ -12,7 +16,7 @@ class catprofile(profiler.profiler):
 		self.interval = interval
 
 
-	def start(self):
+	def start(self, test):
 		self.child_pid = os.fork()
 		if self.child_pid:			# parent
 			return None
@@ -31,10 +35,10 @@ class catprofile(profiler.profiler):
 			time.sleep(self.interval)
 			
 
-	def stop(self):
+	def stop(self, test):
 		os.kill(self.child_pid, SIGTERM)
 
 
-	def report(self):
+	def report(self, test):
 		return None
 

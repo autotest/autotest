@@ -38,3 +38,11 @@ class lmbench(test.test):
 		config.close
 		for i in range(1, iterations+1):
 			system(self.srcdir + 'scripts/results')
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(self.srcdir + 'scripts/results')
+			profilers.stop(self)
+			profilers.report(self)
