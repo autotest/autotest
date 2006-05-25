@@ -22,6 +22,7 @@ class profilers:
 		newprofiler.srcdir = newprofiler.bindir + '/src'
 		newprofiler.tmpdir = self.tmpdir + '/' + profiler
 		update_version(newprofiler.srcdir, newprofiler.version, newprofiler.setup)
+		newprofiler.initialize()
 		self.list.append(newprofiler)
 
 
