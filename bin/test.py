@@ -25,17 +25,7 @@ class test:
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
-		newversion = self.version
-		versionfile = self.srcdir + '/.version'
-		if os.path.exists(versionfile):
-			existing_version = pickle.load(open(versionfile, 'r'))
-			if (existing_version != newversion):
-				system('rm -rf ' + self.srcdir)
-		if not os.path.exists(self.srcdir):
-			# DANGER, will robinson. Error catching here ????
-			self.setup()
-			if os.path.exists(self.srcdir):
-				pickle.dump(newversion, open(versionfile, 'w'))
+		update_version(self.srcdir, self.version, self.setup)
 
 
 	def setup(self):
@@ -113,7 +103,7 @@ def fork_lambda(tmp, l):
 
 # runtest: main interface for importing and instantiating new tests.
 def __runtest(self, tag, testname, test_args):
-	testd = self.testdir + '/'+ testname
+	testd = self.testdir + '/' + testname
 	name = testname
 	if (tag):
 		name += '.' + tag
