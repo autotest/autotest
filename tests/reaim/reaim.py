@@ -17,9 +17,9 @@ class reaim(test.test):
 		
 	def execute(self, iterations = 1, workfile = 'workfile.short', 
 			start = '1', end = '10', increment = '2',
-			testdir = None):
-		if not testdir:
-			testdir = self.tmpdir
+			tmpdir = None):
+		if not tmpdir:
+			tmpdir = self.tmpdir
 		args = '-f ' + ' '.join((workfile,start,end,increment))
 		for i in range(1, iterations+1):
 			system(self.srcdir + '/reaim ' + args)
