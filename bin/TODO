@@ -1,11 +1,5 @@
-Make test.py detect for source of a test at same version as current package,
-if not, run test.setup()
-  (APW: i belive this is done?  MJB?)
-
 Make sure build process dumps config errors in separate file from build
 errors (and warnings), from build output
-
-kernbench results are a mess - clean them up to dump into correct dirs.
 
 Make test wrapper chdir before and after setup and execute phases - nappy change
 
@@ -20,3 +14,7 @@ make profilers/cat take either a single file or list of files, autoswitching
 Caching version of kernelexpand to grab new kernels
 
 Add local libaio to fsx
+
+Errors from profilers are not being caught (shove a syntax error in a profiler
+python script to see what I mean) ... generates a file in results/debug/debug,
+but doesn't cascade up

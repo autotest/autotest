@@ -10,7 +10,7 @@ class profilers:
 		self.tmpdir = job.tmpdir
 
 	# add a profiler
-	def add(self, profiler):
+	def add(self, profiler, *args):
 		try:
 			sys.path.insert(0, self.job.profdir + '/' + profiler)
 			exec 'import ' + profiler
@@ -22,7 +22,7 @@ class profilers:
 		newprofiler.srcdir = newprofiler.bindir + '/src'
 		newprofiler.tmpdir = self.tmpdir + '/' + profiler
 		update_version(newprofiler.srcdir, newprofiler.version, newprofiler.setup)
-		newprofiler.initialize()
+		newprofiler.initialize(*args)
 		self.list.append(newprofiler)
 
 
