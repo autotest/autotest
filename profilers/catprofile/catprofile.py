@@ -1,14 +1,14 @@
 # sets up a subprocess to cat a file on a specified interval
 # really, really ought to autoswitch on a list of files or individual file
-import profiler,time
+import profiler,time,os
 
 class catprofile(profiler.profiler):
 	version = 1
 
-	def setup(self, filenames, output_filename, interval = 5):
+	# filenames: list of filenames to cat
+	def initialize(self, filenames, outfile, interval = 5):
 		self.filenames = filenames
-		# THIS IS WRONG. output should go under a test
-		self.output = self.job.resultdir + '/' + output_filename
+		self.outfile = outfile
 		self.interval = interval
 
 
@@ -17,22 +17,24 @@ class catprofile(profiler.profiler):
 		if self.child_pid:			# parent
 			return None
 		else:					# child
-			lines = []
-			for file in self.filenames:
-				input = open(filename, 'r')
-				lines = lines + input.readlines()
-				input.close
-			output = open(self.output, 'w+')
-			output.write(time.asctime() + '\n')
-			output.write('----------\n')
-			output.writelines(lines)
-			output.write('==========\n')
-			output.close()
-			time.sleep(self.interval)
-			
+			while 1:
+				lines = []
+				for filename in self.filenames:
+					input = open(filename, 'r')
+					lines += '\n----- %s -----\n' % filename
+					lines += input.readlines()
+					input.close
+				outfile = test.profdir + '/' + self.outfile
+				output = open(outfile, 'a')
+				output.write(time.asctime() + '\n')
+				output.writelines(lines)
+				output.write('\n=========================\n')
+				output.close()
+				time.sleep(self.interval)
+
 
 	def stop(self, test):
-		os.kill(self.child_pid, SIGTERM)
+		os.kill(self.child_pid, 15)
 
 
 	def report(self, test):

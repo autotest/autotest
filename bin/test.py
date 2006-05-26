@@ -8,7 +8,7 @@ class test:
 
 		self.job = job
 		self.tests = job.autodir + '/tests'
-		self.testdir = job.resultdir + '/' + testdir
+		self.testdir = testdir
 		os.mkdir(self.testdir)
 		self.resultsdir = self.testdir + "/results"
 		os.mkdir(self.resultsdir)
@@ -102,27 +102,30 @@ def fork_lambda(tmp, l):
 		os._exit(0)
 
 # runtest: main interface for importing and instantiating new tests.
-def __runtest(self, tag, testname, test_args):
-	testd = self.testdir + '/' + testname
-	name = testname
+def __runtest(job, tag, testname, test_args):
+	testdir = job.testdir + '/' + testname
+	resultdir = job.resultdir + '/' + testname
 	if (tag):
-		name += '.' + tag
-	if not os.path.exists(testd):
+		resultdir += '.' + tag
+	if not os.path.exists(testdir):
 		raise TestError(testname + ": test does not exist")
 	
 	try:
-		sys.path.insert(0, testd)
-
-		exec "import %s" % testname
-		exec "mytest = %s.%s(self, name)" % \
+		sys.path.insert(0, testdir)
+	
+		exec "import %s" % (testname)
+		exec "mytest = %s.%s(job, resultdir)" % \
 			(testname, testname)
 	finally:
 		sys.path.pop(0)
 
+	pwd = os.getcwd()
+	os.chdir(resultdir)
 	mytest.run(testname, test_args)
+	os.chdir(pwd)
 
 
-def runtest(self, tag, testname, test_args):
-	##__runtest(self, tag, testname, test_args)
-	fork_lambda(self.resultdir,
-		lambda : __runtest(self, tag, testname, test_args))
+def runtest(job, tag, testname, test_args):
+	##__runtest(job, tag, testname, test_args)
+	fork_lambda(job.resultdir,
+		lambda : __runtest(job, tag, testname, test_args))
