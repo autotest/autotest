@@ -3,21 +3,21 @@ from autotest_utils import *
 from error import *
 
 class test:
-	def __init__(self, job, testdir):
+	def __init__(self, job, outputdir):
 		testname = self.__class__.__name__
 
 		self.job = job
 		self.tests = job.autodir + '/tests'
-		self.testdir = testdir
-		os.mkdir(self.testdir)
-		self.resultsdir = self.testdir + "/results"
+		self.outputdir = outputdir
+		os.mkdir(self.outputdir)
+		self.resultsdir = self.outputdir + "/results"
 		os.mkdir(self.resultsdir)
-		self.profdir = self.testdir + "/profiling"
+		self.profdir = self.outputdir + "/profiling"
 		os.mkdir(self.profdir)
-		self.debugdir = self.testdir + "/debug"
+		self.debugdir = self.outputdir + "/debug"
 		os.mkdir(self.debugdir)
 
-		self.bindir = job.testdir + '/' + testname
+		self.bindir = job.resultdir + '/' + testname
 		self.srcdir = self.bindir + '/src'
 
 		self.tmpdir = job.tmpdir + '/' + testname
@@ -33,14 +33,14 @@ class test:
 
 
 	def record(self, msg):
-		status = self.testdir + "/status"
+		status = self.outputdir + "/status"
 		fd = file(status, "w")
 		fd.write(msg)
 		fd.close()
 
 	def __exec(self, parameters):
 		try:
-			os.chdir(self.testdir)
+			os.chdir(self.outputdir)
 			self.execute(*parameters)
 		except AutotestError:
 			raise
@@ -103,24 +103,24 @@ def fork_lambda(tmp, l):
 
 # runtest: main interface for importing and instantiating new tests.
 def __runtest(job, tag, testname, test_args):
-	testdir = job.testdir + '/' + testname
-	resultdir = job.resultdir + '/' + testname
+	bindir = job.testdir + '/' + testname
+	outputdir = job.resultdir + '/' + testname
 	if (tag):
-		resultdir += '.' + tag
-	if not os.path.exists(testdir):
+		outputdir += '.' + tag
+	if not os.path.exists(bindir):
 		raise TestError(testname + ": test does not exist")
 	
 	try:
-		sys.path.insert(0, testdir)
+		sys.path.insert(0, bindir)
 	
 		exec "import %s" % (testname)
-		exec "mytest = %s.%s(job, resultdir)" % \
+		exec "mytest = %s.%s(job, outputdir)" % \
 			(testname, testname)
 	finally:
 		sys.path.pop(0)
 
 	pwd = os.getcwd()
-	os.chdir(resultdir)
+	os.chdir(outputdir)
 	mytest.run(testname, test_args)
 	os.chdir(pwd)
 
