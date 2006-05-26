@@ -11,15 +11,17 @@ class lockmeter(profiler.profiler):
 # ftp://oss.sgi.com/projects/lockmeter/download/v2.6/patch.2.6.14-lockmeter-1.gz
 # is the kernel patch
 
-	def setup(self, tarball = self.bindir + 'lockstat-1.4.11.tar.bz2'):
-		assert os.path.exists('/proc/lockmeter')
-
-		self.tarball = unmap_potential_url(tarball, self.tmpdir)
+	def setup(self, tarball = 'lockstat-1.4.11.tar.bz2'):
+		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
 		system('make')
 		self.cmd = self.srcdir + '/lockstat'
+
+
+	def initialize(self):
+		assert os.path.exists('/proc/lockmeter')
 
 
 	def start(self, test):
