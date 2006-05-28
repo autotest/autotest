@@ -1,3 +1,29 @@
+# Copyright Martin J. Bligh, 2006
+#
+# Class for compiling kernels. Data for the object includes the src files
+# used to create the kernel, patches applied, config (base + changes),
+# the build directory itself, and logged output
+#
+# Methods:
+#	__init__	Initialize kernel object
+#	patch		Apply a list of patches (in order)
+#	config		Summon a kernel_config object and set it up
+#	build		Build the kernel
+# 	build_timed	Build the kernel, and time it
+#	clean		Do a "make clean"
+#	install		Do a "make install"
+#	set_cross_cc	Set the cross compiler to the h/w platform
+#	pickle_dump	Pickle this object, sans job backreference.
+#
+# Data:
+#	job		Backpointer to the job object we're part of
+#	autodir		Path to the top level autotest dir (/usr/local/autotest)
+#	top_dir		Path to the top level dir of this kernel object
+#	src_dir		<kernel>/src/
+#	build_dir	<kernel>/patches/
+#	config_dir	<kernel>/config
+#	log_dir		<kernel>/log
+
 import os,os.path,shutil,urllib,copy,pickle
 from autotest_utils import *
 import kernel_config
@@ -16,8 +42,9 @@ class kernel:
 			system('rm -rf ' + self.top_dir)
 		os.mkdir(self.top_dir)
 
-		self.src_dir    = self.top_dir + '/src'
 		self.build_dir  = self.top_dir + '/build'
+			# created by get_kernel_tree
+		self.src_dir    = self.top_dir + '/src'
 		self.patch_dir  = self.top_dir + '/patches'
 		self.config_dir = self.top_dir + '/config'
 		self.log_dir    = self.top_dir + '/log'
@@ -80,7 +107,7 @@ class kernel:
 		print self.log_dir+'stdout'
 		self.job.stdout.redirect(self.log_dir+'/stdout')
 		self.job.stderr.redirect(self.log_dir+'/stderr')
-		self.set_cross_compiler()
+		self.set_cross_cc()
 		# setup_config_file(config_file, config_overrides)
 
 		# Not needed on 2.6, but hard to tell -- handle failure
@@ -127,7 +154,7 @@ class kernel:
 			system('make modules_install')
 	
 	
-	def set_cross_compiler(self):
+	def set_cross_cc(self):
 		target_arch = get_target_arch()
 		global target
 		target = 'bzImage'
