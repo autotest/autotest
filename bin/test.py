@@ -1,13 +1,32 @@
+# Copyright Martin J. Bligh, Andy Whitcroft, 2006
+#
+# Shell class for a test, inherited by all individual tests
+#
+# Methods:
+#	__init__	initialise
+#	setup		run once for each new version of the test installed
+#	record		record an entry in the status file
+#	run		run the test (wrapped by job.runtest())
+#
+# Data:
+#	job		backreference to the job this test instance is part of
+#	outputdir	eg. results/<job>/<testname.tag>
+#	resultsdir	eg. results/<job>/<testname.tag>/results
+#	profdir		eg. results/<job>/<testname.tag>/profiling
+#	debugdir	eg. results/<job>/<testname.tag>/debug
+#	bindir		eg. tests/<test>
+#	src		eg. tests/<test>/src
+#	tmpdir		eg. tmp/<test>
+
 import os, pickle, tempfile
 from autotest_utils import *
 from error import *
 
 class test:
-	def __init__(self, job, outputdir):
+	def __init__(self, job, bindir, outputdir):
 		testname = self.__class__.__name__
 
 		self.job = job
-		self.tests = job.autodir + '/tests'
 		self.outputdir = outputdir
 		os.mkdir(self.outputdir)
 		self.resultsdir = self.outputdir + "/results"
@@ -17,14 +36,15 @@ class test:
 		self.debugdir = self.outputdir + "/debug"
 		os.mkdir(self.debugdir)
 
-		self.bindir = job.resultdir + '/' + testname
-		self.srcdir = self.bindir + '/src'
+		self.bindir = bindir
+		self.srcdir = bindir + '/src'
 
 		self.tmpdir = job.tmpdir + '/' + testname
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
+		# compile and install the test, if needed.
 		update_version(self.srcdir, self.version, self.setup)
 
 
@@ -114,7 +134,7 @@ def __runtest(job, tag, testname, test_args):
 		sys.path.insert(0, bindir)
 	
 		exec "import %s" % (testname)
-		exec "mytest = %s.%s(job, outputdir)" % \
+		exec "mytest = %s.%s(job, bindir, outputdir)" % \
 			(testname, testname)
 	finally:
 		sys.path.pop(0)

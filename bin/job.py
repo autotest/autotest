@@ -1,3 +1,31 @@
+# Copyright Andy Whitcroft, Martin J. Bligh 2006
+
+# The class describing a job
+#
+# Methods:
+#	__init__	Initialize the job object
+#	kernel		Summon a kernel object
+#	runtest		Summon a test object and run it
+#	parallel	Run tasks in parallel
+#	complete	Clean up and exit
+#	next_step	Define the next step
+#	step_engine	Do the next step
+#	record		Record job-level status
+#
+# Data:
+#	autodir		The top level autotest directory (/usr/local/autotest)
+#	bindir		bin/
+#	testdir		tests/
+#	profdir		profilers/
+#	tmpdir		tmp/
+#	resultdir	results/<jobtag>
+#	control		The control file (pathname of)
+#	jobtag		The job tag string (eg "default")
+#
+#	stdout		fd_stack object for stdout
+#	stderr		fd_stack object for stderr
+#	profilers	the profilers object for this job
+
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading, profilers
 
@@ -16,15 +44,18 @@ class job:
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = self.autodir + '/bin'
 		self.testdir = self.autodir + '/tests'
+		self.profdir = self.autodir + '/profilers'
+
 		self.tmpdir = self.autodir + '/tmp'
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
+
 		self.resultdir = self.autodir + '/results/' + jobtag
-		self.profdir = self.autodir + '/profilers'
 		if os.path.exists(self.resultdir):
 			system('rm -rf ' + self.resultdir)
 		os.mkdir(self.resultdir)
+
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
 		os.mkdir(self.resultdir + "/sysinfo")
