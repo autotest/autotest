@@ -17,18 +17,18 @@ class tbench(test.test):
 		# only supports combined server+client model at the moment
 		# should support separate I suppose, but nobody uses it
 		for i in range(1, iterations+1):
-			self.run_tbench()
+			self.run_tbench(args)
 
 		# Do a profiling run if necessary
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
-			self.run_tbench()
+			self.run_tbench(args)
 			profilers.stop(self)
 			profilers.report(self)
 
 
-	def run_tbench(self):
+	def run_tbench(self, args):
 		pid = os.fork()
 		if pid:				# parent
 			time.sleep(1)
