@@ -4,7 +4,7 @@ from autotest_utils import *
 
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
 	'/proc/cpuinfo']
-commands = ['lshw', 'uname -a']
+commands = ['lshw', 'uname -a', 'lspci -vvn']
 path = ['/usr/bin', '/bin']
 
 def run_command(command, output):
