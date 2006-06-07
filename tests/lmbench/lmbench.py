@@ -41,4 +41,4 @@ class lmbench(test.test):
 		# Get the results:
 		outputdir = self.srcdir + "/results"
 		results = self.resultsdir + "/summary.txt"
-		system("make -C " + output + " summary > " + results)
+		system("make -C " + outputdir + " summary > " + results)
