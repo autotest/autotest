@@ -54,3 +54,37 @@
  	chmod +x $O/lmbench
  
  $O/lmbench.a: $(LIBOBJS)
+--- src/scripts/config-run.old	2006-06-07 12:46:15.000000000 -0700
++++ src/scripts/config-run	2006-06-07 12:52:07.000000000 -0700
+@@ -115,9 +115,12 @@
+ three benchmark processes reading data and doing the measurements.
+ 
+ EOF
+-	echo $ECHON "Job placement selection: $ECHOC"
++	echo $ECHON "Job placement selection [DEFAULT: 1]: $ECHOC"
+ 	read LMBENCH_SCHED
+ 	AGAIN=N
++	if [ "$LMBENCH_SCHED" != "" ]; then
++		LMBENCH_SCHED=1
++	fi
+ 	case "$LMBENCH_SCHED" in
+ 	    1) LMBENCH_SCHED=DEFAULT;;
+ 	    2) LMBENCH_SCHED=BALANCED;;
+@@ -657,13 +660,13 @@
+ 
+ EOF
+ 
+-echo $ECHON "Mail results [default yes] $ECHOC"
++echo $ECHON "Mail results [default no] $ECHOC"
+ read MAIL
+ case $MAIL in 
+-    [Nn]*)	MAIL=no
+-		echo OK, no results mailed.
++    [Yy]*)	MAIL=yes
++		echo OK, results will be mailed.
+ 		;;
+-    *)		MAIL=yes
++    *)		MAIL=no
+ 		;;
+ esac
+ 
