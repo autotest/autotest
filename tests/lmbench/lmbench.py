@@ -8,12 +8,15 @@ class lmbench(test.test):
 	def setup(self, tarball = 'lmbench3.tar.gz'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		# http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
-		# + lmbench3.diff (removes Makefile references to bitkeeper)
+		# + lmbench3.diff 
+		#	removes Makefile references to bitkeeper
+		#	default mail to no, fix job placement defaults (masouds)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
 		system('make')
-		
+
+
 	def execute(self, iterations = 1, mem = '', fastmem = 'NO', 
 			slowfs = 'NO', disks = '', disks_desc = '', 
 			mhz = '', remote = '', enough = '5000', sync_max = '1',
@@ -22,27 +25,18 @@ class lmbench(test.test):
 			fsdir = self.tmpdir
 		if not file:
 			file = self.tmpdir+'XXX'
-		config = open(self.srcdir + '/scripts/config-run', 'w')
-		config.write('MEM="' + mem + '"\n')
-		config.write('FASTMEM="' + fastmem + '"\n')
-		config.write('SLOWFS="' + slowfs + '"\n')
-		config.write('DISKS="' + disks + '"\n')
-		config.write('DISK_DESC="' + disks_desc + '"\n')
-		config.write('MHZ="' + mhz + '"\n')
-		config.write('REMOTE="' + remote + '"\n')
-		config.write('ENOUGH="' + enough + '"\n')
-		config.write('SYNC_MAX="' + sync_max + '"\n')
-		config.write('FILE="' + file + '"\n')
-		config.write('FSDIR="' + fsdir + '"\n')
-		config.write('MAIL=no\n')
-		config.close
+
+		system("make results")
+		cmd = "( cd " + self.srcdir + " && make rerun )"
 		for i in range(1, iterations+1):
-			system(self.srcdir + 'scripts/results')
+			system(cmd)
 
 		# Do a profiling run if necessary
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
-			system(self.srcdir + 'scripts/results')
+			system(cmd)
 			profilers.stop(self)
 			profilers.report(self)
+		# Get the results:
+		system("make -C " + self.srcdir + "/results summary > summary.txt")
