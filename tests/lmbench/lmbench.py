@@ -26,8 +26,8 @@ class lmbench(test.test):
 		if not file:
 			file = self.tmpdir+'XXX'
 
-		system("make results")
-		cmd = "( cd " + self.srcdir + " && make rerun )"
+		os.chdir(self.srcdir)
+		cmd = "yes '' | make rerun"
 		for i in range(1, iterations+1):
 			system(cmd)
 
@@ -39,4 +39,6 @@ class lmbench(test.test):
 			profilers.stop(self)
 			profilers.report(self)
 		# Get the results:
-		system("make -C " + self.srcdir + "/results summary > summary.txt")
+		outputdir = self.srcdir + "/results"
+		results = self.resultsdir + "/summary.txt"
+		system("make -C " + output + " summary > " + results)
