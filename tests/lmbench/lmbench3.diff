@@ -64,7 +64,7 @@
 +	echo $ECHON "Job placement selection [DEFAULT: 1]: $ECHOC"
  	read LMBENCH_SCHED
  	AGAIN=N
-+	if [ "$LMBENCH_SCHED" != "" ]; then
++	if [ "$LMBENCH_SCHED" == "" ]; then
 +		LMBENCH_SCHED=1
 +	fi
  	case "$LMBENCH_SCHED" in
