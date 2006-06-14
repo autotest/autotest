@@ -59,7 +59,7 @@ class job:
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
 		os.mkdir(self.resultdir + "/sysinfo")
-		
+
 		self.control = control
 		self.jobtab = jobtag
 
@@ -75,6 +75,18 @@ class job:
 
 	def kernel(self, topdir, base_tree):
 		return kernel.kernel(self, topdir, base_tree)
+
+
+	def setup_dep(self, deps): 
+	# deps is an array of libraries required for this test. 
+		for dep in deps: 
+			try: 
+				os.chdir(self.autodir + '/deps/' + dep)
+				system('./' + dep + '.py')
+			except: 
+				error = "setting up dependency " + dep + "\n"
+                       		raise UnhandledError(error)
+
 
         def __runtest(self, tag, testname, test_args):
                 try:

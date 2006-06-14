@@ -21,6 +21,7 @@ sys.path.insert(0, autodirbin)
 
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
+os.environ['PYTHONPATH'] = autodirbin
 
 def usage():
 	os.stderr.write("Usage: autotest [--continue] <control file>\n");
