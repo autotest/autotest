@@ -240,6 +240,27 @@ def dump_object(object):
 			continue
 
 
+def environ(env_key):
+	if (os.environ.has_key(env_key)):
+		return os.environ(env_key)
+	else:
+		return ''
+
+
+def prepend_path(newpath, oldpath):
+	if (oldpath):
+		return newpath + ':' + oldpath
+	else:
+		return newpath
+
+
+def append_path(oldpath, newpath):
+	if (oldpath):
+		return oldpath + ':' + newpath
+	else:
+		return newpath
+
+
 class fd_stack:
 	# Note that we need to redirect both the sys.stdout type descriptor
 	# (which print, etc use) and the low level OS numbered descriptor

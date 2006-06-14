@@ -27,6 +27,7 @@ class test:
 		testname = self.__class__.__name__
 
 		self.job = job
+		self.autodir = job.autodir
 		self.outputdir = outputdir
 		os.mkdir(self.outputdir)
 		self.resultsdir = self.outputdir + "/results"
