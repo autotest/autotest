@@ -3,7 +3,7 @@ import test
 from autotest_utils import *
 
 class lmbench(test.test):
-	version = 1
+	version = 2
 
 	def setup(self, tarball = 'lmbench3.tar.bz2'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
