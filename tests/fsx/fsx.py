@@ -14,8 +14,8 @@ class fsx(test.test):
 		self.job.setup_dep(['libaio'])
 		ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
 		cflags = '-I ' + self.autodir + '/deps/libaio/include'
-		var_ldflags = 'LDFLAGS="' + self.ldflags + '"'
-		var_cflags  = 'CFLAGS="' + self.cflags + '"'
+		var_ldflags = 'LDFLAGS="' + ldflags + '"'
+		var_cflags  = 'CFLAGS="' + cflags + '"'
 		self.make_flags = var_ldflags + ' ' + var_cflags
 	
 	

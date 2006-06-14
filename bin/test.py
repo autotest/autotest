@@ -4,6 +4,7 @@
 #
 # Methods:
 #	__init__	initialise
+#	initialize	run once for each job
 #	setup		run once for each new version of the test installed
 #	record		record an entry in the status file
 #	run		run the test (wrapped by job.runtest())
@@ -45,8 +46,13 @@ class test:
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
+		self.initialize()
 		# compile and install the test, if needed.
 		update_version(self.srcdir, self.version, self.setup)
+
+
+	def initialize(self):
+		pass
 
 
 	def setup(self):
