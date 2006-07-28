@@ -1,21 +1,26 @@
+"""Convenience functions for use by tests or whomever.
+"""
+
 import os,os.path,shutil,urllib,sys,signal,commands,pickle
 from error import *
 import re
 
 def grep(pattern, file):
-# This is mainly to fix the return code inversion from grep
+	"""This is mainly to fix the return code inversion from grep"""
 	return not system('grep "' + pattern + '" "' + file + '"')
 	
 	
-def difflist(list1, list2):	
-# returns items in list 2 that are not in list 1
+def difflist(list1, list2):
+	"""returns items in list2 that are not in list1"""
 	diff = [];
 	for x in list2:
 		if x not in list1:
 			diff.append(x)
 	return diff
 
+
 def cat_file_to_cmd(file, command):
+	"""equivalent to 'cat file | command' but knows to use zcat or bzcat if appropriate"""
 	if not os.path.isfile(file):
 		raise NameError, 'invalid file %s to cat to command %s' % file, command
 	if file.endswith('.bz2'):
@@ -25,10 +30,12 @@ def cat_file_to_cmd(file, command):
 	else:
 		system('cat ' + file + ' | ' + command)
 
-	
-# Extract a tarball to a specified directory name instead of whatever 
-# the top level of a tarball is - useful for versioned directory names, etc
+
 def extract_tarball_to_dir(tarball, dir):
+	"""
+	Extract a tarball to a specified directory name instead of whatever 
+	the top level of a tarball is - useful for versioned directory names, etc
+	"""
 	if os.path.exists(dir):
 		raise NameError, 'target %s already exists' % dir
 	pwd = os.getcwd()
@@ -38,8 +45,8 @@ def extract_tarball_to_dir(tarball, dir):
 	os.chdir(pwd)
 
 
-# Returns the first found newly created directory by the tarball extraction
 def extract_tarball(tarball):
+	"""Returns the first found newly created directory by the tarball extraction"""
 	oldlist = os.listdir('.')
 	cat_file_to_cmd(tarball, 'tar xf -')
 	newlist = os.listdir('.')
@@ -52,6 +59,10 @@ def extract_tarball(tarball):
 
 
 def update_version(srcdir, new_version, install):
+	"""Make sure srcdir is version new_version
+
+	If not, delete it and install() the new version
+	"""
 	versionfile = srcdir + '/.version'
 	if os.path.exists(srcdir):
 		if os.path.exists(versionfile):
@@ -67,16 +78,18 @@ def update_version(srcdir, new_version, install):
                 
 
 def is_url(path):
+	"""true if path is a url
+	"""
+	# should cope with other url types here, but we only handle http and ftp
 	if (path.startswith('http://')) or (path.startswith('ftp://')):
-	# should cope with other url types here, but we don't handle them yet
 		return 1
 	return 0
 
 
 def get_file(src, dest):
+	"""get a file, either from url or local"""
 	if (src == dest):      # no-op here allows clean overrides in tests
 		return
-	# get a file, either from url or local
 	if (is_url(src)):
 		print 'PWD: ' + os.getcwd()
 		print 'Fetching \n\t', src, '\n\t->', dest
@@ -105,18 +118,21 @@ def basename(path):
 
 
 def force_copy(src, dest):
+	"""Replace dest with a new copy of src, even if it exists"""
 	if os.path.isfile(dest):
 		os.remove(dest)
 	return shutil.copyfile(src, dest)
 
 
 def file_contains_pattern(file, pattern):
+	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
 		raise NameError, 'file %s does not exist' % file
 	return not system('egrep -q ' + pattern + ' ' + file, ignorestatus = 1)
 
 
 def list_grep(list, pattern):
+	"""True if any item in list matches the specified pattern."""
 	compiled = re.compile(pattern)
 	for line in list:
 		match = compiled.search(line)
@@ -126,7 +142,10 @@ def list_grep(list, pattern):
 
 
 def get_vmlinux():
-	# Ahem. This is crap. Pray harder. Bad Martin.
+	"""Return the full path to vmlinux
+
+	Ahem. This is crap. Pray harder. Bad Martin.
+	"""
 	vmlinux = '/boot/vmlinux'
 	if not os.path.isfile(vmlinux):
 		raise NameError, 'Cannot find vmlinux'
@@ -134,7 +153,10 @@ def get_vmlinux():
 
 
 def get_systemmap():
-	# Ahem. This is crap. Pray harder. Bad Martin.
+	"""Return the full path to System.map
+
+	Ahem. This is crap. Pray harder. Bad Martin.
+	"""
 	map = '/boot/System.map'
 	if not os.path.isfile(map):
 		raise NameError, 'Cannot find System.map'
@@ -142,12 +164,13 @@ def get_systemmap():
 
 
 def get_modules_dir():
+	"""Return the modules dir for the running kernel version"""
 	kernel_version = system_output('uname -r')
 	return '/lib/modules/%s/kernel' % kernel_version
 
 
 def get_arch():
-# Work out which CPU architecture we're running on
+	"""Work out which CPU architecture we're running on"""
 	f = open('/proc/cpuinfo', 'r')
 	cpuinfo = f.readlines()
 	f.close()
@@ -170,6 +193,7 @@ def get_arch():
 
 
 def get_target_arch():
+	"""Work out the target architecture."""
 	arch = get_arch()
 	if arch.startswith('power'):
 		return 'ppc64'
@@ -189,6 +213,7 @@ def kernelexpand(kernel):
 
 
 def count_cpus():
+	"""number of CPUs in the local machine according to /proc/cpuinfo"""
 	f = file('/proc/cpuinfo', 'r')
 	cpus = 0
 	for line in f.readlines():
@@ -196,14 +221,16 @@ def count_cpus():
 			cpus += 1
 	return cpus
 
-
-# We have our own definition of system here, as the stock os.system doesn't
-# correctly handle sigpipe 
-# (ie things like "yes | head" will hang because yes doesn't get the SIGPIPE).
-# 
-# Also the stock os.system didn't raise errors based on exit status, this 
-# version does unless you explicitly specify ignorestatus=1
 def system(cmd, ignorestatus = 0):
+	"""os.system replacement
+
+	We have our own definition of system here, as the stock os.system doesn't
+	correctly handle sigpipe 
+	(ie things like "yes | head" will hang because yes doesn't get the SIGPIPE).
+ 
+	Also the stock os.system didn't raise errors based on exit status, this 
+	version does unless you explicitly specify ignorestatus=1
+	"""
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
 		status = os.system(cmd)
@@ -216,6 +243,11 @@ def system(cmd, ignorestatus = 0):
 
 
 def system_output(command, ignorestatus = 0):
+	"""Run command and return its output
+
+	ignorestatus
+		whether to raise a CmdError if command has a nonzero exit status
+	"""
 	(result, data) = commands.getstatusoutput(command)
 	if ((result != 0) and not ignorestatus):
 		raise CmdError, 'command failed: ' + command
@@ -223,14 +255,20 @@ def system_output(command, ignorestatus = 0):
 
 
 def where_art_thy_filehandles():
+	"""Dump the current list of filehandles"""
 	os.system("ls -l /proc/%d/fd >> /dev/tty" % os.getpid())
 
 
 def print_to_tty(string):
+	"""Output string straight to the tty"""
 	os.system("echo " + string + " >> /dev/tty")
 
 
 def dump_object(object):
+	"""Dump an object's attributes and methods
+
+	kind of like dir()
+	"""
 	for item in object.__dict__.iteritems():
 		print item
 		try:
@@ -241,6 +279,7 @@ def dump_object(object):
 
 
 def environ(env_key):
+	"""return the requested environment variable, or '' if unset"""
 	if (os.environ.has_key(env_key)):
 		return os.environ(env_key)
 	else:
@@ -248,6 +287,7 @@ def environ(env_key):
 
 
 def prepend_path(newpath, oldpath):
+	"""prepend newpath to oldpath"""
 	if (oldpath):
 		return newpath + ':' + oldpath
 	else:
@@ -255,6 +295,7 @@ def prepend_path(newpath, oldpath):
 
 
 def append_path(oldpath, newpath):
+	"""append newpath to oldpath"""
 	if (oldpath):
 		return oldpath + ':' + newpath
 	else:
@@ -262,9 +303,16 @@ def append_path(oldpath, newpath):
 
 
 class fd_stack:
-	# Note that we need to redirect both the sys.stdout type descriptor
-	# (which print, etc use) and the low level OS numbered descriptor
-	# which os.system() etc use.
+	"""a stack of fd redirects
+
+	Redirects cause existing fd's to be pushed on the stack; restore()
+	causes the current set of redirects to be popped, restoring the previous
+	filehandle destinations.
+
+	Note that we need to redirect both the sys.stdout type descriptor
+	(which print, etc use) and the low level OS numbered descriptor
+	which os.system() etc use.
+	"""
 
 	def __init__(self, fd, filehandle):
 		self.fd = fd				# eg 1
@@ -273,6 +321,10 @@ class fd_stack:
 
 
 	def redirect(self, filename):
+		"""Redirect output to the specified file
+
+		Overwrites the previous contents, if any.	
+		"""
 		fdcopy = os.dup(self.fd)
 		self.stack.append( (fdcopy, self.filehandle) )
 		# self.filehandle = file(filename, 'w')
@@ -286,6 +338,10 @@ class fd_stack:
 
 
 	def tee_redirect(self, filename):
+		"""Tee output to the specified file
+
+		Overwrites the previous contents, if any.	
+		"""
 		print_to_tty("tee_redirect to " + filename)
 		where_art_thy_filehandles()
 		fdcopy = os.dup(self.fd)
@@ -307,6 +363,7 @@ class fd_stack:
 
 	
 	def restore(self):
+		"""unredirect one level"""
 		# print_to_tty("ENTERING RESTORE %d" % self.fd)
 		# where_art_thy_filehandles()
 		(old_fd, old_filehandle) = self.stack.pop()

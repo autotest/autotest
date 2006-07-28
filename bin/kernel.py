@@ -1,28 +1,5 @@
-# Copyright Martin J. Bligh, 2006
-#
-# Class for compiling kernels. Data for the object includes the src files
-# used to create the kernel, patches applied, config (base + changes),
-# the build directory itself, and logged output
-#
-# Methods:
-#	__init__	Initialize kernel object
-#	patch		Apply a list of patches (in order)
-#	config		Summon a kernel_config object and set it up
-#	build		Build the kernel
-# 	build_timed	Build the kernel, and time it
-#	clean		Do a "make clean"
-#	install		Do a "make install"
-#	set_cross_cc	Set the cross compiler to the h/w platform
-#	pickle_dump	Pickle this object, sans job backreference.
-#
-# Data:
-#	job		Backpointer to the job object we're part of
-#	autodir		Path to the top level autotest dir (/usr/local/autotest)
-#	top_dir		Path to the top level dir of this kernel object
-#	src_dir		<kernel>/src/
-#	build_dir	<kernel>/patches/
-#	config_dir	<kernel>/config
-#	log_dir		<kernel>/log
+
+__author__ = """Copyright Martin J. Bligh, 2006"""
 
 import os,os.path,shutil,urllib,copy,pickle
 from autotest_utils import *
@@ -30,9 +7,41 @@ import kernel_config
 import test
 
 class kernel:
+	""" Class for compiling kernels. 
+
+	Data for the object includes the src files
+	used to create the kernel, patches applied, config (base + changes),
+	the build directory itself, and logged output
+
+	Properties:
+		job
+			Backpointer to the job object we're part of
+		autodir
+			Path to the top level autotest dir (/usr/local/autotest)
+		top_dir
+			Path to the top level dir of this kernel object
+		src_dir
+			<top_dir>/src/
+		build_dir
+			<top_dir>/patches/
+		config_dir
+			<top_dir>/config
+		log_dir
+			<top_dir>/log
+	"""
+
 	autodir = ''
 
 	def __init__(self, job, top_directory, base_tree):
+		"""Initialize the kernel build environment
+
+		job
+			which job this build is part of
+		top_directory
+			top of the build environment
+		base_tree
+			???
+		"""
 		self.job = job
 		autodir = job.autodir
 		self.top_dir = top_directory
@@ -58,6 +67,7 @@ class kernel:
 
 
 	def patch(self, *patches):
+		"""Apply a list of patches (in order)"""
 		self.job.stdout.redirect(self.log_dir+'/stdout')
 		local_patches = self.get_patches(patches)
 		self.apply_patches(local_patches)
@@ -71,6 +81,7 @@ class kernel:
 
 
 	def get_patches(self, patches):
+		"""fetch the patches to the local patch_dir"""
 		local_patches = []
 		for patch in patches:
 			dest = self.patch_dir + basename(patch)
@@ -79,6 +90,7 @@ class kernel:
 
 	
 	def apply_patches(self, patches):
+		"""apply the list of patches, in order"""
 		builddir = self.build_dir
 		os.chdir(builddir)
 
@@ -92,7 +104,7 @@ class kernel:
 	
 	
 	def get_kernel_tree(self, base_tree):
-	# Extract base_tree into self.top_dir/build
+		"""Extract base_tree into self.top_dir/build"""
 		os.chdir(self.top_dir)
 		tarball = 'src/' + basename(base_tree)
 		get_file(base_tree, tarball)
@@ -102,7 +114,11 @@ class kernel:
 	
 
 	def build(self, make_opts = ''):
-		# build the kernel
+		"""build the kernel
+	
+		make_opts
+			additional options to make, if any
+		"""
 		os.chdir(self.build_dir)
 		print self.log_dir+'stdout'
 		self.job.stdout.redirect(self.log_dir+'/stdout')
@@ -126,6 +142,7 @@ class kernel:
 
 
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
+		"""time the bulding of the kernel"""
 		os.chdir(self.build_dir)
 		print "make clean"
 		system('make clean')
@@ -137,13 +154,14 @@ class kernel:
 
 
 	def clean(self):
+		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
 		print "make clean"
 		system('make clean')
 
 	
 	def install(self, dir):
-		# install the kernel
+		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
 		image = 'arch/' + get_target_arch() + '/boot/' + target
 		force_copy(image, '/boot/vmlinuz-autotest')
@@ -155,6 +173,10 @@ class kernel:
 	
 	
 	def set_cross_cc(self):
+		"""Set up to cross-compile.
+
+		Currently this can cross-compile to ppc64 and x86_64
+		"""
 		target_arch = get_target_arch()
 		global target
 		target = 'bzImage'
@@ -169,9 +191,12 @@ class kernel:
 			os.environ['CROSS_COMPILE']=autodir+'sources/x86_64-cross/bin'
 
 
-	# we can't pickle the backreference to job (it contains fd's), 
-	# nor would we want to
 	def pickle_dump(self, filename):
+		"""dump a pickle of ourself out to the specified filename
+
+		we can't pickle the backreference to job (it contains fd's), 
+		nor would we want to
+		"""
 		temp = copy.copy(self)
 		temp.job = None
 		pickle.dump(temp, open(filename, 'w'))
