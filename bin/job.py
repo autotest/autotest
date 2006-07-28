@@ -1,36 +1,15 @@
-# Copyright Andy Whitcroft, Martin J. Bligh 2006
+"""The main job wrapper
 
-# The class describing a job
-#
-# Methods:
-#	__init__	Initialize the job object
-#	kernel		Summon a kernel object
-#	runtest		Summon a test object and run it
-#	parallel	Run tasks in parallel
-#	complete	Clean up and exit
-#	next_step	Define the next step
-#	step_engine	Do the next step
-#	record		Record job-level status
-#
-# Data:
-#	autodir		The top level autotest directory (/usr/local/autotest)
-#	bindir		bin/
-#	testdir		tests/
-#	profdir		profilers/
-#	tmpdir		tmp/
-#	resultdir	results/<jobtag>
-#	control		The control file (pathname of)
-#	jobtag		The job tag string (eg "default")
-#
-#	stdout		fd_stack object for stdout
-#	stderr		fd_stack object for stderr
-#	profilers	the profilers object for this job
+This is the core infrastructure.
+"""
+
+__author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading, profilers
 
-# Parallel run interface.
 class AsyncRun(threading.Thread):
+    """Parallel run interface."""
     def __init__(self, cmd):
 	threading.Thread.__init__(self)        
 	self.cmd = cmd
@@ -38,9 +17,39 @@ class AsyncRun(threading.Thread):
     	x = self.cmd.pop(0)
 	x(*self.cmd)
 
-# JOB: the actual job against which we do everything.
+
 class job:
+	"""The actual job against which we do everything.
+
+	Properties:
+		autodir		
+			The top level autotest directory (/usr/local/autotest).
+			Comes from os.environ['AUTODIR'].
+		bindir	
+			<autodir>/bin/
+		testdir	
+			<autodir>/tests/
+		profdir
+			<autodir>/profilers/
+		tmpdir
+			<autodir>/tmp/
+		resultdir
+			<autodir>/results/<jobtag>
+		stdout
+			fd_stack object for stdout
+		stderr
+			fd_stack object for stderr
+		profilers
+			the profilers object for this job
+	"""
+
 	def __init__(self, control, jobtag='default'):
+		"""
+			control
+				The control file (pathname of)
+			jobtag
+				The job tag string (eg "default")
+		"""
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = self.autodir + '/bin'
 		self.testdir = self.autodir + '/tests'
@@ -74,11 +83,14 @@ class job:
 		os.chdir(pwd)
 
 	def kernel(self, topdir, base_tree):
+		"""Summon a kernel object"""
 		return kernel.kernel(self, topdir, base_tree)
 
-
 	def setup_dep(self, deps): 
-	# deps is an array of libraries required for this test. 
+		"""Set up the dependencies for this test.
+		
+		deps is a list of libraries required for this test.
+		"""
 		for dep in deps: 
 			try: 
 				os.chdir(self.autodir + '/deps/' + dep)
@@ -98,6 +110,13 @@ class job:
                                 self.__class__.__name__ + "\n")
 
 	def runtest(self, tag, testname, *test_args):
+		"""Summon a test object and run it.
+		
+		tag
+			tag to add to testname
+		testname
+			name of the test to run
+		"""
 		name = testname 
 		if (tag):
 			name += '.' + tag
@@ -123,20 +142,23 @@ class job:
 		print "job: noop: " + text
 
 	# Job control primatives.
-	def parallel(self, *l):
+
+	def parallel(self, *tasklist):
+		"""Run tasks in parallel"""
 		tasks = []
-		for t in l:
+		for t in tasklist:
 			task = AsyncRun(t)
 			tasks.append(task)
 			task.start()
 		for t in tasks:
 			t.join()
 
-	# XXX: should have a better name.
 	def quit(self):
+		# XXX: should have a better name.
 		raise JobContinue("more to come")
 
 	def complete(self, status):
+		"""Clean up and exit"""
 		# We are about to exit 'complete' so clean up the control file.
 		try:
 			os.unlink(self.control + '.state')
@@ -144,16 +166,18 @@ class job:
 			pass
 		sys.exit(status)
 
-	# STEPS: the stepping engine -- if the control file defines
-	#        step_init we will be using this engine to drive multiple
-	#        runs.
 	steps = []
 	def next_step(self, step):
+		"""Define the next step"""
 		step[0] = step[0].__name__
 		self.steps.append(step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
 	def step_engine(self):
+		"""the stepping engine -- if the control file defines
+		step_init we will be using this engine to drive multiple runs.
+		"""
+		"""Do the next step"""
 		lcl = dict({'job': self})
 
 		str = """
@@ -189,6 +213,7 @@ from autotest_utils import *
 		self.complete(0)
 
 	def record(self, msg):
+		"""Record job-level status"""
 		print msg
 		status = self.resultdir + "/status"
 		fd = file(status, "a")
@@ -197,6 +222,13 @@ from autotest_utils import *
 
 
 def runjob(control, cont = 0):
+	"""The main interface to this module
+
+	control	
+		The control file to use for this job.
+	cont
+		Whether this is the continuation of a previously started job
+	"""
 	state = control + '.state'
 
 	# instantiate the job object ready for the control file.
