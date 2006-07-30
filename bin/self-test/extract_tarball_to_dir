@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 
 import sys, os, os.path
 sys.path.insert(0, '/usr/local/autotest/bin')

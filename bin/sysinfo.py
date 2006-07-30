@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 import os,os.path,shutil
 from autotest_utils import *
 
