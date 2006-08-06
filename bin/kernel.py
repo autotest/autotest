@@ -40,7 +40,7 @@ class kernel:
 		top_directory
 			top of the build environment
 		base_tree
-			???
+			base kernel tree (eg tarball)
 		"""
 		self.job = job
 		autodir = job.autodir
@@ -62,7 +62,10 @@ class kernel:
 		os.mkdir(self.config_dir)
 		os.mkdir(self.log_dir)
 
-		base_tree = kernelexpand(base_tree)
+ 		self.target_arch = None
+ 		
+ 		if not os.path.isdir(base_tree):
+ 			base_tree = kernelexpand(base_tree)
 		self.get_kernel_tree(base_tree)
 
 
@@ -103,15 +106,24 @@ class kernel:
 			cat_file_to_cmd(patch, 'patch -p1')
 	
 	
-	def get_kernel_tree(self, base_tree):
-		"""Extract base_tree into self.top_dir/build"""
-		os.chdir(self.top_dir)
-		tarball = 'src/' + basename(base_tree)
-		get_file(base_tree, tarball)
+  	def get_kernel_tree(self, base_tree):
+		"""Extract/link base_tree to self.top_dir/build"""
+  
+		# if base_tree is a dir, assume uncompressed kernel
+		if os.path.isdir(base_tree):
+			print 'Symlinking existing kernel source'
+			os.symlink(base_tree,
+				   os.path.join(self.top_dir, 'build'))
 
-		print 'Extracting kernel tarball:', tarball, '...'
-		extract_tarball_to_dir(tarball, 'build')
-	
+		# otherwise, extract tarball
+		else:
+			os.chdir(self.top_dir)
+			tarball = os.path.join('src', basename(base_tree))
+			get_file(base_tree, tarball)
+
+			print 'Extracting kernel tarball:', tarball, '...'
+			extract_tarball_to_dir(tarball, 'build')
+
 
 	def build(self, make_opts = ''):
 		"""build the kernel
@@ -132,7 +144,8 @@ class kernel:
 		except CmdError:
 			pass
 		threads = 2 * count_cpus()
-		system('make -j %d %s %s' % (threads, make_opts, target))
+		system('make -j %d %s %s' % (threads, make_opts,
+					     self.build_target))
 			# eg make bzImage, or make zImage
 		if kernel_config.modules_needed('.config'):
 			system('make modules')
@@ -163,7 +176,8 @@ class kernel:
 	def install(self, dir):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
-		image = 'arch/' + get_target_arch() + '/boot/' + target
+		image = os.path.join('arch', get_target_arch(), 'boot',
+				     self.build_target)
 		force_copy(image, '/boot/vmlinuz-autotest')
 		force_copy('System.map', '/boot/System.map-autotest')
 		force_copy('.config', '/boot/config-autotest')
@@ -172,25 +186,35 @@ class kernel:
 			system('make modules_install')
 	
 	
-	def set_cross_cc(self):
+	def set_cross_cc(self, target_arch=None, cross_compile=None,
+			 build_target='bzImage'):
 		"""Set up to cross-compile.
-
-		Currently this can cross-compile to ppc64 and x86_64
 		"""
-		target_arch = get_target_arch()
-		global target
-		target = 'bzImage'
 	
-		if target_arch == 'ppc64':
-			install_package('ppc64-cross')
-			os.environ['CROSS_COMPILE']=autodir+'sources/ppc64-cross/bin'
-			target = 'zImage'
-		elif target_arch == 'x86_64':
-			install_package('x86_64-cross')
-			os.environ['ARCH']='x86_64'
-			os.environ['CROSS_COMPILE']=autodir+'sources/x86_64-cross/bin'
+		if self.target_arch:
+			return
+		
+		self.build_target = build_target
+		
+		# If no 'target_arch' given assume native compilation
+		if target_arch == None:
+			target_arch = get_kernel_arch()
+			if target_arch == 'ppc64':
+				install_package('ppc64-cross')
+				cross_compile = os.path.join(autodir, 'sources/ppc64-cross/bin')
+				if self.build_target == 'bzImage':
+					self.build_target = 'zImage'
 
+			elif target_arch == 'x86_64':
+				install_package('x86_64-cross')
+				cross_compile = os.path.join(autodir, 'sources/x86_64-cross/bin')
 
+		os.environ['ARCH'] = self.target_arch = target_arch
+
+		self.cross_compile = cross_compile
+		if self.cross_compile:
+			os.environ['CROSS_COMPILE'] = self.cross_compile
+		
 	def pickle_dump(self, filename):
 		"""dump a pickle of ourself out to the specified filename
 
