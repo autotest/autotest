@@ -169,7 +169,7 @@ def get_modules_dir():
 	return '/lib/modules/%s/kernel' % kernel_version
 
 
-def get_arch():
+def get_cpu_arch():
 	"""Work out which CPU architecture we're running on"""
 	f = open('/proc/cpuinfo', 'r')
 	cpuinfo = f.readlines()
@@ -192,11 +192,11 @@ def get_arch():
 		return 'i386'
 
 
-def get_target_arch():
-	"""Work out the target architecture."""
-	arch = get_arch()
-	if arch.startswith('power'):
-		return 'ppc64'
+def get_kernel_arch():
+	"""Work out the current kernel architecture (as a kernel arch)"""
+	arch = os.popen('uname -m').read().rstrip()
+	if ((arch == 'i586') or (arch == 'i686')):
+		return 'i386'
 	else:
 		return arch
 

@@ -18,7 +18,7 @@ class oprofile(profiler.profiler):
 
 
 	def initialize(self):
-		arch = get_arch()
+		arch = get_cpu_arch()
 		if (arch == 'i386'):
 			self.setup_i386()
 		else:
