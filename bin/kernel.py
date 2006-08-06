@@ -1,4 +1,3 @@
-
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
 import os,os.path,shutil,urllib,copy,pickle
@@ -40,7 +39,7 @@ class kernel:
 		top_directory
 			top of the build environment
 		base_tree
-			base kernel tree (eg tarball)
+			base kernel tree (eg tarball or dir to symlink to)
 		"""
 		self.job = job
 		autodir = job.autodir
@@ -51,12 +50,12 @@ class kernel:
 			system('rm -rf ' + self.top_dir)
 		os.mkdir(self.top_dir)
 
-		self.build_dir  = self.top_dir + '/build'
+		self.build_dir  = os.path.join(self.top_dir, 'build')
 			# created by get_kernel_tree
-		self.src_dir    = self.top_dir + '/src'
-		self.patch_dir  = self.top_dir + '/patches'
-		self.config_dir = self.top_dir + '/config'
-		self.log_dir    = self.top_dir + '/log'
+		self.src_dir    = os.path.join(self.top_dir, 'src')
+		self.patch_dir  = os.path.join(self.top_dir, 'patches')
+		self.config_dir = os.path.join(self.top_dir, 'config')
+		self.log_dir    = os.path.join(self.top_dir, 'log')
 		os.mkdir(self.src_dir)
 		os.mkdir(self.patch_dir)
 		os.mkdir(self.config_dir)
@@ -71,14 +70,14 @@ class kernel:
 
 	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
-		self.job.stdout.redirect(self.log_dir+'/stdout')
+		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		local_patches = self.get_patches(patches)
 		self.apply_patches(local_patches)
 		self.job.stdout.restore()
 
 
 	def config(self, config_file, config_list = None):
-		self.job.stdout.redirect(self.log_dir+'/stdout')
+		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		config = kernel_config.kernel_config(self.build_dir, self.config_dir, config_file, config_list)
 		self.job.stdout.restore()
 
@@ -87,7 +86,7 @@ class kernel:
 		"""fetch the patches to the local patch_dir"""
 		local_patches = []
 		for patch in patches:
-			dest = self.patch_dir + basename(patch)
+			dest = os.path.join(self.patch_dir, basename(patch))
 			get_file(patch, dest)
 			local_patches.append(dest)
 
@@ -100,7 +99,7 @@ class kernel:
 		if not patches:
 			return None
 		for patch in patches:
-			local = patch_dir + basename(patch)
+			local = os.path.join(patch_dir, basename(patch))
 			get_file(patch, local)
 			print 'Patching from', basename(patch), '...'
 			cat_file_to_cmd(patch, 'patch -p1')
@@ -132,9 +131,9 @@ class kernel:
 			additional options to make, if any
 		"""
 		os.chdir(self.build_dir)
-		print self.log_dir+'stdout'
-		self.job.stdout.redirect(self.log_dir+'/stdout')
-		self.job.stderr.redirect(self.log_dir+'/stderr')
+		print os.path.join(self.log_dir, 'stdout')
+		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
+		self.job.stderr.redirect(os.path.join(self.log_dir, 'stderr'))
 		self.set_cross_cc()
 		# setup_config_file(config_file, config_overrides)
 
