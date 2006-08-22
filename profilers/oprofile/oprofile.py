@@ -11,8 +11,7 @@ class oprofile(profiler.profiler):
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		pwd = os.getcwd()
-		system('./configure --with-kernel-support --prefix=' + pwd)
+		system('./configure --with-kernel-support --prefix=' + self.srcdir)
 		system('make')
 		system('make install')
 
