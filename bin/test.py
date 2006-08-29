@@ -67,8 +67,16 @@ class test:
 
 	def __exec(self, parameters):
 		try:
+			self.job.stdout.tee_redirect(
+				os.path.join(self.debugdir, 'stdout'))
+			self.job.stderr.tee_redirect(
+				os.path.join(self.debugdir, 'stderr'))
+
 			os.chdir(self.outputdir)
 			self.execute(*parameters)
+
+			self.job.stdout.restore()
+			self.job.stderr.restore()
 		except AutotestError:
 			raise
 		except:
