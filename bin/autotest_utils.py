@@ -342,8 +342,8 @@ class fd_stack:
 
 		Overwrites the previous contents, if any.	
 		"""
-		print_to_tty("tee_redirect to " + filename)
-		where_art_thy_filehandles()
+		#print_to_tty("tee_redirect to " + filename)
+		#where_art_thy_filehandles()
 		fdcopy = os.dup(self.fd)
 		self.stack.append( (fdcopy, self.filehandle) )
 		r, w = os.pipe()
@@ -358,8 +358,8 @@ class fd_stack:
 			os.dup2(2, 1)
 			os.execlp('tee', 'tee', filename)
 		self.filehandle = os.fdopen(self.fd, 'w')
-		where_art_thy_filehandles()
-		print_to_tty("done tee_redirect to " + filename)
+		#where_art_thy_filehandles()
+		#print_to_tty("done tee_redirect to " + filename)
 
 	
 	def restore(self):
