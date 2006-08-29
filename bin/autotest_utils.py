@@ -315,11 +315,10 @@ def avgtime_print(dir):
 	for line in f.readlines():
 		try:
 			s = r.match(line);
-			user += string.atof(s.group(1))
-			system += string.atof(s.group(2))
-			elapsed += (string.atof(s.group(3)) * 60) + \
-				   string.atof(s.group(4))
-			cpu += string.atof(s.group(5))
+			user += float(s.group(1))
+			system += float(s.group(2))
+			elapsed += (float(s.group(3)) * 60) + float(s.group(4))
+			cpu += float(s.group(5))
 			count += 1
 		except:
 			raise ValueError("badly formatted times")
