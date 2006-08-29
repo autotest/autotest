@@ -3,7 +3,7 @@
 
 import os,os.path,shutil,urllib,sys,signal,commands,pickle
 from error import *
-import re
+import re,string
 
 def grep(pattern, file):
 	"""This is mainly to fix the return code inversion from grep"""
@@ -300,6 +300,33 @@ def append_path(oldpath, newpath):
 		return oldpath + ':' + newpath
 	else:
 		return newpath
+
+
+def avgtime_print(dir):
+	""" Calculate some benchmarking statistics.
+	    Input is a directory containing a file called 'time'.
+	    File contains one-per-line results of /usr/bin/time.
+	    Output is average Elapsed, User, and System time in seconds,
+	      and average CPU percentage.
+	"""
+	f = open(dir + "/time")
+	user = system = elapsed = cpu = count = 0
+	r = re.compile('([\d\.]*)user ([\d\.]*)system (\d*):([\d\.]*)elapsed (\d*)%CPU')
+	for line in f.readlines():
+		try:
+			s = r.match(line);
+			user += string.atof(s.group(1))
+			system += string.atof(s.group(2))
+			elapsed += (string.atof(s.group(3)) * 60) + \
+				   string.atof(s.group(4))
+			cpu += string.atof(s.group(5))
+			count += 1
+		except:
+			raise ValueError("badly formatted times")
+			
+	f.close()
+	return "Elapsed: %0.2fs User: %0.2fs System: %0.2fs CPU: %0.0f%%" % \
+	      (elapsed/count, user/count, system/count, cpu/count)
 
 
 class fd_stack:
