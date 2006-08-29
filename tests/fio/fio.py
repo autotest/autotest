@@ -1,0 +1,29 @@
+import test
+from autotest_utils import *
+
+class fio(test.test):
+	version = 1
+
+	# http://brick.kernel.dk/snaps/fio-1.6.tar.gz
+	def setup(self, tarball = 'fio-1.6.tar.gz'):
+		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
+		extract_tarball_to_dir(tarball, self.srcdir)
+		os.chdir(self.srcdir)
+
+		system('make')
+
+	def execute(self, args = '', user = 'root'):
+		os.chdir(self.srcdir)
+		##vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
+		vars = ''
+		##args = '-m -o ' + self.resultsdir + '/fio-tio.log ' + self.srcdir + '/examples/tiobench-example';
+		args = '-m -o ' + self.resultsdir + '/fio-mixed.log ' + self.bindir + '/fio-mixed.job';
+		system(vars + ' ./fio ' + args)
+
+		# Do a profiling run if necessary
+		profilers = self.job.profilers
+		if profilers.present():
+			profilers.start(self)
+			system(vars + ' ./fio ' + args)
+			profilers.stop(self)
+			profilers.report(self)
