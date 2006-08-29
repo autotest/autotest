@@ -5,7 +5,8 @@ class kernbench(test.test):
 	version = 1
 
 	def setup(self):
-		tarball = '/usr/local/src/linux-2.6.14.tar.bz2'
+		# http://kernel.org/pub/linux/kernel/v2.6/linux-2.6.14.tar.bz2
+		tarball = self.bindir + '/linux-2.6.14.tar.bz2'
 		config = self.bindir + "/config"
 		kernel = self.job.kernel(self.srcdir, tarball)
 		kernel.config(config)
