@@ -13,7 +13,9 @@ class ltp(test.test):
 
 		system('make -j %d' % count_cpus())
 		system('make install')
-		
+
+	# Note: to run a specific test, try '-f test' in the args
+	# eg, job.runtest(None, 'ltp', '-f ballista')
 	def execute(self, args = ''):
 		logfile = self.resultsdir + '/ltp.log'
 		args = '-q -l ' + logfile + ' ' + args
