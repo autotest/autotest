@@ -13,12 +13,7 @@ class stress(test.test):
 		system('./configure')
 		system('make')
 		
-	def execute(self, iterations = 1, args_list = ''):
-		if len(args_list) != 0:
-			args = '' + args_list
-		else:
-			args = '-c 4 -t 50 -v'
-
+	def execute(self, iterations = 1, args_list = '-c 4 -t 50 -v'):
 		for i in range(1, iterations+1):
 			system(self.srcdir + '/src/stress ' + args)
 
