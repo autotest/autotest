@@ -59,10 +59,15 @@ class kernel_config:
 
 		# 	1. Get original config file
 		self.build_config = build_dir + '/.config'
-		self.orig_config = config_dir + '/config.orig'
-		get_file(orig_file, self.orig_config)
-		self.update_config(self.orig_config, self.orig_config+'.new')
-		diff_configs(self.orig_config, self.orig_config+'.new')
+		if (orig_file == ''):			# use defconfig
+			os.chdir(build_dir)
+			system('make defconfig')
+		else:
+			self.orig_config = config_dir + '/config.orig'
+			get_file(orig_file, self.orig_config)
+			self.update_config(self.orig_config, self.orig_config+'.new')
+			diff_configs(self.orig_config, self.orig_config+'.new')
+
 
 		#	2. Apply overrides
 		if overrides:
