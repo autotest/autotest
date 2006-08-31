@@ -7,9 +7,8 @@ class kernbench(test.test):
 	def setup(self):
 		# http://kernel.org/pub/linux/kernel/v2.6/linux-2.6.14.tar.bz2
 		tarball = self.bindir + '/linux-2.6.14.tar.bz2'
-		config = self.bindir + "/config"
 		kernel = self.job.kernel(self.srcdir, tarball)
-		kernel.config(config)
+		kernel.config('')
 		# have to save this off, as we might use it in another run
 		kernel.pickle_dump(self.srcdir + '/.pickle')
 
