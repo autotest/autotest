@@ -10,7 +10,6 @@ class kernbench(test.test):
 			tarball = self.bindir + '/linux-2.6.14.tar.bz2'
 		else:
 			tarball = '/usr/local/src/linux-2.6.14.tar.bz2'
-		print tarball
 		kernel = self.job.kernel(self.srcdir, tarball)
 		kernel.config('')
 		# have to save this off, as we might use it in another run
