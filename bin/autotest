@@ -6,6 +6,7 @@ import os, sys, shutil
 import job, kernel, test
 from error import *
 from autotest_utils import *
+from optparse import OptionParser
 
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
@@ -23,23 +24,23 @@ os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
 os.environ['PYTHONPATH'] = autodirbin
 
+parser = OptionParser()
+
+parser.add_option("-c", "--continue", dest="cont", action="store_true", 
+			default=False, help="continue previously started job")
+		  
+parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
+			help="set the job tag")
+
 def usage():
-	os.stderr.write("Usage: autotest [--continue] <control file>\n");
+	parser.print_help()
 	sys.exit(1)
 
-# Usage check.
-if len(sys.argv) < 2:
-	usage()
+options, args = parser.parse_args()
 
-# A multi-phase job is continued using the --continue option.
-cont = 0
-if sys.argv[1] == '--continue':
-	sys.argv.pop(1)
-	cont = 1
-	
 # Check for a control file.
-if len(sys.argv) != 2:
+if len(args) != 1:
 	usage()
 
 # JOB: run the specified job control file.
-job.runjob(sys.argv[1], cont)
+job.runjob(args[0], options.cont, options.tag)
