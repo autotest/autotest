@@ -8,8 +8,11 @@ def do_actual_extract():
 
 dir = os.getcwd()
 
+# old source was
 # http://www.kernel.org/pub/linux/kernel/people/bcrl/aio/libaio-0.3.92.tar.bz2
-tarball = 'libaio-0.3.92.tar.bz2'
+# now grabbing from debian
+# http://ftp.debian.org/debian/pool/main/liba/libaio/libaio_0.3.106.orig.tar.gz
+tarball = 'libaio_0.3.106.orig.tar.gz'
 
 tmpdir = 'tmp'
 tarball = unmap_url(dir, tarball, tmpdir)
