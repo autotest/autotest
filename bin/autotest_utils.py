@@ -58,7 +58,7 @@ def extract_tarball(tarball):
 	raise NameError, "extracting tarball produced no dir"
 
 
-def update_version(srcdir, new_version, install):
+def update_version(srcdir, new_version, install, *args, **dargs):
 	"""Make sure srcdir is version new_version
 
 	If not, delete it and install() the new version
@@ -72,7 +72,7 @@ def update_version(srcdir, new_version, install):
 		else:
 			system('rm -rf ' + srcdir)
 	if not os.path.exists(srcdir):
-		install()
+		install(*args, **dargs)
 		if os.path.exists(srcdir):
 			pickle.dump(new_version, open(versionfile, 'w'))
                 
@@ -346,11 +346,19 @@ class fd_stack:
 		self.stack = [(fd, filehandle)]
 
 
+	def update_handle(self, new):
+		if (self.filehandle == sys.stdout):
+			sys.stdout = new
+		if (self.filehandle == sys.stderr):
+			sys.stderr = new
+		self.filehandle = new
+
 	def redirect(self, filename):
 		"""Redirect output to the specified file
 
 		Overwrites the previous contents, if any.	
 		"""
+		self.filehandle.flush()
 		fdcopy = os.dup(self.fd)
 		self.stack.append( (fdcopy, self.filehandle) )
 		# self.filehandle = file(filename, 'w')
@@ -360,7 +368,7 @@ class fd_stack:
 			newfd = os.open(filename, os.O_WRONLY | os.O_CREAT)
 		os.dup2(newfd, self.fd)
 		os.close(newfd)
-		self.filehandle = os.fdopen(self.fd, 'w')
+		self.update_handle(os.fdopen(self.fd, 'w'))
 
 
 	def tee_redirect(self, filename):
@@ -368,6 +376,7 @@ class fd_stack:
 
 		Overwrites the previous contents, if any.	
 		"""
+		self.filehandle.flush()
 		#print_to_tty("tee_redirect to " + filename)
 		#where_art_thy_filehandles()
 		fdcopy = os.dup(self.fd)
@@ -381,15 +390,18 @@ class fd_stack:
 		else:			# child
 			os.close(w)
 			os.dup2(r, 0)
-			os.dup2(2, 1)
+			os.dup2(fdcopy, 1)
+			os.close(r)
+			os.close(fdcopy)
 			os.execlp('tee', 'tee', filename)
-		self.filehandle = os.fdopen(self.fd, 'w')
+		self.update_handle(os.fdopen(self.fd, 'w'))
 		#where_art_thy_filehandles()
 		#print_to_tty("done tee_redirect to " + filename)
 
 	
 	def restore(self):
 		"""unredirect one level"""
+		self.filehandle.flush()
 		# print_to_tty("ENTERING RESTORE %d" % self.fd)
 		# where_art_thy_filehandles()
 		(old_fd, old_filehandle) = self.stack.pop()
@@ -401,6 +413,6 @@ class fd_stack:
 		# print_to_tty("CLOSING FD %d" % old_fd)
 		os.close(old_fd)
 		# where_art_thy_filehandles()
-		self.filehandle = old_filehandle
+		self.update_handle(old_filehandle)
 		# where_art_thy_filehandles()
 		# print_to_tty("EXIT RESTORE %d" % self.fd)
