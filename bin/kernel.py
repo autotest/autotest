@@ -124,16 +124,18 @@ class kernel:
 			extract_tarball_to_dir(tarball, 'build')
 
 
-	def build(self, make_opts = ''):
+	def build(self, make_opts = '', logfile = ''):
 		"""build the kernel
 	
 		make_opts
 			additional options to make, if any
 		"""
+		if logfile == '':
+			logfile = os.path.join(self.log_dir, 'kernel_build')
 		os.chdir(self.build_dir)
 		print os.path.join(self.log_dir, 'stdout')
-		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
-		self.job.stderr.redirect(os.path.join(self.log_dir, 'stderr'))
+		self.job.stdout.redirect(logfile + '.stdout')
+		self.job.stderr.redirect(logfile + '.stderr')
 		self.set_cross_cc()
 		# setup_config_file(config_file, config_overrides)
 
@@ -143,9 +145,11 @@ class kernel:
 		except CmdError:
 			pass
 		threads = 2 * count_cpus()
-		system('make -j %d %s %s' % (threads, make_opts,
-					     self.build_target))
-			# eg make bzImage, or make zImage
+		build_string = 'make -j %d %s %s' % (threads, make_opts,
+					     self.build_target)
+					# eg make bzImage, or make zImage
+		print build_string
+		system(build_string)
 		if kernel_config.modules_needed('.config'):
 			system('make modules')
 
