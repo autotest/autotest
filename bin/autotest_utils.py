@@ -360,7 +360,7 @@ class fd_stack:
 		"""
 		self.filehandle.flush()
 		fdcopy = os.dup(self.fd)
-		self.stack.append( (fdcopy, self.filehandle) )
+		self.stack.append( (fdcopy, self.filehandle, 0) )
 		# self.filehandle = file(filename, 'w')
 		if (os.path.isfile(filename)):
 			newfd = os.open(filename, os.O_WRONLY)
@@ -380,7 +380,6 @@ class fd_stack:
 		#print_to_tty("tee_redirect to " + filename)
 		#where_art_thy_filehandles()
 		fdcopy = os.dup(self.fd)
-		self.stack.append( (fdcopy, self.filehandle) )
 		r, w = os.pipe()
 		pid = os.fork()
 		if pid:			# parent
@@ -394,6 +393,7 @@ class fd_stack:
 			os.close(r)
 			os.close(fdcopy)
 			os.execlp('tee', 'tee', filename)
+		self.stack.append( (fdcopy, self.filehandle, pid) )
 		self.update_handle(os.fdopen(self.fd, 'w'))
 		#where_art_thy_filehandles()
 		#print_to_tty("done tee_redirect to " + filename)
@@ -404,10 +404,12 @@ class fd_stack:
 		self.filehandle.flush()
 		# print_to_tty("ENTERING RESTORE %d" % self.fd)
 		# where_art_thy_filehandles()
-		(old_fd, old_filehandle) = self.stack.pop()
+		(old_fd, old_filehandle, pid) = self.stack.pop()
 		# print_to_tty("old_fd %d" % old_fd)
 		# print_to_tty("self.fd %d" % self.fd)
 		self.filehandle.close()   # seems to close old_fd as well.
+		if pid:
+			os.waitpid(pid, 0)
 		# where_art_thy_filehandles()
 		os.dup2(old_fd, self.fd)
 		# print_to_tty("CLOSING FD %d" % old_fd)
