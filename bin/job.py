@@ -43,7 +43,7 @@ class job:
 			the profilers object for this job
 	"""
 
-	def __init__(self, control, jobtag='default'):
+	def __init__(self, control, jobtag):
 		"""
 			control
 				The control file (pathname of)
@@ -221,7 +221,7 @@ from autotest_utils import *
 		fd.close()
 
 
-def runjob(control, cont = 0):
+def runjob(control, cont = False, tag = "default"):
 	"""The main interface to this module
 
 	control	
@@ -240,12 +240,12 @@ def runjob(control, cont = 0):
 
 		# When continuing, the job is complete when there is no
 		# state file, ensure we don't try and continue.
-		if cont == 1 and not os.path.exists(state):
+		if cont and not os.path.exists(state):
 			sys.exit(1)
-		if cont == 0 and os.path.exists(state):
+		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
-		myjob = job(control)
+		myjob = job(control, tag)
 
 		# Load in the users control file, may do any one of:
 		#  1) execute in toto
