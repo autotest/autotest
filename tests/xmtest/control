@@ -1,0 +1,1 @@
+job.runtest(None, 'xmtest', '-e nobody@nowhere.org -d xmtest')
