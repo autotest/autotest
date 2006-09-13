@@ -16,8 +16,6 @@ class sparse(test.test):
 		system('ln check sparse')
 	
 		self.top_dir = self.job.tmpdir+'/sparse'	
-		kernel = self.job.kernel(self.top_dir, kernelver)
-		kernel.config(self.bindir + '/config')
 		
-	def execute(self, iterations = 1, args = ''):
-		kernel.build(2 * count_cpus(), 'C=1')
+	def execute(self, kernel):
+		kernel.build(make_opts = 'C=1')
