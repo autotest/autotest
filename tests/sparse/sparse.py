@@ -1,8 +1,6 @@
 import test
 from autotest_utils import *
 
-# THIS TEST IS INCOMPLETE. IT WILL NOT WORK
-
 class sparse(test.test):
 	version = 1
 
@@ -18,4 +16,6 @@ class sparse(test.test):
 		self.top_dir = self.job.tmpdir+'/sparse'	
 		
 	def execute(self, kernel):
-		kernel.build(make_opts = 'C=1')
+		os.environ['PATH'] = self.srcdir + ':' + os.environ['PATH']
+		results = os.path.join (self.resultsdir, 'sparse')
+		kernel.build(make_opts = 'C=1', logfile = results) 
