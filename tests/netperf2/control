@@ -1,0 +1,1 @@
+job.runtest(None, 'netperf2', 'snapshot_script')
