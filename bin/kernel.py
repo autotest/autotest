@@ -192,8 +192,11 @@ class kernel:
 	def set_cross_cc(self, target_arch=None, cross_compile=None,
 			 build_target='bzImage'):
 		"""Set up to cross-compile.
+			This is broken. We need to work out what the default
+			compile produces, and if not, THEN set the cross
+			compiler.
 		"""
-	
+
 		if self.target_arch:
 			return
 		
@@ -203,21 +206,32 @@ class kernel:
 		if target_arch == None:
 			target_arch = get_kernel_arch()
 			if target_arch == 'ppc64':
-				install_package('ppc64-cross')
-				cross_compile = os.path.join(autodir, 'sources/ppc64-cross/bin')
 				if self.build_target == 'bzImage':
 					self.build_target = 'zImage'
+			
+		return                 # HACK. Crap out for now.
 
-			elif target_arch == 'x86_64':
-				install_package('x86_64-cross')
-				cross_compile = os.path.join(autodir, 'sources/x86_64-cross/bin')
+		# At this point I know what arch I *want* to build for
+		# but have no way of working out what arch the default
+		# compiler DOES build for.
+
+		# Oh, and BTW, install_package() doesn't exist yet.
+	
+		if target_arch == 'ppc64':
+			install_package('ppc64-cross')
+			cross_compile = os.path.join(autodir, 'sources/ppc64-cross/bin')
+
+		elif target_arch == 'x86_64':
+			install_package('x86_64-cross')
+			cross_compile = os.path.join(autodir, 'sources/x86_64-cross/bin')
 
 		os.environ['ARCH'] = self.target_arch = target_arch
 
 		self.cross_compile = cross_compile
 		if self.cross_compile:
 			os.environ['CROSS_COMPILE'] = self.cross_compile
-		
+
+	
 	def pickle_dump(self, filename):
 		"""dump a pickle of ourself out to the specified filename
 
