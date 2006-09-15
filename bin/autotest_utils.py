@@ -203,8 +203,9 @@ def get_kernel_arch():
 
 def kernelexpand(kernel):
 	# if not (kernel.startswith('http://') or kernel.startswith('ftp://') or os.path.isfile(kernel)):
-	if kernel.find('/'):
-		w, r = os.popen2('./kernelexpand ' + kernel)
+	if kernel.find('/') < 0:     # contains no path.
+		kernelexpand = os.path.join(os.environ['AUTODIR'], 'bin/kernelexpand')
+		w, r = os.popen2(kernelexpand + ' ' + kernel)
 
 		kernel = r.readline().strip()
 		r.close()
