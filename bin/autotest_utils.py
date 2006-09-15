@@ -204,13 +204,14 @@ def get_kernel_arch():
 def kernelexpand(kernel):
 	# if not (kernel.startswith('http://') or kernel.startswith('ftp://') or os.path.isfile(kernel)):
 	if kernel.find('/') < 0:     # contains no path.
-		kernelexpand = os.path.join(os.environ['AUTODIR'], 'bin/kernelexpand')
+		autodir = os.environ['AUTODIR']
+		kernelexpand = os.path.join(autodir, 'tools/kernelexpand')
 		w, r = os.popen2(kernelexpand + ' ' + kernel)
 
 		kernel = r.readline().strip()
 		r.close()
 		w.close()
-	return kernel
+	return kernel.split()
 
 
 def count_cpus():
