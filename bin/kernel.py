@@ -39,7 +39,11 @@ class kernel:
 		top_directory
 			top of the build environment
 		base_tree
-			base kernel tree (eg tarball or dir to symlink to)
+			base kernel tree. Can be one of the following:
+				1. A local tarball
+				2. A URL to a tarball
+				3. A local directory (will symlink it)
+				4. A shorthand expandable (eg '2.6.11-git3')
 		"""
 		self.job = job
 		autodir = job.autodir
@@ -62,18 +66,25 @@ class kernel:
 		os.mkdir(self.log_dir)
 
  		self.target_arch = None
- 		
- 		if not os.path.isdir(base_tree):
- 			base_tree = kernelexpand(base_tree)
-		self.get_kernel_tree(base_tree)
+
+		if os.path.exists(base_tree):
+			self.get_kernel_tree(base_tree)
+		else:
+ 			base_components = kernelexpand(base_tree)
+			print 'kernelexpand: '
+			print base_components
+			self.get_kernel_tree(base_components.pop(0))
+			if base_components:      # apply remaining patches
+				self.patch(*base_components)
 
 
 	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
-		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
+		print 'Applying patches: ', patches
+		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		local_patches = self.get_patches(patches)
 		self.apply_patches(local_patches)
-		self.job.stdout.restore()
+		# self.job.stdout.restore()
 
 
 	def config(self, config_file, config_list = None):
@@ -89,18 +100,18 @@ class kernel:
 			dest = os.path.join(self.patch_dir, basename(patch))
 			get_file(patch, dest)
 			local_patches.append(dest)
+		return local_patches
 
 	
-	def apply_patches(self, patches):
+	def apply_patches(self, local_patches):
 		"""apply the list of patches, in order"""
 		builddir = self.build_dir
 		os.chdir(builddir)
 
-		if not patches:
+		print "apply_patches: ", local_patches
+		if not local_patches:
 			return None
-		for patch in patches:
-			local = os.path.join(patch_dir, basename(patch))
-			get_file(patch, local)
+		for patch in local_patches:
 			print 'Patching from', basename(patch), '...'
 			cat_file_to_cmd(patch, 'patch -p1')
 	
