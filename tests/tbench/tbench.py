@@ -1,4 +1,4 @@
-import test,time
+import test,time,os,signal
 from autotest_utils import *
 
 class tbench(test.test):
@@ -35,6 +35,7 @@ class tbench(test.test):
 			client = self.srcdir + '/client.txt'
 			args = '-c ' + client + ' ' + args
 			system(self.srcdir + '/tbench ' + args)
+			os.kill(pid, signal.SIGTERM)    # clean up the server
 		else:				# child
 			server = self.srcdir + '/tbench_srv'
 			os.execlp(server, server)
