@@ -40,9 +40,7 @@ function runtests {
 
 		elif ! cmp "$i-out" "$i-tmp"; then
 			echo "$P: ERROR: $i: test failed"
-			cat "$i-out"
-			echo "---"
-			cat "$i-tmp"
+			diff -u "$i-out" "$i-tmp"
 
 		else
 			echo "$P: PASS: $i: test passed"
