@@ -31,7 +31,8 @@ function runtests {
 				rc="$?"
 				echo "--SELFTEST-- exit $rc"
 			done
-		} 2>&1 | sed -e "s@$fix@SRC@" -e "s@, line [0-9]*@, line N@" \
+		} 2>&1 | `dirname "$i"`/NNN-filter "$i" | \
+			sed -e "s@$fix@SRC@" -e "s@, line [0-9]*@, line N@" \
 			>"$i-tmp" 2>&1
 
 		if [ ! -f "$i-out" ]; then
@@ -52,7 +53,5 @@ function runtests {
 case "$1" in
 clean)		rm -rf tests/*-tmp tests/*.state ;;
 test)		runtests tests/* ;;
-*)		echo "Usage: test <$P> test|clean" 1>&2
-		exit 2
-		;;
+*)		runtests "$@" ;;
 esac
