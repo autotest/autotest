@@ -17,14 +17,14 @@ class netperf2(test.test):
 		self.server_path = os.path.join(self.srcdir, 'src/netserver')
 		self.client_path = os.path.join(self.srcdir, 'src/netperf')
 
-		os.environ['NETPERF_CMD'] = client_path
+		os.environ['NETPERF_CMD'] = self.client_path
 		self.server_start()
 		self.client(script)
 		self.server_stop()
 
 	def server_start(self):
 		# we should record the pid we forked off
-		system(server_path)
+		system(self.server_path)
 
 	def server_stop(self):
 		# this should really just kill the pid I forked, but ...
@@ -37,6 +37,7 @@ class netperf2(test.test):
 
 		self.job.stdout.tee_redirect(stdout_path)
 		self.job.stderr.tee_redirect(stderr_path)
-		system(os.path.join(self.srcdir, 'doc/examples', script) + args)
+		system(os.path.join(self.srcdir, 'doc/examples', script) \
+								+ ' ' + args)
 		self.job.stdout.restore()
 		self.job.stderr.restore()
