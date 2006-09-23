@@ -9,11 +9,18 @@ class reaim(test.test):
 	def setup(self, tarball = 'osdl-aim-7.0.1.13.tar.gz'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
-		os.chdir(self.srcdir)
 
+		self.job.setup_dep(['libaio'])
+		ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
+		cflags = '-I ' + self.autodir + '/deps/libaio/include'
+		var_ldflags = 'LDFLAGS="' + ldflags + '"'
+		var_cflags  = 'CFLAGS="' + cflags + '"'
+		self.make_flags = var_ldflags + ' ' + var_cflags
+
+		os.chdir(self.srcdir)
 		system('./bootstrap')
 		system('./configure')
-		system('make')
+		system(self.make_flags + ' make')
 		
 	def execute(self, iterations = 1, workfile = 'workfile.short', 
 			start = '1', end = '10', increment = '2',
