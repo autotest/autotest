@@ -1,0 +1,4 @@
+--SELFTEST-- loading test
+barrier: hostid=127.0.0.1#P1 tag=here port=63000 timeout=15 start=NNN
+JOB ERROR: timeout waiting for barrier
+--SELFTEST-- exit 1
