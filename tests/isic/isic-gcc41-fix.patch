@@ -1,0 +1,56 @@
+diff -uprN isic-old/icmpsic.c isic-new/icmpsic.c
+--- isic-old/icmpsic.c	2004-11-06 21:11:11.000000000 +0100
++++ isic-new/icmpsic.c	2006-05-02 16:43:42.000000000 +0200
+@@ -265,7 +265,8 @@ main(int argc, char **argv)
+ 
+ 		payload = (short int *)((u_char *) icmp + 4);
+ 		for(cx = 0; cx <= (payload_s >> 1); cx+=1)
+-				(u_short) payload[cx] = rand() & 0xffff;
++//				(u_short) payload[cx] = rand() & 0xffff;
++				payload[cx] = rand() & 0xffff;
+ 
+ 
+ 		if ( rand() <= (RAND_MAX * ICMPCksm) )
+diff -uprN isic-old/isic.c isic-new/isic.c
+--- isic-old/isic.c	2004-11-06 21:11:14.000000000 +0100
++++ isic-new/isic.c	2006-05-02 16:39:51.000000000 +0200
+@@ -229,8 +229,11 @@ main(int argc, char **argv)
+ 		
+ 		payload = (short int *)(buf + IP_H);
+ 		for(cx = 0; cx <= (payload_s >> 1); cx+=1)
+-				(u_int16_t) payload[cx] = rand() & 0xffff;
+-		(u_int16_t) payload[payload_s] = rand() & 0xffff;
++/*				(u_int16_t) payload[cx] = rand() & 0xffff;
++		(u_int16_t) payload[payload_s] = rand() & 0xffff;*/
++				payload[cx] = rand() & 0xffff;
++		payload[payload_s] = rand() & 0xffff;
++		
+ 		
+ 		if ( printout ) {
+ 			printf("%s ->",
+diff -uprN isic-old/tcpsic.c isic-new/tcpsic.c
+--- isic-old/tcpsic.c	2004-11-06 21:11:16.000000000 +0100
++++ isic-new/tcpsic.c	2006-05-02 16:41:31.000000000 +0200
+@@ -317,7 +317,8 @@ main(int argc, char **argv)
+ 
+ 		payload = (short int *)((u_char *) tcp + 20);
+ 		for(cx = 0; cx <= (payload_s >> 1); cx+=1)
+-				(u_int16_t) payload[cx] = rand() & 0xffff;
++//				(u_int16_t) payload[cx] = rand() & 0xffff;
++				payload[cx] = rand() & 0xffff;
+ 
+ 		if ( rand() <= (RAND_MAX * TCPCksm) )
+ 			libnet_do_checksum(l, (u_int8_t *)buf, IPPROTO_TCP, (tcp->th_off << 2)
+diff -uprN isic-old/udpsic.c isic-new/udpsic.c
+--- isic-old/udpsic.c	2004-11-06 21:11:20.000000000 +0100
++++ isic-new/udpsic.c	2006-05-02 16:42:55.000000000 +0200
+@@ -292,7 +292,8 @@ main(int argc, char **argv)
+ 
+ 		payload = (short int *)((u_char *) udp + UDP_H);
+ 		for(cx = 0; cx <= (payload_s >> 1); cx+=1)
+-				(u_int16_t) payload[cx] = rand() & 0xffff;
++//				(u_int16_t) payload[cx] = rand() & 0xffff;
++				payload[cx] = rand() & 0xffff;
+ 
+ 		if ( printout ) {
+ 			printf("%s,%i ->",
