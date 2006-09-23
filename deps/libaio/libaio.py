@@ -17,5 +17,8 @@ tarball = 'libaio_0.3.106.orig.tar.gz'
 tmpdir = 'tmp'
 tarball = unmap_url(dir, tarball, tmpdir)
 update_version(dir+'/src', version, do_actual_extract)
-system ('cd src && make && make prefix='+dir+' install')
+
+os.chdir('src')
+system ('make')
+system ('make prefix=%s install' % (dir))
 
