@@ -1,0 +1,6 @@
+--SELFTEST-- loading test
+barrier: hostid=127.0.0.1#P2 tag=here port=63000 timeout=45 start=NNN
+barrier: slave=127.0.0.1#P2 master=127.0.0.1
+barrier: hostid=127.0.0.1#P1 tag=here port=63000 timeout=40 start=NNN
+barrier: new client tag=here, name=127.0.0.1#P2
+--SELFTEST-- exit 0

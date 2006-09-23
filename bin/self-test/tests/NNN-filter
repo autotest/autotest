@@ -4,6 +4,15 @@
 test=`basename "$1"`
 
 case "$test" in
+???-barrier-*)
+	awk '
+		/--SELFTEST/		{ print }
+		/barrier: hostid=/	{ print }
+		/barrier: slave=/	{ print }
+		/barrier: new client/	{ print }
+		/JOB ERROR/		{ print }
+	' | sed -e 's/start=[0-9][0-9]*/start=NNN/g'
+	;;
 *)
 	cat -
 	;;
