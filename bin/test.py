@@ -72,11 +72,12 @@ class test:
 			self.job.stderr.tee_redirect(
 				os.path.join(self.debugdir, 'stderr'))
 
-			os.chdir(self.outputdir)
-			self.execute(*parameters)
-
-			self.job.stdout.restore()
-			self.job.stderr.restore()
+			try:
+				os.chdir(self.outputdir)
+				self.execute(*parameters)
+			finally:
+				self.job.stderr.restore()
+				self.job.stdout.restore()
 		except AutotestError:
 			raise
 		except:
