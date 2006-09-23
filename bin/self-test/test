@@ -18,7 +18,7 @@ function runtests {
 		"$@"
 	do
 		case "$i" in
-		*-out|*-tmp|*.state)	continue ;;
+		*-filter|*-out|*-tmp|*.state)	continue ;;
 		esac
 
 		##echo "*** $i ...."
