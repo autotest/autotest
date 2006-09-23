@@ -12,23 +12,45 @@ class netperf2(test.test):
 
 		system('./configure')
 		system('make')
-		
-	def execute(self, script = 'snapshot_script', args = ''):
+
+
+	def initialize(self):
 		self.server_path = os.path.join(self.srcdir, 'src/netserver')
 		self.client_path = os.path.join(self.srcdir, 'src/netperf')
 
-		os.environ['NETPERF_CMD'] = self.client_path
-		self.server_start()
-		self.client(script)
-		self.server_stop()
+		
+	def execute(self, role='client', script='snapshot_script', args=''):
+		all = ['127.0.0.1#netperf-server', '127.0.0.1#netperf-client']
+		job = self.job
+		if (role == 'server'):
+			hostid = '127.0.0.1#netperf-server'
+			self.server_start()
+			job.barrier(hostid, 'start', 30).rendevous(*all)
+			job.barrier(hostid, 'stop',  30).rendevous(*all)
+			barrier.rendevous(*all)
+			self.server_stop()
+		elif (role == 'client'):
+			hostid = '127.0.0.1#netperf-client'
+			os.environ['NETPERF_CMD'] = self.client_path
+			job.barrier(hostid, 'start', 30).rendevous(*all)
+			self.client(script)
+			job.barrier(hostid, 'stop',  30).rendevous(*all)
+		else:
+			raise UnhandledError('invalid role specified')
+
 
 	def server_start(self):
-		# we should record the pid we forked off
+		# we should really record the pid we forked off, but there
+		# was no obvious way to run the daemon in the foreground.
+		# Hacked it for now
+		system('killall netserver')
 		system(self.server_path)
+
 
 	def server_stop(self):
 		# this should really just kill the pid I forked, but ...
 		system('killall netserver')
+
 
 	def client(self, script, server_host = 'localhost', args = 'CPU'):
 		# run some client stuff
