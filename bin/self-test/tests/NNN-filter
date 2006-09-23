@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Work out which test this is.
+test=`basename "$1"`
+
+case "$test" in
+*)
+	cat -
+	;;
+esac
