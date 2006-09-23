@@ -6,7 +6,7 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
-import os, sys, kernel, test, pickle, threading, profilers
+import os, sys, kernel, test, pickle, threading, profilers, barrier
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -85,6 +85,10 @@ class job:
 	def kernel(self, topdir, base_tree):
 		"""Summon a kernel object"""
 		return kernel.kernel(self, topdir, base_tree)
+
+	def barrier(self, *args):
+		"""Create a barrier object"""
+		return barrier.barrier(*args)
 
 	def setup_dep(self, deps): 
 		"""Set up the dependencies for this test.
