@@ -299,7 +299,7 @@ class barrier:
 
 				print "barrier: pong"
 				remote.settimeout(self.remaining())
-				remote.send("pong");
+				remote.send("pong")
 
 			elif reply == "rlse":
 				# Ensure we have sufficient time for the
@@ -343,11 +343,11 @@ class barrier:
 #   python bin/barrier.py 3 meeting
 #
 if __name__ == "__main__":
-	barrier = barrier('127.0.0.1#' + sys.argv[1], sys.argv[2], 60);
+	barrier = barrier('127.0.0.1#' + sys.argv[1], sys.argv[2], 60)
 
 	try:
-		all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ];
-		barrier.rendevous(*all);
+		all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ]
+		barrier.rendevous(*all)
 	except BarrierError, err:
 		print "barrier: barrier failed:", err
 		sys.exit(1)
