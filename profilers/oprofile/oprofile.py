@@ -3,14 +3,16 @@ import profiler, shutil
 from autotest_utils import *
 
 class oprofile(profiler.profiler):
-	version = 1
+	version = 2
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.1.tar.gz
+# http://free.linux.hp.com/~ahs3/autotest/cvs-update-20060901.patch.gz
 	def setup(self, tarball = 'oprofile-0.9.1.tar.bz2'):
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
+		system('bzcat ../cvs-update-20060901.patch.bz2 | patch -p1')
 		system('./configure --with-kernel-support --prefix=' + self.srcdir)
 		system('make')
 		system('make install')
