@@ -19,11 +19,13 @@ class oprofile(profiler.profiler):
 
 
 	def initialize(self):
-		arch = get_cpu_arch()
-		if (arch == 'i386'):
-			self.setup_i386()
-		else:
-			raise UnknownError, 'Architecture %s not supported by oprofile wrapper' % arch
+		# for now, we're just going to use the default event
+
+#		arch = get_cpu_arch()
+#		if (arch == 'i386'):
+#			self.setup_i386()
+#		else:
+#			raise UnknownError, 'Architecture %s not supported by oprofile wrapper' % arch
 
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
