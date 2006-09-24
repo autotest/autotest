@@ -25,27 +25,36 @@ class oprofile(profiler.profiler):
 
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
+		self.vmlinux = get_vmlinux()
+		system(self.opcontrol + ' --setup --vmlinux=' + self.vmlinux)
 
 
 	def start(self, test):
-		vmlinux = '--vmlinux=' + get_vmlinux()
-		system(self.opcontrol + ' --shutdown')
-		system('rm -rf /var/lib/oprofile/samples/current')
-		system(' '.join((self.opcontrol, vmlinux, self.args, '--start')))
+		# system(self.opcontrol + ' --shutdown')
+		# system('rm -rf /var/lib/oprofile/samples/current')
 		system(self.opcontrol + ' --reset')
+		# system(self.opcontrol + ' --start ' + self.args)
+		system(self.opcontrol + ' --start ')
 
 
 	def stop(self, test):
+		system(self.opcontrol + ' --stop')
 		system(self.opcontrol + ' --dump')
 
 
 	def report(self, test):
-		reportfile = self.resultsdir + '/results/oprofile.txt'
-		modules = ' -p ' + get_modules_dir()
-		system(self.opreport + ' -l ' + modules + ' > ' + reportfile)
+		reportfile = test.profdir + '/oprofile.kernel'
+		report = self.opreport + ' -l ' + self.vmlinux
+		if os.path.exists(get_modules_dir()):
+			report += ' -p ' + get_modules_dir()
+		system(report + ' > ' + reportfile)
+
+		reportfile = test.profdir + '/oprofile.user'
+		system(self.opreport + ' > ' + reportfile)
+
 		system(self.opcontrol + ' --shutdown')
 
 
 	def setup_i386(self):
-		self.args = '-e CPU_CLK_UNHALTED:100000'
+		self.args = '--event CPU_CLK_UNHALTED:100000'
 
