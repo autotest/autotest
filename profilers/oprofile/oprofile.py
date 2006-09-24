@@ -18,15 +18,8 @@ class oprofile(profiler.profiler):
 		system('make install')
 
 
-	def initialize(self):
-		# for now, we're just going to use the default event
-
-#		arch = get_cpu_arch()
-#		if (arch == 'i386'):
-#			self.setup_i386()
-#		else:
-#			raise UnknownError, 'Architecture %s not supported by oprofile wrapper' % arch
-
+	def initialize(self, event = None):
+		self.event = event
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
 		self.vmlinux = get_vmlinux()
@@ -34,15 +27,10 @@ class oprofile(profiler.profiler):
 
 
 	def start(self, test):
-		# system(self.opcontrol + ' --shutdown')
-		# system('rm -rf /var/lib/oprofile/samples/current')
 		system(self.opcontrol + ' --reset')
-		# if the lapic is not enabled, events won't work, so fall
-		# back to timer mode if necessary. If that blows up too,
-		# we'll still throw an exception
-		try:
-			system(self.opcontrol + ' --start ' + self.event)
-		except:
+		if (self.event):
+			system(self.opcontrol + ' --start --event ' +self.event)
+		else:
 			system(self.opcontrol + ' --start')
 
 
@@ -63,7 +51,4 @@ class oprofile(profiler.profiler):
 
 		system(self.opcontrol + ' --shutdown')
 
-
-	def setup_i386(self):
-		self.event = '--event CPU_CLK_UNHALTED:100000'
 
