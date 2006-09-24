@@ -35,8 +35,13 @@ class oprofile(profiler.profiler):
 		# system(self.opcontrol + ' --shutdown')
 		# system('rm -rf /var/lib/oprofile/samples/current')
 		system(self.opcontrol + ' --reset')
-		# system(self.opcontrol + ' --start ' + self.args)
-		system(self.opcontrol + ' --start ')
+		# if the lapic is not enabled, events won't work, so fall
+		# back to timer mode if necessary. If that blows up too,
+		# we'll still throw an exception
+		try:
+			system(self.opcontrol + ' --start ' + self.event)
+		except:
+			system(self.opcontrol + ' --start')
 
 
 	def stop(self, test):
@@ -58,5 +63,5 @@ class oprofile(profiler.profiler):
 
 
 	def setup_i386(self):
-		self.args = '--event CPU_CLK_UNHALTED:100000'
+		self.event = '--event CPU_CLK_UNHALTED:100000'
 
