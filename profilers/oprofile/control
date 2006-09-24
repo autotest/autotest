@@ -1,9 +1,3 @@
-for profiler in ['oprofile']:
-	try:
-		print "Testing profiler %s ..." % profiler
-		job.profilers.add(profiler)
-		job.runtest(None, 'sleeptest', 1)
-		job.profilers.delete(profiler)
-	except:
-		print "Test of profiler %s failed" % profiler
-		raise
+job.profilers.add('oprofile')
+job.runtest(None, 'sleeptest', 1)
+job.profilers.delete('oprofile')
