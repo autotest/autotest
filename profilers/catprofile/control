@@ -1,7 +1,3 @@
-try:
-	job.profilers.add('catprofile', ['/proc/meminfo','/proc/uptime'], 'meminfo', 2)
-	job.runtest(None, 'sleeptest', 5)
-	job.profilers.delete('catprofile')
-except:
-	print "Test of catprofile failed"
-	raise
+job.profilers.add('catprofile', ['/proc/meminfo','/proc/uptime'], 'meminfo', 2)
+job.runtest(None, 'sleeptest', 5)
+job.profilers.delete('catprofile')
