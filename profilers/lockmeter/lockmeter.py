@@ -2,6 +2,7 @@
 # you might need to do 'cat < /dev/null > /usr/include/linux/config.h'. 
 # But read the FAQ first.
 import profiler
+from autotest_utils import *
 
 class lockmeter(profiler.profiler):
 	version = 1
@@ -21,7 +22,12 @@ class lockmeter(profiler.profiler):
 
 
 	def initialize(self):
-		assert os.path.exists('/proc/lockmeter')
+		try:
+			assert os.path.exists('/proc/lockmeter')
+		except:
+			print 'Lockmeter is not compiled into your kernel'
+			print 'Please fix and try again'
+			raise AssertionError
 
 
 	def start(self, test):
