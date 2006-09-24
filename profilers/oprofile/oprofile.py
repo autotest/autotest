@@ -23,8 +23,8 @@ class oprofile(profiler.profiler):
 		else:
 			raise UnknownError, 'Architecture %s not supported by oprofile wrapper' % arch
 
-		self.opreport = self.srcdir + '/pp/opcontrol'
-		self.opcontrol = self.srcdir + '/utils/opcontrol'
+		self.opreport = self.srcdir + '/bin/opreport'
+		self.opcontrol = self.srcdir + '/bin/opcontrol'
 
 
 	def start(self, test):
