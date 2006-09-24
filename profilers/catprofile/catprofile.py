@@ -6,7 +6,8 @@ class catprofile(profiler.profiler):
 	version = 1
 
 	# filenames: list of filenames to cat
-	def initialize(self, filenames, outfile, interval = 5):
+	def initialize(self, filenames = ['/proc/meminfo', '/proc/slabinfo'], 
+				outfile = 'monitor', interval = 1):
 		self.filenames = filenames
 		self.outfile = outfile
 		self.interval = interval

@@ -11,8 +11,8 @@ class oprofile(profiler.profiler):
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
-
 		system('bzcat ../cvs-update-20060901.patch.bz2 | patch -p1')
+
 		system('./configure --with-kernel-support --prefix=' + self.srcdir)
 		system('make')
 		system('make install')
