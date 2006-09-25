@@ -97,9 +97,11 @@ class barrier:
 		self.timeout = timeout
 		self.start = time()
 
-		print "barrier: hostid=%s tag=%s port=%d timeout=%d start=%d" \
-			% (self.hostid, self.tag, self.port,
-						self.timeout, self.start)
+		self.report("tag=%s port=%d timeout=%d start=%d" \
+			% (self.tag, self.port, self.timeout, self.start))
+
+	def report(self, out):
+		print "barrier:", self.hostid, out
 
 	def update_timeout(self, timeout):
 		self.timeout = (time() - self.start) + timeout
@@ -109,7 +111,7 @@ class barrier:
 		if (timeout <= 0):
 			raise BarrierError("timeout waiting for barrier")
 
-		print "barrier: remaining:", timeout
+		self.report("remaining: %d" % (timeout))
 		return timeout
 
 	def master_welcome(self, connection):
@@ -124,8 +126,7 @@ class barrier:
 
 			(tag, name) = intro.split(' ')
 
-			print "barrier: new client tag=%s, name=%s" % \
-								(tag, name)
+			self.report("new client tag=%s, name=%s" % (tag, name))
 
 			# Ok, we know who is trying to attach.  Confirm that
 			# they are coming to the same meeting.  Also, everyone
@@ -133,14 +134,14 @@ class barrier:
 			# If we see a duplicate, something _bad_ has happened
 			# so drop them now.
 			if self.tag != tag:
-				print "barrier: client arriving for the " \
-					"wrong barrier"
+				self.report("client arriving for the " \
+								"wrong barrier")
 				client.settimeout(5)
 				client.send("!tag")
 				client.close()
 				return
 			elif name in self.waiting:
-				print "barrier: duplicate client"
+				self.report("duplicate client")
 				client.settimeout(5)
 				client.send("!dup")
 				client.close()
@@ -154,11 +155,13 @@ class barrier:
 			# who that was we cannot do anything sane other
 			# than report it and let the normal timeout kill
 			# us when thats appropriate.
-			print "barrier: client handshake timeout:", addr
+			self.report("client handshake timeout: (%s:%d)" %\
+				(addr[0], addr[1]))
 			client.close()
 			return
 
-		print "barrier: client now waiting:", name, addr
+		self.report("client now waiting: %s (%s:%d)" % \
+						(name, addr[0], addr[1]))
 
 		# They seem to be valid record them.
 		self.waiting[name] = connection
@@ -171,7 +174,7 @@ class barrier:
 		for name in self.waiting:
 			(client, addr) = self.waiting[name]
 
-			print "barrier: checking client present:", name
+			self.report("checking client present: " + name)
 
 			client.settimeout(5)
 			reply = 'none'
@@ -179,7 +182,7 @@ class barrier:
 				client.send("ping")
 				reply = client.recv(1024)
 			except socket.timeout:
-				print "barrier: ping/pong timeout:", name
+				self.report("ping/pong timeout: " + name)
 				pass
 
 			if reply != "pong":
@@ -192,13 +195,13 @@ class barrier:
 		for name in self.waiting:
 			(client, addr) = self.waiting[name]
 
-			print "barrier: releasing client:", name
+			self.report("releasing client: " + name)
 
 			client.settimeout(5)
 			try:
 				client.send("rlse")
-			except socket.timeout:
-				print "barrier: rlse timeout:", name
+			except socket.timeout:	
+				self.report("release timeout: " + name)
 				pass
 	
 	def master_close(self):
@@ -207,7 +210,7 @@ class barrier:
 		for name in self.waiting:
 			(client, addr) = self.waiting[name]
 
-			print "barrier: closing client:", name
+			self.report("closing client: " + name)
 	
 			try:
 				client.close()
@@ -218,7 +221,7 @@ class barrier:
 		self.server.close()
 
 	def master(self):
-		print "barrier: master=" + self.hostid
+		self.report("selected as master")
 
 		self.seen = 1
 		self.waiting = {}
@@ -240,6 +243,8 @@ class barrier:
 					pass
 
 				# Check if everyone is here.
+				self.report("master seen %d of %d" % \
+					(self.seen, len(self.members)))
 				if self.seen == len(self.members):
 					self.master_release()
 					break
@@ -256,18 +261,18 @@ class barrier:
 		# in testing.
 		master = (self.members[0].split('#'))[0]
 
-		print "barrier: slave=" + self.hostid + " master=" + master
+		self.report("selected as slave, master=" + master)
 
 		# Connect to them.
 		remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		while self.remaining() > 0:
 			remote.settimeout(30)
 			try:
-				print "barrier: calling master"
+				self.report("calling master")
 				remote.connect((master, self.port))
 				break
 			except socket.timeout:
-				print "barrier: timeout calling master, retry"
+				self.report("timeout calling master, retry")
 				sleep(10)
 				pass
 			except socket.error, err:
@@ -289,7 +294,7 @@ class barrier:
 				break
 
 			reply = reply.strip("\r\n")
-			print "barrier: master said:", reply
+			self.report("master said: " + reply)
 
 			mode = reply
 			if reply == "ping":
@@ -297,7 +302,7 @@ class barrier:
 				# ping/pong/rlse cyle to complete normally.
 				self.update_timeout(10 * len(self.members))
 
-				print "barrier: pong"
+				self.report("pong")
 				remote.settimeout(self.remaining())
 				remote.send("pong")
 
@@ -306,7 +311,7 @@ class barrier:
 				# ping/pong/rlse cyle to complete normally.
 				self.update_timeout(10 * len(self.members))
 
-				print "barrier: was released, waiting for close"
+				self.report("was released, waiting for close")
 
 		if mode == "rlse":
 			pass
@@ -325,7 +330,7 @@ class barrier:
 		self.members = list(hosts)
 		self.members.sort()
 
-		print "barrier: members: " + ",".join(self.members)
+		self.report("members: " + ",".join(self.members))
 		
 		# Figure out who is the master in this barrier.
 		if self.hostid == self.members[0]:
@@ -349,8 +354,10 @@ if __name__ == "__main__":
 		all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ]
 		barrier.rendevous(*all)
 	except BarrierError, err:
-		print "barrier: barrier failed:", err
+		print "barrier: 127.0.0.1#" + sys.argv[1] + \
+						": barrier failed:", err
 		sys.exit(1)
 	else:
-		print "barrier: all present and accounted for"
+		print "barrier: 127.0.0.1#" + sys.argv[1] + \
+					": all present and accounted for"
 		sys.exit(0)
