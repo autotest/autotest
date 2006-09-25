@@ -1,10 +1,32 @@
+job.runtest(None, 'aiostress')
 job.runtest(None, 'bonnie')
 job.runtest(None, 'dbench')
+job.runtest(None, 'fio')
 job.runtest(None, 'fsx')
+job.runtest(None, 'interbench')
+job.runtest(None, 'isic')
 job.runtest(None, 'kernbench', 2, 5)
 job.runtest(None, 'lmbench')
 job.runtest(None, 'ltp')
+def client():
+	job.runtest('client', 'netperf2', 'client', 'snapshot_script')
+
+def server():
+	job.runtest('server', 'netperf2', 'server', 'snapshot_script')
+
+job.parallel([server], [client])
+job.runtest('clone_skb_off', 'pktgen', 'eth0', 50000, 0)
+job.runtest('clone_skb_on', 'pktgen', 'eth0', 50000, 1)
+
 job.runtest(None, 'reaim')
+job.runtest(None, 'scrashme')
+job.runtest(None, 'sleeptest')
+testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.14.tar.bz2') # '2.4.16'
+testkernel.patch('/usr/local/src/patch-2.6.14-git6.bz2')
+testkernel.config('http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
+job.runtest(None, 'sparse', testkernel)
+
+job.runtest(None, 'stress')
 job.runtest(None, 'tbench')
-
-
+job.runtest(None, 'unixbench')
+job.runtest(None, 'xmtest', '-e nobody@nowhere.org -d xmtest')

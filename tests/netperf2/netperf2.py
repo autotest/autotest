@@ -26,8 +26,7 @@ class netperf2(test.test):
 			hostid = '127.0.0.1#netperf-server'
 			self.server_start()
 			job.barrier(hostid, 'start', 30).rendevous(*all)
-			job.barrier(hostid, 'stop',  30).rendevous(*all)
-			barrier.rendevous(*all)
+			job.barrier(hostid, 'stop',  3600).rendevous(*all)
 			self.server_stop()
 		elif (role == 'client'):
 			hostid = '127.0.0.1#netperf-client'
@@ -43,7 +42,7 @@ class netperf2(test.test):
 		# we should really record the pid we forked off, but there
 		# was no obvious way to run the daemon in the foreground.
 		# Hacked it for now
-		system('killall netserver')
+		system('killall netserver', ignorestatus=1)
 		system(self.server_path)
 
 
