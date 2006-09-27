@@ -1,0 +1,17 @@
+--- src/Makefile.old	2006-09-26 23:01:44.000000000 -0700
++++ src/Makefile	2006-09-26 23:02:35.000000000 -0700
+@@ -1,12 +1,12 @@
+ CC	= gcc
+-CFLAGS	= -Wall -O2 -g -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
++CFLAGS	+= -Wall -O2 -g -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ PROGS	= fio
+ SCRIPTS = fio_generate_plots
+ 
+ all: depend $(PROGS) $(SCRIPTS)
+ 
+ fio: fio.o ioengines.o init.o stat.o log.o time.o md5.o crc32.o
+-	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) -lpthread -laio -lm -lrt
++	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(filter %.o,$^) -lpthread -laio -lm -lrt
+ 
+ clean:
+ 	-rm -f *.o .depend cscope.out $(PROGS)
