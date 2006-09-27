@@ -10,19 +10,18 @@ from autotest_utils import *
 class fsx(test.test):
 	version = 2
 
-	def initialize(self):
-		self.job.setup_dep(['libaio'])
-		ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
-		cflags = '-I ' + self.autodir + '/deps/libaio/include'
-		var_ldflags = 'LDFLAGS="' + ldflags + '"'
-		var_cflags  = 'CFLAGS="' + cflags + '"'
-		self.make_flags = var_ldflags + ' ' + var_cflags
-	
-	
 	# http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
 	def setup(self, tarball = 'ext3-tools.tar.gz'):
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
+
+		self.job.setup_dep(['libaio'])
+		ldflags = '-L' + self.autodir + '/deps/libaio/lib'
+		cflags = '-I' + self.autodir + '/deps/libaio/include'
+		var_ldflags = 'LDFLAGS="' + ldflags + '"'
+		var_cflags  = 'CFLAGS="' + cflags + '"'
+		self.make_flags = var_ldflags + ' ' + var_cflags
+		
 		os.chdir(self.srcdir)
 		system(self.make_flags + ' make fsx-linux')
 
