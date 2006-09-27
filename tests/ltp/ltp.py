@@ -12,7 +12,7 @@ class ltp(test.test):
 		os.chdir(self.srcdir)
 
 		system('make -j %d' % count_cpus())
-		system('make install')
+		system('yes n | make install')
 
 	# Note: to run a specific test, try '-f test' in the args
 	# eg, job.runtest(None, 'ltp', '-f ballista')
