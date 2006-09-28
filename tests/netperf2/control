@@ -2,6 +2,6 @@ def client():
 	job.runtest('client', 'netperf2', 'client', 'snapshot_script')
 
 def server():
-	job.runtest('server', 'netperf2', 'server', 'snapshot_script')
+	job.runtest('server', 'netperf2', 'server')
 
 job.parallel([server], [client])
