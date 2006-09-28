@@ -32,13 +32,14 @@ class netperf2(test.test):
 			hostid = '127.0.0.1#netperf-client'
 			os.environ['NETPERF_CMD'] = self.client_path
 			job.barrier(hostid, 'start', 30).rendevous(*all)
-			self.client(script)
+			self.client(script, '127.0.0.1', args)
 			job.barrier(hostid, 'stop',  30).rendevous(*all)
 		else:
 			raise UnhandledError('invalid role specified')
 
 
 	def server_start(self):
+		print_to_tty('XXXX: server_start')
 		# we should really record the pid we forked off, but there
 		# was no obvious way to run the daemon in the foreground.
 		# Hacked it for now
@@ -51,14 +52,15 @@ class netperf2(test.test):
 		system('killall netserver')
 
 
-	def client(self, script, server_host = 'localhost', args = 'CPU'):
+	def client(self, script, server_host, args = 'CPU'):
 		# run some client stuff
-		stdout_path = os.path.join(self.resultsdir, script + '.stdout')
-		stderr_path = os.path.join(self.resultsdir, script + '.stderr')
+		# stdout_path = os.path.join(self.resultsdir, script + '.stdout')
+		# stderr_path = os.path.join(self.resultsdir, script + '.stderr')
+		# self.job.stdout.tee_redirect(stdout_path)
+		# self.job.stderr.tee_redirect(stderr_path)
 
-		self.job.stdout.tee_redirect(stdout_path)
-		self.job.stderr.tee_redirect(stderr_path)
-		system(os.path.join(self.srcdir, 'doc/examples', script) \
-								+ ' ' + args)
-		self.job.stdout.restore()
-		self.job.stderr.restore()
+		script_path = os.path.join(self.srcdir, 'doc/examples', script)
+		system('%s %s %s' % (script_path, server_host, args))
+
+		# self.job.stdout.restore()
+		# self.job.stderr.restore()
