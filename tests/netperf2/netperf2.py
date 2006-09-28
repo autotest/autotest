@@ -39,7 +39,6 @@ class netperf2(test.test):
 
 
 	def server_start(self):
-		print_to_tty('XXXX: server_start')
 		# we should really record the pid we forked off, but there
 		# was no obvious way to run the daemon in the foreground.
 		# Hacked it for now
