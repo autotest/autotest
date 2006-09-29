@@ -43,14 +43,19 @@ class oprofile(profiler.profiler):
 
 
 	def report(self, test):
+		# Output kernel per-symbol profile report
 		reportfile = test.profdir + '/oprofile.kernel'
-		report = self.opreport + ' -l ' + self.vmlinux
-		if os.path.exists(get_modules_dir()):
-			report += ' -p ' + get_modules_dir()
-		system(report + ' > ' + reportfile)
-
+		if len(self.vmlinux):
+			report = self.opreport + ' -l ' + self.vmlinux
+			if os.path.exists(get_modules_dir()):
+				report += ' -p ' + get_modules_dir()
+			system(report + ' > ' + reportfile)
+		else:
+			system("echo 'no vmlinux found.' > %s" %reportfile)
+		
+		# output profile summary report
 		reportfile = test.profdir + '/oprofile.user'
-		system(self.opreport + ' > ' + reportfile)
+		system(self.opreport + ' --long-filenames ' + ' > ' + reportfile)
 
 		system(self.opcontrol + ' --shutdown')
 
