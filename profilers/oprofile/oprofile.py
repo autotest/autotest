@@ -20,8 +20,13 @@ class oprofile(profiler.profiler):
 		self.event = event
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
-		self.vmlinux = get_vmlinux()
-		system(self.opcontrol + ' --setup --vmlinux=' + self.vmlinux)
+		try:
+			self.vmlinux = get_vmlinux()
+		except NameError:
+			self.vmlinux = '' 
+			system(self.opcontrol + ' --setup --no-vmlinux')
+		else:
+			system(self.opcontrol + ' --setup --vmlinux=' + self.vmlinux)
 
 
 	def start(self, test):
