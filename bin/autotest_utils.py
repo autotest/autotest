@@ -340,6 +340,17 @@ def avgtime_print(dir):
 	      (elapsed/count, user/count, system/count, cpu/count)
 
 
+def running_config():
+	"""
+	Return path of config file of the currently running kernel
+	"""
+	for config in ('/proc/config.gz', \
+		       '/boot/config-%s' % system_output('uname -r') ):
+		if os.path.isfile(config):
+			return config
+	return None
+
+
 class fd_stack:
 	"""a stack of fd redirects
 
