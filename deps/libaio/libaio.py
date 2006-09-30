@@ -10,6 +10,7 @@ def setup(tarball, topdir):
 	os.chdir(srcdir)
 	system ('make')
 	system ('make prefix=%s install' % topdir)
+	os.chdir(topdir)
 
 
 # old source was
