@@ -193,6 +193,7 @@ class kernel:
 		image = os.path.join('arch', get_target_arch(), 'boot',
 				     self.build_target)
 		force_copy(image, '/boot/vmlinuz-autotest')
+		force_copy('vmlinux', '/boot/vmlinux-autotest')
 		force_copy('System.map', '/boot/System.map-autotest')
 		force_copy('.config', '/boot/config-autotest')
 	
