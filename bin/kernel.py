@@ -187,7 +187,7 @@ class kernel:
 		system('make clean')
 
 	
-	def install(self, dir):
+	def install(self):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
 		image = os.path.join('arch', get_target_arch(), 'boot',
