@@ -6,8 +6,15 @@ from error import *
 import re,string
 
 def grep(pattern, file):
-	"""This is mainly to fix the return code inversion from grep"""
-	return not system('grep "' + pattern + '" "' + file + '"')
+	"""
+	This is mainly to fix the return code inversion from grep
+	Also handles compressed files. 
+
+	returns 1 if the pattern is present in the file, 0 if not.
+	"""
+	command = 'grep "%s" > /dev/null' % pattern
+	ret = cat_file_to_cmd(file, command, ignorestatus = 1)
+	return not ret
 	
 	
 def difflist(list1, list2):
@@ -19,16 +26,19 @@ def difflist(list1, list2):
 	return diff
 
 
-def cat_file_to_cmd(file, command):
-	"""equivalent to 'cat file | command' but knows to use zcat or bzcat if appropriate"""
+def cat_file_to_cmd(file, command, ignorestatus = 0):
+	"""
+	equivalent to 'cat file | command' but knows to use 
+	zcat or bzcat if appropriate
+	"""
 	if not os.path.isfile(file):
 		raise NameError, 'invalid file %s to cat to command %s' % file, command
 	if file.endswith('.bz2'):
-		system('bzcat ' + file + ' | ' + command)
+		return system('bzcat ' + file + ' | ' + command, ignorestatus)
 	elif (file.endswith('.gz') or file.endswith('.tgz')):
-		system('zcat ' + file + ' | ' + command)
+		return system('zcat ' + file + ' | ' + command, ignorestatus)
 	else:
-		system('cat ' + file + ' | ' + command)
+		return system('cat ' + file + ' | ' + command, ignorestatus)
 
 
 def extract_tarball_to_dir(tarball, dir):
