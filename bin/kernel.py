@@ -186,7 +186,34 @@ class kernel:
 		print "make clean"
 		system('make clean')
 
-	
+
+	def mkinitrd(self, version, image, system_map, initrd):
+		"""Build kernel initrd image.
+		Try to use distro specific way to build initrd image.
+		Parameters:
+			version
+				new kernel version
+			image
+				new kernel image file
+			system_map
+				System.map file
+			initrd
+				initrd image file to build
+		"""
+		vendor = get_os_vendor()
+		
+		if os.path.isfile(initrd):
+			print "Existing %s file, will remove it." %initrd
+			os.remove(initrd)
+			
+		if vendor in ['Red Hat', 'Fedora Core']:
+			system('mkinitrd %s %s' %(initrd, version))
+		elif vendor in ['SUSE']:
+			system('mkinitrd -k %s -i %s -M %s' %(image, initrd, system_map))
+		else:
+			raise TestError('Unsupported vendor %s' %vendor)
+
+
 	def install(self):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
