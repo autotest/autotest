@@ -29,18 +29,14 @@ class cpu_hotplug(test.test):
 			print 'Just only single cpu online, quiting...'
 			sys.exit()
 		
-		# Check out the available cpu online map
-		cpus = system_output("cat /proc/cpuinfo | grep processor | awk -F' ' '{print $3}'")
-		cpu_online_map = cpus.splitlines()
-
 		# Have a simple and quick check first, FIX me please.
 		system('dmesg -c > /dev/null')
-		for c in cpu_online_map:
-			if os.path.isfile('/sys/devices/system/cpu/cpu%s/online' %c):
-				system('echo 0 > /sys/devices/system/cpu/cpu%s/online' %c, 1)
+		for cpu in cpu_online_map():
+			if os.path.isfile('/sys/devices/system/cpu/cpu%s/online' % cpu):
+				system('echo 0 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1)
 				system('dmesg -c')
 				time.sleep(3)
-				system('echo 1 > /sys/devices/system/cpu/cpu%s/online' %c, 1)
+				system('echo 1 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1)
 				system('dmesg -c')
 				time.sleep(3)
 		
@@ -55,3 +51,12 @@ class cpu_hotplug(test.test):
 			system('./runtests.sh')
 			profilers.stop(self)
 			profilers.report(self)
+
+
+	def cpu_online_map():
+		# Check out the available cpu online map
+		cpus = []
+        	for line in open('/proc/cpuinfo', 'r').readlines():
+                	if line.startswith('processor'):
+                       		cpus.append(line.split()[2])
+		return cpus
