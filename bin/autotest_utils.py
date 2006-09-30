@@ -160,6 +160,25 @@ def list_grep(list, pattern):
 			return 1
 	return 0
 
+def get_os_vendor():
+	"""Try to guess what's the os vendor
+	"""
+	issue = '/etc/issue'
+	
+	if not os.path.isfile(issue):
+		return 'Unknown'
+	
+	if file_contains_pattern(issue, 'Red Hat'):
+		return 'Red Hat'
+	elif file_contains_pattern(issue, 'Fedora Core'):
+		return 'Fedora Core'
+	elif file_contains_pattern(issue, 'SUSE'):
+		return 'SUSE'
+	elif file_contains_pattern(issue, 'Ubuntu'):
+		return 'Ubuntu'
+	else:
+		return 'Unknown'
+	
 
 def get_vmlinux():
 	"""Return the full path to vmlinux
