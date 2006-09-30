@@ -6,7 +6,7 @@ class libhugetlbfs(test.test):
 
 	# http://prdownloads.sourceforge.net/libhugetlbfs/libhugetlbfs-1.0-pre4-1.tar.gz?download
 	def setup(self, tarball = 'libhugetlbfs-1.0-pre4-1.tar.gz'):
-		tarball = unmap_url(self.bindir + '/' + tarball, self.tmpdir)
+		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
