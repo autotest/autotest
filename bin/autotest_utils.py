@@ -114,6 +114,16 @@ def get_file(src, dest):
 
 
 def unmap_url(srcdir, src, destdir = '.'):
+	"""
+	Receives either a path to a local file or a URL.
+	returns either the path to the local file, or the fetched URL
+
+	unmap_url('/usr/src', 'foo.tar', '/tmp')
+				= '/usr/src/foo.tar'
+	unmap_url('/usr/src', 'http://site/file', '/tmp')
+				= '/tmp/file'
+				(after retrieving it)
+	"""
 	if is_url(src):
 		dest = destdir + '/' + os.path.basename(src)
 		get_file(src, dest)
