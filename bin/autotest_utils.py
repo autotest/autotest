@@ -185,10 +185,10 @@ def get_vmlinux():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	vmlinux = '/boot/vmlinux'
-	if not os.path.isfile(vmlinux):
-		raise NameError, 'Cannot find vmlinux'
-	return vmlinux
+	vmlinux = '/boot/vmlinux-' % system_output('uname -r')
+	if os.path.isfile(vmlinux):
+		return vmlinux
+	return None
 
 
 def get_systemmap():
@@ -196,10 +196,10 @@ def get_systemmap():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	map = '/boot/System.map'
-	if not os.path.isfile(map):
-		raise NameError, 'Cannot find System.map'
-	return map
+	map = '/boot/System.map-' % system_output('uname -r')
+	if os.path.isfile(map):
+		return map
+	return None
 
 
 def get_modules_dir():
