@@ -7,6 +7,7 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading, profilers, barrier, filesystem
+import fd_stack
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -72,8 +73,8 @@ class job:
 		self.control = control
 		self.jobtab = jobtag
 
-		self.stdout = fd_stack(1, sys.stdout)
-		self.stderr = fd_stack(2, sys.stderr)
+		self.stdout = fd_stack.fd_stack(1, sys.stdout)
+		self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
 		self.profilers = profilers.profilers(self)
 

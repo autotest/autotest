@@ -11,8 +11,6 @@ Redirect stdout and stderr for each test's setup and execute to 4 sep files
 
 Caching version of kernelexpand to grab new kernels
 
-Add local libaio to fsx
-
 Errors from profilers are not being caught (shove a syntax error in a profiler
 python script to see what I mean) ... generates a file in results/debug/debug,
 but doesn't cascade up
