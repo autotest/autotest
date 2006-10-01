@@ -83,9 +83,9 @@ class job:
 		system(self.bindir + '/sysinfo.py')
 		os.chdir(pwd)
 
-	def kernel(self, topdir, base_tree):
+	def kernel(self, topdir, base_tree, *args, **dargs):
 		"""Summon a kernel object"""
-		return kernel.kernel(self, topdir, base_tree)
+		return kernel.kernel(self, topdir, base_tree, *args, **dargs)
 
 	def barrier(self, *args):
 		"""Create a barrier object"""

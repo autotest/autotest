@@ -144,6 +144,11 @@ def force_copy(src, dest):
 	return shutil.copyfile(src, dest)
 
 
+def force_link(src, dest):
+	"""Link src to dest, overwriting it if it exists"""
+	return system("ln -sf %s %s" % (src, dest))
+
+
 def file_contains_pattern(file, pattern):
 	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
@@ -238,6 +243,14 @@ def get_kernel_arch():
 		return 'i386'
 	else:
 		return arch
+
+
+def get_file_arch(filename):
+	# -L means follow symlinks
+	file_data = system_output('file -L ' + filename)
+	if file_data.count('80386'):
+		return 'i386'
+	return None
 
 
 def kernelexpand(kernel):
