@@ -1,0 +1,1 @@
+job.setup_dep(['boottool'])
