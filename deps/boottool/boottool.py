@@ -2,6 +2,12 @@
 import os
 from autotest_utils import *
 
+# To use this, you have to set PERL5LIB to:
+# 		autodir+'deps/boottool/lib/perl' 
+# or on Ubuntu we also need
+# 		autodir+'deps/boottool/share/perl'
+# because it uses nonstandard locations
+
 version = 1
 
 def setup(tarball, topdir): 
