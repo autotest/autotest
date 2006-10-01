@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
-import os,os.path,shutil,urllib,copy,pickle
+import os,os.path,shutil,urllib,copy,pickle,re
 from autotest_utils import *
 import kernel_config
 import test
@@ -31,7 +31,7 @@ class kernel:
 
 	autodir = ''
 
-	def __init__(self, job, top_directory, base_tree):
+	def __init__(self, job, top_directory, base_tree, leave = 0):
 		"""Initialize the kernel build environment
 
 		job
@@ -50,7 +50,7 @@ class kernel:
 		self.top_dir = top_directory
 		if not self.top_dir.startswith(autodir):
 			raise
-		if os.path.isdir(self.top_dir):
+		if os.path.isdir(self.top_dir) and not leave:
 			system('rm -rf ' + self.top_dir)
 		os.mkdir(self.top_dir)
 
@@ -66,6 +66,10 @@ class kernel:
 		os.mkdir(self.log_dir)
 
  		self.target_arch = None
+		self.build_target = 'bzImage'
+
+		if leave:
+			return
 
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
@@ -135,7 +139,18 @@ class kernel:
 			extract_tarball_to_dir(tarball, 'build')
 
 
-	def build(self, make_opts = '', logfile = ''):
+	def extraversion(self, tag, append=1):
+		os.chdir(self.build_dir)
+		if append:
+			p = 's/^EXTRAVERSION =\(.*\)/EXTRAVERSION = \1-%s/' % \
+									tag
+		else:
+			p = 's/^EXTRAVERSION =\(.*\)/EXTRAVERSION = -%s/' % \
+									tag
+		system('sed "%s" Makefile' % p)
+
+
+	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
 	
 		make_opts
@@ -144,6 +159,8 @@ class kernel:
 		if logfile == '':
 			logfile = os.path.join(self.log_dir, 'kernel_build')
 		os.chdir(self.build_dir)
+		if extraversion:
+			self.extraversion(extraversion)
 		print os.path.join(self.log_dir, 'stdout')
 		self.job.stdout.redirect(logfile + '.stdout')
 		self.job.stderr.redirect(logfile + '.stderr')
@@ -151,10 +168,7 @@ class kernel:
 		# setup_config_file(config_file, config_overrides)
 
 		# Not needed on 2.6, but hard to tell -- handle failure
-		try:
-			system('make dep')
-		except CmdError:
-			pass
+		system('make dep', ignorestatus=1)
 		threads = 2 * count_cpus()
 		build_string = 'make -j %d %s %s' % (threads, make_opts,
 					     self.build_target)
@@ -203,31 +217,48 @@ class kernel:
 		vendor = get_os_vendor()
 		
 		if os.path.isfile(initrd):
-			print "Existing %s file, will remove it." %initrd
+			print "Existing %s file, will remove it." % initrd
 			os.remove(initrd)
 			
 		if vendor in ['Red Hat', 'Fedora Core']:
-			system('mkinitrd %s %s' %(initrd, version))
+			system('mkinitrd %s %s' % (initrd, version))
 		elif vendor in ['SUSE']:
-			system('mkinitrd -k %s -i %s -M %s' %(image, initrd, system_map))
+			system('mkinitrd -k %s -i %s -M %s' % (image, initrd, system_map))
 		else:
-			raise TestError('Unsupported vendor %s' %vendor)
+			raise TestError('Unsupported vendor %s' % vendor)
 
 
-	def install(self, tag='autotest'):
+	def install(self, tag='autotest', arch=get_kernel_arch()):
 		"""make install in the kernel tree"""
+		ver_tag = self.get_kernel_build_ver() + '-' + tag
 		os.chdir(self.build_dir)
-		image = os.path.join('arch', get_target_arch(), 'boot',
-				     self.build_target)
-		force_copy(image, '/boot/vmlinuz-' + tag)
-		force_copy('vmlinux', '/boot/vmlinux-' + tag)
-		force_copy('System.map', '/boot/System.map-' + tag)
-		force_copy('.config', '/boot/config-' + tag)
+		image = os.path.join('arch', arch, 'boot', self.build_target)
+		force_copy(image, '/boot/vmlinuz-' + ver_tag)
+		force_link('/boot/vmlinuz-' + ver_tag, '/boot/vmlinuz-' + tag)
+		force_copy('vmlinux', '/boot/vmlinux-' + ver_tag)
+		force_link('/boot/vmlinux-' + ver_tag, '/boot/vmlinux-' + tag)
+		force_copy('System.map', '/boot/System.map-' + ver_tag)
+		force_link('/boot/System.map-'+ver_tag, '/boot/System.map-'+tag)
+		force_copy('.config', '/boot/config-' + ver_tag)
+		force_link('/boot/config-' + ver_tag, '/boot/config-' + tag)
 	
 		if kernel_config.modules_needed('.config'):
 			system('make modules_install')
 	
-	
+
+	def get_kernel_build_ver(self):
+		"""
+		Return the version string for a built kernel tree.
+		In include/linux/version.h we'll find something like
+			#define UTS_RELEASE "2.6.14-git6"
+		which we can strip out.
+		"""
+		version_hdr = self.build_dir + '/include/linux/version.h'
+		for line in open(version_hdr).readlines():
+			if line.count('UTS_RELEASE'):
+				return line.split('"')[1]
+
+
 	def set_cross_cc(self, target_arch=None, cross_compile=None,
 			 build_target='bzImage'):
 		"""Set up to cross-compile.
