@@ -7,7 +7,7 @@ print "TEST: building kernel"
 testkernel.build()
 
 print "TEST: installing kernel"
-# testkernel.install('autotest')
+testkernel.install('autotest')
 
 # print "TEST: booting system"
 # system.boot()          # does autotest by default
