@@ -11,8 +11,6 @@ class system:
 			os.mkdir(self.resultdir)
 		if not os.path.isdir(self.tmpdir):
 			os.mkdir(self.tmpdir)
-#		self.stdout = fd_stack(1, sys.stdout)
-#		self.stderr = fd_stack(2, sys.stderr)
 		return None
 
 
