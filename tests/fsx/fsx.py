@@ -26,9 +26,11 @@ class fsx(test.test):
 		system(self.make_flags + ' make fsx-linux')
 
 
-	def execute(self, repeat = '100000'):
+	def execute(self, testdir = None, repeat = '100000'):
 		args = '-N ' + repeat
-		os.chdir(self.tmpdir)
+		if not testdir:
+			testdir = self.tmpdir
+		os.chdir(testdir)
 		libs = self.autodir+'/deps/libaio/lib/'
 		ld_path = prepend_path(libs, environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
