@@ -1,0 +1,12 @@
+# Uncomment this line, and replace the device with something sensible
+# for you ...
+# fs = job.filesystem('/dev/hda2', job.tmpdir)
+
+for fstype in ('ext2', 'ext3'):
+	fs.mkfs(fstype)
+	fs.mount()
+	try:
+		job.runtest(fstype, 'fsx', job.tmpdir)
+	finally:
+		fs.unmount()
+

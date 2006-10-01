@@ -6,7 +6,7 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
-import os, sys, kernel, test, pickle, threading, profilers, barrier
+import os, sys, kernel, test, pickle, threading, profilers, barrier, filesystem
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -142,6 +142,13 @@ class job:
 		else:
 			return 1
 
+
+	def filesystem(self, device, mountpoint = None):
+		if not mountpoint:
+			mountpoint = self.tmpdir
+		return filesystem.filesystem(device, mountpoint)
+
+		
 	def noop(self, text):
 		print "job: noop: " + text
 
