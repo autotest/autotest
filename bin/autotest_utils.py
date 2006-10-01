@@ -322,7 +322,7 @@ def dump_object(object):
 def environ(env_key):
 	"""return the requested environment variable, or '' if unset"""
 	if (os.environ.has_key(env_key)):
-		return os.environ(env_key)
+		return os.environ[env_key]
 	else:
 		return ''
 
