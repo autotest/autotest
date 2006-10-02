@@ -16,13 +16,14 @@ class dbt2(test.test):
 		# Create symlink to autotest's results directory from dbt-2's
 		# preferred results directory to self.resultsdir
 		system('ln -s %s %s' % (self.resultsdir, \
-				os.path.join(self.srcdir,'/scripts/output')))
+				self.srcdir + '/scripts/output'))
 
 	def execute(self, args = ''):
 		logfile = self.resultsdir + '/dbt2.log'
 
 		os.chdir(self.srcdir)
-		system('./configure --with-postgresql=/usr/local/pgsql-autotest')
+		system('./configure --with-postgresql=%s/deps/pgsql/pgsql' \
+				% self.autodir)
 		system('make')
 		os.chdir(self.srcdir + '/scripts')
 		system('pgsql/build_db.sh -g')
