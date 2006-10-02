@@ -228,19 +228,15 @@ class kernel:
 			raise TestError('Unsupported vendor %s' % vendor)
 
 
-	def install(self, tag='autotest', arch=get_kernel_arch()):
+	def install(self, tag='autotest'):
 		"""make install in the kernel tree"""
-		ver_tag = self.get_kernel_build_ver() + '-' + tag
 		os.chdir(self.build_dir)
+		arch = get_file_arch('vmlinux')
 		image = os.path.join('arch', arch, 'boot', self.build_target)
-		force_copy(image, '/boot/vmlinuz-' + ver_tag)
-		force_link('/boot/vmlinuz-' + ver_tag, '/boot/vmlinuz-' + tag)
-		force_copy('vmlinux', '/boot/vmlinux-' + ver_tag)
-		force_link('/boot/vmlinux-' + ver_tag, '/boot/vmlinux-' + tag)
-		force_copy('System.map', '/boot/System.map-' + ver_tag)
-		force_link('/boot/System.map-'+ver_tag, '/boot/System.map-'+tag)
-		force_copy('.config', '/boot/config-' + ver_tag)
-		force_link('/boot/config-' + ver_tag, '/boot/config-' + tag)
+		force_copy(image, '/boot/vmlinuz-' + tag)
+		force_copy('vmlinux', '/boot/vmlinux-' + tag)
+		force_copy('System.map', '/boot/System.map-' + tag)
+		force_copy('.config', '/boot/config-' + tag)
 	
 		if kernel_config.modules_needed('.config'):
 			system('make modules_install')
