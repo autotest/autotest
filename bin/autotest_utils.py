@@ -190,7 +190,7 @@ def get_vmlinux():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	vmlinux = '/boot/vmlinux-' % system_output('uname -r')
+	vmlinux = '/boot/vmlinux-%s' % system_output('uname -r')
 	if os.path.isfile(vmlinux):
 		return vmlinux
 	return None
@@ -201,7 +201,7 @@ def get_systemmap():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	map = '/boot/System.map-' % system_output('uname -r')
+	map = '/boot/System.map-%s' % system_output('uname -r')
 	if os.path.isfile(map):
 		return map
 	return None
