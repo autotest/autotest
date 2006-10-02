@@ -7,7 +7,7 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading, profilers, barrier, filesystem
-import fd_stack
+import fd_stack, boottool
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -78,18 +78,26 @@ class job:
 
 		self.profilers = profilers.profilers(self)
 
+		try:
+			self.bootloader = boottool.boottool()
+		except:
+			pass
+
 		pwd = os.getcwd()	
 		os.chdir(self.resultdir + "/sysinfo")
 		system(self.bindir + '/sysinfo.py')
 		os.chdir(pwd)
 
+
 	def kernel(self, topdir, base_tree, *args, **dargs):
 		"""Summon a kernel object"""
 		return kernel.kernel(self, topdir, base_tree, *args, **dargs)
 
+
 	def barrier(self, *args):
 		"""Create a barrier object"""
 		return barrier.barrier(*args)
+
 
 	def setup_dep(self, deps): 
 		"""Set up the dependencies for this test.
@@ -113,6 +121,7 @@ class job:
                 except:
                         raise UnhandledError('running test ' + \
                                 self.__class__.__name__ + "\n")
+
 
 	def runtest(self, tag, testname, *test_args):
 		"""Summon a test object and run it.
@@ -149,9 +158,15 @@ class job:
 			mountpoint = self.tmpdir
 		return filesystem.filesystem(device, mountpoint)
 
-		
+
+	def reboot(self, tag='autotest'):
+		self.bootloader.boot_once(tag)
+		system("reboot")
+
+
 	def noop(self, text):
 		print "job: noop: " + text
+
 
 	# Job control primatives.
 
@@ -165,9 +180,11 @@ class job:
 		for t in tasks:
 			t.join()
 
+
 	def quit(self):
 		# XXX: should have a better name.
 		raise JobContinue("more to come")
+
 
 	def complete(self, status):
 		"""Clean up and exit"""
@@ -178,12 +195,14 @@ class job:
 			pass
 		sys.exit(status)
 
+
 	steps = []
 	def next_step(self, step):
 		"""Define the next step"""
 		step[0] = step[0].__name__
 		self.steps.append(step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
+
 
 	def step_engine(self):
 		"""the stepping engine -- if the control file defines
@@ -223,6 +242,7 @@ from autotest_utils import *
 
 		# all done, clean up and exit.
 		self.complete(0)
+
 
 	def record(self, msg):
 		"""Record job-level status"""
