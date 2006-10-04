@@ -153,7 +153,7 @@ def file_contains_pattern(file, pattern):
 	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
 		raise NameError, 'file %s does not exist' % file
-	return not system('egrep -q ' + pattern + ' ' + file, ignorestatus = 1)
+	return not system('egrep -q "' + pattern + '" ' + file, ignorestatus = 1)
 
 
 def list_grep(list, pattern):
