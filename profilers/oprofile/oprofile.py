@@ -20,10 +20,9 @@ class oprofile(profiler.profiler):
 		self.event = event
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
-		try:
-			self.vmlinux = get_vmlinux()
-		except NameError:
-			self.vmlinux = '' 
+		
+		self.vmlinux = get_vmlinux()
+		if not self.vmlinux:
 			system(self.opcontrol + ' --setup --no-vmlinux')
 		else:
 			system(self.opcontrol + ' --setup --vmlinux=' + self.vmlinux)
@@ -45,7 +44,7 @@ class oprofile(profiler.profiler):
 	def report(self, test):
 		# Output kernel per-symbol profile report
 		reportfile = test.profdir + '/oprofile.kernel'
-		if len(self.vmlinux):
+		if self.vmlinux:
 			report = self.opreport + ' -l ' + self.vmlinux
 			if os.path.exists(get_modules_dir()):
 				report += ' -p ' + get_modules_dir()
