@@ -243,16 +243,24 @@ class kernel:
 	
 
 	def get_kernel_build_ver(self):
-		"""
-		Return the version string for a built kernel tree.
-		In include/linux/version.h we'll find something like
-			#define UTS_RELEASE "2.6.14-git6"
-		which we can strip out.
-		"""
-		version_hdr = self.build_dir + '/include/linux/version.h'
-		for line in open(version_hdr).readlines():
-			if line.count('UTS_RELEASE'):
-				return line.split('"')[1]
+		"""Check Makefile and .config to return kernel version"""
+		version = patchlevel = sublevel = extraversion = localversion = ''
+
+		for line in open(self.build_dir + '/Makefile', 'r').readlines():
+			if line.startswith('VERSION'):
+				version = line[line.index('=') + 1:].strip()
+			if line.startswith('PATCHLEVEL'):
+				patchlevel = line[line.index('=') + 1:].strip()
+			if line.startswith('SUBLEVEL'):
+				sublevel = line[line.index('=') + 1:].strip()
+			if line.startswith('EXTRAVERSION'):
+				extraversion = line[line.index('=') + 1:].strip()
+
+		for line in open(self.build_dir + '/.config', 'r').readlines():
+			if line.startswith('CONFIG_LOCALVERSION='):
+				localversion = line.rstrip().split('"')[1]
+
+		return "%s.%s.%s%s%s" %(version, patchlevel, sublevel, extraversion, localversion)		
 
 
 	def set_cross_cc(self, target_arch=None, cross_compile=None,
