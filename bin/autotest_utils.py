@@ -391,3 +391,14 @@ def running_config():
 		if os.path.isfile(config):
 			return config
 	return None
+
+
+def cpu_online_map():
+	"""
+	Check out the available cpu online map
+	"""
+	cpus = []
+	for line in open('/proc/cpuinfo', 'r').readlines():
+		if line.startswith('processor'):
+			cpus.append(line.split()[2]) # grab cpu number
+	return cpus
