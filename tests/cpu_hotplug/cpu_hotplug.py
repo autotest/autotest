@@ -42,12 +42,3 @@ class cpu_hotplug(test.test):
 			system('./runtests.sh')
 			profilers.stop(self)
 			profilers.report(self)
-
-
-	def cpu_online_map():
-		# Check out the available cpu online map
-		cpus = []
-        	for line in open('/proc/cpuinfo', 'r').readlines():
-                	if line.startswith('processor'):
-                       		cpus.append(line.split()[2]) # grab cpu number
-		return cpus
