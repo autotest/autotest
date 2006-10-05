@@ -7,7 +7,7 @@ class pktgen(test.test):
 	def execute(self, eth='eth0', count=50000, clone_skb=1, \
 			dst_ip='192.168.210.210', dst_mac='01:02:03:04:05:07'):
 		if not os.path.exists('/proc/net/pktgen'):
-			system('modprobe pktgen')
+			system('/sbin/modprobe pktgen')
 		if not os.path.exists('/proc/net/pktgen'):
 			raise UnhandledError('pktgen not loaded')
 
