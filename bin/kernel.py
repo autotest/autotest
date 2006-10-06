@@ -228,20 +228,29 @@ class kernel:
 			raise TestError('Unsupported vendor %s' % vendor)
 
 
-	def install(self, tag='autotest'):
+	def install(self, dir = '/', tag='autotest'):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
+		
+		if not os.path.isdir(dir):
+			os.mkdir(dir)
+		boot_dir = os.path.join(dir, 'boot')
+		if not os.path.isdir(boot_dir):
+			os.mkdir(boot_dir)
+
 		arch = get_file_arch('vmlinux')
 		image = os.path.join('arch', arch, 'boot', self.build_target)
-		force_copy(image, '/boot/vmlinuz-' + tag)
-		force_copy('vmlinux', '/boot/vmlinux-' + tag)
-		force_copy('System.map', '/boot/System.map-' + tag)
-		force_copy('.config', '/boot/config-' + tag)
+		force_copy(image, dir + '/boot/vmlinuz-' + tag)
+		force_copy('vmlinux', dir + '/boot/vmlinux-' + tag)
+		force_copy('System.map', dir + '/boot/System.map-' + tag)
+		force_copy('.config', dir + '/boot/config-' + tag)
 	
 		if kernel_config.modules_needed('.config'):
-			system('make modules_install')
+			system('make modules_install INSTALL_MOD_PATH=%s' %dir)
+			if dir == '/':
+				self.mkinitrd(self.get_kernel_build_ver(), image, 'System.map', boot_dir + '/inird-' + tag)
+				
 	
-
 	def get_kernel_build_ver(self):
 		"""Check Makefile and .config to return kernel version"""
 		version = patchlevel = sublevel = extraversion = localversion = ''
