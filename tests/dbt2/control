@@ -1,1 +1,2 @@
-job.runtest(None, 'dbt2', '-w 1 -c 20 -d 1800 -s 100 -n')
+job.runtest('pgsql', 'dbt2', 'pgsql', '-w 1 -c 20 -d 1800 -s 100 -n')
+job.runtest('mysql', 'dbt2', 'mysql', '-w 1 -c 20 -d 1800 -s 100 -n')
