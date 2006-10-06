@@ -113,9 +113,9 @@ class job:
                        		raise UnhandledError(error)
 
 
-        def __runtest(self, tag, testname, test_args):
+        def __runtest(self, tag, url, test_args):
                 try:
-			test.runtest(self, tag, testname, test_args)
+			test.runtest(self, tag, url, test_args)
                 except AutotestError:
                         raise
                 except:
@@ -123,20 +123,21 @@ class job:
                                 self.__class__.__name__ + "\n")
 
 
-	def runtest(self, tag, testname, *test_args):
+	def runtest(self, tag, url, *test_args):
 		"""Summon a test object and run it.
 		
 		tag
 			tag to add to testname
-		testname
-			name of the test to run
+		url
+			url of the test to run
 		"""
-		name = testname 
+
+		(group, name) = test.testname(url)
 		if (tag):
 			name += '.' + tag
 		try:
 			try:
-				self.__runtest(tag, testname, test_args)
+				self.__runtest(tag, url, test_args)
 			except Exception, detail:
 				self.record("FAIL " + name + " " + \
 					detail.__str__() + "\n")
