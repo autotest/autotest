@@ -136,22 +136,86 @@ def fork_lambda(tmp, l):
 		sys.stdout.flush()
 		sys.stderr.flush()
 		os._exit(0)
+		
+
+def testname(url):
+	# Extract the testname from the test url.
+	match = re.match('[^:]+://(.*)/([^/]*)$', url)
+	if not match:
+		return ('', url)
+	(group, filename) = match.groups()
+
+	# Generate the group prefix.
+	gfix = re.compile('\W')
+	group = gfix.sub('_', group)
+	
+	# Drop the extension to get the raw test name.
+	tfix = re.compile('\.tgz')
+	testname = tfix.sub('', filename)
+
+	return (group, testname)
+
+def __installtest(job, url):
+	(group, name) = testname(url)
+
+	##print "group=%s name=%s" % (group, name)
+
+	# Bail if the test is already installed
+	group_dir = os.path.join(job.testdir, "download", group)
+	if os.path.exists(os.path.join(group_dir, name)):
+		return (group, name)
+
+	# If the group directory is missing create it and add
+	# an empty  __init__.py so that sub-directories are
+	# considered for import.
+	if not os.path.exists(group_dir):
+		os.mkdir(group_dir)
+		f = file(os.path.join(group_dir, '__init__.py'), 'w+')
+		f.close()
+
+	print name + ": installing test url=" + url
+	system("wget %s -O %s" % (url, os.path.join(group_dir, 'test.tgz')))
+	system("cd %s; tar zxf %s" % (group_dir, 'test.tgz'))
+	os.unlink(os.path.join(group_dir, 'test.tgz'))
+
+	# For this 'sub-object' to be importable via the name
+	# 'group.name' we need to provide an __init__.py,
+	# so link the main entry point to this.
+	os.symlink(name + '.py', os.path.join(group_dir, name,
+				'__init__.py'))
+
+	# The test is now installed.
+	return (group, name)
 
 # runtest: main interface for importing and instantiating new tests.
-def __runtest(job, tag, testname, test_args):
-	bindir = job.testdir + '/' + testname
-	outputdir = job.resultdir + '/' + testname
+def __runtest(job, tag, url, test_args):
+	# If this is not a plain test name then download and install
+	# the specified test.
+	if is_url(url):
+		(group, testname) = __installtest(job, url)
+		bindir = os.path.join(job.testdir, "download", group, testname)
+	else:
+		(group, testname) = ('', url)
+		bindir = os.path.join(job.testdir, group, testname)
+
+	outputdir = os.path.join(job.resultdir, testname)
+
 	if (tag):
 		outputdir += '.' + tag
 	if not os.path.exists(bindir):
 		raise TestError(testname + ": test does not exist")
 	
 	try:
-		sys.path.insert(0, bindir)
+		if group:
+			sys.path.insert(0, os.path.join(job.testdir,
+								"download"))
+			group += '.'
+		else:
+			sys.path.insert(0, os.path.join(job.testdir, testname))
 	
-		exec "import %s" % (testname)
-		exec "mytest = %s.%s(job, bindir, outputdir)" % \
-			(testname, testname)
+		exec "import %s%s" % (group, testname)
+		exec "mytest = %s%s.%s(job, bindir, outputdir)" % \
+			(group, testname, testname)
 	finally:
 		sys.path.pop(0)
 
@@ -161,7 +225,7 @@ def __runtest(job, tag, testname, test_args):
 	os.chdir(pwd)
 
 
-def runtest(job, tag, testname, test_args):
-	##__runtest(job, tag, testname, test_args)
+def runtest(job, tag, url, test_args):
+	##__runtest(job, tag, url, test_args)
 	fork_lambda(job.resultdir,
-		lambda : __runtest(job, tag, testname, test_args))
+		lambda : __runtest(job, tag, url, test_args))
