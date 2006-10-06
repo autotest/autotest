@@ -162,6 +162,7 @@ class job:
 	def reboot(self, tag='autotest'):
 		self.bootloader.boot_once(tag)
 		system("reboot")
+		self.quit()
 
 
 	def noop(self, text):
