@@ -1,3 +1,5 @@
+__author__ = """Copyright Andy Whitcroft 2006"""
+
 import sys
 import socket
 import errno
