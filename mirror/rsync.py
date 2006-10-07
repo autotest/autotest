@@ -27,6 +27,6 @@ class rsync:
 			os.mkdir(dest)
 		src = os.path.join(self.prefix, src)
 		cmd = self.command + ' %s "%s" "%s"' % (self.exclude, src, dest)
-		print cmd + ' >> %s 2>&1' % self.tmpfile
-		if os.system(cmd + ' > %s 2>&1' % self.tmpfile):
+		# print cmd + ' >> %s 2>&1' % self.tmpfile
+		if os.system(cmd + ' >> %s 2>&1' % self.tmpfile):
 			raise 'rsync command failed'
