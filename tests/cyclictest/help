@@ -1,0 +1,19 @@
+cyclictest V 0.11
+Usage:
+cyclictest <options>
+
+-b USEC  --breaktrace=USEC send break trace command when latency > USEC
+-c CLOCK --clock=CLOCK     select clock
+                           0 = CLOCK_MONOTONIC (default)
+                           1 = CLOCK_REALTIME
+-d DIST  --distance=DIST   distance of thread intervals in us default=500
+-i INTV  --interval=INTV   base interval of thread in us default=1000
+-l LOOPS --loops=LOOPS     number of loops: default=0(endless)
+-n       --nanosleep       use clock_nanosleep
+-p PRIO  --prio=PRIO       priority of highest prio thread
+-q       --quiet           print only a summary on exit
+-r       --relative        use relative timer instead of absolute
+-s       --system          use sys_nanosleep and sys_setitimer
+-t NUM   --threads=NUM     number of threads: default=1
+-v       --verbose         output values on stdout for statistics
+                           format: n:c:v n=tasknum c=count v=value in us
