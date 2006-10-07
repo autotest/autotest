@@ -11,7 +11,7 @@ class dbt2(test.test):
 	def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
-		self.job.setup_dep(['pgsql', 'mysql'])
+		self.job.setup_dep(['pgsql', 'pgpool', 'mysql'])
 
 		#
 		# Extract one copy of the kit for MySQL.
@@ -43,6 +43,8 @@ class dbt2(test.test):
 
 		if (db_type == "mysql"):
 			self.execute_mysql(args)
+		elif (db_type == "pgpool"):
+			self.execute_pgpool(args)
 		elif (db_type == "pgsql"):
 			self.execute_pgsql(args)
 
@@ -50,6 +52,13 @@ class dbt2(test.test):
 		args = args
 		system(self.srcdir + '.mysql/scripts/mysql/build_db.sh -g -w 1')
 		system(self.srcdir + '.mysql/scripts/run_workload.sh ' + args)
+
+ 	def execute_pgpool(self, args = ''):
+ 		system('%s/deps/pgpool/pgpool/bin/pgpool -f %s/../pgpool.conf' \
+ 				% (self.autodir, self.srcdir))
+ 		self.execute_pgsql(args)
+ 		system('%s/deps/pgpool/pgpool/bin/pgpool stop' % self.autodir)
+
 
 	def execute_pgsql(self, args = ''):
 		system(self.srcdir + '.pgsql/scripts/pgsql/build_db.sh -g -w 1')
