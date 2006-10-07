@@ -16,8 +16,8 @@ def setup(tarball, topdir):
 	system('make install')
 
 	#
-	# MySQL doesn't create this directory on it's own.  The server process
-	# needs it for writing temporary files to.
+	# MySQL doesn't create this directory on it's own.  This is where database
+	# logs and files are created.
 	#
 	os.mkdir(topdir + '/mysql/var')
 	#
