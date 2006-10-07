@@ -6,7 +6,7 @@ class rsync:
 
 	def __init__(self, prefix, target, excludes = []):
 		if not os.path.isdir(target):
-			os.mkdir(target)
+			os.makedirs(target)
 		self.prefix = prefix
 		self.target = target
 		# Have to use a tmpfile rather than a pipe, else we could 
