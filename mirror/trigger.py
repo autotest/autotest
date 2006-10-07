@@ -6,48 +6,40 @@ import os, re
 
 matches = (
        	# The major tarballs
-	(re.compile(r'linux-2\.6\.\d+\.tar\.bz2'),
-	 re.compile(r'2\.6\.\d+') ),
+	r'linux-(2\.6\.\d+)\.tar\.bz2',
        	# Stable releases
-	(re.compile(r'patch-2\.6\.\d+\.\d+\.bz2'),
-	 re.compile(r'2\.6\.\d+') ),
+	r'patch-(2\.6\.\d+\.\d+)\.bz2',
         # -rc releases
-	(re.compile(r'patch-2\.6\.\d+-rc\d+\.bz2'),
-	 re.compile(r'2.6.\d+-rc\d+') ),
+	r'patch-(2\.6\.\d+-rc\d+)\.bz2',
         # -git releases
-        (re.compile(r'patch-2\.6\.\d+(-rc\d+)?-git\d+.bz2'),
-	 re.compile(r'2.6.\d+(-rc\d+)?-git\d+') ),
+        r'patch-(2\.6\.\d+(-rc\d+)?-git\d+).bz2',
 	# -mm tree
-	(re.compile(r'2\.6\.\d+(-rc\d+)?-mm\d+\.bz2'),
-	 re.compile(r'2\.6\.\d+(-rc\d+)?-mm\d+') ),
+	r'(2\.6\.\d+(-rc\d+)?-mm\d+)\.bz2',
 	  )
 
-def re_scan(pattern1, pattern2, line):
-	"""
-	Bi-stage match routine. 
+compiled_matches = [re.compile(r) for r in matches]
 
-	First check to see whether the first string matches.
+def re_scan(pattern, line):
+	"""
+	First check to see whether the pattern matches.
 			(eg. Does it match "linux-2.6.\d.tar.bz2" ?)
 	Then we strip out the actual trigger itself from that, and return it.
 			(eg. return "2.6.\d")
-
-	Note that the first string uses match, so you need the whole filename
+	Note that the pattern uses match, so you need the whole filename
 	"""
-	match1 = pattern1.match(line)
-	if not match1:
+	match = pattern.match(line)
+	if match:
+		return match.group(1)
+	else:
 		return None
-	match2 = pattern2.search(match1.group())
-	if not match2:
-		return None
-	return match2.group()
 
-	
+
 def scan(input_file):
 	triggers = []
 	for line in open(input_file, 'r').readlines():
-		for match in matches:
+		for pattern in compiled_matches:
 			file = os.path.basename(line)
-			t = re_scan(match[0], match[1], file)
+			t = re_scan(pattern, file)
 			if t:
 				triggers.append(t)
 	return triggers
