@@ -33,8 +33,6 @@ def shorten_patch(long):
 	return short
 
 
-
-
 class parse:
 	def __init__(self, topdir, type):
 		self.topdir = topdir
@@ -42,6 +40,7 @@ class parse:
 		self.control = os.path.join(topdir, "autobench.dat")
 		self.set_status('NOSTATUS')
 		self.reason = ''
+		self.machine = ''
 		self.variables = {}
 		self.kernel = None
 
@@ -65,6 +64,8 @@ class parse:
 
 		self.derive_patches()
 		self.derive_kernel()
+		if 'machine_name' in variables:
+			self.machine = variables['machine_name']
 
 
 	def derive_build(self, raw_build):
