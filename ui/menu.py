@@ -151,7 +151,7 @@ def atcc_config_write(tag, test_type, answer):
 
 def atcc_config_show_help(tag, test_type):
 	if os.path.exists(at_dir + '/' + test_type + '/' + tag + '/help'):
-		d.textbox(at_dir + '/' + test_type + '/' + tag + '/help')
+		d.textbox(at_dir + '/' + test_type + '/' + tag + '/help', width=-1)
 	else:
 		d.infobox(at_dir + '/' + test_type + '/' + tag + '/help' " doesn't exist")
 		time.sleep(5)
@@ -232,6 +232,6 @@ menu_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 at_dir = os.path.dirname(menu_dir)
 
 d = dialog.Dialog(dialog = "dialog")
-d.add_persistent_args(["--backtitle", "Autotest Control Center v0.04"])
+d.add_persistent_args(["--backtitle", "Autotest Control Center v0.04a"])
 
 main()
