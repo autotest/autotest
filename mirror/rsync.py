@@ -24,7 +24,7 @@ class rsync:
 	def sync(self, src, dest):
 		os.chdir(self.target)
 		if not os.path.isdir(dest):
-			os.mkdir(dest)
+			os.makedirs(dest)
 		src = os.path.join(self.prefix, src)
 		cmd = self.command + ' %s "%s" "%s"' % (self.exclude, src, dest)
 		# print cmd + ' >> %s 2>&1' % self.tmpfile
