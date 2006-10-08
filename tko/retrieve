@@ -1,5 +1,11 @@
 #!/usr/bin/python2.4
-import db
+import sys, db
+
+try: 
+	arg = sys.argv[1]
+except:
+	arg = ''
 
 db = db.db()
-print db.select('* from jobs')
+for record in db.select('* from jobs ' + arg):
+	print record
