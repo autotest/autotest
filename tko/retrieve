@@ -1,0 +1,5 @@
+#!/usr/bin/python2.4
+import db
+
+db = db.db()
+print db.select('* from jobs')
