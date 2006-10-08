@@ -8,6 +8,7 @@ CREATE TABLE jobs (
 job VARCHAR(15) PRIMARY KEY,
 version VARCHAR(100),
 status INTEGER,
+reason VARCHAR(100),
 machine VARCHAR(20),
 kernel VARCHAR(30)
 );
