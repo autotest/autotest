@@ -3,9 +3,18 @@ import os, re
 
 valid_users = r'(apw|mbligh|andyw|korgtest)'
 build_stock = re.compile('build generic stock (2\.\S+)')	
-build_url   = re.compile('build generic url (\S+)(?:\s+-p\s+(\S+))?')	
-valid_patch = re.compile('patch-(2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+)?)')
-valid_kernel= re.compile('linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')
+build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
+valid_patch = re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+)?')
+
+
+def shorten_patch(long):
+	short = basename(long)
+	short = re.sub(r'^patch-', '', short)
+	short = re.sub(r'\.(bz2|gz)$', '', short)
+	short = re.sub(r'\.patch$', '', short)
+	short = re.sub(r'\+', '_', short)
+	return short
+
 
 class job:
 	def __init__(self, topdir, key):
@@ -43,6 +52,16 @@ class job:
 			self.build += element
 
 
+	def derive_patches(self):
+		self.patches_short = []
+		self.patches_long = []
+		m = re.search(r'-p (.*?) -')
+		if not m:
+			return
+		self.patches_long = m.group(1).split()
+		self.patches_short = [shorten_patch(p) for p in self.patches_long]
+		
+		
 	# This is FOUL. we ought to be recording the data in kernel.build()
 	def derive_kernel(self):
 		# look for 'build generic stock' .... this is easy
@@ -52,15 +71,11 @@ class job:
 
 		# look for 'build generic url' .... this is harder, as we
 		# have to cope with patches that may set the kernel version
-		m = build_url.match(self.build)
-		if m:
-			kernel = m.group(1).basename()
-			k = valid_kernel.match(kernel)
-			if k:
-				self.kernel = k.group(1)
-			if m.group(2):			# there's a -p option
-				patch = m.group(2).basename()
-				p = valid_patch.match(patch)
-				if p:
-					self.kernel = p.group(1)
+		match = build_url.match(self.build)
+		if match:
+			self.kernel = match.group(1)
+
+		match = valid_patch.match(self.patches_short[0])
+		if match:
+			self.kernel = p.group()
 		
