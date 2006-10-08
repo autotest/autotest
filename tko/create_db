@@ -1,0 +1,28 @@
+BEGIN TRANSACTION;
+
+CREATE TABLE versions (
+version  VARCHAR(100) PRIMARY KEY
+);
+
+CREATE TABLE jobs (
+job VARCHAR(15) PRIMARY KEY,
+version VARCHAR(100),
+status INTEGER,
+machine VARCHAR(20),
+kernel VARCHAR(30)
+);
+
+CREATE TABLE results (
+job VARCHAR(15),
+test VARCHAR(40) PRIMARY KEY,
+attribute VARCHAR(20),
+value INTEGER
+);
+
+CREATE TABLE patches (
+job VARCHAR(15) PRIMARY KEY,
+number INTEGER,
+patchname VARCHAR(100) 
+);
+
+COMMIT;

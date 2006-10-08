@@ -10,7 +10,9 @@ jobs_list = open(os.path.join(topdir, index), 'r').readlines()
 jobs_list = [j.strip() for j in jobs_list]
 
 for j in jobs_list:
-	key = 'abat' + j
-	job_dir = os.path.join(topdir, j)
-	jobs[key] = job.job(job_dir)
-	print key + ' ' + jobs[key].kernel
+	job = parse.parse(os.path.join(topdir, j), 'regression')
+	if not job.kernel:
+		continue
+	jobs['abat' + j] = job
+	# print '%s %s %s %s' % (j, job.kernel, job.status, job.reason)
+	print '%s %s' % (job.status, job.reason)
