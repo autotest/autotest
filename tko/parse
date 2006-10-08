@@ -1,0 +1,24 @@
+#!/usr/bin/python2.4
+import os, re
+
+topdir = "/home/mirror/tko/abat"
+index = "external.list"
+
+jobs = open(os.path.join(topdir, index), 'r').readlines()
+jobs = [int(job) for job in jobs]
+
+for job in jobs:
+	control = "%s/%d/autobench.dat" % (topdir, job)
+	if not os.path.exists(control):
+		continue
+	variables = {}
+	for line in open(control, 'r').readlines():
+		if line.startswith('+$'):
+			match = re.match(r'\+\$(\S+)\s+(\S?.*)', line)
+			variables{match.group(1)} = match.group(2)
+		if line.startswith('build '):
+			build = line
+
+	if not re.match('(apw|mbligh|andyw|korgtest)', variables{'username'}):
+		print "bad username - %s" % variables{'username'}
+		continue
