@@ -16,7 +16,7 @@ def shorten_patch(long):
 	return short
 
 
-class job:
+class parse:
 	def __init__(self, topdir):
 		self.topdir = topdir
 		self.control = "%s/autobench.dat" % topdir
