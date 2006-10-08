@@ -4,11 +4,11 @@ import os, re
 valid_users = r'(apw|mbligh|andyw|korgtest)'
 build_stock = re.compile('build generic stock (2\.\S+)')	
 build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
-valid_patch = re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+)?')
+valid_kernel= re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+')
 
 
 def shorten_patch(long):
-	short = basename(long)
+	short = os.path.basename(long)
 	short = re.sub(r'^patch-', '', short)
 	short = re.sub(r'\.(bz2|gz)$', '', short)
 	short = re.sub(r'\.patch$', '', short)
@@ -17,7 +17,7 @@ def shorten_patch(long):
 
 
 class job:
-	def __init__(self, topdir, key):
+	def __init__(self, topdir):
 		self.topdir = topdir
 		self.control = "%s/autobench.dat" % topdir
 		self.variables = {}
@@ -48,17 +48,16 @@ class job:
 		self.build = ''
 		for element in re.split(r'(\$\w+)', raw_build):
 			if element.startswith('$'):
-				element = variables[element.lstrip('$')]
+				element = self.variables[element.lstrip('$')]
 			self.build += element
 
 
 	def derive_patches(self):
 		self.patches_short = []
 		self.patches_long = []
-		m = re.search(r'-p (.*?) -')
-		if not m:
-			return
-		self.patches_long = m.group(1).split()
+		for segment in re.split(r'(-p \S+)', self.build):
+			if segment.startswith('-p'):
+				self.patches_long.append(segment.split(' ')[1])
 		self.patches_short = [shorten_patch(p) for p in self.patches_long]
 		
 		
@@ -75,7 +74,9 @@ class job:
 		if match:
 			self.kernel = match.group(1)
 
-		match = valid_patch.match(self.patches_short[0])
+		if not self.patches_short:
+			return
+		match = valid_kernel.match(self.patches_short[0])
 		if match:
-			self.kernel = p.group()
+			self.kernel = match.group()
 		
