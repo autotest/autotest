@@ -187,7 +187,7 @@ class kernel:
 		os.chdir(self.build_dir)
 		print "make clean"
 		system('make clean')
-		build_string = "/usr/bin/time make %s -j %s vmlinux > /dev/null 2> %s" % (make_opts, threads, timefile)
+		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" % (timefile, make_opts, threads)
 		print build_string
 		system(build_string)
 		if (not os.path.isfile('vmlinux')):
