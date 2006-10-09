@@ -251,7 +251,7 @@ class kernel:
 		system('make modules_install INSTALL_MOD_PATH=%s' % prefix)
 		if prefix == '/':
 			self.mkinitrd(self.get_kernel_build_ver(), image, \
-				     'System.map', boot_dir + '/inird-' + tag)
+				     'System.map', boot_dir + '/initrd-' + tag)
 
 
 	def get_kernel_build_ver(self):
