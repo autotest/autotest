@@ -7,7 +7,7 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 from autotest_utils import *
 import os, sys, kernel, test, pickle, threading, profilers, barrier, filesystem
-import fd_stack, boottool
+import fd_stack, boottool, re
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -248,6 +248,12 @@ from autotest_utils import *
 
 	def record(self, msg):
 		"""Record job-level status"""
+
+		# Ensure any continuation lines are marked so we can
+		# detect them in the status file to ensure it is parsable.
+		mfix = re.compile('\n')
+		msg = mfix.sub("\n  ", msg)
+
 		print msg
 		status = self.resultdir + "/status"
 		fd = file(status, "a")
