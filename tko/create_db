@@ -10,7 +10,8 @@ version VARCHAR(100),
 status INTEGER,
 reason VARCHAR(100),
 machine VARCHAR(20),
-kernel VARCHAR(30)
+kernel VARCHAR(30),
+source VARCHAR(30)
 );
 
 CREATE TABLE results (
