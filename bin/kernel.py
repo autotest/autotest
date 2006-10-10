@@ -234,24 +234,56 @@ class kernel:
 		
 		if not os.path.isdir(prefix):
 			os.mkdir(prefix)
-		boot_dir = os.path.join(prefix, 'boot')
-		if not os.path.isdir(boot_dir):
-			os.mkdir(boot_dir)
+		self.boot_dir = os.path.join(prefix, 'boot')
+		if not os.path.isdir(self.boot_dir):
+			os.mkdir(self.boot_dir)
 
-		arch = get_file_arch('vmlinux')
-		image = os.path.join('arch', arch, 'boot', self.build_target)
-		force_copy(image, boot_dir + '/vmlinuz-' + tag)
-		force_copy('vmlinux', boot_dir + '/vmlinux-' + tag)
-		force_copy('System.map', boot_dir + '/System.map-' + tag)
-		force_copy('.config', boot_dir + '/config-' + tag)
-	
+		self.arch = get_file_arch('vmlinux')
+		image = os.path.join('arch', self.arch, 'boot', self.build_target)
+
+		# remember installed files
+		self.image = self.boot_dir + '/vmlinuz-' + tag
+		self.vmlinux = self.boot_dir + '/vmlinux-' + tag
+		self.system_map = self.boot_dir + '/System.map-' + tag
+		self.config = self.boot_dir + '/config-' + tag
+		self.initrd = ''
+
+		# copy to boot dir
+		force_copy(image, self.image)
+		force_copy('vmlinux', self.vmlinux)
+		force_copy('System.map', self.system_map)
+		force_copy('.config', self.config)
+
 		if not kernel_config.modules_needed('.config'):
 			return
 
 		system('make modules_install INSTALL_MOD_PATH=%s' % prefix)
 		if prefix == '/':
-			self.mkinitrd(self.get_kernel_build_ver(), image, \
-				     'System.map', boot_dir + '/initrd-' + tag)
+			self.initrd = self.boot_dir + '/initrd-' + tag
+			self.mkinitrd(self.get_kernel_build_ver(), self.image, \
+						  self.system_map, self.initrd)
+
+
+	def add_to_bootloader(self, tag='autotest', args=''):
+		""" add this kernel to bootloader, taking an
+		    optional parameter of space separated parameters
+		    e.g.:  kernel.add_to_bootloader('mykernel', 'ro acpi=off')
+		"""
+
+		# remove existing entry if present
+		self.job.bootloader.remove_kernel(tag)
+
+		# add the kernel entry
+		# add_kernel(image, title='autotest', inird='')
+		self.job.bootloader.add_kernel(self.image, tag, self.initrd)
+
+		# if no args passed, populate from /proc/cmdline
+		if not args:
+			args = open('/proc/cmdline', 'r').readline().strip()
+
+		# add args to entry one at a time
+		for a in args.split(' '):
+			self.job.bootloader.add_args(tag, a)
 
 
 	def get_kernel_build_ver(self):
