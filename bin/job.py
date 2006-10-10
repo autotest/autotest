@@ -6,21 +6,12 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 # standard stuff
-import os, sys, re, pickle, threading, shutil
+import os, sys, re, pickle, shutil
 # autotest stuff
 from autotest_utils import *
+from parallel import *
 import kernel, test, profilers, barrier, filesystem, fd_stack, boottool
 import harness
-
-class AsyncRun(threading.Thread):
-    """Parallel run interface."""
-    def __init__(self, cmd):
-	threading.Thread.__init__(self)        
-	self.cmd = cmd
-    def run(self):
-    	x = self.cmd.pop(0)
-	x(*self.cmd)
-
 
 class job:
 	"""The actual job against which we do everything.
@@ -183,15 +174,19 @@ class job:
 
 	# Job control primatives.
 
+	def __parallel_execute(self, func, *args):
+		func(*args)
+
+
 	def parallel(self, *tasklist):
 		"""Run tasks in parallel"""
-		tasks = []
-		for t in tasklist:
-			task = AsyncRun(t)
-			tasks.append(task)
-			task.start()
-		for t in tasks:
-			t.join()
+
+		pids = []
+		for task in tasklist:
+			pids.append(fork_start(self.resultdir,
+					lambda: self.__parallel_execute(*task)))
+		for pid in pids:
+			fork_waitfor(self.resultdir, pid)
 
 
 	def quit(self):
