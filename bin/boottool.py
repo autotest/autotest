@@ -39,8 +39,15 @@ class boottool:
 		self.run_boottool('--update-kernel=%s --remove-args=%s' % \
 							(kernel, args) )
 
-	def add_kernel(self, path):
-		self.run_boottool('--add-kernel=%s' % path)
+	def add_kernel(self, path, title='autotest', initrd=''):
+		# boot tool needs a dummy argument for add_args to work
+		parameters = '--add-kernel=%s --title=%s --args=dummy' % \
+							(path, title)
+		# add an initrd now or forever hold your peace
+		if initrd:
+			parameters += ' --initrd=%s' % initrd
+		self.run_boottool(parameters)
+
 
 	def remove_kernel(self, kernel):
 		self.run_boottool('--remove-kernel=%s' % kernel)
