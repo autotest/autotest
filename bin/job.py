@@ -5,9 +5,11 @@ This is the core infrastructure.
 
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
+# standard stuff
+import os, sys, re, pickle, threading, shutil
+# autotest stuff
 from autotest_utils import *
-import os, sys, kernel, test, pickle, threading, profilers, barrier, filesystem
-import fd_stack, boottool, re
+import kernel, test, profilers, barrier, filesystem, fd_stack, boottool
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -69,6 +71,7 @@ class job:
 		os.mkdir(self.resultdir + "/debug")
 		os.mkdir(self.resultdir + "/analysis")
 		os.mkdir(self.resultdir + "/sysinfo")
+		shutil.copyfile(control, os.path.join(self.resultdir,'control'))
 
 		self.control = control
 		self.jobtab = jobtag
