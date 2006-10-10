@@ -23,7 +23,7 @@ class libhugetlbfs(test.test):
 		system('echo %d > /proc/sys/vm/nr_hugepages' % pages_requested, 1)
 		pages_available = 0
 		if os.path.exists('/proc/sys/vm/nr_hugepages'):
-			pages_available = int(open('cat /proc/sys/vm/nr_hugepages', 'r').readline())
+			pages_available = int(open('/proc/sys/vm/nr_hugepages', 'r').readline())
 		# if pages == 0:
 		# 	raise TestError('No huge pages allocated, exiting test')
 		if pages_available < pages_requested:
