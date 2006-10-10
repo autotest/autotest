@@ -65,12 +65,16 @@ class kernel:
 		os.mkdir(self.config_dir)
 		os.mkdir(self.log_dir)
 
+		logpath = os.path.join(self.log_dir, 'build_log')
+		self.logfile = open(logpath, 'w+')
+
  		self.target_arch = None
 		self.build_target = 'bzImage'
 
 		if leave:
 			return
 
+		self.logfile.write('BASE: %s\n' % base_tree)
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
@@ -87,6 +91,8 @@ class kernel:
 		print 'Applying patches: ', patches
 		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		local_patches = self.get_patches(patches)
+		for patch in patches:
+			self.logfile.write('PATCH: %s\n' % patch)
 		self.apply_patches(local_patches)
 		# self.job.stdout.restore()
 
@@ -117,7 +123,7 @@ class kernel:
 			return None
 		for patch in local_patches:
 			print 'Patching from', basename(patch), '...'
-			cat_file_to_cmd(patch, 'patch -p1')
+			cat_file_to_cmd(patch, 'patch -p1 > /dev/null')
 	
 	
   	def get_kernel_tree(self, base_tree):
@@ -141,13 +147,12 @@ class kernel:
 
 	def extraversion(self, tag, append=1):
 		os.chdir(self.build_dir)
+		extraversion_sub = r's/^EXTRAVERSION =\s*\(.*\)/EXTRAVERSION = '
 		if append:
-			p = 's/^EXTRAVERSION =\(.*\)/EXTRAVERSION = \1-%s/' % \
-									tag
+			p = extraversion_sub + '\\1-%s/' % tag
 		else:
-			p = 's/^EXTRAVERSION =\(.*\)/EXTRAVERSION = -%s/' % \
-									tag
-		system('sed -i "%s" Makefile' % p)
+			p = extraversion_sub + '-%s/' % tag
+		system('sed -i.old "%s" Makefile' % p)
 
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
@@ -180,6 +185,11 @@ class kernel:
 
 		self.job.stdout.restore()
 		self.job.stderr.restore()
+		
+		kernel_version = self.get_kernel_build_ver()
+		kernel_version = re.sub('-autotest', '', kernel_version)
+		self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
+		
 
 
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
