@@ -1,4 +1,4 @@
-import test
+import test, re
 from autotest_utils import *
 
 class libhugetlbfs(test.test):
@@ -15,8 +15,8 @@ class libhugetlbfs(test.test):
 	def execute(self, dir, pages_requested = 20):
 		# Check kernel version, should >= 2.6.16
 		version = system_output('uname -r')
-		(two, major, minor) = version.split('.')
-		if major < 6 or minor < 16:
+		(major, minor, sub) = re.split(r'[.-]', version)[0:3]
+		if int(major) < 2 or int(minor) < 6 or int(sub) < 16:
 			raise TestError('Kernel version %s < 2.6.16' % version)
 		
 		# Check huge page number
