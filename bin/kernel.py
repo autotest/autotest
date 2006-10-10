@@ -147,7 +147,7 @@ class kernel:
 		else:
 			p = 's/^EXTRAVERSION =\(.*\)/EXTRAVERSION = -%s/' % \
 									tag
-		system('sed "%s" Makefile' % p)
+		system('sed -i "%s" Makefile' % p)
 
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
