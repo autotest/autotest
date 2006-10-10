@@ -22,6 +22,7 @@
 import os, pickle, tempfile
 from autotest_utils import *
 from error import *
+from parallel import *
 
 class test:
 	def __init__(self, job, bindir, outputdir):
@@ -94,49 +95,6 @@ class test:
 		else:
 			self.record("GOOD Completed Successfully\n")
 
-
-def fork_lambda(tmp, l):
-	sys.stdout.flush()
-	sys.stderr.flush()
-	pid = os.fork()
-	if pid:			# parent
-		(pid, status) = os.waitpid (pid,0)
-
-		ename = tmp + "/debug/error-%d" % pid
-		if (os.path.exists(ename)):
-			fd = file(ename, 'r')
-			err = pickle.load(fd)
-			fd.close()
-
-			raise err
-
-		if (status != 0):
-			raise TestError("test failed rc=%d" % (status))
-
-	else:			# child
-		try:
-			try:
-				l()
-
-			except AutotestError:
-				raise
-
-			except:
-				raise UnhandledError("test failed and threw:\n")
-
-		except Exception, detail:
-			ename = tmp + "/debug/error-%d" % (
-				os.getpid())
-			pickle.dump(detail, open(ename, "w"))
-
-			sys.stdout.flush()
-			sys.stderr.flush()
-			os._exit(1)
-
-		sys.stdout.flush()
-		sys.stderr.flush()
-		os._exit(0)
-		
 
 def testname(url):
 	# Extract the testname from the test url.
@@ -227,5 +185,6 @@ def __runtest(job, tag, url, test_args):
 
 def runtest(job, tag, url, test_args):
 	##__runtest(job, tag, url, test_args)
-	fork_lambda(job.resultdir,
-		lambda : __runtest(job, tag, url, test_args))
+	pid = fork_start(job.resultdir,
+			lambda : __runtest(job, tag, url, test_args))
+	fork_waitfor(job.resultdir, pid)
