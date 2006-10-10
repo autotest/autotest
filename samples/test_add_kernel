@@ -10,9 +10,6 @@ print "TEST: installing kernel"
 testkernel.install('autotest')
 
 print "TEST: adding kernel to bootloader"
-testkernel.add_to_bootloader('autotest')
-
-print "TEST: adding kernel to bootloader"
 testkernel.add_to_bootloader('autotest') # using default boot args (/proc/cmdline)
 
 print "TEST: listing bootloader entries"
