@@ -10,6 +10,7 @@ import os, sys, re, pickle, threading, shutil
 # autotest stuff
 from autotest_utils import *
 import kernel, test, profilers, barrier, filesystem, fd_stack, boottool
+import harness
 
 class AsyncRun(threading.Thread):
     """Parallel run interface."""
@@ -79,6 +80,8 @@ class job:
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
+		self.harness = harness.select('', self)
+
 		self.profilers = profilers.profilers(self)
 
 		try:
@@ -90,6 +93,10 @@ class job:
 		os.chdir(self.resultdir + "/sysinfo")
 		system(self.bindir + '/sysinfo.py')
 		os.chdir(pwd)
+
+
+	def harness_select(self, which):
+		self.harness = harness.select(which, self)
 
 
 	def kernel(self, topdir, base_tree, *args, **dargs):
@@ -164,6 +171,7 @@ class job:
 
 
 	def reboot(self, tag='autotest'):
+		self.harness.run_reboot()
 		self.bootloader.boot_once(tag)
 		system("reboot")
 		self.quit()
@@ -188,6 +196,7 @@ class job:
 
 	def quit(self):
 		# XXX: should have a better name.
+		self.harness.run_pause()
 		raise JobContinue("more to come")
 
 
@@ -198,6 +207,7 @@ class job:
 			os.unlink(self.control + '.state')
 		except:
 			pass
+		self.harness.run_complete(status)
 		sys.exit(status)
 
 
@@ -257,6 +267,7 @@ from autotest_utils import *
 		mfix = re.compile('\n')
 		msg = mfix.sub("\n  ", msg)
 
+		self.harness.test_status(msg)
 		print msg
 		status = self.resultdir + "/status"
 		fd = file(status, "a")
