@@ -406,7 +406,7 @@ def cpu_online_map():
 
 def check_glibc_ver(ver):
 	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
-	glibc_ver = re.search(r'(\d+\.\d+\.\d+)', glibc_ver).group()
+	glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
 	glibc_ver = glibc_ver.split('.')
 	ver2 = ver.split('.')
 
