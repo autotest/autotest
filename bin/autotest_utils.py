@@ -402,3 +402,16 @@ def cpu_online_map():
 		if line.startswith('processor'):
 			cpus.append(line.split()[2]) # grab cpu number
 	return cpus
+
+
+def check_glibc_ver(ver):
+	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
+	glibc_ver = re.search(r'(\d+\.\d+\.\d+)', glibc_ver).group()
+	glibc_ver = glibc_ver.split('.')
+	ver2 = ver.split('.')
+
+	size = min(len(glibc_ver), len(ver2))
+	for i in range(size):
+		if glibc_ver[i] < ver2[i]:
+			print "Glibc is too old. Glibc >= " + ver + " is needed"
+			return -1
