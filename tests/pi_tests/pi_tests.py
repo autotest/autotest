@@ -7,6 +7,7 @@ class pi_tests(test.test):
 	# http://www.stardust.webpages.pl/files/patches/autotest/pi_tests.tar.bz2
 
 	def setup(self, tarball = 'pi_tests.tar.bz2'):
+		check_glibc_ver('2.5')
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
