@@ -413,5 +413,4 @@ def check_glibc_ver(ver):
 	size = min(len(glibc_ver), len(ver2))
 	for i in range(size):
 		if glibc_ver[i] < ver2[i]:
-			print "Glibc is too old. Glibc >= " + ver + " is needed"
-			return -1
+			raise "Glibc is too old. Glibc >= " + ver + " is needed"
