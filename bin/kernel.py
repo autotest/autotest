@@ -364,9 +364,10 @@ class kernel:
 		"""dump a pickle of ourself out to the specified filename
 
 		we can't pickle the backreference to job (it contains fd's), 
-		nor would we want to
+		nor would we want to. Same for logfile (fd's).
 		"""
 		temp = copy.copy(self)
 		temp.job = None
+		temp.logfile = None
 		pickle.dump(temp, open(filename, 'w'))
 
