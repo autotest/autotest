@@ -408,9 +408,12 @@ def check_glibc_ver(ver):
 	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
 	glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
 	glibc_ver = glibc_ver.split('.')
+	if (len(glibc_ver)) == 2:
+		glibc_ver.append("0")
 	ver2 = ver.split('.')
+	if (len(ver2)) == 2:
+		ver2.append("0")
 
-	size = min(len(glibc_ver), len(ver2))
-	for i in range(size):
+	for i in range(3):
 		if glibc_ver[i] < ver2[i]:
 			raise "Glibc is too old. Glibc >= " + ver + " is needed"
