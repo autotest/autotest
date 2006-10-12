@@ -12,7 +12,8 @@ import os, sys, dircache, string, dialog, time
 
 def check_python_version():
 	version = string.split(string.split(sys.version)[0], ".")
-	if map(int, version) < [2, 4, 0]:
+	version = [version[0], version[1]]
+	if map(int, version) < [2, 4]:
 		print "Python 2.4 or newer is needed"
 		sys.exit(1)
 
@@ -34,26 +35,62 @@ def atcc_t_menu(test_type, t):
 		if i != ".svn":
 			u.append(k)
 
-	while 1:
-		(code, tag) = d.checklist(text = test_type + ":", choices = u, title = t)
-		break
+    	(code, tag) = d.checklist(text = test_type + ":", choices = u, title = t)
+
 	return tag
 
-def atcc_t_run(res, test_type):
-	os.system('if [ ! -e ' + menu_dir + '/tmp/ ]; then mkdir ' + menu_dir + '/tmp/; fi')
-	os.system('if [ -f ' + menu_dir + '/tmp/Tests\ results ]; then rm ' + menu_dir + '/tmp/Tests\ results; fi')
-	for i in res:
-		print i
-		os.system(at_dir + '/bin/autotest ' + at_dir + '/' + test_type + '/' + i + '/control')
+def atcc_setup_tmp_dirs_files():
+	if not os.path.isdir(menu_dir + '/tmp/'):
+		os.mkdir(menu_dir + '/tmp/')
+	if os.path.isfile(menu_dir + '/tmp/Tests results'):
+		os.remove(menu_dir + '/tmp/Tests results')
+	if os.path.isfile(menu_dir + '/tmp/Possible kernel memory leaks'):
+		os.remove(menu_dir + '/tmp/Possible kernel memory leaks')
 
-		os.system('cp ' + at_dir + '/results/default/status ' + menu_dir + '/tmp/' + i + '.status')
-		os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stderr ' + menu_dir + '/tmp/' + i + '.stderr')
-		os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stdout ' + menu_dir + '/tmp/' + i + '.stdout')
+def atcc_save_results1(i):
+	if i != "":
+		if os.path.isfile(at_dir + '/results/default/' + i + '/debug/stderr'):
+			os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stderr ' + menu_dir + '/tmp/' + i + '.stderr')
+		if os.path.isfile(at_dir + '/results/default/' + i + '/debug/stdout'):
+			os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stdout ' + menu_dir + '/tmp/' + i + '.stdout')
+	if os.path.isfile(at_dir + '/results/default/status'):
+		os.system('cat ' + at_dir + '/results/default/status >> ' + menu_dir + '/tmp/Tests\ results')
+	if os.path.isfile('/sys/kernel/debug/memleak'):
+		print "Saving possible kernel memory leaks"
+		os.system('echo "' + i + '" >> ' + menu_dir + '/tmp/Possible kernel memory leaks')
+		os.system('cat /sys/kernel/debug/memleak >> ' + menu_dir + '/tmp/Possible kernel memory leaks')
+
+def atcc_save_profilers_results(i, j):
+	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/monitor'):
+		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/monitor ' + menu_dir + '/tmp/' + j + '.monitor')
+	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.kernel'):
+		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.kernel ' + menu_dir + '/tmp/' + j + '.oprofile.kernel')
+	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.user'):
+		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.user ' + menu_dir + '/tmp/' + j + '.oprofile.user')
+
+def atcc_save_results2(res1, res2):
+	if os.path.isfile(at_dir + '/results/default/status'):
 		os.system('cat ' + at_dir + '/results/default/status >> ' + menu_dir + '/tmp/Tests\ results')
 
+	for i in res1:
+		for j in res2:
+			atcc_save_profilers_results(i, j)
+
+def atcc_t_run(res, test_type):
+	if len(res) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files()
+
+	for i in res:
+		os.system(at_dir + '/bin/autotest ' + at_dir + '/' + test_type + '/' + i + '/control')
+		atcc_save_results1(i)
+
 def atcc_t_p_run(res, test_type):
-	os.system('if [ ! -e ' + menu_dir + '/tmp/ ]; then mkdir ' + menu_dir + '/tmp/; fi')
-	os.system('if [ -f ' + menu_dir + '/tmp/Tests\ results ]; then rm ' + menu_dir + '/tmp/Tests\ results; fi')
+	if len(res) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files()
 
 	file = (menu_dir + '/tmp/parallel')
 	f = open(file, 'w')
@@ -86,7 +123,7 @@ def atcc_t_p_run(res, test_type):
 	f.close()
 	
 	os.system(at_dir + '/bin/autotest ' + menu_dir + '/tmp/parallel')
-	os.system('cat ' + at_dir + '/results/default/status > ' + menu_dir + '/tmp/Tests\ results')
+	atcc_save_results1("")
 
 def atcc_tests_results(t):
 	if os.path.exists(menu_dir + "/tmp/"):
@@ -111,7 +148,7 @@ def atcc_tests_results(t):
 		if code == d.DIALOG_CANCEL or code == d.DIALOG_ESC:
 			break
 		else:
-			d.textbox(menu_dir + '/tmp/' + tag)
+			d.textbox(menu_dir + '/tmp/' + tag, width = -1)
 
 def atcc_config_read(tag, test_type):
 	file = (at_dir + '/' + test_type + '/' + tag + '/control')
@@ -151,7 +188,7 @@ def atcc_config_write(tag, test_type, answer):
 
 def atcc_config_show_help(tag, test_type):
 	if os.path.exists(at_dir + '/' + test_type + '/' + tag + '/help'):
-		d.textbox(at_dir + '/' + test_type + '/' + tag + '/help', width=-1)
+		d.textbox(at_dir + '/' + test_type + '/' + tag + '/help', width = -1)
 	else:
 		d.infobox(at_dir + '/' + test_type + '/' + tag + '/help' " doesn't exist")
 		time.sleep(5)
@@ -189,8 +226,49 @@ def atcc_config(test_type, t):
 		else:
 			atcc_config_choose(tag, test_type)
 
+def atcc_profilers_run(res1, res2):
+	if len(res1) == 0 or len(res2) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files()
+
+	file = (menu_dir + '/tmp/profilers')
+	f = open(file, 'w')
+
+	f.write('for profiler in (')
+
+	for i in range(len(res1)):
+		z = ('\'' + res1[i] + '\', ')
+		z = str(z)
+		f.write(z)
+
+	f.write('):\n')
+
+	f.write('\ttry:\n')
+	f.write('\t\tprint "Testing profiler %s ..." % profiler\n')
+	f.write('\t\tjob.profilers.add(profiler)\n')
+
+	for i in range(len(res2)):
+		z = atcc_config_read(res2[i], 'tests')
+		k = ('\t\tjob.runtest(profiler, \'' + res2[i] + '\',' + z + ')\n')
+		k = str(k)
+		f.write(k)
+
+	f.write('\t\tjob.profilers.delete(profiler)\n')
+	f.write('\texcept:\n')
+	f.write('\t\tprint "Test of profiler %s failed" % profiler\n')
+	f.write('\t\traise\n')
+
+	f.close()
+
+	os.system(at_dir + '/bin/autotest ' + menu_dir + '/tmp/profilers')
+	atcc_save_results2(res1, res2)
+
 def atcc_upgrade():
 	os.system("svn checkout svn://test.kernel.org/autotest/trunk " + at_dir)
+
+def atcc_rsync_mirror():
+	os.system(at_dir + "/mirror/mirror")
 
 def atcc_main_menu():
 	while 1:
@@ -200,7 +278,8 @@ def atcc_main_menu():
 			("3", "Profilers"),
 			("4", "Tests' results"),
 			("5", "Configure tests"),
-			("6", "Upgrade Autotest")])
+			("6", "Upgrade Autotest"),
+			("7", "Sync local kernel.org mirror")])
 		if handle_exit_code(d, code):
 			break
 	return tag
@@ -209,20 +288,23 @@ def main():
 	while 1:
 		res = int(atcc_main_menu())
 		if res == 1:
-			res=atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
+			res = atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
 			atcc_t_run(res, test_type = 'tests')
 		elif res == 2:
-			res=atcc_t_menu(test_type = 'tests', t = 'Parallel tests selection menu')
+			res = atcc_t_menu(test_type = 'tests', t = 'Parallel tests selection menu')
 			atcc_t_p_run(res, test_type = 'tests')
 		elif res == 3:
-			res=atcc_t_menu(test_type = 'profilers', t = 'Profilers selection menu')
-			atcc_t_run(res, test_type = 'profilers')
+			res1 = atcc_t_menu(test_type = 'profilers', t = 'Profilers selection menu')
+			res2 = atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
+			atcc_profilers_run(res1, res2)
 		elif res == 4:
 			atcc_tests_results(t = 'Tests\' results menu')
 		elif res == 5:
 			atcc_config(test_type = 'tests', t = 'Tests configuration menu')
 		elif res == 6:
 			atcc_upgrade()
+		elif res == 7:
+			atcc_rsync_mirror()
 		elif res == 0:
 			sys.exit(1)
 
@@ -232,6 +314,6 @@ menu_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 at_dir = os.path.dirname(menu_dir)
 
 d = dialog.Dialog(dialog = "dialog")
-d.add_persistent_args(["--backtitle", "Autotest Control Center v0.04a"])
+d.add_persistent_args(["--backtitle", "Autotest Control Center v0.05-p1"])
 
 main()
