@@ -11,7 +11,7 @@ import os, sys, re, pickle, shutil
 from autotest_utils import *
 from parallel import *
 import kernel, test, profilers, barrier, filesystem, fd_stack, boottool
-import harness
+import harness, config
 
 class job:
 	"""The actual job against which we do everything.
@@ -36,6 +36,8 @@ class job:
 			fd_stack object for stderr
 		profilers
 			the profilers object for this job
+		config
+			the job configuration for this job
 	"""
 
 	def __init__(self, control, jobtag):
@@ -73,6 +75,8 @@ class job:
 
 		self.harness = harness.select('', self)
 
+		self.config = config.config(self)
+
 		self.profilers = profilers.profilers(self)
 
 		try:
@@ -88,6 +92,14 @@ class job:
 
 	def harness_select(self, which):
 		self.harness = harness.select(which, self)
+
+
+	def config_set(self, name, value):
+		self.config.set(name, value)
+
+
+	def config_get(self, name):
+		return self.config.get(name)
 
 
 	def kernel(self, topdir, base_tree, *args, **dargs):
