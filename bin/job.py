@@ -36,6 +36,8 @@ class job:
 			fd_stack object for stderr
 		profilers
 			the profilers object for this job
+		harness
+			the server harness object for this job
 		config
 			the job configuration for this job
 	"""
