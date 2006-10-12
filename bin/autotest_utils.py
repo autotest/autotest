@@ -193,6 +193,9 @@ def get_vmlinux():
 	vmlinux = '/boot/vmlinux-%s' % system_output('uname -r')
 	if os.path.isfile(vmlinux):
 		return vmlinux
+	vmlinux = '/lib/modules/%s/build/vmlinux' % system_output('uname -r')
+	if os.path.isfile(vmlinux):
+		return vmlinux
 	return None
 
 
@@ -202,6 +205,9 @@ def get_systemmap():
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
 	map = '/boot/System.map-%s' % system_output('uname -r')
+	if os.path.isfile(map):
+		return map
+	map = '/lib/modules/%s/build/System.map' % system_output('uname -r')
 	if os.path.isfile(map):
 		return map
 	return None
