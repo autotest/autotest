@@ -1,0 +1,32 @@
+cyclictest -t 5 -p 80 -n -q -l 10
+
+runs a test with 5 threads, stops after 10 loops and outputs:
+
+T: 0 ( 2215) P:80 I:    1000 C:      10 Min:      31 Act:      33 Avg:      33 Max:      43
+T: 1 ( 2216) P:79 I:    1500 C:      10 Min:      22 Act:      22 Avg:      36 Max:      61
+T: 2 ( 2217) P:78 I:    2000 C:      10 Min:      27 Act:      33 Avg:      36 Max:      50
+T: 3 ( 2218) P:77 I:    2500 C:      10 Min:      23 Act:      37 Avg:      38 Max:      59
+T: 4 ( 2219) P:76 I:    3000 C:      10 Min:      26 Act:      48 Avg:      36 Max:      48
+
+All numbers in micro seconds. You get the minimium, maximum and average latency for each thread.
+
+I use this for automated regression testing. 
+
+The -v option outputs:
+
+       0:       0:       0
+       0:       1:      45
+       0:       2:      41
+       0:       3:      31
+       0:       4:      31
+       0:       5:      34
+       1:       0:       0
+       1:       1:      29
+       1:       2:      33
+       1:       3:      33
+...
+where the first column is the thread, the second column is the loop
+counter and the third is the latency value for this step. You can use
+this for your own statistics or for latency distribution plots.
+
+	tglx
