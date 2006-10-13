@@ -19,21 +19,22 @@ class netperf2(test.test):
 		self.client_path = os.path.join(self.srcdir, 'src/netperf')
 
 		
-	def execute(self, role='client', script='snapshot_script', args=''):
-		all = ['127.0.0.1#netperf-server', '127.0.0.1#netperf-client']
+	def execute(self, server_ip, client_ip, role, 
+					script='snapshot_script', args=''):
+		server_tag = server_ip + '#netperf-server'
+		client_tag = client_ip + '#netperf-client'
+		all = [server_tag, client_tag]
 		job = self.job
 		if (role == 'server'):
-			hostid = '127.0.0.1#netperf-server'
 			self.server_start()
-			job.barrier(hostid, 'start', 30).rendevous(*all)
-			job.barrier(hostid, 'stop',  3600).rendevous(*all)
+			job.barrier(server_tag, 'start',  30).rendevous(*all)
+			job.barrier(server_tag, 'stop', 3600).rendevous(*all)
 			self.server_stop()
 		elif (role == 'client'):
-			hostid = '127.0.0.1#netperf-client'
 			os.environ['NETPERF_CMD'] = self.client_path
-			job.barrier(hostid, 'start', 30).rendevous(*all)
-			self.client(script, '127.0.0.1', args)
-			job.barrier(hostid, 'stop',  30).rendevous(*all)
+			job.barrier(client_tag, 'start', 30).rendevous(*all)
+			self.client(script, server_ip, args)
+			job.barrier(client_tag, 'stop',  30).rendevous(*all)
 		else:
 			raise UnhandledError('invalid role specified')
 
@@ -51,15 +52,15 @@ class netperf2(test.test):
 		system('killall netserver')
 
 
-	def client(self, script, server_host, args = 'CPU'):
+	def client(self, script, server_ip, args = 'CPU'):
 		# run some client stuff
-		# stdout_path = os.path.join(self.resultsdir, script + '.stdout')
-		# stderr_path = os.path.join(self.resultsdir, script + '.stderr')
-		# self.job.stdout.tee_redirect(stdout_path)
-		# self.job.stderr.tee_redirect(stderr_path)
+		stdout_path = os.path.join(self.resultsdir, script + '.stdout')
+		stderr_path = os.path.join(self.resultsdir, script + '.stderr')
+		self.job.stdout.tee_redirect(stdout_path)
+		self.job.stderr.tee_redirect(stderr_path)
 
 		script_path = os.path.join(self.srcdir, 'doc/examples', script)
-		system('%s %s %s' % (script_path, server_host, args))
+		system('%s %s %s' % (script_path, server_ip, args))
 
-		# self.job.stdout.restore()
-		# self.job.stderr.restore()
+		self.job.stdout.restore()
+		self.job.stderr.restore()

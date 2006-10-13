@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 import os, re
 
 valid_users = r'(apw|mbligh|andyw|korgtest)'

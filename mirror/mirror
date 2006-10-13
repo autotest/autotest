@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 import os, rsync, trigger
 
 excludes = ('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz')
