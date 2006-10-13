@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 # (C) Copyright IBM Corp. 2006
 # Author: Dustin Kirkland <dustin.kirkland@us.ibm.com>
 # Description:
