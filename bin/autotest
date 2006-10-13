@@ -8,6 +8,8 @@ from error import *
 from autotest_utils import *
 from optparse import OptionParser
 
+check_python_version()
+
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
 # directory and ensure we have $AUTODIR in our environment.

@@ -413,13 +413,15 @@ def cpu_online_map():
 def check_glibc_ver(ver):
 	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
 	glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
-	glibc_ver = glibc_ver.split('.')
-	if (len(glibc_ver)) == 2:
-		glibc_ver.append("0")
-	ver2 = ver.split('.')
-	if (len(ver2)) == 2:
-		ver2.append("0")
+	if glibc_ver.split('.') < ver.split('.'):
+		raise "Glibc is too old (%s). Glibc >= %s is needed." % \
+							(glibc_ver, ver)
 
-	for i in range(3):
-		if glibc_ver[i] < ver2[i]:
-			raise "Glibc is too old. Glibc >= " + ver + " is needed"
+
+def check_python_version():
+	py_version = (sys.version).split(' ')[0]
+	version = py_version.split('.')[0:2]
+	if [int(x) for x in version] < [2, 4]:
+		raise "Python 2.4 or newer is needed"
+
+
