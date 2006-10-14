@@ -19,4 +19,4 @@ class ltp(test.test):
 	def execute(self, args = ''):
 		logfile = self.resultsdir + '/ltp.log'
 		args = '-q -l ' + logfile + ' ' + args
-		system(self.srcdir + '/runltp ' + args)
+		system("yes '' | " + self.srcdir + '/runltp ' + args)
