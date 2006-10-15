@@ -8,13 +8,6 @@ job.runtest(None, 'isic')
 job.runtest(None, 'kernbench', 2, 5)
 job.runtest(None, 'lmbench')
 job.runtest(None, 'ltp')
-def client():
-	job.runtest('client', 'netperf2', 'client', 'snapshot_script')
-
-def server():
-	job.runtest('server', 'netperf2', 'server', 'snapshot_script')
-
-job.parallel([server], [client])
 job.runtest('clone_skb_off', 'pktgen', 'eth0', 50000, 0)
 job.runtest('clone_skb_on', 'pktgen', 'eth0', 50000, 1)
 
