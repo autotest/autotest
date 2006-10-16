@@ -56,7 +56,7 @@ class boottool:
 		self.run_boottool('--boot-once --title=%s' % title)
 
 	def info(self, index):
-		self.run_boottool('--info %d' % index)
+		return self.run_boottool('--info=%s' % index)
 
 
 # TODO:  backup()
