@@ -181,7 +181,7 @@ class kernel:
 		print build_string
 		system(build_string)
 		if kernel_config.modules_needed('.config'):
-			system('make modules')
+			system('make -j %d modules' % (threads))
 
 		self.job.stdout.restore()
 		self.job.stderr.restore()
