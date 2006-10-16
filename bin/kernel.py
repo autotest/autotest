@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
-import os,os.path,shutil,urllib,copy,pickle,re
+import os,os.path,shutil,urllib,copy,pickle,re,glob
 from autotest_utils import *
 import kernel_config
 import test
@@ -248,8 +248,7 @@ class kernel:
 		if not os.path.isdir(self.boot_dir):
 			os.mkdir(self.boot_dir)
 
-		self.arch = get_file_arch('vmlinux')
-		image = os.path.join('arch', self.arch, 'boot', self.build_target)
+		image = glob.glob('arch/*/boot/' + self.build_target)[0]
 
 		# remember installed files
 		self.image = self.boot_dir + '/vmlinuz-' + tag
