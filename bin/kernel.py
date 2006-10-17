@@ -78,7 +78,10 @@ class kernel:
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
- 			base_components = kernelexpand(base_tree)
+			args = self.job.config.get('local_mirror')
+			if args:
+				args = '-l ' + args
+ 			base_components = kernelexpand(base_tree, args)
 			print 'kernelexpand: '
 			print base_components
 			self.get_kernel_tree(base_components.pop(0))
@@ -294,6 +297,29 @@ class kernel:
 		for a in args.split(' '):
 			self.job.bootloader.add_args(tag, a)
 
+	def get_kernel_build_arch(self, arch=None):
+		"""Work out the current kernel architecture (as a kernel arch)"""
+		if not arch:
+			arch = get_current_kernel_arch()
+		if re.match('i.86', arch):
+			return 'i386'
+		elif re.match('sun4u', arch):
+			return 'sparc64'
+		elif re.match('arm.*', arch):
+			return 'arm'
+		elif re.match('sa110', arch):
+			return 'arm'
+		elif re.match('s390x', arch):
+			return 's390'
+		elif re.match('parisc64', arch):
+			return 'parisc'
+		elif re.match('ppc.*', arch):
+			return 'powerpc'
+		elif re.match('mips.*', arch):
+			return 'mips'
+		else:
+			return arch
+
 
 	def get_kernel_build_ver(self):
 		"""Check Makefile and .config to return kernel version"""
@@ -331,7 +357,7 @@ class kernel:
 		
 		# If no 'target_arch' given assume native compilation
 		if target_arch == None:
-			target_arch = get_kernel_arch()
+			target_arch = get_current_kernel_arch()
 			if target_arch == 'ppc64':
 				if self.build_target == 'bzImage':
 					self.build_target = 'zImage'
