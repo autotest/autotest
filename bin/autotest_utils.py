@@ -242,13 +242,9 @@ def get_cpu_arch():
 		return 'i386'
 
 
-def get_kernel_arch():
-	"""Work out the current kernel architecture (as a kernel arch)"""
-	arch = os.popen('uname -m').read().rstrip()
-	if ((arch == 'i586') or (arch == 'i686')):
-		return 'i386'
-	else:
-		return arch
+def get_current_kernel_arch():
+	"""Get the machine architecture, now just a wrap of 'uname -m'."""
+	return os.popen('uname -m').read().rstrip()
 
 
 def get_file_arch(filename):
@@ -259,11 +255,13 @@ def get_file_arch(filename):
 	return None
 
 
-def kernelexpand(kernel):
+def kernelexpand(kernel, args=None):
 	# if not (kernel.startswith('http://') or kernel.startswith('ftp://') or os.path.isfile(kernel)):
 	if kernel.find('/') < 0:     # contains no path.
 		autodir = os.environ['AUTODIR']
 		kernelexpand = os.path.join(autodir, 'tools/kernelexpand')
+		if args:
+			kernelexpand += ' ' + args
 		w, r = os.popen2(kernelexpand + ' ' + kernel)
 
 		kernel = r.readline().strip()

@@ -6,14 +6,14 @@
 use Getopt::Long;
 
 my $mirror = "ftp://ftp.kernel.org/pub/linux/kernel";
-my $local_mirror = "http://kernel.beaverton.ibm.com/mirror";
 my $kernelpset;
 my $relative;
+my $local_mirror;
 
 GetOptions("mirror|m=s" =>		\$mirror,
 	   "debug|d"	=>		\$debug,
 	   "relative|r"	=>		\$relative,
-	   "local|l"	=>		\$local);
+	   "local|l=s"	=>		\$local_mirror);
 
 ($kernelpset, @patches) = @ARGV;
 
@@ -26,7 +26,7 @@ if ($relative) {
 	$mirror = ""; 
 }
 
-if ($local) {
+if ($local_mirror) {
 	$mirror = "$local_mirror/kernel";
 	$akpm = "$local_mirror/akpm";
 	$mbligh = "$local_mirror/mbligh";
@@ -68,7 +68,7 @@ if ($kernelpset =~ /(-(mm|mjb|bk|git)\d+)$/) {
 	print "Found patchset $pset, type $psettype\n" if ($debug);
 
 	if ($psettype eq "mm") {
-		if ($local) {
+		if ($local_mirror) {
 			$patch = "$akpm/$kernel/$kernelpset/$kernelpset.bz2";
 		} else {
 			$patch = "$akpm/2.$minor/$kernel/$kernelpset/$kernelpset.bz2";
