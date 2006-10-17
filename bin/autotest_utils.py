@@ -420,6 +420,7 @@ def check_python_version():
 	py_version = (sys.version).split(' ')[0]
 	version = py_version.split('.')[0:2]
 	if [int(x) for x in version] < [2, 4]:
+		if os.path.exists("/usr/bin/python2.4"):
+			sys.argv.insert(0, "/usr/bin/python2.4")
+			os.execv(sys.argv[0], sys.argv)
 		raise "Python 2.4 or newer is needed"
-
-
