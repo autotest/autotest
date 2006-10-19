@@ -8,7 +8,7 @@ import test
 from autotest_utils import *
 
 class fsx(test.test):
-	version = 2
+	version = 3
 
 	# http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
 	def setup(self, tarball = 'ext3-tools.tar.gz'):
@@ -23,6 +23,7 @@ class fsx(test.test):
 		self.make_flags = var_ldflags + ' ' + var_cflags
 		
 		os.chdir(self.srcdir)
+		system('patch -p1 < ../fsx-linux.diff')
 		system(self.make_flags + ' make fsx-linux')
 
 
