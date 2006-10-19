@@ -2,8 +2,7 @@ __author__ = """Copyright Martin J. Bligh, 2006"""
 
 import os,os.path,shutil,urllib,copy,pickle,re,glob
 from autotest_utils import *
-import kernel_config
-import test
+import kernel_config, test, os_dep
 
 class kernel:
 	""" Class for compiling kernels. 
@@ -164,6 +163,7 @@ class kernel:
 		make_opts
 			additional options to make, if any
 		"""
+		os_dep.commands('gcc', 'make')
 		if logfile == '':
 			logfile = os.path.join(self.log_dir, 'kernel_build')
 		os.chdir(self.build_dir)

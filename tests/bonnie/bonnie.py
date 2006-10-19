@@ -1,4 +1,4 @@
-import test
+import test, os_dep
 from autotest_utils import *
 
 class bonnie(test.test):
@@ -10,6 +10,7 @@ class bonnie(test.test):
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
+		os_dep.command('g++')
 		system('./configure')
 		system('make')
 		
