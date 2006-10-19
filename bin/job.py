@@ -273,6 +273,7 @@ from autotest_utils import *
 
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
+		msg = msg.rstrip()
 		mfix = re.compile('\n')
 		msg = mfix.sub("\n  ", msg)
 
@@ -280,7 +281,7 @@ from autotest_utils import *
 		print msg
 		status = self.resultdir + "/status"
 		fd = file(status, "a")
-		fd.write(msg)
+		fd.write(msg + "\n")
 		fd.close()
 
 
