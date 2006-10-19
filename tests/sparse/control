@@ -1,5 +1,2 @@
-testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.14.tar.bz2') # '2.4.16'
-testkernel.patch('/usr/local/src/patch-2.6.14-git6.bz2')
-testkernel.config('http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
-job.runtest(None, 'sparse', testkernel)
+job.runtest(None, 'sparse', '/usr/local/src/linux-2.6.14.tar.bz2', '/usr/local/src/patch-2.6.14-git6.bz2', 'http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
 
