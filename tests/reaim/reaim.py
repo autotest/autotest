@@ -1,5 +1,5 @@
 # Needs autoconf & automake & libtool to be installed. Ewwwwwwwwwwwwwwwwwwwwww
-import test
+import test, os_dep
 from autotest_utils import *
 
 class reaim(test.test):
@@ -17,6 +17,7 @@ class reaim(test.test):
 		var_cflags  = 'CFLAGS="' + cflags + '"'
 		self.make_flags = var_libs + ' ' + var_cflags
 
+		os_dep.commands('autoconf', 'automake', 'libtoolize')
 		os.chdir(self.srcdir)
 		system('./bootstrap')
 		system('./configure')

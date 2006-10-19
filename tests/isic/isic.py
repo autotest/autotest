@@ -1,4 +1,4 @@
-import test
+import test, os_dep
 from autotest_utils import *
 
 class isic(test.test):
@@ -12,6 +12,7 @@ class isic(test.test):
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
+		os_dep.library('libnet.so')
 		system('./configure')
 		system('make')
 
