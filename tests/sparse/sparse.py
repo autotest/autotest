@@ -15,7 +15,11 @@ class sparse(test.test):
 	
 		self.top_dir = self.job.tmpdir+'/sparse'	
 		
-	def execute(self, kernel):
+	def execute(self, base_tree, patches, config, config_list = None):
+		kernel = self.job.kernel(self.job.tmpdir+'/sparse', base_tree)
+		kernel.patch(patches)
+		kernel.config(config, config_list)
+
 		os.environ['PATH'] = self.srcdir + ':' + os.environ['PATH']
 		results = os.path.join (self.resultsdir, 'sparse')
 		kernel.build(make_opts = 'C=1', logfile = results) 
