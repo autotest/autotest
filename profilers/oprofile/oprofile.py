@@ -16,24 +16,40 @@ class oprofile(profiler.profiler):
 		system('make install')
 
 
-	def initialize(self, event = None):
-		self.event = event
+	def initialize(self, vmlinux = None, events = [], others = None):
+		if not vmlinux:
+			self.vmlinux = get_vmlinux()
+		else:
+			self.vmlinux = vmlinux
+		if not len(events):
+			self.events = ['default']
+		else:
+			self.events = events
+		self.others = others
+
+		# If there is existing setup file, oprofile may fail to start with default parameters.
+		if os.path.isfile('/root/.oprofile/daemonrc'):
+			os.rename('/root/.oprofile/daemonrc', '/root/.oprofile/daemonrc.org')
+
+		setup = ' --setup'
+		if not self.vmlinux:
+			setup += ' --no-vmlinux'
+		else:
+			setup += ' --vmlinux=%s' % self.vmlinux
+		for e in self.events:
+			setup += ' --event=%s' % e
+		if self.others:
+			setup += ' ' + self.others
+
 		self.opreport = self.srcdir + '/bin/opreport'
 		self.opcontrol = self.srcdir + '/bin/opcontrol'
 		
-		self.vmlinux = get_vmlinux()
-		if not self.vmlinux:
-			system(self.opcontrol + ' --setup --no-vmlinux')
-		else:
-			system(self.opcontrol + ' --setup --vmlinux=' + self.vmlinux)
+		system(self.opcontrol + setup)
 
 
 	def start(self, test):
 		system(self.opcontrol + ' --reset')
-		if (self.event):
-			system(self.opcontrol + ' --start --event ' +self.event)
-		else:
-			system(self.opcontrol + ' --start')
+		system(self.opcontrol + ' --start')
 
 
 	def stop(self, test):
