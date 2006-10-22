@@ -1,0 +1,24 @@
+print "Testing default event"
+job.profilers.add('oprofile')
+job.runtest('default', 'sleeptest', 1)
+job.profilers.delete('oprofile')
+
+print "Testing specified vmlinux"
+job.profilers.add('oprofile', '/boot/vmlinux-autotest')
+job.runtest('vmlinux', 'sleeptest', 1)
+job.profilers.delete('oprofile')
+
+print "Testing one event"
+job.profilers.add('oprofile', None, ['PM_RUN_CYC_GRP153:100000'])
+job.runtest('one', 'sleeptest', 1)
+job.profilers.delete('oprofile')
+
+print "Testing multiple events"
+job.profilers.add('oprofile', None, ['PM_RUN_CYC_GRP153:100000', 'PM_INST_CMPL_GRP153:10000'])
+job.runtest('multi', 'sleeptest', 1)
+job.profilers.delete('oprofile')
+
+print "Testing other args"
+job.profilers.add('oprofile', None, ['PM_RUN_CYC_GRP153:150000', 'PM_INST_CMPL_GRP153:150000'], '--callgraph=3')
+job.runtest('other', 'sleeptest', 1)
+job.profilers.delete('oprofile')
