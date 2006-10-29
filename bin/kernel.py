@@ -297,8 +297,11 @@ class kernel:
 		for a in args.split(' '):
 			self.job.bootloader.add_args(tag, a)
 
+
 	def get_kernel_build_arch(self, arch=None):
-		"""Work out the current kernel architecture (as a kernel arch)"""
+		"""
+		Work out the current kernel architecture (as a kernel arch)
+		"""
 		if not arch:
 			arch = get_current_kernel_arch()
 		if re.match('i.86', arch):
