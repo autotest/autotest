@@ -19,7 +19,6 @@ autodir = os.path.dirname(autodirbin)
 ##print 'AUTODIRBIN: ' + autodirbin
 ##print 'AUTODIR: ' + autodir
 
-sys.path.insert(0, autodir + '/tests')
 sys.path.insert(0, autodirbin)
 
 os.environ['AUTODIR'] = autodir
