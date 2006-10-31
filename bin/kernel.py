@@ -324,6 +324,19 @@ class kernel:
 			return arch
 
 
+	def boot(self, args=''):
+		""" install and boot this kernel, do not care how
+		    just make it happen.
+		"""
+
+		# Install this kernel.
+		self.install()
+		self.add_to_bootloader(args=args)
+
+		# Boot it.
+		self.job.reboot()
+
+
 	def get_kernel_build_ver(self):
 		"""Check Makefile and .config to return kernel version"""
 		version = patchlevel = sublevel = extraversion = localversion = ''
