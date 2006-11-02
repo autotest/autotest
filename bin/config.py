@@ -5,6 +5,8 @@ The job configuration, holding configuration variable supplied to the job.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
+import os
+
 class config:
 	"""The BASIC job configuration
 
@@ -25,6 +27,10 @@ class config:
 
 
         def set(self, name, value):
+		if name == "proxy":
+			os.environ['http_proxy'] = value
+			os.environ['ftp_proxy'] = value
+
 		self.config[name] = value
 
 	def get(self, name):
