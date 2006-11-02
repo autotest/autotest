@@ -1,0 +1,2 @@
+job.runtest('client', 'netperf2', '10.10.1.2', '10.10.1.6', 'client')
+
