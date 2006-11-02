@@ -42,32 +42,36 @@ class job:
 			the job configuration for this job
 	"""
 
-	def __init__(self, control, jobtag):
+	def __init__(self, control, jobtag, cont):
 		"""
 			control
 				The control file (pathname of)
 			jobtag
 				The job tag string (eg "default")
+			cont
+				If this is the continuation of this job
 		"""
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = self.autodir + '/bin'
 		self.testdir = self.autodir + '/tests'
 		self.profdir = self.autodir + '/profilers'
-
 		self.tmpdir = self.autodir + '/tmp'
-		if os.path.exists(self.tmpdir):
-			system('rm -rf ' + self.tmpdir)
-		os.mkdir(self.tmpdir)
-
 		self.resultdir = self.autodir + '/results/' + jobtag
-		if os.path.exists(self.resultdir):
-			system('rm -rf ' + self.resultdir)
-		os.mkdir(self.resultdir)
 
-		os.mkdir(self.resultdir + "/debug")
-		os.mkdir(self.resultdir + "/analysis")
-		os.mkdir(self.resultdir + "/sysinfo")
-		shutil.copyfile(control, os.path.join(self.resultdir,'control'))
+		if not cont:
+			if os.path.exists(self.tmpdir):
+				system('rm -rf ' + self.tmpdir)
+			os.mkdir(self.tmpdir)
+
+			if os.path.exists(self.resultdir):
+				system('rm -rf ' + self.resultdir)
+			os.mkdir(self.resultdir)
+
+			os.mkdir(self.resultdir + "/debug")
+			os.mkdir(self.resultdir + "/analysis")
+			os.mkdir(self.resultdir + "/sysinfo")
+			shutil.copyfile(control,
+					os.path.join(self.resultdir,'control'))
 
 		self.control = control
 		self.jobtab = jobtag
@@ -309,7 +313,7 @@ def runjob(control, cont = False, tag = "default"):
 		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
-		myjob = job(control, tag)
+		myjob = job(control, tag, cont)
 
 		# Load in the users control file, may do any one of:
 		#  1) execute in toto
