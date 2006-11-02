@@ -6,7 +6,7 @@ The interface as required for ABAT.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 from autotest_utils import *
-import os, harness
+import os, harness, time
 
 class harness_ABAT(harness.harness):
 	"""The ABAT server harness
@@ -38,6 +38,18 @@ class harness_ABAT(harness.harness):
 	def run_start(self):
 		"""A run within this job is starting"""
 		self.__send("STATUS GOOD run starting")
+
+
+	def run_reboot(self):
+		"""A run within this job is performing a reboot
+		   (expect continue following reboot)
+		"""
+		self.__send("REBOOT")
+
+		# Give lamb-payload some time to get used to the
+		# idea we are booting before we let the actual reboot
+		# kill it.
+		time.sleep(5)
 
 
 	def run_complete(self, status):
