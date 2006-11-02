@@ -77,7 +77,7 @@ class kernel:
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
-			args = self.job.config.get('local_mirror')
+			args = self.job.config_get('local_mirror')
 			if args:
 				args = '-l ' + args
  			base_components = kernelexpand(base_tree, args)
