@@ -104,6 +104,7 @@ class barrier:
 
 	def report(self, out):
 		print "barrier:", self.hostid, out
+		sys.stdout.flush()
 
 	def update_timeout(self, timeout):
 		self.timeout = (time() - self.start) + timeout
@@ -242,6 +243,8 @@ class barrier:
 					connection = self.server.accept()
 					self.master_welcome(connection)
 				except socket.timeout:
+					self.report("timeout waiting for " +
+						"remaining clients")
 					pass
 
 				# Check if everyone is here.
