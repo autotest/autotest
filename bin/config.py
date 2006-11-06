@@ -1,6 +1,14 @@
 """The Job Configuration
 
 The job configuration, holding configuration variable supplied to the job.
+
+The config should be viewed as a hierachical namespace.  The elements
+of the hierachy are separated by periods (.) and where multiple words
+are required at a level they should be separated by underscores (_).
+Please no StudlyCaps.
+
+For example:
+	boot.default_args
 """
 
 __author__ = """Copyright Andy Whitcroft 2006"""
