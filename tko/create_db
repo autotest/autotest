@@ -1,30 +1,47 @@
 BEGIN TRANSACTION;
 
-CREATE TABLE versions (
-version  VARCHAR(100) PRIMARY KEY
+-- kernel versions
+CREATE TABLE kversions (
+kversion INTEGER PRIMARY KEY,
+printable VARCHAR(100),			-- Full version with patches
+base VARCHAR(30)			-- Base version without patches
 );
 
+-- main jobs table
 CREATE TABLE jobs (
-job VARCHAR(15) PRIMARY KEY,
-version VARCHAR(100),
-status INTEGER,
-reason VARCHAR(100),
-machine VARCHAR(20),
-kernel VARCHAR(30),
-source VARCHAR(30)
+job_idx INTEGER PRIMARY KEY,		-- index number
+tag VARCHAR(15),			-- job key
+kversion INTEGER,			-- index to kversion table
+status INTEGER,				-- Numerical status
+reason VARCHAR(100),			-- justification for status
+machine VARCHAR(20)			-- machine name
 );
 
-CREATE TABLE results (
-job VARCHAR(15),
-test VARCHAR(40) PRIMARY KEY,
-attribute VARCHAR(20),
-value INTEGER
-);
-
+-- One entry per patch used, anywhere
 CREATE TABLE patches (
-job VARCHAR(15) PRIMARY KEY,
-number INTEGER,
-patchname VARCHAR(100) 
+patchref INTEGER PRIMARY KEY,		-- index number
+name VARCHAR(20),			-- short name
+url VARCHAR(200)			-- full URL
+);
+
+-- test functional results
+CREATE TABLE tests (
+job_idx INTEGER,			-- ref to job table
+test VARCHAR(30),			-- name of test
+subdir VARCHAR(60),			-- subdirectory name
+kversion INTEGER PRIMARY KEY,		-- kernel version test was AGAINST
+status INTEGER,				-- test status
+reason VARCHAR(100)			-- reason for test status
+);
+
+-- test performance results
+CREATE TABLE results (
+job_idx INTEGER,			-- ref to job table
+test VARCHAR(30),			-- name of test
+subdir VARCHAR(60) PRIMARY KEY,		-- subdirectory name
+kversion INTEGER,			-- kernel version test was AGAINST
+attribute VARCHAR(20),			-- attribute name (e.g. 'throughput')
+value INTEGER				-- attribute value (eg 700)
 );
 
 COMMIT;
