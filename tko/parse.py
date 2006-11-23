@@ -53,12 +53,15 @@ class parse:
 	def grope_datfile(self):
 		variables = self.variables
 		for line in open(self.control, 'r').readlines():
+			# Watch for any variables being set
 			if line.startswith('+$'):
 				match = re.match(r'\+\$(\S+)\s+(\S?.*)', line)
 				variables[match.group(1)] = match.group(2)
+			# Pick up the build line
 			if line.startswith('build '):
 				self.derive_build(line)
 
+		# Verify it's a valid automated job user
 		if not re.match(valid_users, variables['username']):
 			raise "bad username - %s" % variables['username']
 
