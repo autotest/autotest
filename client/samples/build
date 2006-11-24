@@ -1,0 +1,6 @@
+print "TEST: initing kernel"
+testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.18.tar.bz2') # '2.4.16'
+testkernel.config('http://mbligh.org/config/opteron2')
+
+print "TEST: building kernel"
+testkernel.build()
