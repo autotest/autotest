@@ -14,7 +14,7 @@ job.runtest('clone_skb_on', 'pktgen', 'eth0', 50000, 1)
 job.runtest(None, 'reaim')
 job.runtest(None, 'scrashme')
 job.runtest(None, 'sleeptest')
-testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.14.tar.bz2') # '2.4.16'
+testkernel = job.kernel('/usr/local/src/linux-2.6.14.tar.bz2') # '2.6.14'
 testkernel.patch('/usr/local/src/patch-2.6.14-git6.bz2')
 testkernel.config('http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
 job.runtest(None, 'sparse', testkernel)

@@ -141,6 +141,8 @@ def force_copy(src, dest):
 	"""Replace dest with a new copy of src, even if it exists"""
 	if os.path.isfile(dest):
 		os.remove(dest)
+	if os.path.isdir(dest):
+		dest = os.path.join(dest, os.path.basename(src))
 	return shutil.copyfile(src, dest)
 
 

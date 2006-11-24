@@ -10,7 +10,7 @@ class kernbench(test.test):
 			tarball = self.bindir + '/linux-2.6.14.tar.bz2'
 		else:
 			tarball = '/usr/local/src/linux-2.6.14.tar.bz2'
-		kernel = self.job.kernel(self.srcdir, tarball)
+		kernel = self.job.kernel(tarball, self.tmpdir)
 		kernel.config('')
 		# have to save this off, as we might use it in another run
 		kernel.pickle_dump(self.srcdir + '/.pickle')
