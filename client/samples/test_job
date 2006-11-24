@@ -1,16 +1,12 @@
 print "TEST: initing kernel"
-testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.14.tar.bz2') # '2.4.16'
-testkernel.patch('/usr/local/src/patch-2.6.14-git6.bz2')
-testkernel.config('http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
+testkernel = job.kernel(job.tmpdir+'/build', '/usr/local/src/linux-2.6.18.tar.bz2') # '2.4.16'
+testkernel.config('http://mbligh.org/config/opteron2')
 
 print "TEST: building kernel"
 testkernel.build()
 
-print "TEST: installing kernel"
-testkernel.install('autotest')
-
-# print "TEST: booting system"
-# system.boot()          # does autotest by default
+print "TEST: booting system"
+testkernel.boot()          # does autotest by default
 
 print "TEST: initing kernbench"
 job.runtest(None, 'kernbench', 2, 5)
