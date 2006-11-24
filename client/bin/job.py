@@ -108,9 +108,30 @@ class job:
 		return self.config.get(name)
 
 
-	def kernel(self, topdir, base_tree, *args, **dargs):
+	def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
 		"""Summon a kernel object"""
-		return kernel.kernel(self, topdir, base_tree, *args, **dargs)
+		if not tmp_dir:
+			tmp_dir = self.tmpdir + '/build'
+		if not os.path.exists(tmp_dir):
+			os.mkdir(tmp_dir)
+		if not os.path.isdir(tmp_dir):
+			raise "Temp dir (%s) is not a dir - args backwards?" \
+								% self.tmpdir
+
+		# We label the first build "build" and then subsequent ones 
+		# as "build.2", "build.3", etc. Whilst this is a little bit 
+		# inconsistent, 99.9% of jobs will only have one build 
+		# (that's not done as kernbench, sparse, or buildtest),
+		# so it works out much cleaner. One of life's comprimises.
+		if not results_dir:
+			results_dir = os.path.join(self.resultdir, 'build')
+			i = 2
+			while os.path.exists(results_dir):
+				results_dir = os.path.join(self.resultdir, 'build.%d' % i)
+		if not os.path.exists(results_dir):
+			os.mkdir(results_dir)
+				
+		return kernel.kernel(self, base_tree, results_dir, tmp_dir, leave)
 
 
 	def barrier(self, *args):
