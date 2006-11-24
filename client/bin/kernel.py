@@ -20,12 +20,14 @@ class kernel:
 			Path to the top level dir of this kernel object
 		src_dir
 			<top_dir>/src/
-		build_dir
+		patch_dir
 			<top_dir>/patches/
+		build_dir
+			<top_dir>/linux/
 		config_dir
-			<top_dir>/config
+			<top_dir>/config/
 		log_dir
-			<top_dir>/log
+			<top_dir>/log/
 	"""
 
 	autodir = ''
@@ -53,8 +55,9 @@ class kernel:
 			system('rm -rf ' + self.top_dir)
 		os.mkdir(self.top_dir)
 
-		self.build_dir  = os.path.join(self.top_dir, 'build')
+		self.build_dir  = os.path.join(self.top_dir, 'linux')
 			# created by get_kernel_tree
+		system("ls -l %s" % self.top_dir)
 		self.src_dir    = os.path.join(self.top_dir, 'src')
 		self.patch_dir  = os.path.join(self.top_dir, 'patches')
 		self.config_dir = os.path.join(self.top_dir, 'config')
@@ -129,22 +132,21 @@ class kernel:
 	
 	
   	def get_kernel_tree(self, base_tree):
-		"""Extract/link base_tree to self.top_dir/build"""
+		"""Extract/link base_tree to self.build_dir"""
   
 		# if base_tree is a dir, assume uncompressed kernel
 		if os.path.isdir(base_tree):
 			print 'Symlinking existing kernel source'
-			os.symlink(base_tree,
-				   os.path.join(self.top_dir, 'build'))
+			os.symlink(base_tree, self.build_dir)
 
 		# otherwise, extract tarball
 		else:
-			os.chdir(self.top_dir)
-			tarball = os.path.join('src', basename(base_tree))
+			os.chdir(os.path.dirname(self.src_dir))
+			# Figure out local destination for tarball
+			tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
 			get_file(base_tree, tarball)
-
 			print 'Extracting kernel tarball:', tarball, '...'
-			extract_tarball_to_dir(tarball, 'build')
+			extract_tarball_to_dir(tarball, self.build_dir)
 
 
 	def extraversion(self, tag, append=1):
