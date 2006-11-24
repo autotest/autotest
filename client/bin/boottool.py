@@ -41,7 +41,9 @@ class boottool:
 
 	def add_kernel(self, path, title='autotest', initrd=''):
 		# boot tool needs a dummy argument for add_args to work
-		parameters = '--add-kernel=%s --title=%s --args=dummy' % \
+		# parameters = '--add-kernel=%s --title=%s --args=dummy' % \
+		#					(path, title)
+		parameters = '--add-kernel=%s --title=%s' % \
 							(path, title)
 		# add an initrd now or forever hold your peace
 		if initrd:
