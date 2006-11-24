@@ -66,6 +66,7 @@ class test:
 		fd.write(msg)
 		fd.close()
 
+
 	def __exec(self, parameters):
 		try:
 			self.job.stdout.tee_redirect(
@@ -84,6 +85,7 @@ class test:
 		except:
 			raise UnhandledError('running test ' + \
 				self.__class__.__name__ + "\n")
+
 
 	def run(self, testname, parameters):
 		try:
@@ -112,6 +114,7 @@ def testname(url):
 	testname = tfix.sub('', filename)
 
 	return (group, testname)
+
 
 def __installtest(job, url):
 	(group, name) = testname(url)
@@ -144,6 +147,7 @@ def __installtest(job, url):
 
 	# The test is now installed.
 	return (group, name)
+
 
 # runtest: main interface for importing and instantiating new tests.
 def __runtest(job, tag, url, test_args):
