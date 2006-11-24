@@ -16,56 +16,59 @@ class kernel:
 			Backpointer to the job object we're part of
 		autodir
 			Path to the top level autotest dir (/usr/local/autotest)
-		top_dir
-			Path to the top level dir of this kernel object
 		src_dir
-			<top_dir>/src/
-		patch_dir
-			<top_dir>/patches/
+			<tmp_dir>/src/
 		build_dir
-			<top_dir>/linux/
+			<tmp_dir>/linux/
 		config_dir
-			<top_dir>/config/
+			<results_dir>/config/
 		log_dir
-			<top_dir>/log/
+			<results_dir>/debug/
+		results_dir
+			<results_dir>/results/
 	"""
 
 	autodir = ''
 
-	def __init__(self, job, top_directory, base_tree, leave = 0):
+	def __init__(self, job, base_tree, results_dir, tmp_dir, leave = False):
 		"""Initialize the kernel build environment
 
 		job
 			which job this build is part of
-		top_directory
-			top of the build environment
 		base_tree
 			base kernel tree. Can be one of the following:
 				1. A local tarball
 				2. A URL to a tarball
 				3. A local directory (will symlink it)
 				4. A shorthand expandable (eg '2.6.11-git3')
+		results_dir
+			Results directory (holds config/, debug/, results/)
+		tmp_dir
+			
+		leave
+			Boolean, whether to leave existing tmpdir or not
 		"""
 		self.job = job
 		autodir = job.autodir
-		self.top_dir = top_directory
-		if not self.top_dir.startswith(autodir):
-			raise
-		if os.path.isdir(self.top_dir) and not leave:
-			system('rm -rf ' + self.top_dir)
-		os.mkdir(self.top_dir)
 
-		self.build_dir  = os.path.join(self.top_dir, 'linux')
+		self.src_dir    = os.path.join(tmp_dir, 'src')
+		self.build_dir  = os.path.join(tmp_dir, 'linux')
 			# created by get_kernel_tree
-		system("ls -l %s" % self.top_dir)
-		self.src_dir    = os.path.join(self.top_dir, 'src')
-		self.patch_dir  = os.path.join(self.top_dir, 'patches')
-		self.config_dir = os.path.join(self.top_dir, 'config')
-		self.log_dir    = os.path.join(self.top_dir, 'log')
+		self.config_dir = os.path.join(results_dir, 'config')
+		self.log_dir    = os.path.join(results_dir, 'debug')
+		self.results_dir = os.path.join(results_dir, 'results')
+
+		if not leave:
+			if os.path.isdir(self.src_dir):
+				system('rm -rf ' + self.src_dir)
+			if os.path.isdir(self.build_dir):
+				system('rm -rf ' + self.build_dir)
+
 		os.mkdir(self.src_dir)
-		os.mkdir(self.patch_dir)
-		os.mkdir(self.config_dir)
-		os.mkdir(self.log_dir)
+		for path in [self.config_dir, self.log_dir, self.results_dir]:
+			if os.path.exists(path):
+				system('rm -rf ' + path)
+			os.mkdir(path)
 
 		logpath = os.path.join(self.log_dir, 'build_log')
 		self.logfile = open(logpath, 'w+')
@@ -91,8 +94,12 @@ class kernel:
 				self.patch(*base_components)
 
 
-	def patch(self, *patches):
+	def patch(self, patches):
 		"""Apply a list of patches (in order)"""
+		if not patches:
+			return
+		if isinstance(patches, basestring):
+			patches = [patches]
 		print 'Applying patches: ', patches
 		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		local_patches = self.get_patches(patches)
@@ -109,10 +116,11 @@ class kernel:
 
 
 	def get_patches(self, patches):
-		"""fetch the patches to the local patch_dir"""
+		"""fetch the patches to the local src_dir"""
 		local_patches = []
 		for patch in patches:
-			dest = os.path.join(self.patch_dir, basename(patch))
+			dest = os.path.join(self.src_dir, basename(patch))
+			print "get_file %s %s %s %s" % (patch, dest, self.src_dir, basename(patch))
 			get_file(patch, dest)
 			local_patches.append(dest)
 		return local_patches
@@ -123,7 +131,6 @@ class kernel:
 		builddir = self.build_dir
 		os.chdir(builddir)
 
-		print "apply_patches: ", local_patches
 		if not local_patches:
 			return None
 		for patch in local_patches:
@@ -194,7 +201,8 @@ class kernel:
 		kernel_version = self.get_kernel_build_ver()
 		kernel_version = re.sub('-autotest', '', kernel_version)
 		self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
-		
+
+		force_copy(self.build_dir+'/System.map', self.results_dir)
 
 
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):

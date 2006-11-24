@@ -1,0 +1,3 @@
+job.runtest('2.6.14-git6', 'kernelbuild', '/usr/local/src/linux-2.6.14.tar.bz2', ['/usr/local/src/patch-2.6.14-git6.bz2'], 'http://ftp.kernel.org/pub/linux/kernel/people/mbligh/config/config.up')
+job.runtest('2.6.18', 'kernelbuild', '/usr/local/src/linux-2.6.18.tar.bz2', [], 'http://mbligh.org/config/opteron2')
+
