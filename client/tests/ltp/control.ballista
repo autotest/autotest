@@ -1,1 +1,1 @@
-job.runtest(None, 'ltp', '-f ballista')
+job.run_test('ltp', '-f ballista')

@@ -6,7 +6,8 @@ class kernelbuild(test.test):
 
 	def execute(self, base_tree, patches, config, config_list = None):
 		kernel = self.job.kernel(base_tree, self.outputdir)
-		kernel.patch(patches)
+		if patches:
+			kernel.patch(*patches)
 		kernel.config(config, config_list)
 
 		kernel.build()

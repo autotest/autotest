@@ -1,1 +1,1 @@
-job.runtest(None, 'fsx')
+job.run_test('fsx')

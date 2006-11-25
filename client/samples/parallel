@@ -1,7 +1,7 @@
 def kernbench():
-	job.runtest(None, 'kernbench', 2, 5)
+	job.run_test('kernbench', 2, 5)
 
 def dbench():
-	job.runtest(None, 'dbench')
+	job.run_test('dbench')
 
 job.parallel([kernbench], [dbench])

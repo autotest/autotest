@@ -94,12 +94,12 @@ class kernel:
 				self.patch(*base_components)
 
 
-	def patch(self, patches):
+	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
 		if not patches:
 			return
-		if isinstance(patches, basestring):
-			patches = [patches]
+	#	if isinstance(patches, basestring):
+	#		patches = [patches]
 		print 'Applying patches: ', patches
 		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		local_patches = self.get_patches(patches)
