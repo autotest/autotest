@@ -1,1 +1,1 @@
-job.runtest(None, 'unixbench')
+job.run_test('unixbench')

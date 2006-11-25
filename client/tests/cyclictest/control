@@ -1,1 +1,1 @@
-job.runtest(None, 'cyclictest')
+job.run_test('cyclictest')

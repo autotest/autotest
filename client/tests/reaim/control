@@ -1,1 +1,1 @@
-job.runtest(None, 'reaim')
+job.run_test('reaim')

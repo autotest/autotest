@@ -153,9 +153,9 @@ class job:
                        		raise UnhandledError(error)
 
 
-        def __runtest(self, tag, url, test_args):
+        def __runtest(self, url, tag, args, dargs):
                 try:
-			test.runtest(self, tag, url, test_args)
+			test.runtest(self, url, tag, args, dargs)
                 except AutotestError:
                         raise
                 except:
@@ -163,7 +163,11 @@ class job:
                                 self.__class__.__name__ + "\n")
 
 
-	def runtest(self, tag, url, *test_args):
+	def runtest(self, tag, url, *args):
+		raise "Deprecated call to job.runtest. Use run_test instead"
+
+
+	def run_test(self, url, *args, **dargs):
 		"""Summon a test object and run it.
 		
 		tag
@@ -172,12 +176,17 @@ class job:
 			url of the test to run
 		"""
 
+		if not url:
+			raise "Test name is invalid. Switched arguments?"
 		(group, name) = test.testname(url)
-		if (tag):
+		tag = None
+		if dargs.has_key('tag'):
+			tag = dargs['tag']
+			del dargs['tag']
 			name += '.' + tag
 		try:
 			try:
-				self.__runtest(tag, url, test_args)
+				self.__runtest(url, tag, args, dargs)
 			except Exception, detail:
 				self.record("FAIL " + name + " " + \
 					detail.__str__() + "\n")

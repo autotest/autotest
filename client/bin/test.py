@@ -7,7 +7,7 @@
 #	initialize	run once for each job
 #	setup		run once for each new version of the test installed
 #	record		record an entry in the status file
-#	run		run the test (wrapped by job.runtest())
+#	run		run the test (wrapped by job.run_test())
 #
 # Data:
 #	job		backreference to the job this test instance is part of
@@ -67,7 +67,7 @@ class test:
 		fd.close()
 
 
-	def __exec(self, parameters):
+	def __exec(self, args, dargs):
 		try:
 			self.job.stdout.tee_redirect(
 				os.path.join(self.debugdir, 'stdout'))
@@ -76,7 +76,7 @@ class test:
 
 			try:
 				os.chdir(self.outputdir)
-				self.execute(*parameters)
+				self.execute(*args, **dargs)
 			finally:
 				self.job.stderr.restore()
 				self.job.stdout.restore()
@@ -87,9 +87,9 @@ class test:
 				self.__class__.__name__ + "\n")
 
 
-	def run(self, testname, parameters):
+	def run(self, testname, args, dargs):
 		try:
-			self.__exec(parameters)
+			self.__exec(args, dargs)
 		except Exception, detail:
 			self.record("FAIL " + detail.__str__() + "\n")
 
@@ -150,7 +150,7 @@ def __installtest(job, url):
 
 
 # runtest: main interface for importing and instantiating new tests.
-def __runtest(job, tag, url, test_args):
+def __runtest(job, url, tag, args, dargs):
 	# If this is not a plain test name then download and install
 	# the specified test.
 	if is_url(url):
@@ -183,12 +183,11 @@ def __runtest(job, tag, url, test_args):
 
 	pwd = os.getcwd()
 	os.chdir(outputdir)
-	mytest.run(testname, test_args)
+	mytest.run(testname, args, dargs)
 	os.chdir(pwd)
 
 
-def runtest(job, tag, url, test_args):
-	##__runtest(job, tag, url, test_args)
+def runtest(job, url, tag, args, dargs):
 	pid = fork_start(job.resultdir,
-			lambda : __runtest(job, tag, url, test_args))
+			lambda : __runtest(job, url, tag, args, dargs))
 	fork_waitfor(job.resultdir, pid)

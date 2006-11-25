@@ -1,1 +1,1 @@
-job.runtest(None, 'pi_tests')
+job.run_test('pi_tests')

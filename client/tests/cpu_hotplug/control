@@ -1,1 +1,1 @@
-job.runtest(None, 'cpu_hotplug')
+job.run_test('cpu_hotplug')

@@ -1,1 +1,1 @@
-job.runtest(None, 'tiobench','/mnt')
+job.run_test('tiobench', '/mnt')
