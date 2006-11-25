@@ -1,1 +1,1 @@
-job.runtest(None, 'interbench')
+job.run_test('interbench')

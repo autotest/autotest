@@ -9,4 +9,4 @@ print "TEST: booting system"
 testkernel.boot()          # does autotest by default
 
 print "TEST: initing kernbench"
-job.runtest(None, 'kernbench', 2, 5)
+job.run_test('kernbench', 2, 5)

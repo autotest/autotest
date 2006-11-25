@@ -1,3 +1,3 @@
-job.runtest('clone_skb_off', 'pktgen', 'eth0', 50000, 0)
-job.runtest('clone_skb_on', 'pktgen', 'eth0', 50000, 1)
+job.run_test('pktgen', 'eth0', 50000, 0, tag='clone_skb_off')
+job.run_test('pktgen', 'eth0', 50000, 1, tag='clone_skb_on')
 

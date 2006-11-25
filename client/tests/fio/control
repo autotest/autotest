@@ -1,1 +1,1 @@
-job.runtest(None, 'fio')
+job.run_test('fio')

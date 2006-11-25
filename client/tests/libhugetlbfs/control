@@ -1,1 +1,1 @@
-job.runtest(None, 'libhugetlbfs', '/mnt')
+job.run_test('libhugetlbfs', '/mnt')

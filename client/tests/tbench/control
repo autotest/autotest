@@ -1,1 +1,1 @@
-job.runtest(None, 'tbench')
+job.run_test('tbench')

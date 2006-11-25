@@ -1,1 +1,1 @@
-job.runtest('test1', 'selftest', 'throw')
+job.run_test('selftest', 'throw', tag='test1')

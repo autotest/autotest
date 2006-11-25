@@ -1,1 +1,1 @@
-job.runtest(None, 'stress')
+job.run_test('stress')

@@ -15,7 +15,7 @@ class ltp(test.test):
 		system('yes n | make install')
 
 	# Note: to run a specific test, try '-f test' in the args
-	# eg, job.runtest(None, 'ltp', '-f ballista')
+	# eg, job.run_test('ltp', '-f ballista')
 	def execute(self, args = ''):
 		logfile = self.resultsdir + '/ltp.log'
 		args = '-q -l ' + logfile + ' ' + args

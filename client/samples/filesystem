@@ -6,7 +6,7 @@ for fstype in ('ext2', 'ext3'):
 	fs.mkfs(fstype)
 	fs.mount()
 	try:
-		job.runtest(fstype, 'fsx', job.tmpdir)
+		job.run_test('fsx', job.tmpdir, tag=fstype)
 	finally:
 		fs.unmount()
 
