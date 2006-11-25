@@ -36,4 +36,4 @@ class kernbench(test.test):
 
 		kernel.clean()		# Don't leave litter lying around
 		os.chdir(self.resultsdir)
-		system("grep elapsed time.* > time")
+		system("grep -h elapsed time.* > time")
