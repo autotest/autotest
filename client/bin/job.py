@@ -42,7 +42,7 @@ class job:
 			the job configuration for this job
 	"""
 
-	def __init__(self, control, jobtag, cont):
+	def __init__(self, control, jobtag, cont, harness_type=''):
 		"""
 			control
 				The control file (pathname of)
@@ -79,7 +79,7 @@ class job:
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
-		self.harness = harness.select('', self)
+		self.harness = harness.select(harness_type, self)
 
 		self.config = config.config(self)
 
@@ -319,7 +319,7 @@ from autotest_utils import *
 		fd.close()
 
 
-def runjob(control, cont = False, tag = "default"):
+def runjob(control, cont = False, tag = "default", harness_type = ''):
 	"""The main interface to this module
 
 	control	
@@ -343,7 +343,7 @@ def runjob(control, cont = False, tag = "default"):
 		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
-		myjob = job(control, tag, cont)
+		myjob = job(control, tag, cont, harness_type)
 
 		# Load in the users control file, may do any one of:
 		#  1) execute in toto
