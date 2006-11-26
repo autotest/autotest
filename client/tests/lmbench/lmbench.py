@@ -28,7 +28,7 @@ class lmbench(test.test):
 
 		os.chdir(self.srcdir)
 		cmd = "yes '' | make rerun"
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system(cmd)
 
 		# Do a profiling run if necessary

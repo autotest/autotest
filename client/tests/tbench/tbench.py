@@ -16,7 +16,7 @@ class tbench(test.test):
 	def execute(self, iterations = 1, args = '1'):
 		# only supports combined server+client model at the moment
 		# should support separate I suppose, but nobody uses it
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			self.run_tbench(args)
 
 		# Do a profiling run if necessary

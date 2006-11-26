@@ -20,7 +20,7 @@ class stress(test.test):
 			args = '-c %d -i %d -m %d -d %d -t 60 -v' % \
 				(threads, threads, threads, threads)
 
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system(self.srcdir + '/src/stress ' + args)
 
 		# Do a profiling run if necessary

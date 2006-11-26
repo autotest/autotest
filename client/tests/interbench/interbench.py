@@ -16,7 +16,7 @@ class interbench(test.test):
 		os.chdir(self.tmpdir)
 		args += " -c"
 
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system("%s/interbench -m 'run #%s' %s" % \
 				(self.srcdir, i, args))
 

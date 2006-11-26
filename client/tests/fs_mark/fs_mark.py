@@ -17,7 +17,7 @@ class fs_mark(test.test):
 		if not args:
 			# Just provide a sample run parameters
 			args = '-s 10240 -n 1000'
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system('./fs_mark -d %s %s' %(dir, args))
 
 		# Do a profiling run if necessary
