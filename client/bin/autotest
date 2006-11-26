@@ -33,6 +33,9 @@ parser.add_option("-c", "--continue", dest="cont", action="store_true",
 parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
 			help="set the job tag")
 
+parser.add_option("-H", "--harness", dest="harness", type="string", default='',
+			help="set the harness type")
+
 def usage():
 	parser.print_help()
 	sys.exit(1)
@@ -44,4 +47,4 @@ if len(args) != 1:
 	usage()
 
 # JOB: run the specified job control file.
-job.runjob(args[0], options.cont, options.tag)
+job.runjob(args[0], options.cont, options.tag, options.harness)
