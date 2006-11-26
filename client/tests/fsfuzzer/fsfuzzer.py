@@ -13,7 +13,7 @@ class fsfuzzer(test.test):
 		system('make')
 		
 	def execute(self, iterations = 1, fstype = 'iso9660'):
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			args = fstype + ' 1'
 			system(self.srcdir + '/run_test ' + args)
 

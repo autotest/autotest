@@ -13,7 +13,7 @@ class unixbench(test.test):
 		system('make')
 		
 	def execute(self, iterations = 1, args = ''):
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			os.chdir(self.srcdir)
 			vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
 			system(vars + ' ./Run ' + args)
