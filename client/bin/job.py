@@ -70,8 +70,7 @@ class job:
 			os.mkdir(self.resultdir + "/debug")
 			os.mkdir(self.resultdir + "/analysis")
 			os.mkdir(self.resultdir + "/sysinfo")
-			shutil.copyfile(control,
-					os.path.join(self.resultdir,'control'))
+			shutil.copyfile(control, self.resultdir + "/control")
 
 		self.control = control
 		self.jobtab = jobtag
@@ -128,6 +127,7 @@ class job:
 			i = 2
 			while os.path.exists(results_dir):
 				results_dir = os.path.join(self.resultdir, 'build.%d' % i)
+				i += 1
 		if not os.path.exists(results_dir):
 			os.mkdir(results_dir)
 				
@@ -194,7 +194,7 @@ class job:
 				raise
 			else:
 				self.record("GOOD " + name + \
-					" Completed Successfully\n")
+					" completed successfully\n")
 		except TestError:
 			return 0
 		except:
@@ -276,12 +276,12 @@ from autotest_utils import *
 		exec(str, lcl, lcl)
 		execfile(self.control, lcl, lcl)
 
+		state = self.control + '.state'
 		# If there is a mid-job state file load that in and continue
 		# where it indicates.  Otherwise start stepping at the passed
 		# entry.
 		try:
-			self.steps = pickle.load(open(self.control + '.state',
-				'r'))
+			self.steps = pickle.load(open(state, 'r'))
 		except:
 			if lcl.has_key('step_init'):
 				self.next_step([lcl['step_init']])
@@ -289,8 +289,7 @@ from autotest_utils import *
 		# Run the step list.
 		while len(self.steps) > 0:
 			step = self.steps.pop(0)
-			pickle.dump(self.steps, open(self.control + '.state',
-				'w'))
+			pickle.dump(self.steps, open(state, 'w'))
 
 			cmd = step.pop(0)
 			cmd = lcl[cmd]
@@ -305,18 +304,15 @@ from autotest_utils import *
 	def record(self, msg):
 		"""Record job-level status"""
 
+		msg = msg.rstrip()
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
-		msg = msg.rstrip()
-		mfix = re.compile('\n')
-		msg = mfix.sub("\n  ", msg)
+		msg = re.sub(r"\n", "\n  ", msg)
 
 		self.harness.test_status(msg)
 		print msg
 		status = self.resultdir + "/status"
-		fd = file(status, "a")
-		fd.write(msg + "\n")
-		fd.close()
+		file(status, "a").write(msg + "\n")
 
 
 def runjob(control, cont = False, tag = "default", harness_type = ''):
