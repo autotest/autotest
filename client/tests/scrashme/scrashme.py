@@ -18,7 +18,7 @@ class scrashme(test.test):
 		else:
 			args = '-c100 -z'
 
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system(self.srcdir + '/scrashme ' + args)
 
 		# Do a profiling run if necessary

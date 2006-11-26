@@ -55,7 +55,7 @@ class reaim(test.test):
 		print os.getcwd()
 		cmd = self.ldlib + ' ./reaim ' + args + ' ' + extra_args
 
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			system(cmd)
 
 		# Do a profiling run if necessary

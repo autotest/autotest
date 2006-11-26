@@ -21,7 +21,7 @@ class kernbench(test.test):
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
 		kernel.build_timed(threads)         # warmup run
-		for i in range(1, iterations+1):
+		for i in range(iterations):
 			logfile = self.resultsdir+'/time.%d' % i
 			kernel.build_timed(threads, logfile)
 
