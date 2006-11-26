@@ -65,17 +65,9 @@ def execute_section(client, autodir, remote_control, section):
 		remote_control = '-c ' + remote_control
 	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
 					(client, autodir, remote_control)
-	status = Popen(cmd, shell=True, stdout=log, stderr=PIPE).stderr
-	last = ''
-	# Don't want to just use readlines() here, 
-	# as line at a time output is useful
-	while True:
-		s = status.readline()
-		if not s:
-			break
-		last = s
-		print s,
-	return last
+	for line in Popen(cmd, shell=True, stdout=log, stderr=PIPE).stderr:
+		print line,
+	return line
 
 
 def execute_control(client, autodir, remote_control):
