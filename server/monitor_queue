@@ -1,0 +1,35 @@
+#!/usr/bin/python
+# monitor_queue <client> <spool_directory> <resultsdir>
+import os, time, sys
+
+if (len(sys.argv) < 4):
+	print "Usage: monitor_queue <client> <spool_directory> <resultsdir>"
+	sys.exit(1)
+(client, spooldir, resultsdir) = sys.argv[1:4]
+if not os.path.exists(spooldir):
+	print "spooldir %s does not exist" % spooldir
+	sys.exit(1)
+if not os.path.exists(resultsdir):
+	print "resultsdir %s does not exist" % resultsdir
+	sys.exit(1)
+
+
+def pick_job(jobs):
+	# Pick the next job to run. Currently we just pick the oldest job
+	# However, this would be the place to put prioritizations.
+	if not jobs:
+		return None
+	return sorted(jobs, key=lambda x:os.stat(x).st_mtime, reverse=True)[0]
+
+
+dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+runjob = os.path.join(dir, 'runjob')
+os.chdir(spooldir)
+while True:
+	next_job = pick_job(os.listdir(spooldir))
+	if not next_job:
+		time.sleep(60)
+		continue
+	results = os.path.join(resultsdir, next_job)
+	os.system(' '.join([runjob, client, next_job, results]))
+	os.remove(next_job)
