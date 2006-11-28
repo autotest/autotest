@@ -261,18 +261,26 @@ class kernel:
 		if not os.path.isdir(self.boot_dir):
 			os.mkdir(self.boot_dir)
 
-		image = glob.glob('arch/*/boot/' + self.build_target)[0]
+		images = glob.glob('arch/*/boot/' + self.build_target)
+		if len(images):
+			image = images[0]
+		else:
+			image = self.build_target
 
 		# remember installed files
-		self.image = self.boot_dir + '/vmlinuz-' + tag
 		self.vmlinux = self.boot_dir + '/vmlinux-' + tag
+		if (image != 'vmlinux'):
+			self.image = self.boot_dir + '/vmlinuz-' + tag
+		else:
+			self.image = self.vmlinux
 		self.system_map = self.boot_dir + '/System.map-' + tag
 		self.config = self.boot_dir + '/config-' + tag
 		self.initrd = ''
 
 		# copy to boot dir
-		force_copy(image, self.image)
 		force_copy('vmlinux', self.vmlinux)
+		if (image != 'vmlinux'):
+			force_copy(image, self.image)
 		force_copy('System.map', self.system_map)
 		force_copy('.config', self.config)
 
@@ -390,7 +398,7 @@ class kernel:
 			target_arch = get_current_kernel_arch()
 			if target_arch == 'ppc64':
 				if self.build_target == 'bzImage':
-					self.build_target = 'zImage'
+					self.build_target = 'vmlinux'
 			
 		return                 # HACK. Crap out for now.
 
