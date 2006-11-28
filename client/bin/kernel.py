@@ -299,9 +299,13 @@ class kernel:
 		# add_kernel(image, title='autotest', inird='')
 		self.job.bootloader.add_kernel(self.image, tag, self.initrd)
 
-		# if no args passed, populate from /proc/cmdline
-		if not args:
-			args = open('/proc/cmdline', 'r').readline().strip()
+		# pull the base argument set from the job config,
+		# otherwise populate from /proc/cmdline
+		baseargs = self.job.config_get('boot.default_args')
+		if not baseargs:
+			baseargs = open('/proc/cmdline', 'r').readline().strip()
+
+		args = baseargs + " " + args
 
 		# add args to entry one at a time
 		for a in args.split(' '):
