@@ -58,6 +58,4 @@ def select(which, job):
 	else:
 		myharness = harness(job)
 
-	myharness.run_start()
-
 	return myharness
