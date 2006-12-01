@@ -80,9 +80,9 @@ class job:
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
-		self.harness = harness.select(harness_type, self)
-
 		self.config = config.config(self)
+
+		self.harness = harness.select(harness_type, self)
 
 		self.profilers = profilers.profilers(self)
 
