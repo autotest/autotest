@@ -87,7 +87,8 @@ class job:
 		self.profilers = profilers.profilers(self)
 
 		try:
-			self.bootloader = boottool.boottool()
+			tool = self.config_get('boottool.executable')
+			self.bootloader = boottool.boottool(tool)
 		except:
 			pass
 
