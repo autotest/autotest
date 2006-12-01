@@ -96,6 +96,8 @@ class job:
 		system(self.bindir + '/sysinfo.py')
 		os.chdir(pwd)
 
+		self.harness.run_start()
+
 
 	def harness_select(self, which):
 		self.harness = harness.select(which, self)
