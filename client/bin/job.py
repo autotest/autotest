@@ -50,6 +50,8 @@ class job:
 				The job tag string (eg "default")
 			cont
 				If this is the continuation of this job
+			harness_type
+				An alternative server harness
 		"""
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = self.autodir + '/bin'
