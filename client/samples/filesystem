@@ -12,6 +12,7 @@ for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
 	fs.mount()
 	try:
 		job.run_test('fsx', job.tmpdir, tag=fstype)
+		job.run_test('iozone', job.tmpdir, tag=fstype)
 		job.run_test('dbench', dir=job.tmpdir, tag=fstype)
 	finally:
 		fs.unmount()
