@@ -17,7 +17,7 @@ class dbench(test.test):
 		for i in range(iterations):
 			args = args + ' -c '+self.srcdir+'/client.txt'
 			if dir:
-				args += '-D ' + dir
+				args += ' -D ' + dir
 			args += ' %s' % nprocs
 			system(self.srcdir + '/dbench ' + args)
 
