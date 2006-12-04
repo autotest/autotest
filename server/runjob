@@ -78,9 +78,17 @@ def execute_section(client, autodir, remote_control, section):
 		remote_control = '-c ' + remote_control
 	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
 					(client, autodir, remote_control)
-	for line in Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr:
+	# for line in Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr:
+	# 	print line,
+	#	sys.stdout.flush()
+	f = Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr
+	line = f.readline()
+	while line:
+		last = line
 		print line,
-	return line
+		sys.stdout.flush()
+		line = f.readline()
+	return last
 
 
 def execute_control(client, autodir, remote_control):
