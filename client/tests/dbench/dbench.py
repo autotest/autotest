@@ -13,9 +13,11 @@ class dbench(test.test):
 		system('./configure')
 		system('make')
 		
-	def execute(self, iterations = 1, nprocs = count_cpus(), args = ''):
+	def execute(self, iterations = 1, dir = None, nprocs = count_cpus(), args = ''):
 		for i in range(iterations):
 			args = args + ' -c '+self.srcdir+'/client.txt'
+			if dir:
+				args += '-D ' + dir
 			args += ' %s' % nprocs
 			system(self.srcdir + '/dbench ' + args)
 
