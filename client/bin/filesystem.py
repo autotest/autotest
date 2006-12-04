@@ -47,7 +47,10 @@ class filesystem:
 		"""
 		if list_mount_devices().count(self.device):
 			raise NameError('Attempted to format mounted device')
-		system("yes | mkfs -t %s %s" % (fstype, self.device))
+		args = ''
+		if fstype == 'xfs':
+			args = '-f'
+		system("yes | mkfs -t %s %s %s" % (fstype, args, self.device))
 
 
 	def fsck(self, args = ''):
