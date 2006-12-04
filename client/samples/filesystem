@@ -2,7 +2,7 @@
 # for you ...
 # fs = job.filesystem('/dev/hda2', job.tmpdir)
 
-for fstype in ('ext2', 'ext3'):
+for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
 	fs.mkfs(fstype)
 	fs.mount()
 	try:
