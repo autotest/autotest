@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # monitor_queue <client> <spool_directory> <resultsdir>
 import os, time, sys
+from subprocess import *
 
 if (len(sys.argv) < 4):
 	print "Usage: monitor_queue <client> <spool_directory> <resultsdir>"
@@ -22,14 +23,40 @@ def pick_job(jobs):
 	return sorted(jobs, key=lambda x:os.stat(x).st_mtime, reverse=True)[0]
 
 
+def run_job(control):
+	print "Executing job: " + next_job
+
+	# First set up some paths.
+	results = os.path.join(resultsdir, next_job)
+	if os.path.exists(results):
+		print "Resultsdir %s already present, " % results,
+		results = "%s.%d" % (results, int(time.time()))
+		print "changing to %s" % results
+	os.mkdir(results)
+	debug = os.path.join(results, 'debug')
+	os.mkdir(debug)
+
+	# Now run the job
+	runjob_cmd = ' '.join([runjob, client, next_job, results])
+	server_log = open(os.path.join(debug, 'server.log'), 'w');
+	p = Popen(runjob_cmd, shell=True, stdout=server_log, stderr=STDOUT)
+	ret = os.waitpid(p.pid, 0)
+	file.close(server_log)
+	return ret
+
+
 dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 runjob = os.path.join(dir, 'runjob')
+print "runjob set to: " + runjob
 os.chdir(spooldir)
 while True:
 	next_job = pick_job(os.listdir(spooldir))
 	if not next_job:
-		time.sleep(60)
+		time.sleep(10)
 		continue
-	results = os.path.join(resultsdir, next_job)
-	os.system(' '.join([runjob, client, next_job, results]))
+	ret = run_job(next_job)
+	if ret == 1:          # Ooops. the machine is stuffed.
+		print "WARNING: client %s failed verify_machine" % client
+		sleep(600)
+		continue
 	os.remove(next_job)
