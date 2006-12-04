@@ -80,7 +80,7 @@ class filesystem:
 			self.job.record("FAIL " + err)
 			raise NameError(err)
 		if self.fstype:
-			fstype = '-t self.fstype'
+			fstype = '-t ' + self.fstype
 		else:
 			fstype = ''
 		mount_cmd = "mount %s %s %s" % (fstype, self.device, mountpoint)
