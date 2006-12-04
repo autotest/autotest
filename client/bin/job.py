@@ -211,7 +211,7 @@ class job:
 	def filesystem(self, device, mountpoint = None):
 		if not mountpoint:
 			mountpoint = self.tmpdir
-		return filesystem.filesystem(device, mountpoint)
+		return filesystem.filesystem(self, device, mountpoint)
 
 
 	def reboot(self, tag='autotest'):

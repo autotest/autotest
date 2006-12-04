@@ -27,7 +27,7 @@ class filesystem:
 	Class for handling filesystems
 	"""
 
-	def __init__(self, device, mountpoint):
+	def __init__(self, job, device, mountpoint):
 		"""
 		device should be able to be a file as well
 		which we mount as loopback
@@ -39,6 +39,7 @@ class filesystem:
 		"""
 		self.device = device
 		self.mountpoint = mountpoint
+		self.job = job
 
 
 	def mkfs(self, fstype = 'ext2'):
@@ -50,7 +51,13 @@ class filesystem:
 		args = ''
 		if fstype == 'xfs':
 			args = '-f'
-		system("yes | mkfs -t %s %s %s" % (fstype, args, self.device))
+		mkfs = "mkfs -t %s %s %s" % (fstype, args, self.device)
+		try:
+			system("yes | " + mkfs)
+		except:
+			self.job.record("FAIL " + mkfs)
+		else:
+			self.job.record("GOOD " + mkfs)
 
 
 	def fsck(self, args = ''):
@@ -62,10 +69,21 @@ class filesystem:
 		if not mountpoint:
 			mountpoint = self.mountpoint
 		if list_mount_devices().count(self.device):
-			raise NameError('Attempted to mount mounted device')
+			err = 'Attempted to mount mounted device'
+			self.job.record("FAIL " + err)
+			raise NameError(err)
 		if list_mount_points().count(mountpoint):
-			raise NameError('Attempted to mount busy mountpoint')
-		system("mount %s %s" % (self.device, mountpoint))
+			err = 'Attempted to mount busy mountpoint'
+			self.job.record("FAIL " + err)
+			raise NameError(err)
+		mount_cmd = "mount %s %s" % (self.device, mountpoint)
+		try:
+			system(mount_cmd)
+		except:
+			self.job.record("FAIL " + mount_cmd)
+			raise
+		else:
+			self.job.record("GOOD " + mount_cmd)
 
 
 	def unmount(self, handle=None):
