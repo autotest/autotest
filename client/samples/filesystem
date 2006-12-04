@@ -2,6 +2,11 @@
 # for you ...
 # fs = job.filesystem('/dev/hda2', job.tmpdir)
 
+# dbench 1024, ltp, 1024-byte blocksize, a few other things.  Lots of fscking.
+# I haven't tested nobh mode yet, 
+# and I have yet to point run-bash-shared-mapping at it.
+# (different mount options for ext3)
+
 for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
 	fs.mkfs(fstype)
 	fs.mount()
