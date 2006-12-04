@@ -14,6 +14,13 @@ from subprocess import *
 # Stderr is what we're monitoring closely for status.
 # If the stderr stream gives us an EOF, the autotest-client exited
 
+# Return codes:
+# 0 - success
+# 1 - verify machine failed
+# 2 - execute job failed
+
+autodir = '/usr/local/autotest'            # default. changed by retrieve_config
+
 def parse_arguments():
 	# First parse arguments, do setup, etc.
 	if len(sys.argv) < 4:
@@ -23,16 +30,13 @@ def parse_arguments():
 	if not os.path.exists(control):
 		sys.stderr.write("Control file %s does not exist\n" % control)
 		sys.exit(1)
-	if os.path.exists(results):
-		raise "Results directory %s already exists\n" % results
 	return (client, control, results)
 
 
-def retrieve_config():
+def retrieve_config(client):
 	# Grab the autotest.conf file from the client, 
 	# so we can use config information
 	print "Retrieving autotest.conf from %s" % client
-	autodir = '/usr/local/autotest'
 	local_conf = "/tmp/autotest.conf.%d" % os.getpid()
 	if os.path.exists(local_conf):
 		system("rm -f %s" % local_conf)
@@ -41,12 +45,21 @@ def retrieve_config():
 	# Now to find out what $AUTODIR is on the client
 	# This is disgusting, but will have to do for now. 
 	# We can't source it (security nightmare)
+	global autodir
 	for line in open(local_conf, 'r').readlines():
 		dir = re.search(r'autodir=(\S+)', line).group(1)
 		if dir:
 			autodir = re.sub('[\'\"]', '', dir)
-	return autodir
+	print "autodir set to " + autodir
 
+
+def verify_machine(client):
+	autotest_bin = os.path.join(autodir, 'bin/autotest')
+	ret = os.system("ssh -q root@%s ls %s > /dev/null" % (client, autotest_bin))
+	if ret != 0:
+		return False
+	return True
+	
 
 def push_control(remote_control):
 	# Push the control file we want to sue to the client
@@ -60,12 +73,12 @@ def push_control(remote_control):
 def execute_section(client, autodir, remote_control, section):
 	print "Executing %s/bin/autotest %s/control phase %d" % \
 						(autodir, autodir, section)
-	log = open("%s/debug/log.%d" % (results, section), 'w')
+	client_log = open("%s/debug/client.log.%d" % (results, section), 'w')
 	if section > 0:
 		remote_control = '-c ' + remote_control
 	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
 					(client, autodir, remote_control)
-	for line in Popen(cmd, shell=True, stdout=log, stderr=PIPE).stderr:
+	for line in Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr:
 		print line,
 	return line
 
@@ -77,14 +90,14 @@ def execute_control(client, autodir, remote_control):
 		section += 1
 		if re.match('DONE', last):
 			print "Client complete"
-			return 0
+			return True
 		elif re.match('REBOOT', last):
 			print "Client is rebooting"
 			time.sleep(300)
 		else:
 			sys.stderr.write("Aborting - unknown return code: %s\n"\
 									 % last)
-			return 1
+			return False
 
 
 def retrieve_results(client, autodir, results):
@@ -96,12 +109,18 @@ def retrieve_results(client, autodir, results):
 
 # MAIN PROGRAM
 
+ret = 0
 (client, control, results) = parse_arguments()
-os.makedirs(results + "/debug")
+debug = os.path.join(results, 'debug')
+if not os.path.exists(debug):
+	os.makedirs(debug)
 
-autodir = retrieve_config()
+retrieve_config(client)
+if not verify_machine(client):
+	sys.exit(1)
 remote_control = "%s/control" % autodir
 push_control(remote_control)
-ret = execute_control(client, autodir, remote_control)
+if not execute_control(client, autodir, remote_control):
+	ret = 2
 retrieve_results(client, autodir, results)
 sys.exit(ret)
