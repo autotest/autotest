@@ -40,6 +40,7 @@ class filesystem:
 		self.device = device
 		self.mountpoint = mountpoint
 		self.job = job
+		self.fstype = None
 
 
 	def mkfs(self, fstype = 'ext2'):
@@ -58,6 +59,8 @@ class filesystem:
 			self.job.record("FAIL " + mkfs)
 		else:
 			self.job.record("GOOD " + mkfs)
+			self.fstype = fstype
+			
 
 
 	def fsck(self, args = ''):
@@ -76,7 +79,11 @@ class filesystem:
 			err = 'Attempted to mount busy mountpoint'
 			self.job.record("FAIL " + err)
 			raise NameError(err)
-		mount_cmd = "mount %s %s" % (self.device, mountpoint)
+		if self.fstype:
+			fstype = '-t self.fstype'
+		else:
+			fstype = ''
+		mount_cmd = "mount %s %s %s" % (fstype, self.device, mountpoint)
 		try:
 			system(mount_cmd)
 		except:
