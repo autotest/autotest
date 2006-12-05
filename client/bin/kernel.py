@@ -111,7 +111,7 @@ class kernel:
 
 	def config(self, config_file, config_list = None):
 		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
-		config = kernel_config.kernel_config(self.build_dir, self.config_dir, config_file, config_list)
+		config = kernel_config.kernel_config(self.job, self.build_dir, self.config_dir, config_file, config_list)
 		self.job.stdout.restore()
 
 
