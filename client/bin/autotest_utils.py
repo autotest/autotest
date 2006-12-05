@@ -281,6 +281,13 @@ def count_cpus():
 			cpus += 1
 	return cpus
 
+
+# Returns total memory in kb
+def memtotal():
+	memtotal = system_output('grep MemTotal /proc/meminfo')
+	return int(re.search(r'\d+', memtotal).group(0))
+
+
 def system(cmd, ignorestatus = 0):
 	"""os.system replacement
 
