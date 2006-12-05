@@ -53,17 +53,18 @@ class kernel_config:
 	orig_config = ''	# the original config file
 	over_config = ''	# config file + overrides
 
-	def __init__(self, job, build_dir, config_dir, orig_file, overrides):
+	def __init__(self, job, build_dir, config_dir, orig_file,
+						overrides, defconfig = False):
 		self.build_dir = build_dir
 		self.config_dir = config_dir
 
 		# 	1. Get original config file
 		self.build_config = build_dir + '/.config'
-		if (orig_file == ''):			# use user default
+		if (orig_file == '' and not defconfig):	# use user default
 			defconf = job.config_get("kernel.default_config")
 			if defconf:
 				orig_file = defconf
-		if (orig_file == ''):			# use defconfig
+		if (orig_file == '' or defconfig):	# use defconfig
 			os.chdir(build_dir)
 			system('make defconfig')
 		else:
