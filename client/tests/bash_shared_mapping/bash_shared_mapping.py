@@ -1,6 +1,6 @@
 import test
 from autotest_utils import *
-from subprocess import *
+import signal
 
 class bash_shared_mapping(test.test):
 	version = 3
@@ -23,12 +23,15 @@ class bash_shared_mapping(test.test):
 		kilobytes = 2 * memtotal()
 
 		# Want two usemem -m megabytes in parallel in background.
-		# Really need them to loop until they exit. then clean up.
-		usemem = "%s/usemem -m %d" % (self.srcdir, kilobytes / 1024)
-		Popen(usemem, shell=True)
-		Popen(usemem, shell=True)
+		pid = [None, None]
+		for i in (0,1):
+			usemem = os.path.join(self.srcdir, 'usemem')
+			args = ('usemem', '-N', '-m', '%d' % (kilobytes / 1024))
+			pid[i] = os.spawnv(os.P_NOWAIT, usemem, args)
 
 		cmd = "%s/bash-shared-mapping %s %d -t %d" % \
 				(self.srcdir, file, kilobytes, count_cpus())
-		Popen(cmd, shell=True)
+		os.system(cmd)
 
+		for i in (0,1):
+			os.kill(pid[i], signal.SIGKILL)
