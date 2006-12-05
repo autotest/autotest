@@ -82,13 +82,10 @@ def execute_section(client, autodir, remote_control, section):
 	# 	print line,
 	#	sys.stdout.flush()
 	f = Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr
-	line = f.readline()
-	while line:
-		last = line
+	for line in iter(f.readline, ''): 
 		print line,
 		sys.stdout.flush()
-		line = f.readline()
-	return last
+	return line
 
 
 def execute_control(client, autodir, remote_control):
