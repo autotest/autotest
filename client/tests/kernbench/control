@@ -1,1 +1,1 @@
-job.run_test('kernbench', 2, 5)
+job.run_test('kernbench', 2)
