@@ -19,8 +19,9 @@ class bash_shared_mapping(test.test):
 			testdir = self.tmpdir
 		os.chdir(testdir)
 		file = os.path.join(testdir, 'foo')
-		# Want to use twice total memsize
-		kilobytes = 2 * memtotal()
+		# Want to use 3/4 of all memory for each of 
+		# bash-shared-mapping and usemem
+		kilobytes = (3 * memtotal()) / 4
 
 		# Want two usemem -m megabytes in parallel in background.
 		pid = [None, None]
