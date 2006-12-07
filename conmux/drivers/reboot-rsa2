@@ -1,0 +1,91 @@
+#!/usr/bin/expect 
+#
+# reboot-rsa2 -- reboot systems via their RSA-II management cards
+#
+# Use a systems RSA (II) managment card to hard reset that system.
+#
+# usage: 
+#  reboot-rsa2 <userid> <password> <connect command> ...
+#
+# examples:
+#  reboot-rsa2 FOO BAR telnet 1.2.3.4 23
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Aileen Sheedy <asheedy@us.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "reboot-rsa2"
+
+if {[llength $argv] < 3} {
+	puts stderr "Usage: $P <username> <password> <cmd> ..."
+	exit 1
+}
+set username [lindex $argv 0]
+set password [lindex $argv 1]
+
+log_user 0
+#stty echo
+#log_file -a "$logfile"
+
+proc note {m} {
+	global P
+	puts "$P: $m"
+}
+proc warn {m} {
+	global P
+	puts "$P: WARNING: $m"
+}
+proc winge {m} {
+	global P
+	puts "$P: ERROR: $m"
+}
+
+set elapsed_time 0
+set timeout 10
+
+set command [lrange $argv 2 end]
+eval spawn [lrange $argv 2 end]
+
+note "Logging into service processor with command \"$command\" to restart it"
+
+expect {
+	"Connection closed by foreign host." {
+		winge "Telnet connection closed."
+		exit 1
+	}
+	"Unable to connect to remote host:" {
+		winge "Someone may already have the service processor"
+		exit 2
+	}
+	"username:" {
+		send "$username\r$password\r"
+	}
+	timeout {
+		winge "Never saw opening screen with \"username:\""
+		exit 2
+	}
+}
+
+expect {
+	"Invalid login!" {
+		winge "Invalid username or password"
+		exit 2
+	}
+	">" {
+		send "reset\r"
+	}
+}
+
+expect {
+	"ok" {
+		note "System restarting"
+		send "exit\r"
+		exit 0
+	}
+	timeout {
+	}
+}
+
+winge "an error occurred while restarting the server"
+exit 1

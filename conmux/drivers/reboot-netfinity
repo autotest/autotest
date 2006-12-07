@@ -1,0 +1,98 @@
+#!/usr/bin/expect -f
+#
+# reboot-netfinity -- reboot netfinity machines via their management port
+#
+# This expect script reboots a machine via a managemant port. 
+# It only works with the Netfinity-style Service Processors. 
+# They have a number-driven interface
+#
+# example machines: Netfinity 6000R, 8500R
+#                   xSeries x350, x370
+#
+# usage:
+#  reboot-netfinity <user> <password> <connect command> ...
+#
+# examples:
+#  reboot-netfinity USERID PASSW0RD telnet 1.2.3.4 7033 
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Dave Hansen <haveblue@us.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "reboot-netfinity"
+
+if {[llength $argv] < 2} {
+	puts stderr "Usage: $P <userid> <password> <cmd> ..."
+	exit 1
+}
+set argc [llength $argv]
+set userid [lindex $argv 0]
+set password [lindex $argv 1]
+set timeout 30 
+set send_slow {1 .1}
+
+set command [lrange $argv 2 end]
+
+puts "$P: Logging into service processor with command \"$command\" to restart it";
+
+eval spawn [lrange $argv 2 end]
+
+send -s -- "\033\033\033\033\033" 
+expect *;
+send "\033"
+
+expect {
+	#Log in
+	 "USER ID:" {
+		send -s -- "$userid\r"
+		expect -exact "PASSWORD:"
+		send -s -- "$password\r"
+		exp_continue;
+	}
+	#Some machines use different login prompts
+	"User_id:" {
+		send -s -- "$userid\r"
+		expect -exact "Password:"
+		send -s -- "$password\r"
+		exp_continue;
+	}
+	#already logged in
+	"Z - Start Remote Video" {
+		send "6"
+		expect -exact "4 - Power On"
+		send "3"
+		expect -exact "2 - Power Off Immediately"
+		send "2"
+		expect -exact "0 - Write"
+		send "0"
+		expect -exact "6.3.2: Write"
+		
+		send -s -- "\033\033\033\033\033"
+		expect -exact "Z - Start Remote Video"
+		send "6"
+		expect -exact "4 - Power On"
+		send "4"
+		expect -exact "2 - Power On Release CPU's Reset"
+		send "2"
+		expect -exact "0 - Write"
+		send "0"
+		expect -exact "6.4.2: Write"
+
+		# On kernels with ACPI support, the above may send an ACPI
+		# event to the OS to perform a clean shutdown.  If that happens
+		# we may not ever come back up.  Add the reboot command below
+		# to finish the job.
+		send -s -- "\033\033\033\033\033"
+		expect -exact "Z - Start Remote Video"
+		send "7"
+		expect -exact "4 - Restart SP"
+		send "2"
+		expect -exact "0 - Write"
+		send "0"
+		expect -exact "7.2: Write"
+	}
+
+}
+
+puts "$P: reboot initiated"

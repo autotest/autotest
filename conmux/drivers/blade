@@ -1,0 +1,234 @@
+#!/usr/bin/expect --
+#
+# blade -- console and management control for IBM blade servers.
+#
+# Obtain consoles for and hard reset support for blades in
+# IBM blade centres.  Blades are identified by their blade centre ids.
+#
+# usage:
+#  blade reboot|console <blade id> <user> <password> <connect command> ...
+#
+# example:
+#  blade reboot blade[4] FOO BAR telnet 1.2.3.4
+#  blade console blade[4] FOO BAR telnet 1.2.3.4
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "blade"
+
+if { [llength $argv] < 5 } {
+	puts stderr "Usage: $P <command> <blade> <login> <password> <connect command ...>"
+	exit 1
+}
+
+log_user 0
+
+set cmd			[lindex $argv 0]
+set system		[lindex $argv 1]
+set username		[lindex $argv 2]
+set password		[lindex $argv 3]
+set command		[lrange $argv 4 end]
+
+# Validate the command.
+switch -- $cmd {
+	console		{}
+	reboot		{}
+	default		{
+		puts stderr "$P: $cmd: unrecognised command";
+		exit 1
+	}
+}
+# Ensure the blade name is fully qualified.  This ensures that
+# the console prompt detection as reliable as possible.  Add the system
+# prefix if it was not specified.
+switch -re -- "$system" {
+	system:.*	{ }
+	.*		{ set system "system:$system" }
+}
+
+#log_file -a "$logfile"
+
+set elapsed_time 0
+set timeout 30
+
+proc note {m} {
+	global P
+	puts "$P: $m"
+}
+proc warn {m} {
+	global P
+	puts "$P: WARNING: $m"
+}
+proc winge {m} {
+	global P
+	puts "$P: ERROR: $m"
+}
+
+note "Logging into blade centre with command \"$command\" to restart it";
+
+# CONNECT: connect to the remote console.
+eval spawn $command
+expect {
+	default {
+		winge "login prompt not issued"
+		exit 2
+	}
+	"Connection closed by foreign host." {
+		winge "Telnet connection closed."
+		exit 1
+	}
+	"Unable to connect to remote host:" {
+		winge "Connection to remote console failed"
+		exit 2
+	}
+	"username:" {
+		#note "saw login prompt"
+	}
+}
+
+# AUTHENTICATE: send username and password at the relevant prompts
+note "sending login ..."
+send -- "$username\r"
+expect {
+	default {
+		winge "password prompt not issued"
+		exit 2
+	}
+	"password:" {
+		#note "password prompt found"
+	}
+}
+
+note "sending password ..."
+send -- "$password\r"
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	"Invalid login!"  {
+		winge "login/password incorrect ... aborting"
+		exit 1
+	}
+	-- "system>" {
+		#note "command prompt found"
+	}
+}
+
+# SYSTEM: first validate the system specifier, if it does not
+# exist get a listing and print that out whilst we are connected.
+note "selecting system '$system' ..."
+send "env -T $system\r"
+set found 0
+set prompt "$system>"
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	OK {
+		set found 1
+		exp_continue
+	}
+	-- "system>" {
+		#note "command prompt found"
+	}
+	-ex $prompt {
+		#note "command prompt found"
+	}
+}
+
+# The system the user specified was not found, give them a hand by
+# getting  a list of systems.
+if {$found == 0} {
+	note "Defined systems:"
+	send "list -l 2\r"
+	expect {
+		default {
+			winge "command prompt not issued"
+			exit 2
+		}
+		-- "system>" {
+			#note "command prompt found"
+		}
+		"\n$" {
+			puts -nonewline "$expect_out(buffer)"
+			exp_continue
+		}
+	}
+	note "complete ... exiting"
+	send "exit\r"
+	exit 1
+}
+
+# CONSOLE: open a console channel
+if {[string compare $cmd "console"] == 0} {
+	note "connecting to console ..."
+	send "console -o\r"
+	interact {
+		-o -ex $prompt {
+			return
+		}
+	}
+	winge "console lost"
+	exit 0
+}
+
+# Function to wait until the issued power command has taken effect.
+proc powerWait {s} {
+	global prompt
+	set ok 0
+	for {set retry 1} {$ok == 0 && $retry < 30} {incr retry} {
+		note "checking for power state $s ..."
+		after 2000
+		send "power -state\r"
+		expect {
+			default {
+				winge "command prompt not issued"
+				exit 2
+			}
+			-ex $s {
+				set ok 1
+				exp_continue
+			}
+			-ex "$prompt" {
+				#note "command prompt found"
+			}
+		}
+	}
+	if {$ok == 0} {
+		winge "system did not enter power $s state ... aborting"
+		exit 2
+	}
+}
+
+# DOWN: shut the system down ... hard.  Expect to OK before the 
+# prompt in the case of success.
+note "powering cycling the system ..."
+send "power -cycle\r"
+set fail 1
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	"OK" {
+		set fail 0
+		exp_continue
+	}
+	-ex "$prompt" {
+		#note "command prompt found"
+	}
+}
+if {$fail == 1} {
+	winge "power cycle failed ... system not rebooted"
+	exit 2
+}
+powerWait On
+
+note "complete ... exiting"
+send "exit"
+exit 0

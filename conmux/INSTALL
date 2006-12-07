@@ -1,0 +1,34 @@
+Prerequisites
+=============
+This package required the following perl modules to be installed:
+ o IO::Multiplex;
+	
+Debian Packages:
+ o libio-multiplex-perl
+
+Fedora Packages:
+ o perl-IO-Multiplex
+
+
+Building
+========
+To make and install this package to the default location
+(/usr/local/conmux):
+
+ # make install
+
+To an alternative location:
+
+ # make PREFIX=/usr/alt/conmux install
+
+To build for a specified prefix, but installed into a temporary tree:
+
+ # make PREFIX=/usr/alt/conmux BUILD=build/location install
+
+
+Legal
+=====
+(C) Copyright IBM Corp. 2004, 2005, 2006
+Author: Andy Whitcroft <andyw@uk.ibm.com>
+
+The Console Multiplexor is released under the GNU Public License V2

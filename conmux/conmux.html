@@ -1,0 +1,158 @@
+<html>
+<!--
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+-->
+<head>
+<title>conmux - the console multiplexor</title>
+<style type="text/css">
+.example        { white-space: pre; margin-left: 2em; margin-right: 2em;
+                  font-family: monospace }
+table.quote     { margin-left: 2em; margin-right: 2em }
+</style>
+</head>
+
+<body>
+<center>
+<h1>conmux - the console multiplexor</h1>
+</center>
+
+<p><em>conmux</em>, the console multiplexor is a system designed to abstract
+the concept of a console.  That is to provide a virtualised machine interface,
+including access to the console and the 'switches' on the front panel; the
+/dev/console stream and the reset button.  It creates the concept of a virtual
+console server for multiple consoles and provides access to and sharing of
+consoles connected to it.
+
+<p>There are two main motivations for wanting to do this.  Firstly, we have
+many different machine types with vastly differing access methodologies for
+their consoles and for control functions (VCS, HMC, Annex) and we neither want
+to know what they are nor how they function.  Secondly, most console sources
+are single access only and we would like to be able to share the console data
+between many consumers including users.
+
+<h2>Basic Usage</h2>
+
+<p>The main interface to the consoles is via the <code>console</code>
+program.  This connects us to the console server for the machine and allows us
+to interact with it, including issuing <i>out-of-band</i> commands to control
+the machine.
+
+<div class="example">$ console &lt;host&gt;/&lt;console&gt;
+</div>
+
+<p>In the example below  we indicate that the console we require is located on
+the virtual console server <code>consoles.here.com</code> and the
+specific console is <code>elm3b70</code>.
+
+<div class="example">$ console consoles.here.com/elm3b70
+Connected to elm3b70 console (~$quit to exit)
+
+Debian GNU/Linux 3.1 elm3b70 ttyS0
+
+elm3b70 login:
+</div>
+
+<p>Once connected we can interact normally with the console stream.  To
+perform front pannel operation such as peforming an <em>hard reset</em> we
+switch to command mode.  This is achieved using the escape sequence
+<code>~$</code>.  Nore the prompt <code>Command&gt;</code>
+
+<div class="example">elm3b70 login: <em>~$</em>
+Command&gt; quit
+Connection closed
+$
+</div>
+
+<h2>Command Summary</h2>
+
+<p>The following commands are generally available:
+
+<p><table class="quote" rules="all" frame="box">
+
+<tr><th>Command<th>Description</tr>
+
+<tr><td>quit<td>quit this console session, note that this disconnects us from
+the session it does not affect the integity of the session itself.</tr>
+
+<tr><td>hardreset<td>force a hard reset on the machine, this may be a simple
+reset or a power off/on sequence whatever is required by this system.</tr>
+
+</table>
+
+<h2>Architecture</h2>
+
+<p>The conmux provides a virtual console multiplexor system reminicent of
+an Annex terminal server.  You refer to the conmux <em>server</em> and
+<em>lines</em>, unlike an Annex lines are referred to by mnemonic names.
+Above we referred to the console for <code>elm3b70</code> 'connected to' the
+server <code>consoles.here.com</cond>.  A virtual console server consists
+of a number of server processes.  One <code>conmux-registry</code> server,
+several <code>conmux</code> servers and optionally several <em>helper</em>
+processes.
+
+<p><code>conmux-registry</code>: a server is defined by the server registry.
+This maintains the mnemonic name to current server location relation.  When
+a client wishes to attach to a console on a server, the registry is first
+queried to locate the server currently handling that console.
+
+<p><code>conmux</code>: for each connected console there is a corresponding
+console multiplexor.  This process is responsible for maintaining the
+connection to the console and for redistributing the output to the various
+connected clients.  It is also responsible for handling "panel" commands
+from the client channels.
+
+<p><code>autoboot-helper</code>: an example helper which aids systems which
+are not capable of an automatic reboot.  It connects to a console and watches
+for tell-tale reboot activity, preforming a "panel" <em>hardreset</em> when
+required.  This provides the impression of seamless reboot for systems
+which this does not work.
+
+<h2>Configuration</h2>
+
+<h3>conmux-registry</h3>
+
+<p>Configuration of this service is very simple.  Supplying the default
+registry port (normally 63000) and the location for the persistant registry
+database.
+
+<h3>conmux</h3>
+
+<p>Configuration of each conmux is complex.  Each has a listener, payload
+and optionally one or more panel commands.  Configuration is provided via
+a per console configuration file.  This file consists of lines defining each
+element:
+
+<p><code>listener &lt;server&gt;/&lt;name&gt;</code>:
+defines the name of this console port as it appears in the registry.
+
+<p><code>socket &lt;name&gt; &lt;title&gt; &lt;host&gt;:&lt;port&gt;</code>: 
+defines a console payload connected to a tcp socket on the network.
+<code>name</code> defines this payload within the multiplexor,
+<code>title</code> is announced to the connecting clients.
+
+<p><code>application &lt;name&gt; &lt;title&gt; &lt;cmd&gt;</code>:
+defines a console payload which is accessed by running a specific command.
+<code>name</code> defines this payload within the multiplexor,
+<code>title</code> is announced to the connecting clients.
+
+<p><code>command &lt;panel&gt; &lt;message&gt; &lt;cmd&gt;</code>:
+defines a panel command for the preceeding payload, triggerd when
+<code>panel</code> is typed at the command prompt.  <code>message</code>
+is announced to the user community.  <code>cmd</cmd> will be actually
+executed.
+
+<p>For example here is the configuration for a NUMA-Q system which is rebooted
+using a remote VCS console and for which the real console channel is
+on an Annex terminal server:
+
+<div class="example">listener localhost/elm3b130
+socket console 'elm3b130 console' console.server.here.com:2040
+  command 'hardreset' 'initated a hard reset' \
+      './reboot-numaq vcs 1.2.3.4 elm3b130 12346 Administrator password'
+</div>
+
+</body>
+</html>

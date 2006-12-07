@@ -1,0 +1,11 @@
+EXAMPLES
+========
+This directory contains some sample configuration files for conmux.
+
+socket.cf -- where the console is exposed directly on a tcp port on
+  the local network.
+
+command.cf -- where the console is obtained through a driver.
+
+Details on the command line options for each driver are in the
+comments at the top of the driver.
