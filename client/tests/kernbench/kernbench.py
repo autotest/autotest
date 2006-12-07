@@ -10,7 +10,7 @@ class kernbench(test.test):
 			tarball = self.bindir + '/linux-2.6.14.tar.bz2'
 		else:
 			tarball = '/usr/local/src/linux-2.6.14.tar.bz2'
-		kernel = self.job.kernel(tarball, self.tmpdir)
+		kernel = self.job.kernel(tarball, self.tmpdir, self.srcdir)
 		kernel.config(defconfig=True)
 		# have to save this off, as we might use it in another run
 		kernel.pickle_dump(self.srcdir + '/.pickle')
@@ -18,6 +18,7 @@ class kernbench(test.test):
 
 	def execute(self, iterations = 1, threads = 2 * count_cpus()):
 		kernel = pickle.load(open(self.srcdir + '/.pickle', 'r'))
+		kernel.job = self.job
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
 		kernel.build_timed(threads)         # warmup run
