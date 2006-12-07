@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+read name major minor patch build <.version
+alien --version=$major.$minor.$patch --description="console multiplexor" conmux.tgz

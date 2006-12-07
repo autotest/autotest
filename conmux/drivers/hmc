@@ -1,0 +1,597 @@
+#!/usr/bin/expect --
+#
+# hmc -- handle consoles and rebooting of HMC based systems
+#
+# Allow connecting to the console of and rebooting of HMC connected
+# machines.  Machines are identified by the HMC IP address, connected
+# system name, and partition name.
+#
+# usage:
+#  hmc open-term|reboot -h <hmc IP> -m <system> -p <partition> \
+#	-U <user> -P <password> -V <hmc version>
+#
+# example:
+#  hmc open-term -m elm3b70 -p FullSystemPartition -U hscroot -P passwd \
+#	-V 2.6 -h 1.2.3.4 
+#  hmc reboot -m elm3b70 -p FullSystemPartition -U hscroot -P passwd \
+#	-V 2.6 -h 1.2.3.4
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "hmc"
+
+# See interactions.
+log_user 0
+#exp_internal 1
+
+proc note {m} {
+	global P
+	puts "$P: $m"
+}
+proc warn {m} {
+	global P
+	puts "$P: WARNING: $m"
+}
+proc winge {m} {
+	global P
+	puts "$P: MACHINE ERROR: $m"
+}
+
+#
+# OPTIONS: options parser.
+#
+proc shift {_list} {
+	upvar $_list list
+
+	set res [lindex $list 0]
+	set list [lreplace $list 0 0]
+
+	return $res
+}
+proc arg {_list arg} {
+	upvar $_list list
+
+	if {[llength $list] < 1} {
+		winge "$arg: required argument missing"
+		exit 1
+	}
+	
+	return [shift list]
+}
+
+set user		{hscroot}
+set host		{}
+set system		{}
+set lpar		{}
+set profile		{default}
+set mode		{norm}
+set passwd		{}
+set version		{}
+
+set cmd [lindex $argv 0]
+shift argv
+while {[llength $argv] > 0} {
+	switch -- [shift argv] {
+		-h	{ set host [arg argv h]}
+		hmc	{ set host [arg argv h]}
+		-m	{ set system [arg argv m]}
+		-l   	{ set lpar [arg argv l]}
+		-p   	{ set lpar [arg argv p]}
+		-f   	{ set profile [arg argv f]}
+		-b   	{ set mode [arg argv b]}
+		-U	{ set user [arg argv P]}
+		-P	{ set passwd [arg argv P]}
+		-V	{ set version [arg argv P]}
+	}
+}
+
+if {[llength $argv] > 0} {
+	puts stderr "Usage: $P <cmd> -h <hmc> -m <system> -p <lpar> -f <profile> -b <mode>"
+	exit 1
+}
+if {[string compare $host ""] == 0 ||
+    [string compare $system ""] == 0 ||
+    [string compare $lpar ""] == 0} \
+{
+	winge "hmc (-h), machine (-m) and lpar (-p) required"
+	exit 1
+}
+
+set prompt		{___EOF___HMC___EOF___}
+set hscpath		{/opt/hsc/bin}
+
+#log_file -a "$logfile"
+
+set elapsed_time 0
+set timeout 30
+
+# Ensure we have a terminal so we don't get prompted for one.
+if {![info exists env(TERM)]} {
+	set env(TERM) {vt100}
+}
+
+# If we have a password don't use any ssh-keys we may have been offered.
+if {[string compare $passwd ""] == 0} {
+	set command "ssh $env(SSH_OPTIONS) $user@$host"
+} else {
+	set command "ssh $user@$host"
+}
+
+# CONNECT: connect to the remote console.  Set the prompt up so we
+#          know when a command we execute has completed.
+note "Logging into HMC console with command \"$command\" ..."
+eval spawn $command
+send "PS1=$prompt\r"
+expect {
+	"password:" {
+		if {[string compare $passwd ""] == 0} {
+			winge "$host: requesting password - not hacked"
+			exit 2
+		}
+		send "$passwd\r"
+		after 500
+		send "PS1=$prompt\r"
+		exp_continue
+	}
+	"Connection timed out" {
+		winge "$host: cannot connect to console"
+		exit 2
+	}
+	"Name or service not known" {
+		winge "$host: HMC name invalid"
+		exit 1
+	}
+	"Permission denied" {
+		winge "$host: authentication failure, permission denied"
+		exit 2
+	}
+	timeout {
+		winge "$host: HMC did not prompt us, timed out"
+		exit 2
+	}
+	eof {
+		winge "$host: HMC disconnected without prompting"
+		exit 2
+	}
+
+	"Terminal type?" {
+		send "vt100\r"
+		send "PS1=$prompt\r"
+		exp_continue
+	}
+
+	"PS1=$prompt" {
+		# Ignore us typing the change to the prompt.
+		exp_continue
+	}
+	"$prompt" {
+		# Prompt see, we are in and working, drop out.
+		## note "prompt seen"
+	}
+
+	-re "^\[^\n]*\n" {
+		# We need to absorb any login information, motd etc.
+		## puts "NOISE<$expect_out(buffer)>"
+		exp_continue
+	}
+}
+
+proc runit {cmd _out} {
+	upvar $_out out
+
+	global prompt
+
+	send "$cmd"
+
+	set text ""
+	set line 0
+
+	set timeout 120
+	expect {
+		
+		-re "^\[^\n]*\n" {
+			##note "LINE: $expect_out(buffer)"
+			if { $line > 0 } {
+				append text $expect_out(buffer)
+			}
+			incr line
+			exp_continue
+		}
+
+		-re "$prompt" {
+			##note "prompt seen"
+		}
+
+		timeout {
+			set out "hmc: command timeout"
+			return 255
+		}
+	}
+	set out [string trimright $text]
+
+	send "echo \$?\r"
+	set text ""
+	set line 0
+	set timeout 30
+	expect {
+		-re "^\[^\n]*\n" {
+			##note "LINE: $expect_out(buffer)"
+			if { $line > 0 } {
+				append text $expect_out(buffer)
+			}
+			incr line
+			exp_continue
+		}
+
+		-re "$prompt" {
+			##note "prompt seen"
+		}
+
+		timeout {
+			set out "hmc: command status timeout"
+			return 255
+		}
+	}
+	##note "EXIT: $text"
+
+	return [string trimright $text]
+}
+
+proc extract_names {out} {
+	set res {}
+	foreach sys [split $out] {
+		if {[string compare $sys ""] != 0} {
+			lappend res $sys
+		}
+	}
+
+	return $res
+}
+
+# Find out the current version of the HMC software.
+if {[string compare $version ""] == 0} {
+	runit "rpm -q IBMhsc.coreserver --qf '%{VERSION}'; echo ''\r" version
+}
+if {[string compare $version ""] == 0} {
+	winge "unable to obtain HMC code version"
+	exit 1
+}
+note "HMC revision v$version"
+
+# Based on the version of the HMC software select payload.
+if {$version < 4.0} {
+	#
+	# VERSION 2.6/3.0 specific support.
+	#
+	proc system_list {} {
+		global hscpath
+
+		# Ask for a list of systems.
+		if {[runit "lssyscfg -r sys --all -F name\r" out] != 0} {
+			winge "unable to obtain list of systems"
+			exit 1
+		}
+
+		return [extract_names $out]
+	}
+	proc system_state {system} {
+		global hscpath
+
+		# Ask for the system status.
+		if {[runit "lssyscfg -r sys -n $system -F state\r" out] != 0} {
+			winge "$system: failed to get status"
+			exit 1
+		}
+
+		return $out
+	}
+	proc lpar_list {system} {
+		global hscpath
+
+		# Ask for a list of lpars for this system.
+		if {[runit "lssyscfg -r lpar -m $system --all -F name\r" out] != 0} {
+			winge "unable to obtain list of lpars"
+			exit 1
+		}
+
+		return [extract_names $out]
+	}
+	proc state {system lpar} {
+		global hscpath
+
+		# Ask for the lpar status.
+		if {[runit "lssyscfg -r lpar -m $system -n $lpar -F state\r" out] != 0} {
+			winge "$system/$lpar: failed to get lpar status"
+			exit 1
+		}
+
+		return $out
+	}
+	proc reboot_metal {system lpar profile mode} {
+		global hscpath
+
+		# If we have no connection wait for the machine to appear.
+		# XXX: timeout?
+		set was {}
+		set when [clock seconds]
+		if {[string compare [system_state $system] "Ready"] != 0} {
+			while {([clock seconds] - $when) < 60} {
+				sleep 15
+				set state [system_state $system]
+				
+				note "waiting for stable connected state ($state)"
+				if {$state != $was || [string compare $state "No Connection"] == 0} {
+					set was $state
+					set when [clock seconds]
+				}
+			}
+		}
+
+		# See if the system is is in Error, if so attempt to
+		# power it on.
+		if {[string compare [system_state $system] "Error"] == 0} {
+			note "starting full system (from Error)"
+			if {[runit "chsysstate -r sys -m $system -n $system -b $mode -o on -c full\r" out] == 0} {
+				note "started"
+				return
+			}
+			note "start failed - attempting shutdown"
+		}
+
+		# See if the system is up, if so shut it down.
+		if {[string compare [system_state $system] "No Power"] != 0} {
+			note "shutting down full system"
+			if {[runit "chsysstate -r sys -m $system -n $system -o off -c full\r" out] != 0} {
+				winge "$system: power off failed\n$out"
+				exit 2
+			}
+		}
+
+		while {[string compare [system_state $system] "No Power"] != 0} {
+			note "waiting for shutdown"
+			sleep 15
+		}
+
+		note "starting full system"
+		if {[runit "chsysstate -r sys -m $system -n $system -b $mode -o on -c full\r" out] != 0} {
+			winge "$system: power on failed"
+			exit 2
+		}
+		note "started"
+	}
+	proc reboot {system lpar profile mode} {
+		global hscpath
+
+		# Handle the bare metal separatly.
+		if {[string compare $lpar "FullSystemPartition"] == 0} {
+			return [reboot_metal $system $lpar $profile $mode]
+		}
+
+		# Partitions in Error state are tricky, you _may_ either
+		# have to shut them down and then start them, or you may
+		# just have to start them.  So, if we are in Error start
+		# the partition, if it fails we can just drop through
+		# to the regular stop/start cycle.
+		if {[string compare [state $system $lpar] "Error"] == 0} {
+			note "starting lpar (from Error)"
+			if {[runit "chsysstate -r lpar -m $system -n $lpar -b $mode -o on\r" out] == 0} {
+				note "started"
+				return
+			}
+			note "start failed - attempting shutdown"
+		}
+
+		# See if the lpar is up, if so shut it down.
+		if {[string compare [state $system $lpar] "Ready"] != 0} {
+			note "shutting down lpar"
+			if {[runit "chsysstate -r lpar -m $system -n $lpar -o off\r" out] != 0} {
+				winge "$system/$lpar: power off failed\n$out"
+				exit 2
+			}
+		}
+
+		while {[string compare [state $system $lpar] "Ready"] != 0} {
+			note "waiting for shutdown"
+			sleep 15
+		}
+
+		note "starting lpar"
+		if {[runit "chsysstate -r lpar -m $system -n $lpar -b $mode -o on\r" out] != 0} {
+			winge "$system/$lpar: power on failed\n$out"
+			exit 2
+		}
+		note "started"
+	}
+
+}
+
+if {$version >= 4.0} {
+	#
+	# VERSION 4.x specific support.
+	#
+	proc system_list {} {
+		global hscpath
+
+		# Ask for a list of systems.
+		if {[runit "lssyscfg -r sys -F name\r" out] != 0} {
+			winge "unable to obtain list of systems"
+			exit 1
+		}
+
+		return [extract_names $out]
+	}
+	proc system_state {system} {
+		global hscpath
+
+		# Ask for the system status.
+		if {[runit "lssyscfg -r sys -m $system -F state\r" out] != 0} {
+			winge "$system: failed to get system status"
+			exit 1
+		}
+
+		return $out
+	}
+	proc lpar_list {system} {
+		global hscpath
+
+		# Ask for a list of lpars for this system.
+		if {[runit "lssyscfg -r lpar -m $system -F name\r" out] != 0} {
+			winge "unable to obtain list of lpars"
+			exit 1
+		}
+
+		return [extract_names $out]
+	}
+	proc state {system lpar} {
+		global hscpath
+
+		# Ask for the lpar status.
+		if {[runit "lssyscfg -r lpar -m $system --filter lpar_names=$lpar -F state\r" out] != 0} {
+			winge "$system/$lpar: failed to get lpar status"
+			exit 1
+		}
+
+		return $out
+	}
+
+	proc reboot {system lpar profile mode} {
+		global hscpath
+
+		# Partitions in Error state are tricky, you _may_ either
+		# have to shut them down and then start them, or you may
+		# just have to start them.  So, if we are in Error start
+		# the partition, if it fails we can just drop through
+		# to the regular stop/start cycle.
+		if {[string compare [state $system $lpar] "Error"] == 0} {
+			note "starting lpar (from Error)"
+			if {[runit "chsysstate -r lpar -m $system -n $lpar -f $profile -b $mode -o on\r" out] == 0} {
+				note "started"
+				return
+			}
+			note "start failed - attempting shutdown"
+		}
+				
+		# See if the lpar is up, if so shut it down.
+		if {[string compare [state $system $lpar] "Not Activated"] != 0} {
+			note "shutting down lpar"
+			if {[runit "chsysstate -r lpar -m $system -n $lpar -o shutdown --immed\r" out] != 0} {
+				winge "$system/$lpar: power off failed\n$out"
+				exit 2
+			}
+		}
+
+		while {[string compare [state $system $lpar] "Not Activated"] != 0} {
+			note "waiting for shutdown"
+			sleep 15
+		}
+
+		note "starting lpar"
+		if {[runit "chsysstate -r lpar -m $system -n $lpar -f $profile -b $mode -o on\r" out] != 0} {
+			winge "$system/$lpar: power on failed\n$out"
+			exit 2
+		}
+		note "started"
+	}
+}
+
+#
+# VERSION: common
+#
+proc open-term {system lpar} {
+	global prompt
+	global hscpath
+	global spawn_id
+
+	note "opening console ..."
+	send "ulimit -t 3600; \[ -f cleandown ] && sudo /home/hscroot/cleandown $system $lpar; mkvterm -m $system -p $lpar\r"
+	expect {
+		"NVTS" { }
+		"Open in progress.." { }
+		"$prompt" {
+			winge "$system/$lpar: open console failed"
+			exit 2
+		}
+	}
+
+	note "console open"
+	interact {
+		-i $spawn_id
+		" Connection has closed" {
+			winge "$system/$lpar: console connection closed"
+			exit 2
+		}
+		{Error in communication path to the partition} {
+			winge "$system/$lpar: lost contact with lpar"
+			exit 2
+		}
+		"$prompt" {
+			winge "$system/$lpar: open console failed"
+			exit 2
+		}
+		eof {
+			winge "$system/$lpar: payload lost"
+			exit 2
+		}
+		\000 {
+		}
+			
+	}
+	note "console closed"
+}
+
+proc close-term {system lpar} {
+	global hscpath
+
+	note "closing console ..."
+	if {[runit "rmvterm -m $system -p $lpar\r" out] != 0} {
+		winge "$system/$lpar: close console failed"
+		exit 2
+	}
+}
+
+# Look and see if this system exists.
+set systems [system_list]
+if {[lsearch -exact $systems $system] < 0} {
+	winge "$system: system not known; console knows: $systems"
+	exit 1
+}
+set lpars [lpar_list $system]
+if {[lsearch -exact $lpars $lpar] < 0} {
+	winge "$system/$lpar: lpar not known; console knows: $lpars"
+	exit 1
+}
+
+# Check for system in Operating/Ready.
+set state [system_state $system]
+if {[string compare $lpar "FullSystemPartition"] != 0 &&
+    [string compare $state "Operating"] != 0 &&
+    [string compare $state "Ready"] != 0} \
+{
+	winge "$system: unusable - $state"
+	exit 1
+}
+
+# Ask for the lpar status, to see if it exists.
+set lstate [state $system $lpar]
+note "$system/$lpar: found ($state/$lstate)"
+
+#
+# COMMANDS: command.
+#
+switch -- $cmd {
+	{open-term}	{
+		close-term $system $lpar
+		open-term $system $lpar
+	}
+	{close-term}	{
+		close-term $system $lpar
+	}
+	{reboot}	{
+		reboot $system $lpar $profile $mode
+	}
+}
+
+exit 0

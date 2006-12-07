@@ -1,0 +1,192 @@
+#!/usr/bin/perl
+#
+# console <host>/<machine> -- interactive client interface
+#
+# The main interactive client interace to conmux.  Allows direct
+# interaction with the payload, as well as allowing break out
+# to the conmux menu to envoke defined commands; for example
+# hardreset.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+$| = 1;
+
+our $P = 'console';
+
+use IO::Socket;
+use IO::Multiplex;
+use Getopt::Long qw(:config no_auto_abbrev);
+
+my $CONMUX = '/usr/local/conmux';
+my $CONMUX = $ENV{'CONMUX_ROOT'} if ($ENV{'CONMUX_ROOT'});
+
+# Find our internal libraries.
+###my $lib = $0; $lib =~ s@/[^/]+$@@;
+###push(@INC, $lib);
+###require Conmux;
+##use lib ".";
+##use Conmux;
+use lib "/usr/local/conmux/lib";
+use Conmux;
+
+# Basic terminal handling.
+sub termRaw {
+	$termSettings = `stty -g`;
+	system "stty raw -echo opost onlret";
+}
+sub termRestore {
+	system "stty $termSettings";
+}
+
+my $bot;
+my $list;
+my $status;
+GetOptions(
+        'b|bot=s'	=> \$bot,
+	'l|list'	=> \$list,
+	's|status'	=> \$status,
+);
+sub usage {
+	warn "Usage: $P <service>\n";
+	warn "       $P <registry>/<service>\n";
+	warn "       $P <host>:<port>\n";
+	warn "       $P --status <service>\n";
+	die  "       $P --list [<registry>]\n";
+}
+
+my $id;
+if ($bot) {
+	$id = 'bot:' . $bot;
+} else {
+	$id = 'user:' . $ENV{'LOGNAME'};
+}
+
+#
+# MODE: registry list.
+#
+if ($list) {
+	if ($#ARGV == -1) {
+		print Conmux::Registry::list('-');
+
+	} elsif ($#ARGV == 0) {
+		print Conmux::Registry::list($ARGV[0]);
+
+	} else {
+		usage();
+	}
+	exit 0
+}
+
+#
+# COMMAND: payload status command
+#
+if ($status) {
+	usage() if ($#ARGV != 0);
+
+	my $sock;
+	eval {
+		$sock = Conmux::connect($ARGV[0]);
+	};
+	if ($@) {
+		print "unavailable\n";
+		exit 0
+	}
+	my %r = Conmux::sendCmd($sock, 'CONNECT', { 'id' => $id,
+		'to' => 'console', 'hide' => 1 });
+	if ($r{'status'} ne 'OK') {
+		print "unavailable\n";
+
+	} elsif ($r{'state'}) {
+		print "$r{'state'}\n";
+
+	} else {
+		print "unknown\n";
+	}
+	exit 0;
+}
+
+
+#
+# COMMAND: general payload connect.
+#
+if ($#ARGV != 0) {
+	usage();
+}
+
+# Create a multiplex object
+my $mux  = new IO::Multiplex;
+
+# Connect to the host/port specified on the command line,
+# or localhost:23
+my $sock = Conmux::connect($ARGV[0]);
+
+my %r = Conmux::sendCmd($sock, 'CONNECT', { 'id' => $id, 'to' => 'console' });
+die "$P: $ARGV[0]: connect failed - $r{'status'}\n" if ($r{'status'} ne 'OK');
+
+print "Connected to $r{'title'} (~\$quit to exit)\n";
+
+# OK, we are now connected ... add the relevant file handles to the mux
+$mux->add($sock);
+$mux->add(\*STDIN);
+# We want to buffer output to the terminal.  This prevents the program
+# from blocking if the user hits CTRL-S for example.
+$mux->add(\*STDOUT);
+
+# We're not object oriented, so just request callbacks to the
+# current package
+$mux->set_callback_object(__PACKAGE__);
+
+termRaw();
+
+# Enter the main mux loop.
+$mux->loop;
+
+# mux_input is called when input is available on one of
+# the descriptors.
+sub mux_input {
+	my $package = shift;
+	my $mux     = shift;
+	my $fh      = shift;
+	my $input   = shift;
+
+	# Figure out whence the input came, and send it on to the
+	# other place.
+	if ($fh == $sock) {
+		print STDOUT $$input;
+
+		# Remove the input from the input buffer.
+		$$input = '';
+	} else {
+		print $sock $$input;
+
+		# Remove the input from the input buffer.
+		$$input = '';
+##		while ($$input ne "") {
+##			# Check for an incomplete escape ... wait for more.
+##			if ($$input =~ /^~$/s) {
+##				return;
+##			}
+##			if ($$input =~ s/^~\$//s) {
+##				$mux->shutdown($sock, 1);
+##			}
+##			# Its not an escape ... pass it on.
+##			# Ship anything before that cannot be the escape.
+##			if ($$input =~ s/^(.[^~]*)(~|$)/\2/s) {
+##				print $sock $1;
+##			}
+##		}
+	}
+}
+
+# This gets called if the other end closes the connection.
+sub mux_eof {
+	print STDERR "Connection Closed\n";
+	termRestore();
+	exit;
+}
+sub mux_close {
+	print "CLOSE\n";
+}

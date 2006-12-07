@@ -1,0 +1,72 @@
+#! /usr/bin/expect
+#
+# autoboot-helper -- automatic boot helper
+#
+# Some machines have real issues rebooting.  This helper watches their
+# console output for the telltale signs of a reboot in progress.  When
+# spotted this triggers an automated 'manual' hardreset.  For use when
+# machines fail to reboot at the BIOS level.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "autoboot-numaq"
+log_user 0
+
+if {$argc != 0} {
+	puts stderr "Usage: $P"
+	exit 1
+}
+
+proc note {msg} {
+	global P
+	puts stderr "$P: $msg"
+}
+proc warn {msg} {
+	global P
+	puts stderr "$P: $msg"
+	puts "~\$msg $msg"
+}
+
+set timeout -1
+set likely 0
+expect_user {
+	{TEST;} {
+		warn "test trigger detected"
+		exp_continue
+	}
+	{Unmounting file systems} {
+		note "controlled reboot in progress ..."
+		set likely [clock seconds]
+		exp_continue
+	}
+	{Unmounting local filesystems...} {
+		note "controlled reboot in progress ..."
+		set likely [clock seconds]
+		exp_continue
+	}
+	-ex {***** REBOOT LINUX *****} {
+		note "fsck failure occured ..."
+		set likely [clock seconds]
+		exp_continue
+	}
+	{Restarting system.} {
+		if {$likely != 0} {
+			warn "shutdown complete, restart indicated"
+			puts "~\$hardreset"
+			set likely 0
+		} else {
+			warn "likely false positive"
+		}
+		exp_continue
+	}
+	"*\n" {
+		if {$likely > 0 && ([clock seconds] - $likely) > 60} {
+			warn "trigger timeout"
+			set likely 0
+		}
+		exp_continue
+	}
+}

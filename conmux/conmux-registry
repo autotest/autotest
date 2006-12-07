@@ -1,0 +1,282 @@
+#!/usr/bin/perl
+#
+# conmux-registry -- console name registry server
+#
+# Main registry server.  This server holds host/port assignments for
+# conmux daemons registering with it.  This allows users to specify
+# human names for their consoles and find the relevant conmux daemon.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+use strict;
+
+use Symbol qw(gensym);
+
+use IO::Socket;
+use IO::Multiplex;
+use URI::Escape;
+
+# Find our internal libraries.
+###my $lib = $0; $lib =~ s@/[^/]+$@@;
+###push(@INC, $lib);
+###require Conmux;
+##use lib ".";
+##use Conmux;
+use lib "/usr/local/conmux/lib";
+use Conmux;
+
+our $P = 'conmux-registry';
+our $debug = 0;
+
+#
+# LISTENER SOCKET: creates an intenet listener for new clients and
+# connects them to the junction provided.
+#
+package ListenerSocket;
+
+sub new {
+	my ($class, $mux, $port, $registry) = @_;
+	my $self = bless { 'mux' => $mux, 'registry' => $registry }, $class;
+
+	print "ListenerSocket::new [$self] mux<$mux> port<$port> " .
+		"registry<$registry>\n" if ($main::debug);
+
+	$self->initialise($mux, $port, $registry);
+
+	$self;
+}
+
+sub initialise {
+	my ($self, $mux, $port, $registry) = @_;
+	my ($sock);
+
+	print "ListenerSocket::initialise [$self] mux<$mux> port<$port> " .
+		"registry<$registry>\n" if ($main::debug);
+
+	# Create a listening socket and add it to the multiplexor.
+	my $sock = new IO::Socket::INET(Proto     => 'tcp',
+					LocalPort => $port,
+					Listen    => 4,
+					ReuseAddr => 1)
+		or die "socket: $@";
+
+	print "  adding $self $sock\n" if ($main::debug);
+	$mux->listen($sock);
+	$mux->set_callback_object($self, $sock);
+	$self->{'listener'} = $sock;
+}
+
+# Handle new connections by instantiating a new client class.
+sub mux_connection {
+	my ($self, $mux, $fh) = @_;
+	my ($client);
+
+	print "ListenerSocket::mux_connection [$self] mux<$mux> fh<$fh>\n"
+		if ($main::debug);
+
+	# Make a new client connection.
+	$client = Client->new($mux, $fh, $self->{'registry'});
+	print "  new connection $self $client\n" if ($main::debug);
+}
+
+sub DESTROY {
+	my ($self) = @_;
+
+	print "ListenerSocket::DESTROY [$self]\n" if ($main::debug);
+
+	close($self->{'listener'});
+}
+
+#
+# CLIENT: general client object, represents a remote client channel
+#
+package Client;
+
+sub new {
+	my ($class, $mux, $fh, $registry) = @_;
+	my $self = bless { 'mux' => $mux,
+			   'fh'  => $fh,
+			   'registry' => $registry }, $class;
+
+	print "Client::new [$self] mux<$mux> fh<$fh> registry<$registry>\n"
+		if ($main::debug);
+
+	$self->initialise($mux, $fh, $registry);
+
+	$self;
+}
+
+sub initialise {
+	my ($self, $mux, $fh, $registry) = @_;
+
+	print "Client::initialise [$self] mux<$mux> fh<$fh> " .
+		"registry<$registry>\n" if ($main::debug);
+
+	$mux->set_callback_object($self, $fh);
+}
+
+sub mux_input {
+	my ($self, $mux, $fh, $input) = @_;
+
+	print "Client::mux_input [$self] mux<$mux> fh<$fh> input<$$input>\n"
+		if ($main::debug);
+
+        while ($$input =~ s/^(.*?)\n//) {
+		my ($cmd, $args) = split(' ', $1, 2);
+		my (%args) = Conmux::decodeArgs($args);
+
+		my $reply = {
+			'status' => 'ENOSYS',
+		};
+
+		# Fill in the common results.
+		$reply->{'title'} = 'registry';
+
+		# Handle this command.
+		if ($cmd eq "LOOKUP") {
+			my $r = $self->{'registry'}->lookup($args{'service'});
+
+			if (defined $r) {
+				$reply->{'result'} = $r;
+				$reply->{'status'} = 'OK';
+
+			} else {
+				$reply->{'status'} = 'ENOENT entry not found';
+			}
+
+		} elsif ($cmd eq "ADD") {
+			$self->{'registry'}->add($args{'service'},
+				$args{'location'});
+			$reply->{'status'} = 'OK';
+
+		} elsif ($cmd eq "LIST") {
+			$reply->{'result'} = $self->{'registry'}->list();
+			$reply->{'status'} = 'OK';
+		}
+
+		$fh->write(Conmux::encodeArgs($reply) .  "\n");
+	}
+}
+sub mux_eof {
+	my ($self, $mux, $fh, $input) = @_;
+
+	print "Client::mux_eof [$self] mux<$mux> fh<$fh> input<$input>\n"
+		if ($main::debug);
+
+	# Handle any pending input, then remove myself.
+	$self->mux_input($mux, $fh, $input);
+
+	# Tell the multiplexor we no longer are using this channel.
+	$mux->shutdown($fh, 1);
+}
+sub mux_close {
+	my ($self, $mux, $fn) = @_;
+
+	print "Client::close [$self]\n" if ($main::debug);
+}
+
+sub DESTROY {
+	my ($self) = @_;
+
+	print "Client::DESTROY [$self]\n" if ($main::debug);
+}
+
+#
+# REGISTRY: registry elements.
+#
+package Registry;
+
+sub new {
+	my ($class, $store) = @_;
+	my $self = bless { 'store'  => $store }, $class;
+
+	my ($key, $val);
+
+	print "Registry::new [$self] store<$store>\n" if ($main::debug);
+
+	# Open the store and populate the keys.
+	open(S, '<', $store) || die "Registry::new: $store: open failed - $!\n";
+	while (<S>) {
+		chomp;
+
+		($key, $val) = split(' ', $_);
+
+		$self->{'key'}->{$key} = $val;
+	}
+	close(S);
+
+	$self;
+}
+
+sub add {
+	my ($self, $what, $where) = @_;
+
+	my ($key);
+
+	print "Registry::add [$self] what<$what> where<$where>\n"
+		if ($main::debug);
+
+	$self->{'key'}->{$what} = $where;
+
+	print "$what at $where\n";
+
+	if (open(S, '>', $self->{'store'} . '.new')) {
+		foreach $key (sort keys %{$self->{'key'}}) {
+			print S "$key $self->{'key'}->{$key}\n";
+		}
+		close(S);
+		rename $self->{'store'} . '.new', $self->{'store'};
+
+	} else {
+		warn "$P: $self->{'store'}.new: open failed - $!";
+	}
+}
+
+sub lookup {
+	my ($self, $what) = @_;
+
+	print "Registry::lookup [$self] what<$what>\n" if ($main::debug);
+
+	$self->{'key'}->{$what};
+}
+
+sub list {
+	my ($self) = @_;
+	my ($r, $key);
+
+	print "Registry::list [$self]\n" if ($main::debug);
+
+	foreach $key (sort keys %{$self->{'key'}}) {
+		$r .= "$key $self->{'key'}->{$key}\n";
+	}
+
+	$r;
+}
+
+#
+# MAIN: makes the IO multiplexor, listener and registry and stitches
+# them all together.
+#
+package main;
+
+# Usage checks.
+if ($#ARGV != 1) {
+	print STDERR "Usage: $P <local port> <store>\n";
+	exit 1
+}
+my ($lport, $store) = @ARGV;
+
+# Make a new multiplexer.
+my $mux  = new IO::Multiplex;
+
+# Make the registry object.
+my $registry = Registry->new($store);
+
+# Create the client listener socket.
+my $listener = ListenerSocket->new($mux, $lport, $registry);
+
+# Hand over to the multiplexor.
+$mux->loop;
