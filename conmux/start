@@ -1,0 +1,138 @@
+#! /bin/sh
+#
+# start -- start up configured conmux servers on this host.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+if [ -f ~/.gmm.conf ]; then
+	. ~/.gmm.conf
+fi
+CONMUX=${CONMUX:-/usr/local/conmux}
+
+cmd="start"
+if [ "$1" != "" ]; then
+	cmd="$1"
+fi
+
+PATH=$CONMUX/bin:$CONMUX/sbin:$CONMUX/lib/drivers:$CONMUX/lib/helpers:$PATH
+
+function start() {
+        typeset name="$1"
+        typeset pf="$CONMUX/log/$name.pid"
+
+        shift
+
+        # Determine whether it is already running ... if so leave it be.
+        if [ -f "$pf" ]; then
+                if kill -0 `cat "$pf"` 2>/dev/null; then
+                        return 1
+                fi
+        fi
+
+	echo "starting $name ..."
+        "$@" >"$CONMUX/log/$name.log" 2>&1 &
+        echo "$!" >"$pf"
+
+	return 0
+}
+function stop() {
+        typeset name="$1"
+        typeset pf="$CONMUX/log/$name.pid"
+
+	echo "stopping $name ..."
+        # Kill it and clear up
+        kill -HUP `cat "$pf"` 2>/dev/null
+	rm -f "$pf"
+}
+
+existing=""
+for i in $CONMUX/log/*.pid
+do
+	n=${i%.pid}
+	n=${n#$CONMUX/log/}
+
+	if [ "$n" != "*" ]; then
+		existing="$existing $n"
+	fi
+done
+
+if [ "$cmd" = "start" ]; then
+	autoboot=""
+	[ -f $CONMUX/etc/registry ] || touch $CONMUX/etc/registry
+	start registry $CONMUX/sbin/conmux-registry 63000 $CONMUX/etc/registry
+	if [ "$?" -eq 0 ]; then
+		sleep 1
+	fi
+	started="registry"
+	pause=0
+	for i in $CONMUX/etc/*.cf
+	do
+		n=${i%.cf}
+		n=${n#$CONMUX/etc/}
+
+		if [ "$n" != "*" ]; then
+			if [ -f "$CONMUX/log/$n.cf" ]; then
+				if ! cmp -s "$i" "$CONMUX/log/$n.cf"; then
+					stop $n
+				fi
+			fi
+			start $n $CONMUX/sbin/conmux $i
+			if [ "$?" -eq 0 ]; then
+				pause=1
+			fi
+			started="$started $n"
+
+			# Preserve the orginal configuration file.
+			cp "$i" "$CONMUX/log/$n.cf"
+
+			if grep -q TYPE:numaq "$i"; then
+				autoboot="$autoboot $n"
+			fi
+			for i in `grep FLAGS: "$i"`; do
+				case "$i" in
+				\#|FLAGS:)	;;
+				*)		autoboot="$autoboot $n/$i" ;;
+				esac
+			done
+		fi
+	done
+	if [ "$pause" -eq 1 ]; then
+		sleep 1
+	fi
+	for nh in $autoboot
+	do
+		name="${nh%/*}"
+		helper="${nh#*/}"
+
+		mn="${name#abat-}"
+		start $name-$helper-helper $CONMUX/bin/conmux-attach $mn $helper-helper
+		started="$started $name-$helper-helper"
+	done
+fi
+
+if [ "$cmd" = "start" -o "$cmd" = "stop" ]; then
+	for i in $existing
+	do
+		case " $started " in
+		*\ $i\ *)	;;
+		*)		stop "$i" ;;
+		esac
+	done
+fi
+
+if [ "$cmd" = "status" ]; then
+	for n in $existing
+	do
+		mn="${n#abat-}"
+		case "$n" in
+		registry|*-helper)
+			;;
+		*)
+			status=`console -s $mn`
+			echo "$mn $status"
+		esac
+	done
+fi

@@ -1,0 +1,99 @@
+#! /usr/bin/expect
+#
+# tickle-helper -- watch for reboots and 'tickle' the console during them
+#
+# Some consoles get broken when the machine reboots.  There are normally
+# fixed by trying to use them at or arround the reboot.  Watch for reboots
+# and initiate use of the console to trigger a drop/reconnect cycle.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "tickle-helper"
+log_user 0
+
+if {$argc != 0} {
+	puts stderr "Usage: $P"
+	exit 1
+}
+
+proc note {msg} {
+	global P
+	puts stderr "$P: $msg"
+}
+proc warn {msg} {
+	global P
+	puts stderr "$P: $msg"
+	puts "~\$msg $msg"
+}
+
+proc tickle {} {
+	set timeout 5
+	warn "tickling console ..."
+	puts ""
+	set now [clock seconds]
+	expect_user {
+		{blade: ERROR: console lost} {
+		}
+		{Elapsed time since release of system processors:} {
+		}
+		"*\n" {
+			if {([clock seconds] - $now) > 5} {
+				set now [clock seconds]
+				warn "tickling console ..."
+				puts ""
+			}
+			exp_continue
+		}
+		timeout {
+			set now [clock seconds]
+			warn "tickling console ..."
+			puts ""
+			exp_continue
+		}
+	}
+	set timeout -1
+	warn "tickle complete ..."
+}
+
+set timeout -1
+set likely 0
+expect_user {
+	{TEST;} {
+		warn "test trigger detected"
+		exp_continue
+	}
+	-re {Unmounting file systems|Unmounting local filesystems...} {
+		note "controlled reboot in progress ..."
+		set likely [clock seconds]
+		exp_continue
+	}
+	-ex {***** REBOOT LINUX *****} {
+		note "fsck failure occured ..."
+		set likely [clock seconds]
+		exp_continue
+	}
+	-re {HARDBOOT INITIATED|initated a hard reset} {
+		tickle
+		exp_continue
+	}
+	-re {Please stand by while rebooting the system|Restarting system} {
+		if {$likely != 0} {
+			warn "shutdown complete, restart indicated"
+			tickle
+			set likely 0
+		} else {
+			warn "likely false positive"
+		}
+		exp_continue
+	}
+	"*\n" {
+		if {$likely > 0 && ([clock seconds] - $likely) > 60} {
+			warn "trigger timeout"
+			set likely 0
+		}
+		exp_continue
+	}
+}

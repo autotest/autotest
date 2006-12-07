@@ -1,0 +1,224 @@
+#!/usr/bin/expect --
+#
+# reboot-numaq -- reboot Numa-Q systems connected to a VCS console
+#
+# Use the remote telnet managment interface on the VCS console to
+# hardreset systems.  Systems are identified by their system names
+# within VCS.
+#
+# usage: 
+#  reboot-numaq <type> <console IP> <system> <port> <userid> <password>
+#
+# examples:
+#  reboot-numaq vcs 1.2.3.4 hummer 12346 FOO BAR
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "reboot-numaq"
+
+if { [llength $argv] != 6 } {
+	puts stderr "Usage: reboot-numaq vcs <console addr> <system> <console port> <userid> <password>"
+	exit 1
+}
+
+log_user 0
+#stty echo
+set argc [llength $argv]
+set console_ip		[lindex $argv 1]
+set system		[lindex $argv 2]
+set console_port	[lindex $argv 3]
+set username		[lindex $argv 4]
+set password		[lindex $argv 5]
+
+#log_file -a "$logfile"
+
+set elapsed_time 0
+set timeout 30
+
+set command "telnet $console_ip $console_port"
+
+proc note {m} {
+	global P
+	puts "$P: $m"
+}
+proc warn {m} {
+	global P
+	puts "$P: WARNING: $m"
+}
+proc winge {m} {
+	global P
+	puts "$P: MACHINE ERROR: reboot failed - $m"
+}
+
+# CONNECT: connect to the remote console.
+note "Logging into VCS console with command \"$command\" to restart it"
+eval spawn $command
+expect {
+	default {
+		winge "login prompt not issued"
+		exit 2
+	}
+	"Connection closed by foreign host." {
+		winge "Telnet connection closed."
+		exit 1
+	}
+	"Unable to connect to remote host:" {
+		winge "Connection to remote console failed";
+		exit 2
+	}
+	"login:" {
+		note "saw login prompt"
+	}
+}
+
+# AUTHENTICATE: send username and password at the relevant prompts
+note "sending login ..."
+send -- "$username\r"
+expect {
+	default {
+		winge "password prompt not issued"
+		exit 2
+	}
+	"password:" {
+		note "password prompt found"
+	}
+}
+
+note "sending password ..."
+send -- "$password\r"
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	"Authentication Failed" {
+		winge "login/password incorrect ... aborting"
+		exit 1
+	}
+	-- "->" {
+		#note "command prompt found"
+	}
+}
+
+# SYSTEM: try and select the system, if the specified system does not
+# exist get a listing and print that out whilst we are connected.
+note "selecting system '$system' ..."
+send "cd $system\r"
+set found 1
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	-re "cd: path '.*' not found" {
+		winge "system not defined"
+		set found 0
+		exp_continue
+	}
+	-- "->" {
+		#note "command prompt found"
+	}
+}
+
+# The system the user specified was not found, give them a hand by
+# getting  a list of systems.
+if {$found == 0} {
+	note "Defined systems:"
+	send "sysdef -l\r"
+	expect {
+		default {
+			winge "command prompt not issued"
+			exit 2
+		}
+		-re "sysdef -l\r\n$" {
+			exp_continue
+		}
+		-- "->" {
+			#note "command prompt found"
+		}
+		"\n$" {
+			puts -nonewline "$expect_out(buffer)"
+			exp_continue
+		}
+	}
+	note "complete ... exiting"
+	send "exit\r"
+	exit 1
+}
+
+# DOWN: shut the system down ... hard.  Expect to see nothing before the 
+# prompt in the case of success.
+set timeout 65
+set fail 1
+for {set retry 1} {$fail == 1 && $retry <= 3} {incr retry} {
+	note "powering off the system ..."
+	send "power -f -t 60000 off\r"
+	set fail 0
+	expect {
+		default {
+			winge "command prompt not issued"
+			exit 2
+		}
+		-- "->" {
+			#note "command prompt found"
+		}
+		"*E*" {
+			warn "power off failed ... attempt $retry"
+			puts -nonewline "$expect_out(buffer)"
+			set fail 1
+			exp_continue
+		}
+	}
+}
+if {$fail == 1} {
+	winge "power off failed ... system not rebooted"
+	exit 2
+}
+set timeout 30
+
+# UP: power the system on ... and then ask it to boot.
+note "powering on the system ..."
+send "power on\r"
+set fail 0
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	-- "->" {
+		#note "command prompt found"
+	}
+	"*E*" {
+		warn "power on failed ..."
+		set fail 1
+		exp_continue
+	}
+}
+if {$fail == 1} {
+	winge "power off failed ... system not rebooted"
+	exit 2
+}
+
+note "booting the system ..."
+send "boot\r"
+expect {
+	default {
+		winge "command prompt not issued"
+		exit 2
+	}
+	-- "->" {
+		#note "command prompt found"
+	}
+	"*E*" {
+		warn "boot failed ..."
+		set fail 1
+		exp_continue
+	}
+}
+
+note "complete ... exiting"
+send "exit"
+exit 0

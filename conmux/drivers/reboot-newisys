@@ -1,0 +1,49 @@
+#!/usr/bin/expect -f
+#
+# reboot-newisys -- reboot a newisys system via its management interface
+#
+# This expect script reboots a newisys machine using its command
+# interface.  This is typically accessed over ssh.
+#
+# usage:
+#  reboot-newisys <user> <password> <connect command> ...
+#
+# examples:
+#  reboot-newisys USERID PASSW0RD ssh 1.2.3.4
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Daniel Sauble <djsauble@us.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "reboot-newisys"
+
+if {[llength $argv] != 4} {
+	puts stderr "Usage: $P <userid> <password> <type> <machine>"
+	exit 1
+}
+set userid [lindex $argv 0]
+set password [lindex $argv 1]
+set machine [lindex $argv 3]
+set timeout 30
+
+puts "$P: connecting to $machine to initiate reboot ..."
+
+# Log in
+eval spawn "ssh -o StrictHostKeyChecking=no $userid\@$machine"
+expect "password: "
+send -- "$password\r"
+expect "localhost \$ "
+send "platform get power state\r"
+
+# Check to see if the machine is on or off
+# then restart it
+expect {
+	"On" {send "platform set power state cycle -f\r"}
+	"Off" {send "platform set power state on -f\r"}
+}
+expect "localhost \$ "
+expect "localhost \$ "
+send "exit\r"
+
+puts "$P: reboot initated"

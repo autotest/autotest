@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+#
+# conmux-attach -- attach commands to the console
+#
+# Attach stand alone commands to a console stream.  You can specify
+# which of the commands file descriptors are connected to which of the
+# 'steams' in the multiplexor; the console input/output and the user
+# output.
+#
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+use IO::Socket;
+use Getopt::Long qw(:config no_auto_abbrev);
+
+# Find our internal libraries.
+###my $lib = $0; $lib =~ s@/[^/]+$@@;
+###push(@INC, $lib);
+###require Conmux;
+##use lib ".";
+##use Conmux;
+use lib "/usr/local/conmux/lib";
+use Conmux;
+
+my $P = 'conmux-attach';
+my ($in, $out, $err);
+
+# Usage.
+GetOptions(
+	'i|stdout=s'	=> \$in,
+	'o|stdin=s'	=> \$out,
+	'e|stderr=s'	=> \$err,
+	'b|bot=s'	=> \$bot,
+) or exit;
+
+if ($in eq '' && $out eq '' && $err eq '') {
+	$in = 'client';
+	$out = 'client';
+}
+
+if ($#ARGV < 1) {
+	print STDERR "$P: <host:port> <program> ...";
+	exit 1;
+}
+my ($mux, $app) = @ARGV;
+shift;
+$app =~ s@.*/@@; $app =~ s@\s.*$@@;
+$app = $bot if ($bot);
+
+#
+# Connect to the client channel.
+#
+sub conmux_connect {
+	my ($mux, $type) = @_;
+
+	if (!$cache{$mux, $type}) {
+		my $con = Conmux::connect($mux);
+		my %r = Conmux::sendCmd($con, 'CONNECT', {
+				'id' => 'bot:' . $app, 
+				'to' => 'console',
+				'type' => $type } );
+		die "$P: $mux: connect failed - $r{'status'}\n"
+			if ($r{'status'} ne "OK");
+
+		$cache{$mux, $type} = $con;
+	}
+
+	$cache{$mux, $type};
+}
+
+if ($in) {
+	my $to = conmux_connect($mux, $in);
+	open(STDIN, "<&", $to) ||
+		die "$P: unable to hand off socket to stdin - $!\n";
+}
+if ($out) {
+	my $to = conmux_connect($mux, $out);
+	open(STDOUT, ">&", $to) ||
+		die "$P: unable to hand off socket to stdout - $!\n";
+}
+if ($err) {
+	my $to = conmux_connect($mux, $err);
+	open(STDERR, ">&", $to) ||
+		die "$P: unable to hand off socket to stderr - $!\n";
+}
+exec @ARGV;

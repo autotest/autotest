@@ -1,0 +1,61 @@
+CONMUX -- Console Multiplexor
+=============================
+CONMUX is a console abstractor.  Presenting any console with a
+consistent location, naming and semantic.  Access to the console,
+and hardreset of the machine is the same regardless of the underlying
+access methodology.
+
+
+License
+-------
+See the COPYING file for details.
+
+
+Installation
+------------
+See the INSTALL file for details.
+
+
+Configuration
+-------------
+A console multiplexor is defined using a per instance configuration file.
+The standard startup scripts expect this to be in the ROOT/etc and have
+a .cf suffix.
+
+Below is an example configuration defining the console for a NUMA-Q:
+
+  $ cat kite.cf
+  # START:autoboot
+  listener kite
+  socket console 'kite console' console.server.here.com:6000
+    command 'hardreset' 'initated a hard reset' \
+      'conmux-attach -o status localhost/kite reboot-numaq vcs \
+       vcsconsole.server.here.com kite 12346 administrator passwd'
+  $ 
+
+These are connected to using the console command, using the symbolic console
+name:
+
+  $ console kite
+
+
+Automatic Startup
+-----------------
+See the start script for automated startup of console daemons.
+This script is designed to be used at system boot time out of
+/etc/init.d.
+
+
+Documentation and Examples
+--------------------------
+More detailed information on the workings of conmux can be found in
+'conmux.html'.  Example configuration files can be found in the
+'examples' directory.
+
+
+Legal
+-----
+(C) Copyright IBM Corp. 2004, 2005, 2006
+Author: Andy Whitcroft <andyw@uk.ibm.com>
+
+The Console Multiplexor is released under the GNU Public License V2

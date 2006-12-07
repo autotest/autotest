@@ -1,0 +1,4 @@
+listener hummer
+socket console 'hummer console' '1.2.3.4:2088'
+  command 'hardreset' 'initated a hard reset' 'reboot-numaq vcs 1.2.3.5 hummer 12346 user passwd'
+  help 'hardreset' 'initiate a system hard reset for this machine'

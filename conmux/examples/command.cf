@@ -1,0 +1,4 @@
+listener ppc64
+application console 'ppc64 console' 'hmc open-term -m bigppc -p bigppc-lpar1 -U user -P passwd -V 2.6 hmc 1.2.3.4'
+  command 'hardreset' 'initated a hard reset' 'hmc reboot -m bigppc -p bigppc-lpar1 -U user -P passwd -V 2.6 hmc 1.2.3.4'
+  help 'hardreset' 'initiate a system hard reset for this machine'
