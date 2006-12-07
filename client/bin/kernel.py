@@ -28,8 +28,6 @@ class kernel:
 			<results_dir>/results/
 	"""
 
-	autodir = ''
-
 	def __init__(self, job, base_tree, results_dir, tmp_dir, leave = False):
 		"""Initialize the kernel build environment
 
@@ -49,7 +47,7 @@ class kernel:
 			Boolean, whether to leave existing tmpdir or not
 		"""
 		self.job = job
-		autodir = job.autodir
+		self.autodir = job.autodir
 
 		self.src_dir    = os.path.join(tmp_dir, 'src')
 		self.build_dir  = os.path.join(tmp_dir, 'linux')
@@ -112,6 +110,7 @@ class kernel:
 	def config(self, config_file = '', config_list = None,
 							defconfig = False):
 		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
+		self.set_cross_cc()
 		config = kernel_config.kernel_config(self.job, self.build_dir,
 			 self.config_dir, config_file, config_list, defconfig)
 		self.job.stdout.restore()
@@ -210,6 +209,7 @@ class kernel:
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
 		"""time the bulding of the kernel"""
 		os.chdir(self.build_dir)
+		self.set_cross_cc()
 		print "make clean"
 		system('make clean')
 		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" % (timefile, make_opts, threads)
@@ -392,7 +392,7 @@ class kernel:
 
 		if self.target_arch:
 			return
-		
+
 		self.build_target = build_target
 		
 		# If no 'target_arch' given assume native compilation
@@ -401,7 +401,16 @@ class kernel:
 			if target_arch == 'ppc64':
 				if self.build_target == 'bzImage':
 					self.build_target = 'vmlinux'
-			
+
+		if not cross_compile:
+			cross_compile = self.job.config_get('kernel.cross_cc')
+
+		if cross_compile:
+			os.environ['CROSS_COMPILE'] = cross_compile
+		else:
+			if os.environ.has_key('CROSS_COMPILE'):
+				del os.environ['CROSS_COMPILE']
+	
 		return                 # HACK. Crap out for now.
 
 		# At this point I know what arch I *want* to build for
@@ -412,11 +421,11 @@ class kernel:
 	
 		if target_arch == 'ppc64':
 			install_package('ppc64-cross')
-			cross_compile = os.path.join(autodir, 'sources/ppc64-cross/bin')
+			cross_compile = os.path.join(self.autodir, 'sources/ppc64-cross/bin')
 
 		elif target_arch == 'x86_64':
 			install_package('x86_64-cross')
-			cross_compile = os.path.join(autodir, 'sources/x86_64-cross/bin')
+			cross_compile = os.path.join(self.autodir, 'sources/x86_64-cross/bin')
 
 		os.environ['ARCH'] = self.target_arch = target_arch
 
