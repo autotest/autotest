@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+#
+# Martin J. Bligh (mbligh@aracnet.com)
+
+$mindiff = 5;
+
+open (FILE1, shift(@ARGV)) || die;
+open (FILE2, shift(@ARGV)) || die;
+
+while (<FILE2>) {
+	/\s*(\d*)\s*(\S*)/;
+	$new{$2} = $1;
+	$diff{$2} = $1;
+}
+while (<FILE1>) {
+	/\s*(\d*)\s*(\S*)/;
+	$old{$2} = $1;
+	$diff{$2} -= $1;
+}
+foreach $key (sort bydiff (keys %diff)) {
+	$pct = 0;
+	$pct = 100 * ($diff{$key} / $old{$key}) if ($old{$key} > 0);
+	if ( ($diff{$key} > $mindiff) || ($diff{$key} < 0 - $mindiff) ) {
+		printf "%10s  %6.1f%% %s\n", $diff{$key}, $pct, $key;
+	}
+}
+
+sub bydiff { $diff{$b} <=> $diff{$a}; }
