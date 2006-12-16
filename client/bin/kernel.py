@@ -42,7 +42,7 @@ class kernel:
 		results_dir
 			Results directory (holds config/, debug/, results/)
 		tmp_dir
-			
+
 		leave
 			Boolean, whether to leave existing tmpdir or not
 		"""
@@ -71,7 +71,7 @@ class kernel:
 		logpath = os.path.join(self.log_dir, 'build_log')
 		self.logfile = open(logpath, 'w+')
 
- 		self.target_arch = None
+		self.target_arch = None
 		self.build_target = 'bzImage'
 
 		if leave:
@@ -84,7 +84,7 @@ class kernel:
 			args = self.job.config_get('mirror.ftp_kernel_org')
 			if args:
 				args = '-l ' + args
- 			base_components = kernelexpand(base_tree, args)
+			base_components = kernelexpand(base_tree, args)
 			print 'kernelexpand: '
 			print base_components
 			self.get_kernel_tree(base_components.pop(0))
@@ -126,7 +126,7 @@ class kernel:
 			local_patches.append(dest)
 		return local_patches
 
-	
+
 	def apply_patches(self, local_patches):
 		"""apply the list of patches, in order"""
 		builddir = self.build_dir
@@ -137,9 +137,9 @@ class kernel:
 		for patch in local_patches:
 			print 'Patching from', basename(patch), '...'
 			cat_file_to_cmd(patch, 'patch -p1 > /dev/null')
-	
-	
-  	def get_kernel_tree(self, base_tree):
+
+
+	def get_kernel_tree(self, base_tree):
 		"""Extract/link base_tree to self.build_dir"""
   
 		# if base_tree is a dir, assume uncompressed kernel
@@ -169,7 +169,7 @@ class kernel:
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
-	
+
 		make_opts
 			additional options to make, if any
 		"""
@@ -198,7 +198,7 @@ class kernel:
 
 		self.job.stdout.restore()
 		self.job.stderr.restore()
-		
+
 		kernel_version = self.get_kernel_build_ver()
 		kernel_version = re.sub('-autotest', '', kernel_version)
 		self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
@@ -244,7 +244,7 @@ class kernel:
 		if os.path.isfile(initrd):
 			print "Existing %s file, will remove it." % initrd
 			os.remove(initrd)
-			
+
 		if vendor in ['Red Hat', 'Fedora Core']:
 			system('mkinitrd %s %s' % (initrd, version))
 		elif vendor in ['SUSE']:
@@ -256,7 +256,7 @@ class kernel:
 	def install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
-		
+
 		if not os.path.isdir(prefix):
 			os.mkdir(prefix)
 		self.boot_dir = os.path.join(prefix, 'boot')
@@ -379,7 +379,7 @@ class kernel:
 			if line.startswith('CONFIG_LOCALVERSION='):
 				localversion = line.rstrip().split('"')[1]
 
-		return "%s.%s.%s%s%s" %(version, patchlevel, sublevel, extraversion, localversion)		
+		return "%s.%s.%s%s%s" %(version, patchlevel, sublevel, extraversion, localversion)
 
 
 	def set_cross_cc(self, target_arch=None, cross_compile=None,
@@ -394,7 +394,7 @@ class kernel:
 			return
 
 		self.build_target = build_target
-		
+
 		# If no 'target_arch' given assume native compilation
 		if target_arch == None:
 			target_arch = get_current_kernel_arch()
@@ -418,7 +418,7 @@ class kernel:
 		# compiler DOES build for.
 
 		# Oh, and BTW, install_package() doesn't exist yet.
-	
+
 		if target_arch == 'ppc64':
 			install_package('ppc64-cross')
 			cross_compile = os.path.join(self.autodir, 'sources/ppc64-cross/bin')
@@ -433,7 +433,7 @@ class kernel:
 		if self.cross_compile:
 			os.environ['CROSS_COMPILE'] = self.cross_compile
 
-	
+
 	def pickle_dump(self, filename):
 		"""dump a pickle of ourself out to the specified filename
 
