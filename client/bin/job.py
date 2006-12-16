@@ -17,12 +17,12 @@ class job:
 	"""The actual job against which we do everything.
 
 	Properties:
-		autodir		
+		autodir
 			The top level autotest directory (/usr/local/autotest).
 			Comes from os.environ['AUTODIR'].
-		bindir	
+		bindir
 			<autodir>/bin/
-		testdir	
+		testdir
 			<autodir>/tests/
 		profdir
 			<autodir>/profilers/
@@ -92,7 +92,7 @@ class job:
 		except:
 			pass
 
-		pwd = os.getcwd()	
+		pwd = os.getcwd()
 		os.chdir(self.resultdir + "/sysinfo")
 		system(self.bindir + '/sysinfo.py')
 		os.chdir(pwd)
@@ -135,7 +135,7 @@ class job:
 				i += 1
 		if not os.path.exists(results_dir):
 			os.mkdir(results_dir)
-				
+
 		return kernel.kernel(self, base_tree, results_dir, tmp_dir, leave)
 
 
@@ -155,17 +155,17 @@ class job:
 				system('./' + dep + '.py')
 			except: 
 				error = "setting up dependency " + dep + "\n"
-                       		raise UnhandledError(error)
+				raise UnhandledError(error)
 
 
-        def __runtest(self, url, tag, args, dargs):
-                try:
+	def __runtest(self, url, tag, args, dargs):
+		try:
 			test.runtest(self, url, tag, args, dargs)
-                except AutotestError:
-                        raise
-                except:
-                        raise UnhandledError('running test ' + \
-                                self.__class__.__name__ + "\n")
+		except AutotestError:
+			raise
+		except:
+			raise UnhandledError('running test ' + \
+				self.__class__.__name__ + "\n")
 
 
 	def runtest(self, tag, url, *args):
@@ -323,7 +323,7 @@ from autotest_utils import *
 def runjob(control, cont = False, tag = "default", harness_type = ''):
 	"""The main interface to this module
 
-	control	
+	control
 		The control file to use for this job.
 	cont
 		Whether this is the continuation of a previously started job
