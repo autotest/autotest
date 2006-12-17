@@ -1,0 +1,2 @@
+listener steerpike
+application console 'steerpike console' 'cu -l /dev/ttyS0 -s 57600 dir'
