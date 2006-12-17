@@ -28,7 +28,9 @@ class kernel:
 			<results_dir>/results/
 	"""
 
-	def __init__(self, job, base_tree, results_dir, tmp_dir, leave = False):
+	autodir = ''
+
+	def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir, leave = False):
 		"""Initialize the kernel build environment
 
 		job
@@ -50,7 +52,7 @@ class kernel:
 		self.autodir = job.autodir
 
 		self.src_dir    = os.path.join(tmp_dir, 'src')
-		self.build_dir  = os.path.join(tmp_dir, 'linux')
+		self.build_dir  = os.path.join(tmp_dir, build_dir)
 			# created by get_kernel_tree
 		self.config_dir = os.path.join(results_dir, 'config')
 		self.log_dir    = os.path.join(results_dir, 'debug')
@@ -73,6 +75,7 @@ class kernel:
 
 		self.target_arch = None
 		self.build_target = 'bzImage'
+		self.build_image = None
 
 		if leave:
 			return
@@ -253,6 +256,10 @@ class kernel:
 			raise TestError('Unsupported vendor %s' % vendor)
 
 
+	def set_build_image(self, image):
+		self.build_image = image
+
+
 	def install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
@@ -263,15 +270,16 @@ class kernel:
 		if not os.path.isdir(self.boot_dir):
 			os.mkdir(self.boot_dir)
 
-		images = glob.glob('arch/*/boot/' + self.build_target)
-		if len(images):
-			image = images[0]
-		else:
-			image = self.build_target
+		if not self.build_image:
+			images = glob.glob('arch/*/boot/' + self.build_target)
+			if len(images):
+				self.build_image = images[0]
+			else:
+				self.build_image = self.build_target
 
 		# remember installed files
 		self.vmlinux = self.boot_dir + '/vmlinux-' + tag
-		if (image != 'vmlinux'):
+		if (self.build_image != 'vmlinux'):
 			self.image = self.boot_dir + '/vmlinuz-' + tag
 		else:
 			self.image = self.vmlinux
@@ -281,8 +289,8 @@ class kernel:
 
 		# copy to boot dir
 		force_copy('vmlinux', self.vmlinux)
-		if (image != 'vmlinux'):
-			force_copy(image, self.image)
+		if (self.build_image != 'vmlinux'):
+			force_copy(self.build_image, self.image)
 		force_copy('System.map', self.system_map)
 		force_copy('.config', self.config)
 
@@ -382,6 +390,12 @@ class kernel:
 		return "%s.%s.%s%s%s" %(version, patchlevel, sublevel, extraversion, localversion)
 
 
+	def set_build_target(self, build_target):
+		if build_target:
+			self.build_target = build_target
+			print 'BUILD TARGET: %s' % self.build_target
+
+
 	def set_cross_cc(self, target_arch=None, cross_compile=None,
 			 build_target='bzImage'):
 		"""Set up to cross-compile.
@@ -393,7 +407,10 @@ class kernel:
 		if self.target_arch:
 			return
 
-		self.build_target = build_target
+		# if someone has set build_target, don't clobber in set_cross_cc
+		# run set_build_target before calling set_cross_cc
+		if not self.build_target:
+			self.set_build_target(build_target)
 
 		# If no 'target_arch' given assume native compilation
 		if target_arch == None:
