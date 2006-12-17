@@ -10,7 +10,7 @@ import os, sys, re, pickle, shutil
 # autotest stuff
 from autotest_utils import *
 from parallel import *
-import kernel, test, profilers, barrier, filesystem, fd_stack, boottool
+import kernel, xen, test, profilers, barrier, filesystem, fd_stack, boottool
 import harness, config
 
 class job:
@@ -111,9 +111,7 @@ class job:
 	def config_get(self, name):
 		return self.config.get(name)
 
-
-	def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
-		"""Summon a kernel object"""
+	def setup_dirs(self, results_dir, tmp_dir):
 		if not tmp_dir:
 			tmp_dir = self.tmpdir + '/build'
 		if not os.path.exists(tmp_dir):
@@ -136,7 +134,22 @@ class job:
 		if not os.path.exists(results_dir):
 			os.mkdir(results_dir)
 
-		return kernel.kernel(self, base_tree, results_dir, tmp_dir, leave)
+		return (results_dir, tmp_dir)
+
+
+	def xen(self, base_tree, results_dir = '', tmp_dir = '', leave = False, \
+				kjob = None ):
+		"""Summon a xen object"""
+		(results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
+		build_dir = 'xen'
+		return xen.xen(self, base_tree, results_dir, tmp_dir, build_dir, leave, kjob)
+
+
+	def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
+		"""Summon a kernel object"""
+		(results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
+		build_dir = 'linux'
+		return kernel.kernel(self, base_tree, results_dir, tmp_dir, build_dir, leave)
 
 
 	def barrier(self, *args):
