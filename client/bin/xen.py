@@ -10,20 +10,19 @@ class xen(kernel.kernel):
 
 	def log(self, msg):
 		print msg
-		self.logfile.write('%s\n'%(msg))
+		self.logfile.write('%s\n' % msg)
 
 
 	def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir, \
 					leave = False, kjob = None):
 		# call base-class
-		kernel.kernel.__init__(self, job, base_tree, results_dir, tmp_dir, \
-								build_dir, leave)
+		kernel.kernel.__init__(self, job, base_tree, results_dir, \
+						tmp_dir, build_dir, leave)
 		self.kjob = kjob
 
 
 	def config(self, config_file, config_list = None):
-		print 'config() not implemented for xen'
-		return
+		raise 'config() not implemented for xen'
 
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
@@ -34,39 +33,39 @@ class xen(kernel.kernel):
 		"""
 		self.log('running build')
 		os_dep.commands('gcc', 'make')
-        # build xen with extraversion flag
+	        # build xen with extraversion flag
 		os.environ['XEN_EXTRAVERSION'] = '-unstable-%s'% extraversion
 		if logfile == '':
 			logfile = os.path.join(self.log_dir, 'xen_build')
 		os.chdir(self.build_dir)
-		self.log('log_dir: %s ' %(os.path.join(self.log_dir, 'stdout')))
+		self.log('log_dir: %s ' % os.path.join(self.log_dir, 'stdout'))
 		self.job.stdout.redirect(logfile + '.stdout')
 		self.job.stderr.redirect(logfile + '.stderr')
 
 		# build xen hypervisor and user-space tools
-		targets = ['xen', 'tools' ]
+		targets = ['xen', 'tools']
 		threads = 2 * count_cpus()
 		for t in targets:
 			build_string = 'make -j %d %s %s' % (threads, make_opts, t)
-			self.log('build_string: %s'%(build_string))
+			self.log('build_string: %s' % build_string)
 			system(build_string)
 
 		# make a kernel job out of the kernel from the xen src if one isn't provided
 		if self.kjob == None:
 			# get xen kernel tree ready
-			self.log('prep-ing xen\'ified kernel source tree')
+			self.log("prep-ing xen'ified kernel source tree")
 			system('make prep-kernels')
 
 			v = self.get_xen_kernel_build_ver()
-			self.log('building xen kernel version: %s' %(v))
+			self.log('building xen kernel version: %s' % v)
 
 			# build xen-ified kernel in xen tree
-			kernel_base_tree = os.path.join(self.build_dir,
-											'linux-%s'%self.get_xen_kernel_build_ver())
+			kernel_base_tree = os.path.join(self.build_dir, \
+				'linux-%s' % self.get_xen_kernel_build_ver())
 
 			self.log('kernel_base_tree = %s' % kernel_base_tree)
-			# fix up XENGUEST value in EXTRAVERSION; we can't have files with
-			# '$(XENGEUST)' in the name, =(
+			# fix up XENGUEST value in EXTRAVERSION; we can't have
+			# files with '$(XENGEUST)' in the name, =(
 			self.fix_up_xen_kernel_makefile(kernel_base_tree)
 
 			# make the kernel job
@@ -75,14 +74,14 @@ class xen(kernel.kernel):
 			# hardcoding dom0 config (no modules for testing, yay!)
 			# FIXME: probe host to determine which config to pick
 			c = self.build_dir + '/buildconfigs/linux-defconfig_xen0_x86_32'
-			self.log('using kernel config: %s ' %(c))
+			self.log('using kernel config: %s ' % c)
 			self.kjob.config(c)
 
 			# Xen's kernel tree sucks; doesn't use bzImage, but vmlinux 
 			self.kjob.set_build_target('vmlinuz')
 
 			# also, the vmlinuz is not out in arch/*/boot, ARGH! more hackery
-			self.kjob.set_build_image(self.job.tmpdir+'/build/linux/vmlinuz')
+			self.kjob.set_build_image(self.job.tmpdir + '/build/linux/vmlinuz')
 
 		self.kjob.build()
 
@@ -90,13 +89,12 @@ class xen(kernel.kernel):
 		self.job.stderr.restore()
 
 		xen_version = self.get_xen_build_ver()
-		self.log('BUILD VERSION: Xen: %s Kernel:%s' %(xen_version,
-												 self.kjob.get_kernel_build_ver()))
+		self.log('BUILD VERSION: Xen: %s Kernel:%s' % \
+				(xen_version, self.kjob.get_kernel_build_ver()))
 
 
 	def build_timed(self, *args, **kwds):
-		self.log('build_timed() not implemented')
-		return
+		raise('build_timed() not implemented')
 
 
 	def install(self, tag='', prefix = '/', extraversion='autotest'):
@@ -112,7 +110,7 @@ class xen(kernel.kernel):
 			os.mkdir(self.boot_dir)
 
 		# remember what we are going to install
-		xen_version = '%s-%s' %(self.get_xen_build_ver(), extraversion)
+		xen_version = '%s-%s' % (self.get_xen_build_ver(), extraversion)
 		self.xen_image = self.boot_dir + '/xen-' + xen_version + '.gz'
 		self.xen_syms  = self.boot_dir + '/xen-syms-' + xen_version
 
@@ -145,7 +143,7 @@ class xen(kernel.kernel):
 
 		# add xen and xen kernel
 		self.job.bootloader.add_kernel(self.kjob.image, tag, \
-									   self.kjob.initrd, self.xen_image)
+					   self.kjob.initrd, self.xen_image)
 
 		# if no args passed, populate from /proc/cmdline
 		if not args:
@@ -161,12 +159,15 @@ class xen(kernel.kernel):
 
 	def get_xen_kernel_build_ver(self):
 		"""Check xen buildconfig for current kernel version"""
-		version = patchlevel = sublevel = extraversion = localversion = ''
+		version = patchlevel = sublevel = ''
+		extraversion = localversion = ''
+
 		version_file = self.build_dir + '/buildconfigs/mk.linux-2.6-xen'
 
 		for line in open(version_file, 'r').readlines():
 			if line.startswith('LINUX_VER'):
-				version = line[line.index('=') + 1:].strip() + "-xen"
+				start = line.index('=') + 1
+				version = line[start:].strip() + "-xen"
 				break
 
 		return version
@@ -179,23 +180,29 @@ class xen(kernel.kernel):
 
 		for line in open(makefile, 'r').readlines():
 			if line.startswith('XENGUEST'): 
-				xenguest = line[line.index('=') + 1:].strip()
+				start = line.index('=') + 1
+				xenguest = line[start:].strip()
 				break;
 
 		# change out $XENGUEST in EXTRAVERSION line
-		system('sed -i.old "s,\$(XENGUEST),%s," %s' %(xenguest, makefile))
+		system('sed -i.old "s,\$(XENGUEST),%s," %s' % \
+							(xenguest, makefile))
 
 
 	def get_xen_build_ver(self):
 		"""Check Makefile and .config to return kernel version"""
-		version = patchlevel = sublevel = extraversion = localversion = ''
+		version = patchlevel = sublevel = ''
+		extraversion = localversion = ''
 
 		for line in open(self.build_dir + '/xen/Makefile', 'r').readlines():
 			if line.startswith('export XEN_VERSION'):
-				version = line[line.index('=') + 1:].strip()
+				start = line.index('=') + 1
+				version = line[start:].strip()
 			if line.startswith('export XEN_SUBVERSION'):
-				sublevel = line[line.index('=') + 1:].strip()
+				start = line.index('=') + 1
+				sublevel = line[start:].strip()
 			if line.startswith('export XEN_EXTRAVERSION'):
-				extraversion = line[line.index('=') + 1:].strip()
+				start = line.index('=') + 1
+				extraversion = line[start:].strip()
 
-		return "%s.%s%s" %(version, sublevel, extraversion)
+		return "%s.%s%s" % (version, sublevel, extraversion)
