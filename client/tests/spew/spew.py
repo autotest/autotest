@@ -14,23 +14,25 @@ class spew(test.test):
 		system('make')
 
 
-	def execute(self, testdir = None, iterations = 1, filesize='100M'):
+	def execute(self, testdir = None, iterations = 1, filesize='100M', type='write', pattern='random'):
 		cmd = os.path.join(self.srcdir, 'src/spew')
 		if not testdir:
 			testdir = self.tmpdir
 		tmpfile = os.path.join(testdir, 'spew-test.%d' % os.getpid())
 		results = os.path.join(self.resultsdir, 'stdout')
-		args = '-i %d -p random -b 2k -B 2M %s %s' % \
-						(iterations, filesize, tmpfile)
+		args = '--%s -i %d -p %s -b 2k -B 2M %s %s' % \
+				(type, iterations, pattern, filesize, tmpfile)
+		cmd += ' ' + args
 
 		# Do a profiling run if necessary
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 
+		open(self.resultsdir + '/command', 'w').write(cmd + '\n')
 		self.job.stdout.redirect(results)
 		try:
-			system(cmd + ' ' + args)
+			system(cmd)
 		finally:
 			self.job.stdout.restore()
 
