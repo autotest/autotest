@@ -14,7 +14,7 @@ def run_command(command, output):
 	for dir in path:
 		pathname = dir + '/' + command
 		if (os.path.exists(pathname)):
-			system(pathname + ' > ' + output)
+			system(pathname + ' > ' + output + ' 2> /dev/null')
 
 for command in commands:
 	run_command(command, os.path.basename(command))
