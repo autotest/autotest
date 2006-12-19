@@ -1,4 +1,7 @@
 #!/usr/bin/python
+from check_version import check_python_version
+check_python_version()
+
 import os,os.path,shutil
 from autotest_utils import *
 
