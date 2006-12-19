@@ -2,13 +2,14 @@
 #
 # autotest <control file> - run the autotest control file specified.
 #
+from check_version import check_python_version
+check_python_version()
+
 import os, sys, shutil
 import job, kernel, test
 from error import *
 from autotest_utils import *
 from optparse import OptionParser
-
-check_python_version()
 
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
