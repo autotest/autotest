@@ -423,14 +423,3 @@ def check_glibc_ver(ver):
 	if glibc_ver.split('.') < ver.split('.'):
 		raise "Glibc is too old (%s). Glibc >= %s is needed." % \
 							(glibc_ver, ver)
-
-
-def check_python_version():
-	py_version = (sys.version).split(' ')[0]
-	version = py_version.split('.')[0:2]
-	if [int(x) for x in version] < [2, 4]:
-                for new in ('/usr/bin/python2.4', '/usr/local/bin/python2.4'):
-                        if os.path.exists(new):
-                                sys.argv.insert(0, new)
-                                os.execv(sys.argv[0], sys.argv)
-		raise "Python 2.4 or newer is needed"
