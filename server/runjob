@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, re, commands, time
+import sys, os, re, commands, time, signal
 from subprocess import *
 
 # Execute a job on a remote client. We use ssh to connect.
@@ -24,13 +24,17 @@ autodir = '/usr/local/autotest'            # default. changed by retrieve_config
 def parse_arguments():
 	# First parse arguments, do setup, etc.
 	if len(sys.argv) < 4:
-		sys.stderr.write("Usage: runjob <client> <control_file> <results>\n")
+		sys.stderr.write("Usage: runjob <client> <control_file> <results> [<conmux_console>]\n")
 		sys.exit(1)
 	(client, control, results) = sys.argv[1:4]
+	if len(sys.argv) == 5:
+		console = sys.argv[4]
+	else:
+		console = None
 	if not os.path.exists(control):
 		sys.stderr.write("Control file %s does not exist\n" % control)
 		sys.exit(1)
-	return (client, control, results)
+	return (client, control, results, console)
 
 
 def retrieve_config(client):
@@ -78,9 +82,6 @@ def execute_section(client, autodir, remote_control, section):
 		remote_control = '-c ' + remote_control
 	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
 					(client, autodir, remote_control)
-	# for line in Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr:
-	# 	print line,
-	#	sys.stdout.flush()
 	f = Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr
 	for line in iter(f.readline, ''): 
 		print line,
@@ -115,10 +116,22 @@ def retrieve_results(client, autodir, results):
 # MAIN PROGRAM
 
 ret = 0
-(client, control, results) = parse_arguments()
+(client, control, results, console) = parse_arguments()
 debug = os.path.join(results, 'debug')
 if not os.path.exists(debug):
 	os.makedirs(debug)
+
+if console:
+	console_log = open(os.path.join(debug, "console.log"), 'w')
+	conmux_path = os.path.join(os.path.dirname(sys.argv[0]), \
+							'../conmux/console')
+	cmd = os.path.abspath(conmux_path) + ' ' + console
+	# For some incomprehensible reason, conmux won't redirect to a file.
+	con = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+	Popen(['cat'], stdin=con.stdout, stdout=console_log)
+	con_pid = con.pid
+else:
+	con_pid = None
 
 retrieve_config(client)
 if not verify_machine(client):
@@ -128,4 +141,6 @@ push_control(remote_control)
 if not execute_control(client, autodir, remote_control):
 	ret = 2
 retrieve_results(client, autodir, results)
+if con_pid:
+	os.kill(con_pid, signal.SIGTERM)
 sys.exit(ret)
