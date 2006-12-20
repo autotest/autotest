@@ -1,12 +1,16 @@
 #!/usr/bin/python
-# monitor_queue <client> <spool_directory> <resultsdir>
+# monitor_queue <client> <spool_directory> <resultsdir> [<conmux_console>]
 import os, time, sys
 from subprocess import *
 
 if (len(sys.argv) < 4):
-	print "Usage: monitor_queue <client> <spool_directory> <resultsdir>"
+	print "Usage: monitor_queue <client> <spool_directory> <resultsdir> [<conmux_console>]"
 	sys.exit(1)
 (client, spooldir, resultsdir) = sys.argv[1:4]
+if len(sys.argv) == 5:
+	console = sys.argv[4]
+else:
+	console = None
 if not os.path.exists(spooldir):
 	print "spooldir %s does not exist" % spooldir
 	sys.exit(1)
@@ -38,6 +42,8 @@ def run_job(control):
 
 	# Now run the job
 	runjob_cmd = ' '.join([runjob, client, next_job, results])
+	if console:
+		runjob_cmd += ' ' + console
 	server_log = open(os.path.join(debug, 'server.log'), 'w');
 	p = Popen(runjob_cmd, shell=True, stdout=server_log, stderr=STDOUT)
 	ret = os.waitpid(p.pid, 0)
