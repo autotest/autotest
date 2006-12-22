@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # test -- run a client self test.
 #

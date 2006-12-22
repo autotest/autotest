@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Work out which test this is.
 test=`basename "$1"`
