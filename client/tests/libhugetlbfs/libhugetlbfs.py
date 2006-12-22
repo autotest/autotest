@@ -15,7 +15,7 @@ class libhugetlbfs(test.test):
 	def execute(self, dir, pages_requested = 20):
 		# Check kernel version, should >= 2.6.16
 		version = system_output('uname -r')
-		if re.split(r'[.-]', version)[0:3] < ['2', '6', '16']
+		if re.split(r'[.-]', version)[0:3] < ['2', '6', '16']:
 			raise TestError('Kernel version %s < 2.6.16' % version)
 		
 		# Check huge page number
