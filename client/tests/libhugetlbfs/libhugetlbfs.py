@@ -15,17 +15,17 @@ class libhugetlbfs(test.test):
 	def execute(self, dir, pages_requested = 20):
 		# Check kernel version, should >= 2.6.16
 		version = system_output('uname -r')
-		(major, minor, sub) = re.split(r'[.-]', version)[0:3]
-		if int(major) < 2 or int(minor) < 6 or int(sub) < 16:
+		if re.split(r'[.-]', version)[0:3] < ['2', '6', '16']
 			raise TestError('Kernel version %s < 2.6.16' % version)
 		
 		# Check huge page number
-		system('echo %d > /proc/sys/vm/nr_hugepages' % pages_requested, 1)
 		pages_available = 0
 		if os.path.exists('/proc/sys/vm/nr_hugepages'):
+			system('echo %d > /proc/sys/vm/nr_hugepages' % \
+							pages_requested)
 			pages_available = int(open('/proc/sys/vm/nr_hugepages', 'r').readline())
-		# if pages == 0:
-		# 	raise TestError('No huge pages allocated, exiting test')
+		else:
+			raise TestError('Kernel does not support hugepages')
 		if pages_available < pages_requested:
 			raise TestError('%d huge pages available, < %d pages requested' % (pages_available, pages_requested))
 		
@@ -34,14 +34,13 @@ class libhugetlbfs(test.test):
 			system('mount -t hugetlbfs none %s' % dir)
 		
 		os.chdir(self.srcdir)
-		system('make check')
 
-		# Do a profiling run if necessary
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			os.chdir(self.srcdir)
-			system('make check')
+		system('make check')
+		if profilers.present():
 			profilers.stop(self)
 			profilers.report(self)
 
