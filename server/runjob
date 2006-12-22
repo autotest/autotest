@@ -65,6 +65,13 @@ def verify_machine(client):
 	return True
 	
 
+def clean_house(client):
+	path = os.path.join(autodir, 'control')
+	ret = os.system("ssh -q root@%s rm -f %s" % (client, path))
+	path = os.path.join(autodir, 'control.state')
+	ret = os.system("ssh -q root@%s rm -f %s" % (client, path))
+
+
 def push_control(remote_control):
 	# Push the control file we want to sue to the client
 	print "Pushing control file %s to %s" % (control, client)
@@ -136,6 +143,7 @@ else:
 retrieve_config(client)
 if not verify_machine(client):
 	sys.exit(1)
+clean_house(client)
 remote_control = "%s/control" % autodir
 push_control(remote_control)
 if not execute_control(client, autodir, remote_control):
