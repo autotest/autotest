@@ -43,17 +43,18 @@ def retrieve_config(client):
 	print "Retrieving autotest.conf from %s" % client
 	local_conf = "/tmp/autotest.conf.%d" % os.getpid()
 	if os.path.exists(local_conf):
-		system("rm -f %s" % local_conf)
+		os.remove(local_conf)
 	os.system("scp -q root@%s:/etc/autotest.conf %s" % (client, local_conf))
 
 	# Now to find out what $AUTODIR is on the client
 	# This is disgusting, but will have to do for now. 
 	# We can't source it (security nightmare)
 	global autodir
-	for line in open(local_conf, 'r').readlines():
-		dir = re.search(r'autodir=(\S+)', line).group(1)
-		if dir:
-			autodir = re.sub('[\'\"]', '', dir)
+	if os.path.exists(local_conf):
+		for line in open(local_conf, 'r').readlines():
+			dir = re.search(r'autodir=(\S+)', line).group(1)
+			if dir:
+				autodir = re.sub('[\'\"]', '', dir)
 	print "autodir set to " + autodir
 
 
@@ -63,7 +64,7 @@ def verify_machine(client):
 	if ret != 0:
 		return False
 	return True
-	
+
 
 def clean_house(client):
 	path = os.path.join(autodir, 'control')
