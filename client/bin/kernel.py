@@ -313,21 +313,27 @@ class kernel:
 		# remove existing entry if present
 		self.job.bootloader.remove_kernel(tag)
 
-		# add the kernel entry
-		# add_kernel(image, title='autotest', inird='')
-		self.job.bootloader.add_kernel(self.image, tag, self.initrd)
-
 		# pull the base argument set from the job config,
-		# otherwise populate from /proc/cmdline
 		baseargs = self.job.config_get('boot.default_args')
-		if not baseargs:
-			baseargs = open('/proc/cmdline', 'r').readline().strip()
+		if baseargs:
+			args = baseargs + " " + args
+		
+		# otherwise populate from /proc/cmdline
+		# if not baseargs:
+		#	baseargs = open('/proc/cmdline', 'r').readline().strip()
+		# NOTE: This is unnecessary, because boottool does it.
 
-		args = baseargs + " " + args
+		root = None
+		roots = [x for x in args.split() if x.startswith('root=')]
+		if roots:
+			root = re.sub('^root=', '', roots[0])
+		arglist = [x for x in args.split() if not x.startswith('root=')]
+		args = ' '.join(arglist)
 
-		# add args to entry one at a time
-		for a in args.split(' '):
-			self.job.bootloader.add_args(tag, a)
+		# add the kernel entry
+		# add_kernel(image, title='autotest', initrd='')
+		self.job.bootloader.add_kernel(self.image, tag, self.initrd, \
+						args = args, root = root)
 
 
 	def get_kernel_build_arch(self, arch=None):
