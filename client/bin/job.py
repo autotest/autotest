@@ -268,7 +268,7 @@ class job:
 			os.unlink(self.control + '.state')
 		except:
 			pass
-		self.harness.run_complete(status)
+		self.harness.run_complete()
 		sys.exit(status)
 
 
@@ -376,6 +376,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.complete(1)
 
 	except:
+		myjob.harness.run_abort()
 		# Ensure we cannot continue this job, it is in rictus.
 		if os.path.exists(state):
 			os.unlink(state)

@@ -41,7 +41,12 @@ class harness:
 		pass
 
 
-	def run_complete(self, status):
+	def run_abort(self):
+		"""A run within this job is aborting. It all went wrong"""
+		pass
+
+
+	def run_complete(self):
 		"""A run within this job is completing (all done)"""
 		pass
 
