@@ -25,9 +25,10 @@ class bash_shared_mapping(test.test):
 
 		# Want two usemem -m megabytes in parallel in background.
 		pid = [None, None]
+		usemem = os.path.join(self.srcdir, 'usemem')
+		args = ('usemem', '-N', '-m', '%d' % (kilobytes / 1024))
+		# print_to_tty ('2 x ' + ' '.join(args))
 		for i in (0,1):
-			usemem = os.path.join(self.srcdir, 'usemem')
-			args = ('usemem', '-N', '-m', '%d' % (kilobytes / 1024))
 			pid[i] = os.spawnv(os.P_NOWAIT, usemem, args)
 
 		cmd = "%s/bash-shared-mapping %s %d -t %d" % \
