@@ -6,7 +6,7 @@ import os,os.path,shutil
 from autotest_utils import *
 
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
-	'/proc/cpuinfo']
+	'/proc/cpuinfo', '/proc/cmdline']
 commands = ['lshw', 'uname -a', 'lspci -vvn']
 path = ['/usr/bin', '/bin']
 
