@@ -6,7 +6,7 @@
 #
 # Run that control file on the comma-separated list of machines supplied
 # by dumping a control file in $AUTOTEST_DIR/queue/machine. 
-import os, sys
+import os, sys, time
 
 if len(sys.argv) < 5:
 	print "Usage: testkernel <client> <control> <kernel> <config> <patches ...>"
@@ -40,4 +40,7 @@ for line in open(control, 'r'):
 c.close()
 # This is pretty revolting, but will do as a hack for testing
 jobname = os.path.basename(control) + '.' + os.path.basename(kernel)
-os.rename(tmpfile, os.path.join(queuedir, client, jobname))
+output = os.path.join(queuedir, client, jobname)
+if os.path.exists(output):
+	output += ".%d" % int(time.time())
+os.rename(tmpfile, output)
