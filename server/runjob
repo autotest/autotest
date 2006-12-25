@@ -91,6 +91,7 @@ def execute_section(client, autodir, remote_control, section):
 	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
 					(client, autodir, remote_control)
 	f = Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr
+	line = None
 	for line in iter(f.readline, ''): 
 		print line,
 		sys.stdout.flush()
