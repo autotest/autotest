@@ -423,3 +423,11 @@ def check_glibc_ver(ver):
 	if glibc_ver.split('.') < ver.split('.'):
 		raise "Glibc is too old (%s). Glibc >= %s is needed." % \
 							(glibc_ver, ver)
+
+def read_one_line(filename):
+	return open(filename, 'r').readline().strip()
+
+
+def write_one_line(filename, str):
+	str.rstrip()
+	open(filename, 'w').write(str.rstrip() + "\n")
