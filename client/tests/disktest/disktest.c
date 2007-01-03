@@ -25,7 +25,6 @@ unsigned int linear_tasks = 1;
 unsigned int random_tasks = 4;
 unsigned int blocks;
 unsigned int sectors_per_block;
-int fd;
 
 void die(char *error)
 {
@@ -38,7 +37,7 @@ void die(char *error)
  * Fill a block with it's own sector number
  * buf must be at least blocksize
  */
-void write_blocks(unsigned int block, unsigned int *buf, unsigned int blocks)
+void write_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int blocks)
 {
 	unsigned int i, sec_offset, sector;
 	off_t offset;
@@ -64,7 +63,7 @@ void write_blocks(unsigned int block, unsigned int *buf, unsigned int blocks)
  * 
  * We only check the first number - the rest is pretty pointless
  */
-void verify_blocks(unsigned int block, unsigned int *buf, unsigned int blocks)
+void verify_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int blocks)
 {
 	unsigned int sec_offset, sector;
 	off_t offset;
@@ -73,8 +72,11 @@ void verify_blocks(unsigned int block, unsigned int *buf, unsigned int blocks)
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
-	if (read(fd, buf, readsize) != readsize)
-		die("read failed");
+	if (read(fd, buf, readsize) != readsize) {
+		fprintf(stderr, "read failed: block %d\n", block);
+		exit(1);
+	}
+	printf("Checking block %d, offset %llx, size %d\n", block, offset, readsize);
 
 	for (sec_offset = 0; sec_offset < sectors; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
@@ -84,66 +86,79 @@ void verify_blocks(unsigned int block, unsigned int *buf, unsigned int blocks)
 					buf[sec_offset * UINT_PER_SECTOR]);
 		}
 	}
+	printf("Checked  block %d, offset %llx, size %d\n", block, offset, readsize);
 }
 
-void write_file(int fd, unsigned int end_time, int random_access)
+void write_the_file(int fd, unsigned int end_time, int random_access)
 {
-	int pid = fork();
 	unsigned int block;
 	void *buffer;
 
-	if (pid < 0)
-		die ("error forking child");
-	if (pid)			// parent
-		return;
-
 	buffer = malloc(blocksize);
+	printf("pid %d buffer: %p\n", getpid(), buffer);
 
 	if (random_access) {
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			write_blocks(block, buffer, 1);
+			write_blocks(fd, block, buffer, 1);
 		}
 	} else {
 		while(time(NULL) < end_time)
 			for (block = 0; block < blocks; block++)
-				write_blocks(block, buffer, 1);
+				write_blocks(fd, block, buffer, 1);
 	}
 	free(buffer);
 	exit(0);
 }
 
-void verify_file(char *filename, unsigned int end_time, int random_access, 
-								int direct)
+void write_file(int fd, unsigned int end_time, int random_access)
 {
-	int fd;
-	unsigned int block;
-	int pid = fork();
-	void *buffer;
+	int pid;
+
+	fflush(stdout); fflush(stderr);
+	pid = fork();
 
 	if (pid < 0)
 		die ("error forking child");
-	if (pid)			// parent
+	if (pid != 0)			// parent
 		return;
 
+	write_the_file(fd, end_time, random_access);
+}
+
+void verify_file(char *filename, unsigned int end_time, int random_access, 
+								int direct)
+{
+	int pid;
+	fflush(stdout); fflush(stderr);
+	pid = fork();
+
+	if (pid < 0)
+		die ("error forking child");
+	if (pid != 0)			// parent
+		return;
+
+	int fd;
+	unsigned int block;
+	void *buffer = malloc(blocksize * VERIFY_BLOCKS);
+
 	if (direct)
-		fd = open(filename, O_RDONLY | O_TRUNC | O_CREAT | O_DIRECT);
+		fd = open(filename, O_RDONLY | O_DIRECT);
 	else
-		fd = open(filename, O_RDONLY | O_TRUNC | O_CREAT | O_DIRECT);
+		fd = open(filename, O_RDONLY);
 		
-	buffer = malloc(blocksize * VERIFY_BLOCKS);
 
 	if (random_access) {
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			verify_blocks(block, buffer, 1);
+			verify_blocks(fd, block, buffer, 1);
 		}
 	} else {
 		while(time(NULL) < end_time)
-			for (block = 0; block < blocks; block++)
-				verify_blocks(block, buffer, VERIFY_BLOCKS);
+			for (block = 0; block < blocks; block += VERIFY_BLOCKS)
+				verify_blocks(fd, block, buffer, VERIFY_BLOCKS);
 	}
 	free(buffer);
 	exit(0);
@@ -202,7 +217,7 @@ int main(int argc, char *argv[])
 	sectors_per_block = blocksize / SECTOR_SIZE;
 
 	/* Initialise file */
-	fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, 0666);
+	int fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, 0666);
 	if (fd < 0)
 		die("open failed");
 
@@ -210,29 +225,42 @@ int main(int argc, char *argv[])
 
 	/* Initialise all file data to correct blocks */
 	init_buffer = malloc(blocksize * VERIFY_BLOCKS);
-	for (block = 0; block < blocks; block++)
-		write_blocks(block, init_buffer, VERIFY_BLOCKS);
+	for (block = 0; block < blocks; block += VERIFY_BLOCKS)
+		write_blocks(fd, block, init_buffer, VERIFY_BLOCKS);
 	if(fsync(fd) != 0)
 		die("fsync failed");
-	free(init_buffer);
+	for (block = 0; block < blocks; block++) {
+		verify_blocks(fd, block, init_buffer, 1);
+		verify_blocks(fd, block, init_buffer, 1);
+	}
+	// free(init_buffer);
 	
-	printf("Wrote %d MB to %s (%d seconds)\n", megabytes, filename, (int) (time(NULL) - start_time));
-
+	printf("Wrote %d MB to %s (%d seconds) %d\n", megabytes, filename, (int) (time(NULL) - start_time), getpid());
+	
 	end_time = time(NULL) + seconds;
 
 	/* Fork off all linear access pattern tasks */
-	for (tasks = 0; tasks < linear_tasks; tasks++)
+	for (tasks = 0; tasks < linear_tasks; tasks++) {
 		write_file(fd, end_time, 0);
+	}
 
 	/* Fork off all random access pattern tasks */
 	for (tasks = 0; tasks < random_tasks; tasks++)
 		write_file(fd, end_time, 1);
 
 	/* Verify in all four possible ways */
-	verify_file(filename, end_time, 0, 0);
-	verify_file(filename, end_time, 0, 1);
-	verify_file(filename, end_time, 1, 0);
-	verify_file(filename, end_time, 1, 1);
+	while(time(NULL) < end_time)
+		for (block = 0; block < blocks; block++) {
+			verify_blocks(fd, block, init_buffer, 1);
+			verify_blocks(fd, block, init_buffer, 1);
+		}
+		//for (block = 0; block < blocks; block += VERIFY_BLOCKS)
+		//	verify_blocks(fd, block, verify_buffer, VERIFY_BLOCKS);
+	// verify_file(filename, end_time, 0, 0);
+	// verify_file(filename, end_time, 0, 1);
+	// verify_file(filename, end_time, 1, 0);
+	// verify_file(filename, end_time, 1, 1);
 
+	exit(0);
 	return 0;
 }
