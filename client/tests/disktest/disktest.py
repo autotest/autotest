@@ -9,7 +9,7 @@ class disktest(test.test):
 		os.chdir(self.bindir)
 		system('cp disktest.c src/')
 		os.chdir(self.srcdir)
-		cflags = '-D_FILE_OFFSET_BITS=64 -D _GNU_SOURCE'
+		cflags = '-D_FILE_OFFSET_BITS=64 -D _GNU_SOURCE -Wall'
 		system('cc disktest.c ' + cflags + ' -o disktest')
 
 
