@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
@@ -36,7 +37,7 @@ void die(char *error)
  * Fill a block with it's own sector number
  * buf must be at least blocksize
  */
-void write_blocks(int fd, unsigned int block, unsigned int *buf)
+void write_block(int fd, unsigned int block, unsigned int *buf)
 {
 	unsigned int i, sec_offset, sector;
 	off_t offset;
@@ -60,10 +61,11 @@ void write_blocks(int fd, unsigned int block, unsigned int *buf)
  * 
  * We only check the first number - the rest is pretty pointless
  */
-void verify_blocks(int fd, unsigned int block, unsigned int *buf)
+int verify_block(int fd, unsigned int block, unsigned int *buf)
 {
 	unsigned int sec_offset, sector;
 	off_t offset;
+	int error = 0;
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
@@ -71,7 +73,7 @@ void verify_blocks(int fd, unsigned int block, unsigned int *buf)
 		fprintf(stderr, "read failed: block %d\n", block);
 		exit(1);
 	}
-	printf("Checking block %d, offset %llx, size %d\n", block, offset, blocksize);
+	// printf("Checking block %d, offset %llx, size %d\n", block, offset, blocksize);
 
 	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
@@ -79,37 +81,18 @@ void verify_blocks(int fd, unsigned int block, unsigned int *buf)
 		if (buf[sec_offset * UINT_PER_SECTOR] != sector) {
 			printf("sector %08x says %08x\n", sector, 
 					buf[sec_offset * UINT_PER_SECTOR]);
+			error = 1;
 		}
 	}
-	printf("Checked  block %d, offset %llx, size %d\n", block, offset, blocksize);
+	// printf("Checked  block %d, offset %llx, size %d\n", block, offset, blocksize);
+	return error;
 }
 
-void write_the_file(int fd, unsigned int end_time, int random_access)
+void write_file(char *filename, unsigned int end_time, int random_access)
 {
+	int fd, pid;
 	unsigned int block;
 	void *buffer;
-
-	buffer = malloc(blocksize);
-	printf("pid %d buffer: %p\n", getpid(), buffer);
-
-	if (random_access) {
-		srandom(time(NULL) - getpid());
-		while(time(NULL) < end_time) {
-			block = (unsigned int) (random() % blocks);
-			write_blocks(fd, block, buffer);
-		}
-	} else {
-		while(time(NULL) < end_time)
-			for (block = 0; block < blocks; block++)
-				write_blocks(fd, block, buffer);
-	}
-	free(buffer);
-	exit(0);
-}
-
-void write_file(int fd, unsigned int end_time, int random_access)
-{
-	int pid;
 
 	fflush(stdout); fflush(stderr);
 	pid = fork();
@@ -119,13 +102,28 @@ void write_file(int fd, unsigned int end_time, int random_access)
 	if (pid != 0)			// parent
 		return;
 
-	write_the_file(fd, end_time, random_access);
+	fd = open(filename, O_RDWR, 0666);
+	buffer = malloc(blocksize);
+
+	if (random_access) {
+		srandom(time(NULL) - getpid());
+		while(time(NULL) < end_time) {
+			block = (unsigned int) (random() % blocks);
+			write_block(fd, block, buffer);
+		}
+	} else {
+		while(time(NULL) < end_time)
+			for (block = 0; block < blocks; block++)
+				write_block(fd, block, buffer);
+	}
+	free(buffer);
+	exit(0);
 }
 
 void verify_file(char *filename, unsigned int end_time, int random_access, 
 								int direct)
 {
-	int pid;
+	int pid, error = 0;
 	fflush(stdout); fflush(stderr);
 	pid = fork();
 
@@ -148,15 +146,17 @@ void verify_file(char *filename, unsigned int end_time, int random_access,
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			verify_blocks(fd, block, buffer);
+			if (verify_block(fd, block, buffer))
+				error = 1;
 		}
 	} else {
 		while(time(NULL) < end_time)
 			for (block = 0; block < blocks; block++)
-				verify_blocks(fd, block, buffer);
+				if (verify_block(fd, block, buffer))
+					error = 1;
 	}
 	free(buffer);
-	exit(0);
+	exit(error);
 }
 
 void usage(void)
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 {
 	unsigned int block;
 	time_t start_time, end_time;
-	int tasks, opt;
+	int tasks, opt, retcode, pid;
 	void *init_buffer;
 
 	/* Parse all input options */
@@ -221,39 +221,40 @@ int main(int argc, char *argv[])
 	/* Initialise all file data to correct blocks */
 	init_buffer = malloc(blocksize);
 	for (block = 0; block < blocks; block++)
-		write_blocks(fd, block, init_buffer);
+		write_block(fd, block, init_buffer);
 	if(fsync(fd) != 0)
 		die("fsync failed");
-	for (block = 0; block < blocks; block++) {
-		verify_blocks(fd, block, init_buffer);
-		verify_blocks(fd, block, init_buffer);
-	}
+	for (block = 0; block < blocks; block++)
+		if (verify_block(fd, block, init_buffer))
+			exit(1);
+
 	// free(init_buffer);
 	
-	printf("Wrote %d MB to %s (%d seconds) %d\n", megabytes, filename, (int) (time(NULL) - start_time), getpid());
+	printf("Wrote %d MB to %s (%d seconds)\n", megabytes, filename, (int) (time(NULL) - start_time));
 	
 	end_time = time(NULL) + seconds;
 
 	/* Fork off all linear access pattern tasks */
 	for (tasks = 0; tasks < linear_tasks; tasks++) {
-		write_file(fd, end_time, 0);
+		write_file(filename, end_time, 0);
 	}
 
 	/* Fork off all random access pattern tasks */
 	for (tasks = 0; tasks < random_tasks; tasks++)
-		write_file(fd, end_time, 1);
+		write_file(filename, end_time, 1);
 
 	/* Verify in all four possible ways */
-	while(time(NULL) < end_time)
-		for (block = 0; block < blocks; block++) {
-			verify_blocks(fd, block, init_buffer);
-			verify_blocks(fd, block, init_buffer);
-		}
-	// verify_file(filename, end_time, 0, 0);
-	// verify_file(filename, end_time, 0, 1);
-	// verify_file(filename, end_time, 1, 0);
-	// verify_file(filename, end_time, 1, 1);
+	verify_file(filename, end_time, 0, 0);
+	verify_file(filename, end_time, 0, 1);
+	verify_file(filename, end_time, 1, 0);
+	verify_file(filename, end_time, 1, 1);
 
-	exit(0);
+	for (tasks = 0; tasks < linear_tasks + random_tasks + 4; tasks++) {
+		pid = wait(&retcode);
+		if (retcode != 0) {
+			printf("pid %d exited with status %d\n", pid, retcode);
+			exit(retcode);
+		}
+	}
 	return 0;
 }
