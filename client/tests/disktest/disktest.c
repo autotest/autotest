@@ -88,7 +88,7 @@ int verify_block(int fd, unsigned int block, unsigned int *buf)
 	return error;
 }
 
-void write_file(char *filename, unsigned int end_time, int random_access)
+void write_file(unsigned int end_time, int random_access)
 {
 	int fd, pid;
 	unsigned int block;
@@ -120,7 +120,7 @@ void write_file(char *filename, unsigned int end_time, int random_access)
 	exit(0);
 }
 
-void verify_file(char *filename, unsigned int end_time, int random_access, 
+void verify_file(unsigned int end_time, int random_access, 
 								int direct)
 {
 	int pid, error = 0;
@@ -236,18 +236,18 @@ int main(int argc, char *argv[])
 
 	/* Fork off all linear access pattern tasks */
 	for (tasks = 0; tasks < linear_tasks; tasks++) {
-		write_file(filename, end_time, 0);
+		write_file(end_time, 0);
 	}
 
 	/* Fork off all random access pattern tasks */
 	for (tasks = 0; tasks < random_tasks; tasks++)
-		write_file(filename, end_time, 1);
+		write_file(end_time, 1);
 
 	/* Verify in all four possible ways */
-	verify_file(filename, end_time, 0, 0);
-	verify_file(filename, end_time, 0, 1);
-	verify_file(filename, end_time, 1, 0);
-	verify_file(filename, end_time, 1, 1);
+	verify_file(end_time, 0, 0);
+	verify_file(end_time, 0, 1);
+	verify_file(end_time, 1, 0);
+	verify_file(end_time, 1, 1);
 
 	for (tasks = 0; tasks < linear_tasks + random_tasks + 4; tasks++) {
 		pid = wait(&retcode);
