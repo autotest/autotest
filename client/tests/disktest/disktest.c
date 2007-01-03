@@ -15,7 +15,6 @@
 
 #define SECTOR_SIZE 512
 #define UINT_PER_SECTOR  (SECTOR_SIZE / sizeof(unsigned int))
-#define VERIFY_BLOCKS 16
 
 char *filename = "testfile";
 unsigned int megabytes = 1;
@@ -37,14 +36,12 @@ void die(char *error)
  * Fill a block with it's own sector number
  * buf must be at least blocksize
  */
-void write_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int blocks)
+void write_blocks(int fd, unsigned int block, unsigned int *buf)
 {
 	unsigned int i, sec_offset, sector;
 	off_t offset;
-	unsigned int writesize = blocksize * blocks;
-	unsigned int sectors = writesize / SECTOR_SIZE;
 
-	for (sec_offset = 0; sec_offset < sectors; sec_offset++) {
+	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
 
 		for (i = 0; i < SECTOR_SIZE / sizeof(unsigned int); i++)
@@ -53,7 +50,7 @@ void write_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int bl
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
-	if (write(fd, buf, writesize) != writesize)
+	if (write(fd, buf, blocksize) != blocksize)
 		die("write failed");
 }
 
@@ -63,22 +60,20 @@ void write_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int bl
  * 
  * We only check the first number - the rest is pretty pointless
  */
-void verify_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int blocks)
+void verify_blocks(int fd, unsigned int block, unsigned int *buf)
 {
 	unsigned int sec_offset, sector;
 	off_t offset;
-	unsigned int readsize = blocksize * blocks;
-	unsigned int sectors = readsize / SECTOR_SIZE;
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
-	if (read(fd, buf, readsize) != readsize) {
+	if (read(fd, buf, blocksize) != blocksize) {
 		fprintf(stderr, "read failed: block %d\n", block);
 		exit(1);
 	}
-	printf("Checking block %d, offset %llx, size %d\n", block, offset, readsize);
+	printf("Checking block %d, offset %llx, size %d\n", block, offset, blocksize);
 
-	for (sec_offset = 0; sec_offset < sectors; sec_offset++) {
+	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
 
 		if (buf[sec_offset * UINT_PER_SECTOR] != sector) {
@@ -86,7 +81,7 @@ void verify_blocks(int fd, unsigned int block, unsigned int *buf, unsigned int b
 					buf[sec_offset * UINT_PER_SECTOR]);
 		}
 	}
-	printf("Checked  block %d, offset %llx, size %d\n", block, offset, readsize);
+	printf("Checked  block %d, offset %llx, size %d\n", block, offset, blocksize);
 }
 
 void write_the_file(int fd, unsigned int end_time, int random_access)
@@ -101,12 +96,12 @@ void write_the_file(int fd, unsigned int end_time, int random_access)
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			write_blocks(fd, block, buffer, 1);
+			write_blocks(fd, block, buffer);
 		}
 	} else {
 		while(time(NULL) < end_time)
 			for (block = 0; block < blocks; block++)
-				write_blocks(fd, block, buffer, 1);
+				write_blocks(fd, block, buffer);
 	}
 	free(buffer);
 	exit(0);
@@ -141,7 +136,7 @@ void verify_file(char *filename, unsigned int end_time, int random_access,
 
 	int fd;
 	unsigned int block;
-	void *buffer = malloc(blocksize * VERIFY_BLOCKS);
+	void *buffer = malloc(blocksize);
 
 	if (direct)
 		fd = open(filename, O_RDONLY | O_DIRECT);
@@ -153,12 +148,12 @@ void verify_file(char *filename, unsigned int end_time, int random_access,
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			verify_blocks(fd, block, buffer, 1);
+			verify_blocks(fd, block, buffer);
 		}
 	} else {
 		while(time(NULL) < end_time)
-			for (block = 0; block < blocks; block += VERIFY_BLOCKS)
-				verify_blocks(fd, block, buffer, VERIFY_BLOCKS);
+			for (block = 0; block < blocks; block++)
+				verify_blocks(fd, block, buffer);
 	}
 	free(buffer);
 	exit(0);
@@ -224,14 +219,14 @@ int main(int argc, char *argv[])
 	start_time = time(NULL);
 
 	/* Initialise all file data to correct blocks */
-	init_buffer = malloc(blocksize * VERIFY_BLOCKS);
-	for (block = 0; block < blocks; block += VERIFY_BLOCKS)
-		write_blocks(fd, block, init_buffer, VERIFY_BLOCKS);
+	init_buffer = malloc(blocksize);
+	for (block = 0; block < blocks; block++)
+		write_blocks(fd, block, init_buffer);
 	if(fsync(fd) != 0)
 		die("fsync failed");
 	for (block = 0; block < blocks; block++) {
-		verify_blocks(fd, block, init_buffer, 1);
-		verify_blocks(fd, block, init_buffer, 1);
+		verify_blocks(fd, block, init_buffer);
+		verify_blocks(fd, block, init_buffer);
 	}
 	// free(init_buffer);
 	
@@ -251,11 +246,9 @@ int main(int argc, char *argv[])
 	/* Verify in all four possible ways */
 	while(time(NULL) < end_time)
 		for (block = 0; block < blocks; block++) {
-			verify_blocks(fd, block, init_buffer, 1);
-			verify_blocks(fd, block, init_buffer, 1);
+			verify_blocks(fd, block, init_buffer);
+			verify_blocks(fd, block, init_buffer);
 		}
-		//for (block = 0; block < blocks; block += VERIFY_BLOCKS)
-		//	verify_blocks(fd, block, verify_buffer, VERIFY_BLOCKS);
 	// verify_file(filename, end_time, 0, 0);
 	// verify_file(filename, end_time, 0, 1);
 	// verify_file(filename, end_time, 1, 0);
