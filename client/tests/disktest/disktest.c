@@ -13,11 +13,21 @@
 #include <fcntl.h>
 #include <time.h>
 #include <getopt.h>
+#include <errno.h>
+#include <malloc.h>
+#include <string.h>
+
+struct pattern {
+	unsigned int sector;
+	unsigned int signature;
+};
 
 #define SECTOR_SIZE 512
-#define UINT_PER_SECTOR  (SECTOR_SIZE / sizeof(unsigned int))
+#define PATTERN_PER_SECTOR  (SECTOR_SIZE / sizeof(struct pattern))
 
 char *filename = "testfile";
+volatile int stop = 0;
+int init_only = 0;
 unsigned int megabytes = 1;
 unsigned int blocksize = 4096;
 unsigned int seconds = 15;
@@ -25,6 +35,7 @@ unsigned int linear_tasks = 1;
 unsigned int random_tasks = 4;
 unsigned int blocks;
 unsigned int sectors_per_block;
+unsigned int signature;
 
 void die(char *error)
 {
@@ -37,22 +48,28 @@ void die(char *error)
  * Fill a block with it's own sector number
  * buf must be at least blocksize
  */
-void write_block(int fd, unsigned int block, unsigned int *buf)
+void write_block(int fd, unsigned int block, struct pattern *buffer)
 {
 	unsigned int i, sec_offset, sector;
 	off_t offset;
+	struct pattern *sector_buffer;
 
 	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
+		sector_buffer = &buffer[sec_offset * PATTERN_PER_SECTOR];
 
-		for (i = 0; i < SECTOR_SIZE / sizeof(unsigned int); i++)
-			buf[(sec_offset * UINT_PER_SECTOR) + i] = sector;
+		for (i = 0; i < PATTERN_PER_SECTOR; i++) {
+			sector_buffer[i].sector = sector;
+			sector_buffer[i].signature = signature;
+		}
 	}
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
-	if (write(fd, buf, blocksize) != blocksize)
-		die("write failed");
+	if (write(fd, buffer, blocksize) != blocksize) {
+		fprintf(stderr, "Write failed : file %s : block %d\n", filename, block);
+		exit(1);
+	}
 }
 
 /*
@@ -61,30 +78,37 @@ void write_block(int fd, unsigned int block, unsigned int *buf)
  * 
  * We only check the first number - the rest is pretty pointless
  */
-int verify_block(int fd, unsigned int block, unsigned int *buf)
+int verify_block(int fd, unsigned int block, struct pattern *buffer, char *err)
 {
 	unsigned int sec_offset, sector;
 	off_t offset;
 	int error = 0;
+	struct pattern *sector_buffer;
 
 	offset = block; offset *= blocksize;   // careful of overflow
 	lseek(fd, offset, SEEK_SET);
-	if (read(fd, buf, blocksize) != blocksize) {
-		fprintf(stderr, "read failed: block %d\n", block);
+	if (read(fd, buffer, blocksize) != blocksize) {
+		fprintf(stderr, "read failed: block %d (errno: %d) filename %s %s\n", block, errno, filename, err);
 		exit(1);
 	}
-	// printf("Checking block %d, offset %llx, size %d\n", block, offset, blocksize);
 
 	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
 		sector = (block * sectors_per_block) + sec_offset;
+		sector_buffer = &buffer[sec_offset * PATTERN_PER_SECTOR];
 
-		if (buf[sec_offset * UINT_PER_SECTOR] != sector) {
-			printf("sector %08x says %08x\n", sector, 
-					buf[sec_offset * UINT_PER_SECTOR]);
+		if (sector_buffer[0].sector != sector) {
+			printf("sector %08x has wrong sector number %08x filename %s %s\n", 
+					sector, sector_buffer[0].sector,
+					filename, err);
+			error = 1;
+		}
+		if (sector_buffer[0].signature != signature) {
+			printf("sector %08x signature is %08x should be %08x filename %s %s\n", 
+					sector, sector_buffer[0].signature,
+					signature, filename, err);
 			error = 1;
 		}
 	}
-	// printf("Checked  block %d, offset %llx, size %d\n", block, offset, blocksize);
 	return error;
 }
 
@@ -120,10 +144,11 @@ void write_file(unsigned int end_time, int random_access)
 	exit(0);
 }
 
-void verify_file(unsigned int end_time, int random_access, 
-								int direct)
+void verify_file(unsigned int end_time, int random_access, int direct)
 {
 	int pid, error = 0;
+	char err_msg[40];
+	char *err = err_msg;
 	fflush(stdout); fflush(stderr);
 	pid = fork();
 
@@ -134,25 +159,32 @@ void verify_file(unsigned int end_time, int random_access,
 
 	int fd;
 	unsigned int block;
-	void *buffer = malloc(blocksize);
+	unsigned int align = (blocksize > 4096) ? blocksize : 4096;
+	void *buffer = memalign(align, blocksize);
 
-	if (direct)
+	if (direct) {
 		fd = open(filename, O_RDONLY | O_DIRECT);
-	else
+		strcpy(err, "direct");
+		err += 6;
+	} else {
 		fd = open(filename, O_RDONLY);
-		
+		strcpy(err, "cached");
+		err += 6;
+	}	
 
 	if (random_access) {
+		strcpy(err, ",random");
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
 			block = (unsigned int) (random() % blocks);
-			if (verify_block(fd, block, buffer))
+			if (verify_block(fd, block, buffer, err_msg))
 				error = 1;
 		}
 	} else {
+		strcpy(err, ",linear");
 		while(time(NULL) < end_time)
 			for (block = 0; block < blocks; block++)
-				if (verify_block(fd, block, buffer))
+				if (verify_block(fd, block, buffer, err_msg))
 					error = 1;
 	}
 	free(buffer);
@@ -168,7 +200,22 @@ void usage(void)
 	printf("    [-b blocksize]	 blocksize           (4096)\n");
 	printf("    [-l linear tasks]    linear access tasks (4)\n");
 	printf("    [-r random tasks]    random access tasks (4)\n");
+	printf("    [-i]                 only do init phase\n");
 	printf("\n");
+}
+
+unsigned int double_verify(int fd, void *buffer, char *err)
+{
+	unsigned int block, errors = 0;
+
+	for (block = 0; block < blocks; block++) {
+		if (verify_block(fd, block, buffer, err)) {
+			errors++;
+			printf("Rechecking block %d\n", block);
+			verify_block(fd, block, buffer, err);
+		}
+	}
+	return errors;
 }
 
 int main(int argc, char *argv[])
@@ -179,7 +226,7 @@ int main(int argc, char *argv[])
 	void *init_buffer;
 
 	/* Parse all input options */
-	while ((opt = getopt(argc, argv, "f:s:m:b:l:r:")) != -1) {
+	while ((opt = getopt(argc, argv, "f:s:m:b:l:r:i")) != -1) {
 		switch (opt) {
 			case 'f':
 				filename = optarg;
@@ -199,6 +246,9 @@ int main(int argc, char *argv[])
 			case 'r':
 				random_tasks = atoi(optarg);
 				break;
+			case 'i':
+				init_only = 1;
+				break;
 			default:
 				usage();
 				exit(1);
@@ -210,6 +260,7 @@ int main(int argc, char *argv[])
 	/* blocksize must be < 1MB, and a divisor. Tough */
 	blocks = megabytes * (1024 * 1024 / blocksize);
 	sectors_per_block = blocksize / SECTOR_SIZE;
+	signature = (getpid() << 16) + ((unsigned int) time(NULL) & 0xffff);
 
 	/* Initialise file */
 	int fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, 0666);
@@ -224,13 +275,17 @@ int main(int argc, char *argv[])
 		write_block(fd, block, init_buffer);
 	if(fsync(fd) != 0)
 		die("fsync failed");
-	for (block = 0; block < blocks; block++)
-		if (verify_block(fd, block, init_buffer))
-			exit(1);
+	if (double_verify(fd, init_buffer, "init1")) {
+		printf("First verify failed. Repeating for posterity\n");
+		double_verify(fd, init_buffer, "init2");
+		exit(1);
+	}
 
-	// free(init_buffer);
-	
 	printf("Wrote %d MB to %s (%d seconds)\n", megabytes, filename, (int) (time(NULL) - start_time));
+
+	free(init_buffer);
+	if (init_only)
+		exit(0);
 	
 	end_time = time(NULL) + seconds;
 
@@ -253,7 +308,7 @@ int main(int argc, char *argv[])
 		pid = wait(&retcode);
 		if (retcode != 0) {
 			printf("pid %d exited with status %d\n", pid, retcode);
-			exit(retcode);
+			exit(1);
 		}
 	}
 	return 0;
