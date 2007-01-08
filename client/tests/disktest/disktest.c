@@ -29,6 +29,8 @@ char *filename = "testfile";
 volatile int stop = 0;
 int init_only = 0;
 unsigned int megabytes = 1;
+unsigned int skip_mb = 0;
+unsigned int start_block = 0;
 unsigned int blocksize = 4096;
 unsigned int seconds = 15;
 unsigned int linear_tasks = 1;
@@ -73,16 +75,17 @@ void write_block(int fd, unsigned int block, struct pattern *buffer)
 }
 
 /*
- * Verify a block contains it's own sector number
- * buf must be at least blocksize
+ * Verify a block contains the correct signature and sector numbers for
+ * each sector within that block. We check every copy within the sector
+ * and count how many were wrong.
  * 
- * We only check the first number - the rest is pretty pointless
+ * buf must be at least blocksize
  */
 int verify_block(int fd, unsigned int block, struct pattern *buffer, char *err)
 {
 	unsigned int sec_offset, sector;
 	off_t offset;
-	int error = 0;
+	int i, errors = 0;
 	struct pattern *sector_buffer;
 
 	offset = block; offset *= blocksize;   // careful of overflow
@@ -93,23 +96,39 @@ int verify_block(int fd, unsigned int block, struct pattern *buffer, char *err)
 	}
 
 	for (sec_offset = 0; sec_offset < sectors_per_block; sec_offset++) {
+		unsigned int read_sector = 0, read_signature = 0;
+		unsigned int sector_errors = 0, signature_errors = 0;
+
 		sector = (block * sectors_per_block) + sec_offset;
 		sector_buffer = &buffer[sec_offset * PATTERN_PER_SECTOR];
 
-		if (sector_buffer[0].sector != sector) {
-			printf("sector %08x has wrong sector number %08x filename %s %s\n", 
-					sector, sector_buffer[0].sector,
+		for (i = 0; i < PATTERN_PER_SECTOR; i++) {
+			if (sector_buffer[i].sector != sector) {
+				read_sector = sector_buffer[i].sector;
+				sector_errors++;
+				errors++;
+			}
+			if (sector_buffer[i].signature != signature) {
+				read_signature = sector_buffer[i].signature;
+				signature_errors++;
+				errors++;
+			}
+		}
+		if (sector_errors)
+			printf("Block %d (from %d to %d) sector %08x has wrong sector number %08x (%d/%d) filename %s %s\n",
+					block, start_block, start_block+blocks,
+					sector, read_sector,
+					sector_errors, PATTERN_PER_SECTOR, 
 					filename, err);
-			error = 1;
-		}
-		if (sector_buffer[0].signature != signature) {
-			printf("sector %08x signature is %08x should be %08x filename %s %s\n", 
-					sector, sector_buffer[0].signature,
-					signature, filename, err);
-			error = 1;
-		}
+		if (signature_errors)
+			printf("Block %d (from %d to %d) sector %08x signature is %08x should be %08x (%d/%d) filename %s %s\n", 
+				block, start_block, start_block+blocks,
+				sector, read_signature, signature, 
+				signature_errors, PATTERN_PER_SECTOR, 
+				filename, err);
+
 	}
-	return error;
+	return errors;
 }
 
 void write_file(unsigned int end_time, int random_access)
@@ -132,12 +151,12 @@ void write_file(unsigned int end_time, int random_access)
 	if (random_access) {
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
-			block = (unsigned int) (random() % blocks);
+			block = start_block + (unsigned int)(random() % blocks);
 			write_block(fd, block, buffer);
 		}
 	} else {
 		while(time(NULL) < end_time)
-			for (block = 0; block < blocks; block++)
+			for (block = start_block; block < start_block + blocks; block++)
 				write_block(fd, block, buffer);
 	}
 	free(buffer);
@@ -176,14 +195,14 @@ void verify_file(unsigned int end_time, int random_access, int direct)
 		strcpy(err, ",random");
 		srandom(time(NULL) - getpid());
 		while(time(NULL) < end_time) {
-			block = (unsigned int) (random() % blocks);
+			block = start_block + (unsigned int)(random() % blocks);
 			if (verify_block(fd, block, buffer, err_msg))
 				error = 1;
 		}
 	} else {
 		strcpy(err, ",linear");
 		while(time(NULL) < end_time)
-			for (block = 0; block < blocks; block++)
+			for (block = start_block; block < start_block + blocks; block++)
 				if (verify_block(fd, block, buffer, err_msg))
 					error = 1;
 	}
@@ -197,6 +216,7 @@ void usage(void)
 	printf("    [-f filename]        filename to use     (testfile)\n");
 	printf("    [-s seconds]         seconds to run for  (15)\n");
 	printf("    [-m megabytes]       megabytes to use    (1)\n");
+	printf("    [-M megabytes]       megabytes to skip   (0)\n");
 	printf("    [-b blocksize]	 blocksize           (4096)\n");
 	printf("    [-l linear tasks]    linear access tasks (4)\n");
 	printf("    [-r random tasks]    random access tasks (4)\n");
@@ -208,7 +228,7 @@ unsigned int double_verify(int fd, void *buffer, char *err)
 {
 	unsigned int block, errors = 0;
 
-	for (block = 0; block < blocks; block++) {
+	for (block = start_block; block < start_block + blocks; block++) {
 		if (verify_block(fd, block, buffer, err)) {
 			errors++;
 			printf("Rechecking block %d\n", block);
@@ -226,7 +246,7 @@ int main(int argc, char *argv[])
 	void *init_buffer;
 
 	/* Parse all input options */
-	while ((opt = getopt(argc, argv, "f:s:m:b:l:r:i")) != -1) {
+	while ((opt = getopt(argc, argv, "f:s:m:M:b:l:r:i")) != -1) {
 		switch (opt) {
 			case 'f':
 				filename = optarg;
@@ -236,6 +256,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'm':
 				megabytes = atoi(optarg);
+				break;
+			case 'M':
+				skip_mb = atoi(optarg);
 				break;
 			case 'b':
 				blocksize = atoi(optarg);
@@ -259,6 +282,7 @@ int main(int argc, char *argv[])
 
 	/* blocksize must be < 1MB, and a divisor. Tough */
 	blocks = megabytes * (1024 * 1024 / blocksize);
+	start_block = skip_mb * (1024 * 1024 / blocksize);
 	sectors_per_block = blocksize / SECTOR_SIZE;
 	signature = (getpid() << 16) + ((unsigned int) time(NULL) & 0xffff);
 
@@ -269,9 +293,10 @@ int main(int argc, char *argv[])
 
 	start_time = time(NULL);
 
+	printf("Ininitializing block %d to %d in file %s (signature %08x)\n", start_block, start_block+blocks, filename, signature);
 	/* Initialise all file data to correct blocks */
 	init_buffer = malloc(blocksize);
-	for (block = 0; block < blocks; block++)
+	for (block = start_block; block < start_block+blocks; block++)
 		write_block(fd, block, init_buffer);
 	if(fsync(fd) != 0)
 		die("fsync failed");
