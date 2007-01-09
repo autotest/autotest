@@ -38,6 +38,7 @@ unsigned int random_tasks = 4;
 unsigned int blocks;
 unsigned int sectors_per_block;
 unsigned int signature;
+unsigned int stop_on_error = 0;
 
 void die(char *error)
 {
@@ -221,6 +222,7 @@ void usage(void)
 	printf("    [-l linear tasks]    linear access tasks (4)\n");
 	printf("    [-r random tasks]    random access tasks (4)\n");
 	printf("    [-i]                 only do init phase\n");
+	printf("    [-S]                 stop immediately on error\n");
 	printf("\n");
 }
 
@@ -230,9 +232,9 @@ unsigned int double_verify(int fd, void *buffer, char *err)
 
 	for (block = start_block; block < start_block + blocks; block++) {
 		if (verify_block(fd, block, buffer, err)) {
+			if (stop_on_error)
+				return 1;
 			errors++;
-			printf("Rechecking block %d\n", block);
-			verify_block(fd, block, buffer, err);
 		}
 	}
 	return errors;
@@ -246,7 +248,7 @@ int main(int argc, char *argv[])
 	void *init_buffer;
 
 	/* Parse all input options */
-	while ((opt = getopt(argc, argv, "f:s:m:M:b:l:r:i")) != -1) {
+	while ((opt = getopt(argc, argv, "f:s:m:M:b:l:r:iS")) != -1) {
 		switch (opt) {
 			case 'f':
 				filename = optarg;
@@ -271,6 +273,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'i':
 				init_only = 1;
+				break;
+			case 'S':
+				stop_on_error = 1;
 				break;
 			default:
 				usage();
@@ -301,8 +306,10 @@ int main(int argc, char *argv[])
 	if(fsync(fd) != 0)
 		die("fsync failed");
 	if (double_verify(fd, init_buffer, "init1")) {
-		printf("First verify failed. Repeating for posterity\n");
-		double_verify(fd, init_buffer, "init2");
+		if (!stop_on_error) {
+			printf("First verify failed. Repeating for posterity\n");
+			double_verify(fd, init_buffer, "init2");
+		}
 		exit(1);
 	}
 
