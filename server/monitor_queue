@@ -46,17 +46,19 @@ def run_job(control):
 		runjob_cmd += ' ' + console
 	server_log = open(os.path.join(debug, 'server.log'), 'w');
 	p = Popen(runjob_cmd, shell=True, stdout=server_log, stderr=STDOUT)
-	ret = os.waitpid(p.pid, 0)
+	(pid, ret) = os.waitpid(p.pid, 0)
 	file.close(server_log)
+	print "Completed job: %s (%d) " % (next_job, ret)
 	return ret
 
 
 dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 runjob = os.path.join(dir, 'runjob')
-print "runjob set to: " + runjob
 os.chdir(spooldir)
+print "monitoring spool directory: " + spooldir
 while True:
-	next_job = pick_job(os.listdir(spooldir))
+	jobs = [j for j in os.listdir(spooldir) if not j.startswith('.')]
+	next_job = pick_job(jobs)
 	if not next_job:
 		time.sleep(10)
 		continue
