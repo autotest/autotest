@@ -66,7 +66,7 @@ class fd_stack:
 			os.dup2(fdcopy, 1)
 			os.close(r)
 			os.close(fdcopy)
-			os.execlp('tee', 'tee', filename)
+			os.execlp('tee', 'tee', '-a', filename)
 		self.stack.append( (fdcopy, self.filehandle, pid) )
 		self.update_handle(os.fdopen(self.fd, 'w'))
 		#where_art_thy_filehandles()
