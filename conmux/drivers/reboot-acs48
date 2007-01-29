@@ -1,0 +1,39 @@
+#! /usr/bin/expect --
+#
+# Reboot a machine connected to an ACS48 terminal server which is appropriately
+# configured to use power management equipment.  Assumes that ^P is power menu
+# hotkey (this is the default).
+#
+# Copyright 2006 Google Inc.
+# Author:  sqazi@google.com (Salman Qazi)
+#
+set machine [lindex $argv 0]
+set ts_addr [lindex $argv 1]
+spawn ssh root:$machine@$ts_addr
+sleep 5
+set timeout 30
+expect {
+   "Enter your option :"   {
+      send "4\r"
+      expect {
+         "Enter session PID or \'all\':" {
+	     send "all\r"
+	  }
+      }
+   }
+}
+expect {
+    "All sessions killed."          {
+      send \020
+      expect {
+        "Please choose an option:"  {
+	    send "5\r"
+	    expect {
+	      "Outlet turned on."    {send "\r~.\r"}
+	    }
+	}
+      }
+
+    }
+}
+
