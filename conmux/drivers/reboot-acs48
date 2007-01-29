@@ -11,7 +11,7 @@ set machine [lindex $argv 0]
 set ts_addr [lindex $argv 1]
 spawn ssh root:$machine@$ts_addr
 sleep 5
-set timeout 30
+set timeout 10
 expect {
    "Enter your option :"   {
       send "4\r"
