@@ -431,3 +431,18 @@ def read_one_line(filename):
 def write_one_line(filename, str):
 	str.rstrip()
 	open(filename, 'w').write(str.rstrip() + "\n")
+
+
+def human_format(number):
+	# Convert number to kilo / mega / giga format.
+	if number < 1024:
+		return "%d" % number
+	kilo = float(number) / 1024.0
+	if kilo < 1024:
+		return "%.2fk" % kilo
+	meg = kilo / 1024.0
+	if meg < 1024:
+		return "%.2fM" % meg
+	gig = meg / 1024.0
+	return "%.2fG" % gig
+
