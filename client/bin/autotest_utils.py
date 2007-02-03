@@ -1,7 +1,7 @@
 """Convenience functions for use by tests or whomever.
 """
 
-import os,os.path,shutil,urllib,sys,signal,commands,pickle
+import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob
 from error import *
 import re,string
 
@@ -96,7 +96,7 @@ def is_url(path):
 	return 0
 
 
-def get_file(src, dest):
+def get_file(src, dest, permissions = None):
 	"""get a file, either from url or local"""
 	if (src == dest):      # no-op here allows clean overrides in tests
 		return
@@ -108,8 +108,10 @@ def get_file(src, dest):
 		except IOError:
 			sys.stderr.write("Unable to retrieve %s (to %s)\n" % (src, dest))
 			sys.exit(1)
-		return dest
-	shutil.copyfile(src, dest)
+	else:
+		shutil.copyfile(src, dest)
+	if permissions:
+		os.chmod(permissions)
 	return dest
 
 
@@ -445,4 +447,15 @@ def human_format(number):
 		return "%.2fM" % meg
 	gig = meg / 1024.0
 	return "%.2fG" % gig
+
+
+def numa_nodes():
+	node_paths = glob.glob('/sys/devices/system/node/node*')
+	nodes = [int(re.sub(r'.*node(\d+)', r'\1', x)) for x in node_paths]
+	return (sorted(nodes))
+
+
+def node_size():
+	nodes = max(len(numa_nodes()), 1)
+	return ((memtotal() * 1024) / nodes)
 
