@@ -1,3 +1,3 @@
-job.profilers.add('vmstat', 1)
+job.profilers.add('vmstat', 2)
 job.run_test('sleeptest', 5)
 job.profilers.delete('vmstat')
