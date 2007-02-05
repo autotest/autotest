@@ -28,6 +28,7 @@ struct pattern {
 char *filename = "testfile";
 volatile int stop = 0;
 int init_only = 0;
+int verify_only = 0;
 unsigned int megabytes = 1;
 unsigned int skip_mb = 0;
 unsigned int start_block = 0;
@@ -37,7 +38,7 @@ unsigned int linear_tasks = 1;
 unsigned int random_tasks = 4;
 unsigned int blocks;
 unsigned int sectors_per_block;
-unsigned int signature;
+unsigned int signature = 0;
 unsigned int stop_on_error = 0;
 
 void die(char *error)
@@ -221,6 +222,7 @@ void usage(void)
 	printf("    [-b blocksize]	 blocksize           (4096)\n");
 	printf("    [-l linear tasks]    linear access tasks (4)\n");
 	printf("    [-r random tasks]    random access tasks (4)\n");
+	printf("    [-v]                 verify pre-existing file\n");
 	printf("    [-i]                 only do init phase\n");
 	printf("    [-S]                 stop immediately on error\n");
 	printf("\n");
@@ -248,8 +250,11 @@ int main(int argc, char *argv[])
 	void *init_buffer;
 
 	/* Parse all input options */
-	while ((opt = getopt(argc, argv, "f:s:m:M:b:l:r:iS")) != -1) {
+	while ((opt = getopt(argc, argv, "vf:s:m:M:b:l:r:iS")) != -1) {
 		switch (opt) {
+			case 'v':
+				verify_only = 1;
+				break;
 			case 'f':
 				filename = optarg;
 				break;
@@ -289,6 +294,35 @@ int main(int argc, char *argv[])
 	blocks = megabytes * (1024 * 1024 / blocksize);
 	start_block = skip_mb * (1024 * 1024 / blocksize);
 	sectors_per_block = blocksize / SECTOR_SIZE;
+	init_buffer = malloc(blocksize);
+
+	if (verify_only) {
+		struct stat stat_buf;
+
+		printf("Verifying %s\n", filename);
+		int fd = open(filename, O_RDONLY);
+		if (fd < 0)
+			die("open failed");
+
+		if (fstat(fd, &stat_buf) != 0) 
+			die("fstat failed");
+		megabytes = stat_buf.st_size / (1024 * 1024);
+		blocks = megabytes * (1024 * 1024 / blocksize);
+		if (read(fd, init_buffer, SECTOR_SIZE) != SECTOR_SIZE) {
+			fprintf(stderr, "read failed of initial sector (errno: %d) filename %s\n", errno, filename);
+			exit(1);
+		}
+		lseek(fd, 0, SEEK_SET);
+		signature = ((struct pattern *)init_buffer)->signature;
+
+		printf("Checking %d megabytes using signature %08x\n", 
+							megabytes, signature);
+		if (double_verify(fd, init_buffer, "init1"))
+			exit(1);
+		else
+			exit(0);
+	}
+
 	signature = (getpid() << 16) + ((unsigned int) time(NULL) & 0xffff);
 
 	/* Initialise file */
@@ -300,7 +334,6 @@ int main(int argc, char *argv[])
 
 	printf("Ininitializing block %d to %d in file %s (signature %08x)\n", start_block, start_block+blocks, filename, signature);
 	/* Initialise all file data to correct blocks */
-	init_buffer = malloc(blocksize);
 	for (block = start_block; block < start_block+blocks; block++)
 		write_block(fd, block, init_buffer);
 	if(fsync(fd) != 0)
@@ -322,9 +355,8 @@ int main(int argc, char *argv[])
 	end_time = time(NULL) + seconds;
 
 	/* Fork off all linear access pattern tasks */
-	for (tasks = 0; tasks < linear_tasks; tasks++) {
+	for (tasks = 0; tasks < linear_tasks; tasks++)
 		write_file(end_time, 0);
-	}
 
 	/* Fork off all random access pattern tasks */
 	for (tasks = 0; tasks < random_tasks; tasks++)
