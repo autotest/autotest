@@ -65,6 +65,9 @@ class job:
 				system('rm -rf ' + self.tmpdir)
 			os.mkdir(self.tmpdir)
 
+			if not os.path.exists(self.autodir + '/results'):
+				os.mkdir(self.autodir + '/results')
+				
 			if os.path.exists(self.resultdir):
 				system('rm -rf ' + self.resultdir)
 			os.mkdir(self.resultdir)
@@ -376,7 +379,8 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.complete(1)
 
 	except:
-		myjob.harness.run_abort()
+		if myjob:
+			myjob.harness.run_abort()
 		# Ensure we cannot continue this job, it is in rictus.
 		if os.path.exists(state):
 			os.unlink(state)
