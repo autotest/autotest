@@ -1,1 +1,7 @@
+# You might want to do something like:
+#
+# import glob
+# disks = glob.glob('/export/*')
+# job.run_test('disktest', disks)
+
 job.run_test('disktest', ['/tmp'])
