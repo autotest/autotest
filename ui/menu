@@ -155,15 +155,17 @@ def atcc_config_read(tag, test_type):
 	f = open(file, 'r')
 
 	z = f.readline()
+	z = z.lstrip("job.run_test(")
+	z = z.rstrip('\n')
+	z = z.rstrip(')')
 	z = z.split(',')
+
 	x = len(z)
 
-	if x == 2:
+	if x == 1:
 		z = ""
-	elif x > 2:
-		z = z[2:]
-		z[-1] = z[-1].rstrip('\n')
-		z[-1] = z[-1].rstrip(')')
+	elif x > 1:
+		z = z[1:]
 		m = ""
 		for i in z:
 			m += (',' + i)
@@ -180,7 +182,12 @@ def atcc_config_write(tag, test_type, answer):
 	file = (at_dir + '/' + test_type + '/' + tag + '/control')
 	f = open(file, 'w')
 
-	value = ("job.runtest(None, \'" + tag + "\', " + answer + ")")
+	x = len(answer)
+	if x == 0:
+		value = ("job.run_test(\'" + tag + "\')")
+	else:
+		value = ("job.run_test(\'" + tag + "\', " + answer + ")")
+
 	s = str(value)
 	z = f.write(s)
 
@@ -215,7 +222,7 @@ def atcc_config(test_type, t):
 
 	for i in dir_ls:
 		k = i, ""
-		if i != ".svn" and i != "netperf2" and i != "pktgen" and i != "sparse" and (os.path.exists(at_dir + '/' + test_type + '/' + i + '/control')):
+		if i != ".svn" and i != "netperf2" and i != "pktgen" and i != "sparse" and i != "dbt2" and i != "kernelbuild" and (os.path.exists(at_dir + '/' + test_type + '/' + i + '/control')):
 			u.append(k)
 
 	while 1:
@@ -250,7 +257,7 @@ def atcc_profilers_run(res1, res2):
 
 	for i in range(len(res2)):
 		z = atcc_config_read(res2[i], 'tests')
-		k = ('\t\tjob.runtest(profiler, \'' + res2[i] + '\',' + z + ')\n')
+		k = ('\t\tjob.run_test(\'' + res2[i] + '\',' + z + ')\n')
 		k = str(k)
 		f.write(k)
 
@@ -268,7 +275,7 @@ def atcc_upgrade():
 	os.system("svn checkout svn://test.kernel.org/autotest/trunk " + at_dir)
 
 def atcc_rsync_mirror():
-	os.system(at_dir + "/mirror/mirror")
+	os.system(at_dir + "/../mirror/mirror")
 
 def atcc_main_menu():
 	while 1:
@@ -311,9 +318,9 @@ def main():
 check_python_version()
 
 menu_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-at_dir = os.path.dirname(menu_dir)
+at_dir = os.path.dirname(menu_dir + "/../client/")
 
 d = dialog.Dialog(dialog = "dialog")
-d.add_persistent_args(["--backtitle", "Autotest Control Center v0.05-p1"])
+d.add_persistent_args(["--backtitle", "Autotest Control Center v0.06"])
 
 main()
