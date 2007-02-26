@@ -330,7 +330,7 @@ def where_art_thy_filehandles():
 
 def print_to_tty(string):
 	"""Output string straight to the tty"""
-	os.system("echo " + string + " >> /dev/tty")
+	open('/dev/tty', 'w').write(string + '\n')
 
 
 def dump_object(object):
