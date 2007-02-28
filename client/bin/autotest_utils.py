@@ -185,6 +185,8 @@ def get_os_vendor():
 		return 'SUSE'
 	elif file_contains_pattern(issue, 'Ubuntu'):
 		return 'Ubuntu'
+	elif file_contains_pattern(issue, 'Debian'):
+		return 'Debian'
 	else:
 		return 'Unknown'
 	
