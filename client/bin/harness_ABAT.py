@@ -6,7 +6,31 @@ The interface as required for ABAT.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 from autotest_utils import *
-import os, harness, time
+import os, harness, time, re
+
+def autobench_load(fn):
+	disks = re.compile(r'^\s*DATS_FREE_DISKS\s*=(.*\S)\s*$')
+	parts = re.compile(r'^\s*DATS_FREE_PARTITIONS\s*=(.*\S)\s*$')
+
+	conf = {}
+
+	try:
+		fd = file(fn, "r")
+	except:
+		return conf
+	for ln in fd.readlines():
+		m = disks.match(ln)
+		if m:
+			val = m.groups()[0]
+			conf['disks'] = val.strip('"').split()
+		m = parts.match(ln)
+		if m:
+			val = m.groups()[0]
+			conf['partitions'] = val.strip('"').split()
+	fd.close()
+
+	return conf
+
 
 class harness_ABAT(harness.harness):
 	"""The ABAT server harness
@@ -39,6 +63,12 @@ class harness_ABAT(harness.harness):
 	def run_start(self):
 		"""A run within this job is starting"""
 		self.__send("STATUS GOOD run starting")
+
+		# Load up the autobench.conf if it exists.
+		conf = autobench_load("/etc/autobench.conf")
+		if 'partitions' in conf:
+			self.job.config_set('filesystem.partitions',
+				conf['partitions'])
 
 		# Search the boot loader configuration for the autobench entry,
 		# and extract its args.
