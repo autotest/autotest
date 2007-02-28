@@ -252,6 +252,14 @@ class kernel:
 			system('mkinitrd %s %s' % (initrd, version))
 		elif vendor in ['SUSE']:
 			system('mkinitrd -k %s -i %s -M %s' % (image, initrd, system_map))
+		elif vendor in ['Debian', 'Ubuntu']:
+			if os.path.isfile('/usr/sbin/mkinitrd'):
+				cmd = '/usr/sbin/mkinitrd'
+			elif os.path.isfile('/usr/sbin/mkinitramfs'):
+				cmd = '/usr/sbin/mkinitramfs'
+			else:
+				raise TestError('No Debian initrd builder')
+			system('%s -o %s %s' % (cmd, initrd, version))
 		else:
 			raise TestError('Unsupported vendor %s' % vendor)
 
