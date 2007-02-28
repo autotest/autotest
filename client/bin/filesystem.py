@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, Google, 2006"""
 
-import os
+import os, re
 from autotest_utils import *
 
 def list_mount_devices():
@@ -37,6 +37,18 @@ class filesystem:
 		mountpoint
 			Default mountpoint for the device.
 		"""
+
+		part = re.compile(r'^part(\d+)$')
+		m = part.match(device)
+		if m:
+			number = int(m.groups()[0])
+			partitions = job.config_get('filesystem.partitions')
+			try:
+				device = partitions[number]
+			except:
+				raise NameError("Partition '" + device +
+					"' not available")
+
 		self.device = device
 		self.mountpoint = mountpoint
 		self.job = job
