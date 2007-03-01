@@ -318,9 +318,6 @@ from autotest_utils import *
 			lcl['__args'] = step
 			exec("__cmd(*__args)", lcl, lcl)
 
-		# all done, clean up and exit.
-		self.complete(0)
-
 
 	def record(self, msg):
 		"""Record job-level status"""
@@ -367,9 +364,6 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		#  2) define steps, and select the first via next_step()
 		myjob.step_engine()
 
-		# If we get here, then we assume the job is complete and good.
-		myjob.complete(0)
-
 	except JobContinue:
 		sys.exit(5)
 
@@ -385,3 +379,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		if os.path.exists(state):
 			os.unlink(state)
 		raise
+
+	# If we get here, then we assume the job is complete and good.
+	myjob.complete(0)
+
