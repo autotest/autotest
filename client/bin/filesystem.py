@@ -80,7 +80,7 @@ class filesystem:
 		return not ret
 
 	
-	def mount(self, mountpoint=None):
+	def mount(self, mountpoint = None, options = ''):
 		if not mountpoint:
 			mountpoint = self.mountpoint
 		if list_mount_devices().count(self.device):
@@ -92,10 +92,9 @@ class filesystem:
 			self.job.record("FAIL " + err)
 			raise NameError(err)
 		if self.fstype:
-			fstype = '-t ' + self.fstype
-		else:
-			fstype = ''
-		mount_cmd = "mount %s %s %s" % (fstype, self.device, mountpoint)
+			options += ' -t ' + self.fstype
+		mount_cmd = "mount %s %s %s" % (options,
+						self.device, mountpoint)
 		try:
 			system(mount_cmd)
 		except:
