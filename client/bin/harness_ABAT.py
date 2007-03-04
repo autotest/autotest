@@ -133,9 +133,6 @@ class harness_ABAT(harness.harness):
 		lines = status.split("\n")
 		self.__send("STATUS " + lines[0])
 
-		# Strip the status code and send the whole thing as
-		# SUMMARY messages.
-		(status, mesg) = lines[0].split(' ', 1)
-		lines[0] = mesg
+		# Send each line as a SUMMARY message.
 		for line in lines:
 			self.__send("SUMMARY :" + line)
