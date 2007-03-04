@@ -60,6 +60,18 @@ class harness_ABAT(harness.harness):
 			self.status.flush()
 
 
+	def __root_device(self):
+		fd = open("/proc/mounts", "r")
+		try: 
+			for line in fd.readlines():
+				words = line.split(' ')
+				if words[0] != 'rootfs' and words[1] == '/':
+					return words[0]
+			return None
+		finally:
+			fd.close()
+		
+
 	def run_start(self):
 		"""A run within this job is starting"""
 		self.__send("STATUS GOOD run starting")
@@ -84,6 +96,9 @@ class harness_ABAT(harness.harness):
 
 		if args:
 			args = re.sub(r'autobench_args:.*', '', args)
+			args = re.sub(r'root=\S*', '', args)
+			args += " root=" + self.__root_device()
+
 			self.job.config_set('boot.default_args', args)
 
 
