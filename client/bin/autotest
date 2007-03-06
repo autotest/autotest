@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 #
 # autotest <control file> - run the autotest control file specified.
 #
