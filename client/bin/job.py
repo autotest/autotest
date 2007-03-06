@@ -370,6 +370,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob != None:
+			myjob.record("ABORT " + instance.args[0] + "\n")
 			myjob.complete(1)
 
 	except:
