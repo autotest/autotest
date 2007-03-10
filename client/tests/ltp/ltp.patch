@@ -1,0 +1,11 @@
+--- ltp-full-20060918/testcases/network/nfs/cthon04/tests.init.old	2007-03-10 13:54:32.811518000 -0800
++++ ltp-full-20060918/testcases/network/nfs/cthon04/tests.init	2007-03-10 13:54:56.009862000 -0800
+@@ -75,7 +75,7 @@
+ #	Tru64 UNIX
+ #	SVR4
+ #	Linux
+-PATH=/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/sbin:/usr/sbin:.
++#PATH=/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/sbin:/usr/sbin:.
+ 
+ # Use this path for:
+ #	DG/UX
