@@ -11,6 +11,8 @@ class ltp(test.test):
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
+		system('patch -p1 < ../ltp.patch')
+		system('cp ../scan.c pan/')
 		system('make -j %d' % count_cpus())
 		system('yes n | make install')
 
