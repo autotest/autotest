@@ -204,7 +204,8 @@ class job:
 		if dargs.has_key('tag'):
 			tag = dargs['tag']
 			del dargs['tag']
-			name += '.' + tag
+			if tag:
+				name += '.' + tag
 		try:
 			try:
 				self.__runtest(url, tag, args, dargs)
