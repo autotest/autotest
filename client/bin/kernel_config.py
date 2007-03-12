@@ -2,6 +2,7 @@
 # the repo.
 
 from autotest_utils import *
+from kernel_versions import *
 
 def apply_overrides(orig_file, changes_file, output_file):
 	# First suck all the changes into a dictionary.
@@ -33,6 +34,14 @@ def diff_configs(old, new):
 def modules_needed(config):
 	return (grep('CONFIG_MODULES=y', config) and grep('=m', config))
 
+
+def config_by_name(name, set):
+	version = version_chose_config(name, set[1:])
+	if version:
+		return set[0] + version
+	return None
+
+
 class kernel_config:
 	# Build directory must be ready before init'ing config.
 	# 
@@ -53,15 +62,21 @@ class kernel_config:
 	orig_config = ''	# the original config file
 	over_config = ''	# config file + overrides
 
+
 	def __init__(self, job, build_dir, config_dir, orig_file,
-						overrides, defconfig = False):
+				overrides, defconfig = False, name = None):
 		self.build_dir = build_dir
 		self.config_dir = config_dir
 
 		# 	1. Get original config file
 		self.build_config = build_dir + '/.config'
 		if (orig_file == '' and not defconfig):	# use user default
-			defconf = job.config_get("kernel.default_config")
+			set = job.config_get("kernel.default_config_set")
+			defconf = None
+			if set and name:
+				defconf = config_by_name(name, set)
+			if not defconf: 
+				defconf = job.config_get("kernel.default_config")
 			if defconf:
 				orig_file = defconf
 		if (orig_file == '' or defconfig):	# use defconfig
