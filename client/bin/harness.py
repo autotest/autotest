@@ -21,6 +21,14 @@ class harness:
 			job
 				The job object for this job
 		"""
+		self.setup(job)
+
+
+	def setup(self, job):
+		"""
+			job
+				The job object for this job
+		"""
 		self.job = job
 
 
