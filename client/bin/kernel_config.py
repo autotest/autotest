@@ -65,9 +65,12 @@ class kernel_config:
 			if defconf:
 				orig_file = defconf
 		if (orig_file == '' or defconfig):	# use defconfig
+			print "kernel_config: using defconfig to configure kernel"
 			os.chdir(build_dir)
 			system('make defconfig')
 		else:
+			print "kernel_config: using " + orig_file + \
+							" to configure kernel"
 			self.orig_config = config_dir + '/config.orig'
 			get_file(orig_file, self.orig_config)
 			self.update_config(self.orig_config, self.orig_config+'.new')
