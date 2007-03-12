@@ -31,6 +31,12 @@ class harness:
 		"""
 		self.job = job
 
+		configd = os.path.join(os.environ['AUTODIR'], 'configs')
+		if os.path.isdir(configd):
+			(name, dirs, files) = os.walk(configd).next()
+			job.config_set('kernel.default_config_set',
+						[ configd + '/' ] + files)
+
 
 	def run_start(self):
 		"""A run within this job is starting"""
