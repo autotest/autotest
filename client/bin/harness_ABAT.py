@@ -45,7 +45,7 @@ class harness_ABAT(harness.harness):
 			job
 				The job object for this job
 		"""
-		self.job = job
+		self.setup(job)
 
 		if 'ABAT_STATUS' in os.environ:
 			self.status = file(os.environ['ABAT_STATUS'], "w")

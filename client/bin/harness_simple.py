@@ -21,7 +21,8 @@ class harness_simple(harness.harness):
 			job
 				The job object for this job
 		"""
-		self.job = job
+		self.setup(job)
+
 		self.status = os.fdopen(3, 'w')
 
 
