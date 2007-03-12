@@ -81,6 +81,15 @@ class kernel:
 			return
 
 		self.logfile.write('BASE: %s\n' % base_tree)
+
+		# Where we have direct version hint record that
+		# for later configuration selection.
+		shorthand = re.compile(r'^\d+\.\d+\.\d+')
+		if shorthand.match(base_tree):
+			self.base_tree_version = base_tree
+		else:
+			self.base_tree_version = None
+			
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
@@ -115,7 +124,8 @@ class kernel:
 		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
 		config = kernel_config.kernel_config(self.job, self.build_dir,
-			 self.config_dir, config_file, config_list, defconfig)
+			 self.config_dir, config_file, config_list,
+			 defconfig, self.base_tree_version)
 		self.job.stdout.restore()
 
 
