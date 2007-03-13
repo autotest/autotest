@@ -5,11 +5,22 @@ class kernbench(test.test):
 	version = 1
 
 	def setup(self):
+		#
+		# If we have a local copy of the 2.6.14 tarball use that
+		# else let the kernel object use the defined mirrors
+		# to obtain it.
+		#
 		# http://kernel.org/pub/linux/kernel/v2.6/linux-2.6.14.tar.bz2
-		if (os.path.exists(self.bindir + '/linux-2.6.14.tar.bz2')):
-			tarball = self.bindir + '/linux-2.6.14.tar.bz2'
-		else:
-			tarball = '/usr/local/src/linux-2.6.14.tar.bz2'
+		#
+		tarball = None
+		for dir in (self.bindir, '/usr/local/src'):
+			path = os.path.join(dir, 'linux-2.6.14.tar.bz2')
+			if os.path.exists(path):
+				tarball = path
+				break
+		if not tarball:
+			tarball = '2.6.14'
+			
 		kernel = self.job.kernel(tarball, self.tmpdir, self.srcdir)
 		kernel.config(defconfig=True)
 		# have to save this off, as we might use it in another run
