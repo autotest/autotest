@@ -36,7 +36,7 @@ def modules_needed(config):
 
 
 def config_by_name(name, set):
-	version = version_chose_config(name, set[1:])
+	version = version_choose_config(name, set[1:])
 	if version:
 		return set[0] + version
 	return None
