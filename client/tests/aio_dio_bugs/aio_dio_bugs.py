@@ -1,6 +1,11 @@
 import test
 from autotest_utils import *
 
+# tests is a simple array of "cmd" "arguments"
+tests = [["aio-dio-invalidate-failure", "poo"],]
+name = 0
+arglist = 1
+
 class aio_dio_bugs(test.test):
 	version = 1
 
@@ -13,10 +18,9 @@ class aio_dio_bugs(test.test):
 	def setup(self):
 		os.mkdir(self.srcdir)
 		os.chdir(self.bindir)
-		system('cp aio-dio-invalidate-failure.c src/')
+		system('cp Makefile *.c src/')
 		os.chdir(self.srcdir)
-		self.gcc_flags += ' -Wall -lpthread -laio'
-		system('gcc ' + self.gcc_flags + ' aio-dio-invalidate-failure.c -o aio-dio-invalidate-failure')
+		system('make')
 
 
 	def execute(self, args = ''):
@@ -24,5 +28,7 @@ class aio_dio_bugs(test.test):
 		libs = self.autodir+'/deps/libaio/lib/'
 		ld_path = prepend_path(libs, environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
-		cmd = self.srcdir + '/aio-dio-invalidate-failure ' + args + ' poo'
-		system(var_ld_path + ' ' + cmd)
+		for test in tests:
+			cmd = self.srcdir + '/' + test[name] + ' ' \
+			      + args + ' ' + test[arglist]
+			system(var_ld_path + ' ' + cmd)
