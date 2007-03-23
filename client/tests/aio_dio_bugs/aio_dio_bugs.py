@@ -2,12 +2,14 @@ import test
 from autotest_utils import *
 
 # tests is a simple array of "cmd" "arguments"
-tests = [["aio-dio-invalidate-failure", "poo"],]
+tests = [["aio-dio-invalidate-failure", "poo"],
+	 ["aio-dio-subblock-eof-read", "eoftest"],
+	 ["aio-free-ring-with-bogus-nr-pages", ""],]
 name = 0
 arglist = 1
 
 class aio_dio_bugs(test.test):
-	version = 1
+	version = 3
 
 	def initialize(self):
 		self.job.setup_dep(['libaio'])
@@ -20,7 +22,7 @@ class aio_dio_bugs(test.test):
 		os.chdir(self.bindir)
 		system('cp Makefile *.c src/')
 		os.chdir(self.srcdir)
-		system('make')
+		system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
 
 
 	def execute(self, args = ''):
