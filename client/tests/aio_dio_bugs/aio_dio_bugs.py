@@ -10,6 +10,7 @@ arglist = 1
 
 class aio_dio_bugs(test.test):
 	version = 3
+	preserve_srcdir = True
 
 	def initialize(self):
 		self.job.setup_dep(['libaio'])
@@ -18,9 +19,6 @@ class aio_dio_bugs(test.test):
 		self.gcc_flags = ldflags + ' ' + cflags
 
 	def setup(self):
-		os.mkdir(self.srcdir)
-		os.chdir(self.bindir)
-		system('cp Makefile *.c src/')
 		os.chdir(self.srcdir)
 		system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
 

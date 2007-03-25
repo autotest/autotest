@@ -32,6 +32,6 @@ def setup(tarball, topdir):
 	
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'mysql-5.0.24a.tar.gz')
-update_version(pwd+'/src', version, setup, tarball, pwd)
+update_version(pwd+'/src', False, version, setup, tarball, pwd)
 
 

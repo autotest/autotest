@@ -26,4 +26,4 @@ def setup(tarball, topdir):
 	
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'pgpool-II-1.0.1.tar.gz')
-update_version(pwd+'/src', version, setup, tarball, pwd)
+update_version(pwd+'/src', False, version, setup, tarball, pwd)

@@ -68,20 +68,27 @@ def extract_tarball(tarball):
 	raise NameError, "extracting tarball produced no dir"
 
 
-def update_version(srcdir, new_version, install, *args, **dargs):
-	"""Make sure srcdir is version new_version
+def update_version(srcdir, preserve_srcdir, new_version, install, *args, **dargs):
+	"""
+	Make sure srcdir is version new_version
 
-	If not, delete it and install() the new version
+	If not, delete it and install() the new version.
+
+	In the preserve_srcdir case, we just check it's up to date,
+	and if not, we rerun install, without removing srcdir
 	"""
 	versionfile = srcdir + '/.version'
+	install_needed = True
+
 	if os.path.exists(srcdir):
 		if os.path.exists(versionfile):
 			old_version = pickle.load(open(versionfile, 'r'))
-			if (old_version != new_version):
-				system('rm -rf ' + srcdir)
-		else:
+			if (old_version == new_version):
+				install_needed = False
+
+	if install_needed:
+		if not preserve_srcdir:
 			system('rm -rf ' + srcdir)
-	if not os.path.exists(srcdir):
 		install(*args, **dargs)
 		if os.path.exists(srcdir):
 			pickle.dump(new_version, open(versionfile, 'w'))
