@@ -25,5 +25,5 @@ def setup(tarball, topdir):
 
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'Linux-Bootloader-1.2.tar.gz')
-update_version(pwd+'/src', version, setup, tarball, pwd)
+update_version(pwd+'/src', False, version, setup, tarball, pwd)
 

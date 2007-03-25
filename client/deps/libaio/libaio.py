@@ -23,5 +23,5 @@ def setup(tarball, topdir):
 
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'libaio_0.3.106.orig.tar.gz')
-update_version(pwd+'/src', version, setup, tarball, pwd)
+update_version(pwd+'/src', False, version, setup, tarball, pwd)
 

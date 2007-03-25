@@ -25,6 +25,8 @@ from error import *
 from parallel import *
 
 class test:
+	preserve_srcdir = False
+
 	def __init__(self, job, bindir, outputdir):
 		testname = self.__class__.__name__
 
@@ -49,7 +51,7 @@ class test:
 
 		self.initialize()
 		# compile and install the test, if needed.
-		update_version(self.srcdir, self.version, self.setup)
+		update_version(self.srcdir, self.preserve_srcdir, self.version, self.setup)
 
 
 	def initialize(self):

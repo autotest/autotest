@@ -3,6 +3,8 @@ from autotest_utils import *
 from error import *
 
 class profilers:
+	preserve_srcdir = False
+
 	def __init__(self, job):
 		self.job = job
 		self.list = []
@@ -21,7 +23,7 @@ class profilers:
 		newprofiler.bindir = self.profdir + '/' + profiler
 		newprofiler.srcdir = newprofiler.bindir + '/src'
 		newprofiler.tmpdir = self.tmpdir + '/' + profiler
-		update_version(newprofiler.srcdir, newprofiler.version, newprofiler.setup)
+		update_version(newprofiler.srcdir, newprofiler.preserve_srcdir, newprofiler.version, newprofiler.setup)
 		newprofiler.initialize(*args)
 		self.list.append(newprofiler)
 
