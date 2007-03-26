@@ -4,12 +4,14 @@ from autotest_utils import *
 # tests is a simple array of "cmd" "arguments"
 tests = [["aio-dio-invalidate-failure", "poo"],
 	 ["aio-dio-subblock-eof-read", "eoftest"],
-	 ["aio-free-ring-with-bogus-nr-pages", ""],]
+	 ["aio-free-ring-with-bogus-nr-pages", ""],
+	 ["aio-io-setup-with-nonwritable-context-pointer", ""],
+	]
 name = 0
 arglist = 1
 
 class aio_dio_bugs(test.test):
-	version = 3
+	version = 4
 	preserve_srcdir = True
 
 	def initialize(self):
