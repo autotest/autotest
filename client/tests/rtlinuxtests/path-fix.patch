@@ -1,0 +1,136 @@
+diff -uprN tests/func/pi-tests/run_auto.sh src/func/pi-tests/run_auto.sh
+--- tests/func/pi-tests/run_auto.sh	2007-03-09 16:44:31.000000000 +0100
++++ src/func/pi-tests/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "testpi-0" "testpi-1" "testpi-2" "testpi-4 ""testpi-5" "testpi-6" "testpi-7" "sbrk_mutex"
+ 
+diff -uprN tests/func/prio-preempt/run_auto.sh src/func/prio-preempt/run_auto.sh
+--- tests/func/prio-preempt/run_auto.sh	2007-03-09 16:44:31.000000000 +0100
++++ src/func/prio-preempt/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "prio-preempt"  
+ 
+diff -uprN tests/func/prio-wake/run_auto.sh src/func/prio-wake/run_auto.sh
+--- tests/func/prio-wake/run_auto.sh	2007-03-09 16:44:32.000000000 +0100
++++ src/func/prio-wake/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "prio-wake"  
+ 
+diff -uprN tests/func/pthread_kill_latency/run_auto.sh src/func/pthread_kill_latency/run_auto.sh
+--- tests/func/pthread_kill_latency/run_auto.sh	2007-03-09 16:44:31.000000000 +0100
++++ src/func/pthread_kill_latency/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "pthread_kill_latency"  
+ 
+diff -uprN tests/func/sched_football/run_auto.sh src/func/sched_football/run_auto.sh
+--- tests/func/sched_football/run_auto.sh	2007-03-09 16:44:32.000000000 +0100
++++ src/func/sched_football/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "sched_football"  
+ 
+diff -uprN tests/func/sched_latency/run_auto.sh src/func/sched_latency/run_auto.sh
+--- tests/func/sched_latency/run_auto.sh	2007-03-09 16:44:31.000000000 +0100
++++ src/func/sched_latency/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -3,7 +3,7 @@
+ #
+ #
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ $SCRIPTS_DIR/run_c_files.sh "sched_latency"
+ 
+diff -uprN tests/perf/latency/run_auto.sh src/perf/latency/run_auto.sh
+--- tests/perf/latency/run_auto.sh	2007-03-09 16:53:21.000000000 +0100
++++ src/perf/latency/run_auto.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -1,6 +1,6 @@
+ 
+ export CUR_DIR=`pwd`
+-export TESTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/
++export TESTS_DIR=${CUR_DIR%src*}src/
+ export SCRIPTS_DIR=$TESTS_DIR/scripts/
+ 
+ 	log="$LOG_DIR/$LOG_FORMAT-pthread_cond_many.log"
+diff -uprN tests/run.sh src/run.sh
+--- tests/run.sh	2007-03-09 16:53:21.000000000 +0100
++++ src/run.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -8,7 +8,7 @@
+ #==============================================================================
+ 
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ 
+ source $SCRIPTS_DIR/setenv.sh
+ 
+diff -uprN tests/scripts/run_c_files.sh src/scripts/run_c_files.sh
+--- tests/scripts/run_c_files.sh	2007-03-09 16:44:30.000000000 +0100
++++ src/scripts/run_c_files.sh	2007-03-29 23:47:05.000000000 +0200
+@@ -8,7 +8,7 @@
+ #==============================================================================
+ 
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ source $SCRIPTS_DIR/setenv.sh
+ #	COMPILE THE TESTCASES
+ 	
+diff -uprN tests/scripts/setenv.sh src/scripts/setenv.sh
+--- tests/scripts/setenv.sh	2007-03-09 16:44:30.000000000 +0100
++++ src/scripts/setenv.sh	2007-03-29 23:48:01.000000000 +0200
+@@ -6,8 +6,8 @@
+ #	most of the test-cases
+ #==============================================================================
+ export CUR_DIR=`pwd`
+-export RTLINUX_DIR=${CUR_DIR%rtlinux-tests*}
+-export TESTS_DIR=$RTLINUX_DIR/rtlinux-tests
++export RTLINUX_DIR=${CUR_DIR%src*}
++export TESTS_DIR=$RTLINUX_DIR/src
+ export SCRIPTS_DIR=$TESTS_DIR/scripts
+ export LOG_DIR=$TESTS_DIR/logs
+ export ARGUMENTS_INPUT_ERROR=25
+diff -uprN tests/scripts/ssh-keygen.sh src/scripts/ssh-keygen.sh
+--- tests/scripts/ssh-keygen.sh	2007-03-09 16:44:30.000000000 +0100
++++ src/scripts/ssh-keygen.sh	2007-03-29 23:48:16.000000000 +0200
+@@ -14,9 +14,9 @@
+ #==============================================================================
+ 
+ CUR_DIR=`pwd`
+-export SCRIPTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/scripts
++export SCRIPTS_DIR=${CUR_DIR%src*}src/scripts
+ source $SCRIPTS_DIR/setenv.sh
+-TESTS_DIR=${CUR_DIR%rtlinux-tests*}rtlinux-tests/
++TESTS_DIR=${CUR_DIR%src*}src/
+ 	
+ 	if [ -z "$1" ]; then
+ 		echo " Useage : ssh-keygen.sh server-name "
