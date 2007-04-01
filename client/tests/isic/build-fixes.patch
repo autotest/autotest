@@ -1,0 +1,26 @@
+--- src/Makefile.in2	2004-11-06 21:39:55.000000000 +0100
++++ src/Makefile.in	2007-03-31 16:36:06.000000000 +0200
+@@ -5,9 +5,9 @@
+ PREFIX ?= /usr/local
+ 
+ CC	= @CC@
+-DEFS	= @DEFS@ `libnet-config --defines`
+-CFLAGS	= @CFLAGS@ `libnet-config --cflags`
+-LIBS	= @LIBS@ `libnet-config --libs`
++DEFS	= @DEFS@ `../../../deps/libnet/src/libnet-config --defines`
++CFLAGS	= @CFLAGS@ `../../../deps/libnet/src/libnet-config --cflags`
++LIBS	= @LIBS@ `../../../deps/libnet/src/libnet-config --libs`
+ LDFLAGS	= @LDFLAGS@
+ 
+ INSTALL	= @INSTALL@
+--- src/configure2	2007-03-31 16:40:35.000000000 +0200
++++ src/configure	2007-03-31 16:37:37.000000000 +0200
+@@ -828,7 +828,7 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCR
+ test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
+ 
+ 
+-PREFIX=/usr/local
++#PREFIX=/usr/local
+ 
+ ac_safe=`echo "$PREFIX/lib/libnet.a" | sed 'y%./+-%__p_%'`
+ echo $ac_n "checking for $PREFIX/lib/libnet.a""... $ac_c" 1>&6
