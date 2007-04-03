@@ -410,11 +410,29 @@ def running_config():
 	"""
 	Return path of config file of the currently running kernel
 	"""
+	version = system_output('uname -r')
 	for config in ('/proc/config.gz', \
-		       '/boot/config-%s' % system_output('uname -r') ):
+		       '/boot/config-%s' % version,
+		       '/lib/modules/%s/build/.config' % version):
 		if os.path.isfile(config):
 			return config
 	return None
+
+
+def check_for_kernel_feature(feature):
+	config = running_config()
+
+	if not config:
+		raise "Can't find kernel config file"
+
+	if config.endswith('.gz'):
+		grep = 'zgrep'
+	else:
+		grep = 'grep'
+	grep += ' ^CONFIG_%s= %s' % (feature, config)
+
+	if not system_output(grep, ignorestatus = 1):
+		raise "Kernel doesn't have a %s feature" % (feature)
 
 
 def cpu_online_map():
