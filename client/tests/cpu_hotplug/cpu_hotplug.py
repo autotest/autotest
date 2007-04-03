@@ -11,9 +11,8 @@ class cpu_hotplug(test.test):
 		
 	def execute(self):
 		# Check if the kernel supports cpu hotplug
-		config = running_config()
-		if config and not grep('CONFIG_HOTPLUG_CPU=y', config):
-			raise TestError('Kernel does not support cpu hotplug')
+		if running_config():
+			check_for_kernel_feature('HOTPLUG_CPU')
 		
 		# Check cpu nums, if equals 1, quit.
 		if count_cpus() == 1:
