@@ -39,7 +39,7 @@
 int main(int __attribute__((unused)) argc, char **argv)
 {
 	long res;
-	io_context_t ctx;
+	io_context_t ctx = (void*) 0;
 	void* map;
 
 	while (1) {
