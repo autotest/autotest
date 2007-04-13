@@ -6,12 +6,13 @@ tests = [["aio-dio-invalidate-failure", "poo"],
 	 ["aio-dio-subblock-eof-read", "eoftest"],
 	 ["aio-free-ring-with-bogus-nr-pages", ""],
 	 ["aio-io-setup-with-nonwritable-context-pointer", ""],
+	 ["aio-dio-extend-stat", "file"],
 	]
 name = 0
 arglist = 1
 
 class aio_dio_bugs(test.test):
-	version = 4
+	version = 5
 	preserve_srcdir = True
 
 	def initialize(self):
