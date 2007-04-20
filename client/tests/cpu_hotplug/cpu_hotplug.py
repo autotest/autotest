@@ -2,10 +2,10 @@ import test, time
 from autotest_utils import *
 
 class cpu_hotplug(test.test):
-	version = 1
+	version = 2
 
-	# http://developer.osdl.org/dev/hotplug/tests/lhcs_regression-1.4.tgz
-	def setup(self, tarball = 'lhcs_regression-1.4.tgz'):
+	# http://developer.osdl.org/dev/hotplug/tests/lhcs_regression-1.6.tgz
+	def setup(self, tarball = 'lhcs_regression-1.6.tgz'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		
