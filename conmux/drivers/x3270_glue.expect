@@ -1,0 +1,252 @@
+# Copyright 2000, 2004 by Paul Mattes.
+#  Permission to use, copy, modify, and distribute this software and its
+#  documentation for any purpose and without fee is hereby granted,
+#  provided that the above copyright notice appear in all copies and that
+#  both that copyright notice and this permission notice appear in
+#  supporting documentation.
+#
+# x3270, c3270, s3270 and tcl3270 are distributed in the hope that they will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file LICENSE
+# for more details.
+
+# Glue functions between 'expect' and x3270
+# Usage: source x3270_glue.expect
+
+namespace eval x3270 {
+	variable verbose 0
+	variable pid 0
+
+	# Start function: Start ?-nohup? ?program? ?options?
+	#
+	# Sets up the 'expect' environment correctly and spawns a 3270
+	# interface process.
+	#
+	# The 'program' and 'options' can be:
+	#  "x3270 -script" to drive an x3270 session
+	#  "s3270" to drive a displayless 3270 session
+	#  "x3270if -i" to run as a child script of x3270 (via the Script()
+	#   action)
+	#
+	# If "args" is empty, or starts with an option besides '-nohup',
+	#  guesses which process to start.
+	# It will only guess "x3270if -i" or "s3270"; if you want to start
+	#  x3270, you need to specify it explicitly.
+	#
+	# Returns the process ID of the spawned process.
+
+	proc Start {args} {
+		global stty_init timeout spawn_id env
+		variable verbose
+		variable pid
+
+		if {$pid != 0} {return -code error "Already started."}
+
+		# If the first argument is "-nohup", remember that as an
+		# argument to 'spawn'.
+		if {[lindex $args 0] == "-nohup"} {
+			set nohup {-ignore HUP}
+			set args [lrange $args 1 end]
+		} {
+			set nohup {}
+		}
+
+		# If there are no arguments, or the first argument is an
+		#  option, guess what to start.
+		# If X3270INPUT is defined in the environment, this must be a
+		#  child script; start x3270if.  Otherwise, this must be a peer
+		#  script; start s3270.
+		if {$args == {} || [string index [lindex $args 0] 0] == "-"} {
+			if {[info exists env(X3270INPUT)]} {
+				set args [concat x3270if -i $args]
+			} {
+				set args [concat s3270 $args]
+			}
+		}
+
+		# Set up the pty initialization default.
+		set stty_init -echo
+
+		# Spawn the process.
+		if {$verbose} {
+			set pid [eval [concat spawn $nohup $args]]
+		} {
+			set pid [eval [concat spawn -noecho $nohup $args]]
+			log_user 0
+		}
+
+		# Set the 'expect' timeout.
+		set timeout -1
+
+		return $pid
+	}
+
+	# Basic interface command.  Used internally by the action functions
+	# below.
+	proc cmd {cmd} {
+		variable verbose
+		variable pid
+
+		if {$pid==0} { return -code error "Not started yet." }
+
+		if {$verbose} {puts "+$cmd"}
+
+		send "$cmd\r"
+		expect {
+			-re "data: (.*)\r\n.*\r\nok\r\n$" {
+				set r $expect_out(buffer)
+			}
+			"*ok\r\n" { return {} }
+			-re "(.*)\r\n.*?\r\nerror\r\n" {
+				return -code error "$expect_out(1,string)"
+			}
+			"*error\r\n" {
+				return -code error \
+					"$cmd failed: $expect_out(buffer)"
+			}
+			eof { set pid 0; error "process died" }
+		}
+
+		# Convert result to a list.
+		set ret {}
+		set iter 0
+		while {1} {
+			if {! [regexp "data: (.*?)\r\n" $r dummy elt]} {break}
+			if {$iter==1} {set ret [list $ret]}
+			set r [string range $r [expr [string length $elt]+7] \
+				end]
+			if {$iter > 0} {
+				set ret [linsert $ret end $elt]
+			} {
+				set ret $elt
+			}
+			set iter [expr $iter + 1]
+		}
+		if {$verbose} {puts "ret $iter"}
+		return $ret
+	}
+
+	# Convert an argument list to a comma-separated list that x3270 will
+	# accept.
+	proc commafy {alist} {
+		set i 0
+		set a ""
+		while {$i < [llength $alist]} {
+			if {$i > 0} {
+				set a "$a,[lindex $alist $i]"
+			} {
+				set a [lindex $alist $i]
+			}
+			incr i
+		}
+		return $a
+	}
+
+	# Quote a text string into x3270-acceptable format.
+	proc stringify {text} {
+		set a "\""
+		set i 0
+		while {$i < [string len $text]} {
+			set c [string range $text $i $i]
+			switch -- $c {
+				"\n" { set a "$a\\n" }
+				"\r" { set a "$a\\r" }
+				" " { set a "$a\\ " }
+				"\"" { set a "$a\\\"" }
+				default { set a "$a$c" }
+			}
+			incr i
+		}
+		set a "$a\""
+		return $a
+	}
+
+	# User-accessible actions.
+	# Some of these apply only to x3270 and x3270if, and not to s3270.
+	proc AltCursor {} { return [cmd "AltCursor"] }
+	proc Ascii {args} { return [cmd "Ascii([commafy $args])"] }
+	proc AsciiField {} { return [cmd "AsciiField"] }
+	proc Attn {} { return [cmd "Attn"] }
+	proc BackSpace {} { return [cmd "BackSpace"] }
+	proc BackTab {} { return [cmd "BackTab"] }
+	proc CircumNot {} { return [cmd "CircumNot"] }
+	proc Clear {} { return [cmd "Clear"] }
+	proc CloseScript {} { return [cmd "CloseScript"] }
+	proc Cols {} { return [lindex [Status] 7] }
+	proc Compose {} { return [cmd "Compose"] }
+	proc Connect {host} { return [cmd "Connect($host)"] }
+	proc CursorSelect {} { return [cmd "CursorSelect"] }
+	proc Delete {} { return [cmd "Delete"] }
+	proc DeleteField {} { return [cmd "DeleteField"] }
+	proc DeleteWord {} { return [cmd "DeleteWord"] }
+	proc Disconnect {} { return [cmd "Disconnect"] }
+	proc Down {} { return [cmd "Down"] }
+	proc Dup {} { return [cmd "Dup"] }
+	proc Ebcdic {args} { return [cmd "Ebcdic([commafy $args])"] }
+	proc EbcdicField {} { return [cmd "EbcdicField"] }
+	proc Enter {} { return [cmd "Enter"] }
+	proc Erase {} { return [cmd "Erase"] }
+	proc EraseEOF {} { return [cmd "EraseEOF"] }
+	proc EraseInput {} { return [cmd "EraseInput"] }
+	proc FieldEnd {} { return [cmd "FieldEnd"] }
+	proc FieldMark {} { return [cmd "FieldMark"] }
+	proc FieldExit {} { return [cmd "FieldExit"] }
+	proc Flip {} { return [cmd "Flip"] }
+	proc HexString {x} { return [cmd "HexString($x)"] }
+	proc Home {} { return [cmd "Home"] }
+	proc Info {text} { return [cmd "Info([stringify $text])"] }
+	proc Insert {} { return [cmd "Insert"] }
+	proc Interrupt {} { return [cmd "Interrupt"] }
+	proc Key {k} { return [cmd "Key($k)"] }
+	proc Keymap {k} { return [cmd "Keymap($k)"] }
+	proc Left {} { return [cmd "Left"] }
+	proc Left2 {} { return [cmd "Left2"] }
+	proc MonoCase {} { return [cmd "MonoCase"] }
+	proc MoveCursor {r c} { return [cmd "MoveCursor($r,$c)"] }
+	proc Newline {} { return [cmd "Newline"] }
+	proc NextWord {} { return [cmd "NextWord"] }
+	proc PA {n} { return [cmd "PA($n)"] }
+	proc PF {n} { return [cmd "PF($n)"] }
+	proc PreviousWord {} { return [cmd "PreviousWord"] }
+	proc Quit {} { exit }
+	proc Reset {} { return [cmd "Reset"] }
+	proc Right {} { return [cmd "Right"] }
+	proc Right2 {} { return [cmd "Right2"] }
+	proc Rows {} { return [lindex [Status] 6] }
+	proc SetFont {font} { return [cmd "SetFont($font)"] }
+	proc Snap {args} { return [cmd "Snap([commafy $args])"] }
+	proc Status {} {
+		variable verbose
+		variable pid
+		if {$pid==0} { return -code error "Not started yet." }
+		if {$verbose} {puts "+(nothing)"}
+		send "\r"
+		expect {
+			"*ok\r\n" { set r $expect_out(buffer) }
+			eof { set pid 0; error "process died" }
+		}
+		return [string range $r 0 [expr [string length $r]-7]]
+	}
+	proc String {text} { return [cmd "String([stringify $text])"] }
+	proc SysReq {} { return [cmd "SysReq"] }
+	proc Tab {} { return [cmd "Tab"] }
+	proc ToggleInsert {} { return [cmd "ToggleInsert"] }
+	proc ToggleReverse {} { return [cmd "ToggleReverse"] }
+	proc TemporaryKeymap {args} { return [cmd "TemporaryKeymap($args)"] }
+	proc Transfer {args} { return [cmd "Transfer([commafy $args])"] }
+	proc Up {} { return [cmd "Up"] }
+	proc Wait {args} { return [cmd "Wait([commafy $args])"] }
+
+	# Extra function to toggle verbosity on the fly.
+	proc Setverbose {level} {
+		variable verbose
+		set verbose $level
+		return
+	}
+
+	# Export all the user-visible functions.
+	namespace export \[A-Z\]*
+}
+
+# Import all of the exported functions.
+namespace import x3270::*
