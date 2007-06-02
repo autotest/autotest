@@ -77,6 +77,10 @@ class kernel:
 		self.build_target = 'bzImage'
 		self.build_image = None
 
+		if get_current_kernel_arch() == 'ia64':
+			self.build_target = 'all'
+			self.build_image = 'vmlinux.gz'
+
 		if leave:
 			return
 
