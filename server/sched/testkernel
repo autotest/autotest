@@ -8,13 +8,18 @@
 # by dumping a control file in $AUTOTEST_DIR/queue/machine. 
 import os, sys, time
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 4:
 	print "Usage: testkernel <client> <control> <kernel> <config> <patches ...>"
 	sys.exit(1)
-(client, control, kernel, config) = sys.argv[1:5]
-if len(sys.argv) > 5:
+(client, control, kernel) = sys.argv[1:4]
+if len(sys.argv) == 5:
+	config = sys.argv[4]
+	patches = []
+elif len(sys.argv) > 5:
+	config = sys.argv[4]
 	patches = sys.argv[5:]
 else:
+	config = ''
 	patches = []
 
 
@@ -26,10 +31,16 @@ c = open(tmpfile, 'w')
 print >> c, "def step_init():"
 print >> c, "\t" + "job.next_step([step_test])"
 print >> c, "\t" + "testkernel = job.kernel('%s')" % kernel
+
 if patches:
 	patch_list = ', '.join(["'%s'" % x for x in patches])
 	print >> c, "\t" + "testkernel.patch(%s)" % patch_list
-print >> c, "\t" + "testkernel.config('%s')" % config
+
+if config:
+	print >> c, "\t" + "testkernel.config('%s')" % config
+else:
+	print >> c, "\t" + "testkernel.config('', None, True)"
+
 print >> c, "\t" + "testkernel.build()"
 print >> c, "\t" + "testkernel.boot()"
 print >> c, ""
