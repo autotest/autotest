@@ -12,14 +12,21 @@ class kernbench(test.test):
 		#
 		# http://kernel.org/pub/linux/kernel/v2.6/linux-2.6.14.tar.bz2
 		#
+		# On ia64, we default to 2.6.20, as it can't compile 2.6.14.
+
+		if get_current_kernel_arch() == 'ia64':
+			default_ver = '2.6.20'
+		else:
+			default_ver = '2.6.14'
 		tarball = None
 		for dir in (self.bindir, '/usr/local/src'):
-			path = os.path.join(dir, 'linux-2.6.14.tar.bz2')
+			tar = 'linux-%s.tar.bz2' % default_ver
+			path = os.path.join(dir, tar)
 			if os.path.exists(path):
 				tarball = path
 				break
 		if not tarball:
-			tarball = '2.6.14'
+			tarball = default_ver
 			
 		kernel = self.job.kernel(tarball, self.tmpdir, self.srcdir)
 		kernel.config(defconfig=True)
