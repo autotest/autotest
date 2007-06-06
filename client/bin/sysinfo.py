@@ -8,7 +8,7 @@ from autotest_utils import *
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
 	'/proc/cpuinfo', '/proc/cmdline']
 # commands = ['lshw']        # this causes problems triggering CDROM drives
-commands = ['uname -a', 'lspci -vvn']
+commands = ['uname -a', 'lspci -vvn', 'gcc --version']
 path = ['/usr/bin', '/bin']
 
 
