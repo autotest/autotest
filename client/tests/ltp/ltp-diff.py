@@ -82,7 +82,7 @@ def compare_results(runs):
 			if not runs[i].has_key(testname):
 				runs[i][testname] = "null"
 			if not runs[i-1].has_key(testname):
-				runs[i-i][testname] = "null"
+				runs[i-1][testname] = "null"
 			# Check for the results inconsistencies
 			if runs[i][testname] != runs[i-1][testname]:
 				differ = 1
