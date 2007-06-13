@@ -781,13 +781,6 @@ sub add {
         }
     }
 
-    # use default entry to determine if path (/boot) should be removed
-    if ( $sections[$default]{'kernel'} !~ /^\/boot/ ) {
-        $param{'add-kernel'} =~ s/^\/boot//;
-        $param{'initrd'} =~ s/^\/boot// unless ( !defined $param{'initrd'} );
-        $param{'xenhyper'} =~ s/^\/boot// unless ( !defined $param{'xenhyper'} );
-    }
-
     my @newkernel;
     push( @newkernel,
         "image=$param{'add-kernel'}\n",
