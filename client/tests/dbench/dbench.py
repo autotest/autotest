@@ -12,7 +12,8 @@ class dbench(test.test):
 
 		system('./configure')
 		system('make')
-		
+
+
 	def execute(self, iterations = 1, dir = None, nprocs = count_cpus(), args = ''):
 		for i in range(iterations):
 			args = args + ' -c '+self.srcdir+'/client.txt'
@@ -28,3 +29,13 @@ class dbench(test.test):
 			system(self.srcdir + '/dbench ' + args)
 			profilers.stop(self)
 			profilers.report(self)
+
+		self.__format_results(open(self.debugdir + '/stdout').read())
+
+
+	def __format_results(self, results):
+		out = open(self.resultsdir + '/keyval', 'w')
+		pattern = re.compile(r"Throughput (.*?) MB/sec (.*?) procs")
+		for result in pattern.findall(results):
+			print >> out, "throughput=%s\nprocs=%s\n" % result
+		out.close()
