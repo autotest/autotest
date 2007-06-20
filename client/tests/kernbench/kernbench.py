@@ -1,5 +1,14 @@
 import test, pickle
 from autotest_utils import *
+import re
+
+
+def to_seconds(time_string):
+	elts = time_string.split(':')
+	if len(elts) == 1:
+		return time_string
+	return str(int(elts[0]) * 3600 + float(elts[1]))
+
 
 class kernbench(test.test):
 	version = 1
@@ -56,3 +65,14 @@ class kernbench(test.test):
 		kernel.clean()		# Don't leave litter lying around
 		os.chdir(self.resultsdir)
 		system("grep -h elapsed time.* > time")
+
+		self.__format_results(open('time').read())
+
+
+	def __format_results(self, results):
+		out = open('keyval', 'w')
+		pattern = re.compile(r"(.*?)user (.*?)system (.*?)elapsed")
+		for result in pattern.findall(results):
+			result = tuple([to_seconds(elt) for elt in result])
+			print >> out, "user=%s\nsystem=%s\nelapsed=%s\n" % result
+		out.close()

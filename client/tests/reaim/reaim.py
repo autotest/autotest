@@ -1,5 +1,5 @@
 # Needs autoconf & automake & libtool to be installed. Ewwwwwwwwwwwwwwwwwwwwww
-import test, os_dep
+import test, os_dep, re
 from autotest_utils import *
 
 class reaim(test.test):
@@ -40,7 +40,7 @@ class reaim(test.test):
 			extra_args = '', tmpdir = None):
 		if not tmpdir:
 			tmpdir = self.tmpdir
-		
+
 		# -f workfile
 		# -s <number of users to start with>
 		# -e <number of users to end with>
@@ -65,3 +65,25 @@ class reaim(test.test):
 			system(cmd)
 			profilers.stop(self)
 			profilers.report(self)
+
+		self.__format_results(open(self.debugdir + '/stdout').read())
+
+
+	def __format_results(self, results):
+		out = open(self.resultsdir + '/keyval', 'w')
+		r = re.compile(r"^[0-9\. ]+$")
+		for line in results.split('\n'):
+			if not r.match(line):
+				continue
+			fields = line.split()
+			print >> out, """num_forked=%s
+parent_time=%s
+child_systime=%s
+child_utime=%s
+jobs_min=%s
+jobs_min_child=%s
+std_dev_time=%s
+std_dev_pct=%s
+jti=%s
+""" % tuple(fields)
+		out.close()
