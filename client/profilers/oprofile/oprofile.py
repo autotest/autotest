@@ -6,7 +6,9 @@ class oprofile(profiler.profiler):
 	version = 3
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.2.tar.gz
-	def setup(self, tarball = 'oprofile-0.9.2.tar.bz2'):
+	def setup(self, tarball = 'oprofile-0.9.2.tar.bz2', local = False):
+		if local:
+			return
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -16,7 +18,7 @@ class oprofile(profiler.profiler):
 		system('make install')
 
 
-	def initialize(self, vmlinux = None, events = [], others = None):
+	def initialize(self, vmlinux = None, events = [], others = None, local = False):
 		if not vmlinux:
 			self.vmlinux = get_vmlinux()
 		else:
@@ -41,8 +43,12 @@ class oprofile(profiler.profiler):
 		if self.others:
 			setup += ' ' + self.others
 
-		self.opreport = self.srcdir + '/bin/opreport'
-		self.opcontrol = self.srcdir + '/bin/opcontrol'
+		if local:
+			self.opreport = '/usr/bin/opreport'
+			self.opcontrol = '/usr/bin/opcontrol'
+		else:
+			self.opreport = self.srcdir + '/bin/opreport'
+			self.opcontrol = self.srcdir + '/bin/opcontrol'
 		
 		system(self.opcontrol + setup)
 
