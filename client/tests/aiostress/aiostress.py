@@ -34,10 +34,11 @@ class aiostress(test.test):
 		ld_path = prepend_path(libs, environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
 		cmd = self.srcdir + '/aio-stress ' + args + ' poo'
-		system(var_ld_path + ' ' + cmd)
+		profilers = self.job.profilers
+		if not profilers.only():
+			system(var_ld_path + ' ' + cmd)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(var_ld_path + ' ' + cmd)

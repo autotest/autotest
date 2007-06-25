@@ -17,11 +17,12 @@ class bonnie(test.test):
 	def execute(self, iterations = 1, extra_args = '', user = 'root'):
 		args = '-d ' + self.tmpdir + ' -u ' + user + ' ' + extra_args
 
-		for i in range(iterations):
-			system(self.srcdir + '/bonnie++ ' + args)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system(self.srcdir + '/bonnie++ ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(self.srcdir + '/bonnie++ ' + args)

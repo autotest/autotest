@@ -13,13 +13,14 @@ class unixbench(test.test):
 		system('make')
 		
 	def execute(self, iterations = 1, args = ''):
-		for i in range(iterations):
-			os.chdir(self.srcdir)
-			vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
-			system(vars + ' ./Run ' + args)
+		vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				os.chdir(self.srcdir)
+				system(vars + ' ./Run ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(vars + ' ./Run ' + args)

@@ -55,11 +55,12 @@ class reaim(test.test):
 		print os.getcwd()
 		cmd = self.ldlib + ' ./reaim ' + args + ' ' + extra_args
 
-		for i in range(iterations):
-			system(cmd)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system(cmd)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(cmd)

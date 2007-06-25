@@ -32,10 +32,11 @@ class cpu_hotplug(test.test):
 		
 		# Begin this cpu hotplug test big guru.
 		os.chdir(self.srcdir)
-		system('./runtests.sh')
+		profilers = self.job.profilers
+		if not profilers.only():
+			system('./runtests.sh')
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system('./runtests.sh')
