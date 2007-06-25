@@ -16,10 +16,11 @@ class tiobench(test.test):
 		os.chdir(self.srcdir)
 		if not args:
 			args = '--block=4096 --block=8192 --threads=10 --size=1024 --numruns=2'
-		system('./tiobench.pl --dir %s %s' %(dir, args))
+		profilers = self.job.profilers
+		if not profilers.only():
+			system('./tiobench.pl --dir %s %s' %(dir, args))
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system('./tiobench.pl --dir %s %s' %(dir, args))

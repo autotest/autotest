@@ -49,12 +49,13 @@ class kernbench(test.test):
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
 		kernel.build_timed(threads)         # warmup run
-		for i in range(iterations):
-			logfile = self.resultsdir+'/time.%d' % i
-			kernel.build_timed(threads, logfile)
+		profilers = self.job.profilers
+                if not profilers.only():
+		        for i in range(iterations):
+			        logfile = self.resultsdir+'/time.%d' % i
+			        kernel.build_timed(threads, logfile)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			logfile = self.resultsdir+'/time.profile'

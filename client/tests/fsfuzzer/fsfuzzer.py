@@ -13,12 +13,13 @@ class fsfuzzer(test.test):
 		system('make')
 		
 	def execute(self, iterations = 1, fstype = 'iso9660'):
-		for i in range(iterations):
-			args = fstype + ' 1'
-			system(self.srcdir + '/run_test ' + args)
+		profilers = self.job.profilers
+		args = fstype + ' 1'
+		if not profilers.only():
+			for i in range(iterations):
+				system(self.srcdir + '/run_test ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(self.srcdir + '/run_test ' + args)

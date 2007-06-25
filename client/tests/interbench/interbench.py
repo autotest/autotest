@@ -16,12 +16,13 @@ class interbench(test.test):
 		os.chdir(self.tmpdir)
 		args += " -c"
 
-		for i in range(iterations):
-			system("%s/interbench -m 'run #%s' %s" % \
-				(self.srcdir, i, args))
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system("%s/interbench -m 'run #%s' %s" % \
+					(self.srcdir, i, args))
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system("%s/interbench -m 'profile run' %s" % \

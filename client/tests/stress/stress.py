@@ -20,11 +20,12 @@ class stress(test.test):
 			args = '-c %d -i %d -m %d -d %d -t 60 -v' % \
 				(threads, threads, threads, threads)
 
-		for i in range(iterations):
-			system(self.srcdir + '/src/stress ' + args)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system(self.srcdir + '/src/stress ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(self.srcdir + '/src/stress ' + args)
@@ -53,4 +54,3 @@ class stress(test.test):
 # --hdd-noclean		Do not unlink file(s) to which random data is written. 
 #
 # Note: Suffixes may be s,m,h,d,y (time) or k,m,g (size). 
-
