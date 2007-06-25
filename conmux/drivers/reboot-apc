@@ -3,32 +3,89 @@
 # Reboot a machine connected to an APC power strip
 #
 # Copyright 2007 Google Inc., Martin J. Bligh <mbligh@google.com>
+set P "reboot-apc"
 
-set ip_addr [lindex $argv 0]
-set port [lindex $argv 1]
+#
+# OPTIONS: options parser.
+#
+proc shift {_list} {
+        upvar $_list list
+        set res [lindex $list 0]
+        set list [lreplace $list 0 0]
+        return $res
+}
 
-spawn telnet $ip_addr
+proc arg {_list arg} {
+        upvar $_list list
+        if {[llength $list] < 1} {
+               puts stderr "$arg: required argument missing"
+               exit 1
+        }
+        return [shift list]
+}
 
 set timeout 10
+set user {apc}
+set pass {apc}
+set host [lindex $argv 0]
+set outlet [lindex $argv 1]
+shift argv
+shift argv
 
+while {[llength $argv] > 0} {
+puts "length [llength $argv]"
+   switch -- [shift argv] {
+      -p  { set pass [arg argv p]}
+      -u  { set user [arg argv u]}
+   }
+}
+
+if {[llength $argv] > 0} {
+   puts stderr "Usage: $P <host> <outlet> [-u <user>] [-p <pass>]"
+   exit 1
+}
+
+if {[string compare $host ""] == 0 ||
+   [string compare $outlet ""] == 0} \
+   {
+      puts stderr "host and outlet required"
+      exit 1
+   }
+
+spawn telnet $host
 expect "User Name :"
-send "apc\r"
+send $user
+send "\r"
 expect "Password  :"
-send "apc\r"
+send $pass
+send "\r"
 expect "1- Device Manager"
 expect "> "
 send "1\r"
-expect "3- Outlet Control/Configuration"
-expect "> "
-send "3\r"
-expect "Press <ENTER> to continue..."
+# We get a different prompt if we're just an outlet controller
+# decide which response we need to enter
+set timeout 2
+expect {
+   "3- Outlet Control/Configuration" {
+      send "3\r"
+      exp_continue
+   }
+   "2- Outlet Control" {
+      send "2\r"
+      exp_continue
+   }
+}
 send "\r"
 expect "> "
-send $port
+send $outlet
 send "\r"
-expect "1- Control Outlet"
-expect "> "
-send "1\r"
+# Here too, if we're just an outlet controller we don't get the option
+# to modify configuration
+expect {
+   "1- Control Outlet" {
+      send "1\r"
+   }
+}
 expect "3- Immediate Reboot"
 expect "> "
 send "3\r"
