@@ -18,11 +18,12 @@ class scrashme(test.test):
 		else:
 			args = '-c100 -z'
 
-		for i in range(iterations):
-			system(self.srcdir + '/scrashme ' + args)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system(self.srcdir + '/scrashme ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(self.srcdir + '/scrashme ' + args)

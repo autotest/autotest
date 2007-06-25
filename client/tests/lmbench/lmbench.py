@@ -28,11 +28,12 @@ class lmbench(test.test):
 
 		os.chdir(self.srcdir)
 		cmd = "yes '' | make rerun"
-		for i in range(iterations):
-			system(cmd)
+		profilers = self.job.profilers
+		if not profilers.only():
+			for i in range(iterations):
+				system(cmd)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(cmd)

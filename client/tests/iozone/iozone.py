@@ -26,10 +26,11 @@ class iozone(test.test):
 		os.chdir(dir)
 		if not args:
 			args = '-a'
-		system('%s/src/current/iozone %s' % (self.srcdir, args))
+		profilers = self.job.profilers
+		if not profilers.only():
+			system('%s/src/current/iozone %s' % (self.srcdir, args))
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system('%s/src/current/iozone %s' % (self.srcdir, args))

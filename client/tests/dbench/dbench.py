@@ -15,15 +15,16 @@ class dbench(test.test):
 
 
 	def execute(self, iterations = 1, dir = None, nprocs = count_cpus(), args = ''):
-		for i in range(iterations):
-			args = args + ' -c '+self.srcdir+'/client.txt'
-			if dir:
-				args += ' -D ' + dir
-			args += ' %s' % nprocs
-			system(self.srcdir + '/dbench ' + args)
+		profilers = self.job.profilers
+		args = args + ' -c '+self.srcdir+'/client.txt'
+		if dir:
+			args += ' -D ' + dir
+		args += ' %s' % nprocs
+		if not profilers.only():
+			for i in range(iterations):
+				system(self.srcdir + '/dbench ' + args)
 
 		# Do a profiling run if necessary
-		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 			system(self.srcdir + '/dbench ' + args)
