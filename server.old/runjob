@@ -1,0 +1,156 @@
+#!/usr/bin/python
+import sys, os, re, commands, time, signal
+from subprocess import *
+
+# Execute a job on a remote client. We use ssh to connect.
+#
+# autotest-client is run on the other end. It will connect us with
+# stdout and stderr outputs:
+#
+# stdout: standard output of autotest binary (job spew)
+# stderr: Control stream (read from named pipe on client
+#
+# We want to just log stdout to a server-side file.
+# Stderr is what we're monitoring closely for status.
+# If the stderr stream gives us an EOF, the autotest-client exited
+
+# Return codes:
+# 0 - success
+# 1 - verify machine failed
+# 2 - execute job failed
+
+autodir = '/usr/local/autotest'            # default. changed by retrieve_config
+
+def parse_arguments():
+	# First parse arguments, do setup, etc.
+	if len(sys.argv) < 4:
+		sys.stderr.write("Usage: runjob <client> <control_file> <results> [<conmux_console>]\n")
+		sys.exit(1)
+	(client, control, results) = sys.argv[1:4]
+	if len(sys.argv) == 5:
+		console = sys.argv[4]
+	else:
+		console = None
+	if not os.path.exists(control):
+		sys.stderr.write("Control file %s does not exist\n" % control)
+		sys.exit(1)
+	return (client, control, results, console)
+
+
+def retrieve_config(client):
+	# Grab the autotest.conf file from the client, 
+	# so we can use config information
+	print "Retrieving autotest.conf from %s" % client
+	local_conf = "/tmp/autotest.conf.%d" % os.getpid()
+	if os.path.exists(local_conf):
+		os.remove(local_conf)
+	os.system("scp -q root@%s:/etc/autotest.conf %s" % (client, local_conf))
+
+	# Now to find out what $AUTODIR is on the client
+	# This is disgusting, but will have to do for now. 
+	# We can't source it (security nightmare)
+	global autodir
+	if os.path.exists(local_conf):
+		for line in open(local_conf, 'r').readlines():
+			dir = re.search(r'autodir=(\S+)', line).group(1)
+			if dir:
+				autodir = re.sub('[\'\"]', '', dir)
+	print "autodir set to " + autodir
+
+
+def verify_machine(client):
+	autotest_bin = os.path.join(autodir, 'bin/autotest')
+	ret = os.system("ssh -q root@%s ls %s > /dev/null" % (client, autotest_bin))
+	if ret != 0:
+		return False
+	return True
+
+
+def clean_house(client):
+	path = os.path.join(autodir, 'control')
+	ret = os.system("ssh -q root@%s rm -f %s" % (client, path))
+	path = os.path.join(autodir, 'control.state')
+	ret = os.system("ssh -q root@%s rm -f %s" % (client, path))
+
+
+def push_control(remote_control):
+	# Push the control file we want to sue to the client
+	print "Pushing control file %s to %s" % (control, client)
+	ret = os.system("scp -q %s root@%s:%s" % \
+					(control, client, remote_control))
+	if ret != 0:
+		raise "pushing control file failed"
+
+
+def execute_section(client, autodir, remote_control, section):
+	print "Executing %s/bin/autotest %s/control phase %d" % \
+						(autodir, autodir, section)
+	client_log = open("%s/debug/client.log.%d" % (results, section), 'w')
+	if section > 0:
+		remote_control = '-c ' + remote_control
+	cmd = "ssh -q root@%s %s/bin/autotest_client %s" % \
+					(client, autodir, remote_control)
+	f = Popen(cmd, shell=True, stdout=client_log, stderr=PIPE).stderr
+	line = None
+	for line in iter(f.readline, ''): 
+		print line,
+		sys.stdout.flush()
+	return line
+
+
+def execute_control(client, autodir, remote_control):
+	section = 0
+	while True:
+		last = execute_section(client, autodir, remote_control, section)
+		section += 1
+		if re.match('DONE', last):
+			print "Client complete"
+			return True
+		elif re.match('REBOOT', last):
+			print "Client is rebooting"
+			time.sleep(300)
+		else:
+			sys.stderr.write("Aborting - unknown return code: %s\n"\
+									 % last)
+			return False
+
+
+def retrieve_results(client, autodir, results):
+	ret = os.system("scp -rq root@%s:%s/results/default/* %s" % \
+						(client,autodir,results))
+	if ret != 0:
+		raise "retrieve results failed"
+
+
+# MAIN PROGRAM
+
+ret = 0
+(client, control, results, console) = parse_arguments()
+debug = os.path.join(results, 'debug')
+if not os.path.exists(debug):
+	os.makedirs(debug)
+
+if console:
+	console_log = open(os.path.join(debug, "console.log"), 'w')
+	conmux_path = os.path.join(os.path.dirname(sys.argv[0]), \
+							'../conmux/console')
+	cmd = os.path.abspath(conmux_path) + ' ' + console
+	# For some incomprehensible reason, conmux won't redirect to a file.
+	con = Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+	Popen(['cat'], stdin=con.stdout, stdout=console_log)
+	con_pid = con.pid
+else:
+	con_pid = None
+
+retrieve_config(client)
+if not verify_machine(client):
+	sys.exit(1)
+clean_house(client)
+remote_control = "%s/control" % autodir
+push_control(remote_control)
+if not execute_control(client, autodir, remote_control):
+	ret = 2
+retrieve_results(client, autodir, results)
+if con_pid:
+	os.kill(con_pid, signal.SIGTERM)
+sys.exit(ret)
