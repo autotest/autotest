@@ -233,7 +233,7 @@ sub set_default_grub {
 
     foreach my $index ( 0 .. $#config ) {
         if ( $config[$index] =~ /(^\s*default\s*\=*\s*)\d+/i ) {
-            $config[$index] = "# set by $0\n$1$newdefault\n";
+            $config[$index] = "$1$newdefault\n";
             last;
         }
         elsif ( $config[$index] =~ /^\s*default\s*\=*\s*saved/i ) {
