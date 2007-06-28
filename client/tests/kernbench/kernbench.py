@@ -7,7 +7,7 @@ def to_seconds(time_string):
 	elts = time_string.split(':')
 	if len(elts) == 1:
 		return time_string
-	return str(int(elts[0]) * 3600 + float(elts[1]))
+	return str(int(elts[0]) * 60 + float(elts[1]))
 
 
 class kernbench(test.test):
