@@ -6,8 +6,8 @@ from autotest_utils import *
 class iozone(test.test):
 	version = 1
 
-	#http://www.iozone.org/src/current/iozone3_263.tar
-	def setup(self, tarball = 'iozone3_263.tar'):
+	# http://www.iozone.org/src/current/iozone3_283.tar
+	def setup(self, tarball = 'iozone3_283.tar'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(os.path.join(self.srcdir, 'src/current'))
