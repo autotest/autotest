@@ -2,15 +2,13 @@ import test
 from autotest_utils import *
 
 class cyclictest(test.test):
-	version = 1
+	version = 2
+	preserve_srcdir = True
 
-	# http://tglx.de/projects/misc/cyclictest/cyclictest-v0.13.tar.bz2
+	# git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
 
-	def setup(self, tarball = 'cyclictest-v0.13.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+	def setup(self):
 		os.chdir(self.srcdir)
-
 		system('make')
 
 	def execute(self, args = '-t 10 -l 100000'):
