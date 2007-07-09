@@ -4,8 +4,8 @@ from autotest_utils import *
 class scrashme(test.test):
 	version = 1
 
-	# http://www.codemonkey.org.uk/projects/git-snapshots/scrashme/scrashme-2006-08-29.tar.gz
-	def setup(self, tarball = 'scrashme-2006-08-29.tar.gz'):
+	# http://www.codemonkey.org.uk/projects/git-snapshots/scrashme/scrashme-2007-07-08.tar.gz
+	def setup(self, tarball = 'scrashme-2007-07-08.tar.gz'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
