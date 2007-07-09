@@ -4,7 +4,7 @@ class profiler:
 	def __init__(self, job):
 		self.job = job
 
-	def setup(self):
+	def setup(self, *args):
 		return
 
 
