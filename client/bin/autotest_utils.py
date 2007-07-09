@@ -450,8 +450,16 @@ def check_glibc_ver(ver):
 	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
 	glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
 	if glibc_ver.split('.') < ver.split('.'):
-		raise "Glibc is too old (%s). Glibc >= %s is needed." % \
-							(glibc_ver, ver)
+		raise TestError("Glibc is too old (%s). Glibc >= %s is needed." % \
+							(glibc_ver, ver))
+
+def check_kernel_ver(ver):
+	kernel_ver = system_output('uname -r')
+	kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
+	if kv_tmp[0].split('.') < ver.split('.'):
+		raise TestError("Kernel is too old (%s). Kernel > %s is needed." % \
+							(kernel_ver, ver))
+                                                                                        
 
 def read_one_line(filename):
 	return open(filename, 'r').readline().strip()
