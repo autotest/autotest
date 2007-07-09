@@ -2,10 +2,10 @@ import test, re
 from autotest_utils import *
 
 class libhugetlbfs(test.test):
-	version = 1
+	version = 2
 
-	# http://prdownloads.sourceforge.net/libhugetlbfs/libhugetlbfs-1.0-pre4-1.tar.gz?download
-	def setup(self, tarball = 'libhugetlbfs-1.0-pre4-1.tar.gz'):
+	# http://downloads.sourceforge.net/libhugetlbfs/libhugetlbfs-1.1.tar.gz
+	def setup(self, tarball = 'libhugetlbfs-1.1.tar.gz'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -13,10 +13,7 @@ class libhugetlbfs(test.test):
 		system('make')
 		
 	def execute(self, dir, pages_requested = 20):
-		# Check kernel version, should >= 2.6.16
-		version = system_output('uname -r')
-		if re.split(r'[.-]', version)[0:3] < ['2', '6', '16']:
-			raise TestError('Kernel version %s < 2.6.16' % version)
+		check_kernel_ver("2.6.16")
 		
 		# Check huge page number
 		pages_available = 0
