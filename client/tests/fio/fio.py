@@ -4,8 +4,8 @@ from autotest_utils import *
 class fio(test.test):
 	version = 2
 
-	# http://brick.kernel.dk/snaps/fio-1.15.tar.bz2
-	def setup(self, tarball = 'fio-1.15.tar.bz2'):
+	# http://brick.kernel.dk/snaps/fio-1.16.5.tar.bz2
+	def setup(self, tarball = 'fio-1.16.5.tar.bz2'):
 		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(tarball, self.srcdir)
 
