@@ -3,7 +3,6 @@ from autotest_utils import *
 from error import *
 
 class profilers:
-	preserve_srcdir = False
 
 	def __init__(self, job):
 		self.job = job
