@@ -1,0 +1,54 @@
+#!/usr/bin/python
+#
+# Copyright 2007 Google Inc. Released under the GPL v2
+
+"""Run an autoserv control file
+
+TODO(poirier): add a singleton logger
+TODO(poirier): maybe change the name "get_file" to "receive_file" ?
+"""
+
+__author__ = "poirier@google.com (Benjamin Poirier)"
+
+
+import sys
+import optparse
+
+
+usage = "usage: %prog <control file>"
+parser = optparse.OptionParser(usage)
+
+
+def parse_args():
+	global parser
+	
+	(options, arg)= parser.parse_args()
+	return (options, arg)
+
+
+def run(control_file):
+	namespace = {}
+	
+	str = ("import os\n"
+	       "import sys\n"
+	       "\n"
+	       "import errors\n"
+	       "import hosts\n"
+	       "import autotest\n"
+	       "import source_kernel\n"
+	       "import rpm_kernel\n"
+	       "import deb_kernel\n"
+	       "import kvm\n"
+	       "\n"
+	       "from utils import run, get_tmp_dir\n")
+	exec(str, namespace, namespace)
+	execfile(sys.argv[1], namespace, namespace)
+
+
+if __name__ == "__main__":
+	(options, args) = parse_args()
+	if len(args) != 1:
+		parser.error("program takes one argument")
+		sys.exit(1)
+	control_file= args[0]
+	run(control_file)
