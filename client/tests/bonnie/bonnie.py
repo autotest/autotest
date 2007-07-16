@@ -1,6 +1,13 @@
 import test, os_dep
 from autotest_utils import *
 
+
+def convert_size(size):
+	if size.endswith('G') or size.endswith('g'):
+		return int(size[:-1]) * 2**30
+	return int(size) * 2**20
+
+
 class bonnie(test.test):
 	version = 1
 
@@ -32,11 +39,14 @@ class bonnie(test.test):
 		self.__format_results(open(self.debugdir + '/stdout').read())
 
 	def __format_results(self, results):
+		strip_plus = lambda s: re.sub(r"^\++$", "0", s)
 		out = open(self.resultsdir + '/keyval', 'w')
 		for line in results.split('\n'):
 			if len([c for c in line if c == ',']) != 26:
 				continue
 			fields = tuple(line.split(','))
+			fields = [strip_plus(f) for f in fields]
+		fields = tuple([convert_size(fields[1])] + fields[2:])
 		print >> out, """size=%s
 seqout_perchr_ksec=%s
 seqout_perchr_pctcp=%s
@@ -63,5 +73,5 @@ randcreate_read_ksec=%s
 randcreate_read_pctcp=%s
 randcreate_delete_ksec=%s
 randcreate_delete_pctcp=%s
-""" % fields[1:]
+""" % fields
 		out.close()
