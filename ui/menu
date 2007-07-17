@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2006  Michal Piotrowski <michal.k.k.piotrowski@gmail.com>
-#		      Linux Testers Group
+# Copyright (C) 2006 - 2007  Michal Piotrowski <michal.k.k.piotrowski@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -9,13 +8,7 @@
 # (at your option) any later version.
 
 import os, sys, dircache, string, dialog, time
-
-def check_python_version():
-	version = string.split(string.split(sys.version)[0], ".")
-	version = [version[0], version[1]]
-	if map(int, version) < [2, 4]:
-		print "Python 2.4 or newer is needed"
-		sys.exit(1)
+from menu_lib import *
 
 def handle_exit_code(d, code):
 	if code in (d.DIALOG_CANCEL, d.DIALOG_ESC):
@@ -26,81 +19,38 @@ def handle_exit_code(d, code):
 		return 1
 
 def atcc_t_menu(test_type, t):
-	dir_ls = dircache.listdir(at_dir + '/' + test_type)
+	u = atcc_list_control_files(test_type, at_dir)
 
-	u = []
-
-	for i in dir_ls:
-		k = i, "", 0
-		if i != ".svn":
-			u.append(k)
-
-    	(code, tag) = d.checklist(text = test_type + ":", choices = u, title = t)
+	(code, tag) = d.checklist(text = test_type + ":", choices = u, title = t)
 
 	return tag
-
-def atcc_setup_tmp_dirs_files():
-	if not os.path.isdir(menu_dir + '/tmp/'):
-		os.mkdir(menu_dir + '/tmp/')
-	if os.path.isfile(menu_dir + '/tmp/Tests results'):
-		os.remove(menu_dir + '/tmp/Tests results')
-	if os.path.isfile(menu_dir + '/tmp/Possible kernel memory leaks'):
-		os.remove(menu_dir + '/tmp/Possible kernel memory leaks')
-
-def atcc_save_results1(i):
-	if i != "":
-		if os.path.isfile(at_dir + '/results/default/' + i + '/debug/stderr'):
-			os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stderr ' + menu_dir + '/tmp/' + i + '.stderr')
-		if os.path.isfile(at_dir + '/results/default/' + i + '/debug/stdout'):
-			os.system('cp ' + at_dir + '/results/default/' + i + '/debug/stdout ' + menu_dir + '/tmp/' + i + '.stdout')
-	if os.path.isfile(at_dir + '/results/default/status'):
-		os.system('cat ' + at_dir + '/results/default/status >> ' + menu_dir + '/tmp/Tests\ results')
-	if os.path.isfile('/sys/kernel/debug/memleak'):
-		print "Saving possible kernel memory leaks"
-		os.system('echo "' + i + '" >> ' + menu_dir + '/tmp/Possible kernel memory leaks')
-		os.system('cat /sys/kernel/debug/memleak >> ' + menu_dir + '/tmp/Possible kernel memory leaks')
-
-def atcc_save_profilers_results(i, j):
-	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/monitor'):
-		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/monitor ' + menu_dir + '/tmp/' + j + '.monitor')
-	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.kernel'):
-		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.kernel ' + menu_dir + '/tmp/' + j + '.oprofile.kernel')
-	if os.path.isfile(at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.user'):
-		os.system('cp ' + at_dir + '/results/default/' + j + '.' + i + '/profiling/oprofile.user ' + menu_dir + '/tmp/' + j + '.oprofile.user')
-
-def atcc_save_results2(res1, res2):
-	if os.path.isfile(at_dir + '/results/default/status'):
-		os.system('cat ' + at_dir + '/results/default/status >> ' + menu_dir + '/tmp/Tests\ results')
-
-	for i in res1:
-		for j in res2:
-			atcc_save_profilers_results(i, j)
 
 def atcc_t_run(res, test_type):
 	if len(res) == 0:
 		return -1
 
-	atcc_setup_tmp_dirs_files()
+	atcc_setup_tmp_dirs_files(menu_dir)
 
 	for i in res:
-		os.system(at_dir + '/bin/autotest ' + at_dir + '/' + test_type + '/' + i + '/control')
-		atcc_save_results1(i)
+		os.system(at_dir + '/bin/autotest ' + at_dir + '/' + test_type + '/' + i)
+		atcc_save_results1(i, at_dir, menu_dir)
 
 def atcc_t_p_run(res, test_type):
 	if len(res) == 0:
 		return -1
 
-	atcc_setup_tmp_dirs_files()
+	atcc_setup_tmp_dirs_files(menu_dir)
 
 	file = (menu_dir + '/tmp/parallel')
 	f = open(file, 'w')
 	
 	for i in res:
-		line = ("def " + i + "():\n")
+		z = i.split('/')
+		line = ("def " + z[0] + "():\n")
 		z = str(line)
 		f.write(z)
 		
-		file = (at_dir + '/' + test_type + '/' + i + '/control')
+		file = (at_dir + '/' + test_type + '/' + i)
 		f2 = open(file, 'r')
 		k = f2.readlines()
 
@@ -114,7 +64,8 @@ def atcc_t_p_run(res, test_type):
 	f.write('job.parallel(')
 
 	for i in range(len(res)):
-		z = ('[' + res[i] + '],')
+		z = res[i].split('/')
+		z = ('[' + z[0] + '],')
 		z = str(z)
 		f.write(z)
 
@@ -123,7 +74,193 @@ def atcc_t_p_run(res, test_type):
 	f.close()
 	
 	os.system(at_dir + '/bin/autotest ' + menu_dir + '/tmp/parallel')
-	atcc_save_results1("")
+	atcc_save_results1("", at_dir, menu_dir)
+
+def atcc_profilers_run(res1, res2):
+	if len(res1) == 0 or len(res2) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files(menu_dir)
+
+	file = (menu_dir + '/tmp/profilers')
+	f = open(file, 'w')
+
+	f.write('for profiler in (')
+
+	for i in range(len(res1)):
+		z = res1[i].split('/')
+		z = ('\'' + z[0] + '\', ')
+		z = str(z)
+		f.write(z)
+
+	f.write('):\n')
+
+	f.write('\ttry:\n')
+	f.write('\t\tprint "Testing profiler %s ..." % profiler\n')
+	f.write('\t\tjob.profilers.add(profiler)\n')
+
+	for i in range(len(res2)):
+		z = atcc_control_file_read(res2[i], 'tests', at_dir)
+		n = res2[i].split('/')
+		k = ('\t\tjob.run_test(\'' + n[0] + '\',' + z + ')\n')
+		k = str(k)
+		f.write(k)
+
+	f.write('\t\tjob.profilers.delete(profiler)\n')
+	f.write('\texcept:\n')
+	f.write('\t\tprint "Test of profiler %s failed" % profiler\n')
+	f.write('\t\traise\n')
+
+	f.close()
+
+	os.system(at_dir + '/bin/autotest ' + menu_dir + '/tmp/profilers')
+	atcc_save_results2(res1, res2, at_dir, menu_dir)
+
+def atcc_remote_get_ip():
+	while 1:
+		(code, answer) = d.inputbox("IP address of remote host", init = "192.168.0.1")
+
+		if code == d.DIALOG_CANCEL or code == d.DIALOG_ESC:
+			break
+		return answer
+
+def atcc_t_remote_run(ip, res, test_type):
+	if len(res) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files(menu_dir)
+
+	file = (menu_dir + '/tmp/remote_test')
+	f = open(file, 'w')
+
+	st = str("remote_host = hosts.SSHHost(\"" + ip +"\")")
+	f.write(st + "\n")
+	st = str("at = autotest.Autotest()")
+	f.write(st + "\n")
+
+	file2 = (menu_dir + '/tmp/remote_control')
+	f2 = open(file2, 'w')
+
+	for i in res:
+		print i
+		file3 =  (at_dir + '/' + test_type + '/' + i)
+		f3 = open(file3, 'r')
+		k = f3.readlines()
+		for i in k:
+			x = (i + "\n")
+			z = str(x)
+			f2.write(z)
+		f3.close()
+
+	f2.close()
+	st = str("at.run(\"" +  menu_dir + "/tmp/remote_control\",\"results\", remote_host)")
+	f.write(st + "\n")
+	f.close()
+
+	os.system(srv_dir + '/autoserv ' + menu_dir + '/tmp/remote_test')
+
+def atcc_t_p_remote_run(ip, res, test_type):
+	if len(res) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files(menu_dir)
+
+	file = (menu_dir + '/tmp/remote_parallel_control')
+	f = open(file, 'w')
+	
+	for i in res:
+		z = i.split('/')
+		line = ("def " + z[0] + "():\n")
+		z = str(line)
+		f.write(z)
+		
+		file = (at_dir + '/' + test_type + '/' + i)
+		f2 = open(file, 'r')
+		k = f2.readlines()
+
+		for i in k:
+			x = ("\t" + i + "\n")
+			z = str(x)
+			f.write(z)
+
+		f2.close()
+
+	f.write('job.parallel(')
+
+	for i in range(len(res)):
+		z = res[i].split('/')
+		z = ('[' + z[0] + '],')
+		z = str(z)
+		f.write(z)
+
+	f.write(')')
+
+	f.close()
+
+	file = (menu_dir + '/tmp/remote_parallel_test')
+	f = open(file, 'w')
+
+	st = str("remote_host = hosts.SSHHost(\"" + ip +"\")")
+	f.write(st + "\n")
+	st = str("at = autotest.Autotest()")
+	f.write(st + "\n")
+
+	st = str("at.run(\"" +  menu_dir + "/tmp/remote_parallel_control\",\"results\", remote_host)")
+	f.write(st + "\n")
+	f.close()
+
+	os.system(srv_dir + '/autoserv ' + menu_dir + '/tmp/remote_parallel_test')
+
+def atcc_profilers_remote_run(ip, res1, res2):
+	if len(res1) == 0 or len(res2) == 0:
+		return -1
+
+	atcc_setup_tmp_dirs_files(menu_dir)
+
+	file = (menu_dir + '/tmp/remote_profilers_control')
+	f = open(file, 'w')
+
+	f.write('for profiler in (')
+
+	for i in range(len(res1)):
+		z = res1[i].split('/')
+		z = ('\'' + z[0] + '\', ')
+		z = str(z)
+		f.write(z)
+
+	f.write('):\n')
+
+	f.write('\ttry:\n')
+	f.write('\t\tprint "Testing profiler %s ..." % profiler\n')
+	f.write('\t\tjob.profilers.add(profiler)\n')
+
+	for i in range(len(res2)):
+		z = atcc_control_file_read(res2[i], 'tests', at_dir)
+		n = res2[i].split('/')
+		k = ('\t\tjob.run_test(\'' + n[0] + '\',' + z + ')\n')
+		k = str(k)
+		f.write(k)
+
+	f.write('\t\tjob.profilers.delete(profiler)\n')
+	f.write('\texcept:\n')
+	f.write('\t\tprint "Test of profiler %s failed" % profiler\n')
+	f.write('\t\traise\n')
+
+	f.close()
+
+	file = (menu_dir + '/tmp/remote_profilers')
+	f = open(file, 'w')
+
+	st = str("remote_host = hosts.SSHHost(\"" + ip +"\")")
+	f.write(st + "\n")
+	st = str("at = autotest.Autotest()")
+	f.write(st + "\n")
+
+	st = str("at.run(\"" +  menu_dir + "/tmp/remote_profilers_control\",\"results\", remote_host)")
+	f.write(st + "\n")
+	f.close()
+
+	os.system(srv_dir + '/autoserv ' + menu_dir + '/tmp/remote_profilers')
 
 def atcc_tests_results(t):
 	if os.path.exists(menu_dir + "/tmp/"):
@@ -150,61 +287,22 @@ def atcc_tests_results(t):
 		else:
 			d.textbox(menu_dir + '/tmp/' + tag, width = -1)
 
-def atcc_config_read(tag, test_type):
-	file = (at_dir + '/' + test_type + '/' + tag + '/control')
-	f = open(file, 'r')
-
-	z = f.readline()
-	z = z.lstrip("job.run_test(")
-	z = z.rstrip('\n')
-	z = z.rstrip(')')
-	z = z.split(',')
-
-	x = len(z)
-
-	if x == 1:
-		z = ""
-	elif x > 1:
-		z = z[1:]
-		m = ""
-		for i in z:
-			m += (',' + i)
-
-		m = m.lstrip(',')
-		m = m.strip()
-		z = str(m)
-
-	f.close()
-
-	return z
-
-def atcc_config_write(tag, test_type, answer):
-	file = (at_dir + '/' + test_type + '/' + tag + '/control')
-	f = open(file, 'w')
-
-	x = len(answer)
-	if x == 0:
-		value = ("job.run_test(\'" + tag + "\')")
-	else:
-		value = ("job.run_test(\'" + tag + "\', " + answer + ")")
-
-	s = str(value)
-	z = f.write(s)
-
-	f.close()
-
 def atcc_config_show_help(tag, test_type):
+	tag = tag.split('/')
+	tag = tag[0]
 	if os.path.exists(at_dir + '/' + test_type + '/' + tag + '/help'):
 		d.textbox(at_dir + '/' + test_type + '/' + tag + '/help', width = -1)
 	else:
 		d.infobox(at_dir + '/' + test_type + '/' + tag + '/help' " doesn't exist")
 		time.sleep(5)
 
-def atcc_config_choose(tag, test_type):
-	conf_opt = atcc_config_read(tag, test_type)
+def atcc_config_edit(tag, test_type, ed):
+	os.system(ed + " " + at_dir + '/' + test_type + '/' + tag)
 
+def atcc_config_help_or_edit(tag, test_type):
+	ed = "vim"
 	while 1:
-		(code, answer) = d.inputbox("Type 'help' to see documentation", init = conf_opt)
+		(code, answer) = d.inputbox("Type 'help' to see documentation, or name of favourite text editor", init = ed)
 
 		if code == d.DIALOG_CANCEL or code == d.DIALOG_ESC:
 			break
@@ -212,18 +310,16 @@ def atcc_config_choose(tag, test_type):
 			atcc_config_show_help(tag, test_type)
 			continue
 		else:
-			atcc_config_write(tag, test_type, answer)
+			ed = answer
+			atcc_config_edit(tag, test_type, ed)
 			break
 
-def atcc_config(test_type, t):
-	dir_ls = dircache.listdir(at_dir + '/' + test_type)
-
+def atcc_config_choose_control_file(test_type, t):
+	u_tmp = atcc_list_control_files(test_type, at_dir)
 	u = []
-
-	for i in dir_ls:
-		k = i, ""
-		if i != ".svn" and i != "netperf2" and i != "pktgen" and i != "sparse" and i != "dbt2" and i != "kernelbuild" and (os.path.exists(at_dir + '/' + test_type + '/' + i + '/control')):
-			u.append(k)
+	for i in u_tmp:
+		k = i[0], ""
+		u.append(k)
 
 	while 1:
 		(code, tag) = d.menu(test_type + ":", choices = u, title = t)
@@ -231,48 +327,10 @@ def atcc_config(test_type, t):
 		if code == d.DIALOG_CANCEL or code == d.DIALOG_ESC:
 			break
 		else:
-			atcc_config_choose(tag, test_type)
-
-def atcc_profilers_run(res1, res2):
-	if len(res1) == 0 or len(res2) == 0:
-		return -1
-
-	atcc_setup_tmp_dirs_files()
-
-	file = (menu_dir + '/tmp/profilers')
-	f = open(file, 'w')
-
-	f.write('for profiler in (')
-
-	for i in range(len(res1)):
-		z = ('\'' + res1[i] + '\', ')
-		z = str(z)
-		f.write(z)
-
-	f.write('):\n')
-
-	f.write('\ttry:\n')
-	f.write('\t\tprint "Testing profiler %s ..." % profiler\n')
-	f.write('\t\tjob.profilers.add(profiler)\n')
-
-	for i in range(len(res2)):
-		z = atcc_config_read(res2[i], 'tests')
-		k = ('\t\tjob.run_test(\'' + res2[i] + '\',' + z + ')\n')
-		k = str(k)
-		f.write(k)
-
-	f.write('\t\tjob.profilers.delete(profiler)\n')
-	f.write('\texcept:\n')
-	f.write('\t\tprint "Test of profiler %s failed" % profiler\n')
-	f.write('\t\traise\n')
-
-	f.close()
-
-	os.system(at_dir + '/bin/autotest ' + menu_dir + '/tmp/profilers')
-	atcc_save_results2(res1, res2)
+			atcc_config_help_or_edit(tag, test_type)
 
 def atcc_upgrade():
-	os.system("svn checkout svn://test.kernel.org/autotest/trunk " + at_dir)
+	os.system("svn checkout svn://test.kernel.org/autotest/trunk " + at_dir + "/../")
 
 def atcc_rsync_mirror():
 	os.system(at_dir + "/../mirror/mirror")
@@ -280,13 +338,16 @@ def atcc_rsync_mirror():
 def atcc_main_menu():
 	while 1:
 		(code, tag) = d.menu("Main menu",
-			choices = [("1", "Tests"),
-			("2", "Parallel tests"),
-			("3", "Profilers"),
-			("4", "Tests' results"),
-			("5", "Configure tests"),
-			("6", "Upgrade Autotest"),
-			("7", "Sync local kernel.org mirror")])
+			choices = [("1", "Tests (local)"),
+			("2", "Parallel tests (local)"),
+			("3", "Profilers (local)"),
+			("4", "Tests (remote)"),
+			("5", "Parallel tests (remote)"),
+			("6", "Profilers (remote)"),
+			("7", "Tests' results"),
+			("8", "Configure tests"),
+			("9", "Upgrade Autotest"),
+			("10", "Sync local kernel.org mirror")])
 		if handle_exit_code(d, code):
 			break
 	return tag
@@ -305,12 +366,25 @@ def main():
 			res2 = atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
 			atcc_profilers_run(res1, res2)
 		elif res == 4:
-			atcc_tests_results(t = 'Tests\' results menu')
+			ip = atcc_remote_get_ip()
+			res = atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
+			atcc_t_remote_run(ip, res, test_type = 'tests')
 		elif res == 5:
-			atcc_config(test_type = 'tests', t = 'Tests configuration menu')
+			ip = atcc_remote_get_ip()
+			res = atcc_t_menu(test_type = 'tests', t = 'Parallel tests selection menu')
+			atcc_t_p_remote_run(ip, res, test_type = 'tests')
 		elif res == 6:
-			atcc_upgrade()
+			ip = atcc_remote_get_ip()
+			res1 = atcc_t_menu(test_type = 'profilers', t = 'Profilers selection menu')
+			res2 = atcc_t_menu(test_type = 'tests', t = 'Tests selection menu')
+			atcc_profilers_remote_run(ip, res1, res2)
 		elif res == 7:
+			atcc_tests_results(t = 'Tests\' results menu')
+		elif res == 8:
+			atcc_config_choose_control_file(test_type = 'tests', t = 'Tests configuration menu')
+		elif res == 9:
+			atcc_upgrade()
+		elif res == 10:
 			atcc_rsync_mirror()
 		elif res == 0:
 			sys.exit(1)
@@ -319,8 +393,9 @@ check_python_version()
 
 menu_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 at_dir = os.path.dirname(menu_dir + "/../client/")
+srv_dir = os.path.dirname(menu_dir + "/../server/")
 
 d = dialog.Dialog(dialog = "dialog")
-d.add_persistent_args(["--backtitle", "Autotest Control Center v0.06"])
+d.add_persistent_args(["--backtitle", "Autotest Control Center v0.07"])
 
 main()
