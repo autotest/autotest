@@ -20,13 +20,13 @@ run_retire=`grep "^\w* *[[:digit:]]* *RETR *:"  $TMPFILE | wc -l`
 run_cfgerr=`grep "^\w* *[[:digit:]]* *CONF *:"  $TMPFILE | wc -l`
 # ignore INFO lines
 
-printf "build errors:  %s lines\n" $build_errors
-printf "PASS:          %s\n" $run_passed
-printf "WARNing:       %s\n" $run_warned
-printf "BROKen:        %s\n" $run_broken
-printf "RETiRed:       %s\n" $run_retire	## NB: not counted in any totals
-printf "FAIL:          %s\n" $run_failed
-printf "CONFig error:  %s\n" $run_cfgerr
+printf "Build errors:  %s lines\n" $build_errors
+printf "Pass:          %s\n" $run_passed
+printf "Warning:       %s\n" $run_warned
+printf "Broken:        %s\n" $run_broken
+printf "Retired:       %s\n" $run_retire	## NB: not counted in any totals
+printf "Fail:          %s\n" $run_failed
+printf "Config error:  %s\n" $run_cfgerr
 
 passing=$((run_passed + run_warned))
 notpass=$((run_broken + run_cfgerr + run_failed))
