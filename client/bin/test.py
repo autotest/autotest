@@ -90,14 +90,17 @@ class test:
 
 
 	def run(self, testname, args, dargs):
+		dmesg = os.path.join(self.debugdir, 'dmesg')
 		try:
 			self.__exec(args, dargs)
 		except Exception, detail:
 			self.record("FAIL " + detail.__str__() + "\n")
 
+			system('dmesg -c > ' + dmesg)
 			raise
 		else:
 			self.record("GOOD Completed Successfully\n")
+			system('dmesg -c > ' + dmesg)
 
 
 def testname(url):
