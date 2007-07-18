@@ -1,4 +1,3 @@
-# needs lex installed to compile ltp
 import test
 from autotest_utils import *
 
@@ -12,7 +11,7 @@ class ltp(test.test):
 		os.chdir(self.srcdir)
 
 		system('patch -p1 < ../ltp.patch')
-		system('cp ../scan.c pan/')
+		system('cp ../scan.c pan/')   # saves having lex installed
 		system('make -j %d' % count_cpus())
 		system('yes n | make install')
 
