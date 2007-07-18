@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, Google, 2006"""
 
-import os, re
+import os, re, string
 from autotest_utils import *
 
 def list_mount_devices():
@@ -108,3 +108,25 @@ class filesystem:
 		if not handle:
 			handle = self.device
 		system("umount " + handle)
+	
+
+	def get_io_scheduler_list(self, device_name):
+		names = open(self.__sched_path(device_name)).read()
+		return names.translate(string.maketrans('[]', '  ')).split()
+
+
+	def get_io_scheduler(self, device_name):
+		return re.split('[\[\]]',
+				open(self.__sched_path(device_name)).read())[1]
+
+
+	def set_io_scheduler(self, device_name, name):
+		if name not in self.get_io_scheduler_list(device_name):
+			raise NameError('No such IO scheduler: %s' % name)
+		f = open(self.__sched_path(device_name), 'w')
+		print >> f, name
+		f.close()
+
+
+	def __sched_path(self, device_name):
+		return '/sys/block/%s/queue/scheduler' % device_name
