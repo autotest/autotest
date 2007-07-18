@@ -98,6 +98,7 @@ class job:
 		pwd = os.getcwd()
 		os.chdir(self.resultdir + "/sysinfo")
 		system(self.bindir + '/sysinfo.py')
+		system('dmesg -c > dmesg')
 		os.chdir(pwd)
 
 		self.harness.run_start()
