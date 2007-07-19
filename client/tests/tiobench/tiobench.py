@@ -12,13 +12,14 @@ class tiobench(test.test):
 
 		system('make')
 		
-	def execute(self, dir, args = None):
+	def execute(self, dir, iterations=1, args = None):
 		os.chdir(self.srcdir)
 		if not args:
 			args = '--block=4096 --block=8192 --threads=10 --size=1024 --numruns=2'
 		profilers = self.job.profilers
 		if not profilers.only():
-			system('./tiobench.pl --dir %s %s' %(dir, args))
+			for i in range(iterations):
+				system('./tiobench.pl --dir %s %s' %(dir, args))
 
 		# Do a profiling run if necessary
 		if profilers.present():
@@ -26,3 +27,4 @@ class tiobench(test.test):
 			system('./tiobench.pl --dir %s %s' %(dir, args))
 			profilers.stop(self)
 			profilers.report(self)
+			
