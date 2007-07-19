@@ -384,14 +384,16 @@ class kernel:
 			return arch
 
 
-	def boot(self, args=''):
+	def boot(self, args='', once=True):
 		""" install and boot this kernel, do not care how
 		    just make it happen.
 		"""
 
 		# Install this kernel.
 		self.install()
-		self.add_to_bootloader(args=args)
+		self.add_to_bootloader(args=args, tag='autotest')
+		if once:
+			self.job.bootloader.boot_once('autotest')
 
 		# Boot it.
 		self.job.reboot()
