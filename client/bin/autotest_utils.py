@@ -92,7 +92,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install, *args, **dargs
 		install(*args, **dargs)
 		if os.path.exists(srcdir):
 			pickle.dump(new_version, open(versionfile, 'w'))
-                
+
 
 def is_url(path):
 	"""true if path is a url
