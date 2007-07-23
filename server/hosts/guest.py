@@ -31,25 +31,24 @@ class Guest(ssh_host.SSHHost):
 	must not instantiate this class but should instantiate one of those 
 	leaf subclasses."""
 	
-	controllingHypervisor = None
+	controlling_hypervisor = None
 	
-	def __init__(self, controllingHypervisor):
+	def __init__(self, controlling_hypervisor):
 		"""Construct a Guest object
 		
 		Args:
-			controllingHypervisor: Hypervisor object that is 
-				responsible for the creation and management of this 
-				guest
-			hostname: network hostname or address of virtual machine
+			controlling_hypervisor: Hypervisor object that is 
+				responsible for the creation and management of 
+				this guest
 		"""
-		hostname= controllingHypervisor.new_guest()
+		hostname= controlling_hypervisor.new_guest()
 		super(Guest, self).__init__(hostname)
-		self.controllingHypervisor= controllingHypervisor
+		self.controlling_hypervisor= controlling_hypervisor
 	
 	def __del__(self):
 		"""Destroy a Guest object
 		"""
-		self.controllingHypervisor.delete_guest(self.hostname)
+		self.controlling_hypervisor.delete_guest(self.hostname)
 	
 	def hardreset(self):
 		"""Perform a "hardreset" of the guest.
@@ -57,5 +56,5 @@ class Guest(ssh_host.SSHHost):
 		It is restarted through the hypervisor. That will restart it 
 		even if the guest otherwise innaccessible through ssh.
 		"""
-		return self.controllingHypervisor.reset_guest(self.name)
+		return self.controlling_hypervisor.reset_guest(self.hostname)
 

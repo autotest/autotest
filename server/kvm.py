@@ -46,9 +46,17 @@ class KVM(hypervisor.Hypervisor):
 		'	then\n'
 		'		echo "process present"\n'
 		'	else\n'
-		'		rm "%(pid_file_name)s"\n'
+		'		rm -f "%(pid_file_name)s"\n'
+		'		rm -f "%(monitor_file_name)s"\n'
 		'	fi\n'
 		'fi')
+	hard_reset_script= (
+		'import socket\n'
+		'monitor_socket= socket.socket(socket.AF_UNIX, \n'
+		'	socket.SOCK_STREAM)\n'
+		'monitor_socket.connect("%(monitor_file_name)s")\n'
+		'# s.settimeout\n'
+		'monitor_socket.send("system_reset\\n")\n')
 	
 	def __del__(self):
 		"""Destroy a KVM object.
@@ -58,7 +66,7 @@ class KVM(hypervisor.Hypervisor):
 		"""
 		self.deinitialize()
 
-	def install(self, addresses):
+	def install(self, addresses, build=True):
 		"""Compile the kvm software on the host that the object was 
 		initialized with.
 		
@@ -84,6 +92,9 @@ class KVM(hypervisor.Hypervisor):
 				machine os must therefore be configured to 
 				configure its network with the ip corresponding 
 				to the mac.
+			build: build kvm from the source material, if False,
+				it is assumed that the package contains the 
+				source tree after a 'make'.
 		
 		TODO(poirier): check dependencies before building
 		kvm needs:
@@ -107,40 +118,26 @@ class KVM(hypervisor.Hypervisor):
 				"qemu-ifup.sh")),))
 		
 		self.host.send_file(self.source_material, self.build_dir)
-		source_material= os.path.join(self.build_dir, 
+		remote_source_material= os.path.join(self.build_dir, 
 				os.path.basename(self.source_material))
 		
-		# uncompress
-		if (source_material.endswith(".gz") or 
-			source_material.endswith(".gzip")):
-			self.host.run('gunzip "%s"' % (utils.sh_escape(
-				source_material)))
-			source_material= ".".join(
-				source_material.split(".")[:-1])
-		elif source_material.endswith("bz2"):
-			self.host.run('bunzip2 "%s"' % (utils.sh_escape(
-				source_material)))
-			source_material= ".".join(
-				source_material.split(".")[:-1])
-		
-		# untar
-		if source_material.endswith(".tar"):
-			result= self.host.run('tar -xvf "%s" | head -1' % (
-				utils.sh_escape(source_material)))
-			source_material += result.stdout.strip("\n")
-			self.build_dir= source_material
+		self.build_dir= utils.unarchive(self.host, 
+			remote_source_material)
 		
 		# build
-		try:
-			self.host.run('make -C "%s" clean' % (
+		if build:
+			try:
+				self.host.run('make -C "%s" clean' % (
+					utils.sh_escape(self.build_dir),))
+			except errors.AutoservRunError:
+				# directory was already clean and contained 
+				# no makefile
+				pass
+			self.host.run('cd "%s" && ./configure' % (
 				utils.sh_escape(self.build_dir),))
-		except errors.AutoservRunError:
-			pass
-		self.host.run('cd "%s" && ./configure' % (
-			utils.sh_escape(self.build_dir),))
-		self.host.run('make -j%d -C "%s"' % (
-			self.host.get_num_cpu() * 2, 
-			utils.sh_escape(self.build_dir),))
+			self.host.run('make -j%d -C "%s"' % (
+				self.host.get_num_cpu() * 2, 
+				utils.sh_escape(self.build_dir),))
 		
 		self.initialize()
 	
@@ -152,17 +149,38 @@ class KVM(hypervisor.Hypervisor):
 		initialize - deinitialize many times. But why you would do that
 		has yet to be figured.
 		
-		TODO(poirier): check processor type and support for vm 
-			extensions before loading kvm-intel
+		Raises:
+			AutoservVirtError: cpuid doesn't report virtualization 
+				extentions (vme for intel or svm for amd), in
+				this case, kvm cannot run.
 		"""
 		self.pid_dir= self.host.get_tmp_dir()
+		
+		cpu_flags= self.host.run('cat /proc/cpuinfo | grep -e "^flags" '
+			'| head -1 | cut -d " " -f 2-').stdout.strip()
+		
+		if cpu_flags.find('vme') != -1:
+			module_name= "kvm_intel"
+		elif cpu_flags.find('svm') != -1:
+			module_name= "kvm_amd"
+		else:
+			raise errors.AutoservVirtError("No harware "
+				"virtualization extensions found, KVM cannot "
+				"run")
 		
 		self.host.run('if ! $(grep -q "^kvm " /proc/modules); '
 			'then insmod "%s"; fi' % (utils.sh_escape(
 			os.path.join(self.build_dir, "kernel/kvm.ko")),))
-		self.host.run('if ! $(grep -q "^kvm_intel " /proc/modules); '
-			'then insmod "%s"; fi' % (utils.sh_escape(
-			os.path.join(self.build_dir, "kernel/kvm-intel.ko")),))
+		if module_name == "kvm_intel":
+			self.host.run('if ! $(grep -q "^kvm_intel " '
+				'/proc/modules); then insmod "%s"; fi' % 
+				(utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-intel.ko")),))
+		elif module_name == "kvm_amd":
+			self.host.run('if ! $(grep -q "^kvm_amd " '
+				'/proc/modules); then insmod "%s"; fi' % 
+				(utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-amd.ko")),))
 	
 	def deinitialize(self):
 		"""Terminate the hypervisor.
@@ -173,7 +191,7 @@ class KVM(hypervisor.Hypervisor):
 		self.refresh_guests()
 		for address in self.addresses:
 			if address["is_used"]:
-				self.delete_guest(address["is_used"])
+				self.delete_guest(address["ip"])
 		self.pid_dir= None
 		
 		self.host.run(
@@ -188,7 +206,7 @@ class KVM(hypervisor.Hypervisor):
 			'	rmmod kvm\n'
 			'fi')
 	
-	def new_guest(self):
+	def new_guest(self, qemu_options):
 		"""Start a new guest ("virtual machine").
 		
 		Returns:
@@ -210,10 +228,10 @@ class KVM(hypervisor.Hypervisor):
 		retval= self.host.run(
 			'start-stop-daemon -S --exec "%s" --pidfile "%s" -b -- '
 			# this is the line of options that can be modified
-			'-m 256 -hda /var/local/vdisk.img -snapshot '
+			' %s '
 			'-pidfile "%s" -nographic '
 			#~ '-serial telnet::4444,server '
-			#~ '-monitor telnet::4445,server '
+			'-monitor unix:"%s",server,nowait '
 			'-net nic,macaddr="%s" -net tap,script="%s" ' % (
 			utils.sh_escape(os.path.join(
 				self.build_dir, 
@@ -221,9 +239,13 @@ class KVM(hypervisor.Hypervisor):
 			utils.sh_escape(os.path.join(
 				self.pid_dir, 
 				"vhost%s_pid" % (address["ip"],))), 
+			qemu_options, 
 			utils.sh_escape(os.path.join(
 				self.pid_dir, 
 				"vhost%s_pid" % (address["ip"],))), 
+			utils.sh_escape(os.path.join(
+				self.pid_dir, 
+				"vhost%s_monitor" % (address["ip"],))), 
 			utils.sh_escape(address["mac"]),
 			utils.sh_escape(os.path.join(
 				self.support_dir, 
@@ -248,14 +270,18 @@ class KVM(hypervisor.Hypervisor):
 				pid_file_name= utils.sh_escape(os.path.join(
 					self.pid_dir, 
 					"vhost%s_pid" % (address["ip"],)))
+				monitor_file_name= utils.sh_escape(os.path.join(
+					self.pid_dir, 
+					"vhost%s_monitor" % (address["ip"],)))
 				retval= self.host.run(
 					self.check_process_script % {
 					"pid_file_name" : pid_file_name, 
+					"monitor_file_name" : monitor_file_name,
 					"qemu_binary" : utils.sh_escape(
-					os.path.join(self.build_dir, 
-					"qemu/x86_64-softmmu/qemu-system-x86_64"
-					)),})
-				if (retval.stdout.strip(" \n") != 
+						os.path.join(self.build_dir, 
+						"qemu/x86_64-softmmu/"
+						"qemu-system-x86_64")),})
+				if (retval.stdout.strip() != 
 					"process present"):
 					address["is_used"]= False
 	
@@ -267,6 +293,10 @@ class KVM(hypervisor.Hypervisor):
 				address list given to install()) of the guest 
 				to terminate.
 		
+		Raises:
+			AutoservVirtError: the guest_hostname argument is
+				invalid
+
 		TODO(poirier): is there a difference in qemu between 
 		sending SIGTEM or quitting from the monitor?
 		TODO(poirier): there are a lot of race conditions in this code
@@ -274,23 +304,85 @@ class KVM(hypervisor.Hypervisor):
 		between
 		"""
 		for address in self.addresses:
-			if address["ip"] is guest_hostname:
-				break
+			if address["ip"] == guest_hostname:
+				if address["is_used"]:
+					break
+				else:
+					# Will happen if deinitialize() is 
+					# called while guest objects still
+					# exit and these are del'ed after.
+					# In that situation, nothing is to 
+					# be done here, don't throw an error
+					# either because it will print an
+					# ugly message during garbage 
+					# collection. The solution would be to
+					# delete the guest objects before 
+					# calling deinitialize(), this can't be
+					# done by the KVM class, it has no 
+					# reference to those objects and it 
+					# cannot have any either. The Guest 
+					# objects already need to have a 
+					# reference to their managing 
+					# hypervisor. If the hypervisor had a 
+					# reference to the Guest objects it 
+					# manages, it would create a circular 
+					# reference and those objects would 
+					# not be elligible for garbage 
+					# collection. In turn, this means that 
+					# the KVM object would not be 
+					# automatically del'ed at the end of 
+					# the program and guests that are still
+					# running would be left unattended.
+					return
 		else:
-			return None
+			raise errors.AutoservVirtError("Unknown guest hostname")
 		
 		pid_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_pid" % (address["ip"],)))
+		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
+			"vhost%s_monitor" % (address["ip"],)))
 		
 		retval= self.host.run(
 			self.check_process_script % {
 			"pid_file_name" : pid_file_name, 
+			"monitor_file_name" : monitor_file_name, 
 			"qemu_binary" : utils.sh_escape(os.path.join(
-			self.build_dir, 
-			"qemu/x86_64-softmmu/qemu-system-x86_64")),})
-		if retval.stdout.strip(" \n") == "process present":
+				self.build_dir, 
+				"qemu/x86_64-softmmu/qemu-system-x86_64")),})
+		if retval.stdout.strip() == "process present":
 			self.host.run('kill $(cat "%s")' %(
 				pid_file_name,))
-			self.host.run('rm "%s"' %(
+			self.host.run('rm -f "%s"' %(
 				pid_file_name,))
+			self.host.run('rm -f "%s"' %(
+				monitor_file_name,))
 		address["is_used"]= False
+	
+	def reset_guest(self, guest_hostname):
+		"""Perform a hard reset on a virtual machine.
+		
+		Args:
+			guest_hostname: the ip (as it was specified in the 
+				address list given to install()) of the guest 
+				to terminate.
+		
+		Raises:
+			AutoservVirtError: the guest_hostname argument is
+				invalid
+		"""
+		for address in self.addresses:
+			if address["ip"] is guest_hostname:
+				if address["is_used"]:
+					break
+				else:
+					raise errors.AutoservVirtError("guest "
+						"hostname not in use")
+		else:
+			raise errors.AutoservVirtError("Unknown guest hostname")
+		
+		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
+			"vhost%s_monitor" % (address["ip"],)))
+		
+		self.host.run('python -c "%s"' % (utils.sh_escape(
+			self.hard_reset_script % {
+			"monitor_file_name" : monitor_file_name,}),))
