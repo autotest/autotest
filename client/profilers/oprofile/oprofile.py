@@ -3,16 +3,17 @@ import profiler, shutil
 from autotest_utils import *
 
 class oprofile(profiler.profiler):
-	version = 3
+	version = 4
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.2.tar.gz
-	def setup(self, tarball = 'oprofile-0.9.2.tar.bz2', local = False):
+	def setup(self, tarball = 'oprofile-0.9.2.tar.bz2', local = False, *args, **dargs):
 		if local:
 			return
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
 		extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
-
+		
+		system('patch -p1 < %s' % (os.path.join(self.bindir, "oprofile-69455.patch"),))
 		system('./configure --with-kernel-support --prefix=' + self.srcdir)
 		system('make')
 		system('make install')
@@ -54,6 +55,7 @@ class oprofile(profiler.profiler):
 
 
 	def start(self, test):
+		system(self.opcontrol + ' --shutdown')
 		system(self.opcontrol + ' --reset')
 		system(self.opcontrol + ' --start')
 

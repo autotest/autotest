@@ -9,7 +9,7 @@ class profilers:
 		self.list = []
 		self.profdir = job.autodir + '/profilers'
 		self.tmpdir = job.tmpdir
-                self.profile_run_only = False
+		self.profile_run_only = False
 
 	# add a profiler
 	def add(self, profiler, *args, **dargs):
