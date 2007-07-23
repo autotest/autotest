@@ -73,12 +73,13 @@ class AutotestTestCase(unittest.TestCase):
 				
 		host = MockInstallHost()
 		tmpdir = utils.get_tmp_dir()
-		self.autotest.get_from_file(tmpdir)
+		self.autotest.get(tmpdir)
 		self.autotest.install(host)
-		self.assertEqual(host.commands,
-				 ['mkdir -p /usr/local/autotest',
-				  'send_file: %s/ %s' % (tmpdir,
-							'/usr/local/autotest')])
+		self.assertEqual(host.commands[0],
+				 'mkdir -p /usr/local/autotest')
+		self.assertTrue(host.commands[1].startswith('send_file: /tmp/'))
+		self.assertTrue(host.commands[1].endswith(
+			'/ /usr/local/autotest'))
 
 		
 

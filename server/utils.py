@@ -32,7 +32,7 @@ __tmp_dirs= []
 
 def sh_escape(command):
 	"""Escape special characters from a command so that it can be passed 
-	as a double quoted (" ") string.
+	as a double quoted (" ") string in a (ba)sh command.
 	
 	Args:
 		command: the command string to escape. 
@@ -92,7 +92,8 @@ def get(location):
 	Returns:
 		The location of the file or directory where the requested
 		content was saved. This will be contained in a temporary 
-		directory on the local host.
+		directory on the local host. If the material to get was a 
+		directory, the location will contain a trailing '/'
 	"""
 	tmpdir = get_tmp_dir()
 	
@@ -246,3 +247,43 @@ def __clean_tmp_dirs():
 	for dir in __tmp_dirs:
 		shutil.rmtree(dir)
 	__tmp_dirs= []
+
+
+def unarchive(host, source_material):
+	"""Uncompress and untar an archive on a host.
+	
+	If the "source_material" is compresses (according to the file 
+	extension) it will be uncompressed. Supported compression formats 
+	are gzip and bzip2. Afterwards, if the source_material is a tar 
+	archive, it will be untarred.
+	
+	Args:
+		host: the host object on which the archive is located
+		source_material: the path of the archive on the host
+	
+	Returns:
+		The file or directory name of the unarchived source material. 
+		If the material is a tar archive, it will be extracted in the
+		directory where it is and the path returned will be the first
+		entry in the archive, assuming it is the topmost directory.
+		If the material is not an archive, nothing will be done so this
+		function is "harmless" when it is "useless".
+	"""
+	# uncompress
+	if (source_material.endswith(".gz") or 
+		source_material.endswith(".gzip")):
+		host.run('gunzip "%s"' % (sh_escape(source_material)))
+		source_material= ".".join(source_material.split(".")[:-1])
+	elif source_material.endswith("bz2"):
+		host.run('bunzip2 "%s"' % (sh_escape(source_material)))
+		source_material= ".".join(source_material.split(".")[:-1])
+	
+	# untar
+	if source_material.endswith(".tar"):
+		retval= host.run('tar -C "%s" -xvf "%s"' % (
+			sh_escape(os.path.dirname(source_material)),
+			sh_escape(source_material),))
+		source_material= os.path.join(os.path.dirname(source_material), 
+			retval.stdout.split()[0])
+	
+	return source_material
