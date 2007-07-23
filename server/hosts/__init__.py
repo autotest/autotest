@@ -26,8 +26,6 @@ from kvm_guest import KVMGuest
 
 # bootloader classes
 from bootloader import Bootloader
-from lilo import Lilo
-from grub import Grub
 
 # command result class
 from base_classes import CmdResult

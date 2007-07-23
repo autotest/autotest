@@ -35,19 +35,83 @@ class DEBKernel(kernel.Kernel):
 		super(DEBKernel, self).__init__()
 
 
-	def install(self, host):
-		# this directory will get cleaned up for us automatically
+	def install(self, host, **kwargs):
+		"""Install a kernel on the remote host.
+		
+		This will also invoke the guest's bootloader to set this
+		kernel as the default kernel.
+		
+		Args:
+			host: the host on which to install the kernel
+			[kwargs]: remaining keyword arguments will be passed 
+				to Bootloader.add_kernel()
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				DEBKernel.get() with a .deb package.
+		"""
+		if self.source_material is None:
+			raise AutoservError("A kernel must first be \
+			specified via get()")
+		
 		remote_tmpdir = host.get_tmp_dir()
 		basename = os.path.basename(self.source_material)
 		remote_filename = os.path.join(remote_tmpdir, basename)
 		host.send_file(self.source_material, remote_filename)
-		try:
-			result = host.run('dpkg -i %s'
-					  % remote_filename)
-			if result.exit_status:
-				raise AutoservError('dpkg failed \
-				installing %s:\n\n%s'% (remote_filename,
-							result.stderr))
-		except NameError, e:
-			raise AutoservError('A kernel must first be \
-			specified via get_from_file or get_from_url')
+		host.run('dpkg -i "%s"' % (utils.sh_escape(remote_filename),))
+		host.run('mkinitramfs -o "%s" "%s"' % (
+			utils.sh_escape(self.get_initrd_name()), 
+			utils.sh_escape(self.get_version()),))
+		
+		host.bootloader.add_kernel(self.get_image_name(), 
+			initrd=self.get_initrd_name(), **kwargs)
+	
+	def get_version(self):
+		"""Get the version of the kernel to be installed.
+		
+		Returns:
+			The version string, as would be returned 
+			by 'make kernelrelease'.
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				DEBKernel.get() with a .deb package.
+		"""
+		if self.source_material is None:
+			raise AutoservError("A kernel must first be \
+			specified via get()")
+		
+		retval= utils.run('dpkg-deb -f "%s" version' % 
+			utils.sh_escape(self.source_material),)
+		return retval.stdout.strip()
+	
+	def get_image_name(self):
+		"""Get the name of the kernel image to be installed.
+		
+		Returns:
+			The full path to the kernel image file as it will be 
+			installed on the host.
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				DEBKernel.get() with a .deb package.
+		"""
+		return "/boot/vmlinuz-%s" % (self.get_version(),)
+	
+	def get_initrd_name(self):
+		"""Get the name of the initrd file to be installed.
+		
+		Returns:
+			The full path to the initrd file as it will be 
+			installed on the host. If the package includes no 
+			initrd file, None is returned
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				DEBKernel.get() with a .deb package.
+		"""
+		if self.source_material is None:
+			raise AutoservError("A kernel must first be \
+			specified via get()")
+		
+		return "/boot/initrd.img-%s" % (self.get_version(),)
