@@ -35,8 +35,8 @@ class Hypervisor(installable_object.InstallableObject):
 	def new_guest(self):
 		pass
 	
-	def delete_guest(self, name):
+	def delete_guest(self, guest_hostname):
 		pass
 	
-	def reset_guest(self, guest_name):
+	def reset_guest(self, guest_hostname):
 		pass
