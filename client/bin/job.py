@@ -343,6 +343,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	cont
 		Whether this is the continuation of a previously started job
 	"""
+	control = os.path.abspath(control)
 	state = control + '.state'
 
 	# instantiate the job object ready for the control file.
