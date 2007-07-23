@@ -49,36 +49,12 @@ class Autotest(installable_object.InstallableObject):
 	"""
 	def __init__(self):
 		super(Autotest, self).__init__()
-	
-	def get_from_file(self, filename):
-		"""Specify a tarball on the local filesystem from which
-		autotest will be installed.
-		
-		Args:
-			filename: a str specifying the path to the tarball
-		
-		Raises:
-			AutoservError: if filename does not exist
-		"""
-		if os.path.exists(filename):
-			self.__filename = filename
-		else:
-			raise errors.AutoservError('%s not found' % filename)
-	
-	def get_from_url(self, url):
-		"""Specify a url to a tarball from which autotest will be
-		installed.
-		
-		Args:
-			url: a str specifying the url to the tarball
-		"""
-		self.__filename = utils.get(url)
+
 	
 	def install(self, host):
-		"""Install autotest from the specified tarball (either
-		via get_from_file or get_from_url).  If neither were
-		called an attempt will be made to install from the
-		autotest svn repository.
+		"""Install autotest.  If get() was not called previously, an 
+		attempt will be made to install from the autotest svn 
+		repository.
 		
 		Args:
 			host: a Host instance on which autotest will be
@@ -87,23 +63,28 @@ class Autotest(installable_object.InstallableObject):
 		Raises:
 			AutoservError: if a tarball was not specified and
 				the target host does not have svn installed in its path
+		
+		TODO(poirier): check dependencies
+		autotest needs:
+		bzcat
+		liboptdev (oprofile)
+		binutils-dev (oprofile)
+		make
 		"""
 		# try to install from file or directory
-		try:
-			if os.path.isdir(self.__filename):
+		if self.source_material:
+			if os.path.isdir(self.source_material):
 				# Copy autotest recursively
 				autodir = _get_autodir(host)
 				host.run('mkdir -p %s' %
 					 utils.scp_remote_escape(autodir))
-				host.send_file(self.__filename + '/',
+				host.send_file(self.source_material,
 					       autodir)
 			else:
 				# Copy autotest via tarball
 				raise "Not yet implemented!"
 			return
-		except AttributeError, e:
-			pass
-
+		
 		# if that fails try to install using svn
 		if utils.run('which svn').exit_status:
 			raise AutoservError('svn not found in path on \
@@ -119,7 +100,7 @@ class Autotest(installable_object.InstallableObject):
 	def run(self, control_file, results_dir, host):
 		"""
 		Run an autotest job on the remote machine.
-
+		
 		Args:
 			control_file: an open file-like-obj of the control file
 			results_dir: a str path where the results should be stored
@@ -133,21 +114,22 @@ class Autotest(installable_object.InstallableObject):
 		"""
 		atrun = _Run(host, results_dir)
 		atrun.verify_machine()
+		if os.path.isdir(results_dir):
+			shutil.rmtree(results_dir)
 		debug = os.path.join(results_dir, 'debug')
-		if not os.path.exists(debug):
-			os.makedirs(debug)
-
+		os.makedirs(debug)
+		
 		# Ready .... Aim ....
 		host.run('rm -f ' + atrun.remote_control_file)
 		host.run('rm -f ' + atrun.remote_control_file + '.state')
-
+		
 		# Copy control_file to remote_control_file on the host
 		tmppath = utils.get(control_file)
 		host.send_file(tmppath, atrun.remote_control_file)
 		os.remove(tmppath)
-
+		
 		atrun.execute_control()
-
+		
 		# retrive results
 		results = os.path.join(atrun.autodir, 'results', 'default')
 		# Copy all dirs in default to results_dir
@@ -165,16 +147,14 @@ class _Run(object):
 	def __init__(self, host, results_dir):
 		self.host = host
 		self.results_dir = results_dir
-
+		
 		self.autodir = _get_autodir(self.host)
 		self.remote_control_file = os.path.join(self.autodir, 'control')
-
-
+	
 	def verify_machine(self):
 		binary = os.path.join(self.autodir, 'bin/autotest')
 		self.host.run('ls ' + binary)
-
-
+	
 	def __execute_section(self, section):
 		print "Executing %s/bin/autotest %s/control phase %d" % \
 					(self.autodir, self.autodir,
@@ -201,8 +181,7 @@ class _Run(object):
 			raise AutotestRunError("execute_section: %s '%s' \
 			failed to return anything" % (ssh, cmd))
 		return line
-
-
+	
 	def execute_control(self):
 		section = 0
 		while True:
@@ -217,7 +196,7 @@ class _Run(object):
 				if not self.host.wait_down(HALT_TIME):
 					raise AutotestRunError("%s \
 					failed to shutdown after %ds" %
-						       (self.host.hostname,
+							(self.host.hostname,
 							HALT_TIME))
 				print "Client down, waiting for restart"
 				if not self.host.wait_up(BOOT_TIME):
@@ -225,21 +204,22 @@ class _Run(object):
 					# hardreset the machine once if possible
 					# before failing this control file
 					if hasattr(self.host, 'hardreset'):
-						print "Hardresetting %s" % self.hostname
+						print "Hardresetting %s" % (
+							self.hostname,)
 						self.host.hardreset()
-					raise AutotestRunError("%s \
-					failed to boot after %ds" %
-						       (self.host.hostname,
-							BOOT_TIME))
+					raise AutotestRunError("%s failed to "
+						"boot after %ds" % (
+						self.host.hostname,
+						BOOT_TIME,))
 				continue
-			raise AutotestRunError("Aborting - unknown \
-			return code: %s\n" % last)
+			raise AutotestRunError("Aborting - unknown "
+				"return code: %s\n" % last)
 
 
 def _get_autodir(host):
 	try:
 		atdir = host.run(
-			'grep autodir= /etc/autotest.conf').stdout.strip(" \n")
+			'grep "autodir *=" /etc/autotest.conf').stdout.strip()
 		if atdir:
 			m = re.search(r'autodir *= *[\'"]?([^\'"]*)[\'"]?',
 				      atdir)

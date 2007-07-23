@@ -35,26 +35,12 @@ class DEBKernel(kernel.Kernel):
 		super(DEBKernel, self).__init__()
 
 
-	def get_from_file(self, filename):
-		if os.path.exists(filename):
-			self.__filename = filename
-		else:
-			raise errors.AutoservError('%s not found' % filename)
-
-
-	def get_from_url(self, url):
-		tmpdir = utils.get_tmp_dir()
-		tmpfile = os.path.join(tmpdir, os.path.basename(url))
-		urllib.urlretrieve(url, tmpfile)
-		self.__filename = tmpfile
-
-
 	def install(self, host):
 		# this directory will get cleaned up for us automatically
 		remote_tmpdir = host.get_tmp_dir()
-		basename = os.path.basename(self.__filename)
+		basename = os.path.basename(self.source_material)
 		remote_filename = os.path.join(remote_tmpdir, basename)
-		host.send_file(self.__filename, remote_filename)
+		host.send_file(self.source_material, remote_filename)
 		try:
 			result = host.run('dpkg -i %s'
 					  % remote_filename)

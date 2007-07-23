@@ -2,13 +2,20 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""Run an autoserv control file
+"""
+Run an autoserv control file
 
 TODO(poirier): add a singleton logger
 TODO(poirier): maybe change the name "get_file" to "receive_file" ?
+TODO(poirier): change get(), send_file(), get_file() to consistantly recognize
+       paths that start with '~' as refering to the home directory
 """
 
-__author__ = "poirier@google.com (Benjamin Poirier)"
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
+poirier@google.com (Benjamin Poirier),
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import sys
