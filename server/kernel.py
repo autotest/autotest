@@ -28,4 +28,11 @@ class Kernel(installable_object.InstallableObject):
 	must not instantiate this class but should instantiate one of those 
 	leaf subclasses."""
 	
-	pass
+	def get_version():
+		pass
+	
+	def get_image_name():
+		pass
+	
+	def get_initrd_name():
+		pass

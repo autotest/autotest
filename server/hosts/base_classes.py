@@ -19,7 +19,7 @@ stutsman@google.com (Ryan Stutsman)"""
 
 import time
 import textwrap
-
+import bootloader
 
 class Host(object):
 	"""This class represents a machine on which you can run programs.
@@ -36,6 +36,7 @@ class Host(object):
 	
 	def __init__(self):
 		super(Host, self).__init__()
+		self.bootloader= bootloader.Bootloader(self)
 	
 	def run(self, command):
 		pass
