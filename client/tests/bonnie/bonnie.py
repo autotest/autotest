@@ -21,8 +21,11 @@ class bonnie(test.test):
 		system('./configure')
 		system('make')
 
-	def execute(self, iterations = 1, extra_args = '', user = 'root'):
-		args = '-d ' + self.tmpdir + ' -u ' + user + ' ' + extra_args
+	def execute(self, testdir = None, iterations = 1, extra_args = '', user = 'root'):
+		if not testdir:
+			testdir = self.tmpdir
+
+		args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
 
 		profilers = self.job.profilers
 		if not profilers.only():
