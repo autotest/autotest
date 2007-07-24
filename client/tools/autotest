@@ -1,0 +1,9 @@
+#!/usr/bin/python
+import sys
+
+autodir = os.path.dirname(os.path.realpath('/etc/autotest.conf'))
+autotest = os.path.join(autodir, 'bin/autotest')
+control = os.path.join(autodir, 'control')
+
+if sys.argv[1] == 'start':
+	os.system(autotest + ' --continue ' + control)
