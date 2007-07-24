@@ -64,19 +64,24 @@ class filesystem:
 		args = ''
 		if fstype == 'xfs':
 			args = '-f'
-		mkfs = "mkfs -t %s %s %s" % (fstype, args, self.device)
+		mkfs_cmd = "mkfs -t %s %s %s" % (fstype, args, self.device)
+		print mkfs_cmd
+		sys.stdout.flush()
 		try:
-			system("yes | " + mkfs)
+			system("yes | " + mkfs_cmd)
 		except:
-			self.job.record("FAIL " + mkfs)
+			self.job.record("FAIL " + mkfs_cmd)
 		else:
-			self.job.record("GOOD " + mkfs)
+			self.job.record("GOOD " + mkfs_cmd)
 			self.fstype = fstype
 			
 
 
 	def fsck(self, args = ''):
-		ret = system('fsck %s %s' % (self.device, args), ignorestatus=1)
+		fsck = 'fsck %s %s' % (self.device, args)
+		print fsck
+		sys.stdout.flush()
+		ret = system(fsck, ignorestatus=1)
 		return not ret
 
 	
@@ -95,6 +100,8 @@ class filesystem:
 			options += ' -t ' + self.fstype
 		mount_cmd = "mount %s %s %s" % (options,
 						self.device, mountpoint)
+		print mount_cmd
+		sys.stdout.flush()
 		try:
 			system(mount_cmd)
 		except:
@@ -107,7 +114,10 @@ class filesystem:
 	def unmount(self, handle=None):
 		if not handle:
 			handle = self.device
-		system("umount " + handle)
+		umount_cmd = "umount " + handle
+		print umount_cmd
+		sys.stdout.flush()
+		system(umount_cmd)
 	
 
 	def get_io_scheduler_list(self, device_name):
