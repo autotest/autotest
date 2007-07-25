@@ -76,8 +76,8 @@ class Autotest(installable_object.InstallableObject):
 			if os.path.isdir(self.source_material):
 				# Copy autotest recursively
 				autodir = _get_autodir(host)
-				host.run('mkdir -p %s' %
-					 utils.scp_remote_escape(autodir))
+				host.run('mkdir -p "%s"' %
+					 utils.sh_escape(autodir))
 				host.send_file(self.source_material,
 					       autodir)
 			else:
