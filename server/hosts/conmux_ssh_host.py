@@ -105,7 +105,7 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 		else:
 			to = self.hostname
 		cmd = '%s %s echo %s' % (self.attach,
-					 to
+					 to,
 					 cmd)
 		os.system(cmd)
 
