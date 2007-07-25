@@ -62,7 +62,7 @@ class SSHHost(base_classes.RemoteHost):
 			except errors.AutoservRunError:
 				pass
 	
-	def run(self, command, timeout=None):
+	def run(self, command, timeout=None, ignore_status=False):
 		"""Run a command on the remote host.
 		
 		Args:
@@ -82,7 +82,7 @@ class SSHHost(base_classes.RemoteHost):
 		#~ print "running %s" % (command,)
 		result= utils.run(r'ssh -l %s -p %d %s "%s"' % (self.user, 
 			self.port, self.hostname, utils.sh_escape(command)), 
-			timeout)
+			timeout, ignore_status)
 		return result
 	
 	def reboot(self):
