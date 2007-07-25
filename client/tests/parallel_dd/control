@@ -1,0 +1,5 @@
+# YOU NEED TO SPECIFY A FILESYSTEM 
+# fs = job.filesystem('/dev/sda3', job.tmpdir)
+job.run_test('parallel_dd', fs, fstype='ext2', iterations=5, megabytes=1000, streams=2)
+
+
