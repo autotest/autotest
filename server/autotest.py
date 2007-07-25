@@ -136,6 +136,17 @@ class Autotest(installable_object.InstallableObject):
 		host.get_file(results + '/', results_dir)
 
 
+	def run_test(self, test_name, results_dir, host, **options):
+		"""
+		Assemble a tiny little control file to just run one test,
+		and run it as an autotest client-side test
+		"""
+		args = ["%s=%s" % (o[0], repr(o[1])) for o in options.items()]
+                args = ", ".join([repr(test_name)] + args)
+		control = "job.run_test(%s)" % args
+		self.run(control, results_dir, host)
+
+
 class _Run(object):
 	"""
 	Represents a run of autotest control file.  This class maintains

@@ -1,0 +1,3 @@
+m = hosts.SSHHost('somehost')
+a = autotest.Autotest()
+a.run_test('kernbench', '/tmp/results', m, iterations=2, threads=16)
