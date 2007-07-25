@@ -112,6 +112,9 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 
 	def __del__(self):
 		if self.pid:
-			os.kill(self.pid, signal.SIGTERM)
+			try:
+				os.kill(self.pid, signal.SIGTERM)
+			except OSError:
+				pass
 		super(ConmuxSSHHost, self).__del__()
 		
