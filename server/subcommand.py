@@ -25,7 +25,9 @@ def parallel_simple(function, arglist):
 	then execute those subcommand objects in parallel."""
 	subcommands = []
 	for arg in arglist:
-		subcommands.append(subcommand(function, [arg], arg))
+		args = [arg]
+		subdir = str(arg)
+		subcommands.append(subcommand(function, args, subdir))
 	parallel(subcommands)
 
 
