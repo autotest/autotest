@@ -46,6 +46,7 @@ def run(control_file):
 	       "import rpm_kernel\n"
 	       "import deb_kernel\n"
 	       "import kvm\n"
+	       "from subcommand import *\n"
 	       "\n"
 	       "from utils import run, get_tmp_dir\n")
 	exec(str, namespace, namespace)
