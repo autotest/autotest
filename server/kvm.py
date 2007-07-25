@@ -31,6 +31,7 @@ class KVM(hypervisor.Hypervisor):
 	pid_dir= None
 	support_dir= None
 	addresses= []
+	insert_modules= True
 	qemu_ifup_script= (
 		"#!/bin/sh\n"
 		"# $1 is the name of the new qemu tap interface\n"
@@ -65,8 +66,70 @@ class KVM(hypervisor.Hypervisor):
 		be killed.
 		"""
 		self.deinitialize()
-
-	def install(self, addresses, build=True):
+	
+	def _insert_modules(self):
+		"""Insert the kvm modules into the kernel.
+		
+		The modules inserted are the ones from the build directory, NOT 
+		the ones from the kernel.
+		
+		This function should only be called after install(). It will
+		check that the modules are not already loaded before attempting
+		to insert them.
+		"""
+		cpu_flags= self.host.run('cat /proc/cpuinfo | '
+			'grep -e "^flags" | head -1 | cut -d " " -f 2-'
+			).stdout.strip()
+		
+		if cpu_flags.find('vme') != -1:
+			module_type= "intel"
+		elif cpu_flags.find('svm') != -1:
+			module_type= "amd"
+		else:
+			raise errors.AutoservVirtError("No harware "
+				"virtualization extensions found, "
+				"KVM cannot run")
+		
+		self.host.run('if ! $(grep -q "^kvm " /proc/modules); '
+			'then insmod "%s"; fi' % (utils.sh_escape(
+			os.path.join(self.build_dir, "kernel/kvm.ko")),))
+		if module_type == "intel":
+			self.host.run('if ! $(grep -q "^kvm_intel " '
+				'/proc/modules); then insmod "%s"; fi' % 
+				(utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-intel.ko")),))
+		elif module_type == "amd":
+			self.host.run('if ! $(grep -q "^kvm_amd " '
+				'/proc/modules); then insmod "%s"; fi' % 
+				(utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-amd.ko")),))
+	
+	def _remove_modules(self):
+		"""Remove the kvm modules from the kernel.
+		
+		This function checks that they're not in use before trying to 
+		remove them.
+		"""
+		self.host.run(
+			'if $(grep -q "^kvm_intel [[:digit:]]\+ 0" '
+				'/proc/modules)\n'
+			'then\n'
+			'	rmmod kvm-intel\n'
+			'fi\n'
+			'\n'
+			'if $(grep -q "^kvm_amd [[:digit:]]\+ 0" '
+				'/proc/modules)\n'
+			'then\n'
+			'	rmmod kvm-amd\n'
+			'fi\n'
+			'\n'
+			'if $(grep -q "^kvm [[:digit:]]\+ 0" '
+				'/proc/modules)\n'
+			'then\n'
+			'	rmmod kvm\n'
+			'fi')
+	
+	def install(self, addresses, build=True, insert_modules=True):
 		"""Compile the kvm software on the host that the object was 
 		initialized with.
 		
@@ -95,6 +158,11 @@ class KVM(hypervisor.Hypervisor):
 			build: build kvm from the source material, if False,
 				it is assumed that the package contains the 
 				source tree after a 'make'.
+			insert_modules: build kvm modules from the source 
+				material and insert them. Otherwise, the 
+				running kernel is assumed to already have
+				kvm support and nothing will be done concerning
+				the modules.
 		
 		TODO(poirier): check dependencies before building
 		kvm needs:
@@ -124,6 +192,13 @@ class KVM(hypervisor.Hypervisor):
 		self.build_dir= utils.unarchive(self.host, 
 			remote_source_material)
 		
+		if insert_modules:
+			configure_modules= ""
+			self.insert_modules= True
+		else:
+			configure_modules= "--with-patched-kernel "
+			self.insert_modules= False
+		
 		# build
 		if build:
 			try:
@@ -133,8 +208,9 @@ class KVM(hypervisor.Hypervisor):
 				# directory was already clean and contained 
 				# no makefile
 				pass
-			self.host.run('cd "%s" && ./configure' % (
-				utils.sh_escape(self.build_dir),))
+			self.host.run('cd "%s" && ./configure %s' % (
+				utils.sh_escape(self.build_dir), 
+				configure_modules,))
 			self.host.run('make -j%d -C "%s"' % (
 				self.host.get_num_cpu() * 2, 
 				utils.sh_escape(self.build_dir),))
@@ -156,31 +232,9 @@ class KVM(hypervisor.Hypervisor):
 		"""
 		self.pid_dir= self.host.get_tmp_dir()
 		
-		cpu_flags= self.host.run('cat /proc/cpuinfo | grep -e "^flags" '
-			'| head -1 | cut -d " " -f 2-').stdout.strip()
-		
-		if cpu_flags.find('vme') != -1:
-			module_name= "kvm_intel"
-		elif cpu_flags.find('svm') != -1:
-			module_name= "kvm_amd"
-		else:
-			raise errors.AutoservVirtError("No harware "
-				"virtualization extensions found, KVM cannot "
-				"run")
-		
-		self.host.run('if ! $(grep -q "^kvm " /proc/modules); '
-			'then insmod "%s"; fi' % (utils.sh_escape(
-			os.path.join(self.build_dir, "kernel/kvm.ko")),))
-		if module_name == "kvm_intel":
-			self.host.run('if ! $(grep -q "^kvm_intel " '
-				'/proc/modules); then insmod "%s"; fi' % 
-				(utils.sh_escape(os.path.join(self.build_dir, 
-				"kernel/kvm-intel.ko")),))
-		elif module_name == "kvm_amd":
-			self.host.run('if ! $(grep -q "^kvm_amd " '
-				'/proc/modules); then insmod "%s"; fi' % 
-				(utils.sh_escape(os.path.join(self.build_dir, 
-				"kernel/kvm-amd.ko")),))
+		if self.insert_modules:
+			self._remove_modules()
+			self._insert_modules()
 	
 	def deinitialize(self):
 		"""Terminate the hypervisor.
@@ -194,17 +248,8 @@ class KVM(hypervisor.Hypervisor):
 				self.delete_guest(address["ip"])
 		self.pid_dir= None
 		
-		self.host.run(
-			'if $(grep -q "^kvm_intel [[:digit:]]+ 0" '
-				'/proc/modules)\n'
-			'then\n'
-			'	rmmod kvm-intel\n'
-			'fi')
-		self.host.run(
-			'if $(grep -q "^kvm [[:digit:]]+ 0" /proc/modules)\n'
-			'then\n'
-			'	rmmod kvm\n'
-			'fi')
+		if self.insert_modules:
+			self._remove_modules()
 	
 	def new_guest(self, qemu_options):
 		"""Start a new guest ("virtual machine").
@@ -333,6 +378,11 @@ class KVM(hypervisor.Hypervisor):
 					# automatically del'ed at the end of 
 					# the program and guests that are still
 					# running would be left unattended.
+					# Note that this circular reference 
+					# problem could be avoided by using 
+					# weakref's in class KVM but the 
+					# control file will most likely also
+					# have references to the guests.
 					return
 		else:
 			raise errors.AutoservVirtError("Unknown guest hostname")
