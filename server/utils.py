@@ -129,7 +129,7 @@ def get(location):
 			return tmpfile
 
 
-def run(command, timeout=None):
+def run(command, timeout=None, ignore_status=False):
 	"""Run a command on the host.
 	
 	Args:
@@ -215,8 +215,8 @@ def run(command, timeout=None):
 		result.exit_status=  exit_status_indication / 256
 	result.stdout += sp.stdout.read()
 	result.stderr = sp.stderr.read()
-	
-	if result.exit_status > 0:
+
+	if not ignore_status and result.exit_status > 0:
 		raise errors.AutoservRunError("command execution error", 
 			result)
 	
