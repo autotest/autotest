@@ -494,3 +494,18 @@ def node_size():
 	nodes = max(len(numa_nodes()), 1)
 	return ((memtotal() * 1024) / nodes)
 
+
+def to_seconds(time_string):
+	"""Converts a string in M+:SS.SS format to S+.SS"""
+	elts = time_string.split(':')
+	if len(elts) == 1:
+		return time_string
+	return str(int(elts[0]) * 60 + float(elts[1]))
+
+
+def extract_all_time_results(results_string):
+	"""Extract user, system, and elapsed times into a list of tuples"""
+	pattern = re.compile(r"(.*?)user (.*?)system (.*?)elapsed")
+	results = []
+	for result in pattern.findall(results):
+		results.append(tuple([to_seconds(elt) for elt in result]))
