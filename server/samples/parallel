@@ -1,0 +1,12 @@
+import time
+
+args = [str(i) for i in range(4)]
+
+def f(a):
+	print "This is %s" % a
+	time.sleep(1)
+	print "This is %s; almost done" % a
+	time.sleep(1)
+
+parallel_simple(f, args)
+
