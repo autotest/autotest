@@ -96,11 +96,11 @@ class test:
 		except Exception, detail:
 			self.record("FAIL " + detail.__str__() + "\n")
 
-			system('dmesg -c > ' + dmesg)
+			system('dmesg -c > ' + dmesg, ignorestatus=1)
 			raise
 		else:
 			self.record("GOOD Completed Successfully\n")
-			system('dmesg -c > ' + dmesg)
+			system('dmesg -c > ' + dmesg, ignorestatus=1)
 
 
 def testname(url):
