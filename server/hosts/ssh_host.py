@@ -285,6 +285,14 @@ class SSHHost(base_classes.RemoteHost):
 		
 		return False
 	
+	def ensure_up(self):
+		"""Ensure the host is up if it is not then do not proceed;
+		this prevents cacading failures of tests"""
+		if not self.wait_up(300) and hasattr(self, 'hardreset'):
+			print "Performing a hardreset on %s" % self.hostname
+			self.hardreset()
+		self.wait_up()
+	
 	def get_num_cpu(self):
 		"""Get the number of CPUs in the host according to 
 		/proc/cpuinfo.

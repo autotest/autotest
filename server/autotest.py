@@ -112,6 +112,8 @@ class Autotest(installable_object.InstallableObject):
 			AutotestRunError: if there is a problem executing
 				the control file
 		"""
+		host.ensure_up()
+		
 		atrun = _Run(host, results_dir)
 		atrun.verify_machine()
 		if os.path.isdir(results_dir):
