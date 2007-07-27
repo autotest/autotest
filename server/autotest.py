@@ -160,6 +160,9 @@ class _Run(object):
 	def __init__(self, host, results_dir):
 		self.host = host
 		self.results_dir = results_dir
+		self.env = ''
+		if not hasattr(host, 'env'):
+			self.env = host.env
 		
 		self.autodir = _get_autodir(self.host)
 		self.remote_control_file = os.path.join(self.autodir, 'control')
@@ -182,10 +185,12 @@ class _Run(object):
 		client = os.path.join(self.autodir, 'bin/autotest_client')
 		ssh = "ssh -q %s@%s" % (self.host.user, self.host.hostname)
 		cmd = "%s %s %s" % (client, cont, self.remote_control_file)
-		print "%s '%s'" % (ssh, cmd)
+		print "%s '%s %s'" % (ssh, self.env, cmd)
 		# Use Popen here, not m.ssh, as we want it in the background
-		p = subprocess.Popen("%s '%s'" % (ssh, cmd), shell=True, \
-				stdout=client_log, stderr=subprocess.PIPE)
+		p = subprocess.Popen("%s '%s %s'" % (ssh, self.env, cmd),
+				     shell=True,
+				     stdout=client_log,
+				     stderr=subprocess.PIPE)
 		line = None
 		for line in iter(p.stderr.readline, ''):
 			print line,
