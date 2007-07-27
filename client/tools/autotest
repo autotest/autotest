@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys
+import sys,os
 
 autodir = os.path.dirname(os.path.realpath('/etc/autotest.conf'))
 autotest = os.path.join(autodir, 'bin/autotest')
