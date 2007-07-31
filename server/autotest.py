@@ -161,7 +161,7 @@ class _Run(object):
 		self.host = host
 		self.results_dir = results_dir
 		self.env = ''
-		if not hasattr(host, 'env'):
+		if hasattr(host, 'env'):
 			self.env = host.env
 		
 		self.autodir = _get_autodir(self.host)
@@ -223,7 +223,7 @@ class _Run(object):
 					# before failing this control file
 					if hasattr(self.host, 'hardreset'):
 						print "Hardresetting %s" % (
-							self.hostname,)
+							self.host.hostname,)
 						self.host.hardreset()
 					raise AutotestRunError("%s failed to "
 						"boot after %ds" % (
