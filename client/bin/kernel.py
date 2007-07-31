@@ -181,7 +181,8 @@ class kernel:
 			p = extraversion_sub + '\\1-%s/' % tag
 		else:
 			p = extraversion_sub + '-%s/' % tag
-		system('sed -i.old "%s" Makefile' % p)
+		system('mv Makefile Makefile.old')
+		system('sed "%s" < Makefile.old > Makefile' % p)
 
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
@@ -491,4 +492,3 @@ class kernel:
 		temp.job = None
 		temp.logfile = None
 		pickle.dump(temp, open(filename, 'w'))
-
