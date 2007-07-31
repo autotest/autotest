@@ -271,10 +271,7 @@ class SSHHost(base_classes.RemoteHost):
 		
 		while not timeout or time.time() < end_time:
 			try:
-				if timeout:
-					run_timeout= end_time - time.time()
-				else:
-					run_timeout= 10
+				run_timeout= 10
 				result= self.run("true", timeout=run_timeout)
 			except errors.AutoservRunError:
 				return True
