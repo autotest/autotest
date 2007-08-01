@@ -158,68 +158,76 @@ def run(command, timeout=None, ignore_status=False):
 	sp= subprocess.Popen(command, stdout=subprocess.PIPE, 
 		stderr=subprocess.PIPE, close_fds=True, shell=True, 
 		executable="/bin/bash")
-	
-	start_time= time.time()
-	if timeout:
-		stop_time= start_time + timeout
-		time_left= stop_time - time.time()
-		while time_left > 0:
-			# select will return when stdout is ready 
-			# (including when it is EOF, that is the 
-			# process has terminated).
-			(retval, tmp, tmp) = select.select(
-				[sp.stdout], [], [], time_left)
-			if len(retval):
-				# os.read() has to be used instead of 
-				# sp.stdout.read() which will 
-				# otherwise block
-				result.stdout += os.read(
-					sp.stdout.fileno(), 1024)
-			
-			(pid, exit_status_indication) = os.waitpid(
-				sp.pid, os.WNOHANG)
-			if pid:
-				stop_time= time.time()
+
+	try:
+		# We are holding ends to stdin, stdout pipes
+		# hence we need to be sure to close those fds no mater what
+		start_time= time.time()
+		if timeout:
+			stop_time= start_time + timeout
 			time_left= stop_time - time.time()
-		
-		# the process has not terminated within timeout, 
-		# kill it via an escalating series of signals.
-		if not pid:
-			signal_queue = [signal.SIGTERM, signal.SIGKILL]
-			for sig in signal_queue:
-				try:
-					os.kill(sp.pid, sig)
-				# handle race condition in which 
-				# process died before we could kill it.
-				except OSError:
-					pass
-				
-				for i in range(5):
-					(pid, exit_status_indication
-						) = os.waitpid(sp.pid, 
-						os.WNOHANG)
+			while time_left > 0:
+				# select will return when stdout is ready 
+				# (including when it is EOF, that is the 
+				# process has terminated).
+				(retval, tmp, tmp) = select.select(
+					[sp.stdout], [], [], time_left)
+				if len(retval):
+					# os.read() has to be used instead of 
+					# sp.stdout.read() which will 
+					# otherwise block
+					result.stdout += os.read(
+						sp.stdout.fileno(), 1024)
+
+				(pid, exit_status_indication) = os.waitpid(
+					sp.pid, os.WNOHANG)
+				if pid:
+					stop_time= time.time()
+				time_left= stop_time - time.time()
+
+			# the process has not terminated within timeout, 
+			# kill it via an escalating series of signals.
+			if not pid:
+				signal_queue = [signal.SIGTERM, signal.SIGKILL]
+				for sig in signal_queue:
+					try:
+						os.kill(sp.pid, sig)
+					# handle race condition in which 
+					# process died before we could kill it.
+					except OSError:
+						pass
+
+					for i in range(5):
+						(pid, exit_status_indication
+							) = os.waitpid(sp.pid, 
+							os.WNOHANG)
+						if pid:
+							break
+						else:
+							time.sleep(1)
 					if pid:
 						break
-					else:
-						time.sleep(1)
-				if pid:
-					break
-	else:
-		exit_status_indication = os.waitpid(sp.pid, 0)[1]
-	
-	result.duration = time.time() - start_time
-	result.aborted = exit_status_indication & 127
-	if result.aborted:
-		result.exit_status= None
-	else:
-		result.exit_status=  exit_status_indication / 256
-	result.stdout += sp.stdout.read()
-	result.stderr = sp.stderr.read()
+		else:
+			exit_status_indication = os.waitpid(sp.pid, 0)[1]
+
+		result.duration = time.time() - start_time
+		result.aborted = exit_status_indication & 127
+		if result.aborted:
+			result.exit_status= None
+		else:
+			result.exit_status=  exit_status_indication / 256
+		result.stdout += sp.stdout.read()
+		result.stderr = sp.stderr.read()
+
+	finally:
+		# close our ends of the pipes to the sp no matter what
+		sp.stdout.close()
+		sp.stderr.close()
 
 	if not ignore_status and result.exit_status > 0:
 		raise errors.AutoservRunError("command execution error", 
 			result)
-	
+
 	return result
 
 
