@@ -2,12 +2,15 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""Miscellaneous small functions.
+"""
+Miscellaneous small functions.
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import atexit
@@ -31,17 +34,18 @@ __tmp_dirs= []
 
 
 def sh_escape(command):
-	"""Escape special characters from a command so that it can be passed 
+	"""
+	Escape special characters from a command so that it can be passed 
 	as a double quoted (" ") string in a (ba)sh command.
-	
+
 	Args:
 		command: the command string to escape. 
-	
+
 	Returns:
 		The escaped command string. The required englobing double 
 		quotes are NOT added and so should be added at some point by 
 		the caller.
-	
+
 	See also: http://www.tldp.org/LDP/abs/html/escapingsection.html
 	"""
 	command= command.replace("\\", "\\\\")
@@ -52,43 +56,44 @@ def sh_escape(command):
 
 
 def scp_remote_escape(filename):
-	"""Escape special characters from a filename so that it can be passed 
+	"""
+	Escape special characters from a filename so that it can be passed 
 	to scp (within double quotes) as a remote file.
-	
+
 	Bis-quoting has to be used with scp for remote files, "bis-quoting" 
 	as in quoting x 2
 	scp does not support a newline in the filename
-	
+
 	Args:
 		filename: the filename string to escape. 
-	
+
 	Returns:
 		The escaped filename string. The required englobing double 
 		quotes are NOT added and so should be added at some point by 
 		the caller.
 	"""
 	escape_chars= r' !"$&' "'" r'()*,:;<=>?[\]^`{|}'
-	
+
 	new_name= []
 	for char in filename:
 		if char in escape_chars:
 			new_name.append("\\%s" % (char,))
 		else:
 			new_name.append(char)
-	
+
 	return sh_escape("".join(new_name))
 
 
 def get(location):
 	"""Get a file or directory to a local temporary directory.
-	
+
 	Args:
 		location: the source of the material to get. This source may 
 			be one of:
 			* a local file or directory
 			* a URL (http or ftp)
 			* a python file-like object
-	
+
 	Returns:
 		The location of the file or directory where the requested
 		content was saved. This will be contained in a temporary 
@@ -96,7 +101,7 @@ def get(location):
 		directory, the location will contain a trailing '/'
 	"""
 	tmpdir = get_tmp_dir()
-	
+
 	# location is a file-like object
 	if hasattr(location, "read"):
 		tmpfile = os.path.join(tmpdir, "file")
@@ -104,7 +109,7 @@ def get(location):
 		shutil.copyfileobj(location, tmpfileobj)
 		tmpfileobj.close()
 		return tmpfile
-	
+
 	if isinstance(location, types.StringTypes):
 		# location is a URL
 		if location.startswith('http') or location.startswith('ftp'):
@@ -130,22 +135,23 @@ def get(location):
 
 
 def run(command, timeout=None, ignore_status=False):
-	"""Run a command on the host.
-	
+	"""
+	Run a command on the host.
+
 	Args:
 		command: the command line string
 		timeout: time limit in seconds before attempting to 
 			kill the running process. The run() function
 			will take a few seconds longer than 'timeout'
 			to complete if it has to kill the process.
-	
+
 	Returns:
 		a hosts.CmdResult object
-	
+
 	Raises:
 		AutoservRunError: the exit code of the command 
 			execution was not 0
-	
+
 	TODO(poirier): Add a "tee" option to send the command's 
 		stdout and stderr to python's stdout and stderr? At 
 		the moment, there is no way to see the command's 
@@ -234,12 +240,12 @@ def run(command, timeout=None, ignore_status=False):
 def get_tmp_dir():
 	"""Return the pathname of a directory on the host suitable 
 	for temporary file storage.
-	
+
 	The directory and its content will be deleted automatically
 	at the end of the program execution if they are still present.
 	"""
 	global __tmp_dirs
-	
+
 	dir_name= tempfile.mkdtemp(prefix="autoserv-")
 	__tmp_dirs.append(dir_name)
 	return dir_name
@@ -251,7 +257,7 @@ def __clean_tmp_dirs():
 	function and that are still present.
 	"""
 	global __tmp_dirs
-	
+
 	for dir in __tmp_dirs:
 		shutil.rmtree(dir)
 	__tmp_dirs= []
@@ -259,16 +265,16 @@ def __clean_tmp_dirs():
 
 def unarchive(host, source_material):
 	"""Uncompress and untar an archive on a host.
-	
+
 	If the "source_material" is compresses (according to the file 
 	extension) it will be uncompressed. Supported compression formats 
 	are gzip and bzip2. Afterwards, if the source_material is a tar 
 	archive, it will be untarred.
-	
+
 	Args:
 		host: the host object on which the archive is located
 		source_material: the path of the archive on the host
-	
+
 	Returns:
 		The file or directory name of the unarchived source material. 
 		If the material is a tar archive, it will be extracted in the
@@ -285,7 +291,7 @@ def unarchive(host, source_material):
 	elif source_material.endswith("bz2"):
 		host.run('bunzip2 "%s"' % (sh_escape(source_material)))
 		source_material= ".".join(source_material.split(".")[:-1])
-	
+
 	# untar
 	if source_material.endswith(".tar"):
 		retval= host.run('tar -C "%s" -xvf "%s"' % (
@@ -293,5 +299,5 @@ def unarchive(host, source_material):
 			sh_escape(source_material),))
 		source_material= os.path.join(os.path.dirname(source_material), 
 			retval.stdout.split()[0])
-	
+
 	return source_material

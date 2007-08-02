@@ -2,14 +2,17 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the SourceKernel class
+"""
+This module defines the SourceKernel class
 
 	SourceKernel: an linux kernel built from source
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import kernel
@@ -17,7 +20,8 @@ import kernel
 
 
 class SourceKernel(kernel.Kernel):
-	"""This class represents a linux kernel built from source.
+	"""
+	This class represents a linux kernel built from source.
 	
 	It is used to obtain a built kernel or create one from source and 
 	install it on a Host.
@@ -30,19 +34,23 @@ class SourceKernel(kernel.Kernel):
 		super(kernel.Kernel, self).__init__()
 		self.__patch_list = []
 		self.__config_file = None
-	
+
+
 	def configure(self, configFile):
 		self.__config_file = configFile
-	
+
+
 	def patch(self, patchFile):
 		self.__patch_list.append(patchFile)
-	
+
+
 	def build(self, host):
 		at = autotest.Autotest()
 		at.install(host)
 		ctlfile = self.control_file(self.__kernel, self.__patch_list,
 					    self.__config_file)
 		at.run(ctlfile, host.get_tmp_dir(), host)
+
 
 	def __control_file(self, kernel, patch_list, config):
 		ctl = ("def step_init():\n"
