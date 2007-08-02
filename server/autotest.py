@@ -2,15 +2,17 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the Autotest class
+"""
+This module defines the Autotest class
 
 	Autotest: software to run tests automatically
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
-
+stutsman@google.com (Ryan Stutsman)
+"""
 
 import re
 import os
@@ -38,7 +40,8 @@ class AutotestRunError(errors.AutoservRunError):
 
 
 class Autotest(installable_object.InstallableObject):
-	"""This class represents the Autotest program.
+	"""
+	This class represents the Autotest program.
 
 	Autotest is used to run tests automatically and collect the results.
 	It also supports profilers.
@@ -50,9 +53,10 @@ class Autotest(installable_object.InstallableObject):
 	def __init__(self):
 		super(Autotest, self).__init__()
 
-	
+
 	def install(self, host):
-		"""Install autotest.  If get() was not called previously, an 
+		"""
+		Install autotest.  If get() was not called previously, an 
 		attempt will be made to install from the autotest svn 
 		repository.
 		
@@ -166,11 +170,13 @@ class _Run(object):
 		
 		self.autodir = _get_autodir(self.host)
 		self.remote_control_file = os.path.join(self.autodir, 'control')
-	
+
+
 	def verify_machine(self):
 		binary = os.path.join(self.autodir, 'bin/autotest')
 		self.host.run('ls ' + binary)
-	
+
+
 	def __execute_section(self, section):
 		print "Executing %s/bin/autotest %s/control phase %d" % \
 					(self.autodir, self.autodir,
@@ -199,7 +205,8 @@ class _Run(object):
 			raise AutotestRunError("execute_section: %s '%s' \
 			failed to return anything" % (ssh, cmd))
 		return line
-	
+
+
 	def execute_control(self):
 		section = 0
 		while True:
