@@ -2,7 +2,8 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the ConmuxSSHHost
+"""
+This module defines the ConmuxSSHHost
 
 Implementation details:
 You should import the "hosts" package instead of importing each type of host.
@@ -10,9 +11,11 @@ You should import the "hosts" package instead of importing each type of host.
 	ConmuxSSHHost: a remote machine controlled through a serial console
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 import os
 import os.path
@@ -25,14 +28,17 @@ import ssh_host
 import errors
 
 class ConmuxSSHHost(ssh_host.SSHHost):
-	"""This class represents a remote machine controlled through a serial 
+	"""
+	This class represents a remote machine controlled through a serial 
 	console on which you can run programs. It is not the machine autoserv 
 	is running on.
-	
+
 	For a machine controlled in this way, it may be possible to support 
 	hard reset, boot strap monitoring or other operations not possible 
-	on a machine controlled through ssh, telnet, ..."""
-	
+	on a machine controlled through ssh, telnet, ...
+	"""
+
+
 	def __init__(self,
 		     hostname,
 		     logfilename=None,
@@ -45,7 +51,7 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 		self.pid = None
 		self.__start_console_log(logfilename)
 
-	
+
 	def hardreset(self):
 		"""
 		Reach out and slap the box in the power switch
@@ -66,7 +72,7 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 		cmd = [self.attach, to, 'cat - > %s' % logfilename]
 		self.pid = subprocess.Popen(cmd).pid
 
-		
+	
 	def __find_console_attach(self):
 		if self.attach:
 			return self.attach
@@ -117,4 +123,4 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 			except OSError:
 				pass
 		super(ConmuxSSHHost, self).__del__()
-		
+	
