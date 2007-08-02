@@ -509,3 +509,8 @@ def extract_all_time_results(results_string):
 	results = []
 	for result in pattern.findall(results):
 		results.append(tuple([to_seconds(elt) for elt in result]))
+
+
+def pickle_load(filename):
+	return pickle.load(open(filename, 'r'))
+

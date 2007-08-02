@@ -33,11 +33,17 @@ class kernbench(test.test):
 		kernel.config(defconfig=True)
 		# have to save this off, as we might use it in another run
 		kernel.pickle_dump(self.srcdir + '/.pickle')
+		pickle.dump(tarball, open(self.srcdir + '/.tarball', 'w'))
 
 
-	def execute(self, iterations = 1, threads = 2 * count_cpus()):
-		kernel = pickle.load(open(self.srcdir + '/.pickle', 'r'))
-		kernel.job = self.job
+	def execute(self, iterations = 1, threads = 2*count_cpus(), dir = None):
+		if dir:
+			tarball = pickle_load(self.srcdir+'/.tarball')
+			kernel = self.job.kernel(tarball, self.tmpdir, dir)
+			kernel.config(defconfig=True)
+		else:
+			kernel = pickle_load(open(self.srcdir+'/.pickle', 'r'))
+			kernel.job = self.job
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
 		kernel.build_timed(threads)         # warmup run
