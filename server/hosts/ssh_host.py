@@ -2,7 +2,8 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the SSHHost class.
+"""
+This module defines the SSHHost class.
 
 Implementation details:
 You should import the "hosts" package instead of importing each type of host.
@@ -10,9 +11,11 @@ You should import the "hosts" package instead of importing each type of host.
 	SSHHost: a remote machine with a ssh access
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import types
@@ -25,20 +28,22 @@ import errors
 
 
 class SSHHost(base_classes.RemoteHost):
-	"""This class represents a remote machine controlled through an ssh 
+	"""
+	This class represents a remote machine controlled through an ssh 
 	session on which you can run programs.
-	
+
 	It is not the machine autoserv is running on. The machine must be 
 	configured for password-less login, for example through public key 
 	authentication.
-	
+
 	Implementation details:
 	This is a leaf class in an abstract class hierarchy, it must 
 	implement the unimplemented methods in parent classes.
 	"""
-	
+
 	def __init__(self, hostname, user="root", port=22):
-		"""Construct a SSHHost object
+		"""
+		Construct a SSHHost object
 		
 		Args:
 			hostname: network hostname or address of remote machine
@@ -52,18 +57,22 @@ class SSHHost(base_classes.RemoteHost):
 		self.user= user
 		self.port= port
 		self.tmp_dirs= []
-	
+
+
 	def __del__(self):
-		"""Destroy a SSHHost object
+		"""
+		Destroy a SSHHost object
 		"""
 		for dir in self.tmp_dirs:
 			try:
 				self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
 			except errors.AutoservRunError:
 				pass
-	
+
+
 	def run(self, command, timeout=None, ignore_status=False):
-		"""Run a command on the remote host.
+		"""
+		Run a command on the remote host.
 		
 		Args:
 			command: the command line string
@@ -84,9 +93,11 @@ class SSHHost(base_classes.RemoteHost):
 			self.port, self.hostname, utils.sh_escape(command)), 
 			timeout, ignore_status)
 		return result
-	
+
+
 	def reboot(self):
-		"""Reboot the remote host.
+		"""
+		Reboot the remote host.
 		
 		TODO(poirier): Should the function return only after having 
 			done a self.wait_down()? or should this be left to 
@@ -111,9 +122,10 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		self.run("reboot")
 		self.wait_down()
-	
+
 	def get_file(self, source, dest):
-		"""Copy files from the remote host to a local path.
+		"""
+		Copy files from the remote host to a local path.
 		
 		Directories will be copied recursively.
 		If a source component is a directory with a trailing slash, 
@@ -155,9 +167,11 @@ class SSHHost(base_classes.RemoteHost):
 		utils.run('scp -rpq %s "%s"' % (
 			" ".join(processed_source), 
 			processed_dest))
-	
+
+
 	def send_file(self, source, dest):
-		"""Copy files from a local path to the remote host.
+		"""
+		Copy files from a local path to the remote host.
 		
 		Directories will be copied recursively.
 		If a source component is a directory with a trailing slash, 
@@ -192,9 +206,11 @@ class SSHHost(base_classes.RemoteHost):
 		utils.run('scp -rpq %s %s@%s:"%s"' % (
 			" ".join(processed_source), self.user, self.hostname, 
 			utils.scp_remote_escape(dest)))
-	
+
+
 	def get_tmp_dir(self):
-		"""Return the pathname of a directory on the host suitable 
+		"""
+		Return the pathname of a directory on the host suitable 
 		for temporary file storage.
 		
 		The directory and its content will be deleted automatically
@@ -204,9 +220,11 @@ class SSHHost(base_classes.RemoteHost):
 		dir_name= self.run("mktemp -dt autoserv-XXXXXX").stdout.rstrip(" \n")
 		self.tmp_dirs.append(dir_name)
 		return dir_name
-	
+
+
 	def is_up(self):
-		"""Check if the remote host is up.
+		"""
+		Check if the remote host is up.
 		
 		Returns:
 			True if the remote host is up, False otherwise
@@ -219,10 +237,12 @@ class SSHHost(base_classes.RemoteHost):
 			if result.exit_status == 0:
 				return True
 			else:
+
 				return False
-	
+
 	def wait_up(self, timeout=None):
-		"""Wait until the remote host is up or the timeout expires.
+		"""
+		Wait until the remote host is up or the timeout expires.
 		
 		In fact, it will wait until an ssh connection to the remote 
 		host can be established.
@@ -252,9 +272,11 @@ class SSHHost(base_classes.RemoteHost):
 			time.sleep(1)
 		
 		return False
-	
+
+
 	def wait_down(self, timeout=None):
-		"""Wait until the remote host is down or the timeout expires.
+		"""
+		Wait until the remote host is down or the timeout expires.
 		
 		In fact, it will wait until an ssh connection to the remote 
 		host fails.
@@ -281,17 +303,22 @@ class SSHHost(base_classes.RemoteHost):
 			time.sleep(1)
 		
 		return False
-	
+
+
 	def ensure_up(self):
-		"""Ensure the host is up if it is not then do not proceed;
-		this prevents cacading failures of tests"""
+		"""
+		Ensure the host is up if it is not then do not proceed;
+		this prevents cacading failures of tests
+		"""
 		if not self.wait_up(300) and hasattr(self, 'hardreset'):
 			print "Performing a hardreset on %s" % self.hostname
 			self.hardreset()
 		self.wait_up()
-	
+
+
 	def get_num_cpu(self):
-		"""Get the number of CPUs in the host according to 
+		"""
+		Get the number of CPUs in the host according to 
 		/proc/cpuinfo.
 		
 		Returns:

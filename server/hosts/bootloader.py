@@ -2,14 +2,17 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the Bootloader class.
+"""
+This module defines the Bootloader class.
 
 	Bootloader: a program to boot Kernels on a Host.
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 import os.path
 import sys
@@ -23,31 +26,38 @@ BOOTTOOL_SRC = '../client/tools/boottool'  # Get it from autotest client
 
 
 class Bootloader(object):
-	"""This class represents a bootloader.
-	
+	"""
+	This class represents a bootloader.
+
 	It can be used to add a kernel to the list of kernels that can be 
 	booted by a bootloader. It can also make sure that this kernel will 
-	be the one chosen at next reboot."""
-	
+	be the one chosen at next reboot.
+	"""
+
 	def __init__(self, host, xen_mode=False):
 		super(Bootloader, self).__init__()
 		self.__host = weakref.ref(host)
 		self.__boottool_path = None
 		self.xen_mode = xen_mode
-	
+
+
 	def get_type(self):
 		return self.__run_boottool('--bootloader-probe').stdout.strip()
-	
+
+
 	def get_architecture(self):
 		return self.__run_boottool('--arch-probe').stdout.strip()
-	
+
+
 	def get_titles(self):
 		return self.__run_boottool('--info all | grep title | '
 			'cut -d " " -f2-').stdout.strip().split('\n')
-	
+
+
 	def get_default(self):
 		return self.__run_boottool('--default').stdout.strip()
-	
+
+
 	def get_info(self, index):
 		retval= self.__run_boottool(
 			'--info=%s' % index).stdout.strip().split("\n")
@@ -58,10 +68,12 @@ class Bootloader(object):
 			result[key.strip()]= val.strip()
 		
 		return result
-	
+
+
 	def set_default(self, index):
 		self.__run_boottool('--set-default=%s' % index)
-	
+
+
 	# 'kernel' can be a position number or a title
 	def add_args(self, kernel, args):
 		parameters = '--update-kernel=%s --args="%s"' % (kernel, args)
@@ -71,11 +83,13 @@ class Bootloader(object):
 			parameters += ' --xen'
 		
 		self.__run_boottool(parameters)
-	
+
+
 	def add_xen_hypervisor_args(self, kernel, args):
 		self.__run_boottool('--xen --update-xenhyper=%s --xha="%s"' \
 				    % (kernel, args))
-	
+
+
 	def remove_args(self, kernel, args):
 		params = '--update-kernel=%s --remove-args=%s' % (kernel, args)
 		
@@ -84,11 +98,13 @@ class Bootloader(object):
 			params += ' --xen'
 		
 		self.__run_boottool(params)
-	
+
+
 	def remove_xen_hypervisor_args(self, kernel, args):
 		self.__run_boottool('--xen --update-xenhyper=%s '
 			'--remove-args="%s"') % (kernel, args)
-	
+
+
 	def add_kernel(self, path, title='autoserv', root=None, args=None, 
 		initrd=None, xen_hypervisor=None, default=True):
 		"""
@@ -124,13 +140,16 @@ class Bootloader(object):
 					utils.sh_escape(xen_hypervisor),)
 		
 		self.__run_boottool(parameters)
-	
+
+
 	def remove_kernel(self, kernel):
 		self.__run_boottool('--remove-kernel=%s' % kernel)
-	
+
+
 	def boot_once(self, title):
 		self.__run_boottool('--boot-once --title=%s' % title)
-	
+
+
 	def __install_boottool(self):
 		if self.__host() is None:
 			raise errors.AutoservError("Host does not exist anymore")
@@ -139,16 +158,20 @@ class Bootloader(object):
 			os.path.dirname(sys.argv[0]), BOOTTOOL_SRC)), tmpdir)
 		self.__boottool_path= os.path.join(tmpdir, 
 			os.path.basename(BOOTTOOL_SRC))
-	
+
+
 	def __get_boottool_path(self):
 		if not self.__boottool_path:
 			self.__install_boottool()
 		return self.__boottool_path
-	
+
+
 	def __set_boottool_path(self, path):
 		self.__boottool_path = path
+
 	
 	boottool_path = property(__get_boottool_path, __set_boottool_path)
-	
+
+
 	def __run_boottool(self, cmd):
 		return self.__host().run(self.boottool_path + ' ' + cmd)
