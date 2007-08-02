@@ -34,6 +34,7 @@ def parallel_simple(function, arglist):
 def __where_art_thy_filehandles():
 	os.system("ls -l /proc/%d/fd >> /dev/tty" % os.getpid())
 
+
 def __print_to_tty(string):
 	open('/dev/tty', 'w').write(string + '\n')
 

@@ -2,14 +2,17 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the Kernel class
+"""
+This module defines the Kernel class
 
 	Kernel: an os kernel
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import os
@@ -23,7 +26,8 @@ import utils
 
 
 class DEBKernel(kernel.Kernel):
-	"""This class represents a .deb pre-built kernel.
+	"""
+	This class represents a .deb pre-built kernel.
 
 	It is used to obtain a built kernel and install it on a Host.
 
@@ -36,7 +40,8 @@ class DEBKernel(kernel.Kernel):
 
 
 	def install(self, host, **kwargs):
-		"""Install a kernel on the remote host.
+		"""
+		Install a kernel on the remote host.
 		
 		This will also invoke the guest's bootloader to set this
 		kernel as the default kernel.
@@ -65,7 +70,8 @@ class DEBKernel(kernel.Kernel):
 		
 		host.bootloader.add_kernel(self.get_image_name(), 
 			initrd=self.get_initrd_name(), **kwargs)
-	
+
+
 	def get_version(self):
 		"""Get the version of the kernel to be installed.
 		
@@ -84,7 +90,8 @@ class DEBKernel(kernel.Kernel):
 		retval= utils.run('dpkg-deb -f "%s" version' % 
 			utils.sh_escape(self.source_material),)
 		return retval.stdout.strip()
-	
+
+
 	def get_image_name(self):
 		"""Get the name of the kernel image to be installed.
 		
@@ -97,7 +104,8 @@ class DEBKernel(kernel.Kernel):
 				DEBKernel.get() with a .deb package.
 		"""
 		return "/boot/vmlinuz-%s" % (self.get_version(),)
-	
+
+
 	def get_initrd_name(self):
 		"""Get the name of the initrd file to be installed.
 		

@@ -2,35 +2,42 @@
 #
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""This module defines the InstallableObject class
+"""
+This module defines the InstallableObject class
 
 	InstallableObject: a software package that can be installed on a Host
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
+__author__ = """
+mbligh@google.com (Martin J. Bligh),
 poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
+stutsman@google.com (Ryan Stutsman)
+"""
 
 
 import utils
 
 
 class InstallableObject(object):
-	"""This class represents a software package that can be installed on 
+	"""
+	This class represents a software package that can be installed on 
 	a Host.
 	
 	Implementation details:
 	This is an abstract class, leaf subclasses must implement the methods
 	listed here. You must not instantiate this class but should 
-	instantiate one of those leaf subclasses."""
+	instantiate one of those leaf subclasses.
+	"""
 	
 	source_material= None
 	
 	def __init__(self):
 		super(InstallableObject, self).__init__()
+
 	
 	def get(self, location):
-		"""Get the source material required to install the object.
+		"""
+		Get the source material required to install the object.
 		
 		Through the utils.get() function, the argument passed will be 
 		saved in a temporary location on the LocalHost. That location 
@@ -42,6 +49,7 @@ class InstallableObject(object):
 				function will accept.
 		"""
 		self.source_material= utils.get(location)
+
 	
 	def install(self, host):
 		pass
