@@ -507,8 +507,9 @@ def extract_all_time_results(results_string):
 	"""Extract user, system, and elapsed times into a list of tuples"""
 	pattern = re.compile(r"(.*?)user (.*?)system (.*?)elapsed")
 	results = []
-	for result in pattern.findall(results):
+	for result in pattern.findall(results_string):
 		results.append(tuple([to_seconds(elt) for elt in result]))
+	return results
 
 
 def pickle_load(filename):
