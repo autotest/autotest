@@ -42,7 +42,7 @@ class kernbench(test.test):
 			kernel = self.job.kernel(tarball, self.tmpdir, dir)
 			kernel.config(defconfig=True)
 		else:
-			kernel = pickle_load(open(self.srcdir+'/.pickle', 'r'))
+			kernel = pickle_load(self.srcdir+'/.pickle')
 			kernel.job = self.job
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
