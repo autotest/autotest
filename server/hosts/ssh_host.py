@@ -25,6 +25,7 @@ import time
 import base_classes
 import utils
 import errors
+import bootloader
 
 
 class SSHHost(base_classes.RemoteHost):
@@ -57,6 +58,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.user= user
 		self.port= port
 		self.tmp_dirs= []
+		self.bootloader = bootloader.Bootloader(self)
 
 
 	def __del__(self):
@@ -95,33 +97,31 @@ class SSHHost(base_classes.RemoteHost):
 		return result
 
 
-	def reboot(self):
+	def reboot(self, timeout=600, label=None, kernel_args=None, wait=True):
 		"""
 		Reboot the remote host.
-		
-		TODO(poirier): Should the function return only after having 
-			done a self.wait_down()? or should this be left to 
-			the control file?
-			pro: A common usage pattern would be reboot(), 
-			wait_down(), wait_up(), [more commands]. If wait_down() 
-			is not there, wait_up() is likely to return right away 
-			because the ssh daemon has not yet shutdown, so a 
-			control file expecting the host to have rebooted will 
-			run eronously. Doing the wait_down() in reboot 
-			eliminates the risk of confusion. Also, making the 
-			wait_down() external might lead to race conditions if 
-			the control file does a reboot() does some other things, 
-			then there's no way to know if it should wait_down() 
-			first or wait_up() right away.
-			con: wait_down() just after reboot will be mandatory, 
-			this might be undesirable if there are other operations 
-			that can be executed right after the reboot, for 
-			example many hosts have to be rebooted at the same 
-			time. The solution to this is to use multiple
-			threads of execution in the control file.
-		"""
-		self.run("reboot")
-		self.wait_down()
+  		
+		Args:
+			timeout
+  		"""
+		if label or kernel_args:
+			self.bootloader.install_boottool()
+		if label:
+			self.bootloader.set_default(label)
+		if kernel_args:
+			if not label:
+				default = int(self.bootloader.get_default())
+				label = self.bootloader.get_titles()[default]
+			self.bootloader.add_args(label, kernel_args)
+		self.run('reboot')
+		if wait:
+			self.wait_down(60)	# Make sure he's dead, Jim
+			print "Reboot: machine has gone down"
+			self.wait_up(timeout)
+			time.sleep(2) # this is needed for complete reliability
+			self.wait_up(timeout)
+			print "Reboot complete"
+
 
 	def get_file(self, source, dest):
 		"""
@@ -310,10 +310,12 @@ class SSHHost(base_classes.RemoteHost):
 		Ensure the host is up if it is not then do not proceed;
 		this prevents cacading failures of tests
 		"""
-		if not self.wait_up(300) and hasattr(self, 'hardreset'):
+		print 'Ensuring that %s is up before continuing' % self.hostname
+		if hasattr(self, 'hardreset') and not self.wait_up(300):
 			print "Performing a hardreset on %s" % self.hostname
 			self.hardreset()
 		self.wait_up()
+		print 'Host up, continuing'
 
 
 	def get_num_cpu(self):
