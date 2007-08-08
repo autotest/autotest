@@ -150,7 +150,7 @@ class Bootloader(object):
 		self.__run_boottool('--boot-once --title=%s' % title)
 
 
-	def __install_boottool(self):
+	def install_boottool(self):
 		if self.__host() is None:
 			raise errors.AutoservError("Host does not exist anymore")
 		tmpdir = self.__host().get_tmp_dir()
@@ -162,7 +162,7 @@ class Bootloader(object):
 
 	def __get_boottool_path(self):
 		if not self.__boottool_path:
-			self.__install_boottool()
+			self.install_boottool()
 		return self.__boottool_path
 
 
