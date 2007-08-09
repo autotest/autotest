@@ -75,6 +75,7 @@ class Autotest(installable_object.InstallableObject):
 		binutils-dev (oprofile)
 		make
 		"""
+		print "Installing autotest on %s" % host.hostname
 		# try to install from file or directory
 		if self.source_material:
 			if os.path.isdir(self.source_material):
