@@ -17,40 +17,33 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-
 import sys
 import optparse
 
 
-usage = "usage: %prog <control file>"
-parser = optparse.OptionParser(usage)
-
-
 def parse_args():
-	global parser
-	
-	(options, arg)= parser.parse_args()
+	usage = "usage: %prog <control file>"
+	parser = optparse.OptionParser(usage)
+	parser.add_option('-m', '--machines', dest='machines', type='string')
+	(options, arg) = parser.parse_args()
 	return (options, arg)
 
 
-def run(control_file):
-	namespace = {}
+preamble = """\
+import os, sys
+
+import errors, hosts, autotest, kvm
+import source_kernel, rpm_kernel, deb_kernel
+from subcommand import *
+
+from utils import run, get_tmp_dir
+"""
+
+def run(control_file, machines):
+	namespace = dict({'machines': machines})
 	
-	str = ("import os\n"
-	       "import sys\n"
-	       "\n"
-	       "import errors\n"
-	       "import hosts\n"
-	       "import autotest\n"
-	       "import source_kernel\n"
-	       "import rpm_kernel\n"
-	       "import deb_kernel\n"
-	       "import kvm\n"
-	       "from subcommand import *\n"
-	       "\n"
-	       "from utils import run, get_tmp_dir\n")
-	exec(str, namespace, namespace)
-	execfile(sys.argv[1], namespace, namespace)
+	exec(preamble, namespace, namespace)
+	execfile(control_file, namespace, namespace)
 
 
 if __name__ == "__main__":
@@ -58,5 +51,8 @@ if __name__ == "__main__":
 	if len(args) != 1:
 		parser.error("program takes one argument")
 		sys.exit(1)
-	control_file= args[0]
-	run(control_file)
+	control_file = args[0]
+	if options.machines:
+		run(control_file, options.machines.split(','))
+	else:
+		run(control_file, None)
