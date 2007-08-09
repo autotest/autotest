@@ -49,7 +49,7 @@ def __redirect_stream(fd, output):
 		sys.stderr = os.fdopen(fd, 'w')
 
 
-def _redirect_stream_tee(fd, output, tag):
+def __redirect_stream_tee(fd, output, tag):
 	"""Use the low-level fork & pipe operations here to get a fd,
 	not a filehandle. This ensures that we get both the 
 	filehandle and fd for stdout/stderr redirected correctly."""
@@ -83,6 +83,8 @@ class subcommand:
 	def __init__(self, func, args, subdir, tee=True):
 		# func(args) - the subcommand to run
 		# subdir     - the subdirectory to log results in
+		if not subdir:
+			raise "No subdirectory specified for subcommand"
 		self.subdir = os.path.abspath(subdir)
 		if os.path.exists(self.subdir):
 			os.system("rm -rf %s" % self.subdir)
@@ -99,9 +101,13 @@ class subcommand:
 
 
 	def redirect_output(self):
-		tag = os.path.basename(self.subdir)
-		_redirect_stream_tee(1, self.stdout, tag)
-		_redirect_stream_tee(2, self.stderr, tag)
+		if tee:
+			tag = os.path.basename(self.subdir)
+			__redirect_stream_tee(1, self.stdout, tag)
+			__redirect_stream_tee(2, self.stderr, tag)
+		else:
+			__redirect_stream(1, self.stdout)
+			__redirect_stream(2, self.stderr)
 
 
 	def fork_start(self):
