@@ -29,14 +29,14 @@ class netperf2(test.test):
 			self.server_start()
 			try:
 				job.barrier(server_tag, 'start',
-							30).rendevous(*all)
+							600).rendevous(*all)
 				job.barrier(server_tag, 'stop',
 							3600).rendevous(*all)
 			finally:
 				self.server_stop()
 		elif (role == 'client'):
 			os.environ['NETPERF_CMD'] = self.client_path
-			job.barrier(client_tag, 'start', 30).rendevous(*all)
+			job.barrier(client_tag, 'start', 600).rendevous(*all)
 			self.client(script, server_ip, args)
 			job.barrier(client_tag, 'stop',  30).rendevous(*all)
 		else:
