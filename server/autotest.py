@@ -155,16 +155,16 @@ class Autotest(installable_object.InstallableObject):
 		host.get_file(results + '/', results_dir)
 
 
-	def run_test(self, test_name, results_dir, host = None, **options):
+	def run_test(self, test_name, results_dir, host = None, *args, **dargs):
 		"""
 		Assemble a tiny little control file to just run one test,
 		and run it as an autotest client-side test
 		"""
 		if not host:
 			host = self.host
-		args = ["%s=%s" % (o[0], repr(o[1])) for o in options.items()]
-		args = ", ".join([repr(test_name)] + args)
-		control = "job.run_test(%s)\n" % args
+		opts = ["%s=%s" % (o[0], repr(o[1])) for o in dargs.items()]
+		cmd = ", ".join([repr(test_name)] + map(repr, args) + opts)
+		control = "job.run_test(%s)" % cmd
 		self.run(control, results_dir, host)
 
 
