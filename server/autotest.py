@@ -163,7 +163,7 @@ class Autotest(installable_object.InstallableObject):
 			host = self.host
 		args = ["%s=%s" % (o[0], repr(o[1])) for o in options.items()]
                 args = ", ".join([repr(test_name)] + args)
-		control = "job.run_test(%s)" % args
+		control = "job.run_test(%s)\n" % args
 		self.run(control, results_dir, host)
 
 
