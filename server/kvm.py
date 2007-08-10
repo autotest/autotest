@@ -303,7 +303,7 @@ class KVM(hypervisor.Hypervisor):
 			'-pidfile "%s" -nographic '
 			#~ '-serial telnet::4444,server '
 			'-monitor unix:"%s",server,nowait '
-			'-net nic,macaddr="%s" -net tap,script="%s" ' % (
+			'-net nic,macaddr="%s" -net tap,script="%s" -L "%s"' % (
 			utils.sh_escape(os.path.join(
 				self.build_dir, 
 				"qemu/x86_64-softmmu/qemu-system-x86_64")),
@@ -320,7 +320,10 @@ class KVM(hypervisor.Hypervisor):
 			utils.sh_escape(address["mac"]),
 			utils.sh_escape(os.path.join(
 				self.support_dir, 
-				"qemu-ifup.sh")),))
+				"qemu-ifup.sh")),
+			utils.sh_escape(os.path.join(
+				self.build_dir, 
+				"qemu/pc-bios")),))
 
 		address["is_used"]= True
 		return address["ip"]
