@@ -185,7 +185,9 @@ class _Run(object):
 		try:
 			self.host.run('ls ' + binary)
 		except:
-			self.
+			raise "Autotest does not appear to be installed"
+		tmpdir = os.path.join(self.autodir, 'tmp')
+		self.host.run('umount %s' % tmpdir, ignore_status=True)
 
 
 	def __execute_section(self, section):
