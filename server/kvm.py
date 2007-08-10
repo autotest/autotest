@@ -22,6 +22,55 @@ import utils
 import hosts
 
 
+_qemu_ifup_script= """\
+#!/bin/sh
+# $1 is the name of the new qemu tap interface
+
+ifconfig $1 0.0.0.0 promisc up
+brctl addif br0 $1
+"""
+
+_check_process_script= """\
+if [ -f "%(pid_file_name)s" ]
+then
+	pid=$(cat "%(pid_file_name)s")
+	if [ -L /proc/$pid/exe ] && stat /proc/$pid/exe | 
+		grep -q --  "-> \`%(qemu_binary)s\'\$"
+	then
+		echo "process present"
+	else
+		rm -f "%(pid_file_name)s"
+		rm -f "%(monitor_file_name)s"
+	fi
+fi
+"""
+
+_hard_reset_script= """\
+import socket
+
+monitor_socket= socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+monitor_socket.connect("%(monitor_file_name)s")
+monitor_socket.send("system_reset\\n")\n')
+"""
+
+_remove_modules_script= """\
+if $(grep -q "^kvm_intel [[:digit:]]\+ 0" /proc/modules)
+then
+	rmmod kvm-intel
+fi
+
+if $(grep -q "^kvm_amd [[:digit:]]\+ 0" /proc/modules)
+then
+	rmmod kvm-amd
+fi
+
+if $(grep -q "^kvm [[:digit:]]\+ 0" /proc/modules)
+then
+	rmmod kvm
+fi
+"""
+
+
 class KVM(hypervisor.Hypervisor):
 	"""
 	This class represents a KVM virtual machine monitor.
@@ -36,37 +85,12 @@ class KVM(hypervisor.Hypervisor):
 	support_dir= None
 	addresses= []
 	insert_modules= True
-	qemu_ifup_script= (
-		"#!/bin/sh\n"
-		"# $1 is the name of the new qemu tap interface\n"
-		"\n"
-		"ifconfig $1 0.0.0.0 promisc up\n"
-		"brctl addif br0 $1\n")
-	check_process_script= (
-		'if [ -f "%(pid_file_name)s" ]\n'
-		'then\n'
-		'	pid=$(cat "%(pid_file_name)s")\n'
-		'	if [ -L /proc/$pid/exe ] && stat /proc/$pid/exe | \n'
-		'		grep -q --  "-> \`%(qemu_binary)s\'\$"\n'
-		'	then\n'
-		'		echo "process present"\n'
-		'	else\n'
-		'		rm -f "%(pid_file_name)s"\n'
-		'		rm -f "%(monitor_file_name)s"\n'
-		'	fi\n'
-		'fi')
-	hard_reset_script= (
-		'import socket\n'
-		'monitor_socket= socket.socket(socket.AF_UNIX, \n'
-		'	socket.SOCK_STREAM)\n'
-		'monitor_socket.connect("%(monitor_file_name)s")\n'
-		'# s.settimeout\n'
-		'monitor_socket.send("system_reset\\n")\n')
 
 
 	def __del__(self):
-		"""Destroy a KVM object.
-		
+		"""
+		Destroy a KVM object.
+
 		Guests managed by this hypervisor that are still running will 
 		be killed.
 		"""
@@ -74,11 +98,12 @@ class KVM(hypervisor.Hypervisor):
 
 
 	def _insert_modules(self):
-		"""Insert the kvm modules into the kernel.
-		
+		"""
+		Insert the kvm modules into the kernel.
+
 		The modules inserted are the ones from the build directory, NOT 
 		the ones from the kernel.
-		
+
 		This function should only be called after install(). It will
 		check that the modules are not already loaded before attempting
 		to insert them.
@@ -86,7 +111,7 @@ class KVM(hypervisor.Hypervisor):
 		cpu_flags= self.host.run('cat /proc/cpuinfo | '
 			'grep -e "^flags" | head -1 | cut -d " " -f 2-'
 			).stdout.strip()
-		
+
 		if cpu_flags.find('vme') != -1:
 			module_type= "intel"
 		elif cpu_flags.find('svm') != -1:
@@ -95,7 +120,7 @@ class KVM(hypervisor.Hypervisor):
 			raise errors.AutoservVirtError("No harware "
 				"virtualization extensions found, "
 				"KVM cannot run")
-		
+
 		self.host.run('if ! $(grep -q "^kvm " /proc/modules); '
 			'then insmod "%s"; fi' % (utils.sh_escape(
 			os.path.join(self.build_dir, "kernel/kvm.ko")),))
@@ -112,48 +137,33 @@ class KVM(hypervisor.Hypervisor):
 
 
 	def _remove_modules(self):
-		"""Remove the kvm modules from the kernel.
-		
+		"""
+		Remove the kvm modules from the kernel.
+
 		This function checks that they're not in use before trying to 
 		remove them.
 		"""
-		self.host.run(
-			'if $(grep -q "^kvm_intel [[:digit:]]\+ 0" '
-				'/proc/modules)\n'
-			'then\n'
-			'	rmmod kvm-intel\n'
-			'fi\n'
-			'\n'
-			'if $(grep -q "^kvm_amd [[:digit:]]\+ 0" '
-				'/proc/modules)\n'
-			'then\n'
-			'	rmmod kvm-amd\n'
-			'fi\n'
-			'\n'
-			'if $(grep -q "^kvm [[:digit:]]\+ 0" '
-				'/proc/modules)\n'
-			'then\n'
-			'	rmmod kvm\n'
-			'fi')
+		self.host.run(_remove_modules_script)
 
 
 	def install(self, addresses, build=True, insert_modules=True):
-		"""Compile the kvm software on the host that the object was 
+		"""
+		Compile the kvm software on the host that the object was 
 		initialized with.
-		
+
 		The kvm kernel modules are compiled, for this, the kernel
 		sources must be available. A custom qemu is also compiled.
 		Note that 'make install' is not run, the kernel modules and 
 		qemu are run from where they were built, therefore not 
 		conflicting with what might already be installed.
-		
+
 		Args:
 			addresses: a list of dict entries of the form 
 				{"mac" : "xx:xx:xx:xx:xx:xx", 
 				"ip" : "yyy.yyy.yyy.yyy"} where x and y 
 				are replaced with sensible values. The ip 
 				address may be a hostname or an IPv6 instead.
-				
+
 				When a new virtual machine is created, the 
 				first available entry in that list will be 
 				used. The network card in the virtual machine 
@@ -171,42 +181,43 @@ class KVM(hypervisor.Hypervisor):
 				running kernel is assumed to already have
 				kvm support and nothing will be done concerning
 				the modules.
-		
+
 		TODO(poirier): check dependencies before building
 		kvm needs:
 		libasound2-dev
 		libsdl1.2-dev (or configure qemu with --disable-gfx-check, how?)
+		bridge-utils
 		"""
 		self.addresses= [
 			{"mac" : address["mac"], 
 			"ip" : address["ip"],
 			"is_used" : False} for address in addresses]
-		
+
 		self.build_dir = self.host.get_tmp_dir()
 		self.support_dir= self.host.get_tmp_dir()
-		
+
 		self.host.run('echo "%s" > "%s"' % (
-			utils.sh_escape(self.qemu_ifup_script),
+			utils.sh_escape(_qemu_ifup_script),
 			utils.sh_escape(os.path.join(self.support_dir, 
 				"qemu-ifup.sh")),))
 		self.host.run('chmod a+x "%s"' % (
 			utils.sh_escape(os.path.join(self.support_dir, 
 				"qemu-ifup.sh")),))
-		
+
 		self.host.send_file(self.source_material, self.build_dir)
 		remote_source_material= os.path.join(self.build_dir, 
 				os.path.basename(self.source_material))
-		
+
 		self.build_dir= utils.unarchive(self.host, 
 			remote_source_material)
-		
+
 		if insert_modules:
 			configure_modules= ""
 			self.insert_modules= True
 		else:
 			configure_modules= "--with-patched-kernel "
 			self.insert_modules= False
-		
+
 		# build
 		if build:
 			try:
@@ -222,33 +233,35 @@ class KVM(hypervisor.Hypervisor):
 			self.host.run('make -j%d -C "%s"' % (
 				self.host.get_num_cpu() * 2, 
 				utils.sh_escape(self.build_dir),))
-		
+
 		self.initialize()
 
 
 	def initialize(self):
-		"""Initialize the hypervisor.
-		
+		"""
+		Initialize the hypervisor.
+
 		Loads needed kernel modules and creates temporary directories.
 		The logic is that you could compile once and 
 		initialize - deinitialize many times. But why you would do that
 		has yet to be figured.
-		
+
 		Raises:
 			AutoservVirtError: cpuid doesn't report virtualization 
 				extentions (vme for intel or svm for amd), in
 				this case, kvm cannot run.
 		"""
 		self.pid_dir= self.host.get_tmp_dir()
-		
+
 		if self.insert_modules:
 			self._remove_modules()
 			self._insert_modules()
 
 
 	def deinitialize(self):
-		"""Terminate the hypervisor.
-		
+		"""
+		Terminate the hypervisor.
+
 		Kill all the virtual machines that are still running and
 		unload the kernel modules.
 		"""
@@ -257,18 +270,19 @@ class KVM(hypervisor.Hypervisor):
 			if address["is_used"]:
 				self.delete_guest(address["ip"])
 		self.pid_dir= None
-		
+
 		if self.insert_modules:
 			self._remove_modules()
 
 
 	def new_guest(self, qemu_options):
-		"""Start a new guest ("virtual machine").
-		
+		"""
+		Start a new guest ("virtual machine").
+
 		Returns:
 			The ip that was picked from the list supplied to 
 			install() and assigned to this guest.
-		
+
 		Raises:
 			AutoservVirtError: no more addresses are available.
 		"""
@@ -278,9 +292,10 @@ class KVM(hypervisor.Hypervisor):
 		else:
 			raise errors.AutoservVirtError(
 				"No more addresses available")
-		
+
 		# TODO(poirier): uses start-stop-daemon until qemu -pidfile 
-		# and -daemonize can work together
+		# and -daemonize can work together, this 'hides' the return
+		# code of qemu (bad)
 		retval= self.host.run(
 			'start-stop-daemon -S --exec "%s" --pidfile "%s" -b -- '
 			# this is the line of options that can be modified
@@ -306,18 +321,19 @@ class KVM(hypervisor.Hypervisor):
 			utils.sh_escape(os.path.join(
 				self.support_dir, 
 				"qemu-ifup.sh")),))
-		
+
 		address["is_used"]= True
 		return address["ip"]
 
 
 	def refresh_guests(self):
-		"""Refresh the list of guests addresses.
-		
+		"""
+		Refresh the list of guests addresses.
+
 		The is_used status will be updated according to the presence
 		of the process specified in the pid file that was written when
 		the virtual machine was started.
-		
+
 		TODO(poirier): there are a lot of race conditions in this code
 		because the process might terminate on its own anywhere in 
 		between
@@ -331,7 +347,7 @@ class KVM(hypervisor.Hypervisor):
 					self.pid_dir, 
 					"vhost%s_monitor" % (address["ip"],)))
 				retval= self.host.run(
-					self.check_process_script % {
+					_check_process_script % {
 					"pid_file_name" : pid_file_name, 
 					"monitor_file_name" : monitor_file_name,
 					"qemu_binary" : utils.sh_escape(
@@ -344,13 +360,14 @@ class KVM(hypervisor.Hypervisor):
 
 
 	def delete_guest(self, guest_hostname):
-		"""Terminate a virtual machine.
-		
+		"""
+		Terminate a virtual machine.
+
 		Args:
 			guest_hostname: the ip (as it was specified in the 
 				address list given to install()) of the guest 
 				to terminate.
-		
+
 		Raises:
 			AutoservVirtError: the guest_hostname argument is
 				invalid
@@ -399,14 +416,14 @@ class KVM(hypervisor.Hypervisor):
 					return
 		else:
 			raise errors.AutoservVirtError("Unknown guest hostname")
-		
+
 		pid_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_pid" % (address["ip"],)))
 		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_monitor" % (address["ip"],)))
-		
+
 		retval= self.host.run(
-			self.check_process_script % {
+			_check_process_script % {
 			"pid_file_name" : pid_file_name, 
 			"monitor_file_name" : monitor_file_name, 
 			"qemu_binary" : utils.sh_escape(os.path.join(
@@ -423,13 +440,14 @@ class KVM(hypervisor.Hypervisor):
 
 
 	def reset_guest(self, guest_hostname):
-		"""Perform a hard reset on a virtual machine.
-		
+		"""
+		Perform a hard reset on a virtual machine.
+
 		Args:
 			guest_hostname: the ip (as it was specified in the 
 				address list given to install()) of the guest 
 				to terminate.
-		
+
 		Raises:
 			AutoservVirtError: the guest_hostname argument is
 				invalid
@@ -443,10 +461,10 @@ class KVM(hypervisor.Hypervisor):
 						"hostname not in use")
 		else:
 			raise errors.AutoservVirtError("Unknown guest hostname")
-		
+
 		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_monitor" % (address["ip"],)))
-		
+
 		self.host.run('python -c "%s"' % (utils.sh_escape(
-			self.hard_reset_script % {
+			_hard_reset_script % {
 			"monitor_file_name" : monitor_file_name,}),))
