@@ -75,6 +75,7 @@ class Autotest(installable_object.InstallableObject):
 		liboptdev (oprofile)
 		binutils-dev (oprofile)
 		make
+		psutils (netperf)
 		"""
 		if not host:
 			host = self.host
@@ -162,7 +163,7 @@ class Autotest(installable_object.InstallableObject):
 		if not host:
 			host = self.host
 		args = ["%s=%s" % (o[0], repr(o[1])) for o in options.items()]
-                args = ", ".join([repr(test_name)] + args)
+		args = ", ".join([repr(test_name)] + args)
 		control = "job.run_test(%s)\n" % args
 		self.run(control, results_dir, host)
 
