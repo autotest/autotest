@@ -50,11 +50,12 @@ class Autotest(installable_object.InstallableObject):
 	This is a leaf class in an abstract class hierarchy, it must
 	implement the unimplemented methods in parent classes.
 	"""
-	def __init__(self):
+	def __init__(self, host = None):
+		self.host = host
 		super(Autotest, self).__init__()
 
 
-	def install(self, host):
+	def install(self, host = None):
 		"""
 		Install autotest.  If get() was not called previously, an 
 		attempt will be made to install from the autotest svn 
@@ -75,6 +76,8 @@ class Autotest(installable_object.InstallableObject):
 		binutils-dev (oprofile)
 		make
 		"""
+		if not host:
+			host = self.host
 		print "Installing autotest on %s" % host.hostname
 		# try to install from file or directory
 		if self.source_material:
@@ -102,7 +105,7 @@ class Autotest(installable_object.InstallableObject):
 				 (AUTOTEST_HTTP, _get_autodir(host)))
 
 
-	def run(self, control_file, results_dir, host):
+	def run(self, control_file, results_dir, host = None):
 		"""
 		Run an autotest job on the remote machine.
 		
@@ -117,6 +120,8 @@ class Autotest(installable_object.InstallableObject):
 			AutotestRunError: if there is a problem executing
 				the control file
 		"""
+		if not host:
+			host = self.host
 		host.ensure_up()
 		
 		atrun = _Run(host, results_dir)
@@ -143,11 +148,13 @@ class Autotest(installable_object.InstallableObject):
 		host.get_file(results + '/', results_dir)
 
 
-	def run_test(self, test_name, results_dir, host, **options):
+	def run_test(self, test_name, results_dir, host = None, **options):
 		"""
 		Assemble a tiny little control file to just run one test,
 		and run it as an autotest client-side test
 		"""
+		if not host:
+			host = self.host
 		args = ["%s=%s" % (o[0], repr(o[1])) for o in options.items()]
                 args = ", ".join([repr(test_name)] + args)
 		control = "job.run_test(%s)" % args
@@ -175,7 +182,10 @@ class _Run(object):
 
 	def verify_machine(self):
 		binary = os.path.join(self.autodir, 'bin/autotest')
-		self.host.run('ls ' + binary)
+		try:
+			self.host.run('ls ' + binary)
+		except:
+			self.
 
 
 	def __execute_section(self, section):
