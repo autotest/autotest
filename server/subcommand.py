@@ -101,7 +101,7 @@ class subcommand:
 
 
 	def redirect_output(self):
-		if tee:
+		if self.tee:
 			tag = os.path.basename(self.subdir)
 			__redirect_stream_tee(1, self.stdout, tag)
 			__redirect_stream_tee(2, self.stderr, tag)
