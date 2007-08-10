@@ -80,31 +80,38 @@ def __redirect_stream_tee(fd, output, tag):
 
 
 class subcommand:
-	def __init__(self, func, args, subdir, tee=True):
+	def __init__(self, func, args, subdir = None, stdprint = True):
 		# func(args) - the subcommand to run
 		# subdir     - the subdirectory to log results in
-		if not subdir:
-			raise "No subdirectory specified for subcommand"
-		self.subdir = os.path.abspath(subdir)
-		if os.path.exists(self.subdir):
-			os.system("rm -rf %s" % self.subdir)
-		os.mkdir(self.subdir)
-		self.debug = os.path.join(self.subdir, 'debug')
-		self.stdout = os.path.join(self.debug, 'stdout')
-		self.stderr = os.path.join(self.debug, 'stderr')
+		# stdprint   - whether to print results to stdout/stderr
+		if subdir:
+			self.subdir = os.path.abspath(subdir)
+			if os.path.exists(self.subdir):
+				os.system("rm -rf %s" % self.subdir)
+			os.mkdir(self.subdir)
+			self.debug = os.path.join(self.subdir, 'debug')
+			self.stdout = os.path.join(self.debug, 'stdout')
+			self.stderr = os.path.join(self.debug, 'stderr')
+		else:
+			self.subdir = None
+			self.debug = '/dev/null'
+			self.stdout = '/dev/null'
+			self.stderr = '/dev/null'
+
 		os.mkdir(self.debug)
 		self.func = func
 		self.args = args
 		self.lambda_function = lambda: func(*args)
 		self.pid = None
-		self.tee = tee
+		self.stdprint = stdprint
 
 
 	def redirect_output(self):
-		if self.tee:
-			tag = os.path.basename(self.subdir)
-			__redirect_stream_tee(1, self.stdout, tag)
-			__redirect_stream_tee(2, self.stderr, tag)
+		if self.stdprint:
+			if self.subdir:
+				tag = os.path.basename(self.subdir)
+				__redirect_stream_tee(1, self.stdout, tag)
+				__redirect_stream_tee(2, self.stderr, tag)
 		else:
 			__redirect_stream(1, self.stdout)
 			__redirect_stream(2, self.stderr)
@@ -119,7 +126,8 @@ class subcommand:
 			return
 
 		# We are the child from this point on. Never return.
-		os.chdir(self.subdir)
+		if self.subdir:
+			os.chdir(self.subdir)
 		self.redirect_output()
 
 		try:
