@@ -123,3 +123,35 @@ class DEBKernel(kernel.Kernel):
 			specified via get()")
 		
 		return "/boot/initrd.img-%s" % (self.get_version(),)
+	
+	def extract(self, host):
+		"""Extract the kernel package.
+		
+		This function is only useful to access the content of the 
+		package (for example the kernel image) without 
+		installing it. It is not necessary to run this function to
+		install the kernel.
+		
+		Args:
+			host: the host on which to extract the kernel package.
+		
+		Returns:
+			The full path to the temporary directory on host where 
+			the package was extracted.
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				DEBKernel.get() with a .deb package.
+		"""
+		if self.source_material is None:
+			raise AutoservError("A kernel must first be \
+			specified via get()")
+		
+		remote_tmpdir = host.get_tmp_dir()
+		basename = os.path.basename(self.source_material)
+		remote_filename = os.path.join(remote_tmpdir, basename)
+		host.send_file(self.source_material, remote_filename)
+		content_dir= os.path.join(remote_tmpdir, "contents")
+		host.run('dpkg -x "%s" "%s"' % (utils.sh_escape(remote_filename), utils.sh_escape(content_dir),))
+		
+		return content_dir
