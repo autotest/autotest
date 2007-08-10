@@ -125,6 +125,12 @@ class Autotest(installable_object.InstallableObject):
 		host.ensure_up()
 		
 		atrun = _Run(host, results_dir)
+		try:
+			atrun.verify_machine()
+		except:
+			print "Verify machine failed on %s. Reinstalling" % \
+								host.hostname
+			self.install(host)
 		atrun.verify_machine()
 		if os.path.isdir(results_dir):
 			shutil.rmtree(results_dir)
