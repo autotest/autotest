@@ -15,10 +15,15 @@ class netperf2(test.test):
 
 
 	def initialize(self):
-		self.server_path = os.path.join(self.srcdir, 'src/netserver')
+		# netserver doesn't detach properly from the console. When 
+		# it is run from ssh, this causes the ssh command not to 
+		# return even though netserver meant to be backgrounded.
+		# This behavior is remedied by redirecting fd 0, 1 & 2
+		self.server_path = ('%s &>/dev/null </dev/null' 
+			% os.path.join(self.srcdir, 'src/netserver'))
 		self.client_path = os.path.join(self.srcdir, 'src/netperf')
 
-		
+
 	def execute(self, server_ip, client_ip, role, 
 					script='snapshot_script', args=''):
 		server_tag = server_ip + '#netperf-server'
