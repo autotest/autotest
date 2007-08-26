@@ -3,10 +3,10 @@ import profiler, shutil
 from autotest_utils import *
 
 class oprofile(profiler.profiler):
-	version = 4
+	version = 5
 
-# http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.2.tar.gz
-	def setup(self, tarball = 'oprofile-0.9.2.tar.bz2', local = False, *args, **dargs):
+# http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.3.tar.gz
+	def setup(self, tarball = 'oprofile-0.9.3.tar.bz2', local = False, *args, **dargs):
 		if local:
 			return
 		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
