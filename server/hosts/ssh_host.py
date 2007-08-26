@@ -217,7 +217,7 @@ class SSHHost(base_classes.RemoteHost):
 		on the destruction of the Host object that was used to obtain
 		it.
 		"""
-		dir_name= self.run("mktemp -dt autoserv-XXXXXX").stdout.rstrip(" \n")
+		dir_name= self.run("mktemp -d /tmp/autoserv-XXXXXX").stdout.rstrip(" \n")
 		self.tmp_dirs.append(dir_name)
 		return dir_name
 
