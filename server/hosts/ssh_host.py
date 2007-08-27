@@ -202,11 +202,18 @@ class SSHHost(base_classes.RemoteHost):
 				format_string= '"%s"'
 			entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
 			processed_source.append(entry)
-		
-		utils.run('scp -rpq %s %s@%s:"%s"' % (
-			" ".join(processed_source), self.user, self.hostname, 
-			utils.scp_remote_escape(dest)))
 
+		result= utils.run('ssh %s rsync -h' % self.hostname,
+			ignore_status=True)
+
+		if result.exit_status == 0:
+			utils.run('rsync --rsh=ssh -avz %s %s@%s:"%s"' % (
+				" ".join(processed_source), self.user,
+				self.hostname, utils.scp_remote_escape(dest)))
+		else:
+			utils.run('scp -rpq %s %s@%s:"%s"' % (
+				" ".join(processed_source), self.user,
+				self.hostname, utils.scp_remote_escape(dest)))
 
 	def get_tmp_dir(self):
 		"""
