@@ -78,18 +78,17 @@ class filesystem:
 			system("yes | " + mkfs_cmd)
 		except:
 			self.job.record("FAIL " + mkfs_cmd)
+			raise
 		else:
 			self.job.record("GOOD " + mkfs_cmd)
 			self.fstype = fstype
-			
 
 
 	def fsck(self, args = ''):
 		fsck = 'fsck %s %s' % (self.device, args)
 		print fsck
 		sys.stdout.flush()
-		ret = system(fsck, ignorestatus=1)
-		return not ret
+		system(fsck)
 
 	
 	def mount(self, mountpoint = None, args = ''):
@@ -125,7 +124,13 @@ class filesystem:
 		umount_cmd = "umount " + handle
 		print umount_cmd
 		sys.stdout.flush()
-		system(umount_cmd)
+		try:
+			system(umount_cmd)
+		except:
+			self.job.record("FAIL " + umount_cmd)
+			raise
+		else:
+			self.job.record("GOOD " + umount_cmd)
 	
 
 	def get_io_scheduler_list(self, device_name):
