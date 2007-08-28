@@ -1,6 +1,9 @@
 # Uncomment this line, and replace the device with something sensible
 # for you ...
 # fs = job.filesystem('/dev/hda2', job.tmpdir)
+# or ...
+
+fs = job.filesystem('/tmp/looped', job.tmpdir, loop_size = 1024)
 
 # dbench 1024, ltp, 1024-byte blocksize, a few other things.  Lots of fscking.
 # I haven't tested nobh mode yet, 
@@ -14,6 +17,7 @@ for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
 		job.run_test('fsx', job.tmpdir, tag=fstype)
 		job.run_test('iozone', job.tmpdir, tag=fstype)
 		job.run_test('dbench', dir=job.tmpdir, tag=fstype)
+		fs.fsck()
 	finally:
 		fs.unmount()
 

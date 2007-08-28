@@ -27,7 +27,7 @@ class filesystem:
 	Class for handling filesystems
 	"""
 
-	def __init__(self, job, device, mountpoint):
+	def __init__(self, job, device, mountpoint, loop_size = 0):
 		"""
 		device should be able to be a file as well
 		which we mount as loopback
@@ -36,6 +36,8 @@ class filesystem:
 			The device in question (eg "/dev/hda2")
 		mountpoint
 			Default mountpoint for the device.
+		loop_size
+			size of loopback device (in MB)
 		"""
 
 		part = re.compile(r'^part(\d+)$')
@@ -53,17 +55,22 @@ class filesystem:
 		self.mountpoint = mountpoint
 		self.job = job
 		self.fstype = None
+		self.loop = loop_size
+		if self.loop:
+			system('dd if=/dev/zero of=%s bs=1M count=%d' % \
+							(device, loop_size))
 
 
-	def mkfs(self, fstype = 'ext2'):
+	def mkfs(self, fstype = 'ext2', args = ''):
 		"""
 		Format a partition to fstype
 		"""
 		if list_mount_devices().count(self.device):
 			raise NameError('Attempted to format mounted device')
-		args = ''
 		if fstype == 'xfs':
-			args = '-f'
+			args += '-f '
+		if self.loop:
+			args += '-F '
 		mkfs_cmd = "mkfs -t %s %s %s" % (fstype, args, self.device)
 		print mkfs_cmd
 		sys.stdout.flush()
@@ -85,7 +92,7 @@ class filesystem:
 		return not ret
 
 	
-	def mount(self, mountpoint = None, options = ''):
+	def mount(self, mountpoint = None, args = ''):
 		if not mountpoint:
 			mountpoint = self.mountpoint
 		if list_mount_devices().count(self.device):
@@ -97,9 +104,10 @@ class filesystem:
 			self.job.record("FAIL " + err)
 			raise NameError(err)
 		if self.fstype:
-			options += ' -t ' + self.fstype
-		mount_cmd = "mount %s %s %s" % (options,
-						self.device, mountpoint)
+			args += ' -t ' + self.fstype
+		if self.loop:
+			args += ' -o loop'
+		mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
 		print mount_cmd
 		sys.stdout.flush()
 		try:
