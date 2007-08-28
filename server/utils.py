@@ -144,7 +144,9 @@ def run(command, timeout=None, ignore_status=False):
 			kill the running process. The run() function
 			will take a few seconds longer than 'timeout'
 			to complete if it has to kill the process.
-
+		ignore_status: do not raise an exception, no matter what
+			the exit code of the command is.
+	
 	Returns:
 		a hosts.CmdResult object
 

@@ -82,6 +82,8 @@ class SSHHost(base_classes.RemoteHost):
 				kill the running process. The run() function
 				will take a few seconds longer than 'timeout'
 				to complete if it has to kill the process.
+			ignore_status: do not raise an exception, no matter 
+				what the exit code of the command is.
 		
 		Returns:
 			a hosts.base_classes.CmdResult object
@@ -100,10 +102,10 @@ class SSHHost(base_classes.RemoteHost):
 	def reboot(self, timeout=600, label=None, kernel_args=None, wait=True):
 		"""
 		Reboot the remote host.
-  		
+		
 		Args:
 			timeout
-  		"""
+		"""
 		if label or kernel_args:
 			self.bootloader.install_boottool()
 		if label:
