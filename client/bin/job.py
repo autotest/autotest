@@ -226,10 +226,10 @@ class job:
 			return 1
 
 
-	def filesystem(self, device, mountpoint = None):
+	def filesystem(self, device, mountpoint = None, loop_size = 0):
 		if not mountpoint:
 			mountpoint = self.tmpdir
-		return filesystem.filesystem(self, device, mountpoint)
+		return filesystem.filesystem(self, device, mountpoint,loop_size)
 
 
 	def reboot(self, tag='autotest'):
