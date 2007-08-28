@@ -1,0 +1,33 @@
+print "XXXX start of control file"
+
+print "XXXX creating SSHHost object"
+remote_host= hosts.SSHHost("192.168.1.1")
+
+
+print "XXXX running autotest"
+at= autotest.Autotest()
+at.get("/var/local/autotest/client")
+at.install(remote_host)
+
+control_file= """
+import time
+
+job.profilers.add("oprofile", events= ["CPU_CLK_UNHALTED:8000"])
+
+def client():
+	time.sleep(60)
+	job.run_test('netperf2', '127.0.0.1', '127.0.0.1', 'client', tag='client')
+
+def server():
+	job.run_test('netperf2', '127.0.0.1', '127.0.0.1', 'server', tag='server')
+
+job.parallel([server], [client])
+"""
+
+results_dir= "rh_results"
+
+at.run(control_file, results_dir, remote_host)
+
+#~ raw_input("[press enter]")
+
+print "XXXX end of control file"

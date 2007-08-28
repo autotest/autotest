@@ -1,0 +1,6 @@
+rh= hosts.SSHHost("192.168.1.1")
+
+print rh.bootloader.get_titles()
+default= rh.bootloader.get_default()
+print default
+print rh.bootloader.get_info(default)

@@ -1,0 +1,23 @@
+rh= hosts.SSHHost("192.168.1.1")
+
+print rh.run("uname -a").stdout
+
+kernel= deb_kernel.DEBKernel()
+kernel.get("/home/foo/linux-2.6.22_2.6.22_amd64.deb")
+
+print kernel.get_version()
+print kernel.get_image_name()
+print kernel.get_initrd_name()
+
+print "XXXX extracting kernel"
+dir= kernel.extract(rh)
+print rh.run('ls "%s"' % (sh_escape(dir),))
+
+
+print "XXXX installing kernel"
+kernel.install(rh)
+
+rh.reboot()
+rh.wait_up()
+
+print rh.run("uname -a").stdout
