@@ -90,6 +90,7 @@ class subcommand:
 				os.system("rm -rf %s" % self.subdir)
 			os.mkdir(self.subdir)
 			self.debug = os.path.join(self.subdir, 'debug')
+			os.mkdir(self.debug)
 			self.stdout = os.path.join(self.debug, 'stdout')
 			self.stderr = os.path.join(self.debug, 'stderr')
 		else:
@@ -98,7 +99,6 @@ class subcommand:
 			self.stdout = '/dev/null'
 			self.stderr = '/dev/null'
 
-		os.mkdir(self.debug)
 		self.func = func
 		self.args = args
 		self.lambda_function = lambda: func(*args)
