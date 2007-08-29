@@ -5,6 +5,15 @@ Internal global error types
 import sys
 from traceback import format_exception
 
+def format_error():
+        t, o, tb = sys.exc_info()
+        trace = format_exception(t, o, tb)
+        # Clear the backtrace to prevent a circular reference
+        # in the heap -- as per tutorial
+        tb = ''
+
+        return ''.join(trace)
+
 class JobContinue(SystemExit):
 	"""Allow us to bail out requesting continuance."""
 	pass
@@ -29,14 +38,4 @@ class CmdError(TestError):
 class UnhandledError(TestError):
 	"""Indicates an unhandled exception in a test."""
 	def __init__(self, prefix):
-		t, o, tb = sys.exc_info()
-		trace = format_exception(t, o, tb)
-		# Clear the backtrace to prevent a circular reference
-		# in the heap -- as per tutorial
-		tb = ''
-
-		msg = prefix
-		for line in trace:
-			msg = msg + line
-
-		self.args = msg
+		self.args = prefix + format_error()
