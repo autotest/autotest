@@ -10,14 +10,16 @@ fs = job.filesystem('/tmp/looped', job.tmpdir, loop_size = 1024)
 # and I have yet to point run-bash-shared-mapping at it.
 # (different mount options for ext3)
 
-for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
+def test_fs():
 	fs.mkfs(fstype)
 	fs.mount()
 	try:
 		job.run_test('fsx', job.tmpdir, tag=fstype)
 		job.run_test('iozone', job.tmpdir, tag=fstype)
 		job.run_test('dbench', dir=job.tmpdir, tag=fstype)
-		fs.fsck()
 	finally:
 		fs.unmount()
+		fs.fsck()
 
+for fstype in ('ext2', 'ext3', 'jfs', 'xfs', 'reiserfs'):
+	job.run_group(test_fs)
