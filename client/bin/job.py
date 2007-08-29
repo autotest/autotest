@@ -82,6 +82,7 @@ class job:
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
+		self.record_prefix = ''
 
 		self.config = config.config(self)
 
@@ -226,6 +227,37 @@ class job:
 			return 1
 
 
+	def run_group(self, function, *args):
+		"""\
+		function:
+			subroutine to run
+		*args:
+			arguments for the function
+		"""
+
+		name = function.__name__
+		# if tag:
+		#	name += '.' + tag
+		old_record_prefix = self.record_prefix
+		try:
+			try:
+				self.record("START " + name)
+				self.record_prefix += '\t'
+				function(*args)
+				self.record_prefix = old_record_prefix
+				self.record("END %s GOOD" % name)
+			except:
+				self.record_prefix = old_record_prefix
+				self.record("END %s FAIL" % name)
+		# We don't want to raise up an error higher if it's just
+		# a TestError - we want to carry on to other tests. Hence
+		# this outer try/except block.
+		except TestError:
+			pass
+		except:
+			raise TestError(name + ' failed\n' + format_error())
+
+
 	def filesystem(self, device, mountpoint = None, loop_size = 0):
 		if not mountpoint:
 			mountpoint = self.tmpdir
@@ -327,7 +359,8 @@ from autotest_utils import *
 		msg = msg.rstrip()
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
-		msg = re.sub(r"\n", "\n  ", msg)
+		msg = re.sub(r"\n", "\n" + self.record_prefix + "  ", msg)
+		msg = self.record_prefix + msg
 
 		self.harness.test_status(msg)
 		print msg
