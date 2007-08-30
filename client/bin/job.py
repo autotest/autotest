@@ -104,6 +104,14 @@ class job:
 
 		self.harness.run_start()
 
+
+	def relative_path(self, path):
+		"""\
+		Return a patch relative to the job results directory
+		"""
+		return path[len(self.resultdir):]
+
+
 	def control_get(self):
 		return self.control
 
