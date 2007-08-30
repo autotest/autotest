@@ -23,6 +23,6 @@ class db:
 
 
 	def find_job(self, tag):
-		command = 'select * from jobs where job = %s'
+		command = 'select * from jobs where tag = %s'
 		self.cur.execute(command, tag)
 		return self.cur.fetchall()
