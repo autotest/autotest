@@ -71,10 +71,10 @@ class harness:
 
 
 def select(which, job):
-	if which:
-		exec "import harness_%s" % (which)
-		exec "myharness = harness_%s.harness_%s(job)" % (which, which)
-	else:
-		myharness = harness(job)
+	if not which:
+		which = 'standalone'
+	
+	exec "import harness_%s" % (which)
+	exec "myharness = harness_%s.harness_%s(job)" % (which, which)
 
 	return myharness
