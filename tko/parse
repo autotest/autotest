@@ -1,22 +1,19 @@
 #!/usr/bin/python
-import os, re, parse, db
+import os, re, parse, db, sys
 
-topdir = "/home/mirror/tko/abat"
-index = "external.list"
+topdir = sys.argv[1]
+jobs_list = os.listdir(topdir)
 
 jobs = {}
-
-jobs_list = open(os.path.join(topdir, index), 'r').readlines()
-jobs_list = [j.strip() for j in jobs_list]
-
 db = db.db()
 
 for j in jobs_list:
-	tag = 'abat' + j
-	if db.find_job(tag):
+	print 'looking for ' + j
+	if db.find_job(j):
 		continue
 	job = parse.parse(os.path.join(topdir, j), 'regression')
+	print 'parsed ' + j
 	if not job.kernel:
 		continue
 	print '%s %s %s %s' % (j, job.kernel, job.status, job.reason)
-	db.insert_job(tag, job)
+	db.insert_job(j, job)
