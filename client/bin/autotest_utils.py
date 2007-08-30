@@ -152,7 +152,8 @@ def force_copy(src, dest):
 		os.remove(dest)
 	if os.path.isdir(dest):
 		dest = os.path.join(dest, os.path.basename(src))
-	return shutil.copyfile(src, dest)
+	shutil.copyfile(src, dest)
+	return dest
 
 
 def force_link(src, dest):
