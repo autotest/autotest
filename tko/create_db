@@ -10,7 +10,7 @@ base VARCHAR(30)			-- Base version without patches
 -- main jobs table
 CREATE TABLE jobs (
 job_idx INTEGER PRIMARY KEY,		-- index number
-tag VARCHAR(15),			-- job key
+tag VARCHAR(30),			-- job key
 kversion INTEGER,			-- index to kversion table
 status INTEGER,				-- Numerical status
 reason VARCHAR(100),			-- justification for status
@@ -26,6 +26,7 @@ url VARCHAR(200)			-- full URL
 
 -- test functional results
 CREATE TABLE tests (
+test_idx INTEGER,			-- index number
 job_idx INTEGER,			-- ref to job table
 test VARCHAR(30),			-- name of test
 subdir VARCHAR(60),			-- subdirectory name
@@ -34,14 +35,33 @@ status INTEGER,				-- test status
 reason VARCHAR(100)			-- reason for test status
 );
 
+-- test functional results
+CREATE TABLE test_attributes (
+test_idx INTEGER,			-- ref to test table
+attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
+value VARCHAR(100)			-- attribute value
+);
+
+-- test functional results
+CREATE TABLE iteration (
+test_idx INTEGER,			-- ref to test table
+interation INTEGER,			-- integer
+attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
+value FLOAT				-- attribute value (eg 700.1)
+);
+
 -- test performance results
 CREATE TABLE results (
 job_idx INTEGER,			-- ref to job table
 test VARCHAR(30),			-- name of test
 subdir VARCHAR(60) PRIMARY KEY,		-- subdirectory name
-kversion INTEGER,			-- kernel version test was AGAINST
-attribute VARCHAR(20),			-- attribute name (e.g. 'throughput')
-value INTEGER				-- attribute value (eg 700)
+kversion INTEGER			-- kernel version test was AGAINST
+);
+
+-- status key
+CREATE TABLE status (
+status INTEGER PRIMARY KEY,		-- numerical status
+description VARCHAR(10)			-- status word
 );
 
 COMMIT;
