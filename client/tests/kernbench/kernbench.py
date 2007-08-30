@@ -30,7 +30,7 @@ class kernbench(test.test):
 			tarball = default_ver
 			
 		kernel = self.job.kernel(tarball, self.tmpdir, self.srcdir)
-		kernel.config(defconfig=True)
+		kernel._config(defconfig=True)
 		# have to save this off, as we might use it in another run
 		kernel.pickle_dump(self.srcdir + '/.pickle')
 		pickle.dump(tarball, open(self.srcdir + '/.tarball', 'w'))
@@ -40,7 +40,7 @@ class kernbench(test.test):
 		if dir:
 			tarball = pickle_load(self.srcdir+'/.tarball')
 			kernel = self.job.kernel(tarball, self.tmpdir, dir)
-			kernel.config(defconfig=True)
+			kernel._config(defconfig=True)
 		else:
 			kernel = pickle_load(self.srcdir+'/.pickle')
 			kernel.job = self.job
@@ -61,7 +61,7 @@ class kernbench(test.test):
 			profilers.stop(self)
 			profilers.report(self)
 
-		kernel.clean()		# Don't leave litter lying around
+		kernel._clean()		# Don't leave litter lying around
 		os.chdir(self.resultsdir)
 		system("grep -h elapsed time.* > time")
 

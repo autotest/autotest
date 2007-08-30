@@ -108,7 +108,18 @@ class kernel:
 				self.patch(*base_components)
 
 
-	def patch(self, *patches):
+	def __record(self, fn, name, *args, **dargs):
+		try:
+			fn(*args, **dargs)
+			self.job.record("GOOD " + name + \
+						" completed successfully\n")
+		except Exception, detail:
+			self.job.record("FAIL " + name + \
+						detail.__str__() + "\n")
+			raise
+		
+
+	def _patch(self, *patches):
 		"""Apply a list of patches (in order)"""
 		if not patches:
 			return
@@ -120,7 +131,11 @@ class kernel:
 		# self.job.stdout.restore()
 
 
-	def config(self, config_file = '', config_list = None,
+	def patch(self, *args, **dargs):
+		self.__record(self._patch, "kernel.patch", *args, **dargs)
+
+
+	def _config(self, config_file = '', config_list = None,
 							defconfig = False):
 		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
@@ -128,6 +143,10 @@ class kernel:
 			 self.config_dir, config_file, config_list,
 			 defconfig, self.base_tree_version)
 		self.job.stdout.restore()
+
+
+	def config(self, *args, **dargs):
+		self.__record(self._config, "kernel.config", *args, **dargs)
 
 
 	def get_patches(self, patches):
@@ -193,7 +212,7 @@ class kernel:
 		system('sed "%s" < Makefile.old > Makefile' % p)
 
 
-	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
+	def _build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
 
 		make_opts
@@ -232,6 +251,10 @@ class kernel:
 		force_copy(self.build_dir+'/System.map', self.results_dir)
 
 
+	def build(self, *args, **dargs):
+		self.__record(self._build, "kernel.build", *args, **dargs)
+
+
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
 		"""time the bulding of the kernel"""
 		os.chdir(self.build_dir)
@@ -245,14 +268,18 @@ class kernel:
 			raise TestError("no vmlinux found, kernel build failed")
 
 
-	def clean(self):
+	def _clean(self):
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
 		print "make clean"
 		system('make clean')
 
 
-	def mkinitrd(self, version, image, system_map, initrd):
+	def clean(self, *args, **dargs):
+		self.__record(self._clean, "kernel.clean", *args, **dargs)
+
+
+	def _mkinitrd(self, version, image, system_map, initrd):
 		"""Build kernel initrd image.
 		Try to use distro specific way to build initrd image.
 		Parameters:
@@ -287,11 +314,15 @@ class kernel:
 			raise TestError('Unsupported vendor %s' % vendor)
 
 
+	def mkinitrd(self, *args, **dargs):
+		self.__record(self._mkinitrd, "kernel.mkinitrd", *args, **dargs)
+
+
 	def set_build_image(self, image):
 		self.build_image = image
 
 
-	def install(self, tag='autotest', prefix = '/'):
+	def _install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 		os.chdir(self.build_dir)
 
@@ -333,6 +364,10 @@ class kernel:
 			self.initrd = self.boot_dir + '/initrd-' + tag
 			self.mkinitrd(self.get_kernel_build_ver(), self.image, \
 						  self.system_map, self.initrd)
+
+
+	def install(self, *args, **dargs):
+		self.__record(self._install, "kernel.install", *args, **dargs)
 
 
 	def add_to_bootloader(self, tag='autotest', args=''):
