@@ -116,10 +116,7 @@ class kernel:
 	#		patches = [patches]
 		print 'Applying patches: ', patches
 		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
-		local_patches = self.get_patches(patches)
-		for patch in patches:
-			self.logfile.write('PATCH: %s\n' % patch)
-		self.apply_patches(local_patches)
+		self.apply_patches(self.get_patches(patches))
 		# self.job.stdout.restore()
 
 
@@ -138,9 +135,13 @@ class kernel:
 		local_patches = []
 		for patch in patches:
 			dest = os.path.join(self.src_dir, basename(patch))
+			# FIXME: this isn't unique. Append something to it
+			# like wget does if it's not there?
 			print "get_file %s %s %s %s" % (patch, dest, self.src_dir, basename(patch))
 			get_file(patch, dest)
-			local_patches.append(dest)
+			# probably safer to use the command, not python library
+			md5sum = system_output('md5sum ' + dest).split()[0]
+			local_patches.append((patch, dest, md5sum))
 		return local_patches
 
 
@@ -151,9 +152,16 @@ class kernel:
 
 		if not local_patches:
 			return None
-		for patch in local_patches:
-			print 'Patching from', basename(patch), '...'
-			cat_file_to_cmd(patch, 'patch -p1 > /dev/null')
+		for (spec, local, md5sum) in local_patches:
+			if local.endswith('.bz2') or local.endswith('.gz'):
+				ref = spec
+			else:
+				ref = force_copy(local, self.results_dir)
+				ref = self.job.relative_path(ref)
+			log = 'PATCH: %s %s %s\n' % (spec, ref, md5sum)
+			print log
+			cat_file_to_cmd(local, 'patch -p1 > /dev/null')
+			self.logfile.write(log)
 
 
 	def get_kernel_tree(self, base_tree):
