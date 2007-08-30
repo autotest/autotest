@@ -109,7 +109,8 @@ class job:
 		"""\
 		Return a patch relative to the job results directory
 		"""
-		return path[len(self.resultdir):]
+		head = len(self.resultdir) + 1     # remove the / inbetween
+		return path[head:]
 
 
 	def control_get(self):
