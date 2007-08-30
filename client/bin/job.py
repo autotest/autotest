@@ -42,7 +42,7 @@ class job:
 			the job configuration for this job
 	"""
 
-	def __init__(self, control, jobtag, cont, harness_type=''):
+	def __init__(self, control, jobtag, cont, harness_type=None):
 		"""
 			control
 				The control file (pathname of)
@@ -103,6 +103,9 @@ class job:
 		os.chdir(pwd)
 
 		self.harness.run_start()
+
+	def control_get(self):
+		return self.control
 
 
 	def harness_select(self, which):
