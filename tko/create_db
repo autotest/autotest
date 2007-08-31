@@ -25,11 +25,11 @@ hash VARCHAR(35)
 
 -- test functional results
 CREATE TABLE tests (
-test_idx INTEGER,			-- index number
+test_idx INTEGER PRIMARY KEY,		-- index number
 job_idx INTEGER,			-- ref to job table
 test VARCHAR(30),			-- name of test
 subdir VARCHAR(60),			-- subdirectory name
-kversion INTEGER PRIMARY KEY,		-- kernel version test was AGAINST
+kversion INTEGER,			-- kernel version test was AGAINST
 status INTEGER,				-- test status
 reason VARCHAR(100)			-- reason for test status
 );
