@@ -11,18 +11,6 @@ status_num = {}
 for x in range(0, len(statuses)):
 	status_num[statuses[x]] = x
 
-munge_reasons = (
-	(r', job abort.*', ''),
-	(r'autobench reported job failed, aborting', 'harness failed job'),
-	(r'machine did not return from reboot.*', 'reboot failed'),
-	(r'machine reboot failed', 'reboot failed'),
-	(r'machine reached login', 'reached login'),
-	(r'lost contact with run', 'lost contact'),
-	(r'\(machine panic.*', '(panic)'),
-	(r'.*build generic url.*', 'kernel build failed'),
-	(r'^.fs .*', 'fs operation failed'),
-		)
-
 
 def shorten_patch(long):
 	short = os.path.basename(long)
@@ -76,9 +64,6 @@ class job:
 		for line in open(status_file, 'r').readlines():
 			(status, testname, reason) = line.rstrip().split(' ', 2)
 
-		# for (a, b) in munge_reasons:
-		#	reason = re.sub(a, b, reason)
-
 		self.tests.append(test(testname, status, reason))
 
 
@@ -123,6 +108,7 @@ class test:
 		self.reason = reason
 		self.keyval = os.path.join(dir, 'results/keyval')
 		self.iterations = []
+		self.testname = re.sub(r'\..*', '', self.dir)
 
 		if not os.path.exists(self.keyval):
 			self.keyval = None
