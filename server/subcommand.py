@@ -31,15 +31,15 @@ def parallel_simple(function, arglist):
 	parallel(subcommands)
 
 
-def __where_art_thy_filehandles():
+def _where_art_thy_filehandles():
 	os.system("ls -l /proc/%d/fd >> /dev/tty" % os.getpid())
 
 
-def __print_to_tty(string):
+def _print_to_tty(string):
 	open('/dev/tty', 'w').write(string + '\n')
 
 
-def __redirect_stream(fd, output):
+def _redirect_stream(fd, output):
 	newfd = os.open(output, os.O_WRONLY | os.O_CREAT)
 	os.dup2(newfd, fd)
 	os.close(newfd)
@@ -49,7 +49,7 @@ def __redirect_stream(fd, output):
 		sys.stderr = os.fdopen(fd, 'w')
 
 
-def __redirect_stream_tee(fd, output, tag):
+def _redirect_stream_tee(fd, output, tag):
 	"""Use the low-level fork & pipe operations here to get a fd,
 	not a filehandle. This ensures that we get both the 
 	filehandle and fd for stdout/stderr redirected correctly."""
@@ -110,11 +110,11 @@ class subcommand:
 		if self.stdprint:
 			if self.subdir:
 				tag = os.path.basename(self.subdir)
-				__redirect_stream_tee(1, self.stdout, tag)
-				__redirect_stream_tee(2, self.stderr, tag)
+				_redirect_stream_tee(1, self.stdout, tag)
+				_redirect_stream_tee(2, self.stderr, tag)
 		else:
-			__redirect_stream(1, self.stdout)
-			__redirect_stream(2, self.stderr)
+			_redirect_stream(1, self.stdout)
+			_redirect_stream(2, self.stderr)
 
 
 	def fork_start(self):
