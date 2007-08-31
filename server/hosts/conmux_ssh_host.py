@@ -63,6 +63,8 @@ class ConmuxSSHHost(ssh_host.SSHHost):
 		"""
 		Log the output of the console session to a specified file
 		"""
+		if logfilename == None:
+			return
 		if not self.attach or not os.path.exists(self.attach):
 			return
 		if self.server:
