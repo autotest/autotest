@@ -1,4 +1,4 @@
-import sqlite
+import sqlite, re
 
 class db:
 	def __init__(self):
@@ -13,13 +13,33 @@ class db:
 
 
 	def insert_job(self, tag, job):
+		# is kernel version in tree?
 		command = 'insert into jobs ' + \
-			'(job, version, status, reason, machine, kernel) ' +\
-			'values (%s, %s, %s, %s, %s, %s) '
-		values = (tag, job.kernel, job.status_num, job.reason, \
-			 job.machine, job.kernel)
+			'(tag, machine) ' + \
+			'values (%s, %s) '
+		print command
+		values = (tag, 'UNKNOWN')
 		self.cur.execute(command, values)
-		self.con.commit();
+		self.con.commit()
+		# Select it back from the job table and find the uniq key
+
+
+	def insert_test(self, job, 
+	def lookup_kernel_version(base, patches):
+		command = 'select kversion from kversions where base = %s'
+
+
+	def insert_kernel_version(base, patches):
+		base = re.sub(r'\+.*', '', printable)
+		command = 'select kversion from kversions where printable = %s'
+		self.cur.execute(command, tag)
+		results = self.cur.fetchall()
+		if results:
+			return results[0]
+		command = 'insert into kversions (printable, base) ' + \
+			  'values (%s, %s)'
+		self.cur.execute(command, (printable, base))
+		self.con.commit()
 
 
 	def find_job(self, tag):

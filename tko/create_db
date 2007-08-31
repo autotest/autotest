@@ -3,25 +3,24 @@ BEGIN TRANSACTION;
 -- kernel versions
 CREATE TABLE kversions (
 kversion INTEGER PRIMARY KEY,
-printable VARCHAR(100),			-- Full version with patches
-base VARCHAR(30)			-- Base version without patches
+kversion_hash VARCHAR(35),		-- Hash of base + all patches
+base VARCHAR(30),			-- Base version without patches
+printable VARCHAR(100)			-- Full version with patches
 );
 
 -- main jobs table
 CREATE TABLE jobs (
 job_idx INTEGER PRIMARY KEY,		-- index number
 tag VARCHAR(30),			-- job key
-kversion INTEGER,			-- index to kversion table
-status INTEGER,				-- Numerical status
-reason VARCHAR(100),			-- justification for status
 machine VARCHAR(20)			-- machine name
 );
 
 -- One entry per patch used, anywhere
 CREATE TABLE patches (
-patchref INTEGER PRIMARY KEY,		-- index number
+kversion INTEGER PRIMARY KEY,		-- index number
 name VARCHAR(20),			-- short name
-url VARCHAR(200)			-- full URL
+url VARCHAR(200),			-- full URL
+hash VARCHAR(35)
 );
 
 -- test functional results
@@ -43,9 +42,9 @@ value VARCHAR(100)			-- attribute value
 );
 
 -- test functional results
-CREATE TABLE iteration (
+CREATE TABLE iteration_result(
 test_idx INTEGER,			-- ref to test table
-interation INTEGER,			-- integer
+iteration INTEGER,			-- integer
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
 value FLOAT				-- attribute value (eg 700.1)
 );
