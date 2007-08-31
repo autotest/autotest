@@ -29,8 +29,8 @@ import urllib
 import hosts
 import errors
 
-
-__tmp_dirs= []
+# A dictionary of pid and a list of tmpdirs for that pid
+__tmp_dirs = {}
 
 
 def sh_escape(command):
@@ -249,7 +249,10 @@ def get_tmp_dir():
 	global __tmp_dirs
 
 	dir_name= tempfile.mkdtemp(prefix="autoserv-")
-	__tmp_dirs.append(dir_name)
+	pid = os.getpid()
+	if not pid in __tmp_dirs:
+		__tmp_dirs[pid] = []
+	__tmp_dirs[pid].append(dir_name)
 	return dir_name
 
 
@@ -260,9 +263,16 @@ def __clean_tmp_dirs():
 	"""
 	global __tmp_dirs
 
-	for dir in __tmp_dirs:
-		shutil.rmtree(dir)
-	__tmp_dirs= []
+	pid = os.getpid()
+	if pid not in __tmp_dirs:
+		return
+	for dir in __tmp_dirs[pid]:
+		try:
+			shutil.rmtree(dir)
+		except OSError, e:
+			if e.errno == 2:
+				pass
+	__tmp_dirs[pid] = []
 
 
 def unarchive(host, source_material):
