@@ -20,15 +20,6 @@ stutsman@google.com (Ryan Stutsman)
 import sys
 import optparse
 
-
-def parse_args():
-	usage = "usage: %prog <control file>"
-	parser = optparse.OptionParser(usage)
-	parser.add_option('-m', '--machines', dest='machines', type='string')
-	(options, arg) = parser.parse_args()
-	return (options, arg)
-
-
 preamble = """\
 import os, sys
 
@@ -47,7 +38,10 @@ def run(control_file, machines):
 
 
 if __name__ == "__main__":
-	(options, args) = parse_args()
+	usage = "usage: %prog <control file>"
+	parser = optparse.OptionParser(usage)
+	parser.add_option('-m', '--machines', dest='machines', type='string')
+	(options, args) = parser.parse_args()
 	if len(args) != 1:
 		parser.error("program takes one argument")
 		sys.exit(1)
