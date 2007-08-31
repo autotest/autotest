@@ -79,6 +79,7 @@ class Autotest(installable_object.InstallableObject):
 		"""
 		if not host:
 			host = self.host
+		host.ensure_up()
 		print "Installing autotest on %s" % host.hostname
 		# try to install from file or directory
 		if self.source_material:
