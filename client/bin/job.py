@@ -329,6 +329,13 @@ class job:
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
 
+	def next_step_prepend(self, step):
+		"""Insert a new step, executing first"""
+		step[0] = step[0].__name__
+		self.steps.insert(0, step)
+		pickle.dump(self.steps, open(self.control + '.state', 'w'))
+
+
 	def step_engine(self):
 		"""the stepping engine -- if the control file defines
 		step_init we will be using this engine to drive multiple runs.
