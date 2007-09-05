@@ -516,3 +516,48 @@ def extract_all_time_results(results_string):
 def pickle_load(filename):
 	return pickle.load(open(filename, 'r'))
 
+
+# Return the kernel version and build timestamp.
+def running_os_release():
+	return os.uname()[2:4]
+
+
+def running_os_ident():
+	(version, timestamp) = running_os_release()
+	return version + '::' + timestamp
+
+
+# Check the passed kernel identifier against the command line
+# and the running kernel, abort the job on missmatch.
+def kernel_check_ident(expected_when, expected_id):
+	print "POST BOOT: checking booted kernel mark=%d identity='%s'" \
+		% (expected_when, expected_id)
+
+	running_id = running_os_ident()
+
+	cmdline = read_one_line("/proc/cmdline")
+
+	find_sum = re.compile(r'.*IDENT=(\d+)')
+	m = find_sum.match(cmdline)
+	cmdline_when = -1
+	if m:
+		cmdline_when = int(m.groups()[0])
+
+	# We have all the facts, see if they indicate we
+	# booted the requested kernel or not.
+	bad = False
+	if expected_id != running_id:
+		print "check_kernel_ident: kernel identifier mismatch"
+		bad = True
+	if expected_when != cmdline_when:
+		print "check_kernel_ident: kernel command line mismatch"
+		bad = True
+
+	if bad:
+		print "   Expected Ident: " + expected_id
+		print "    Running Ident: " + running_id
+		print "    Expected Mark: %d" % (expected_when)
+		print "Command Line Mark: %d" % (cmdline_when)
+		print "     Command Line: " + cmdline
+
+		raise JobError("boot failure")
