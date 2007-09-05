@@ -1,4 +1,4 @@
-import sqlite, re
+import sqlite, re, os
 
 class db:
 	def __init__(self):
@@ -40,26 +40,48 @@ class db:
 
 
 	def insert_job(self, tag, job):
-		# is kernel version in tree?
 		self.insert('jobs', {'tag':tag, 'machine':'UNKNOWN'})
 		job.index = self.find_job(tag)
 		for test in job.tests:
 			self.insert_test(job, test)
 
+
 	def insert_test(self, job, test):
-		# WE ARE MISSING KVERSION HERE!!!!
+		kver = self.insert_kernel_version(test.kernel)
 		data = {'job_idx':job.index, 'test':test.testname,
 			'subdir':test.dir, 
 			'status':test.status, 'reason':test.reason}
 		self.insert('tests', data)
 
 
-	def lookup_kernel_version(self, base, patches):
-		return self.select('kversion', 'kversions', {'base':base})[0]
+	def lookup_kversion(self, kernel):
+		rows = self.select('kversion', 'kversions', 
+				{'kversion_hash':kernel.kversion_hash})
+		if rows:
+			return rows[0][0]
+		else:
+			return None
 
 
-	def insert_kernel_version(self, base, patches):
-		self.insert('kversions', {'base': base})
+	def insert_kernel_version(self, kernel):
+		kver = self.lookup_kversion(kernel)
+		if kver:
+			return kver
+		self.insert('kversions', {'base':kernel.base,
+					  'kversion_hash':kernel.kversion_hash})
+		kver = self.lookup_kversion(kernel)
+		for patch in kernel.patches:
+			self.insert_patch(kver, patch)
+		return kver
+
+
+	def insert_patch(self, kver, patch):
+		print patch.reference
+		name = os.path.basename(patch.reference)[:80]
+		self.insert('patches', {'kversion': kver, 
+					'name':name,
+					'url':patch.reference, 
+					'hash':patch.hash})
 
 
 	def find_job(self, tag):

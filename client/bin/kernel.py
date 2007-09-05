@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
-import os,os.path,shutil,urllib,copy,pickle,re,glob
+import os,os.path,shutil,urllib,copy,pickle,re,glob,time
 from autotest_utils import *
 import kernel_config, test, os_dep
 
@@ -428,10 +428,52 @@ class kernel:
 			return arch
 
 
-	def boot(self, args='', once=True):
+	def get_kernel_build_release(self):
+		releasem = re.compile(r'.*UTS_RELEASE\s+"([^"]+)".*');
+		versionm = re.compile(r'.*UTS_VERSION\s+"([^"]+)".*');
+
+		release = None
+		version = None
+
+		for file in [ self.build_dir + "/include/linux/version.h",
+			      self.build_dir + "/include/linux/utsrelease.h",
+			      self.build_dir + "/include/linux/compile.h" ]:
+			if os.path.exists(file):
+				fd = open(file, 'r')
+				for line in fd.readlines():
+					m = releasem.match(line)
+					if m:
+						release = m.groups()[0]
+					m = versionm.match(line)
+					if m:
+						version = m.groups()[0]
+				fd.close()
+
+		return (release, version)
+
+	
+	def get_kernel_build_ident(self):
+		(release, version) = self.get_kernel_build_release()
+
+		if not release or not version:
+			raise JobError('kernel has no identity')
+
+		return release + '::' + version
+
+
+	def boot(self, args='', once=True, ident=1):
 		""" install and boot this kernel, do not care how
 		    just make it happen.
 		"""
+
+		# If we can check the kernel identity do so.
+		if ident:
+			when = int(time.time())
+			ident = self.get_kernel_build_ident()
+			args += " IDENT=%d" % (when)
+
+			self.job.next_step_prepend([kernel_check_ident,
+								when, ident])
 
 		# Install this kernel.
 		self.install()

@@ -17,9 +17,9 @@ machine VARCHAR(20)			-- machine name
 
 -- One entry per patch used, anywhere
 CREATE TABLE patches (
-kversion INTEGER PRIMARY KEY,		-- index number
-name VARCHAR(20),			-- short name
-url VARCHAR(200),			-- full URL
+kversion INTEGER,			-- index number
+name VARCHAR(80),			-- short name
+url VARCHAR(300),			-- full URL
 hash VARCHAR(35)
 );
 
