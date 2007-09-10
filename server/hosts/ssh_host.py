@@ -205,8 +205,9 @@ class SSHHost(base_classes.RemoteHost):
 			entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
 			processed_source.append(entry)
 
-		result= utils.run('ssh %s rsync -h' % self.hostname,
-			ignore_status=True)
+		result= utils.run('ssh -l %s %s rsync -h' % (self.user,
+							     self.hostname),
+				  ignore_status=True)
 
 		if result.exit_status == 0:
 			utils.run('rsync --rsh=ssh -avz %s %s@%s:"%s"' % (
