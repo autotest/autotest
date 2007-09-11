@@ -4,10 +4,20 @@ import os, time, sys
 from subprocess import *
 import tempfile
 
-if (len(sys.argv) < 4):
-	print "Usage: monitor_queue <client> <spool_directory> <resultsdir> [<conmux_server>]"
+if (len(sys.argv) < 3):
+	print "Usage: monitor_queue <spool_directory> <resultsdir> [<conmux_server>]"
 	sys.exit(1)
-(client, spooldir, resultsdir) = sys.argv[1:4]
+(spooldir, resultsdir) = [os.path.abspath(p) for p in sys.argv[1:3]]
+
+queue_name = os.path.basename(spooldir)
+dotmachines = os.path.join(spooldir, '.machines')
+if os.path.exists(dotmachines):
+	machines = [l.strip() for l in open(dotmachines).readlines() if len(l.strip())]
+else:
+	print "No .machines file in %s, assuming queue name \
+	is a machine" % queue_name
+	machines = [queue_name]
+
 if len(sys.argv) == 5:
 	console = sys.argv[4]
 else:
@@ -20,6 +30,37 @@ if not os.path.exists(resultsdir):
 	sys.exit(1)
 
 
+##### Control file templates #####
+SERV_MULTI = """# monitor_queue generated autoserv file (SERV_MULTI template)
+hosts = [hosts.ConmuxSSHHost(hostname, server=%s)
+		for hostname in machines]
+
+at = autotest.Autotest()
+
+control_path = %s
+results = %s
+
+def install_run(host):
+	at.install(host)
+	host_results = os.path.join(results, host.hostname)
+	at.run(control_path, host_results, host)
+
+parallel([subcommand(install_run, [host]) for host in hosts])"""
+
+
+SERV_SINGLE = """# monitor_queue generated autoserv file (SERV_SINGLE template)
+host = hosts.ConmuxSSHHost(machines[0], server=%s)
+		
+at = autotest.Autotest()
+
+control_path = %s
+results = %s
+
+at.install(host)
+at.run(control_path, results, host)"""
+
+##### End control file templates #####
+
 def pick_job(jobs):
 	"""Pick the next job to run. Currently we just pick the oldest job
 	However, this would be the place to put prioritizations."""
@@ -28,21 +69,16 @@ def pick_job(jobs):
 	return sorted(jobs, key=lambda x:os.stat(x).st_mtime, reverse=True)[0]
 
 
-def __create_autoserv_wrapper(control_path, results):
+def __create_autoserv_wrapper(template, control_path, results):
 	"""Create an autoserv file that runs an autotest file at
-	control_path on client and outputs the results in results."""
+	control_path on clients and outputs the results in results."""
 	# Create an autoserv control file to run this autotest control file
 	tmpfd, tmpname = tempfile.mkstemp()
 	tmp = os.fdopen(tmpfd, 'w')
-	if console:
-		print >> tmp, "host = hosts.ConmuxSSHHost('%s', \
-		server='%s')" % (client, console)
-	else:
-		print >> tmp, "host = hosts.ConmuxSSHHost('%s')" % client
-	print >> tmp, "at = autotest.Autotest()"
-	# TODO(stutsman): at.install(host) here?
-	print >> tmp, "at.run('%s', '%s', host)" % (control_path, results)
-	tmp.close()
+
+	print >> tmp, template % tuple([repr(s) for s in (console,
+							  control_path,
+							  results)])
 	return tmpname
 	
 
@@ -74,7 +110,15 @@ def run_job(control):
 	control_path = os.path.abspath(os.path.join(spooldir, control))
 	# Otherwise create a tmp autoserv file just to launch the AT ctl file
 	if not is_autoserv_ctl:
-		control_path = __create_autoserv_wrapper(control_path, results)
+		if len(machines) > 1:
+			# Run *AT* file on *all* machines in queue in *parallel*
+			template = SERV_MULTI
+		else:
+			# Run *AT* on *one* machine
+			template = SERV_SINGLE
+		control_path = __create_autoserv_wrapper(template,
+							 control_path,
+							 results)
 
 	# Now run the job
 	exedir = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -82,7 +126,13 @@ def run_job(control):
 						    '..',
 						    'server',
 						    'autoserv'))
-	autoserv_cmd = ' '.join([autoserv_exe, control_path])
+	autoserv_cmd = ' '.join([autoserv_exe,
+				 '-m',
+				 ','.join(machines),
+				 control_path])
+
+	print "Starting job: %s" % control
+	print autoserv_cmd
 	
 	autoserv_log = open(os.path.join(debug, 'server.log'), 'w');
 	p = Popen(autoserv_cmd, shell=True, stdout=autoserv_log, stderr=STDOUT)
@@ -108,8 +158,4 @@ while True:
 		time.sleep(10)
 		continue
 	ret = run_job(next_job)
-	if ret == 1:          # Ooops. the machine is stuffed.
-		print "WARNING: client %s failed verify_machine" % client
-		sleep(600)
-		continue
 	os.remove(next_job)
