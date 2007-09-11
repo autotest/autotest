@@ -210,7 +210,7 @@ class SSHHost(base_classes.RemoteHost):
 				  ignore_status=True)
 
 		if result.exit_status == 0:
-			utils.run('rsync --rsh=ssh -avz %s %s@%s:"%s"' % (
+			utils.run('rsync --rsh=ssh -az %s %s@%s:"%s"' % (
 				" ".join(processed_source), self.user,
 				self.hostname, utils.scp_remote_escape(dest)))
 		else:
