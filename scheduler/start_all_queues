@@ -26,6 +26,6 @@ for machine in os.listdir(queue_dir):
 	else:
 		console = ''
 
-	cmd = ' '.join([monitor_queue, machine, queue, results_dir, console])
+	cmd = ' '.join([monitor_queue, queue, results_dir, console])
 	print cmd
 	os.system("nohup %s > %s/.log 2>&1 &" % (cmd,queue))
