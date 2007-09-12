@@ -1,0 +1,59 @@
+#!/usr/bin/python
+import os, re, parse, sys
+
+db = db.db()
+
+machines = sys.argv[1:]
+kernels = select (kernel, printable) from kernels
+
+def print_machines_row(machines):
+	print "<tr>"
+	print "<th>Version</th>"
+	for machine in machines:
+		print "<th>%s</th>" % machine
+	print "</tr>"
+	print ""
+
+
+def print_kernel_machine(kernel_idx, machine):
+	status = None
+	tests = 'select * from tests where kernel = key'
+	# (test_idx, job_idx, test, subdir, status, reason) = test
+	for test in tests:
+		if not status or test.status < status:
+			status = test.status
+	html = ''
+	for test in tests:
+		html .= '%s %s' % (subdir, status)
+
+
+status_colour = {
+	'GOOD'  : '#66ff66', # green
+	'WARN'  : '#fffc00', # yellow
+	'FAIL'  : '#fff666', # red
+	'ABORT' : '#ff6666', # red
+}
+
+def print_colored_box(status, html):
+	print "<td bgcolor=%s>" % status ? status_colour[status] : '#ffffff'
+	print html
+	print "</td>"
+
+
+print '<table cellpadding=5 border=1 class="boldtable">'
+print_machines_row()
+
+for (kernel_idx, printable) in kernels:
+	print "<tr>"
+	print "<td>%s</td>" % printable
+	for machine in machines:
+		print_kernel_machine(kernel_idx, machine)
+	print "</tr>"
+	print ""
+
+print_machines_row()
+print "</table>"
+
+
+
+

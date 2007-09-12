@@ -1,9 +1,9 @@
 BEGIN TRANSACTION;
 
 -- kernel versions
-CREATE TABLE kversions (
-kversion INTEGER PRIMARY KEY,
-kversion_hash VARCHAR(35),		-- Hash of base + all patches
+CREATE TABLE kernels (
+kernel_idx INTEGER PRIMARY KEY,
+kernel_hash VARCHAR(35),		-- Hash of base + all patches
 base VARCHAR(30),			-- Base version without patches
 printable VARCHAR(100)			-- Full version with patches
 );
@@ -17,7 +17,7 @@ machine VARCHAR(20)			-- machine name
 
 -- One entry per patch used, anywhere
 CREATE TABLE patches (
-kversion INTEGER,			-- index number
+kernel_idx INTEGER,			-- index number
 name VARCHAR(80),			-- short name
 url VARCHAR(300),			-- full URL
 hash VARCHAR(35)
@@ -29,7 +29,7 @@ test_idx INTEGER PRIMARY KEY,		-- index number
 job_idx INTEGER,			-- ref to job table
 test VARCHAR(30),			-- name of test
 subdir VARCHAR(60),			-- subdirectory name
-kversion INTEGER,			-- kernel version test was AGAINST
+kernel_idx INTEGER,			-- kernel test was AGAINST
 status INTEGER,				-- test status
 reason VARCHAR(100)			-- reason for test status
 );
@@ -47,14 +47,6 @@ test_idx INTEGER,			-- ref to test table
 iteration INTEGER,			-- integer
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
 value FLOAT				-- attribute value (eg 700.1)
-);
-
--- test performance results
-CREATE TABLE results (
-job_idx INTEGER,			-- ref to job table
-test VARCHAR(30),			-- name of test
-subdir VARCHAR(60) PRIMARY KEY,		-- subdirectory name
-kversion INTEGER			-- kernel version test was AGAINST
 );
 
 -- status key

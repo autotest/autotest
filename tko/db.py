@@ -2,6 +2,8 @@ import sqlite, re, os
 
 class db:
 	def __init__(self):
+		if not os.path.exists('tko_db'):
+			os.system('sqlite tko_db < create_db')
 		self.con = sqlite.connect('tko_db')
 		self.cur = self.con.cursor()
 
@@ -54,9 +56,9 @@ class db:
 		self.insert('tests', data)
 
 
-	def lookup_kversion(self, kernel):
-		rows = self.select('kversion', 'kversions', 
-				{'kversion_hash':kernel.kversion_hash})
+	def lookup_kernel(self, kernel):
+		rows = self.select('kernel_idx', 'kernels', 
+				{'kernel_hash':kernel.kernel_hash})
 		if rows:
 			return rows[0][0]
 		else:
@@ -64,12 +66,14 @@ class db:
 
 
 	def insert_kernel_version(self, kernel):
-		kver = self.lookup_kversion(kernel)
+		kver = self.lookup_kernel(kernel)
 		if kver:
 			return kver
-		self.insert('kversions', {'base':kernel.base,
-					  'kversion_hash':kernel.kversion_hash})
-		kver = self.lookup_kversion(kernel)
+		self.insert('kernels', {'base':kernel.base,
+					  'kernel_hash':kernel.kernel_hash,
+					  'printable':kernel.base})
+		# WARNING - incorrectly shoving base into printable here.
+		kver = self.lookup_kernel(kernel)
 		for patch in kernel.patches:
 			self.insert_patch(kver, patch)
 		return kver
@@ -78,7 +82,7 @@ class db:
 	def insert_patch(self, kver, patch):
 		print patch.reference
 		name = os.path.basename(patch.reference)[:80]
-		self.insert('patches', {'kversion': kver, 
+		self.insert('patches', {'kernel_idx': kver, 
 					'name':name,
 					'url':patch.reference, 
 					'hash':patch.hash})
