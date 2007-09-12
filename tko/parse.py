@@ -70,7 +70,7 @@ class kernel:
 				print words
 				self.patches.append(patch(*words[0:]))
 				# patch_hashes.append(words[2])
-		self.kversion_hash = self.get_kver_hash(self.base, patch_hashes)
+		self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
 
 	def get_kver_hash(self, base, patch_hashes):
