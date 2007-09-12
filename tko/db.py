@@ -8,17 +8,18 @@ class db:
 		self.cur = self.con.cursor()
 
 
-	def select(self, fields, table, where_dict):
+	def select(self, fields, table, where):
 		"""\
 			select fields from table where {dictionary}
 		"""
-		keys = [field + '=%s' for field in where_dict.keys()]
-		values = [where_dict[field] for field in where_dict.keys()]
+		cmd = 'select %s from %s' % (fields, table)
 
-		where = 'and'.join(keys)
-		cmd = 'select %s from %s where %s' % (fields, table, where)
-		print cmd
-		print values
+		if where:
+			keys = [field + '=%s' for field in where.keys()]
+			values = [where[field] for field in where.keys()]
+
+			cmd = cmd + ' where ' + 'and'.join(keys)
+
 		self.cur.execute(cmd, values)
 		return self.cur.fetchall()
 
@@ -35,8 +36,7 @@ class db:
 		values = [data[field] for field in fields]
 		cmd = 'insert into %s (%s) values (%s)' % \
 				(table, ','.join(fields), ','.join(refs))
-		print cmd
-		print values
+
 		self.cur.execute(cmd, values)
 		self.con.commit()
 
