@@ -1,10 +1,10 @@
 #!/usr/bin/python
-import os, re, parse, sys
+import os, re, parse, sys, db
+from frontend import *
 
-db = db.db()
+db = db.db() # db.db(debug=True)
 
 machines = sys.argv[1:]
-kernels = select (kernel, printable) from kernels
 
 def print_machines_row(machines):
 	print "<tr>"
@@ -15,43 +15,48 @@ def print_machines_row(machines):
 	print ""
 
 
-def print_kernel_machine(kernel_idx, machine):
+def print_kernel_machine(kernel, machine):
 	status = None
-	tests = 'select * from tests where kernel = key'
-	# (test_idx, job_idx, test, subdir, status, reason) = test
-	for test in tests:
-		if not status or test.status < status:
-			status = test.status
-	html = ''
-	for test in tests:
-		html .= '%s %s' % (subdir, status)
+	tests = test.select(db, { 'kernel_idx' : kernel.idx ,
+				  'machine' : machine })
+	for t in tests:
+		if not status or t.status_num < status:
+			status = t.status_num
+	if status:
+		status_word = db.status_word[status]
+	else:
+		status_word = 'NOSTATUS'
+	lines = ['%s %s<br>' % (t.subdir, t.status_word) for t in tests]
+	print_colored_box(status_word, '\n'.join(lines))
 
 
 status_colour = {
-	'GOOD'  : '#66ff66', # green
-	'WARN'  : '#fffc00', # yellow
-	'FAIL'  : '#fff666', # red
-	'ABORT' : '#ff6666', # red
+	'GOOD'		: '#66ff66', # green
+	'WARN'		: '#fffc00', # yellow
+	'FAIL'		: '#fff666', # red
+	'ABORT'		: '#ff6666', # red
+	'ERROR'		: '#ff6666', # red
+	'NOSTATUS'	: '#ffffff', # white
 }
 
 def print_colored_box(status, html):
-	print "<td bgcolor=%s>" % status ? status_colour[status] : '#ffffff'
+	print "<td bgcolor=%s>" % status_colour[status]
 	print html
 	print "</td>"
 
 
 print '<table cellpadding=5 border=1 class="boldtable">'
-print_machines_row()
+print_machines_row(machines)
 
-for (kernel_idx, printable) in kernels:
+for kernel in kernel.select(db):
 	print "<tr>"
-	print "<td>%s</td>" % printable
+	print "<td>%s</td>" % kernel.printable
 	for machine in machines:
-		print_kernel_machine(kernel_idx, machine)
+		print_kernel_machine(kernel, machine)
 	print "</tr>"
 	print ""
 
-print_machines_row()
+print_machines_row(machines)
 print "</table>"
 
 

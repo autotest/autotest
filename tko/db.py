@@ -1,11 +1,36 @@
-import sqlite, re, os
+import sqlite, re, os, sys
 
 class db:
-	def __init__(self):
+	def __init__(self, debug = False):
+		self.debug = debug
 		if not os.path.exists('tko_db'):
 			os.system('sqlite tko_db < create_db')
 		self.con = sqlite.connect('tko_db')
 		self.cur = self.con.cursor()
+
+		# if not present, insert statuses
+		self.status_idx = {}
+		self.status_word = {}
+		for s in ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD']:
+			idx = self.get_status(s)
+			if not idx:
+				self.insert('status', {'word' : s})
+				idx = self.get_status(s)
+			self.status_idx[s] = idx
+			self.status_word[idx] = s
+		
+
+	def get_status(self, word):
+		rows = self.select('status_idx', 'status', {'word' : word})
+		if rows:
+			return rows[0][0]
+		else:
+			return None
+
+
+	def dprint(self, value):
+		if self.debug:
+			sys.stderr.write('SQL: ' + str(value) + '\n')
 
 
 	def select(self, fields, table, where):
@@ -13,13 +38,15 @@ class db:
 			select fields from table where {dictionary}
 		"""
 		cmd = 'select %s from %s' % (fields, table)
+		values = []
 
 		if where:
 			keys = [field + '=%s' for field in where.keys()]
 			values = [where[field] for field in where.keys()]
 
-			cmd = cmd + ' where ' + 'and'.join(keys)
+			cmd = cmd + ' where ' + ' and '.join(keys)
 
+		self.dprint('%s %s' % (cmd,values))
 		self.cur.execute(cmd, values)
 		return self.cur.fetchall()
 
@@ -37,22 +64,24 @@ class db:
 		cmd = 'insert into %s (%s) values (%s)' % \
 				(table, ','.join(fields), ','.join(refs))
 
+		self.dprint('%s %s' % (cmd,values))
 		self.cur.execute(cmd, values)
 		self.con.commit()
 
 
 	def insert_job(self, tag, job):
-		self.insert('jobs', {'tag':tag, 'machine':'UNKNOWN'})
+		self.insert('jobs', {'tag':tag, 'machine':job.machine})
 		job.index = self.find_job(tag)
 		for test in job.tests:
 			self.insert_test(job, test)
 
 
 	def insert_test(self, job, test):
-		kver = self.insert_kernel_version(test.kernel)
+		kver = self.insert_kernel(test.kernel)
 		data = {'job_idx':job.index, 'test':test.testname,
-			'subdir':test.dir, 
-			'status':test.status, 'reason':test.reason}
+			'subdir':test.dir, 'kernel_idx':kver,
+			'status':self.status_idx[test.status],
+			'reason':test.reason, 'machine':test.machine }
 		self.insert('tests', data)
 
 
@@ -65,7 +94,7 @@ class db:
 			return None
 
 
-	def insert_kernel_version(self, kernel):
+	def insert_kernel(self, kernel):
 		kver = self.lookup_kernel(kernel)
 		if kver:
 			return kver
