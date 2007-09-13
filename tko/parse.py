@@ -6,12 +6,6 @@ build_stock = re.compile('build generic stock (2\.\S+)')
 build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
 valid_kernel= re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+')
 
-statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD']
-status_num = {}
-for x in range(0, len(statuses)):
-	status_num[statuses[x]] = x
-
-
 def shorten_patch(long):
 	short = os.path.basename(long)
 	short = re.sub(r'^patch-', '', short)
@@ -27,10 +21,19 @@ class job:
 		self.type = type
 		self.control = os.path.join(dir, "control")
 		self.status = os.path.join(dir, "status")
-		self.machine = ''
 		self.variables = {}
 		self.tests = []
 		self.kernel = None
+
+		if not os.path.exists(self.status):
+			return None
+
+		# We should really replace this with sysinfo/hostname!
+		uname = os.path.join(dir, "sysinfo/uname_-a")
+		try:
+			self.machine = open(uname, 'r').readline().split()[1]
+		except:
+			return None
 
 		self.grope_status()
 
@@ -42,13 +45,12 @@ class job:
 		if os.path.exists(build):
 			self.kernel = kernel(build)
 
-		if not os.path.exists(self.status):
-			return
-
 		for line in open(self.status, 'r').readlines():
 			(status, testname, reason) = line.rstrip().split(' ', 2)
+			print 'GROPE_STATUS: ',
+			print (status, testname, reason)
 
-		self.tests.append(test(testname, status, reason, self.kernel))
+		self.tests.append(test(testname, status, reason, self.kernel, self))
 
 
 class kernel:
@@ -94,7 +96,7 @@ class patch:
 
 
 class test:
-	def __init__(self, dir, status, reason, kernel):
+	def __init__(self, dir, status, reason, kernel, job):
 		self.dir = dir
 		self.status = status
 		self.reason = reason
@@ -102,6 +104,7 @@ class test:
 		self.iterations = []
 		self.testname = re.sub(r'\..*', '', self.dir)
 		self.kernel = kernel
+		self.machine = job.machine
 
 		if not os.path.exists(self.keyval):
 			self.keyval = None

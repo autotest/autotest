@@ -12,7 +12,7 @@ printable VARCHAR(100)			-- Full version with patches
 CREATE TABLE jobs (
 job_idx INTEGER PRIMARY KEY,		-- index number
 tag VARCHAR(30),			-- job key
-machine VARCHAR(20)			-- machine name
+machine VARCHAR(80)			-- machine name
 );
 
 -- One entry per patch used, anywhere
@@ -31,7 +31,8 @@ test VARCHAR(30),			-- name of test
 subdir VARCHAR(60),			-- subdirectory name
 kernel_idx INTEGER,			-- kernel test was AGAINST
 status INTEGER,				-- test status
-reason VARCHAR(100)			-- reason for test status
+reason VARCHAR(100),			-- reason for test status
+machine VARCHAR(80)			-- machine name
 );
 
 -- test functional results
@@ -51,8 +52,8 @@ value FLOAT				-- attribute value (eg 700.1)
 
 -- status key
 CREATE TABLE status (
-status INTEGER PRIMARY KEY,		-- numerical status
-description VARCHAR(10)			-- status word
+status_idx INTEGER PRIMARY KEY,		-- numerical status
+word VARCHAR(10)			-- status word
 );
 
 COMMIT;
