@@ -8,13 +8,15 @@ topdir = sys.argv[1]
 jobs_list = os.listdir(topdir)
 
 jobs = {}
-db = db.db()
+db = db.db(True)
 
 for j in jobs_list:
 	print 'looking for ' + j
-	if db.find_job(j):
+	if db.find_job(j):              # Job has already been parsed
 		continue
 	job = parse.job(os.path.join(topdir, j), 'regression')
+	if not job:
+		continue
 	print 'parsed ' + j
 	if not job.kernel:
 		continue

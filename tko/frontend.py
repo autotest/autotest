@@ -1,51 +1,64 @@
 #!/usr/bin/python
 import os, re, db
 
-statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD']
-status_num = {}
-for x in range(0, len(statuses)):
-	status_num[statuses[x]] = x
-
-
-class job:
-	def __init__(self):
-		self.idx = None
-		self.tag = None
-		self.machine = None
-		self.tests = []
-
+# Pulling hierarchy:
+#
+# test pulls in (kernel, job, attributes, iterations)
+# kernel pulls in (patches)
+#
+# Note that job does put pull test - test is the primary object.
 
 class kernel:
-	fields = ['kernel_idx', 'kernel_hash', 'base', 'printable']
+	@classmethod
+	def select(klass, db, where = {}):
+		fields = ['kernel_idx', 'kernel_hash', 'base', 'printable']
+		kernels = []
+		for row in db.select(','.join(fields), 'kernels', where):
+			kernels.append(klass(db, *row))
+		return kernels
 
-	def __init__(self, db, where):
+
+	def __init__(self, db, idx, hash, base, printable):
 		self.db = db
-		self.base = None
-		self.patches = []
-
-		db.select(fields, kernels, 
-
-		
-class patch:
-	def __init__(self):
-		self.spec = spec
-		self.reference = reference
+		self.idx = idx
 		self.hash = hash
+		self.base = base
+		self.printable = printable
+		self.patches = []    # THIS SHOULD PULL IN PATCHES!
 
 
 class test:
-	def __init__(self, dir, status, reason, kernel):
-		self.dir = dir
-		self.status = status
+	@classmethod
+	def select(klass, db, where = {}):
+		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
+			  'kernel_idx', 'status', 'reason', 'machine']
+		tests = []
+		for row in db.select(','.join(fields), 'tests', where):
+			tests.append(klass(db, *row))
+		return tests
+
+
+	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine):
+		self.idx = test_idx
+		self.job = None 
+		# self.job = job.select(db, {'job_idx' : job_idx})
+		# self.machine = self.job.machine
+		self.test = testname
+		self.subdir = subdir
+		self.kernel = None
+		# self.kernel = kernel.select(db, {'kernel_idx' : kernel_idx})
+		self.status_num = status_num
+		self.status_word = db.status_word[status_num]
 		self.reason = reason
-		self.keyval = os.path.join(dir, 'results/keyval')
-		self.iterations = []
-		self.testname = re.sub(r'\..*', '', self.dir)
-		self.kernel = kernel
-
-
-class iteration:
-	def __init__(self, index, lines):
-		self.index = index
-		self.keyval = {}
-
+		
+ 
+ 
+# class patch:
+# 	def __init__(self):
+# 		self.spec = None
+# 
+# 
+# class iteration:
+# 	def __init__(self):
+# 		self.a = None
+# 
