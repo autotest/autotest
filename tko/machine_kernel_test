@@ -26,13 +26,18 @@ def print_kernel_machine(kernel, machine):
 		status_word = db.status_word[status]
 	else:
 		status_word = 'NOSTATUS'
-	# lines = ['%s %s<br>' % (t.subdir, t.status_word) for t in tests]
-	# print_colored_box(status_word, '\n'.join(lines))
-	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
-					(machine, kernel.printable)
-	html = '<a href="%s">%s</a>' % (link, status_word)
-	print_colored_box(status_word, html)
+	lines = ['%s %s<br>' % (t.subdir, t.status_word) for t in tests]
+	print_colored_box(status_word, '\n'.join(lines))
 
+
+status_colour = {
+	'GOOD'		: '#66ff66', # green
+	'WARN'		: '#fffc00', # yellow
+	'FAIL'		: '#fff666', # red
+	'ABORT'		: '#ff6666', # red
+	'ERROR'		: '#ff6666', # red
+	'NOSTATUS'	: '#ffffff', # white
+}
 
 def print_colored_box(status, html):
 	print "<td bgcolor=%s>" % status_colour[status]
@@ -53,5 +58,7 @@ for kernel in kernel.select(db):
 
 print_machines_row(machines)
 print "</table>"
+
+
 
 
