@@ -1,10 +1,12 @@
 #!/usr/bin/python
-import os, re, md5
+import os, re, md5, sys
 
 valid_users = r'(apw|mbligh|andyw|korgtest)'
 build_stock = re.compile('build generic stock (2\.\S+)')	
 build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
 valid_kernel= re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+')
+
+debug = True
 
 def shorten_patch(long):
 	short = os.path.basename(long)
@@ -13,6 +15,11 @@ def shorten_patch(long):
 	short = re.sub(r'\.patch$', '', short)
 	short = re.sub(r'\+', '_', short)
 	return short
+
+
+def dprint(info):
+	if debug:
+		sys.stderr.write(str(info) + '\n')
 
 
 class job:
@@ -47,10 +54,8 @@ class job:
 
 		for line in open(self.status, 'r').readlines():
 			(status, testname, reason) = line.rstrip().split(' ', 2)
-			print 'GROPE_STATUS: ',
-			print (status, testname, reason)
-
-		self.tests.append(test(testname, status, reason, self.kernel, self))
+			dprint('GROPE_STATUS: '+str((status, testname, reason)))
+			self.tests.append(test(testname, status, reason, self.kernel, self))
 
 
 class kernel:
