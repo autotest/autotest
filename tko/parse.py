@@ -77,6 +77,8 @@ class kernel:
 				print words
 				self.patches.append(patch(*words[0:]))
 				# patch_hashes.append(words[2])
+		if not self.base:
+			return None
 		self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
 

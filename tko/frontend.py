@@ -15,6 +15,7 @@ status_colour = {
 	'ABORT'         : '#ff6666', # red
 	'ERROR'         : '#ff6666', # red
 	'NOSTATUS'      : '#ffffff', # white
+	''		: '#ffffff', # white
 }
 
 class kernel:

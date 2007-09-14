@@ -1,11 +1,13 @@
 import sqlite, re, os, sys
 
+tko_db = '/home/mbligh/autotest/tko/tko_db'
+
 class db:
 	def __init__(self, debug = False):
 		self.debug = debug
-		if not os.path.exists('tko_db'):
+		if not os.path.exists(tko_db):
 			os.system('sqlite tko_db < create_db')
-		self.con = sqlite.connect('tko_db')
+		self.con = sqlite.connect(tko_db)
 		self.cur = self.con.cursor()
 
 		# if not present, insert statuses
