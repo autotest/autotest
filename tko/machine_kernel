@@ -1,57 +1,5 @@
 #!/usr/bin/python
 import os, re, parse, sys, db
-from frontend import *
+from display import *
 
-db = db.db() # db.db(debug=True)
-
-machines = sys.argv[1:]
-
-def print_machines_row(machines):
-	print "<tr>"
-	print "<th>Version</th>"
-	for machine in machines:
-		print "<th>%s</th>" % machine
-	print "</tr>"
-	print ""
-
-
-def print_kernel_machine(kernel, machine):
-	status = None
-	tests = test.select(db, { 'kernel_idx' : kernel.idx ,
-				  'machine' : machine })
-	for t in tests:
-		if not status or t.status_num < status:
-			status = t.status_num
-	if status:
-		status_word = db.status_word[status]
-	else:
-		status_word = 'NOSTATUS'
-	# lines = ['%s %s<br>' % (t.subdir, t.status_word) for t in tests]
-	# print_colored_box(status_word, '\n'.join(lines))
-	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
-					(machine, kernel.printable)
-	html = '<a href="%s">%s</a>' % (link, status_word)
-	print_colored_box(status_word, html)
-
-
-def print_colored_box(status, html):
-	print "<td bgcolor=%s>" % status_colour[status]
-	print html
-	print "</td>"
-
-
-print '<table cellpadding=5 border=1 class="boldtable">'
-print_machines_row(machines)
-
-for kernel in kernel.select(db):
-	print "<tr>"
-	print "<td>%s</td>" % kernel.printable
-	for machine in machines:
-		print_kernel_machine(kernel, machine)
-	print "</tr>"
-	print ""
-
-print_machines_row(machines)
-print "</table>"
-
-
+print_machine_vs_kernel(['cagg2', 'cagg4', 'cagg6'])
