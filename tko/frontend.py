@@ -11,7 +11,7 @@ import os, re, db
 status_colour = {
 	'GOOD'          : '#66ff66', # green
 	'WARN'          : '#fffc00', # yellow
-	'FAIL'          : '#fff666', # red
+	'FAIL'          : '#ff6666', # red
 	'ABORT'         : '#ff6666', # red
 	'ERROR'         : '#ff6666', # red
 	'NOSTATUS'      : '#ffffff', # white
