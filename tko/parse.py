@@ -71,15 +71,14 @@ class kernel:
 			print line
 			(type, rest) = line.split(': ', 1)
 			words = rest.split()
-			if type == 'BUILD VERSION':
+			if type == 'BASE':
 				self.base = words[0]
 			if type == 'PATCH':
 				print words
 				self.patches.append(patch(*words[0:]))
 				# patch_hashes.append(words[2])
-		if not self.base:
-			return None
-		self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
+		if self.base:
+			self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
 
 	def get_kver_hash(self, base, patch_hashes):
