@@ -114,7 +114,7 @@ class kernel:
 			self.job.record("GOOD " + name + \
 						" completed successfully\n")
 		except Exception, detail:
-			self.job.record("FAIL " + name + \
+			self.job.record("FAIL " + name + ' ' \
 						detail.__str__() + "\n")
 			raise
 		
