@@ -30,7 +30,7 @@ class kernel:
 
 	autodir = ''
 
-	def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir, leave = False):
+	def __init__(self, job, base_tree, subdir, tmp_dir, build_dir, leave = False):
 		"""Initialize the kernel build environment
 
 		job
@@ -41,8 +41,9 @@ class kernel:
 				2. A URL to a tarball
 				3. A local directory (will symlink it)
 				4. A shorthand expandable (eg '2.6.11-git3')
-		results_dir
-			Results directory (holds config/, debug/, results/)
+		subdir
+			subdir in the results directory (eg "build")
+			(holds config/, debug/, results/)
 		tmp_dir
 
 		leave
@@ -54,9 +55,10 @@ class kernel:
 		self.src_dir    = os.path.join(tmp_dir, 'src')
 		self.build_dir  = os.path.join(tmp_dir, build_dir)
 			# created by get_kernel_tree
-		self.config_dir = os.path.join(results_dir, 'config')
-		self.log_dir    = os.path.join(results_dir, 'debug')
-		self.results_dir = os.path.join(results_dir, 'results')
+		self.config_dir = os.path.join(subdir, 'config')
+		self.log_dir    = os.path.join(subdir, 'debug')
+		self.results_dir = os.path.join(subdir, 'results')
+		self.subdir	= os.path.basename(subdir)
 
 		if not leave:
 			if os.path.isdir(self.src_dir):
@@ -111,11 +113,10 @@ class kernel:
 	def __record(self, fn, name, *args, **dargs):
 		try:
 			fn(*args, **dargs)
-			self.job.record("GOOD " + name + \
-						" completed successfully\n")
+			self.job.record('GOOD', self.subdir, name)
 		except Exception, detail:
-			self.job.record("FAIL " + name + ' ' + \
-						detail.__str__() + "\n")
+			err = detail.__str__()
+			self.job.record('FAIL', self.subdir, name, err)
 			raise
 		
 
