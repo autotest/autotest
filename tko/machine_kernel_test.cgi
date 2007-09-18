@@ -3,6 +3,7 @@
 import cgi, cgitb, os, sys
 
 tko = '/home/mbligh/autotest/tko'
+html_root = 'http://test.kernel.org/google/'
 
 cgitb.enable()
 
@@ -20,5 +21,5 @@ if not form.has_key("machine") and form.has_key("kernel"):
 machine = form["machine"].value
 kernel_version = form["kernel"].value
 
-print_kernel_machines_vs_test([machine], kernel_version)
+print_kernel_machines_vs_test([machine], kernel_version, html_root)
 

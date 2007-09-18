@@ -18,6 +18,8 @@ status_colour = {
 	''		: '#ffffff', # white
 }
 
+html_root = 'http://test.kernel.org/google/'
+
 class kernel:
 	@classmethod
 	def select(klass, db, where = {}):
@@ -51,7 +53,7 @@ class test:
 	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine):
 		self.idx = test_idx
 		self.job = None 
-		# self.job = job.select(db, {'job_idx' : job_idx})
+		self.job = job(db, job_idx)
 		# self.machine = self.job.machine
 		self.test = testname
 		self.subdir = subdir
@@ -60,8 +62,17 @@ class test:
 		self.status_num = status_num
 		self.status_word = db.status_word[status_num]
 		self.reason = reason
+		self.url = html_root + self.job.tag + '/' + self.subdir
 		
- 
+
+class job:
+	def __init__(self, db, job_idx):
+		where = {'job_idx' : job_idx}
+		rows = db.select('tag, machine', 'jobs', where)
+		if not rows:
+			return None
+		(self.tag, self.machine) = rows[0]
+
  
 # class patch:
 # 	def __init__(self):

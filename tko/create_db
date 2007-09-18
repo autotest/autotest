@@ -11,7 +11,7 @@ printable VARCHAR(100)			-- Full version with patches
 -- main jobs table
 CREATE TABLE jobs (
 job_idx INTEGER PRIMARY KEY,		-- index number
-tag VARCHAR(30),			-- job key
+tag VARCHAR(100),			-- job key
 machine VARCHAR(80)			-- machine name
 );
 
