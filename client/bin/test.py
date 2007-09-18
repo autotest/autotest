@@ -63,7 +63,7 @@ class test:
 
 
 	def record(self, msg):
-		status = self.outputdir + "/status"
+		status = os.path.join(self.outputdir, 'status')
 		fd = file(status, "w")
 		fd.write(msg)
 		fd.close()

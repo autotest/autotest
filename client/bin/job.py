@@ -62,6 +62,8 @@ class job:
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
+				system('umount -f %s > /dev/null 2> /dev/null'%\
+					 	self.tmpdir, ignorestatus=True)
 				system('rm -rf ' + self.tmpdir)
 			os.mkdir(self.tmpdir)
 
@@ -213,24 +215,25 @@ class job:
 
 		if not url:
 			raise "Test name is invalid. Switched arguments?"
-		(group, name) = test.testname(url)
+		(group, testname) = test.testname(url)
 		tag = None
+		subdir = testname
 		if dargs.has_key('tag'):
 			tag = dargs['tag']
 			del dargs['tag']
 			if tag:
-				name += '.' + tag
+				subdir += '.' + tag
 		try:
 			try:
 				self.__runtest(url, tag, args, dargs)
 			except Exception, detail:
-				self.record("FAIL " + name + " " + \
-					detail.__str__() + "\n")
+				self.record('FAIL', subdir, testname, \
+							detail.__str__())
 
 				raise
 			else:
-				self.record("GOOD " + name + \
-					" completed successfully\n")
+				self.record('GOOD', subdir, testname, \
+						'completed successfully')
 		except TestError:
 			return 0
 		except:
@@ -253,14 +256,14 @@ class job:
 		old_record_prefix = self.record_prefix
 		try:
 			try:
-				self.record("START " + name)
+				self.record('START', None, name)
 				self.record_prefix += '\t'
 				function(*args)
 				self.record_prefix = old_record_prefix
-				self.record("END %s GOOD" % name)
+				self.record('END GOOD', None, name)
 			except:
 				self.record_prefix = old_record_prefix
-				self.record("END %s FAIL" % name)
+				self.record('END FAIL', None, name, format_error())
 		# We don't want to raise up an error higher if it's just
 		# a TestError - we want to carry on to other tests. Hence
 		# this outer try/except block.
@@ -372,19 +375,61 @@ from autotest_utils import *
 			exec("__cmd(*__args)", lcl, lcl)
 
 
-	def record(self, msg):
-		"""Record job-level status"""
+	def record(self, status_code, subdir, operation, status = ''):
+		"""
+		Record job-level status
 
-		msg = msg.rstrip()
+		The intent is to make this file both machine parseable and
+		human readable. That involves a little more complexity, but
+		really isn't all that bad ;-)
+
+		Format is <status code>\t<subdir>\t<operation>\t<status>
+
+		status code: (GOOD|WARN|FAIL|ABORT)
+			or   START
+			or   END (GOOD|WARN|FAIL|ABORT)
+
+		subdir: MUST be a relevant subdirectory in the results,
+		or None, which will be represented as '----'
+
+		operation: description of what you ran (e.g. "dbench", or
+						"mkfs -t foobar /dev/sda9")
+
+		status: error message or "completed sucessfully"
+
+		------------------------------------------------------------
+
+		Initial tabs indicate indent levels for grouping, and is
+		governed by self.record_prefix
+
+		multiline messages have secondary lines prefaced by a double
+		space ('  ')
+		"""
+
+		if not subdir:
+			subdir = '----'
+		if re.match(r'[\n\t]', subdir):
+			raise "Invalid character in subdir string"
+		
+		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
+								status_code):
+			raise "Invalid status code supplied: %s" % status_code
+		if re.match(r'[\n\t]', operation):
+			raise "Invalid character in operation string"
+		operation = operation.rstrip()
+		status = status.rstrip()
+		status = re.sub(r"\t", "  ", status)
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
-		msg = re.sub(r"\n", "\n" + self.record_prefix + "  ", msg)
-		msg = self.record_prefix + msg
+		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
+
+		msg = '%s%s\t%s\t%s\t%s' % (self.record_prefix, status_code, 
+						subdir, operation, status)
 
 		self.harness.test_status(msg)
 		print msg
-		status = self.resultdir + "/status"
-		file(status, "a").write(msg + "\n")
+		status_file = os.path.join(self.resultdir, 'status')
+		open(status_file, "a").write(msg + "\n")
 
 
 def runjob(control, cont = False, tag = "default", harness_type = ''):
@@ -425,7 +470,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob != None:
-			myjob.record("ABORT " + instance.args[0] + "\n")
+			myjob.record('ABORT', None, instance.args[0])
 			myjob.complete(1)
 
 	except:
