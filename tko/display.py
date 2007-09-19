@@ -1,8 +1,4 @@
-import os, re, parse, sys, db, frontend
-sys.path.insert(0, '/home/mbligh/autotest/client/bin')
-import kernel_versions
-
-db = db.db() # db.db(debug=True)
+import os, re, parse, sys, frontend
 
 color_map = {
 	'GOOD'		: '#66ff66', # green
@@ -60,46 +56,6 @@ def print_table(matrix):
 			element.display()
 		print '</tr>'
 	print '</table>'
-
-
-def kernel_machine_box(kernel, machine):
-	status = None
-	status_word = ''
-	tests = frontend.test.select(db, { 'kernel_idx' : kernel.idx ,
-					   'machine' : machine })
-	for t in tests:
-		if not status or t.status_num < status:
-			status = t.status_num
-			status_word = db.status_word[status]
-
-	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
-					(machine, kernel.idx)
-	if status_word:
-		html = '<a href="%s">%s</a>' % (link, status_word)
-	else:
-		html = None
-	return box(html, color_key = status_word)
-
-
-def kernel_encode(kernel):
-	return kernel_versions.version_encode(kernel.printable)
-
-
-def print_machines_vs_all_kernels(machines):
-	header_row = [ box(x, header=True) for x in ['Version'] + machines ] 
-
-	kernels = frontend.kernel.select(db)
-	kernels.sort(key = kernel_encode, reverse = True)
-
-	matrix = [header_row]
-	for kernel in kernels:
-		row = [box(kernel.printable)]
-		for machine in machines:
-			row.append(kernel_machine_box(kernel, machine))
-		matrix.append(row)
-	matrix.append(header_row)
-
-	print_table(matrix)
 
 
 def sort_tests(tests):
