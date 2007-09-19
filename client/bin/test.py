@@ -6,7 +6,6 @@
 #	__init__	initialise
 #	initialize	run once for each job
 #	setup		run once for each new version of the test installed
-#	record		record an entry in the status file
 #	run		run the test (wrapped by job.run_test())
 #
 # Data:
@@ -62,13 +61,6 @@ class test:
 		pass
 
 
-	def record(self, msg):
-		status = os.path.join(self.outputdir, 'status')
-		fd = file(status, "w")
-		fd.write(msg)
-		fd.close()
-
-
 	def __exec(self, args, dargs):
 		try:
 			self.job.stdout.tee_redirect(
@@ -93,13 +85,7 @@ class test:
 		dmesg = os.path.join(self.debugdir, 'dmesg')
 		try:
 			self.__exec(args, dargs)
-		except Exception, detail:
-			self.record("FAIL " + detail.__str__() + "\n")
-
-			system('dmesg -c > ' + dmesg, ignorestatus=1)
-			raise
-		else:
-			self.record("GOOD Completed Successfully\n")
+		finally:
 			system('dmesg -c > ' + dmesg, ignorestatus=1)
 
 
