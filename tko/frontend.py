@@ -8,16 +8,6 @@ import os, re, db
 #
 # Note that job does put pull test - test is the primary object.
 
-status_colour = {
-	'GOOD'          : '#66ff66', # green
-	'WARN'          : '#fffc00', # yellow
-	'FAIL'          : '#ff6666', # red
-	'ABORT'         : '#ff6666', # red
-	'ERROR'         : '#ff6666', # red
-	'NOSTATUS'      : '#ffffff', # white
-	''		: '#ffffff', # white
-}
-
 html_root = 'http://test.kernel.org/google/'
 
 class kernel:
