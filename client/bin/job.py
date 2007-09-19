@@ -406,10 +406,12 @@ from autotest_utils import *
 		space ('  ')
 		"""
 
-		if not subdir:
-			subdir = '----'
-		if re.match(r'[\n\t]', subdir):
-			raise "Invalid character in subdir string"
+		if subdir:
+			if re.match(r'[\n\t]', subdir):
+				raise "Invalid character in subdir string"
+			substr = subdir
+		else:
+			substr = '----'
 		
 		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
 								status_code):
@@ -423,13 +425,15 @@ from autotest_utils import *
 		# detect them in the status file to ensure it is parsable.
 		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
 
-		msg = '%s%s\t%s\t%s\t%s' % (self.record_prefix, status_code, 
-						subdir, operation, status)
+		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
 
 		self.harness.test_status(msg)
 		print msg
 		status_file = os.path.join(self.resultdir, 'status')
-		open(status_file, "a").write(msg + "\n")
+		open(status_file, "a").write(self.record_prefix + msg + "\n")
+		if subdir:
+			status_file = os.path.join(self.resultdir, subdir, 'status')
+			open(status_file, "a").write(msg + "\n")
 
 
 def runjob(control, cont = False, tag = "default", harness_type = ''):
