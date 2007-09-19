@@ -113,37 +113,3 @@ def sort_tests(tests):
 			tests.remove(test)
 	return results + sorted(tests)
 
-
-def print_kernel_machines_vs_test(machines, kernel_idx, html_root):
-	# first we have to get a list of all run tests across all machines
-	all_tests = []
-	results = {}         # will be a 2d hash [machine][testname]
-	for machine in machines:
-		where = { 'kernel_idx' : kernel_idx , 'machine' : machine }
-		tests = frontend.test.select(db, where)
-		test_dict = {}
-		for test in tests:
-			all_tests.append(test.subdir)
-			test_dict[test.subdir] = test
-		results[machine] = test_dict
-	test_list = sort_tests(all_tests)
-
-	kernel = frontend.kernel.select(db, {'kernel_idx' : kernel_idx })[0]
-	print '<h1>%s</h1>' % kernel.printable
-
-	header_row = [ box(re.sub(r'kernel.', r'kernel<br>', x), header=True)
-				for x in ['Version'] + test_list ]
-	matrix = [header_row]
-
-	for machine in machines:
-		row = [box(machine)]
-		for testname in test_list:
-			test = results[machine][testname]
-			html = '<a href="%s">%s</a>' % \
-						(test.url, test.status_word)
-			row.append(box(html, color_key = test.status_word))
-		matrix.append(row)
-	matrix.append(header_row)
-
-	print_table(matrix)
-
