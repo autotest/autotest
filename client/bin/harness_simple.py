@@ -34,7 +34,7 @@ class harness_simple(harness.harness):
 
 	def run_start(self):
 		"""A run within this job is starting"""
-		self.__send("STATUS GOOD ---- run starting")
+		self.__send("STATUS\tGOOD\t----\trun starting")
 
 
 	def run_reboot(self):
@@ -50,13 +50,13 @@ class harness_simple(harness.harness):
 
 	def run_abort(self):
 		"""A run within this job is aborting. It all went wrong"""
-		self.__send("STATUS ABORT ---- run aborted")
+		self.__send("STATUS\tABORT\t----\trun aborted")
 		self.__send("DONE")
 
 
 	def run_complete(self):
 		"""A run within this job is completing (all done)"""
-		self.__send("STATUS GOOD ---- run complete")
+		self.__send("STATUS\tGOOD\t----\trun complete")
 		self.__send("DONE")
 
 
@@ -65,4 +65,4 @@ class harness_simple(harness.harness):
 
 		# Send the first line with the status code as a STATUS message.
 		lines = status.split("\n")
-		self.__send("STATUS ---- " + lines[0])
+		self.__send("STATUS\t" + lines[0])
