@@ -8,7 +8,7 @@ topdir = sys.argv[1]
 jobs_list = os.listdir(topdir)
 
 jobs = {}
-db = db.db(True)
+db = db.db()
 
 for j in jobs_list:
 	print 'looking for ' + j
@@ -22,5 +22,5 @@ for j in jobs_list:
 		continue
 	print '%s %s' % (j, job.kernel.base)
 	for test in job.tests:
-		print "\t%s %s %s" % (test.dir, test.status, test.reason)
+		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
 	db.insert_job(j, job)

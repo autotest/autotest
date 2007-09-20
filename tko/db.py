@@ -81,10 +81,19 @@ class db:
 	def insert_test(self, job, test):
 		kver = self.insert_kernel(test.kernel)
 		data = {'job_idx':job.index, 'test':test.testname,
-			'subdir':test.dir, 'kernel_idx':kver,
+			'subdir':test.subdir, 'kernel_idx':kver,
 			'status':self.status_idx[test.status],
 			'reason':test.reason, 'machine':test.machine }
 		self.insert('tests', data)
+		test_idx = self.find_test(job.index, test.subdir)
+		data = { 'test_idx':test_idx }
+
+		for i in test.iterations:
+			data['iteration'] = i.index
+			for key in i.keyval:
+				data['attribute'] = key
+				data['value'] = i.keyval[key]
+				self.insert('iteration_result', data)
 
 
 	def lookup_kernel(self, kernel):
@@ -117,6 +126,14 @@ class db:
 					'name':name,
 					'url':patch.reference, 
 					'hash':patch.hash})
+
+	def find_test(self, job_idx, subdir):
+		where = { 'job_idx':job_idx , 'subdir':subdir }
+		rows = self.select('test_idx', 'tests', where)
+		if rows:
+			return rows[0][0]
+		else:
+			return None
 
 
 	def find_job(self, tag):
