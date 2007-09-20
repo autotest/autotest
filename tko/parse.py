@@ -102,27 +102,27 @@ class patch:
 
 
 class test:
-	def __init__(self, dir, status, reason, kernel, job):
-		self.dir = dir
+	def __init__(self, subdir, status, reason, kernel, job):
+		self.subdir = subdir
 		self.status = status
 		self.reason = reason
-		self.keyval = os.path.join(dir, 'results/keyval')
+		self.keyval = os.path.join(job.dir, subdir, 'results/keyval')
 		self.iterations = []
-		self.testname = re.sub(r'\..*', '', self.dir)
+		self.testname = re.sub(r'\..*', '', self.subdir)
 		self.kernel = kernel
 		self.machine = job.machine
 
+		dprint("PARSING TEST %s %s" % (subdir,self.keyval))
 		if not os.path.exists(self.keyval):
 			self.keyval = None
 			return
 		count = 1
 		lines = []
 		for line in open(self.keyval, 'r').readlines():
-			if not re.search('\S'):			# blank line
+			if not re.search('\S', line):		# blank line
 				self.iterations.append(iteration(count, lines))
 				lines = []
 				count += 1
-				next
 			else:
 				lines.append(line)
 		if lines:
@@ -134,6 +134,7 @@ class iteration:
 		self.index = index
 		self.keyval = {}
 
+		dprint("ADDING ITERATION %d" % index)
 		for line in lines:
 			(key, value) = line.split('=', 1)
 			self.keyval[key] = value
