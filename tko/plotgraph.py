@@ -7,33 +7,53 @@ but probably adaptable.
 """
 
 import subprocess, sys, os
+from math import sqrt
 Popen = subprocess.Popen
 
+def avg_dev(values):
+	if len(values) == 0:
+		return (0,0)
+	average = sum(values) / len(values)
+	sum_sq_dev = sum( [(x - average) ** 2 for x in values] )
+        std_dev = sqrt(sum_sq_dev / float(len(values)));
+        return (average, std_dev);
+
+
 class gnuplot:
-	def __init__(self, title, xlabel, ylabel):
+	def __init__(self, title, xlabel, ylabel, xsort = sorted):
 		self.title = title
 		self.xlabel = xlabel
 		self.ylabel = ylabel
 		self.data_titles = []
 		self.datasets = []
+		self.xsort = xsort
+		self.xvalues = set([])
 
 
-	def set_xlabels(self, labels):
+	def xtics(self):
 		count = 1
-		self.xtics = []
-		for label in labels:
-			self.xtics.append('"%s" %d' % (label, count))
+		tics = []
+		for label in self.xsort(self.xlabels):
+			tics.append('"%s" %d' % (label, count))
 			count += 1
+		return tics
 
 
-	def add_dataset(self, title, values):
+	def add_dataset(self, title, labeled_values):
 		"""
 		Add a data line
 
-		For yerrorbars, values should be "<value> <error>" as a string
+		title: title of the dataset
+		labeled_values: dictionary of lists
+				{ label : [value1, value2, ... ] , ... }
 		"""
 		self.data_titles.append(title)
-		self.datasets.append(values)
+		data_points = {}
+		for label in labeled_values:
+			point = "%s %s" % avg_dev(labeled_values[label])
+			data_points[label] = point
+			self.xvalues.add(label)
+		self.datasets.append(data_points)
 
 
 	def plot(self, cgi_header = False, output = None, test = None):
@@ -55,16 +75,19 @@ class gnuplot:
 		g.write('set style data yerrorlines\n')
 		g.write('set grid\n')
 
-		g.write('set xtics rotate (%s)\n' % ','.join(self.xtics))
+		self.xlabels = self.xsort(list(self.xvalues))
+		g.write('set xtics rotate (%s)\n' % ','.join(self.xtics()))
 
 		plot_lines = ['"-" title "%s"' % t for t in self.data_titles]
 		g.write('plot ' + ', '.join(plot_lines) + '\n')
 
 		for dataset in self.datasets:
 			count = 1
-			for data in dataset:
+			for label in self.xlabels:
+				data = dataset[label]
 				g.write("%d %s\n" % (count, str(data)))
 				count += 1
+			sys.stdout.flush()
 			g.write('e\n')
 
 		g.close()

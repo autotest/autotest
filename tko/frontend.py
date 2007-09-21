@@ -42,18 +42,24 @@ class test:
 
 	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine):
 		self.idx = test_idx
-		self.job = None 
 		self.job = job(db, job_idx)
 		# self.machine = self.job.machine
 		self.test = testname
 		self.subdir = subdir
-		self.kernel = None
-		# self.kernel = kernel.select(db, {'kernel_idx' : kernel_idx})
+		self.kernel = kernel.select(db, {'kernel_idx' : kernel_idx})[0]
 		self.status_num = status_num
 		self.status_word = db.status_word[status_num]
 		self.reason = reason
 		self.url = html_root + self.job.tag + '/' + self.subdir
-		
+
+		self.iterations = {}
+		# Create a dictionary - dict{key} = [value1, value2, ....]
+		for i in iteration.select(db, {'test_idx' : test_idx}):
+			if self.iterations.has_key(i.key):
+				self.iterations[i.key].append(i.value)
+			else:
+				self.iterations[i.key] = [i.value]
+				
 
 class job:
 	def __init__(self, db, job_idx):
@@ -64,12 +70,22 @@ class job:
 		(self.tag, self.machine) = rows[0]
 
  
+class iteration:
+	@classmethod
+	def select(klass, db, where):
+		fields = ['iteration', 'attribute', 'value']
+		iterations = []
+		rows = db.select(','.join(fields), 'iteration_result', where)
+		for row in rows:
+			iterations.append(klass(*row))
+		return iterations
+
+
+	def __init__(self, iteration, key, value):
+ 		self.iteration = iteration
+		self.key = key
+		self.value = value
+
 # class patch:
 # 	def __init__(self):
 # 		self.spec = None
-# 
-# 
-# class iteration:
-# 	def __init__(self):
-# 		self.a = None
-# 
