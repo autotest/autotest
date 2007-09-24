@@ -1,0 +1,5 @@
+To generate data:
+
+./parse <data directory>
+
+This should create "tko_db"
