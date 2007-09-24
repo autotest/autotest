@@ -3,3 +3,12 @@ To generate data:
 ./parse <data directory>
 
 This should create "tko_db"
+
+SOME THINGS ARE STILL HACKY ^W IN DEVELOPMENT
+
+There are two separate sets of code. The backend creates the database.
+parse, parse.py
+
+The frontend parses the data for display: display.py, frontend.py, *.cgi
+
+db.py is shared.
