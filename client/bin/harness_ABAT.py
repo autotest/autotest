@@ -71,7 +71,7 @@ class harness_ABAT(harness.harness):
 			for line in fd.readlines():
 				words = line.split(' ')
 				if words[0] != 'rootfs' and words[1] == '/':
-					return words[0]
+					return os.path.realpath(words[0])
 			return None
 		finally:
 			fd.close()
