@@ -18,6 +18,15 @@ You could connect to the db if you wanted to:
 
 $ mysql -u bob -pa_password mysql
 
+Now, so that you can access the database from db.py, you need to create
+a .login file with two lines
+
+bob
+a_password
+
+NOW CHMOD THIS FILE SO ONLY YOU CAN READ IT!
+
+$ chmod 600 .login
 
 --------------------------------------------------
 
