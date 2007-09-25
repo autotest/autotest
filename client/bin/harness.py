@@ -70,6 +70,11 @@ class harness:
 		pass
 
 
+	def test_status_detail(self, code, subdir, operation, status):
+		"""A test within this job is completing (detail)"""
+		pass
+
+
 def select(which, job):
 	if not which:
 		which = 'standalone'
