@@ -1,21 +1,23 @@
-BEGIN TRANSACTION;
 
 -- kernel versions
+DROP TABLE IF EXISTS kernels;
 CREATE TABLE kernels (
-kernel_idx INTEGER PRIMARY KEY,
+kernel_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,
 kernel_hash VARCHAR(35),		-- Hash of base + all patches
 base VARCHAR(30),			-- Base version without patches
 printable VARCHAR(100)			-- Full version with patches
 );
 
 -- main jobs table
+DROP TABLE IF EXISTS jobs;
 CREATE TABLE jobs (
-job_idx INTEGER PRIMARY KEY,		-- index number
+job_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,		-- index number
 tag VARCHAR(100),			-- job key
 machine VARCHAR(80)			-- machine name
 );
 
 -- One entry per patch used, anywhere
+DROP TABLE IF EXISTS patches;
 CREATE TABLE patches (
 kernel_idx INTEGER,			-- index number
 name VARCHAR(80),			-- short name
@@ -24,8 +26,9 @@ hash VARCHAR(35)
 );
 
 -- test functional results
+DROP TABLE IF EXISTS tests;
 CREATE TABLE tests (
-test_idx INTEGER PRIMARY KEY,		-- index number
+test_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,		-- index number
 job_idx INTEGER,			-- ref to job table
 test VARCHAR(30),			-- name of test
 subdir VARCHAR(60),			-- subdirectory name
@@ -36,6 +39,7 @@ machine VARCHAR(80)			-- machine name
 );
 
 -- test functional results
+DROP TABLE IF EXISTS test_attributes;
 CREATE TABLE test_attributes (
 test_idx INTEGER,			-- ref to test table
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
@@ -43,6 +47,7 @@ value VARCHAR(100)			-- attribute value
 );
 
 -- test functional results
+DROP TABLE IF EXISTS iteration_result;
 CREATE TABLE iteration_result(
 test_idx INTEGER,			-- ref to test table
 iteration INTEGER,			-- integer
@@ -51,9 +56,8 @@ value FLOAT				-- attribute value (eg 700.1)
 );
 
 -- status key
+DROP TABLE IF EXISTS status;
 CREATE TABLE status (
-status_idx INTEGER PRIMARY KEY,		-- numerical status
+status_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY ,		-- numerical status
 word VARCHAR(10)			-- status word
 );
-
-COMMIT;
