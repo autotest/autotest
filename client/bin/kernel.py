@@ -299,10 +299,12 @@ class kernel:
 			print "Existing %s file, will remove it." % initrd
 			os.remove(initrd)
 
+		args = self.job.config_get('kernel.mkinitrd_extra_args')
+
 		if vendor in ['Red Hat', 'Fedora Core']:
-			system('mkinitrd %s %s' % (initrd, version))
+			system('mkinitrd %s %s %s' % (args, initrd, version))
 		elif vendor in ['SUSE']:
-			system('mkinitrd -k %s -i %s -M %s' % (image, initrd, system_map))
+			system('mkinitrd %s -k %s -i %s -M %s' % (args, image, initrd, system_map))
 		elif vendor in ['Debian', 'Ubuntu']:
 			if os.path.isfile('/usr/sbin/mkinitrd'):
 				cmd = '/usr/sbin/mkinitrd'
@@ -310,7 +312,7 @@ class kernel:
 				cmd = '/usr/sbin/mkinitramfs'
 			else:
 				raise TestError('No Debian initrd builder')
-			system('%s -o %s %s' % (cmd, initrd, version))
+			system('%s %s -o %s %s' % (cmd, args, initrd, version))
 		else:
 			raise TestError('Unsupported vendor %s' % vendor)
 
