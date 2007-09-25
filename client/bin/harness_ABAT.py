@@ -65,6 +65,11 @@ class harness_ABAT(harness.harness):
 			self.status.flush()
 
 
+	def __send_status(self, code, subdir, operation, msg):
+		self.__send("STATUS %s %s %s %s" % \
+					(code, subdir, operation, msg))
+
+
 	def __root_device(self):
 		fd = open("/proc/mounts", "r")
 		try: 
@@ -79,7 +84,7 @@ class harness_ABAT(harness.harness):
 
 	def run_start(self):
 		"""A run within this job is starting"""
-		self.__send("STATUS\tGOOD\t----\trun starting")
+		self.__send_status('GOOD', '----', '----', 'run starting')
 
 		# Load up the autobench.conf if it exists.
 		conf = autobench_load("/etc/autobench.conf")
@@ -130,22 +135,25 @@ class harness_ABAT(harness.harness):
 
 	def run_abort(self):
 		"""A run within this job is aborting. It all went wrong"""
-		self.__send("STATUS\tABORT\t----\trun aborted")
+		self.__send_status('ABORT', '----', '----', 'run aborted')
 		self.__send("DONE")
 
 
 	def run_complete(self):
 		"""A run within this job is completing (all done)"""
-		self.__send("STATUS\tGOOD\t----\trun complete")
+		self.__send_status('GOOD', '----', '----', 'run complete')
 		self.__send("DONE")
 
 
-	def test_status(self, status):
-		"""A test within this job is completing"""
+	def test_status_detail(self, code, subdir, operation, msg):
+		"""A test within this job is completing (detail)"""
 
 		# Send the first line with the status code as a STATUS message.
+		lines = msg.split("\n")
+		self.__send_status(code, subdir, operation, lines[0])
+
+		status = "%s %s %s %s" % (code, subdir, operation, msg)
 		lines = status.split("\n")
-		self.__send("STATUS\t" + lines[0])
 
 		# Send each line as a SUMMARY message.
 		for line in lines:

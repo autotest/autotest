@@ -434,6 +434,8 @@ from autotest_utils import *
 
 		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
 
+		self.harness.test_status_detail(status_code, substr,
+							operation, status)
 		self.harness.test_status(msg)
 		print msg
 		status_file = os.path.join(self.resultdir, 'status')
