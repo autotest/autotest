@@ -54,11 +54,11 @@ class job:
 				An alternative server harness
 		"""
 		self.autodir = os.environ['AUTODIR']
-		self.bindir = self.autodir + '/bin'
-		self.testdir = self.autodir + '/tests'
-		self.profdir = self.autodir + '/profilers'
-		self.tmpdir = self.autodir + '/tmp'
-		self.resultdir = self.autodir + '/results/' + jobtag
+		self.bindir = os.path.join(self.autodir, 'bin')
+		self.testdir = os.path.join(self.autodir, 'tests')
+		self.profdir = os.path.join(self.autodir, 'profilers')
+		self.tmpdir = os.path.join(self.autodir, 'tmp')
+		self.resultdir = os.path.join(self.autodir, 'results', jobtag)
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
@@ -67,8 +67,9 @@ class job:
 				system('rm -rf ' + self.tmpdir)
 			os.mkdir(self.tmpdir)
 
-			if not os.path.exists(self.autodir + '/results'):
-				os.mkdir(self.autodir + '/results')
+			results = os.path.join(self.autodir, 'results')
+			if not os.path.exists(results):
+				os.mkdir(results)
 				
 			download = os.path.join(self.testdir, 'download')
 			if os.path.exists(download):
@@ -79,10 +80,11 @@ class job:
 				system('rm -rf ' + self.resultdir)
 			os.mkdir(self.resultdir)
 
-			os.mkdir(self.resultdir + "/debug")
-			os.mkdir(self.resultdir + "/analysis")
-			os.mkdir(self.resultdir + "/sysinfo")
-			shutil.copyfile(control, self.resultdir + "/control")
+			os.mkdir(os.path.join(self.resultdir, 'debug'))
+			os.mkdir(os.path.join(self.resultdir, 'analysis'))
+			os.mkdir(os.path.join(self.resultdir, 'sysinfo'))
+
+			shutil.copyfile(control, os.path.join(self.resultdir, 'control'))
 
 		self.control = control
 		self.jobtab = jobtag
@@ -104,8 +106,8 @@ class job:
 			pass
 
 		pwd = os.getcwd()
-		os.chdir(self.resultdir + "/sysinfo")
-		system(self.bindir + '/sysinfo.py')
+		os.chdir(os.path.join(self.resultdir, 'sysinfo'))
+		system(os.path.join(self.bindir, 'sysinfo.py'))
 		system('dmesg -c > dmesg', ignorestatus=1)
 		os.chdir(pwd)
 
@@ -137,7 +139,7 @@ class job:
 
 	def setup_dirs(self, results_dir, tmp_dir):
 		if not tmp_dir:
-			tmp_dir = self.tmpdir + '/build'
+			tmp_dir = os.path.join(self.tmpdir, 'build')
 		if not os.path.exists(tmp_dir):
 			os.mkdir(tmp_dir)
 		if not os.path.isdir(tmp_dir):
@@ -188,7 +190,7 @@ class job:
 		"""
 		for dep in deps: 
 			try: 
-				os.chdir(self.autodir + '/deps/' + dep)
+				os.chdir(os.path.join(self.autodir, 'deps', dep))
 				system('./' + dep + '.py')
 			except: 
 				error = "setting up dependency " + dep + "\n"
