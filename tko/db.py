@@ -1,13 +1,15 @@
-import sqlite, re, os, sys
+import MySQLdb, re, os, sys
 
-tko_db = '/home/mbligh/autotest/tko/tko_db'
+tko_host = ''
+tko_user = ''
+tko_passwd = ''
+tko_db = 'tko'
 
 class db:
 	def __init__(self, debug = False):
 		self.debug = debug
-		if not os.path.exists(tko_db):
-			os.system('sqlite tko_db < create_db')
-		self.con = sqlite.connect(tko_db)
+		self.con = MySQLdb.connect(host=tko_host, user=tko_user,
+                                           passwd=tko_passwd, db=tko_db)
 		self.cur = self.con.cursor()
 
 		# if not present, insert statuses
