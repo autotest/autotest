@@ -1,15 +1,19 @@
 import MySQLdb, re, os, sys
 
-tko_host = ''
-tko_user = ''
-tko_passwd = ''
-tko_db = 'tko'
-
 class db:
-	def __init__(self, debug = False):
+	def __init__(self, database='tko', host='localhost', debug = False):
 		self.debug = debug
-		self.con = MySQLdb.connect(host=tko_host, user=tko_user,
-                                           passwd=tko_passwd, db=tko_db)
+		
+		try:
+			login = open('.login', 'r')
+			user = login.readline().rstrip()
+			password = login.readline().rstrip()
+		except:
+			user = 'nobody'
+			password = ''
+
+		self.con = MySQLdb.connect(host=host, user=user,
+                                           passwd=password, db=database)
 		self.cur = self.con.cursor()
 
 		# if not present, insert statuses
