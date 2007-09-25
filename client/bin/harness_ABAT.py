@@ -11,6 +11,7 @@ import os, harness, time, re
 def autobench_load(fn):
 	disks = re.compile(r'^\s*DATS_FREE_DISKS\s*=(.*\S)\s*$')
 	parts = re.compile(r'^\s*DATS_FREE_PARTITIONS\s*=(.*\S)\s*$')
+	modules = re.compile(r'^\s*INITRD_MODULES\s*=(.*\S)\s*$')
 
 	conf = {}
 
@@ -27,6 +28,10 @@ def autobench_load(fn):
 		if m:
 			val = m.groups()[0]
 			conf['partitions'] = val.strip('"').split()
+		m = modules.match(ln)
+		if m:
+			val = m.groups()[0]
+			conf['modules'] = val.strip('"').split()
 	fd.close()
 
 	return conf
@@ -100,6 +105,15 @@ class harness_ABAT(harness.harness):
 			args += " root=" + self.__root_device()
 
 			self.job.config_set('boot.default_args', args)
+
+		# For RedHat installs we do not load up the module.conf
+		# as they cannot be builtin.  Pass them as arguments.
+		vendor = get_os_vendor()
+		if vendor in ['Red Hat', 'Fedora Core'] and 'modules' in conf:
+			args = '--allow-missing'
+			for mod in conf['modules']:
+				args += " --with " + mod
+			self.job.config_set('kernel.mkinitrd_extra_args', args)
 
 
 	def run_reboot(self):
