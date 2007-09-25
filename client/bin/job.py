@@ -70,6 +70,11 @@ class job:
 			if not os.path.exists(self.autodir + '/results'):
 				os.mkdir(self.autodir + '/results')
 				
+			download = os.path.join(self.testdir, 'download')
+			if os.path.exists(download):
+				system('rm -rf ' + download)
+			os.mkdir(download)
+				
 			if os.path.exists(self.resultdir):
 				system('rm -rf ' + self.resultdir)
 			os.mkdir(self.resultdir)
