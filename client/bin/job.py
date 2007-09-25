@@ -280,6 +280,44 @@ class job:
 			raise TestError(name + ' failed\n' + format_error())
 
 
+	# Check the passed kernel identifier against the command line
+	# and the running kernel, abort the job on missmatch.
+	def kernel_check_ident(self, expected_when, expected_id, subdir):
+		print "POST BOOT: checking booted kernel mark=%d identity='%s'" \
+			% (expected_when, expected_id)
+
+		running_id = running_os_ident()
+
+		cmdline = read_one_line("/proc/cmdline")
+
+		find_sum = re.compile(r'.*IDENT=(\d+)')
+		m = find_sum.match(cmdline)
+		cmdline_when = -1
+		if m:
+			cmdline_when = int(m.groups()[0])
+
+		# We have all the facts, see if they indicate we
+		# booted the requested kernel or not.
+		bad = False
+		if expected_id != running_id:
+			print "check_kernel_ident: kernel identifier mismatch"
+			bad = True
+		if expected_when != cmdline_when:
+			print "check_kernel_ident: kernel command line mismatch"
+			bad = True
+
+		if bad:
+			print "   Expected Ident: " + expected_id
+			print "    Running Ident: " + running_id
+			print "    Expected Mark: %d" % (expected_when)
+			print "Command Line Mark: %d" % (cmdline_when)
+			print "     Command Line: " + cmdline
+
+			raise JobError("boot failure")
+
+		self.record('GOOD', subdir, 'boot', 'boot successful')
+
+
 	def filesystem(self, device, mountpoint = None, loop_size = 0):
 		if not mountpoint:
 			mountpoint = self.tmpdir
@@ -334,14 +372,16 @@ class job:
 	steps = []
 	def next_step(self, step):
 		"""Define the next step"""
-		step[0] = step[0].__name__
+		if not isinstance(step[0], basestring):
+			step[0] = step[0].__name__
 		self.steps.append(step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
 
 	def next_step_prepend(self, step):
 		"""Insert a new step, executing first"""
-		step[0] = step[0].__name__
+		if not isinstance(step[0], basestring):
+			step[0] = step[0].__name__
 		self.steps.insert(0, step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
@@ -376,10 +416,8 @@ from autotest_utils import *
 			pickle.dump(self.steps, open(state, 'w'))
 
 			cmd = step.pop(0)
-			cmd = lcl[cmd]
-			lcl['__cmd'] = cmd
 			lcl['__args'] = step
-			exec("__cmd(*__args)", lcl, lcl)
+			exec(cmd + "(*__args)", lcl, lcl)
 
 
 	def record(self, status_code, subdir, operation, status = ''):
