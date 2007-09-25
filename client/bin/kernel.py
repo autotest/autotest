@@ -475,8 +475,8 @@ class kernel:
 			ident = self.get_kernel_build_ident()
 			args += " IDENT=%d" % (when)
 
-			self.job.next_step_prepend([kernel_check_ident,
-								when, ident])
+			self.job.next_step_prepend(["job.kernel_check_ident",
+						when, ident, self.subdir])
 
 		# Install this kernel.
 		self.install()
