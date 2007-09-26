@@ -46,16 +46,60 @@ class job:
 
 
 	def grope_status(self):
+		dprint('=====================================================')
+		dprint(self.dir)
+		dprint('=====================================================')
 		# HACK. we don't have proper build tags in the status file yet
 		# so we hardcode build/ and do it at the start of the job
 		build = os.path.join(self.dir, 'build')
 		if os.path.exists(build):
 			self.kernel = kernel(build)
 
+		# NOTE: currently we don't cope with nested START / END blocks
+		group_subdir = None
 		for line in open(self.status, 'r').readlines():
-			(status, testname, reason) = line.rstrip().split(' ', 2)
-			dprint('GROPE_STATUS: '+str((status, testname, reason)))
-			self.tests.append(test(testname, status, reason, self.kernel, self))
+			dprint('STATUS: ' + line.rstrip())
+			if not re.match(r'\t*\S', line):
+				continue	# ignore continuation lines
+			if re.match(r'\t*START', line):
+				group_subdir = None
+				continue	# ignore start lines
+			reason = None
+			if line.startswith('END'):
+				elements = line.split(None, 4)[1:]
+			else:
+				elements = line.split(None, 3)
+			elements.append(None)   # in case no reason specified
+			(status, subdir, testname, reason) = elements[0:4]
+			################################################
+			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
+			################################################
+			if re.match(r'(GOOD|FAIL|WARN) ', line):
+				(status, testname, reason) = line.split(None, 2)
+				if testname.startswith('kernel.'):
+					subdir = 'build'
+				else:
+					subdir = testname
+			if testname.startswith('completed'):
+				raise 'testname is crap'
+			################################################
+			if subdir == '----':
+				subdir = None
+			if line.startswith('END'):
+				subdir = group_subdir
+			if line.startswith('\t'): # we're in a block group
+				if subdir:
+					group_subdir = subdir
+				continue
+			debug = str((status, subdir, testname, reason))
+			dprint('GROPE_STATUS: ' + debug)
+			if not re.match(r'(boot$|kernel\.)', testname):
+				# This is a real test
+				if subdir and subdir.count('.'):
+					# eg dbench.ext3
+					testname = subdir
+			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
+			dprint('')
 
 
 class kernel:
@@ -102,19 +146,23 @@ class patch:
 
 
 class test:
-	def __init__(self, subdir, status, reason, kernel, job):
+	def __init__(self, subdir, testname, status, reason, kernel, job):
 		self.subdir = subdir
+		self.testname = testname
 		self.status = status
 		self.reason = reason
-		self.keyval = os.path.join(job.dir, subdir, 'results/keyval')
+		if subdir:
+			self.keyval = os.path.join(job.dir, subdir, 'results/keyval')
+			if not os.path.exists(self.keyval):
+				self.keyval = None
+		else:
+			self.keyval = None
 		self.iterations = []
-		self.testname = re.sub(r'\..*', '', self.subdir)
 		self.kernel = kernel
 		self.machine = job.machine
 
-		dprint("PARSING TEST %s %s" % (subdir,self.keyval))
-		if not os.path.exists(self.keyval):
-			self.keyval = None
+		dprint("PARSING TEST %s %s %s" % (subdir, testname, self.keyval))
+		if not self.keyval:
 			return
 		count = 1
 		lines = []

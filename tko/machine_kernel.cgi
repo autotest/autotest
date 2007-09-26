@@ -15,7 +15,7 @@ db = db.db()
 
 def main():
 	print "Content-type: text/html\n"
-	print_machines_vs_all_kernels(['cagg2', 'cagg4', 'cagg6', 'elm3b163'])
+	print_machines_vs_all_kernels(['cagg2', 'cagg4', 'cagg6', 'elm3b163', 'elm3b163.beaverton.ibm.com', 'dirt.ltc.austin.ibm.com', 'bucket.ltc.austin.ibm.com'])
 
 
 def kernel_machine_box(kernel, machine):

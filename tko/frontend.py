@@ -44,13 +44,16 @@ class test:
 		self.idx = test_idx
 		self.job = job(db, job_idx)
 		# self.machine = self.job.machine
-		self.test = testname
+		self.testname = testname
 		self.subdir = subdir
 		self.kernel = kernel.select(db, {'kernel_idx' : kernel_idx})[0]
 		self.status_num = status_num
 		self.status_word = db.status_word[status_num]
 		self.reason = reason
-		self.url = html_root + self.job.tag + '/' + self.subdir
+		if self.subdir:
+			self.url = html_root + self.job.tag + '/' + self.subdir
+		else:
+			self.subdir = None
 
 		self.iterations = {}
 		# Create a dictionary - dict{key} = [value1, value2, ....]
