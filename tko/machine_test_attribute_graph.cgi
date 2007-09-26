@@ -38,13 +38,4 @@ def main():
 def sort_kernels(kernels):
 	return sorted(kernels, key = kernel_versions.version_encode)
 
-
-def draw_graph(title, xlabel, ylabel):
-	graph = plotgraph.gnuplot(title, xlabel, ylabel)
-	graph.set_xlabels(["2.6.0", "2.6.1", "2.6.2"])
-	graph.add_dataset('foo', ["10 0.5", "11 1", "12 2"])
-	graph.add_dataset('bar', ["13 0.5", "10 0.2", "9 0.1"])
-	graph.plot(cgi_header = True)
-
-
 main()
