@@ -33,10 +33,12 @@ def print_kernel_machines_vs_test(machines, kernel_idx, html_root):
 		tests = frontend.test.select(db, where)
 		test_dict = {}
 		for test in tests:
-			all_tests.append(test.subdir)
-			test_dict[test.subdir] = test
+			all_tests.append(test.testname)
+			test_dict[test.testname] = test
+		# FIXME. What happens on multiple counts of the same test?
+		# ie. we run two identical jobs on the same machine ...
 		results[machine] = test_dict
-	test_list = display.sort_tests(all_tests)
+	test_list = display.sort_tests(list(set(all_tests)))
 
 	kernel = frontend.kernel.select(db, {'kernel_idx' : kernel_idx })[0]
 	print '<h1>%s</h1>' % kernel.printable
@@ -49,9 +51,16 @@ def print_kernel_machines_vs_test(machines, kernel_idx, html_root):
 	for machine in machines:
 		row = [display.box(machine)]
 		for testname in test_list:
+			if not results.has_key(machine):
+				continue
+			if not results[machine].has_key(testname):
+				continue
 			test = results[machine][testname]
-			html = '<a href="%s">%s</a>' % \
+			if test.url:
+				html = '<a href="%s">%s</a>' % \
 						(test.url, test.status_word)
+			else:
+				html = test.status_word
 			box = display.box(html, color_key = test.status_word)
 			row.append(box)
 		matrix.append(row)
