@@ -65,7 +65,7 @@ class gnuplot:
 		else:
 			p = Popen("/usr/bin/gnuplot", stdin = subprocess.PIPE)
 			g = p.stdin
-		g.write('set terminal png size 1380,900\n')
+		g.write('set terminal png size 1180,900\n')
 		g.write('set key below\n')
 		g.write('set title "%s"\n' % self.title)
 		g.write('set xlabel "%s"\n' % self.xlabel)
