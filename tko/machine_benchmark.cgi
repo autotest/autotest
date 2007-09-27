@@ -13,6 +13,7 @@ db = db.db()
 benchmark_key = {
 'kernbench' : 'elapsed',
 'dbench' : 'throughput',
+'tbench' : 'throughput',
 }
 
 def main():
@@ -35,7 +36,7 @@ def main():
 	print '<h1>Performance</h1>'
 
 	header_row =  [ display.box('Benchmark', header=True) ]
-	header_row += [ display.box(benchmark, header=True) for benchmark in benchmarks ]
+	header_row += [ display.box(re.sub(r'\.', '<br>', benchmark), header=True) for benchmark in benchmarks ]
 	
 	matrix = [header_row]
 	for machine in machines:
