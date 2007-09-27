@@ -16,17 +16,17 @@ class db:
 			login = open('.priv_login', 'r')
 			user = login.readline().rstrip()
 			password = login.readline().rstrip()
-	        except:	
-		        try:
-			        login = open('.unpriv_login', 'r')
-			        user = login.readline().rstrip()
-			        password = login.readline().rstrip()
-		        except:
-			        user = 'nobody'
-			        password = ''
+		except:	
+			try:
+				login = open('.unpriv_login', 'r')
+				user = login.readline().rstrip()
+				password = login.readline().rstrip()
+			except:
+				user = 'nobody'
+				password = ''
 
 		self.con = MySQLdb.connect(host=host, user=user,
-                                           passwd=password, db=database)
+					   passwd=password, db=database)
 		self.cur = self.con.cursor()
 
 		# if not present, insert statuses
@@ -132,8 +132,8 @@ class db:
 		if kver:
 			return kver
 		self.insert('kernels', {'base':kernel.base,
-					  'kernel_hash':kernel.kernel_hash,
-					  'printable':kernel.base})
+					'kernel_hash':kernel.kernel_hash,
+					'printable':kernel.base})
 		# WARNING - incorrectly shoving base into printable here.
 		kver = self.lookup_kernel(kernel)
 		for patch in kernel.patches:
