@@ -60,6 +60,8 @@ class kernel:
 		self.results_dir = os.path.join(subdir, 'results')
 		self.subdir	= os.path.basename(subdir)
 
+		self.installed_as = None
+
 		if not leave:
 			if os.path.isdir(self.src_dir):
 				system('rm -rf ' + self.src_dir)
@@ -327,6 +329,11 @@ class kernel:
 
 	def _install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
+
+		# Record that we have installed the kernel, and
+		# the tag under which we installed it.
+		self.installed_as = tag
+
 		os.chdir(self.build_dir)
 
 		if not os.path.isdir(prefix):
@@ -478,11 +485,15 @@ class kernel:
 			self.job.next_step_prepend(["job.kernel_check_ident",
 						when, ident, self.subdir])
 
-		# Install this kernel.
-		self.install()
-		self.add_to_bootloader(args=args, tag='autotest')
+		# Check if the kernel has been installed, if not install
+		# as the default tag and boot that.
+		if not self.installed_as:
+			self.install()
+
+		# Boot the selected tag.
+		self.add_to_bootloader(args=args, tag=self.installed_as)
 		if once:
-			self.job.bootloader.boot_once('autotest')
+			self.job.bootloader.boot_once(self.installed_as)
 
 		# Boot it.
 		self.job.reboot()
