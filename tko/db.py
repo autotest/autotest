@@ -1,16 +1,29 @@
 import MySQLdb, re, os, sys
 
 class db:
-	def __init__(self, database='tko', host='localhost', debug = False):
+	def __init__(self, debug = False):
 		self.debug = debug
-		
+			
 		try:
-			login = open('.login', 'r')
+			db_prefs = open('.database', 'r')
+			host = db_prefs.readline().rstrip()
+			database = db_prefs.readline().rstrip()
+		except:
+			host = 'localhost'
+			database = 'tko'
+	
+		try:
+			login = open('.priv_login', 'r')
 			user = login.readline().rstrip()
 			password = login.readline().rstrip()
-		except:
-			user = 'nobody'
-			password = ''
+	        except:	
+		        try:
+			        login = open('.unpriv_login', 'r')
+			        user = login.readline().rstrip()
+			        password = login.readline().rstrip()
+		        except:
+			        user = 'nobody'
+			        password = ''
 
 		self.con = MySQLdb.connect(host=host, user=user,
                                            passwd=password, db=database)
