@@ -41,21 +41,24 @@ class db:
 			sys.stderr.write('SQL: ' + str(value) + '\n')
 
 
-	def select(self, fields, table, where):
+	def select(self, fields, table, where, distinct = False):
 		"""\
 			select fields from table where {dictionary}
 		"""
-		cmd = 'select %s from %s' % (fields, table)
-		values = []
+		cmd = ['select']
+		if distinct:
+			cmd.append('distinct')
+		cmd += [fields, 'from', table]
 
+		values = []
 		if where:
 			keys = [field + '=%s' for field in where.keys()]
 			values = [where[field] for field in where.keys()]
 
-			cmd = cmd + ' where ' + ' and '.join(keys)
+			cmd.append(' where ' + ' and '.join(keys))
 
-		self.dprint('%s %s' % (cmd,values))
-		self.cur.execute(cmd, values)
+		self.dprint('%s %s' % (' '.join(cmd),values))
+		self.cur.execute(' '.join(cmd), values)
 		return self.cur.fetchall()
 
 

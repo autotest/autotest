@@ -31,11 +31,11 @@ class kernel:
 
 class test:
 	@classmethod
-	def select(klass, db, where = {}):
+	def select(klass, db, where = {}, distinct = False):
 		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
 			  'kernel_idx', 'status', 'reason', 'machine']
 		tests = []
-		for row in db.select(','.join(fields), 'tests', where):
+		for row in db.select(','.join(fields), 'tests', where, distinct):
 			tests.append(klass(db, *row))
 		return tests
 
