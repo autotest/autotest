@@ -8,7 +8,7 @@ Run an autoserv control file
 TODO(poirier): add a singleton logger
 TODO(poirier): maybe change the name "get_file" to "receive_file" ?
 TODO(poirier): change get(), send_file(), get_file() to consistantly recognize
-       paths that start with '~' as refering to the home directory
+	paths that start with '~' as refering to the home directory
 """
 
 __author__ = """
@@ -30,37 +30,37 @@ from utils import run, get_tmp_dir, sh_escape
 """
 
 def run(control_file, machines, args):
-        namespace = dict({'machines': machines, 'args': args})
+	namespace = dict({'machines': machines, 'args': args})
 	
 	exec(preamble, namespace, namespace)
 	execfile(control_file, namespace, namespace)
 
 def usage():
 	usage = "usage: %prog <control file>"
-        print usage
+	print usage
 
 if __name__ == "__main__":
-        args = []
-        tmp_args = sys.argv[1:]
-        machines = None
-        while tmp_args:
-                if tmp_args[0] in ('-m', '--machines'):
-                        if len(tmp_args) < 2:
-                                raise('"' + tmp_args[0] + '" used, but then no machine defined')
-                        machines = tmp_args[1]
-                        tmp_args = tmp_args[2:]
-                else:
-                        args.append(tmp_args[0])
-                        tmp_args = tmp_args[1:]
+	args = []
+	tmp_args = sys.argv[1:]
+	machines = None
+	while tmp_args:
+		if tmp_args[0] in ('-m', '--machines'):
+			if len(tmp_args) < 2:
+				raise('"' + tmp_args[0] + '" used, but then no machine defined')
+			machines = tmp_args[1]
+			tmp_args = tmp_args[2:]
+		else:
+			args.append(tmp_args[0])
+			tmp_args = tmp_args[1:]
 
 	if len(args) < 1:
-                usage()
-                sys.exit(1)
+		usage()
+		sys.exit(1)
 
 	control_file = args[0]
-        args = args[1:]
+	args = args[1:]
 
 	if machines:
-                run(control_file, machines.split(','), args)
+		run(control_file, machines.split(','), args)
 	else:
-                run(control_file, None, args)
+		run(control_file, None, args)
