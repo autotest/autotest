@@ -33,8 +33,5 @@ class SiteHost(base_classes.Host):
 		super(SiteHost, self).__init__()
 
 	
-	#def get_platform(self):
-		#...
-	
-	#def get_bios_version(self):
-		#...
+	def setup(self):
+		return
