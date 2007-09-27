@@ -257,6 +257,7 @@ class job:
 			arguments for the function
 		"""
 
+		result = None
 		name = function.__name__
 		# if tag:
 		#	name += '.' + tag
@@ -265,7 +266,7 @@ class job:
 			try:
 				self.record('START', None, name)
 				self.record_prefix += '\t'
-				function(*args)
+				result = function(*args)
 				self.record_prefix = old_record_prefix
 				self.record('END GOOD', None, name)
 			except:
@@ -278,6 +279,8 @@ class job:
 			pass
 		except:
 			raise TestError(name + ' failed\n' + format_error())
+
+		return result
 
 
 	# Check the passed kernel identifier against the command line
