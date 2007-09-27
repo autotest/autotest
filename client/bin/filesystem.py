@@ -93,7 +93,6 @@ class filesystem:
 	def fsck(self, args = ''):
 		# I hate reiserfstools.
 		# Requires an explit Yes for some inane reason
-		fsck = 'yes "Yes" | fsck %s %s' % (self.device, args)
 		fsck = 'fsck %s %s' % (self.device, args)
 		if self.fstype == 'reiserfs':
 			fsck = 'yes "Yes" | ' + fsck
