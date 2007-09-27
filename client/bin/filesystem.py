@@ -93,12 +93,18 @@ class filesystem:
 	def fsck(self, args = '-n'):
 		# I hate reiserfstools.
 		# Requires an explit Yes for some inane reason
-		fsck = 'fsck %s %s' % (self.device, args)
+		fsck_cmd = 'fsck %s %s' % (self.device, args)
 		if self.fstype == 'reiserfs':
-			fsck = 'yes "Yes" | ' + fsck
-		print fsck
+			fsck_cmd = 'yes "Yes" | ' + fsck_cmd
+		print fsck_cmd
 		sys.stdout.flush()
-		system(fsck)
+		try:
+			system("yes | " + fsck_cmd)
+		except:
+			self.job.record('FAIL', None, fsck_cmd, format_error())
+			raise
+		else:
+			self.job.record('GOOD', None, fsck_cmd)
 
 	
 	def mount(self, mountpoint = None, args = ''):
