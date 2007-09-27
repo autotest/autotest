@@ -72,12 +72,15 @@ class reaim(test.test):
 
 	def __format_results(self, results):
 		out = open(self.resultsdir + '/keyval', 'w')
-		r = re.compile(r"^[0-9\. ]+$")
 		for line in results.split('\n'):
-			if not r.match(line):
-				continue
-			fields = line.split()
-			print >> out, """num_forked=%s
+			m = re.match('Max Jobs per Minute (\d+)')
+			if m:
+				max_jobs_per_min = m.group(1)
+			if re.match(r"^[0-9\. ]+$", line):
+				fields = line.split()
+		print >> out, """\
+max_jobs_per_min=%s
+num_forked=%s
 parent_time=%s
 child_systime=%s
 child_utime=%s
@@ -86,5 +89,5 @@ jobs_min_child=%s
 std_dev_time=%s
 std_dev_pct=%s
 jti=%s
-""" % tuple(fields)
+""" % tuple(max_jobs_per_min, fields)
 		out.close()
