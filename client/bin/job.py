@@ -249,7 +249,7 @@ class job:
 			return 1
 
 
-	def run_group(self, function, *args):
+	def run_group(self, function, *args, **dargs):
 		"""\
 		function:
 			subroutine to run
@@ -259,6 +259,14 @@ class job:
 
 		result = None
 		name = function.__name__
+
+		# Allow the tag for the group to be specified.
+		if dargs.has_key('tag'):
+			tag = dargs['tag']
+			del dargs['tag']
+			if tag:
+				name = tag
+
 		# if tag:
 		#	name += '.' + tag
 		old_record_prefix = self.record_prefix
@@ -266,7 +274,7 @@ class job:
 			try:
 				self.record('START', None, name)
 				self.record_prefix += '\t'
-				result = function(*args)
+				result = function(*args, **dargs)
 				self.record_prefix = old_record_prefix
 				self.record('END GOOD', None, name)
 			except:
