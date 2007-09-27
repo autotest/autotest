@@ -90,7 +90,7 @@ class filesystem:
 			self.fstype = fstype
 
 
-	def fsck(self, args = ''):
+	def fsck(self, args = '-n'):
 		# I hate reiserfstools.
 		# Requires an explit Yes for some inane reason
 		fsck = 'fsck %s %s' % (self.device, args)
