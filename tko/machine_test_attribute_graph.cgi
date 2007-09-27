@@ -24,8 +24,9 @@ def main():
 	data = {}
 	where = { 'subdir' : benchmark, 'machine' : machine }
 	for test in frontend.test.select(db, where):
-		if test.iterations.has_key(key):
-			data[test.kernel.printable] = test.iterations[key]
+		iterations = test.iterations()
+		if iterations.has_key(key):
+			data[test.kernel().printable] = iterations[key]
 
 	# for kernel in sort_kernels(data.keys()):
 	#	print "%s %s" % (kernel, str(data[kernel]))

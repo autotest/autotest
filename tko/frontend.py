@@ -46,23 +46,45 @@ class test:
 		# self.machine = self.job.machine
 		self.testname = testname
 		self.subdir = subdir
-		self.kernel = kernel.select(db, {'kernel_idx' : kernel_idx})[0]
+		self.kernel_idx = kernel_idx
+		self.__kernel = None
+		self.__iterations = None
 		self.status_num = status_num
 		self.status_word = db.status_word[status_num]
 		self.reason = reason
+		self.db = db
 		if self.subdir:
 			self.url = html_root + self.job.tag + '/' + self.subdir
 		else:
 			self.subdir = None
 
-		self.iterations = {}
-		# Create a dictionary - dict{key} = [value1, value2, ....]
-		for i in iteration.select(db, {'test_idx' : test_idx}):
-			if self.iterations.has_key(i.key):
-				self.iterations[i.key].append(i.value)
-			else:
-				self.iterations[i.key] = [i.value]
-				
+
+
+	def iterations(self):
+		"""
+		Caching function for iterations
+		"""
+		if not self.__iterations:
+			self.__iterations = {}
+			# A dictionary - dict{key} = [value1, value2, ....]
+			where = {'test_idx' : self.idx}
+			for i in iteration.select(self.db, where):
+				if self.__iterations.has_key(i.key):
+					self.__iterations[i.key].append(i.value)
+				else:
+					self.__iterations[i.key] = [i.value]
+		return self.__iterations
+			
+
+	def kernel(self):
+		"""
+		Caching function for kernels
+		"""
+		if not self.__kernel:
+			where = {'kernel_idx' : self.kernel_idx}
+			self.__kernel = kernel.select(self.db, where)[0]
+		return self.__kernel
+
 
 class job:
 	def __init__(self, db, job_idx):
