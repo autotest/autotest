@@ -56,7 +56,7 @@ class test:
 		if self.subdir:
 			self.url = html_root + self.job.tag + '/' + self.subdir
 		else:
-			self.subdir = None
+			self.url = None
 
 
 
