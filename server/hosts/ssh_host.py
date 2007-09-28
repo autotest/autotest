@@ -52,12 +52,12 @@ class SSHHost(base_classes.RemoteHost):
 			port: port the ssh daemon is listening on on the remote 
 				machine
 		"""
-		super(SSHHost, self).__init__()
-		
 		self.hostname= hostname
 		self.user= user
 		self.port= port
 		self.tmp_dirs= []
+
+		super(SSHHost, self).__init__()
 		self.bootloader = bootloader.Bootloader(self)
 
 

@@ -52,6 +52,9 @@ class Autotest(installable_object.InstallableObject):
 	"""
 	def __init__(self, host = None):
 		self.host = host
+		self.got = False
+		self.installed = False
+		self.serverdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 		super(Autotest, self).__init__()
 
 
@@ -79,7 +82,10 @@ class Autotest(installable_object.InstallableObject):
 		"""
 		if not host:
 			host = self.host
+		if not self.got:
+			self.get()
 		host.ensure_up()
+		host.setup()
 		print "Installing autotest on %s" % host.hostname
 		# try to install from file or directory
 		if self.source_material:
@@ -87,14 +93,16 @@ class Autotest(installable_object.InstallableObject):
 				# Copy autotest recursively
 				autodir = _get_autodir(host)
 				host.run('mkdir -p "%s"' %
-					 utils.sh_escape(autodir))
+						utils.sh_escape(autodir))
 				host.send_file(self.source_material,
-					       autodir)
+						autodir)
 			else:
 				# Copy autotest via tarball
 				raise "Not yet implemented!"
+			print "Installation of autotest completed"
+			self.installed = True
 			return
-		
+
 		# if that fails try to install using svn
 		if utils.run('which svn').exit_status:
 			raise AutoservError('svn not found in path on \
@@ -105,6 +113,16 @@ class Autotest(installable_object.InstallableObject):
 		except errors.AutoservRunError, e:
 			host.run('svn checkout %s %s' %
 				 (AUTOTEST_HTTP, _get_autodir(host)))
+		print "Installation of autotest completed"
+		self.installed = True
+
+
+	def get(self, location = None):
+		if not location:
+			location = os.path.join(self.serverdir, '../client')
+			location = os.path.abspath(location)
+		super(Autotest, self).get(location)
+		self.got = True
 
 
 	def run(self, control_file, results_dir, host = None):
@@ -124,6 +142,9 @@ class Autotest(installable_object.InstallableObject):
 		"""
 		if not host:
 			host = self.host
+		if not self.installed:
+			self.install()
+
 		host.ensure_up()
 		
 		atrun = _Run(host, results_dir)
@@ -163,6 +184,8 @@ class Autotest(installable_object.InstallableObject):
 		"""
 		if not host:
 			host = self.host
+		if not self.installed:
+			self.install()
 		opts = ["%s=%s" % (o[0], repr(o[1])) for o in dargs.items()]
 		cmd = ", ".join([repr(test_name)] + map(repr, args) + opts)
 		control = "job.run_test(%s)" % cmd
