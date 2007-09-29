@@ -72,10 +72,13 @@ class RPMKernel(kernel.Kernel):
 		host.run('rpm -e ' + rpm_package, ignore_status = True)
 		host.run('rpm --force -i ' + remote_rpm)
 		host.bootloader.remove_kernel(label)
-		if kernel_args:
-			host.bootloader.add_args(kernel_args)
 		host.bootloader.add_kernel(vmlinuz, label,
 					   args=kernel_args, default=default)
+		if kernel_args:
+			host.bootloader.add_args(label, kernel_args)
+		if not default:
+			host.bootloader.boot_once(label)
+
 
 	def get_version(self):
 		"""Get the version of the kernel to be installed.
