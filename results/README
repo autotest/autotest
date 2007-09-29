@@ -1,0 +1,8 @@
+All results will appear in this directory under the subdir
+
+queuename-jobname
+
+So if you ran job "fancypants" on machine "cruncher", you'd get
+
+cruncher-fancypants/
+
