@@ -1,5 +1,0 @@
-#!/usr/bin/python
-import os, re, parse, sys, db
-from display import *
-
-print_machine_vs_kernel(['cagg2', 'cagg4', 'cagg6'])
