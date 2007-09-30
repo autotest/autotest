@@ -9,6 +9,8 @@ if len(sys.argv) < 2:
 	print "Usage: start_all_queues <top_level_dir>"
 	sys.exit(1)
 
+os.system("killall monitor_queue")
+
 top_dir = os.path.abspath(sys.argv[1])
 queue_dir = os.path.join(top_dir, 'queue')
 results_dir = os.path.join(top_dir, 'results')
