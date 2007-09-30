@@ -24,3 +24,11 @@ for j in jobs_list:
 	for test in job.tests:
 		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
 	db.insert_job(j, job)
+
+rows = db.select('distinct machine', 'jobs', {})
+machines = [row[0] for row in rows]
+
+for machine in machines:
+	dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+	vertical_text = os.path.join(dir, 'vertical_text.py')
+	os.system(vertical_text + ' ' + machine)
