@@ -20,20 +20,39 @@ def main():
 	print_machines_vs_all_kernels(machines)
 
 
+def status_html(status_count):
+	total = sum(status_count.values())
+	status_pct = {}
+	for status in status_count.keys():
+		status_pct[status] = (100 * status_count[status]) / total
+	rows = []
+	for status in status_pct.keys():
+		string = "%d%% %s" % (status_pct[status], status)
+		box = display.box(string, status)
+		rows.append("<tr>%s</tr>" % box.html())
+	return '<table>%s</table>' % '\n'.join(rows)
+
+
 def kernel_machine_box(kernel, machine):
 	status = None
 	status_word = ''
 	tests = frontend.test.select(db, { 'kernel_idx' : kernel.idx ,
 					   'machine' : machine })
+
+	status_count = {}
 	for t in tests:
 		if not status or t.status_num < status:
 			status = t.status_num
 			status_word = db.status_word[status]
+			if status_count.has_key(status_word):
+				status_count[status_word] += 1
+			else:
+				status_count[status_word] = 1
 
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
 					(machine, kernel.idx)
 	if status_word:
-		html = '<a href="%s">%s</a>' % (link, status_word)
+		html = '<a href="%s">%s</a>' % (link, status_html(status_count))
 	else:
 		html = None
 	return display.box(html, color_key = status_word)
