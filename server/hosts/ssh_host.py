@@ -115,6 +115,7 @@ class SSHHost(base_classes.RemoteHost):
 				default = int(self.bootloader.get_default())
 				label = self.bootloader.get_titles()[default]
 			self.bootloader.add_args(label, kernel_args)
+		print "Reboot: initiating reboot"
 		self.run('reboot')
 		if wait:
 			self.wait_down(60)	# Make sure he's dead, Jim
