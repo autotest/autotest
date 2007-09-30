@@ -42,6 +42,6 @@ class lockmeter(profiler.profiler):
 
 	def report(self, test):
 		args = ' -m ' + get_systemmap()
-		self.output = self.resultsdir + '/results/lockstat'
+		self.output = self.profdir + '/results/lockstat'
 		system(self.cmd + args + ' print > ' + self.output)
 
