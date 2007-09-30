@@ -24,7 +24,7 @@ class box:
 		self.header = header
 
 
-	def display(self):
+	def html(self):
 		if self.data:
 			data = self.data
 		else:
@@ -35,9 +35,8 @@ class box:
 		else:
 			box_html = 'td'
 
-		print "<%s bgcolor=%s>" % (box_html, self.color)
-		print data
-		print "</%s>" % box_html
+		return "<%s bgcolor=%s>%s</%s>" % \
+					(box_html, self.color, data, box_html)
 
 
 def print_table(matrix):
@@ -53,7 +52,7 @@ def print_table(matrix):
 		print '<tr>'
 		for element in row:
 			print element
-			element.display()
+			print element.html()
 		print '</tr>'
 	print '</table>'
 
