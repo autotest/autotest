@@ -26,9 +26,11 @@ def status_html(status_count):
 	for status in status_count.keys():
 		status_pct[status] = (100 * status_count[status]) / total
 	rows = []
-	for status in status_pct.keys():
-		string = "%d%% %s" % (status_pct[status], status)
-		box = display.box(string, status)
+	for status in sorted(status_pct.keys(), reverse = True):
+		status_word = db.status_word[status]
+		# string = "%d&nbsp(%d%%)" % (status_count[status], status_pct[status])
+		string = "%d&nbsp;%s" % (status_count[status], status_word)
+		box = display.box(string, status_word)
 		rows.append("<tr>%s</tr>" % box.html())
 	return '<table>%s</table>' % '\n'.join(rows)
 
@@ -41,13 +43,14 @@ def kernel_machine_box(kernel, machine):
 
 	status_count = {}
 	for t in tests:
+		if status_count.has_key(t.status_num):
+			status_count[t.status_num] +=1
+		else:
+			status_count[t.status_num] = 1
+
 		if not status or t.status_num < status:
 			status = t.status_num
 			status_word = db.status_word[status]
-			if status_count.has_key(status_word):
-				status_count[status_word] += 1
-			else:
-				status_count[status_word] = 1
 
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
 					(machine, kernel.idx)
