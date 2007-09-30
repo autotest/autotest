@@ -92,7 +92,7 @@ def test_kernel(client, control, kernel, config, patches=None):
         extension = ('', '.srv')[is_autoserv_ctl]
 	global counter
 	output = os.path.join(options.queuedir, client,
-                              "%s-%d%.3d%s" % (client,
+                              "%s-%d%.3d%s" % (kernel,
                                                int(time.time()),
                                                counter,
                                                extension))
