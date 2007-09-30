@@ -22,7 +22,10 @@ class iozone(test.test):
 		else: 
 			system('make linux')
 
-	def execute(self, dir, iterations=1, args = None):
+
+	def execute(self, dir = None, iterations=1, args = None):
+		if not dir:
+			dir = self.tmpdir
 		os.chdir(dir)
 		if not args:
 			args = '-a'
