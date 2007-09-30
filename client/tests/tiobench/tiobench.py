@@ -12,7 +12,9 @@ class tiobench(test.test):
 
 		system('make')
 		
-	def execute(self, dir, iterations=1, args = None):
+	def execute(self, dir = None, iterations=1, args = None):
+		if not dir:
+			dir = self.tmpdir
 		os.chdir(self.srcdir)
 		if not args:
 			args = '--block=4096 --block=8192 --threads=10 --size=1024 --numruns=2'
