@@ -49,11 +49,7 @@ class job:
 		dprint('=====================================================')
 		dprint(self.dir)
 		dprint('=====================================================')
-		# HACK. we don't have proper build tags in the status file yet
-		# so we hardcode build/ and do it at the start of the job
-		build = os.path.join(self.dir, 'build')
-		if os.path.exists(build):
-			self.kernel = kernel(build)
+		self.kernel = kernel(self.dir)
 
 		# NOTE: currently we don't cope with nested START / END blocks
 		group_subdir = None
@@ -103,24 +99,32 @@ class job:
 
 
 class kernel:
-	def __init__(self, builddir):
+	def __init__(self, topdir):
 		self.base = None
 		self.patches = []
-
-		log = os.path.join(builddir, 'debug/build_log')
-		if not os.path.exists(log):
-			return
 		patch_hashes = []
-		for line in open(log, 'r'):
-			print line
-			(type, rest) = line.split(': ', 1)
-			words = rest.split()
-			if type == 'BASE':
-				self.base = words[0]
-			if type == 'PATCH':
-				print words
-				self.patches.append(patch(*words[0:]))
-				# patch_hashes.append(words[2])
+		# HACK. we don't have proper build tags in the status file yet
+		# so we hardcode build/ and do it at the start of the job
+		builddir = os.path.join(topdir, 'build')
+
+		if not os.path.exists(builddir):
+			uname_file = os.path.join(topdir, 'sysinfo/uname_-a')
+			uname = open(uname_file, 'r').readline().split()
+			self.base = uname[2]
+		else:
+			log = os.path.join(builddir, 'debug/build_log')
+			if not os.path.exists(log):
+				return
+			for line in open(log, 'r'):
+				print line
+				(type, rest) = line.split(': ', 1)
+				words = rest.split()
+				if type == 'BASE':
+					self.base = words[0]
+				if type == 'PATCH':
+					print words
+					self.patches.append(patch(*words[0:]))
+					# patch_hashes.append(words[2])
 		if self.base:
 			self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
