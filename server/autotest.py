@@ -125,7 +125,7 @@ class Autotest(installable_object.InstallableObject):
 		self.got = True
 
 
-	def run(self, control_file, results_dir, host = None):
+	def run(self, control_file, results_dir = '.', host = None):
 		"""
 		Run an autotest job on the remote machine.
 		
@@ -140,6 +140,7 @@ class Autotest(installable_object.InstallableObject):
 			AutotestRunError: if there is a problem executing
 				the control file
 		"""
+		results_dir = os.path.abspath(results_dir)
 		if not host:
 			host = self.host
 		if not self.installed:
@@ -155,10 +156,11 @@ class Autotest(installable_object.InstallableObject):
 								host.hostname
 			self.install(host)
 		atrun.verify_machine()
-		if os.path.isdir(results_dir):
-			shutil.rmtree(results_dir)
 		debug = os.path.join(results_dir, 'debug')
-		os.makedirs(debug)
+		try:
+			os.makedirs(debug)
+		except:
+			pass
 		
 		# Ready .... Aim ....
 		host.run('rm -f ' + atrun.remote_control_file)
@@ -177,7 +179,8 @@ class Autotest(installable_object.InstallableObject):
 		host.get_file(results + '/', results_dir)
 
 
-	def run_test(self, test_name, results_dir, host = None, *args, **dargs):
+	def run_test(self, test_name, results_dir = '.', host = None, \
+								*args, **dargs):
 		"""
 		Assemble a tiny little control file to just run one test,
 		and run it as an autotest client-side test
