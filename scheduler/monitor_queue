@@ -14,8 +14,8 @@ dotmachines = os.path.join(spooldir, '.machines')
 if os.path.exists(dotmachines):
 	machines = [l.strip() for l in open(dotmachines).readlines() if len(l.strip())]
 else:
-	print "No .machines file in %s, assuming queue name \
-	is a machine" % queue_name
+	print "No .machines file in %s, assuming queue name is a machine"\
+								 % queue_name
 	machines = [queue_name]
 
 if len(sys.argv) == 5:
@@ -82,7 +82,7 @@ def __create_autoserv_wrapper(template, control_path, results):
 	return tmpname
 	
 
-def run_job(control):
+def run_job(control, queuename, scheduler_dir):
 	"""Runs a control file from the spooldir.
 	Args:
 	  control: A path to a control file.  It is assumed to be an
@@ -96,7 +96,7 @@ def run_job(control):
 	  The return code from the autoserv process.
 	"""
 	# Make sure all the output directories are all setup
-	results = os.path.join(resultsdir, control)
+	results = os.path.join(resultsdir, queuename + '-' + control)
 	if os.path.exists(results):
 		print "Resultsdir %s already present, " % results,
 		results = "%s.%d" % (results, int(time.time()))
@@ -121,21 +121,18 @@ def run_job(control):
 							 results)
 
 	# Now run the job
-	exedir = os.path.abspath(os.path.dirname(sys.argv[0]))
-	autoserv_exe = os.path.abspath(os.path.join(exedir,
-						    '..',
-						    'server',
-						    'autoserv'))
-	autoserv_cmd = ' '.join([autoserv_exe,
-				 '-m',
-				 ','.join(machines),
-				 control_path])
+	autoserv_exe = os.path.join(scheduler_dir, '..', 'server', 'autoserv')
+	autoserv_exe = os.path.abspath(autoserv_exe)
+
+	autoserv_cmd = ' '.join([autoserv_exe, '-m', ','.join(machines),
+								 control_path])
 
 	print "Starting job: %s" % control
 	print autoserv_cmd
 	
-	autoserv_log = open(os.path.join(debug, 'server.log'), 'w');
-	p = Popen(autoserv_cmd, shell=True, stdout=autoserv_log, stderr=STDOUT)
+	autoserv_log = open(os.path.join(debug, 'server.log'), 'w', 0)
+	p = Popen(autoserv_cmd, shell=True, stdout=autoserv_log, stderr=STDOUT,
+								cwd=results)
 	(pid, ret) = os.waitpid(p.pid, 0)
 	autoserv_log.close()
 	
@@ -147,8 +144,7 @@ def run_job(control):
 	return ret
 	
 
-dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-runjob = os.path.join(dir, 'runjob')
+scheduler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(spooldir)
 print "monitoring spool directory: " + spooldir
 while True:
@@ -157,5 +153,5 @@ while True:
 	if not next_job:
 		time.sleep(10)
 		continue
-	ret = run_job(next_job)
+	ret = run_job(next_job, os.path.basename(spooldir), scheduler_dir)
 	os.remove(next_job)
