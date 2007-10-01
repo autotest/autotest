@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import cgi, cgitb, os, sys
 cgitb.enable()
 
@@ -15,8 +14,7 @@ db = db.db()
 
 def main():
 	print "Content-type: text/html\n"
-	rows = db.select('distinct machine', 'jobs', {})
-	machines = [row[0] for row in rows]
+	machines = frontend.machine.select(db)
 	print_machines_vs_all_kernels(machines)
 
 
@@ -39,7 +37,7 @@ def kernel_machine_box(kernel, machine):
 	status = None
 	status_word = ''
 	tests = frontend.test.select(db, { 'kernel_idx' : kernel.idx ,
-					   'machine' : machine })
+					   'machine_idx' : machine.idx })
 
 	status_count = {}
 	for t in tests:
@@ -53,7 +51,7 @@ def kernel_machine_box(kernel, machine):
 			status_word = db.status_word[status]
 
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
-					(machine, kernel.idx)
+					(machine.idx, kernel.idx)
 	if status_word:
 		html = '<a href="%s">%s</a>' % (link, status_html(status_count))
 	else:
@@ -66,7 +64,7 @@ def kernel_encode(kernel):
 
 
 def print_machines_vs_all_kernels(machines):
-	headers = ['Version'] + machines
+	headers = ['Version'] + [machine.hostname for machine in machines]
 	header_row = [ display.box(x, header=True) for x in headers ] 
 
 	kernels = frontend.kernel.select(db)
