@@ -33,14 +33,17 @@ def status_html(status_count):
 	return '<table>%s</table>' % '\n'.join(rows)
 
 
-def kernel_machine_box(kernel, machine):
+def kernel_machines_box(kernel, machines):
 	status = None
 	status_word = ''
-	tests = frontend.test.select(db, { 'kernel_idx' : kernel.idx ,
-					   'machine_idx' : machine.idx })
+	tests = []
+	for machine in machines:
+		where = { 'kernel_idx':kernel.idx , 'machine_idx':machine.idx }
+		tests += frontend.test.select(db, where)
 
 	status_count = {}
 	for t in tests:
+		print t
 		if status_count.has_key(t.status_num):
 			status_count[t.status_num] +=1
 		else:
@@ -50,8 +53,9 @@ def kernel_machine_box(kernel, machine):
 			status = t.status_num
 			status_word = db.status_word[status]
 
+	machine_idxs = ['%d' % machine.idx for machine in machines]
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
-					(machine.idx, kernel.idx)
+					(','.join(machine_idxs), kernel.idx)
 	if status_word:
 		html = '<a href="%s">%s</a>' % (link, status_html(status_count))
 	else:
@@ -64,7 +68,19 @@ def kernel_encode(kernel):
 
 
 def print_machines_vs_all_kernels(machines):
-	headers = ['Version'] + [machine.hostname for machine in machines]
+	groups = {}
+	for machine in machines:
+		if machine.group:
+			groupname = machine.group
+		else:
+			groupname = machine.hostname
+		if groups.has_key(groupname):
+			groups[groupname].append(machine)
+		else:
+			groups[groupname] = [machine]
+	group_list = sorted(groups.keys())
+
+	headers = ['Version'] + group_list
 	header_row = [ display.box(x, header=True) for x in headers ] 
 
 	kernels = frontend.kernel.select(db)
@@ -73,8 +89,9 @@ def print_machines_vs_all_kernels(machines):
 	matrix = [header_row]
 	for kernel in kernels:
 		row = [display.box(kernel.printable)]
-		for machine in machines:
-			row.append(kernel_machine_box(kernel, machine))
+		for group in group_list:
+			machines = groups[group]
+			row.append(kernel_machines_box(kernel, machines))
 		matrix.append(row)
 	matrix.append(header_row)
 
