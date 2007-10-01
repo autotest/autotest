@@ -17,6 +17,8 @@ results_dir = os.path.join(top_dir, 'results')
 
 for machine in os.listdir(queue_dir):
 	queue = os.path.join(queue_dir, machine)
+	if not os.path.isdir(queue):
+		continue
 
 	if not os.path.exists(results_dir):
 		print "No results directory: %s" % results_dir
