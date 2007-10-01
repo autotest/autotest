@@ -20,6 +20,8 @@ def main():
 	print "Content-type: text/html\n"
 	sys.stdout.flush()
 
+	display.print_main_header()
+
 	rows = db.select('test', 'tests', {}, distinct = True)
 	benchmarks = []
 	for row in rows:
