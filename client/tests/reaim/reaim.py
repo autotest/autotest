@@ -73,7 +73,7 @@ class reaim(test.test):
 	def __format_results(self, results):
 		out = open(self.resultsdir + '/keyval', 'w')
 		for line in results.split('\n'):
-			m = re.match('Max Jobs per Minute (\d+)')
+			m = re.match('Max Jobs per Minute (\d+)', line)
 			if m:
 				max_jobs_per_min = m.group(1)
 			if re.match(r"^[0-9\. ]+$", line):
