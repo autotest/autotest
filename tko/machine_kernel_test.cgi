@@ -32,6 +32,8 @@ def print_kernel_machines_vs_test(machines, kernel):
 	for machine in machines:
 		where = { 'kernel_idx':kernel.idx , 'machine_idx':machine.idx }
 		tests = frontend.test.select(db, where)
+		if not tests:
+			continue
 		test_dict = {}
 		for test in tests:
 			all_tests.append(test.testname)
@@ -49,10 +51,10 @@ def print_kernel_machines_vs_test(machines, kernel):
 
 	matrix = [header_row]
 	for machine in machines:
+		if not results.has_key(machine.idx):
+			continue
 		row = [display.box(machine.hostname)]
 		for testname in test_list:
-			if not results.has_key(machine.idx):
-				continue
 			if not results[machine.idx].has_key(testname):
 				continue
 			test = results[machine.idx][testname]
