@@ -94,7 +94,10 @@ class db:
 
 
 	def insert_job(self, tag, job):
-		self.insert('jobs', {'tag':tag, 'machine':job.machine})
+		job.machine_idx = self.lookup_machine(job.machine)
+		if not job.machine_idx:
+			job.machine_idx = self.insert_machine(job.machine)
+		self.insert('jobs', {'tag':tag, 'machine_idx':job.machine_idx})
 		job.index = self.find_job(tag)
 		for test in job.tests:
 			self.insert_test(job, test)
@@ -105,7 +108,7 @@ class db:
 		data = {'job_idx':job.index, 'test':test.testname,
 			'subdir':test.subdir, 'kernel_idx':kver,
 			'status':self.status_idx[test.status],
-			'reason':test.reason, 'machine':test.machine }
+			'reason':test.reason, 'machine_idx':job.machine_idx }
 		self.insert('tests', data)
 		test_idx = self.find_test(job.index, test.subdir)
 		data = { 'test_idx':test_idx }
@@ -116,6 +119,20 @@ class db:
 				data['attribute'] = key
 				data['value'] = i.keyval[key]
 				self.insert('iteration_result', data)
+
+
+	def insert_machine(self, hostname):
+		self.insert('machines', { 'hostname' : hostname })
+		return self.lookup_machine(hostname)
+
+
+	def lookup_machine(self, hostname):
+		where = { 'hostname' : hostname }
+		rows = self.select('machine_idx', 'machines', where)
+		if rows:
+			return rows[0][0]
+		else:
+			return None
 
 
 	def lookup_kernel(self, kernel):

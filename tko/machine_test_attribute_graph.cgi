@@ -17,12 +17,14 @@ db = db.db()
 
 def main():
 	form = cgi.FieldStorage()
-	machine = form["machine"].value
+	machine_idx = form["machine"].value
 	benchmark = form["benchmark"].value
 	key = form["key"].value
 
+	machine = frontend.machine.select(db, {'machine_idx' : machine_idx})[0]
+
 	data = {}
-	where = { 'subdir' : benchmark, 'machine' : machine }
+	where = { 'subdir' : benchmark, 'machine_idx' : machine.idx }
 	for test in frontend.test.select(db, where):
 		iterations = test.iterations()
 		if iterations.has_key(key):
@@ -30,7 +32,7 @@ def main():
 
 	# for kernel in sort_kernels(data.keys()):
 	#	print "%s %s" % (kernel, str(data[kernel]))
-	title = "%s on %s" % (benchmark, machine)
+	title = "%s on %s" % (benchmark, machine.hostname)
 	graph = plotgraph.gnuplot(title, 'Kernel', key, xsort = sort_kernels)
 	graph.add_dataset('all kernels', data)
 	graph.plot(cgi_header = True)

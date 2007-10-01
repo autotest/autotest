@@ -1,4 +1,3 @@
-
 -- kernel versions
 DROP TABLE IF EXISTS kernels;
 CREATE TABLE kernels (
@@ -9,11 +8,20 @@ printable VARCHAR(100)			-- Full version with patches
 );
 
 -- main jobs table
+DROP TABLE IF EXISTS machines;
+CREATE TABLE machines (
+machine_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,
+hostname VARCHAR(100),			-- hostname
+machine_group VARCHAR(80),		-- group name
+owner VARCHAR(80)			-- owner name
+);
+
+-- main jobs table
 DROP TABLE IF EXISTS jobs;
 CREATE TABLE jobs (
 job_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,		-- index number
 tag VARCHAR(100),			-- job key
-machine VARCHAR(80)			-- machine name
+machine_idx int(10)			-- reference to machine table
 );
 
 -- One entry per patch used, anywhere
@@ -35,7 +43,7 @@ subdir VARCHAR(60),			-- subdirectory name
 kernel_idx INTEGER,			-- kernel test was AGAINST
 status INTEGER,				-- test status
 reason VARCHAR(100),			-- reason for test status
-machine VARCHAR(80)			-- machine name
+machine_idx int(10)			-- reference to machine table
 );
 
 -- test functional results
