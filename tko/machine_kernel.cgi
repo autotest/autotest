@@ -14,6 +14,10 @@ db = db.db()
 
 def main():
 	print "Content-type: text/html\n"
+	sys.stdout.flush()
+
+	display.print_main_header()
+
 	machines = frontend.machine.select(db)
 	print_machines_vs_all_kernels(machines)
 
