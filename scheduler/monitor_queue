@@ -111,10 +111,10 @@ def run_job(control, queuename, scheduler_dir):
 	# Otherwise create a tmp autoserv file just to launch the AT ctl file
 	if not is_autoserv_ctl:
 		if len(machines) > 1:
-			# Run *AT* file on *all* machines in queue in *parallel*
+			# Run autotest file on *all* machines in *parallel*
 			template = SERV_MULTI
 		else:
-			# Run *AT* on *one* machine
+			# Run autotest file on *one* machine
 			template = SERV_SINGLE
 		control_path = __create_autoserv_wrapper(template,
 							 control_path,
