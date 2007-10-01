@@ -25,7 +25,7 @@ for j in jobs_list:
 		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
 	db.insert_job(j, job)
 
-rows = db.select('distinct machine', 'jobs', {})
+rows = db.select('distinct hostname', 'machines', {})
 machines = [row[0] for row in rows]
 
 for machine in machines:

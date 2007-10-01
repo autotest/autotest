@@ -30,8 +30,7 @@ def main():
 		benchmarks.append(benchmark)
 	benchmarks = display.sort_tests(benchmarks)
 
-	rows = db.select('machine', 'jobs', {}, distinct = True)
-	machines = [row[0] for row in rows]
+	machines = frontend.machine.select(db)
 
 	print '<h1>Performance</h1>'
 
@@ -40,9 +39,10 @@ def main():
 	
 	matrix = [header_row]
 	for machine in machines:
-		row = [display.box(machine)]
+		row = [display.box(machine.hostname)]
 		for benchmark in benchmarks:
-			where = { 'machine' : machine, 'subdir' : benchmark }
+			where = { 'machine_idx' : machine.idx,
+				  'subdir' : benchmark }
 			rows = db.select('count(test_idx)', 'tests', where)
 			count = rows[0][0]
 			if not count:
@@ -51,7 +51,7 @@ def main():
 			testname = re.sub(r'\..*', '', benchmark)
 			url = 'machine_test_attribute_graph.cgi'
 			url += '?machine=%s&benchmark=%s&key=%s' % \
-				(machine, benchmark, benchmark_key[testname])
+				(machine.idx, benchmark, benchmark_key[testname])
 			html = '<a href="%s">%d</a>' % (url, count)
 			row.append(display.box(html))
 		matrix.append(row)

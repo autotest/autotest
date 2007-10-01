@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, re, db
+import os, re, db, sys
 
 # Pulling hierarchy:
 #
@@ -8,7 +8,31 @@ import os, re, db
 #
 # Note that job does put pull test - test is the primary object.
 
-html_root = 'http://test.kernel.org/google/'
+tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
+root_url_file = os.path.join(tko, '.root_url')
+if os.path.exists(root_url_file):
+        html_root = open(root_url_file, 'r').readline().rstrip()
+else:
+        html_root = 'http://test.kernel.org/google/'
+
+
+class machine:
+	@classmethod
+	def select(klass, db, where = {}):
+		fields = ['machine_idx', 'hostname', 'machine_group', 'owner']
+		machines = []
+		for row in db.select(','.join(fields), 'machines', where):
+			machines.append(klass(db, *row))
+		return machines
+
+
+	def __init__(self, db, idx, hostname, group, owner):
+		self.db = db
+		self.idx = idx
+		self.hostname = hostname
+		self.group = group
+		self.owner = owner
+		
 
 class kernel:
 	@classmethod
@@ -33,22 +57,23 @@ class test:
 	@classmethod
 	def select(klass, db, where = {}, distinct = False):
 		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
-			  'kernel_idx', 'status', 'reason', 'machine']
+			  'kernel_idx', 'status', 'reason', 'machine_idx']
 		tests = []
 		for row in db.select(','.join(fields), 'tests', where, distinct):
 			tests.append(klass(db, *row))
 		return tests
 
 
-	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine):
+	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine_idx):
 		self.idx = test_idx
 		self.job = job(db, job_idx)
-		# self.machine = self.job.machine
 		self.testname = testname
 		self.subdir = subdir
 		self.kernel_idx = kernel_idx
 		self.__kernel = None
 		self.__iterations = None
+		self.machine_idx = machine_idx
+		self.__machine = None
 		self.status_num = status_num
 		self.status_word = db.status_word[status_num]
 		self.reason = reason
@@ -86,13 +111,23 @@ class test:
 		return self.__kernel
 
 
+	def machine(self):
+		"""
+		Caching function for kernels
+		"""
+		if not self.__machine:
+			where = {'machine_idx' : self.machine_idx}
+			self.__machine = machine.select(self.db, where)[0]
+		return self.__machine
+
+
 class job:
 	def __init__(self, db, job_idx):
 		where = {'job_idx' : job_idx}
-		rows = db.select('tag, machine', 'jobs', where)
+		rows = db.select('tag, machine_idx', 'jobs', where)
 		if not rows:
 			return None
-		(self.tag, self.machine) = rows[0]
+		(self.tag, self.machine_idx) = rows[0]
 
  
 class iteration:
