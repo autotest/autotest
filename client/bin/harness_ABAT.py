@@ -71,16 +71,17 @@ class harness_ABAT(harness.harness):
 
 
 	def __root_device(self):
-		fd = open("/proc/mounts", "r")
-		try: 
-			for line in fd.readlines():
-				words = line.split(' ')
-				if words[0] != 'rootfs' and words[1] == '/':
-					return os.path.realpath(words[0])
-			return None
-		finally:
-			fd.close()
+		device = None
+		root = re.compile(r'^\S*(/dev/\S+).*\s/\s*$')
 		
+		df = system_output('df -lP')
+		for line in df.split("\n"):
+			m = root.match(line)
+			if m:
+				device = m.groups()[0]
+
+		return device
+
 
 	def run_start(self):
 		"""A run within this job is starting"""
