@@ -68,3 +68,10 @@ def sort_tests(tests):
 			tests.remove(test)
 	return results + sorted(tests)
 
+
+def print_main_header():
+	print '<h2>'
+	print '<a href="machine_kernel.cgi">Functional</a>'
+	print '&nbsp&nbsp&nbsp'
+	print '<a href="machine_benchmark.cgi">Performance</a>'
+	print '</h2><p>'
