@@ -525,3 +525,12 @@ def running_os_release():
 def running_os_ident():
 	(version, timestamp) = running_os_release()
 	return version + '::' + timestamp
+
+
+def rpm_installed(package):
+	# Test if a package is installed or not
+	try:
+		system('rpm -q ' + package)
+	except:
+		return False
+	return True
