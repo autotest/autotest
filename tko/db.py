@@ -32,22 +32,11 @@ class db:
 		# if not present, insert statuses
 		self.status_idx = {}
 		self.status_word = {}
-		for s in ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD']:
-			idx = self.get_status(s)
-			if not idx:
-				self.insert('status', {'word' : s})
-				idx = self.get_status(s)
-			self.status_idx[s] = idx
-			self.status_word[idx] = s
+		status_rows = self.select('status_idx, word', 'status', None)
+		for s in status_rows:
+			self.status_idx[s[0]] = s[0]
+			self.status_word[s[0]] = s[1]
 		
-
-	def get_status(self, word):
-		rows = self.select('status_idx', 'status', {'word' : word})
-		if rows:
-			return rows[0][0]
-		else:
-			return None
-
 
 	def dprint(self, value):
 		if self.debug:
