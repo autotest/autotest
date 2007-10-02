@@ -230,6 +230,12 @@ class job:
 			del dargs['tag']
 			if tag:
 				subdir += '.' + tag
+
+		reraise = False
+		if dargs.has_key('reraise'):
+			reraise = dargs['reraise']
+			del dargs['reraise']
+
 		try:
 			try:
 				self.__runtest(url, tag, args, dargs)
@@ -242,7 +248,10 @@ class job:
 				self.record('GOOD', subdir, testname, \
 						'completed successfully')
 		except TestError:
-			return 0
+			if reraise:
+				raise
+			else:
+				return 0
 		except:
 			raise
 		else:

@@ -69,3 +69,6 @@ CREATE TABLE status (
 status_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY ,		-- numerical status
 word VARCHAR(10)			-- status word
 );
+
+INSERT INTO status (word)
+VALUES ('NOSTATUS'), ('ERROR'), ('ABORT'), ('FAIL'), ('WARN'), ('GOOD');
