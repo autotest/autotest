@@ -89,5 +89,5 @@ jobs_min_child=%s
 std_dev_time=%s
 std_dev_pct=%s
 jti=%s
-""" % tuple(max_jobs_per_min, fields)
+""" % tuple([max_jobs_per_min] + fields)
 		out.close()
