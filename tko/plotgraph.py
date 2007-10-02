@@ -47,6 +47,9 @@ class gnuplot:
 		labeled_values: dictionary of lists
 				{ label : [value1, value2, ... ] , ... }
 		"""
+		if not labeled_values:
+			raise "plotgraph:add_dataset - dataset was empty! %s" %\
+									title
 		self.data_titles.append(title)
 		data_points = {}
 		for label in labeled_values:
@@ -84,6 +87,8 @@ class gnuplot:
 		for dataset in self.datasets:
 			count = 1
 			for label in self.xlabels:
+				if not dataset.has_key(label):
+					continue
 				data = dataset[label]
 				g.write("%d %s\n" % (count, str(data)))
 				count += 1
