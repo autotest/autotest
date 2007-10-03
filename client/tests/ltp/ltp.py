@@ -1,4 +1,5 @@
 import test
+import os
 from autotest_utils import *
 
 class ltp(test.test):
@@ -15,9 +16,19 @@ class ltp(test.test):
 		system('make -j %d' % count_cpus())
 		system('yes n | make install')
 
-	# Note: to run a specific test, try '-f test' in the args
-	# eg, job.run_test('ltp', '-f ballista')
+	# Note: to run a specific test, try '-f cmdfile -s test' in the
+	# in the args (-f for test file and -s for the test case)
+	# eg, job.run_test('ltp', '-f math -s float_bessel')
 	def execute(self, args = ''):
-		logfile = self.resultsdir + '/ltp.log'
-		args = '-q -l ' + logfile + ' ' + args
-		system("yes '' | " + self.srcdir + '/runltp ' + args)
+		logfile = os.path.join(self.resultsdir, 'ltp.log')
+		failcmdfile = os.path.join(self.debugdir, 'failcmdfile')
+
+		args = '-q -l ' + logfile + ' -C ' + failcmdfile + ' ' + args
+		cmd = os.path.join(self.srcdir, 'runltp') + ' ' + args
+
+		if profilers.present():
+			profilers.start(self)
+		system(cmd)
+		if profilers.present():
+			profilers.stop(self)
+			profilers.report(self)
