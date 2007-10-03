@@ -3,9 +3,11 @@ import MySQLdb, re, os, sys
 class db:
 	def __init__(self, debug = False):
 		self.debug = debug
-			
+
+		path = os.path.dirname(os.path.abspath(sys.argv[0]))
 		try:
-			db_prefs = open('.database', 'r')
+			file = os.path.join(path, '.database')
+			db_prefs = open(path, 'r')
 			host = db_prefs.readline().rstrip()
 			database = db_prefs.readline().rstrip()
 		except:
@@ -13,12 +15,14 @@ class db:
 			database = 'tko'
 	
 		try:
-			login = open('.priv_login', 'r')
+			file = os.path.join(path, '.priv_login')
+			login = open(file, 'r')
 			user = login.readline().rstrip()
 			password = login.readline().rstrip()
 		except:	
 			try:
-				login = open('.unpriv_login', 'r')
+				file = os.path.join(path, '.unpriv_login')
+				login = open(path, 'r')
 				user = login.readline().rstrip()
 				password = login.readline().rstrip()
 			except:
