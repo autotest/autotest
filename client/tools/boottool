@@ -960,16 +960,6 @@ use base 'Linux::Bootloader';
 use vars qw( $VERSION );
 
 
-sub new {
-    my $this = shift;
-    my $class = ref($this) || $this;
-    my $self = bless({}, $class);
-
-    $self->SUPER::new();
-
-    return $self;
-}
-
 sub _set_config_file {
     my $self=shift;
     $self->{'config_file'}='/etc/elilo.conf';
@@ -1167,17 +1157,6 @@ use base 'Linux::Bootloader';
 
 use vars qw( $VERSION );
 
-
-sub new {
-    my $this = shift;
-    my $class = ref($this) || $this;
-    my $self = bless({}, $class);
-    #my $self = fields::new($class);
-
-    $self->SUPER::new();
-
-    return $self;
-}
 
 sub _set_config_file {
     my $self=shift;
@@ -1702,16 +1681,6 @@ use base 'Linux::Bootloader';
 use vars qw( $VERSION );
 
 
-sub new {
-    my $this = shift;
-    my $class = ref($this) || $this;
-    my $self = bless({}, $class);
-
-    $self->SUPER::new();
-
-    return $self;
-}
-
 sub _set_config_file {
     my $self=shift;
     $self->{'config_file'}='/etc/lilo.conf';
@@ -1840,17 +1809,6 @@ use base 'Linux::Bootloader';
 use vars qw( $VERSION );
 
 
-sub new {
-    my $this = shift;
-    my $class = ref($this) || $this;
-    my $self = bless({}, $class);
-
-    $self->SUPER::new();
-
-    return $self;
-}
-
-
 sub _set_config_file {
     my $self=shift;
     $self->{'config_file'}='/etc/yaboot.conf';
@@ -1974,7 +1932,10 @@ if (defined $params{'bootloader-probe'}) {
 
 my $bootloader;
 if ($detected_bootloader =~ m/^(grub|elilo|lilo|yaboot)$/) {
-  $bootloader = new Linux::Bootloader($params{config_file});
+  my $class = "Linux::Bootloader::" . "\u$detected_bootloader";
+  eval "require $class";
+  $bootloader = eval "new $class(\$params{config_file});";
+
 } else { 
   die "ERROR: Bootloader $detected_bootloader not recognized!\n";
 }
