@@ -70,6 +70,8 @@ class test:
 
 			try:
 				os.chdir(self.outputdir)
+				write_keyval(self.outputdir,
+						{ 'version' : self.version })
 				self.execute(*args, **dargs)
 			finally:
 				self.job.stderr.restore()
