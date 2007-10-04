@@ -42,7 +42,7 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
-	def __init__(self, hostname, user="root", port=22):
+	def __init__(self, hostname, user="root", port=22, initialize=True):
 		"""
 		Construct a SSHHost object
 		
@@ -56,6 +56,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.user= user
 		self.port= port
 		self.tmp_dirs= []
+		self.initialize = initialize
 
 		super(SSHHost, self).__init__()
 		self.bootloader = bootloader.Bootloader(self)
