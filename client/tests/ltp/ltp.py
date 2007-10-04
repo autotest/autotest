@@ -16,6 +16,7 @@ class ltp(test.test):
 		system('make -j %d' % count_cpus())
 		system('yes n | make install')
 
+
 	# Note: to run a specific test, try '-f cmdfile -s test' in the
 	# in the args (-f for test file and -s for the test case)
 	# eg, job.run_test('ltp', '-f math -s float_bessel')
@@ -26,6 +27,7 @@ class ltp(test.test):
 		args = '-q -l ' + logfile + ' -C ' + failcmdfile + ' ' + args
 		cmd = os.path.join(self.srcdir, 'runltp') + ' ' + args
 
+		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
 		system(cmd)
