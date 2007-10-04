@@ -471,7 +471,7 @@ class kernel:
 		return release + '::' + version
 
 
-	def boot(self, args='', once=True, ident=1):
+	def boot(self, args='', ident=1):
 		""" install and boot this kernel, do not care how
 		    just make it happen.
 		"""
@@ -492,11 +492,9 @@ class kernel:
 
 		# Boot the selected tag.
 		self.add_to_bootloader(args=args, tag=self.installed_as)
-		if once:
-			self.job.bootloader.boot_once(self.installed_as)
 
 		# Boot it.
-		self.job.reboot()
+		self.job.reboot(tag=self.installed_as)
 
 
 	def get_kernel_build_ver(self):
