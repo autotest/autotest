@@ -534,3 +534,15 @@ def rpm_installed(package):
 	except:
 		return False
 	return True
+
+
+def write_keyval(dirname, dictionary):
+	keyval = open(os.path.join(dirname, 'keyval'), 'w')
+	for key in dictionary.keys():
+		value = '%s' % dictionary[key]     # convert numbers to strings
+		if re.search(r'\W', key):
+			raise 'Invalid key: ' + key
+		if re.search(r'[^\d\.]', value):
+			raise 'Invalid value %s for key %s' % (value, key)
+		keyval.write('%s=%s\n' % (key, value))
+	keyval.close()
