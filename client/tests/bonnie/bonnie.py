@@ -2,10 +2,25 @@ import test, os_dep
 from autotest_utils import *
 
 
-def convert_size(size):
-	if size.endswith('G') or size.endswith('g'):
-		return int(size[:-1]) * 2**30
-	return int(size) * 2**20
+def convert_size(values):
+        values = values.split(':')
+        size = values[0]
+        if len(values) > 1:
+                chunk = values[1]
+        else:
+                chunk = 0
+        if size.endswith('G') or size.endswith('g'):
+                size = int(size[:-1]) * 2**30
+        else:
+                if size.endswith('M') or size.endswith('m'):
+                        size = int(size[:-1])
+                size = int(size) * 2**20
+        if chunk:
+                if chunk.endswith('K') or chunk.endswith('k'):
+                        chunk = int(chunk[:-1]) * 2**10
+                else:
+                        chunk = int(chunk)
+        return [size, chunk]
 
 
 class bonnie(test.test):
@@ -49,8 +64,9 @@ class bonnie(test.test):
 				continue
 			fields = tuple(line.split(','))
 			fields = [strip_plus(f) for f in fields]
-		fields = tuple([convert_size(fields[1])] + fields[2:])
-		print >> out, """size=%s
+			fields = tuple(convert_size(fields[1]) + fields[2:])
+			print >> out, """size=%s
+chnk=%s
 seqout_perchr_ksec=%s
 seqout_perchr_pctcp=%s
 seqout_perblk_ksec=%s
