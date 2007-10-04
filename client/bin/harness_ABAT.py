@@ -112,6 +112,9 @@ class harness_ABAT(harness.harness):
 
 			self.job.config_set('boot.default_args', args)
 
+		# Turn off boot_once semantics.
+		self.job.config_set('boot.set_default', True)
+
 		# For RedHat installs we do not load up the module.conf
 		# as they cannot be builtin.  Pass them as arguments.
 		vendor = get_os_vendor()
