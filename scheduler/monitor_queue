@@ -130,11 +130,14 @@ def run_job(control, queuename, scheduler_dir):
 	print "Starting job: %s" % control
 	print autoserv_cmd
 	
-	autoserv_log = open(os.path.join(debug, 'server.log'), 'w', 0)
-	p = Popen(autoserv_cmd, shell=True, stdout=autoserv_log, stderr=STDOUT,
-								cwd=results)
+	open(os.path.join(debug, 'autoserv.cmd'), 'w', 0).write(autoserv_cmd + '\n')
+	autoserv_stdout = open(os.path.join(debug, 'autoserv.stdout'), 'w', 0)
+	autoserv_stderr = open(os.path.join(debug, 'autoserv.stderr'), 'w', 0)
+	p = Popen(autoserv_cmd, shell=True, stdout=autoserv_stdout,
+					    stderr=autoserv_stderr, cwd=results)
 	(pid, ret) = os.waitpid(p.pid, 0)
-	autoserv_log.close()
+	autoserv_stdout.close()
+	autoserv_stderr.close()
 	
 	# If this was a tempfile then clean it up
 	if not is_autoserv_ctl:
