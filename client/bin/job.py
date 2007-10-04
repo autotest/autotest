@@ -337,7 +337,11 @@ class job:
 
 	def reboot(self, tag='autotest'):
 		self.harness.run_reboot()
-		self.bootloader.boot_once(tag)
+		default = self.config_get('boot.set_default')
+		if default:
+			self.bootloader.set_default(tag)
+		else:
+			self.bootloader.boot_once(tag)
 		system("reboot")
 		self.quit()
 
