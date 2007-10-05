@@ -1,4 +1,4 @@
-import MySQLdb, re, os, sys
+import MySQLdb, re, os, sys, types
 
 class db:
 	def __init__(self, debug = False):
@@ -38,7 +38,7 @@ class db:
 		self.status_word = {}
 		status_rows = self.select('status_idx, word', 'status', None)
 		for s in status_rows:
-			self.status_idx[s[0]] = s[0]
+			self.status_idx[s[1]] = s[0]
 			self.status_word[s[0]] = s[1]
 		
 
