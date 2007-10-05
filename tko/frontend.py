@@ -64,6 +64,15 @@ class test:
 		return tests
 
 
+	@classmethod
+	def select_sql(klass, db, sql, values):
+		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
+			  'kernel_idx', 'status', 'reason', 'machine_idx']
+		fields = ['t.'+field for field in fields]
+		rows = db.select_sql(','.join(fields), 'tests', sql, values)
+		return [klass(db, *row) for row in rows]
+
+		
 	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine_idx):
 		self.idx = test_idx
 		self.job = job(db, job_idx)

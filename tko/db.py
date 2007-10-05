@@ -57,14 +57,26 @@ class db:
 		cmd += [fields, 'from', table]
 
 		values = []
-		if where:
+		if where and isinstance(where, types.DictionaryType):
 			keys = [field + '=%s' for field in where.keys()]
 			values = [where[field] for field in where.keys()]
 
 			cmd.append(' where ' + ' and '.join(keys))
+		elif where and isinstance(where, types.StringTypes):
+			cmd.append(' where ' + where)
 
 		self.dprint('%s %s' % (' '.join(cmd),values))
 		self.cur.execute(' '.join(cmd), values)
+		return self.cur.fetchall()
+
+
+	def select_sql(self, fields, table, sql, values):
+		"""\
+			select fields from table "sql"
+		"""
+		cmd = 'select %s from %s %s' % (fields, table, sql)
+		self.dprint(cmd)
+		self.cur.execute(cmd, values)
 		return self.cur.fetchall()
 
 
@@ -83,6 +95,28 @@ class db:
 
 		self.dprint('%s %s' % (cmd,values))
 		self.cur.execute(cmd, values)
+		self.con.commit()
+
+
+	def update(self, table, data, where):
+		"""\
+			'update table set data values (%s ... %s) where ...'
+
+			data:
+				dictionary of fields and data
+		"""
+		cmd = 'update %s ' % table
+		fields = data.keys()
+		data_refs = [field + '=%s' for field in fields]
+		data_values = [data[field] for field in fields]
+		cmd += ' set ' + ' and '.join(data_refs)
+
+		where_keys = [field + '=%s' for field in where.keys()]
+		where_values = [where[field] for field in where.keys()]
+		cmd += ' where ' + ' and '.join(where_keys)
+
+		print '%s %s' % (cmd, data_values + where_values)
+		self.cur.execute(cmd, data_values + where_values)
 		self.con.commit()
 
 
