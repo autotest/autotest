@@ -28,12 +28,12 @@ def main():
 	for flag, value in opts:
 		if flag == '-t':
 			test = value
-	elif flag == '-l':
-		logdir = value
+		elif flag == '-l':
+			logdir = value
 	
 	if test == None or logdir == None:
-	usage()
-	sys.exit(1)
+		usage()
+		sys.exit(1)
 
 	print "Going to launch %s on %r with log dir of %s." % (test, machines, logdir)
 	parallel_simple(run, machines)
