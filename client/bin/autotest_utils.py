@@ -32,7 +32,7 @@ def cat_file_to_cmd(file, command, ignorestatus = 0):
 	zcat or bzcat if appropriate
 	"""
 	if not os.path.isfile(file):
-		raise NameError, 'invalid file %s to cat to command %s' % file, command
+		raise NameError, 'invalid file %s to cat to command %s' % (file, command)
 	if file.endswith('.bz2'):
 		return system('bzcat ' + file + ' | ' + command, ignorestatus)
 	elif (file.endswith('.gz') or file.endswith('.tgz')):
