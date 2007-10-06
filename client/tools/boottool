@@ -554,8 +554,12 @@ sub print_info {
   } elsif ($info =~ /^\d+/) {
     $start=$end=$info
   } else {
-    warn "ERROR:  input should be: #, default, or all.\n";
-    return undef;
+    my $index = $self->_lookup($info);
+    if (!defined $index) {
+      warn "ERROR:  input should be: #, default, all, or a valid title.\n";
+      return undef;
+    }
+    $start=$end=$index;
   }
 
   if ($start < 0 || $end > $#sections-1) {
