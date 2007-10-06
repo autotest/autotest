@@ -1,5 +1,7 @@
 #!/usr/bin/python
+print "Content-type: text/html\n"
 import cgi, cgitb, os, sys
+sys.stdout.flush()
 cgitb.enable()
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
@@ -11,10 +13,7 @@ import kernel_versions
 
 db = db.db()
 
-
 def main():
-	print "Content-type: text/html\n"
-	sys.stdout.flush()
 
 	display.print_main_header()
 
