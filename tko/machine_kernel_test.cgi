@@ -1,6 +1,7 @@
 #!/usr/bin/python
-
+print "Content-type: text/html\n"
 import cgi, cgitb, os, sys, re
+sys.stdout.flush()
 cgitb.enable()
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
@@ -10,8 +11,6 @@ import db, display, frontend
 db = db.db()
 
 def main():
-	print "Content-type: text/html\n"
-	sys.stdout.flush()
 
 	form = cgi.FieldStorage()
 	machine_idxs = form["machine"].value
