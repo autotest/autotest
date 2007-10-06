@@ -29,6 +29,10 @@ from subcommand import *
 from utils import run, get_tmp_dir, sh_escape
 """
 
+sys.argv[0] = os.path.abspath(sys.argv[0])
+# The above is needed if we're executed with a relative path, as we chdir
+# later, and will want this
+
 def run(control_file, machines, args):
 	namespace = dict({ 'machines' : machines, 'args' : args })
 	
