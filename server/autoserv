@@ -17,7 +17,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import sys
+import sys, os
 
 preamble = """\
 import os, sys
@@ -30,14 +30,16 @@ from utils import run, get_tmp_dir, sh_escape
 """
 
 def run(control_file, machines, args):
-	namespace = dict({'machines': machines, 'args': args})
+	namespace = dict({ 'machines' : machines, 'args' : args })
 	
 	exec(preamble, namespace, namespace)
 	execfile(control_file, namespace, namespace)
 
+
 def usage():
 	usage = "usage: %prog <control file>"
 	print usage
+
 
 if __name__ == "__main__":
 	args = []
