@@ -39,13 +39,12 @@ def print_kernel_machines_vs_test(machines, kernel, only_test):
 		tests = frontend.test.select(db, where)
 		if not tests:
 			continue
-		test_dict = {}
+		dict = {}
 		for test in tests:
-			all_tests.append(test.testname)
-			test_dict[test.testname] = test
-		# FIXME. What happens on multiple counts of the same test?
-		# ie. we run two identical jobs on the same machine ...
-		results[machine.idx] = test_dict
+			testname = test.testname
+			all_tests.append(testname)
+			dict[testname] = dict.get(testname, []) + [test]
+		results[machine.idx] = dict
 	test_list = display.sort_tests(list(set(all_tests)))
 
 	print '<h1>%s</h1>' % kernel.printable
@@ -60,11 +59,15 @@ def print_kernel_machines_vs_test(machines, kernel, only_test):
 			continue
 		row = [display.box(machine.hostname)]
 		for testname in test_list:
-			if not results[machine.idx].has_key(testname):
-				continue
-			test = results[machine.idx][testname]
-			box = display.box(test.status_word,
-				color_key = test.status_word, link = test.url)
+			if results[machine.idx].has_key(testname):
+				tests = results[machine.idx][testname]
+				# HACK. Link to the first test. Bleh.
+				link = tests[0].url
+			else:
+				tests = []
+				link = None
+			
+			box = display.status_count_box(db, tests, link = link)
 			row.append(box)
 		matrix.append(row)
 	matrix.append(header_row)
