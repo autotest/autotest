@@ -11,20 +11,25 @@ import db, display, frontend
 db = db.db()
 
 def main():
-
 	form = cgi.FieldStorage()
-	machine_idxs = form['machine'].value
+
 	kernel_idx = form['kernel'].value
+
+	if form.has_key('machine'):
+		machines = []
+		for idx in form['machine'].value.split(','):
+			where = { 'machine_idx' : idx }
+			machines.append(frontend.machine.select(db, where)[0])
+	elif form.has_key('group'):
+		where = { 'machine_group' : form['group'].value }
+		machines = frontend.machine.select(db, where)
+
 	if form.has_key('test'):
 		test = form['test'].value
 	else:
 		test = None
 
 	kernel = frontend.kernel.select(db, {'kernel_idx' : kernel_idx })[0]
-	machines = []
-	for idx in machine_idxs.split(','):
-		machine = frontend.machine.select(db, {'machine_idx' : idx})[0]
-		machines.append(machine)
 	print_kernel_machines_vs_test(machines, kernel, test)
 
 
