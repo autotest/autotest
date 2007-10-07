@@ -1,13 +1,6 @@
 #!/usr/bin/python
 import os, re, db, sys
 
-# Pulling hierarchy:
-#
-# test pulls in (kernel, job, attributes, iterations)
-# kernel pulls in (patches)
-#
-# Note that job does put pull test - test is the primary object.
-
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 root_url_file = os.path.join(tko, '.root_url')
 if os.path.exists(root_url_file):
@@ -16,6 +9,34 @@ else:
         html_root = 'http://test.kernel.org/google/'
 
 
+class group:
+	@classmethod
+	def select(klass, db):
+		"""Return all possible machine groups"""
+		rows = db.select('distinct machine_group', 'machines',
+						'machine_group is not null')
+		groupnames = sorted([row[0] for row in rows])
+		return [klass(db, groupname) for groupname in groupnames]
+
+
+	def __init__(self, db, name):
+		self.name = name
+		self.db = db
+
+
+	def machines(self):
+		return machine.select(self.db, { 'machine_group' : self.name })
+	
+
+	def tests(self, where = {}):
+		values = [self.name]
+		sql = 't inner join machines m on m.machine_idx=t.machine_idx where m.machine_group=%s'
+		for key in where.keys():
+			sql += ' and %s=%%s' % key
+			values.append(where[key])
+		return test.select_sql(self.db, sql, values)
+
+	
 class machine:
 	@classmethod
 	def select(klass, db, where = {}):
