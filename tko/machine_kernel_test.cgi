@@ -13,23 +13,29 @@ db = db.db()
 def main():
 
 	form = cgi.FieldStorage()
-	machine_idxs = form["machine"].value
-	kernel_idx = form["kernel"].value
+	machine_idxs = form['machine'].value
+	kernel_idx = form['kernel'].value
+	if form.has_key('test'):
+		test = form['test'].value
+	else:
+		test = None
 
 	kernel = frontend.kernel.select(db, {'kernel_idx' : kernel_idx })[0]
 	machines = []
 	for idx in machine_idxs.split(','):
 		machine = frontend.machine.select(db, {'machine_idx' : idx})[0]
 		machines.append(machine)
-	print_kernel_machines_vs_test(machines, kernel)
+	print_kernel_machines_vs_test(machines, kernel, test)
 
 
-def print_kernel_machines_vs_test(machines, kernel):
+def print_kernel_machines_vs_test(machines, kernel, only_test):
 	# first we have to get a list of all run tests across all machines
 	all_tests = []
 	results = {}         # will be a 2d hash [machine][testname]
 	for machine in machines:
 		where = { 'kernel_idx':kernel.idx , 'machine_idx':machine.idx }
+		if only_test:
+			where['subdir'] = only_test
 		tests = frontend.test.select(db, where)
 		if not tests:
 			continue
