@@ -41,7 +41,10 @@ def print_kernel_groups_vs_tests(kernel, groups):
 		for group in groups:
 			tests = group.tests({ 'kernel_idx' : kernel.idx ,
 					      'subdir' : testname })
-			box = display.status_count_box(db, tests)
+			link = 'machine_kernel_test.cgi?'
+			link += 'group=%s&kernel=%s&test=%s' % \
+					(group.name, kernel.idx, testname)
+			box = display.status_count_box(db, tests, link=link)
 			row.append(box)
 		matrix.append(row)
 	matrix.append(header_row)
