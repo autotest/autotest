@@ -57,12 +57,8 @@ def print_kernel_machines_vs_test(machines, kernel):
 			if not results[machine.idx].has_key(testname):
 				continue
 			test = results[machine.idx][testname]
-			if test.url:
-				html = '<a href="%s">%s</a>' % \
-						(test.url, test.status_word)
-			else:
-				html = test.status_word
-			box = display.box(html, color_key = test.status_word)
+			box = display.box(test.status_word,
+				color_key = test.status_word, link = test.url)
 			row.append(box)
 		matrix.append(row)
 	matrix.append(header_row)
