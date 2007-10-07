@@ -13,23 +13,11 @@ import kernel_versions
 
 db = db.db()
 
-def main():
 
-	display.print_main_header()
+def kernel_group_box(kernel, group):
+	tests = group.tests({ 'kernel_idx':kernel.idx })
 
-	machines = frontend.machine.select(db)
-	print_machines_vs_all_kernels(machines)
-
-
-def kernel_machines_box(kernel, machines):
-	status = None
-	status_word = ''
-	tests = []
-	for machine in machines:
-		where = { 'kernel_idx':kernel.idx , 'machine_idx':machine.idx }
-		tests += frontend.test.select(db, where)
-
-	machine_idxs = ['%d' % machine.idx for machine in machines]
+	machine_idxs = ['%d' % machine.idx for machine in group.machines()]
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
 					(','.join(machine_idxs), kernel.idx)
 	return display.status_count_box(db, tests, link)
@@ -39,20 +27,12 @@ def kernel_encode(kernel):
 	return kernel_versions.version_encode(kernel.printable)
 
 
-def print_machines_vs_all_kernels(machines):
-	groups = {}
-	for machine in machines:
-		if machine.group:
-			groupname = machine.group
-		else:
-			groupname = machine.hostname
-		if groups.has_key(groupname):
-			groups[groupname].append(machine)
-		else:
-			groups[groupname] = [machine]
-	group_list = sorted(groups.keys())
+def main():
+	display.print_main_header()
 
-	headers = ['Version'] + group_list
+	groups = frontend.group.select(db)
+
+	headers = ['Version'] + [g.name for g in groups]
 	header_row = [ display.box(x, header=True) for x in headers ] 
 
 	kernels = frontend.kernel.select(db)
@@ -61,9 +41,8 @@ def print_machines_vs_all_kernels(machines):
 	matrix = [header_row]
 	for kernel in kernels:
 		row = [display.box(kernel.printable)]
-		for group in group_list:
-			machines = groups[group]
-			row.append(kernel_machines_box(kernel, machines))
+		for group in groups:
+			row.append(kernel_group_box(kernel, group))
 		matrix.append(row)
 	matrix.append(header_row)
 
