@@ -40,7 +40,13 @@ class db:
 		for s in status_rows:
 			self.status_idx[s[1]] = s[0]
 			self.status_word[s[0]] = s[1]
-		
+
+		dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+		machine_map = os.path.join(dir, 'machines')
+		if os.path.exists(machine_map):
+			self.machine_map = machine_map
+		self.machine_group = {}
+
 
 	def dprint(self, value):
 		if self.debug:
@@ -148,8 +154,22 @@ class db:
 				self.insert('iteration_result', data)
 
 
-	def insert_machine(self, hostname):
-		self.insert('machines', { 'hostname' : hostname })
+	def read_machine_map(self):
+		self.machine_group = {}
+		for line in open(self.machine_map, 'r').readlines():
+			(machine, group) = line.split()
+			self.machine_group[machine] = group
+
+
+	def insert_machine(self, hostname, group = None):
+		if self.machine_map and not self.machine_group:
+			self.read_machine_map()
+
+		if not group:
+			group = self.machine_group.get(hostname, hostname)
+				
+		self.insert('machines', { 'hostname' : hostname ,
+					  'machine_group' : group })
 		return self.lookup_machine(hostname)
 
 
@@ -164,7 +184,7 @@ class db:
 
 	def lookup_kernel(self, kernel):
 		rows = self.select('kernel_idx', 'kernels', 
-				{'kernel_hash':kernel.kernel_hash})
+					{'kernel_hash':kernel.kernel_hash})
 		if rows:
 			return rows[0][0]
 		else:
@@ -192,6 +212,7 @@ class db:
 					'name':name,
 					'url':patch.reference, 
 					'hash':patch.hash})
+
 
 	def find_test(self, job_idx, subdir):
 		where = { 'job_idx':job_idx , 'subdir':subdir }
