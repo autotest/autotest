@@ -15,8 +15,11 @@ color_map = {
 
 
 class box:
-	def __init__(self, data, color_key = None, header = False):
-		self.data = data
+	def __init__(self, data, color_key = None, header = False, link = None):
+		if link:
+			self.data = '<a href="%s">%s</a>' % (link, data)
+		else:
+			self.data = data
 		if color_map.has_key(color_key):
 			self.color = color_map[color_key]
 		else:
