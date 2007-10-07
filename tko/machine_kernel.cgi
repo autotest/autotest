@@ -40,7 +40,8 @@ def main():
 
 	matrix = [header_row]
 	for kernel in kernels:
-		row = [display.box(kernel.printable)]
+		link = 'group_test.cgi?kernel=%s' % kernel.idx
+		row = [display.box(kernel.printable, link=link)]
 		for group in groups:
 			row.append(kernel_group_box(kernel, group))
 		matrix.append(row)

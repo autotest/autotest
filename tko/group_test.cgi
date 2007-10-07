@@ -23,31 +23,25 @@ def main():
 def print_kernel_groups_vs_tests(kernel, groups):
 	# first we have to get a list of all run tests across all machines
 	all_tests = set()
-	results = {}         # will be a 3d hash [group][test][status] = count
 	for group in groups:
-		results[group] = {}
-		for test in group.tests():
+		for test in group.tests({ 'kernel_idx' : kernel.idx }):
 			all_tests.add(test.subdir)
-			results[group][test.subdir] = {}
-			count = results[group][test.subdir].get(test.status_num, 0)
-			results[group][test.subdir][test.status_num] = count + 1
 	all_tests = list(all_tests)
 		
 	print '<h1>%s</h1>' % kernel.printable
 
 	header_row = [ display.box('Test', header=True) ]
 	for group in groups:
-		header_row.append( display.box(group, header=True) )
+		header_row.append( display.box(group.name, header=True) )
 
 	matrix = [header_row]
 	for testname in all_tests:
-		row = [display.box(re.sub(r'kernel.', r'kernel<br>', testname))]
+		shortname = re.sub(r'kernel.', r'kernel<br>', testname)
+		row = [display.box(shortname)]
 		for group in groups:
-			if not results[group].has_key(testname):
-				continue
-			worst = sorted(results[group][testname].keys())[0]
-			html = display.status_html(db, results[group][testname])
-			box = display.box(html, db.status_word[worst])
+			tests = group.tests({ 'kernel_idx' : kernel.idx ,
+					      'subdir' : testname })
+			box = display.status_count_box(db, tests)
 			row.append(box)
 		matrix.append(row)
 	matrix.append(header_row)
