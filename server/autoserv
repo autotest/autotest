@@ -5,10 +5,8 @@
 """
 Run an autoserv control file
 
-TODO(poirier): add a singleton logger
-TODO(poirier): maybe change the name "get_file" to "receive_file" ?
-TODO(poirier): change get(), send_file(), get_file() to consistantly recognize
-	paths that start with '~' as refering to the home directory
+-m machine[,machine,machine] : specify machines to run on
+-c                           : assume control file is a client control file
 """
 
 __author__ = """
@@ -25,48 +23,63 @@ import os, sys
 import errors, hosts, autotest, kvm
 import source_kernel, rpm_kernel, deb_kernel
 from subcommand import *
-
 from utils import run, get_tmp_dir, sh_escape
+
 """
 
-sys.argv[0] = os.path.abspath(sys.argv[0])
-# The above is needed if we're executed with a relative path, as we chdir
-# later, and will want this
+client_wrapper = """
+at = autotest.Autotest()
 
-def run(control_file, machines, args):
+def run_client(machine):
+	host = hosts.SSHHost(machine)
+	at.run(control, host=host)
+
+if len(machines) > 1:
+	parallel_simple(run_client, machines)
+else:
+	run_client(machines[0])
+"""
+
+# Later, autotest.py will want to figure out what the top level autodir is.
+# They won't be able to use abspath later, if we change directory - as it works
+# relative to whatever your current path is. Hence we make argv[0] absolute now.
+sys.argv[0] = os.path.abspath(sys.argv[0])
+args = sys.argv[1:]
+
+def run(control_file, machines, args, client):
 	namespace = dict({ 'machines' : machines, 'args' : args })
-	
-	exec(preamble, namespace, namespace)
-	execfile(control_file, namespace, namespace)
+	control = open(control_file, 'r').read()
+
+	if client:
+		namespace['control'] = control
+		exec(preamble + client_wrapper, namespace, namespace)
+	else:
+		exec(preamble + control, namespace, namespace)
 
 
 def usage():
-	usage = "usage: %prog <control file>"
-	print usage
+	print "usage: autoserv [-c] <control file> [-m machine,[machine,...]] [args ...]"
+	sys.exit(1)
 
 
-if __name__ == "__main__":
-	args = []
-	tmp_args = sys.argv[1:]
+# We can't use the general getopt methods here, as there will be unknown
+# extra arguments that we pass down into the control file instead.
+# Thus we process the arguments by hand, for which we are duly repentant.
+if args.count('-m'):
+	idx = args.index('-m')
+	machines = args[idx+1].split(',')
+	args[idx:idx+2] = []			# delete '-m machines'
+else:
 	machines = None
-	while tmp_args:
-		if tmp_args[0] in ('-m', '--machines'):
-			if len(tmp_args) < 2:
-				raise('"' + tmp_args[0] + '" used, but then no machine defined')
-			machines = tmp_args[1]
-			tmp_args = tmp_args[2:]
-		else:
-			args.append(tmp_args[0])
-			tmp_args = tmp_args[1:]
 
-	if len(args) < 1:
-		usage()
-		sys.exit(1)
+if args.count('-c'):
+	client = True
+	idx = args.index('-c')
+	args[idx:idx+1] = []			# delete '-c'
+else:
+	client = False
 
-	control_file = args[0]
-	args = args[1:]
+if len(args) < 1:
+	usage()
 
-	if machines:
-		run(control_file, machines.split(','), args)
-	else:
-		run(control_file, None, args)
+run(args[0], machines, args[1:], client)
