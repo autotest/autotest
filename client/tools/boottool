@@ -816,7 +816,8 @@ sub detect_bootloader_from_conf {
     my %boot_list = ( grub   => '/boot/grub/menu.lst', 
                       lilo   => '/etc/lilo.conf', 
                       elilo  => '/etc/elilo.conf', 
-                      yaboot => '/etc/yaboot.conf' 
+                      yaboot => '/etc/yaboot.conf',
+                      zipl   => '/etc/zipl.conf',
                       );
 
     foreach my $key ( sort keys %boot_list ) {
@@ -1859,6 +1860,475 @@ sub install {
 
 =head1 AUTHOR
 
+IBM, Linux Technology Centre, Andy Whitcroft <apw@uk.ibm.com>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2006 IBM Corperation
+All Rights Reserved.
+
+This script is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<Linux::Bootloader>
+
+=cut
+
+package Linux::Bootloader::Zipl;
+
+=head1 NAME
+
+Linux::Bootloader::Zipl - Parse and modify ZIPL configuration files.
+
+=cut
+
+use strict;
+use warnings;
+
+@Linux::Bootloader::Zipl::ISA = qw(Linux::Bootloader);
+use base 'Linux::Bootloader';
+
+
+use vars qw( $VERSION );
+
+
+sub _set_config_file {
+    my $self=shift;
+    $self->{'config_file'}='/etc/zipl.conf';
+}
+
+
+### ZIPL functions ###
+
+# Parse config into array of hashes
+sub _info {
+  my $self=shift;
+
+  return undef unless $self->_check_config();
+
+  my @config=@{$self->{config}};
+  @config=grep(!/^#|^\s*$/, @config);
+
+  my %matches = (
+		  kernel => '^\s*image\s*=\s*(\S+)',
+		  initrd => '^\s*ramdisk\s*=\s*(.*)',
+		  args => '^\s*parameters\s*="?\s*(.*[^"])"?',
+		);
+
+  my %sect_title;
+  my $menu_name;
+  my $title;
+  my @sections;
+  foreach (@config) {
+    chomp($_);
+
+    # Note the menu and switch mode.
+    if ($_ =~ /^:(menu\S*)/) {
+      $menu_name = $1;
+
+    # An entry starts [name]
+    } elsif ($_ =~ /^\s*\[(\S+)\]/i) {
+      $title = $1;
+      $sect_title{$title}{title} = $title;
+    }
+
+    # Decode the entry fields
+    if (!defined $menu_name) {
+      foreach my $key (keys %matches) {
+	if ($_ =~ /$matches{$key}/i) {
+	  $key .= '2' if exists $sect_title{$title}{$key};
+	  $sect_title{$title}{$key} = $1;
+	}
+      }
+
+    # This is the menu, pull it in
+    } else {
+        # If this is an entry specified copy entry in to the result.
+	if ($_ =~ /^\s+(\d+)\s*=\s*(\S*)/) {
+	  $sections[$1] = $sect_title{$2};
+
+	# record all the other attributes here, pick out the default
+	# if we see it.
+	} else {
+	  if ($_ =~ /^\s+(\S+)\s*=\s*(.*\S)\s*/) {
+	    $sections[0]{$1} = $2;
+	  }
+	}
+     }
+  }
+  $sections[0]{'menu'} = $menu_name;
+  if (defined $sections[0]{'default'}) {
+    $sections[0]{'default'}--;
+  }
+
+  # sometimes config doesn't have a default, so goes to first
+  if (!(defined $sections[0]{'default'})) {
+    $sections[0]{'default'} = '0';
+
+  # if default is label name, we need position
+  } elsif ($sections[0]{'default'} !~ m/^\d+$/) {
+    foreach my $index (1..$#sections) {
+      if ($sections[$index]{'title'} eq $sections[0]{'default'}) {
+        $sections[0]{'default'} = $index-1;
+        last;
+      }
+    }
+    $sections[0]{'default'} = 0 if (!defined $sections[0]{'default'});
+  }
+
+  # return array of hashes
+  return @sections;
+}
+
+# Set new default kernel
+
+sub set_default {
+  my $self=shift;
+  my $newdefault=shift;
+
+  return undef unless defined $newdefault;
+  return undef unless $self->_check_config();
+
+  my @config=@{$self->{config}};
+  my @sections=$self->_info();
+
+  # if not a number, do title lookup
+  if ($newdefault !~ /^\d+$/) {
+    $newdefault = $self->_lookup($newdefault);
+    return undef unless (defined $newdefault);
+  }
+
+  my $kcount = $#sections-1;
+  if (($newdefault < 0) || ($newdefault > $kcount)) {
+    warn "ERROR: Enter a default between 0 and $kcount.\n";
+    return undef;
+  }
+
+  # Look up the actual title of this section.
+  my $title = $sections[$newdefault + 1]{'title'};
+
+  # Look through the config file for the specifier,
+  # note there are two, one the name and one the number
+  # go figure.  Note that ZIPL numbering is 1..N.
+  foreach my $index (0..$#config) {
+    if ($config[$index] =~ /(^\s*default\s*\=*\s*)\d+/i) {
+      $config[$index] = $1 . ($newdefault + 1) . "\n";
+
+    } elsif ($config[$index] =~ /(^\s*default\s*\=*\s*)\D+/i) {
+      $config[$index] = "$1$title\n";
+    }
+  }
+  @{$self->{config}} = @config;
+}
+
+
+# Add new kernel to config
+sub add {
+  my $self=shift;
+  my %param=@_;
+
+  print ("Adding kernel.\n") if $self->debug()>1;
+
+  if (!defined $param{'add-kernel'} || !defined $param{'title'}) {
+    warn "ERROR:  kernel path (--add-kernel), title (--title) required.\n";
+    return undef;
+  } elsif (!(-f "$param{'add-kernel'}")) {
+    warn "ERROR:  kernel $param{'add-kernel'} not found!\n";
+    return undef;
+  } elsif (defined $param{'initrd'} && !(-f "$param{'initrd'}")) {
+    warn "ERROR:  initrd $param{'initrd'} not found!\n";
+    return undef;
+  }
+
+  return undef unless $self->_check_config();
+
+  my @sections=$self->_info();
+
+  # check if title already exists
+  if (defined $self->_lookup($param{title})) {
+    warn ("WARNING:  Title already exists.\n");
+    if (defined $param{force}) {
+      $self->remove($param{title});
+    } else {
+      return undef;
+    }
+  }
+
+  my @config = @{$self->{config}};
+  @sections=$self->_info();
+
+  # Use default kernel to fill in missing info
+  my $default=$self->get_default();
+  $default++;
+
+  foreach my $p ('args') {
+    if (! defined $param{$p}) {
+      $param{$p} = $sections[$default]{$p};
+    }
+  }
+
+  # use default entry to determine if path (/boot) should be removed
+  if ($sections[$default]{'kernel'} !~ /^\/boot/) {
+    $param{'add-kernel'} =~ s/^\/boot//;
+    $param{'initrd'} =~ s/^\/boot// unless !defined $param{'initrd'};
+  }
+
+  my $line;
+  my @newkernel;
+  push(@newkernel, "[$param{'title'}]\n");
+  push(@newkernel, "\timage=$param{'add-kernel'}\n");
+  push(@newkernel, "\tinitrd=$param{'initrd'}\n") if (defined $param{'initrd'});
+  $line = '';
+  $line .= "root=$param{root} " if (defined $param{'root'});
+  $line .= "$param{args} " if (defined $param{'args'});
+  chop($line);
+  push(@newkernel, "\tparameters=\"$line\"\n");
+
+  push(@newkernel, "\n");
+
+  if (!defined $param{position} || $param{position} !~ /end|\d+/) {
+    $param{position} = 0;
+  }
+
+  my @newconfig;
+  my $index=0;
+  my $menu=0;
+  my @list;
+  foreach (@config) {
+    if ($_ !~ /^\s*\[defaultboot]/i && $_ =~ /^\s*\[(\S+)]/i) {
+      if ($index == $param{position} && $param{'position'} ne 'end') {
+	push(@newconfig, @newkernel);
+        push(@list, $param{'title'});
+      }
+      $index++;
+      push(@list, $1);
+
+    } elsif (/^:menu\S*/) {
+      if ($index < $param{'position'} || $param{'position'} eq 'end') {
+	push(@newconfig, @newkernel);
+        push(@list, $param{'title'});
+      }
+      # Rebuild the menu entries.
+      push(@newconfig, $_);
+      for (my $n = 0; $n <= $#list; $n++) {
+        push(@newconfig, "\t" . ($n+1) . "=$list[$n]\n");
+      }
+      $menu = 1;
+      next;
+    }
+    if ($menu) {
+      if (/^\s+\d+=/) {
+	next;
+      } else {
+	$menu = 0;
+      }
+    }
+    push(@newconfig, $_);
+  }
+
+  @{$self->{config}} = @newconfig;
+
+  if (defined $param{'make-default'} || defined $param{'boot-once'}) {
+    $self->set_default($param{position});
+  }
+  print "Added: $param{'title'}.\n";
+}
+
+
+# Remove a kernel from config
+sub remove {
+  my $self=shift;
+  my $position=shift;
+
+  return undef unless defined $position;
+  return undef unless $self->_check_config();
+
+  my @config=@{$self->{config}};
+  my @sections=$self->_info();
+  my $default = $self->get_default();
+
+  if ($position=~/^end$/i) {
+    $position=$#sections-1;
+  } elsif ($position=~/^start$/i) {
+    $position=0;
+  }
+
+  print ("Removing kernel $position.\n") if $self->debug()>1;
+
+  # if not a number, do title lookup
+  if ($position !~ /^\d+$/) {
+    $position = $self->_lookup($position);
+  }
+  if ($position !~ /^\d+$/) {
+    warn "ERROR: $position: should be # or title\n";
+    return undef;
+  }
+
+  my $title = $sections[$position + 1]{'title'};
+
+  my $keep = 1;
+  my @newconfig;
+  my @list;
+  my $index = 0;
+  my $menu;
+  foreach (@config) {
+    if ($_ !~ /^\s*\[defaultboot]/i && $_ =~ /^\s*\[(\S+)]/i) {
+      if ($index == $position) {
+        $keep = 0;
+      } else {
+        push(@list, $1);
+	$keep = 1;
+      }
+      $index++;
+
+    } elsif (/^:menu\S*/) {
+      # Rebuild the menu entries.
+      push(@newconfig, $_);
+      for (my $n = 0; $n <= $#list; $n++) {
+        push(@newconfig, "\t" . ($n+1) . "=$list[$n]\n");
+      }
+      $menu = 1;
+      $keep = 1;
+      next;
+    }
+    if ($menu) {
+      if (/^\s+\d+=/) {
+	next;
+      } else {
+	$menu = 0;
+      }
+    }
+    push(@newconfig, $_) if ($keep);
+  }
+
+  @{$self->{config}} = @newconfig;
+
+  # Update the default.
+  my $new = $default;
+  if ($default == $position) {
+    $new = 0;
+  } elsif ($default > $position) {
+    $new = $default - 1;
+  }
+  if ($default != $new) {
+    $self->set_default($new);
+  }
+
+  print "Removed: $title\n";
+}
+
+
+# Update kernel args
+sub update {
+  my $self=shift;
+  my %params=@_;
+
+  print ("Updating kernel.\n") if $self->debug()>1;
+
+  if (defined $params{'option'} && !defined $params{'update-kernel'}) {
+    return $self->update_main_options(%params);
+  } elsif (!defined $params{'update-kernel'} || (!defined $params{'args'} && !defined $params{'remove-args'} && !defined $params{'option'})) {
+    warn "ERROR:  kernel position or title (--update-kernel) and args (--args or --remove-args) required.\n";
+    return undef;
+  }
+
+  return undef unless $self->_check_config();
+
+#  my @config = @{$self->{config}};
+  my @sections=$self->_info();
+
+  # if not a number, do title lookup
+  if (defined $params{'update-kernel'} and $params{'update-kernel'} !~ /^\d+$/) {
+    $params{'update-kernel'} = $self->_lookup($params{'update-kernel'});
+  }
+
+  my $kcount = $#sections-1;
+  if ($params{'update-kernel'} !~ /^\d+$/ || $params{'update-kernel'} < 0 || $params{'update-kernel'} > $kcount) {
+    warn "ERROR: Enter a default between 0 and $kcount.\n";
+    return undef;
+  }
+
+  # Convert to a title to find the relevant section.
+  my $title = $sections[$params{'update-kernel'} + 1]{'title'};
+
+  my $seen = '';
+  my $config_line = -1;
+  my $line = '';
+  foreach $line (@{$self->{config}}) {
+    $config_line = $config_line + 1;
+    if ($line =~ /^\s*\[(\S+)]/i) {
+      $seen = $1;
+    }
+    if ($title eq $seen) {
+      if (defined $params{'args'} or defined $params{'remove-args'}){
+        if ($line =~ /^\s*parameters="(.*[^"])"/i) {
+	  my $oargs = $1;
+	  my $args = $self->_build_args($oargs, $params{'remove-args'}, $params{'args'});
+          if ($args eq $oargs) {
+            warn "WARNING:  No change made to args.\n";
+            return undef;
+          }
+	  # Note that updating line updates the _real_ lines in @config.
+	  $line = "\tparameters=\"$args\"\n";
+          next;
+        }
+      } elsif (defined $params{'option'}){
+        foreach my $val ( keys %params){
+          if ($line =~ m/^\s*$val.*/i) {
+            splice @{$self->{config}},$config_line,1,"$val $params{$val}\n";
+            delete $params{$val};
+            $config_line += 1;
+          }
+        }
+      }
+    }
+  }
+  # Add any leftover parameters
+  delete $params{'update-kernel'};
+  if (defined $params{'option'}){
+    delete $params{'option'};
+    $config_line -= 1;
+    foreach my $val ( keys %params){
+      splice @{$self->{config}},$config_line,0,"\t$val $params{$val}\n";
+      $config_line += 1;
+    }
+  }
+}
+
+
+# Run command to install bootloader
+sub install {
+  my $self=shift;
+  my $device;
+
+  my @sections=$self->_info();
+
+  warn "ZIPL: needs to run zipl -m $sections[0]{'menu'}\n";
+  system("zipl -m $sections[0]{'menu'}");
+  if ($? != 0) {
+    warn ("ERROR:  Failed to run grub-install.\n") && return undef;
+  }
+  return 1;
+}
+
+
+sub update_main_options{
+  # XXX: the main options are probabally those on the menu object.
+  die "ERROR: unable to update main options\n";
+}
+
+
+sub boot_once {
+  warn "ZIPL does not support boot-once\n";
+  return undef;
+}
+
+1;
+
+=head1 AUTHOR
+
 Open Source Development Labs, Engineering Department <eng@osdl.org>
 
 =head1 COPYRIGHT
@@ -1952,7 +2422,7 @@ if (defined $params{'bootloader-probe'}) {
 ### Load Module ###
 
 my $bootloader;
-if ($detected_bootloader =~ m/^(grub|elilo|lilo|yaboot)$/) {
+if ($detected_bootloader =~ m/^(grub|elilo|lilo|yaboot|zipl)$/) {
   my $class = "Linux::Bootloader::" . "\u$detected_bootloader";
   eval "require $class";
   $bootloader = eval "new $class(\$params{config_file});";
@@ -2028,7 +2498,7 @@ boottool [--bootloader-probe] [--arch-probe]
          [--add-kernel=<kernel_path>] [--title=<kernel_title>] [--position=<#|start|end>]
          [--root=<root_path>] [--args=<kernel_args>] [--initrd=<initrd_path>]
          [--make-default] [--force] [--boot-once] [--install]
-         [--bootloader=<grub|lilo|elilo|yaboot>] [--config-file=</path/to/config>]
+         [--bootloader=<grub|lilo|elilo|yaboot|zipl>] [--config-file=</path/to/config>]
          [--remove-kernel=<#|title|start|end>] [--module=<module>]
          [--update-kernel=<#|title>] [--remove-args=<args>]
          [--info=<all|default|#>] [--default]
