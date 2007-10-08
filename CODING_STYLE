@@ -1,0 +1,84 @@
+These rules are fairly standard and boring. People will bitch about something
+in here, no doubt. Get over it. Much of this was stolen from the Linux Kernel
+coding style, because most of it makes good sense. If you disagree, that's OK,
+but please stick to the rules anyway ;-)
+
+
+Language
+
+Please use Python where possible. It's not the ideal language for everything,
+but it's pretty good, and consistency goes a long way in making the project
+maintainable. (Obviously using C or whatever for writing tests is fine).
+
+
+Indentation & whitespace
+
+Format your code for an 80 character wide screen.
+
+Indentation is hard tabs, equivalent to 8 spaces. Yes, I know that's pretty
+large, but especially in Python where code flow is controlled by indentation
+levels, it's critical for it to be clearly visibile. 
+
+People will claim that doesn't allow them enough levels of indentation on an
+80 character screen - they need to fix their code instead: use smaller
+functions, and more local variables - it makes the code so much easier to read.
+
+Don't leave trailing whitespace, or put whitespace on blank lines.
+Leave TWO blank lines between functions - this is Python, there are no clear
+function end markers, and we need help.
+
+
+Variable names and UpPeR cAsE
+
+Use descriptive variable names where possible - it helps to make the code 
+self documenting.
+
+Don't use CamelCaps style in most places - use underscores to separate parts
+of your variable_names please. I shall make a bedgrudging exception for class
+names I suppose, but I'll still whine about it a lot.
+
+
+Comments
+
+Generally, you want your comments to tell WHAT your code does, not HOW.
+We can figure out how from the code itself (or if not, your code needs fixing).
+
+Try to describle the intent of a function and what it does in a triple-quoted
+(multiline) string just after the def line. We've tried to do that in most
+places, though undoubtedly we're not perfect. A high level overview is 
+incredibly helpful in understanding code.
+
+
+Simple code
+
+Keep it simple; this is not the right place to show how smart you are. We
+have plenty of system failures to deal with without having to spend ages
+figuring out your code, thanks ;-) Readbility, readability, readability.
+I really don't care if other things are more compact. 
+
+"Debugging is twice as hard as writing the code in the first place. Therefore,
+if you write the code as cleverly as possible, you are, by definition, not 
+smart enough to debug it."  Brian Kernighan
+
+
+Function length
+
+Please keep functions short, under 30 lines or so if possible. Even though
+you are amazingly clever, and can cope with it, the rest of us are all stupid,
+so be nice and help us out. To quote the Linux Kernel coding style:
+
+Functions should be short and sweet, and do just one thing.  They should
+fit on one or two screenfuls of text (the ISO/ANSI screen size is 80x24,
+as we all know), and do one thing and do that well.
+
+
+Submitting patches
+
+Generate universal diffs. Email them to autotest@test.kernel.org.
+Most mailers now break lines and/or changes tabs to spaces. If you know how
+to avoid that - great, put your patches inline. If you're not sure, just 
+attatch them, I don't care much. Please base them off the current version.
+
+Don't worry about submitting patches to a public list - everybody makes
+mistakes, especially me ... so get over it and don't worry about it.
+(though do give your changes a test first ;-))
