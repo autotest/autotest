@@ -86,7 +86,7 @@ class boottool:
 			% (kernel, args)
 
 
-	def add_kernel(self, path, title='autotest', initrd='', xen_hypervisor='', args=None, root=None):
+	def add_kernel(self, path, title='autotest', initrd='', xen_hypervisor='', args=None, root=None, position='end'):
 		parameters = '--add-kernel=%s --title=%s' % (path, title)
 
 		# add an initrd now or forever hold your peace
@@ -103,6 +103,8 @@ class boottool:
 			parameters += ' --args="%s"' % args
 		if root:
 			parameters += ' --root="%s"' % root
+		if position:
+			parameters += ' --position="%s"' % position
 
 		self.run_boottool(parameters)
 
