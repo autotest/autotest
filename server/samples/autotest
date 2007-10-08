@@ -1,7 +1,0 @@
-host = hosts.SSHHost(machines[0])
-
-at = autotest.Autotest(host)
-control = """\
-job.run_test('kernbench')
-"""
-at.run(control_file)
