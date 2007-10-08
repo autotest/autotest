@@ -1,3 +1,0 @@
-m = hosts.SSHHost(machines[0])
-a = autotest.Autotest(m)
-a.run_test('sleeptest')
