@@ -447,8 +447,7 @@ sub update {
         my $append = $1;
         my $args = $2;
         $args =~ s/\"|\'//g;
-        $args =~ s/\s*$params{'remove-args'}\=*\S*//ig if defined $params{'remove-args'};
-        $args = $args . " ". $params{'args'} if defined $params{'args'};
+	$args = $self->_build_args($args, $params{'remove-args'}, $params{'args'});
         if ($_ eq "$append\"$args\"\n") {
           warn "WARNING:  No change made to args.\n";
           return undef;
@@ -641,6 +640,31 @@ sub _lookup {
     }
   }
   return undef;
+}
+
+sub _build_args {
+  my ($self, $args, $toremove, $toadd) = @_;
+
+  if (defined $toremove) {
+    my $base;
+    foreach my $remove (split(' ', $toremove)) {
+      $base = $remove; $base =~ s/\=.*//;
+      $args =~ s/(^|\s+)$base(\=\S+|\s+|$)/$1/ig;
+    }
+  }
+
+  if (defined $toadd) {
+    my $base;
+    foreach my $add (split(' ', $toadd)) {
+      $base = $add; $base =~ s/\=.*//;
+      if (!($args =~ s/(^|\s+)$base(\=\S+)?(\s+|$)/$1$add$3/ig)) {
+        $args .= " $add";
+      }
+    }
+  }
+
+  $args =~ s/\s+/ /g;
+  return $args;
 }
 
 
@@ -1452,14 +1476,7 @@ sub update {
       if (defined $params{'args'} or defined $params{'remove-args'}){
         if ( $line =~ /$kregex/i ) {
           my $kernel = $1;
-          my $args = $2;
-          $args =~ s/\s+$params{'remove-args'}(\=\S+|\s+|$)/ /ig if defined $params{'remove-args'};
-          if ( defined $params{'args'} ) {
-              my $base_arg = $params{'args'};
-              $base_arg =~ s/\=.*//;
-              $args =~ s/\s+$base_arg(\=\S+|\s+|$)/ /ig;
-              $args = $args . " " . $params{'args'};
-          }
+          my $args = $self->_build_args($2, $params{'remove-args'}, $params{'args'});
           if ($line eq $kernel . $args . "\n") {
             warn "WARNING:  No change made to args.\n";
             return undef;
