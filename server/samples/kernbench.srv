@@ -1,0 +1,4 @@
+host = hosts.SSHHost(machines[0])
+at = autotest.Autotest(host)
+at.run_test('kernbench', iterations=2, threads=5)
+
