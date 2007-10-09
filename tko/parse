@@ -8,7 +8,7 @@ topdir = sys.argv[1]
 jobs_list = os.listdir(topdir)
 
 jobs = {}
-db = db.db()
+db = db.db(autocommit=False)  # do commits transactionally
 
 for j in jobs_list:
 	print 'looking for ' + j
@@ -24,6 +24,7 @@ for j in jobs_list:
 	for test in job.tests:
 		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
 	db.insert_job(j, job)
+	db.commit()
 
 rows = db.select('distinct hostname', 'machines', {})
 machines = [row[0] for row in rows]

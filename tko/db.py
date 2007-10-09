@@ -1,13 +1,14 @@
 import MySQLdb, re, os, sys, types
 
 class db:
-	def __init__(self, debug = False):
+	def __init__(self, debug = False, autocommit=True):
 		self.debug = debug
+		self.autocommit = autocommit
 
 		path = os.path.dirname(os.path.abspath(sys.argv[0]))
 		try:
 			file = os.path.join(path, '.database')
-			db_prefs = open(path, 'r')
+			db_prefs = open(file, 'r')
 			host = db_prefs.readline().rstrip()
 			database = db_prefs.readline().rstrip()
 		except:
@@ -22,7 +23,7 @@ class db:
 		except:	
 			try:
 				file = os.path.join(path, '.unpriv_login')
-				login = open(path, 'r')
+				login = open(file, 'r')
 				user = login.readline().rstrip()
 				password = login.readline().rstrip()
 			except:
@@ -51,6 +52,10 @@ class db:
 	def dprint(self, value):
 		if self.debug:
 			sys.stderr.write('SQL: ' + str(value) + '\n')
+
+
+	def commit(self):
+		self.con.commit()
 
 
 	def select(self, fields, table, where, distinct = False):
@@ -86,13 +91,15 @@ class db:
 		return self.cur.fetchall()
 
 
-	def insert(self, table, data):
+	def insert(self, table, data, commit = None):
 		"""\
 			'insert into table (keys) values (%s ... %s)', values
 
 			data:
 				dictionary of fields and data
 		"""
+		if commit == None:
+			commit = self.autocommit
 		fields = data.keys()
 		refs = ['%s' for field in fields]
 		values = [data[field] for field in fields]
@@ -101,16 +108,19 @@ class db:
 
 		self.dprint('%s %s' % (cmd,values))
 		self.cur.execute(cmd, values)
-		self.con.commit()
+		if commit:
+			self.con.commit()
 
 
-	def update(self, table, data, where):
+	def update(self, table, data, where, commit = None):
 		"""\
 			'update table set data values (%s ... %s) where ...'
 
 			data:
 				dictionary of fields and data
 		"""
+		if commit == None:
+			commit = self.autocommit
 		cmd = 'update %s ' % table
 		fields = data.keys()
 		data_refs = [field + '=%s' for field in fields]
@@ -123,26 +133,30 @@ class db:
 
 		print '%s %s' % (cmd, data_values + where_values)
 		self.cur.execute(cmd, data_values + where_values)
-		self.con.commit()
+		if commit:
+			self.con.commit()
 
 
-	def insert_job(self, tag, job):
+	def insert_job(self, tag, job, commit = None):
 		job.machine_idx = self.lookup_machine(job.machine)
 		if not job.machine_idx:
-			job.machine_idx = self.insert_machine(job.machine)
-		self.insert('jobs', {'tag':tag, 'machine_idx':job.machine_idx})
+			job.machine_idx = self.insert_machine(job.machine,
+		                                              commit=commit)
+		self.insert('jobs',
+		            {'tag':tag,
+		             'machine_idx':job.machine_idx},
+                            commit=commit)
 		job.index = self.find_job(tag)
 		for test in job.tests:
-			self.insert_test(job, test)
+			self.insert_test(job, test, commit=commit)
 
-
-	def insert_test(self, job, test):
-		kver = self.insert_kernel(test.kernel)
+	def insert_test(self, job, test, commit = None):
+		kver = self.insert_kernel(test.kernel, commit=commit)
 		data = {'job_idx':job.index, 'test':test.testname,
 			'subdir':test.subdir, 'kernel_idx':kver,
 			'status':self.status_idx[test.status],
 			'reason':test.reason, 'machine_idx':job.machine_idx }
-		self.insert('tests', data)
+		self.insert('tests', data, commit=commit)
 		test_idx = self.find_test(job.index, test.subdir)
 		data = { 'test_idx':test_idx }
 
@@ -151,7 +165,9 @@ class db:
 			for key in i.keyval:
 				data['attribute'] = key
 				data['value'] = i.keyval[key]
-				self.insert('iteration_result', data)
+				self.insert('iteration_result',
+                                            data,
+                                            commit=commit)
 
 
 	def read_machine_map(self):
@@ -161,15 +177,17 @@ class db:
 			self.machine_group[machine] = group
 
 
-	def insert_machine(self, hostname, group = None):
+	def insert_machine(self, hostname, group = None, commit = None):
 		if self.machine_map and not self.machine_group:
 			self.read_machine_map()
 
 		if not group:
 			group = self.machine_group.get(hostname, hostname)
 				
-		self.insert('machines', { 'hostname' : hostname ,
-					  'machine_group' : group })
+		self.insert('machines',
+                            { 'hostname' : hostname ,
+		              'machine_group' : group },
+		            commit=commit)
 		return self.lookup_machine(hostname)
 
 
@@ -191,27 +209,31 @@ class db:
 			return None
 
 
-	def insert_kernel(self, kernel):
+	def insert_kernel(self, kernel, commit = None):
 		kver = self.lookup_kernel(kernel)
 		if kver:
 			return kver
-		self.insert('kernels', {'base':kernel.base,
-					'kernel_hash':kernel.kernel_hash,
-					'printable':kernel.base})
+		self.insert('kernels',
+                            {'base':kernel.base,
+		             'kernel_hash':kernel.kernel_hash,
+		             'printable':kernel.base},
+		            commit=commit)
 		# WARNING - incorrectly shoving base into printable here.
 		kver = self.lookup_kernel(kernel)
 		for patch in kernel.patches:
-			self.insert_patch(kver, patch)
+			self.insert_patch(kver, patch, commit=commit)
 		return kver
 
 
-	def insert_patch(self, kver, patch):
+	def insert_patch(self, kver, patch, commit = None):
 		print patch.reference
 		name = os.path.basename(patch.reference)[:80]
-		self.insert('patches', {'kernel_idx': kver, 
-					'name':name,
-					'url':patch.reference, 
-					'hash':patch.hash})
+		self.insert('patches',
+                            {'kernel_idx': kver, 
+		             'name':name,
+		             'url':patch.reference, 
+		             'hash':patch.hash},
+                            commit=commit)
 
 
 	def find_test(self, job_idx, subdir):
