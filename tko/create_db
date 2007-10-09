@@ -5,7 +5,7 @@ kernel_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,
 kernel_hash VARCHAR(35),		-- Hash of base + all patches
 base VARCHAR(30),			-- Base version without patches
 printable VARCHAR(100)			-- Full version with patches
-);
+) TYPE=InnoDB;
 
 -- main jobs table
 DROP TABLE IF EXISTS machines;
@@ -14,7 +14,7 @@ machine_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,
 hostname VARCHAR(100),			-- hostname
 machine_group VARCHAR(80),		-- group name
 owner VARCHAR(80)			-- owner name
-);
+) TYPE=InnoDB;
 
 -- main jobs table
 DROP TABLE IF EXISTS jobs;
@@ -22,7 +22,7 @@ CREATE TABLE jobs (
 job_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,		-- index number
 tag VARCHAR(100),			-- job key
 machine_idx int(10)			-- reference to machine table
-);
+) TYPE=InnoDB;
 
 -- One entry per patch used, anywhere
 DROP TABLE IF EXISTS patches;
@@ -31,7 +31,7 @@ kernel_idx INTEGER,			-- index number
 name VARCHAR(80),			-- short name
 url VARCHAR(300),			-- full URL
 hash VARCHAR(35)
-);
+) TYPE=InnoDB;
 
 -- test functional results
 DROP TABLE IF EXISTS tests;
@@ -44,7 +44,7 @@ kernel_idx INTEGER,			-- kernel test was AGAINST
 status INTEGER,				-- test status
 reason VARCHAR(100),			-- reason for test status
 machine_idx int(10)			-- reference to machine table
-);
+) TYPE=InnoDB;
 
 -- test functional results
 DROP TABLE IF EXISTS test_attributes;
@@ -52,7 +52,7 @@ CREATE TABLE test_attributes (
 test_idx INTEGER,			-- ref to test table
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
 value VARCHAR(100)			-- attribute value
-);
+) TYPE=InnoDB;
 
 -- test functional results
 DROP TABLE IF EXISTS iteration_result;
@@ -61,14 +61,14 @@ test_idx INTEGER,			-- ref to test table
 iteration INTEGER,			-- integer
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
 value FLOAT				-- attribute value (eg 700.1)
-);
+) TYPE=InnoDB;
 
 -- status key
 DROP TABLE IF EXISTS status;
 CREATE TABLE status (
 status_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY ,		-- numerical status
 word VARCHAR(10)			-- status word
-);
+) TYPE=InnoDB;
 
 INSERT INTO status (word)
 VALUES ('NOSTATUS'), ('ERROR'), ('ABORT'), ('FAIL'), ('WARN'), ('GOOD');
