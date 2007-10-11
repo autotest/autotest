@@ -121,6 +121,12 @@ class Autotest(installable_object.InstallableObject):
 		if not location:
 			location = os.path.join(self.serverdir, '../client')
 			location = os.path.abspath(location)
+		# If there's stuff run on our client directory already, it
+		# can cause problems. Try giving it a quick clean first.
+		cwd = os.getcwd()
+		os.chdir(location)
+		os.system('tools/make_clean')
+		os.chdir(cwd)
 		super(Autotest, self).get(location)
 		self.got = True
 
