@@ -21,6 +21,6 @@ def purge_src(top_dir):
 		os.system(cmd)
 
 
-purge_src('tests')
-purge_src('profilers')
+for dir in ['tests', 'profilers', 'deps']:
+	purge_src(dir)
 
