@@ -68,7 +68,8 @@ class kernel:
 			if os.path.isdir(self.build_dir):
 				system('rm -rf ' + self.build_dir)
 
-		os.mkdir(self.src_dir)
+		if not os.path.exists(self.src_dir):
+			os.mkdir(self.src_dir)
 		for path in [self.config_dir, self.log_dir, self.results_dir]:
 			if os.path.exists(path):
 				system('rm -rf ' + path)
@@ -258,15 +259,20 @@ class kernel:
 		self.__record(self._build, "kernel.build", *args, **dargs)
 
 
-	def build_timed(self, threads, timefile = '/dev/null', make_opts = ''):
+	def build_timed(self, threads, timefile = '/dev/null', make_opts = '',
+								output = None):
 		"""time the bulding of the kernel"""
 		os.chdir(self.build_dir)
 		self.set_cross_cc()
-		print "make clean"
-		system('make clean')
-		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" % (timefile, make_opts, threads)
+
+		self._clean()
+		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" \
+			 			% (timefile, make_opts, threads)
+		if output:
+			build_string += ' >> %s 2>&1' % output
 		print build_string
 		system(build_string)
+
 		if (not os.path.isfile('vmlinux')):
 			raise TestError("no vmlinux found, kernel build failed")
 
@@ -275,7 +281,7 @@ class kernel:
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
 		print "make clean"
-		system('make clean')
+		system('make clean > /dev/null 2> /dev/null')
 
 
 	def clean(self, *args, **dargs):

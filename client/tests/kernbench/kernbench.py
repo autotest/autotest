@@ -5,7 +5,9 @@ import re
 class kernbench(test.test):
 	version = 1
 
-	def setup(self):
+	def setup(self, build_dir = None):
+		if not build_dir:
+			build_dir = self.srcdir
 		#
 		# If we have a local copy of the 2.6.14 tarball use that
 		# else let the kernel object use the defined mirrors
@@ -28,36 +30,43 @@ class kernbench(test.test):
 				break
 		if not tarball:
 			tarball = default_ver
-			
-		kernel = self.job.kernel(tarball, self.tmpdir, self.srcdir)
+
+		# Do the extraction of the kernel tree
+		kernel = self.job.kernel(tarball, self.tmpdir, build_dir)
 		kernel._config(defconfig=True)
-		# have to save this off, as we might use it in another run
-		kernel.pickle_dump(self.srcdir + '/.pickle')
-		pickle.dump(tarball, open(self.srcdir + '/.tarball', 'w'))
 
 
 	def execute(self, iterations = 1, threads = 2*count_cpus(), dir = None):
 		if dir:
-			tarball = pickle_load(self.srcdir+'/.tarball')
-			kernel = self.job.kernel(tarball, self.tmpdir, dir)
-			kernel._config(defconfig=True)
+			build_dir = dir
+			self.setup(build_dir)
 		else:
-			kernel = pickle_load(self.srcdir+'/.pickle')
-			kernel.job = self.job
+			build_dir = self.srcdir
+
+		kernel = self.job.kernel(build_dir, self.tmpdir, build_dir,
+								leave = True)
 		print "kernbench x %d: %d threads" % (iterations, threads)
 
-		kernel.build_timed(threads)         # warmup run
+		logfile = os.path.join(self.debugdir, 'build_log')
+
+		print "Warmup run ..."
+		kernel.build_timed(threads, output = logfile)      # warmup run
+
 		profilers = self.job.profilers
                 if not profilers.only():
 		        for i in range(iterations):
-			        logfile = self.resultsdir+'/time.%d' % i
-			        kernel.build_timed(threads, logfile)
+				print "Performance run, iteration %d ..." % i
+			        timefile = os.path.join(self.resultsdir, 
+								'time.%d' % i)
+			        kernel.build_timed(threads, timefile,
+							output = logfile)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			logfile = self.resultsdir+'/time.profile'
-			kernel.build_timed(threads, logfile)
+			print "Profiling run ..."
+			timefile = os.path.join(self.resultsdir, 'time.profile')
+			kernel.build_timed(threads, timefile, output = logfile)
 			profilers.stop(self)
 			profilers.report(self)
 
