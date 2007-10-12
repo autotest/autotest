@@ -1,7 +1,7 @@
 """Convenience functions for use by tests or whomever.
 """
 
-import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob
+import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob,statvfs
 from error import *
 import re,string
 
@@ -546,3 +546,9 @@ def write_keyval(dirname, dictionary):
 			raise 'Invalid value %s for key %s' % (value, key)
 		keyval.write('%s=%s\n' % (key, value))
 	keyval.close()
+
+
+def freespace(path):
+	# Find free space available in bytes
+	s = os.statvfs(path)
+	return s[statvfs.F_BAVAIL] * long(s[statvfs.F_BSIZE])
