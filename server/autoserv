@@ -7,6 +7,7 @@ Run an autoserv control file
 
 -m machine[,machine,machine] : specify machines to run on
 -c                           : assume control file is a client control file
+-b                           : Reboot machine at end of test run
 """
 
 __author__ = """
@@ -40,25 +41,36 @@ else:
 	run_client(machines[0])
 """
 
+cleanup="""\
+def cleanup(machine):
+		host = hosts.SSHHost(machine, initialize=False)
+		host.reboot()
+
+parallel_simple(cleanup, machines)
+"""
+
 # Later, autotest.py will want to figure out what the top level autodir is.
 # They won't be able to use abspath later, if we change directory - as it works
 # relative to whatever your current path is. Hence we make argv[0] absolute now.
 sys.argv[0] = os.path.abspath(sys.argv[0])
 args = sys.argv[1:]
 
-def run(control_file, machines, args, client):
+def run(control_file, machines, args, client, reboot):
 	namespace = dict({ 'machines' : machines, 'args' : args })
 	control = open(control_file, 'r').read()
 
-	if client:
-		namespace['control'] = control
-		exec(preamble + client_wrapper, namespace, namespace)
-	else:
-		exec(preamble + control, namespace, namespace)
-
+	try:
+		if client:
+			namespace['control'] = control
+			exec(preamble + client_wrapper, namespace, namespace)
+		else:
+			exec(preamble + control, namespace, namespace)
+	finally:
+		if reboot:
+			exec(cleanup, namespace, namespace)
 
 def usage():
-	print "usage: autoserv [-c] <control file> [-m machine,[machine,...]] [args ...]"
+	print "usage: autoserv [-b] [-c] <control file> [-m machine,[machine,...]] [args ...]"
 	sys.exit(1)
 
 
@@ -79,7 +91,14 @@ if args.count('-c'):
 else:
 	client = False
 
+if args.count('-b'):
+	reboot = True
+	idx = args.index('-b')
+	args[idx:idx+1] = []			# delete '-b'
+else:
+	reboot = False
+
 if len(args) < 1:
 	usage()
 
-run(args[0], machines, args[1:], client)
+run(args[0], machines, args[1:], client, reboot)
