@@ -239,6 +239,14 @@ def run(command, timeout=None, ignore_status=False):
 	return result
 
 
+def system(command, timeout=None, ignore_status=False):
+	return run(command, timeout, ignore_status).exit_status
+
+
+def system_output(command, timeout=None, ignore_status=False):
+	return run(command, timeout, ignore_status).stdout
+
+
 def get_tmp_dir():
 	"""Return the pathname of a directory on the host suitable 
 	for temporary file storage.
