@@ -24,8 +24,16 @@ class disktest(test.test):
 		return(p.pid)
 
 
-	def execute(self, disks, gigabytes = 100, chunk_mb = memtotal()/1024):
+	def execute(self, disks, gigabytes = None, chunk_mb = memtotal()/1024):
 		os.chdir(self.srcdir)
+
+		if not gigabytes:
+			free = 100       # cap it at 100GB by default
+			for disk in disks:
+				free = min(freespace(disk) / 1024**3, free)
+			gigabytes = free
+			print "resizing to %s GB" % gigabytes
+			sys.stdout.flush()
 
 		self.chunk_mb = chunk_mb
 		self.memory_mb = memtotal()/1024
