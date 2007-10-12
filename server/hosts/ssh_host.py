@@ -18,14 +18,8 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import types
-import os
-import time
-
-import base_classes
-import utils
-import errors
-import bootloader
+import types, os, time, re
+import base_classes, utils, errors, bootloader
 
 
 class SSHHost(base_classes.RemoteHost):
@@ -336,9 +330,52 @@ class SSHHost(base_classes.RemoteHost):
 			The number of CPUs
 		"""
 		
-		proc_cpuinfo= self.run("cat /proc/cpuinfo").stdout
+		proc_cpuinfo = self.run("cat /proc/cpuinfo").stdout
 		cpus = 0
 		for line in proc_cpuinfo.splitlines():
 			if line.startswith('processor'):
 				cpus += 1
 		return cpus
+
+
+	def check_uptime(self):
+		"""
+		Check that uptime is available and monotonically increasing.
+		"""
+		if not self.ping():
+			raise "Client is not pingable"
+		result = self.run("/bin/cat /proc/uptime", 30)
+		return result.stdout.strip().split()[0]
+
+
+	def get_arch(self):
+		"""
+		Get the hardware architecture of the remote machine
+		"""
+		arch = self.run('/bin/uname -m').stdout.rstrip()
+		if re.match(r'i\d86$', arch):
+			arch = 'i386'
+		return arch
+
+
+	def get_kernel_ver(self):
+		"""
+		Get the kernel version of the remote machine
+		"""
+		return self.run('/bin/uname -r').stdout.rstrip()
+
+
+	def get_cmdline(self):
+		"""
+		Get the kernel command line of the remote machine
+		"""
+		return self.run('cat /proc/cmdline').stdout.rstrip()
+
+
+	def ping(self):
+		"""
+		Ping the remote system, and return whether it's available
+		"""
+		fpingcmd = "%s -q %s" % ('/usr/bin/fping', self.hostname)
+		rc = utils.system(fpingcmd, ignore_status = 1)
+		return (rc == 0)

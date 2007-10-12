@@ -1,0 +1,6 @@
+host = hosts.SSHHost(machines[0], initialize = False)
+print 'Uptime:         ' + host.check_uptime()
+print 'Arch:           ' + host.get_arch()
+print 'Kernel ver:     ' + host.get_kernel_ver()
+print 'Kernel cmdline: ' + host.get_cmdline()
+
