@@ -58,15 +58,14 @@ class kernbench(test.test):
 				print "Performance run, iteration %d ..." % i
 			        timefile = os.path.join(self.resultsdir, 
 								'time.%d' % i)
-			        kernel.build_timed(threads, timefile,
-							output = logfile)
+			        kernel.build_timed(threads, timefile)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
 			print "Profiling run ..."
 			timefile = os.path.join(self.resultsdir, 'time.profile')
-			kernel.build_timed(threads, timefile, output = logfile)
+			kernel.build_timed(threads, timefile)
 			profilers.stop(self)
 			profilers.report(self)
 

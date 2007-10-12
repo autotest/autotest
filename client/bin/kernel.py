@@ -260,7 +260,7 @@ class kernel:
 
 
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = '',
-								output = None):
+							output = '/dev/null'):
 		"""time the bulding of the kernel"""
 		os.chdir(self.build_dir)
 		self.set_cross_cc()
@@ -268,8 +268,7 @@ class kernel:
 		self._clean()
 		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" \
 			 			% (timefile, make_opts, threads)
-		if output:
-			build_string += ' >> %s 2>&1' % output
+		build_string += ' > %s 2>&1' % output
 		print build_string
 		system(build_string)
 
