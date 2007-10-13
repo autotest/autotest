@@ -13,7 +13,7 @@ class tbench(test.test):
 		system('./configure')
 		system('make')
 
-	def execute(self, iterations = 1, args = '1'):
+	def execute(self, iterations = 1, args = count_cpus()):
 		# only supports combined server+client model at the moment
 		# should support separate I suppose, but nobody uses it
 		profilers = self.job.profilers
@@ -36,7 +36,7 @@ class tbench(test.test):
 		if pid:				# parent
 			time.sleep(1)
 			client = self.srcdir + '/client.txt'
-			args = '-c ' + client + ' ' + args
+			args = '-c ' + client + ' ' + '%s' % args
 			system(self.srcdir + '/tbench ' + args)
 			os.kill(pid, signal.SIGTERM)    # clean up the server
 		else:				# child
