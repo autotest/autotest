@@ -16,7 +16,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import sys, os
+import sys, os, re
 
 preamble = """\
 import os, sys
@@ -58,6 +58,7 @@ args = sys.argv[1:]
 def run(control_file, machines, args, client, reboot):
 	namespace = dict({ 'machines' : machines, 'args' : args })
 	control = open(control_file, 'r').read()
+	control = re.sub("\r\n", "\n", control)
 
 	try:
 		if client:
@@ -67,7 +68,7 @@ def run(control_file, machines, args, client, reboot):
 			exec(preamble + control, namespace, namespace)
 	finally:
 		if reboot:
-			exec(cleanup, namespace, namespace)
+			exec(preamble + cleanup, namespace, namespace)
 
 def usage():
 	print "usage: autoserv [-b] [-c] <control file> [-m machine,[machine,...]] [args ...]"
