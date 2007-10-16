@@ -54,7 +54,8 @@ class Autotest(installable_object.InstallableObject):
 		self.host = host
 		self.got = False
 		self.installed = False
-		self.serverdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+		path = os.path.dirname(sys.modules['server_job'].__file__)
+		self.serverdir = os.path.abspath(path)
 		super(Autotest, self).__init__()
 
 
@@ -197,7 +198,7 @@ class Autotest(installable_object.InstallableObject):
 			self.install(host)
 		opts = ["%s=%s" % (o[0], repr(o[1])) for o in dargs.items()]
 		cmd = ", ".join([repr(test_name)] + map(repr, args) + opts)
-		control = "job.run_test(%s)" % cmd
+		control = "job.run_test(%s)\n" % cmd
 		self.run(control, results_dir, host)
 
 

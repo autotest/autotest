@@ -3,103 +3,64 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 """
-Run an autoserv control file
-
--m machine[,machine,machine] : specify machines to run on
--c                           : assume control file is a client control file
--b                           : Reboot machine at end of test run
+Run an control file through the server side engine
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
+__author__ = """\
+mbligh@google.com (Martin J. Bligh)
 """
 
-import sys, os, re
+import sys, os, re, server_job
 
-preamble = """\
-import os, sys
-
-import errors, hosts, autotest, kvm
-import source_kernel, rpm_kernel, deb_kernel
-from subcommand import *
-from utils import run, get_tmp_dir, sh_escape
-
+usage = """\
+usage: autoserv
+	[-b]                       # reboot all specified machines after the job
+	[-c]                       # control file is a client side control
+	[-r resultsdir]            # specify results directory (default '.')
+	[-t tag]                   # tag for the job (arbitrary string)
+	[-u user]                  # username for the job (email address)
+	[-m machine,[machine,...]] # list of machines to pass to control file
+	<control file>             # name of the control file to run
+	[args ...]                 # args to pass through to the control file
 """
 
-client_wrapper = """
-at = autotest.Autotest()
-
-def run_client(machine):
-	host = hosts.SSHHost(machine)
-	at.run(control, host=host)
-
-if len(machines) > 1:
-	parallel_simple(run_client, machines)
-else:
-	run_client(machines[0])
-"""
-
-cleanup="""\
-def cleanup(machine):
-		host = hosts.SSHHost(machine, initialize=False)
-		host.reboot()
-
-parallel_simple(cleanup, machines)
-"""
-
-# Later, autotest.py will want to figure out what the top level autodir is.
-# They won't be able to use abspath later, if we change directory - as it works
-# relative to whatever your current path is. Hence we make argv[0] absolute now.
-sys.argv[0] = os.path.abspath(sys.argv[0])
 args = sys.argv[1:]
-
-def run(control_file, machines, args, client, reboot):
-	namespace = dict({ 'machines' : machines, 'args' : args })
-	control = open(control_file, 'r').read()
-	control = re.sub("\r\n", "\n", control)
-
-	try:
-		if client:
-			namespace['control'] = control
-			exec(preamble + client_wrapper, namespace, namespace)
-		else:
-			exec(preamble + control, namespace, namespace)
-	finally:
-		if reboot:
-			exec(preamble + cleanup, namespace, namespace)
-
-def usage():
-	print "usage: autoserv [-b] [-c] <control file> [-m machine,[machine,...]] [args ...]"
-	sys.exit(1)
-
 
 # We can't use the general getopt methods here, as there will be unknown
 # extra arguments that we pass down into the control file instead.
 # Thus we process the arguments by hand, for which we are duly repentant.
-if args.count('-m'):
-	idx = args.index('-m')
-	machines = args[idx+1].split(',')
-	args[idx:idx+2] = []			# delete '-m machines'
-else:
-	machines = None
+# Making a single function here just makes it harder to read. Suck it up.
+def parse_opts(flag):
+	if args.count(flag):
+		idx = args.index(flag)
+		args[idx : idx+1] = []
+		return True
+	else:
+		return False
 
-if args.count('-c'):
-	client = True
-	idx = args.index('-c')
-	args[idx:idx+1] = []			# delete '-c'
-else:
-	client = False
 
-if args.count('-b'):
-	reboot = True
-	idx = args.index('-b')
-	args[idx:idx+1] = []			# delete '-b'
-else:
-	reboot = False
+def parse_opts_param(flag, default = None, split = False):
+	if args.count(flag):
+		idx = args.index(flag)
+		ret = args[idx+1]
+		args[idx : idx+2] = []
+		if split:
+			return ret.split(split)
+		else:
+			return ret
+	else:
+		return default
+
+
+machines = parse_opts_param('-m', None, split = ',')
+results  = parse_opts_param('-r', os.path.abspath('.'))
+tag	 = parse_opts_param('-t', '')
+user     = parse_opts_param('-u', 'anonymous')
+client   = parse_opts('-c')
+reboot   = parse_opts('-b')
 
 if len(args) < 1:
 	usage()
 
-run(args[0], machines, args[1:], client, reboot)
+job = server_job.server_job(args[0], args[1:], results, tag, user, client)
+job.run(machines, reboot)
