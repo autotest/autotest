@@ -20,7 +20,6 @@ from base_classes import RemoteHost
 
 # host implementation classes
 from ssh_host import SSHHost
-from conmux_ssh_host import ConmuxSSHHost
 from guest import Guest
 from kvm_guest import KVMGuest
 

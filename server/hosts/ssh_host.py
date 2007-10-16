@@ -18,7 +18,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import types, os, time, re
+import types, os, sys, signal, subprocess, time, re
 import base_classes, utils, errors, bootloader
 
 
@@ -31,12 +31,20 @@ class SSHHost(base_classes.RemoteHost):
 	configured for password-less login, for example through public key 
 	authentication.
 
+	It includes support for controlling the machine through a serial
+	console on which you can run programs. If such a serial console is
+	set up on the machine then capabilities such as hard reset and
+	boot strap monitoring are available. If the machine does not have a
+	serial console available then ordinary SSH-based commands will
+	still be available, but attempts to use extensions such as
+	console logging or hard reset will fail silently.
+
 	Implementation details:
 	This is a leaf class in an abstract class hierarchy, it must 
 	implement the unimplemented methods in parent classes.
 	"""
 
-	def __init__(self, hostname, user="root", port=22, initialize=True):
+	def __init__(self, hostname, user="root", port=22, initialize=True, logfilename=None, conmux_server=None, conmux_attach=None):
 		"""
 		Construct a SSHHost object
 		
@@ -52,6 +60,11 @@ class SSHHost(base_classes.RemoteHost):
 		self.tmp_dirs= []
 		self.initialize = initialize
 
+		self.conmux_server = conmux_server
+		self.conmux_attach = self.__find_console_attach(conmux_attach)
+		self.logger_pid = None
+		self.__start_console_log(logfilename)
+
 		super(SSHHost, self).__init__()
 		self.bootloader = bootloader.Bootloader(self)
 
@@ -65,6 +78,93 @@ class SSHHost(base_classes.RemoteHost):
 				self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
 			except errors.AutoservRunError:
 				pass
+		if self.logger_pid:
+			try:
+				pgid = os.getpgid(self.logger_pid)
+				os.killpg(pgid, signal.SIGTERM)
+			except OSError:
+				pass
+
+
+	def __wait_for_restart(self, timeout):
+		self.wait_down(60)	# Make sure he's dead, Jim
+		self.wait_up(timeout)
+		time.sleep(2) # this is needed for complete reliability
+		self.wait_up(timeout)
+		print "Reboot complete"
+
+
+	def hardreset(self, timeout=600, wait=True):
+		"""
+		Reach out and slap the box in the power switch
+		"""
+		result = self.__console_run(r"'~$hardreset'")
+		if wait:
+			self.__wait_for_restart(timeout)
+		return result
+
+
+	def __start_console_log(self, logfilename):
+		"""
+		Log the output of the console session to a specified file
+		"""
+		if logfilename == None:
+			return
+		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
+			return
+		if self.conmux_server:
+			to = '%s/%s' % (self.conmux_server, self.hostname)
+		else:
+			to = self.hostname
+		cmd = [self.conmux_attach, to, 'cat - > %s' % logfilename]
+		logger = subprocess.Popen(cmd,
+					  stderr=open('/dev/null', 'w'),
+					  preexec_fn=lambda: os.setpgid(0, 0))
+		self.logger_pid = logger.pid
+
+
+	def __find_console_attach(self, conmux_attach):
+		if conmux_attach:
+			return conmux_attach
+		try:
+			res = utils.run('which conmux-attach')
+			if res.exit_status == 0:
+				return res.stdout.strip()
+		except errors.AutoservRunError, e:
+			pass
+		autoserv_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+		autotest_conmux = os.path.join(autoserv_dir, '..',
+					       'conmux', 'conmux-attach')
+		autotest_conmux_alt = os.path.join(autoserv_dir,
+						   '..', 'autotest',
+						   'conmux', 'conmux-attach')
+		locations = [autotest_conmux,
+			     autotest_conmux_alt,
+			     '/usr/local/conmux/bin/conmux-attach',
+			     '/usr/bin/conmux-attach']
+		for l in locations:
+			if os.path.exists(l):
+				return l
+
+		print "WARNING: conmux-attach not found on autoserv server"
+		return None
+
+
+	def __console_run(self, cmd):
+		"""
+		Send a command to the conmux session
+		"""
+		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
+			return False
+		if self.conmux_server:
+			to = '%s/%s' % (self.conmux_server, self.hostname)
+		else:
+			to = self.hostname
+		cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
+						      to,
+						      cmd)
+		result = os.system(cmd)
+		return result == 0
 
 
 	def run(self, command, timeout=None, ignore_status=False):
@@ -113,12 +213,7 @@ class SSHHost(base_classes.RemoteHost):
 		print "Reboot: initiating reboot"
 		self.run('reboot')
 		if wait:
-			self.wait_down(60)	# Make sure he's dead, Jim
-			print "Reboot: machine has gone down"
-			self.wait_up(timeout)
-			time.sleep(2) # this is needed for complete reliability
-			self.wait_up(timeout)
-			print "Reboot complete"
+			self.__wait_for_restart(timeout)
 
 
 	def get_file(self, source, dest):
