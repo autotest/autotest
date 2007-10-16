@@ -131,33 +131,21 @@ class server_job:
 			url of the test to run
 		"""
 
-		if not url:
-			raise "Test name is invalid. Switched arguments?"
 		(group, testname) = test.testname(url)
 		tag = None
 		subdir = testname
+
 		if dargs.has_key('tag'):
 			tag = dargs['tag']
 			del dargs['tag']
 			if tag:
 				subdir += '.' + tag
-		try:
-			try:
-				self.__runtest(url, tag, args, dargs)
-			except Exception, detail:
-				self.record('FAIL', subdir, testname, \
-							detail.__str__())
 
-				raise
-			else:
-				self.record('GOOD', subdir, testname, \
-						'completed successfully')
-		except TestError:
-			return 0
-		except:
-			raise
-		else:
-			return 1
+		try:
+			test.runtest(self, url, tag, args, dargs)
+			self.record('GOOD', subdir, testname, 'completed successfully')
+		except Exception, detail:
+			self.record('FAIL', subdir, testname, detail.__str__())
 
 
 	def run_group(self, function, *args, **dargs):
