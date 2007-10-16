@@ -12,7 +12,9 @@ Andy Whitcroft <apw@shadowen.org>
 """
 
 import os, sys, re
+import test
 from utils import *
+from error import *
 
 preamble = """\
 import os, sys
@@ -78,10 +80,11 @@ class server_job:
 			client
 				True if a client-side control file
 		"""
-		path = sys.modules['server_job'].__file__
+		path = os.path.dirname(sys.modules['server_job'].__file__)
 		self.autodir = os.path.abspath(os.path.join(path, '..'))
 		self.serverdir = os.path.join(self.autodir, 'server')
-		self.testdir   = os.path.join(self.autodir, 'tests')
+		self.testdir   = os.path.join(self.serverdir, 'tests')
+		self.tmpdir    = os.path.join(self.serverdir, 'tmp')
 		self.conmuxdir = os.path.join(self.autodir, 'conmux')
 		self.clientdir = os.path.join(self.autodir, 'client')
 		self.control = re.sub('\r\n', '\n', open(control, 'r').read())
@@ -113,8 +116,6 @@ class server_job:
 			else:
 				open('control.srv', 'w').write(self.control)
 				server_control = self.control
-			print preamble
-			print server_control
 			exec(preamble + server_control, namespace, namespace)
 
 		finally:
@@ -145,7 +146,7 @@ class server_job:
 			test.runtest(self, url, tag, args, dargs)
 			self.record('GOOD', subdir, testname, 'completed successfully')
 		except Exception, detail:
-			self.record('FAIL', subdir, testname, detail.__str__())
+			self.record('FAIL', subdir, testname, format_error())
 
 
 	def run_group(self, function, *args, **dargs):
@@ -243,7 +244,6 @@ class server_job:
 		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
 
 		status_file = os.path.join(self.resultdir, 'status')
-		print status_file
 		print msg
 		open(status_file, "a").write(self.record_prefix + msg + "\n")
 		if subdir:
