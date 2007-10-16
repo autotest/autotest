@@ -60,7 +60,7 @@ class Guest(ssh_host.SSHHost):
 		self.controlling_hypervisor.delete_guest(self.hostname)
 
 	
-	def hardreset(self):
+	def hardreset(self, timeout=600, wait=True):
 		"""
 		Perform a "hardreset" of the guest.
 		
@@ -68,4 +68,3 @@ class Guest(ssh_host.SSHHost):
 		even if the guest otherwise innaccessible through ssh.
 		"""
 		return self.controlling_hypervisor.reset_guest(self.hostname)
-
