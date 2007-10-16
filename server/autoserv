@@ -17,7 +17,7 @@ usage: autoserv
 	[-b]                       # reboot all specified machines after the job
 	[-c]                       # control file is a client side control
 	[-r resultsdir]            # specify results directory (default '.')
-	[-t tag]                   # tag for the job (arbitrary string)
+	[-l label]                 # label for the job (arbitrary string)
 	[-u user]                  # username for the job (email address)
 	[-m machine,[machine,...]] # list of machines to pass to control file
 	<control file>             # name of the control file to run
@@ -54,7 +54,7 @@ def parse_opts_param(flag, default = None, split = False):
 
 machines = parse_opts_param('-m', None, split = ',')
 results  = parse_opts_param('-r', os.path.abspath('.'))
-tag      = parse_opts_param('-t', '')
+label    = parse_opts_param('-l', '')
 user     = parse_opts_param('-u', 'anonymous')
 client   = parse_opts('-c')
 reboot   = parse_opts('-b')
@@ -62,5 +62,5 @@ reboot   = parse_opts('-b')
 if len(args) < 1:
 	usage()
 
-job = server_job.server_job(args[0], args[1:], results, tag, user, client)
+job = server_job.server_job(args[0], args[1:], results, label, user, client)
 job.run(machines, reboot)
