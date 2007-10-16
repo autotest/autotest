@@ -12,22 +12,10 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
+import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
+import time, types, urllib, re
 
-import atexit
-import os
-import os.path
-import select
-import shutil
-import signal
-import StringIO
-import subprocess
-import tempfile
-import time
-import types
-import urllib
-
-import hosts
-import errors
+import hosts, errors
 
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
@@ -321,3 +309,14 @@ def unarchive(host, source_material):
 			retval.stdout.split()[0])
 
 	return source_material
+
+
+def write_keyval(dirname, dictionary):
+	keyval = open(os.path.join(dirname, 'keyval'), 'w')
+	for key in dictionary.keys():
+		value = '%s' % dictionary[key]     # convert numbers to strings
+		if re.search(r'\W', key):
+			raise 'Invalid key: ' + key
+		keyval.write('%s=%s\n' % (key, str(value)))
+	keyval.close()
+
