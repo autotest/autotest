@@ -54,7 +54,7 @@ def parse_opts_param(flag, default = None, split = False):
 
 machines = parse_opts_param('-m', None, split = ',')
 results  = parse_opts_param('-r', os.path.abspath('.'))
-tag	 = parse_opts_param('-t', '')
+tag      = parse_opts_param('-t', '')
 user     = parse_opts_param('-u', 'anonymous')
 client   = parse_opts('-c')
 reboot   = parse_opts('-b')
