@@ -592,6 +592,9 @@ switch -- $cmd {
 	{reboot}	{
 		reboot $system $lpar $profile $mode
 	}
+	default		{
+		winge "$cmd: unknown command"
+	}
 }
 
 exit 0
