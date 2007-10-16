@@ -65,7 +65,7 @@ class server_job:
 			the control file for this job
 	"""
 
-	def __init__(self, control, args, resultdir, tag, user, client=False):
+	def __init__(self, control, args, resultdir, label, user, client=False):
 		"""
 			control
 				The control file (pathname of)
@@ -73,8 +73,8 @@ class server_job:
 				args to pass to the control file
 			resultdir
 				where to throw the results
-			tag
-				tag for the job
+			label
+				label for the job
 			user	
 				Username for the job (email address)
 			client
@@ -92,7 +92,7 @@ class server_job:
 		if not os.path.exists(resultdir):
 			os.mkdir(resultdir)
 		self.status = os.path.join(resultdir, 'status')
-		self.tag = tag
+		self.label = label
 		self.user = user
 		self.args = args
 		self.client = client
@@ -100,7 +100,7 @@ class server_job:
 
 		if os.path.exists(self.status):
 			os.unlink(self.status)
-		job_data = { 'tag' : tag, 'user' : user}
+		job_data = { 'label' : label, 'user' : user}
 		write_keyval(self.resultdir, job_data)
 
 
