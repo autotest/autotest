@@ -123,9 +123,7 @@ expect {
 	}
 }
 
-# The system the user specified was not found, give them a hand by
-# getting  a list of systems.
-if {$found == 0} {
+proc list_systems {} {
 	note "Defined systems:"
 	send "sysdef -l\r"
 	expect {
@@ -144,6 +142,13 @@ if {$found == 0} {
 			exp_continue
 		}
 	}
+	note "complete"
+}
+
+# The system the user specified was not found, give them a hand by
+# getting  a list of systems.
+if {$found == 0} {
+	list_systems
 	note "complete ... exiting"
 	send "exit\r"
 	exit 1
@@ -175,6 +180,7 @@ for {set retry 1} {$fail == 1 && $retry <= 3} {incr retry} {
 }
 if {$fail == 1} {
 	winge "power off failed ... system not rebooted"
+	list_systems
 	exit 2
 }
 set timeout 30
@@ -198,7 +204,8 @@ expect {
 	}
 }
 if {$fail == 1} {
-	winge "power off failed ... system not rebooted"
+	winge "power on failed ... system not rebooted"
+	list_systems
 	exit 2
 }
 
