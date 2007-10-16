@@ -126,7 +126,7 @@ note "Logging into HMC console with command \"$command\" ..."
 eval spawn $command
 send "PS1=$prompt\r"
 expect {
-	"password:" {
+	-re {[pP]assword:} {
 		if {[string compare $passwd ""] == 0} {
 			winge "$host: requesting password - not hacked"
 			exit 2
