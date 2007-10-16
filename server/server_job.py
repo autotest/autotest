@@ -91,12 +91,15 @@ class server_job:
 		self.resultdir = resultdir
 		if not os.path.exists(resultdir):
 			os.mkdir(resultdir)
+		self.status = os.path.join(resultdir, 'status')
 		self.tag = tag
 		self.user = user
 		self.args = args
 		self.client = client
 		self.record_prefix = ''
 
+		if os.path.exists(self.status):
+			os.unlink(self.status)
 		job_data = { 'tag' : tag, 'user' : user}
 		write_keyval(self.resultdir, job_data)
 
