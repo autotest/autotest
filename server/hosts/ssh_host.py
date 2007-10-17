@@ -167,6 +167,13 @@ class SSHHost(base_classes.RemoteHost):
 		return result == 0
 
 
+	def ssh_command(self):
+		"""Construct an ssh command with proper args for this host."""
+		return r'ssh -a -l %s -p %d %s' % (self.user,
+						   self.port,
+						   self.hostname)
+
+
 	def run(self, command, timeout=None, ignore_status=False):
 		"""
 		Run a command on the remote host.
@@ -188,9 +195,9 @@ class SSHHost(base_classes.RemoteHost):
 				execution was not 0
 		"""
 		#~ print "running %s" % (command,)
-		result= utils.run(r'ssh -l %s -p %d %s "%s"' % (self.user, 
-			self.port, self.hostname, utils.sh_escape(command)), 
-			timeout, ignore_status)
+		result= utils.run(r'%s "%s"' % (self.ssh_command(),
+						utils.sh_escape(command)),
+				  timeout, ignore_status)
 		return result
 
 
@@ -296,9 +303,8 @@ class SSHHost(base_classes.RemoteHost):
 			entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
 			processed_source.append(entry)
 
-		result= utils.run('ssh -l %s %s rsync -h' % (self.user,
-							     self.hostname),
-				  ignore_status=True)
+			result = utils.run(r'%s rsync -h' % self.ssh_command(),
+					   ignore_status=True)
 
 		if result.exit_status == 0:
 			utils.run('rsync --rsh=ssh -az %s %s@%s:"%s"' % (
