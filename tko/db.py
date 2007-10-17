@@ -142,10 +142,11 @@ class db:
 		if not job.machine_idx:
 			job.machine_idx = self.insert_machine(job.machine,
 		                                              commit=commit)
-		self.insert('jobs',
-		            {'tag':tag,
-		             'machine_idx':job.machine_idx},
-                            commit=commit)
+		self.insert('jobs', {'tag':tag,
+                                     'label': job.label,
+                                     'user': job.user,
+		                     'machine_idx':job.machine_idx},
+                                     commit=commit)
 		job.index = self.find_job(tag)
 		for test in job.tests:
 			self.insert_test(job, test, commit=commit)

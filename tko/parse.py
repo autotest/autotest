@@ -5,6 +5,8 @@ valid_users = r'(apw|mbligh|andyw|korgtest)'
 build_stock = re.compile('build generic stock (2\.\S+)')	
 build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
 valid_kernel= re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+')
+user = re.compile(r'user(\s*)=')
+label = re.compile(r'label(\s*)=')
 
 debug = True
 
@@ -32,6 +34,18 @@ class job:
 		self.tests = []
 		self.kernel = None
 
+		# Get the user + tag info from the keyval file.
+		jobkeyval = os.path.join(dir, "keyval")
+		self.user = None
+		self.label = None
+		if os.path.exists(jobkeyval):
+			for line in open(jobkeyval, 'r').readlines():
+				if user.search(line):
+					(key, value) = line.split('=', 1)
+					self.user = value.strip()
+				if label.search(line):
+					(key,value) = line.split('=', 1)
+					self.label = value.strip()
 		if not os.path.exists(self.status):
 			return None
 
