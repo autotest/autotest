@@ -31,6 +31,7 @@ class SiteHost(base_classes.Host):
 	
 	def __init__(self):
 		super(SiteHost, self).__init__()
+		self.serverdir = utils.get_server_dir()
 
 	
 	def setup(self):

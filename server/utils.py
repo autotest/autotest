@@ -13,7 +13,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
-import time, types, urllib, re
+import time, types, urllib, re, sys
 
 import hosts, errors
 
@@ -345,3 +345,8 @@ def update_version(srcdir, preserve_srcdir, new_version, install, *args, **dargs
 		install(*args, **dargs)
 		if os.path.exists(srcdir):
 			pickle.dump(new_version, open(versionfile, 'w'))
+
+
+def get_server_dir():
+	path = os.path.dirname(sys.modules['utils'].__file__)
+	return os.path.abspath(path)
