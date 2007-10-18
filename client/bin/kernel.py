@@ -594,3 +594,80 @@ class kernel:
 		temp.job = None
 		temp.logfile = None
 		pickle.dump(temp, open(filename, 'w'))
+
+
+class rpm_kernel:
+	""" Class for installing rpm kernel package
+	"""
+
+	def __init__(self, job, rpm_package, results_dir):
+		self.job = job
+		self.rpm_package = rpm_package
+		self.log_dir = os.path.join(results_dir, 'debug')
+		if os.path.exists(self.log_dir):
+			system('rm -rf ' + self.log_dir)
+		os.mkdir(self.log_dir)
+
+
+	def install(self):
+		logfile = os.path.join(self.log_dir, 'rpm_install')
+		self.job.stdout.redirect(logfile + '.stdout')
+		self.job.stderr.redirect(logfile + '.stderr')
+
+		rpm_name = system_output('rpm -qp ' + self.rpm_package)
+
+		# install
+		system('rpm -i --force ' + self.rpm_package)
+
+		# get file list
+		files = system_output('rpm -ql ' + rpm_name).splitlines()
+
+		self.job.stdout.restore()
+		self.job.stderr.restore()
+
+		# search for vmlinuz
+		for file in files:
+			if file.startswith('/boot/vmlinuz'):
+				self.image = file
+				break
+		else:
+			raise TestError(self.rpm_package + " doesn't contain /boot/vmlinuz")
+		
+		# search for initrd
+		self.initrd = ''
+		for file in files:
+			if file.startswith('/boot/initrd'):
+				self.initrd = file
+				break
+
+		# get version and release number
+		self.version, self.release = system_output(
+			'rpm --queryformat="%{VERSION}\\n%{RELEASE}" -q ' + rpm_name).splitlines()
+
+
+	def add_to_bootloader(self, tag='autotest', args=''):
+		""" Add this kernel to bootloader
+		"""
+
+		# remove existing entry if present
+		self.job.bootloader.remove_kernel(tag)
+
+		# pull the base argument set from the job config
+		baseargs = self.job.config_get('boot.default_args')
+		if baseargs:
+			args = baseargs + ' ' + args
+
+		# otherwise populate from /proc/cmdline
+		# if not baseargs:
+		#	baseargs = open('/proc/cmdline', 'r').readline().strip()
+		# NOTE: This is unnecessary, because boottool does it.
+
+		root = None
+		roots = [x for x in args.split() if x.startswith('root=')]
+		if roots:
+			root = re.sub('^root=', '', roots[0])
+		arglist = [x for x in args.split() if not x.startswith('root=')]
+		args = ' '.join(arglist)
+
+		# add the kernel entry
+		self.job.bootloader.add_kernel(self.image, tag, self.initrd, args = args, root = root)
