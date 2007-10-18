@@ -155,7 +155,7 @@ class Bootloader(object):
 			raise errors.AutoservError("Host does not exist anymore")
 		tmpdir = self.__host().get_tmp_dir()
 		self.__host().send_file(os.path.abspath(os.path.join(
-			os.path.dirname(sys.argv[0]), BOOTTOOL_SRC)), tmpdir)
+			utils.get_server_dir(), BOOTTOOL_SRC)), tmpdir)
 		self.__boottool_path= os.path.join(tmpdir, 
 			os.path.basename(BOOTTOOL_SRC))
 

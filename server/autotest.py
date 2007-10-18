@@ -54,8 +54,7 @@ class Autotest(installable_object.InstallableObject):
 		self.host = host
 		self.got = False
 		self.installed = False
-		path = os.path.dirname(sys.modules['server_job'].__file__)
-		self.serverdir = os.path.abspath(path)
+		self.serverdir = utils.get_server_dir()
 		super(Autotest, self).__init__()
 
 
