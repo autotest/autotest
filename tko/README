@@ -12,21 +12,21 @@ mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'autotest_tko'@
 mysql> grant SELECT on tko.* TO 'nobody'@'localhost';
 mysql> quit
 
-$ mysql -u bob -pa_password tko < create_db
+$ mysql -u autotest_tko -pa_password tko < create_db
 
 You could connect to the db if you wanted to:
 
-$ mysql -u bob -pa_password tko
+$ mysql -u autotest_tko -pa_password tko
 
 Now, so that you can access the database from db.py, you need to create
-a .login file with two lines
+a .priv_login file with two lines
 
 autotest_tko
 a_password
 
 NOW CHMOD THIS FILE SO ONLY YOU CAN READ IT!
 
-$ chmod 600 .login
+$ chmod 600 .priv_login
 
 --------------------------------------------------
 
