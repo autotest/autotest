@@ -23,6 +23,7 @@ stutsman@google.com (Ryan Stutsman)
 import time
 import textwrap
 import bootloader
+import utils
 
 class Host(object):
 	"""
@@ -41,6 +42,7 @@ class Host(object):
 
 	def __init__(self):
 		super(Host, self).__init__()
+		self.serverdir = utils.get_server_dir()
 		self.bootloader= bootloader.Bootloader(self)
 
 

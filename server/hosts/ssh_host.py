@@ -57,19 +57,20 @@ class SSHHost(base_classes.RemoteHost):
 			user: user to log in as on the remote machine
 			port: port the ssh daemon is listening on on the remote 
 				machine
-		"""
+		""" 
 		self.hostname= hostname
 		self.user= user
 		self.port= port
 		self.tmp_dirs= []
 		self.initialize = initialize
 
+		super(SSHHost, self).__init__()
+
 		self.conmux_server = conmux_server
 		self.conmux_attach = self.__find_console_attach(conmux_attach)
 		self.logger_pid = None
 		self.__start_console_log(conmux_log)
 
-		super(SSHHost, self).__init__()
 		self.bootloader = bootloader.Bootloader(self)
 
 		self.__init_netconsole_params(netconsole_port)
@@ -219,10 +220,9 @@ class SSHHost(base_classes.RemoteHost):
 				return res.stdout.strip()
 		except errors.AutoservRunError, e:
 			pass
-		autoserv_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-		autotest_conmux = os.path.join(autoserv_dir, '..',
+		autotest_conmux = os.path.join(self.serverdir, '..',
 					       'conmux', 'conmux-attach')
-		autotest_conmux_alt = os.path.join(autoserv_dir,
+		autotest_conmux_alt = os.path.join(self.serverdir,
 						   '..', 'autotest',
 						   'conmux', 'conmux-attach')
 		locations = [autotest_conmux,
