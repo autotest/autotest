@@ -8,7 +8,7 @@ Now log into the main database as root:
 $ mysql -u root -p mysql
 
 mysql> create database tko;
-mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'bob'@'localhost' identified by 'a_password';
+mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'autotest_tko'@'localhost' identified by 'a_password';
 mysql> grant SELECT on tko.* TO 'nobody'@'localhost';
 mysql> quit
 
@@ -21,7 +21,7 @@ $ mysql -u bob -pa_password tko
 Now, so that you can access the database from db.py, you need to create
 a .login file with two lines
 
-bob
+autotest_tko
 a_password
 
 NOW CHMOD THIS FILE SO ONLY YOU CAN READ IT!
