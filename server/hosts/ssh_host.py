@@ -44,6 +44,8 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
+	SSH_BASE_COMMAND = 'ssh -a'
+
 	def __init__(self, hostname, user="root", port=22, initialize=True,
 		     conmux_log=None, conmux_server=None, conmux_attach=None,
 		     netconsole_log=None, netconsole_port=6666):
@@ -254,9 +256,10 @@ class SSHHost(base_classes.RemoteHost):
 
 	def ssh_command(self):
 		"""Construct an ssh command with proper args for this host."""
-		return r'ssh -a -l %s -p %d %s' % (self.user,
-						   self.port,
-						   self.hostname)
+		return r'%s -l %s -p %d %s' % (self.SSH_BASE_COMMAND,
+					       self.user,
+					       self.port,
+					       self.hostname)
 
 
 	def run(self, command, timeout=None, ignore_status=False):
@@ -400,14 +403,17 @@ class SSHHost(base_classes.RemoteHost):
 			result = utils.run(r'%s rsync -h' % self.ssh_command(),
 					   ignore_status=True)
 
+		remote_dest = '%s@%s:"%s"' % (
+			    self.user, self.hostname,
+			    utils.scp_remote_escape(dest))
 		if result.exit_status == 0:
-			utils.run('rsync --rsh=ssh -az %s %s@%s:"%s"' % (
-				" ".join(processed_source), self.user,
-				self.hostname, utils.scp_remote_escape(dest)))
+			utils.run('rsync --rsh="%s" -az %s %s' % (
+			    self.SSH_BASE_COMMAND, " ".join(processed_source),
+			    remote_dest))
 		else:
-			utils.run('scp -rpq %s %s@%s:"%s"' % (
-				" ".join(processed_source), self.user,
-				self.hostname, utils.scp_remote_escape(dest)))
+			utils.run('scp -rpq %s %s' % (
+			    " ".join(processed_source),
+			    remote_dest))
 
 	def get_tmp_dir(self):
 		"""
