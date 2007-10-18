@@ -89,14 +89,14 @@ class SSHHost(base_classes.RemoteHost):
 			except errors.AutoservRunError:
 				pass
 		# kill the console logger
-		if self.logger_pid:
+		if getattr(self, 'logger_pid', None):
 			try:
 				pgid = os.getpgid(self.logger_pid)
 				os.killpg(pgid, signal.SIGTERM)
 			except OSError:
 				pass
 		# kill the netconsole logger
-		if self.netlogger_pid:
+		if getattr(self, 'netlogger_pid', None):
 			try:
 				os.kill(self.netlogger_pid, signal.SIGTERM)
 			except OSError:
