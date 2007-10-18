@@ -89,6 +89,8 @@ class test:
 			self.__exec(args, dargs)
 		finally:
 			system('dmesg -c > ' + dmesg, ignorestatus=1)
+			if os.path.exists(self.tmpdir):
+				system('rm -rf ' + self.tmpdir)
 
 
 def testname(url):
