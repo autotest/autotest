@@ -9,7 +9,7 @@
  *
  */
 
-#define VERSION_STRING "V 0.1"
+#define VERSION_STRING "V 0.3"
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -66,6 +66,7 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit = 0;
+static int ftrace = 0;
 static int oldtrace = 0;
 
 static inline void tsnorm(struct timespec *ts)
@@ -101,7 +102,6 @@ void *signalthread(void *param)
 
 	if (tracelimit) {
 		system("echo 1 > /proc/sys/kernel/trace_all_cpus");
-		system("echo 1 > /proc/sys/kernel/trace_enabled");
 		system("echo 1 > /proc/sys/kernel/trace_freerunning");
 		system("echo 0 > /proc/sys/kernel/trace_print_at_crash");
 		system("echo 1 > /proc/sys/kernel/trace_user_triggered");
@@ -110,6 +110,10 @@ void *signalthread(void *param)
 		system("echo 0 > /proc/sys/kernel/preempt_thresh");
 		system("echo 0 > /proc/sys/kernel/wakeup_timing");
 		system("echo 0 > /proc/sys/kernel/preempt_max_latency");
+		if (ftrace)
+			system("echo 1 > /proc/sys/kernel/mcount_enabled");
+
+		system("echo 1 > /proc/sys/kernel/trace_enabled");
 	}
 
 	stat->tid = gettid();
@@ -205,6 +209,7 @@ static void display_help(void)
 	printf("Usage:\n"
 	       "signaltest <options>\n\n"
 	       "-b USEC  --breaktrace=USEC send break trace command when latency > USEC\n"
+	       "-f                         function trace (when -b is active)\n"
 	       "-l LOOPS --loops=LOOPS     number of loops: default=0(endless)\n"
 	       "-p PRIO  --prio=PRIO       priority of highest prio thread\n"
 	       "-q       --quiet           print only a summary on exit\n"
@@ -229,6 +234,7 @@ static void process_options (int argc, char *argv[])
 		/** Options for getopt */
 		static struct option long_options[] = {
 			{"breaktrace", required_argument, NULL, 'b'},
+			{"ftrace", no_argument, NULL, 'f'},
 			{"loops", required_argument, NULL, 'l'},
 			{"priority", required_argument, NULL, 'p'},
 			{"quiet", no_argument, NULL, 'q'},
@@ -237,7 +243,7 @@ static void process_options (int argc, char *argv[])
 			{"help", no_argument, NULL, '?'},
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long (argc, argv, "b:c:d:i:l:np:qrst:v",
+		int c = getopt_long (argc, argv, "b:fl:p:qt:v",
 			long_options, &option_index);
 		if (c == -1)
 			break;
@@ -355,8 +361,8 @@ int main(int argc, char **argv)
 		stat[i].min = 1000000;
 		stat[i].max = -1000000;
 		stat[i].avg = 0.0;
-		pthread_create(&stat[i].thread, NULL, signalthread, &par[i]);
 		stat[i].threadstarted = 1;
+		pthread_create(&stat[i].thread, NULL, signalthread, &par[i]);
 	}
 
 	while (!shutdown) {
