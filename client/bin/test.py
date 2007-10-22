@@ -162,14 +162,13 @@ def __runtest(job, url, tag, args, dargs):
 	if not os.path.exists(bindir):
 		raise TestError(testname + ": test does not exist")
 	
-	try:
-		if group:
-			sys.path.insert(0, os.path.join(job.testdir,
-								"download"))
-			group += '.'
-		else:
-			sys.path.insert(0, os.path.join(job.testdir, testname))
+	if group:
+		sys.path.insert(0, os.path.join(job.testdir, "download"))
+		group += '.'
+	else:
+		sys.path.insert(0, os.path.join(job.testdir, testname))
 	
+	try:
 		exec "import %s%s" % (group, testname)
 		exec "mytest = %s%s.%s(job, bindir, outputdir)" % \
 			(group, testname, testname)
