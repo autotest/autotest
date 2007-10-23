@@ -60,7 +60,8 @@ client   = parse_opts('-c')
 reboot   = parse_opts('-b')
 
 if len(args) < 1:
-	usage()
+	print usage
+	sys.exit(-1)
 
 job = server_job.server_job(args[0], args[1:], results, label, user, client)
 job.run(machines, reboot)
