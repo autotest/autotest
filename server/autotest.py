@@ -236,7 +236,7 @@ class _Run(object):
 					 section)
 		logfile = "%s/debug/client.log.%d" % (self.results_dir,
 						      section)
-		client_log = open(logfile, 'w')
+		client_log = open(logfile, 'w', 0)
 		if section > 0:
 			cont = '-c'
 		else:
@@ -250,10 +250,13 @@ class _Run(object):
 				     shell=True,
 				     stdout=client_log,
 				     stderr=subprocess.PIPE)
+		status_log_file = os.path.join(self.results_dir, 'status.log')
+		status_log = open(status_log_file, 'a', 0)
 		line = None
 		for line in iter(p.stderr.readline, ''):
-			print line,
+			sys.stdout.write(line)
 			sys.stdout.flush()
+			status_log.write(line)
 		if not line:
 			raise AutotestRunError("execute_section: %s '%s' \
 			failed to return anything" % (ssh, cmd))
