@@ -47,8 +47,8 @@ class SSHHost(base_classes.RemoteHost):
 	SSH_BASE_COMMAND = 'ssh -a'
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
-		     conmux_log=None, conmux_server=None, conmux_attach=None,
-		     netconsole_log=None, netconsole_port=6666):
+		     conmux_log="console.log", conmux_server=None, conmux_attach=None,
+		     netconsole_log="netconsole.log", netconsole_port=6666):
 		"""
 		Construct a SSHHost object
 		
@@ -148,7 +148,7 @@ class SSHHost(base_classes.RemoteHost):
 		if logfilename == None:
 			return
 		cmd = ['nc', '-u', '-l', '-p', str(port)]
-		logger = subprocess.Popen(cmd, stdout=open(logfilename, "w"))
+		logger = subprocess.Popen(cmd, stdout=open(logfilename, "a", 0))
 		self.netlogger_pid = logger.pid
 
 
@@ -204,8 +204,9 @@ class SSHHost(base_classes.RemoteHost):
 			to = '%s/%s' % (self.conmux_server, self.hostname)
 		else:
 			to = self.hostname
-		cmd = [self.conmux_attach, to, 'cat - > %s' % logfilename]
+		cmd = [self.conmux_attach, to, 'cat -']
 		logger = subprocess.Popen(cmd,
+					  stdout=open(logfilename, 'a', 0),
 					  stderr=open('/dev/null', 'w'),
 					  preexec_fn=lambda: os.setpgid(0, 0))
 		self.logger_pid = logger.pid
