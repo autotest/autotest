@@ -21,7 +21,6 @@
 import os, pickle, tempfile
 from autotest_utils import *
 from error import *
-from parallel import *
 
 class test:
 	preserve_srcdir = False
@@ -61,7 +60,7 @@ class test:
 		pass
 
 
-	def __exec(self, args, dargs):
+	def _exec(self, args, dargs):
 		try:
 			self.job.stdout.tee_redirect(
 				os.path.join(self.debugdir, 'stdout'))
@@ -81,16 +80,6 @@ class test:
 		except:
 			raise UnhandledError('running test ' + \
 				self.__class__.__name__ + "\n")
-
-
-	def run(self, testname, args, dargs):
-		dmesg = os.path.join(self.debugdir, 'dmesg')
-		try:
-			self.__exec(args, dargs)
-		finally:
-			system('dmesg -c > ' + dmesg, ignorestatus=1)
-			if os.path.exists(self.tmpdir):
-				system('rm -rf ' + self.tmpdir)
 
 
 def testname(url):
@@ -145,7 +134,7 @@ def __installtest(job, url):
 
 
 # runtest: main interface for importing and instantiating new tests.
-def __runtest(job, url, tag, args, dargs):
+def runtest(job, url, tag, args, dargs):
 	# If this is not a plain test name then download and install
 	# the specified test.
 	if is_url(url):
@@ -177,11 +166,11 @@ def __runtest(job, url, tag, args, dargs):
 
 	pwd = os.getcwd()
 	os.chdir(outputdir)
-	mytest.run(testname, args, dargs)
+	dmesg = os.path.join(mytest.debugdir, 'dmesg')
+	try:
+		mytest._exec(args, dargs)
+	finally:
+		system('dmesg -c > %s 2> /dev/null' % dmesg, ignorestatus=True)
+		if os.path.exists(mytest.tmpdir):
+			system('rm -rf ' + mytest.tmpdir)
 	os.chdir(pwd)
-
-
-def runtest(job, url, tag, args, dargs):
-	pid = fork_start(job.resultdir,
-			lambda : __runtest(job, url, tag, args, dargs))
-	fork_waitfor(job.resultdir, pid)

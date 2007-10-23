@@ -201,16 +201,14 @@ class job:
 
 	def __runtest(self, url, tag, args, dargs):
 		try:
-			test.runtest(self, url, tag, args, dargs)
+			l = lambda : test.runtest(self, url, tag, args, dargs)
+			pid = fork_start(self.resultdir, l)
+			fork_waitfor(self.resultdir, pid)
 		except AutotestError:
 			raise
 		except:
 			raise UnhandledError('running test ' + \
 				self.__class__.__name__ + "\n")
-
-
-	def runtest(self, tag, url, *args):
-		raise "Deprecated call to job.runtest. Use run_test instead"
 
 
 	def run_test(self, url, *args, **dargs):
