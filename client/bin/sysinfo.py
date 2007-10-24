@@ -33,3 +33,7 @@ for file in files:
 	if (os.path.exists(file)):
 		shutil.copyfile(file, os.path.basename(file))
 
+path = os.path.dirname(os.path.abspath(sys.argv[0]))
+site_sysinfo = os.path.join(path, 'site_sysinfo.py')
+if os.path.exists(site_sysinfo):
+	system(site_sysinfo)
