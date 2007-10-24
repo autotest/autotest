@@ -44,7 +44,7 @@ def cleanup(machine):
 		host = hosts.SSHHost(machine, initialize=False)
 		host.reboot()
 
-parallel_simple(cleanup, machines)
+parallel_simple(cleanup, machines, log=False)
 """
 
 class server_job:
