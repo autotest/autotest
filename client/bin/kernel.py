@@ -602,6 +602,7 @@ class rpm_kernel:
 
 	def __init__(self, job, rpm_package, results_dir):
 		self.job = job
+		self.installed = False
 		self.rpm_package = rpm_package
 		self.log_dir = os.path.join(results_dir, 'debug')
 		if os.path.exists(self.log_dir):
@@ -642,7 +643,8 @@ class rpm_kernel:
 
 		# get version and release number
 		self.version, self.release = system_output(
-			'rpm --queryformat="%{VERSION}\\n%{RELEASE}" -q ' + rpm_name).splitlines()
+			'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q ' + rpm_name).splitlines()[0:2]
+		self.installed = True
 
 
 	def add_to_bootloader(self, tag='autotest', args=''):
@@ -671,3 +673,16 @@ class rpm_kernel:
 
 		# add the kernel entry
 		self.job.bootloader.add_kernel(self.image, tag, self.initrd, args = args, root = root)
+
+
+	def boot(self, args=''):
+		# Check if the kernel has been installed, if not install
+		# as the default tag and boot that.
+		if not self.installed:
+			self.install()
+
+		# Boot the selected tag.
+		self.add_to_bootloader(args=args)
+
+		# Boot it.
+		self.job.reboot()
