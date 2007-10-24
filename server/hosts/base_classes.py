@@ -44,6 +44,7 @@ class Host(object):
 		super(Host, self).__init__()
 		self.serverdir = utils.get_server_dir()
 		self.bootloader= bootloader.Bootloader(self)
+		self.env = {}
 
 
 	def run(self, command):
