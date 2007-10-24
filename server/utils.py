@@ -72,7 +72,7 @@ def scp_remote_escape(filename):
 	return sh_escape("".join(new_name))
 
 
-def get(location):
+def get(location, local_copy = False):
 	"""Get a file or directory to a local temporary directory.
 
 	Args:
@@ -106,6 +106,8 @@ def get(location):
 			return tmpfile
 		# location is a local path
 		elif os.path.exists(os.path.abspath(location)):
+			if not local_copy:
+				return location
 			tmpfile = os.path.join(tmpdir, os.path.basename(location))
 			if os.path.isdir(location):
 				tmpfile += '/'
