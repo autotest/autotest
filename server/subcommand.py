@@ -17,7 +17,7 @@ def parallel(tasklist):
 		raise "One or more subcommands failed"
 
 
-def parallel_simple(function, arglist):
+def parallel_simple(function, arglist, log=True):
 	"""Each element in the arglist used to create a subcommand object,
 	where that arg is used both as a subdir name, and a single argument
 	to pass to "function".
@@ -26,7 +26,10 @@ def parallel_simple(function, arglist):
 	subcommands = []
 	for arg in arglist:
 		args = [arg]
-		subdir = str(arg)
+		if log:
+			subdir = str(arg)
+		else:
+			subdir = None 
 		subcommands.append(subcommand(function, args, subdir))
 	parallel(subcommands)
 
