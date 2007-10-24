@@ -1,4 +1,6 @@
-host = hosts.SSHHost(machines[0])
-at = autotest.Autotest(host)
-at.run_test('kernbench', iterations=2, threads=5)
+def run(machine):
+	host = hosts.SSHHost(machine)
+	at = autotest.Autotest(host)
+	at.run_test('kernbench', iterations=2, threads=5)
 
+parallel_simple(run, machines)
