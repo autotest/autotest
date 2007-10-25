@@ -10,6 +10,7 @@ $ mysql -u root -p mysql
 mysql> create database tko;
 mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'autotest_tko'@'localhost' identified by 'a_password';
 mysql> grant SELECT on tko.* TO 'nobody'@'localhost';
+mysql> grant SELECT on tko.* TO 'nobody'@'%';
 mysql> quit
 
 To create this schema inside the "tko" database:
