@@ -12,31 +12,41 @@ mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'autotest_tko'@
 mysql> grant SELECT on tko.* TO 'nobody'@'localhost';
 mysql> quit
 
+To create this schema inside the "tko" database:
+
 $ mysql -u autotest_tko -pa_password tko < create_db
 
 You could connect to the db if you wanted to:
 
 $ mysql -u autotest_tko -pa_password tko
 
-Now, so that you can access the database from db.py, you need to create
-a .priv_login file with two lines
+--------------------------------------------------
+
+Autotest uses two accounts to access the database - a priviledged account
+that's read/write and an unpriviledged one that's read/only. For parse to
+work,  you need to tell it how to log in - create a .priv_login file with
+two lines
 
 autotest_tko
 a_password
 
 NOW CHMOD THIS FILE SO ONLY YOU CAN READ IT!
-
 $ chmod 600 .priv_login
+
+For the unprivileged account, we default to "nobody" user with no password,
+on localhost.  If you didn't use that (as in the example above), you'll need
+to create a .unpriv_login file too (equivalent to .priv_login format), but
+most people won't need that.
+
 
 --------------------------------------------------
 
-To generate data:
+To load the results of jobs and tests into the tko db:
 
 ./parse <data directory>
+(e.g. ./parse /usr/local/autotest/results)
 
-This should create "tko_db"
-
-SOME THINGS ARE STILL HACKY ^W IN DEVELOPMENT
+--------------------------------------------------
 
 There are two separate sets of code. The backend creates the database.
 parse, parse.py
