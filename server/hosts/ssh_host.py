@@ -519,7 +519,9 @@ class SSHHost(base_classes.RemoteHost):
 		if hasattr(self, 'hardreset') and not self.wait_up(300):
 			print "Performing a hardreset on %s" % self.hostname
 			self.hardreset()
-		self.wait_up()
+		if not self.wait_up(60 * 30):
+			# 30 minutes should be more than enough
+			raise errors.AutoservHostError
 		print 'Host up, continuing'
 
 

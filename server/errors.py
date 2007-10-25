@@ -25,3 +25,7 @@ class AutoservRunError(AutoservError):
 class AutoservVirtError(AutoservError):
 	"""Vitualization related error"""
 	pass
+
+class AutoservHostError(AutoservError):
+	"""Error reaching a host"""
+	pass
