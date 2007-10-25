@@ -186,10 +186,11 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		Reach out and slap the box in the power switch
 		"""
-		result = self.__console_run(r"'~$hardreset'")
-		if wait:
-			self.__wait_for_restart(timeout)
-		return result
+		command_ran = self.__console_run(r"'~$hardreset'")
+                if not command_ran:
+                        raise errors.AutoservUnsupportedError
+                if wait:
+                        self.__wait_for_restart(timeout)
 
 
 	def __start_console_log(self, logfilename):
