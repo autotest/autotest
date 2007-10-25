@@ -174,7 +174,7 @@ class SSHHost(base_classes.RemoteHost):
 			pass
 
 
-	def __wait_for_restart(self, timeout):
+	def _wait_for_restart(self, timeout):
 		self.wait_down(60)	# Make sure he's dead, Jim
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
@@ -190,7 +190,7 @@ class SSHHost(base_classes.RemoteHost):
                 if not command_ran:
                         raise errors.AutoservUnsupportedError
                 if wait:
-                        self.__wait_for_restart(timeout)
+                        self._wait_for_restart(timeout)
 
 
 	def __start_console_log(self, logfilename):
@@ -318,7 +318,7 @@ class SSHHost(base_classes.RemoteHost):
 		print "Reboot: initiating reboot"
 		self.run('reboot')
 		if wait:
-			self.__wait_for_restart(timeout)
+			self._wait_for_restart(timeout)
 			self.__load_netconsole_module() # if the builtin fails
 
 
