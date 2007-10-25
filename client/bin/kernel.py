@@ -487,8 +487,9 @@ class kernel:
 			ident = self.get_kernel_build_ident()
 			args += " IDENT=%d" % (when)
 
+			# TODO: how do we get the changelist number here?
 			self.job.next_step_prepend(["job.kernel_check_ident",
-						when, ident, self.subdir])
+						when, ident, None, self.subdir])
 
 		# Check if the kernel has been installed, if not install
 		# as the default tag and boot that.
@@ -600,28 +601,37 @@ class rpm_kernel:
 	""" Class for installing rpm kernel package
 	"""
 
-	def __init__(self, job, rpm_package, results_dir):
+	def __init__(self, job, rpm_package, subdir):
 		self.job = job
-		self.installed = False
 		self.rpm_package = rpm_package
-		self.log_dir = os.path.join(results_dir, 'debug')
+		self.log_dir = os.path.join(subdir, 'debug')
+		self.subdir = os.path.basename(subdir)
 		if os.path.exists(self.log_dir):
 			system('rm -rf ' + self.log_dir)
 		os.mkdir(self.log_dir)
+		self.installed_as = None
+		cl_re = re.compile(r'[-.](\d{7,})\.rpm$')
+		match = cl_re.findall(rpm_package)
+		if match:
+			self.changelist = match[0]
+		else:
+			self.changelist = None
 
 
-	def install(self):
+	def install(self, tag='autotest'):
+		self.installed_as = tag
+
 		logfile = os.path.join(self.log_dir, 'rpm_install')
 		self.job.stdout.redirect(logfile + '.stdout')
 		self.job.stderr.redirect(logfile + '.stderr')
 
-		rpm_name = system_output('rpm -qp ' + self.rpm_package)
+		self.rpm_name = system_output('rpm -qp ' + self.rpm_package)
 
 		# install
 		system('rpm -i --force ' + self.rpm_package)
 
 		# get file list
-		files = system_output('rpm -ql ' + rpm_name).splitlines()
+		files = system_output('rpm -ql ' + self.rpm_name).splitlines()
 
 		self.job.stdout.restore()
 		self.job.stderr.restore()
@@ -633,7 +643,7 @@ class rpm_kernel:
 				break
 		else:
 			raise TestError(self.rpm_package + " doesn't contain /boot/vmlinuz")
-		
+
 		# search for initrd
 		self.initrd = ''
 		for file in files:
@@ -643,8 +653,7 @@ class rpm_kernel:
 
 		# get version and release number
 		self.version, self.release = system_output(
-			'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q ' + rpm_name).splitlines()[0:2]
-		self.installed = True
+			'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q ' + self.rpm_name).splitlines()[0:2]
 
 
 	def add_to_bootloader(self, tag='autotest', args=''):
@@ -675,14 +684,26 @@ class rpm_kernel:
 		self.job.bootloader.add_kernel(self.image, tag, self.initrd, args = args, root = root)
 
 
-	def boot(self, args=''):
+	def boot(self, args='', ident=1):
+		""" install and boot this kernel
+		"""
+		
 		# Check if the kernel has been installed, if not install
 		# as the default tag and boot that.
-		if not self.installed:
-			self.install()
+		if not self.installed_as:
+			self.intsall()
+
+		# If we can check the kernel identity do so.
+		if ident:
+			when = int(time.time())
+			ident = '-'.join([self.version, self.rpm_name.split('-')[1], self.release])
+			args += " IDENT=%d" % (when)
+
+		self.job.next_step_prepend(["job.kernel_check_ident",
+			when, ident, self.changelist, self.subdir, 'rpm'])
 
 		# Boot the selected tag.
-		self.add_to_bootloader(args=args)
+		self.add_to_bootloader(args=args, tag=self.installed_as)
 
 		# Boot it.
-		self.job.reboot()
+		self.job.reboot(tag=self.installed_as)
