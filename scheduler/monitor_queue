@@ -32,7 +32,7 @@ if not os.path.exists(resultsdir):
 
 ##### Control file templates #####
 SERV_MULTI = """# monitor_queue generated autoserv file (SERV_MULTI template)
-hosts = [hosts.ConmuxSSHHost(hostname, server=%s)
+hosts = [hosts.SSHHost(hostname, server=%s)
 		for hostname in machines]
 
 at = autotest.Autotest()
@@ -49,7 +49,7 @@ parallel([subcommand(install_run, [host]) for host in hosts])"""
 
 
 SERV_SINGLE = """# monitor_queue generated autoserv file (SERV_SINGLE template)
-host = hosts.ConmuxSSHHost(machines[0], server=%s)
+host = hosts.SSHHost(machines[0], server=%s)
 		
 at = autotest.Autotest()
 
