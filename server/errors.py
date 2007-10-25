@@ -29,3 +29,8 @@ class AutoservVirtError(AutoservError):
 class AutoservHostError(AutoservError):
 	"""Error reaching a host"""
 	pass
+
+
+class AutoservUnsupportedError(AutoservError):
+	"""Error raised when you try to use an unsupported optional feature"""
+	pass

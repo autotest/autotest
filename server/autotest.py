@@ -283,10 +283,13 @@ class _Run(object):
 					# since reboot failed
 					# hardreset the machine once if possible
 					# before failing this control file
-					if hasattr(self.host, 'hardreset'):
-						print "Hardresetting %s" % (
-							self.host.hostname,)
-						self.host.hardreset()
+					print "Hardresetting %s" % (
+					    self.host.hostname,)
+					try:
+						self.host.hardreset(wait=False)
+					except errors.AutoservUnsupportedError:
+						print "Hardreset unsupported on %s" % (
+						    self.host.hostname,)
 					raise AutotestRunError("%s failed to "
 						"boot after %ds" % (
 						self.host.hostname,
