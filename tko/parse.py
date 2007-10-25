@@ -169,6 +169,13 @@ class test:
 		self.testname = testname
 		self.status = status
 		self.reason = reason
+
+		self.keyval2 = os.path.join(job.dir, subdir, 'keyval')
+		if not os.path.exists(self.keyval2):
+			self.version = None
+		else:
+			self.version = open(self.keyval2, 'r').readline().split('=')[1]
+
 		if subdir:
 			self.keyval = os.path.join(job.dir, subdir, 'results/keyval')
 			if not os.path.exists(self.keyval):
@@ -180,6 +187,7 @@ class test:
 		self.machine = job.machine
 
 		dprint("PARSING TEST %s %s %s" % (subdir, testname, self.keyval))
+
 		if not self.keyval:
 			return
 		count = 1

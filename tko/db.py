@@ -169,6 +169,8 @@ class db:
 				self.insert('iteration_result',
                                             data,
                                             commit=commit)
+		data = {'test_idx':test_idx, 'attribute':'version', 'value':test.version}
+		self.insert('test_attributes', data, commit=commit)
 
 
 	def read_machine_map(self):
