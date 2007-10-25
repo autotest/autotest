@@ -1,30 +1,52 @@
 #!/usr/bin/python
 import os, re, parse, db, sys
 
+debug = True
+
 if len(sys.argv) < 2:
 	raise "I need a path to the results directory"
 
-topdir = sys.argv[1]
-jobs_list = os.listdir(topdir)
+if sys.argv[1] == '-o':
+	dir = os.path.abspath(sys.argv[2])
+	jobs_list = [(os.path.basename(dir), dir)]
+else:
+	topdir = os.path.abspath(sys.argv[1])
+	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in os.listdir(topdir)]
 
-jobs = {}
 db = db.db(autocommit=False)  # do commits transactionally
 
-for j in jobs_list:
-	print 'looking for ' + j
-	if db.find_job(j):              # Job has already been parsed
-		continue
-	job = parse.job(os.path.join(topdir, j), 'regression')
+
+def do_parse(jobname, path):
+	if debug:
+		print 'looking for ' + path
+	if db.find_job(jobname):              # Job has already been parsed
+		return
+	job = parse.job(path, 'regression')
 	if not job:
-		continue
-	print 'parsed ' + j
+		return
+	print 'parsed ' + path
 	if not job.kernel:
-		continue
-	print '%s %s' % (j, job.kernel.base)
+		return
+	print '%s %s' % (jobname, job.kernel.base)
 	for test in job.tests:
 		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
-	db.insert_job(j, job)
+	db.insert_job(jobname, job)
 	db.commit()
+
+
+for (jobname, path) in jobs_list:
+	machine_list = os.path.join(path, '.machines')
+	if os.path.exists(machine_list):
+		for m in open(machine_list, 'r').readlines():
+			machine = m.rstrip()
+			if not machine:
+				continue
+			jobpath = os.path.join(path, machine)
+			jobname = os.path.join(os.path.basename(path), machine)
+			do_parse(jobname, jobpath)
+	else:
+		do_parse(jobname, path)
+
 
 rows = db.select('distinct hostname', 'machines', {})
 machines = [row[0] for row in rows]
