@@ -107,7 +107,10 @@ def get(location, local_copy = False):
 		# location is a local path
 		elif os.path.exists(os.path.abspath(location)):
 			if not local_copy:
-				return location
+				if os.path.isdir(location):
+					return location.rstrip('/') + '/'
+				else:
+					return location
 			tmpfile = os.path.join(tmpdir, os.path.basename(location))
 			if os.path.isdir(location):
 				tmpfile += '/'
