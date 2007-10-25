@@ -20,12 +20,18 @@ def do_parse(jobname, path):
 	if debug:
 		print 'looking for ' + path
 	if db.find_job(jobname):              # Job has already been parsed
+		if debug:
+			print '\t- already processed'
 		return
 	job = parse.job(path, 'regression')
 	if not job:
+		if debug:
+			print '\t- not a job'
 		return
 	print 'parsed ' + path
 	if not job.kernel:
+		if debug:
+			print '\t- not a job.kernel'
 		return
 	print '%s %s' % (jobname, job.kernel.base)
 	for test in job.tests:
