@@ -60,6 +60,10 @@ class test:
 		pass
 
 
+	def cleanup(self):
+		pass
+
+
 	def run(self, args, dargs):
 		try:
 			# self.job.stdout.tee_redirect(
@@ -67,11 +71,12 @@ class test:
 			# self.job.stderr.tee_redirect(
 			#	os.path.join(self.debugdir, 'stderr'))
 
-			# try:
-			os.chdir(self.outputdir)
-			write_keyval(self.outputdir, { 'version':self.version })
-			self.execute(*args, **dargs)
-			# finally:
+			try:
+				os.chdir(self.outputdir)
+				write_keyval(self.outputdir, { 'version':self.version })
+				self.execute(*args, **dargs)
+			finally:
+				self.cleanup()
 			#	self.job.stderr.restore()
 			#	self.job.stdout.restore()
 		except AutotestError:
