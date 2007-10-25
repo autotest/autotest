@@ -6,7 +6,7 @@ root_url_file = os.path.join(tko, '.root_url')
 if os.path.exists(root_url_file):
         html_root = open(root_url_file, 'r').readline().rstrip()
 else:
-        html_root = 'http://test.kernel.org/google/'
+        html_root = '/results/'
 
 
 class group:
