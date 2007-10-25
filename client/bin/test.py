@@ -60,6 +60,10 @@ class test:
 		pass
 
 
+	def cleanup(self):
+		pass
+
+
 	def _exec(self, args, dargs):
 		try:
 			self.job.stdout.tee_redirect(
@@ -73,6 +77,7 @@ class test:
 						{ 'version' : self.version })
 				self.execute(*args, **dargs)
 			finally:
+				self.cleanup()
 				self.job.stderr.restore()
 				self.job.stdout.restore()
 		except AutotestError:
