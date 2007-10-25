@@ -8,7 +8,6 @@ tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
 import db, display, frontend
 
-html_root = 'http://test.kernel.org/google/'
 db = db.db()
 
 benchmark_key = {
