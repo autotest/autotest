@@ -105,6 +105,9 @@ class server_job:
 
 
 	def run(self, machines, reboot = False, namespace = {}):
+		# use a copy so changes don't affect the original dictionary
+		namespace = namespace.copy()
+
 		namespace['machines'] = machines
 		namespace['args'] = self.args
 		namespace['job'] = self
