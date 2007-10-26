@@ -46,6 +46,8 @@ class db:
 		machine_map = os.path.join(dir, 'machines')
 		if os.path.exists(machine_map):
 			self.machine_map = machine_map
+		else:
+			self.machine_map = None
 		self.machine_group = {}
 
 
