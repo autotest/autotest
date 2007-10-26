@@ -21,8 +21,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import base_classes
-
+import base_classes, utils
 
 class SiteHost(base_classes.Host):
 	"""
