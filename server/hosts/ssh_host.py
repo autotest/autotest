@@ -47,8 +47,9 @@ class SSHHost(base_classes.RemoteHost):
 	SSH_BASE_COMMAND = 'ssh -a'
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
-		     conmux_log="console.log", conmux_server=None, conmux_attach=None,
-		     netconsole_log="netconsole.log", netconsole_port=6666):
+		     conmux_log="console.log", conmux_warnings="warning.log",
+		     conmux_server=None, conmux_attach=None,
+		     netconsole_log=None, netconsole_port=6666):
 		"""
 		Construct a SSHHost object
 		
@@ -70,6 +71,8 @@ class SSHHost(base_classes.RemoteHost):
 		self.conmux_attach = self.__find_console_attach(conmux_attach)
 		self.logger_pid = None
 		self.__start_console_log(conmux_log)
+		self.warning_pid = None
+		self.__start_warning_log(conmux_warnings)
 
 		self.bootloader = bootloader.Bootloader(self)
 
@@ -97,8 +100,16 @@ class SSHHost(base_classes.RemoteHost):
 				pass
 		# kill the netconsole logger
 		if getattr(self, 'netlogger_pid', None):
+			self.__unload_netconsole_module()
 			try:
 				os.kill(self.netlogger_pid, signal.SIGTERM)
+			except OSError:
+				pass
+		# kill the warning logger
+		if getattr(self, 'warning_pid', None):
+			try:
+				pgid = os.getpgid(self.warning_pid)
+				os.killpg(pgid, signal.SIGTERM)
 			except OSError:
 				pass
 
@@ -193,6 +204,13 @@ class SSHHost(base_classes.RemoteHost):
                         self._wait_for_restart(timeout)
 
 
+	def __conmux_hostname(self):
+		if self.conmux_server:
+			return '%s/%s' % (self.conmux_server, self.hostname)
+		else:
+			return self.hostname
+
+
 	def __start_console_log(self, logfilename):
 		"""
 		Log the output of the console session to a specified file
@@ -201,16 +219,29 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
 			return
-		if self.conmux_server:
-			to = '%s/%s' % (self.conmux_server, self.hostname)
-		else:
-			to = self.hostname
-		cmd = [self.conmux_attach, to, 'cat -']
+		cmd = [self.conmux_attach, self.__conmux_hostname(), 'cat - >> %s' % logfilename]
 		logger = subprocess.Popen(cmd,
-					  stdout=open(logfilename, 'a', 0),
 					  stderr=open('/dev/null', 'w'),
 					  preexec_fn=lambda: os.setpgid(0, 0))
 		self.logger_pid = logger.pid
+
+
+        def __start_warning_log(self, logfilename):
+		"""
+		Log the output of the warning monitor to a specified file
+		"""
+		if logfilename == None:
+			return
+		script_path = os.path.join(self.serverdir, 'warning_monitor')
+		script_cmd = 'expect %s %s' % (script_path, self.hostname)
+		if self.conmux_server:
+			to = '%s/%s'
+		cmd = [self.conmux_attach, self.__conmux_hostname(), script_cmd]
+		logger = subprocess.Popen(cmd,
+					  stdout=open(logfilename, 'a', 0),
+					  stderr=subprocess.STDOUT,
+					  preexec_fn=lambda: os.setpgid(0, 0))
+		self.warning_pid = logger.pid
 
 
 	def __find_console_attach(self, conmux_attach):
@@ -245,12 +276,8 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
 			return False
-		if self.conmux_server:
-			to = '%s/%s' % (self.conmux_server, self.hostname)
-		else:
-			to = self.hostname
 		cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
-						      to,
+						      self.__conmux_hostname(),
 						      cmd)
 		result = os.system(cmd)
 		return result == 0
