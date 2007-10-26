@@ -1,6 +1,6 @@
 Setting up the database.
 
-apt-get install mysql-server-5.0 python-mysqldb
+apt-get install mysql-server-5.0 python-mysqldb python-gd gnuplot
 
 In this example, we use 'bob' as the user.
 Now log into the main database as root: 
