@@ -39,13 +39,21 @@ on localhost.  If you didn't use that (as in the example above), you'll need
 to create a .unpriv_login file too (equivalent to .priv_login format), but
 most people won't need that.
 
-
 --------------------------------------------------
 
 To load the results of jobs and tests into the tko db:
 
 ./parse <data directory>
 (e.g. ./parse /usr/local/autotest/results)
+
+--------------------------------------------------
+
+If you want to map machines into groups, create a file called "machines"
+in the tko/ directory - on each line, put:
+
+machine_name	group_name
+
+one line for each machine.
 
 --------------------------------------------------
 
