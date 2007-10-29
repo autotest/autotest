@@ -21,6 +21,8 @@ stutsman@google.com (Ryan Stutsman)
 import types, os, sys, signal, subprocess, time, re, socket
 import base_classes, utils, errors, bootloader
 
+DEFAULT_REBOOT_TIMEOUT = 1800
+
 
 class SSHHost(base_classes.RemoteHost):
 	"""
@@ -194,7 +196,7 @@ class SSHHost(base_classes.RemoteHost):
 		print "Reboot complete"
 
 
-	def hardreset(self, timeout=600, wait=True):
+	def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True):
 		"""
 		Reach out and slap the box in the power switch
 		"""
@@ -319,7 +321,8 @@ class SSHHost(base_classes.RemoteHost):
 		return result
 
 
-	def reboot(self, timeout=600, label=None, kernel_args=None, wait=True):
+	def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,
+		   kernel_args=None, wait=True):
 		"""
 		Reboot the remote host.
 		
