@@ -14,7 +14,6 @@ stutsman@google.com (Ryan Stutsman)
 
 import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
 import time, types, urllib, re, sys
-
 import hosts, errors
 
 # A dictionary of pid and a list of tmpdirs for that pid
@@ -127,106 +126,133 @@ def get(location, local_copy = False):
 			return tmpfile
 
 
-def run(command, timeout=None, ignore_status=False):
+def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
+	if use_os_read:
+		data = os.read(pipe.fileno(), 1024)
+	else:
+		data = pipe.read()
+	fbuffer.write(data)
+	if teefile:
+		teefile.write(data)
+		teefile.flush()
+
+
+def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
+		      stdout_tee, stderr_tee):
+	if timeout:
+		stop_time = start_time + timeout
+		time_left = stop_time - time.time()
+	else:
+		time_left = None # so that select never times out
+	while not timeout or time_left > 0:
+		# select will return when stdout is ready (including when it is
+		# EOF, that is the process has terminated).
+		ready, _, _ = select.select([subproc.stdout, subproc.stderr],
+					     [], [], time_left)
+		# os.read() has to be used instead of
+		# subproc.stdout.read() which will otherwise block
+		if subproc.stdout in ready:
+			_process_output(subproc.stdout, stdout_file,
+					stdout_tee)
+		if subproc.stderr in ready:
+			_process_output(subproc.stderr, stderr_file,
+					stderr_tee)
+
+		pid, exit_status_indication = os.waitpid(subproc.pid,
+							 os.WNOHANG)
+		if pid:
+			break
+		if timeout:
+			time_left = stop_time - time.time()
+
+	# the process has not terminated within timeout,
+	# kill it via an escalating series of signals.
+	if not pid:
+		signal_queue = [signal.SIGTERM, signal.SIGKILL]
+		for sig in signal_queue:
+			try:
+				os.kill(subproc.pid, sig)
+			# handle race condition in which
+			# process died before we could kill it.
+			except OSError:
+				pass
+
+			for i in range(5):
+				pid, exit_status_indication = (
+				    os.waitpid(subproc.pid, os.WNOHANG))
+				if pid:
+					return exit_status_indication
+				else:
+						time.sleep(1)
+	return exit_status_indication
+
+
+def run(command, timeout=None, ignore_status=False,
+	stdout_tee=None, stderr_tee=None):
 	"""
 	Run a command on the host.
 
 	Args:
 		command: the command line string
-		timeout: time limit in seconds before attempting to 
+		timeout: time limit in seconds before attempting to
 			kill the running process. The run() function
 			will take a few seconds longer than 'timeout'
 			to complete if it has to kill the process.
 		ignore_status: do not raise an exception, no matter what
 			the exit code of the command is.
-	
+		stdout_tee: optional file-like object to which stdout data
+		            will be written as it is generated (data will still
+			    be stored in result.stdout)
+		stderr_tee: likewise for stderr
+
 	Returns:
 		a hosts.CmdResult object
 
 	Raises:
-		AutoservRunError: the exit code of the command 
+		AutoservRunError: the exit code of the command
 			execution was not 0
 
-	TODO(poirier): Add a "tee" option to send the command's 
-		stdout and stderr to python's stdout and stderr? At 
-		the moment, there is no way to see the command's 
-		output as it is running.
 	TODO(poirier): Should a timeout raise an exception? Should
 		exceptions be raised at all?
 	"""
-	result= hosts.CmdResult()
-	result.command= command
-	sp= subprocess.Popen(command, stdout=subprocess.PIPE, 
-		stderr=subprocess.PIPE, close_fds=True, shell=True, 
-		executable="/bin/bash")
+	result = hosts.CmdResult()
+	result.command = command
+	sp = subprocess.Popen(command, stdout=subprocess.PIPE,
+			      stderr=subprocess.PIPE, close_fds=True,
+			      shell=True, executable="/bin/bash")
+	stdout_file = StringIO.StringIO()
+	stderr_file = StringIO.StringIO()
 
 	try:
 		# We are holding ends to stdin, stdout pipes
 		# hence we need to be sure to close those fds no mater what
-		start_time= time.time()
-		if timeout:
-			stop_time= start_time + timeout
-			time_left= stop_time - time.time()
-			while time_left > 0:
-				# select will return when stdout is ready 
-				# (including when it is EOF, that is the 
-				# process has terminated).
-				(retval, tmp, tmp) = select.select(
-					[sp.stdout], [], [], time_left)
-				if len(retval):
-					# os.read() has to be used instead of 
-					# sp.stdout.read() which will 
-					# otherwise block
-					result.stdout += os.read(
-						sp.stdout.fileno(), 1024)
-
-				(pid, exit_status_indication) = os.waitpid(
-					sp.pid, os.WNOHANG)
-				if pid:
-					stop_time= time.time()
-				time_left= stop_time - time.time()
-
-			# the process has not terminated within timeout, 
-			# kill it via an escalating series of signals.
-			if not pid:
-				signal_queue = [signal.SIGTERM, signal.SIGKILL]
-				for sig in signal_queue:
-					try:
-						os.kill(sp.pid, sig)
-					# handle race condition in which 
-					# process died before we could kill it.
-					except OSError:
-						pass
-
-					for i in range(5):
-						(pid, exit_status_indication
-							) = os.waitpid(sp.pid, 
-							os.WNOHANG)
-						if pid:
-							break
-						else:
-							time.sleep(1)
-					if pid:
-						break
-		else:
-			exit_status_indication = os.waitpid(sp.pid, 0)[1]
+		start_time = time.time()
+		exit_status_indication = _wait_for_command(
+		    sp, start_time, timeout,
+		    stdout_file, stderr_file,
+		    stdout_tee, stderr_tee)
 
 		result.duration = time.time() - start_time
 		result.aborted = exit_status_indication & 127
 		if result.aborted:
-			result.exit_status= None
+			result.exit_status = None
 		else:
-			result.exit_status=  exit_status_indication / 256
-		result.stdout += sp.stdout.read()
-		result.stderr = sp.stderr.read()
-
+			result.exit_status = exit_status_indication / 256
+		# don't use os.read now, so we get all the rest of the output
+		_process_output(sp.stdout, stdout_file, stdout_tee,
+				use_os_read=False)
+		_process_output(sp.stderr, stderr_file, stderr_tee,
+				use_os_read=False)
 	finally:
 		# close our ends of the pipes to the sp no matter what
 		sp.stdout.close()
 		sp.stderr.close()
 
+	result.stdout = stdout_file.getvalue()
+	result.stderr = stderr_file.getvalue()
+
 	if not ignore_status and result.exit_status > 0:
-		raise errors.AutoservRunError("command execution error", 
+		raise errors.AutoservRunError("command execution error",
 			result)
 
 	return result

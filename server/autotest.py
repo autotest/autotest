@@ -21,6 +21,7 @@ import subprocess
 import urllib
 import tempfile
 import shutil
+import time
 
 import installable_object
 import errors
@@ -37,6 +38,11 @@ BOOT_TIME = 300
 
 class AutotestRunError(errors.AutoservRunError):
 	pass
+
+class AutotestTimeoutError(errors.AutoservRunError):
+	"""This exception is raised when an autotest test exceeds the timeout
+	parameter passed to run_timed_test and is killed.
+	"""
 
 
 class Autotest(installable_object.InstallableObject):
@@ -131,7 +137,8 @@ class Autotest(installable_object.InstallableObject):
 		self.got = True
 
 
-	def run(self, control_file, results_dir = '.', host = None):
+	def run(self, control_file, results_dir = '.', host = None,
+		timeout=None):
 		"""
 		Run an autotest job on the remote machine.
 		
@@ -176,17 +183,27 @@ class Autotest(installable_object.InstallableObject):
 		tmppath = utils.get(control_file)
 		host.send_file(tmppath, atrun.remote_control_file)
 		os.remove(tmppath)
-		
-		atrun.execute_control()
-		
-		# retrive results
-		results = os.path.join(atrun.autodir, 'results', 'default')
+
+		timeout_exc = None
+		try:
+			atrun.execute_control(timeout=timeout)
+		except AutotestTimeoutError, exc:
+			# on timeout, fall though and try to grab results,
+			# and then reraise
+			timeout_exc = exc
+
+		# try to retrive results, even if a timeout occured
+		results = os.path.join(atrun.autodir, 'results',
+				       'default')
 		# Copy all dirs in default to results_dir
 		host.get_file(results + '/', results_dir)
 
+		if timeout_exc:
+			raise timeout_exc
 
-	def run_test(self, test_name, results_dir = '.', host = None, \
-								*args, **dargs):
+
+	def run_timed_test(self, test_name, results_dir = '.', host = None,
+			   timeout=None, *args, **dargs):
 		"""
 		Assemble a tiny little control file to just run one test,
 		and run it as an autotest client-side test
@@ -198,7 +215,13 @@ class Autotest(installable_object.InstallableObject):
 		opts = ["%s=%s" % (o[0], repr(o[1])) for o in dargs.items()]
 		cmd = ", ".join([repr(test_name)] + map(repr, args) + opts)
 		control = "job.run_test(%s)\n" % cmd
-		self.run(control, results_dir, host)
+		self.run(control, results_dir, host, timeout=timeout)
+
+
+	def run_test(self, test_name, results_dir = '.', host = None,
+		     *args, **dargs):
+		self.run_timed_test(test_name, results_dir, host, None,
+				    *args, **dargs)
 
 
 class _Run(object):
@@ -228,7 +251,7 @@ class _Run(object):
 		self.host.run('umount %s' % tmpdir, ignore_status=True)
 
 
-	def __execute_section(self, section):
+	def __execute_section(self, section, timeout):
 		print "Executing %s/bin/autotest %s/control phase %d" % \
 					(self.autodir, self.autodir,
 					 section)
@@ -243,29 +266,50 @@ class _Run(object):
 		ssh = "ssh -q %s@%s" % (self.host.user, self.host.hostname)
 		env = ' '.join(['='.join(i) for i in self.env.iteritems()])
 		cmd = "%s %s %s" % (client, cont, self.remote_control_file)
-		print "%s '%s %s'" % (ssh, env, cmd)
-		# Use Popen here, not m.ssh, as we want it in the background
-		p = subprocess.Popen("%s '%s %s'" % (ssh, env, cmd),
-				     shell=True,
-				     stdout=client_log,
-				     stderr=subprocess.PIPE)
+		full_cmd = "%s '%s %s'" % (ssh, env, cmd)
+		print full_cmd
+
 		status_log_file = os.path.join(self.results_dir, 'status.log')
 		status_log = open(status_log_file, 'a', 0)
-		line = None
-		for line in iter(p.stderr.readline, ''):
-			sys.stdout.write(line)
-			sys.stdout.flush()
-			status_log.write(line)
-		if not line:
-			raise AutotestRunError("execute_section: %s '%s' \
-			failed to return anything" % (ssh, cmd))
-		return line
+
+		class StdErrRedirector(object):
+			"""Partial file object to write to both stdout and
+			the status log file.  We only implement those methods
+			utils.run() actually calls.
+			"""
+			def write(self, str):
+				sys.stdout.write(str)
+				status_log.write(str)
+
+			def flush(self):
+				sys.stdout.flush()
+				status_log.flush()
+
+		result = utils.run(full_cmd, ignore_status=True,
+				   timeout=timeout,
+				   stdout_tee=client_log,
+				   stderr_tee=StdErrRedirector())
+		if not result.stderr:
+  			raise AutotestRunError(
+			    "execute_section: %s failed to return anything\n"
+			    "stdout:%s\n" % (full_cmd, result.stdout))
+
+		last_line = result.stderr.strip().rsplit('\n', 1).pop()
+		return last_line
 
 
-	def execute_control(self):
+	def execute_control(self, timeout=None):
 		section = 0
-		while True:
-			last = self.__execute_section(section)
+		time_left = None
+		if timeout:
+			end_time = time.time() + timeout
+			time_left = end_time - time.time()
+		while not timeout or time_left > 0:
+			last = self.__execute_section(section, time_left)
+			if timeout:
+				time_left = end_time - time.time()
+				if time_left <= 0:
+					break
 			section += 1
 			if re.match('DONE', last):
 				print "Client complete"
@@ -298,6 +342,10 @@ class _Run(object):
 			raise AutotestRunError("Aborting - unknown "
 				"return code: %s\n" % last)
 
+		# should only get here if we timed out
+		assert timeout
+		raise AutotestTimeoutError()
+
 
 def _get_autodir(host):
 	try:
@@ -316,5 +364,3 @@ def _get_autodir(host):
 		except errors.AutoservRunError:
 			pass
 	raise AutotestRunError("Cannot figure out autotest directory")
-
-
