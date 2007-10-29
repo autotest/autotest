@@ -189,7 +189,8 @@ class SSHHost(base_classes.RemoteHost):
 		self.wait_down(60)	# Make sure he's dead, Jim
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
-		self.wait_up(timeout)
+		if not self.wait_up(timeout):
+			sys.stderr.write("REBOOT ERROR\n")
 		print "Reboot complete"
 
 
@@ -343,6 +344,7 @@ class SSHHost(base_classes.RemoteHost):
 				label = self.bootloader.get_titles()[default]
 			self.bootloader.add_args(label, kernel_args)
 		print "Reboot: initiating reboot"
+		sys.stderr.write("REBOOT\n")
 		self.run('reboot')
 		if wait:
 			self._wait_for_restart(timeout)

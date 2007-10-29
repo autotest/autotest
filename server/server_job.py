@@ -18,6 +18,7 @@ from error import *
 
 preamble = """\
 import os, sys
+sys.stderr = __stderr
 
 import errors, hosts, autotest, kvm
 import source_kernel, rpm_kernel, deb_kernel
@@ -112,7 +113,10 @@ class server_job:
 		namespace['args'] = self.args
 		namespace['job'] = self
 
-		os.chdir(self.resultdir)	
+		os.chdir(self.resultdir)
+
+		status_log = os.path.join(self.resultdir, 'status.log')
+		namespace['__stderr'] = open(status_log, 'a', 0)
 		try:
 			if self.client:
 				namespace['control'] = self.control
@@ -255,4 +259,3 @@ class server_job:
 		if subdir:
 			status_file = os.path.join(self.resultdir, subdir, 'status')
 			open(status_file, "a").write(msg + "\n")
-
