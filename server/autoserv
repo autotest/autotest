@@ -14,12 +14,14 @@ import sys, os, re, server_job
 
 usage = """\
 usage: autoserv
-	[-b]                       # reboot all specified machines after the job
+	[-m machine,[machine,...]] # list of machines to pass to control file
 	[-c]                       # control file is a client side control
 	[-r resultsdir]            # specify results directory (default '.')
+	[-i]                       # reinstall machines before running the job
+	[-I]                       # reinstall machines after running the job
+	[-b]                       # reboot all specified machines after the job
 	[-l label]                 # label for the job (arbitrary string)
 	[-u user]                  # username for the job (email address)
-	[-m machine,[machine,...]] # list of machines to pass to control file
 	<control file>             # name of the control file to run
 	[args ...]                 # args to pass through to the control file
 """
@@ -58,10 +60,12 @@ label    = parse_opts_param('-l', '')
 user     = parse_opts_param('-u', 'anonymous')
 client   = parse_opts('-c')
 reboot   = parse_opts('-b')
+install_before = parse_opts('-i')
+install_after  = parse_opts('-I')
 
 if len(args) < 1:
 	print usage
 	sys.exit(-1)
 
 job = server_job.server_job(args[0], args[1:], results, label, user, client)
-job.run(machines, reboot)
+job.run(machines, reboot, install_before, install_after)
