@@ -48,6 +48,14 @@ def cleanup(machine):
 parallel_simple(cleanup, machines, log=False)
 """
 
+install="""\
+def install(machine):
+		host = hosts.SSHHost(machine, initialize=False)
+		host.machine_install()
+
+parallel_simple(cleanup, machines, log=False)
+"""
+
 class server_job:
 	"""The actual job against which we do everything.
 
@@ -105,7 +113,8 @@ class server_job:
 		write_keyval(self.resultdir, job_data)
 
 
-	def run(self, machines, reboot = False, namespace = {}):
+	def run(self, machines, reboot = False, install_before = False,
+					install_after = False, namespace = {}):
 		# use a copy so changes don't affect the original dictionary
 		namespace = namespace.copy()
 
@@ -118,6 +127,8 @@ class server_job:
 		status_log = os.path.join(self.resultdir, 'status.log')
 		namespace['__stderr'] = open(status_log, 'a', 0)
 		try:
+			if install_before and machines:
+				exec(preamble + install, namespace, namespace)
 			if self.client:
 				namespace['control'] = self.control
 				open('control', 'w').write(self.control)
@@ -131,6 +142,8 @@ class server_job:
 		finally:
 			if reboot and machines:
 				exec(preamble + cleanup, namespace, namespace)
+			if install_after and machines:
+				exec(preamble + install, namespace, namespace)
 
 
 	def run_test(self, url, *args, **dargs):
