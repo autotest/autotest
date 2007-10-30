@@ -188,7 +188,9 @@ class SSHHost(base_classes.RemoteHost):
 
 
 	def _wait_for_restart(self, timeout):
-		self.wait_down(60)	# Make sure he's dead, Jim
+		if not self.wait_down(300):	# Make sure he's dead, Jim
+			sys.stderr.write("REBOOT ERROR\n")
+			raise errors.AutoservRebootError("Host would not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
 		if not self.wait_up(timeout):
