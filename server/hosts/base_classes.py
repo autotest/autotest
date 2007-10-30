@@ -83,6 +83,10 @@ class Host(object):
 		pass
 
 
+	def machine_install(self):
+		raise "Machine install not implemented!"
+
+
 	def install(self, installableObject):
 		installableObject.install(self)
 
