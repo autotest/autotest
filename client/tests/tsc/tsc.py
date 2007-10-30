@@ -11,6 +11,6 @@ class tsc(test.test):
 		system('make')
 
 	
-	def execute(self, iterations = 1, args = '--silent'):
+	def execute(self, iterations = 1, args = ''):
 		for i in range(iterations):
 			system(self.srcdir + '/checktsc ' + args)
