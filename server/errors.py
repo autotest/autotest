@@ -34,3 +34,7 @@ class AutoservHostError(AutoservError):
 class AutoservUnsupportedError(AutoservError):
 	"""Error raised when you try to use an unsupported optional feature"""
 	pass
+
+class AutoservRebootError(AutoservError):
+	"""Error occured while rebooting a machine"""
+	pass
