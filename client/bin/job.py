@@ -10,6 +10,7 @@ import os, sys, re, pickle, shutil
 # autotest stuff
 from autotest_utils import *
 from parallel import *
+from error import *
 import kernel, xen, test, profilers, barrier, filesystem, fd_stack, boottool
 import harness, config
 
@@ -489,6 +490,8 @@ from autotest_utils import *
 		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
 								status_code):
 			raise "Invalid status code supplied: %s" % status_code
+		if not operation:
+			operation = '----'
 		if re.match(r'[\n\t]', operation):
 			raise "Invalid character in operation string"
 		operation = operation.rstrip()
@@ -548,18 +551,18 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 
 	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
-		if myjob != None:
-			myjob.record('ABORT', None, instance.args[0])
+		if myjob:
+			myjob.record('ABORT', None, None, instance.args[0])
 			myjob.complete(1)
+		
 
 	except:
+		print "JOB ERROR: " + format_error()
 		if myjob:
-			myjob.harness.run_abort()
-		# Ensure we cannot continue this job, it is in rictus.
-		if os.path.exists(state):
-			os.unlink(state)
-		raise
+			myjob.record('ABORT', None, None, format_error())
+			myjob.complete(1)
 
 	# If we get here, then we assume the job is complete and good.
+	myjob.record('GOOD', None, None, 'job completed sucessfully')
 	myjob.complete(0)
 
