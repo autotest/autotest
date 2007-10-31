@@ -5,12 +5,12 @@ check_python_version()
 import os
 from autotest_utils import *
 
-version = 1
+version = 2
 
 def setup(tarball, topdir): 
 	srcdir = os.path.join(topdir, 'src')
 	if not os.path.exists(tarball):
-		get_file('http://mirror.x10.com/mirror/mysql/Downloads/MySQL-5.0/mysql-5.0.24a.tar.gz', tarball)
+		get_file('http://mirror.x10.com/mirror/mysql/Downloads/MySQL-5.0/mysql-5.0.45.tar.gz', tarball)
 	extract_tarball_to_dir(tarball, 'src')
 	os.chdir(srcdir)
 	system ('./configure --prefix=%s/mysql --enable-thread-safe-client' \
