@@ -88,7 +88,7 @@ class job:
 			shutil.copyfile(control, os.path.join(self.resultdir, 'control'))
 
 		self.control = control
-		self.jobtab = jobtag
+		self.jobtag = jobtag
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
