@@ -48,15 +48,8 @@ class harness_simple(harness.harness):
 		time.sleep(5)
 
 
-	def run_abort(self):
-		"""A run within this job is aborting. It all went wrong"""
-		self.__send("STATUS\tABORT\t----\trun aborted")
-		self.__send("DONE")
-
-
 	def run_complete(self):
 		"""A run within this job is completing (all done)"""
-		self.__send("STATUS\tGOOD\t----\trun complete")
 		self.__send("DONE")
 
 
