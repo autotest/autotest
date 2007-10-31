@@ -1,0 +1,11 @@
+build = 1
+for threads in range(1, count_cpus()+1):
+	job.run_test('sysbench', db_type='pgsql', build=build, \
+		num_threads=threads, read_only=1, tag='pgsql.' + str(threads))
+	build = 0
+
+build = 1
+for threads in range(1, count_cpus()+1):
+	job.run_test('sysbench', db_type='mysql', build=build, \
+		num_threads=threads, read_only=1, tag='mysql.' + str(threads))
+	build = 0
