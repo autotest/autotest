@@ -112,7 +112,7 @@ class KVM(hypervisor.Hypervisor):
 			'grep -e "^flags" | head -1 | cut -d " " -f 2-'
 			).stdout.strip()
 
-		if cpu_flags.find('vme') != -1:
+		if cpu_flags.find('vmx') != -1:
 			module_type= "intel"
 		elif cpu_flags.find('svm') != -1:
 			module_type= "amd"
@@ -248,7 +248,7 @@ class KVM(hypervisor.Hypervisor):
 
 		Raises:
 			AutoservVirtError: cpuid doesn't report virtualization 
-				extentions (vme for intel or svm for amd), in
+				extentions (vmx for intel or svm for amd), in
 				this case, kvm cannot run.
 		"""
 		self.pid_dir= self.host.get_tmp_dir()
