@@ -5,7 +5,7 @@ check_python_version()
 import os
 from autotest_utils import *
 
-version = 2
+version = 3
 
 def setup(tarball, topdir): 
 	srcdir = os.path.join(topdir, 'src')
@@ -31,7 +31,7 @@ def setup(tarball, topdir):
 	os.chdir(topdir)
 	
 pwd = os.getcwd()
-tarball = os.path.join(pwd, 'mysql-5.0.24a.tar.gz')
+tarball = os.path.join(pwd, 'mysql-5.0.45.tar.gz')
 update_version(pwd+'/src', False, version, setup, tarball, pwd)
 
 
