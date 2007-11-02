@@ -356,7 +356,7 @@ class job:
 			self.bootloader.set_default(tag)
 		else:
 			self.bootloader.boot_once(tag)
-		system("reboot")
+		system("(sleep 5; reboot) &")
 		self.quit()
 
 
