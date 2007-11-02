@@ -43,10 +43,6 @@ class harness_simple(harness.harness):
 		"""
 		self.__send("REBOOT")
 
-		# Give the server some time to get used to the idea that
-		# we are booting before we let the actual reboot kill it.
-		time.sleep(5)
-
 
 	def run_complete(self):
 		"""A run within this job is completing (all done)"""

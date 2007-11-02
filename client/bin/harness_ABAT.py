@@ -131,11 +131,6 @@ class harness_ABAT(harness.harness):
 		"""
 		self.__send("REBOOT")
 
-		# Give lamb-payload some time to get used to the
-		# idea we are booting before we let the actual reboot
-		# kill it.
-		time.sleep(5)
-
 
 	def run_complete(self):
 		"""A run within this job is completing (all done)"""
