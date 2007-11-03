@@ -10,7 +10,7 @@ __author__ = """\
 mbligh@google.com (Martin J. Bligh)
 """
 
-import sys, os, re, server_job
+import sys, os, re, server_job, hosts.site_host, utils
 
 usage = """\
 usage: autoserv
@@ -27,45 +27,24 @@ usage: autoserv
 """
 
 args = sys.argv[1:]
+parser = utils.AutoservOptionParser(args)
 
-# We can't use the general getopt methods here, as there will be unknown
-# extra arguments that we pass down into the control file instead.
-# Thus we process the arguments by hand, for which we are duly repentant.
-# Making a single function here just makes it harder to read. Suck it up.
-def parse_opts(flag):
-	if args.count(flag):
-		idx = args.index(flag)
-		args[idx : idx+1] = []
-		return True
-	else:
-		return False
+machines = parser.parse_opts_param('-m', None, split = ',')
+results  = parser.parse_opts_param('-r', os.path.abspath('.'))
+label    = parser.parse_opts_param('-l', '')
+user     = parser.parse_opts_param('-u', 'anonymous')
+client   = parser.parse_opts('-c')
+reboot   = parser.parse_opts('-b')
+install_before = parser.parse_opts('-i')
+install_after  = parser.parse_opts('-I')
 
+if getattr(hosts.site_host, 'site_parse_options', None):
+	hosts.site_host.site_parse_options(parser)
 
-def parse_opts_param(flag, default = None, split = False):
-	if args.count(flag):
-		idx = args.index(flag)
-		ret = args[idx+1]
-		args[idx : idx+2] = []
-		if split:
-			return ret.split(split)
-		else:
-			return ret
-	else:
-		return default
-
-
-machines = parse_opts_param('-m', None, split = ',')
-results  = parse_opts_param('-r', os.path.abspath('.'))
-label    = parse_opts_param('-l', '')
-user     = parse_opts_param('-u', 'anonymous')
-client   = parse_opts('-c')
-reboot   = parse_opts('-b')
-install_before = parse_opts('-i')
-install_after  = parse_opts('-I')
-
-if len(args) < 1:
+if len(parser.args) < 1:
 	print usage
 	sys.exit(-1)
 
-job = server_job.server_job(args[0], args[1:], results, label, user, client)
+job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
+								user, client)
 job.run(machines, reboot, install_before, install_after)
