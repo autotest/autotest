@@ -93,15 +93,20 @@ class Autotest(installable_object.InstallableObject):
 		host.ensure_up()
 		host.setup()
 		print "Installing autotest on %s" % host.hostname
+
+		autodir = _get_autodir(host)
+		host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
+
+		if getattr(host, 'site_install_autotest', None):
+			if host.site_install_autotest():
+				self.installed = True
+				return
+
 		# try to install from file or directory
 		if self.source_material:
 			if os.path.isdir(self.source_material):
 				# Copy autotest recursively
-				autodir = _get_autodir(host)
-				host.run('mkdir -p "%s"' %
-						utils.sh_escape(autodir))
-				host.send_file(self.source_material,
-						autodir)
+				host.send_file(self.source_material, autodir)
 			else:
 				# Copy autotest via tarball
 				raise "Not yet implemented!"
@@ -115,10 +120,10 @@ class Autotest(installable_object.InstallableObject):
 			target machine: %s' % host.name)
 		try:
 			host.run('svn checkout %s %s' %
-				 (AUTOTEST_SVN, _get_autodir(host)))
+				 (AUTOTEST_SVN, autodir)
 		except errors.AutoservRunError, e:
 			host.run('svn checkout %s %s' %
-				 (AUTOTEST_HTTP, _get_autodir(host)))
+				 (AUTOTEST_HTTP, autodir)
 		print "Installation of autotest completed"
 		self.installed = True
 
