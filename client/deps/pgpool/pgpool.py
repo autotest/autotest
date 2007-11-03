@@ -17,7 +17,7 @@ def setup(tarball, topdir):
 	os.chdir(srcdir)
 	# FIXEME - Waiting to be able to use self.autodir instead of
 	# os.environ['AUTODIR']
-	system('./configure --prefix=%s/pgpool --with-pgsql=%s/deps/pgpool/pgpool' \
+	system('./configure --prefix=%s/pgpool --with-pgsql=%s/deps/pgsql/pgsql' \
 			% (topdir, os.environ['AUTODIR']))
 	system('make -j %d' % count_cpus())
 	system('make install')
