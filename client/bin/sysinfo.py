@@ -2,9 +2,11 @@
 from check_version import check_python_version
 check_python_version()
 
-import os,os.path,shutil,re
+import os,os.path,shutil,re,glob
 from autotest_utils import *
+import site_sysinfo
 
+# stuff to log in before_each_step()
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
 	'/proc/cpuinfo', '/proc/cmdline']
 # commands = ['lshw']        # this causes problems triggering CDROM drives
@@ -25,15 +27,52 @@ def run_command(command, output):
 			system("%s %s > %s 2> /dev/null" % (pathname, args, output))
 
 
-for command in commands:
-	run_command(command, re.sub(r'\s', '_', command))
+def before_each_step():
+	# make separate directories for each step:
+	# if files exist here, this is not the first step.
+	# this is a safe assumption because we always create at least one file
+	if not glob.glob('*'):
+		_before_each_step() # first step goes in cwd
+		return
+
+	previous_reboots = glob.glob('reboot*')
+	if previous_reboots:
+		previous_reboots = [int(i[len('reboot'):]) for i in previous_reboots]
+		boot = 1 + max(previous_reboots)
+	else:
+		boot = 1
+
+	os.mkdir('reboot%d' % boot)
+	pwd = os.getcwd()
+
+	try:
+		os.chdir('reboot%d' % boot)
+		_before_each_step()
+	finally:
+		os.chdir(pwd)
 
 
-for file in files:
-	if (os.path.exists(file)):
-		shutil.copyfile(file, os.path.basename(file))
+def _before_each_step():
+	"""system info to log before each step of the job"""
 
-path = os.path.dirname(os.path.abspath(sys.argv[0]))
-site_sysinfo = os.path.join(path, 'site_sysinfo.py')
-if os.path.exists(site_sysinfo):
-	system(site_sysinfo)
+	for command in commands:
+		run_command(command, re.sub(r'\s', '_', command))
+
+	for file in files:
+		if (os.path.exists(file)):
+			shutil.copyfile(file, os.path.basename(file))
+
+
+	system('dmesg -c > dmesg', ignorestatus=1)
+	site_sysinfo.before_each_step()
+
+
+def after_each_test():
+	"""log things that change after each test (see test.py)"""
+
+	system('dmesg -c > dmesg', ignorestatus=1)
+	site_sysinfo.after_each_test()
+
+
+if __name__ == '__main__':
+	before_each_step()
