@@ -165,21 +165,22 @@ class patch:
 
 class test:
 	def __init__(self, subdir, testname, status, reason, kernel, job):
+		# NOTE: subdir may be none here for lines that aren't an
+		# actual test
 		self.subdir = subdir
 		self.testname = testname
 		self.status = status
 		self.reason = reason
-
-		self.keyval2 = os.path.join(job.dir, subdir, 'keyval')
-		if not os.path.exists(self.keyval2):
-			self.version = None
-		else:
-			self.version = open(self.keyval2, 'r').readline().split('=')[1]
+		self.version = None
+		self.keyval = None
 
 		if subdir:
-			self.keyval = os.path.join(job.dir, subdir, 'results/keyval')
-			if not os.path.exists(self.keyval):
-				self.keyval = None
+			keyval = os.path.join(job.dir, subdir, 'results/keyval')
+			if os.path.exists(keyval):
+				self.keyval = keyval
+			keyval2 = os.path.join(job.dir, subdir, 'keyval')
+			if os.path.exists(keyval2):
+				self.version = open(keyval2, 'r').readline().split('=')[1]
 		else:
 			self.keyval = None
 		self.iterations = []
