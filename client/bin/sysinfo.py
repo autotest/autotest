@@ -64,6 +64,7 @@ def _before_each_step():
 
 
 	system('dmesg -c > dmesg', ignorestatus=1)
+	system('df -m > df', ignorestatus=1)
 	site_sysinfo.before_each_step()
 
 
@@ -71,6 +72,7 @@ def after_each_test():
 	"""log things that change after each test (see test.py)"""
 
 	system('dmesg -c > dmesg', ignorestatus=1)
+	system('df -m > df', ignorestatus=1)
 	site_sysinfo.after_each_test()
 
 
