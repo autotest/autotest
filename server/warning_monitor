@@ -41,15 +41,11 @@ proc raw_event {msg} {
        puts stderr "$msg"
 }
 proc event {msg} {
-       raw_event "CONMON-EVENT $msg"
 }
 proc alert {msg} {
-       event $msg
-       raw_event "CONMON-ALERT $msg"
+       puts stdout "STATUS	WARN	$msg"
 }
 proc status {msg} {
-       event $msg
-       raw_event "CONMON-STATUS $msg"
 }
 
 event "CONMON starting"
