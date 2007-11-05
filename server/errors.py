@@ -26,13 +26,13 @@ class AutoservVirtError(AutoservError):
 	"""Vitualization related error"""
 	pass
 
-class AutoservHostError(AutoservError):
-	"""Error reaching a host"""
-	pass
-
 
 class AutoservUnsupportedError(AutoservError):
 	"""Error raised when you try to use an unsupported optional feature"""
+	pass
+
+class AutoservHostError(AutoservError):
+	"""Error reaching a host"""
 	pass
 
 class AutoservRebootError(AutoservError):
