@@ -25,7 +25,6 @@ sys.path.pop()
 
 preamble = """\
 import os, sys
-sys.stderr = __stderr
 
 import errors, hosts, autotest, kvm
 import source_kernel, rpm_kernel, deb_kernel
@@ -148,7 +147,6 @@ class server_job:
 		os.chdir(self.resultdir)
 
 		status_log = os.path.join(self.resultdir, 'status.log')
-		namespace['__stderr'] = open(status_log, 'a', 0)
 		try:
 			if install_before and machines:
 				exec(preamble + install, namespace, namespace)
