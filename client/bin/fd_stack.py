@@ -61,7 +61,7 @@ class fd_stack:
 			os.dup2(w, self.fd)
 			os.close(w)
 			self.stack.append( (fdcopy, self.filehandle, pid) )
-			self.update_handle(os.fdopen(self.fd, 'w'))
+			self.update_handle(os.fdopen(self.fd, 'w', 0))
 			#where_art_thy_filehandles()
 			#print_to_tty("done tee_redirect to " + filename)
 		else:			# child
