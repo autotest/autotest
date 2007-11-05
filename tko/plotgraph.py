@@ -20,7 +20,7 @@ def avg_dev(values):
 
 
 class gnuplot:
-	def __init__(self, title, xlabel, ylabel, xsort = sorted):
+	def __init__(self, title, xlabel, ylabel, xsort = sorted, size = "1180,900"):
 		self.title = title
 		self.xlabel = xlabel
 		self.ylabel = ylabel
@@ -28,7 +28,7 @@ class gnuplot:
 		self.datasets = []
 		self.xsort = xsort
 		self.xvalues = set([])
-
+		self.size = size
 
 	def xtics(self):
 		count = 1
@@ -68,7 +68,7 @@ class gnuplot:
 		else:
 			p = Popen("/usr/bin/gnuplot", stdin = subprocess.PIPE)
 			g = p.stdin
-		g.write('set terminal png size 1180,900\n')
+		g.write('set terminal png size %s\n' % self.size)
 		g.write('set key below\n')
 		g.write('set title "%s"\n' % self.title)
 		g.write('set xlabel "%s"\n' % self.xlabel)
