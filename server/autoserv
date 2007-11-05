@@ -37,6 +37,7 @@ client   = parser.parse_opts('-c')
 reboot   = parser.parse_opts('-b')
 install_before = parser.parse_opts('-i')
 install_after  = parser.parse_opts('-I')
+results = os.path.abspath(results)
 
 if getattr(hosts.site_host, 'site_parse_options', None):
 	hosts.site_host.site_parse_options(parser)
