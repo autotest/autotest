@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os, re, parse, frontend, db, sys, socket, getopt
+from traceback import format_exception
 
 usage = """\
 usage: parse
@@ -7,6 +8,16 @@ usage: parse
 	[-o directory]                 # Specify results directory directly
 	<top level results directory>  # Specify top level results directory
 """
+
+def format_error():
+	t, o, tb = sys.exc_info()
+	trace = format_exception(t, o, tb)
+	# Clear the backtrace to prevent a circular reference
+	# in the heap -- as per tutorial
+	tb = ''
+
+	return ''.join(trace)
+
 
 try:
 	opts, args = getopt.getopt(sys.argv[1:], "hmo:", ["help"])
@@ -88,6 +99,7 @@ def do_parse(jobname, path):
 		print "Sending email report of FAILURES on " + jobname + " to " + job.user
 		mailfailure(jobname, job, mesgtxt)
 	db.insert_job(jobname, job)
+	print "COMMITING"
 	db.commit()
 
 
@@ -101,15 +113,23 @@ for (jobname, path) in jobs_list:
 				continue
 			jobpath = os.path.join(path, machine)
 			jobname = os.path.join(os.path.basename(path), machine)
-			do_parse(jobname, jobpath)
+			try:
+				do_parse(jobname, jobpath)
+			except:
+				print format_error()
+				continue
 	else:
-		do_parse(jobname, path)
+		try:
+			do_parse(jobname, path)
+		except:
+			print format_error()
+			continue
 
 
-rows = db.select('distinct hostname', 'machines', {})
-machines = [row[0] for row in rows]
-
-for machine in machines:
-	dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-	vertical_text = os.path.join(dir, 'vertical_text.py')
-	os.system(vertical_text + ' ' + machine)
+# rows = db.select('distinct hostname', 'machines', {})
+# machines = [row[0] for row in rows]
+# 
+# for machine in machines:
+# 	dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+# 	vertical_text = os.path.join(dir, 'vertical_text.py')
+# 	os.system(vertical_text + ' ' + machine)
