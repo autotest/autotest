@@ -16,16 +16,72 @@ sys.path.insert(0, tko)
 
 import display, frontend, db, query_lib
 
+html_header = """\
+<form action="compose_query.cgi" method="get">
+<table border="0">
+<tr>
+  <td>Column: </td>
+  <td>Row: </td>
+  <td>Condition: </td>
+  <td align="center"><a href="index.html">Help</a></td>
+</tr>
+<tr>
+  <td>
+  <SELECT NAME="columns">
+  %s
+ </SELECT>
+  </td>
+  <td>
+  <SELECT NAME="rows">
+  %s
+  </SELECT>
+  </td>
+  <td>
+    <input type="text" name="condition" size="80" maxlength="80" value="%s">
+    <input type="hidden" name="title" value="Report">
+  </td>
+  <td align="center"><input type="submit" value="Submit">
+  </td>
+</tr>
+</table>
+</form>
+"""
+
+columns_default = 'kernel'
+rows_default = 'test'
+
 cgitb.enable()
 db = db.db()
+
+def create_select_options(selected_val, default_val):
+	ret = ""
+	option_list = ['kernel', 'hostname', 'test', 'label',
+	               'machine_group', 'reason']
+
+	if option_list.count(selected_val) == 0:
+		selected_val = default_val
+	assert(option_list.count(selected_val) > 0)
+
+	for option in option_list:
+		if selected_val == option:
+			selected = " SELECTED"
+		else:
+			selected = ""
+
+		ret += '<OPTION VALUE="%s"%s>%s</OPTION>\n' % (option, 
+		                                               selected,
+		                                               option)
+
+	return ret
+
 
 def main():
 	display.print_main_header()
 
 	# parse the fields from the form.
 	form = cgi.FieldStorage()
-	columns = 'kernel'
-	rows = 'test'
+	columns = columns_default
+	rows = rows_default
 	condition = None
 	for field in form:
 		value = form[field].value
@@ -108,7 +164,19 @@ def main():
 				(sql, ','.join(value_str))
 			row.append(display.status_count_box(db, xy_test, link))
 		matrix.append(row)
+
+	# create the actual page
+	condition_str = condition
+	if condition_str == None:
+		condition_str = ""
+	print '<html><head><title>'
+	print 'Filtered Autotest Results'
+	print '</title></head><body>'
+	print html_header % (create_select_options(columns, columns_default),
+	                     create_select_options(rows, rows_default),
+	                     condition_str)
 	display.print_table(matrix)
+	print '</body></html>'
 
 
 main()
