@@ -42,6 +42,7 @@ def run_client(machine):
 	at.run(control, host=host)
 
 if len(machines) > 1:
+	open('.machines', 'w').write('\\n'.join(machines) + '\\n')
 	parallel_simple(run_client, machines)
 else:
 	run_client(machines[0])
