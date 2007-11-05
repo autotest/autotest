@@ -471,6 +471,8 @@ class SSHHost(base_classes.RemoteHost):
 			utils.run('scp -rpq %s %s' % (
 			    " ".join(processed_source),
 			    remote_dest))
+		self.run('find "%s" -type d | xargs -r chmod o+rx' % dest)
+		self.run('find "%s" -type f | xargs -r chmod o+r' % dest)
 
 	def get_tmp_dir(self):
 		"""
