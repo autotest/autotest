@@ -58,16 +58,16 @@ parallel_simple(crashdumps, machines, log=False)
 
 cleanup="""\
 def cleanup(machine):
-		host = hosts.SSHHost(machine, initialize=False)
-		host.reboot()
+	host = hosts.SSHHost(machine, initialize=False)
+	host.reboot()
 
 parallel_simple(cleanup, machines, log=False)
 """
 
 install="""\
 def install(machine):
-		host = hosts.SSHHost(machine, initialize=False)
-		host.machine_install()
+	host = hosts.SSHHost(machine, initialize=False)
+	host.machine_install()
 
 parallel_simple(cleanup, machines, log=False)
 """
