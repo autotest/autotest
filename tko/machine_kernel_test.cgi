@@ -16,8 +16,9 @@ def main():
 	kernel_idx = form['kernel'].value
 
 	if form.has_key('machine'):
+		mlist = form['machine'].value
 		machines = []
-		for idx in form['machine'].value.split(','):
+		for idx in mlist.split(','):
 			where = { 'machine_idx' : idx }
 			machines.append(frontend.machine.select(db, where)[0])
 	elif form.has_key('group'):
@@ -30,10 +31,10 @@ def main():
 		test = None
 
 	kernel = frontend.kernel.select(db, {'kernel_idx' : kernel_idx })[0]
-	print_kernel_machines_vs_test(machines, kernel, test)
+	print_kernel_machines_vs_test(machines, kernel, test, mlist)
 
 
-def print_kernel_machines_vs_test(machines, kernel, only_test):
+def print_kernel_machines_vs_test(machines, kernel, only_test, mlist):
 	# first we have to get a list of all run tests across all machines
 	all_tests = []
 	results = {}         # will be a 2d hash [machine][testname]
@@ -56,18 +57,20 @@ def print_kernel_machines_vs_test(machines, kernel, only_test):
 
 	header_row = [ display.box('Version', header=True) ]
 	for test in [re.sub(r'kernel.', r'kernel<br>', x) for x in test_list]:
-		header_row.append( display.box(test, header=True) )
+		header_row.append( display.box(test, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s&test=%s' % (mlist, kernel.idx, test), header=True))
 
 	matrix = [header_row]
 	for machine in machines:
 		if not results.has_key(machine.idx):
 			continue
-		row = [display.box(machine.hostname)]
+		row = [display.box(machine.hostname, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s' % (machine.idx, kernel.idx))]
 		for testname in test_list:
 			if results[machine.idx].has_key(testname):
 				tests = results[machine.idx][testname]
-				# HACK. Link to the first test. Bleh.
-				link = tests[0].url
+				if len(tests) == 1:
+					link = tests[0].url
+				else:
+					link = 'machine_kernel_test_jobs.cgi?machine=%s&kernel=%s&test=%s' % (machine.idx, kernel.idx, testname)
 			else:
 				tests = []
 				link = None
