@@ -6,7 +6,7 @@ _status_list = ["GOOD", "WARN", "FAIL", "ABORT", "ERROR"]
 _order_dict = {None: -1}
 _order_dict.update((status, i)
 		   for i, status in enumerate(_status_list))
-_status_regex = re.compile(r"(?:STATUS\s*)?(%s)\s*(.*)" % "|".join(_status_list))
+_status_regex = re.compile(r"(?:STATUS\s*)?(%s)\t(.*)" % "|".join(_status_list))
 
 
 def _worst_status(old_status, new_status):
@@ -16,17 +16,19 @@ def _worst_status(old_status, new_status):
 		return old_status
 
 def _update_details(status, details):
-	if details == "----\trun starting":
+	parts = details.split("\t")
+	if parts[1] == "run starting":
 		return "Running test"
-	elif details.startswith("----\treboot\t"):
-		msg = details.split("\t")[2]
-		if _worst_status("GOOD", status) == "GOOD":
-			if msg == "started":
-				return "Rebooting"
-			elif msg == "complete":
-				return "Reboot complete - machine ready"
-		else:
+	elif re.match(r"^reboot\.\w*$", parts[1]):
+		reboot_good = (_worst_status("GOOD", status) == "GOOD")
+		stage = parts[1].split(".")[1]
+		if not reboot_good:
 			return "Reboot failed - machine dead"
+		else:
+			if stage == "start":
+				return "Rebooting"
+			elif stage == "verify":
+				return "Reboot complete - machine ready"
 	# if we don't have a better message, just use the raw details
 	return details
 
@@ -45,6 +47,8 @@ def parse_status(status_log):
 			new_status, details = status_match.groups()
 			current_status = _worst_status(current_status, new_status)
 			details = _update_details(current_status, details)
+		elif line == "REBOOT":
+			pass  # ignore these messages
 		elif line == "DONE":
 			details = "Between tests"
 			counts[current_status] += 1
