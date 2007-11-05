@@ -241,7 +241,7 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		Log the output of the warning monitor to a specified file
 		"""
-		if logfilename == None:
+		if logfilename == None or not os.path.isdir('debug'):
 			return
 		script_path = os.path.join(self.serverdir, 'warning_monitor')
 		script_cmd = 'expect %s %s >> %s' % (script_path,
