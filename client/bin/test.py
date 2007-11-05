@@ -47,9 +47,19 @@ class test:
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
-		self.initialize()
-		# compile and install the test, if needed.
-		update_version(self.srcdir, self.preserve_srcdir, self.version, self.setup)
+		
+		self.job.stdout.tee_redirect(
+			os.path.join(self.debugdir, 'stdout'))
+		self.job.stderr.tee_redirect(
+			os.path.join(self.debugdir, 'stderr'))
+		try:
+			self.initialize()
+			# compile and install the test, if needed.
+			update_version(self.srcdir, self.preserve_srcdir,
+						self.version, self.setup)
+		finally:
+			self.job.stderr.restore()
+			self.job.stdout.restore()
 
 
 	def initialize(self):
