@@ -35,6 +35,9 @@ class CmdError(TestError):
 	def __str__(self):
 		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1])
 
+class PackageError(TestError):
+       """Indicates an error trying to perform a package operation."""
+
 class UnhandledError(TestError):
 	"""Indicates an unhandled exception in a test."""
 	def __init__(self, prefix):
