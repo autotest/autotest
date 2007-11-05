@@ -68,7 +68,7 @@ def install(machine):
 	host = hosts.SSHHost(machine, initialize=False)
 	host.machine_install()
 
-parallel_simple(cleanup, machines, log=False)
+parallel_simple(install, machines, log=False)
 """
 
 class server_job:
