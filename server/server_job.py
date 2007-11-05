@@ -47,6 +47,14 @@ else:
 	run_client(machines[0])
 """
 
+crashdumps = """
+def crashdumps(machine):
+	host = hosts.SSHHost(machine, initialize=False)
+	host.get_crashdumps(test_start_time)
+
+parallel_simple(crashdumps, machines, log=False)
+"""
+
 cleanup="""\
 def cleanup(machine):
 		host = hosts.SSHHost(machine, initialize=False)

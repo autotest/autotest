@@ -90,6 +90,9 @@ class Host(object):
 	def install(self, installableObject):
 		installableObject.install(self)
 
+	def get_crashdumps(self, test_start_time):
+		pass
+
 
 # site_host.py may be non-existant or empty, make sure that an appropriate 
 # SiteHost class is created nevertheless
