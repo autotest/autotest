@@ -9,7 +9,7 @@ in the matrix.
 
 print "Content-type: text/html\n"
 import cgi, cgitb, re
-import sys
+import sys, os
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
