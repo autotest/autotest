@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re
+import os, sys, re, time
 import test
 from utils import *
 from error import *
@@ -139,6 +139,7 @@ class server_job:
 		namespace['machines'] = machines
 		namespace['args'] = self.args
 		namespace['job'] = self
+		test_start_time = int(time.time())
 
 		os.chdir(self.resultdir)
 
@@ -158,6 +159,10 @@ class server_job:
 			exec(preamble + server_control, namespace, namespace)
 
 		finally:
+			if machines:
+				namespace['test_start_time'] = test_start_time
+				exec(preamble + crashdumps, namespace,
+					namespace)
 			if reboot and machines:
 				exec(preamble + cleanup, namespace, namespace)
 			if install_after and machines:
