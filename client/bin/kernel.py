@@ -149,7 +149,7 @@ class kernel:
 
 	@record
 	def config(self, config_file = '', config_list = None, defconfig = False):
-		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
+		self.job.stdout.tee_redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
 		config = kernel_config.kernel_config(self.job, self.build_dir,
 			 self.config_dir, config_file, config_list,
@@ -234,8 +234,8 @@ class kernel:
 		if extraversion:
 			self.extraversion(extraversion)
 		print os.path.join(self.log_dir, 'stdout')
-		self.job.stdout.redirect(logfile + '.stdout')
-		self.job.stderr.redirect(logfile + '.stderr')
+		self.job.stdout.tee_redirect(logfile + '.stdout')
+		self.job.stderr.tee_redirect(logfile + '.stderr')
 		self.set_cross_cc()
 		# setup_config_file(config_file, config_overrides)
 
