@@ -1,43 +1,95 @@
 #!/usr/bin/python
-import os, re, parse, db, sys
+import os, re, parse, frontend, db, sys, socket, getopt
+
+usage = """\
+usage: parse
+	[-m]                           # Send mail for FAILED tests
+	[-o directory]                 # Specify results directory directly
+	<top level results directory>  # Specify top level results directory
+"""
+
+try:
+	opts, args = getopt.getopt(sys.argv[1:], "hmo:", ["help"])
+except getopt.GetoptError:
+	# print help information and exit:
+	usage()
+	sys.exit(2)
+
+if len(sys.argv) < 2:
+	print usage
+	sys.exit(2)
+
+singledir = None
+mailit = False
+for name, value in opts:
+	if name in ("-h", "--help"):
+		usage()
+		sys.exit()
+	if name == "-m":
+		mailit = True
+	if name in ("-o", "--output"):
+		singledir = value
+
+
+if singledir:
+	dir = os.path.abspath(singledir)
+	jobs_list = [(os.path.basename(dir), dir)]
+else:
+	topdir = os.path.abspath(args[0])
+	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in os.listdir(topdir)]
 
 debug = True
 
-if len(sys.argv) < 2:
-	raise "I need a path to the results directory"
-
-if sys.argv[1] == '-o':
-	dir = os.path.abspath(sys.argv[2])
-	jobs_list = [(os.path.basename(dir), dir)]
-else:
-	topdir = os.path.abspath(sys.argv[1])
-	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in os.listdir(topdir)]
+failcc = ""
+notify_user = None
 
 db = db.db(autocommit=False)  # do commits transactionally
 
 
+def mailfailure(jobname, job, mesgtxt):
+	# XXX: Need to insert URL here too (frontend.test.url?)
+	link = "http://" + socket.gethostname() + "/results/" + jobname
+
+	# This looks pretty good on fixed-width-font email reader.
+	message_header = "\n%s\n%s\n\n%-12s %-20s %-12s %-10s %s\n" % ("The following tests FAILED for this job:", link, "Job name", "Kernel", "Test name", "FAIL/WARN", "Failure Reason")
+	message_header += "%-12s %-20s %-12s %-10s %s\n" % ("========", "======", "=========", "=========", "==============")
+
+	subject = "AUTOTEST: FAILED tests from " + " job " + jobname
+	parse.mail(notify_user, job.user, failcc, subject, message_header + mesgtxt)
+
+
 def do_parse(jobname, path):
 	if debug:
-		print 'looking for ' + path
+		print '\nScanning' + path
 	if db.find_job(jobname):              # Job has already been parsed
 		if debug:
-			print '\t- already processed'
+			print '! Already processed'
 		return
 	job = parse.job(path, 'regression')
 	if not job:
 		if debug:
-			print '\t- not a job'
+			print '! Not a job'
 		return
-	print 'parsed ' + path
+	print '+ Parsed ' + path
 	if not job.kernel:
 		if debug:
-			print '\t- not a job.kernel'
+			print '! Not a job.kernel'
 		return
-	print '%s %s' % (jobname, job.kernel.base)
+	print '* jobname, kernel version: %s %s' % (jobname, job.kernel.base)
+	mesgtxt = "\n"
 	for test in job.tests:
-		print "\t%s %s %s" % (test.subdir, test.status, test.reason)
+		if not test.subdir:
+			continue
+		print "* testname, status, reason: %s %s %s" % (test.subdir, test.status, test.reason)
+		if re.match(r'(FAIL|WARN)',test.status):
+			mesgtxt += "%-12s %-20s %-12s %-10s %s" % (jobname, job.kernel.base, test.subdir, test.status, test.reason)
+
+	if len(mesgtxt) > 2 and mailit:
+		print "Sending email report of FAILURES on " + jobname + " to " + job.user
+		mailfailure(jobname, job, mesgtxt)
 	db.insert_job(jobname, job)
 	db.commit()
+
 
 
 for (jobname, path) in jobs_list:

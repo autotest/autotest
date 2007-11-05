@@ -30,11 +30,16 @@ usage: autoserv
 args = sys.argv[1:]
 parser = utils.AutoservOptionParser(args)
 
+# Get a useful value for running 'USER'
+realuser = os.environ.get('USER')
+if not realuser:
+	realuser = 'anonymous'
+
 machines = parser.parse_opts_param('-m', None, split = ',')
 machines_file = parser.parse_opts_param('-M', None)
 results  = parser.parse_opts_param('-r', os.path.abspath('.'))
 label    = parser.parse_opts_param('-l', '')
-user     = parser.parse_opts_param('-u', 'anonymous')
+user     = parser.parse_opts_param('-u', realuser)
 client   = parser.parse_opts('-c')
 reboot   = parser.parse_opts('-b')
 install_before = parser.parse_opts('-i')
