@@ -21,6 +21,7 @@
 import os, pickle, tempfile
 from autotest_utils import *
 from error import *
+import sysinfo
 
 class test:
 	preserve_srcdir = False
@@ -185,7 +186,14 @@ def runtest(job, url, tag, args, dargs):
 	try:
 		mytest._exec(args, dargs)
 	finally:
-		system('dmesg -c > %s 2> /dev/null' % dmesg, ignorestatus=True)
+		# log "after each test" sysinfo
+		sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
+		os.mkdir(sysinfo_dir)
+		try:
+			os.chdir(sysinfo_dir)
+			sysinfo.after_each_test()
+		finally:
+			os.chdir(pwd)
+
 		if os.path.exists(mytest.tmpdir):
 			system('rm -rf ' + mytest.tmpdir)
-	os.chdir(pwd)

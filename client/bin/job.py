@@ -13,6 +13,7 @@ from parallel import *
 from error import *
 import kernel, xen, test, profilers, barrier, filesystem, fd_stack, boottool
 import harness, config
+import sysinfo
 
 class job:
 	"""The actual job against which we do everything.
@@ -106,11 +107,13 @@ class job:
 		except:
 			pass
 
+		# log "before each step" sysinfo
 		pwd = os.getcwd()
-		os.chdir(os.path.join(self.resultdir, 'sysinfo'))
-		system(os.path.join(self.bindir, 'sysinfo.py'))
-		system('dmesg -c > dmesg 2> /dev/null', ignorestatus=1)
-		os.chdir(pwd)
+		try:
+			os.chdir(os.path.join(self.resultdir, 'sysinfo'))
+			sysinfo.before_each_step()
+		finally:
+			os.chdir(pwd)
 
 		self.harness.run_start()
 
@@ -565,4 +568,5 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	# If we get here, then we assume the job is complete and good.
 	myjob.record('GOOD', None, None, 'job completed sucessfully')
 	myjob.complete(0)
+
 
