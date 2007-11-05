@@ -578,7 +578,7 @@ class SSHHost(base_classes.RemoteHost):
 			print "Performing a hardreset on %s" % self.hostname
 			try:
 				self.hardreset()
-			except AutoservUnsupportedError:
+			except errors.AutoservUnsupportedError:
 				print "Hardreset is unsupported on %s" % self.hostname
 		if not self.wait_up(60 * 30):
 			# 30 minutes should be more than enough
