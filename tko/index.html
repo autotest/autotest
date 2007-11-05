@@ -1,0 +1,68 @@
+<html>
+<head>
+</head>
+<body>
+<table border="0">
+  <form action="compose_query.cgi" method="get">
+<tr>
+  <td>Column: </td>
+  <td>
+  <SELECT NAME="columns">
+  <OPTION VALUE="kernel">kernel
+  <OPTION VALUE="hostname">hostname
+  <OPTION VALUE="user">user
+  <OPTION VALUE="test">test
+  <OPTION VALUE="label">label
+  <OPTION VALUE="machine_group">machine_group
+  <OPTION VALUE="status">status
+  <OPTION VALUE="reason">reason
+  </SELECT>
+  </td>
+</tr>
+<tr>
+  <td>Row: </td>
+  <td>
+  <SELECT NAME="rows">
+  <OPTION VALUE="test">test
+  <OPTION VALUE="kernel">kernel
+  <OPTION VALUE="hostname">hostname
+  <OPTION VALUE="user">user
+  <OPTION VALUE="label">label
+  <OPTION VALUE="machine_group">machine_group
+  <OPTION VALUE="status">status
+  <OPTION VALUE="reason">reason
+  </SELECT>
+  </td>
+</tr>
+<tr>
+  <td>Condition: </td>
+  <td>
+    <input type="text" name="condition" size="80" maxlength="80"><br />
+    <input type="hidden" name="title" value="Report">
+  </td>
+</tr>
+<tr>
+  <td colspan="100%" align="center"><input type="submit" value="Submit">
+  </td>
+</tr>
+<tr>
+  <td colspan="100%">
+<p>
+Conditions of the form &lt;column&gt;=&lt;value&gt; &amp; &lt;column&gt;=&lt;value&gt; &amp; ... &amp; &lt;column&gt;=&lt;value&gt;
+</p>
+<p>
+Textual values must be quoted.
+</p>
+<p>
+<div>Examples:</div>
+<ul>
+<li>user='johnmacdonald' & test='burnin'</li>
+<li>hostname='bdpk1' & user='yinghan'</li>
+</ul>
+</p>
+  </td>
+</tr>
+</form>
+</table>
+</body>
+</html>
