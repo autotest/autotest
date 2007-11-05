@@ -14,70 +14,10 @@ import sys, os
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
 
-import display, frontend, db
+import display, frontend, db, query_lib
 
 cgitb.enable()
 db = db.db()
-
-def generate_sql_condition(condition_list):
-	""" generate the sql for the condition list."""
-	sql = ""
-	value = []
-	for field, operator, values in condition_list:
-		if len(values) == 1:
-			sql += " and %s%s%%s" % (field, operator)
-			value.append(values[0][0])
-		elif len(values) > 1:
-			sql += " and "
-			expression = [" %s %s %%s" % (field, operator) for val in values]
-			for val in values:
-				value.append(val[0])
-			sql += "(%s)" % " or ".join(expression)
-	return sql, value
-
-
-def prune_list(thelist, condition_sql, condition_value):
-	""" keep track of which columns do not have any elements."""
-	pruned_list = []
-	for g in thelist:
-		sql = "t where %s=%%s " % g.idx_name
-		value = [g.idx_value]
-		sql += condition_sql
-		value.extend(condition_value)
-		tests = frontend.test.select_sql(db, sql, value)
-		if len(tests) > 0:
-			pruned_list.append(g)
-	return pruned_list
-
-
-def ParseCondition(condition):
-	""" parse the condition into independent clauses."""
-	condition_list = []
-	if not condition:
-		return condition_list
-	attribute_re = r"(\w+)"
-	op_re = r"(=|!=)"
-	value_re = r"('[^']*')"
-	# condition is clause & clause & ..
-	clause_re = r"%s\s*%s\s*%s" % (attribute_re, op_re, value_re)
-	condition_re = re.compile(r"^\s*%s(\s*&\s*%s)*\s*$" % (clause_re, clause_re))
-	if not condition_re.match(condition):
-		print "Condition not in the correct format: %s" % condition
-		sys.exit(0)
-	triples = []
-	for clause in [c.strip() for c in condition.split('&')]:
-		attribute, op, value = re.match(clause_re, clause).groups()
-		triples.append((attribute, op, value))
-	for (field_name, operator, value) in triples:
-		match, field = frontend.select(db, field_name, value)
-		if len(match) > 0:
-			condition_list.append((field, operator, match))
-		else:
-			print "No matching records found for condition %s." % \
-			      condition
-			sys.exit(0)
-	return condition_list
-
 
 def main():
 
@@ -99,8 +39,9 @@ def main():
 	condition_sql = ""
 	condition_value = []
 	if condition:
-		condition_list = ParseCondition(condition)
-		condition_sql, condition_value = generate_sql_condition(condition_list)
+		condition_list = query_lib.parse_condition(condition)
+		condition_sql, condition_value =   \
+		 query_lib.generate_sql_condition(condition_list)
 
 	# get all possible column values.
 	column_groups = frontend.anygroup.selectunique(db, columns)
@@ -109,8 +50,10 @@ def main():
 	row_groups = frontend.anygroup.selectunique(db,rows)
 	# keep only those values in rows/columns that have a test
 	# corresponding to it.
-	row_groups = prune_list(row_groups, condition_sql, condition_value)
-	column_groups = prune_list(column_groups, condition_sql, condition_value)
+	row_groups = query_lib.prune_list(row_groups, condition_sql,  \
+					  condition_value)
+	column_groups = query_lib.prune_list(column_groups, condition_sql, \
+					     condition_value)
 
 	# prepare the header for the table.
 	headers = [g.name for g in column_groups]
@@ -120,20 +63,49 @@ def main():
 
 	matrix = [header_row]
 
+	# get all the tests that satify the given condition.
+	tests = query_lib.get_tests(condition_sql, condition_value)
+
 	for r_group in row_groups:
 		row = [display.box(r_group.name)]
+
+		# build the row sql for this row.
+		row_expr = [ " %s = %%s " % r_group.idx_name for val in r_group.idx_value]
+		row_sql = " (%s) " % " or ".join(row_expr)
+
 		# get individual unit values
 		for c_group in column_groups:
-			sql = "t where %s=%%s and %s=%%s" % (r_group.idx_name,
-							     c_group.idx_name)
-			value = [r_group.idx_value, c_group.idx_value]
-			sql += condition_sql
-			value.extend(condition_value)
-			tests = frontend.test.select_sql(db, sql, value)
+			# get the list of tests that belong to this x,y in the matrix.
+			xy_test = [test for test in tests
+				   if query_lib.get_value(test, r_group.idx_name) \
+				   in r_group.idx_value \
+				   and query_lib.get_value(test,c_group.idx_name) \
+				   in c_group.idx_value]
+
+			# build the column sql
+			column_expr = [ " %s = %%s " % c_group.idx_name for val in c_group.idx_value]
+			column_sql = " (%s) " % " or ".join(column_expr)
+
+			sql = "t where %s and %s " % (row_sql, column_sql)
+
+			# add the corresponding values of the fields to
+			# the value list.
+
+			value = []
+			value.extend(r_group.idx_value)
+			value.extend(c_group.idx_value)
+
+			# append the condition sql and the values to the
+			# sql/list respectively.
+			if condition_sql:
+				sql += " and "
+				sql += condition_sql
+				value.extend(condition_value)
+
 			value_str = [str(val) for val in value]
 			link = 'test.cgi?sql=%s&values=%s' % \
 				(sql, ','.join(value_str))
-			row.append(display.status_count_box(db, tests, link))
+			row.append(display.status_count_box(db, xy_test, link))
 		matrix.append(row)
 	display.print_table(matrix)
 
