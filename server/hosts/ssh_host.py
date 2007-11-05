@@ -350,7 +350,7 @@ class SSHHost(base_classes.RemoteHost):
 			self.bootloader.add_args(label, kernel_args)
 		print "Reboot: initiating reboot"
 		sys.stderr.write("REBOOT\n")
-		self.run('reboot')
+		self.run('(sleep 5; reboot) >/dev/null 2>&1 &')
 		if wait:
 			self._wait_for_restart(timeout)
 			self.__load_netconsole_module() # if the builtin fails
@@ -618,3 +618,7 @@ class SSHHost(base_classes.RemoteHost):
 		fpingcmd = "%s -q %s" % ('/usr/bin/fping', self.hostname)
 		rc = utils.system(fpingcmd, ignore_status = 1)
 		return (rc == 0)
+
+
+	def ssh_ping(self):
+		self.run('ls', timeout=30)
