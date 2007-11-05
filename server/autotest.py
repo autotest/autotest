@@ -120,10 +120,10 @@ class Autotest(installable_object.InstallableObject):
 			target machine: %s' % host.name)
 		try:
 			host.run('svn checkout %s %s' %
-				 (AUTOTEST_SVN, autodir)
+				 (AUTOTEST_SVN, autodir))
 		except errors.AutoservRunError, e:
 			host.run('svn checkout %s %s' %
-				 (AUTOTEST_HTTP, autodir)
+				 (AUTOTEST_HTTP, autodir))
 		print "Installation of autotest completed"
 		self.installed = True
 
