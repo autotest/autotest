@@ -72,5 +72,12 @@ status_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY ,		-- numerical 
 word VARCHAR(10)			-- status word
 ) TYPE=InnoDB;
 
+-- BRRD syncronization
+DROP TABLE IF EXISTS brrd_sync;
+CREATE TABLE brrd_sync (
+test_idx INTEGER			-- ref to test table
+) TYPE=InnoDB;
+
+
 INSERT INTO status (word)
 VALUES ('NOSTATUS'), ('ERROR'), ('ABORT'), ('FAIL'), ('WARN'), ('GOOD');
