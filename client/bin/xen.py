@@ -39,8 +39,8 @@ class xen(kernel.kernel):
 			logfile = os.path.join(self.log_dir, 'xen_build')
 		os.chdir(self.build_dir)
 		self.log('log_dir: %s ' % os.path.join(self.log_dir, 'stdout'))
-		self.job.stdout.redirect(logfile + '.stdout')
-		self.job.stderr.redirect(logfile + '.stderr')
+		self.job.stdout.tee_redirect(logfile + '.stdout')
+		self.job.stderr.tee_redirect(logfile + '.stderr')
 
 		# build xen hypervisor and user-space tools
 		targets = ['xen', 'tools']
