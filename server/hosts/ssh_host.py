@@ -49,7 +49,7 @@ class SSHHost(base_classes.RemoteHost):
 	SSH_BASE_COMMAND = 'ssh -a'
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
-		     conmux_log="console.log", conmux_warnings="warning.log",
+		     conmux_log="console.log", conmux_warnings="status.log",
 		     conmux_server=None, conmux_attach=None,
 		     netconsole_log=None, netconsole_port=6666):
 		"""
@@ -238,13 +238,14 @@ class SSHHost(base_classes.RemoteHost):
 		if logfilename == None:
 			return
 		script_path = os.path.join(self.serverdir, 'warning_monitor')
-		script_cmd = 'expect %s %s' % (script_path, self.hostname)
+		script_cmd = 'expect %s %s >> %s' % (script_path,
+						     self.hostname,
+						     logfilename)
 		if self.conmux_server:
 			to = '%s/%s'
 		cmd = [self.conmux_attach, self.__conmux_hostname(), script_cmd]
 		logger = subprocess.Popen(cmd,
-					  stdout=open(logfilename, 'a', 0),
-					  stderr=subprocess.STDOUT,
+					  stderr=open('debug/conmux.log', 'a', 0),
 					  preexec_fn=lambda: os.setpgid(0, 0))
 		self.warning_pid = logger.pid
 
