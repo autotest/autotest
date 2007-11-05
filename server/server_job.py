@@ -115,6 +115,9 @@ class server_job:
 		self.resultdir = resultdir
 		if not os.path.exists(resultdir):
 			os.mkdir(resultdir)
+		self.debugdir = os.path.join(resultdir, 'debug')
+		if not os.path.exists(self.debugdir):
+			os.mkdir(self.debugdir)
 		self.status = os.path.join(resultdir, 'status')
 		self.label = label
 		self.user = user
