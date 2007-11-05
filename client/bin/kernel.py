@@ -7,18 +7,25 @@ import kernel_config, test, os_dep
 
 def record(fn):
 	""" Decorator for logging calls to specific kernel methods.
+	It also accepts a "logged=False" keyword argument to disable
+	the logging for particular calls.
 
 	Classes that make use of this dectorator will need to have job
 	and subdir attributes for the logging to function correctly.
 	"""
 	def recorded_func(self, *args, **dargs):
+		logged = dargs.pop('logged', True)
+		if not logged:
+			return fn(self, *args, **dargs)
+		# wrap the method call in success/failure logging
 		name = "kernel.%s" % fn.__name__
 		try:
-			fn(self, *args, **dargs)
+			result = fn(self, *args, **dargs)
 			self.job.record('GOOD', self.subdir, name)
 		except Exception, detail:
 			self.job.record('FAIL', self.subdir, name, str(detail))
 			raise
+		return result
 	return recorded_func
 
 
@@ -259,7 +266,7 @@ class kernel:
 		os.chdir(self.build_dir)
 		self.set_cross_cc()
 
-		self._clean()
+		self.clean(logged=False)
 		build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" \
 			 			% (timefile, make_opts, threads)
 		build_string += ' > %s 2>&1' % output
