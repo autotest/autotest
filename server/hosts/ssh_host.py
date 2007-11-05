@@ -192,12 +192,15 @@ class SSHHost(base_classes.RemoteHost):
 
 	def _wait_for_restart(self, timeout):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
-			self.__record("FAIL", None, "reboot")
-			raise errors.AutoservRebootError("Host would not shut down")
+			self.__record("ABORT", None, "reboot", "failed")
+			raise errors.AutoservRebootError("Host did not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
-		if not self.wait_up(timeout):
-			self.__record("FAIL", None, "reboot")
+		if self.wait_up(timeout):
+			self.__record("GOOD", None, "reboot", "complete")
+		else:
+			self.__record("ABORT", None, "reboot", "failed")
+			raise errors.AutoservRebootError("Host did not return from reboot")
 		print "Reboot complete"
 
 
@@ -363,8 +366,12 @@ class SSHHost(base_classes.RemoteHost):
 				label = self.bootloader.get_titles()[default]
 			self.bootloader.add_args(label, kernel_args)
 		print "Reboot: initiating reboot"
-		self.__record("GOOD", None, "reboot")
-		self.run('(sleep 5; reboot) >/dev/null 2>&1 &')
+		self.__record("GOOD", None, "reboot", "started")
+		try:
+			self.run('(sleep 5; reboot) >/dev/null 2>&1 &')
+		except AutoservRunError:
+			self.__record("ABORT", None, "reboot", "failed")
+			raise
 		if wait:
 			self._wait_for_restart(timeout)
 			self.__load_netconsole_module() # if the builtin fails
