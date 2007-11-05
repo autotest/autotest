@@ -622,8 +622,8 @@ class rpm_kernel:
 		self.installed_as = tag
 
 		logfile = os.path.join(self.log_dir, 'rpm_install')
-		self.job.stdout.redirect(logfile + '.stdout')
-		self.job.stderr.redirect(logfile + '.stderr')
+		self.job.stdout.tee_redirect(logfile + '.stdout')
+		self.job.stderr.tee_redirect(logfile + '.stderr')
 
 		self.rpm_name = system_output('rpm -qp ' + self.rpm_package)
 
