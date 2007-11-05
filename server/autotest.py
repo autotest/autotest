@@ -33,7 +33,7 @@ AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
 
 # Timeouts for powering down and up respectively
 HALT_TIME = 300
-BOOT_TIME = 300
+BOOT_TIME = 1800
 
 
 class AutotestRunError(errors.AutoservRunError):
