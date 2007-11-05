@@ -72,6 +72,34 @@ def install(machine):
 parallel_simple(install, machines, log=False)
 """
 
+# This needs more stuff in it. Check for diskspace, etc. But it's a start.
+verify="""\
+def cleanup(machine):
+	host = hosts.SSHHost(machine, initialize=False)
+	host.ssh_ping()
+
+parallel_simple(cleanup, machines, log=False)
+"""
+
+# This is pretty silly. Wait for s/w watchdog. Pray hard.
+repair="""\
+def cleanup(machine):
+	host = hosts.SSHHost(machine, initialize=False)
+	host.ssh_ping(150*60)            # wait for 2.5 hours
+
+parallel_simple(cleanup, machines, log=False)
+"""
+
+def verify_machines(machines):
+	namespace = {'machines' : machines, 'job' : None}
+	exec(preamble + verify, namespace, namespace)
+
+
+def repair_machines(machines):
+	namespace = {'machines' : machines, 'job' : None}
+	exec(preamble + repair, namespace, namespace)
+
+
 class server_job:
 	"""The actual job against which we do everything.
 
