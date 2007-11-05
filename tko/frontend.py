@@ -55,7 +55,18 @@ class anygroup:
 		 the table."""
 		rows, field_name_in_main_table = select(db, field, value=None, distinct=True)
 		groupnames = sorted([row for row in rows])
-		return [klass(db, field_name_in_main_table, groupname) for groupname in groupnames]
+
+		# collapse duplicates where records have the same name but
+		# multiple index values
+		headers = {}
+		for field_name, idx_value in groupnames:
+			if headers.has_key(field_name):
+				headers[field_name].append(idx_value)
+			else:
+				headers[field_name] = [idx_value]
+		headers = headers.items()
+		headers.sort()
+		return [klass(db, field_name_in_main_table, groupname) for groupname in headers]
 
 
 	def __init__(self, db, idx_name, name):
@@ -213,6 +224,7 @@ class job:
 		if not rows:
 			return None
 		(self.tag, self.machine_idx) = rows[0]
+		self.job_idx = job_idx
 
  
 class iteration:
