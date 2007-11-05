@@ -47,4 +47,6 @@ if len(parser.args) < 1:
 
 job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
 								user, client)
+job.stdout.tee_redirect(os.path.join(results, 'debug', 'autoserv.stdout'))
+job.stderr.tee_redirect(os.path.join(results, 'debug', 'autoserv.stderr'))
 job.run(machines, reboot, install_before, install_after)
