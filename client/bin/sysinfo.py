@@ -4,7 +4,12 @@ check_python_version()
 
 import os,os.path,shutil,re,glob
 from autotest_utils import *
-import site_sysinfo
+dirname = os.path.dirname(sys.modules['sysinfo'].__file__)
+if os.path.exists(os.path.join(dirname,'site_sysinfo.py')):
+	import site_sysinfo
+	local = True
+else:
+	local = False
 
 # stuff to log in before_each_step()
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
@@ -65,7 +70,8 @@ def _before_each_step():
 
 	system('dmesg -c > dmesg', ignorestatus=1)
 	system('df -m > df', ignorestatus=1)
-	site_sysinfo.before_each_step()
+	if local:
+		site_sysinfo.before_each_step()
 
 
 def after_each_test():
@@ -73,7 +79,8 @@ def after_each_test():
 
 	system('dmesg -c > dmesg', ignorestatus=1)
 	system('df -m > df', ignorestatus=1)
-	site_sysinfo.after_each_test()
+	if local:
+		site_sysinfo.after_each_test()
 
 
 if __name__ == '__main__':
