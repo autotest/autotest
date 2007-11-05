@@ -1,12 +1,16 @@
 import os, re, parse, sys, frontend
 
 color_map = {
-	'GOOD'		: '#66ff66', # green
+	'GOOD'		: '#88ff88', # green
 	'WARN'		: '#fffc00', # yellow
-	'FAIL'		: '#ff6666', # red
-	'ABORT'		: '#ff6666', # red
-	'ERROR'		: '#ff6666', # red
+	'FAIL'		: '#ff8888', # red
+	'ABORT'		: '#ff8888', # red
+	'ERROR'		: '#ff8888', # red
 	'NOSTATUS'	: '#ffffff', # white
+	'header'        : '#e5e5c0', # greyish yellow
+	'blank'         : '#ffffff', # white
+	'plain_text'    : '#e5e5c0', # greyish yellow
+	'borders'       : '#bbbbbb', # grey
 	'white'		: '#ffffff', # white
 	'green'		: '#66ff66', # green
 	'yellow'	: '#fffc00', # yellow
@@ -22,8 +26,12 @@ class box:
 			self.data = data
 		if color_map.has_key(color_key):
 			self.color = color_map[color_key]
+		elif header:
+			self.color = color_map['header']
+		elif data:
+			self.color = color_map['plain_text']
 		else:
-			self.color = color_map['white']
+			self.color = color_map['blank']
 		self.header = header
 
 
@@ -77,7 +85,7 @@ def status_count_box(db, tests, link = None):
 	if link:
 		html = '<a href="%s">%s</a>' % (link, html)
 	return box(html, db.status_word[worst])
-	
+
 
 def print_table(matrix):
 	"""
@@ -87,11 +95,11 @@ def print_table(matrix):
 	Display the given matrix of data as a table.
 	"""
 
-	print '<table cellpadding=5 border=1 class="boldtable">'
+	print '<table bgcolor="%s" cellspacing="1" cellpadding="5">' % (
+	    color_map['borders'])
 	for row in matrix:
 		print '<tr>'
 		for element in row:
-			print element
 			print element.html()
 		print '</tr>'
 	print '</table>'
@@ -110,6 +118,9 @@ def sort_tests(tests):
 
 
 def print_main_header():
+	print '<head><style type="text/css">'
+	print 'a { text-decoration: none }'
+	print '</style></head>'
 	print '<h2>'
 	print '<a href="machine_kernel.cgi">Functional</a>'
 	print '&nbsp&nbsp&nbsp'
