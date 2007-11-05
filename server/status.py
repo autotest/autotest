@@ -18,9 +18,13 @@ def _worst_status(old_status, new_status):
 def _update_details(status, details):
 	if details == "----\trun starting":
 		return "Running test"
-	elif details == "----\treboot":
+	elif details.startswith("----\treboot\t"):
+		msg = details.split("\t")[2]
 		if _worst_status("GOOD", status) == "GOOD":
-			return "Rebooting"
+			if msg == "started":
+				return "Rebooting"
+			elif msg == "complete":
+				return "Reboot complete - machine ready"
 		else:
 			return "Reboot failed - machine dead"
 	# if we don't have a better message, just use the raw details
