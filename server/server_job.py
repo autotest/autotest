@@ -16,6 +16,13 @@ import test
 from utils import *
 from error import *
 
+# this magic incantation should give us access to a client library
+server_dir = os.path.dirname(__file__)
+client_dir = os.path.join(server_dir, "..", "client", "bin")
+sys.path.append(client_dir)
+import fd_stack
+sys.path.pop()
+
 preamble = """\
 import os, sys
 sys.stderr = __stderr
@@ -106,6 +113,9 @@ class server_job:
 		self.args = args
 		self.client = client
 		self.record_prefix = ''
+
+		self.stdout = fd_stack.fd_stack(1, sys.stdout)
+		self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
 		if os.path.exists(self.status):
 			os.unlink(self.status)
