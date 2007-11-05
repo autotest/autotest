@@ -290,7 +290,16 @@ class server_job:
 		# detect them in the status file to ensure it is parsable.
 		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
 
-		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
+		# Generate timestamps for inclusion in the logs
+		epoch_time = int(time.time())  # seconds since epoch, in UTC
+		local_time = time.localtime(epoch_time)
+		epoch_time_str = "timestamp=%d" % (epoch_time,)
+		local_time_str = time.strftime("localtime=%b %d %H:%M:%S",
+					       local_time)
+
+		msg = '\t'.join(str(x) for x in (status_code, substr, operation,
+						 epoch_time_str, local_time_str,
+						 status))
 
 		status_file = os.path.join(self.resultdir, 'status.log')
 		print msg

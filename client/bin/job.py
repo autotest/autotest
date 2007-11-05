@@ -6,7 +6,7 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 # standard stuff
-import os, sys, re, pickle, shutil
+import os, sys, re, pickle, shutil, time
 # autotest stuff
 from autotest_utils import *
 from parallel import *
@@ -115,7 +115,8 @@ class job:
 		finally:
 			os.chdir(pwd)
 
-		self.harness.run_start()
+		if not cont:
+			self.harness.run_start()
 
 
 	def relative_path(self, path):
@@ -341,9 +342,9 @@ class job:
 			print "            P4 CL: %s" % current_cl
 			print "     Command Line: " + cmdline
 
-			raise JobError("boot failure")
+			raise JobError("boot failure", "reboot.verify")
 
-		self.record('GOOD', subdir, 'boot', 'boot successful')
+		self.record('GOOD', subdir, 'reboot.verify')
 
 
 	def filesystem(self, device, mountpoint = None, loop_size = 0):
@@ -353,6 +354,7 @@ class job:
 
 
 	def reboot(self, tag='autotest'):
+		self.record('GOOD', None, 'reboot.start')
 		self.harness.run_reboot()
 		default = self.config_get('boot.set_default')
 		if default:
@@ -504,7 +506,16 @@ from autotest_utils import *
 		# detect them in the status file to ensure it is parsable.
 		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
 
-		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
+		# Generate timestamps for inclusion in the logs
+		epoch_time = int(time.time())  # seconds since epoch, in UTC
+		local_time = time.localtime(epoch_time)
+		epoch_time_str = "timestamp=%d" % (epoch_time,)
+		local_time_str = time.strftime("localtime=%b %d %H:%M:%S",
+					       local_time)
+
+		msg = '\t'.join(str(x) for x in (status_code, substr, operation,
+						 epoch_time_str, local_time_str,
+						 status))
 
 		self.harness.test_status_detail(status_code, substr,
 							operation, status)
@@ -555,7 +566,10 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob:
-			myjob.record('ABORT', None, None, instance.args[0])
+			command = None
+			if len(instance.args) > 1:
+				command = instance.args[1]
+			myjob.record('ABORT', None, command, instance.args[0])
 			myjob.complete(1)
 		
 
