@@ -21,8 +21,6 @@ stutsman@google.com (Ryan Stutsman)
 import types, os, sys, signal, subprocess, time, re, socket
 import base_classes, utils, errors, bootloader
 
-DEFAULT_REBOOT_TIMEOUT = 1800
-
 
 class SSHHost(base_classes.RemoteHost):
 	"""
@@ -47,6 +45,8 @@ class SSHHost(base_classes.RemoteHost):
 	"""
 
 	SSH_BASE_COMMAND = '/usr/bin/ssh -a -o BatchMode=yes'
+	DEFAULT_REBOOT_TIMEOUT = 1800
+	job = None
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
 		     conmux_log="console.log", conmux_warnings="status.log",
@@ -189,12 +189,12 @@ class SSHHost(base_classes.RemoteHost):
 
 	def _wait_for_restart(self, timeout):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
-			sys.stderr.write("REBOOT ERROR\n")
+			self.__record("FAIL", None, "reboot")
 			raise errors.AutoservRebootError("Host would not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
 		if not self.wait_up(timeout):
-			sys.stderr.write("REBOOT ERROR\n")
+			self.__record("FAIL", None, "reboot")
 		print "Reboot complete"
 
 
@@ -289,6 +289,16 @@ class SSHHost(base_classes.RemoteHost):
 		return result == 0
 
 
+	def __record(self, status_code, subdir, operation, status = ''):
+		if self.job:
+			self.job.record(status_code, subdir, operation, status)
+		else:
+			if not subdir:
+				subdir = "----"
+			msg = "%s\t%s\t%s\t%s" % (status_code, subdir, operation, status)
+			sys.stderr.write(msg + "\n")
+
+
 	def ssh_command(self):
 		"""Construct an ssh command with proper args for this host."""
 		return r'%s -l %s -p %d %s' % (self.SSH_BASE_COMMAND,
@@ -350,7 +360,7 @@ class SSHHost(base_classes.RemoteHost):
 				label = self.bootloader.get_titles()[default]
 			self.bootloader.add_args(label, kernel_args)
 		print "Reboot: initiating reboot"
-		sys.stderr.write("REBOOT\n")
+		self.__record("GOOD", None, "reboot")
 		self.run('(sleep 5; reboot) >/dev/null 2>&1 &')
 		if wait:
 			self._wait_for_restart(timeout)

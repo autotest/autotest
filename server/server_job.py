@@ -31,6 +31,7 @@ import source_kernel, rpm_kernel, deb_kernel
 from subcommand import *
 from utils import run, get_tmp_dir, sh_escape
 
+hosts.SSHHost.job = job
 """
 
 client_wrapper = """
@@ -291,7 +292,7 @@ class server_job:
 
 		msg = '%s\t%s\t%s\t%s' %(status_code, substr, operation, status)
 
-		status_file = os.path.join(self.resultdir, 'status')
+		status_file = os.path.join(self.resultdir, 'status.log')
 		print msg
 		open(status_file, "a").write(self.record_prefix + msg + "\n")
 		if subdir:
