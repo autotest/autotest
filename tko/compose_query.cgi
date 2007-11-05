@@ -20,6 +20,7 @@ cgitb.enable()
 db = db.db()
 
 def main():
+	display.print_main_header()
 
 	# parse the fields from the form.
 	form = cgi.FieldStorage()

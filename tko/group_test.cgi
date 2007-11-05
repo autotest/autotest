@@ -11,6 +11,7 @@ import db, display, frontend
 db = db.db()
 
 def main():
+	display.print_main_header()
 
 	form = cgi.FieldStorage()
 	kernel_idx = form["kernel"].value
