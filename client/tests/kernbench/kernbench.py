@@ -33,7 +33,7 @@ class kernbench(test.test):
 
 		# Do the extraction of the kernel tree
 		kernel = self.job.kernel(tarball, self.tmpdir, build_dir)
-		kernel._config(defconfig=True)
+		kernel.config(defconfig=True, logged=False)
 
 
 	def execute(self, iterations = 1, threads = 2*count_cpus(), dir = None):
@@ -69,7 +69,7 @@ class kernbench(test.test):
 			profilers.stop(self)
 			profilers.report(self)
 
-		kernel._clean()		# Don't leave litter lying around
+		kernel.clean(logged=False)    # Don't leave litter lying around
 		os.chdir(self.resultsdir)
 		system("grep -h elapsed time.* > time")
 
