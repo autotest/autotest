@@ -78,10 +78,12 @@ class SSHHost(base_classes.RemoteHost):
 
 		self.bootloader = bootloader.Bootloader(self)
 
-		self.__init_netconsole_params(netconsole_port)
+		self.__netconsole_param = ""
 		self.netlogger_pid = None
-		self.__start_netconsole_log(netconsole_log, netconsole_port)
-		self.__load_netconsole_module()
+		if netconsole_log:
+			self.__init_netconsole_params(netconsole_port)
+			self.__start_netconsole_log(netconsole_log, netconsole_port)
+			self.__load_netconsole_module()
 
 
 	def __del__(self):
@@ -121,7 +123,6 @@ class SSHHost(base_classes.RemoteHost):
 		Connect to the remote machine and determine the values to use for the
 		required netconsole parameters.
 		"""
-		self.__netconsole_param = ""
 		# PROBLEM: on machines with multiple IPs this may not make any sense
 		# It also doesn't work with IPv6
 		remote_ip = socket.gethostbyname(self.hostname)
@@ -173,6 +174,8 @@ class SSHHost(base_classes.RemoteHost):
 		working correctly if netconsole is already compiled into the kernel
 		and started.
 		"""
+		if not self.__netconsole_param:
+			return
 		try:
 			self.run('modprobe netconsole %s' % self.__netconsole_param)
 		except errors.AutoservRunError:
