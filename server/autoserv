@@ -15,6 +15,7 @@ import sys, os, re, server_job, hosts.site_host, utils
 usage = """\
 usage: autoserv
 	[-m machine,[machine,...]] # list of machines to pass to control file
+	[-M machines_file]         # list of machines (from a file)
 	[-c]                       # control file is a client side control
 	[-r resultsdir]            # specify results directory (default '.')
 	[-i]                       # reinstall machines before running the job
@@ -30,6 +31,7 @@ args = sys.argv[1:]
 parser = utils.AutoservOptionParser(args)
 
 machines = parser.parse_opts_param('-m', None, split = ',')
+machines_file = parser.parse_opts_param('-M', None)
 results  = parser.parse_opts_param('-r', os.path.abspath('.'))
 label    = parser.parse_opts_param('-l', '')
 user     = parser.parse_opts_param('-u', 'anonymous')
@@ -45,6 +47,15 @@ if getattr(hosts.site_host, 'site_parse_options', None):
 if len(parser.args) < 1:
 	print usage
 	sys.exit(-1)
+
+if machines_file:
+	machines = []
+	for m in open(machines_file, 'r').readlines():
+		m = re.sub('#.*', '', m).strip()   # remove comments, spaces
+		if m:
+			machines.append(m)
+	print "Read list of machines from file: %s" % machines_file
+	print ','.join(machines)
 
 job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
 								user, client)
