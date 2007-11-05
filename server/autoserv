@@ -23,6 +23,8 @@ usage: autoserv
 	[-b]                       # reboot all specified machines after the job
 	[-l label]                 # label for the job (arbitrary string)
 	[-u user]                  # username for the job (email address)
+	[-v]                       # verify the machines only
+	[-R]                       # repair the machines
 	<control file>             # name of the control file to run
 	[args ...]                 # args to pass through to the control file
 """
@@ -38,18 +40,20 @@ if not realuser:
 machines = parser.parse_opts_param('-m', None, split = ',')
 machines_file = parser.parse_opts_param('-M', None)
 results  = parser.parse_opts_param('-r', os.path.abspath('.'))
+results  = os.path.abspath(results)
 label    = parser.parse_opts_param('-l', '')
 user     = parser.parse_opts_param('-u', realuser)
 client   = parser.parse_opts('-c')
 reboot   = parser.parse_opts('-b')
 install_before = parser.parse_opts('-i')
 install_after  = parser.parse_opts('-I')
-results = os.path.abspath(results)
+verify   = parser.parse_opts('-v')
+repair   = parser.parse_opts('-R')
 
 if getattr(hosts.site_host, 'site_parse_options', None):
 	hosts.site_host.site_parse_options(parser)
 
-if len(parser.args) < 1:
+if len(parser.args) < 1 and not verify and not repair:
 	print usage
 	sys.exit(-1)
 
@@ -61,6 +65,13 @@ if machines_file:
 			machines.append(m)
 	print "Read list of machines from file: %s" % machines_file
 	print ','.join(machines)
+
+if repair:
+	server_job.repair_machines(machines)
+
+if verify or repair:
+	server_job.verify_machines(machines)
+	sys.exit(0)
 
 job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
 								user, client)
