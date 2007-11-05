@@ -8,6 +8,62 @@ if os.path.exists(root_url_file):
 else:
         html_root = '/results/'
 
+def select(db, field, value=None, distinct=False):
+	""" returns the relevant index values where the field value matches the
+	    input value to the function.
+	    If there is no value passed, then it returns the index values and the
+	    field values corresponsing to them. """
+
+	fields = { 'kernel': ['printable', 'kernel_idx', 'kernel_idx'],
+	 	   'machine_group': ['machine_group', 'machine_idx', 'machine_idx'],
+		   'hostname': ['hostname', 'machine_idx', 'machine_idx'],
+		   'label': ['label', 'job_idx', 'job_idx'],
+		   'user': ['user', 'job_idx', 'job_idx'],
+		   'test': ['test', 'test', 'test'],
+		   'status': ['word', 'status_idx', 'status'],
+		   'reason': ['reason', 'test_idx', 'test_idx'] }
+	table = { 'kernel': 'kernels',
+		  'machine_group': 'machines',
+		  'hostname': 'machines',
+		  'label': 'jobs',
+		  'user': 'jobs',
+		  'test': 'tests',
+		  'status': 'status',
+		  'reason': 'tests' }
+
+	lookup_field, idx_field, field_name_in_main_table = fields[field]
+	tablename = table[field]
+	# select all the index values that match the given field name.
+	sql = ""
+	if distinct:
+		sql += " distinct "
+	if not value:
+		sql += " %s , %s " % (lookup_field, idx_field)
+		where = " %s is not null " % lookup_field
+	else:
+		sql += "%s " % idx_field
+		where = " %s = %s " % (lookup_field, value)
+
+	match = db.select(sql, tablename, where)
+	# returns the value and its field name
+	return match, field_name_in_main_table
+
+class anygroup:
+	@classmethod
+	def selectunique(klass, db, field):
+		"""Return unique values for all possible groups within
+		 the table."""
+		rows, field_name_in_main_table = select(db, field, value=None, distinct=True)
+		groupnames = sorted([row for row in rows])
+		return [klass(db, field_name_in_main_table, groupname) for groupname in groupnames]
+
+
+	def __init__(self, db, idx_name, name):
+		self.db = db
+		self.name = name[0]
+		self.idx_name = idx_name
+		self.idx_value = name[1]
+
 
 class group:
 	@classmethod
@@ -17,8 +73,7 @@ class group:
 						'machine_group is not null')
 		groupnames = sorted([row[0] for row in rows])
 		return [klass(db, groupname) for groupname in groupnames]
-
-
+	
 	def __init__(self, db, name):
 		self.name = name
 		self.db = db
@@ -26,7 +81,7 @@ class group:
 
 	def machines(self):
 		return machine.select(self.db, { 'machine_group' : self.name })
-	
+
 
 	def tests(self, where = {}):
 		values = [self.name]
@@ -36,7 +91,7 @@ class group:
 			values.append(where[key])
 		return test.select_sql(self.db, sql, values)
 
-	
+
 class machine:
 	@classmethod
 	def select(klass, db, where = {}):
@@ -53,7 +108,7 @@ class machine:
 		self.hostname = hostname
 		self.group = group
 		self.owner = owner
-		
+
 
 class kernel:
 	@classmethod
