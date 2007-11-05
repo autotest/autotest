@@ -582,5 +582,3 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	# If we get here, then we assume the job is complete and good.
 	myjob.record('GOOD', None, None, 'job completed sucessfully')
 	myjob.complete(0)
-
-
