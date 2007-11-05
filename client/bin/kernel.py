@@ -4,6 +4,24 @@ import os,os.path,shutil,urllib,copy,pickle,re,glob,time
 from autotest_utils import *
 import kernel_config, test, os_dep
 
+
+def record(fn):
+	""" Decorator for logging calls to specific kernel methods.
+
+	Classes that make use of this dectorator will need to have job
+	and subdir attributes for the logging to function correctly.
+	"""
+	def recorded_func(self, *args, **dargs):
+		name = "kernel.%s" % fn.__name__
+		try:
+			fn(self, *args, **dargs)
+			self.job.record('GOOD', self.subdir, name)
+		except Exception, detail:
+			self.job.record('FAIL', self.subdir, name, str(detail))
+			raise
+	return recorded_func
+
+
 class kernel:
 	""" Class for compiling kernels. 
 
@@ -113,44 +131,23 @@ class kernel:
 				self.patch(*base_components)
 
 
-	def __record(self, fn, name, *args, **dargs):
-		try:
-			fn(*args, **dargs)
-			self.job.record('GOOD', self.subdir, name)
-		except Exception, detail:
-			err = detail.__str__()
-			self.job.record('FAIL', self.subdir, name, err)
-			raise
-		
-
-	def _patch(self, *patches):
+	@record
+	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
 		if not patches:
 			return
-	#	if isinstance(patches, basestring):
-	#		patches = [patches]
 		print 'Applying patches: ', patches
-		# self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		self.apply_patches(self.get_patches(patches))
-		# self.job.stdout.restore()
 
 
-	def patch(self, *args, **dargs):
-		self.__record(self._patch, "kernel.patch", *args, **dargs)
-
-
-	def _config(self, config_file = '', config_list = None,
-							defconfig = False):
+	@record
+	def config(self, config_file = '', config_list = None, defconfig = False):
 		self.job.stdout.redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
 		config = kernel_config.kernel_config(self.job, self.build_dir,
 			 self.config_dir, config_file, config_list,
 			 defconfig, self.base_tree_version)
 		self.job.stdout.restore()
-
-
-	def config(self, *args, **dargs):
-		self.__record(self._config, "kernel.config", *args, **dargs)
 
 
 	def get_patches(self, patches):
@@ -216,7 +213,8 @@ class kernel:
 		system('sed "%s" < Makefile.old > Makefile' % p)
 
 
-	def _build(self, make_opts = '', logfile = '', extraversion='autotest'):
+	@record
+	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
 
 		make_opts
@@ -255,10 +253,6 @@ class kernel:
 		force_copy(self.build_dir+'/System.map', self.results_dir)
 
 
-	def build(self, *args, **dargs):
-		self.__record(self._build, "kernel.build", *args, **dargs)
-
-
 	def build_timed(self, threads, timefile = '/dev/null', make_opts = '',
 							output = '/dev/null'):
 		"""time the bulding of the kernel"""
@@ -276,18 +270,16 @@ class kernel:
 			raise TestError("no vmlinux found, kernel build failed")
 
 
-	def _clean(self):
+	@record
+	def clean(self):
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
 		print "make clean"
 		system('make clean > /dev/null 2> /dev/null')
 
 
-	def clean(self, *args, **dargs):
-		self.__record(self._clean, "kernel.clean", *args, **dargs)
-
-
-	def _mkinitrd(self, version, image, system_map, initrd):
+	@record
+	def mkinitrd(self, version, image, system_map, initrd):
 		"""Build kernel initrd image.
 		Try to use distro specific way to build initrd image.
 		Parameters:
@@ -324,15 +316,12 @@ class kernel:
 			raise TestError('Unsupported vendor %s' % vendor)
 
 
-	def mkinitrd(self, *args, **dargs):
-		self.__record(self._mkinitrd, "kernel.mkinitrd", *args, **dargs)
-
-
 	def set_build_image(self, image):
 		self.build_image = image
 
 
-	def _install(self, tag='autotest', prefix = '/'):
+	@record
+	def install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 
 		# Record that we have installed the kernel, and
@@ -377,12 +366,8 @@ class kernel:
 		system('make modules_install INSTALL_MOD_PATH=%s' % prefix)
 		if prefix == '/':
 			self.initrd = self.boot_dir + '/initrd-' + tag
-			self.mkinitrd(self.get_kernel_build_ver(), self.image, \
-						  self.system_map, self.initrd)
-
-
-	def install(self, *args, **dargs):
-		self.__record(self._install, "kernel.install", *args, **dargs)
+			self.mkinitrd(self.get_kernel_build_ver(), self.image,
+				      self.system_map, self.initrd)
 
 
 	def add_to_bootloader(self, tag='autotest', args=''):
@@ -618,6 +603,7 @@ class rpm_kernel:
 			self.changelist = None
 
 
+	@record
 	def install(self, tag='autotest'):
 		self.installed_as = tag
 
