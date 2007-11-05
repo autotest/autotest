@@ -46,7 +46,7 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
-	SSH_BASE_COMMAND = 'ssh -a'
+	SSH_BASE_COMMAND = '/usr/bin/ssh -a -o BatchMode=yes'
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
 		     conmux_log="console.log", conmux_warnings="status.log",
