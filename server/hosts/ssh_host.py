@@ -192,14 +192,14 @@ class SSHHost(base_classes.RemoteHost):
 
 	def _wait_for_restart(self, timeout):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
-			self.__record("ABORT", None, "reboot.verify")
+			self.__record("ABORT", None, "reboot.verify", "shutdown failed")
 			raise errors.AutoservRebootError("Host did not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
 		if self.wait_up(timeout):
 			self.__record("GOOD", None, "reboot.verify")
 		else:
-			self.__record("ABORT", None, "reboot.verify")
+			self.__record("ABORT", None, "reboot.verify", "bringup failed")
 			raise errors.AutoservRebootError("Host did not return from reboot")
 		print "Reboot complete"
 
@@ -208,8 +208,9 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		Reach out and slap the box in the power switch
 		"""
-		command_ran = self.__console_run(r"'~$hardreset'")
-                if not command_ran:
+		self.__record("GOOD", None, "reboot.start", "hard reset")
+		if not self.__console_run(r"'~$hardreset'"):
+			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
                         raise errors.AutoservUnsupportedError
                 if wait:
                         self._wait_for_restart(timeout)
@@ -368,9 +369,10 @@ class SSHHost(base_classes.RemoteHost):
 		print "Reboot: initiating reboot"
 		self.__record("GOOD", None, "reboot.start")
 		try:
-			self.run('(sleep 5; reboot) >/dev/null 2>&1 &')
-		except AutoservRunError:
-			self.__record("ABORT", None, "reboot.start")
+			self.run('(sleep 5; reboot) </dev/null >/dev/null 2>&1 &')
+		except errors.AutoservRunError:
+			self.__record("ABORT", None, "reboot.start",
+				      "reboot command failed")
 			raise
 		if wait:
 			self._wait_for_restart(timeout)
