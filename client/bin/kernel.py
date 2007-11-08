@@ -593,9 +593,21 @@ class rpm_kernel:
 	""" Class for installing rpm kernel package
 	"""
 
+	# pull in some optional site-specific rpm pre-processing
+	try:
+		import site_kernel
+		preprocess_rpm = staticmethod(site_kernel.preprocess_rpm)
+		del site_kernel
+	except ImportError:
+		# just make the preprocessor a nop
+		@staticmethod
+		def preprocess_rpm(rpm_package):
+			return rpm_package
+
+
 	def __init__(self, job, rpm_package, subdir):
 		self.job = job
-		self.rpm_package = rpm_package
+		self.rpm_package = self.preprocess_rpm(rpm_package)
 		self.log_dir = os.path.join(subdir, 'debug')
 		self.subdir = os.path.basename(subdir)
 		if os.path.exists(self.log_dir):
