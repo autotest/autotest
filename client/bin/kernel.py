@@ -680,11 +680,11 @@ class rpm_kernel:
 	def boot(self, args='', ident=1):
 		""" install and boot this kernel
 		"""
-		
+
 		# Check if the kernel has been installed, if not install
 		# as the default tag and boot that.
 		if not self.installed_as:
-			self.intsall()
+			self.install()
 
 		# If we can check the kernel identity do so.
 		if ident:
