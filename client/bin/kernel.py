@@ -307,6 +307,10 @@ class kernel:
 
 		args = self.job.config_get('kernel.mkinitrd_extra_args')
 
+		# don't leak 'None' into mkinitrd command
+		if not args:
+			args = ''
+
 		if vendor in ['Red Hat', 'Fedora Core']:
 			system('mkinitrd %s %s %s' % (args, initrd, version))
 		elif vendor in ['SUSE']:
