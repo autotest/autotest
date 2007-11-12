@@ -5,10 +5,10 @@ apt-get install mysql-server-5.0 python-mysqldb python-gd gnuplot
 In this example, we use 'bob' as the user.
 Now log into the main database as root: 
 
-$ mysql -u root -p mysql
+$ mysql -u root -pmysql
 
 mysql> create database tko;
-mysql> grant SELECT,INSERT,UPDATE,DELETE,CREATE,DROP on tko.* TO 'autotest_tko'@'localhost' identified by 'a_password';
+mysql> grant all privileges on tko.* TO 'autotest_tko'@'localhost' identified by 'a_password';
 mysql> grant SELECT on tko.* TO 'nobody'@'localhost';
 mysql> grant SELECT on tko.* TO 'nobody'@'%';
 mysql> quit
