@@ -26,6 +26,7 @@ import time
 import installable_object
 import errors
 import utils
+from common import logging
 
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
@@ -56,6 +57,9 @@ class Autotest(installable_object.InstallableObject):
 	This is a leaf class in an abstract class hierarchy, it must
 	implement the unimplemented methods in parent classes.
 	"""
+	job = None
+
+
 	def __init__(self, host = None):
 		self.host = host
 		self.got = False
@@ -64,6 +68,7 @@ class Autotest(installable_object.InstallableObject):
 		super(Autotest, self).__init__()
 
 
+	@logging.record
 	def install(self, host = None):
 		"""
 		Install autotest.  If get() was not called previously, an 

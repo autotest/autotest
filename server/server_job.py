@@ -31,6 +31,7 @@ import source_kernel, rpm_kernel, deb_kernel
 from subcommand import *
 from utils import run, get_tmp_dir, sh_escape
 
+autotest.Autotest.job = job
 hosts.SSHHost.job = job
 """
 
