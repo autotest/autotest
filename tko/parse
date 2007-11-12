@@ -91,12 +91,16 @@ def do_parse(jobname, path):
 	for test in job.tests:
 		if not test.subdir:
 			continue
-		print "* testname, status, reason: %s %s %s" % (test.subdir, test.status, test.reason)
+		print "* testname, status, reason: %s %s %s" % \
+					(test.subdir, test.status, test.reason)
 		if re.match(r'(FAIL|WARN)',test.status):
-			mesgtxt += "%-12s %-20s %-12s %-10s %s" % (jobname, job.kernel.base, test.subdir, test.status, test.reason)
+			mesgtxt += "%-12s %-20s %-12s %-10s %s" % \
+					(jobname, job.kernel.base, test.subdir,
+					 test.status, test.reason)
 
 	if len(mesgtxt) > 2 and mailit:
-		print "Sending email report of FAILURES on " + jobname + " to " + job.user
+		print "Sending email report of FAILURES on %s to %s" % \
+							(jobname, job.user)
 		mailfailure(jobname, job, mesgtxt)
 	db.insert_job(jobname, job)
 	print "COMMITING"
