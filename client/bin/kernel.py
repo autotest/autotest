@@ -2,31 +2,8 @@ __author__ = """Copyright Martin J. Bligh, 2006"""
 
 import os,os.path,shutil,urllib,copy,pickle,re,glob,time
 from autotest_utils import *
+from common import logging
 import kernel_config, test, os_dep
-
-
-def record(fn):
-	""" Decorator for logging calls to specific kernel methods.
-	It also accepts a "logged=False" keyword argument to disable
-	the logging for particular calls.
-
-	Classes that make use of this dectorator will need to have job
-	and subdir attributes for the logging to function correctly.
-	"""
-	def recorded_func(self, *args, **dargs):
-		logged = dargs.pop('logged', True)
-		if not logged:
-			return fn(self, *args, **dargs)
-		# wrap the method call in success/failure logging
-		name = "kernel.%s" % fn.__name__
-		try:
-			result = fn(self, *args, **dargs)
-			self.job.record('GOOD', self.subdir, name)
-		except Exception, detail:
-			self.job.record('FAIL', self.subdir, name, str(detail))
-			raise
-		return result
-	return recorded_func
 
 
 class kernel:
@@ -138,7 +115,7 @@ class kernel:
 				self.patch(*base_components)
 
 
-	@record
+	@logging.record
 	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
 		if not patches:
@@ -147,7 +124,7 @@ class kernel:
 		self.apply_patches(self.get_patches(patches))
 
 
-	@record
+	@logging.record
 	def config(self, config_file = '', config_list = None, defconfig = False):
 		self.job.stdout.tee_redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
@@ -220,7 +197,7 @@ class kernel:
 		system('sed "%s" < Makefile.old > Makefile' % p)
 
 
-	@record
+	@logging.record
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
 
@@ -277,7 +254,7 @@ class kernel:
 			raise TestError("no vmlinux found, kernel build failed")
 
 
-	@record
+	@logging.record
 	def clean(self):
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
@@ -285,7 +262,7 @@ class kernel:
 		system('make clean > /dev/null 2> /dev/null')
 
 
-	@record
+	@logging.record
 	def mkinitrd(self, version, image, system_map, initrd):
 		"""Build kernel initrd image.
 		Try to use distro specific way to build initrd image.
@@ -331,7 +308,7 @@ class kernel:
 		self.build_image = image
 
 
-	@record
+	@logging.record
 	def install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 
@@ -626,7 +603,7 @@ class rpm_kernel:
 			self.changelist = None
 
 
-	@record
+	@logging.record
 	def install(self, tag='autotest'):
 		self.installed_as = tag
 
