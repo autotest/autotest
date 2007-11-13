@@ -179,10 +179,9 @@ class job:
 	def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
 		"""Summon a kernel object"""
 		(results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
-		if base_tree.endswith('.rpm'):
-			return kernel.rpm_kernel(self, base_tree, results_dir)
 		build_dir = 'linux'
-		return kernel.kernel(self, base_tree, results_dir, tmp_dir, build_dir, leave)
+		return kernel.auto_kernel(self, base_tree, results_dir,
+					  tmp_dir, build_dir, leave)
 
 
 	def barrier(self, *args):
