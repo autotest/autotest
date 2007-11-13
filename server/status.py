@@ -2,62 +2,140 @@
 import sys, re
 
 
-_status_list = ["GOOD", "WARN", "FAIL", "ABORT", "ERROR"]
-_order_dict = {None: -1}
-_order_dict.update((status, i)
-		   for i, status in enumerate(_status_list))
-_status_regex = re.compile(r"(?:STATUS\s*)?(%s)\t(.*)" % "|".join(_status_list))
+class Machine:
+	"""
+	Represents the current state of a machine. Possible values are:
+		TESTING     currently running a test
+		REBOOTING   currently rebooting
+		BROKEN      busted somehow (e.g. reboot timed out)
+		OTHER       none of the above
+
+	The implementation is basically that of a state machine. From an
+	external point of view the only relevant attributes are:
+	        details     text description of the current status
+		test_count  number of tests run
+	"""
+	def __init__(self):
+		self.state = "OTHER"
+		self.details = "Running"
+		self.test_name = ""
+		self.test_count = 0
 
 
-def _worst_status(old_status, new_status):
-	if _order_dict[new_status] > _order_dict[old_status]:
-		return new_status
-	else:
-		return old_status
+	def process_line(self, line):
+		self.handlers[self.state](self, line)
 
-def _update_details(status, details):
-	parts = details.split("\t")
-	if parts[1] == "run starting":
-		return "Running test"
-	elif re.match(r"^reboot\.\w*$", parts[1]):
-		reboot_good = (_worst_status("GOOD", status) == "GOOD")
-		stage = parts[1].split(".")[1]
-		if not reboot_good:
-			return "Reboot failed - machine dead"
+
+	def _OTHER_handler(self, line):
+		match = self.job_start.match(line)
+		if match:
+			self.state = "TESTING"
+			self.tab_level = len(match.group(1))
+			self.test_name = match.group(2)
+			self.test_status = "GOOD"
+			self.details = "Running %s" % self.test_name
+			return
+
+		match = self.reboot_start.match(line)
+		if match:
+			self.boot_status = match.group(1)
+			if self.worse_status("GOOD", self.boot_status) == "GOOD":
+				self.state = "REBOOTING"
+				self.details = "Rebooting"
+			else:
+				self.state = "BROKEN"
+				self.details = "Reboot failed - machine broken"
+			return
+
+
+	def _TESTING_handler(self, line):
+		match = self.job_status.match(line)
+		if match:
+			if len(match.group(1)) != self.tab_level + 1:
+				return   # we don't care about subgroups
+			if self.test_name != match.group(3):
+				return   # we don't care about other tests
+			self.test_status = self.worse_status(self.test_status,
+							     match.group(2))
+			self.details = "Running %s: %s" % (self.test_name,
+							    match.group(4))
+			return
+
+		match = self.job_end.match(line)
+		if match:
+			if len(match.group(1)) != self.tab_level:
+				return   # we don't care about subgroups
+			if self.test_name != match.group(3):
+				raise Exception("Group START and END name mismatch")
+			self.state = "OTHER"
+			self.test_status = self.worse_status(self.test_status,
+							     match.group(2))
+			self.test_name = ""
+			del self.test_status
+			self.details = "Running"
+			self.test_count += 1
+			return
+
+
+	def _REBOOTING_handler(self, line):
+		match = self.reboot_done.match(line)
+		if match:
+			status = self.worse_status(self.boot_status,
+						   match.group(1))
+			del self.boot_status
+			if status == "GOOD":
+				self.state = "OTHER"
+				self.details = "Running"
+			else:
+				self.state = "BROKEN"
+				self.details = "Reboot failed - machine broken"
+			return
+
+
+	def _BROKEN_handler(self, line):
+		pass    # just do nothing - we're broken and staying broken
+
+
+	handlers = {"OTHER": _OTHER_handler,
+		    "TESTING": _TESTING_handler,
+		    "REBOOTING": _REBOOTING_handler,
+		    "BROKEN": _BROKEN_handler}
+
+
+	status_list = ["GOOD", "WARN", "FAIL", "ABORT", "ERROR"]
+	order_dict = {None: -1}
+	order_dict.update((status, i)
+			  for i, status in enumerate(status_list))
+
+
+	job_start = re.compile(r"^STATUS(\t+)START\t----\ttest\.([^\t]+).*$")
+	job_status = re.compile(r"^STATUS(\t+)(%s)\t([^\t]+)\t(?:[^\t]+).*\t([^\t]+)$" %
+				"|".join(status_list))
+	job_end = re.compile(r"^STATUS(\t+)END (%s)\t----\ttest\.([^\t]+).*$" %
+			     "|".join(status_list))
+	reboot_start = re.compile(r"^(?:STATUS\t)?(%s)\t[^\t]+\treboot\.start.*$" %
+				  "|".join(status_list))
+	reboot_done = re.compile(r"^(?:STATUS\t)?(%s)\t[^\t]+\treboot\.verify.*$" %
+				 "|".join(status_list))
+
+	@classmethod
+	def worse_status(cls, old_status, new_status):
+		if cls.order_dict[new_status] > cls.order_dict[old_status]:
+			return new_status
 		else:
-			if stage == "start":
-				return "Rebooting"
-			elif stage == "verify":
-				return "Reboot complete - machine ready"
-	# if we don't have a better message, just use the raw details
-	return details
+			return old_status
 
 
 def parse_status(status_log):
-	"""
-	Parses a status.log file and returns a list of meaningful results.
-	"""
-	counts = dict((status, 0) for status in _status_list)
-	current_status = None
-	details = ""
+	parser = Machine()
 	for line in file(status_log):
-		line = line.rstrip()
-		status_match = _status_regex.match(line)
-		if status_match:
-			new_status, details = status_match.groups()
-			current_status = _worst_status(current_status, new_status)
-			details = _update_details(current_status, details)
-		elif line == "REBOOT":
-			pass  # ignore these messages
-		elif line == "DONE":
-			details = "Between tests"
-			counts[current_status] += 1
-			current_status = None
-		else:
-			details = line
-	results = [details]
-	results += ["%d %s" % (counts[status], status) for status in _status_list]
-	return results
+		parser.process_line(line)
+	result = {
+	    "status": parser.details,
+	    "test_on": parser.test_name,
+	    "test_num_complete": parser.test_count
+	    }
+	return result
 
 
 if __name__ == "__main__":
@@ -65,5 +143,4 @@ if __name__ == "__main__":
  	if len(args) != 1:
  		print "USAGE: status.py status_log"
  		sys.exit(1)
- 	for result in parse_status(args[0]):
-		print result
+	print parse_status(args[0])

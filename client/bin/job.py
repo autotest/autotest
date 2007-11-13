@@ -6,7 +6,7 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 # standard stuff
-import os, sys, re, pickle, shutil, time
+import os, sys, re, pickle, shutil, time, traceback
 # autotest stuff
 from autotest_utils import *
 from parallel import *
@@ -93,7 +93,7 @@ class job:
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
-		self.record_prefix = ''
+		self.group_level = 0
 
 		self.config = config.config(self)
 
@@ -228,30 +228,60 @@ class job:
 		if not url:
 			raise "Test name is invalid. Switched arguments?"
 		(group, testname) = test.testname(url)
-		tag = None
+		tag = dargs.pop('tag', None)
 		subdir = testname
-		if dargs.has_key('tag'):
-			tag = dargs['tag']
-			del dargs['tag']
-			if tag:
-				subdir += '.' + tag
-		try:
+		if tag:
+			subdir += '.' + tag
+
+		def group_func():
 			try:
 				self.__runtest(url, tag, args, dargs)
 			except Exception, detail:
-				self.record('FAIL', subdir, testname, \
-							detail.__str__())
-
+				self.record('FAIL', subdir, testname,
+					    str(detail))
 				raise
 			else:
-				self.record('GOOD', subdir, testname, \
-						'completed successfully')
-		except TestError:
-			return 0
-		except:
-			raise
+				self.record('GOOD', subdir, testname,
+					    'completed successfully')
+		name = "test." + testname
+		result, exc_info = self.__rungroup(name, group_func)
+
+		if exc_info and isinstance(exc_info[1], TestError):
+			return False
+		elif exc_info:
+			raise exc_info[0], exc_info[1], exc_info[2]
 		else:
-			return 1
+			return True
+
+
+	def __rungroup(self, name, function, *args, **dargs):
+		"""\
+		name:
+		        name of the group
+		function:
+			subroutine to run
+		*args:
+			arguments for the function
+
+		Returns a 2-tuple (result, exc_info) where result
+		is the return value of function, and exc_info is
+		the sys.exc_info() of the exception thrown by the
+		function (which may be None).
+		"""
+
+		result, exc_info = None, None
+		try:
+			self.record('START', None, name)
+			self.group_level += 1
+			result = function(*args, **dargs)
+			self.group_level -= 1
+			self.record('END GOOD', None, name)
+		except Exception, e:
+			exc_info = sys.exc_info()
+			self.group_level -= 1
+			self.record('END FAIL', None, name, format_error())
+
+		return result, exc_info
 
 
 	def run_group(self, function, *args, **dargs):
@@ -262,37 +292,21 @@ class job:
 			arguments for the function
 		"""
 
-		result = None
+		# Allow the tag for the group to be specified
 		name = function.__name__
+		tag = dargs.pop('tag', None)
+		if tag:
+			name = tag
 
-		# Allow the tag for the group to be specified.
-		if dargs.has_key('tag'):
-			tag = dargs['tag']
-			del dargs['tag']
-			if tag:
-				name = tag
+		result, exc_info = self.__rungroup(name, function,
+						   *args, **dargs)
 
-		# if tag:
-		#	name += '.' + tag
-		old_record_prefix = self.record_prefix
-		try:
-			try:
-				self.record('START', None, name)
-				self.record_prefix += '\t'
-				result = function(*args, **dargs)
-				self.record_prefix = old_record_prefix
-				self.record('END GOOD', None, name)
-			except:
-				self.record_prefix = old_record_prefix
-				self.record('END FAIL', None, name, format_error())
-		# We don't want to raise up an error higher if it's just
-		# a TestError - we want to carry on to other tests. Hence
-		# this outer try/except block.
-		except TestError:
-			pass
-		except:
-			raise TestError(name + ' failed\n' + format_error())
+		# if there was a non-TestError exception, raise it
+		if exc_info and isinstance(exc_info[1], TestError):
+			err = ''.join(traceback.format_exception(*exc_info))
+			raise TestError(name + ' failed\n' + err)
 
+		# pass back the actual return value from the function
 		return result
 
 
@@ -479,7 +493,7 @@ from autotest_utils import *
 		------------------------------------------------------------
 
 		Initial tabs indicate indent levels for grouping, and is
-		governed by self.record_prefix
+		governed by self.group_level
 
 		multiline messages have secondary lines prefaced by a double
 		space ('  ')
@@ -504,7 +518,7 @@ from autotest_utils import *
 		status = re.sub(r"\t", "  ", status)
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
-		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
+		status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ", status)
 
 		# Generate timestamps for inclusion in the logs
 		epoch_time = int(time.time())  # seconds since epoch, in UTC
@@ -516,13 +530,14 @@ from autotest_utils import *
 		msg = '\t'.join(str(x) for x in (status_code, substr, operation,
 						 epoch_time_str, local_time_str,
 						 status))
+		msg = '\t' * self.group_level + msg
 
 		self.harness.test_status_detail(status_code, substr,
 							operation, status)
 		self.harness.test_status(msg)
 		print msg
 		status_file = os.path.join(self.resultdir, 'status')
-		open(status_file, "a").write(self.record_prefix + msg + "\n")
+		open(status_file, "a").write(msg + "\n")
 		if subdir:
 			status_file = os.path.join(self.resultdir, subdir, 'status')
 			open(status_file, "a").write(msg + "\n")
