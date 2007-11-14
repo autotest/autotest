@@ -18,8 +18,8 @@ class readprofile(profiler.profiler):
 	def initialize(self):
 		try:
 			system('grep -iq " profile=" /proc/cmdline')
-		except:
-			raise CmdError, 'readprofile not enabled'
+		except CmdError:
+			raise AutotestError('readprofile not enabled')
 
 		self.cmd = self.srcdir + '/sys-utils/readprofile'
 
