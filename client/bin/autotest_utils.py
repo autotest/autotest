@@ -328,8 +328,8 @@ def system_output(command, ignorestatus = 0):
 		whether to raise a CmdError if command has a nonzero exit status
 	"""
 	(result, data) = commands.getstatusoutput(command)
-	if ((result != 0) and not ignorestatus):
-		raise CmdError, 'command failed: ' + command
+	if result != 0 and not ignorestatus:
+		raise CmdError('command failed: %s' % command, result)
 	return data
 
 
