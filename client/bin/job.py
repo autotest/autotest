@@ -116,7 +116,9 @@ class job:
 			os.chdir(pwd)
 
 		if not cont:
+			self.record('START', None, None)
 			self.harness.run_start()
+		self.group_level = 1
 
 
 	def relative_path(self, path):
@@ -577,22 +579,27 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobContinue:
 		sys.exit(5)
 
-	except JobError, instance:
+	except JobError, e:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob:
 			command = None
 			if len(instance.args) > 1:
 				command = instance.args[1]
+			myjob.group_level = 0
 			myjob.record('ABORT', None, command, instance.args[0])
+			myjob.record('END ABORT', None, None)
 			myjob.complete(1)
-		
 
-	except:
-		print "JOB ERROR: " + format_error()
+	except Exception, e:
+		msg = format_error()
+		print "JOB ERROR: " + msg
 		if myjob:
-			myjob.record('ABORT', None, None, format_error())
+			myjob.group_level = 0
+			myjob.record('ABORT', None, None, msg)
+			myjob.record('END ABORT', None, None)
 			myjob.complete(1)
 
 	# If we get here, then we assume the job is complete and good.
-	myjob.record('GOOD', None, None, 'job completed sucessfully')
+	myjob.group_level = 0
+	myjob.record('END GOOD', None, None)
 	myjob.complete(0)

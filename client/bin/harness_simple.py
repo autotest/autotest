@@ -26,32 +26,9 @@ class harness_simple(harness.harness):
 		self.status = os.fdopen(3, 'w')
 
 
-	def __send(self, msg):
-		if self.status:
-			self.status.write(msg.rstrip() + "\n")
-			self.status.flush()
-
-
-	def run_start(self):
-		"""A run within this job is starting"""
-		self.__send("STATUS\tGOOD\t----\trun starting")
-
-
-	def run_reboot(self):
-		"""A run within this job is performing a reboot
-		   (expect continue following reboot)
-		"""
-		self.__send("REBOOT")
-
-
-	def run_complete(self):
-		"""A run within this job is completing (all done)"""
-		self.__send("DONE")
-
-
 	def test_status(self, status):
 		"""A test within this job is completing"""
-
-		# Send the first line with the status code as a STATUS message.
-		lines = status.split("\n")
-		self.__send("STATUS\t" + lines[0])
+		if self.status:
+			for line in status.split('\n'):
+				self.status.write(line.rstrip() + '\n')
+				self.status.flush()
