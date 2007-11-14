@@ -108,14 +108,14 @@ class Machine:
 			  for i, status in enumerate(status_list))
 
 
-	job_start = re.compile(r"^STATUS(\t+)START\t----\ttest\.([^\t]+).*$")
-	job_status = re.compile(r"^STATUS(\t+)(%s)\t([^\t]+)\t(?:[^\t]+).*\t([^\t]+)$" %
+	job_start = re.compile(r"^(\t*)START\t----\ttest\.([^\t]+).*$")
+	job_status = re.compile(r"^(\t*)(%s)\t([^\t]+)\t(?:[^\t]+).*\t([^\t]+)$" %
 				"|".join(status_list))
-	job_end = re.compile(r"^STATUS(\t+)END (%s)\t----\ttest\.([^\t]+).*$" %
+	job_end = re.compile(r"^(\t*)END (%s)\t----\ttest\.([^\t]+).*$" %
 			     "|".join(status_list))
-	reboot_start = re.compile(r"^(?:STATUS\t)?(%s)\t[^\t]+\treboot\.start.*$" %
+	reboot_start = re.compile(r"^\t?(%s)\t[^\t]+\treboot\.start.*$" %
 				  "|".join(status_list))
-	reboot_done = re.compile(r"^(?:STATUS\t)?(%s)\t[^\t]+\treboot\.verify.*$" %
+	reboot_done = re.compile(r"^\t?(%s)\t[^\t]+\treboot\.verify.*$" %
 				 "|".join(status_list))
 
 	@classmethod

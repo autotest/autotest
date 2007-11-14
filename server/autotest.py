@@ -321,10 +321,10 @@ class _Run(object):
 				if time_left <= 0:
 					break
 			section += 1
-			if re.match('DONE', last):
+			if re.match(r'^END .*\t----\t----\t.*$', last):
 				print "Client complete"
 				return
-			elif re.match('REBOOT', last):
+			elif re.match('^\t*GOOD\t----\treboot\.start.*$', last):
 				print "Client is rebooting"
 				print "Waiting for client to halt"
 				if not self.host.wait_down(HALT_TIME):
