@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, re
+import sys, re, os, itertools
 
 
 class Machine:
@@ -127,6 +127,10 @@ class Machine:
 
 
 def parse_status(status_log):
+	"""\
+	Parse the status from a single status log.
+	Do not use with status logs from multi-machine tests.
+	"""
 	parser = Machine()
 	for line in file(status_log):
 		parser.process_line(line)
@@ -136,6 +140,52 @@ def parse_status(status_log):
 	    "test_num_complete": parser.test_count
 	    }
 	return result
+
+
+def _file_iterator(filename):
+	"""\
+	Return an iterator over file(filename), or an empty iterator
+	if the file does not exist.
+	"""
+	if os.path.exists(filename):
+		return iter(file(filename))
+	else:
+		return ()
+
+
+def parse_machine_status(root_path, name):
+	"""Parse the status for one machine (of a multi-machine test)"""
+	general_log = _file_iterator(os.path.join(root_path, "status.log"))
+	machine_log = _file_iterator(os.path.join(root_path, name, "status.log"))
+	timestamp_regex = re.compile("\ttimestamp=(\d+)")
+	# collect all the lines from both the root & machine-specific log
+	lines = []
+	timestamp = 0
+	for line in itertools.chain(general_log, machine_log):
+		timestamp_match = timestamp_regex.search(line)
+		# if the log line has a timestamp, use it
+		# otherwise, just use the timestamp from the previous line
+		if timestamp_match:
+			timestamp = int(timestamp_match.group(1))
+		lines.append((timestamp, line))
+	lines.sort()  # this will sort the lines by timestamp
+	# now actually run the lines through the parser
+	parser = Machine()
+	for timestamp, line in lines:
+		parser.process_line(line)
+	return {
+	    "status": parser.details,
+	    "test_on": parser.test_name,
+	    "test_num_complete": parser.test_count
+	    }
+
+
+def parse_multimachine_status(root_path, machine_names):
+	"""Parse the status for a set of machines."""
+	results = {}
+	for name in machine_names:
+		results[name] = parse_machine_status(root_path, name)
+	return results
 
 
 if __name__ == "__main__":
