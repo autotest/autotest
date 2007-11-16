@@ -579,7 +579,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobContinue:
 		sys.exit(5)
 
-	except JobError, e:
+	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob:
 			command = None
