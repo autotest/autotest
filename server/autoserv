@@ -10,7 +10,7 @@ __author__ = """\
 mbligh@google.com (Martin J. Bligh)
 """
 
-import sys, os, re, server_job, hosts.site_host, utils
+import sys, os, re, server_job, hosts.site_host, utils, traceback
 
 usage = """\
 usage: autoserv
@@ -77,4 +77,12 @@ job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
 								user, client)
 job.stdout.tee_redirect(os.path.join(results, 'debug', 'autoserv.stdout'))
 job.stderr.tee_redirect(os.path.join(results, 'debug', 'autoserv.stderr'))
-job.run(machines, reboot, install_before, install_after)
+
+try:
+	job.run(machines, reboot, install_before, install_after)
+except:
+	traceback.print_exc()
+
+# if the job was aborted, return a non-zero error code
+if getattr(job, 'aborted', False):
+	sys.exit(1)

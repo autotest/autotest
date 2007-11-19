@@ -18,5 +18,5 @@ os.dup2(1,2)
 autodir = os.path.dirname(sys.argv[0])
 autotest = os.path.join(autodir, 'autotest')
 cmd = ' '.join([autotest, '-H simple'] + sys.argv[1:])
-p = Popen(cmd, shell=True, stderr=STDOUT, close_fds=False)
-os.waitpid(p.pid, 0)
+exit_code = call(cmd, shell=True, stderr=STDOUT, close_fds=False)
+sys.exit(exit_code) # pass on the exit status from autotest
