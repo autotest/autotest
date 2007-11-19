@@ -169,6 +169,7 @@ class server_job:
 		# use a copy so changes don't affect the original dictionary
 		namespace = namespace.copy()
 
+		self.aborted = False
 		namespace['machines'] = machines
 		namespace['args'] = self.args
 		namespace['job'] = self
