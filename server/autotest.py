@@ -299,6 +299,8 @@ class _Run(object):
 				   timeout=timeout,
 				   stdout_tee=client_log,
 				   stderr_tee=StdErrRedirector())
+		if result.exit_status > 0:
+			self.host.job.aborted = True
 		if not result.stderr:
   			raise AutotestRunError(
 			    "execute_section: %s failed to return anything\n"
