@@ -279,7 +279,8 @@ class job:
 		except Exception, e:
 			exc_info = sys.exc_info()
 			self.group_level -= 1
-			self.record('END FAIL', None, name, format_error())
+			err_msg = str(e) + '\n' + format_error()
+			self.record('END FAIL', None, name, err_msg)
 
 		return result, exc_info
 
@@ -590,7 +591,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.complete(1)
 
 	except Exception, e:
-		msg = format_error()
+		msg = str(e) + '\n' + format_error()
 		print "JOB ERROR: " + msg
 		if myjob:
 			myjob.group_level = 0
