@@ -244,8 +244,7 @@ class job:
 			else:
 				self.record('GOOD', subdir, testname,
 					    'completed successfully')
-		name = "test." + testname
-		result, exc_info = self.__rungroup(name, group_func)
+		result, exc_info = self.__rungroup(subdir, group_func)
 
 		if exc_info and isinstance(exc_info[1], TestError):
 			return False
