@@ -23,6 +23,19 @@ sys.path.append(client_dir)
 import fd_stack
 sys.path.pop()
 
+# load up a control segment
+# these are all stored in <server_dir>/control_segments
+def load_control_segment(name):
+	server_dir = os.path.dirname(os.path.abspath(__file__))
+	script_file = os.path.join(server_dir,
+				   "control_segments",
+				   name)
+	if os.path.exists(script_file):
+		return file(script_file).read()
+	else:
+		return ""
+
+
 preamble = """\
 import os, sys
 
@@ -73,14 +86,9 @@ def install(machine):
 parallel_simple(install, machines, log=False)
 """
 
-# This needs more stuff in it. Check for diskspace, etc. But it's a start.
-verify="""\
-def cleanup(machine):
-	host = hosts.SSHHost(machine, initialize=False)
-	host.ssh_ping()
-
-parallel_simple(cleanup, machines, log=False)
-"""
+# load up the verifier preamble, with an optional site-specific hook
+verify = load_control_segment("site_verify")
+verify += load_control_segment("verify")
 
 # This is pretty silly. Wait for s/w watchdog. Pray hard.
 repair="""\
