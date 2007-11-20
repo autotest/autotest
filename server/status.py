@@ -28,7 +28,7 @@ class Machine:
 
 	def _OTHER_handler(self, line):
 		match = self.job_start.match(line)
-		if match:
+		if match and match.group(2) != "----":
 			self.state = "TESTING"
 			self.tab_level = len(match.group(1))
 			self.test_name = match.group(2)
@@ -108,10 +108,10 @@ class Machine:
 			  for i, status in enumerate(status_list))
 
 
-	job_start = re.compile(r"^(\t*)START\t----\ttest\.([^\t]+).*$")
+	job_start = re.compile(r"^(\t*)START\t----\t([^\t]+).*$")
 	job_status = re.compile(r"^(\t*)(%s)\t([^\t]+)\t(?:[^\t]+).*\t([^\t]+)$" %
 				"|".join(status_list))
-	job_end = re.compile(r"^(\t*)END (%s)\t----\ttest\.([^\t]+).*$" %
+	job_end = re.compile(r"^(\t*)END (%s)\t----\t([^\t]+).*$" %
 			     "|".join(status_list))
 	reboot_start = re.compile(r"^\t?(%s)\t[^\t]+\treboot\.start.*$" %
 				  "|".join(status_list))
