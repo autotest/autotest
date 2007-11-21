@@ -3,6 +3,7 @@ __author__ = """Copyright Martin J. Bligh, 2006"""
 import os,os.path,shutil,urllib,copy,pickle,re,glob,time
 from autotest_utils import *
 from common import logging
+from fd_stack import tee_output_logdir_mark
 import kernel_config, test, os_dep
 
 
@@ -116,6 +117,7 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def patch(self, *patches):
 		"""Apply a list of patches (in order)"""
 		if not patches:
@@ -125,13 +127,12 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def config(self, config_file = '', config_list = None, defconfig = False):
-		self.job.stdout.tee_redirect(os.path.join(self.log_dir, 'stdout'))
 		self.set_cross_cc()
 		config = kernel_config.kernel_config(self.job, self.build_dir,
 			 self.config_dir, config_file, config_list,
 			 defconfig, self.base_tree_version)
-		self.job.stdout.restore()
 
 
 	def get_patches(self, patches):
@@ -198,6 +199,7 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
 		"""build the kernel
 
@@ -210,9 +212,6 @@ class kernel:
 		os.chdir(self.build_dir)
 		if extraversion:
 			self.extraversion(extraversion)
-		print os.path.join(self.log_dir, 'stdout')
-		self.job.stdout.tee_redirect(logfile + '.stdout')
-		self.job.stderr.tee_redirect(logfile + '.stderr')
 		self.set_cross_cc()
 		# setup_config_file(config_file, config_overrides)
 
@@ -226,9 +225,6 @@ class kernel:
 		system(build_string)
 		if kernel_config.modules_needed('.config'):
 			system('make -j %d modules' % (threads))
-
-		self.job.stdout.restore()
-		self.job.stderr.restore()
 
 		kernel_version = self.get_kernel_build_ver()
 		kernel_version = re.sub('-autotest', '', kernel_version)
@@ -255,6 +251,7 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def clean(self):
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
@@ -263,6 +260,7 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def mkinitrd(self, version, image, system_map, initrd):
 		"""Build kernel initrd image.
 		Try to use distro specific way to build initrd image.
@@ -309,6 +307,7 @@ class kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def install(self, tag='autotest', prefix = '/'):
 		"""make install in the kernel tree"""
 
@@ -592,12 +591,9 @@ class rpm_kernel:
 
 
 	@logging.record
+	@tee_output_logdir_mark
 	def install(self, tag='autotest'):
 		self.installed_as = tag
-
-		logfile = os.path.join(self.log_dir, 'rpm_install')
-		self.job.stdout.tee_redirect(logfile + '.stdout')
-		self.job.stderr.tee_redirect(logfile + '.stderr')
 
 		self.rpm_name = system_output('rpm -qp ' + self.rpm_package)
 
@@ -606,9 +602,6 @@ class rpm_kernel:
 
 		# get file list
 		files = system_output('rpm -ql ' + self.rpm_name).splitlines()
-
-		self.job.stdout.restore()
-		self.job.stderr.restore()
 
 		# search for vmlinuz
 		for file in files:
