@@ -102,6 +102,13 @@ class kernel:
 		else:
 			self.base_tree_version = None
 			
+		# Actually extract the tree.  Make sure we know it occured
+		self.extract(base_tree)
+
+
+	@logging.record
+	@tee_output_logdir_mark
+	def extract(self, base_tree):
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
