@@ -363,10 +363,11 @@ sub add {
   }
 
   # use default entry to determine if path (/boot) should be removed
-  if ($sections[$default]{'kernel'} !~ /^\/boot/) {
-    $param{'add-kernel'} =~ s/^\/boot//;
-    $param{'initrd'} =~ s/^\/boot// unless (!defined $param{'initrd'});
-  }
+  my $bootpath = $sections[$default]{'kernel'};
+  $bootpath =~ s@[^/]*$@@;
+
+  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
+  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
 
   my @newkernel;
   push (@newkernel, "image=$param{'add-kernel'}\n", "\tlabel=$param{title}\n");
@@ -1360,10 +1361,11 @@ sub add {
   }
 
   # use default entry to determine if path (/boot) should be removed
-  if ($sections[$default]{'kernel'} !~ /^\/boot/) {
-    $param{'add-kernel'} =~ s/^\/boot//;
-    $param{'initrd'} =~ s/^\/boot// unless !defined $param{'initrd'};
-  }
+  my $bootpath = $sections[$default]{'kernel'};
+  $bootpath =~ s@[^/]*$@@;
+
+  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
+  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
 
   my @newkernel;
   push(@newkernel, "title\t$param{title}\n") if defined $param{title};
@@ -2070,10 +2072,11 @@ sub add {
   }
 
   # use default entry to determine if path (/boot) should be removed
-  if ($sections[$default]{'kernel'} !~ /^\/boot/) {
-    $param{'add-kernel'} =~ s/^\/boot//;
-    $param{'initrd'} =~ s/^\/boot// unless !defined $param{'initrd'};
-  }
+  my $bootpath = $sections[$default]{'kernel'};
+  $bootpath =~ s@[^/]*$@@;
+
+  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
+  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
 
   my $line;
   my @newkernel;
