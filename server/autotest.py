@@ -299,7 +299,7 @@ class _Run(object):
 				   timeout=timeout,
 				   stdout_tee=client_log,
 				   stderr_tee=StdErrRedirector())
-		if result.exit_status > 0:
+		if result.exit_status == 1:
 			self.host.job.aborted = True
 		if not result.stderr:
   			raise AutotestRunError(
