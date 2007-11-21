@@ -92,3 +92,48 @@ class fd_stack:
 		self.update_handle(old_filehandle)
 		# where_art_thy_filehandles()
 		# print_to_tty("EXIT RESTORE %d" % self.fd)
+
+
+def tee_output_logdir(fn):
+	"""\
+	Method decorator for a class to tee the output to the objects log_dir.
+	"""
+	def tee_logdir_wrapper(self, *args, **dargs):
+		self.job.stdout.tee_redirect(os.path.join(self.log_dir, 'stdout'))
+		self.job.stderr.tee_redirect(os.path.join(self.log_dir, 'stderr'))
+		try:
+			result = fn(self, *args, **dargs)
+		finally:
+			self.job.stderr.restore()
+			self.job.stdout.restore()
+		return result
+	return tee_logdir_wrapper
+
+
+def __mark(filename, msg):
+	file = open(filename, 'a')
+	file.write(msg)
+	file.close()
+
+
+def tee_output_logdir_mark(fn):
+	def tee_logdir_mark_wrapper(self, *args, **dargs):
+		mark = self.__class__.__name__ + "." + fn.__name__
+		outfile = os.path.join(self.log_dir, 'stdout')
+		errfile = os.path.join(self.log_dir, 'stderr')
+		__mark(outfile, "--- START " + mark + " ---\n")
+		__mark(errfile, "--- START " + mark + " ---\n")
+		self.job.stdout.tee_redirect(outfile)
+		self.job.stderr.tee_redirect(errfile)
+		try:
+			result = fn(self, *args, **dargs)
+		finally:
+			self.job.stderr.restore()
+			self.job.stdout.restore()
+			__mark(outfile, "--- END " + mark + " ---\n")
+			__mark(errfile, "--- END " + mark + " ---\n")
+
+		return result
+
+	tee_logdir_mark_wrapper.__name__ = fn.__name__
+	return tee_logdir_mark_wrapper
