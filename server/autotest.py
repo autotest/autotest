@@ -186,8 +186,11 @@ class Autotest(installable_object.InstallableObject):
 			pass
 		
 		# Ready .... Aim ....
-		host.run('rm -f ' + atrun.remote_control_file)
-		host.run('rm -f ' + atrun.remote_control_file + '.state')
+		for control in [atrun.remote_control_file,
+				atrun.remote_control_file + '.state',
+				atrun.manual_control_file,
+				atrun.manual_control_file + '.state']:
+			host.run('rm -f ' + control)
 		
 		# Copy control_file to remote_control_file on the host
 		tmppath = utils.get(control_file)
@@ -248,7 +251,9 @@ class _Run(object):
 		self.env = host.env
 		
 		self.autodir = _get_autodir(self.host)
-		self.remote_control_file = os.path.join(self.autodir, 'control')
+		self.manual_control_file = os.path.join(self.autodir, 'control')
+		self.remote_control_file = os.path.join(self.autodir,
+							     'control.autoserv')
 
 
 	def verify_machine(self):
@@ -268,19 +273,21 @@ class _Run(object):
 		logfile = "%s/debug/client.log.%d" % (self.results_dir,
 						      section)
 		client_log = open(logfile, 'w', 0)
+		cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
 		if section > 0:
-			cont = '-c'
-		else:
-			cont = ''
-		client = os.path.join(self.autodir, 'bin/autotest_client')
-		ssh = "ssh -q %s@%s" % (self.host.user, self.host.hostname)
+			cmd.append('-c')
+		cmd.append(self.remote_control_file)
+		# We should *really* be doing this via host.run,
+		# but need to sort out the redirection we use first.
+		ssh = "ssh -q -a -o BatchMode=yes %s@%s" % (self.host.user,
+							    self.host.hostname)
 		env = ' '.join(['='.join(i) for i in self.env.iteritems()])
-		cmd = "%s %s %s" % (client, cont, self.remote_control_file)
-		full_cmd = "%s '%s %s'" % (ssh, env, cmd)
+		full_cmd = "%s '%s %s'" % (ssh, env, ' '.join(cmd))
 		print full_cmd
 
 		status_log_file = os.path.join(self.results_dir, 'status.log')
 		status_log = open(status_log_file, 'a', 0)
+
 
 		class StdErrRedirector(object):
 			"""Partial file object to write to both stdout and
@@ -290,6 +297,7 @@ class _Run(object):
 			def write(self, str):
 				sys.stdout.write(str)
 				status_log.write(str)
+
 
 			def flush(self):
 				sys.stdout.flush()
