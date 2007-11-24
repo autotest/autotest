@@ -44,7 +44,7 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
-	SSH_BASE_COMMAND = '/usr/bin/ssh -a -o BatchMode=yes'
+	SSH_BASE_COMMAND = '/usr/bin/ssh -a -o BatchMode=yes -o ConnectTimeout=30'
 	DEFAULT_REBOOT_TIMEOUT = 1800
 	job = None
 
