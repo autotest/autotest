@@ -78,7 +78,7 @@ def mailfailure(jobname, job, mesgtxt):
 
 def do_parse(jobname, path):
 	if debug:
-		print '\nScanning' + path
+		print '\nScanning %s (%s)' % (jobname, path)
 	if db.find_job(jobname):              # Job has already been parsed
 		if debug:
 			print '! Already processed'
@@ -86,13 +86,13 @@ def do_parse(jobname, path):
 	job = parse.job(path, 'regression')
 	if not job:
 		if debug:
-			print '! Not a job'
+			print '! Failed to parse job (no status file?)'
 		return
-	print '+ Parsed ' + path
 	if not job.kernel:
 		if debug:
-			print '! Not a job.kernel'
+			print '! Failed to find kernel for job'
 		return
+	print '+ Parsing ' + path
 	print '* jobname, kernel version: %s %s' % (jobname, job.kernel.base)
 	mesgtxt = "\n"
 	for test in job.tests:
