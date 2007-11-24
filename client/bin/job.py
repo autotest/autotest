@@ -117,8 +117,9 @@ class job:
 
 		if not cont:
 			self.record('START', None, None)
-			self.harness.run_start()
 		self.group_level = 1
+
+		self.harness.run_start()
 
 
 	def relative_path(self, path):
