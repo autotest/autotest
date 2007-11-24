@@ -117,6 +117,9 @@ class job:
 				elements = line.split(None, 3)
 			elements.append(None)   # in case no reason specified
 			(status, subdir, testname, reason) = elements[0:4]
+			if testname == '----':
+				# This is a job level event, not a test
+				continue
 			################################################
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
 			################################################
