@@ -18,6 +18,10 @@ class JobContinue(SystemExit):
 	"""Allow us to bail out requesting continuance."""
 	pass
 
+class JobComplete(SystemExit):
+	"""Allow us to bail out indicating continuation not required."""
+	pass
+
 class AutotestError(Exception):
 	"""The parent of all errors deliberatly thrown within the client code."""
 	pass
