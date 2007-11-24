@@ -72,7 +72,7 @@ def mailfailure(jobname, job, mesgtxt):
 					 "=========", "==============")
 
 	subject = "AUTOTEST: FAILED tests from " + " job " + jobname
-	parse.mail(notify_user, job.user, failcc, subject,
+	parse.mail("autotest", job.user, failcc, subject,
 						message_header + mesgtxt)
 
 
