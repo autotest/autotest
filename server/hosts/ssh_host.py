@@ -353,6 +353,8 @@ class SSHHost(base_classes.RemoteHost):
 		Args:
 			timeout
 		"""
+		self.reboot_setup()
+
 		# forcibly include the "netconsole" kernel arg
 		if self.__netconsole_param:
 			if kernel_args is None:
