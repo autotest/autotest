@@ -231,8 +231,6 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
 			return
-		assert os.path.isdir(os.path.dirname(logfilename)),\
-			"conmux console log directory doesn't exist. SSHHost(host, conmux_log=None) to disable conmux console logging"
 		cmd = [self.conmux_attach, self.__conmux_hostname(), 'cat - >> %s' % logfilename]
 		logger = subprocess.Popen(cmd,
 					  stderr=open('/dev/null', 'w'),
@@ -244,10 +242,8 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		Log the output of the warning monitor to a specified file
 		"""
-		if logfilename == None:
+		if logfilename == None or not os.path.isdir('debug'):
 			return
-		assert os.path.isdir(os.path.dirname(logfilename)),\
-			"conmux warning log directory doesn't exist. SSHHost(host, conmux_warnings=None) to disable logging conmux warnings"
 		script_path = os.path.join(self.serverdir, 'warning_monitor')
 		script_cmd = 'expect %s %s >> %s' % (script_path,
 						     self.hostname,
