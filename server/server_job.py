@@ -12,7 +12,7 @@ Andy Whitcroft <apw@shadowen.org>
 """
 
 import os, sys, re, time
-import test
+import test, errors
 from utils import *
 from error import *
 
@@ -27,9 +27,7 @@ sys.path.pop()
 # these are all stored in <server_dir>/control_segments
 def load_control_segment(name):
 	server_dir = os.path.dirname(os.path.abspath(__file__))
-	script_file = os.path.join(server_dir,
-				   "control_segments",
-				   name)
+	script_file = os.path.join(server_dir, "control_segments", name)
 	if os.path.exists(script_file):
 		return file(script_file).read()
 	else:
@@ -86,12 +84,15 @@ def install(machine):
 parallel_simple(install, machines, log=False)
 """
 
-# load up the verifier preamble, with an optional site-specific hook
+# load up the verifier control segment, with an optional site-specific hook
 verify = load_control_segment("site_verify")
 verify += load_control_segment("verify")
 
-# This is pretty silly. Wait for s/w watchdog. Pray hard.
-repair="""\
+# load up the repair control segment, with an optional site-specific hook
+repair = load_control_segment("site_repair")
+repair += load_control_segment("repair")
+
+cleanup="""\
 def cleanup(machine):
 	host = hosts.SSHHost(machine, initialize=False)
 	host.ssh_ping(150*60)            # wait for 2.5 hours
@@ -100,11 +101,15 @@ parallel_simple(cleanup, machines, log=False)
 """
 
 def verify_machines(machines):
+	if not machines:
+		raise errors.AutoservError('No machines specified to verify')
 	namespace = {'machines' : machines, 'job' : None}
 	exec(preamble + verify, namespace, namespace)
 
 
 def repair_machines(machines):
+	if not machines:
+		raise errors.AutoservError('No machines specified to repair')
 	namespace = {'machines' : machines, 'job' : None}
 	exec(preamble + repair, namespace, namespace)
 
