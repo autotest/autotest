@@ -552,6 +552,10 @@ def get_cpu_family():
 	else:
 		raise TestError('Could not get valid cpu family data')
 
+def get_disks():
+	df_output = system_output('df')
+	disk_re = re.compile(r'^(/dev/hd[a-z]+)3', re.M)
+	return disk_re.findall(df_output)
 
 try:
 	from site_utils import *
