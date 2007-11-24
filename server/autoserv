@@ -66,6 +66,12 @@ if machines_file:
 	print "Read list of machines from file: %s" % machines_file
 	print ','.join(machines)
 
+if machines:
+	for machine in machines:
+		if not machine or re.search('\s', machine):
+			print "Invalid machine %s" % str(machine)
+			sys.exit(1)
+
 if repair:
 	server_job.repair_machines(machines)
 
