@@ -1,6 +1,6 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess
+import sys, os, subprocess, traceback
 
 
 def parallel(tasklist):
@@ -137,7 +137,7 @@ class subcommand:
 			self.lambda_function()
 
 		except:
-			raise
+			traceback.print_exc()
 			sys.stdout.flush()
 			sys.stderr.flush()
 			os._exit(1)
