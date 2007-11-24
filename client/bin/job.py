@@ -566,7 +566,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		# When continuing, the job is complete when there is no
 		# state file, ensure we don't try and continue.
 		if cont and not os.path.exists(state):
-			sys.exit(1)
+			raise JobComplete("all done")
 		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
@@ -580,6 +580,9 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	except JobContinue:
 		sys.exit(5)
 
+	except JobComplete:
+		sys.exit(1)
+
 	except JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob:
@@ -590,6 +593,8 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.record('ABORT', None, command, instance.args[0])
 			myjob.record('END ABORT', None, None)
 			myjob.complete(1)
+		else:
+			sys.exit(1)
 
 	except Exception, e:
 		msg = str(e) + '\n' + format_error()
@@ -599,6 +604,8 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.record('ABORT', None, None, msg)
 			myjob.record('END ABORT', None, None)
 			myjob.complete(1)
+		else:
+			sys.exit(1)
 
 	# If we get here, then we assume the job is complete and good.
 	myjob.group_level = 0
