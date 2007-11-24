@@ -369,17 +369,16 @@ class _Run(object):
 
 def _get_autodir(host):
 	try:
-		atdir = host.run(
-			'grep "autodir *=" /etc/autotest.conf').stdout.strip()
-		if atdir:
-			m = re.search(r'autodir *= *[\'"]?([^\'"]*)[\'"]?',
-				      atdir)
-			return m.group(1)
+		# There's no clean way to do this. readlink may not exist
+		cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf"
+		dir = os.path.dirname(host.run(cmd).stdout)
+		if dir:
+			return dir
 	except errors.AutoservRunError:
 		pass
 	for path in ['/usr/local/autotest', '/home/autotest']:
 		try:
-			host.run('ls ' + path)
+			host.run('ls ' + os.path.join(path, 'bin/autotest'))
 			return path
 		except errors.AutoservRunError:
 			pass
