@@ -527,13 +527,37 @@ def running_os_ident():
 	return version + '::' + timestamp
 
 
-def write_keyval(dirname, dictionary):
-	keyval = open(os.path.join(dirname, 'keyval'), 'w')
+def read_keyval(path):
+	# Read a key-value pair format file into a dictionary, and return it.
+	# Takes either a filename or directory name as input. If it's a
+	# directory name, we assume you want the file to be called keyval
+	if os.path.isdir(path):
+		path = os.path.join(path, 'keyval')
+	keyval = {}
+	for line in open(path, 'r').readlines():
+		line = re.sub('#.*', '', line.rstrip())
+		if not re.search(r'^\w+=.+', line):
+			raise ValueError('Invalid format line: ' + line)
+		key, value = line.split('=', 1)
+		if re.search('^\d+$', value):
+			value = int(value)
+		elif re.search('^[\d\.]+$', value):
+			value = float(value)
+		keyval[key] = value
+	return keyval
+
+
+def write_keyval(path, dictionary):
+	# Write a key-value pair format file from a dictionary
+	# Takes either a filename or directory name as input. If it's a
+	# directory name, we assume you want the file to be called keyval
+	if os.path.isdir(path):
+		path = os.path.join(path, 'keyval')
+	keyval = open(path, 'w')
 	for key in dictionary.keys():
-		value = '%s' % dictionary[key]     # convert numbers to strings
 		if re.search(r'\W', key):
-			raise 'Invalid key: ' + key
-		keyval.write('%s=%s\n' % (key, str(value)))
+			raise ValueError('Invalid key: ' + key)
+		keyval.write('%s=%s\n' % (key, str(dictionary[key])))
 	keyval.close()
 
 
