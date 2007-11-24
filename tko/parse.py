@@ -1,10 +1,6 @@
 #!/usr/bin/python
 import os, re, md5, sys, email.Message, smtplib
 
-valid_users = r'(apw|mbligh|andyw|korgtest)'
-build_stock = re.compile('build generic stock (2\.\S+)')	
-build_url   = re.compile('build generic url \S*/linux-(2\.\d\.\d+(\.\d+)?(-rc\d+)?).tar')	
-valid_kernel= re.compile('2\.\d\.\d+(\.\d+)?(-rc\d+)?(-(git|bk))\d+')
 user = re.compile(r'user(\s*)=')
 label = re.compile(r'label(\s*)=')
 
@@ -13,39 +9,39 @@ debug = True
 # XXX: these mail bits came almost verbatim from mirror/mirror and this should
 # probably be refactored into another file and used by both.
 def mail(from_address, to_addresses, cc_addresses, subject, message_text):
-   # if passed a string for the to_addresses convert it to a tuple
-   if type(to_addresses) is str:
-      to_addresses = (to_addresses,)
+	# if passed a string for the to_addresses convert it to a tuple
+	if type(to_addresses) is str:
+		to_addresses = (to_addresses,)
 
-   message = email.Message.Message()
-   message["To"] = ", ".join(to_addresses)
-   message["Cc"] = ", ".join(cc_addresses)
-   message["From"] = from_address
-   message["Subject"] = subject
-   message.set_payload(message_text)
+	message = email.Message.Message()
+	message["To"] = ", ".join(to_addresses)
+	message["Cc"] = ", ".join(cc_addresses)
+	message["From"] = from_address
+	message["Subject"] = subject
+	message.set_payload(message_text)
 
-   try:
-      sendmail(message.as_string())
-   except SendmailException, e:
-      server = smtplib.SMTP("localhost")
-      server.sendmail(from_address, to_addresses, cc_addresses, message.as_string())
-      server.quit()
+	try:
+		sendmail(message.as_string())
+	except SendmailException, e:
+		server = smtplib.SMTP("localhost")
+		server.sendmail(from_address, to_addresses, cc_addresses, message.as_string())
+		server.quit()
 
 
 MAIL = "sendmail"
 
 class SendmailException(Exception):
-   pass
+	pass
 
 def sendmail(message):
-   """Send an email using sendmail"""
-   # open a pipe to the mail program and
-   # write the data to the pipe
-   p = os.popen("%s -t" % MAIL, 'w')
-   p.write(message)
-   exitcode = p.close()
-   if exitcode:
-      raise SendmailException("Exit code: %s" % exitcode)
+	"""Send an email using sendmail"""
+	# open a pipe to the mail program and
+	# write the data to the pipe
+	p = os.popen("%s -t" % MAIL, 'w')
+	p.write(message)
+	exitcode = p.close()
+	if exitcode:
+		raise SendmailException("Exit code: %s" % exitcode)
 
 # XXX: End of code from mirror/mirror
 
