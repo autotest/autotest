@@ -114,6 +114,20 @@ class db:
 			self.con.commit()
 
 
+	def delete(self, table, where, commit = None):
+		cmd = ['delete from', table]
+		if commit == None:
+			commit = self.autocommit
+		if where and isinstance(where, types.DictionaryType):
+			keys = [field + '=%s' for field in where.keys()]
+			values = [where[field] for field in where.keys()]
+			cmd += ['where', ' and '.join(keys)]
+		self.dprint('%s %s' % (' '.join(cmd),values))
+		self.cur.execute(' '.join(cmd), values)
+		if commit:
+			self.con.commit()
+		
+
 	def update(self, table, data, where, commit = None):
 		"""\
 			'update table set data values (%s ... %s) where ...'
@@ -139,6 +153,17 @@ class db:
 			self.con.commit()
 
 
+	def delete_job(self, tag, commit = None):
+		job_idx = self.find_job(tag)
+		for test_idx in self.find_tests(job_idx):
+			where = {'test_idx' : test_idx}
+			self.delete('iteration_result', where)
+			self.delete('test_attributes', where)
+		where = {'job_idx' : job_idx}
+		self.delete('tests', where)
+		self.delete('jobs', where)
+
+
 	def insert_job(self, tag, job, commit = None):
 		job.machine_idx = self.lookup_machine(job.machine)
 		if not job.machine_idx:
@@ -152,6 +177,7 @@ class db:
 		job.index = self.find_job(tag)
 		for test in job.tests:
 			self.insert_test(job, test, commit=commit)
+
 
 	def insert_test(self, job, test, commit = None):
 		kver = self.insert_kernel(test.kernel, commit=commit)
@@ -246,6 +272,15 @@ class db:
 		rows = self.select('test_idx', 'tests', where)
 		if rows:
 			return rows[0][0]
+		else:
+			return None
+
+
+	def find_tests(self, job_idx):
+		where = { 'job_idx':job_idx }
+		rows = self.select('test_idx', 'tests', where)
+		if rows:
+			return [row[0] for row in rows]
 		else:
 			return None
 
