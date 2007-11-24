@@ -47,7 +47,8 @@ if singledir:
 	jobs_list = [(os.path.basename(dir), dir)]
 else:
 	topdir = os.path.abspath(args[0])
-	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in os.listdir(topdir)]
+	dirs = os.listdir(topdir)
+	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in dirs]
 
 debug = True
 
@@ -62,11 +63,17 @@ def mailfailure(jobname, job, mesgtxt):
 	link = "http://" + socket.gethostname() + "/results/" + jobname
 
 	# This looks pretty good on fixed-width-font email reader.
-	message_header = "\n%s\n%s\n\n%-12s %-20s %-12s %-10s %s\n" % ("The following tests FAILED for this job:", link, "Job name", "Kernel", "Test name", "FAIL/WARN", "Failure Reason")
-	message_header += "%-12s %-20s %-12s %-10s %s\n" % ("========", "======", "=========", "=========", "==============")
+	message_header = "\n%s\n%s\n\n%-12s %-20s %-12s %-10s %s\n" % \
+				("The following tests FAILED for this job:",
+				link, "Job name", "Kernel", "Test name",
+				"FAIL/WARN", "Failure Reason")
+	message_header += "%-12s %-20s %-12s %-10s %s\n" % \
+					("========", "======", "=========",
+					 "=========", "==============")
 
 	subject = "AUTOTEST: FAILED tests from " + " job " + jobname
-	parse.mail(notify_user, job.user, failcc, subject, message_header + mesgtxt)
+	parse.mail(notify_user, job.user, failcc, subject,
+						message_header + mesgtxt)
 
 
 def do_parse(jobname, path):
