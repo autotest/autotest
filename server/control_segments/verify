@@ -1,8 +1,25 @@
+def check_diskspace(host, path, gb):
+	df = host.run('df -m %s | tail -1' % path).stdout.split()
+	free_space_gb = int(df[3])/1000
+	if free_space_gb < gb:
+		raise errors.AutoservHostError('Not enough free space on %s - %dGB free, want %dGB' % (path, free_space_gb, gb))
+
+
 # This needs more stuff in it. Check for diskspace, etc. But it's a start.
 def verify(machine):
 	host = hosts.SSHHost(machine, initialize=False)
 	host.ssh_ping()
+	autodir = None
+	try:
+		autodir = autotest._get_autodir(host)
+	except:
+		pass
+	if autodir:
+		check_diskspace(host, autodir, 100)
 	if "site_verify" in globals():
-		site_verify(machine)
+		site_verify(host)
 
-parallel_simple(verify, machines, log=False)
+if len(machines) > 1:
+        parallel_simple(verify, machines, log=False)
+else:
+        verify(machines[0])

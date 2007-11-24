@@ -649,6 +649,5 @@ class SSHHost(base_classes.RemoteHost):
 		rc = utils.system(fpingcmd, ignore_status = 1)
 		return (rc == 0)
 
-
-	def ssh_ping(self):
-		self.run('ls', timeout=30)
+	def ssh_ping(self, timeout = 30):
+		self.run('ls', timeout = timeout)
