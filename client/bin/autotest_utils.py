@@ -541,3 +541,20 @@ def freespace(path):
 	# Find free space available in bytes
 	s = os.statvfs(path)
 	return s[statvfs.F_BAVAIL] * long(s[statvfs.F_BSIZE])
+
+
+def get_cpu_family():
+	procinfo = system_output('cat /proc/cpuinfo')
+	CPU_FAMILY_RE = re.compile(r'^cpu family\s+:\s+(\S+)', re.M)
+	matches = CPU_FAMILY_RE.findall(procinfo)
+	if matches:
+		return int(matches[0])
+	else:
+		raise TestError('Could not get valid cpu family data')
+
+
+try:
+	from site_utils import *
+except ImportError:
+	pass
+
