@@ -159,17 +159,10 @@ class kernel:
 		patch_hashes = []
 		# HACK. we don't have proper build tags in the status file yet
 		# so we hardcode build/ and do it at the start of the job
-		builddir = os.path.join(topdir, 'build')
+		build_log = os.path.join(topdir, 'build/debug/build_log')
 
-		if not os.path.exists(builddir):
-			uname_file = os.path.join(topdir, 'sysinfo/uname_-a')
-			uname = open(uname_file, 'r').readline().split()
-			self.base = uname[2]
-		else:
-			log = os.path.join(builddir, 'debug/build_log')
-			if not os.path.exists(log):
-				return
-			for line in open(log, 'r'):
+		if os.path.exists(build_log):
+			for line in open(build_log, 'r'):
 				print line
 				(type, rest) = line.split(': ', 1)
 				words = rest.split()
@@ -179,6 +172,15 @@ class kernel:
 					print words
 					self.patches.append(patch(*words[0:]))
 					# patch_hashes.append(words[2])
+		else:
+			for sysinfo in ['sysinfo/reboot1', 'sysinfo']:
+				uname_file = os.path.join(topdir, sysinfo, 'uname_-a')
+				if not os.path.exists(uname_file):
+					continue
+				uname = open(uname_file, 'r').readline().split()
+				self.base = uname[2]
+				break
+		print 'kernel.__init__() found kernel version %s' % self.base
 		if self.base:
 			self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
