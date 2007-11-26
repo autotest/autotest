@@ -1,6 +1,6 @@
 #!/usr/bin/python
 print "Content-type: text/html\n"
-import cgi, cgitb, os, sys
+import cgi, cgitb, os, sys, re
 sys.stdout.flush()
 cgitb.enable()
 
@@ -32,7 +32,8 @@ def main():
 
 	groups = frontend.group.select(db)
 
-	headers = ['Version'] + [g.name for g in groups]
+	group_names = [re.sub('_', '<br>', g.name) for g in groups]
+	headers = ['Version'] + group_names
 	header_row = [ display.box(x, header=True) for x in headers ] 
 
 	kernels = frontend.kernel.select(db)
