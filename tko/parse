@@ -41,7 +41,7 @@ for name, value in opts:
 	if name in ("-o", "--output"):
 		singledir = value
 
-
+# jobs_list is a list of tuples - (job name, directory)
 if singledir:
 	dir = os.path.abspath(singledir)
 	jobs_list = [(os.path.basename(dir), dir)]
@@ -77,6 +77,9 @@ def mailfailure(jobname, job, mesgtxt):
 
 
 def do_parse(jobname, path):
+	"""
+	Parse a single job. Optionally send email on failure, etc.
+	"""
 	if debug:
 		print '\nScanning %s (%s)' % (jobname, path)
 	if db.find_job(jobname):              # Job has already been parsed
@@ -118,6 +121,7 @@ def do_parse(jobname, path):
 for (jobname, path) in jobs_list:
 	machine_list = os.path.join(path, '.machines')
 	if os.path.exists(machine_list):
+		# This is a multi-machine job
 		for m in open(machine_list, 'r').readlines():
 			machine = m.rstrip()
 			if not machine:
@@ -130,6 +134,7 @@ for (jobname, path) in jobs_list:
 				print format_error()
 				continue
 	else:
+		# This is a single-machine job
 		try:
 			do_parse(jobname, path)
 		except:
@@ -137,6 +142,8 @@ for (jobname, path) in jobs_list:
 			continue
 
 
+# Generate vertical text pngs for pretty display in tables.
+#
 # rows = db.select('distinct hostname', 'machines', {})
 # machines = [row[0] for row in rows]
 # 
