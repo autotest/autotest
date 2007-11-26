@@ -86,7 +86,7 @@ def do_parse(jobname, path):
 		if debug:
 			print '! Already processed'
 		return
-	job = parse.job(path, 'regression')
+	job = parse.job(path)
 	if not job:
 		if debug:
 			print '! Failed to parse job (no status file?)'
