@@ -26,7 +26,7 @@ def main():
 	elif form.has_key('group'):
 		where = { 'machine_group' : form['group'].value }
 		machines = frontend.machine.select(db, where)
-
+		mlist = ','.join(['%s'%machine.idx for machine in machines])
 	if form.has_key('test'):
 		test = form['test'].value
 	else:
