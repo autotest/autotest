@@ -1,3 +1,10 @@
+"""\
+Logging helper tools.
+"""
+
+__author__ = 'jadmanski@google.com (John Admanski)'
+
+
 def record(fn):
 	"""
 	Generic method decorator for logging calls under the
