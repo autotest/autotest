@@ -55,6 +55,7 @@ else:
 debug = True
 
 failcc = ""
+# The user to notify on job failures - TOOD, pull into the config file
 notify_user = None
 
 db = db.db(autocommit=False)  # do commits transactionally
@@ -74,7 +75,7 @@ def mailfailure(jobname, job, mesgtxt):
 					 "=========", "==============")
 
 	subject = "AUTOTEST: FAILED tests from " + " job " + jobname
-	parse.mail("autotest", job.user, failcc, subject,
+	parse.mail(notify_user, job.user, failcc, subject,
 						message_header + mesgtxt)
 
 
