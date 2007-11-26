@@ -20,7 +20,7 @@ def format_error():
 
 
 try:
-	opts, args = getopt.getopt(sys.argv[1:], "hmo:", ["help"])
+	opts, args = getopt.getopt(sys.argv[1:], "hmo:l:", ["help"])
 except getopt.GetoptError:
 	# print help information and exit:
 	usage()
@@ -38,17 +38,19 @@ for name, value in opts:
 		sys.exit()
 	if name == "-m":
 		mailit = True
-	if name in ("-o", "--output"):
+	if name in ("-o"):
 		singledir = value
+	if name in ("-l"):
+		level = int(value)
+	else:
+		level = 1
 
-# jobs_list is a list of tuples - (job name, directory)
 if singledir:
 	dir = os.path.abspath(singledir)
-	jobs_list = [(os.path.basename(dir), dir)]
+	jobs_list = [dir]
 else:
 	topdir = os.path.abspath(args[0])
-	dirs = os.listdir(topdir)
-	jobs_list = [(dir, os.path.join(topdir, dir)) for dir in dirs]
+	jobs_list = [os.path.join(topdir, dir) for dir in os.listdir(topdir)]
 
 debug = True
 
@@ -118,7 +120,9 @@ def do_parse(jobname, path):
 
 
 
-for (jobname, path) in jobs_list:
+for path in jobs_list:
+	job_elements = path.split('/')[-level:] # last 'level' elements of path
+	jobname = '/'.join(job_elements)
 	machine_list = os.path.join(path, '.machines')
 	if os.path.exists(machine_list):
 		# This is a multi-machine job
