@@ -1,5 +1,8 @@
 #!/usr/bin/python
 import os, re, md5, sys, email.Message, smtplib
+client_bin = os.path.join(os.path.dirname(__file__), '../client/bin')
+sys.path.insert(0, os.path.abspath(client_bin))
+from autotest_utils import read_keyval
 
 user = re.compile(r'user(\s*)=')
 label = re.compile(r'label(\s*)=')
@@ -61,9 +64,8 @@ def dprint(info):
 
 
 class job:
-	def __init__(self, dir, type):
+	def __init__(self, dir):
 		self.dir = dir
-		self.type = type
 		self.control = os.path.join(dir, "control")
 		self.status = os.path.join(dir, "status")
 		self.variables = {}
@@ -71,29 +73,40 @@ class job:
 		self.kernel = None
 
 		# Get the user + tag info from the keyval file.
-		jobkeyval = os.path.join(os.path.dirname (dir), "keyval")
-		self.user = None
-		self.label = None
-		if os.path.exists(jobkeyval):
-			for line in open(jobkeyval, 'r').readlines():
-				if user.search(line):
-					(key, value) = line.split('=', 1)
-					self.user = value.strip()
-				if label.search(line):
-					(key,value) = line.split('=', 1)
-					self.label = value.strip()
-		if not os.path.exists(self.status):
-			return None
-
-		# We should really replace this with sysinfo/hostname!
-		uname = os.path.join(dir, "sysinfo/uname_-a")
 		try:
-			self.machine = open(uname, 'r').readline().split()[1]
+			keyval = read_keyval(dir)
+			print keyval
 		except:
+			raise
+			keyval = {}
+		self.user = keyval.get('user', None)
+		self.label = keyval.get('label', None)
+		self.machine = keyval.get('hostname', None)
+
+		if not self.machine:
+			self.get_machine()
+
+		print 'MACHINE NAME: ' + self.machine
+		if not os.path.exists(self.status):
 			return None
 
 		self.grope_status()
 
+
+	def get_machine(self):
+		try:
+			hostname = os.path.join(dir, "sysinfo/hostname")
+			self.machine = open(hostname, 'r').readline().rstrip()
+			return
+		except:
+			pass
+		try:
+			uname = os.path.join(dir, "sysinfo/uname_-a")
+			self.machine = open(uname, 'r').readline().split()[1]
+			return
+		except:
+			pass
+		
 
 	def grope_status(self):
 		dprint('=====================================================')
