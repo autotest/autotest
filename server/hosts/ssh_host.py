@@ -500,7 +500,7 @@ class SSHHost(base_classes.RemoteHost):
 			True if the remote host is up, False otherwise
 		"""
 		try:
-			result= self.run("true", timeout=10)
+			self.ssh_ping()
 		except errors.AutoservRunError:
 			return False
 		else:
@@ -529,8 +529,7 @@ class SSHHost(base_classes.RemoteHost):
 		
 		while not timeout or time.time() < end_time:
 			try:
-				run_timeout= 10
-				result= self.run("true", timeout=run_timeout)
+				self.ssh_ping()
 			except errors.AutoservRunError:
 				pass
 			else:
@@ -560,8 +559,7 @@ class SSHHost(base_classes.RemoteHost):
 		
 		while not timeout or time.time() < end_time:
 			try:
-				run_timeout= 10
-				result= self.run("true", timeout=run_timeout)
+				self.ssh_ping()
 			except errors.AutoservRunError:
 				return True
 			else:
@@ -649,5 +647,5 @@ class SSHHost(base_classes.RemoteHost):
 		rc = utils.system(fpingcmd, ignore_status = 1)
 		return (rc == 0)
 
-	def ssh_ping(self, timeout = 30):
-		self.run('ls', timeout = timeout)
+	def ssh_ping(self, timeout = 60):
+		self.run('true', timeout = timeout)
