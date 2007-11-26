@@ -9,3 +9,27 @@
  
  # Use this path for:
  #	DG/UX
+--- src/testcases/kernel/syscalls/paging/Makefile       Sun Aug 20 23:58:42 2006
++++ newsrc/testcases/kernel/syscalls/paging/Makefile    Mon Nov  5 10:13:57 2007
+@@ -25,7 +25,9 @@
+ all: $(TARGETS)
+
+ install:
++ifneq ($(TARGETS),)
+ 	@set -e; for i in $(TARGETS); do ln -f $$i ../../../bin/$$i ; done
++endif
+
+ clean:
+ 	rm -f $(TARGETS)
+--- src/testcases/network/nfsv4/acl/Makefile    Tue Mar 13 12:25:46 2007
++++ newsrc/testcases/network/nfsv4/acl/Makefile Mon Nov  5 10:14:56 2007
+@@ -19,7 +19,9 @@
+ 	$(CC) $(CFLAGS) $(LDFLAGS) -o acl1 acl1.c $(LIBS)
+
+ install: $(ACLTESTS)
++ifneq ($(ACLTESTS),)
+ 	@set -e; for i in $(ACLTESTS); do ln -f $$i ../../../bin ; done
++endif
+
+ clean:
+ 	rm -f $(ACLTESTS)
