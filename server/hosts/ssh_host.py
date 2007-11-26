@@ -501,14 +501,10 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		try:
 			self.ssh_ping()
-		except errors.AutoservRunError:
+		except:
 			return False
-		else:
-			if result.exit_status == 0:
-				return True
-			else:
+		return True
 
-				return False
 
 	def wait_up(self, timeout=None):
 		"""
@@ -530,11 +526,10 @@ class SSHHost(base_classes.RemoteHost):
 		while not timeout or time.time() < end_time:
 			try:
 				self.ssh_ping()
-			except errors.AutoservRunError:
+			except:
 				pass
 			else:
-				if result.exit_status == 0:
-					return True
+				return True
 			time.sleep(1)
 		
 		return False
@@ -560,11 +555,8 @@ class SSHHost(base_classes.RemoteHost):
 		while not timeout or time.time() < end_time:
 			try:
 				self.ssh_ping()
-			except errors.AutoservRunError:
+			except:
 				return True
-			else:
-				if result.aborted:
-					return True
 			time.sleep(1)
 		
 		return False
