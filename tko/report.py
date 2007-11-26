@@ -134,6 +134,13 @@ class cli:
 def pretty_print(header, results):
 	""" pretty prints the result with all the proper space indentations.
 	"""
+	# add an extra column for the record number.
+	header.insert(0, ' # ')
+
+	# add the record number to each result.
+	for j in xrange(len(results)):
+		results[j].insert(0, "[%d]" % (j+1))
+
 	# number of columns in the results table.
 	size = len(header)
 
