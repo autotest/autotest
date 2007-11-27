@@ -294,19 +294,51 @@ class _Run(object):
 			the status log file.  We only implement those methods
 			utils.run() actually calls.
 			"""
-			def write(self, str):
-				sys.stdout.write(str)
-				status_log.write(str)
+			def __init__(self):
+				self.leftover = ""
+				self.last_line = ""
 
+			def _process_line(self, line):
+				"""Write out a line of data to the appropriate
+				stream. Status lines sent by autotest will be
+				prepended with "AUTOTEST_STATUS", and all other
+				lines are ssh error messages.
+				"""
+				if line.startswith("AUTOTEST_STATUS:"):
+					line = line[16:] + "\n"
+					sys.stdout.write(line)
+					status_log.write(line)
+					self.last_line = line
+				else:
+					sys.stderr.write(line + "\n")
+
+			def write(self, data):
+				data = self.leftover + data
+				lines = data.split("\n")
+				# process every line but the last one
+				for line in lines[:-1]:
+					self._process_line(line)
+				# save the last line for later processing
+				# since we may not have the whole line yet
+				self.leftover = lines[-1]
 
 			def flush(self):
 				sys.stdout.flush()
+				sys.stderr.flush()
 				status_log.flush()
 
+			def close(self):
+				if self.leftover:
+					self._process_line(self.leftover)
+					self.flush()
+
+		redirector = StdErrRedirector()
 		result = utils.run(full_cmd, ignore_status=True,
 				   timeout=timeout,
 				   stdout_tee=client_log,
-				   stderr_tee=StdErrRedirector())
+				   stderr_tee=redirector)
+		redirector.close()
+
 		if result.exit_status == 1:
 			self.host.job.aborted = True
 		if not result.stderr:
@@ -314,8 +346,7 @@ class _Run(object):
 			    "execute_section: %s failed to return anything\n"
 			    "stdout:%s\n" % (full_cmd, result.stdout))
 
-		last_line = result.stderr.strip().rsplit('\n', 1).pop()
-		return last_line
+		return redirector.last_line
 
 
 	def execute_control(self, timeout=None):

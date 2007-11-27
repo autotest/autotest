@@ -30,5 +30,7 @@ class harness_simple(harness.harness):
 		"""A test within this job is completing"""
 		if self.status:
 			for line in status.split('\n'):
-				self.status.write(line.rstrip() + '\n')
+				# prepend status messages with "AUTOTEST_STATUS:" so that we
+				# can tell which lines were written by the autotest client
+				self.status.write("AUTOTEST_STATUS:" + line.rstrip() + '\n')
 				self.status.flush()
