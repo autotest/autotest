@@ -25,6 +25,3 @@ from kvm_guest import KVMGuest
 
 # bootloader classes
 from bootloader import Bootloader
-
-# command result class
-from base_classes import CmdResult
