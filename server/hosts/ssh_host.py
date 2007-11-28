@@ -337,7 +337,7 @@ class SSHHost(base_classes.RemoteHost):
 		#~ print "running %s" % (command,)
 		result= utils.run(r'%s "%s"' % (self.ssh_command(),
 						utils.sh_escape(command)),
-				  timeout, ignore_status)
+						timeout, ignore_status)
 		return result
 
 

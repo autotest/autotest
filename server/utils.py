@@ -13,8 +13,9 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
-import time, types, urllib, re, sys
+import time, types, urllib, re, sys, textwrap
 import hosts, errors
+from error import *
 
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
@@ -126,6 +127,24 @@ def get(location, local_copy = False):
 			return tmpfile
 
 
+def __nuke_subprocess(subproc):
+       # the process has not terminated within timeout,
+       # kill it via an escalating series of signals.
+       signal_queue = [signal.SIGTERM, signal.SIGKILL]
+       for sig in signal_queue:
+	       try:
+		       os.kill(subproc.pid, sig)
+	       # The process may have died before we could kill it.
+	       except OSError:
+		       pass
+
+	       for i in range(5):
+		       rc = subproc.poll()
+		       if rc != None:
+			       return
+		       time.sleep(1)
+
+
 def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
 	if use_os_read:
 		data = os.read(pipe.fileno(), 1024)
@@ -161,30 +180,15 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 		pid, exit_status_indication = os.waitpid(subproc.pid,
 							 os.WNOHANG)
 		if pid:
-			break
+			return exit_status_indication
 		if timeout:
 			time_left = stop_time - time.time()
 
 	# the process has not terminated within timeout,
 	# kill it via an escalating series of signals.
 	if not pid:
-		signal_queue = [signal.SIGTERM, signal.SIGKILL]
-		for sig in signal_queue:
-			try:
-				os.kill(subproc.pid, sig)
-			# handle race condition in which
-			# process died before we could kill it.
-			except OSError:
-				pass
-
-			for i in range(5):
-				pid, exit_status_indication = (
-				    os.waitpid(subproc.pid, os.WNOHANG))
-				if pid:
-					return exit_status_indication
-				else:
-						time.sleep(1)
-	return exit_status_indication
+		__nuke_subprocess(subproc)
+	raise CmdError('Command not complete within %s seconds' % timeout)
 
 
 def run(command, timeout=None, ignore_status=False,
@@ -206,17 +210,13 @@ def run(command, timeout=None, ignore_status=False,
 		stderr_tee: likewise for stderr
 
 	Returns:
-		a hosts.CmdResult object
+		a CmdResult object
 
 	Raises:
 		AutoservRunError: the exit code of the command
 			execution was not 0
-
-	TODO(poirier): Should a timeout raise an exception? Should
-		exceptions be raised at all?
 	"""
-	result = hosts.CmdResult()
-	result.command = command
+	result = CmdResult(command)
 	sp = subprocess.Popen(command, stdout=subprocess.PIPE,
 			      stderr=subprocess.PIPE, close_fds=True,
 			      shell=True, executable="/bin/bash")
@@ -227,17 +227,10 @@ def run(command, timeout=None, ignore_status=False,
 		# We are holding ends to stdin, stdout pipes
 		# hence we need to be sure to close those fds no mater what
 		start_time = time.time()
-		exit_status_indication = _wait_for_command(
-		    sp, start_time, timeout,
-		    stdout_file, stderr_file,
-		    stdout_tee, stderr_tee)
+		result.exit_status = _wait_for_command(sp, start_time, timeout,
+			      stdout_file, stderr_file, stdout_tee, stderr_tee)
 
 		result.duration = time.time() - start_time
-		result.aborted = exit_status_indication & 127
-		if result.aborted:
-			result.exit_status = None
-		else:
-			result.exit_status = exit_status_indication / 256
 		# don't use os.read now, so we get all the rest of the output
 		_process_output(sp.stdout, stdout_file, stdout_tee,
 				use_os_read=False)
@@ -252,8 +245,7 @@ def run(command, timeout=None, ignore_status=False,
 	result.stderr = stderr_file.getvalue()
 
 	if not ignore_status and result.exit_status > 0:
-		raise errors.AutoservRunError("command execution error",
-			result)
+		raise errors.AutoservRunError("command execution error", result)
 
 	return result
 
@@ -416,3 +408,44 @@ class AutoservOptionParser:
 				return ret
 		else:
 			return default
+
+
+class CmdResult(object):
+	"""
+	Command execution result.
+
+	command:     String containing the command line itself
+	exit_status: Integer exit code of the process
+	stdout:      String containing stdout of the process
+	stderr:      String containing stderr of the process
+	duration:    Elapsed wall clock time running the process
+	"""
+
+	def __init__(self, command = None):
+		self.command = command
+		self.exit_status = None
+		self.stdout = ""
+		self.stderr = ""
+		self.duration = 0
+
+
+	def __repr__(self):
+		wrapper = textwrap.TextWrapper(width = 78, 
+					       initial_indent="\n    ",
+					       subsequent_indent="    ")
+		
+		stdout = self.stdout.rstrip()
+		if stdout:
+			stdout = "\nstdout:\n%s" % stdout
+		
+		stderr = self.stderr.rstrip()
+		if stderr:
+			stderr = "\nstderr:\n%s" % stderr
+		
+		return ("* Command: %s\n"
+			"Exit status: %s\n"
+			"Duration: %s\n"
+			"%s"
+			"%s"
+			% (wrapper.fill(self.command), self.exit_status, 
+			self.duration, stdout, stderr))
