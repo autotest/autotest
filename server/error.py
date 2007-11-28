@@ -38,4 +38,5 @@ class CmdError(TestError):
 class UnhandledError(TestError):
 	"""Indicates an unhandled exception in a test."""
 	def __init__(self, prefix):
-		self.args = prefix + format_error()
+		msg = prefix + format_error()
+		TestError.__init__(self, msg)
