@@ -10,7 +10,6 @@ You should import the "hosts" package instead of importing each type of host.
 
 	Host: a machine on which you can run programs
 	RemoteHost: a remote machine on which you can run programs
-	CmdResult: contain the results of a Host.run() command execution
 """
 
 __author__ = """
@@ -19,11 +18,8 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-
 import time
-import textwrap
-import bootloader
-import utils
+import bootloader, utils
 
 class Host(object):
 	"""
@@ -127,52 +123,3 @@ class RemoteHost(SiteHost):
 
 	def __init__(self):
 		super(RemoteHost, self).__init__()
-
-
-class CmdResult(object):
-	"""
-	Command execution result.
-
-	Modified from the original Autoserv code, local_cmd.py:
-		Copyright jonmayer@google.com (Jonathan Mayer),
-		mbligh@google.com   (Martin J. Bligh)
-		Released under the GPL, v2
-
-	command: String containing the command line itself
-	exit_status: Integer exit code of the process
-	stdout: String containing stdout of the process
-	stderr: String containing stderr of the process
-	duration: Elapsed wall clock time running the process
-	aborted: Signal that caused the command to terminate (0 if none)
-	"""
-
-	def __init__(self):
-		super(CmdResult, self).__init__()
-		self.command = ""
-		self.exit_status = None
-		self.stdout = ""
-		self.stderr = ""
-		self.duration = 0
-		self.aborted= False
-
-
-	def __repr__(self):
-		wrapper= textwrap.TextWrapper(width=78, 
-			initial_indent="\n    ", subsequent_indent="    ")
-		
-		stdout= self.stdout.rstrip(" \n")
-		if stdout:
-			stdout= "\nStdout:\n%s" % (stdout,)
-		
-		stderr= self.stderr.rstrip(" \n")
-		if stderr:
-			stderr= "\nStderr:\n%s" % (stderr,)
-		
-		return ("* Command: %s\n"
-			"Exit status: %s\n"
-			"Duration: %s\n"
-			"Aborted: %s"
-			"%s"
-			"%s"
-			% (wrapper.fill(self.command), self.exit_status, 
-			self.duration, self.aborted, stdout, stderr))
