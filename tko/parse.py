@@ -77,7 +77,6 @@ class job:
 			keyval = read_keyval(dir)
 			print keyval
 		except:
-			raise
 			keyval = {}
 		self.user = keyval.get('user', None)
 		self.label = keyval.get('label', None)
@@ -106,22 +105,40 @@ class job:
 			return
 		except:
 			pass
+		raise "Could not figure out machine name"
 		
 
 	def grope_status(self):
+		"""
+		Note that what we're looking for here is level 1 groups
+		(ie end markers with 1 tab in front)
+
+		For back-compatiblity, we also count level 0 groups that
+		are not job-level events, if there's no start/end job level
+		markers: "START   ----    ----"
+		"""
 		dprint('=====================================================')
 		dprint(self.dir)
 		dprint('=====================================================')
 		self.kernel = kernel(self.dir)
 
-		# NOTE: currently we don't cope with nested START / END blocks
 		group_subdir = None
+		sought_level = 0        # we log events at indent level 0
 		for line in open(self.status, 'r').readlines():
-			dprint('STATUS: ' + line.rstrip())
-			if not re.match(r'\t*\S', line):
+			dprint('\nSTATUS: ' + line.rstrip())
+			if not re.search(r'^\t*\S', line):
+				dprint('Continuation line, ignoring')
 				continue	# ignore continuation lines
-			if re.match(r'\t*START', line):
+			if re.search(r'^START\t----\t----', line):
+				sought_level = 1
+				# we now log events at indent level 1
+				dprint('Found job level start marker. Looking for level 1 groups now')
+				continue
+			indent = re.search('^(\t*)', line).group(0).count('\t')
+			line = line.strip()
+			if line.startswith('START\t'):
 				group_subdir = None
+				dprint('start line, ignoring')
 				continue	# ignore start lines
 			reason = None
 			if line.startswith('END'):
@@ -130,13 +147,18 @@ class job:
 				elements = line.split(None, 3)
 			elements.append(None)   # in case no reason specified
 			(status, subdir, testname, reason) = elements[0:4]
+			dprint('GROPE_STATUS: ' + str(elements[0:4]))
 			if testname == '----':
+				dprint('job level event, ignoring')
 				# This is a job level event, not a test
+				continue
+			if testname == 'reboot.start':
+				dprint('reboot start event, ignoring')
 				continue
 			################################################
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
 			################################################
-			if re.match(r'(GOOD|FAIL|WARN) ', line):
+			if re.search(r'^(GOOD|FAIL|WARN) ', line):
 				(status, testname, reason) = line.split(None, 2)
 				if testname.startswith('kernel.'):
 					subdir = 'build'
@@ -149,17 +171,21 @@ class job:
 				subdir = None
 			if line.startswith('END'):
 				subdir = group_subdir
-			if line.startswith('\t'): # we're in a block group
+			if indent != sought_level: # we're in a block group
 				if subdir:
+					dprint('set group_subdir: %s' % subdir)
 					group_subdir = subdir
+				dprint('incorrect indent level %d != %d, ignoring' % (indent, sought_level))
 				continue
-			debug = str((status, subdir, testname, reason))
-			dprint('GROPE_STATUS: ' + debug)
-			if not re.match(r'(boot$|kernel\.)', testname):
+			if not re.search(r'^(boot$|kernel\.)', testname):
 				# This is a real test
 				if subdir and subdir.count('.'):
 					# eg dbench.ext3
 					testname = subdir
+			if testname == 'reboot.verify':
+				testname = 'boot'
+			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
+					(status, subdir, testname, reason))
 			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
 			dprint('')
 
@@ -191,6 +217,7 @@ class kernel:
 					continue
 				uname = open(uname_file, 'r').readline().split()
 				self.base = uname[2]
+				re.sub(r'-autotest$', '', self.base)
 				break
 		print 'kernel.__init__() found kernel version %s' % self.base
 		if self.base:
