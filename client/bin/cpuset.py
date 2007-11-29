@@ -78,12 +78,13 @@ class cpuset:
 		# Allocate the list "cpus" of cpus to that container
 
 		# name = arbitrary string tag
-		# job size = reqested memory for job in bytes
+		# job size = reqested memory for job in megabytes
 		# job pid = pid of job we're putting into the container
 		self.super_root = "/dev/cpuset"
 		self.root = os.path.join(self.super_root, root)
 		self.name = name
 		self.delete_after_use = 1
+		job_size = job_size << 20
 		if not grep('cpuset', '/proc/filesystems'):
 			print "No CPU set support"
 			return
@@ -115,7 +116,7 @@ class cpuset:
 
 		# Set up the cpuset
 			mems_spec = ','.join(['%d' % x for x in mems])
-			print "cpu_spec", mems_spec
+			print "cpu_spec", cpu_spec
 			print "mems_spec", mems_spec
 			print "self.cpudir=", self.cpudir
 			print "wrote %s to %s/cpus" % (cpu_spec, self.cpudir)
