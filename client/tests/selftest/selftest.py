@@ -1,6 +1,6 @@
 import test
 from autotest_utils import *
-from error import *
+from common.error import *
 
 class selftest(test.test):
 	version = 1

@@ -7,7 +7,7 @@ as dpkg and rpm.
 __author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
 
 import os, os_dep, re
-from error import *
+from common.error import *
 from autotest_utils import *
 
 def package_type(package):
@@ -90,4 +90,3 @@ def install_package(package):
 	# least for now.
 	system(install_command)
 	return 'Package %s was installed successfuly' % package
-

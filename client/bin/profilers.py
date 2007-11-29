@@ -1,6 +1,6 @@
 import os
 from autotest_utils import *
-from error import *
+from common.error import *
 
 class profilers:
 
@@ -70,4 +70,3 @@ class profilers:
 	def report(self, test):
 		for p in self.list:
 			p.report(test)
-

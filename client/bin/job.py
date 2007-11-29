@@ -10,7 +10,7 @@ import os, sys, re, pickle, shutil, time, traceback
 # autotest stuff
 from autotest_utils import *
 from parallel import *
-from error import *
+from common.error import *
 import kernel, xen, test, profilers, barrier, filesystem, fd_stack, boottool
 import harness, config
 import sysinfo
@@ -444,7 +444,7 @@ class job:
 		lcl = dict({'job': self})
 
 		str = """
-from error import *
+from common.error import *
 from autotest_utils import *
 """
 		exec(str, lcl, lcl)
