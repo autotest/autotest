@@ -44,7 +44,8 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
-	SSH_BASE_COMMAND = '/usr/bin/ssh -a -o BatchMode=yes -o ConnectTimeout=30'
+	SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
+			   'BatchMode=yes -o ConnectTimeout=30'
 	DEFAULT_REBOOT_TIMEOUT = 1800
 	job = None
 
@@ -314,7 +315,8 @@ class SSHHost(base_classes.RemoteHost):
 					       self.hostname)
 
 
-	def run(self, command, timeout=None, ignore_status=False):
+	def run(self, command, timeout=None, ignore_status=False,
+		stdout_tee=None, stderr_tee=None):
 		"""
 		Run a command on the remote host.
 		
@@ -334,10 +336,14 @@ class SSHHost(base_classes.RemoteHost):
 			AutoservRunError: the exit code of the command 
 				execution was not 0
 		"""
-		#~ print "running %s" % (command,)
-		result= utils.run(r'%s "%s"' % (self.ssh_command(),
-						utils.sh_escape(command)),
-						timeout, ignore_status)
+		stdout = stdout_tee or sys.stdout
+		stderr = stderr_tee or sys.stderr
+		print "On host %s running %s" % (self.hostname, command)
+		env = " ".join("=".join(pair) for pair in self.env.iteritems())
+		full_cmd = '%s "%s %s"' % (self.ssh_command(), env,
+					   utils.sh_escape(command))
+		result = utils.run(full_cmd, timeout, ignore_status,
+				   stdout, stderr)
 		return result
 
 
