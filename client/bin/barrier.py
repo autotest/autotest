@@ -5,9 +5,10 @@ import socket
 import errno
 from time import time, sleep
 
-import error
+from common.error import *
 
-class BarrierError(error.JobError):
+
+class BarrierError(JobError):
 	pass
 
 class barrier:
