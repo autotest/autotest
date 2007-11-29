@@ -24,9 +24,9 @@ import shutil
 import time
 
 import installable_object
-import errors
 import utils
 from common import logging
+from common.error import *
 
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
@@ -37,10 +37,10 @@ HALT_TIME = 300
 BOOT_TIME = 1800
 
 
-class AutotestRunError(errors.AutoservRunError):
+class AutotestRunError(AutoservRunError):
 	pass
 
-class AutotestTimeoutError(errors.AutoservRunError):
+class AutotestTimeoutError(AutoservRunError):
 	"""This exception is raised when an autotest test exceeds the timeout
 	parameter passed to run_timed_test and is killed.
 	"""
@@ -126,7 +126,7 @@ class Autotest(installable_object.InstallableObject):
 		try:
 			host.run('svn checkout %s %s' %
 				 (AUTOTEST_SVN, autodir))
-		except errors.AutoservRunError, e:
+		except AutoservRunError, e:
 			host.run('svn checkout %s %s' %
 				 (AUTOTEST_HTTP, autodir))
 		print "Installation of autotest completed"
@@ -380,7 +380,7 @@ class _Run(object):
 					    self.host.hostname,)
 					try:
 						self.host.hardreset(wait=False)
-					except errors.AutoservUnsupportedError:
+					except AutoservUnsupportedError:
 						print "Hardreset unsupported on %s" % (
 						    self.host.hostname,)
 					raise AutotestRunError("%s failed to "
@@ -403,12 +403,12 @@ def _get_autodir(host):
 		dir = os.path.dirname(host.run(cmd).stdout)
 		if dir:
 			return dir
-	except errors.AutoservRunError:
+	except AutoservRunError:
 		pass
 	for path in ['/usr/local/autotest', '/home/autotest']:
 		try:
 			host.run('ls ' + os.path.join(path, 'bin/autotest'))
 			return path
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			pass
 	raise AutotestRunError("Cannot figure out autotest directory")

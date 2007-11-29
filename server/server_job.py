@@ -12,7 +12,7 @@ Andy Whitcroft <apw@shadowen.org>
 """
 
 import os, sys, re, time
-import test, errors
+import test
 from utils import *
 from common.error import *
 
@@ -37,8 +37,9 @@ def load_control_segment(name):
 preamble = """\
 import os, sys
 
-import errors, hosts, autotest, kvm
+import hosts, autotest, kvm
 import source_kernel, rpm_kernel, deb_kernel
+from common.error import *
 from subcommand import *
 from utils import run, get_tmp_dir, sh_escape
 
@@ -102,14 +103,14 @@ parallel_simple(cleanup, machines, log=False)
 
 def verify_machines(machines):
 	if not machines:
-		raise errors.AutoservError('No machines specified to verify')
+		raise AutoservError('No machines specified to verify')
 	namespace = {'machines' : machines, 'job' : None}
 	exec(preamble + verify, namespace, namespace)
 
 
 def repair_machines(machines):
 	if not machines:
-		raise errors.AutoservError('No machines specified to repair')
+		raise AutoservError('No machines specified to repair')
 	namespace = {'machines' : machines, 'job' : None}
 	exec(preamble + repair, namespace, namespace)
 

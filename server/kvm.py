@@ -17,9 +17,10 @@ stutsman@google.com (Ryan Stutsman)
 import os
 
 import hypervisor
-import errors
 import utils
 import hosts
+
+from common.error import *
 
 
 _qemu_ifup_script= """\
@@ -117,7 +118,7 @@ class KVM(hypervisor.Hypervisor):
 		elif cpu_flags.find('svm') != -1:
 			module_type= "amd"
 		else:
-			raise errors.AutoservVirtError("No harware "
+			raise AutoservVirtError("No harware "
 				"virtualization extensions found, "
 				"KVM cannot run")
 
@@ -223,7 +224,7 @@ class KVM(hypervisor.Hypervisor):
 			try:
 				self.host.run('make -C "%s" clean' % (
 					utils.sh_escape(self.build_dir),))
-			except errors.AutoservRunError:
+			except AutoservRunError:
 				# directory was already clean and contained 
 				# no makefile
 				pass
@@ -290,7 +291,7 @@ class KVM(hypervisor.Hypervisor):
 			if not address["is_used"]:
 				break
 		else:
-			raise errors.AutoservVirtError(
+			raise AutoservVirtError(
 				"No more addresses available")
 
 		# TODO(poirier): uses start-stop-daemon until qemu -pidfile 
@@ -418,7 +419,7 @@ class KVM(hypervisor.Hypervisor):
 					# have references to the guests.
 					return
 		else:
-			raise errors.AutoservVirtError("Unknown guest hostname")
+			raise AutoservVirtError("Unknown guest hostname")
 
 		pid_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_pid" % (address["ip"],)))
@@ -460,10 +461,10 @@ class KVM(hypervisor.Hypervisor):
 				if address["is_used"]:
 					break
 				else:
-					raise errors.AutoservVirtError("guest "
+					raise AutoservVirtError("guest "
 						"hostname not in use")
 		else:
-			raise errors.AutoservVirtError("Unknown guest hostname")
+			raise AutoservVirtError("Unknown guest hostname")
 
 		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_monitor" % (address["ip"],)))

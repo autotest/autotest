@@ -121,7 +121,7 @@ class AutotestTestCase(unittest.TestCase):
 					    autotest.AUTOTEST_SVN + ' ' +
 					    "/usr/local/autotest")
 					if (command == first):
-						raise autotest.errors.AutoservRunError(
+						raise autotest.AutoservRunError(
 							"svn not found")
 		
 		host = MockFirstInstallFailsHost()
