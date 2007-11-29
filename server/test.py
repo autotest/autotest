@@ -20,7 +20,7 @@
 
 import os, pickle, tempfile, re
 from subcommand import *
-from error import *
+from common.error import *
 from utils import *
 
 class test:

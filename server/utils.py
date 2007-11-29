@@ -15,7 +15,7 @@ stutsman@google.com (Ryan Stutsman)
 import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
 import time, types, urllib, re, sys, textwrap
 import hosts, errors
-from error import *
+from common.error import *
 
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
