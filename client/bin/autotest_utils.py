@@ -2,7 +2,7 @@
 """
 
 import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob,statvfs
-from error import *
+from common.error import *
 import re,string
 
 def grep(pattern, file):
@@ -628,4 +628,3 @@ try:
 	from site_utils import *
 except ImportError:
 	pass
-

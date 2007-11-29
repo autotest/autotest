@@ -14,7 +14,7 @@ Andy Whitcroft <apw@shadowen.org>
 import os, sys, re, time
 import test, errors
 from utils import *
-from error import *
+from common.error import *
 
 # this magic incantation should give us access to a client library
 server_dir = os.path.dirname(__file__)

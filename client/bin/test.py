@@ -20,7 +20,7 @@
 
 import os, pickle, tempfile
 from autotest_utils import *
-from error import *
+from common.error import *
 import sysinfo
 
 class test:

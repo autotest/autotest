@@ -3,7 +3,7 @@
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 import sys, os, pickle
-from error import *
+from common.error import *
 
 def fork_start(tmp, l):
 	sys.stdout.flush()

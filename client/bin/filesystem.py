@@ -2,7 +2,7 @@ __author__ = """Copyright Martin J. Bligh, Google, 2006"""
 
 import os, re, string
 from autotest_utils import *
-from error import *
+from common.error import *
 
 def list_mount_devices():
 	devices = []
