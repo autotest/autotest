@@ -282,7 +282,7 @@ class db:
 		if rows:
 			return [row[0] for row in rows]
 		else:
-			return None
+			return []
 
 
 	def find_job(self, tag):
