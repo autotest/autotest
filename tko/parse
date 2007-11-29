@@ -46,9 +46,11 @@ for name, value in opts:
 
 if singledir:
 	dir = os.path.abspath(singledir)
+	assert os.path.exists(dir)
 	jobs_list = [dir]
 else:
 	topdir = os.path.abspath(args[0])
+	assert os.path.exists(topdir)
 	jobs_list = [os.path.join(topdir, dir) for dir in os.listdir(topdir)]
 
 debug = True
