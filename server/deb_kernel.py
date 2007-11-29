@@ -21,8 +21,9 @@ import time
 import urllib
 
 import kernel
-import errors
 import utils
+
+from common.error import *
 
 
 class DEBKernel(kernel.Kernel):

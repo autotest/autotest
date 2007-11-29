@@ -47,3 +47,32 @@ class UnhandledError(TestError):
 	def __init__(self, prefix):
 		msg = prefix + format_error()
 		TestError.__init__(self, msg)
+
+
+# server-specific errors
+
+class AutoservError(Exception):
+	pass
+
+
+class AutoservRunError(AutoservError):
+	"""Errors raised by one of the run functions"""
+	pass
+
+
+class AutoservVirtError(AutoservError):
+	"""Vitualization related error"""
+	pass
+
+
+class AutoservUnsupportedError(AutoservError):
+	"""Error raised when you try to use an unsupported optional feature"""
+	pass
+
+class AutoservHostError(AutoservError):
+	"""Error reaching a host"""
+	pass
+
+class AutoservRebootError(AutoservError):
+	"""Error occured while rebooting a machine"""
+	pass
