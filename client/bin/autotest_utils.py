@@ -536,7 +536,7 @@ def read_keyval(path):
 	keyval = {}
 	for line in open(path, 'r').readlines():
 		line = re.sub('#.*', '', line.rstrip())
-		if not re.search(r'^\w+=.+', line):
+		if not re.search(r'^\w+=', line):
 			raise ValueError('Invalid format line: ' + line)
 		key, value = line.split('=', 1)
 		if re.search('^\d+$', value):
