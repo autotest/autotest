@@ -19,7 +19,9 @@ stutsman@google.com (Ryan Stutsman)
 
 
 import types, os, sys, signal, subprocess, time, re, socket
-import base_classes, utils, errors, bootloader
+import base_classes, utils, bootloader
+
+from common.error import *
 
 
 class SSHHost(base_classes.RemoteHost):
@@ -94,7 +96,7 @@ class SSHHost(base_classes.RemoteHost):
 		for dir in self.tmp_dirs:
 			try:
 				self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
-			except errors.AutoservRunError:
+			except AutoservRunError:
 				pass
 		# kill the console logger
 		if getattr(self, 'logger_pid', None):
@@ -131,7 +133,7 @@ class SSHHost(base_classes.RemoteHost):
 		# Get the gateway of the remote machine
 		try:
 			traceroute = self.run('traceroute -n %s' % local_ip)
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			return
 		first_node = traceroute.stdout.split("\n")[0]
 		match = re.search(r'\s+((\d+\.){3}\d+)\s+', first_node)
@@ -143,7 +145,7 @@ class SSHHost(base_classes.RemoteHost):
 		try:
 			self.run('ping -c 1 %s' % router_ip)
 			arp = self.run('arp -n -a %s' % router_ip)
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			return
 		match = re.search(r'\s+(([0-9A-F]{2}:){5}[0-9A-F]{2})\s+', arp.stdout)
 		if match:
@@ -179,7 +181,7 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		try:
 			self.run('modprobe netconsole %s' % self.__netconsole_param)
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			# if it fails there isn't much we can do, just keep going
 			pass
 
@@ -187,21 +189,21 @@ class SSHHost(base_classes.RemoteHost):
 	def __unload_netconsole_module(self):
 		try:
 			self.run('modprobe -r netconsole')
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			pass
 
 
 	def _wait_for_restart(self, timeout):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
 			self.__record("ABORT", None, "reboot.verify", "shutdown failed")
-			raise errors.AutoservRebootError("Host did not shut down")
+			raise AutoservRebootError("Host did not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
 		if self.wait_up(timeout):
 			self.__record("GOOD", None, "reboot.verify")
 		else:
 			self.__record("ABORT", None, "reboot.verify", "bringup failed")
-			raise errors.AutoservRebootError("Host did not return from reboot")
+			raise AutoservRebootError("Host did not return from reboot")
 		print "Reboot complete"
 
 
@@ -212,7 +214,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.__record("GOOD", None, "reboot.start", "hard reset")
 		if not self.__console_run(r"'~$hardreset'"):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
-                        raise errors.AutoservUnsupportedError
+                        raise AutoservUnsupportedError
                 if wait:
                         self._wait_for_restart(timeout)
 
@@ -265,7 +267,7 @@ class SSHHost(base_classes.RemoteHost):
 			res = utils.run('which conmux-attach')
 			if res.exit_status == 0:
 				return res.stdout.strip()
-		except errors.AutoservRunError, e:
+		except AutoservRunError, e:
 			pass
 		autotest_conmux = os.path.join(self.serverdir, '..',
 					       'conmux', 'conmux-attach')
@@ -378,7 +380,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.__record("GOOD", None, "reboot.start")
 		try:
 			self.run('(sleep 5; reboot) </dev/null >/dev/null 2>&1 &')
-		except errors.AutoservRunError:
+		except AutoservRunError:
 			self.__record("ABORT", None, "reboot.start",
 				      "reboot command failed")
 			raise
@@ -578,11 +580,11 @@ class SSHHost(base_classes.RemoteHost):
 			print "Performing a hardreset on %s" % self.hostname
 			try:
 				self.hardreset()
-			except errors.AutoservUnsupportedError:
+			except AutoservUnsupportedError:
 				print "Hardreset is unsupported on %s" % self.hostname
 		if not self.wait_up(60 * 30):
 			# 30 minutes should be more than enough
-			raise errors.AutoservHostError
+			raise AutoservHostError
 		print 'Host up, continuing'
 
 

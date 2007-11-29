@@ -14,7 +14,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import atexit, os, select, shutil, signal, StringIO, subprocess, tempfile
 import time, types, urllib, re, sys, textwrap
-import hosts, errors
+import hosts
 from common.error import *
 
 # A dictionary of pid and a list of tmpdirs for that pid
@@ -245,7 +245,7 @@ def run(command, timeout=None, ignore_status=False,
 	result.stderr = stderr_file.getvalue()
 
 	if not ignore_status and result.exit_status > 0:
-		raise errors.AutoservRunError("command execution error", result)
+		raise AutoservRunError("command execution error", result)
 
 	return result
 
