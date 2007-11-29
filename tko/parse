@@ -32,6 +32,7 @@ if len(sys.argv) < 2:
 
 singledir = None
 mailit = False
+level = 1
 for name, value in opts:
 	if name in ("-h", "--help"):
 		usage()
@@ -42,8 +43,6 @@ for name, value in opts:
 		singledir = value
 	if name in ("-l"):
 		level = int(value)
-	else:
-		level = 1
 
 if singledir:
 	dir = os.path.abspath(singledir)
