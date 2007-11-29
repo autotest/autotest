@@ -576,10 +576,53 @@ def get_cpu_family():
 	else:
 		raise TestError('Could not get valid cpu family data')
 
+
 def get_disks():
 	df_output = system_output('df')
 	disk_re = re.compile(r'^(/dev/hd[a-z]+)3', re.M)
 	return disk_re.findall(df_output)
+
+
+def load_module(module_name):
+	# Checks if a module has already been loaded
+	if module_is_loaded(module_name):
+		return False
+	
+	system('/sbin/modprobe ' + module_name)
+	return True
+
+
+def unload_module(module_name):
+	system('/sbin/rmmod ' + module_name)
+
+
+def module_is_loaded(module_name):
+	modules = system_output('/sbin/lsmod').splitlines()
+	for module in modules:
+		if module.startswith(module_name) and module[len(module_name)] == ' ':
+			return True
+	return False
+
+
+def get_huge_page_size():
+	output = system_output('grep Hugepagesize /proc/meminfo')
+	return int(output.split()[1]) # Assumes units always in kB. :(
+
+
+def get_num_huge_pages():
+	raw_hugepages = system_output('/sbin/sysctl vm.nr_hugepages')
+	return int(raw_hugepages.split()[2])
+
+
+def set_num_huge_pages(num):
+	system('/sbin/sysctl vm.nr_hugepages=%d' % num)
+
+
+def get_system_nodes():
+	nodes =	os.listdir('/sys/devices/system/node')
+	nodes.sort()
+	return nodes
+
 
 try:
 	from site_utils import *
