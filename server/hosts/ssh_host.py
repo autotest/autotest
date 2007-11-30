@@ -340,7 +340,7 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		stdout = stdout_tee or sys.stdout
 		stderr = stderr_tee or sys.stderr
-		print "On host %s running %s" % (self.hostname, command)
+		print "ssh: %s" % (command,)
 		env = " ".join("=".join(pair) for pair in self.env.iteritems())
 		full_cmd = '%s "%s %s"' % (self.ssh_command(), env,
 					   utils.sh_escape(command))
