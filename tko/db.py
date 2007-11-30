@@ -167,7 +167,7 @@ class db:
 	def insert_job(self, tag, job, commit = None):
 		job.machine_idx = self.lookup_machine(job.machine)
 		if not job.machine_idx:
-			job.machine_idx = self.insert_machine(job.machine,
+			job.machine_idx = self.insert_machine(job,
 		                                              commit=commit)
 		self.insert('jobs', {'tag':tag,
                                      'label': job.label,
@@ -208,16 +208,20 @@ class db:
 			self.machine_group[machine] = group
 
 
-	def insert_machine(self, hostname, group = None, commit = None):
+	def insert_machine(self, job, group = None, commit = None):
+		hostname = job.machine
 		if self.machine_map and not self.machine_group:
 			self.read_machine_map()
 
 		if not group:
 			group = self.machine_group.get(hostname, hostname)
-				
+			if group == hostname and job.machine_owner:
+				group = job.machine_owner + '/' + hostname
+
 		self.insert('machines',
                             { 'hostname' : hostname ,
-		              'machine_group' : group },
+		              'machine_group' : group ,
+			      'owner' : job.machine_owner },
 		            commit=commit)
 		return self.lookup_machine(hostname)
 

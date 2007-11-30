@@ -81,6 +81,7 @@ class job:
 		self.user = keyval.get('user', None)
 		self.label = keyval.get('label', None)
 		self.machine = keyval.get('hostname', None)
+		self.machine_owner = keyval.get('owner', None)
 
 		if not self.machine:
 			self.get_machine()
@@ -94,13 +95,13 @@ class job:
 
 	def get_machine(self):
 		try:
-			hostname = os.path.join(dir, "sysinfo/hostname")
+			hostname = os.path.join(self.dir, "sysinfo/hostname")
 			self.machine = open(hostname, 'r').readline().rstrip()
 			return
 		except:
 			pass
 		try:
-			uname = os.path.join(dir, "sysinfo/uname_-a")
+			uname = os.path.join(self.dir, "sysinfo/uname_-a")
 			self.machine = open(uname, 'r').readline().split()[1]
 			return
 		except:
