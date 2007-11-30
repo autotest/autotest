@@ -32,7 +32,7 @@ def main():
 
 	groups = frontend.group.select(db)
 
-	group_names = [re.sub('_', '<br>', g.name) for g in groups]
+	group_names = [display.group_name(g) for g in groups]
 	headers = ['Version'] + group_names
 	header_row = [ display.box(x, header=True) for x in headers ] 
 

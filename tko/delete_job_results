@@ -12,12 +12,10 @@ if len(sys.argv) < 2:
 tag = sys.argv[1]
 resultsdir = os.path.abspath(os.path.join(thisdir, '../results', tag))
 
-if not os.path.isdir(resultsdir):
-	raise "Results directory %s does not exist" % resultsdir
 db = db.db()
 if not db.find_job(tag):
 	raise "Job tag %s does not exist in database" % tag
 
-shutil.rmtree(resultsdir)
 db.delete_job(tag)
+shutil.rmtree(resultsdir)
 

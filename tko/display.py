@@ -114,6 +114,9 @@ def sort_tests(tests):
 		if tests.count(test):
 			results.append(test)
 			tests.remove(test)
+	if tests.count('boot'):
+		results.append('boot')
+		tests.remove('boot')
 	return results + sorted(tests)
 
 
@@ -126,3 +129,15 @@ def print_main_header():
 	print '&nbsp&nbsp&nbsp'
 	print '<a href="machine_benchmark.cgi">Performance</a>'
 	print '</h2><p>'
+
+
+def group_name(group):
+	name = re.sub('_', '<br>', group.name)
+	if re.search('/', name):
+		(owner, machine) = name.split('/', 1)
+		if len(owner) > 3:           # capitalize acroymns
+			owner = owner.capitalize()
+		else:
+			owner = owner.upper()
+		name = owner + '<br>' + machine
+	return name
