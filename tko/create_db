@@ -7,7 +7,7 @@ base VARCHAR(30),			-- Base version without patches
 printable VARCHAR(100)			-- Full version with patches
 ) TYPE=InnoDB;
 
--- main jobs table
+-- machines/hosts table
 DROP TABLE IF EXISTS machines;
 CREATE TABLE machines (
 machine_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,
@@ -77,6 +77,19 @@ DROP TABLE IF EXISTS brrd_sync;
 CREATE TABLE brrd_sync (
 test_idx INTEGER			-- ref to test table
 ) TYPE=InnoDB;
+
+-- test_view (to make life easier for people trying to mine data)
+DROP VIEW IF EXISTS test_view;
+CREATE VIEW test_view AS
+SELECT tests.test_idx, tests.job_idx, tests.test, tests.subdir,
+       tests.kernel_idx, tests.status, tests.reason, jobs.machine_idx,
+       jobs.tag, jobs.label, jobs.user, machines.hostname,
+       machines.machine_group, machines.owner, kernels.kernel_hash,
+       kernels.base, kernels.printable
+FROM tests
+INNER JOIN jobs ON jobs.job_idx = tests.job_idx
+INNER JOIN machines ON machines.machine_idx = jobs.machine_idx
+INNER JOIN kernels ON kernels.kernel_idx = tests.kernel_idx;
 
 
 INSERT INTO status (word)
