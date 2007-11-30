@@ -65,7 +65,7 @@ def print_kernel_machines_vs_test(machines, kernel, only_test, mlist):
 	for machine in machines:
 		if not results.has_key(machine.idx):
 			continue
-		row = [display.box(machine.hostname, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s' % (machine.idx, kernel.idx))]
+		row = [display.box(machine.owner + ' ' + machine.hostname, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s' % (machine.idx, kernel.idx))]
 		for testname in test_list:
 			if results[machine.idx].has_key(testname):
 				tests = results[machine.idx][testname]

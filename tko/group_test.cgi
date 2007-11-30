@@ -37,7 +37,7 @@ def print_kernel_groups_vs_tests(kernel, groups):
 
 	header_row = [ display.box('Test', header=True) ]
 	for group in present_groups:
-		group_name = re.sub('_', '<br>', group.name)
+		group_name = display.group_name(group)
 		header_row.append( display.box(group_name, header=True) )
 
 	matrix = [header_row]
