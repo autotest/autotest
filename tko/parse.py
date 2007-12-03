@@ -303,5 +303,6 @@ class iteration:
 
 		dprint("ADDING ITERATION %d" % index)
 		for line in lines:
+			line = line.rstrip();
 			(key, value) = line.split('=', 1)
 			self.keyval[key] = value
