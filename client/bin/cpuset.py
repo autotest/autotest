@@ -68,8 +68,10 @@ class cpuset:
 
 	def release(self):
 		print "erasing ", self.cpudir
-		return
 		if self.delete_after_use:
+			# Transfer self to root
+			write_one_line(os.path.join(self.root, 'tasks'),
+			    "%d" % os.getpid())
 			system("for i in `cat %s/tasks`; do kill -9 $i; done;sleep 3; rmdir %s" % (self.cpudir, self.cpudir))
 
 	def __init__(self, name, job_size, job_pid, cpus = None,
@@ -83,7 +85,11 @@ class cpuset:
 		self.super_root = "/dev/cpuset"
 		self.root = os.path.join(self.super_root, root)
 		self.name = name
-		self.delete_after_use = 1
+		self.delete_after_use = 0
+		# 
+		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)"% \
+		    (name, root, job_size, job_pid)
+		# Convert jobsize to bytes
 		job_size = job_size << 20
 		if not grep('cpuset', '/proc/filesystems'):
 			print "No CPU set support"
@@ -104,7 +110,7 @@ class cpuset:
 			os.mkdir(self.cpudir)
 			cpu_spec = ','.join(['%d' % x for x in cpus])
 
-			# Find some free nodes to use to create this 
+			# Find some free nodes to use to create this
 			# cpuset
 			node_size = memtotal() * 1024 / len(all_nodes)
 			nodes_needed = int(math.ceil(job_size / node_size))
@@ -114,19 +120,24 @@ class cpuset:
 			if len(mems) < nodes_needed:
 				raise "Insufficient memory available"
 
-		# Set up the cpuset
+			# Set up the cpuset
 			mems_spec = ','.join(['%d' % x for x in mems])
 			print "cpu_spec", cpu_spec
 			print "mems_spec", mems_spec
 			print "self.cpudir=", self.cpudir
 			print "wrote %s to %s/cpus" % (cpu_spec, self.cpudir)
-			write_one_line(os.path.join(self.cpudir, 'cpus'), cpu_spec)
-			write_one_line(os.path.join(self.cpudir, 'mems'), mems_spec)
-			write_one_line(os.path.join(self.cpudir, 'tasks'), "%d" % job_pid)
-			# Notify kernel to erase the container after it  is done.
+			write_one_line(os.path.join(self.cpudir, 'cpus'),
+			    cpu_spec)
+			write_one_line(os.path.join(self.cpudir, 'mems'),
+			    mems_spec)
+			write_one_line(os.path.join(self.cpudir, 'tasks'),
+			    "%d" % job_pid)
+			# Notify kernel to erase the container after
+			# it is done. We do have a release method as well
+			# which should just work.
 			if cleanup:
-			 	write_one_line(
-				    os.path.join(self.cpudir, 
+				write_one_line(
+				    os.path.join(self.cpudir,
 				    'notify_on_release'), "1")
  
 
