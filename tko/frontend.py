@@ -18,7 +18,7 @@ def select(db, field, value=None, distinct=False):
 	 	   'machine_group': ['machine_group', 'machine_idx', 'machine_idx'],
 		   'hostname': ['hostname', 'machine_idx', 'machine_idx'],
 		   'label': ['label', 'job_idx', 'job_idx'],
-		   'user': ['user', 'job_idx', 'job_idx'],
+		   'user': ['username', 'job_idx', 'job_idx'],
 		   'test': ['test', 'test', 'test'],
 		   'status': ['word', 'status_idx', 'status'],
 		   'reason': ['reason', 'test_idx', 'test_idx'] }

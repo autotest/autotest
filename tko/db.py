@@ -171,7 +171,7 @@ class db:
 		                                              commit=commit)
 		self.insert('jobs', {'tag':tag,
                                      'label': job.label,
-                                     'user': job.user,
+                                     'username': job.user,
 		                     'machine_idx':job.machine_idx},
                                      commit=commit)
 		job.index = self.find_job(tag)
