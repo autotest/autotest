@@ -25,7 +25,7 @@ CREATE TABLE jobs (
 job_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,		-- index number
 tag VARCHAR(100),			-- job key
 label VARCHAR(100),                     -- job label assigned by user
-user VARCHAR(80),			-- user name
+username VARCHAR(80),			-- user name
 machine_idx int(10)			-- reference to machine table
 ) TYPE=InnoDB;
 
