@@ -1,0 +1,3 @@
+job.profilers.add('mpstat')
+job.run_test('sleeptest', 5)
+job.profilers.delete('mpstat')
