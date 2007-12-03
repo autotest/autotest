@@ -123,6 +123,7 @@ class job:
 		dprint('=====================================================')
 		self.kernel = kernel(self.dir)
 
+		reboot_inprogress = 0	# Saw reboot start and not finish
 		group_subdir = None
 		sought_level = 0        # we log events at indent level 0
 		for line in open(self.status, 'r').readlines():
@@ -155,6 +156,7 @@ class job:
 				continue
 			if testname == 'reboot.start':
 				dprint('reboot start event, ignoring')
+				reboot_inprogress = 1
 				continue
 			################################################
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
@@ -185,9 +187,17 @@ class job:
 					testname = subdir
 			if testname == 'reboot.verify':
 				testname = 'boot'
+				reboot_inprogress = 0
 			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
 					(status, subdir, testname, reason))
 			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
+			dprint('')
+		if reboot_inprogress:
+			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
+					(status, subdir, testname, reason))
+			self.tests.append(test('----', 'boot', 'ABORT', 
+				'machine did not return from reboot',
+				self.kernel, self))
 			dprint('')
 
 
