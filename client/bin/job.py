@@ -61,6 +61,7 @@ class job:
 		self.profdir = os.path.join(self.autodir, 'profilers')
 		self.tmpdir = os.path.join(self.autodir, 'tmp')
 		self.resultdir = os.path.join(self.autodir, 'results', jobtag)
+		self.control = os.path.abspath(control)
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
@@ -86,7 +87,8 @@ class job:
 			os.mkdir(os.path.join(self.resultdir, 'analysis'))
 			os.mkdir(os.path.join(self.resultdir, 'sysinfo'))
 
-			shutil.copyfile(control, os.path.join(self.resultdir, 'control'))
+			shutil.copyfile(self.control,
+					os.path.join(self.resultdir, 'control'))
 
 		self.control = control
 		self.jobtag = jobtag
@@ -132,6 +134,10 @@ class job:
 
 	def control_get(self):
 		return self.control
+
+
+	def control_set(self, control):
+		self.control = os.path.abspath(control)
 
 
 	def harness_select(self, which):
