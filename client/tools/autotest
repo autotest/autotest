@@ -1,9 +1,23 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 import sys,os
 
-autodir = os.path.dirname(os.path.realpath('/etc/autotest.conf'))
+autodir = None
+try:
+	autodir = os.path.dirname(os.path.realpath('/etc/autotest.conf'))
+except:
+	pass
+if not autodir:
+        for path in ['/usr/local/autotest', '/home/autotest']:
+                if os.path.exists(os.path.join(path, '/bin/autotest')):
+			autodir = path
+
 autotest = os.path.join(autodir, 'bin/autotest')
 control = os.path.join(autodir, 'control')
+state = os.path.join(autodir, 'control.state')
 
-if sys.argv[1] == 'start':
-	os.system(autotest + ' --continue ' + control)
+if len(sys.argv) == 1 or sys.argv[1] == 'start':
+	if os.path.exists(state):
+		print "Restarting partially completed autotest job"
+		os.system(autotest + ' --continue ' + control)
+	else:
+		print "No autotest jobs outstanding"

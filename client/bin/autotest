@@ -48,4 +48,4 @@ if len(args) != 1:
 	usage()
 
 # JOB: run the specified job control file.
-job.runjob(args[0], options.cont, options.tag, options.harness)
+job.runjob(os.path.abspath(args[0]), options.cont, options.tag, options.harness)

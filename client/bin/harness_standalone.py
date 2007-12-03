@@ -21,10 +21,18 @@ class harness_standalone(harness.harness):
 			job
 				The job object for this job
 		"""
-
+		self.autodir = os.path.abspath(os.environ['AUTODIR'])
 		self.setup(job)
 
 		src = job.control_get()
-		dest = os.path.join(os.environ['AUTODIR'], 'control')
+		dest = os.path.join(self.autodir, 'control')
 		if os.path.abspath(src) != os.path.abspath(dest):
 			shutil.copyfile(src, dest)
+			job.control_set(dest)
+
+		print 'Symlinking init scripts'
+		rc = os.path.join(self.autodir, 'tools/autotest')
+		initdefault = system_output('grep :initdefault: /etc/inittab')
+		initdefault = initdefault.split(':')[1]
+		system('ln -sf %s /etc/init.d/autotest' % rc)
+		system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc, initdefault))
