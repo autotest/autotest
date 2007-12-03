@@ -54,7 +54,8 @@ def package_installed(package):
 
 	if my_package_type == 'rpm' and os_dep.command('rpm'):
 		try:
-			system('rpm -q ' + package)
+			my_package_version = package_version(package)
+			system('rpm -q ' + my_package_version)
 		except:
 			return False
 		return True
