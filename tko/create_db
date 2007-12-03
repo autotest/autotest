@@ -1,3 +1,6 @@
+-- drop all views (since they depend on some or all of the following tables)
+DROP VIEW IF EXISTS test_view;
+
 -- kernel versions
 DROP TABLE IF EXISTS kernels;
 CREATE TABLE kernels (
@@ -79,7 +82,6 @@ test_idx INTEGER			-- ref to test table
 ) TYPE=InnoDB;
 
 -- test_view (to make life easier for people trying to mine data)
-DROP VIEW IF EXISTS test_view;
 CREATE VIEW test_view AS
 SELECT tests.test_idx, tests.job_idx, tests.test, tests.subdir,
        tests.kernel_idx, tests.status, tests.reason, jobs.machine_idx,
