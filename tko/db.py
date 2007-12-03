@@ -1,6 +1,6 @@
-import MySQLdb, re, os, sys, types
+import re, os, sys, types
 
-class db:
+class db_sql:
 	def __init__(self, debug = False, autocommit=True):
 		self.debug = debug
 		self.autocommit = autocommit
@@ -30,8 +30,7 @@ class db:
 				user = 'nobody'
 				password = ''
 
-		self.con = MySQLdb.connect(host=host, user=user,
-					   passwd=password, db=database)
+		self.con = self.connect(host, database, user, password)
 		self.cur = self.con.cursor()
 
 		# if not present, insert statuses
@@ -295,3 +294,23 @@ class db:
 			return rows[0][0]
 		else:
 			return None
+
+
+# Use a class method as a class factory, generating a relevant database object.
+def db(*args, **dargs):
+	path = os.path.dirname(os.path.abspath(sys.argv[0]))
+	type = None
+	try:
+		file = os.path.join(path, '.database')
+		db_prefs = open(file, 'r')
+		host = db_prefs.readline().rstrip()
+		database = db_prefs.readline().rstrip()
+		type = db_prefs.readline().rstrip()
+	finally:
+		if not type:
+			type = 'mysql'
+
+	type = 'db_' + type
+	exec 'import %s; db = %s.%s(*args, **dargs)' % (type, type, type)
+
+	return db
