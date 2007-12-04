@@ -3,7 +3,7 @@
 
 import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob,statvfs
 from common.error import *
-import re,string
+import re,string,fnmatch
 
 def grep(pattern, file):
 	"""
@@ -559,6 +559,14 @@ def write_keyval(path, dictionary):
 			raise ValueError('Invalid key: ' + key)
 		keyval.write('%s=%s\n' % (key, str(dictionary[key])))
 	keyval.close()
+
+
+# much like find . -name 'pattern'
+def locate(pattern, root=os.getcwd()):
+	for path, dirs, files in os.walk(root):
+		for f in [os.path.abspath(os.path.join(path, f))
+			for f in files if fnmatch.fnmatch(f, pattern)]:
+				yield f
 
 
 def freespace(path):
