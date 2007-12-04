@@ -86,6 +86,7 @@ class KVM(hypervisor.Hypervisor):
 	support_dir= None
 	addresses= []
 	insert_modules= True
+	modules= {}
 
 
 	def __del__(self):
@@ -147,7 +148,7 @@ class KVM(hypervisor.Hypervisor):
 		self.host.run(_remove_modules_script)
 
 
-	def install(self, addresses, build=True, insert_modules=True):
+	def install(self, addresses, build=True, insert_modules=True, syncdir=None):
 		"""
 		Compile the kvm software on the host that the object was 
 		initialized with.
@@ -231,9 +232,25 @@ class KVM(hypervisor.Hypervisor):
 			self.host.run('cd "%s" && ./configure %s' % (
 				utils.sh_escape(self.build_dir), 
 				configure_modules,))
+			if syncdir:
+				cmd = 'cd "%s/kernel" && make sync LINUX=%s' % (
+				utils.sh_escape(self.build_dir),
+				utils.sh_escape(syncdir))
+				self.host.run(cmd)
 			self.host.run('make -j%d -C "%s"' % (
 				self.host.get_num_cpu() * 2, 
 				utils.sh_escape(self.build_dir),))
+			# remember path to modules
+			self.modules['kvm'] = "%s" %(
+				utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm.ko")))
+			self.modules['kvm-intel'] = "%s" %(
+				utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-intel.ko")))
+			self.modules['kvm-amd'] = "%s" %(
+				utils.sh_escape(os.path.join(self.build_dir, 
+				"kernel/kvm-amd.ko")))
+			print self.modules
 
 		self.initialize()
 
