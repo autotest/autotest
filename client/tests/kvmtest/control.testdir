@@ -1,0 +1,4 @@
+# CHANGEME - point to your kvm-test test dirs
+TESTDIR="/opt/kvmtest_tests/"
+
+job.run_test('kvmtest', testdir=TESTDIR)
