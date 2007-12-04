@@ -10,7 +10,7 @@ import os, os_dep, re
 from common.error import *
 from autotest_utils import *
 
-def package_type(package):
+def type(package):
 	"""\
 	Returns the package type (if any) of a given file.
 	Implemented package types:
@@ -38,7 +38,7 @@ def package_type(package):
 	raise PackageError, 'Unknown package type %s' % file_result
 
 
-def package_version(package):
+def version(package):
 	"""Returns the version string for a package file."""
 	my_package_type = package_type(package)
 
@@ -48,7 +48,7 @@ def package_version(package):
 		return system_output('dpkg -f %s Package' % package)
 
 
-def package_installed(package):
+def installed(package):
 	"""Returns whether a given package is installed in the system"""
 	my_package_type = package_type(package)
 
@@ -71,7 +71,7 @@ def package_installed(package):
 	return False
 
 
-def install_package(package):
+def install(package):
 	"""\
 	Tries to install a package file. If the package is already installed,
 	it prints a message to the user and ends gracefully.
