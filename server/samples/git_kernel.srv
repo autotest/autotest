@@ -1,0 +1,39 @@
+# dir on remote host to hold git repo
+repodir = '/tmp/kvm'
+
+# git url to clone
+giturl  = 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git'
+
+# web url to check remote version to determine whether or not to 'git pull'
+weburl  = 'http://git.kernel.org/?p=linux/kernel/git/avi/kvm.git'
+
+# CHANGEME - kernel config
+kconfig = 'http://git.kernel.org/?p=virt/kvm/kvm-userspace.git;a=blob_plain;f=kernel/x86_64.config;hb=HEAD'
+
+# CHANGEME
+myhostname = 'myhost'
+
+# init the git kernel
+kernel = git_kernel.GitKernel(repodir, giturl, weburl)
+
+# ssh to remote host
+h = hosts.SSHHost(myhostname)
+
+# acquire git repo, make sure it is up-to-date, clone repo into tmp dir
+kernel.get(h)
+
+# display local repo version
+print kernel.get_local_head(h)
+
+# configure, build, and install on remote host
+kernel.configure(kconfig)
+kernel.build(h)
+kernel.install(h)
+
+# add kernel to remote host bootloader, set up next boot entry
+h.bootloader.boot_once('autotest')
+
+# reboot and check that everything worked
+h.reboot()
+h.wait_up()
+print h.run("uname -a").stdout
