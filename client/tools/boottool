@@ -236,7 +236,7 @@ sub _info {
     $sections[0]{'default'} = '0';
 
   # if default is label name, we need position
-  } elsif ($sections[0]{'default'} !~ m/^\d+$/) {
+  } else {
     foreach my $index (1..$#sections) {
       if ($sections[$index]{'title'} eq $sections[0]{'default'}) {
         $sections[0]{'default'} = $index-1;
