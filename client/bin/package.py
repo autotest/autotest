@@ -40,7 +40,7 @@ def type(package):
 
 def version(package):
 	"""Returns the version string for a package file."""
-	my_package_type = package_type(package)
+	my_package_type = type(package)
 
 	if my_package_type == 'rpm' and os_dep.command('rpm'):
 		return system_output('rpm -qp ' + package)
@@ -50,17 +50,17 @@ def version(package):
 
 def installed(package):
 	"""Returns whether a given package is installed in the system"""
-	my_package_type = package_type(package)
+	my_package_type = type(package)
 
 	if my_package_type == 'rpm' and os_dep.command('rpm'):
 		try:
-			my_package_version = package_version(package)
+			my_package_version = version(package)
 			system('rpm -q ' + my_package_version)
 		except:
 			return False
 		return True
 	elif my_package_type == 'dpkg' and os_dep.command('dpkg'):
-		my_package_version = package_version(package)
+		my_package_version = version(package)
 		status = \
 		system_output('dpkg -s %s | grep Status' % my_package_version)
 		result = re.search('not-installed', status, re.IGNORECASE)
@@ -76,14 +76,14 @@ def install(package):
 	Tries to install a package file. If the package is already installed,
 	it prints a message to the user and ends gracefully.
 	"""
-	my_package_type = package_type(package)
+	my_package_type = type(package)
 
 	if my_package_type == 'rpm' and os_dep.command('rpm'):
 		install_command = 'rpm -Uvh ' + package
 	elif my_package_type == 'dpkg' and os_dep.command('dpkg'):
 		install_command = 'dpkg -i ' + package
 
-	if package_installed(package):
+	if installed(package):
 		return 'Package %s is already installed' % package
 
 	# At this point, the most likely thing to go wrong is that there are 
