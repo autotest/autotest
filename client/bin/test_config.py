@@ -7,7 +7,7 @@ __author__ = 'rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)'
 from ConfigParser import ConfigParser
 from os import path
 
-__all__ = ['config']
+__all__ = ['config_loader']
 
 class config_loader:
 	"""Base class of the configuration parser"""
