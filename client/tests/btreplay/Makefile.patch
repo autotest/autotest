@@ -1,0 +1,60 @@
+--- blktrace/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
++++ blktrace/Makefile	2007-12-06 13:14:05.000000000 +1100
+@@ -1,8 +1,8 @@
+ CC	= gcc
+-CFLAGS	= -Wall -O2 -g -W
++CFLAGS	+= -Wall -O2 -g -W
+ ALL_CFLAGS = $(CFLAGS) -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ PROGS	= blkparse blktrace verify_blkparse blkrawverify
+-LIBS	= -lpthread
++LIBS	+= -lpthread
+ SCRIPTS	= btrace
+ 
+ ALL = $(PROGS) $(SCRIPTS) btt/btt btreplay/btrecord btreplay/btreplay
+@@ -24,7 +24,7 @@
+ blkparse: blkparse.o blkparse_fmt.o rbtree.o act_mask.o
+ 	$(CC) $(ALL_CFLAGS) -o $@ $(filter %.o,$^)
+ 
+-blktrace: blktrace.o act_mask.o $(LIBS)
++blktrace: blktrace.o act_mask.o
+ 	$(CC) $(ALL_CFLAGS) -o $@ $(filter %.o,$^) $(LIBS)
+ 
+ verify_blkparse: verify_blkparse.o
+--- blktrace/btreplay/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
++++ blktrace/btreplay/Makefile	2007-12-06 10:11:38.000000000 +1100
+@@ -6,14 +6,14 @@
+ #
+ 
+ CC	= gcc
+-CFLAGS	= -Wall -W -O2 -g
++CFLAGS	+= -Wall -W -O2 -g
+ INCS	= -I. -I.. -I../btt
+ OCFLAGS	= -UCOUNT_IOS -UDEBUG -DNDEBUG
+ XCFLAGS	= -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ override CFLAGS += $(INCS) $(XCFLAGS) $(OCFLAGS)
+ 
+ PROGS	= btrecord btreplay
+-LIBS	= -laio -lrt
++LIBS	+= -laio -lrt
+ 
+ all: depend $(PROGS)
+ 
+--- blktrace/btt/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
++++ blktrace/btt/Makefile	2007-12-06 10:12:26.000000000 +1100
+@@ -6,14 +6,14 @@
+ #
+ 
+ CC	= gcc
+-CFLAGS	= -Wall -W -O2 -g
++CFLAGS	+= -Wall -W -O2 -g
+ INCS	= -I. -I..
+ OCFLAGS	= -UCOUNT_IOS -UDEBUG -DNDEBUG
+ XCFLAGS	= -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ override CFLAGS += $(INCS) $(XCFLAGS) $(OCFLAGS)
+ 
+ PROGS	= btt
+-LIBS	= $(PLIBS) $(ELIBS)
++LIBS	+= $(PLIBS) $(ELIBS)
+ OBJS	= args.o bt_timeline.o devmap.o devs.o dip_rb.o iostat.o latency.o \
+ 	  misc.o output.o proc.o seek.o trace.o trace_complete.o trace_im.o \
+ 	  trace_issue.o trace_queue.o trace_remap.o trace_requeue.o \
