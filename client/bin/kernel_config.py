@@ -5,20 +5,30 @@ from autotest_utils import *
 from kernel_versions import *
 
 def apply_overrides(orig_file, changes_file, output_file):
+	override = dict()
+
 	# First suck all the changes into a dictionary.
 	input = file(changes_file, 'r')
 	for line in input.readlines():
-		[key] = line.split('=')[0:1]
-		if key.startswith('CONFIG_'):
+		if line.startswith('CONFIG_'):
+			key = line.split('=')[0]
+			override[key] = line;
+		elif line.startswith('# CONFIG_'):
+			key = line.split(' ')[1]
 			override[key] = line;
 	input.close()
 
 	# Now go through the input file, overriding lines where need be
 	input = file(orig_file, 'r')
-	ouput = file(output_file, 'w')
+	output = file(output_file, 'w')
 	for line in input.readlines():
-		key = line.split('=')[0:1]
-		if override[key]:
+		if line.startswith('CONFIG_'):
+			key = line.split('=')[0]
+		elif line.startswith('# CONFIG_'):
+			key = line.split(' ')[1]
+		else:
+			key = None
+		if key and key in override:
 			output.write(override[key])
 		else:
 			output.write(line)
@@ -94,8 +104,12 @@ class kernel_config:
 
 		#	2. Apply overrides
 		if overrides:
+			print "kernel_config: using " + overrides + \
+							" to re-configure kernel"
 			self.over_config = config_dir + '/config.over'
-			apply_overrides(self.orig_config, overrides, over_config)
+			overrides_local = self.over_config + '.changes'
+			get_file(overrides, overrides_local)
+			apply_overrides(self.build_config, overrides_local, self.over_config)
 			self.update_config(self.over_config, self.over_config+'.new')
 			diff_configs(self.over_config, self.over_config+'.new')
 		else:
