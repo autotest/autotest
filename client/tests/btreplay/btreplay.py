@@ -24,7 +24,8 @@ class btreplay(test.test):
 	def initialize(self):
 		self.ldlib = 'LD_LIBRARY_PATH=%s/deps/libaio/lib'%(self.autodir)
 
-	def execute(self, iterations = 1, dev="md_d1", devices="sdb sdc",
+
+	def execute(self, iterations = 1, dev="md_d1", devices="",
 			extra_args = '', tmpdir = None):
 		if not tmpdir:
 			tmpdir = self.tmpdir
