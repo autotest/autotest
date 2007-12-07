@@ -79,6 +79,8 @@ class gnuplot:
 		g.write('set grid\n')
 
 		self.xlabels = self.xsort(list(self.xvalues))
+		
+		g.write('set xrange [0.5:%f]\n' % (len(self.xvalues)+0.5))
 		g.write('set xtics rotate (%s)\n' % ','.join(self.xtics()))
 
 		plot_lines = ['"-" title "%s"' % t for t in self.data_titles]
