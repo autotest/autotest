@@ -59,7 +59,7 @@ class db_sql:
 		self.con.commit()
 
 
-	def select(self, fields, table, where, distinct = False):
+	def select(self, fields, table, where, wherein={}, distinct = False):
 		"""\
 			select fields from table where {dictionary}
 		"""
@@ -77,6 +77,12 @@ class db_sql:
 		elif where and isinstance(where, types.StringTypes):
 			cmd.append(' where ' + where)
 
+		if wherein and isinstance(wherein, types.DictionaryType):
+			keys_in = []
+			for field_in in wherein.keys():
+				keys_in += [field_in + ' in (' + ','.join(wherein[field_in])+') '] 
+			
+			cmd.append(' and '+' and '.join(keys_in))
 		self.dprint('%s %s' % (' '.join(cmd),values))
 		self.cur.execute(' '.join(cmd), values)
 		return self.cur.fetchall()
