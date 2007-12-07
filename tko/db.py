@@ -299,18 +299,20 @@ class db_sql:
 # Use a class method as a class factory, generating a relevant database object.
 def db(*args, **dargs):
 	path = os.path.dirname(os.path.abspath(sys.argv[0]))
-	type = None
+	db_type = None
 	try:
-		file = os.path.join(path, '.database')
-		db_prefs = open(file, 'r')
+		db_file = os.path.join(path, '.database')
+		db_prefs = open(db_file, 'r')
 		host = db_prefs.readline().rstrip()
 		database = db_prefs.readline().rstrip()
-		type = db_prefs.readline().rstrip()
-	finally:
-		if not type:
-			type = 'mysql'
+		db_type = db_prefs.readline().rstrip()
+	except:
+		pass
 
-	type = 'db_' + type
-	exec 'import %s; db = %s.%s(*args, **dargs)' % (type, type, type)
+	if not db_type:
+		db_type = 'mysql'
+
+	db_type = 'db_' + db_type
+	exec 'import %s; db = %s.%s(*args, **dargs)' % (db_type, db_type, db_type)
 
 	return db
