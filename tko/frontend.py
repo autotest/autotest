@@ -146,11 +146,11 @@ class kernel:
 
 class test:
 	@classmethod
-	def select(klass, db, where = {}, distinct = False):
+	def select(klass, db, where = {}, wherein = {}, distinct = False):
 		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
 			  'kernel_idx', 'status', 'reason', 'machine_idx']
 		tests = []
-		for row in db.select(','.join(fields), 'tests', where, distinct):
+		for row in db.select(','.join(fields), 'tests', where, wherein,distinct):
 			tests.append(klass(db, *row))
 		return tests
 
