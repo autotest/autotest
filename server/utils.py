@@ -375,6 +375,28 @@ def get_server_dir():
 	return os.path.abspath(path)
 
 
+def find_pid(command):
+	for line in system_output('ps -eo pid,cmd').rstrip().split('\n'):
+		(pid, cmd) = line.split(None, 1)
+		if re.search(command, cmd):
+			return int(pid)
+	return None
+
+
+def nohup(command, stdout='/dev/null', stderr='/dev/null', background=True,
+								env = {}):
+	cmd = ' '.join(key+'='+val for key, val in env.iteritems())
+	cmd += ' nohup ' + command
+	cmd += ' > %s' % stdout
+	if stdout == stderr:
+		cmd += ' 2>&1'
+	else:
+		cmd += ' 2> %s' % stderr
+	if background:
+		cmd += ' &'
+	system(cmd)
+
+
 class AutoservOptionParser:
 	"""Custom command-line options parser for autoserv.
 
