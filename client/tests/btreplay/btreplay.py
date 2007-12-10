@@ -25,8 +25,15 @@ class btreplay(test.test):
 		self.ldlib = 'LD_LIBRARY_PATH=%s/deps/libaio/lib'%(self.autodir)
 
 
-	def execute(self, iterations = 1, dev="md_d1", devices="",
+	def execute(self, iterations = 1, dev="", devices="",
 			extra_args = '', tmpdir = None):
+		# @dev: The device against which the trace will be replayed.
+		#       e.g. "sdb" or "md_d1"
+		# @devices: A space-separated list of the underlying devices
+		#    which make up dev, e.g. "sdb sdc". You only need to set
+		#    devices if dev is an MD, LVM, or similar device; otherwise
+		#    leave it as an empty string.
+
 		if not tmpdir:
 			tmpdir = self.tmpdir
 
