@@ -16,7 +16,7 @@
 #	debugdir	eg. results/<job>/<testname.tag>/debug
 #	bindir		eg. tests/<test>
 #	src		eg. tests/<test>/src
-#	tmpdir		eg. tmp/<test>
+#	tmpdir		eg. tmp/<testname.tag>
 
 import os, pickle, tempfile
 from autotest_utils import *
@@ -27,28 +27,27 @@ class test:
 	preserve_srcdir = False
 
 	def __init__(self, job, bindir, outputdir):
-		testname = self.__class__.__name__
-
 		self.job = job
 		self.autodir = job.autodir
 		self.outputdir = outputdir
 		os.mkdir(self.outputdir)
-		self.resultsdir = self.outputdir + "/results"
+		self.resultsdir = os.path.join(self.outputdir, 'results')
 		os.mkdir(self.resultsdir)
-		self.profdir = self.outputdir + "/profiling"
+		self.profdir = os.path.join(self.outputdir, 'profiling')
 		os.mkdir(self.profdir)
-		self.debugdir = self.outputdir + "/debug"
+		self.debugdir = os.path.join(self.outputdir, 'debug')
 		os.mkdir(self.debugdir)
 
 		self.bindir = bindir
-		self.srcdir = bindir + '/src'
+		self.srcdir = os.path.join(self.bindir, 'src')
 
-		self.tmpdir = job.tmpdir + '/' + testname
+		tagged_testname = os.path.basename(self.outputdir)
+		self.tmpdir = os.path.join(job.tmpdir, tagged_testname)
+
 		if os.path.exists(self.tmpdir):
 			system('rm -rf ' + self.tmpdir)
 		os.mkdir(self.tmpdir)
 
-		
 		self.job.stdout.tee_redirect(
 			os.path.join(self.debugdir, 'stdout'))
 		self.job.stderr.tee_redirect(
