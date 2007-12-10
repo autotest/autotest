@@ -11,9 +11,11 @@ import os, sys, re, pickle, shutil, time, traceback
 from autotest_utils import *
 from parallel import *
 from common.error import *
+from common import barrier
 import kernel, xen, test, profilers, filesystem, fd_stack, boottool
 import harness, config
 import sysinfo
+import cpuset
 
 class job:
 	"""The actual job against which we do everything.
@@ -237,9 +239,26 @@ class job:
 			raise "Test name is invalid. Switched arguments?"
 		(group, testname) = test.testname(url)
 		tag = dargs.pop('tag', None)
+		self.container = None
+		container = dargs.pop('container', None)
 		subdir = testname
 		if tag:
 			subdir += '.' + tag
+
+		if container:
+			container_name = container.pop('container_name', None)
+			cpu = container.get('cpu', None)
+			root_container = container.get('root', 'sys')
+			if not container_name:
+				container_name = testname
+			if not grep('cpusets', '/proc/filesystems'):
+			
+				self.container = cpuset.cpuset(container_name,
+				    container['mem'],
+				    os.getpid(),
+				    root = root_container,
+				    cpus = cpu)
+			# We are running in a container now...
 
 		def group_func():
 			try:
@@ -252,6 +271,9 @@ class job:
 				self.record('GOOD', subdir, testname,
 					    'completed successfully')
 		result, exc_info = self.__rungroup(subdir, group_func)
+		if self.container:
+			self.container.release()
+			self.container = None
 
 		if exc_info and isinstance(exc_info[1], TestError):
 			return False
