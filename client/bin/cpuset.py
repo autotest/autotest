@@ -89,6 +89,8 @@ class cpuset:
 		# 
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)"% \
 		    (name, root, job_size, job_pid)
+
+		self.memory = job_size
 		# Convert jobsize to bytes
 		job_size = job_size << 20
 		if not grep('cpuset', '/proc/filesystems'):
@@ -100,6 +102,7 @@ class cpuset:
 		if cpus == None:
 			cpus = range(0, count_cpus())
 		print "cpus=", cpus
+		self.cpus = cpus
 		all_nodes = numa_nodes()
 
 		print "all_nodes=", all_nodes
