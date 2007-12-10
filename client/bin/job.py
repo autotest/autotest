@@ -11,7 +11,7 @@ import os, sys, re, pickle, shutil, time, traceback
 from autotest_utils import *
 from parallel import *
 from common.error import *
-import kernel, xen, test, profilers, barrier, filesystem, fd_stack, boottool
+import kernel, xen, test, profilers, filesystem, fd_stack, boottool
 import harness, config
 import sysinfo
 

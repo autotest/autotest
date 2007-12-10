@@ -5,7 +5,7 @@ import socket
 import errno
 from time import time, sleep
 
-from common.error import *
+from error import *
 
 
 class BarrierError(JobError):
@@ -58,6 +58,11 @@ class barrier:
 	the failed host has effectively broken 'right at the
 	beginning' of the post barrier execution window.
 
+	In addition, there is another rendevous, that makes each slave a server
+	and the master a client. The connection process and usage is still the
+	same but allows barriers from machines that only have a one-way
+	connection initiation. This is called rendevous_servers.
+
 	For example:
 	    if ME == SERVER:
 	        server start
@@ -88,9 +93,11 @@ class barrier:
 		members
 			All members we expect to find in the barrier
 		seen
-			Number of clients seen (master)
+			Number of clients seen (should be the length of waiting)
 		waiting
 			Clients who have checked in and are waiting (master)
+		masterid
+			Hostname/IP address + optional tag of selected master
 	"""
 
 	def __init__(self, hostid, tag, timeout, port=63000):
@@ -98,10 +105,15 @@ class barrier:
 		self.tag = tag
 		self.port = port
 		self.timeout = timeout
-		self.start = time()
 
-		self.report("tag=%s port=%d timeout=%d start=%d" \
-			% (self.tag, self.port, self.timeout, self.start))
+		self.report("tag=%s port=%d timeout=%d" \
+			% (self.tag, self.port, self.timeout))
+
+	def get_host_from_id(self, id):
+		# Remove any trailing local identifier following a #.
+		# This allows multiple members per host which is particularly
+		# helpful in testing.
+		return id.split('#')[0]
 
 	def report(self, out):
 		print "barrier:", self.hostid, out
@@ -171,6 +183,41 @@ class barrier:
 		self.waiting[name] = connection
 		self.seen += 1
 
+	def slave_hello(self, connection):
+		(client, addr) = connection
+		name = None
+
+		client.settimeout(5)
+		try:
+			client.send(self.tag + " " + self.hostid)
+
+			reply = client.recv(4)
+			reply = reply.strip("\r\n")
+			self.report("master said: " + reply)
+
+			# Confirm the master accepted the connection.
+			if reply != "wait":
+				self.report("Bad connection request to master")
+				client.close()
+				return
+
+		except socket.timeout:
+			# This is nominally an error, but as we do not know
+			# who that was we cannot do anything sane other
+			# than report it and let the normal timeout kill
+			# us when thats appropriate.
+			self.report("master handshake timeout: (%s:%d)" %\
+				(addr[0], addr[1]))
+			client.close()
+			return
+
+		self.report("slave now waiting: (%s:%d)" % \
+						(addr[0], addr[1]))
+
+		# They seem to be valid record them.
+		self.waiting[self.hostid] = connection
+		self.seen = 1
+
 	def master_release(self):
 		# Check everyone is still there, that they have not
 		# crashed or disconnected in the meantime.
@@ -204,11 +251,11 @@ class barrier:
 			client.settimeout(5)
 			try:
 				client.send("rlse")
-			except socket.timeout:	
+			except socket.timeout:
 				self.report("release timeout: " + name)
 				pass
 	
-	def master_close(self):
+	def waiting_close(self):
 		# Either way, close out all the clients.  If we have
 		# not released them then they know to abort.
 		for name in self.waiting:
@@ -221,14 +268,7 @@ class barrier:
 			except:
 				pass
 
-		# And finally close out our server socket.
-		self.server.close()
-
-	def master(self):
-		self.report("selected as master")
-
-		self.seen = 1
-		self.waiting = {}
+	def run_server(self, is_master):
 		self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server.setsockopt(socket.SOL_SOCKET,
 							socket.SO_REUSEADDR, 1)
@@ -236,49 +276,67 @@ class barrier:
 		self.server.listen(10)
 
 		failed = 0
-		try: 
+		try:
 			while 1:
 				try:
 					# Wait for callers welcoming each.
 					self.server.settimeout(self.remaining())
 					connection = self.server.accept()
-					self.master_welcome(connection)
+					if is_master:
+						self.master_welcome(connection)
+					else:
+						self.slave_hello(connection)
 				except socket.timeout:
 					self.report("timeout waiting for " +
 						"remaining clients")
 					pass
 
-				# Check if everyone is here.
-				self.report("master seen %d of %d" % \
-					(self.seen, len(self.members)))
-				if self.seen == len(self.members):
-					self.master_release()
-					break
+				if is_master:
+					# Check if everyone is here.
+					self.report("master seen %d of %d" % \
+						(self.seen, len(self.members)))
+					if self.seen == len(self.members):
+						self.master_release()
+						break
+				else:
+					# Check if master connected.
+					if self.seen:
+						self.report("slave connected " +
+							"to master")
+						self.slave_wait()
+						break
 
-			self.master_close()
+			self.waiting_close()
+			self.server.close()
 		except:
-			self.master_close()
+			self.waiting_close()
+			self.server.close()
 			raise
 
-	def slave(self):
-		# Clip out the master host in the barrier, remove any
-		# trailing local identifier following a #.  This allows
-		# multiple members per host which is particularly helpful
-		# in testing.
-		master = (self.members[0].split('#'))[0]
-
-		self.report("selected as slave, master=" + master)
-
-		# Connect to them.
-		remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	def run_client(self, is_master):
 		while self.remaining() > 0:
-			remote.settimeout(30)
 			try:
-				self.report("calling master")
-				remote.connect((master, self.port))
-				break
+				remote = socket.socket(socket.AF_INET,
+					socket.SOCK_STREAM)
+				remote.settimeout(30)
+				if is_master:
+					# Connect to all slaves.
+					host = self.get_host_from_id(
+						self.members[self.seen])
+					self.report("calling slave: %s" % host)
+					connection = (remote, (host, self.port))
+					remote.connect(connection[1])
+					self.master_welcome(connection)
+				else:
+					# Just connect to the master.
+					host = self.get_host_from_id(
+						self.masterid)
+					self.report("calling master")
+					connection = (remote, (host, self.port))
+					remote.connect(connection[1])
+					self.slave_hello(connection)
 			except socket.timeout:
-				self.report("timeout calling master, retry")
+				self.report("timeout calling host, retry")
 				sleep(10)
 				pass
 			except socket.error, err:
@@ -287,10 +345,26 @@ class barrier:
 					raise
 				sleep(10)
 
-		remote.settimeout(self.remaining())
-		remote.send(self.tag + " " + self.hostid)
+			if is_master:
+				# Check if everyone is here.
+				self.report("master seen %d of %d" % \
+					(self.seen, len(self.members)))
+				if self.seen == len(self.members):
+					self.master_release()
+					break
+			else:
+				# Check if master connected.
+				if self.seen:
+					self.report("slave connected " +
+						"to master")
+					self.slave_wait()
+					break
 
-		mode = "none"
+		self.waiting_close()
+
+	def slave_wait(self):
+		remote = self.waiting[self.hostid][0]
+		mode = "wait"
 		while 1:
 			# All control messages are the same size to allow
 			# us to split individual messages easily.
@@ -306,7 +380,7 @@ class barrier:
 			if reply == "ping":
 				# Ensure we have sufficient time for the
 				# ping/pong/rlse cyle to complete normally.
-				self.update_timeout(10 * len(self.members))
+				self.update_timeout(10 + 10 * len(self.members))
 
 				self.report("pong")
 				remote.settimeout(self.remaining())
@@ -315,7 +389,7 @@ class barrier:
 			elif reply == "rlse":
 				# Ensure we have sufficient time for the
 				# ping/pong/rlse cyle to complete normally.
-				self.update_timeout(10 * len(self.members))
+				self.update_timeout(10 + 10 * len(self.members))
 
 				self.report("was released, waiting for close")
 
@@ -333,17 +407,45 @@ class barrier:
 			raise BarrierError("master handshake failure: " + mode)
 
 	def rendevous(self, *hosts):
+		self.start = time()
 		self.members = list(hosts)
 		self.members.sort()
+		self.masterid = self.members.pop(0)
 
-		self.report("members: " + ",".join(self.members))
-		
+		self.report("masterid: %s" % self.masterid)
+		self.report("members: %s" % ",".join(self.members))
+
+		self.seen = 0
+		self.waiting = {}
+
 		# Figure out who is the master in this barrier.
-		if self.hostid == self.members[0]:
-			self.master()
+		if self.hostid == self.masterid:
+			self.report("selected as master")
+			self.run_server(is_master=True)
 		else:
-			self.slave()
+			self.report("selected as slave")
+			self.run_client(is_master=False)
 
+
+	def rendevous_servers(self, masterid, *hosts):
+		self.start = time()
+		self.members = list(hosts)
+		self.members.sort()
+		self.masterid = masterid
+
+		self.report("masterid: %s" % self.masterid)
+		self.report("members: %s" % ",".join(self.members))
+
+		self.seen = 0
+		self.waiting = {}
+
+		# Figure out who is the master in this barrier.
+		if self.hostid == self.masterid:
+			self.report("selected as master")
+			self.run_client(is_master=True)
+		else:
+			self.report("selected as slave")
+			self.run_server(is_master=False)
 
 #
 # TESTING -- direct test harness.
@@ -359,6 +461,18 @@ if __name__ == "__main__":
 	try:
 		all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ]
 		barrier.rendevous(*all)
+	except BarrierError, err:
+		print "barrier: 127.0.0.1#" + sys.argv[1] + \
+						": barrier failed:", err
+		sys.exit(1)
+	else:
+		print "barrier: 127.0.0.1#" + sys.argv[1] + \
+					": all present and accounted for"
+
+	try:
+		all = [ '127.0.0.1#2', '127.0.0.1#1' ]
+		if 1 <= int(sys.argv[1]) <= 2:
+			barrier.rendevous_servers(*all)
 	except BarrierError, err:
 		print "barrier: 127.0.0.1#" + sys.argv[1] + \
 						": barrier failed:", err
