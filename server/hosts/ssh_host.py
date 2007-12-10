@@ -241,7 +241,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.logger_pid = logger.pid
 
 
-        def __start_warning_log(self, logfilename):
+	def __start_warning_log(self, logfilename):
 		"""
 		Log the output of the warning monitor to a specified file
 		"""
@@ -469,8 +469,8 @@ class SSHHost(base_classes.RemoteHost):
 			entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
 			processed_source.append(entry)
 
-			result = utils.run(r'%s rsync -h' % self.ssh_command(),
-					   ignore_status=True)
+		result = utils.run(r'%s rsync -h' % self.ssh_command(),
+				   ignore_status=True)
 
 		remote_dest = '%s@%s:"%s"' % (
 			    self.user, self.hostname,
