@@ -40,11 +40,13 @@ import os, sys
 import hosts, autotest, kvm, git
 import source_kernel, rpm_kernel, deb_kernel, git_kernel
 from common.error import *
+from common import barrier
 from subcommand import *
 from utils import run, get_tmp_dir, sh_escape
 
 autotest.Autotest.job = job
 hosts.SSHHost.job = job
+barrier = barrier.barrier
 """
 
 client_wrapper = """
