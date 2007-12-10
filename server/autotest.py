@@ -197,22 +197,14 @@ class Autotest(installable_object.InstallableObject):
 		host.send_file(tmppath, atrun.remote_control_file)
 		os.remove(tmppath)
 
-		timeout_exc = None
 		try:
 			atrun.execute_control(timeout=timeout)
-		except AutotestTimeoutError, exc:
-			# on timeout, fall though and try to grab results,
-			# and then reraise
-			timeout_exc = exc
-
-		# try to retrive results, even if a timeout occured
-		results = os.path.join(atrun.autodir, 'results',
-				       'default')
-		# Copy all dirs in default to results_dir
-		host.get_file(results + '/', results_dir)
-
-		if timeout_exc:
-			raise timeout_exc
+		finally:
+			# get the results
+			results = os.path.join(atrun.autodir, 'results',
+					       'default')
+			# Copy all dirs in default to results_dir
+			host.get_file(results + '/', results_dir)
 
 
 	def run_timed_test(self, test_name, results_dir = '.', host = None,
