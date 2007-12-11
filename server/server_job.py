@@ -210,8 +210,7 @@ class server_job:
 		finally:
 			if machines:
 				namespace['test_start_time'] = test_start_time
-				exec(preamble + crashdumps, namespace,
-					namespace)
+				exec(preamble + crashdumps, namespace, namespace)
 			if reboot and machines:
 				exec(preamble + cleanup, namespace, namespace)
 			if install_after and machines:
