@@ -26,10 +26,8 @@ class ltp(test.test):
 		if script == 'runltp':
 			logfile = os.path.join(self.resultsdir, 'ltp.log')
 			failcmdfile = os.path.join(self.debugdir, 'failcmdfile')
-
-			args2 = '-q -l %s -C %s -d %s'
-			args2 %= (logfile, failcmdfile, self.tmpdir)
-			args = args2 + args
+			args2 = '-q -l %s -C %s -d %s' % (logfile, failcmdfile, self.tmpdir)
+			args = args + ' ' + args2
 
 		cmd = os.path.join(self.srcdir, script) + ' ' + args
 
