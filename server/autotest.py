@@ -251,7 +251,7 @@ class _Run(object):
 	def verify_machine(self):
 		binary = os.path.join(self.autodir, 'bin/autotest')
 		try:
-			self.host.run('ls ' + binary)
+			self.host.run('ls %s > /dev/null' % binary)
 		except:
 			raise "Autotest does not appear to be installed"
 		tmpdir = os.path.join(self.autodir, 'tmp')
@@ -399,7 +399,8 @@ def _get_autodir(host):
 		pass
 	for path in ['/usr/local/autotest', '/home/autotest']:
 		try:
-			host.run('ls ' + os.path.join(path, 'bin/autotest'))
+			host.run('ls %s > /dev/null' % \
+					 os.path.join(path, 'bin/autotest'))
 			return path
 		except AutoservRunError:
 			pass
