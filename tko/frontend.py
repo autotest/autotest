@@ -48,6 +48,32 @@ def select(db, field, value=None, distinct=False):
 	# returns the value and its field name
 	return match, field_name_in_main_table
 
+
+def get_axis_data(axis):
+	rows = db.select(axis , 'test_view', distinct = True)
+	# Need to do a magic sort here if axis == 'kernel_printable'
+	return sorted([row[0] for row in rows])
+
+
+def get_matrix_data(db, x_axis, y_axis, where = None):
+	# Return a 3-d hash of data - [x-value][y-value][status_word]
+	# Searches on the test_view table - x_axis and y_axis must both be
+	# column names in that table.
+	assert x_axis != y_axis
+	fields = '%s, %s, status, COUNT(status_word)' % (x_axis, y_axis)
+	group_by = '%s, %s, status' % (x_axis, y_axis)
+	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
+
+	data = {}
+	for (x, y, status, count) in rows:
+		if not data.has_key(x):
+			data[x] = {}
+		if not data[x].has_key(y):
+			data[x][y] = {}
+		data[x][y][status] = count
+	return data
+
+
 class anygroup:
 	@classmethod
 	def selectunique(klass, db, field):
@@ -84,7 +110,8 @@ class group:
 						'machine_group is not null')
 		groupnames = sorted([row[0] for row in rows])
 		return [klass(db, groupname) for groupname in groupnames]
-	
+
+
 	def __init__(self, db, name):
 		self.name = name
 		self.db = db
@@ -132,10 +159,8 @@ class kernel:
 	@classmethod
 	def select(klass, db, where = {}):
 		fields = ['kernel_idx', 'kernel_hash', 'base', 'printable']
-		kernels = []
-		for row in db.select(','.join(fields), 'kernels', where):
-			kernels.append(klass(db, *row))
-		return kernels
+		rows = db.select(','.join(fields), 'kernels', where)
+		return [klass(db, *row) for row in rows]
 
 
 	def __init__(self, db, idx, hash, base, printable):

@@ -52,14 +52,15 @@ class db_sql:
 
 	def dprint(self, value):
 		if self.debug:
-			sys.stderr.write('SQL: ' + str(value) + '\n')
+			sys.stdout.write('SQL: ' + str(value) + '\n')
 
 
 	def commit(self):
 		self.con.commit()
 
 
-	def select(self, fields, table, where, wherein={}, distinct = False):
+	def select(self, fields, table, where, wherein={}, distinct = False,
+							group_by = None):
 		"""\
 			select fields from table where {dictionary}
 		"""
@@ -83,7 +84,10 @@ class db_sql:
 				keys_in += [field_in + ' in (' + ','.join(wherein[field_in])+') '] 
 			
 			cmd.append(' and '+' and '.join(keys_in))
-		self.dprint('%s %s' % (' '.join(cmd),values))
+		if group_by:
+			cmd.append(' GROUP BY ' + group_by)
+
+		self.dprint('%s %s' % (' '.join(cmd), values))
 		self.cur.execute(' '.join(cmd), values)
 		return self.cur.fetchall()
 
