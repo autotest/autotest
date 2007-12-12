@@ -14,13 +14,11 @@ import kernel_versions
 db = db.db()
 
 
-def kernel_group_box(kernel, group):
-	tests = group.tests({ 'kernel_idx':kernel.idx })
-
+def kernel_group_box(kernel, group, box_data):
 	machine_idxs = ['%d' % machine.idx for machine in group.machines()]
 	link = 'machine_kernel_test.cgi?machine=%s&kernel=%s' % \
 					(','.join(machine_idxs), kernel.idx)
-	return display.status_count_box(db, tests, link)
+	return display.status_precounted_box(db, box_data, link)
 
 
 def kernel_encode(kernel):
@@ -30,8 +28,9 @@ def kernel_encode(kernel):
 def main():
 	display.print_main_header()
 
-	groups = frontend.group.select(db)
+	data = frontend.get_matrix_data(db, 'machine_group', 'kernel_printable')
 
+	groups = frontend.group.select(db)
 	group_names = [display.group_name(g) for g in groups]
 	headers = ['Version'] + group_names
 	header_row = [ display.box(x, header=True) for x in headers ] 
@@ -44,7 +43,12 @@ def main():
 		link = 'group_test.cgi?kernel=%s' % kernel.idx
 		row = [display.box(kernel.printable, link=link)]
 		for group in groups:
-			row.append(kernel_group_box(kernel, group))
+			try:
+				box_data = data[group.name][kernel.printable]
+			except:
+				row.append(display.box(None, None))
+				continue
+			row.append(kernel_group_box(kernel, group, box_data))
 		matrix.append(row)
 	matrix.append(header_row)
 

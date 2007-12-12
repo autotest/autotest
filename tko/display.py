@@ -71,7 +71,9 @@ def status_html(db, status_count):
 def status_count_box(db, tests, link = None):
 	"""
 	Display a table within a box, representing the status count of
-	the group of tests (e.g. 10 GOOD, 2 WARN, 3 FAIL)
+	the group of tests (e.g. 10 GOOD, 2 WARN, 3 FAIL).
+
+	Starts from a list of test objects
 	"""
 	if not tests:
 		return box(None, None)
@@ -80,6 +82,17 @@ def status_count_box(db, tests, link = None):
 	for test in tests:
 		count = status_count.get(test.status_num, 0)
 		status_count[test.status_num] = count + 1
+	return status_precounted_box(db, status_count, link)
+
+
+def status_precounted_box(db, status_count, link = None):
+	"""
+	Display a table within a box, representing the status count of
+	the group of tests (e.g. 10 GOOD, 2 WARN, 3 FAIL)
+	"""
+	if not status_count:
+		return box(None, None)
+
 	worst = sorted(status_count.keys())[0]
 	html = status_html(db, status_count)
 	if link:
