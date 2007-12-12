@@ -413,6 +413,9 @@ class barrier:
 		self.masterid = self.members.pop(0)
 
 		self.report("masterid: %s" % self.masterid)
+		if not len(self.members):
+			self.report("No other members listed.")
+			return
 		self.report("members: %s" % ",".join(self.members))
 
 		self.seen = 0
@@ -434,6 +437,9 @@ class barrier:
 		self.masterid = masterid
 
 		self.report("masterid: %s" % self.masterid)
+		if not len(self.members):
+			self.report("No other members listed.")
+			return
 		self.report("members: %s" % ",".join(self.members))
 
 		self.seen = 0

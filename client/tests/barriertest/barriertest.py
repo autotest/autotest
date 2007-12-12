@@ -15,12 +15,12 @@ class barriertest(test.test):
 
 		profilers.start(self)
 		b2 = self.job.barrier(hostid, "start_profilers",
-			timeout_start, 63100)
-		b2.rendevous_servers(masterid)
+			timeout_start, port=63100)
+		b2.rendevous_servers(masterid, hostid)
 
 		b3 = self.job.barrier(hostid, "stop_profilers",
-			timeout_stop, 63100)
-		b3.rendevous_servers(masterid)
+			timeout_stop, port=63100)
+		b3.rendevous_servers(masterid, hostid)
 
 		profilers.stop(self)
 		profilers.report(self)
