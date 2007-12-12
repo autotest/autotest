@@ -195,9 +195,9 @@ class job:
 					  tmp_dir, build_dir, leave)
 
 
-	def barrier(self, *args):
+	def barrier(self, *args, **kwds):
 		"""Create a barrier object"""
-		return barrier.barrier(*args)
+		return barrier.barrier(*args, **kwds)
 
 
 	def setup_dep(self, deps): 
