@@ -18,7 +18,7 @@
 #	src		eg. tests/<test>/src
 #	tmpdir		eg. tmp/<testname.tag>
 
-import os, pickle, tempfile
+import os, pickle, tempfile, fcntl
 from autotest_utils import *
 from common.error import *
 import sysinfo
@@ -173,10 +173,14 @@ def runtest(job, url, tag, args, dargs):
 		sys.path.insert(0, os.path.join(job.testdir, testname))
 	
 	try:
+		lockfile = open(os.path.join(job.tmpdir, ".testlock"), "w")
+		fcntl.flock(lockfile, fcntl.LOCK_EX)
 		exec "import %s%s" % (group, testname)
 		exec "mytest = %s%s.%s(job, bindir, outputdir)" % \
 			(group, testname, testname)
 	finally:
+		fcntl.flock(lockfile, fcntl.LOCK_UN)
+		lockfile.close()
 		sys.path.pop(0)
 
 	pwd = os.getcwd()
