@@ -2101,7 +2101,7 @@ sub add {
   my @list;
   foreach (@config) {
     if ($_ !~ /^\s*\[defaultboot]/i && $_ =~ /^\s*\[(\S+)]/i) {
-      if ($index == $param{position} && $param{'position'} ne 'end') {
+      if ($param{'position'} ne 'end' && $index == $param{position}) {
 	push(@newconfig, @newkernel);
         push(@list, $param{'title'});
       }
@@ -2109,9 +2109,10 @@ sub add {
       push(@list, $1);
 
     } elsif (/^:menu\S*/) {
-      if ($index < $param{'position'} || $param{'position'} eq 'end') {
+      if ($param{'position'} eq 'end' || $index < $param{'position'}) {
 	push(@newconfig, @newkernel);
         push(@list, $param{'title'});
+	$param{position} = $index;
       }
       # Rebuild the menu entries.
       push(@newconfig, $_);
