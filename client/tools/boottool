@@ -2015,10 +2015,10 @@ sub set_default {
   # note there are two, one the name and one the number
   # go figure.  Note that ZIPL numbering is 1..N.
   foreach my $index (0..$#config) {
-    if ($config[$index] =~ /(^\s*default\s*\=*\s*)\d+/i) {
+    if ($config[$index] =~ /(^\s*default\s*\=*\s*)\d+\s*$/i) {
       $config[$index] = $1 . ($newdefault + 1) . "\n";
 
-    } elsif ($config[$index] =~ /(^\s*default\s*\=*\s*)\D+/i) {
+    } elsif ($config[$index] =~ /(^\s*default\s*\=*\s*)/i) {
       $config[$index] = "$1$title\n";
     }
   }
@@ -2082,7 +2082,7 @@ sub add {
   my @newkernel;
   push(@newkernel, "[$param{'title'}]\n");
   push(@newkernel, "\timage=$param{'add-kernel'}\n");
-  push(@newkernel, "\tinitrd=$param{'initrd'}\n") if (defined $param{'initrd'});
+  push(@newkernel, "\tramdisk=$param{'initrd'}\n") if (defined $param{'initrd'});
   $line = '';
   $line .= "root=$param{root} " if (defined $param{'root'});
   $line .= "$param{args} " if (defined $param{'args'});
@@ -2309,7 +2309,7 @@ sub install {
   my @sections=$self->_info();
 
   warn "ZIPL: needs to run zipl -m $sections[0]{'menu'}\n";
-  system("zipl -m $sections[0]{'menu'}");
+  system("/sbin/zipl -m $sections[0]{'menu'}");
   if ($? != 0) {
     warn ("ERROR:  Failed to run grub-install.\n") && return undef;
   }
