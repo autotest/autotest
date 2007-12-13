@@ -18,6 +18,8 @@ def select(db, field, value=None, distinct=False):
 	 	   'machine_group': ['machine_group', 'machine_idx', 'machine_idx'],
 		   'hostname': ['hostname', 'machine_idx', 'machine_idx'],
 		   'label': ['label', 'job_idx', 'job_idx'],
+		   'tag': ['tag', 'job_idx', 'job_idx'],
+	           'job': ['job_idx', 'job_idx', 'job_idx'],
 		   'user': ['username', 'job_idx', 'job_idx'],
 		   'test': ['test', 'test', 'test'],
 		   'status': ['word', 'status_idx', 'status'],
@@ -26,6 +28,8 @@ def select(db, field, value=None, distinct=False):
 		  'machine_group': 'machines',
 		  'hostname': 'machines',
 		  'label': 'jobs',
+		  'tag': 'jobs',
+	          'job': 'jobs',
 		  'user': 'jobs',
 		  'test': 'tests',
 		  'status': 'status',
@@ -42,7 +46,10 @@ def select(db, field, value=None, distinct=False):
 		where = " %s is not null " % lookup_field
 	else:
 		sql += "%s " % idx_field
-		where = " %s = %s " % (lookup_field, value)
+		if field == 'tag':
+			where = " %s LIKE %s " % (lookup_field, value)
+		else:
+			where = " %s = %s " % (lookup_field, value)
 
 	match = db.select(sql, tablename, where)
 	# returns the value and its field name
