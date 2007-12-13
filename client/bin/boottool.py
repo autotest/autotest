@@ -41,7 +41,7 @@ class boottool:
 
 
 	def set_default(self, index):
-		self.run_boottool('--set-default=%s' % index)
+		print self.run_boottool('--set-default=%s' % index)
 
 
 	def enable_xen_mode(self):
@@ -64,7 +64,7 @@ class boottool:
 		if self.xen_mode:
 			parameters += ' --xen'
 
-		self.run_boottool(parameters)
+		print self.run_boottool(parameters)
 
 
 	def add_xen_hypervisor_args(self, kernel, args):
@@ -78,7 +78,7 @@ class boottool:
 		if self.xen_mode:
 			parameters += ' --xen'
 
-		self.run_boottool(parameters)
+		print self.run_boottool(parameters)
 
 
 	def remove_xen_hypervisor_args(self, kernel, args):
@@ -106,15 +106,15 @@ class boottool:
 		if position:
 			parameters += ' --position="%s"' % position
 
-		self.run_boottool(parameters)
+		print self.run_boottool(parameters)
 
 
 	def remove_kernel(self, kernel):
-		self.run_boottool('--remove-kernel=%s' % kernel)
+		print self.run_boottool('--remove-kernel=%s' % kernel)
 
 
 	def boot_once(self, title):
-		self.run_boottool('--boot-once --title=%s' % title)
+		print self.run_boottool('--boot-once --title=%s' % title)
 
 
 	def info(self, index):
