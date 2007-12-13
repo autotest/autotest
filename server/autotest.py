@@ -195,7 +195,8 @@ class Autotest(installable_object.InstallableObject):
 		# Copy control_file to remote_control_file on the host
 		tmppath = utils.get(control_file)
 		host.send_file(tmppath, atrun.remote_control_file)
-		os.remove(tmppath)
+		if os.path.abspath(tmppath) != os.path.abspath(control_file):
+			os.remove(tmppath)
 
 		try:
 			atrun.execute_control(timeout=timeout)
