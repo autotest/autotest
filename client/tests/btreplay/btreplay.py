@@ -24,32 +24,57 @@ class btreplay(test.test):
 	def initialize(self):
 		self.ldlib = 'LD_LIBRARY_PATH=%s/deps/libaio/lib'%(self.autodir)
 
+        
+        def _run_btreplay(self, dev, devices, tmpdir, extra_args):
+                alldevs="-d /dev/"+dev
+                alldnames = dev
+                for d in devices.split():
+                        alldevs += " -d /dev/"+d
+                        alldnames += " "+d
 
+                # convert the trace (assumed to be in this test's base
+                # directory) into btreplay's required format
+                system("./btreplay/btrecord -d .. -D "+tmpdir+" "+dev)
+
+                # time a replay that omits "thinktime" between requests
+                # (by use of the -N flag)
+                system(self.ldlib+" /usr/bin/time ./btreplay/btreplay -d "+\
+                        tmpdir+" -N -W "+dev+" "+extra_args+" 2>&1")
+
+                # trace a replay that reproduces inter-request delays, and
+                # analyse the trace with btt to determine the average request
+                # completion latency
+                system("./blktrace -D "+tmpdir+" "+alldevs+" >/dev/null &")
+                system(self.ldlib+" ./btreplay/btreplay -d "+tmpdir+" -W "+\
+                        dev+" "+extra_args)
+                system("killall -INT blktrace")
+                system("./blkparse -q -D "+tmpdir+" -d "+tmpdir+\
+                        "/trace.bin -O "+alldnames+" >/dev/null")
+                system("./btt/btt -i "+tmpdir+"/trace.bin")
+        
 	def execute(self, iterations = 1, dev="", devices="",
 			extra_args = '', tmpdir = None):
-		# @dev: The device against which the trace will be replayed.
-		#       e.g. "sdb" or "md_d1"
-		# @devices: A space-separated list of the underlying devices
-		#    which make up dev, e.g. "sdb sdc". You only need to set
-		#    devices if dev is an MD, LVM, or similar device; otherwise
-		#    leave it as an empty string.
+                # @dev: The device against which the trace will be replayed.
+                #       e.g. "sdb" or "md_d1"
+                # @devices: A space-separated list of the underlying devices
+                #    which make up dev, e.g. "sdb sdc". You only need to set
+                #    devices if dev is an MD, LVM, or similar device;
+                #    otherwise leave it as an empty string.
 
 		if not tmpdir:
 			tmpdir = self.tmpdir
 
-		args = "%s \"%s\" %s" %(dev,devices,tmpdir)
 		os.chdir(self.srcdir)
-		cmd = self.ldlib + ' ../run_btreplay.sh ' + args + ' ' + extra_args
 
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(cmd)
+				self._run_btreplay(dev, devices, tmpdir, extra_args)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(cmd)
+			self._run_btreplay(dev, devices, tmpdir, extra_args)
 			profilers.stop(self)
 			profilers.report(self)
 

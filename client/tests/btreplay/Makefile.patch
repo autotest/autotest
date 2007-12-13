@@ -1,5 +1,6 @@
---- blktrace/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
-+++ blktrace/Makefile	2007-12-06 13:14:05.000000000 +1100
+diff -u -r blktrace.orig/Makefile blktrace/Makefile
+--- blktrace.orig/Makefile	2007-12-11 06:25:04.000000000 +1100
++++ blktrace/Makefile	2007-12-14 05:01:55.000000000 +1100
 @@ -1,8 +1,8 @@
  CC	= gcc
 -CFLAGS	= -Wall -O2 -g -W
@@ -11,17 +12,9 @@
  SCRIPTS	= btrace
  
  ALL = $(PROGS) $(SCRIPTS) btt/btt btreplay/btrecord btreplay/btreplay
-@@ -24,7 +24,7 @@
- blkparse: blkparse.o blkparse_fmt.o rbtree.o act_mask.o
- 	$(CC) $(ALL_CFLAGS) -o $@ $(filter %.o,$^)
- 
--blktrace: blktrace.o act_mask.o $(LIBS)
-+blktrace: blktrace.o act_mask.o
- 	$(CC) $(ALL_CFLAGS) -o $@ $(filter %.o,$^) $(LIBS)
- 
- verify_blkparse: verify_blkparse.o
---- blktrace/btreplay/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
-+++ blktrace/btreplay/Makefile	2007-12-06 10:11:38.000000000 +1100
+diff -u -r blktrace.orig/btreplay/Makefile blktrace/btreplay/Makefile
+--- blktrace.orig/btreplay/Makefile	2007-12-11 06:25:04.000000000 +1100
++++ blktrace/btreplay/Makefile	2007-12-14 05:01:55.000000000 +1100
 @@ -6,14 +6,14 @@
  #
  
@@ -39,8 +32,9 @@
  
  all: depend $(PROGS)
  
---- blktrace/btt/Makefile.orig	2007-11-14 21:25:03.000000000 +1100
-+++ blktrace/btt/Makefile	2007-12-06 10:12:26.000000000 +1100
+diff -u -r blktrace.orig/btt/Makefile blktrace/btt/Makefile
+--- blktrace.orig/btt/Makefile	2007-12-11 06:25:04.000000000 +1100
++++ blktrace/btt/Makefile	2007-12-14 05:01:55.000000000 +1100
 @@ -6,14 +6,14 @@
  #
  
