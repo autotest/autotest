@@ -124,6 +124,7 @@ class job:
 		self.kernel = kernel(self.dir)
 
 		reboot_inprogress = 0	# Saw reboot start and not finish
+		alert_pending = None	# Saw an ALERT for this test
 		group_subdir = None
 		sought_level = 0        # we log events at indent level 0
 		for line in open(self.status, 'r').readlines():
@@ -150,6 +151,10 @@ class job:
 			elements.append(None)   # in case no reason specified
 			(status, subdir, testname, reason) = elements[0:4]
 			dprint('GROPE_STATUS: ' + str(elements[0:4]))
+			if status == 'ALERT':
+				dprint('job level alert, recording')
+				alert_pending = reason
+				continue
 			if testname == '----':
 				dprint('job level event, ignoring')
 				# This is a job level event, not a test
@@ -190,6 +195,10 @@ class job:
 				reboot_inprogress = 0
 			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
 					(status, subdir, testname, reason))
+			if alert_pending:
+				status = 'ALERT'
+				reason = alert_pending
+				alert_pending = None
 			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
 			dprint('')
 		if reboot_inprogress:

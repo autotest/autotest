@@ -134,3 +134,4 @@ INSERT INTO status (word) VALUES ('ABORT');
 INSERT INTO status (word) VALUES ('FAIL');
 INSERT INTO status (word) VALUES ('WARN');
 INSERT INTO status (word) VALUES ('GOOD');
+INSERT INTO status (word) VALUES ('ALERT');
