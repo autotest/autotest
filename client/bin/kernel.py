@@ -85,7 +85,10 @@ class kernel:
 		self.build_target = 'bzImage'
 		self.build_image = None
 
-		if get_current_kernel_arch() == 'ia64':
+		arch = get_current_kernel_arch()
+		if arch == 's390' or arch == 's390x':
+			self.build_target = 'image'
+		elif arch == 'ia64':
 			self.build_target = 'all'
 			self.build_image = 'vmlinux.gz'
 
