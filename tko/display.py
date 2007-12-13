@@ -3,6 +3,7 @@ import os, re, parse, sys, frontend
 color_map = {
 	'GOOD'		: '#88ff88', # green
 	'WARN'		: '#fffc00', # yellow
+	'ALERT'		: '#fffc00', # yellow
 	'FAIL'		: '#ff8888', # red
 	'ABORT'		: '#ff8888', # red
 	'ERROR'		: '#ff8888', # red

@@ -109,4 +109,4 @@ INNER JOIN status ON status.status_idx = tests.status;
 
 
 INSERT INTO status (word)
-VALUES ('NOSTATUS'), ('ERROR'), ('ABORT'), ('FAIL'), ('WARN'), ('GOOD');
+VALUES ('NOSTATUS'), ('ERROR'), ('ABORT'), ('FAIL'), ('WARN'), ('GOOD'), ('ALERT');
