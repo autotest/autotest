@@ -32,7 +32,13 @@ class harness_standalone(harness.harness):
 
 		print 'Symlinking init scripts'
 		rc = os.path.join(self.autodir, 'tools/autotest')
-		initdefault = system_output('grep :initdefault: /etc/inittab')
-		initdefault = initdefault.split(':')[1]
+		# see if system supports event.d versus inittab
+		if os.path.exists('/etc/event.d'):
+			# NB: assuming current runlevel is default
+			initdefault = system_output('runlevel').split()[1]
+		else:
+			initdefault = system_output('grep :initdefault: /etc/inittab')
+			initdefault = initdefault.split(':')[1]
+
 		system('ln -sf %s /etc/init.d/autotest' % rc)
 		system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc, initdefault))
