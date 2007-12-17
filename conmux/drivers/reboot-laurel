@@ -1,0 +1,133 @@
+#!/usr/bin/expect
+###############################################################################
+# reboot-laurel -- Reboot a system attached to a Laurel DPM meter.
+#
+# This script provides standalone control for the Laurel DPM ammeter when
+# setup to control power to a target using the alarm relays.  This is actually
+# a creative misuse of the meter.  We are actually sending commands to the
+# meter that trigger alarm relays to be "always on" or "always off".
+#
+# In addition to controlling power to a target, the meter will report the
+# current ammeter reading using the 'value' command.
+#
+# Usage:
+#    reboot-laurel <ttydev> <on|off|reset|value>
+#
+# Copyright (c) 2007, Wind River Systems
+# Author: James Puderer <James.Puderer@windriver.com>
+#
+###############################################################################
+
+# This script depends on the ckermit package.
+
+##### Configuration #####
+set tty_line	/dev/ttyUSB0
+set tty_baud	9600
+set reset_delay	5000
+#########################
+log_user 0
+
+# Triggers alarm relay when over a large negative amperage (always true)
+set command(relay1_on)	"*1F386800000\r"
+set command(relay2_on)	"*1F389800000\r"
+
+# Triggers alarm relay when under a large positive amperage (always false)
+set command(relay1_off)	"*1F3867FFFFF\r"
+set command(relay2_off) "*1F3897FFFFF\r"
+
+set command(get_value)	"*1B1\r"
+
+proc usage { } {
+    global argv0
+    puts stderr "Usage: $argv0 <ttydev> <on|off|reset|value>\n"
+    exit 1
+}
+
+proc connect { tty_line tty_baud } {
+    global spawn_id
+
+    spawn kermit -Y
+    expect {
+        "C-Kermit>"	{ }
+         timeout 	{ error "Timeout starting kermit" }
+    }
+    send "set line $tty_line\n"
+    send "set speed $tty_baud\n"
+    expect {
+        "$tty_baud bps" 	{ }
+        "Sorry, device is in use" { error "Serial device is in use" }
+	timeout			{ error "Kermit timed out" }
+    }
+    send "set flow none\n"
+    send "set carrier-watch off\n"
+    send "c\n"
+    expect {
+        "Port already in use"	{ error "Port already in use" }
+        "\n-------*\n"		{ }
+	timeout			{ error "Kermit timed out" }
+    }
+}
+
+proc disconnect { } {
+    global spawn_id
+    close
+}
+
+proc on { } {
+    global spawn_id command
+    send $command(relay1_on)
+    after 100
+    send $command(relay2_on)
+    after 100
+}
+
+proc off { } {
+    global spawn_id command
+    send $command(relay1_off)
+    after 100
+    send $command(relay2_off)
+    after 100
+}
+
+proc reset { } {
+    global spawn_id reset_delay command
+    send $command(relay1_off)
+    after 100
+    send $command(relay2_off)
+    after $reset_delay
+    send $command(relay1_on)
+    after 100
+    send $command(relay2_on)
+    after 100
+}
+
+proc value { } {
+    global spawn_id command
+    set timeout 1
+    expect "*"
+    send $command(get_value)
+    expect {
+        -re {[-| ][0-9][0-9]\.[0-9][0-9][0-9]} { return $expect_out(0,string) }
+    }
+}
+
+
+# Handle command line
+if {[llength $argv] < 2} {
+    usage
+}
+set tty_line [lindex $argv 0]
+set action [string tolower [lindex $argv 1]]
+
+if { ($action == "on") || ($action == "off") || ($action == "reset") } {
+    connect $tty_line $tty_baud
+    $action
+    disconnect
+} elseif { $action == "value" } {
+    connect $tty_line $tty_baud
+    puts [$action]
+    disconnect
+} else {
+    usage
+}
+
