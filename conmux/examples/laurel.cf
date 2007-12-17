@@ -1,0 +1,7 @@
+listener n800
+application console 'n800 Console' 'cu -l /dev/ttyS0 -s 115200 dir'
+command 'hardreset' 'Reset target' 'reboot-laurel /dev/ttyUSB0 reset'
+command 'amps' 'Got amperage' 'reboot-laurel /dev/ttyUSB0 value'
+help 'hardreset' 'Resets target by cycling power'
+help 'amps' 'Displays current power consumption in amps'
+
