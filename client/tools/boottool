@@ -1846,13 +1846,14 @@ sub _set_config_file {
 sub install {
     my $self=shift;
 
-    #system("/usr/sbin/ybin");
-    #if ( $? != 0 ) {
-    #    warn("ERROR:  Failed to run ybin.\n") && return undef;
-    #}
-
-    print("Not installing bootloader.\n");
-    print("Depending on your arch you may need to run ybin.\n");
+    if (-f "/usr/sbin/ybin") {
+	system("/usr/sbin/ybin");
+	if ( $? != 0 ) {
+	    warn("ERROR:  Failed to run ybin.\n") && return undef;
+	}
+    } else {
+	print("Not installing bootloader.\n");
+    }
     return 1;
 }
 
