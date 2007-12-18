@@ -1920,6 +1920,7 @@ sub _info {
   @config=grep(!/^#|^\s*$/, @config);
 
   my %matches = (
+		  target => '^\s*target\s*=\s*(.*)',
 		  kernel => '^\s*image\s*=\s*(\S+)',
 		  initrd => '^\s*ramdisk\s*=\s*(.*)',
 		  args => '^\s*parameters\s*=\s*"?\s*(.*[^"])"?',
@@ -2071,7 +2072,7 @@ sub add {
   my $default=$self->get_default();
   $default++;
 
-  foreach my $p ('args') {
+  foreach my $p ('args', 'target') {
     if (! defined $param{$p}) {
       $param{$p} = $sections[$default]{$p};
     }
@@ -2087,6 +2088,7 @@ sub add {
   my $line;
   my @newkernel;
   push(@newkernel, "[$param{'title'}]\n");
+  push(@newkernel, "\ttarget=$param{'target'}\n") if (defined $param{'target'});
   push(@newkernel, "\timage=$param{'add-kernel'}\n");
   push(@newkernel, "\tramdisk=$param{'initrd'}\n") if (defined $param{'initrd'});
   $line = '';
