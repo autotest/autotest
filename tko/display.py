@@ -149,9 +149,5 @@ def group_name(group):
 	name = re.sub('_', '<br>', group.name)
 	if re.search('/', name):
 		(owner, machine) = name.split('/', 1)
-		if len(owner) > 3:           # capitalize acroymns
-			owner = owner.capitalize()
-		else:
-			owner = owner.upper()
 		name = owner + '<br>' + machine
 	return name

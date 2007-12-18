@@ -59,13 +59,21 @@ def print_kernel_machines_vs_test(machines, kernel, only_test, mlist):
 
 	header_row = [ display.box('Version', header=True) ]
 	for test in [re.sub(r'kernel.', r'kernel<br>', x) for x in test_list]:
-		header_row.append( display.box(test, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s&test=%s' % (mlist, kernel.idx, test), header=True))
+		url='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s&test=%s'\
+						% (mlist, kernel.idx, test)
+		header_row.append( display.box(test, link=url, header=True) )
 
 	matrix = [header_row]
 	for machine in machines:
 		if not results.has_key(machine.idx):
 			continue
-		row = [display.box(machine.owner + ' ' + machine.hostname, link='machine_kernel_test_jobs.cgi?machine=%s&kernel=%s' % (machine.idx, kernel.idx))]
+		if machine.owner:
+			hostname = machine.owner + ' ' + machine.hostname
+		else:
+			hostname = machine.hostname
+		url = 'machine_kernel_test_jobs.cgi?machine=%s&kernel=%s' % \
+						(machine.idx, kernel.idx)
+		row = [display.box(hostname, link = url)]
 		for testname in test_list:
 			if results[machine.idx].has_key(testname):
 				tests = results[machine.idx][testname]
