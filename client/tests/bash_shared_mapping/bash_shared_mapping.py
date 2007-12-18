@@ -14,7 +14,7 @@ class bash_shared_mapping(test.test):
 		system('make bash-shared-mapping usemem')
 
 
-	def execute(self, testdir = None):
+	def execute(self, testdir = None, iterations = 1000):
 		if not testdir:
 			testdir = self.tmpdir
 		os.chdir(testdir)
@@ -31,8 +31,9 @@ class bash_shared_mapping(test.test):
 		for i in (0,1):
 			pid[i] = os.spawnv(os.P_NOWAIT, usemem, args)
 
-		cmd = "%s/bash-shared-mapping %s %d -t %d" % \
-				(self.srcdir, file, kilobytes, count_cpus())
+		cmd = "%s/bash-shared-mapping %s %d -t %d -n %d" % \
+					(self.srcdir, file, kilobytes,
+					 count_cpus(), iterations)
 		os.system(cmd)
 
 		for i in (0,1):
