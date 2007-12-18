@@ -1,4 +1,5 @@
 import test, os_dep
+import time
 from autotest_utils import *
 
 class btreplay(test.test):
@@ -48,6 +49,16 @@ class btreplay(test.test):
                 system(self.ldlib+" ./btreplay/btreplay -d "+tmpdir+" -W "+\
                         dev+" "+extra_args)
                 system("killall -INT blktrace")
+		
+		# wait until blktrace is really done
+		slept = 0.0
+		while system("ps -C blktrace > /dev/null",
+			     ignorestatus=True) == 0:
+			time.sleep(0.1)
+			slept += 0.1
+			if slept > 30.0:
+				system("killall -9 blktrace")
+				raise TestError("blktrace failed to exit after 30 seconds")
                 system("./blkparse -q -D "+tmpdir+" -d "+tmpdir+\
                         "/trace.bin -O "+alldnames+" >/dev/null")
                 system("./btt/btt -i "+tmpdir+"/trace.bin")
