@@ -1004,9 +1004,14 @@ sub _set_config_file {
 sub install {
   my $self=shift;
 
-  system("/usr/sbin/elilo");
-  if ($? != 0) { 
-    warn ("ERROR:  Failed to run elilo.\n") && return undef; 
+  my $elilo = '';
+  $elilo = '/sbin/elilo' if (-f '/sbin/elilo');
+  $elilo = '/usr/sbin/elilo' if (-f '/usr/sbin/elilo');
+  if ($elilo ne '') {
+      system($elilo);
+      if ($? != 0) { 
+	warn ("ERROR:  Failed to run elilo.\n") && return undef; 
+      }
   }
   return 1;
 }
