@@ -1922,7 +1922,7 @@ sub _info {
   my %matches = (
 		  kernel => '^\s*image\s*=\s*(\S+)',
 		  initrd => '^\s*ramdisk\s*=\s*(.*)',
-		  args => '^\s*parameters\s*="?\s*(.*[^"])"?',
+		  args => '^\s*parameters\s*=\s*"?\s*(.*[^"])"?',
 		);
 
   my %sect_title;
