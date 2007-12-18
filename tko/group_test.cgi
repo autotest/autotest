@@ -32,6 +32,7 @@ def print_kernel_groups_vs_tests(kernel, groups):
 		for test in tests:
 			all_tests.add(test.testname)
 	all_tests = list(all_tests)
+	all_tests.sort()
 		
 	print '<h1>%s</h1>' % kernel.printable
 
