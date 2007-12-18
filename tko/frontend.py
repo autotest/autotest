@@ -152,14 +152,7 @@ class machine:
 		self.idx = idx
 		self.hostname = hostname
 		self.group = group
-		if owner:
-			if len(owner) > 3:
-				self.owner = owner.capitalize()
-			else:
-				# capitalize acroymns
-				self.owner = owner.upper()
-		else:
-			self.owner = None
+		self.owner = owner
 
 
 class kernel:
