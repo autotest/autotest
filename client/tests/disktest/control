@@ -4,4 +4,4 @@
 # disks = glob.glob('/export/*')
 # job.run_test('disktest', disks)
 
-job.run_test('disktest', ['/tmp'])
+job.run_test('disktest')
