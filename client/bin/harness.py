@@ -65,12 +65,12 @@ class harness:
 		pass
 
 
-	def test_status(self, status):
+	def test_status(self, status, tag):
 		"""A test within this job is completing"""
 		pass
 
 
-	def test_status_detail(self, code, subdir, operation, status):
+	def test_status_detail(self, code, subdir, operation, status, tag):
 		"""A test within this job is completing (detail)"""
 		pass
 
