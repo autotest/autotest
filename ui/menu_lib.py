@@ -1,9 +1,8 @@
 import os, sys, dircache, string, re
 
 def check_python_version():
-	version = string.split(string.split(sys.version)[0], ".")
-	version = [version[0], version[1]]
-	if map(int, version) < [2, 4]:
+	version = sys.version_info[0:2]
+	if version < (2, 4):
 		print "Python 2.4 or newer is needed"
 		sys.exit(1)
 
