@@ -14,7 +14,7 @@ class bash_shared_mapping(test.test):
 		system('make bash-shared-mapping usemem')
 
 
-	def execute(self, testdir = None, iterations = 1000):
+	def execute(self, testdir = None, iterations = 10000):
 		if not testdir:
 			testdir = self.tmpdir
 		os.chdir(testdir)
