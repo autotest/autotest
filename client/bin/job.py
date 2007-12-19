@@ -46,6 +46,8 @@ class job:
 			the job configuration for this job
 	"""
 
+	DEFAULT_LOG_FILENAME = "status"
+
 	def __init__(self, control, jobtag, cont, harness_type=None):
 		"""
 			control
@@ -94,6 +96,7 @@ class job:
 
 		self.control = control
 		self.jobtag = jobtag
+		self.log_filename = self.DEFAULT_LOG_FILENAME
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -413,21 +416,32 @@ class job:
 		print "job: noop: " + text
 
 
-	# Job control primatives.
-
-	def __parallel_execute(self, func, *args):
-		func(*args)
-
-
 	def parallel(self, *tasklist):
 		"""Run tasks in parallel"""
 
 		pids = []
-		for task in tasklist:
-			pids.append(fork_start(self.resultdir,
-					lambda: self.__parallel_execute(*task)))
-		for pid in pids:
+		old_log_filename = self.log_filename
+		for i, task in enumerate(tasklist):
+			self.log_filename = old_log_filename + (".%d" % i)
+			task_func = lambda: task[0](*task[1:])
+			pids.append(fork_start(self.resultdir, task_func))
+
+		old_log_path = os.path.join(self.resultdir, old_log_filename)
+		old_log = open(old_log_path, "a")
+		for i, pid in enumerate(pids):
+			# wait for the task to finish
 			fork_waitfor(self.resultdir, pid)
+			# copy the logs from the subtask into the main log
+			new_log_path = old_log_path + (".%d" % i)
+			if os.path.exists(new_log_path):
+				new_log = open(new_log_path)
+				old_log.write(new_log.read())
+				new_log.close()
+				old_log.flush()
+				os.remove(new_log_path)
+		old_log.close()
+
+		self.log_filename = old_log_filename
 
 
 	def quit(self):
@@ -562,14 +576,27 @@ from autotest_utils import *
 						 status))
 		msg = '\t' * self.group_level + msg
 
-		self.harness.test_status_detail(status_code, substr,
-							operation, status)
-		self.harness.test_status(msg)
+		msg_tag = ""
+		if "." in self.log_filename:
+			msg_tag = self.log_filename.split(".", 1)[1]
+
+		self.harness.test_status_detail(status_code, substr, operation,
+						status, msg_tag)
+		self.harness.test_status(msg, msg_tag)
+
+		# log to stdout (if enabled)
+		#if self.log_filename == self.DEFAULT_LOG_FILENAME:
 		print msg
-		status_file = os.path.join(self.resultdir, 'status')
+
+		# log to the "root" status log
+		status_file = os.path.join(self.resultdir, self.log_filename)
 		open(status_file, "a").write(msg + "\n")
+
+		# log to the subdir status log (if subdir is set)
 		if subdir:
-			status_file = os.path.join(self.resultdir, subdir, 'status')
+			status_file = os.path.join(self.resultdir,
+						   subdir,
+						   self.DEFAULT_LOG_FILENAME)
 			open(status_file, "a").write(msg + "\n")
 
 

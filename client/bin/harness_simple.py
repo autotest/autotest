@@ -26,11 +26,13 @@ class harness_simple(harness.harness):
 		self.status = os.fdopen(3, 'w')
 
 
-	def test_status(self, status):
+	def test_status(self, status, tag):
 		"""A test within this job is completing"""
 		if self.status:
 			for line in status.split('\n'):
-				# prepend status messages with "AUTOTEST_STATUS:" so that we
-				# can tell which lines were written by the autotest client
-				self.status.write("AUTOTEST_STATUS:" + line.rstrip() + '\n')
+				# prepend status messages with
+				# AUTOTEST_STATUS:tag: so that we can tell
+				# which lines were sent by the autotest client
+				pre = 'AUTOTEST_STATUS:%s:' % (tag,)
+				self.status.write(pre + line + '\n')
 				self.status.flush()
