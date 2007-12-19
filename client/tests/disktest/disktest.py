@@ -24,9 +24,12 @@ class disktest(test.test):
 		return(p.pid)
 
 
-	def execute(self, disks, gigabytes = None, chunk_mb = memtotal()/1024):
+	def execute(self, disks = None, gigabytes = None,
+						chunk_mb = memtotal() / 1024):
 		os.chdir(self.srcdir)
 
+		if not disks:
+			disks = [self.tmpdir]
 		if not gigabytes:
 			free = 100       # cap it at 100GB by default
 			for disk in disks:
