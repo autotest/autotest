@@ -71,12 +71,12 @@ def crashdumps(machine):
 parallel_simple(crashdumps, machines, log=False)
 """
 
-cleanup="""\
-def cleanup(machine):
+reboot_segment="""\
+def reboot(machine):
 	host = hosts.SSHHost(machine, initialize=False)
 	host.reboot()
 
-parallel_simple(cleanup, machines, log=False)
+parallel_simple(reboot, machines, log=False)
 """
 
 install="""\
@@ -94,14 +94,6 @@ verify += load_control_segment("verify")
 # load up the repair control segment, with an optional site-specific hook
 repair = load_control_segment("site_repair")
 repair += load_control_segment("repair")
-
-cleanup="""\
-def cleanup(machine):
-	host = hosts.SSHHost(machine, initialize=False)
-	host.ssh_ping(150*60)            # wait for 2.5 hours
-
-parallel_simple(cleanup, machines, log=False)
-"""
 
 def verify_machines(machines):
 	if not machines:
@@ -214,9 +206,11 @@ class server_job:
 		finally:
 			if machines:
 				namespace['test_start_time'] = test_start_time
-				exec(preamble + crashdumps, namespace, namespace)
+				exec(preamble + crashdumps,
+				     namespace, namespace)
 			if reboot and machines:
-				exec(preamble + cleanup, namespace, namespace)
+				exec(preamble + reboot_segment,
+				     namespace, namespace)
 			if install_after and machines:
 				exec(preamble + install, namespace, namespace)
 
