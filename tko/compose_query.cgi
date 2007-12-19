@@ -37,7 +37,7 @@ html_header = """\
   </SELECT>
   </td>
   <td>
-    <input type="text" name="condition" size="80" maxlength="80" value="%s">
+    <input type="text" name="condition" size="30" maxlength="80" value="%s">
     <input type="hidden" name="title" value="Report">
   </td>
   <td align="center"><input type="submit" value="Submit">
