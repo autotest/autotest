@@ -137,7 +137,7 @@ class harness_ABAT(harness.harness):
 		self.__send("DONE")
 
 
-	def test_status_detail(self, code, subdir, operation, msg):
+	def test_status_detail(self, code, subdir, operation, msg, tag):
 		"""A test within this job is completing (detail)"""
 
 		# Send the first line with the status code as a STATUS message.
