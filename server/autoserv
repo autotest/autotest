@@ -80,12 +80,12 @@ if verify or repair:
 	sys.exit(0)
 
 job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
-								user, client)
+							user, machines, client)
 job.stdout.tee_redirect(os.path.join(results, 'debug', 'autoserv.stdout'))
 job.stderr.tee_redirect(os.path.join(results, 'debug', 'autoserv.stderr'))
 
 try:
-	job.run(machines, reboot, install_before, install_after)
+	job.run(reboot, install_before, install_after)
 except:
 	traceback.print_exc()
 

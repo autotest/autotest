@@ -67,7 +67,9 @@ class job:
 	def __init__(self, dir):
 		self.dir = dir
 		self.control = os.path.join(dir, "control")
-		self.status = os.path.join(dir, "status")
+		self.status = os.path.join(dir, "status.log")
+		if not os.path.exists(self.status):
+			self.status = os.path.join(dir, "status")
 		self.variables = {}
 		self.tests = []
 		self.kernel = None
@@ -81,6 +83,8 @@ class job:
 		self.user = keyval.get('user', None)
 		self.label = keyval.get('label', None)
 		self.machine = keyval.get('hostname', None)
+		if self.machine:
+			assert ',' not in self.machine
 		self.machine_owner = keyval.get('owner', None)
 
 		if not self.machine:
@@ -212,7 +216,7 @@ class job:
 
 class kernel:
 	def __init__(self, topdir):
-		self.base = None
+		self.base = 'UNKNOWN'
 		self.patches = []
 		patch_hashes = []
 		# HACK. we don't have proper build tags in the status file yet
@@ -240,7 +244,9 @@ class kernel:
 				re.sub(r'-autotest$', '', self.base)
 				break
 		print 'kernel.__init__() found kernel version %s' % self.base
-		if self.base:
+		if self.base == 'UNKNOWN':
+			self.kernel_hash = 'UNKNOWN'
+		else:
 			self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
 
 
