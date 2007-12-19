@@ -5,6 +5,7 @@ from traceback import format_exception
 usage = """\
 usage: parse
 	[-m]                           # Send mail for FAILED tests
+	[-r]                           # Reparse the results of a job
 	[-o directory]                 # Specify results directory directly
 	<top level results directory>  # Specify top level results directory
 """
@@ -20,10 +21,10 @@ def format_error():
 
 
 try:
-	opts, args = getopt.getopt(sys.argv[1:], "hmo:l:", ["help"])
+	opts, args = getopt.getopt(sys.argv[1:], "hrmo:l:", ["help"])
 except getopt.GetoptError:
 	# print help information and exit:
-	usage()
+	print usage,
 	sys.exit(2)
 
 if len(sys.argv) < 2:
@@ -32,6 +33,7 @@ if len(sys.argv) < 2:
 
 singledir = None
 mailit = False
+reparse = False
 level = 1
 for name, value in opts:
 	if name in ("-h", "--help"):
@@ -39,6 +41,8 @@ for name, value in opts:
 		sys.exit()
 	if name == "-m":
 		mailit = True
+	if name == "-r":
+		reparse = True
 	if name in ("-o"):
 		singledir = value
 	if name in ("-l"):
@@ -80,24 +84,28 @@ def mailfailure(jobname, job, mesgtxt):
 						message_header + mesgtxt)
 
 
+def dprint(string):
+	if debug:
+		print string
+
+
 def do_parse(jobname, path):
 	"""
 	Parse a single job. Optionally send email on failure, etc.
 	"""
-	if debug:
-		print '\nScanning %s (%s)' % (jobname, path)
-	if db.find_job(jobname):              # Job has already been parsed
-		if debug:
-			print '! Already processed'
+	dprint('\nScanning %s (%s)' % (jobname, path))
+	if reparse and db.find_job(jobname):
+		dprint('! Deleting old copy of job results, to reparse it')
+		db.delete_job(jobname)
+	if db.find_job(jobname):		# Job has already been parsed
+		dprint('! Already processed')
 		return
 	job = parse.job(path)
 	if not job:
-		if debug:
-			print '! Failed to parse job (no status file?)'
+		dprint('! Failed to parse job (no status file?)')
 		return
 	if not job.kernel:
-		if debug:
-			print '! Failed to find kernel for job'
+		dprint('! Failed to find kernel for job')
 		return
 	print '+ Parsing ' + path
 	print '* jobname, kernel version: %s %s' % (jobname, job.kernel.base)

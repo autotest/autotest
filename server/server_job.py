@@ -135,7 +135,8 @@ class server_job:
 			the control file for this job
 	"""
 
-	def __init__(self, control, args, resultdir, label, user, client=False):
+	def __init__(self, control, args, resultdir, label, user, machines,
+								client = False):
 		"""
 			control
 				The control file (pathname of)
@@ -168,6 +169,7 @@ class server_job:
 		self.label = label
 		self.user = user
 		self.args = args
+		self.machines = machines
 		self.client = client
 		self.record_prefix = ''
 
@@ -176,14 +178,16 @@ class server_job:
 
 		if os.path.exists(self.status):
 			os.unlink(self.status)
-		job_data = { 'label' : label, 'user' : user}
+		job_data = { 'label' : label, 'user' : user,
+					'hostname' : ','.join(machines) }
 		write_keyval(self.resultdir, job_data)
 
 
-	def run(self, machines, reboot = False, install_before = False,
+	def run(self, reboot = False, install_before = False,
 					install_after = False, namespace = {}):
 		# use a copy so changes don't affect the original dictionary
 		namespace = namespace.copy()
+		machines = self.machines
 
 		self.aborted = False
 		namespace['machines'] = machines
