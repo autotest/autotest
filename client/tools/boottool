@@ -271,6 +271,27 @@ sub get_default {
 
 }
 
+# Find the template entry.
+sub get_template {
+  my ($self) = @_;
+
+  print ("Getting template.\n") if $self->debug()>1;
+  return undef unless $self->_check_config();
+
+  my @sections = $self->_info();
+  my $default = $sections[0]{'default'} + 1;
+
+  if (defined $sections[$default]{'kernel'}) {
+    return $default - 1;
+  }
+  for ($default = 1; $default <= $#sections; $default++) {
+    if (defined $sections[$default]->{'kernel'}) {
+      return $default - 1;
+    }
+  }
+  return undef;
+}
+
 
 # Set new default kernel
 
@@ -353,7 +374,7 @@ sub add {
   @sections=$self->_info();
  
   # Use default kernel to fill in missing info
-  my $default=$self->get_default();
+  my $default=$self->get_template();
   $default++;
 
   foreach my $p ('args', 'root') {
@@ -1356,7 +1377,7 @@ sub add {
   @sections=$self->_info();
 
   # Use default kernel to fill in missing info
-  my $default=$self->get_default();
+  my $default=$self->get_template();
   $default++;
 
   foreach my $p ('args', 'root', 'boot', 'savedefault') {
@@ -2069,7 +2090,7 @@ sub add {
   @sections=$self->_info();
 
   # Use default kernel to fill in missing info
-  my $default=$self->get_default();
+  my $default=$self->get_template();
   $default++;
 
   foreach my $p ('args', 'target') {
