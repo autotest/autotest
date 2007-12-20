@@ -201,6 +201,14 @@ class Autotest(installable_object.InstallableObject):
 		try:
 			atrun.execute_control(timeout=timeout)
 		finally:
+			# make an effort to wait for the machine to come up
+			try:
+				host.ensure_up()
+			except AutoservError:
+				# don't worry about any errors, we'll try and
+				# get the results anyway
+				pass
+
 			# get the results
 			results = os.path.join(atrun.autodir, 'results',
 					       'default')
