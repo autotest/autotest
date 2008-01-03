@@ -1,0 +1,11 @@
+# config_file: file that will be inside the test directory
+config_file = 'dacapo_ppc.cfg'
+# list of jvm entries inside the configuration file
+jvm_list = ['ibm14', 'ibm15']
+# list of dacapo tests that will be executed
+dacapo_tests = ['antlr', 'bloat', 'chart', 'eclipse', 'fop', 'hsqldb',
+		'jython', 'lusearch', 'luindex', 'pmd', 'xalan']
+
+for jvm in jvm_list:
+	for test in dacapo_tests:
+		job.run_test('dacapo', test, config_file, jvm, tag = test + '-' + jvm)
