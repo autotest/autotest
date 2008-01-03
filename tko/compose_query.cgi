@@ -65,6 +65,21 @@ field_dict = {
 	'status': 'status_word',
 }
 
+next_field = {
+	'machine_group': 'hostname',
+	'hostname': 'tag',
+	'tag': 'tag',
+
+	'kernel': 'test',
+	'test': 'label',
+	'label': 'label',
+
+	'reason': 'reason',
+	'user': 'user',
+	'status': 'status',
+}
+
+
 
 def parse_field(form, form_field, field_default):
 	if not form_field in form:
@@ -106,6 +121,25 @@ def get_value(test, field):
 	raise "Unknown field"
 
 
+def construct_link(row_val, column_val):
+	next_row = row_field
+	next_column = column_field
+	condition_list = []
+	if condition_field != '':
+		condition_list.append(condition_field)
+	if row_val:
+		next_row = next_field[row_field]
+		condition_list.append('%s%s%s%s' % (row_field, '%3D%27',
+		                                    row_val, '%27'))
+	if column_val:
+		next_column = next_field[column_field]
+		condition_list.append('%s%s%s%s' % (column_field, '%3D%27',
+		                                    column_val, '%27'))
+	next_condition = '%26'.join(condition_list)
+	return 'compose_query.cgi?columns=%s&rows=%s&condition=%s' % (
+	                next_column, next_row, next_condition)
+
+
 def create_select_options(selected_val):
 	ret = ""
 
@@ -142,7 +176,7 @@ def gen_matrix():
 
 	ret = frontend.get_matrix_data(db, field_dict[column_field],
 	                               field_dict[row_field], where)
-	(data, column_list, row_list, stat_list) = ret
+	(data, column_list, row_list, stat_list, job_tags) = ret
 
 	if not row_list:
 		msg = "There are no results for this query (yet?)."
@@ -151,22 +185,32 @@ def gen_matrix():
 	smart_sort(row_list, row_field)
 	smart_sort(column_list, column_field)
 
-	header_row = [display.box("", header=True)]
+	link = 'compose_query.cgi?columns=%s&rows=%s&condition=%s' % (
+	                row_field, column_field, condition_field)
+	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
+
 	for column in column_list:
-		header_row.append(display.box(column, header=True))
+		link = construct_link(None, column)
+		header_row.append(display.box(column, header=True, link=link))
 
 	matrix = [header_row]
 	for row in row_list:
-		cur_row = [display.box(row)]
+		link = construct_link(row, None)
+		cur_row = [display.box(row, header=True, link=link)]
 		for column in column_list:
 			try:
 				box_data = data[column][row]
 			except:
 				cur_row.append(display.box(None, None))
 				continue
+			job_tag = job_tags[column][row]
+			if job_tag:
+				link = '/results/%s/' % job_tag
+			else:
+				link = construct_link(row, column)
 			cur_row.append(display.status_precounted_box(db,
-			                                        box_data,
-			                                        ""))
+			                                             box_data,
+			                                             link))
 		matrix.append(cur_row)
 
 	return matrix
