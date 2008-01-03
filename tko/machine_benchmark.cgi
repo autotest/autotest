@@ -33,11 +33,11 @@ def main():
 	machine_idx = {}
 	benchmark_data = {}
 	for benchmark in benchmarks:
-		fields = 'machine_idx,machines_hostname,count(status_word)'
+		fields = 'machine_idx,machine_hostname,count(status_word)'
 		where = { 'subdir': benchmark, 'status_word' : 'GOOD' }
 		data = {}
 		for (idx, machine, count) in db.select(fields, 'test_view',
-					where, group_by = 'machines_hostname'):
+					where, group_by = 'machine_hostname'):
 			data[machine] = count
 			machine_idx[machine] = idx
 		benchmark_data[benchmark] = data
