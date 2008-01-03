@@ -91,6 +91,9 @@ class Host(object):
 	def get_crashdumps(self, test_start_time):
 		pass
 
+	def get_autodir(self):
+		return None
+
 
 # site_host.py may be non-existant or empty, make sure that an appropriate 
 # SiteHost class is created nevertheless
