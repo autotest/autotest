@@ -62,6 +62,14 @@ class test:
 			self.job.stdout.restore()
 
 
+	def assert_(self, expr, msg):
+		if expr:
+			return
+		if not msg:
+			msg = 'Assertion failed.'
+		raise TestError(msg)
+
+
 	def initialize(self):
 		pass
 
