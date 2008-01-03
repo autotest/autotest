@@ -18,7 +18,7 @@
 #	src		eg. tests/<test>/src
 #	tmpdir		eg. tmp/<testname.tag>
 
-import os, pickle, tempfile, fcntl
+import os, pickle, tempfile, fcntl, traceback
 from autotest_utils import *
 from common.error import *
 import sysinfo
@@ -189,14 +189,18 @@ def runtest(job, url, tag, args, dargs):
 	try:
 		mytest._exec(args, dargs)
 	finally:
-		# log "after each test" sysinfo
-		sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
-		os.mkdir(sysinfo_dir)
 		try:
-			os.chdir(sysinfo_dir)
-			sysinfo.after_each_test()
-		finally:
-			os.chdir(pwd)
+			# log "after each test" sysinfo
+			sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
+			os.makedirs(sysinfo_dir)
+			try:
+				os.chdir(sysinfo_dir)
+				sysinfo.after_each_test()
+			finally:
+				os.chdir(pwd)
 
-		if os.path.exists(mytest.tmpdir):
-			system('rm -rf ' + mytest.tmpdir)
+			if os.path.exists(mytest.tmpdir):
+				system('rm -rf ' + mytest.tmpdir)
+		except:
+			print 'post-test error:'
+			traceback.print_exc(file=sys.stdout)
