@@ -46,8 +46,6 @@ class SSHHost(base_classes.RemoteHost):
 	implement the unimplemented methods in parent classes.
 	"""
 
-	SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
-			   'BatchMode=yes -o ConnectTimeout=30'
 	DEFAULT_REBOOT_TIMEOUT = 1800
 	job = None
 
@@ -309,16 +307,25 @@ class SSHHost(base_classes.RemoteHost):
 			sys.stderr.write(msg + "\n")
 
 
-	def ssh_command(self):
+	def ssh_base_command(self, connect_timeout=30):
+		SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
+				   'BatchMode=yes -o ConnectTimeout=%d'
+		assert isinstance(connect_timeout, (int, long))
+		assert connect_timeout > 0 # can't disable the timeout
+		return SSH_BASE_COMMAND % connect_timeout
+
+
+	def ssh_command(self, connect_timeout=30):
 		"""Construct an ssh command with proper args for this host."""
-		return r'%s -l %s -p %d %s' % (self.SSH_BASE_COMMAND,
+		ssh = self.ssh_base_command(connect_timeout)
+		return r'%s -l %s -p %d %s' % (ssh,
 					       self.user,
 					       self.port,
 					       self.hostname)
 
 
-	def run(self, command, timeout=None, ignore_status=False,
-		stdout_tee=None, stderr_tee=None):
+	def run(self, command, timeout=30, ignore_status=False,
+		stdout_tee=None, stderr_tee=None, connect_timeout=30):
 		"""
 		Run a command on the remote host.
 		
@@ -342,7 +349,7 @@ class SSHHost(base_classes.RemoteHost):
 		stderr = stderr_tee or sys.stderr
 		print "ssh: %s" % (command,)
 		env = " ".join("=".join(pair) for pair in self.env.iteritems())
-		full_cmd = '%s "%s %s"' % (self.ssh_command(), env,
+		full_cmd = '%s "%s %s"' % (self.ssh_command(connect_timeout), env,
 					   utils.sh_escape(command))
 		result = utils.run(full_cmd, timeout, ignore_status,
 				   stdout, stderr)
@@ -477,7 +484,7 @@ class SSHHost(base_classes.RemoteHost):
 			    utils.scp_remote_escape(dest))
 		if result.exit_status == 0:
 			utils.run('rsync --rsh="%s" -az %s %s' % (
-			    self.SSH_BASE_COMMAND, " ".join(processed_source),
+			    self.ssh_base_command(), " ".join(processed_source),
 			    remote_dest))
 		else:
 			utils.run('scp -rpq %s %s' % (
@@ -649,4 +656,4 @@ class SSHHost(base_classes.RemoteHost):
 
 
 	def ssh_ping(self, timeout = 60):
-		self.run('true', timeout = timeout)
+		self.run('true', connect_timeout = timeout)
