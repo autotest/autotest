@@ -15,6 +15,10 @@ tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
 
 import display, frontend, db, query_lib
+client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
+sys.path.insert(0, client_bin)
+import kernel_versions
+
 
 html_header = """\
 <form action="compose_query.cgi" method="get">
@@ -37,7 +41,7 @@ html_header = """\
   </SELECT>
   </td>
   <td>
-    <input type="text" name="condition" size="30" maxlength="80" value="%s">
+    <input type="text" name="condition" size="30" maxlength="200" value="%s">
     <input type="hidden" name="title" value="Report">
   </td>
   <td align="center"><input type="submit" value="Submit">
@@ -47,22 +51,65 @@ html_header = """\
 </form>
 """
 
-columns_default = 'kernel'
-rows_default = 'test'
+
+# dictionary used simply for fast lookups
+field_dict = {
+	'kernel': 'kernel_printable',
+	'hostname': 'machine_hostname',
+	'test': 'test',
+	'label': 'job_label',
+	'machine_group': 'machine_group',
+	'reason': 'reason',
+	'tag': 'job_tag',
+	'user': 'job_username',
+	'status': 'status_word',
+}
+
+
+def parse_field(form, form_field, field_default):
+	if not form_field in form:
+		return field_default
+	field_input = form[form_field].value.lower()
+	if field_input and field_input in field_dict:
+		return field_input
+	return field_default
+
+
+def parse_condition(form, form_field, field_default):
+	if not form_field in form:
+		return field_default
+	return form[form_field].value
+
+
+form = cgi.FieldStorage()
+row_field = parse_field(form, 'rows', 'kernel')
+column_field = parse_field(form, 'columns', 'machine_group')
+condition_field = parse_condition(form, 'condition', '')
 
 cgitb.enable()
 db = db.db()
 
-def create_select_options(selected_val, default_val):
+
+def get_value(test, field):
+	if field == 'kernel':
+		return test.kernel_printable
+	if field == 'hostname':
+		return test.machine_hostname
+	if field == 'test':
+		return test.testname
+	if field == 'label':
+		return test.job_label
+	if field == 'machine_group':
+		return test.machine_group
+	if field == 'reason':
+		return test.reason
+	raise "Unknown field"
+
+
+def create_select_options(selected_val):
 	ret = ""
-	option_list = ['kernel', 'hostname', 'test', 'label',
-	               'machine_group', 'reason']
 
-	if option_list.count(selected_val) == 0:
-		selected_val = default_val
-	assert(option_list.count(selected_val) > 0)
-
-	for option in option_list:
+	for option in sorted(field_dict.keys()):
 		if selected_val == option:
 			selected = " SELECTED"
 		else:
@@ -75,107 +122,65 @@ def create_select_options(selected_val, default_val):
 	return ret
 
 
-def main():
+def smart_sort(list, field):
+	if field == 'kernel':
+		def kernel_encode(kernel):
+		        return kernel_versions.version_encode(kernel) 
+		list.sort(key = kernel_encode, reverse = True)
+	else:
+		list.sort()
+
+
+def gen_matrix():
 	display.print_main_header()
 
-	# parse the fields from the form.
-	form = cgi.FieldStorage()
-	columns = columns_default
-	rows = rows_default
-	condition = None
-	for field in form:
-		value = form[field].value
-		if field == 'columns':
-			columns = value
-		elif field == 'rows':
-			rows = value
-		elif field == 'condition':
-			condition = value
+	where = None
+	if condition_field.strip() != '':
+		where = query_lib.parse_scrub_and_gen_condition(
+		            condition_field, field_dict)
+		print "<!-- where clause: %s -->" % (where,)
 
-	# parse the conditions into sql query and value list.
-	condition_sql = ""
-	condition_value = []
-	if condition:
-		condition_list = query_lib.parse_condition(condition)
-		condition_sql, condition_value =   \
-		 query_lib.generate_sql_condition(condition_list)
+	ret = frontend.get_matrix_data(db, field_dict[column_field],
+	                               field_dict[row_field], where)
+	(data, column_list, row_list, stat_list) = ret
 
-	# get all possible column values.
-	column_groups = frontend.anygroup.selectunique(db, columns)
+	if not row_list:
+		msg = "There are no results for this query (yet?)."
+		return [[display.box(msg)]]
 
-	# get all possible row values.
-	row_groups = frontend.anygroup.selectunique(db,rows)
-	# keep only those values in rows/columns that have a test
-	# corresponding to it.
-	row_groups = query_lib.prune_list(row_groups, condition_sql,  \
-					  condition_value)
-	column_groups = query_lib.prune_list(column_groups, condition_sql, \
-					     condition_value)
+	smart_sort(row_list, row_field)
+	smart_sort(column_list, column_field)
 
-	# prepare the header for the table.
-	headers = [g.name for g in column_groups]
-
-	header_row = [display.box(x, header=True) for x in headers]
-	header_row.insert(0, display.box("", header=True))
+	header_row = [display.box("", header=True)]
+	for column in column_list:
+		header_row.append(display.box(column, header=True))
 
 	matrix = [header_row]
+	for row in row_list:
+		cur_row = [display.box(row)]
+		for column in column_list:
+			try:
+				box_data = data[column][row]
+			except:
+				cur_row.append(display.box(None, None))
+				continue
+			cur_row.append(display.status_precounted_box(db,
+			                                        box_data,
+			                                        ""))
+		matrix.append(cur_row)
 
-	# get all the tests that satify the given condition.
-	tests = query_lib.get_tests(condition_sql, condition_value)
+	return matrix
 
-	for r_group in row_groups:
-		row = [display.box(r_group.name)]
 
-		# build the row sql for this row.
-		row_expr = [ " %s = %%s " % r_group.idx_name for val in r_group.idx_value]
-		row_sql = " (%s) " % " or ".join(row_expr)
-
-		# get individual unit values
-		for c_group in column_groups:
-			# get the list of tests that belong to this x,y in the matrix.
-			xy_test = [test for test in tests
-				   if query_lib.get_value(test, r_group.idx_name) \
-				   in r_group.idx_value \
-				   and query_lib.get_value(test,c_group.idx_name) \
-				   in c_group.idx_value]
-
-			# build the column sql
-			column_expr = [ " %s = %%s " % c_group.idx_name for val in c_group.idx_value]
-			column_sql = " (%s) " % " or ".join(column_expr)
-
-			sql = "t where %s and %s " % (row_sql, column_sql)
-
-			# add the corresponding values of the fields to
-			# the value list.
-
-			value = []
-			value.extend(r_group.idx_value)
-			value.extend(c_group.idx_value)
-
-			# append the condition sql and the values to the
-			# sql/list respectively.
-			if condition_sql:
-				sql += " and "
-				sql += condition_sql
-				value.extend(condition_value)
-
-			value_str = [str(val) for val in value]
-			link = 'test.cgi?sql=%s&values=%s' % \
-				(sql, ','.join(value_str))
-			row.append(display.status_count_box(db, xy_test, link))
-		matrix.append(row)
-
+def main():
 	# create the actual page
-	condition_str = condition
-	if condition_str == None:
-		condition_str = ""
 	print '<html><head><title>'
 	print 'Filtered Autotest Results'
 	print '</title></head><body>'
-	print html_header % (create_select_options(columns, columns_default),
-	                     create_select_options(rows, rows_default),
-	                     condition_str)
-	display.print_table(matrix)
+	print html_header % (create_select_options(column_field),
+	                     create_select_options(row_field),
+	                     condition_field)
+	display.print_table(gen_matrix())
 	print '</body></html>'
 
 

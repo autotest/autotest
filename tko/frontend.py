@@ -72,13 +72,19 @@ def get_matrix_data(db, x_axis, y_axis, where = None):
 	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
 
 	data = {}
+	x_set = set()
+	y_set = set()
+	status_set = set()
 	for (x, y, status, count) in rows:
 		if not data.has_key(x):
 			data[x] = {}
 		if not data[x].has_key(y):
 			data[x][y] = {}
 		data[x][y][status] = count
-	return data
+		x_set.add(x)
+		y_set.add(y)
+		status_set.add(status)
+	return (data, list(x_set), list(y_set), list(status_set))
 
 
 class anygroup:

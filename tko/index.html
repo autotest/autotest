@@ -10,12 +10,13 @@
   <SELECT NAME="columns">
   <OPTION VALUE="kernel">kernel
   <OPTION VALUE="hostname">hostname
-  <OPTION VALUE="user">user
   <OPTION VALUE="test">test
   <OPTION VALUE="label">label
   <OPTION VALUE="machine_group">machine_group
-  <OPTION VALUE="status">status
   <OPTION VALUE="reason">reason
+  <OPTION VALUE="tag">tag
+  <OPTION VALUE="user">user
+  <OPTION VALUE="status">status
   </SELECT>
   </td>
 </tr>
@@ -23,14 +24,15 @@
   <td>Row: </td>
   <td>
   <SELECT NAME="rows">
-  <OPTION VALUE="test">test
   <OPTION VALUE="kernel">kernel
   <OPTION VALUE="hostname">hostname
-  <OPTION VALUE="user">user
+  <OPTION VALUE="test" SELECTED>test
   <OPTION VALUE="label">label
   <OPTION VALUE="machine_group">machine_group
-  <OPTION VALUE="status">status
   <OPTION VALUE="reason">reason
+  <OPTION VALUE="tag">tag
+  <OPTION VALUE="user">user
+  <OPTION VALUE="status">status
   </SELECT>
   </td>
 </tr>
@@ -58,7 +60,7 @@ Textual values must be quoted.
 <ul>
 <li>user='johnmacdonald' & test='burnin'</li>
 <li>hostname='bdpk1' & user='yinghan'</li>
-<li>tag='134-lesliele%%' to search for job '134-lesliele'</li>
+<li>tag~'134-jorlow%' to search for job '134-jorlow'</li>
 </ul>
 </p>
   </td>

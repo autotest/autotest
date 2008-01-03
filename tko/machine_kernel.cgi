@@ -28,7 +28,8 @@ def kernel_encode(kernel):
 def main():
 	display.print_main_header()
 
-	data = frontend.get_matrix_data(db, 'machine_group', 'kernel_printable')
+	ret = frontend.get_matrix_data(db, 'machine_group', 'kernel_printable')
+	(data, group_list, kernel_list, status_list) = ret
 
 	groups = frontend.group.select(db)
 	group_names = [display.group_name(g) for g in groups]
