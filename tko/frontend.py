@@ -66,25 +66,32 @@ def get_matrix_data(db, x_axis, y_axis, where = None):
 	# Return a 3-d hash of data - [x-value][y-value][status_word]
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
-	assert x_axis != y_axis
-	fields = '%s, %s, status, COUNT(status_word)' % (x_axis, y_axis)
+	fields = ('%s, %s, status, COUNT(status_word), ' +
+	          'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
+		 ) % (x_axis, y_axis)
 	group_by = '%s, %s, status' % (x_axis, y_axis)
 	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
 
 	data = {}
+	job_tags = {}
 	x_set = set()
 	y_set = set()
 	status_set = set()
-	for (x, y, status, count) in rows:
+	for (x, y, status, count, job_tag) in rows:
 		if not data.has_key(x):
 			data[x] = {}
+			job_tags[x] = {}
 		if not data[x].has_key(y):
 			data[x][y] = {}
 		data[x][y][status] = count
+		if job_tags[x].has_key(y) or count != 1:
+			job_tags[x][y] = None
+		else:
+			job_tags[x][y] = job_tag
 		x_set.add(x)
 		y_set.add(y)
 		status_set.add(status)
-	return (data, list(x_set), list(y_set), list(status_set))
+	return (data, list(x_set), list(y_set), list(status_set), job_tags)
 
 
 class anygroup:
