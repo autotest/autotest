@@ -134,11 +134,47 @@ def unmap_url(srcdir, src, destdir = '.'):
 				(after retrieving it)
 	"""
 	if is_url(src):
-		dest = destdir + '/' + os.path.basename(src)
+		dest = os.path.join(destdir, os.path.basename(src))
 		get_file(src, dest)
 		return dest
 	else:
-		return srcdir + '/' + src
+		return os.path.join(srcdir, src)
+
+
+def get_md5sum(file_path):
+	"""Gets the md5sum of a file. You must provide a valid path to the file"""
+	if not os.path.isfile(file_path):
+		raise ValueError, 'invalid file %s to verify' % file_path
+	return system_output("md5sum " + file_path + " | awk '{print $1}'")
+
+
+def unmap_url_cache(cachedir, url, expected_md5):
+	"""\
+	Downloads a file from a URL to a cache directory. If the file is already
+	at the expected position and has the expected md5 number, let's not
+	download it again.
+	"""
+	# Let's convert cachedir to a canonical path, if it's not already
+	cachedir = os.path.realpath(cachedir)
+	if not os.path.isdir(cachedir):
+		try:
+			system('mkdir -p ' + cachedir)
+		except:
+			raise ValueError, 'Could not create cache directory %s' % cachedir
+	file_from_url = os.path.basename(url)
+	file_local_path = os.path.join(cachedir, file_from_url)
+	if os.path.isfile(file_local_path):
+		file_md5 = get_md5sum(file_local_path)
+		if file_md5 == expected_md5:
+			# File is already at the expected position and ready to go
+			src = file_from_url
+		else:
+			# Let's download the package again, it's corrupted...
+			src = url
+	else:
+		# File is not there, let's download it
+		src = url
+	return unmap_url(cachedir, src, cachedir)
 
 
 def basename(path):
@@ -460,7 +496,7 @@ def check_kernel_ver(ver):
 	if kv_tmp[0].split('.') < ver.split('.'):
 		raise TestError("Kernel is too old (%s). Kernel > %s is needed." % \
 							(kernel_ver, ver))
-                                                                                        
+
 
 def read_one_line(filename):
 	return open(filename, 'r').readline().strip()
