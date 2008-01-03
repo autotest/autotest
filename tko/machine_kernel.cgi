@@ -29,7 +29,7 @@ def main():
 	display.print_main_header()
 
 	ret = frontend.get_matrix_data(db, 'machine_group', 'kernel_printable')
-	(data, group_list, kernel_list, status_list) = ret
+	(data, group_list, kernel_list, status_list, job_tags) = ret
 
 	groups = frontend.group.select(db)
 	group_names = [display.group_name(g) for g in groups]
