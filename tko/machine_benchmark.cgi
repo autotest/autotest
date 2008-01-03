@@ -30,28 +30,36 @@ def main():
 		benchmarks.append(benchmark)
 	benchmarks = display.sort_tests(benchmarks)
 
-	machines = frontend.machine.select(db)
+	machine_idx = {}
+	benchmark_data = {}
+	for benchmark in benchmarks:
+		fields = 'machine_idx,machines_hostname,count(status_word)'
+		where = { 'subdir': benchmark, 'status_word' : 'GOOD' }
+		data = {}
+		for (idx, machine, count) in db.select(fields, 'test_view',
+					where, group_by = 'machines_hostname'):
+			data[machine] = count
+			machine_idx[machine] = idx
+		benchmark_data[benchmark] = data
 
 	print '<h1>Performance</h1>'
 
 	header_row =  [ display.box('Benchmark', header=True) ]
 	header_row += [ display.box(re.sub(r'\.', '<br>', benchmark), header=True) for benchmark in benchmarks ]
-	
+
 	matrix = [header_row]
-	for machine in machines:
-		row = [display.box(machine.hostname)]
+	for machine in machine_idx:
+		row = [display.box(machine)]
 		for benchmark in benchmarks:
-			where = { 'machine_idx' : machine.idx,
-				  'subdir' : benchmark }
-			rows = db.select('count(test_idx)', 'tests', where)
-			count = rows[0][0]
+			count = benchmark_data[benchmark].get(machine, None)
 			if not count:
 				row.append(display.box(None))
 				continue
-			testname = re.sub(r'\..*', '', benchmark)
+			key = benchmark_key[re.sub(r'\..*', '', benchmark)]
 			url = 'machine_test_attribute_graph.cgi'
-			url += '?machine=%s&benchmark=%s&key=%s' % \
-				(machine.idx, benchmark, benchmark_key[testname])
+			url += '?machine=' + str(machine_idx[machine])
+			url += '&benchmark=' + benchmark
+			url += '&key=' + key
 			html = '<a href="%s">%d</a>' % (url, count)
 			row.append(display.box(html))
 		matrix.append(row)
