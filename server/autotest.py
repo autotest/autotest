@@ -455,6 +455,9 @@ class _Run(object):
 
 
 def _get_autodir(host):
+	dir = host.get_autodir()
+	if dir:
+		return dir
 	try:
 		# There's no clean way to do this. readlink may not exist
 		cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf"

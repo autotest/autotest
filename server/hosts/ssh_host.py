@@ -52,7 +52,7 @@ class SSHHost(base_classes.RemoteHost):
 	def __init__(self, hostname, user="root", port=22, initialize=True,
 		     conmux_log="console.log", conmux_warnings="status.log",
 		     conmux_server=None, conmux_attach=None,
-		     netconsole_log=None, netconsole_port=6666):
+		     netconsole_log=None, netconsole_port=6666, autodir=None):
 		"""
 		Construct a SSHHost object
 		
@@ -67,6 +67,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.port= port
 		self.tmp_dirs= []
 		self.initialize = initialize
+		self.autodir = autodir
 
 		super(SSHHost, self).__init__()
 
@@ -657,3 +658,7 @@ class SSHHost(base_classes.RemoteHost):
 
 	def ssh_ping(self, timeout = 60):
 		self.run('true', connect_timeout = timeout)
+
+
+	def get_autodir(self):
+		return self.autodir
