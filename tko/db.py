@@ -62,7 +62,20 @@ class db_sql:
 	def select(self, fields, table, where, wherein={}, distinct = False,
 							group_by = None):
 		"""\
-			select fields from table where {dictionary}
+			This selects all the fields requested from a
+			specific table with a particular where clause.
+			The where clause can either be a dictionary of
+			field=value pairs, a string, or a tuple of (string, 
+			a list of values).  The last option is what you
+			should use when accepting user input as it'll
+			protect you against sql injection attacks (if
+			all user data is placed in the array rather than
+			the raw SQL).
+
+			For example:
+			  where = ("a = %s AND b = %s", ['val', 'val'])
+			is better than
+			  where = "a = 'val' AND b = 'val'"
 		"""
 		cmd = ['select']
 		if distinct:
@@ -71,13 +84,21 @@ class db_sql:
 
 		values = []
 		if where and isinstance(where, types.DictionaryType):
+			# key/value pairs (which should be equal)
 			keys = [field + '=%s' for field in where.keys()]
 			values = [where[field] for field in where.keys()]
 
 			cmd.append(' where ' + ' and '.join(keys))
 		elif where and isinstance(where, types.StringTypes):
+			# the exact string
 			cmd.append(' where ' + where)
+		elif where and isinstance(where, types.TupleType):
+			# preformatted where clause + values
+			(sql, vals) = where
+			values = vals
+			cmd.append(' where (%s) ' % sql)
 
+		# TODO: this assumes there's a where clause...bad
 		if wherein and isinstance(wherein, types.DictionaryType):
 			keys_in = []
 			for field_in in wherein.keys():
