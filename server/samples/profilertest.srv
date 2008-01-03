@@ -25,7 +25,14 @@ def add_profilers(at, profilers, timeout_sync, timeout_start, timeout_stop,
 	return subcommand(at.run, params, name)
 
 
-def wait_for_profilers(machines, timeout = 600):
+def wait_for_profilers(machines, timeout = 180):
+	# wait until the profilers have started
+	sync_bar = barrier("PROF_MASTER", "sync_profilers",
+		timeout, port=63100)
+	sync_bar.rendevous_servers("PROF_MASTER", *machines)
+
+
+def start_profilers(machines, timeout = 180):
 	# wait until the profilers have started
 	start_bar = barrier("PROF_MASTER", "start_profilers",
 		timeout, port=63100)
@@ -39,6 +46,7 @@ def stop_profilers(machines, timeout = 120):
 
 def server_sleep_test(seconds):
 	wait_for_profilers(machines)
+	start_profilers(machines)
 	for i in range(seconds):
 		print "%d of %d" % (i, seconds)
 		time.sleep(1)
@@ -46,7 +54,7 @@ def server_sleep_test(seconds):
 
 
 def main():
-	timeout_sync = 600
+	timeout_sync = 180
 	timeout_start = 60
 	timeout_stop = 60
 	profilers = [["vmstat"], ["iostat"]]
