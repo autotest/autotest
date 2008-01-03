@@ -163,10 +163,6 @@ class job:
 				dprint('job level event, ignoring')
 				# This is a job level event, not a test
 				continue
-			if testname == 'reboot.start':
-				dprint('reboot start event, ignoring')
-				reboot_inprogress = 1
-				continue
 			################################################
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
 			################################################
@@ -194,8 +190,13 @@ class job:
 				if subdir and subdir.count('.'):
 					# eg dbench.ext3
 					testname = subdir
+			if testname == 'reboot.start':
+				dprint('reboot start event, ignoring')
+				reboot_inprogress = 1
+				continue
 			if testname == 'reboot.verify':
 				testname = 'boot'
+				dprint('reboot verified')
 				reboot_inprogress = 0
 			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
 					(status, subdir, testname, reason))
