@@ -10,6 +10,7 @@ in the matrix.
 print "Content-type: text/html\n"
 import cgi, cgitb, re
 import sys, os
+import urllib 
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
@@ -129,15 +130,13 @@ def construct_link(row_val, column_val):
 		condition_list.append(condition_field)
 	if row_val:
 		next_row = next_field[row_field]
-		condition_list.append('%s%s%s%s' % (row_field, '%3D%27',
-		                                    row_val, '%27'))
+		condition_list.append("%s='%s'" % (row_field, row_val))
 	if column_val:
 		next_column = next_field[column_field]
-		condition_list.append('%s%s%s%s' % (column_field, '%3D%27',
-		                                    column_val, '%27'))
-	next_condition = '%26'.join(condition_list)
-	return 'compose_query.cgi?columns=%s&rows=%s&condition=%s' % (
-	                next_column, next_row, next_condition)
+		condition_list.append("%s='%s'" % (column_field, column_val))
+	next_condition = '&'.join(condition_list)
+	return 'compose_query.cgi?' + urllib.urlencode({'columns': next_column,
+	           'rows': next_row, 'condition': next_condition})
 
 
 def create_select_options(selected_val):
