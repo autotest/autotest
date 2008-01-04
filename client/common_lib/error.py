@@ -48,6 +48,9 @@ class UnhandledError(TestError):
 		msg = prefix + format_error()
 		TestError.__init__(self, msg)
 
+class InstallError(JobError):
+	"""Indicates an installation error which Terminates and fails the job."""
+	pass
 
 # server-specific errors
 
