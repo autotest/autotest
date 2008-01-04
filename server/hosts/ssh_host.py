@@ -192,7 +192,7 @@ class SSHHost(base_classes.RemoteHost):
 			pass
 
 
-	def _wait_for_restart(self, timeout):
+	def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
 			self.__record("ABORT", None, "reboot.verify", "shutdown failed")
 			raise AutoservRebootError("Host did not shut down")
@@ -215,7 +215,7 @@ class SSHHost(base_classes.RemoteHost):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
                         raise AutoservUnsupportedError
                 if wait:
-                        self._wait_for_restart(timeout)
+                        self.wait_for_restart(timeout)
 
 
 	def __conmux_hostname(self):
@@ -393,7 +393,7 @@ class SSHHost(base_classes.RemoteHost):
 				      "reboot command failed")
 			raise
 		if wait:
-			self._wait_for_restart(timeout)
+			self.wait_for_restart(timeout)
 			self.__load_netconsole_module() # if the builtin fails
 
 
