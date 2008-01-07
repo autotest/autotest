@@ -348,7 +348,7 @@ def system(cmd, ignorestatus = 0):
 	"""
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
-		status = os.system(cmd)
+		status = os.system(cmd) >> 8
 	finally:
 		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
