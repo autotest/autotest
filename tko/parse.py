@@ -150,8 +150,10 @@ class job:
 			reason = None
 			if line.startswith('END'):
 				elements = line.split(None, 4)[1:]
+				end = True
 			else:
 				elements = line.split(None, 3)
+				end = False
 			elements.append(None)   # in case no reason specified
 			(status, subdir, testname, reason) = elements[0:4]
 			dprint('GROPE_STATUS: ' + str(elements[0:4]))
@@ -159,10 +161,16 @@ class job:
 				dprint('job level alert, recording')
 				alert_pending = reason
 				continue
-			if testname == '----':
-				dprint('job level event, ignoring')
-				# This is a job level event, not a test
+			if testname == 'Autotest.install' and status == 'GOOD':
+				dprint('Sucessful autotest install, ignoring')
 				continue
+			if testname == '----':
+				if status == 'ABORT' and not end:
+					testname = 'JOB'
+				else:
+					dprint('job level event, ignoring')
+					# This is a job level event, not a test
+					continue
 			################################################
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
 			################################################
@@ -179,7 +187,8 @@ class job:
 				subdir = None
 			if line.startswith('END'):
 				subdir = group_subdir
-			if indent != sought_level: # we're in a block group
+			if indent != sought_level and status != 'ABORT':
+				# we're in a block group
 				if subdir:
 					dprint('set group_subdir: %s' % subdir)
 					group_subdir = subdir
