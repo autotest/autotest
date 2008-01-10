@@ -5,21 +5,43 @@ from autotest_utils import *
 class oprofile(profiler.profiler):
 	version = 5
 
+# Notes on whether to use the local copy or the builtin from source:
+# local = None
+#      Try to use source copy if it works, else use local
+# local = False
+#	Force use of the source copy
+# local = True
+#	Force use of the local copy
+
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.3.tar.gz
-	def setup(self, tarball = 'oprofile-0.9.3.tar.bz2', local = False, *args, **dargs):
-		if local:
+	def setup(self, tarball = 'oprofile-0.9.3.tar.bz2', local = None,
+								*args, **dargs):
+		if local == True:
 			return
-		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
-		os.chdir(self.srcdir)
+
+		try:
+			self.tarball = unmap_url(self.bindir, tarball,
+								self.tmpdir)
+			extract_tarball_to_dir(self.tarball, self.srcdir)
+			os.chdir(self.srcdir)
 		
-		system('patch -p1 < %s' % (os.path.join(self.bindir, "oprofile-69455.patch"),))
-		system('./configure --with-kernel-support --prefix=' + self.srcdir)
-		system('make')
-		system('make install')
+			patch = os.path.join(self.bindir,"oprofile-69455.patch")
+			system('patch -p1 < %s' % patch)
+			system('./configure --with-kernel-support --prefix=' + \
+								self.srcdir)
+			system('make')
+			system('make install')
+		except:
+			# Build from source failed.
+			# But maybe can still use the local copy
+			if local == False or \
+				not os.path.exists('/usr/bin/opcontrol') or \
+				not os.path.exists('/usr/bin/opreport'):
+				raise
 
 
-	def initialize(self, vmlinux = None, events = [], others = None, local = False):
+	def initialize(self, vmlinux = None, events = [], others = None,
+								local = None):
 		if not vmlinux:
 			self.vmlinux = get_vmlinux()
 		else:
@@ -44,12 +66,18 @@ class oprofile(profiler.profiler):
 		if self.others:
 			setup += ' ' + self.others
 
-		if local:
+		src_opreport  = os.path.join(self.srcdir, '/bin/opreport')
+		src_opcontrol = os.path.join(self.srcdir, '/bin/opcontrol')
+		if local == False or (local == None and 
+					os.path.exists(src_opreport) and 
+					os.path.exists(src_opcontrol)):
+			print "Using source-built copy of oprofile"
+			self.opreport = src_opreport
+			self.opcontrol = src_opcontrol
+		else:
+			print "Using machine local copy of oprofile"
 			self.opreport = '/usr/bin/opreport'
 			self.opcontrol = '/usr/bin/opcontrol'
-		else:
-			self.opreport = self.srcdir + '/bin/opreport'
-			self.opcontrol = self.srcdir + '/bin/opcontrol'
 		
 		system(self.opcontrol + setup)
 
