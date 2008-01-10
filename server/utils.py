@@ -252,7 +252,8 @@ def run(command, timeout=None, ignore_status=False,
 
 
 def system(command, timeout=None, ignore_status=False):
-	return run(command, timeout, ignore_status).exit_status
+	return run(command, timeout, ignore_status,
+		stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
 
 
 def system_output(command, timeout=None, ignore_status=False):
