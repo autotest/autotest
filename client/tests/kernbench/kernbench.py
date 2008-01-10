@@ -61,7 +61,9 @@ class kernbench(test.test):
 		if dir:
 			build_dir = dir
 		else:
-			build_dir = self.srcdir
+			build_dir = os.path.join(self.tmpdir, "src")
+			if not os.path.exists(build_dir):
+				os.makedirs(build_dir)
 
 		self.__init_tree(build_dir, version)
 
