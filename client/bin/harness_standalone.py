@@ -40,5 +40,9 @@ class harness_standalone(harness.harness):
 			initdefault = system_output('grep :initdefault: /etc/inittab')
 			initdefault = initdefault.split(':')[1]
 
-		system('ln -sf %s /etc/init.d/autotest' % rc)
-		system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc, initdefault))
+		try:
+			system('ln -sf %s /etc/init.d/autotest' % rc)
+			system('ln -sf %s /etc/rc%s.d/S99autotest' % \
+							(rc, initdefault))
+		except:
+			print "WARNING: linking init scripts failed"
