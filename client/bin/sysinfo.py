@@ -11,7 +11,7 @@ if os.path.exists(os.path.join(dirname,'site_sysinfo.py')):
 else:
 	local = False
 
-# stuff to log in before_each_step()
+# stuff to log per reboot
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
 	'/proc/cpuinfo', '/proc/cmdline', '/proc/modules']
 # commands = ['lshw']        # this causes problems triggering CDROM drives
@@ -28,38 +28,42 @@ def run_command(command, output):
 		args = ''
 	for dir in path:
 		pathname = dir + '/' + cmd
-		if (os.path.exists(pathname)):
-			system("%s %s > %s 2> /dev/null" % (pathname, args, output))
+		if not os.path.exists(pathname):
+			continue
+		system("%s %s > %s 2> /dev/null" % (pathname, args, output))
 
 
-def before_each_step():
-	# make separate directories for each step:
-	# if files exist here, this is not the first step.
-	# this is a safe assumption because we always create at least one file
+def reboot_count():
 	if not glob.glob('*'):
-		_before_each_step() # first step goes in cwd
-		return
-
-	previous_reboots = glob.glob('reboot*')
-	if previous_reboots:
-		previous_reboots = [int(i[len('reboot'):]) for i in previous_reboots]
-		boot = 1 + max(previous_reboots)
+		return -1          # No reboots, initial data not logged
 	else:
-		boot = 1
+		return len(glob.glob('reboot*'))
+			
+	
+def boot_subdir(reboot_count):
+	"""subdir of job sysinfo"""
+	if reboot_count == 0:
+		return '.'
+	else:
+		return 'reboot%d' % reboot_count
 
-	os.mkdir('reboot%d' % boot)
+
+def log_per_reboot_data(sysinfo_dir):
+	"""we log this data when the job starts, and again after any reboot"""
 	pwd = os.getcwd()
-
 	try:
-		os.chdir('reboot%d' % boot)
-		_before_each_step()
+		os.chdir(sysinfo_dir)
+		subdir = boot_subdir(reboot_count() + 1)
+		if not os.path.exists(subdir):
+			os.mkdir(subdir)
+		os.chdir(os.path.join(sysinfo_dir, subdir))
+		_log_per_reboot_data()
 	finally:
 		os.chdir(pwd)
 
 
-def _before_each_step():
+def _log_per_reboot_data():
 	"""system info to log before each step of the job"""
-
 	for command in commands:
 		run_command(command, re.sub(r'\s', '_', command))
 
@@ -67,21 +71,32 @@ def _before_each_step():
 		if (os.path.exists(file)):
 			shutil.copyfile(file, os.path.basename(file))
 
-
 	system('dmesg -c > dmesg', ignorestatus=1)
 	system('df -m > df', ignorestatus=1)
 	if local:
-		site_sysinfo.before_each_step()
+		site_sysinfo.log_per_reboot_data()
 
 
-def after_each_test():
-	"""log things that change after each test (see test.py)"""
+def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
+	"""log things that change after each test (called from test.py)"""
+	pwd = os.getcwd()
+	try:
+		os.chdir(job_sysinfo_dir)
+		reboot_subdir = boot_subdir(reboot_count())
+		reboot_dir = os.path.join(job_sysinfo_dir, reboot_subdir)
+		assert os.path.exists(reboot_dir)
 
-	system('dmesg -c > dmesg', ignorestatus=1)
-	system('df -m > df', ignorestatus=1)
-	if local:
-		site_sysinfo.after_each_test()
+		os.makedirs(test_sysinfo_dir)
+		os.chdir(test_sysinfo_dir)
+		system('ln -s %s reboot_current' % reboot_dir)
 
-
+		system('dmesg -c > dmesg', ignorestatus=True)
+		system('df -m > df', ignorestatus=True)
+		if local:
+			site_sysinfo.log_after_each_test()
+	finally:
+		os.chdir(pwd)
+	
+	
 if __name__ == '__main__':
-	before_each_step()
+	log_per_reboot_data()
