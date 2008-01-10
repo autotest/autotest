@@ -1,7 +1,8 @@
 import re, os, sys, types
 
 class db_sql:
-	def __init__(self, debug = False, autocommit=True):
+	def __init__(self, debug = False, autocommit=True, host = None,
+				database = None, user = None, password = None):
 		self.debug = debug
 		self.autocommit = autocommit
 
@@ -9,26 +10,36 @@ class db_sql:
 		try:
 			file = os.path.join(path, '.database')
 			db_prefs = open(file, 'r')
-			host = db_prefs.readline().rstrip()
-			database = db_prefs.readline().rstrip()
+			if not host:
+				host = db_prefs.readline().rstrip()
+			if not database:
+				database = db_prefs.readline().rstrip()
 		except:
-			host = 'localhost'
-			database = 'tko'
+			if not host:
+				host = 'localhost'
+			if not database:
+				database = 'tko'
 	
 		try:
 			file = os.path.join(path, '.priv_login')
 			login = open(file, 'r')
-			user = login.readline().rstrip()
-			password = login.readline().rstrip()
+			if not user:
+				user = login.readline().rstrip()
+			if not password:
+				password = login.readline().rstrip()
 		except:	
 			try:
 				file = os.path.join(path, '.unpriv_login')
 				login = open(file, 'r')
-				user = login.readline().rstrip()
-				password = login.readline().rstrip()
+				if not user:
+					user = login.readline().rstrip()
+				if not password:
+					password = login.readline().rstrip()
 			except:
-				user = 'nobody'
-				password = ''
+				if not user:
+					user = 'nobody'
+				if not password:
+					password = ''
 
 		self.con = self.connect(host, database, user, password)
 		self.cur = self.con.cursor()
