@@ -641,11 +641,17 @@ def unload_module(module_name):
 
 
 def module_is_loaded(module_name):
+	module_name = module_name.replace('-', '_')
 	modules = system_output('/sbin/lsmod').splitlines()
 	for module in modules:
 		if module.startswith(module_name) and module[len(module_name)] == ' ':
 			return True
 	return False
+
+
+def get_loaded_modules():
+	lsmod_output = system_output('/sbin/lsmod').splitlines()[1:]
+	return [line.split(None, 1)[0] for line in lsmod_output]
 
 
 def get_huge_page_size():
@@ -666,6 +672,24 @@ def get_system_nodes():
 	nodes =	os.listdir('/sys/devices/system/node')
 	nodes.sort()
 	return nodes
+
+
+def get_cpu_vendor():
+	cpuinfo = open('/proc/cpuinfo').read()
+	vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
+	for i in xrange(1, len(vendors)):
+		if vendors[i] != vendors[0]:
+			raise 'multiple cpu vendors found: ' + str(vendors)
+	return vendors[0]
+
+
+def probe_cpus():
+	"""
+	    This routine returns a list of cpu devices found under /sys/devices/system/cpu.
+	"""
+	output = system_output(
+	           'find /sys/devices/system/cpu/ -maxdepth 1 -type d -name cpu*')
+	return output.splitlines()
 
 
 try:
