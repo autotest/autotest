@@ -198,14 +198,9 @@ def runtest(job, url, tag, args, dargs):
 		mytest._exec(args, dargs)
 	finally:
 		try:
-			# log "after each test" sysinfo
 			sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
-			os.makedirs(sysinfo_dir)
-			try:
-				os.chdir(sysinfo_dir)
-				sysinfo.after_each_test()
-			finally:
-				os.chdir(pwd)
+			sysinfo.log_after_each_test(sysinfo_dir,
+							mytest.job.sysinfodir)
 
 			if os.path.exists(mytest.tmpdir):
 				system('rm -rf ' + mytest.tmpdir)
