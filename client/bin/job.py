@@ -65,6 +65,7 @@ class job:
 		self.profdir = os.path.join(self.autodir, 'profilers')
 		self.tmpdir = os.path.join(self.autodir, 'tmp')
 		self.resultdir = os.path.join(self.autodir, 'results', jobtag)
+		self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
 		self.control = os.path.abspath(control)
 
 		if not cont:
@@ -86,10 +87,10 @@ class job:
 			if os.path.exists(self.resultdir):
 				system('rm -rf ' + self.resultdir)
 			os.mkdir(self.resultdir)
+			os.mkdir(self.sysinfodir)
 
 			os.mkdir(os.path.join(self.resultdir, 'debug'))
 			os.mkdir(os.path.join(self.resultdir, 'analysis'))
-			os.mkdir(os.path.join(self.resultdir, 'sysinfo'))
 
 			shutil.copyfile(self.control,
 					os.path.join(self.resultdir, 'control'))
@@ -114,13 +115,7 @@ class job:
 		except:
 			pass
 
-		# log "before each step" sysinfo
-		pwd = os.getcwd()
-		try:
-			os.chdir(os.path.join(self.resultdir, 'sysinfo'))
-			sysinfo.before_each_step()
-		finally:
-			os.chdir(pwd)
+		sysinfo.log_per_reboot_data(self.sysinfodir)
 
 		if not cont:
 			self.record('START', None, None)
