@@ -127,6 +127,8 @@ class job:
 		dprint('=====================================================')
 		self.kernel = kernel(self.dir)
 
+		statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN',
+								'GOOD', 'ALERT']
 		reboot_inprogress = 0	# Saw reboot start and not finish
 		alert_pending = None	# Saw an ALERT for this test
 		group_subdir = None
@@ -207,14 +209,19 @@ class job:
 				testname = 'boot'
 				dprint('reboot verified')
 				reboot_inprogress = 0
-			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
-					(status, subdir, testname, reason))
 			if alert_pending:
 				status = 'ALERT'
 				reason = alert_pending
 				alert_pending = None
+			if status in statuses:
+				dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s'%
+					(status, subdir, testname, reason))
+			else:
+				dprint('WARNING: Invalid status code. Ignoring')
+				continue
 			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
 			dprint('')
+
 		if reboot_inprogress:
 			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
 					(status, subdir, testname, reason))

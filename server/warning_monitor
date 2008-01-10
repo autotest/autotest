@@ -43,7 +43,7 @@ proc raw_event {msg} {
 proc event {msg} {
 }
 proc alert {msg} {
-       puts stdout "STATUS	WARN	$msg"
+       puts stdout "WARN	$msg"
 }
 proc status {msg} {
 }
