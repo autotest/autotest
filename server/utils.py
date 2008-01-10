@@ -188,7 +188,8 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 	# kill it via an escalating series of signals.
 	if not pid:
 		__nuke_subprocess(subproc)
-	raise CmdError('Command not complete within %s seconds' % timeout)
+	raise AutoservRunError('Command not complete within %s seconds'
+			       % timeout)
 
 
 def run(command, timeout=None, ignore_status=False,
