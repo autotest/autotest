@@ -1,0 +1,49 @@
+#!/usr/bin/expect
+#
+# Reboot a machine connected to a Servertech Sentry power strip
+#
+# Copyright 2008 Google Inc., Ryan Kubiak <rkubiak@google.com>
+# Released under the GPL v2
+
+set P "reboot-sentry"
+
+if {[llength $argv] < 4} {
+    puts stderr "Usage: $P <host> <ts host> <ts port> <outlet>"
+    exit 1
+}
+
+set user {admn}
+set pass {admn}
+set host [lindex $argv 0]
+set tshost [lindex $argv 1]
+set tsport [lindex $argv 2]
+set outlet [lindex $argv 3]
+
+spawn telnet $tshost $tsport
+sleep 5
+send "\r"
+set timeout 10
+expect {
+	#Connection closed
+	"Connection closed by foreign host." {
+	  exit 1
+	  }
+	#Already logged in
+	"Switched CDU:" {
+	    send "reboot $outlet\r"
+	    expect "Command successful"
+	    send "logout\r"
+		  }
+	#Login
+	"Username" {
+	    send "$user\r"
+	    expect "Password:"
+	    send "$pass\r"
+	    expect "Switched CD:"
+	    send "reboot $outlet\r"
+	    expect "Command successful"
+	    send "logout\r"
+	    }
+	}
+
+
