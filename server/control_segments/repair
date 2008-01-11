@@ -6,8 +6,5 @@ def repair(machine):
 		site_repair(host)
 	host.reboot()
 
-if len(machines) > 1:
-        parallel_simple(repair, machines, log=False)
-else:
-        repair(machines[0])
+parallel_simple(repair, machines, log=False)
 

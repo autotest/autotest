@@ -26,7 +26,4 @@ def verify(machine):
 	if "site_verify" in globals():
 		site_verify(host)
 
-if len(machines) > 1:
-        parallel_simple(verify, machines, log=False)
-else:
-        verify(machines[0])
+parallel_simple(verify, machines, log=False)
