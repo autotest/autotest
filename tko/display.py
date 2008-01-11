@@ -142,6 +142,8 @@ def print_main_header():
 	print '<a href="machine_kernel.cgi">Functional</a>'
 	print '&nbsp&nbsp&nbsp'
 	print '<a href="machine_benchmark.cgi">Performance</a>'
+	print '&nbsp&nbsp&nbsp'
+	print '<a href="http://test.kernel.org/autotest">[about Autotest]</a>'
 	print '</h2><p>'
 
 
