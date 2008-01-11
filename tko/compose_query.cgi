@@ -165,8 +165,6 @@ def smart_sort(list, field):
 
 
 def gen_matrix():
-	display.print_main_header()
-
 	where = None
 	if condition_field.strip() != '':
 		where = query_lib.parse_scrub_and_gen_condition(
@@ -220,6 +218,7 @@ def main():
 	print '<html><head><title>'
 	print 'Filtered Autotest Results'
 	print '</title></head><body>'
+	display.print_main_header()
 	print html_header % (create_select_options(column_field),
 	                     create_select_options(row_field),
 	                     condition_field)
