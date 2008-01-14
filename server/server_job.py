@@ -37,7 +37,7 @@ def load_control_segment(name):
 preamble = """\
 import os, sys
 
-import hosts, autotest, kvm, git
+import hosts, autotest, kvm, git, standalone_profiler
 import source_kernel, rpm_kernel, deb_kernel, git_kernel
 from common.error import *
 from common import barrier
