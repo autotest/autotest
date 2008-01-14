@@ -98,7 +98,7 @@ def rpm_info(rpm_package):
 		return package_info
 
 	else:
-		raise PackageError, 'Package %s is not an RPM package.' % rpm_package
+		raise PackageError('Package %s is not an RPM package.' % rpm_package)
 
 
 def dpkg_info(dpkg_package):
@@ -158,7 +158,7 @@ def dpkg_info(dpkg_package):
 
 		return package_info
 	else:
-		raise PackageError, 'Package %s is not a dpkg package.' % dpkg_package
+		raise PackageError('Package %s is not a dpkg package.' % dpkg_package)
 
 
 def info(package):
@@ -181,7 +181,7 @@ def info(package):
 	package types.
 	"""
 	if not os.path.isfile(package):
-		raise ValueError, 'invalid file %s to verify' % package
+		raise ValueError('invalid file %s to verify' % package)
 	# Use file and libmagic to determine the actual package file type.
 	file_result = system_output('file ' + package)
 	known_package_managers = ['rpm', 'dpkg']
@@ -200,7 +200,7 @@ def info(package):
 
 	# If it's not one of the implemented package manager methods, there's
 	# not much that can be done, hence we throw an exception.
-	raise PackageError, 'Unknown package type %s' % file_result
+	raise PackageError('Unknown package type %s' % file_result)
 
 
 def install(package):

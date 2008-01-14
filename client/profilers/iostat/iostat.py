@@ -6,7 +6,7 @@ class iostat(profiler.profiler):
 	version = 1
 
 	def initialize(self, interval = 1):
-                self.interval = interval
+		self.interval = interval
 
 
 	def start(self, test):

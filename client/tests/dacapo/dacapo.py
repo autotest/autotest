@@ -94,5 +94,7 @@ class dacapo(test.test):
 		try:
 			system('java -jar %s %s' % (self.dacapo_pkg, self.args))
 		except:
-			raise TestError, \
+			e_msg = \
 			'Test %s has failed, command line options "%s"' % (test, self.args)
+			raise TestError(e_msg)
+

@@ -160,7 +160,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
 		try:
 			system('mkdir -p ' + cachedir)
 		except:
-			raise ValueError, 'Could not create cache directory %s' % cachedir
+			raise ValueError('Could not create cache directory %s' % cachedir)
 	file_from_url = os.path.basename(url)
 	file_local_path = os.path.join(cachedir, file_from_url)
 	if os.path.isfile(file_local_path):
@@ -200,7 +200,7 @@ def force_link(src, dest):
 def file_contains_pattern(file, pattern):
 	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
-		raise NameError, 'file %s does not exist' % file
+		raise NameError('file %s does not exist' % file)
 	return not system('egrep -q "' + pattern + '" ' + file, ignorestatus = 1)
 
 
@@ -460,7 +460,7 @@ def check_for_kernel_feature(feature):
 	config = running_config()
 
 	if not config:
-		raise "Can't find kernel config file"
+		raise TypeError("Can't find kernel config file")
 
 	if config.endswith('.gz'):
 		grep = 'zgrep'
@@ -469,7 +469,7 @@ def check_for_kernel_feature(feature):
 	grep += ' ^CONFIG_%s= %s' % (feature, config)
 
 	if not system_output(grep, ignorestatus = 1):
-		raise "Kernel doesn't have a %s feature" % (feature)
+		raise ValueError("Kernel doesn't have a %s feature" % (feature))
 
 
 def cpu_online_map():
@@ -679,7 +679,7 @@ def get_cpu_vendor():
 	vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
 	for i in xrange(1, len(vendors)):
 		if vendors[i] != vendors[0]:
-			raise 'multiple cpu vendors found: ' + str(vendors)
+			raise TestError('multiple cpu vendors found: ' + str(vendors))
 	return vendors[0]
 
 
