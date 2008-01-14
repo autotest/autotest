@@ -82,7 +82,7 @@ class Host(object):
 
 
 	def machine_install(self):
-		raise "Machine install not implemented!"
+		raise NotImplementedError('Machine install not implemented!')
 
 
 	def install(self, installableObject):

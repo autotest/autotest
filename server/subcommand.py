@@ -14,7 +14,7 @@ def parallel(tasklist):
 		if status != 0:
 			error = True
 	if error:
-		raise "One or more subcommands failed"
+		raise AutoservError('One or more subcommands failed')
 
 
 def parallel_simple(function, arglist, log=True):
