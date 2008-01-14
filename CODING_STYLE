@@ -72,6 +72,21 @@ fit on one or two screenfuls of text (the ISO/ANSI screen size is 80x24,
 as we all know), and do one thing and do that well.
 
 
+Exceptions
+
+When raising exceptions, the preferred syntax for it is:
+
+raise FooException('Exception Message')
+
+Please don't raise string exceptions, as they're deprecated and will be removed
+from future versions of python. If you're in doubt about what type of exception
+you will raise, please look at http://docs.python.org/lib/module-exceptions.html
+and client/common_lib/error.py, the former is a list of python built in
+exceptions and the later is a list of autotest/autoserv internal exceptions. Of
+course, if you really need to, you can extend the exception definitions on
+client/common_lib/error.py.
+
+
 Submitting patches
 
 Generate universal diffs. Email them to autotest@test.kernel.org.
