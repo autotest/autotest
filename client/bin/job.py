@@ -424,9 +424,13 @@ class job:
 
 		old_log_path = os.path.join(self.resultdir, old_log_filename)
 		old_log = open(old_log_path, "a")
+		exceptions = []
 		for i, pid in enumerate(pids):
 			# wait for the task to finish
-			fork_waitfor(self.resultdir, pid)
+			try:
+				fork_waitfor(self.resultdir, pid)
+			except Exception, e:
+				exceptions.append(e)
 			# copy the logs from the subtask into the main log
 			new_log_path = old_log_path + (".%d" % i)
 			if os.path.exists(new_log_path):
@@ -438,6 +442,11 @@ class job:
 		old_log.close()
 
 		self.log_filename = old_log_filename
+
+		# handle any exceptions raised by the parallel tasks
+		if exceptions:
+			msg = "%d task(s) failed" % len(exceptions)
+			raise JobError(msg, str(exceptions), exceptions)
 
 
 	def quit(self):
