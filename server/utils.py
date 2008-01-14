@@ -341,7 +341,7 @@ def write_keyval(dirname, dictionary):
 	for key in dictionary.keys():
 		value = '%s' % dictionary[key]     # convert numbers to strings
 		if re.search(r'\W', key):
-			raise 'Invalid key: ' + key
+			raise ValueError('Invalid key: %s' % key)
 		keyval.write('%s=%s\n' % (key, str(value)))
 	keyval.close()
 

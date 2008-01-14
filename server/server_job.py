@@ -316,16 +316,16 @@ class server_job:
 
 		if subdir:
 			if re.match(r'[\n\t]', subdir):
-				raise "Invalid character in subdir string"
+				raise ValueError('Invalid character in subdir string')
 			substr = subdir
 		else:
 			substr = '----'
 		
 		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
 								status_code):
-			raise "Invalid status code supplied: %s" % status_code
+			raise ValueError('Invalid status code supplied: %s' % status_code)
 		if re.match(r'[\n\t]', operation):
-			raise "Invalid character in operation string"
+			raise ValueError('Invalid character in operation string')
 		operation = operation.rstrip()
 		status = status.rstrip()
 		status = re.sub(r"\t", "  ", status)
