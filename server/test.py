@@ -30,8 +30,21 @@ class test:
 		testname = self.__class__.__name__
 
 		self.job = job
+
 		self.outputdir = outputdir
-		os.mkdir(self.outputdir)
+		tagged_testname = os.path.basename(self.outputdir)
+		# check if the outputdir already exists, because if it does
+		# then this test has already been run with the same tag earlier
+		# in this job
+		if os.path.exists(self.outputdir):
+			testname, tag = (tagged_testname + '.').split('.', 1)
+			msg = ("%s already exists, test <%s> may have already "
+			       + "run with tag <%s>") % (tagged_testname,
+							 testname, tag)
+			raise TestError(msg)
+		else:
+			os.mkdir(self.outputdir)
+
 		self.resultsdir = self.outputdir + "/results"
 		os.mkdir(self.resultsdir)
 		self.profdir = self.outputdir + "/profiling"
