@@ -213,9 +213,10 @@ class SSHHost(base_classes.RemoteHost):
 		self.__record("GOOD", None, "reboot.start", "hard reset")
 		if not self.__console_run(r"'~$hardreset'"):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
-                        raise AutoservUnsupportedError
-                if wait:
-                        self.wait_for_restart(timeout)
+			raise AutoservUnsupportedError
+
+		if wait:
+			self.wait_for_restart(timeout)
 
 
 	def __conmux_hostname(self):
@@ -502,9 +503,14 @@ class SSHHost(base_classes.RemoteHost):
 		else:
 			processed_dest= utils.sh_escape(processed_dest)
 		
-		utils.run('scp -rpq %s "%s"' % (
-			" ".join(processed_source), 
-			processed_dest))
+		try:
+			utils.run('rsync --rsh="%s" -az %s %s' % (
+			    self.SSH_BASE_COMMAND, ' '.join(processed_source),
+			    processed_dest))
+		except:
+			utils.run('scp -rpq %s "%s"' % (
+				" ".join(processed_source), 
+				processed_dest))
 
 
 	def send_file(self, source, dest):
@@ -541,17 +547,14 @@ class SSHHost(base_classes.RemoteHost):
 			entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
 			processed_source.append(entry)
 
-		result = utils.run(r'%s rsync -h' % self.ssh_command(),
-				   ignore_status=True)
-
 		remote_dest = '%s@%s:"%s"' % (
 			    self.user, self.hostname,
 			    utils.scp_remote_escape(dest))
-		if result.exit_status == 0:
+		try:
 			utils.run('rsync --rsh="%s" -az %s %s' % (
 			    self.ssh_base_command(), " ".join(processed_source),
 			    remote_dest))
-		else:
+		except:
 			utils.run('scp -rpq %s %s' % (
 			    " ".join(processed_source),
 			    remote_dest))
