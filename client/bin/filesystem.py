@@ -49,8 +49,7 @@ class filesystem:
 			try:
 				device = partitions[number]
 			except:
-				raise NameError("Partition '" + device +
-					"' not available")
+				raise NameError("Partition '" + device + "' not available")
 
 		self.device = device
 		self.mountpoint = mountpoint

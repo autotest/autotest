@@ -6,13 +6,13 @@ import sys
 from traceback import format_exception
 
 def format_error():
-        t, o, tb = sys.exc_info()
-        trace = format_exception(t, o, tb)
-        # Clear the backtrace to prevent a circular reference
-        # in the heap -- as per tutorial
-        tb = ''
+	t, o, tb = sys.exc_info()
+	trace = format_exception(t, o, tb)
+	# Clear the backtrace to prevent a circular reference
+	# in the heap -- as per tutorial
+	tb = ''
 
-        return ''.join(trace)
+	return ''.join(trace)
 
 class JobContinue(SystemExit):
 	"""Allow us to bail out requesting continuance."""
@@ -40,7 +40,8 @@ class CmdError(TestError):
 		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1])
 
 class PackageError(TestError):
-       """Indicates an error trying to perform a package operation."""
+	"""Indicates an error trying to perform a package operation."""
+	pass
 
 class UnhandledError(TestError):
 	"""Indicates an unhandled exception in a test."""

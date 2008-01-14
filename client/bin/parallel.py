@@ -41,7 +41,7 @@ def fork_waitfor(tmp, pid):
 
 	ename = tmp + "/debug/error-%d" % pid
 	if (os.path.exists(ename)):
-		raise pickle.load(file(ename, 'r'))
+		raise AutotestError(pickle.load(file(ename, 'r')))
 
 	if (status != 0):
 		raise TestError("test failed rc=%d" % (status))

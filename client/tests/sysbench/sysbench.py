@@ -38,7 +38,7 @@ class sysbench(test.test):
 		try:
 			system(self.sudo + '/bin/true')
 		except:
-			raise 'Unable to run as nobody'
+			raise TestError('Unable to run as nobody')
 
 		if (db_type == 'pgsql'):
 			self.execute_pgsql(build, num_threads, max_time, \
@@ -86,7 +86,7 @@ class sysbench(test.test):
 				cmd = cmd + ' --oltp-read-only=on'
 
 			profilers = self.job.profilers
-                	if not profilers.only():
+			if not profilers.only():
 				system(cmd + ' run')
 
 			# Do a profiling run if necessary
@@ -98,7 +98,7 @@ class sysbench(test.test):
 				profilers.report(self)
 		except:
 			system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
-			raise
+			raise TestError('Unable to start postgreSQL')
 
 		system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
@@ -154,7 +154,7 @@ class sysbench(test.test):
 				profilers.report(self)
 		except:
 			system(bin + '/mysqladmin shutdown')
-			raise
+			raise TestError('Unable to start mySQL')
 
 		system(bin + '/mysqladmin shutdown')
 

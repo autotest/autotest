@@ -157,8 +157,8 @@ class job:
 		if not os.path.exists(tmp_dir):
 			os.mkdir(tmp_dir)
 		if not os.path.isdir(tmp_dir):
-			raise "Temp dir (%s) is not a dir - args backwards?" \
-								% self.tmpdir
+			e_msg = "Temp dir (%s) is not a dir - args backwards?" % self.tmpdir
+			raise ValueError(e_msg)
 
 		# We label the first build "build" and then subsequent ones 
 		# as "build.2", "build.3", etc. Whilst this is a little bit 
@@ -234,7 +234,7 @@ class job:
 		"""
 
 		if not url:
-			raise "Test name is invalid. Switched arguments?"
+			raise TypeError("Test name is invalid. Switched arguments?")
 		(group, testname) = test.testname(url)
 		tag = dargs.pop('tag', None)
 		self.container = None
@@ -276,7 +276,8 @@ class job:
 		if exc_info and isinstance(exc_info[1], TestError):
 			return False
 		elif exc_info:
-			raise exc_info[0], exc_info[1], exc_info[2]
+			e_msg = '%s, %s, %s' % exc_info[0], exc_info[1], exc_info[2]
+			raise AutotestError(e_msg)
 		else:
 			return True
 
@@ -540,18 +541,18 @@ from autotest_utils import *
 
 		if subdir:
 			if re.match(r'[\n\t]', subdir):
-				raise "Invalid character in subdir string"
+				raise ValueError("Invalid character in subdir string")
 			substr = subdir
 		else:
 			substr = '----'
 		
 		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
 								status_code):
-			raise "Invalid status code supplied: %s" % status_code
+			raise ValueError("Invalid status code supplied: %s" % status_code)
 		if not operation:
 			operation = '----'
 		if re.match(r'[\n\t]', operation):
-			raise "Invalid character in operation string"
+			raise ValueError("Invalid character in operation string")
 		operation = operation.rstrip()
 		status = status.rstrip()
 		status = re.sub(r"\t", "  ", status)

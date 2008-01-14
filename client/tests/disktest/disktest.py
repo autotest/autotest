@@ -41,8 +41,8 @@ class disktest(test.test):
 		self.chunk_mb = chunk_mb
 		self.memory_mb = memtotal()/1024
 		if self.memory_mb > chunk_mb:
-			raise "Too much RAM (%dMB) for this test to work" % \
-								self.memory_mb
+			e_msg = "Too much RAM (%dMB) for this test to work" % self.memory_mb
+			raise TestError(e_msg)
 
 		chunks = (1024 * gigabytes) / chunk_mb
 
@@ -57,5 +57,5 @@ class disktest(test.test):
 				if (retval != 0):
 					errors.append(retval)
 			if errors:
-				raise "Errors from children: %s" % errors
-		
+				raise TestError("Errors from children: %s" % errors)
+

@@ -22,7 +22,7 @@ class xen(kernel.kernel):
 
 
 	def config(self, config_file, config_list = None):
-		raise 'config() not implemented for xen'
+		raise NotImplementedError('config() not implemented for xen')
 
 
 	def build(self, make_opts = '', logfile = '', extraversion='autotest'):
@@ -94,7 +94,7 @@ class xen(kernel.kernel):
 
 
 	def build_timed(self, *args, **kwds):
-		raise('build_timed() not implemented')
+		raise NotImplementedError('build_timed() not implemented')
 
 
 	def install(self, tag='', prefix = '/', extraversion='autotest'):
