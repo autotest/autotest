@@ -71,7 +71,7 @@ class parallel_dd(test.test):
 			try:
 				self.fs.unmount()
 			finally:
-				raise
+				raise TestError('Unable to umount filesystem')
 		self.fs.unmount()
 		self.fs_write_rate = self.megabytes / (time.time() - start)
 
@@ -83,7 +83,7 @@ class parallel_dd(test.test):
 			try:
 				self.fs.unmount()
 			finally:
-				raise
+				raise TestError('Unable to mount filesystem')
 			read_in()
 		self.fs_read_rate = self.megabytes / (time.time() - start)
 		self.fs.unmount()

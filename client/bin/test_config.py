@@ -14,7 +14,7 @@ class config_loader:
 	def __init__(self, filename="test.conf"):
 		self.filename = filename
 		if not path.isfile(self.filename):
-			raise IOError, "File '%s' not found" % (self.filename)
+			raise IOError("File %s not found" % (self.filename))
 		self.parser = ConfigParser()
 		self.parser.read(self.filename)
 

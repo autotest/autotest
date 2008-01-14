@@ -18,7 +18,8 @@ def rangelist_to_list(rangelist):
 			end = int(m.group(2))
 			result += range(start, end+1)
 			continue
-		raise "Cannot understand data input: %s %s" % (x, rangelist)
+		msg = 'Cannot understand data input: %s %s' % (x, rangelist)
+		raise ValueError(msg)
 	return result
 
 class cpuset:
@@ -121,7 +122,7 @@ class cpuset:
 			mems = self.available_mems()[-nodes_needed:]
 			alloc_size = human_format(len(mems) * node_size)
 			if len(mems) < nodes_needed:
-				raise "Insufficient memory available"
+				raise AutotestError("Insufficient memory available")
 
 			# Set up the cpuset
 			mems_spec = ','.join(['%d' % x for x in mems])

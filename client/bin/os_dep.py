@@ -13,7 +13,7 @@ def command(cmd):
 		file = os.path.join(dir, cmd)
 		if os.path.exists(file):
 			return file
-	raise 'Missing command: %s' % cmd
+	raise TestError('Missing command: %s' % cmd)
 
 
 def commands(*cmds):
@@ -28,7 +28,7 @@ def library(lib):
 		file = os.path.join(dir, lib)
 		if os.path.exists(file):
 			return file
-	raise 'Missing library: %s' % lib
+	raise TestError('Missing library: %s' % lib)
 
 
 def libraries(*libs):

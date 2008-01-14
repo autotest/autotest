@@ -34,10 +34,11 @@ class oprofile(profiler.profiler):
 		except:
 			# Build from source failed.
 			# But maybe can still use the local copy
-			if local == False or \
-				not os.path.exists('/usr/bin/opcontrol') or \
-				not os.path.exists('/usr/bin/opreport'):
-				raise
+			local_opcontrol = os.path.exists('/usr/bin/opcontrol')
+			local_opreport = os.path.exists('/usr/bin/opreport')
+			if local == False or not local_opcontrol or not local_opreport:
+				e_msg = 'oprofile build failed and no local copy installed'
+				raise AutotestError(e_msg)
 
 
 	def initialize(self, vmlinux = None, events = [], others = None,

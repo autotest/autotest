@@ -13,7 +13,7 @@ class boottool:
 			self.boottool_exec = autodir + '/tools/boottool'
 
 		if not self.boottool_exec:
-			raise('Failed to set boottool_exec')
+			raise AutotestError('Failed to set boottool_exec')
 
 
 	def run_boottool(self, params):
