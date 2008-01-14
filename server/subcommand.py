@@ -23,6 +23,12 @@ def parallel_simple(function, arglist, log=True):
 	to pass to "function".
 	We create a subcommand object for each element in the list,
 	then execute those subcommand objects in parallel."""
+
+	# Bypass the multithreading if only one machine.
+	if len (arglist) == 1:
+		function(arglist[0])
+		return
+	
 	subcommands = []
 	for arg in arglist:
 		args = [arg]
