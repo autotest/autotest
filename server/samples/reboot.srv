@@ -3,7 +3,4 @@ def run(machine):
 	print host.is_up()
 	host.reboot()
 
-if len(machines) > 1:
-        parallel_simple(run, machines)
-else:
-        run(machines[0])
+parallel_simple(run, machines)
