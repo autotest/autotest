@@ -66,7 +66,7 @@ class Machine:
 			if len(match.group(1)) != self.tab_level:
 				return   # we don't care about subgroups
 			if self.test_name != match.group(3):
-				raise Exception("Group START and END name mismatch")
+				raise ValueError('Group START and END name mismatch')
 			self.state = "OTHER"
 			self.test_status = self.worse_status(self.test_status,
 							     match.group(2))

@@ -33,13 +33,14 @@ class GitRepo(installable_object.InstallableObject):
 	def __init__(self, repodir, giturl, weburl):
 		super(installable_object.InstallableObject, self).__init__()
 		if repodir == None:
-			raise "You must provide a directory to hold the git repository"
+			e_msg = 'You must provide a directory to hold the git repository'
+			raise ValueError(e_msg)
 		self.repodir = sh_escape(repodir)
 		if giturl == None:
-			raise "You must provide a git URL to the repository"
+			raise ValueError('You must provide a git URL to the repository')
 		self.giturl = giturl
 		if weburl == None:
-			raise "You must provide a http URL to the repository"
+			raise ValueError('You must provide a http URL to the repository')
 		self.weburl = weburl
 
 		# path to .git dir
@@ -89,7 +90,7 @@ class GitRepo(installable_object.InstallableObject):
 			rv = self.gitcmd(cmd, True)
 			if rv.exit_status != 0:
 				print rv.stderr
-				raise "Failed to clone git url"
+				raise CmdError('Failed to clone git url', rv.exit_status)
 			else:
 				print rv.stdout
 
@@ -100,7 +101,8 @@ class GitRepo(installable_object.InstallableObject):
 				rv = self.gitcmd('pull', True)
 				if rv.exit_status != 0:
 					print rv.stderr
-					raise "Failed to pull git repo data"
+					e_msg = 'Failed to pull git repo data'
+					raise CmdError(e_msg, rv.exit_status)
 			else:
 				print 'repo up-to-date'
 
@@ -151,7 +153,8 @@ class GitRepo(installable_object.InstallableObject):
 			lines = u.read().split('\n')
 
 		if r >= max_refresh:
-			raise 'Failed to get remote repo status'
+			e_msg = 'Failed to get remote repo status, refreshed %s times' % r
+			raise IndexError(e_msg)
 
 		# looking for a line like:
 		# <tr><td>commit</td><td # class="sha1">aadea67210c8b9e7a57744a1c2845501d2cdbac7</td></tr>

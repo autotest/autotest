@@ -213,7 +213,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.__record("GOOD", None, "reboot.start", "hard reset")
 		if not self.__console_run(r"'~$hardreset'"):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
-			raise AutoservUnsupportedError
+			raise AutoservUnsupportedError('Hard reset unavailable')
 
 		if wait:
 			self.wait_for_restart(timeout)
@@ -685,7 +685,7 @@ class SSHHost(base_classes.RemoteHost):
 		Check that uptime is available and monotonically increasing.
 		"""
 		if not self.ping():
-			raise "Client is not pingable"
+			raise AutoservHostError('Client is not pingable')
 		result = self.run("/bin/cat /proc/uptime", 30)
 		return result.stdout.strip().split()[0]
 

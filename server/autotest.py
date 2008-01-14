@@ -114,7 +114,8 @@ class Autotest(installable_object.InstallableObject):
 				host.send_file(self.source_material, autodir)
 			else:
 				# Copy autotest via tarball
-				raise "Not yet implemented!"
+				e_msg = 'Installation method not yet implemented!'
+				raise NotImplementedError(e_msg)
 			print "Installation of autotest completed"
 			self.installed = True
 			return
