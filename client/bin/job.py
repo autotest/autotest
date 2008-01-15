@@ -276,8 +276,7 @@ class job:
 		if exc_info and isinstance(exc_info[1], TestError):
 			return False
 		elif exc_info:
-			e_msg = '%s, %s, %s' % exc_info[0], exc_info[1], exc_info[2]
-			raise AutotestError(e_msg)
+			raise exc_info[0], exc_info[1], exc_info[2]
 		else:
 			return True
 
@@ -331,7 +330,7 @@ class job:
 						   *args, **dargs)
 
 		# if there was a non-TestError exception, raise it
-		if exc_info and isinstance(exc_info[1], TestError):
+		if exc_info and not isinstance(exc_info[1], TestError):
 			err = ''.join(traceback.format_exception(*exc_info))
 			raise TestError(name + ' failed\n' + err)
 
