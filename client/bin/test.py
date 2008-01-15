@@ -82,6 +82,10 @@ class test:
 		raise TestError(msg)
 
 
+	def write_keyval(self, dictionary):
+		write_keyval(self.resultsdir, dictionary)
+
+
 	def initialize(self):
 		pass
 
