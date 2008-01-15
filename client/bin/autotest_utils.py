@@ -589,7 +589,7 @@ def write_keyval(path, dictionary):
 	# directory name, we assume you want the file to be called keyval
 	if os.path.isdir(path):
 		path = os.path.join(path, 'keyval')
-	keyval = open(path, 'w')
+	keyval = open(path, 'a')
 	for key in dictionary.keys():
 		if re.search(r'\W', key):
 			raise ValueError('Invalid key: ' + key)
