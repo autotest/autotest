@@ -28,7 +28,7 @@ def library(lib):
 		file = os.path.join(dir, lib)
 		if os.path.exists(file):
 			return file
-	raise TestError('Missing library: %s' % lib)
+	raise ValueError('Missing library: %s' % lib)
 
 
 def libraries(*libs):
