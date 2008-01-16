@@ -326,7 +326,7 @@ class SSHHost(base_classes.RemoteHost):
 					       self.hostname)
 
 
-	def run(self, command, timeout=30, ignore_status=False,
+	def run(self, command, timeout=3600, ignore_status=False,
 		stdout_tee=None, stderr_tee=None, connect_timeout=30):
 		"""
 		Run a command on the remote host.
