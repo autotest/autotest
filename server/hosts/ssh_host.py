@@ -366,14 +366,14 @@ class SSHHost(base_classes.RemoteHost):
 		Run a command on the remote host and look for regexp
 		in stdout or stderr to determine if the command was
 		successul or not.
-		
+
 		Args:
 			command: the command line string
-			timeout: time limit in seconds before attempting to 
+			timeout: time limit in seconds before attempting to
 				kill the running process. The run() function
 				will take a few seconds longer than 'timeout'
 				to complete if it has to kill the process.
-			ignore_status: do not raise an exception, no matter 
+			ignore_status: do not raise an exception, no matter
 				what the exit code of the command is.
 			stdout_ok_regexp: regexp that should be in stdout
 				if the command was successul.
@@ -383,35 +383,36 @@ class SSHHost(base_classes.RemoteHost):
 				if the command was successul.
 			stderr_err_regexp: regexp that should be in stderr
 				if the command failed.
-		
+
 		Returns:
 			if the command was successul, raises an exception
 			otherwise.
-		
+
 		Raises:
 			AutoservRunError:
 			- the exit code of the command execution was not 0.
-			- If stderr_err_regexp is found in stderr, 
-			- If stdout_err_regexp is found in stdout, 
+			- If stderr_err_regexp is found in stderr,
+			- If stdout_err_regexp is found in stdout,
 			- If stderr_ok_regexp is not found in stderr.
 			- If stdout_ok_regexp is not found in stdout,
 		"""
 
 		# We ignore the status, because we will handle it at the end.
 		result = self.run(command, timeout, ignore_status=True,
-						  connect_timeout=connect_timeout)
+				  connect_timeout=connect_timeout)
 
 		# Look for the patterns, in order
 		for (regexp, stream) in ((stderr_err_regexp, result.stderr),
-								 (stdout_err_regexp, result.stdout)):
+					 (stdout_err_regexp, result.stdout)):
 			if regexp and stream:
 				err_re = re.compile (regexp)
 				if err_re.search(stream):
-					raise AutoservRunError('%s failed, found error pattern: "%s"'
-										% (command, regexp))
+					raise AutoservRunError(
+					    '%s failed, found error pattern: '
+					    '"%s"' % (command, regexp), result)
 
 		for (regexp, stream) in ((stderr_ok_regexp, result.stderr),
-								 (stdout_ok_regexp, result.stdout)):
+					 (stdout_ok_regexp, result.stdout)):
 			if regexp and stream:
 				ok_re = re.compile (regexp)
 				if ok_re.search(stream):
@@ -419,7 +420,8 @@ class SSHHost(base_classes.RemoteHost):
 						return
 
 		if not ignore_status and result.exit_status > 0:
-			raise AutoservRunError("command execution error", result)
+			raise AutoservRunError("command execution error",
+					       result)
 
 
 	def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,

@@ -34,8 +34,15 @@ class TestError(AutotestError):
 	"""Indicates an error which terminates and fails the test."""
 	pass
 
+
 class CmdError(TestError):
-	"""Indicates that a command failed, is fatal to the test unless caught."""
+	"""\
+	Indicates that a command failed, is fatal to the test unless caught.
+	"""
+	def __init__(self, command, result_code):
+		TestError.__init__(self, command, result_code)
+
+
 	def __str__(self):
 		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1])
 
@@ -60,8 +67,13 @@ class AutoservError(Exception):
 
 
 class AutoservRunError(AutoservError):
-	"""Errors raised by one of the run functions"""
-	pass
+	"""\
+	Errors raised by one of the run functions.  Should always be
+	constructed with a tuple of two args (error description (str),
+	run result object).
+	"""
+	def __init__(self, description, result_obj):
+		AutoservError.__init__(self, description, result_obj)
 
 
 class AutoservVirtError(AutoservError):
