@@ -1,125 +1,97 @@
 #!/usr/bin/python
 import os, re, db, sys
 
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
+tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
+client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
+sys.path.insert(0, client_bin)
+import kernel_versions
+
 root_url_file = os.path.join(tko, '.root_url')
 if os.path.exists(root_url_file):
         html_root = open(root_url_file, 'r').readline().rstrip()
 else:
         html_root = '/results/'
 
-def select(db, field, value=None, distinct=False):
-	""" returns the relevant index values where the field value matches the
-	    input value to the function.
-	    If there is no value passed, then it returns the index values and the
-	    field values corresponsing to them. """
 
-	fields = { 'kernel': ['printable', 'kernel_idx', 'kernel_idx'],
-	 	   'machine_group': ['machine_group', 'machine_idx', 'machine_idx'],
-		   'hostname': ['hostname', 'machine_idx', 'machine_idx'],
-		   'label': ['label', 'job_idx', 'job_idx'],
-		   'tag': ['tag', 'job_idx', 'job_idx'],
-	           'job': ['job_idx', 'job_idx', 'job_idx'],
-		   'user': ['username', 'job_idx', 'job_idx'],
-		   'test': ['test', 'test', 'test'],
-		   'status': ['word', 'status_idx', 'status'],
-		   'reason': ['reason', 'test_idx', 'test_idx'] }
-	table = { 'kernel': 'kernels',
-		  'machine_group': 'machines',
-		  'hostname': 'machines',
-		  'label': 'jobs',
-		  'tag': 'jobs',
-	          'job': 'jobs',
-		  'user': 'jobs',
-		  'test': 'tests',
-		  'status': 'status',
-		  'reason': 'tests' }
-
-	lookup_field, idx_field, field_name_in_main_table = fields[field]
-	tablename = table[field]
-	# select all the index values that match the given field name.
-	sql = ""
-	if distinct:
-		sql += " distinct "
-	if not value:
-		sql += " %s , %s " % (lookup_field, idx_field)
-		where = " %s is not null " % lookup_field
-	else:
-		sql += "%s " % idx_field
-		if field == 'tag':
-			where = " %s LIKE %s " % (lookup_field, value)
-		else:
-			where = " %s = %s " % (lookup_field, value)
-
-	match = db.select(sql, tablename, where)
-	# returns the value and its field name
-	return match, field_name_in_main_table
+class status_cell:
+	# One cell in the matrix of status data.
+	def __init__(self):
+		# Count is a dictionary: status -> count of tests with status
+		self.status_count = {}
+		self.job_tag = None
+		self.job_tag_count = 0
 
 
-def get_axis_data(axis):
-	rows = db.select(axis , 'test_view', distinct = True)
-	# Need to do a magic sort here if axis == 'kernel_printable'
-	return sorted([row[0] for row in rows])
+	def add(self, status, count, job_tags):
+		assert not self.status_count.has_key(status)
+		assert count > 0
+
+		self.job_tag = job_tags
+		self.job_tag_count += count
+		if self.job_tag_count > 1:
+			self.job_tag = None
+		
+		self.status_count[status] = count
+
+
+class status_data:
+	def __init__(self, sql_rows, x_field, y_field):
+		data = {}
+		y_values = set()
+
+		# Walk through the query, filing all results by x, y info
+		for (x, y, status, count, job_tags) in sql_rows:
+			if not data.has_key(x):
+				data[x] = {}
+			if not data[x].has_key(y):
+				y_values.add(y)
+				data[x][y] = status_cell()
+			data[x][y].add(status, count, job_tags)
+
+		# 2-d hash of data - [x-value][y-value]
+		self.data = data
+		# List of possible columns (x-values)
+		self.x_values = smart_sort(data.keys(), x_field)
+		# List of rows columns (y-values)
+		self.y_values = smart_sort(list(y_values), y_field)
 
 
 def get_matrix_data(db, x_axis, y_axis, where = None):
-	# Return a 3-d hash of data - [x-value][y-value][status_word]
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
-	fields = ('%s, %s, status, COUNT(status_word), ' +
-	          'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
-		 ) % (x_axis, y_axis)
-	group_by = '%s, %s, status' % (x_axis, y_axis)
+	x_field = test_view_field_dict[x_axis]
+	y_field = test_view_field_dict[y_axis]
+	fields = ('%s, %s, status, COUNT(status), ' +
+		  'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
+		 ) % (x_field, y_field)
+	group_by = '%s, %s, status' % (x_field, y_field)
 	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
 
-	data = {}
-	job_tags = {}
-	x_set = set()
-	y_set = set()
-	status_set = set()
-	for (x, y, status, count, job_tag) in rows:
-		if not data.has_key(x):
-			data[x] = {}
-			job_tags[x] = {}
-		if not data[x].has_key(y):
-			data[x][y] = {}
-		data[x][y][status] = count
-		if job_tags[x].has_key(y) or count != 1:
-			job_tags[x][y] = None
-		else:
-			job_tags[x][y] = job_tag
-		x_set.add(x)
-		y_set.add(y)
-		status_set.add(status)
-	return (data, list(x_set), list(y_set), list(status_set), job_tags)
+	return status_data(rows, x_field, y_field)
 
 
-class anygroup:
-	@classmethod
-	def selectunique(klass, db, field):
-		"""Return unique values for all possible groups within
-		 the table."""
-		rows, field_name_in_main_table = select(db, field, value=None, distinct=True)
-		groupnames = sorted([row for row in rows])
+# Dictionary used simply for fast lookups from short reference names for users
+# to fieldnames in test_view
+test_view_field_dict = {
+	'kernel'        : 'kernel_printable',
+	'hostname'      : 'machine_hostname',
+	'test'          : 'test',
+	'label'         : 'job_label',
+	'machine_group' : 'machine_group',
+	'reason'        : 'reason',
+	'tag'           : 'job_tag',
+	'user'          : 'job_username',
+	'status'        : 'status_word',
+}
 
-		# collapse duplicates where records have the same name but
-		# multiple index values
-		headers = {}
-		for field_name, idx_value in groupnames:
-			if headers.has_key(field_name):
-				headers[field_name].append(idx_value)
-			else:
-				headers[field_name] = [idx_value]
-		headers = headers.items()
-		headers.sort()
-		return [klass(db, field_name_in_main_table, groupname) for groupname in headers]
-
-
-	def __init__(self, db, idx_name, name):
-		self.db = db
-		self.name = name[0]
-		self.idx_name = idx_name
-		self.idx_value = name[1]
+def smart_sort(list, field):
+	if field == 'kernel_printable':
+		def kernel_encode(kernel):
+		        return kernel_versions.version_encode(kernel) 
+		list.sort(key = kernel_encode, reverse = True)
+	else:
+		list.sort()
+	return list
 
 
 class group:
@@ -223,7 +195,6 @@ class test:
 			self.url = html_root + self.job.tag + '/' + self.subdir
 		else:
 			self.url = None
-
 
 
 	def iterations(self):
