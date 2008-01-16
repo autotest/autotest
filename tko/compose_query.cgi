@@ -53,19 +53,6 @@ html_header = """\
 """
 
 
-# dictionary used simply for fast lookups
-field_dict = {
-	'kernel': 'kernel_printable',
-	'hostname': 'machine_hostname',
-	'test': 'test',
-	'label': 'job_label',
-	'machine_group': 'machine_group',
-	'reason': 'reason',
-	'tag': 'job_tag',
-	'user': 'job_username',
-	'status': 'status_word',
-}
-
 next_field = {
 	'machine_group': 'hostname',
 	'hostname': 'tag',
@@ -86,7 +73,7 @@ def parse_field(form, form_field, field_default):
 	if not form_field in form:
 		return field_default
 	field_input = form[form_field].value.lower()
-	if field_input and field_input in field_dict:
+	if field_input and field_input in frontend.test_view_field_dict:
 		return field_input
 	return field_default
 
@@ -98,42 +85,26 @@ def parse_condition(form, form_field, field_default):
 
 
 form = cgi.FieldStorage()
-row_field = parse_field(form, 'rows', 'kernel')
-column_field = parse_field(form, 'columns', 'machine_group')
+row = parse_field(form, 'rows', 'kernel')
+column = parse_field(form, 'columns', 'machine_group')
 condition_field = parse_condition(form, 'condition', '')
 
 cgitb.enable()
 db = db.db()
 
 
-def get_value(test, field):
-	if field == 'kernel':
-		return test.kernel_printable
-	if field == 'hostname':
-		return test.machine_hostname
-	if field == 'test':
-		return test.testname
-	if field == 'label':
-		return test.job_label
-	if field == 'machine_group':
-		return test.machine_group
-	if field == 'reason':
-		return test.reason
-	raise "Unknown field"
-
-
-def construct_link(row_val, column_val):
-	next_row = row_field
-	next_column = column_field
+def construct_link(x, y):
+	next_row = row
+	next_column = column
 	condition_list = []
 	if condition_field != '':
 		condition_list.append(condition_field)
-	if row_val:
-		next_row = next_field[row_field]
-		condition_list.append("%s='%s'" % (row_field, row_val))
-	if column_val:
-		next_column = next_field[column_field]
-		condition_list.append("%s='%s'" % (column_field, column_val))
+	if y:
+		next_row = next_field[row]
+		condition_list.append("%s='%s'" % (row, y))
+	if x:
+		next_column = next_field[column]
+		condition_list.append("%s='%s'" % (column, x))
 	next_condition = '&'.join(condition_list)
 	return 'compose_query.cgi?' + urllib.urlencode({'columns': next_column,
 	           'rows': next_row, 'condition': next_condition})
@@ -142,69 +113,54 @@ def construct_link(row_val, column_val):
 def create_select_options(selected_val):
 	ret = ""
 
-	for option in sorted(field_dict.keys()):
+	for option in sorted(frontend.test_view_field_dict.keys()):
 		if selected_val == option:
 			selected = " SELECTED"
 		else:
 			selected = ""
 
-		ret += '<OPTION VALUE="%s"%s>%s</OPTION>\n' % (option, 
-		                                               selected,
-		                                               option)
+		ret += '<OPTION VALUE="%s"%s>%s</OPTION>\n' % \
+						(option, selected, option)
 
 	return ret
-
-
-def smart_sort(list, field):
-	if field == 'kernel':
-		def kernel_encode(kernel):
-		        return kernel_versions.version_encode(kernel) 
-		list.sort(key = kernel_encode, reverse = True)
-	else:
-		list.sort()
 
 
 def gen_matrix():
 	where = None
 	if condition_field.strip() != '':
 		where = query_lib.parse_scrub_and_gen_condition(
-		            condition_field, field_dict)
+		            condition_field, frontend.test_view_field_dict)
 		print "<!-- where clause: %s -->" % (where,)
 
-	ret = frontend.get_matrix_data(db, field_dict[column_field],
-	                               field_dict[row_field], where)
-	(data, column_list, row_list, stat_list, job_tags) = ret
+	test_data = frontend.get_matrix_data(db, column, row, where)
 
-	if not row_list:
+	if not test_data.y_values:
 		msg = "There are no results for this query (yet?)."
 		return [[display.box(msg)]]
 
-	smart_sort(row_list, row_field)
-	smart_sort(column_list, column_field)
-
 	link = 'compose_query.cgi?columns=%s&rows=%s&condition=%s' % (
-	                row_field, column_field, condition_field)
+	                row, column, condition_field)
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
-	for column in column_list:
-		link = construct_link(None, column)
-		header_row.append(display.box(column, header=True, link=link))
+	for x in test_data.x_values:
+		link = construct_link(x, None)
+		header_row.append(display.box(x, header=True, link=link))
 
 	matrix = [header_row]
-	for row in row_list:
-		link = construct_link(row, None)
-		cur_row = [display.box(row, header=True, link=link)]
-		for column in column_list:
+	for y in test_data.y_values:
+		link = construct_link(None, y)
+		cur_row = [display.box(y, header=True, link=link)]
+		for x in test_data.x_values:
 			try:
-				box_data = data[column][row]
+				box_data = test_data.data[x][y].status_count
 			except:
 				cur_row.append(display.box(None, None))
 				continue
-			job_tag = job_tags[column][row]
+			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
 				link = '/results/%s/' % job_tag
 			else:
-				link = construct_link(row, column)
+				link = construct_link(x, y)
 			cur_row.append(display.status_precounted_box(db,
 			                                             box_data,
 			                                             link))
@@ -219,8 +175,8 @@ def main():
 	print 'Filtered Autotest Results'
 	print '</title></head><body>'
 	display.print_main_header()
-	print html_header % (create_select_options(column_field),
-	                     create_select_options(row_field),
+	print html_header % (create_select_options(column),
+	                     create_select_options(row),
 	                     condition_field)
 	display.print_table(gen_matrix())
 	print '</body></html>'
