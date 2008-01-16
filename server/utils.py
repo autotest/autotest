@@ -228,8 +228,9 @@ def run(command, timeout=None, ignore_status=False,
 		# We are holding ends to stdin, stdout pipes
 		# hence we need to be sure to close those fds no mater what
 		start_time = time.time()
-		result.exit_status = _wait_for_command(sp, start_time, timeout,
-			      stdout_file, stderr_file, stdout_tee, stderr_tee)
+		ret = _wait_for_command(sp, start_time, timeout, stdout_file,
+			                stderr_file, stdout_tee, stderr_tee)
+		result.exit_status = ret >> 8
 
 		result.duration = time.time() - start_time
 		# don't use os.read now, so we get all the rest of the output

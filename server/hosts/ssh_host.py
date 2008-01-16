@@ -351,10 +351,17 @@ class SSHHost(base_classes.RemoteHost):
 		stderr = stderr_tee or sys.stderr
 		print "ssh: %s" % (command,)
 		env = " ".join("=".join(pair) for pair in self.env.iteritems())
-		full_cmd = '%s "%s %s"' % (self.ssh_command(connect_timeout), env,
-					   utils.sh_escape(command))
-		result = utils.run(full_cmd, timeout, ignore_status,
-				   stdout, stderr)
+		full_cmd = '%s "%s %s"' % (self.ssh_command(connect_timeout),
+		                           env, utils.sh_escape(command))
+		result = utils.run(full_cmd, timeout, True, stdout, stderr)
+		if result.exit_status == 255:  # ssh's exit status for timeout
+			if re.match(r'^ssh: connect to host .* port .*: ' +
+			            r'Connection timed out\r$', result.stderr):
+				raise AutoservSSHTimeout("ssh timed out",
+				                         result)
+		if not ignore_status and result.exit_status > 0:
+			raise AutoservRunError("command execution error",
+			                       result)
 		return result
 
 
