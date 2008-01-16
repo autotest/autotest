@@ -41,7 +41,7 @@ if ($in eq '' && $out eq '' && $err eq '') {
 }
 
 if ($#ARGV < 1) {
-	print STDERR "$P: <host:port> <program> ...";
+	print STDERR "$P: <host:port> <program> ...\n";
 	exit 1;
 }
 my ($mux, $app) = @ARGV;
