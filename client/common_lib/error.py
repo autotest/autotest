@@ -66,6 +66,11 @@ class AutoservError(Exception):
 	pass
 
 
+class AutoservSSHTimeout(AutoservError):
+	"""SSH experienced a connection timeout"""
+	pass
+
+
 class AutoservRunError(AutoservError):
 	"""\
 	Errors raised by one of the run functions.  Should always be
