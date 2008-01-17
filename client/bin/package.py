@@ -10,9 +10,10 @@ import os, os_dep, re
 from common.error import *
 from autotest_utils import *
 
-def rpm_info(rpm_package):
+def __rpm_info(rpm_package):
 	"""\
-	Returns a dictionary with information about an RPM package file
+	Private function that returns a dictionary with information about an 
+	RPM package file
 	- type: Package management program that handles the file
 	- system_support: If the package management program is installed on the
 	system or not
@@ -22,88 +23,83 @@ def rpm_info(rpm_package):
 	- arch: The architecture for which a binary package was built
 	- installed: Whether the package is installed (True) on the system or not
 	(False)
-	
-	Raises an exception if the package file is not an rpm file
 	"""
+	# We will make good use of what the file command has to tell us about the
+	# package :)
 	file_result = system_output('file ' + rpm_package)
-	package_pattern = re.compile('RPM', re.IGNORECASE)
-	result = re.search(package_pattern, file_result)
-	if result:
-		package_info = {}
-		package_info['type'] = 'rpm'
-		try:
-			os_dep.command('rpm')
-			# Build the command strings that will be used to get package info
-			# s_cmd - Command to determine if package is a source package
-			# a_cmd - Command to determine package architecture
-			# v_cmd - Command to determine package version
-			# i_cmd - Command to determiine if package is installed
-			s_cmd = 'rpm -qp --qf %{SOURCE} ' + rpm_package + ' 2>/dev/null'
-			a_cmd = 'rpm -qp --qf %{ARCH} ' + rpm_package + ' 2>/dev/null'
-			v_cmd = 'rpm -qp ' + rpm_package + ' 2>/dev/null' 
-			i_cmd = 'rpm -q ' + system_output(v_cmd) + ' 2>&1 >/dev/null' 
+	package_info = {}
+	package_info['type'] = 'rpm'
+	try:
+		os_dep.command('rpm')
+		# Build the command strings that will be used to get package info
+		# s_cmd - Command to determine if package is a source package
+		# a_cmd - Command to determine package architecture
+		# v_cmd - Command to determine package version
+		# i_cmd - Command to determiine if package is installed
+		s_cmd = 'rpm -qp --qf %{SOURCE} ' + rpm_package + ' 2>/dev/null'
+		a_cmd = 'rpm -qp --qf %{ARCH} ' + rpm_package + ' 2>/dev/null'
+		v_cmd = 'rpm -qp ' + rpm_package + ' 2>/dev/null' 
+		i_cmd = 'rpm -q ' + system_output(v_cmd) + ' 2>&1 >/dev/null' 
 
-			package_info['system_support'] = True
-			# Checking whether this is a source or src package
-			source = system_output(s_cmd)
-			if source == '(none)':
+		package_info['system_support'] = True
+		# Checking whether this is a source or src package
+		source = system_output(s_cmd)
+		if source == '(none)':
+			package_info['source'] = False
+		else:
+			package_info['source'] = True
+		package_info['version'] = system_output(v_cmd)
+		package_info['arch'] = system_output(a_cmd)
+		# Checking if package is installed
+		try:
+			system(i_cmd)
+			package_info['installed'] = True
+		except:
+			package_info['installed'] = False
+
+	except:
+		package_info['system_support'] = False
+		package_info['installed'] = False
+		# File gives a wealth of information about rpm packages.
+		# However, we can't trust all this info, as incorrectly
+		# packaged rpms can report some wrong values.
+		# It's better than nothing though :)
+		if len(file_result.split(' ')) == 6:
+			# Figure if package is a source package
+			if file_result.split(' ')[3] == 'src':
+				package_info['source'] = True
+			elif file_result.split(' ')[3] == 'bin':
 				package_info['source'] = False
 			else:
+				package_info['source'] = False
+			# Get architecture
+			package_info['arch'] = file_result.split(' ')[4]
+			# Get version
+			package_info['version'] = file_result.split(' ')[5]
+		elif len(file_result.split(' ')) == 5:
+			# Figure if package is a source package
+			if file_result.split(' ')[3] == 'src':
 				package_info['source'] = True
-			package_info['version'] = system_output(v_cmd)
-			package_info['arch'] = system_output(a_cmd)
-			# Checking if package is installed
-			try:
-				system(i_cmd)
-				package_info['installed'] = True
-			except:
-				package_info['installed'] = False
-
-		except:
-			package_info['system_support'] = False
-			package_info['installed'] = False
-			# File gives a wealth of information about rpm packages.
-			# However, we can't trust all this info, as incorrectly
-			# packaged rpms can report some wrong values.
-			# It's better than nothing though :)
-			if len(file_result.split(' ')) == 6:
-				# Figure if package is a source package
-				if file_result.split(' ')[3] == 'src':
-					package_info['source'] = True
-				elif file_result.split(' ')[3] == 'bin':
-					package_info['source'] = False
-				else:
-					package_info['source'] = False
-				# Get architecture
-				package_info['arch'] = file_result.split(' ')[4]
-				# Get version
-				package_info['version'] = file_result.split(' ')[5]
-			elif len(file_result.split(' ')) == 5:
-				# Figure if package is a source package
-				if file_result.split(' ')[3] == 'src':
-					package_info['source'] = True
-				elif file_result.split(' ')[3] == 'bin':
-					package_info['source'] = False
-				else:
-					package_info['source'] = False
-				# When the arch param is missing on file, we assume noarch
-				package_info['arch'] = 'noarch'
-				# Get version
-				package_info['version'] = file_result.split(' ')[4]
+			elif file_result.split(' ')[3] == 'bin':
+				package_info['source'] = False
 			else:
-				# If everything else fails...
-				package_info['source'] =  False
-				package_info['arch'] = 'Not Available'
-				package_info['version'] = 'Not Available'
-		return package_info
+				package_info['source'] = False
+			# When the arch param is missing on file, we assume noarch
+			package_info['arch'] = 'noarch'
+			# Get version
+			package_info['version'] = file_result.split(' ')[4]
+		else:
+			# If everything else fails...
+			package_info['source'] =  False
+			package_info['arch'] = 'Not Available'
+			package_info['version'] = 'Not Available'
+	return package_info
 
-	else:
-		raise PackageError('Package %s is not an RPM package.' % rpm_package)
 
-
-def dpkg_info(dpkg_package):
+def __dpkg_info(dpkg_package):
 	"""\
-	Returns a dictionary with information about a dpkg package file
+	Private function that returns a dictionary with information about a 
+	dpkg package file
 	- type: Package management program that handles the file
 	- system_support: If the package management program is installed on the
 	system or not
@@ -113,52 +109,46 @@ def dpkg_info(dpkg_package):
 	- arch: The architecture for which a binary package was built
 	- installed: Whether the package is installed (True) on the system or not
 	(False)
-	
-	Raises an exception if the package file is not an dpkg file
 	"""
+	# We will make good use of what the file command has to tell us about the
+	# package :)
 	file_result = system_output('file ' + dpkg_package)
-	package_pattern = re.compile('Debian', re.IGNORECASE)
-	result = re.search(package_pattern, file_result)
+	package_info = {}
+	package_info['type'] = 'dpkg'
+	# There's no single debian source package as is the case
+	# with RPM
+	package_info['source'] = False
+	try:
+		os_dep.command('dpkg')
+		# Build the command strings that will be used to get package info
+		# a_cmd - Command to determine package architecture
+		# v_cmd - Command to determine package version
+		# i_cmd - Command to determiine if package is installed
+		a_cmd = 'dpkg -f ' + dpkg_package + ' Architecture 2>/dev/null'
+		v_cmd = 'dpkg -f ' + dpkg_package + ' Package 2>/dev/null'
+		i_cmd = 'dpkg -s ' + system_output(v_cmd) + ' 2>/dev/null'
 
-	if result:
-		package_info = {}
-		package_info['type'] = 'dpkg'
-		# There's no single debian source package as is the case
-		# with RPM
-		package_info['source'] = False
-		try:
-			os_dep.command('dpkg')
-			# Build the command strings that will be used to get package info
-			# a_cmd - Command to determine package architecture
-			# v_cmd - Command to determine package version
-			# i_cmd - Command to determiine if package is installed
-			a_cmd = 'dpkg -f ' + dpkg_package + ' Architecture 2>/dev/null'
-			v_cmd = 'dpkg -f ' + dpkg_package + ' Package 2>/dev/null'
-			i_cmd = 'dpkg -s ' + system_output(v_cmd) + ' 2>/dev/null'
-
-			package_info['system_support'] = True
-			package_info['version'] = system_output(v_cmd)
-			package_info['arch'] = system_output(a_cmd)
-			# Checking if package is installed
-			package_status = system_output(i_cmd)
-			not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
-			dpkg_not_installed = re.search(not_inst_pattern, package_status)
-			if dpkg_not_installed:
-				package_info['installed'] = False
-			else:
-				package_info['installed'] = True
-
-		except:
-			package_info['system_support'] = False
+		package_info['system_support'] = True
+		package_info['version'] = system_output(v_cmd)
+		package_info['arch'] = system_output(a_cmd)
+		# Checking if package is installed
+		package_status = system_output(i_cmd)
+		not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
+		dpkg_not_installed = re.search(not_inst_pattern, package_status)
+		if dpkg_not_installed:
 			package_info['installed'] = False
-			# The output of file is not as generous for dpkg files as
-			# it is with rpm files
-			package_info['arch'] = 'Not Available'
-			package_info['version'] = 'Not Available'
+		else:
+			package_info['installed'] = True
 
-		return package_info
-	else:
-		raise PackageError('Package %s is not a dpkg package.' % dpkg_package)
+	except:
+		package_info['system_support'] = False
+		package_info['installed'] = False
+		# The output of file is not as generous for dpkg files as
+		# it is with rpm files
+		package_info['arch'] = 'Not Available'
+		package_info['version'] = 'Not Available'
+
+	return package_info
 
 
 def info(package):
@@ -194,9 +184,9 @@ def info(package):
 		result = re.search(package_pattern, file_result)
 
 		if result and package_manager == 'rpm':
-			return rpm_info(package)
+			return __rpm_info(package)
 		elif result and package_manager == 'dpkg':
-			return dpkg_info(package)
+			return __dpkg_info(package)
 
 	# If it's not one of the implemented package manager methods, there's
 	# not much that can be done, hence we throw an exception.
@@ -214,9 +204,14 @@ def install(package):
 	source = my_package_info['source']
 	installed = my_package_info['installed']
 
-	if type == 'rpm' and system_support:
+	if not system_support:
+		e_msg = 'Client does not have package manager %s to handle %s install' \
+		% (type, package)
+		raise PackageError(e_msg)
+
+	if type == 'rpm':
 		install_command = 'rpm -U ' + package
-	if type == 'dpkg' and system_support:
+	if type == 'dpkg':
 		install_command = 'dpkg -i ' + package
 
 	# RPM source packages can be installed along with the binary versions
