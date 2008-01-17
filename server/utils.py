@@ -145,6 +145,34 @@ def __nuke_subprocess(subproc):
 		       time.sleep(1)
 
 
+def nuke_pid(pid):
+       # the process has not terminated within timeout,
+       # kill it via an escalating series of signals.
+       signal_queue = [signal.SIGTERM, signal.SIGKILL]
+       for sig in signal_queue:
+	       try:
+		       os.kill(pid, sig)
+
+	       # The process may have died before we could kill it.
+	       except OSError:
+		       pass
+
+	       try:
+		       for i in range(5):
+			       status = os.waitpid(pid, os.WNOHANG)[0]
+			       if status == pid:
+				       return
+			       time.sleep(1)
+
+		       if status != pid:
+			       raise AutoservRunError('Could not kill pid %d'
+				       % pid, None)
+
+	       # the process died before we join it.
+	       except OSError:
+		       pass
+
+
 def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
 	if use_os_read:
 		data = os.read(pipe.fileno(), 1024)
