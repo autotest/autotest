@@ -11,11 +11,22 @@
 #
 package Conmux;
 use URI::Escape;
+use File::Basename;
+use Cwd 'abs_path';
 
 our $Config;
 
 BEGIN {
+	my $abs_path = abs_path($0);
+	my $dir_path = dirname($abs_path);
+
 	my $cf = '/usr/local/conmux/etc/config';
+	if (-e "$dir_path/etc/config") {
+		$cf = "$dir_path/etc/config";
+	} elsif (-e "$dir_path/../etc/config") {
+		$cf = "$dir_path/../etc/config";
+	}
+
 	if (-f $cf) {
 		open(CFG, "<$cf") || die "Conmux: $cf: open failed - $!\n";
 		while(<CFG>) {
