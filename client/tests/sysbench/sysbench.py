@@ -98,7 +98,7 @@ class sysbench(test.test):
 				profilers.report(self)
 		except:
 			system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
-			raise TestError('Unable to start postgreSQL')
+			raise
 
 		system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
@@ -154,7 +154,7 @@ class sysbench(test.test):
 				profilers.report(self)
 		except:
 			system(bin + '/mysqladmin shutdown')
-			raise TestError('Unable to start mySQL')
+			raise
 
 		system(bin + '/mysqladmin shutdown')
 
