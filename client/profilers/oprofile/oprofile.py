@@ -37,8 +37,7 @@ class oprofile(profiler.profiler):
 			local_opcontrol = os.path.exists('/usr/bin/opcontrol')
 			local_opreport = os.path.exists('/usr/bin/opreport')
 			if local == False or not local_opcontrol or not local_opreport:
-				e_msg = 'oprofile build failed and no local copy installed'
-				raise AutotestError(e_msg)
+				raise
 
 
 	def initialize(self, vmlinux = None, events = [], others = None,
