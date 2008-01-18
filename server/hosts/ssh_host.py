@@ -72,7 +72,12 @@ class SSHHost(base_classes.RemoteHost):
 		super(SSHHost, self).__init__()
 
 		self.conmux_server = conmux_server
-		self.conmux_attach = self.__find_console_attach(conmux_attach)
+		if conmux_attach:
+			self.conmux_attach = conmux_attach
+		else:
+			self.conmux_attach = os.path.abspath(os.path.join(
+						self.serverdir, '..',
+						'conmux', 'conmux-attach'))
 		self.logger_pid = None
 		self.__start_console_log(conmux_log)
 		self.warning_pid = None
@@ -260,32 +265,6 @@ class SSHHost(base_classes.RemoteHost):
 		self.warning_pid = logger.pid
 
 
-	def __find_console_attach(self, conmux_attach):
-		if conmux_attach:
-			return conmux_attach
-		try:
-			res = utils.run('which conmux-attach')
-			if res.exit_status == 0:
-				return res.stdout.strip()
-		except AutoservRunError, e:
-			pass
-		autotest_conmux = os.path.join(self.serverdir, '..',
-					       'conmux', 'conmux-attach')
-		autotest_conmux_alt = os.path.join(self.serverdir,
-						   '..', 'autotest',
-						   'conmux', 'conmux-attach')
-		locations = [autotest_conmux,
-			     autotest_conmux_alt,
-			     '/usr/local/conmux/bin/conmux-attach',
-			     '/usr/bin/conmux-attach']
-		for l in locations:
-			if os.path.exists(l):
-				return l
-
-		print "WARNING: conmux-attach not found on autoserv server"
-		return None
-
-
 	def __console_run(self, cmd):
 		"""
 		Send a command to the conmux session
@@ -295,7 +274,7 @@ class SSHHost(base_classes.RemoteHost):
 		cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
 						      self.__conmux_hostname(),
 						      cmd)
-		result = os.system(cmd)
+		result = system(cmd, ignore_status=True)
 		return result == 0
 
 
