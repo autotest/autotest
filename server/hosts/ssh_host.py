@@ -274,7 +274,7 @@ class SSHHost(base_classes.RemoteHost):
 		cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
 						      self.__conmux_hostname(),
 						      cmd)
-		result = system(cmd, ignore_status=True)
+		result = utils.system(cmd, ignore_status=True)
 		return result == 0
 
 
