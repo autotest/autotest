@@ -598,8 +598,11 @@ from autotest_utils import *
 
 		# log to the subdir status log (if subdir is set)
 		if subdir:
-			status_file = os.path.join(self.resultdir,
-						   subdir,
+			dir = os.path.join(self.resultdir, subdir)
+			if not os.path.exists(dir):
+				os.mkdir(dir)
+
+			status_file = os.path.join(dir,
 						   self.DEFAULT_LOG_FILENAME)
 			open(status_file, "a").write(msg + "\n")
 
