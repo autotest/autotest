@@ -539,7 +539,7 @@ class SSHHost(base_classes.RemoteHost):
 			    self.user, self.hostname,
 			    utils.scp_remote_escape(dest))
 		try:
-			utils.run('rsync --force --rsh="%s" -az %s %s' % (
+			utils.run('rsync --rsh="%s" -az %s %s' % (
 			    self.ssh_base_command(), " ".join(processed_source),
 			    remote_dest))
 		except:
