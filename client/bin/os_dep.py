@@ -13,7 +13,7 @@ def command(cmd):
 		file = os.path.join(dir, cmd)
 		if os.path.exists(file):
 			return file
-	raise TestError('Missing command: %s' % cmd)
+	raise ValueError('Missing command: %s' % cmd)
 
 
 def commands(*cmds):
