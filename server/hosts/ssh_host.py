@@ -215,13 +215,13 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		Reach out and slap the box in the power switch
 		"""
-		self.__record("GOOD", None, "reboot.start", "hard reset")
 		if not self.__console_run(r"'~$hardreset'"):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
 			raise AutoservUnsupportedError('Hard reset unavailable')
 
 		if wait:
 			self.wait_for_restart(timeout)
+		self.__record("GOOD", None, "reboot.start", "hard reset")
 
 
 	def __conmux_hostname(self):
