@@ -224,14 +224,15 @@ class KVM(hypervisor.Hypervisor):
 		if build:
 			try:
 				self.host.run('make -C "%s" clean' % (
-					utils.sh_escape(self.build_dir),))
+					utils.sh_escape(self.build_dir),),
+					timeout=600)
 			except AutoservRunError:
 				# directory was already clean and contained 
 				# no makefile
 				pass
 			self.host.run('cd "%s" && ./configure %s' % (
 				utils.sh_escape(self.build_dir), 
-				configure_modules,))
+				configure_modules,), timeout=600)
 			if syncdir:
 				cmd = 'cd "%s/kernel" && make sync LINUX=%s' % (
 				utils.sh_escape(self.build_dir),
@@ -239,7 +240,7 @@ class KVM(hypervisor.Hypervisor):
 				self.host.run(cmd)
 			self.host.run('make -j%d -C "%s"' % (
 				self.host.get_num_cpu() * 2, 
-				utils.sh_escape(self.build_dir),))
+				utils.sh_escape(self.build_dir),), timeout=3600)
 			# remember path to modules
 			self.modules['kvm'] = "%s" %(
 				utils.sh_escape(os.path.join(self.build_dir, 
