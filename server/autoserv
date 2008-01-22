@@ -72,17 +72,23 @@ if machines:
 			print "Invalid machine %s" % str(machine)
 			sys.exit(1)
 
-if repair:
-	server_job.repair_machines(machines)
+# We have a control file unless it's just a verify/repair job
+if len(parser.args) > 0:
+	control = parser.args[0]
+else:
+	control = None
 
-if verify or repair:
-	server_job.verify_machines(machines)
-	sys.exit(0)
-
-job = server_job.server_job(parser.args[0], parser.args[1:], results, label,
+job = server_job.server_job(control, parser.args[1:], results, label,
 							user, machines, client)
 job.stdout.tee_redirect(os.path.join(results, 'debug', 'autoserv.stdout'))
 job.stderr.tee_redirect(os.path.join(results, 'debug', 'autoserv.stderr'))
+
+if repair:
+	job.repair()
+	sys.exit(0)
+elif verify:
+	job.verify()
+	sys.exit(0)
 
 try:
 	job.run(reboot, install_before, install_after)

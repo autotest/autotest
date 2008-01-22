@@ -95,19 +95,6 @@ verify += load_control_segment("verify")
 repair = load_control_segment("site_repair")
 repair += load_control_segment("repair")
 
-def verify_machines(machines):
-	if not machines:
-		raise AutoservError('No machines specified to verify')
-	namespace = {'machines' : machines, 'job' : None}
-	exec(preamble + verify, namespace, namespace)
-
-
-def repair_machines(machines):
-	if not machines:
-		raise AutoservError('No machines specified to repair')
-	namespace = {'machines' : machines, 'job' : None}
-	exec(preamble + repair, namespace, namespace)
-
 
 class server_job:
 	"""The actual job against which we do everything.
@@ -150,7 +137,11 @@ class server_job:
 		self.tmpdir    = os.path.join(self.serverdir, 'tmp')
 		self.conmuxdir = os.path.join(self.autodir, 'conmux')
 		self.clientdir = os.path.join(self.autodir, 'client')
-		self.control = re.sub('\r\n', '\n', open(control, 'r').read())
+		if control:
+			self.control = open(control, 'r').read()
+			self.control = re.sub('\r', '', self.control)
+		else:
+			self.control = None
 		self.resultdir = resultdir
 		if not os.path.exists(resultdir):
 			os.mkdir(resultdir)
@@ -173,6 +164,26 @@ class server_job:
 		job_data = { 'label' : label, 'user' : user,
 					'hostname' : ','.join(machines) }
 		write_keyval(self.resultdir, job_data)
+
+
+	def verify(self):
+		if not self.machines:
+			raise AutoservError('No machines specified to verify')
+		try:
+			namespace = {'machines' : self.machines, 'job' : self}
+			exec(preamble + verify, namespace, namespace)
+		except Exception, e:
+			msg = 'Verify failed\n' + str(e) + '\n' + format_error()
+			self.record('ABORT', None, None, msg)
+			raise
+
+
+	def repair(self):
+		if not self.machines:
+			raise AutoservError('No machines specified to repair')
+		namespace = {'machines' : self.machines, 'job' : self}
+		exec(preamble + repair, namespace, namespace)
+		self.repair()
 
 
 	def run(self, reboot = False, install_before = False,
@@ -324,6 +335,8 @@ class server_job:
 		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
 								status_code):
 			raise ValueError('Invalid status code supplied: %s' % status_code)
+		if not operation:
+			operation = '----'
 		if re.match(r'[\n\t]', operation):
 			raise ValueError('Invalid character in operation string')
 		operation = operation.rstrip()
