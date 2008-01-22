@@ -311,23 +311,17 @@ class KVM(hypervisor.Hypervisor):
 			raise AutoservVirtError(
 				"No more addresses available")
 
-		# TODO(poirier): uses start-stop-daemon until qemu -pidfile 
-		# and -daemonize can work together, this 'hides' the return
-		# code of qemu (bad)
 		retval= self.host.run(
-			'start-stop-daemon -S --exec "%s" --pidfile "%s" -b -- '
+			'%s'
 			# this is the line of options that can be modified
 			' %s '
-			'-pidfile "%s" -nographic '
+			'-pidfile "%s" -daemonize -nographic '
 			#~ '-serial telnet::4444,server '
 			'-monitor unix:"%s",server,nowait '
 			'-net nic,macaddr="%s" -net tap,script="%s" -L "%s"' % (
 			utils.sh_escape(os.path.join(
 				self.build_dir, 
 				"qemu/x86_64-softmmu/qemu-system-x86_64")),
-			utils.sh_escape(os.path.join(
-				self.pid_dir, 
-				"vhost%s_pid" % (address["ip"],))), 
 			qemu_options, 
 			utils.sh_escape(os.path.join(
 				self.pid_dir, 
