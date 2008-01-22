@@ -348,5 +348,8 @@ class server_job:
 		print msg
 		open(status_file, "a").write(self.record_prefix + msg + "\n")
 		if subdir:
-			status_file = os.path.join(self.resultdir, subdir, 'status')
+			test_dir = os.path.join(self.resultdir, subdir)
+			if not os.path.exists(test_dir):
+				os.mkdir(test_dir)
+			status_file = os.path.join(test_dir, 'status')
 			open(status_file, "a").write(msg + "\n")
