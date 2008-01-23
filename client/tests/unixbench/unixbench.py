@@ -46,7 +46,7 @@ def _format_results(report, keyval):
 		print >> keyval, '%s=%s' % (key, value)
 	for line in report:
 		if 'FINAL SCORE' in line:
-			print >> keyval, 'score=%s' % line.split()[-1]
+			print >> keyval, 'score=%s\n' % line.split()[-1]
 			break
 
 
