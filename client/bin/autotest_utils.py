@@ -118,7 +118,7 @@ def get_file(src, dest, permissions = None):
 	else:
 		shutil.copyfile(src, dest)
 	if permissions:
-		os.chmod(permissions)
+		os.chmod(dest, permissions)
 	return dest
 
 
