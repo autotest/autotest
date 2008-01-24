@@ -96,6 +96,17 @@ repair = load_control_segment("site_repair")
 repair += load_control_segment("repair")
 
 
+# load up site-specific code for generating site-specific job data
+try:
+	import site_job
+	get_site_job_data = site_job.get_site_job_data
+	del site_job
+except ImportError:
+	# by default provide a stub that generates no site data
+	def get_site_job_data(job):
+		return {}
+
+
 class server_job:
 	"""The actual job against which we do everything.
 
@@ -163,6 +174,7 @@ class server_job:
 			os.unlink(self.status)
 		job_data = { 'label' : label, 'user' : user,
 					'hostname' : ','.join(machines) }
+		job_data.update(get_site_job_data(self))
 		write_keyval(self.resultdir, job_data)
 
 
