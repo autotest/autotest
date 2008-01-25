@@ -6,7 +6,7 @@ class db_sql:
 		self.debug = debug
 		self.autocommit = autocommit
 
-		path = os.path.dirname(os.path.abspath(sys.argv[0]))
+		path = os.path.dirname(__file__)
 		try:
 			file = os.path.join(path, '.database')
 			db_prefs = open(file, 'r')
@@ -52,7 +52,7 @@ class db_sql:
 			self.status_idx[s[1]] = s[0]
 			self.status_word[s[0]] = s[1]
 
-		dir = os.path.abspath(os.path.dirname(sys.argv[0]))
+		dir = os.path.dirname(__file__)
 		machine_map = os.path.join(dir, 'machines')
 		if os.path.exists(machine_map):
 			self.machine_map = machine_map
@@ -340,7 +340,7 @@ class db_sql:
 
 # Use a class method as a class factory, generating a relevant database object.
 def db(*args, **dargs):
-	path = os.path.dirname(os.path.abspath(sys.argv[0]))
+	path = os.path.dirname(__file__)
 	db_type = None
 	try:
 		db_file = os.path.join(path, '.database')

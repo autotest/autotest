@@ -7,7 +7,7 @@ by both the reporting cli and web interface.
 
 import sys, os, re
 
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
+tko = os.path.dirname(__file__)
 sys.path.insert(0, tko)
 
 import display, frontend, db
