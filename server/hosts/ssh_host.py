@@ -450,6 +450,38 @@ class SSHHost(base_classes.RemoteHost):
 			self.__load_netconsole_module() # if the builtin fails
 
 
+	def __copy_files(self, sources, dest):
+		"""
+		Copy files from one machine to another.
+
+		This is for internal use by other methods that intend to move
+		files between machines. It expects a list of source files and
+		a destination (a filename if the source is a single file, a
+		destination otherwise). The names must already be
+		pre-processed into the appropriate rsync/scp friendly
+		format (%s@%s:%s).
+		"""
+		# wait until there are only a small number of copies running
+		# before starting this one
+		MAXIMUM_SIMULTANEOUS_COPIES = 4
+		while True:
+			copy_count = 0
+			procs = utils.system_output('ps -ef')
+			for line in procs:
+				if 'rsync ' in line or 'scp ' in line:
+					copy_count += 1
+			if copy_count < MAXIMUM_SIMULTANEOUS_COPIES:
+				break
+			time.sleep(60)
+
+		try:
+			utils.run('rsync --rsh="%s" -az %s %s' % (
+			    self.ssh_base_command(), ' '.join(sources), dest))
+		except Exception:
+			utils.run('scp -rpq %s "%s"' % (
+			    ' '.join(sources), dest))
+
+
 	def get_file(self, source, dest):
 		"""
 		Copy files from the remote host to a local path.
@@ -490,15 +522,8 @@ class SSHHost(base_classes.RemoteHost):
 			processed_dest= "%s/" % (utils.sh_escape(processed_dest),)
 		else:
 			processed_dest= utils.sh_escape(processed_dest)
-		
-		try:
-			utils.run('rsync --rsh="%s" -az %s %s' % (
-			    self.SSH_BASE_COMMAND, ' '.join(processed_source),
-			    processed_dest))
-		except:
-			utils.run('scp -rpq %s "%s"' % (
-				" ".join(processed_source), 
-				processed_dest))
+
+		self.__copy_files(processed_source, processed_dest)
 
 
 	def send_file(self, source, dest):
@@ -538,14 +563,8 @@ class SSHHost(base_classes.RemoteHost):
 		remote_dest = '%s@%s:"%s"' % (
 			    self.user, self.hostname,
 			    utils.scp_remote_escape(dest))
-		try:
-			utils.run('rsync --rsh="%s" -az %s %s' % (
-			    self.ssh_base_command(), " ".join(processed_source),
-			    remote_dest))
-		except:
-			utils.run('scp -rpq %s %s' % (
-			    " ".join(processed_source),
-			    remote_dest))
+
+		self.__copy_files(processed_source, remote_dest)
 		self.run('find "%s" -type d | xargs -r chmod o+rx' % dest)
 		self.run('find "%s" -type f | xargs -r chmod o+r' % dest)
 
