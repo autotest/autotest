@@ -101,6 +101,7 @@ class job:
 		self.control = control
 		self.jobtag = jobtag
 		self.log_filename = self.DEFAULT_LOG_FILENAME
+		self.container = None
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -240,25 +241,24 @@ class job:
 			raise TypeError("Test name is invalid. Switched arguments?")
 		(group, testname) = test.testname(url)
 		tag = dargs.pop('tag', None)
-		self.container = None
 		container = dargs.pop('container', None)
 		subdir = testname
 		if tag:
 			subdir += '.' + tag
 
 		if container:
-			container_name = container.pop('container_name', None)
-			cpu = container.get('cpu', None)
-			root_container = container.get('root', 'sys')
-			if not container_name:
-				container_name = testname
-			if not grep('cpusets', '/proc/filesystems'):
-			
-				self.container = cpuset.cpuset(container_name,
-				    container['mem'],
-				    os.getpid(),
-				    root = root_container,
-				    cpus = cpu)
+			cname = container.get('name', None)
+			if not cname:   # get old name
+				cname = container.get('container_name', None)
+			mbytes = container.get('mbytes', None)
+			if not mbytes:  # get old name
+				mbytes = container.get('mem', None) 
+			cpus  = container.get('cpus', None)
+			if not cpus:    # get old name
+				cpus  = container.get('cpu', None)
+			root  = container.get('root', None)
+			self.new_container(mbytes=mbytes, cpus=cpus, 
+					root=root, name=cname)
 			# We are running in a container now...
 
 		def group_func():
@@ -272,10 +272,8 @@ class job:
 				self.record('GOOD', subdir, testname,
 					    'completed successfully')
 		result, exc_info = self.__rungroup(subdir, group_func)
-		if self.container:
-			self.container.release()
-			self.container = None
-
+		if container:
+			self.release_container()
 		if exc_info and isinstance(exc_info[1], TestError):
 			return False
 		elif exc_info:
@@ -339,6 +337,33 @@ class job:
 
 		# pass back the actual return value from the function
 		return result
+
+
+	def new_container(self, mbytes=None, cpus=None, root=None, name=None):
+		if grep('cpusets', '/proc/filesystems'):
+			print "Containers not enabled by latest reboot"
+			return  # containers weren't enabled in this kernel boot
+		pid = os.getpid()
+		if not root:
+			root = 'sys'
+		if not name:
+			name = 'test%d' % pid  # make arbitrary unique name
+		self.container = cpuset.cpuset(name, job_size=mbytes, 
+			job_pid=pid, cpus=cpus, root=root, cleanup=1)
+		# This job's python shell is now running in the new container
+		# and all forked test processes will inherit that container
+
+
+	def release_container(self):
+		if self.container:
+			self.container.release(job_pid=os.getpid())
+			self.container = None
+
+
+	def cpu_count(self):
+		if self.container:
+			return len(self.container.cpus)
+		return count_cpus()  # use total system count
 
 
 	# Check the passed kernel identifier against the command line
@@ -676,3 +701,4 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	myjob.group_level = 0
 	myjob.record('END GOOD', None, None)
 	myjob.complete(0)
+
