@@ -24,6 +24,8 @@ class iozone(test.test):
 
 
 	def execute(self, dir = None, iterations=1, args = None):
+		self.keyval = open(os.path.join(self.resultsdir, 'keyval'),
+		                   'w')
 		if not dir:
 			dir = self.tmpdir
 		os.chdir(dir)
@@ -32,17 +34,20 @@ class iozone(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system('%s/src/current/iozone %s' %
-				       (self.srcdir, args))
+				output = system_output('%s/src/current/iozone %s' %
+				                       (self.srcdir, args))
+				self.__format_results(output)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system('%s/src/current/iozone %s' % (self.srcdir, args))
+			output = system_output('%s/src/current/iozone %s' %
+			                       (self.srcdir, args))
+			self.__format_results(output)
 			profilers.stop(self)
 			profilers.report(self)
-			
-		self.__format_results(open(self.debugdir + '/stdout').read())
+
+		self.keyval.close()
 
 
 	def __format_results(self, results):
@@ -50,8 +55,7 @@ class iozone(test.test):
 			  'randwrite', 'bkwdread', 'recordrewrite',
 			  'strideread', 'fwrite', 'frewrite',
 			  'fread', 'freread')
-		out = open(self.resultsdir + '/keyval', 'w')
-		for line in results.split('\n'):
+		for line in results.splitlines():
 			fields = line.split()
 			if len(fields) != 15:
 				continue
@@ -60,6 +64,5 @@ class iozone(test.test):
 			except ValueError:
 				continue
 			for l, v in zip(labels, fields[2:]):
-				print >> out, "%d-%d-%s=%d" % (fields[0], fields[1], l, v)
-		print >> out
-		out.close()
+				print >> self.keyval, "%d-%d-%s=%d" % (fields[0], fields[1], l, v)
+		print >> self.keyval
