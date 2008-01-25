@@ -67,12 +67,14 @@ class cpuset:
 	#	print "final available", available
 		return available
 
-	def release(self):
+	def release(self, job_pid=None):
 		print "erasing ", self.cpudir
+		if not job_pid:
+			job_pid = os.getpid()
 		if self.delete_after_use:
 			# Transfer self to root
 			write_one_line(os.path.join(self.root, 'tasks'),
-			    "%d" % os.getpid())
+			    "%d" % job_pid)	
 			system("for i in `cat %s/tasks`; do kill -9 $i; done;sleep 3; rmdir %s" % (self.cpudir, self.cpudir))
 
 	def __init__(self, name, job_size, job_pid, cpus = None,
@@ -87,10 +89,11 @@ class cpuset:
 		self.root = os.path.join(self.super_root, root)
 		self.name = name
 		self.delete_after_use = 0
-		# 
+		#
+		if not job_size:  # default to all installed memory
+			job_size = memtotal() / 1024
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)"% \
 		    (name, root, job_size, job_pid)
-
 		self.memory = job_size
 		# Convert jobsize to bytes
 		job_size = job_size << 20

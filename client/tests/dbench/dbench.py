@@ -14,7 +14,9 @@ class dbench(test.test):
 		system('make')
 
 
-	def execute(self, iterations = 1, dir = None, nprocs = count_cpus(), args = ''):
+	def execute(self, iterations = 1, dir = None, nprocs = None, args = ''):
+		if not nprocs:
+			nprocs = self.job.cpu_count()
 		profilers = self.job.profilers
 		args = args + ' -c '+self.srcdir+'/client.txt'
 		if dir:
