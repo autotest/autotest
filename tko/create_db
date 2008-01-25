@@ -65,7 +65,8 @@ CREATE TABLE iteration_result(
 test_idx INTEGER,			-- ref to test table
 iteration INTEGER,			-- integer
 attribute VARCHAR(30),			-- attribute name (e.g. 'throughput')
-value FLOAT				-- attribute value (eg 700.1)
+value FLOAT,				-- attribute value (eg 700.1)
+KEY `test_idx` (`test_idx`)
 ) TYPE=InnoDB;
 
 -- status key
