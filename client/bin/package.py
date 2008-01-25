@@ -10,6 +10,11 @@ import os, os_dep, re
 from common.error import *
 from autotest_utils import *
 
+
+# As more package methods are implemented, this list grows up
+KNOWN_PACKAGE_MANAGERS = ['rpm', 'dpkg']
+
+
 def __rpm_info(rpm_package):
 	"""\
 	Private function that returns a dictionary with information about an 
@@ -174,8 +179,7 @@ def info(package):
 		raise ValueError('invalid file %s to verify' % package)
 	# Use file and libmagic to determine the actual package file type.
 	file_result = system_output('file ' + package)
-	known_package_managers = ['rpm', 'dpkg']
-	for package_manager in known_package_managers:
+	for package_manager in KNOWN_PACKAGE_MANAGERS:
 		if package_manager == 'rpm':
 			package_pattern = re.compile('RPM', re.IGNORECASE)
 		elif package_manager == 'dpkg':
@@ -193,10 +197,11 @@ def info(package):
 	raise PackageError('Unknown package type %s' % file_result)
 
 
-def install(package):
+def install(package, nodeps = False):
 	"""\
 	Tries to install a package file. If the package is already installed,
-	it prints a message to the user and ends gracefully.
+	it prints a message to the user and ends gracefully. If nodeps is set to
+	true, it will ignore package dependencies.
 	"""
 	my_package_info = info(package)
 	type = my_package_info['type']
@@ -209,10 +214,15 @@ def install(package):
 		% (type, package)
 		raise PackageError(e_msg)
 
+	opt_args = ''
 	if type == 'rpm':
-		install_command = 'rpm -U ' + package
+		if nodeps:
+			opt_args = opt_args + '--nodeps'
+		install_command = 'rpm %s -U %s' % (opt_args, package)
 	if type == 'dpkg':
-		install_command = 'dpkg -i ' + package
+		if nodeps:
+			opt_args = opt_args + '--force-depends'
+		install_command = 'dpkg %s -i %s' % (opt_args, package)
 
 	# RPM source packages can be installed along with the binary versions
 	# with this check
@@ -224,3 +234,59 @@ def install(package):
 	# least for now.
 	system(install_command)
 	return 'Package %s was installed successfuly' % package
+
+
+def convert(package, destination_format):
+	"""\
+	Convert packages with the 'alien' utility. If alien is not installed, it
+	throws a NotImplementedError exception.
+	returns: filename of the package generated.
+	"""
+	try:
+		os_dep.command('alien')
+	except:
+		e_msg = 'Cannot convert to %s, alien not installed' % destination_format
+		raise TestError(e_msg)
+
+	# alien supports converting to many formats, but its interesting to map
+	# convertions only for the implemented package types.
+	if destination_format == 'dpkg':
+		deb_pattern = re.compile('[A-Za-z0-9_.-]*[.][d][e][b]')
+		conv_output = system_output('alien --to-deb %s 2>/dev/null' % package)
+		return re.findall(deb_pattern, conv_output)[0]
+	elif destination_format == 'rpm':
+		rpm_pattern = re.compile('[A-Za-z0-9_.-]*[.][r][p][m]')
+		conv_output = system_output('alien --to-rpm %s 2>/dev/null' % package)
+		return re.findall(rpm_pattern, conv_output)[0]
+	else:
+		e_msg = 'Convertion to format %s not implemented' % destination_format
+		raise NotImplementedError(e_msg)
+
+	return 'Package %s successfuly converted to %s' % \
+	(package, destination_format)
+
+
+def os_support():
+	"""\
+	Returns a dictionary with host os package support info:
+	- rpm: True if system supports rpm packages, False otherwise
+	- dpkg: True if system supports dpkg packages, False otherwise
+	- conversion: True if the system can convert packages (alien installed),
+	or False otherwise
+	"""
+	support_info = {}
+	for package_manager in KNOWN_PACKAGE_MANAGERS:
+		try:
+			os_dep.command(package_manager)
+			support_info[package_manager] = True
+		except:
+			support_info[package_manager] = False
+
+	try:
+		os_dep.command('alien')
+		support_info['conversion'] = True
+	except:
+		support_info['conversion'] = False
+
+	return support_info
+
