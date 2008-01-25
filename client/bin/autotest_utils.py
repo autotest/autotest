@@ -15,8 +15,8 @@ def grep(pattern, file):
 	command = 'grep "%s" > /dev/null' % pattern
 	ret = cat_file_to_cmd(file, command, ignorestatus = 1)
 	return not ret
-	
-	
+
+
 def difflist(list1, list2):
 	"""returns items in list2 that are not in list1"""
 	diff = [];
@@ -217,10 +217,10 @@ def get_os_vendor():
 	"""Try to guess what's the os vendor
 	"""
 	issue = '/etc/issue'
-	
+
 	if not os.path.isfile(issue):
 		return 'Unknown'
-	
+
 	if file_contains_pattern(issue, 'Red Hat'):
 		return 'Red Hat'
 	elif file_contains_pattern(issue, 'Fedora Core'):
@@ -233,7 +233,7 @@ def get_os_vendor():
 		return 'Debian'
 	else:
 		return 'Unknown'
-	
+
 
 def get_vmlinux():
 	"""Return the full path to vmlinux
@@ -365,7 +365,7 @@ def system_output(command, ignorestatus = 0):
 	"""
 	(result, data) = commands.getstatusoutput(command)
 	if result != 0 and not ignorestatus:
-		raise CmdError('command failed: %s' % command, result)
+		raise CmdError('command failed: %s' % command, result >> 8)
 	return data
 
 
@@ -437,7 +437,7 @@ def avgtime_print(dir):
 			count += 1
 		except:
 			raise ValueError("badly formatted times")
-			
+
 	f.close()
 	return "Elapsed: %0.2fs User: %0.2fs System: %0.2fs CPU: %0.0f%%" % \
 	      (elapsed/count, user/count, system/count, cpu/count)
@@ -631,7 +631,7 @@ def load_module(module_name):
 	# Checks if a module has already been loaded
 	if module_is_loaded(module_name):
 		return False
-	
+
 	system('/sbin/modprobe ' + module_name)
 	return True
 
