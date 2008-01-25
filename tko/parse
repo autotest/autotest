@@ -1,14 +1,7 @@
 #!/usr/bin/python
-import os, re, parse, frontend, db, sys, socket, getopt
+import os, re, parse, frontend, db, sys, socket
+from optparse import OptionParser
 from traceback import format_exception
-
-usage = """\
-usage: parse
-	[-m]                           # Send mail for FAILED tests
-	[-r]                           # Reparse the results of a job
-	[-o directory]                 # Specify results directory directly
-	<top level results directory>  # Specify top level results directory
-"""
 
 def format_error():
 	t, o, tb = sys.exc_info()
@@ -19,43 +12,24 @@ def format_error():
 
 	return ''.join(trace)
 
+parser = OptionParser()
+parser.add_option('-m', help='Send mail for FAILED tests', dest='mailit',
+							action='store_true')
+parser.add_option('-r', help='Reparse the results of a job', dest='reparse',
+							action='store_true')
+parser.add_option('-o', help='one: parse a single results directory',
+					dest='singledir', action='store_true')
+parser.add_option('-l', help='levels of subdirectories to include in job name',
+					type='int', dest='level', default=1)
+(options, args) = parser.parse_args()
 
-try:
-	opts, args = getopt.getopt(sys.argv[1:], "hrmo:l:", ["help"])
-except getopt.GetoptError:
-	# print help information and exit:
-	print usage,
-	sys.exit(2)
+dir = os.path.abspath(args[0])
+assert os.path.exists(dir)
 
-if len(sys.argv) < 2:
-	print usage
-	sys.exit(2)
-
-singledir = None
-mailit = False
-reparse = False
-level = 1
-for name, value in opts:
-	if name in ("-h", "--help"):
-		usage()
-		sys.exit()
-	if name == "-m":
-		mailit = True
-	if name == "-r":
-		reparse = True
-	if name in ("-o"):
-		singledir = value
-	if name in ("-l"):
-		level = int(value)
-
-if singledir:
-	dir = os.path.abspath(singledir)
-	assert os.path.exists(dir)
+if options.singledir:
 	jobs_list = [dir]
 else:
-	topdir = os.path.abspath(args[0])
-	assert os.path.exists(topdir)
-	jobs_list = [os.path.join(topdir, dir) for dir in os.listdir(topdir)]
+	jobs_list = [os.path.join(dir, subdir) for subdir in os.listdir(dir)]
 
 debug = True
 
@@ -94,7 +68,7 @@ def do_parse(jobname, path):
 	Parse a single job. Optionally send email on failure, etc.
 	"""
 	dprint('\nScanning %s (%s)' % (jobname, path))
-	if reparse and db.find_job(jobname):
+	if options.reparse and db.find_job(jobname):
 		dprint('! Deleting old copy of job results, to reparse it')
 		db.delete_job(jobname)
 	if db.find_job(jobname):		# Job has already been parsed
@@ -120,7 +94,7 @@ def do_parse(jobname, path):
 					(jobname, job.kernel.base, test.subdir,
 					 test.status, test.reason)
 
-	if len(mesgtxt) > 2 and mailit:
+	if len(mesgtxt) > 2 and options.mailit:
 		print "Sending email report of FAILURES on %s to %s" % \
 							(jobname, job.user)
 		mailfailure(jobname, job, mesgtxt)
@@ -131,7 +105,8 @@ def do_parse(jobname, path):
 
 
 for path in jobs_list:
-	job_elements = path.split('/')[-level:] # last 'level' elements of path
+	job_elements = path.split('/')[-options.level:]
+					# last 'level' elements of path
 	jobname = '/'.join(job_elements)
 	machine_list = os.path.join(path, '.machines')
 	if os.path.exists(machine_list):
