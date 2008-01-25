@@ -26,6 +26,8 @@ class job:
 			Comes from os.environ['AUTODIR'].
 		bindir
 			<autodir>/bin/
+		libdir
+			<autodir>/lib/
 		testdir
 			<autodir>/tests/
 		profdir
@@ -61,6 +63,7 @@ class job:
 		"""
 		self.autodir = os.environ['AUTODIR']
 		self.bindir = os.path.join(self.autodir, 'bin')
+		self.libdir = os.path.join(self.autodir, 'lib')
 		self.testdir = os.path.join(self.autodir, 'tests')
 		self.profdir = os.path.join(self.autodir, 'profilers')
 		self.tmpdir = os.path.join(self.autodir, 'tmp')

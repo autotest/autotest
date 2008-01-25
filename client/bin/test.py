@@ -52,6 +52,7 @@ class test:
 		os.mkdir(self.debugdir)
 
 		self.bindir = bindir
+		self.libdir = job.libdir
 		self.srcdir = os.path.join(self.bindir, 'src')
 
 		self.tmpdir = os.path.join(job.tmpdir, tagged_testname)
