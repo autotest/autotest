@@ -195,7 +195,7 @@ class server_job:
 			raise AutoservError('No machines specified to repair')
 		namespace = {'machines' : self.machines, 'job' : self}
 		exec(preamble + repair, namespace, namespace)
-		self.repair()
+		self.verify()
 
 
 	def run(self, reboot = False, install_before = False,
