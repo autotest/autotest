@@ -190,4 +190,6 @@ class subcommand:
 				for line in open(self.stderr).readlines():
 					print line,
 			print "\n--------------------------------------------\n"
+			raise AutoservError('Subcommand failed:' +
+			'%s(%s) rc=%d' % (self.func, self.args, status))
 		return status
