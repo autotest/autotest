@@ -25,6 +25,7 @@ usage: autoserv
 	[-u user]                  # username for the job (email address)
 	[-v]                       # verify the machines only
 	[-R]                       # repair the machines
+	[-n]                       # no teeing the status to stdout/stderr
 	<control file>             # name of the control file to run
 	[args ...]                 # args to pass through to the control file
 """
@@ -49,6 +50,7 @@ install_before = parser.parse_opts('-i')
 install_after  = parser.parse_opts('-I')
 verify   = parser.parse_opts('-v')
 repair   = parser.parse_opts('-R')
+no_tee   = parser.parse_opts('-n')
 
 if getattr(hosts.site_host, 'site_parse_options', None):
 	hosts.site_host.site_parse_options(parser)
@@ -80,8 +82,13 @@ else:
 
 job = server_job.server_job(control, parser.args[1:], results, label,
 							user, machines, client)
-job.stdout.tee_redirect(os.path.join(results, 'debug', 'autoserv.stdout'))
-job.stderr.tee_redirect(os.path.join(results, 'debug', 'autoserv.stderr'))
+debug_dir = os.path.join(results, 'debug')
+if no_tee:
+	job.stdout.redirect(os.path.join(debug_dir, 'autoserv.stdout'))
+	job.stderr.redirect(os.path.join(debug_dir, 'autoserv.stderr'))
+else:
+	job.stdout.tee_redirect(os.path.join(debug_dir, 'autoserv.stdout'))
+	job.stderr.tee_redirect(os.path.join(debug_dir, 'autoserv.stderr'))
 
 if repair:
 	job.repair()
