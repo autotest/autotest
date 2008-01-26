@@ -18,7 +18,7 @@ def verify(machine):
 		autodir = autotest._get_autodir(host)
 		if autodir:
 			print 'Checking diskspace for %s on %s' % (machine, autodir)
-			check_diskspace(host, autodir, 100)
+			check_diskspace(host, autodir, 20)
 	except AutoservHostError:
 		raise		# only want to raise if it's a space issue
 	except:
