@@ -361,7 +361,7 @@ class _Run(object):
 	def verify_machine(self):
 		binary = os.path.join(self.autodir, 'bin/autotest')
 		try:
-			self.host.run('ls %s > /dev/null' % binary)
+			self.host.run('ls %s > /dev/null 2>&1' % binary)
 		except:
 			raise "Autotest does not appear to be installed"
 		tmpdir = os.path.join(self.autodir, 'tmp')
@@ -461,7 +461,7 @@ def _get_autodir(host):
 		return dir
 	try:
 		# There's no clean way to do this. readlink may not exist
-		cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf"
+		cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf 2> /dev/null"
 		dir = os.path.dirname(host.run(cmd).stdout)
 		if dir:
 			return dir
@@ -469,7 +469,7 @@ def _get_autodir(host):
 		pass
 	for path in ['/usr/local/autotest', '/home/autotest']:
 		try:
-			host.run('ls %s > /dev/null' % \
+			host.run('ls %s > /dev/null 2>&1' % \
 					 os.path.join(path, 'bin/autotest'))
 			return path
 		except AutoservRunError:
