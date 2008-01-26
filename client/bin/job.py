@@ -30,6 +30,8 @@ class job:
 			<autodir>/lib/
 		testdir
 			<autodir>/tests/
+		site_testdir
+			<autodir>/site_tests/
 		profdir
 			<autodir>/profilers/
 		tmpdir
@@ -65,6 +67,7 @@ class job:
 		self.bindir = os.path.join(self.autodir, 'bin')
 		self.libdir = os.path.join(self.autodir, 'lib')
 		self.testdir = os.path.join(self.autodir, 'tests')
+		self.site_testdir = os.path.join(self.autodir, 'site_tests')
 		self.profdir = os.path.join(self.autodir, 'profilers')
 		self.tmpdir = os.path.join(self.autodir, 'tmp')
 		self.resultdir = os.path.join(self.autodir, 'results', jobtag)
