@@ -50,7 +50,6 @@ class test:
 		os.mkdir(self.profdir)
 		self.debugdir = os.path.join(self.outputdir, 'debug')
 		os.mkdir(self.debugdir)
-
 		self.bindir = bindir
 		self.libdir = job.libdir
 		self.srcdir = os.path.join(self.bindir, 'src')
@@ -178,16 +177,25 @@ def runtest(job, url, tag, args, dargs):
 		(group, testname) = __installtest(job, url)
 		bindir = os.path.join(job.testdir, "download", group, testname)
 	else:
+		# If the test is local, it can be located on the tests dir or the 
+		# site_tests dir. Tests on site_tests override what's defined on tests.
 		(group, testname) = ('', url)
 		bindir = os.path.join(job.testdir, group, testname)
+		site_bindir = os.path.join(job.site_testdir, group, testname)
 
 	outputdir = os.path.join(job.resultdir, testname)
 
 	if (tag):
 		outputdir += '.' + tag
-	if not os.path.exists(bindir):
+
+	# If we can find the test on site_tests, we prefer this version over the
+	# others. If test is in none of these directories, then throw an exception.
+	if os.path.exists(site_bindir):
+		bindir = site_bindir
+		job.testdir = job.site_testdir
+	elif not os.path.exists(bindir):
 		raise TestError(testname + ": test does not exist")
-	
+
 	if group:
 		sys.path.insert(0, os.path.join(job.testdir, "download"))
 		group += '.'
