@@ -731,7 +731,7 @@ class SSHHost(base_classes.RemoteHost):
 
 
 	def ssh_ping(self, timeout = 60):
-		self.run('true', connect_timeout = timeout)
+		self.run('true', timeout = timeout, connect_timeout = timeout)
 
 
 	def get_autodir(self):
