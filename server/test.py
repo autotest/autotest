@@ -65,6 +65,11 @@ class test:
 		update_version(self.srcdir, self.preserve_srcdir, self.version, self.setup)
 
 
+	def assert_(self, expr, msg='Assertion failed.'):
+		if not expr:
+			raise TestError(msg)
+
+
 	def initialize(self):
 		pass
 
