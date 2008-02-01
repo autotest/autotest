@@ -38,10 +38,10 @@ class dacapo(test.test):
 		os.environ['PATH'] = self.java_bin + ':' + os.environ['PATH']
 
 
-	def execute(self, test = 'antlr', cfg = 'dacapo.cfg', jvm = 'sun14'):
-		# Load the test configuration file
-		config_file = os.path.join(self.bindir, cfg)
-		my_config = config_loader(filename = config_file)
+	def execute(self, test = 'antlr', config = './dacapo.cfg', jvm = 'ibm14-ppc64'):
+		# Load the test configuration. If needed, use autotest tmpdir to write
+		# files.
+		my_config = config_loader(config, self.tmpdir)
 		# Directory where we will cache the dacapo jar file
 		# and the jvm package files
 		self.cachedir = os.path.join(self.bindir, 'cache')
