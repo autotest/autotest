@@ -41,7 +41,7 @@ class RPMKernel(kernel.Kernel):
 		super(RPMKernel, self).__init__()
 
 	def install(self, host, label='autoserv',
-		    default=False, kernel_args = ''):
+		    default=False, kernel_args = '', install_vmlinux=False):
 		"""
 		Install a kernel on the remote host.
 		
@@ -72,6 +72,14 @@ class RPMKernel(kernel.Kernel):
 		host.send_file(rpm, remote_rpm)
 		host.run('rpm -e ' + rpm_package, ignore_status = True)
 		host.run('rpm --force -i ' + remote_rpm)
+
+		# Copy over the uncompressed image if there is one
+                if install_vmlinux:
+			vmlinux = self.get_vmlinux_name()
+			host.run('cd /;rpm2cpio %s | cpio -imuv .%s'
+				% (remote_rpm, vmlinux))
+			host.run('ls ' + vmlinux) # Verify
+
 		host.bootloader.remove_kernel(label)
 		host.bootloader.add_kernel(vmlinuz, label,
 					   args=kernel_args, default=default)
@@ -119,6 +127,28 @@ class RPMKernel(kernel.Kernel):
 		vmlinuz = utils.run('rpm -q -l -p %s \
 		| grep /boot/vmlinuz' % self.source_material).stdout.strip()
 		return vmlinuz
+
+
+	def get_vmlinux_name(self):
+		"""Get the name of the kernel image to be installed.
+		
+		Returns:
+			The full path to the kernel image file as it will be 
+			installed on the host. It is the uncompressed and
+			unstripped version of the kernel that can be used with
+			oprofile.
+		
+		Raises:
+			AutoservError: no package has yet been obtained. Call
+				RPMKernel.get() with a .rpm package.
+		"""
+		if self.source_material is None:
+			raise AutoservError("A kernel must first be \
+			specified via get()")
+		
+		vmlinux = utils.run('rpm -q -l -p %s \
+		| grep /boot/vmlinux' % self.source_material).stdout.strip()
+		return vmlinux
 
 
 	def get_initrd_name(self):
