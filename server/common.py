@@ -6,7 +6,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import os, sys
 
-dirname = os.path.dirname(__file__)
+dirname = os.path.dirname(sys.modules[__name__].__file__)
 top_level_dir = os.path.abspath(os.path.join(dirname, '..', 'client'))
 
 sys.path.insert(0, top_level_dir)
