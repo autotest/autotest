@@ -17,6 +17,9 @@ import time, types, urllib, re, sys, textwrap
 import hosts
 from common.error import *
 
+from common.utils import *
+
+
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
 
@@ -363,42 +366,6 @@ def unarchive(host, source_material):
 			retval.stdout.split()[0])
 
 	return source_material
-
-
-def write_keyval(dirname, dictionary):
-	keyval = open(os.path.join(dirname, 'keyval'), 'w')
-	for key in dictionary.keys():
-		value = '%s' % dictionary[key]     # convert numbers to strings
-		if re.search(r'\W', key):
-			raise ValueError('Invalid key: %s' % key)
-		keyval.write('%s=%s\n' % (key, str(value)))
-	keyval.close()
-
-
-def update_version(srcdir, preserve_srcdir, new_version, install, *args, **dargs):
-	"""
-	Make sure srcdir is version new_version
-
-	If not, delete it and install() the new version.
-
-	In the preserve_srcdir case, we just check it's up to date,
-	and if not, we rerun install, without removing srcdir
-	"""
-	versionfile = srcdir + '/.version'
-	install_needed = True
-
-	if os.path.exists(srcdir):
-		if os.path.exists(versionfile):
-			old_version = pickle.load(open(versionfile, 'r'))
-			if (old_version == new_version):
-				install_needed = False
-
-	if install_needed:
-		if not preserve_srcdir:
-			system('rm -rf ' + srcdir)
-		install(*args, **dargs)
-		if os.path.exists(srcdir):
-			pickle.dump(new_version, open(versionfile, 'w'))
 
 
 def get_server_dir():
