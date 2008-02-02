@@ -5,6 +5,9 @@ import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob,statvfs
 from common.error import *
 import re,string,fnmatch
 
+from common.utils import *
+
+
 def grep(pattern, file):
 	"""
 	This is mainly to fix the return code inversion from grep
@@ -66,79 +69,6 @@ def extract_tarball(tarball):
 		if (os.path.isdir(newfile)):
 			return newfile
 	raise NameError, "extracting tarball produced no dir"
-
-
-def update_version(srcdir, preserve_srcdir, new_version, install, *args, **dargs):
-	"""
-	Make sure srcdir is version new_version
-
-	If not, delete it and install() the new version.
-
-	In the preserve_srcdir case, we just check it's up to date,
-	and if not, we rerun install, without removing srcdir
-	"""
-	versionfile = srcdir + '/.version'
-	install_needed = True
-
-	if os.path.exists(srcdir):
-		if os.path.exists(versionfile):
-			old_version = pickle.load(open(versionfile, 'r'))
-			if (old_version == new_version):
-				install_needed = False
-
-	if install_needed:
-		if not preserve_srcdir:
-			system('rm -rf ' + srcdir)
-		install(*args, **dargs)
-		if os.path.exists(srcdir):
-			pickle.dump(new_version, open(versionfile, 'w'))
-
-
-def is_url(path):
-	"""true if path is a url
-	"""
-	# should cope with other url types here, but we only handle http and ftp
-	if (path.startswith('http://')) or (path.startswith('ftp://')):
-		return 1
-	return 0
-
-
-def get_file(src, dest, permissions = None):
-	"""get a file, either from url or local"""
-	if (src == dest):      # no-op here allows clean overrides in tests
-		return
-	if (is_url(src)):
-		print 'PWD: ' + os.getcwd()
-		print 'Fetching \n\t', src, '\n\t->', dest
-		try:
-			urllib.urlretrieve(src, dest)
-		except IOError:
-			sys.stderr.write("Unable to retrieve %s (to %s)\n" % (src, dest))
-			sys.exit(1)
-	else:
-		shutil.copyfile(src, dest)
-	if permissions:
-		os.chmod(dest, permissions)
-	return dest
-
-
-def unmap_url(srcdir, src, destdir = '.'):
-	"""
-	Receives either a path to a local file or a URL.
-	returns either the path to the local file, or the fetched URL
-
-	unmap_url('/usr/src', 'foo.tar', '/tmp')
-				= '/usr/src/foo.tar'
-	unmap_url('/usr/src', 'http://site/file', '/tmp')
-				= '/tmp/file'
-				(after retrieving it)
-	"""
-	if is_url(src):
-		dest = os.path.join(destdir, os.path.basename(src))
-		get_file(src, dest)
-		return dest
-	else:
-		return os.path.join(srcdir, src)
 
 
 def get_md5sum(file_path):
@@ -581,20 +511,6 @@ def read_keyval(path):
 			value = float(value)
 		keyval[key] = value
 	return keyval
-
-
-def write_keyval(path, dictionary):
-	# Write a key-value pair format file from a dictionary
-	# Takes either a filename or directory name as input. If it's a
-	# directory name, we assume you want the file to be called keyval
-	if os.path.isdir(path):
-		path = os.path.join(path, 'keyval')
-	keyval = open(path, 'a')
-	for key in dictionary.keys():
-		if re.search(r'\W', key):
-			raise ValueError('Invalid key: ' + key)
-		keyval.write('%s=%s\n' % (key, str(dictionary[key])))
-	keyval.close()
 
 
 # much like find . -name 'pattern'
