@@ -139,7 +139,7 @@ def print_main_header():
 	print 'a { text-decoration: none }'
 	print '</style></head>'
 	print '<h2>'
-	print '<a href="machine_kernel.cgi">Functional</a>'
+	print '<a href="compose_query.cgi">Functional</a>'
 	print '&nbsp&nbsp&nbsp'
 	print '<a href="machine_benchmark.cgi">Performance</a>'
 	print '&nbsp&nbsp&nbsp'
