@@ -1,0 +1,27 @@
+#!/bin/bash
+# Filename:lsb_download
+# This is the script to download the lsb-dtk tool
+#
+# 18-01-2008 
+#       - Created by Pavan Naregundi <pnaregun@in.ibm.com>
+#
+case `uname -p` in
+	i386 | i486 | i586 | i686 | athlon)	arch=ia32 ;;
+	ppc)	arch=ppc32 ;;
+	ppc64)	arch=ppc64 ;;
+	s390)	arch=s390 ;;
+	s390x)	arch=s390x ;;
+ 	ia64)   arch=ia64 ;;
+	x86_64)	arch=x86_64 ;;
+	unknown)exit 2;;
+	*)	exit 2;;
+esac
+
+wget -q -O lsb-dist-testkit-3.1.1-5.tar.gz \
+	http://ftp.freestandards.org/pub/lsb/bundles/released-3.1.1/dist-testkit/lsb-dist-testkit-3.1.1-5.$arch.tar.gz	
+
+if [ $? -ne 0 ]; then
+    echo "Download failed"
+    exit 2
+fi
+
