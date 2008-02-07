@@ -39,7 +39,9 @@ CREATE TABLE jobs (
 job_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY,	-- index number
 tag VARCHAR(100) unique KEY,		-- job key
 label VARCHAR(100),                     -- job label assigned by user
+INDEX (label),
 username VARCHAR(80),			-- user name
+INDEX (username),
 machine_idx INT(10) unsigned NOT NULL,	-- reference to machine table
 INDEX (machine_idx),
 FOREIGN KEY (machine_idx) REFERENCES machines(machine_idx) ON DELETE CASCADE
