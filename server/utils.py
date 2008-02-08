@@ -250,7 +250,7 @@ def run(command, timeout=None, ignore_status=False,
 	"""
 	result = CmdResult(command)
 	sp = subprocess.Popen(command, stdout=subprocess.PIPE,
-			      stderr=subprocess.PIPE, close_fds=True,
+			      stderr=subprocess.PIPE,
 			      shell=True, executable="/bin/bash")
 	stdout_file = StringIO.StringIO()
 	stderr_file = StringIO.StringIO()
