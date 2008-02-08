@@ -106,7 +106,8 @@ class subcommand:
 			if not os.path.exists(self.subdir):
 				os.mkdir(self.subdir)
 			self.debug = os.path.join(self.subdir, 'debug')
-			os.mkdir(self.debug)
+			if not os.path.exists(self.debug):
+				os.mkdir(self.debug)
 			self.stdout = os.path.join(self.debug, 'stdout')
 			self.stderr = os.path.join(self.debug, 'stderr')
 		else:
