@@ -103,9 +103,8 @@ class subcommand:
 		# stdprint   - whether to print results to stdout/stderr
 		if subdir:
 			self.subdir = os.path.abspath(subdir)
-			if os.path.exists(self.subdir):
-				os.system("rm -rf %s" % self.subdir)
-			os.mkdir(self.subdir)
+			if not os.path.exists(self.subdir):
+				os.mkdir(self.subdir)
 			self.debug = os.path.join(self.subdir, 'debug')
 			os.mkdir(self.debug)
 			self.stdout = os.path.join(self.debug, 'stdout')
