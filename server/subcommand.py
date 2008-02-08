@@ -176,14 +176,14 @@ class subcommand:
 			if not pid:
 				utils.nuke_pid(self.pid)
 				print "subcommand failed pid %d" % self.pid
-				print "%s(%s)" % (self.func, self.args)
+				print "%s" % (self.func,)
 				print "timeout after %ds" % timeout
 				print
 				return None
 
 		if status != 0:
 			print "subcommand failed pid %d" % pid
-			print "%s(%s)" % (self.func, self.args)
+			print "%s" % (self.func,)
 			print "rc=%d" % status
 			print
 			if os.path.exists(self.stderr):
@@ -191,5 +191,5 @@ class subcommand:
 					print line,
 			print "\n--------------------------------------------\n"
 			raise AutoservError('Subcommand failed:' +
-			'%s(%s) rc=%d' % (self.func, self.args, status))
+					    '%s rc=%d' % (self.func, status))
 		return status
