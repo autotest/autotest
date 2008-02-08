@@ -59,16 +59,35 @@ class Bootloader(object):
 		return self.__run_boottool('--default').stdout.strip()
 
 
+	def __get_info(self, info_id):
+		retval = self.__run_boottool('--info=%s' % info_id).stdout
+
+		results = []
+		info = {}
+		for line in retval.splitlines():
+			if line == '':
+				if info != {}:
+					results.append(info)
+					info = {}
+			else:
+				key, val = line.split(":", 1)
+				info[key.strip()] = val.strip()
+		if info != {}:
+			results.append(info)
+
+		return results
+
+
 	def get_info(self, index):
-		retval= self.__run_boottool(
-			'--info=%s' % index).stdout.strip().split("\n")
-		
-		result= {}
-		for line in retval:
-			(key, val,)= line.split(":")
-			result[key.strip()]= val.strip()
-		
-		return result
+		results = self.__get_info(index)
+		if info:
+			return info[0]
+		else:
+			return {}
+
+
+	def get_all_info(self):
+		return self.__get_info('all')
 
 
 	def set_default(self, index):
