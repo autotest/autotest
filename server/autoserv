@@ -76,6 +76,8 @@ if machines:
 		if not machine or re.search('\s', machine):
 			print "Invalid machine %s" % str(machine)
 			sys.exit(1)
+	machines = list(set(machines))
+	machines.sort()
 
 # We have a control file unless it's just a verify/repair job
 if len(parser.args) > 0:
