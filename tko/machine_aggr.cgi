@@ -45,7 +45,7 @@ def main():
 	for benchmark, key in zip(benchmark_idx, key_idx):
 		reference_value = None
 		data = {}
-		where = { 'subdir' : benchmark, 'machine_idx' : machine.idx }
+		where = { 'subdir' : benchmark, 'machine_idx' : machine.idx , 'status' : 6}
 
 		#select the corresponding kernels and sort by the release version
 		kernels = set([])
