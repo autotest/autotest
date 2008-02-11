@@ -95,7 +95,7 @@ class Autotest(installable_object.InstallableObject):
 			host = self.host
 		if not self.got:
 			self.get()
-		host.ensure_up()
+		host.wait_up(timeout=30)
 		host.setup()
 		print "Installing autotest on %s" % host.hostname
 
@@ -170,7 +170,7 @@ class Autotest(installable_object.InstallableObject):
 		if not self.installed:
 			self.install(host)
 
-		host.ensure_up()
+		host.wait_up(timeout=30)
 		
 		atrun = _Run(host, results_dir)
 		try:
@@ -204,7 +204,7 @@ class Autotest(installable_object.InstallableObject):
 		finally:
 			# make an effort to wait for the machine to come up
 			try:
-				host.ensure_up()
+				host.wait_up(timeout=30)
 			except AutoservError:
 				# don't worry about any errors, we'll try and
 				# get the results anyway
