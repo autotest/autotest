@@ -78,19 +78,40 @@ class SSHHost(base_classes.RemoteHost):
 			self.conmux_attach = os.path.abspath(os.path.join(
 						self.serverdir, '..',
 						'conmux', 'conmux-attach'))
-		self.logger_pid = None
+		self.logger_popen = None
 		self.__start_console_log(conmux_log)
-		self.warning_pid = None
+		self.warning_popen = None
 		self.__start_warning_log(conmux_warnings)
 
 		self.bootloader = bootloader.Bootloader(self)
 
 		self.__netconsole_param = ""
-		self.netlogger_pid = None
+		self.netlogger_popen = None
 		if netconsole_log:
 			self.__init_netconsole_params(netconsole_port)
 			self.__start_netconsole_log(netconsole_log, netconsole_port)
 			self.__load_netconsole_module()
+
+
+	@staticmethod
+	def __kill(popen, kill_pg):
+		return_code = popen.poll()
+		if return_code is not None:
+			return
+
+		# return_code is None -> child is still running
+		if kill_pg:
+			pgid = os.getpgid(popen.pid)
+			assert pgid != os.getpgid(0)
+			try:
+				os.killpg(pgid, signal.SIGTERM)
+			except OSError:
+				pass
+		else:
+			try:
+				os.kill(popen.pid)
+			except OSError:
+				pass
 
 
 	def __del__(self):
@@ -103,26 +124,15 @@ class SSHHost(base_classes.RemoteHost):
 			except AutoservRunError:
 				pass
 		# kill the console logger
-		if getattr(self, 'logger_pid', None):
-			try:
-				pgid = os.getpgid(self.logger_pid)
-				os.killpg(pgid, signal.SIGTERM)
-			except OSError:
-				pass
+		if getattr(self, 'logger_popen', None):
+			self.__kill(self.logger_popen, True)
 		# kill the netconsole logger
-		if getattr(self, 'netlogger_pid', None):
+		if getattr(self, 'netlogger_popen', None):
 			self.__unload_netconsole_module()
-			try:
-				os.kill(self.netlogger_pid, signal.SIGTERM)
-			except OSError:
-				pass
+			self.__kill(self.netlogger_popen, False)
 		# kill the warning logger
-		if getattr(self, 'warning_pid', None):
-			try:
-				pgid = os.getpgid(self.warning_pid)
-				os.killpg(pgid, signal.SIGTERM)
-			except OSError:
-				pass
+		if getattr(self, 'warning_popen', None):
+			self.__kill(self.warning_popen, True)
 
 
 	def __init_netconsole_params(self, port):
@@ -169,8 +179,8 @@ class SSHHost(base_classes.RemoteHost):
 		if logfilename == None:
 			return
 		cmd = ['nc', '-u', '-l', '-p', str(port)]
-		logger = subprocess.Popen(cmd, stdout=open(logfilename, "a", 0))
-		self.netlogger_pid = logger.pid
+		logfile = open(logfilename, 'a', 0)
+		self.netlogger_popen = subprocess.Popen(cmd, stdout=logfile)
 
 
 	def __load_netconsole_module(self):
@@ -239,11 +249,12 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
 			return
-		cmd = [self.conmux_attach, self.__conmux_hostname(), 'cat - >> %s' % logfilename]
-		logger = subprocess.Popen(cmd,
-					  stderr=open('/dev/null', 'w'),
-					  preexec_fn=lambda: os.setpgid(0, 0))
-		self.logger_pid = logger.pid
+		cmd = [self.conmux_attach, self.__conmux_hostname(),
+		       'cat - >> %s' % logfilename]
+		dev_null = open('/dev/null', 'w')
+		setpg = lambda: os.setpgid(0, 0)
+		self.logger_popen = subprocess.Popen(cmd, stderr=dev_null,
+						     preexec_fn=setpg)
 
 
 	def __start_warning_log(self, logfilename):
@@ -258,11 +269,12 @@ class SSHHost(base_classes.RemoteHost):
 						     logfilename)
 		if self.conmux_server:
 			to = '%s/%s'
-		cmd = [self.conmux_attach, self.__conmux_hostname(), script_cmd]
-		logger = subprocess.Popen(cmd,
-					  stderr=open('debug/conmux.log', 'a', 0),
-					  preexec_fn=lambda: os.setpgid(0, 0))
-		self.warning_pid = logger.pid
+		cmd = [self.conmux_attach, self.__conmux_hostname(),
+		       script_cmd]
+		logfile = open('debug/conmux.log', 'a', 0)
+		setpg = lambda: os.setpgid(0, 0)
+		self.warning_popen = subprocess.Popen(cmd, stderr=logfile,
+						      preexec_fn=setpg)
 
 
 	def __console_run(self, cmd):
