@@ -60,6 +60,15 @@ class InstallError(JobError):
 	"""Indicates an installation error which Terminates and fails the job."""
 	pass
 
+class AutotestRunError(AutotestError):
+	pass
+
+class AutotestTimeoutError(AutotestError):
+	"""This exception is raised when an autotest test exceeds the timeout
+	parameter passed to run_timed_test and is killed.
+	"""
+
+
 # server-specific errors
 
 class AutoservError(Exception):
