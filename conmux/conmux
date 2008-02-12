@@ -1040,7 +1040,8 @@ sub mux_input {
 			}
 			if ($$input =~ s/^~\$//s) {
 				$self->{'cmd'} = '>';
-				$self->junctionInput($self, "\r\nCommand> ");
+				my $title = $self->payload->title;
+				$self->junctionInput($self, "\r\nCommand($title)> ");
 				next;
 			}
 			# Its not an escape ... pass it on.
