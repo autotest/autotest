@@ -37,13 +37,7 @@ HALT_TIME = 300
 BOOT_TIME = 1800
 
 
-class AutotestRunError(AutoservRunError):
-	pass
 
-class AutotestTimeoutError(AutoservRunError):
-	"""This exception is raised when an autotest test exceeds the timeout
-	parameter passed to run_timed_test and is killed.
-	"""
 
 
 class Autotest(installable_object.InstallableObject):
