@@ -130,6 +130,7 @@ class job:
 		statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN',
 								'GOOD', 'ALERT']
 		reboot_inprogress = 0	# Saw reboot start and not finish
+		boot_count = 0
 		alert_pending = None	# Saw an ALERT for this test
 		group_subdir = None
 		sought_level = 0        # we log events at indent level 0
@@ -206,9 +207,10 @@ class job:
 				reboot_inprogress = 1
 				continue
 			if testname == 'reboot.verify':
-				testname = 'boot'
+				testname = 'boot.%d' % boot_count
 				dprint('reboot verified')
 				reboot_inprogress = 0
+				boot_count += 1
 			if alert_pending:
 				status = 'ALERT'
 				reason = alert_pending
