@@ -608,6 +608,20 @@ def probe_cpus():
 	return output.splitlines()
 
 
+def ping_default_gateway():
+	"""Ping the default gateway."""
+	
+	network = open('/etc/sysconfig/network')
+	m = re.search('GATEWAY=(\S+)', network.read())
+
+	if m:
+		gw = m.group(1)
+		cmd = 'ping %s -c 5 > /dev/null' % gw
+		return system(cmd, ignorestatus = True)
+	
+	raise TestError('Unable to find default gateway')
+
+
 try:
 	from site_utils import *
 except ImportError:
