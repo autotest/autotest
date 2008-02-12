@@ -70,6 +70,11 @@ class db_sql:
 		self.con.commit()
 
 
+	def get_last_autonumber_value(self):
+		self.cur.execute('SELECT LAST_INSERT_ID()', [])
+		return self.cur.fetchall()[0][0]
+
+
 	def select(self, fields, table, where, wherein={}, distinct = False,
 							group_by = None):
 		"""\
@@ -215,7 +220,7 @@ class db_sql:
                                      'username': job.user,
 		                     'machine_idx':job.machine_idx},
                                      commit=commit)
-		job.index = self.find_job(tag)
+		job.index = self.get_last_autonumber_value()
 		for test in job.tests:
 			self.insert_test(job, test, commit=commit)
 
@@ -227,7 +232,7 @@ class db_sql:
 			'status':self.status_idx[test.status],
 			'reason':test.reason, 'machine_idx':job.machine_idx }
 		self.insert('tests', data, commit=commit)
-		test_idx = self.find_test(job.index, test.subdir)
+		test_idx = self.get_last_autonumber_value()
 		data = { 'test_idx':test_idx }
 
 		for i in test.iterations:
@@ -264,7 +269,7 @@ class db_sql:
 		              'machine_group' : group ,
 			      'owner' : job.machine_owner },
 		            commit=commit)
-		return self.lookup_machine(hostname)
+		return self.get_last_autonumber_value()
 
 
 	def lookup_machine(self, hostname):
@@ -295,7 +300,7 @@ class db_sql:
 		             'printable':kernel.base},
 		            commit=commit)
 		# WARNING - incorrectly shoving base into printable here.
-		kver = self.lookup_kernel(kernel)
+		kver = self.get_last_autonumber_value()
 		for patch in kernel.patches:
 			self.insert_patch(kver, patch, commit=commit)
 		return kver
