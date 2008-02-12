@@ -289,7 +289,9 @@ def system(command, timeout=None, ignore_status=False):
 
 
 def system_output(command, timeout=None, ignore_status=False):
-	return run(command, timeout, ignore_status).stdout
+	out = run(command, timeout, ignore_status).stdout
+	if out[-1:] == '\n': out = out[:-1]
+	return out
 
 
 def get_tmp_dir():
