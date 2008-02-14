@@ -45,7 +45,8 @@ class dacapo(test.test):
 		# Directory where we will cache the dacapo jar file
 		# and the jvm package files
 		self.cachedir = os.path.join(self.bindir, 'cache')
-		system('mkdir -p ' + self.cachedir)
+		if not os.path.isdir(self.cachedir):
+			os.makedirs(self.cachedir)
 
 		# Get dacapo jar URL
 		# (It's possible to override the default URL that points to the 
