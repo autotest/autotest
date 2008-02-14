@@ -46,11 +46,14 @@ class lsb_dtk(test.test):
 			os.symlink(self.baselib_path, self.lib_path)
 
 
-	def install_lsb_packages(self, lsb_pkg_path):
+	def install_lsb_packages(self, lsb_pkg_path, my_config):
 		if not os.path.isdir(lsb_pkg_path):
 			raise IOError('Invalid lsb packages path %s' % lsb_pkg_path)
 		# Try to find the inst_config, that contains LSB rpm name info.
 		os.chdir(lsb_pkg_path)
+		self.dtk_manager_arch = my_config.get('lsb', 'dtk-manager_arch-%s' % self.get_lsb_arch())
+		self.dtk_manager_url = my_config.get('lsb', 'dtk-manager_url') % self.dtk_manager_arch
+		self.dtk_manager = unmap_url(self.bindir, self.dtk_manager_url, '.')
 		if not os.path.isfile('inst-config'):
 			raise IOError('Could not find file with package info, inst-config')
 		# Let's assemble the rpm list
@@ -59,6 +62,8 @@ class lsb_dtk(test.test):
 		self.lsb_pkg_list = []
 		for self.line in self.rpm_file_list.readlines():
 			try:
+				self.line = self.line.replace('lsb-dtk-manager-1.0.3-1.%s.rpm \\' % self.dtk_manager_arch, \
+								'lsb-dtk-manager-1.5.5-1.%s.rpm \\' % self.dtk_manager_arch)
 				self.line = re.findall(self.pkg_pattern, self.line)[0]
 				print self.line
 				self.lsb_pkg_list.append(self.line)
@@ -120,7 +125,7 @@ class lsb_dtk(test.test):
 			self.lsb_pkg = unmap_url(self.bindir, self.lsb_url, self.tmpdir)
 
 		extract_tarball_to_dir(self.lsb_pkg, self.srcdir)
-		self.install_lsb_packages(self.srcdir)
+		self.install_lsb_packages(self.srcdir, my_config)
 		self.link_lsb_libraries(my_config)
 
 		self.main_script_path = my_config.get('lsb', 'main_script_path')
