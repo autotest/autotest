@@ -1,0 +1,204 @@
+body {
+  margin-top: 0px;
+}
+
+.data-table {
+  border: 2px solid #A0A0A0;
+}
+
+.data-table td {
+  margin: 0;
+  padding: 0.2em 0.4em;
+  white-space: nowrap;
+}
+
+.data-row-header {
+  background: #AACCFF;
+  font-weight: bold;
+}
+
+.data-row-header-sortable {
+  cursor: pointer;
+}
+
+.data-row-header-sortable td:hover {
+  background: #6699FF;
+}
+
+.data-row {
+  background: white;
+}
+
+.data-row-alternate {
+  background: #CCDDFF;
+}
+
+tr.data-row-clickable {
+  cursor: pointer;
+}
+
+tr.data-row-clickable:hover {
+  background: #FFFFBB;
+}
+
+.gwt-TabBar .gwt-TabBarItem {
+  background: #CCDDFF;
+  margin-right: 2px;
+  padding: 0.2em;
+  padding-left: 0.4em;
+  padding-right: 0.4em;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.gwt-TabBar .gwt-TabBarItem-selected {
+  background: #003399;
+  color: white;
+  cursor: default;
+}
+
+.gwt-TabPanelBottom {
+  border: 2px solid #6699FF;
+  padding: 5px;
+}
+
+.job-control {
+  margin-bottom: 0.5em;
+}
+
+.job-filter-link {
+  padding: 0.3em;
+  margin-right: 1em;
+}
+
+.selected-link {
+  background-color: #AACCFF;
+}
+
+.box {
+  border: 1px solid #CCDDFF;
+  padding: 0.2em;
+  margin: 0.2em;
+}
+
+.box-full {
+  background: #CCDDFF;
+  padding: 0.2em;
+  margin: 0.2em;
+}
+
+.title {
+  font-weight: bold;
+  font-size: larger;
+}
+
+#job_id_fetch {
+  padding: 0.2em 0.2em 0.4em 0.2em;
+  margin: 0.1em;
+}
+
+.form-table {
+}
+
+.form-table td {
+  vertical-align: top;
+}
+
+.gwt-CheckBox {
+  margin-right: 1em;
+}
+
+.field-name {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.gwt-DisclosurePanel {
+  border: 1px solid gray;
+  padding: 0.2em;
+}
+
+.gwt-DisclosurePanel .header {
+  cursor: pointer;
+}
+
+.gwt-DisclosurePanel a.header {
+  text-decoration: none;
+}
+
+.gwt-DisclosurePanel .gwt-Label {
+  text-decoration: underline;
+}
+
+.filter-box {
+  margin-left: 1em;
+}
+
+.gwt-Button {
+  margin: 0.2em;
+}
+
+.results-frame {
+  width: 700px;
+  height: 500px;
+  margin-bottom: 0.2em;
+  border: 2px solid gray;
+}
+
+.gwt-DialogBox {
+  background: white;
+  border: 2px solid #AACCFF;
+  width: 30em;
+  text-align: center;
+  cursor: default;
+}
+
+.gwt-DialogBox .Caption {
+  background: #AACCFF;
+  font-weight: bold;
+  text-align: center;
+}
+
+.notify {
+  background: #CCDDFF;
+  padding: 0.2em;
+  border: 1px solid black;
+  position: fixed;
+}
+
+.error {
+  color: red;
+}
+
+.gwt-TextArea {
+  border: 1px solid black;
+}
+
+.gwt-TextArea-readonly {
+  background: #F0F0F0;
+}
+
+.help {
+  font-style: italic;
+  text-align: left;
+  width: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
+.paginator-link {
+  padding: 0 0.2em;
+}
+
+.links-box {
+  border: 2px solid #AACCFF;
+  background: #CCDDFF;
+  font-size: larger;
+  padding: 0.2em;
+}
+
+.extra-space-left {
+  margin-left: 1em;
+}

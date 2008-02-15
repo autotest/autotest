@@ -1,0 +1,5 @@
+#!/bin/sh
+APPDIR=`dirname $0`;
+GWTDIR=`$APPDIR/gwt_dir`;
+javadoc -classpath "$APPDIR/src:$GWTDIR/gwt-user.jar" -d doc -public \
+  afeclient.client

@@ -1,0 +1,3 @@
+Include "/usr/local/autotest/apache/conf/tko-directives"
+Include "/usr/local/autotest/apache/conf/django-directives"
+Include "/usr/local/autotest/apache/conf/site-directives"
