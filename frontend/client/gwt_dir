@@ -1,0 +1,2 @@
+#!/bin/sh
+echo /usr/local/lib/gwt
