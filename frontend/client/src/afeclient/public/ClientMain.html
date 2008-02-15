@@ -1,0 +1,118 @@
+<html>
+  <head>
+    <title>Autotest Frontend</title>
+    <script language='javascript' src='afeclient.ClientMain.nocache.js'>
+    </script>
+  </head>
+
+  <body>
+    <!-- gwt history support -->
+    <iframe src="javascript:''" id="__gwt_historyFrame" 
+            style="width:0;height:0;border:0"></iframe>
+
+    
+    <span class="links-box" style="float: right;">
+      <b>Links</b><br>
+      <a href="server/admin">Admin interface</a><br>
+      <a href="/tko">Results database</a><br>
+      <a href="http://test.kernel.org/autotest">Documentation</a><br>
+    </span>
+    <img src="header.png" />
+    <br /><br />
+    
+    <div id="tabs" class="hidden">
+      <div id="job_list" title="Job List">
+        <div id="job_control_links" class="job-control"></div>
+        <div class="job-control">
+          View jobs for user: <span id="user_list"></span>
+        </div>
+        <div id="job_pagination"></div>
+        <div id="job_table"></div>
+      </div>
+      
+      <div id="view_job"  title="View Job">
+        <span id="job_id_fetch" class="box-full">Fetch job by ID:
+          <span id="job_id_fetch_controls"></span>
+        </span><br><br>
+        <div id="view_title" class="title"></div><br>
+        <div id="view_data">
+          <span class="field-name">Label:</span>
+          <span id="view_label"></span><br>
+          <span class="field-name">Owner:</span>
+          <span id="view_owner"></span><br>
+          <span class="field-name">Priority:</span>
+          <span id="view_priority"></span><br>
+          <span class="field-name">Created:</span>
+          <span id="view_created"></span><br>
+          <span class="field-name">Status:</span>
+          <span id="view_status"></span>
+          <span id="view_abort"></span><br>
+          
+           <span class="field-name">
+             <span id="view_control_type"></span> control file 
+             (<span id="view_synch_type"></span>):
+           </span>
+          <pre><div id="view_control_file" class="box"></div></pre>
+          <span class="field-name">
+            Full results
+            <a id="results_link" target="_blank">(open in new window)</a>
+            <a id="raw_results_link" target="_blank">(raw results logs)</a><br>
+          </span>
+          
+          <iframe src="javascript:''" id="results_iframe" class="results-frame">
+          </iframe><br>
+          
+          <span class="field-name">Hosts</span>
+          <div id="job_hosts_table"></div>
+        </div>
+      </div>
+      
+      <div id="create_job"  title="Create Job">
+        <table class="form-table">
+          <tr><td class="field-name">Job name:</td>
+              <td id="create_job_name"></td><td></td></tr>
+          <tr><td class="field-name">Priority:</td>
+              <td id="create_priority"></td><td></td></tr>
+          <tr><td class="field-name">Kernel:</td>
+              <td id="create_kernel"></td><td></td></tr>
+          <tr><td class="field-name">Client tests:</td>
+              <td id="create_client_tests" colspan="2"></td></tr>
+          <tr><td class="field-name">Server tests:</td>
+              <td id="create_server_tests" colspan="2"></td></tr>
+          <tr><td colspan="3" id="create_edit_control"></td></tr>
+          <tr>
+            <td colspan="3" class="box">
+              <table><tr>
+                <td>
+                  <div class="box-full">
+                    Run on any <span id="create_meta_select"></span><br>
+                    Number: <span id="create_meta_number"></span>
+                    <span id="create_meta_button"></span>
+                  </div>
+                  <span class="field-name">Available hosts: </span>
+                  <span class="help">(Click on a host to add it)</span>
+                  <div id="create_available_table"></div>
+                  <div id="create_available_controls"></div>
+                </td>
+                <td>
+                  <span class="field-name">Selected hosts:</span>
+                  <span class="help">(Click on a host to remove it)</span>
+                  <div id="create_selected_table"></div>
+                  <div id="create_selected_controls"></div>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+          <tr><td colspan="3" id="create_submit"></td></tr>
+        </table>
+      </div>
+      
+      <div id="hosts" title="Hosts">
+        <div id="hosts_list"></div>
+      </div>
+    </div>
+    
+    <!--  for debugging only -->
+    <div id="error_display"></div>
+  </body>
+</html>
