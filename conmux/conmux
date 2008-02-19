@@ -979,6 +979,11 @@ sub mux_input {
 			$reply->{'title'} = $payload->title . ' [channel ' .
 				$payload->state() . ']';
 			$reply->{'state'} = $payload->state();
+			# Get connected clients and pass back as the motd
+			for my $cl (keys(%{$payload->cout})) {
+				reply->{'motd'} .= '(' . $payload->cout->{$cl}->id;
+				$reply->{'motd'} .= ") is already connected\n";
+			}
 
 			$data->payload($payload);
 			$args{'type'} = 'client' if (!$args{'type'});
