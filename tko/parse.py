@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, re, md5, sys, email.Message, smtplib
+import os, re, md5, sys, email.Message, smtplib, datetime
 client_bin = os.path.join(os.path.dirname(__file__), '../client/bin')
 sys.path.insert(0, os.path.abspath(client_bin))
 from autotest_utils import read_keyval
@@ -63,6 +63,13 @@ def dprint(info):
 		sys.stderr.write(str(info) + '\n')
 
 
+def keyval_timestamp(keyval, field):
+	val = keyval.get(field, None)
+	if val is not None:
+		val = datetime.datetime.fromtimestamp(int(val))
+	return val
+
+
 class job:
 	def __init__(self, dir):
 		self.dir = dir
@@ -85,6 +92,9 @@ class job:
 		self.machine = keyval.get('hostname', None)
 		if self.machine:
 			assert ',' not in self.machine
+		self.queued_time = keyval_timestamp(keyval, 'job_queued')
+		self.started_time = keyval_timestamp(keyval, 'job_started')
+		self.finished_time = keyval_timestamp(keyval, 'job_finished')
 		self.machine_owner = keyval.get('owner', None)
 
 		if not self.machine:
