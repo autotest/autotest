@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os, re, md5, sys, email.Message, smtplib, datetime
+
 client_bin = os.path.join(os.path.dirname(__file__), '../client/bin')
 sys.path.insert(0, os.path.abspath(client_bin))
 from autotest_utils import read_keyval
@@ -63,8 +64,8 @@ def dprint(info):
 		sys.stderr.write(str(info) + '\n')
 
 
-def keyval_timestamp(keyval, field):
-	val = keyval.get(field, None)
+def get_timestamp(mapping, field):
+	val = mapping.get(field, None)
 	if val is not None:
 		val = datetime.datetime.fromtimestamp(int(val))
 	return val
@@ -92,9 +93,9 @@ class job:
 		self.machine = keyval.get('hostname', None)
 		if self.machine:
 			assert ',' not in self.machine
-		self.queued_time = keyval_timestamp(keyval, 'job_queued')
-		self.started_time = keyval_timestamp(keyval, 'job_started')
-		self.finished_time = keyval_timestamp(keyval, 'job_finished')
+		self.queued_time = get_timestamp(keyval, 'job_queued')
+		self.started_time = get_timestamp(keyval, 'job_started')
+		self.finished_time = get_timestamp(keyval, 'job_finished')
 		self.machine_owner = keyval.get('owner', None)
 
 		if not self.machine:
@@ -155,21 +156,27 @@ class job:
 				dprint('Found job level start marker. Looking for level 1 groups now')
 				continue
 			indent = re.search('^(\t*)', line).group(0).count('\t')
-			line = line.strip()
+			line = line.lstrip()
+			line = line.rstrip('\n')
 			if line.startswith('START\t'):
 				group_subdir = None
 				dprint('start line, ignoring')
 				continue	# ignore start lines
 			reason = None
-			if line.startswith('END'):
-				elements = line.split(None, 4)[1:]
+			if line.startswith('END '):
+				elements = line.split('\t')
+				elements[0] = elements[0][4:] # remove 'END '
 				end = True
 			else:
-				elements = line.split(None, 3)
+				elements = line.split('\t')
 				end = False
-			elements.append(None)   # in case no reason specified
 			(status, subdir, testname, reason) = elements[0:4]
-			dprint('GROPE_STATUS: ' + str(elements[0:4]))
+			status, subdir, testname = elements[:3]
+			reason = elements[-1]
+			optional_fields = dict(element.split('=', 1)
+					       for element in elements[3:-1])
+			dprint('GROPE_STATUS: ' +
+			       str([status, subdir, testname, reason]))
 			if status == 'ALERT':
 				dprint('job level alert, recording')
 				alert_pending = reason
@@ -231,7 +238,12 @@ class job:
 			else:
 				dprint('WARNING: Invalid status code. Ignoring')
 				continue
-			self.tests.append(test(subdir, testname, status, reason, self.kernel, self))
+
+			finished_time = get_timestamp(optional_fields,
+						      'timestamp')
+			self.tests.append(test(subdir, testname, status,
+					       reason, self.kernel, self,
+					       finished_time))
 			dprint('')
 
 		if reboot_inprogress:
@@ -300,7 +312,8 @@ class patch:
 
 
 class test:
-	def __init__(self, subdir, testname, status, reason, kernel, job):
+	def __init__(self, subdir, testname, status, reason, kernel, job,
+		     finished_time=None):
 		# NOTE: subdir may be none here for lines that aren't an
 		# actual test
 		self.subdir = subdir
@@ -322,6 +335,7 @@ class test:
 		self.iterations = []
 		self.kernel = kernel
 		self.machine = job.machine
+		self.finished_time = finished_time
 
 		dprint("PARSING TEST %s %s %s" % (subdir, testname, self.keyval))
 
