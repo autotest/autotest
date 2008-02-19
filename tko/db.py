@@ -233,7 +233,8 @@ class db_sql:
 		data = {'job_idx':job.index, 'test':test.testname,
 			'subdir':test.subdir, 'kernel_idx':kver,
 			'status':self.status_idx[test.status],
-			'reason':test.reason, 'machine_idx':job.machine_idx }
+			'reason':test.reason, 'machine_idx':job.machine_idx,
+			'finished_time':test.finished_time}
 		self.insert('tests', data, commit=commit)
 		test_idx = self.get_last_autonumber_value()
 		data = { 'test_idx':test_idx }
