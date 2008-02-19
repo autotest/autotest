@@ -124,6 +124,8 @@ my %r = Conmux::sendCmd($sock, 'CONNECT', { 'id' => $id, 'to' => 'console' });
 die "$P: $ARGV[0]: connect failed - $r{'status'}\n" if ($r{'status'} ne 'OK');
 
 print "Connected to $r{'title'} (~\$quit to exit)\n";
+#display message of the day passed by the server e.g. who is already connected
+print "$r{'motd'}";
 
 my $rin = $win = $ein = '';
 vec($rin, fileno(STDIN), 1) = 1;
