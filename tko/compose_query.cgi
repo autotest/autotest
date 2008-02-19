@@ -59,7 +59,7 @@ next_field = {
 	'tag': 'tag',
 
 	'kernel': 'test',
-	'test': 'label',
+	'test': 'test',
 	'label': 'label',
 
 	'reason': 'reason',
@@ -88,7 +88,20 @@ form = cgi.FieldStorage()
 row = parse_field(form, 'rows', 'kernel')
 column = parse_field(form, 'columns', 'machine_group')
 condition_field = parse_condition(form, 'condition', '')
+## caller can specify rows and columns that shall be included into the report
+## regardless of whether actual test data is available yet
+force_row_field = parse_condition(form,'force_row','')
+force_column_field = parse_condition(form,'force_column','')
 
+def split_forced_fields(force_field):
+	if force_field:
+		return force_field.split()
+	else:
+		return []
+
+force_row =  split_forced_fields(force_row_field)
+force_column =  split_forced_fields(force_column_field)
+  
 cgitb.enable()
 db = db.db()
 
@@ -125,6 +138,17 @@ def create_select_options(selected_val):
 	return ret
 
 
+def insert_break_into_kernel_name(kernel_name):
+	## insert <br> after each / in kernel name
+	## but spare consequtive //
+        
+	## temporary stubed
+	#kernel_name = kernel_name.replace('//',';;')
+	#kernel_name = kernel_name.replace('/','/<br>')
+	#kernel_name = kernel_name.replace(';;','//')
+	return kernel_name
+
+
 def gen_matrix():
 	where = None
 	if condition_field.strip() != '':
@@ -133,6 +157,13 @@ def gen_matrix():
 		print "<!-- where clause: %s -->" % (where,)
 
 	test_data = frontend.get_matrix_data(db, column, row, where)
+        
+	for f_row in force_row:
+		if not f_row in test_data.y_values:
+			test_data.y_values.append(f_row)
+	for f_column in force_column:
+		if not f_column in test_data.x_values:
+			test_data.x_values.append(f_column)
 
 	if not test_data.y_values:
 		msg = "There are no results for this query (yet?)."
@@ -143,13 +174,21 @@ def gen_matrix():
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
 	for x in test_data.x_values:
+		if column == 'kernel':
+			x_br =  insert_break_into_kernel_name(x)
+		else:
+			x_br = x          
 		link = construct_link(x, None)
-		header_row.append(display.box(x, header=True, link=link))
+		header_row.append(display.box(x_br, header=True, link=link))
 
 	matrix = [header_row]
 	for y in test_data.y_values:
+		if row == 'kernel':
+			y_br =  insert_break_into_kernel_name(y)
+		else:
+			y_br = y
 		link = construct_link(None, y)
-		cur_row = [display.box(y, header=True, link=link)]
+		cur_row = [display.box(y_br, header=True, link=link)]
 		for x in test_data.x_values:
 			try:
 				box_data = test_data.data[x][y].status_count
@@ -159,6 +198,16 @@ def gen_matrix():
 			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
 				link = '/results/%s/' % job_tag
+				if (row == 'test' and
+				   not 'boot' in y and
+				   not 'build' in y and
+				   not 'install' in y ):
+					link += y + '/'
+				if (column == 'test' and
+				   not 'boot' in x and
+				   not 'build' in x and
+				   not 'install' in x):
+					link += x + '/'
 			else:
 				link = construct_link(x, y)
 			cur_row.append(display.status_precounted_box(db,
@@ -178,7 +227,9 @@ def main():
 	print html_header % (create_select_options(column),
 	                     create_select_options(row),
 	                     condition_field)
+	print display.color_keys_row()
 	display.print_table(gen_matrix())
+	print display.color_keys_row()
 	print '</body></html>'
 
 
