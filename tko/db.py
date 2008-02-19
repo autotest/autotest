@@ -218,7 +218,10 @@ class db_sql:
 		self.insert('jobs', {'tag':tag,
                                      'label': job.label,
                                      'username': job.user,
-		                     'machine_idx':job.machine_idx},
+		                     'machine_idx': job.machine_idx,
+				     'queued_time': job.queued_time,
+				     'started_time': job.started_time,
+				     'finished_time': job.finished_time},
                                      commit=commit)
 		job.index = self.get_last_autonumber_value()
 		for test in job.tests:
