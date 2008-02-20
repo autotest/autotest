@@ -141,11 +141,8 @@ def create_select_options(selected_val):
 def insert_break_into_kernel_name(kernel_name):
 	## insert <br> after each / in kernel name
 	## but spare consequtive //
-        
-	## temporary stubed
-	#kernel_name = kernel_name.replace('//',';;')
-	#kernel_name = kernel_name.replace('/','/<br>')
-	#kernel_name = kernel_name.replace(';;','//')
+	kernel_name = kernel_name.replace('/','/<br>')
+	kernel_name = kernel_name.replace('/<br>/<br>','//')
 	return kernel_name
 
 
