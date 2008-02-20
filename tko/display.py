@@ -13,10 +13,10 @@ color_map = {
 	#### additional keys for shaded color of a box 
 	#### depending on stats of GOOD/FAIL
 	'100pct'  : '#00ff00', # green, 94% to 100% of success
-	'94pct'   : '#a0ff00', # step twrds yellow, 88% to 94% of success
-	'88pct'   : '#ffff00', # yellow, 82% to 88%
-	'82pct'   : '#ffa000', # 76% to 82%
-	'76pct'   : '#ff0000', # red, 1% to 76%
+	'95pct'   : '#a0ff00', # step twrds yellow, 88% to 94% of success
+	'90pct'   : '#ffff00', # yellow, 82% to 88%
+	'85pct'   : '#ffa000', # 76% to 82%
+	'75pct'   : '#ff0000', # red, 1% to 76%
 	'0pct'    : '#d000d0', # violet, <1% of success	
 
 }
@@ -134,14 +134,14 @@ def shade_from_status_count(status_count):
 	## find appropiate keyword from color_map
 	if average_grade<0.01:
 		shade = '0pct'
-	elif average_grade<0.76:
-		shade = '76pct'
-	elif average_grade<0.82:
-		shade = '82pct'
-	elif average_grade<0.88:
-		shade = '88pct'
-	elif average_grade<0.94:
-		shade = '94pct'
+	elif average_grade<0.75:
+		shade = '75pct'
+	elif average_grade<0.85:
+		shade = '85pct'
+	elif average_grade<0.90:
+		shade = '90pct'
+	elif average_grade<0.95:
+		shade = '95pct'
 	else:
 		shade = '100pct'
 		
@@ -154,10 +154,10 @@ def status_html(db, status_count, shade):
 	eg. { 'GOOD' : 4, 'FAIL' : 1 }
 	"""
 	if 6 in status_count.keys():
-		html = "%d / %d " \
+		html = "%d&nbsp;/&nbsp;%d " \
 			%(status_count[6],sum(status_count.values()))
 	else:
-		html = "%d / %d " % \
+		html = "%d&nbsp;/&nbsp;%d " % \
 			(0, sum(status_count.values()))
 	tooltip = ""
 
