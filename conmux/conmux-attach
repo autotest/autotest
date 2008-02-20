@@ -12,16 +12,12 @@
 #
 # The Console Multiplexor is released under the GNU Public License V2
 #
+use FindBin;
 use IO::Socket;
 use Getopt::Long qw(:config no_auto_abbrev);
 
 # Find our internal libraries.
-###my $lib = $0; $lib =~ s@/[^/]+$@@;
-###push(@INC, $lib);
-###require Conmux;
-##use lib ".";
-##use Conmux;
-use lib "/usr/local/conmux/lib";
+use lib $FindBin::Bin;
 use Conmux;
 
 my $P = 'conmux-attach';

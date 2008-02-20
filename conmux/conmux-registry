@@ -13,6 +13,7 @@
 #
 use strict;
 
+use FindBin;
 use Symbol qw(gensym);
 
 use IO::Socket;
@@ -20,12 +21,7 @@ use IO::Multiplex;
 use URI::Escape;
 
 # Find our internal libraries.
-###my $lib = $0; $lib =~ s@/[^/]+$@@;
-###push(@INC, $lib);
-###require Conmux;
-##use lib ".";
-##use Conmux;
-use lib "/usr/local/conmux/lib";
+use lib $FindBin::Bin;
 use Conmux;
 
 our $P = 'conmux-registry';
