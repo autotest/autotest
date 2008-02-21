@@ -138,12 +138,70 @@ def create_select_options(selected_val):
 	return ret
 
 
-def insert_break_into_kernel_name(kernel_name):
+def map_kernel_base(kernel_name):
 	## insert <br> after each / in kernel name
 	## but spare consequtive //
 	kernel_name = kernel_name.replace('/','/<br>')
 	kernel_name = kernel_name.replace('/<br>/<br>','//')
 	return kernel_name
+
+
+# Kernel name mappings -- the kernels table 'printable' field is
+# effectively a sortable identifier for the kernel It encodes the base
+# release which is used for overall sorting, plus where patches are
+# applied it adds an increasing pNNN patch combination identifier
+# (actually the kernel_idx for the entry).  This allows sorting
+# as normal by the base kernel version and then sub-sorting by the
+# "first time we saw" a patch combination which should keep them in
+# approximatly date order.  This patch identifier is not suitable
+# for display, so we have to map it to a suitable html fragment for
+# display.  This contains the kernel base version plus the truncated
+# names of all the patches,
+#
+# 	2.6.24-mm1 p112
+# 	+add-new-string-functions-
+# 	+x86-amd-thermal-interrupt
+# 
+# This mapping is produced when the first mapping is request, with
+# a single query over the patches table; the result is then cached.
+#
+# Note: that we only count a base version as patched if it contains
+# patches which are not already "expressed" in the base version.
+# This includes both -gitN and -mmN kernels.
+map_kernel_map = None
+
+
+def map_kernel_init():
+	fields = ['base', 'k.kernel_idx', 'name', 'url']
+	map = {}
+	for (base, idx, name, url) in db.select(','.join(fields),
+			'kernels k,patches p', 'k.kernel_idx=p.kernel_idx'):
+		match = re.match(r'.*(-mm[0-9]+|-git[0-9]+)\.(bz2|gz)$', url)
+		if match:
+			continue
+
+		key = base + ' p%d' % (idx)
+		if not map.has_key(key):
+			map[key] = map_kernel_base(base) + ' p%d' % (idx)
+		map[key] += '<br>+<span title="' + name + '">' + name[0:25] + '</span>'
+
+	return map
+
+
+def map_kernel(name):
+	global map_kernel_map
+	if map_kernel_map == None:
+		map_kernel_map = map_kernel_init()
+
+	if map_kernel_map.has_key(name):
+		return map_kernel_map[name]
+
+	return map_kernel_base(name.split(' ')[0])
+
+
+field_map = {
+	'kernel':map_kernel
+}
 
 
 def gen_matrix():
@@ -171,21 +229,19 @@ def gen_matrix():
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
 	for x in test_data.x_values:
-		if column == 'kernel':
-			x_br =  insert_break_into_kernel_name(x)
-		else:
-			x_br = x          
 		link = construct_link(x, None)
-		header_row.append(display.box(x_br, header=True, link=link))
+		dx = x
+		if field_map.has_key(column):
+			dx = field_map[column](x)
+		header_row.append(display.box(dx, header=True, link=link))
 
 	matrix = [header_row]
 	for y in test_data.y_values:
-		if row == 'kernel':
-			y_br =  insert_break_into_kernel_name(y)
-		else:
-			y_br = y
 		link = construct_link(None, y)
-		cur_row = [display.box(y_br, header=True, link=link)]
+		dy = y
+		if field_map.has_key(row):
+			dy = field_map[row](y)
+		cur_row = [display.box(dy, header=True, link=link)]
 		for x in test_data.x_values:
 			try:
 				box_data = test_data.data[x][y].status_count
