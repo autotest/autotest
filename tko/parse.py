@@ -275,7 +275,7 @@ class kernel:
 				if type == 'PATCH':
 					print words
 					self.patches.append(patch(*words[0:]))
-					# patch_hashes.append(words[2])
+					patch_hashes.append(words[2])
 		else:
 			for sysinfo in ['sysinfo/reboot1', 'sysinfo']:
 				uname_file = os.path.join(topdir, sysinfo, 'uname_-a')
