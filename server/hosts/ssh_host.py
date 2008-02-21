@@ -50,7 +50,7 @@ class SSHHost(base_classes.RemoteHost):
 	job = None
 
 	def __init__(self, hostname, user="root", port=22, initialize=True,
-		     conmux_log="console.log", conmux_warnings="status.log",
+		     conmux_log="console.log",
 		     conmux_server=None, conmux_attach=None,
 		     netconsole_log=None, netconsole_port=6666, autodir=None):
 		"""
@@ -79,9 +79,8 @@ class SSHHost(base_classes.RemoteHost):
 						self.serverdir, '..',
 						'conmux', 'conmux-attach'))
 		self.logger_popen = None
+		self.warning_stream = None
 		self.__start_console_log(conmux_log)
-		self.warning_popen = None
-		self.__start_warning_log(conmux_warnings)
 
 		self.bootloader = bootloader.Bootloader(self)
 
@@ -94,22 +93,11 @@ class SSHHost(base_classes.RemoteHost):
 
 
 	@staticmethod
-	def __kill(popen, kill_pg):
+	def __kill(popen):
 		return_code = popen.poll()
-		if return_code is not None:
-			return
-
-		# return_code is None -> child is still running
-		if kill_pg:
-			pgid = os.getpgid(popen.pid)
-			assert pgid != os.getpgid(0)
+		if return_code is None:
 			try:
-				os.killpg(pgid, signal.SIGTERM)
-			except OSError:
-				pass
-		else:
-			try:
-				os.kill(popen.pid)
+				os.kill(popen.pid, signal.SIGTERM)
 			except OSError:
 				pass
 
@@ -125,14 +113,12 @@ class SSHHost(base_classes.RemoteHost):
 				pass
 		# kill the console logger
 		if getattr(self, 'logger_popen', None):
-			self.__kill(self.logger_popen, True)
+			self.__kill(self.logger_popen)
+			self.warning_stream.close()
 		# kill the netconsole logger
 		if getattr(self, 'netlogger_popen', None):
 			self.__unload_netconsole_module()
-			self.__kill(self.netlogger_popen, False)
-		# kill the warning logger
-		if getattr(self, 'warning_popen', None):
-			self.__kill(self.warning_popen, True)
+			self.__kill(self.netlogger_popen)
 
 
 	def __init_netconsole_params(self, port):
@@ -249,32 +235,19 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		if not self.conmux_attach or not os.path.exists(self.conmux_attach):
 			return
+
+		r, w = os.pipe()
+		script_path = os.path.join(self.serverdir,
+					   'warning_monitor.py')
 		cmd = [self.conmux_attach, self.__conmux_hostname(),
-		       'cat - >> %s' % logfilename]
+		       '%s %s %s %d' % (sys.executable, script_path,
+					logfilename, w)]
 		dev_null = open('/dev/null', 'w')
-		setpg = lambda: os.setpgid(0, 0)
-		self.logger_popen = subprocess.Popen(cmd, stderr=dev_null,
-						     preexec_fn=setpg)
 
-
-	def __start_warning_log(self, logfilename):
-		"""
-		Log the output of the warning monitor to a specified file
-		"""
-		if logfilename == None or not os.path.isdir('debug'):
-			return
-		script_path = os.path.join(self.serverdir, 'warning_monitor')
-		script_cmd = 'expect %s %s >> %s' % (script_path,
-						     self.hostname,
-						     logfilename)
-		if self.conmux_server:
-			to = '%s/%s'
-		cmd = [self.conmux_attach, self.__conmux_hostname(),
-		       script_cmd]
-		logfile = open('debug/conmux.log', 'a', 0)
-		setpg = lambda: os.setpgid(0, 0)
-		self.warning_popen = subprocess.Popen(cmd, stderr=logfile,
-						      preexec_fn=setpg)
+		self.warning_stream = os.fdopen(r, 'r', 0)
+		self.job.warning_loggers.add(self.warning_stream)
+		self.logger_popen = subprocess.Popen(cmd, stderr=dev_null)
+		os.close(w)
 
 
 	def __console_run(self, cmd):
