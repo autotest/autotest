@@ -1,0 +1,20 @@
+^.*Kernel panic
+machine panic'd (see console)
+
+^.*Oops
+machine Oops'd (see console)
+
+^.*kdb>
+machine dropped to kdb (see console)
+
+^.*Open Firmware exception handle entered from non-OF code
+machine took an open firmware exception (see console)
+
+^.*(BUG:.*)
+%s
+
+^.*(kernel BUG .*)
+%s
+
+^.*(invoked oom-killer:.*)
+%s

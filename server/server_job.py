@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re, time
+import os, sys, re, time, select
 import test
 from utils import *
 from common.error import *
@@ -166,6 +166,7 @@ class server_job:
 		self.machines = machines
 		self.client = client
 		self.record_prefix = ''
+		self.warning_loggers = set()
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -306,7 +307,7 @@ class server_job:
 		return result
 
 
-	def record(self, status_code, subdir, operation, status = ''):
+	def record(self, status_code, subdir, operation, status=''):
 		"""
 		Record job-level status
 
@@ -335,6 +336,49 @@ class server_job:
 
 		multiline messages have secondary lines prefaced by a double
 		space ('  ')
+
+		Executing this method will trigger the logging of all new
+		warnings to date from the various console loggers.
+		"""
+		# poll the loggers for any new console warnings to log
+		warnings = []
+		while True:
+			# pull in a line of output from every logger that has
+			# output ready to be read
+			loggers, _, _ = select.select(self.warning_loggers,
+						      [], [], 0)
+			closed_loggers = set()
+			for logger in loggers:
+				line = logger.readline()
+				# record any broken pipes (aka line == empty)
+				if len(line) == 0:
+					closed_loggers.add(logger)
+					continue
+				timestamp, msg = line.split('\t', 1)
+				warnings.append((int(timestamp), msg.strip()))
+
+			# stop listening to loggers that are closed
+			self.warning_loggers -= closed_loggers
+
+			# stop if none of the loggers have any output left
+			if not loggers:
+				break
+
+		# write out all of the warnings we accumulated
+		warnings.sort() # sort into timestamp order
+		for timestamp, msg in warnings:
+			self.__record("WARN", None, None, msg, timestamp)
+
+		# write out the actual status log line
+		self.__record(status_code, subdir, operation, status)
+
+
+	def __record(self, status_code, subdir, operation, status='',
+		     epoch_time=None):
+		"""
+		Actual function for recording a single line into the status
+		logs. Should never be called directly, only by job.record as
+		this would bypass the console monitor logging.
 		"""
 
 		if subdir:
@@ -359,7 +403,8 @@ class server_job:
 		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
 
 		# Generate timestamps for inclusion in the logs
-		epoch_time = int(time.time())  # seconds since epoch, in UTC
+		if epoch_time is None:
+			epoch_time = int(time.time())
 		local_time = time.localtime(epoch_time)
 		epoch_time_str = "timestamp=%d" % (epoch_time,)
 		local_time_str = time.strftime("localtime=%b %d %H:%M:%S",
