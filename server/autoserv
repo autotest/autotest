@@ -105,6 +105,7 @@ elif verify:
 try:
 	job.run(reboot, install_before, install_after)
 except:
+	job.aborted = True
 	traceback.print_exc()
 
 # if the job was aborted, return a non-zero error code
