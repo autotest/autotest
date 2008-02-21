@@ -10,10 +10,13 @@ class db_sql:
 		try:
 			file = os.path.join(path, '.database')
 			db_prefs = open(file, 'r')
+			file_host = db_prefs.readline().rstrip()
+			file_database = db_prefs.readline().rstrip()
 			if not host:
-				host = db_prefs.readline().rstrip()
+				host = file_host
 			if not database:
-				database = db_prefs.readline().rstrip()
+				database = file_database
+			db_prefs.close()
 		except:
 			if not host:
 				host = 'localhost'
@@ -23,18 +26,24 @@ class db_sql:
 		try:
 			file = os.path.join(path, '.priv_login')
 			login = open(file, 'r')
+			file_user = login.readline().rstrip()
+			file_password = login.readline().rstrip()
 			if not user:
-				user = login.readline().rstrip()
+				user = file_user
 			if not password:
-				password = login.readline().rstrip()
+				password = file_password
+			login.close()
 		except:	
 			try:
 				file = os.path.join(path, '.unpriv_login')
 				login = open(file, 'r')
+				file_user = login.readline().rstrip()
+				file_password = login.readline().rstrip()
 				if not user:
-					user = login.readline().rstrip()
+					user = file_user
 				if not password:
-					password = login.readline().rstrip()
+					password = file_password
+				login.close()
 			except:
 				if not user:
 					user = 'nobody'
