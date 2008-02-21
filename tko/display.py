@@ -98,15 +98,12 @@ class box:
 def grade_from_status(status):
 	# % of goodness
 	# GOOD (6)  -> 1
-	# WARN(5), NOSTATUS(1) -> 0.5
+	# ##  If the test doesn't PASS, it FAILS
 	# else -> 0
-	# ??? ALERT(7)
 
 	if status == 6:
 		return 1.0
-	if status in [1,5]:
-		return 0.5
-	if status in [2,3,4]:
+	else:
 		return 0.0
 
 
