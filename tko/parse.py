@@ -247,9 +247,10 @@ class job:
 			dprint('')
 
 		if reboot_inprogress:
+			testname = 'boot.%d' % boot_count
 			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
-					(status, subdir, testname, reason))
-			self.tests.append(test('----', 'boot', 'ABORT', 
+					('----', subdir, testname, reason))
+			self.tests.append(test('----', testname, 'ABORT', 
 				'machine did not return from reboot',
 				self.kernel, self))
 			dprint('')
