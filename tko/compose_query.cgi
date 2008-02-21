@@ -250,7 +250,7 @@ def gen_matrix():
 				continue
 			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
-				link = '/results/%s/' % job_tag
+				link = frontend.html_root + job_tag
 				if (row == 'test' and
 				   not 'boot' in y and
 				   not 'build' in y and
