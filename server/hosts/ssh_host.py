@@ -114,6 +114,7 @@ class SSHHost(base_classes.RemoteHost):
 		# kill the console logger
 		if getattr(self, 'logger_popen', None):
 			self.__kill(self.logger_popen)
+			self.job.warning_loggers.remove(self.warning_stream)
 			self.warning_stream.close()
 		# kill the netconsole logger
 		if getattr(self, 'netlogger_popen', None):
@@ -242,7 +243,7 @@ class SSHHost(base_classes.RemoteHost):
 		cmd = [self.conmux_attach, self.__conmux_hostname(),
 		       '%s %s %s %d' % (sys.executable, script_path,
 					logfilename, w)]
-		dev_null = open('/dev/null', 'w')
+		dev_null = open(os.devnull, 'w')
 
 		self.warning_stream = os.fdopen(r, 'r', 0)
 		self.job.warning_loggers.add(self.warning_stream)
