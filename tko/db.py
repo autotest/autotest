@@ -307,13 +307,30 @@ class db_sql:
 		kver = self.lookup_kernel(kernel)
 		if kver:
 			return kver
+		
+		# If this kernel has any significant patches, append their hash
+		# as diferentiator.
+		printable = kernel.base
+		patch_count = 0
+		for patch in kernel.patches:
+			match = re.match(r'.*(-mm[0-9]+|-git[0-9]+)\.(bz2|gz)$',
+								patch.reference)
+			if not match:
+				patch_count += 1
+
 		self.insert('kernels',
                             {'base':kernel.base,
 		             'kernel_hash':kernel.kernel_hash,
-		             'printable':kernel.base},
+		             'printable':printable},
 		            commit=commit)
-		# WARNING - incorrectly shoving base into printable here.
 		kver = self.get_last_autonumber_value()
+
+		if patch_count > 0:
+			printable += ' p%d' % (kver)
+			self.update('kernels',
+				{'printable':printable},
+				{'kernel_idx':kver})
+
 		for patch in kernel.patches:
 			self.insert_patch(kver, patch, commit=commit)
 		return kver
