@@ -1,55 +1,30 @@
 import re, os, sys, types
+from common import global_config
+
 
 class db_sql:
 	def __init__(self, debug = False, autocommit=True, host = None,
 				database = None, user = None, password = None):
 		self.debug = debug
 		self.autocommit = autocommit
-
+		
 		path = os.path.dirname(__file__)
-		try:
-			file = os.path.join(path, '.database')
-			db_prefs = open(file, 'r')
-			file_host = db_prefs.readline().rstrip()
-			file_database = db_prefs.readline().rstrip()
-			if not host:
-				host = file_host
-			if not database:
-				database = file_database
-			db_prefs.close()
-		except:
-			if not host:
-				host = 'localhost'
-			if not database:
-				database = 'tko'
-	
-		try:
-			file = os.path.join(path, '.priv_login')
-			login = open(file, 'r')
-			file_user = login.readline().rstrip()
-			file_password = login.readline().rstrip()
-			if not user:
-				user = file_user
-			if not password:
-				password = file_password
-			login.close()
-		except:	
-			try:
-				file = os.path.join(path, '.unpriv_login')
-				login = open(file, 'r')
-				file_user = login.readline().rstrip()
-				file_password = login.readline().rstrip()
-				if not user:
-					user = file_user
-				if not password:
-					password = file_password
-				login.close()
-			except:
-				if not user:
-					user = 'nobody'
-				if not password:
-					password = ''
-
+		
+		# grab the global config
+		c = global_config.global_config
+		
+		# grab the host, database
+		if not host:
+			host = c.get_config_value("TKO", "host", 'localhost')
+		if not database:
+			database = c.get_config_value("TKO", "database", 'tko')
+		
+		# grab the user and password
+		if not user:
+			user = c.get_config_value("TKO", "user", 'nobody')
+		if not password:
+			password = c.get_config_value("TKO", "password", '')
+			
 		self.con = self.connect(host, database, user, password)
 		self.cur = self.con.cursor()
 
@@ -377,19 +352,12 @@ class db_sql:
 def db(*args, **dargs):
 	path = os.path.dirname(__file__)
 	db_type = None
-	try:
-		db_file = os.path.join(path, '.database')
-		db_prefs = open(db_file, 'r')
-		host = db_prefs.readline().rstrip()
-		database = db_prefs.readline().rstrip()
-		db_type = db_prefs.readline().rstrip()
-	except:
-		pass
-
-	if not db_type:
-		db_type = 'mysql'
-
+	
+	# read db_type from global config
+	c = global_config.global_config
+	db_type = c.get_config_value("TKO", "db_type", 'mysql')
 	db_type = 'db_' + db_type
-	exec 'import %s; db = %s.%s(*args, **dargs)' % (db_type, db_type, db_type)
+	exec ('import %s; db = %s.%s(*args, **dargs)'
+	      % (db_type, db_type, db_type))
 
 	return db
