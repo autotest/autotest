@@ -3,6 +3,7 @@
 import test
 import os
 import package
+import glob
 from autotest_utils import *
 from test_config import config_loader
 
@@ -22,110 +23,127 @@ class lsb_dtk(test.test):
 		elif self.arch in ['s390', 's390x', 'ia64', 'x86_64', 'ppc64']:
 			return self.arch
 		else:
-			e_msg = 'Architecture %s not supported by lsb' % self.arch
+			e_msg = 'Architecture %s not supported by LSB' % self.arch
 			raise TestError(e_msg)
 
 
-	def link_lsb_libraries(self, config):
-		self.libdir_key = 'libdir-%s' % self.arch
-		self.os_libdir = config.get('lsb', self.libdir_key)
-		if not self.os_libdir:
-			raise TypeError('Could not find OS lib dir from conf file')
-		self.lib_key = 'lib-%s' % self.arch
-		self.lib_list_raw = config.get('lsb', self.lib_key)
-		if not self.lib_list_raw:
-			raise TypeError('Could not find library list from conf file')
-		self.lib_list = eval(self.lib_list_raw)
-		print self.lib_list
+	def install_lsb_packages(self, srcdir, cachedir, my_config):
+		# Installing LSB DTK manager packages
+		self.dtk_manager_arch = my_config.get('dtk-manager', 'arch-%s' % self.get_lsb_arch())
+		self.dtk_manager_url = my_config.get('dtk-manager', 'tarball_url') % self.dtk_manager_arch
+		if not self.dtk_manager_url:
+			raise TestError('Could not get DTK manager URL from configuration file')
+		self.dtk_md5 = my_config.get('dtk-manager', 'md5-%s' % self.get_lsb_arch())
+		if self.dtk_md5:
+			print 'Caching LSB DTK manager RPM'
+			self.dtk_manager_pkg = unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
+		else:
+			raise TestError('Could not find DTK manager package md5, cannot cache DTK manager tarball')
+		print 'Installing LSB DTK manager RPM'
+		package.install(self.dtk_manager_pkg)
 
-		system_output('rm -f %s/ld-lsb*.so.* | tail -1' % self.os_libdir)
-		self.baselib_path = system_output('ls %s/ld-2*.so | tail -1' % self.os_libdir)
+		# Get LSB tarball, cache it and uncompress under autotest srcdir
+		if my_config.get('lsb', 'override_default_url') == 'no':
+			self.lsb_url = my_config.get('lsb', 'tarball_url') % self.get_lsb_arch()
+		else:
+			self.lsb_url = my_config.get('lsb', 'tarball_url_alt') % self.get_lsb_arch()
+		if not self.lsb_url:
+			raise TestError('Could not get lsb URL from configuration file')
+		self.md5_key = 'md5-%s' % self.get_lsb_arch()
+		self.lsb_md5 = my_config.get('lsb', self.md5_key)
+		if self.lsb_md5:
+			print 'Caching LSB tarball'
+			self.lsb_pkg = unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
+		else:
+			raise TestError('Could not find LSB package md5, cannot cache LSB tarball')
 
-		for self.lib in self.lib_list:
-			self.lib_path = os.path.join(self.os_libdir, self.lib)
-			os.symlink(self.baselib_path, self.lib_path)
+		extract_tarball_to_dir(self.lsb_pkg, srcdir)
 
-
-	def install_lsb_packages(self, lsb_pkg_path, my_config):
-		if not os.path.isdir(lsb_pkg_path):
-			raise IOError('Invalid lsb packages path %s' % lsb_pkg_path)
-		# Try to find the inst_config, that contains LSB rpm name info.
-		os.chdir(lsb_pkg_path)
-		self.dtk_manager_arch = my_config.get('lsb', 'dtk-manager_arch-%s' % self.get_lsb_arch())
-		self.dtk_manager_url = my_config.get('lsb', 'dtk-manager_url') % self.dtk_manager_arch
-		self.dtk_manager = unmap_url(self.bindir, self.dtk_manager_url, '.')
+		# Lets load a file that contains the list of RPMs
+		os.chdir(srcdir)
 		if not os.path.isfile('inst-config'):
 			raise IOError('Could not find file with package info, inst-config')
-		# Let's assemble the rpm list
 		self.rpm_file_list = open('inst-config', 'r')
 		self.pkg_pattern = re.compile('[A-Za-z0-9_.-]*[.][r][p][m]')
 		self.lsb_pkg_list = []
 		for self.line in self.rpm_file_list.readlines():
 			try:
-				self.line = self.line.replace('lsb-dtk-manager-1.0.3-1.%s.rpm \\' % self.dtk_manager_arch, \
-								'lsb-dtk-manager-1.5.5-1.%s.rpm \\' % self.dtk_manager_arch)
-				self.line = re.findall(self.pkg_pattern, self.line)[0]
-				print self.line
-				self.lsb_pkg_list.append(self.line)
+				# We already installed lsb-dtk-manager, so we can remove it
+				# from the list of packages
+				if not 'lsb-dtk-manager' in self.line:
+					self.line = re.findall(self.pkg_pattern, self.line)[0]
+					self.lsb_pkg_list.append(self.line)
 			except:
-				# If we don't get a mach, no problem...
+				# If we don't get a match, no problem
 				pass
 
-		os_pkg_support = package.os_support()
-		if os.path.isfile('/etc/debian_version') and os_pkg_support['dpkg']:
+		# Lets figure out the host distro
+		distro_pkg_support = package.os_support()
+		if os.path.isfile('/etc/debian_version') and distro_pkg_support['dpkg']:
 			print 'Debian based distro detected'
-			if os_pkg_support['conversion']:
+			if distro_pkg_support['conversion']:
 				print 'Package conversion supported'
-				self.os_type = 'debian-based'
+				self.distro_type = 'debian-based'
 			else:
-				raise EnvironmentError('Package conversion not supported')
-		elif os_pkg_support['rpm']:
+				e_msg = 'Package conversion not supported. Cannot handle LSB package installation'
+				raise EnvironmentError()
+		elif distro_pkg_support['rpm']:
 			print 'Red Hat based distro detected'
-			self.os_type = 'redhat-based'
+			self.distro_type = 'redhat-based'
 		else:
 			print 'OS does not seem to be red hat or debian based'
-			e_msg = 'Cannot handle lsb package installation'
+			e_msg = 'Cannot handle LSB package installation'
 			raise EnvironmentError(e_msg)
 
+		# According to the host distro detection, we can install the packages
+		# using the list previously assembled
+		print 'Installing LSB RPM packages'
 		for self.lsb_rpm in self.lsb_pkg_list:
-			if self.os_type == 'redhat-based':
+			if self.distro_type == 'redhat-based':
 				package.install(self.lsb_rpm, nodeps = True)
-			elif self.os_type == 'debian-based':
+			elif self.distro_type == 'debian-based':
 				self.lsb_dpkg = package.convert(self.lsb_rpm, 'dpkg')
 				package.install(self.lsb_dpkg, nodeps = True)
 
 
-	def execute(self, args = '', cfg = 'lsb31.cfg'):
-		# Load the test configuration file
-		config_file = os.path.join(self.bindir, cfg)
-		my_config = config_loader(filename = config_file)
-		# Directory where we will cache the lsb-dtk tarball
+	def link_lsb_libraries(self, config):
+		print 'Linking LSB libraries'
+		self.libdir_key = 'libdir-%s' % self.get_lsb_arch()
+		self.os_libdir = config.get('lib', self.libdir_key)
+		if not self.os_libdir:
+			raise TypeError('Could not find OS lib dir from conf file')
+		self.lib_key = 'lib-%s' % self.get_lsb_arch()
+		self.lib_list_raw = config.get('lib', self.lib_key)
+		if not self.lib_list_raw:
+			raise TypeError('Could not find library list from conf file')
+		self.lib_list = eval(self.lib_list_raw)
+
+		# Remove any previous ld-lsb*.so symbolic links
+		self.lsb_libs = glob.glob('%s/ld-lsb*.so*' % self.os_libdir)
+		for self.lib in self.lsb_libs:
+			os.remove(self.lib)
+
+		# Get the base library that we'll use to recreate the symbolic links
+		self.system_lib = glob.glob('%s/ld-2*.so*' % self.os_libdir)[0]
+
+		# Now just link the system lib that we just found to each one of the
+		# needed LSB libraries that we provided on the conf file
+		for self.lsb_lib in self.lib_list:
+			# Get the library absolute path
+			self.lsb_lib = os.path.join(self.os_libdir, self.lsb_lib)
+			# Link the library system_lib -> lsb_lib
+			os.symlink(self.system_lib, self.lsb_lib)
+
+
+	def execute(self, args = 'all', config = './lsb31.cfg'):
+		# Load configuration. Use autotest tmpdir if needed
+		my_config = config_loader(config, self.tmpdir)
+		# Cache directory, that will store LSB tarball and DTK manager RPM
 		self.cachedir = os.path.join(self.bindir, 'cache')
-		system('mkdir -p ' + self.cachedir)
+		if not os.path.isdir(self.cachedir):
+			os.makedirs(self.cachedir)
 
-		# Get lsb-dtk URL
-		# The conf file stores an URL that is assembled depending on the
-		# host architecture at runtime
-		self.arch = self.get_lsb_arch()
-		print self.arch
-		if my_config.get('lsb', 'override_default_url') == 'no':
-			self.lsb_url = my_config.get('lsb', 'tarball_url') % self.arch
-		else:
-			self.lsb_url = my_config.get('lsb', 'tarball_url_alt') % self.arch
-		# The LSB tarball is HUGE (~100MB). It's better to cache it.
-		# Compose the md5 key name
-		self.md5_key = 'md5-%s' % self.arch
-		# Try to retrieve info using this key
-		self.lsb_md5 = my_config.get('lsb', self.md5_key)
-		# If we don't have an md5, we can't safely cache the tarball
-		if self.lsb_md5:
-			self.lsb_pkg = \
-			unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
-		else:
-			self.lsb_pkg = unmap_url(self.bindir, self.lsb_url, self.tmpdir)
-
-		extract_tarball_to_dir(self.lsb_pkg, self.srcdir)
-		self.install_lsb_packages(self.srcdir, my_config)
+		self.install_lsb_packages(self.srcdir, self.cachedir, my_config)
 		self.link_lsb_libraries(my_config)
 
 		self.main_script_path = my_config.get('lsb', 'main_script_path')
@@ -137,6 +155,7 @@ class lsb_dtk(test.test):
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
+		print 'Executing LSB main test script'
 		system(cmd)
 		if profilers.present():
 			profilers.stop(self)
