@@ -114,7 +114,7 @@ class SSHHost(base_classes.RemoteHost):
 		# kill the console logger
 		if getattr(self, 'logger_popen', None):
 			self.__kill(self.logger_popen)
-			self.job.warning_loggers.remove(self.warning_stream)
+			self.job.warning_loggers.discard(self.warning_stream)
 			self.warning_stream.close()
 		# kill the netconsole logger
 		if getattr(self, 'netlogger_popen', None):
