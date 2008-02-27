@@ -214,7 +214,7 @@ class job:
 					group_subdir = subdir
 				dprint('incorrect indent level %d != %d, ignoring' % (indent, sought_level))
 				continue
-			if not re.search(r'^(boot$|kernel\.)', testname):
+			if not re.search(r'^(boot(\.\d+)?$|kernel\.)', testname):
 				# This is a real test
 				if subdir and subdir.count('.'):
 					# eg dbench.ext3
