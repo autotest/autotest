@@ -25,6 +25,7 @@ import time
 
 import installable_object
 import utils
+import server_job
 from common import logging
 from common.error import *
 
@@ -233,106 +234,6 @@ class Autotest(installable_object.InstallableObject):
 				    *args, **dargs)
 
 
-# a file-like object for catching stderr from the autotest client and
-# extracting status logs from it
-class StdErrRedirector(object):
-	"""Partial file object to write to both stdout and
-	the status log file.  We only implement those methods
-	utils.run() actually calls.
-	"""
-	parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
-
-	def __init__(self, status_log):
-		self.status_log = status_log
-		self.leftover = ""
-		self.last_line = ""
-		self.logs = {}
-
-
-	def _process_log_dict(self, log_dict):
-		log_list = log_dict.pop("logs", [])
-		for key in sorted(log_dict.iterkeys()):
-			log_list += self._process_log_dict(log_dict.pop(key))
-		return log_list
-
-
-	def _process_logs(self):
-		"""Go through the accumulated logs in self.log and print them
-		out to stdout and the status log. Note that this processes
-		logs in an ordering where:
-
-		1) logs to different tags are never interleaved
-		2) logs to x.y come before logs to x.y.z for all z
-		3) logs to x.y come before x.z whenever y < z
-
-		Note that this will in general not be the same as the
-		chronological ordering of the logs. However, if a chronological
-		ordering is desired that one can be reconstructed from the
-		status log by looking at timestamp lines."""
-		log_list = self._process_log_dict(self.logs)
-		for line in log_list:
-			print >> self.status_log, line
-		if log_list:
-			self.last_line = log_list[-1]
-
-
-	def _process_quoted_line(self, tag, line):
-		"""Process a line quoted with an AUTOTEST_STATUS flag. If the
-		tag is blank then we want to push out all the data we've been
-		building up in self.logs, and then the newest line. If the
-		tag is not blank, then push the line into the logs for handling
-		later."""
-		print line
-		if tag == "":
-			self._process_logs()
-			print >> self.status_log, line
-			self.last_line = line
-		else:
-			tag_parts = [int(x) for x in tag.split(".")]
-			log_dict = self.logs
-			for part in tag_parts:
-				log_dict = log_dict.setdefault(part, {})
-			log_list = log_dict.setdefault("logs", [])
-			log_list.append(line)
-
-
-	def _process_line(self, line):
-		"""Write out a line of data to the appropriate stream. Status
-		lines sent by autotest will be prepended with
-		"AUTOTEST_STATUS", and all other lines are ssh error
-		messages."""
-		match = self.parser.search(line)
-		if match:
-			tag, line = match.groups()
-			self._process_quoted_line(tag, line)
-		else:
-			print >> sys.stderr, line
-
-
-	def write(self, data):
-		data = self.leftover + data
-		lines = data.split("\n")
-		# process every line but the last one
-		for line in lines[:-1]:
-			self._process_line(line)
-		# save the last line for later processing
-		# since we may not have the whole line yet
-		self.leftover = lines[-1]
-
-
-	def flush(self):
-		sys.stdout.flush()
-		sys.stderr.flush()
-		self.status_log.flush()
-
-
-	def close(self):
-		if self.leftover:
-			self._process_line(self.leftover)
-			self._process_logs()
-			self.flush()
-
-
 class _Run(object):
 	"""
 	Represents a run of autotest control file.  This class maintains
@@ -378,11 +279,9 @@ class _Run(object):
 		client_log_file = os.path.join(self.results_dir, 'debug',
 					       'client.log.%d' % section)
 		client_log = open(client_log_file, 'w', 0)
-		status_log_file = os.path.join(self.results_dir, 'status.log')
-		status_log = open(status_log_file, 'a', 0)
 
 		try:
-			redirector = StdErrRedirector(status_log)
+			redirector = server_job.client_logger(self.host.job)
 			result = self.host.run(full_cmd, ignore_status=True,
 					       timeout=timeout,
 					       stdout_tee=client_log,
