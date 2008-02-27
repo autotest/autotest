@@ -55,8 +55,6 @@ verify   = parser.parse_opts('-v')
 repair   = parser.parse_opts('-R')
 no_tee   = parser.parse_opts('-n')
 
-if getattr(hosts.site_host, 'site_parse_options', None):
-	hosts.site_host.site_parse_options(parser)
 
 if len(parser.args) < 1 and not verify and not repair:
 	print usage
