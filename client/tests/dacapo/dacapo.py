@@ -55,16 +55,25 @@ class dacapo(test.test):
 			self.dacapo_url = my_config.get('dacapo', 'tarball_url')
 		else:
 			self.dacapo_url = my_config.get('dacapo', 'tarball_url_alt')
+		if not self.dacapo_url:
+			raise TestError('Could not read dacapo URL from conf file')
 		# We can cache the dacapo package file if we take some
 		# precautions (checking md5 sum of the downloaded file)
 		self.dacapo_md5 = my_config.get('dacapo', 'package_md5')
+		if not self.dacapo_md5:
+			e_msg = 'Could not read dacapo package md5sum from conf file'
+			raise TestError(e_msg)
 		self.dacapo_pkg = \
 		unmap_url_cache(self.cachedir, self.dacapo_url, self.dacapo_md5)
 
 		# Get jvm package URL
 		self.jvm_pkg_url = my_config.get(jvm, 'jvm_pkg_url')
+		if not self.jvm_pkg_url:
+			raise TestError('Could not read java vm URL from conf file')
 		# Let's cache the jvm package as well
 		self.jvm_pkg_md5 = my_config.get(jvm, 'package_md5')
+		if not self.jvm_pkg_md5:
+			raise TestError('Could not read java package_md5 from conf file')
 		self.jvm_pkg = \
 		unmap_url_cache(self.cachedir, self.jvm_pkg_url, self.jvm_pkg_md5)
 
@@ -73,6 +82,8 @@ class dacapo(test.test):
 
 		# Basic Java environment variables setup
 		self.java_root = my_config.get(jvm, 'java_root')
+		if not self.java_root:
+			raise TestError('Could not read java root dir from conf file')
 		self.set_java_environment(jvm, self.java_root)
 
 		# If use_global is set to 'yes', then we want to use the global
