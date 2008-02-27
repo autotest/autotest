@@ -1,4 +1,4 @@
-__all__ = ['error', 'logging', 'barrier', 'check_version', 'test', 'utils']
+__all__ = ['error', 'logging', 'barrier', 'check_version', 'test', 'utils', 'global_config']
 
 import site_libraries
 __all__.extend(site_libraries.libraries)
