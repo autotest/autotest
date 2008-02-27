@@ -2,12 +2,11 @@
 
 import os, sys, re, subprocess, tempfile
 import MySQLdb, MySQLdb.constants.ER
+from optparse import OptionParser
+from common import global_config
 
 MIGRATE_TABLE = 'migrate_info'
 DEFAULT_MIGRATIONS_DIR = 'migrations'
-
-DATABASE_FILE = '.database'
-LOGIN_FILE = '.priv_login'
 
 class Migration(object):
 	version = None
@@ -23,8 +22,9 @@ class MigrationManager(object):
 	cursor = None
 	migrations_dir = None
 
-	def __init__(self, migrations_dir=None, db_host=None, db_name=None,
+	def __init__(self, database, migrations_dir=None, db_host=None, db_name=None,
 		     username=None, password=None):
+		self.database = database
 		if migrations_dir is None:
 			migrations_dir = os.path.abspath(DEFAULT_MIGRATIONS_DIR)
 		self.migrations_dir = migrations_dir
@@ -37,33 +37,14 @@ class MigrationManager(object):
 		self.password = password
 
 
-	def read_lines_from_file(self, filename):
-		base_dir = os.getcwd()
-		file_path = os.path.join(base_dir, filename)
-		f = open(file_path, 'r')
-		lines = [line.strip() for line in f.read().splitlines()]
-		f.close()
-		return lines
-
-
 	def read_db_info(self):
-		# try setting.py first
-		try:
-			sys.path.append(os.getcwd())
-			import settings
-			sys.path.pop()
-			self.db_host = settings.DATABASE_HOST or 'localhost'
-			self.db_name = settings.DATABASE_NAME
-			self.username = settings.DATABASE_USER
-			self.password = settings.DATABASE_PASSWORD
-			return
-		except ImportError:
-			pass
-
-		self.db_host, self.db_name = (
-		    self.read_lines_from_file(DATABASE_FILE))
-		self.username, self.password = (
-		    self.read_lines_from_file(LOGIN_FILE))
+		# grab the config file and parse for info
+		c = global_config.global_config
+		print "database = %s\n" % (self.database)
+		self.db_host = c.get_config_value(self.database, "host")
+		self.db_name = c.get_config_value(self.database, "database")
+		self.username = c.get_config_value(self.database, "user")
+		self.password = c.get_config_value(self.database, "password")
 
 
 	def connect(self, host, db_name, username, password):
@@ -247,19 +228,27 @@ class MigrationManager(object):
 		print 'Test finished successfully'
 
 
-USAGE = '%s [sync|test|simulate|safesync]' % sys.argv[0]
+USAGE = 'must specify one of [sync|test|simulate|safesync]'
 
 
 def main():
-	manager = MigrationManager()
-	if len(sys.argv) > 1:
-		if sys.argv[1] == 'sync':
+	parser = OptionParser()
+	parser.add_option("-d", "--database",
+			  help="which database to act on",
+			  dest="database")
+	parser.add_option("-a", "--action", help="what action to perform",
+			  dest="action")
+	(options, args) = parser.parse_args()
+	manager = MigrationManager(options.database)
+	
+	if len(args) > 0:
+		if args[0] == 'sync':
 			manager.do_sync_db()
-		elif sys.argv[1] == 'test':
+		elif args[0] == 'test':
 			manager.test_sync_db()
-		elif sys.argv[1] == 'simulate':
+		elif args[0] == 'simulate':
 			manager.simulate_sync_db()
-		elif sys.argv[1] == 'safesync':
+		elif args[0] == 'safesync':
 			print 'Simluating migration'
 			manager.simulate_sync_db()
 			print 'Performing real migration'
@@ -267,7 +256,7 @@ def main():
 		else:
 			print USAGE
 		return
-
+	
 	print USAGE
 
 
