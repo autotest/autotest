@@ -7,6 +7,8 @@ __author__ = "Paul Turner <pjt@google.com>"
 
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
 import optparse, signal, smtplib, socket
+from common import global_config
+
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
 
@@ -114,29 +116,14 @@ def idle_hosts():
 
 def connect():
 	path = os.path.dirname(os.path.abspath(sys.argv[0]))
-	try:
-		file = os.path.join(path, '.database')
-		db_prefs = open(file, 'r')
-		DB_HOST = db_prefs.readline().rstrip()
-		DB_SCHEMA = db_prefs.readline().rstrip()
-	except: 
-		DB_HOST = 'localhost'
-		DB_SCHEMA = 'autotest_web'
+	# get global config and parse for info
+	c = global_config.global_config
+	dbase = "AUTOTEST_WEB"
+	DB_HOST = c.get_config_value(dbase, "host", "localhost")
+	DB_SCHEMA = c.get_config_value(dbase, "database", "autotest_web")
 
-	try:
-		file = os.path.join(path, '.priv_login')
-		login = open(file, 'r')
-		DB_USER = login.readline().rstrip()
-		DB_PASS = login.readline().rstrip()
-	except:	
-		try:
-			file = os.path.join(path, '.unpriv_login')
-			login = open(file, 'r')
-			DB_USER = login.readline().rstrip()
-			DB_PASS = login.readline().rstrip()
-		except:
-			DB_USER = 'autotest'
-			DB_PASS = 'password'
+	DB_USER = c.get_config_value(dbase, "user", "autotest")
+	DB_PASS = c.get_config_value(dbase, "password")
 
 	global _connection, _cursor
 	_connection = MySQLdb.connect(
