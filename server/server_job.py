@@ -47,6 +47,9 @@ from utils import run, get_tmp_dir, sh_escape
 autotest.Autotest.job = job
 hosts.SSHHost.job = job
 barrier = barrier.barrier
+
+if len(machines) > 1:
+	open('.machines', 'w').write('\\n'.join(machines) + '\\n')
 """
 
 client_wrapper = """
@@ -56,11 +59,7 @@ def run_client(machine):
 	host = hosts.SSHHost(machine)
 	at.run(control, host=host)
 
-if len(machines) > 1:
-	open('.machines', 'w').write('\\n'.join(machines) + '\\n')
-	parallel_simple(run_client, machines)
-else:
-	run_client(machines[0])
+parallel_simple(run_client, machines)
 """
 
 crashdumps = """
