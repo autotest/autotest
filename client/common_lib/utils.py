@@ -1,5 +1,5 @@
 import os, sys, re, shutil, urlparse, urllib, pickle
-
+from error import *
 
 def write_keyval(path, dictionary):
 	if os.path.isdir(path):
