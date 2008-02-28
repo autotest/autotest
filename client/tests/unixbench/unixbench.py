@@ -10,6 +10,7 @@ class unixbench(test.test):
 		extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
+		system('patch -p1 < ../unixbench.patch')
 		system('make')
 		
 	def execute(self, iterations = 1, args = ''):
