@@ -26,7 +26,9 @@ class global_config(object):
 	        	return self.config.get(section, key)
 	        except: 
 	        	if default == None:
-				raise ConfigError("config value not found")
+				msg = ("Value '%s' not found in section '%s'"  %
+				      (key, section))
+				raise ConfigError(msg)
 			else:
 				return default
 	
