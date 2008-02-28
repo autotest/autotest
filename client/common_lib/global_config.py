@@ -6,6 +6,7 @@ provides access to global configuration file
 __author__ = 'raphtee@google.com (Travis Miller)'
 
 import os
+import sys
 import ConfigParser
 import error
 
