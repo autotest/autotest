@@ -492,7 +492,7 @@ class AgentTask(object):
 
 class RepairTask(AgentTask):
 	def __init__(self, host):
-		cmd = [_autoserv_path ,'-n', '-R', '-m', host.hostname]
+		cmd = [_autoserv_path , '-R', '-m', host.hostname]
 		self.host = host
 		AgentTask.__init__(self, cmd, clear_queue_on_failure=False)
 
@@ -519,7 +519,7 @@ class VerifyTask(AgentTask):
 		self.queue_entry = queue_entry
 
 		self.temp_results_dir = tempfile.mkdtemp(suffix='.verify')
-		cmd = [_autoserv_path,'-n', '-v','-m',self.host.hostname,
+		cmd = [_autoserv_path,'-v','-m',self.host.hostname,
 		       '-r', self.temp_results_dir]
 
 		failure_tasks = self.get_failure_tasks()
@@ -715,7 +715,7 @@ class QueueTask(AgentTask):
 class RebootTask(AgentTask):
 	def __init__(self):
 		AgentTask.__init__(self, host)
-		self.cmd = "%s -n -b -m %s /dev/null" % (_autoserv_path, host)
+		self.cmd = "%s -b -m %s /dev/null" % (_autoserv_path, host)
 		self.host = host
 
 
