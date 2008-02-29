@@ -532,14 +532,20 @@ class VerifySynchronousTask(VerifyTask):
 					self.agent.dispatcher.add_agent(job.run(self.queue_entry))
 			else:
 				self.queue_entry.set_status('Stopped') # some other entry failed verify
-		else:		
+		else:
 			if self.queue_entry.meta_host:
 				self.queue_entry.set_status('Queued')
 			else:
-				job = self.queue_entry.job
-				for child_entry in job.get_host_queue_entries():
-					if child_entry.active:
-						child_entry.set_status('Stopped')
+				# VerifyTask.epilog() set this queue entry to
+				# failed, so it won't be set to stopped
+				self.stop_all_entries()
+
+
+	def stop_all_entries(self):
+		job = self.queue_entry.job
+		for child_entry in job.get_host_queue_entries():
+			if not child_entry.complete:
+				child_entry.set_status('Stopped')
 
 
 class QueueTask(AgentTask):
