@@ -26,6 +26,8 @@ _connection = None
 _cursor = None
 _shutdown = False
 _notify_email = None
+_autoserv_path = 'autoserv'
+_testing_mode = False
 
 
 def main():
@@ -40,6 +42,9 @@ def main():
 	                  'file + ".err"')
 	parser.add_option('--notify', help='Set an email address to be ' +
 	                  'notified of exceptions')
+	parser.add_option('--test', help='Indicate that scheduler is under ' +
+			  'test and should use dummy autoserv and no parsing',
+			  action='store_true')
 	(options, args) = parser.parse_args()
 	if len(args) != 1:
 		parser.print_usage()
@@ -50,6 +55,12 @@ def main():
 
 	global _notify_email
 	_notify_email = options.notify
+	
+	if options.test:
+		global _autoserv_path
+		_autoserv_path = 'autoserv_dummy'
+		global _testing_mode
+		_testing_mode = True
 
 	init(options.logfile)
 	dispatcher = Dispatcher(do_recover = not options.no_recover)
@@ -121,6 +132,8 @@ def connect():
 	dbase = "AUTOTEST_WEB"
 	DB_HOST = c.get_config_value(dbase, "host", "localhost")
 	DB_SCHEMA = c.get_config_value(dbase, "database", "autotest_web")
+	if _testing_mode:
+		DB_SCHEMA = 'stresstest_autotest_web'
 
 	DB_USER = c.get_config_value(dbase, "user", "autotest")
 	DB_PASS = c.get_config_value(dbase, "password")
@@ -144,6 +157,9 @@ def disconnect():
 
 
 def parse_results(results_dir, flags=""):
+	global _testing_mode
+	if _testing_mode:
+		return
 	parse = os.path.join(AUTOTEST_TKO_DIR, 'parse')
 	output = os.path.join(results_dir, '.parse.log')
 	os.system("%s %s -r -o %s > %s 2>&1 &" % (parse, flags, results_dir, output))
@@ -423,7 +439,8 @@ class AgentTask(object):
 
 class RepairTask(AgentTask):
 	def __init__(self, host):
-		cmd = ['autoserv', '-n', '-R', '-m', host.hostname]
+		global _autoserv_path
+		cmd = [_autoserv_path ,'-n', '-R', '-m', host.hostname]
 		self.host = host
 		AgentTask.__init__(self, cmd)
 
@@ -449,7 +466,8 @@ class VerifyTask(AgentTask):
 		self.queue_entry = queue_entry
 
 		self.temp_results_dir = tempfile.mkdtemp(suffix='.verify')
-		cmd = ['autoserv', '-n', '-v', '-m', self.host.hostname,
+		global _autoserv_path
+		cmd = [_autoserv_path,'-n', '-v','-m',self.host.hostname,
 		       '-r', self.temp_results_dir]
 
 		AgentTask.__init__(self, cmd, failure_tasks = [RepairTask(self.host)])
@@ -531,8 +549,8 @@ class QueueTask(AgentTask):
 		self.queue_entries = queue_entries
 
 
-	@staticmethod
-	def _write_keyval(queue_entry, field, value):
+	@staticmethod	
+	def _write_keyval(queue_entry, field, value):	
 		key_path = os.path.join(queue_entry.results_dir(), 'keyval')
 		keyval_file = open(key_path, 'a')
 		print >> keyval_file, '%s=%d' % (field, value)
@@ -560,7 +578,7 @@ class QueueTask(AgentTask):
 		for queue_entry in self.queue_entries:
 			queue_entry.set_status(status)
 			queue_entry.host.set_status('Ready')
-			# write another timestamp into the job keyval file
+			# write another timestamp into the job keyval file	
 			finished = time.time()
 			self._write_keyval(queue_entry, "job_finished",
 					   finished)
@@ -578,7 +596,8 @@ class QueueTask(AgentTask):
 class RebootTask(AgentTask):
 	def __init__(self):
 		AgentTask.__init__(self, host)
-		self.cmd = "autoserv -n -b -m %s /dev/null" % host
+		global _autoserv_path
+		self.cmd = "%s -n -b -m %s /dev/null" % (_autoserv_path, host)
 		self.host = host
 
 
@@ -592,7 +611,7 @@ class RebootTask(AgentTask):
 
 
 class DBObject(object):
-        def __init__(self, table, fields, id=None, row=None, new_record=False):
+	def __init__(self, table, fields, id=None, row=None, new_record=False):
 		assert (bool(id) != bool(row)) and table and fields
 
 		self.__table = table
@@ -620,7 +639,7 @@ class DBObject(object):
 	def count(self, where, table = None):
 		if not table:
 			table = self.__table
-
+	
 		_cursor.execute("""
 			SELECT count(*) FROM %s
 			WHERE %s
@@ -837,8 +856,8 @@ class Job(DBObject):
 	def __init__(self, id=None, row=None):
 		assert id or row
 		DBObject.__init__(self,'jobs',['id','owner','name','priority','control_file',
-                                 'control_type','created_on', 'synch_type', 'synch_count', 
-                                 'synchronizing' ], id=id, row=row)
+                                  'control_type','created_on', 'synch_type', 'synch_count',
+                                  'synchronizing' ], id=id, row=row)
 
 		self.job_dir = os.path.join(RESULTS_DIR, "%s-%s" % (self.id, self.owner))
 
@@ -976,7 +995,8 @@ class Job(DBObject):
 			hostnames = queue_entry.host.hostname
 			queue_entries = [queue_entry]
 
-		params = ['autoserv', '-n', '-r', results_dir,
+		global _autoserv_path
+		params = [_autoserv_path, '-n', '-r', results_dir,
 			'-b', '-u', self.owner, '-l', self.name,
 			'-m', hostnames, ctrl.name]
 
