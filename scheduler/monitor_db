@@ -524,8 +524,7 @@ class VerifyTask(AgentTask):
 
 		failure_tasks = self.get_failure_tasks()
 
-		AgentTask.__init__(self, cmd, failure_tasks=failure_tasks,
-				   clear_queue_on_failure=False)
+		AgentTask.__init__(self, cmd, failure_tasks=failure_tasks)
 
 
 	def get_failure_tasks(self):
@@ -538,6 +537,8 @@ class VerifyTask(AgentTask):
 		print "starting verify on %s" % (self.host.hostname)
 		if self.queue_entry:
 			self.queue_entry.set_status('Verifying')
+			self.queue_entry.clear_results_dir(
+			    self.queue_entry.verify_results_dir())
 		self.host.set_status('Verifying')
 
 
@@ -559,11 +560,8 @@ class VerifyTask(AgentTask):
 
 	def on_failure(self):
 		self.host.set_status('Failed Verify')
-		# don't use queue_entry.requeue() here, because we don't want
-		# a meta-host entry to release its host yet - that should only
-		# happen after reverify fails
 		if self.queue_entry:
-			self.queue_entry.set_status('Queued')
+			self.queue_entry.requeue()
 
 
 	def move_results(self):
@@ -593,31 +591,38 @@ class VerifyTask(AgentTask):
 
 class ReverifyTask(VerifyTask):
 	def __init__(self, queue_entry=None, host=None):
+		self.fail_queue_entry = None
 		if queue_entry:
-			VerifyTask.__init__(self, queue_entry=queue_entry)
-		else:
-			VerifyTask.__init__(self, host=host)
-		self.clear_queue_on_failure = True
+			if not host:
+				host = queue_entry.host
+			if not queue_entry.meta_host:
+				self.fail_queue_entry = queue_entry
+		# always construct VerifyTask without the queue_entry - we don't
+		# want to touch the queue entry unless we fail, in which case we
+		# just fail it (and only if it's a non-metahost)
+		VerifyTask.__init__(self, host=host)
 
 
 	def get_failure_tasks(self):
 		return []
 
 
-	def prolog(self):
-		VerifyTask.prolog(self)
-		if self.queue_entry:
-			self.queue_entry.clear_results_dir(
-			    self.queue_entry.verify_results_dir())
-
-
 	def on_failure(self):
 		self.host.set_status('Repair Failed')
-		if self.queue_entry:
-			self.queue_entry.handle_host_failure()
+		if self.fail_queue_entry:
+			self.fail_queue_entry.handle_host_failure()
 
 
-class VerifySynchronousMixin(object):
+class VerifySynchronousTask(VerifyTask):
+	def __init__(self, queue_entry):
+		VerifyTask.__init__(self, queue_entry = queue_entry)
+
+
+	def on_success(self):
+		VerifyTask.on_success(self)
+		self.on_pending()
+
+
 	def on_pending(self):
 		if self.queue_entry.job.num_complete() > 0:
 			# some other entry failed verify, and we've
@@ -629,31 +634,6 @@ class VerifySynchronousMixin(object):
 		if job.is_ready():
 			agent = job.run(self.queue_entry)
 			self.agent.dispatcher.add_agent(agent)
-
-
-class VerifySynchronousTask(VerifyTask, VerifySynchronousMixin):
-	def __init__(self, queue_entry):
-		VerifyTask.__init__(self, queue_entry = queue_entry)
-
-
-	def get_failure_tasks(self):
-		return [RepairTask(self.host),
-			ReverifySynchronousTask(self.queue_entry)]
-
-
-	def on_success(self):
-		VerifyTask.on_success(self)
-		self.on_pending()
-
-
-class ReverifySynchronousTask(ReverifyTask, VerifySynchronousMixin):
-	def __init__(self, queue_entry):
-		ReverifyTask.__init__(self, queue_entry = queue_entry)
-
-
-	def on_success(self):
-		ReverifyTask.on_success(self)
-		self.on_pending()
 
 
 class QueueTask(AgentTask):
@@ -1014,12 +994,10 @@ class HostQueueEntry(DBObject):
 		Called when this queue entry's host has failed verification and
 		repair.
 		"""
-		if self.meta_host:
-			self.requeue()
-		else:
-			self.set_status('Failed')
-			if self.job.is_synchronous():
-				self.job.stop_all_entries()
+		assert not self.meta_host
+		self.set_status('Failed')
+		if self.job.is_synchronous():
+			self.job.stop_all_entries()
 
 
 	def clear_results_dir(self, results_dir=None):
