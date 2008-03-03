@@ -501,9 +501,13 @@ class job:
 		# We are about to exit 'complete' so clean up the control file.
 		try:
 			os.unlink(self.control + '.state')
-			oa.unlink(self.control + '.fs')
 		except:
 			pass
+		try:
+			os.unlink(self.control + '.fs')
+		except:
+			pass
+
 		self.harness.run_complete()
 		sys.exit(status)
 
