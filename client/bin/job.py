@@ -722,6 +722,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	df_root = system_output('df -m / | tail -1').split()
 	free_space_mb_root_after = int(df_root[3])
 	if myjob.free_space_mb_root_before - free_space_mb_root_after > 5:
-		myjob.record('WARN', 'Check disk usage', 'disk usage on root is greater than 5Mb')
+		myjob.record('WARN', None, 'disk_usage',
+			     'disk usage on root is greater than 5Mb')
 	myjob.complete(0)
 
