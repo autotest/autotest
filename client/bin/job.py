@@ -354,7 +354,7 @@ class job:
 
 
 	def new_container(self, mbytes=None, cpus=None, root=None, name=None):
-		if grep('cpusets', '/proc/filesystems'):
+		if not grep('cpuset', '/proc/filesystems'):
 			print "Containers not enabled by latest reboot"
 			return  # containers weren't enabled in this kernel boot
 		pid = os.getpid()
@@ -725,4 +725,3 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		myjob.record('WARN', None, 'disk_usage',
 			     'disk usage on root is greater than 5Mb')
 	myjob.complete(0)
-
