@@ -81,6 +81,7 @@ class job:
 			if (self.free_space_mb_root_before < 100 or 
 				self.usage_percent_root_before > 90):
 				self.record('WARN', 'check free space on root', 'free space is less than 100Mb or 10%')
+			pickle.dump(self.free_space_mb_root_before, file(self.control + '.fs', 'w'))
 			
 			if os.path.exists(self.tmpdir):
 				system('umount -f %s > /dev/null 2> /dev/null'%\
@@ -107,6 +108,9 @@ class job:
 
 			shutil.copyfile(self.control,
 					os.path.join(self.resultdir, 'control'))
+		else:
+			self.free_space_mb_root_before = pickle.load(file(self.control + '.fs', 'r'))
+
 
 		self.control = control
 		self.jobtag = jobtag
@@ -497,6 +501,7 @@ class job:
 		# We are about to exit 'complete' so clean up the control file.
 		try:
 			os.unlink(self.control + '.state')
+			oa.unlink(self.control + '.fs')
 		except:
 			pass
 		self.harness.run_complete()
