@@ -12,48 +12,75 @@ class unixbench(test.test):
 
 		system('patch -p1 < ../unixbench.patch')
 		system('make')
-		
+
+
 	def execute(self, iterations = 1, args = ''):
-		vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
+		vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' % 
+		       (self.tmpdir, self.resultsdir))
 		profilers = self.job.profilers
 		keyval = open(self.resultsdir + '/keyval', 'w')
+		self.err = None
 
 		if not profilers.only():
 			for i in range(iterations):
 				os.chdir(self.srcdir)
 				system(vars + ' ./Run ' + args)
 				report = open(self.resultsdir + '/report')
-				_format_results(report, keyval)
+				self.format_results(report, keyval)
 				
-
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
 			system(vars + ' ./Run ' + args)
 			profilers.stop(self)
 			profilers.report(self)
+		
+		# check err string and possible throw
+		if self.err != None:
+			raise TestError(self.err)
+
+	
+	def check_for_error(self, words):
+		l = len(words)
+		if l >= 3 and words[-3:l] == ['no', 'measured', 'results']:
+			# found a problem so record it in err string
+			key = '_'.join(words[:-3])
+			if self.err == None: 
+				self.err = key
+			else:
+				self.err = self.err + " " + key
+			return True
+		else:
+			return False
 
 
-def _format_results(report, keyval):
-	for i in range(9):
-		report.next()
-	for line in report:
-		if not line.strip():
-			break
+	def format_results(self, report, keyval):
+		for i in range(9):
+			report.next()
+		for line in report:
+			if not line.strip():
+				break
 
-		words = line.split()
-		key = '_'.join(words[:-6])
-		value = words[-6]
-		print >> keyval, '%s=%s' % (key, value)
-	for line in report:
-		if 'FINAL SCORE' in line:
-			print >> keyval, 'score=%s\n' % line.split()[-1]
-			break
+			words = line.split()
+			# look for problems first
+			if self.check_for_error(words):
+				continue
+					
+			# we should make sure that there are at least
+			# 6 guys before we start accessing the array
+			if len(words) >= 6:
+				key = '_'.join(words[:-6])
+				value = words[-6]
+				print >> keyval, '%s=%s' % (key, value)
+		for line in report:
+			if 'FINAL SCORE' in line:
+				print >> keyval, 'score=%s\n' % line.split()[-1]
+				break
 
 
 if __name__ == '__main__':
 	import sys
-	_format_results(sys.stdin, sys.stdout)
+	unixbench.format_results(sys.stdin, sys.stdout)
 
 
 """ Here is a sample report file:
