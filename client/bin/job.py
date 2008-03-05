@@ -75,7 +75,7 @@ class job:
 		self.control = os.path.abspath(control)
 
 		if not cont:
-			df_root = system_output('df -m / | tail -1').split()
+			df_root = system_output('df -mP / | tail -1').split()
 			self.free_space_mb_root_before = int(df_root[3])
 			self.usage_percent_root_before = int(df_root[4].rstrip('%'))
 			if (self.free_space_mb_root_before < 100 or 
@@ -719,7 +719,7 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	# If we get here, then we assume the job is complete and good.
 	myjob.group_level = 0
 	myjob.record('END GOOD', None, None)
-	df_root = system_output('df -m / | tail -1').split()
+	df_root = system_output('df -mP / | tail -1').split()
 	free_space_mb_root_after = int(df_root[3])
 	if myjob.free_space_mb_root_before - free_space_mb_root_after > 5:
 		myjob.record('WARN', None, 'disk_usage',
