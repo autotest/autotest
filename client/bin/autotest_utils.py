@@ -235,21 +235,6 @@ def get_file_arch(filename):
 	return None
 
 
-def kernelexpand(kernel, args=None):
-	# if not (kernel.startswith('http://') or kernel.startswith('ftp://') or os.path.isfile(kernel)):
-	if kernel.find('/') < 0:     # contains no path.
-		autodir = os.environ['AUTODIR']
-		kernelexpand = os.path.join(autodir, 'tools/kernelexpand')
-		if args:
-			kernelexpand += ' ' + args
-		w, r = os.popen2(kernelexpand + ' ' + kernel)
-
-		kernel = r.readline().strip()
-		r.close()
-		w.close()
-	return kernel.split()
-
-
 def count_cpus():
 	"""number of CPUs in the local machine according to /proc/cpuinfo"""
 	f = file('/proc/cpuinfo', 'r')
