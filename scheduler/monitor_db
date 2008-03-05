@@ -199,12 +199,17 @@ class DatabaseConn:
 				self.connect()
 
 
+def generate_parse_command(results_dir, flags=""):
+	parse = os.path.abspath(os.path.join(AUTOTEST_TKO_DIR, 'parse'))
+	output = os.path.abspath(os.path.join(results_dir, '.parse.log'))
+	cmd = "%s %s -r -o %s > %s 2>&1 &"
+	return cmd % (parse, flags, results_dir, output)
+
+
 def parse_results(results_dir, flags=""):
 	if _testing_mode:
 		return
-	parse = os.path.join(AUTOTEST_TKO_DIR, 'parse')
-	output = os.path.join(results_dir, '.parse.log')
-	os.system("%s %s -r -o %s > %s 2>&1 &" % (parse, flags, results_dir, output))
+	os.system(generate_parse_command(results_dir, flags))
 
 
 def log_stacktrace(reason):
@@ -686,6 +691,21 @@ class QueueTask(AgentTask):
 
 
 	def prolog(self):
+		# write the parser commands into the results directories
+		if self.job.is_synchronous() or self.job.num_machines()==1:
+			results_dir = self.job.results_dir()
+			cmdfile = os.path.join(results_dir, '.parse.cmd')
+			cmd = generate_parse_command(results_dir)
+			print >> open(cmdfile, 'w'), cmd
+		else:
+			for queue_entry in self.queue_entries:
+				results_dir = queue_entry.results_dir()
+				cmdfile = os.path.join(results_dir,
+						       '.parse.cmd')
+				cmd = generate_parse_command(results_dir,
+							     '-l 2')
+				print >> open(cmdfile, 'w'), cmd
+
 		# write some job timestamps into the job keyval file
 		queued = time.mktime(self.job.created_on.timetuple())
 		started = time.time()
