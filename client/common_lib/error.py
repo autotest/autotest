@@ -106,3 +106,13 @@ class AutoservHostError(AutoservError):
 class AutoservRebootError(AutoservError):
 	"""Error occured while rebooting a machine"""
 	pass
+
+class AutoservSubcommandError(AutoservError):
+	"""Indicates an error while executing a (forked) subcommand"""
+	def __init__(self, func, exit_code):
+		AutoservError.__init__(self, func, exit_code)
+		self.func = func
+		self.exit_code = exit_code
+	def __str__(self):
+		return ("Subcommand %s failed with exit code %d" %
+			self.func, self.exit_code)
