@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re, time, select, traceback
+import os, sys, re, time, select, subprocess, traceback
 import test
 from utils import *
 from common.error import *
@@ -440,7 +440,7 @@ class server_job:
 			line = self.record_prefix + line + '\n'
 			status_log.write(line)
 		status_log.close()
-
+		self.__parse_status()
 
 
 	def __record(self, status_code, subdir, operation, status='',
@@ -464,6 +464,18 @@ class server_job:
 				os.mkdir(test_dir)
 			status_file = os.path.join(test_dir, 'status')
 			open(status_file, "a").write(msg)
+		self.__parse_status()
+
+
+	def __parse_status(self):
+		"""
+		If a .parse.cmd file is present in the results directory,
+		launch the tko parser.
+		"""
+		cmdfile = os.path.join(self.resultdir, '.parse.cmd')
+		if os.path.exists(cmdfile):
+			cmd = open(cmdfile).read().strip()
+			subprocess.Popen(cmd, shell=True)
 
 
 # a file-like object for catching stderr from an autotest client and
