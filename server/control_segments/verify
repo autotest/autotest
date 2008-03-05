@@ -1,5 +1,5 @@
 def check_diskspace(host, path, gb):
-	df = host.run('df -m %s | tail -1' % path).stdout.split()
+	df = host.run('df -mP %s | tail -1' % path).stdout.split()
 	free_space_gb = int(df[3])/1000.0
 	if free_space_gb < gb:
 		raise AutoservHostError('Not enough free space on ' +
