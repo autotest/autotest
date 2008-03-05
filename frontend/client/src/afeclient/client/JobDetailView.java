@@ -37,6 +37,7 @@ public class JobDetailView extends TabView {
     protected TextBox idInput = new TextBox();
     protected Button idFetchButton = new Button(GO_TEXT);
     protected Button abortButton = new Button("Abort job");
+    protected Button requeueButton = new Button("Requeue job");
     
     protected void showText(String text, String elementId) {
         DOM.setInnerText(RootPanel.get(elementId).getElement(), text);
@@ -176,6 +177,13 @@ public class JobDetailView extends TabView {
             }
         });
         RootPanel.get("view_abort").add(abortButton);
+        
+        requeueButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                requeueJob();
+            } 
+        });
+        RootPanel.get("view_requeue").add(requeueButton);
     }
     
     protected void abortJob() {
@@ -184,6 +192,17 @@ public class JobDetailView extends TabView {
         rpcProxy.rpcCall("abort_job", params, new JsonRpcCallback() {
             public void onSuccess(JSONValue result) {
                 refresh();
+            }
+        });
+    }
+    
+    protected void requeueJob() {
+        JSONObject params = new JSONObject();
+        params.put("id", new JSONNumber(jobId));
+        rpcProxy.rpcCall("requeue_job", params, new JsonRpcCallback() {
+            public void onSuccess(JSONValue result) {
+                int newId = (int) result.isNumber().getValue();
+                setJobID(newId);
             }
         });
     }

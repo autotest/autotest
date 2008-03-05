@@ -366,7 +366,7 @@ class Host(dbmodels.Model, ModelExtensions):
 					     status=Job.Status.QUEUED,
 					     priority=job.priority)
 		# allow recovery of dead hosts from the frontend
-		if not self.active_queue_entry():
+		if not self.active_queue_entry() and self.is_dead():
 			self.status = Host.Status.READY
 			self.save()
 		queue_entry.save()
@@ -385,6 +385,10 @@ class Host(dbmodels.Model, ModelExtensions):
 			return None
 		return platforms[0]
 	platform.short_description = 'Platform'
+
+
+	def is_dead(self):
+		return self.status == Host.Status.REPAIR_FAILED
 
 
 	def active_queue_entry(self):
@@ -657,6 +661,19 @@ class Job(dbmodels.Model, ModelExtensions):
 			host.block_auto_assign(self)
 		self.submitted_on = datetime.datetime.now()
 		self.save()
+
+
+	def requeue(self, new_owner):
+		'Creates a new job identical to this one'
+		hosts = [queue_entry.meta_host or queue_entry.host
+			 for queue_entry in self.hostqueueentry_set.all()]
+		new_job = Job.create(
+		    owner=new_owner, name=self.name, priority=self.priority,
+		    control_file=self.control_file,
+		    control_type=self.control_type, hosts=hosts,
+		    synch_type=self.synch_type)
+		new_job.queue(hosts)
+		return new_job
 
 
 	def abort(self):
