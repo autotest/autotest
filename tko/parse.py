@@ -71,7 +71,41 @@ def get_timestamp(mapping, field):
 	return val
 
 
+class status_stack:
+	def __init__(self, job):
+		self.job = job
+		self.status_stack = [self.job.statuses[-1]]
+
+
+	def current_status(self):
+		return self.status_stack[-1]
+
+
+	def update(self, new_status):
+		if new_status not in self.job.statuses:
+			return
+		old = self.job.statuses.index(self.current_status())
+		new = self.job.statuses.index(new_status)
+		if new < old:
+			self.status_stack[-1] = new_status
+
+
+	def start(self):
+		self.status_stack.append(self.job.statuses[-1])
+
+
+	def end(self):
+		result = self.status_stack.pop()
+		if len(self.status_stack) == 0:
+			self.status_stack.append(self.job.statuses[-1])
+		return result
+
+
+
 class job:
+	statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD',
+		    'ALERT']
+
 	def __init__(self, dir):
 		self.dir = dir
 		self.control = os.path.join(dir, "control")
@@ -122,7 +156,7 @@ class job:
 		except:
 			pass
 		raise "Could not figure out machine name"
-		
+
 
 	def grope_status(self):
 		"""
@@ -138,12 +172,11 @@ class job:
 		dprint('=====================================================')
 		self.kernel = kernel(self.dir)
 
-		statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN',
-								'GOOD', 'ALERT']
 		reboot_inprogress = 0	# Saw reboot start and not finish
 		boot_count = 0
 		alert_pending = None	# Saw an ALERT for this test
 		group_subdir = None
+		group_status = status_stack(self)
 		sought_level = 0        # we log events at indent level 0
 		for line in open(self.status, 'r').readlines():
 			dprint('\nSTATUS: ' + line.rstrip())
@@ -160,6 +193,7 @@ class job:
 			line = line.rstrip('\n')
 			if line.startswith('START\t'):
 				group_subdir = None
+				group_status.start()
 				dprint('start line, ignoring')
 				continue	# ignore start lines
 			reason = None
@@ -175,8 +209,10 @@ class job:
 			reason = elements[-1]
 			optional_fields = dict(element.split('=', 1)
 					       for element in elements[3:-1])
+			group_status.update(status)
 			dprint('GROPE_STATUS: ' +
-			       str([status, subdir, testname, reason]))
+			       str([group_status.current_status(), status,
+				    subdir, testname, reason]))
 			if status == 'ALERT':
 				dprint('job level alert, recording')
 				alert_pending = reason
@@ -195,7 +231,8 @@ class job:
 			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
 			################################################
 			if re.search(r'^(GOOD|FAIL|WARN) ', line):
-				(status, testname, reason) = line.split(None, 2)
+				status, testname, reason = line.split(None, 2)
+
 				if testname.startswith('kernel.'):
 					subdir = 'build'
 				else:
@@ -232,16 +269,18 @@ class job:
 				status = 'ALERT'
 				reason = alert_pending
 				alert_pending = None
-			if status in statuses:
-				dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s'%
-					(status, subdir, testname, reason))
+			if status in self.statuses:
+				dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s'
+				       % (group_status.current_status(),
+					  subdir, testname, reason))
 			else:
 				dprint('WARNING: Invalid status code. Ignoring')
 				continue
 
 			finished_time = get_timestamp(optional_fields,
 						      'timestamp')
-			self.tests.append(test(subdir, testname, status,
+			test_status = group_status.end()
+			self.tests.append(test(subdir, testname, test_status,
 					       reason, self.kernel, self,
 					       finished_time))
 			dprint('')

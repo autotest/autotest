@@ -556,7 +556,11 @@ class client_logger(object):
 
 
 	def _format_warnings(self, last_line, warnings):
+		# use the indentation of whatever the last log line was
 		indent = self.extract_indent.match(last_line).group(1)
+		# if the last line starts a new group, add an extra indent
+		if last_line.lstrip('\t').startswith("START\t"):
+			indent += '\t'
 		return [self.job._render_record("WARN", None, None, msg,
 						timestamp, indent).rstrip('\n')
 			for timestamp, msg in warnings]
