@@ -124,6 +124,12 @@ def idle_hosts():
 	hosts = [Host(row=i) for i in rows]
 	return hosts
 
+def queue_entries_to_abort():
+	rows = _db.execute("""
+		SELECT * FROM host_queue_entries WHERE status='Abort';
+			""")
+	qe = [HostQueueEntry(row=i) for i in rows]
+	return qe
 
 def remove_file_or_dir(path):
 	if stat.S_ISDIR(os.stat(path).st_mode):
@@ -240,6 +246,7 @@ class Dispatcher:
 
 	def tick(self):
 		if not self.shutting_down:
+			self._find_aborting()
 			self._find_more_work()
 		self._handle_agents()
 
@@ -247,10 +254,22 @@ class Dispatcher:
 	def add_agent(self, agent):
 		self._agents.append(agent)
 		agent.dispatcher = self
+	
+	# Find agent corresponding to the specified queue_entry
+	def get_agents(self, queue_entry):
+		res_agents = []
+		for agent in self._agents:
+			if queue_entry.id in agent.queue_entry_ids:
+				res_agents.append(agent)
+		return res_agents
+	
+
+	def remove_agent(self, agent):
+		self._agents.remove(agent)
 
 
 	def _recover_lost(self):
-		rows = _db.execute("""SELECT * FROM host_queue_entries WHERE active AND NOT complete""")
+		rows = _db.execute("""SELECT * FROM host_queue_entries WHERE active AND NOT complete AND status != 'Abort' AND status != 'Aborting'""")
 		if len(rows) > 0:
 			queue_entries = [HostQueueEntry(row=i) for i in rows]
 			for queue_entry in queue_entries:
@@ -262,11 +281,30 @@ class Dispatcher:
 					queue_entry.requeue()
 				queue_entry.clear_results_dir()
 			
+		rebooting_host_ids = []
+		rows = _db.execute("""SELECT * FROM host_queue_entries
+				   WHERE status='Abort' or status='Aborting'""")
+		if len(rows) > 0:
+			queue_entries = [HostQueueEntry(row=i) for i in rows]
+			for queue_entry in queue_entries:
+				queue_host = queue_entry.get_host()
+				reboot_task = RebootTask(queue_host)
+				verify_task = VerifyTask(host = queue_host)
+				self.add_agent(Agent(tasks=[reboot_task,
+							    verify_task],
+					       queue_entry_ids=[queue_entry.id]))
+				queue_entry.set_status('Aborted')
+				# Secure the host from being picked up
+				queue_host.set_status('Rebooting')
+				rebooting_host_ids.append(queue_host.id)
+
 		rows = _db.execute("""SELECT * FROM hosts
 		                   WHERE status != 'Ready' AND NOT locked""")
 		if len(rows) > 0:
 			hosts = [Host(row=i) for i in rows]
 			for host in hosts:
+				if host.id in rebooting_host_ids:
+					continue
 				verify_task = VerifyTask(host = host)
 				self.add_agent(Agent(tasks = [verify_task]))
 
@@ -295,6 +333,30 @@ class Dispatcher:
 #							next.host.set_status('Ready')
 
 						log_stacktrace("task_id = %d" % next.id)
+
+
+	def _find_aborting(self):	
+		num_aborted = 0
+		# Find jobs that are aborting
+		for entry in queue_entries_to_abort():
+			agents_to_abort = self.get_agents(entry)
+			entry_host = entry.get_host()
+			reboot_task = RebootTask(entry_host)
+			verify_task = VerifyTask(host = entry_host)
+			tasks = [reboot_task, verify_task]
+			if agents_to_abort:
+				abort_task = AbortTask(entry, agents_to_abort)
+				tasks.insert(0, abort_task)
+			else:
+				entry.set_status('Aborted')
+				# just to make sure this host does not get
+				# taken away
+				entry_host.set_status('Rebooting')
+			self.add_agent(Agent(tasks=tasks,
+					     queue_entry_ids = [entry.id]))
+			num_aborted += 1
+			if num_aborted >= 50:
+				break
 
 
 	def _handle_agents(self):
@@ -345,18 +407,28 @@ class RunMonitor(object):
 
 
 	def kill(self):
-		self.proc.kill()
-
+		for i in range(0, 4):
+			if self.proc.poll() == None:
+				os.kill(self.proc.pid, signal.SIGTERM)
+				time.sleep(5)
+			# Check that the process was terminated
+			if self.proc.poll() != None:
+				return
+			
+		print ("""Error: process %d has not terminated""" % 
+								self.proc.pid)
+		
 
 	def exit_code(self):
 		return self.proc.poll()
 
 
 class Agent(object):
-	def __init__(self, tasks):
+	def __init__(self, tasks, queue_entry_ids=[]):
 		self.active_task = None
 		self.queue = Queue.Queue(0)
 		self.dispatcher = None
+		self.queue_entry_ids = queue_entry_ids
 		
 		for task in tasks:
 			self.add_task(task)
@@ -408,7 +480,7 @@ class Agent(object):
 
 		self._next_task()
 
-
+	
 class AgentTask(object):
 	def __init__(self, cmd, failure_tasks = [],
 		     clear_queue_on_failure=True):
@@ -424,12 +496,14 @@ class AgentTask(object):
 		self.clear_queue_on_failure = clear_queue_on_failure
 		self.started = False
 		self.cmd = cmd
+		self.task = None
 		self.agent = None
+		self.monitor = None
 
 
 	def poll(self):
 		print "poll"
-		if hasattr(self, 'monitor'):
+		if self.monitor:
 			self.tick(self.monitor.exit_code())
 		else:
 			self.finished(False)
@@ -476,7 +550,9 @@ class AgentTask(object):
 
 
 	def abort(self):
-		self.monitor.kill()
+		if self.monitor:
+			self.monitor.kill()
+		self.done = True
 
 
 	def run(self):
@@ -693,19 +769,53 @@ class QueueTask(AgentTask):
 
 
 class RebootTask(AgentTask):
-	def __init__(self):
-		AgentTask.__init__(self, host)
-		self.cmd = "%s -b -m %s /dev/null" % (_autoserv_path, host)
+	def __init__(self, host):
+		global _autoserv_path
+		
+		# Current implementation of autoserv requires control file
+		# to be passed on reboot action request. TODO: remove when no
+		# longer appropriate.
+		self.cmd = [_autoserv_path, '-b', '-m', host.hostname,
+			    '/dev/null']
 		self.host = host
+		AgentTask.__init__(self, self.cmd,
+				   clear_queue_on_failure = False)
+	
+
+	def prolog(self):
+		print "starting reboot task for host: %s" % self.host.hostname
+		self.host.set_status("Rebooting")
+
+	def epilog(self):
+		if self.success:
+			self.host.set_status("Reboot Succeeded")
+		else:
+			self.host.set_status("Reboot Failed")
+		
+
+class AbortTask(AgentTask):
+	def __init__(self, queue_entry, agents_to_abort):
+		self.queue_entry = queue_entry
+		self.agents_to_abort = agents_to_abort
+		for agent in agents_to_abort:
+			agent.dispatcher.remove_agent(agent)
+		AgentTask.__init__(self, '')
 
 
-	def tick(self, exit_code):
-		raise "not implemented"
+	def prolog(self):
+		print "starting abort on host %s, job %s" % (
+			self.queue_entry.host_id, self.queue_entry.job_id)
+		self.queue_entry.set_status('Aborting')
+		
 
+	def epilog(self):
+		self.queue_entry.set_status('Aborted')
+		self.success = True
 
 	def run(self):
-		raise "not implemented"
-		
+		for agent in self.agents_to_abort:
+			if (agent.active_task):
+				agent.active_task.abort()
 
 
 class DBObject(object):
@@ -961,11 +1071,12 @@ class HostQueueEntry(DBObject):
 			self.update_field('complete', False)
 			self.update_field('active', False)
 
-		if status in ['Pending', 'Running', 'Verifying', 'Starting']:
+		if status in ['Pending', 'Running', 'Verifying', 'Starting',
+			      'Abort', 'Aborting']:
 			self.update_field('complete', False)
 			self.update_field('active', True)
 
-		if status in ['Failed', 'Completed', 'Stopped']:
+		if status in ['Failed', 'Completed', 'Stopped', 'Aborted']:
 			self.update_field('complete', True)
 			self.update_field('active', False)
 
@@ -1144,7 +1255,9 @@ class Job(DBObject):
 
 		if self.is_synchronous():
 			if not self.is_ready():
-				return Agent([VerifySynchronousTask(queue_entry = queue_entry)])
+				return Agent([VerifySynchronousTask(
+						queue_entry = queue_entry)],
+					     [queue_entry.id])
 
 		queue_entry.set_status('Starting')
 
@@ -1178,7 +1291,11 @@ class Job(DBObject):
 				       queue_entries = queue_entries,
 				       cmd = params))
 
-		agent = Agent(tasks)
+		ids = []
+		for entry in queue_entries:
+			ids.append(entry.id)
+		
+		agent = Agent(tasks, ids)
 
 		return agent
 

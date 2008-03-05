@@ -116,6 +116,8 @@ public class JobDetailView extends TabView {
             String key = (String) i.next();
             if (!(key.equals("Completed") || 
                   key.equals("Failed") ||
+                  key.equals("Aborting") ||
+                  key.equals("Abort") ||
                   key.equals("Aborted") ||
                   key.equals("Stopped")))
                 return false;

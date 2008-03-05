@@ -387,11 +387,6 @@ class Host(dbmodels.Model, ModelExtensions):
 	platform.short_description = 'Platform'
 
 
-	def is_dead(self):
-		return self.status in (Host.Status.DEAD,
-				       Host.Status.REPAIR_FAILED)
-
-
 	def active_queue_entry(self):
 		active = list(self.hostqueueentry_set.filter(active=True))
 		if not active:
@@ -599,7 +594,8 @@ class Job(dbmodels.Model, ModelExtensions):
 	ControlType = enum.Enum('Server', 'Client', start_value=1)
 	SynchType = enum.Enum('Asynchronous', 'Synchronous', start_value=1)
 	Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
-			   'Completed', 'Aborted', 'Failed', string_values=True)
+			   'Completed', 'Abort', 'Aborting', 'Aborted',
+			   'Failed', string_values=True)
 
 	owner = dbmodels.CharField(maxlength=255)
 	name = dbmodels.CharField(maxlength=255)
@@ -668,15 +664,12 @@ class Job(dbmodels.Model, ModelExtensions):
 		self.save()
 		for queue_entry in self.hostqueueentry_set.all():
 			if queue_entry.active:
-				host = queue_entry.host
-				if host:
-					host.status = Host.Status.DEAD
-					host.save()
-			if not queue_entry.complete:
+				queue_entry.status = Job.Status.ABORT
+			elif not queue_entry.complete:
 				queue_entry.status = Job.Status.ABORTED
 				queue_entry.active = False
 				queue_entry.complete = True
-				queue_entry.save()
+			queue_entry.save()
 
 
 	def user(self):
