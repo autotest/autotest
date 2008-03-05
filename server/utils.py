@@ -208,16 +208,16 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 			_process_output(subproc.stderr, stderr_file,
 					stderr_tee)
 
-		pid, exit_status_indication = os.waitpid(subproc.pid,
-							 os.WNOHANG)
-		if pid:
+		exit_status_indication = subproc.poll()
+
+		if exit_status_indication is not None:
 			return exit_status_indication
 		if timeout:
 			time_left = stop_time - time.time()
 
 	# the process has not terminated within timeout,
 	# kill it via an escalating series of signals.
-	if not pid:
+	if exit_status_indication is None:
 		__nuke_subprocess(subproc)
 	raise AutoservRunError('Command not complete within %s seconds'
 			       % timeout, None)
