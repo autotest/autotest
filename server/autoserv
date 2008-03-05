@@ -13,7 +13,19 @@ mbligh@google.com (Martin J. Bligh)
 from common.check_version import check_python_version
 check_python_version()
 
-import sys, os, re, server_job, hosts.site_host, utils, traceback
+import sys, os, re, server_job, hosts.site_host, utils, traceback, signal
+
+# Create separate process group
+os.setpgrp()
+
+# Implement SIGTERM handler
+def handle_sigint(signum, frame):
+	signal.signal(signal.SIGTERM, signal.SIG_DFL)
+	os.killpg(os.getpgrp(), signal.SIGTERM)
+
+# Set signal handler
+signal.signal(signal.SIGTERM, handle_sigint)
+
 
 usage = """\
 usage: autoserv
