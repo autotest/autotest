@@ -145,7 +145,7 @@ class harness_ABAT(harness.harness):
 		self.__send_status(code, subdir, operation, lines[0])
 
 
-	def test_status(self, msg):
+	def test_status(self, msg, tag):
 		lines = msg.split("\n")
 
 		# Send each line as a SUMMARY message.
