@@ -176,7 +176,6 @@ class DatabaseConn:
 				self.conn.autocommit(True)
 				self.cur = self.conn.cursor()
 			except MySQLdb.OperationalError:
-				#traceback.print_exc()
 				print "Can't connect to MYSQL; reconnecting"
 				time.sleep(self.reconnect_wait)
 				self.disconnect()
@@ -463,13 +462,10 @@ class Agent(object):
 
 
 	def on_task_failure(self):
-		old_queue = self.queue
 		self.queue = Queue.Queue(0)
 		for task in self.active_task.failure_tasks:
 			self.add_task(task)
-		if not self.active_task.clear_queue_on_failure:
-			while not old_queue.empty():
-				self.add_task(old_queue.get_nowait())
+
 
 	def is_done(self):
 		return self.active_task == None and self.queue.empty()
@@ -482,8 +478,7 @@ class Agent(object):
 
 	
 class AgentTask(object):
-	def __init__(self, cmd, failure_tasks = [],
-		     clear_queue_on_failure=True):
+	def __init__(self, cmd, failure_tasks = []):
 		"""\
 		By default, on failure, the Agent's task queue is cleared and
 		replaced with the tasks in failure_tasks.  If
@@ -493,7 +488,6 @@ class AgentTask(object):
 		"""
 		self.done = False
 		self.failure_tasks = failure_tasks
-		self.clear_queue_on_failure = clear_queue_on_failure
 		self.started = False
 		self.cmd = cmd
 		self.task = None
@@ -567,10 +561,15 @@ class AgentTask(object):
 
 
 class RepairTask(AgentTask):
-	def __init__(self, host):
+	def __init__(self, host, fail_queue_entry=None):
+		"""\
+		fail_queue_entry: queue entry to mark failed if this repair
+		fails.
+		"""
 		cmd = [_autoserv_path , '-R', '-m', host.hostname]
 		self.host = host
-		AgentTask.__init__(self, cmd, clear_queue_on_failure=False)
+		self.fail_queue_entry = fail_queue_entry
+		AgentTask.__init__(self, cmd)
 
 
 	def prolog(self):
@@ -580,11 +579,11 @@ class RepairTask(AgentTask):
 
 	def epilog(self):
 		if self.success:
-			status = 'Repair Succeeded'
+			self.host.set_status('Ready')
 		else:
-			status = 'Repair Failed'
-
-		self.host.set_status(status)
+			self.host.set_status('Repair Failed')
+			if self.fail_queue_entry:
+				self.fail_queue_entry.handle_host_failure()
 
 
 class VerifyTask(AgentTask):
@@ -598,15 +597,12 @@ class VerifyTask(AgentTask):
 		cmd = [_autoserv_path,'-v','-m',self.host.hostname,
 		       '-r', self.temp_results_dir]
 
-		failure_tasks = self.get_failure_tasks()
+		fail_queue_entry = None
+		if queue_entry and not queue_entry.meta_host:
+			fail_queue_entry = queue_entry
+		failure_tasks = [RepairTask(self.host, fail_queue_entry)]
 
 		AgentTask.__init__(self, cmd, failure_tasks=failure_tasks)
-
-
-	def get_failure_tasks(self):
-		'To be overridden'
-		return [RepairTask(self.host),
-			ReverifyTask(self.queue_entry, self.host)]
 
 
 	def prolog(self):
@@ -625,18 +621,8 @@ class VerifyTask(AgentTask):
 		shutil.rmtree(self.temp_results_dir)
 
 		if self.success:
-			self.on_success()
-		else:
-			self.on_failure()
-
-
-	def on_success(self):
-		self.host.set_status('Ready')
-
-
-	def on_failure(self):
-		self.host.set_status('Failed Verify')
-		if self.queue_entry:
+			self.host.set_status('Ready')
+		elif self.queue_entry:
 			self.queue_entry.requeue()
 
 
@@ -665,52 +651,24 @@ class VerifyTask(AgentTask):
 		shutil.move(source, dest)
 
 
-class ReverifyTask(VerifyTask):
-	def __init__(self, queue_entry=None, host=None):
-		self.fail_queue_entry = None
-		if queue_entry:
-			if not host:
-				host = queue_entry.host
-			if not queue_entry.meta_host:
-				self.fail_queue_entry = queue_entry
-		# always construct VerifyTask without the queue_entry - we don't
-		# want to touch the queue entry unless we fail, in which case we
-		# just fail it (and only if it's a non-metahost)
-		VerifyTask.__init__(self, host=host)
-
-
-	def get_failure_tasks(self):
-		return []
-
-
-	def on_failure(self):
-		self.host.set_status('Repair Failed')
-		if self.fail_queue_entry:
-			self.fail_queue_entry.handle_host_failure()
-
-
 class VerifySynchronousTask(VerifyTask):
 	def __init__(self, queue_entry):
 		VerifyTask.__init__(self, queue_entry = queue_entry)
 
 
-	def on_success(self):
-		VerifyTask.on_success(self)
-		self.on_pending()
+	def epilog(self):
+		VerifyTask.epilog(self)
+		if self.success:
+			if self.queue_entry.job.num_complete() > 0:
+				# some other entry failed verify, and we've
+				# already been marked as stopped
+				return
 
-
-	def on_pending(self):
-		if self.queue_entry.job.num_complete() > 0:
-			# some other entry failed verify, and we've
-			# already been marked as stopped
-			return
-
-		self.queue_entry.set_status('Pending')
-		job = self.queue_entry.job
-		if job.is_ready():
-			agent = job.run(self.queue_entry)
-			self.agent.dispatcher.add_agent(agent)
-
+			self.queue_entry.set_status('Pending')
+			job = self.queue_entry.job
+			if job.is_ready():
+				agent = job.run(self.queue_entry)
+				self.agent.dispatcher.add_agent(agent)
 
 class QueueTask(AgentTask):
 	def __init__(self, job, queue_entries, cmd):
@@ -779,19 +737,13 @@ class RebootTask(AgentTask):
 			    '/dev/null']
 		self.host = host
 		AgentTask.__init__(self, self.cmd,
-				   clear_queue_on_failure = False)
-	
+				   failure_tasks=[RepairTask(host)])
+
 
 	def prolog(self):
 		print "starting reboot task for host: %s" % self.host.hostname
 		self.host.set_status("Rebooting")
 
-	def epilog(self):
-		if self.success:
-			self.host.set_status("Reboot Succeeded")
-		else:
-			self.host.set_status("Reboot Failed")
-		
 
 class AbortTask(AgentTask):
 	def __init__(self, queue_entry, agents_to_abort):

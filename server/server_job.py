@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re, time, select
+import os, sys, re, time, select, traceback
 import test
 from utils import *
 from common.error import *
@@ -194,7 +194,12 @@ class server_job:
 		if not self.machines:
 			raise AutoservError('No machines specified to repair')
 		namespace = {'machines' : self.machines, 'job' : self}
-		exec(preamble + repair, namespace, namespace)
+		# no matter what happens during repair, go on to try to reverify
+		try:
+			exec(preamble + repair, namespace, namespace)
+		except Exception, exc:
+			print 'Exception occured during repair'
+			traceback.print_exc()
 		self.verify()
 
 
