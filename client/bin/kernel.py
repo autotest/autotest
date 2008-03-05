@@ -4,7 +4,7 @@ import os,os.path,shutil,urllib,copy,pickle,re,glob,time
 from autotest_utils import *
 from common import logging
 from fd_stack import tee_output_logdir_mark
-import kernel_config, test, os_dep
+import kernel_config, test, os_dep, kernelexpand
 
 
 class kernel:
@@ -109,16 +109,38 @@ class kernel:
 		self.extract(base_tree)
 
 
+	def kernelexpand(self, kernel):
+		# If we have something like a path, just use it as it is
+		if kernel.find('/') >= 0:
+			return kernel
+
+		# Find the configured mirror list.
+		mirrors = self.job.config_get('mirror.mirrors')
+		if not mirrors:
+			# LEGACY: convert the kernel.org mirror
+			mirror = self.job.config_get('mirror.ftp_kernel_org')
+			mirrors = [
+			  [ 'http://www.kernel.org/pub/linux/kernel/v2.6',
+			    mirror + '/v2.6' ],
+			  [ 'http://www.kernel.org/pub/linux/kernel/people/' +
+			    'akpm/patches/2.6', mirror + '/akpm'],
+			  [ 'http://www.kernel.org/pub/linux/kernel/people/' +
+			    'mbligh', mirror + '/mbligh']
+			]
+
+		patches = kernelexpand.expand_classic(kernel, mirrors)
+		print patches
+
+		return patches
+
+
 	@logging.record
 	@tee_output_logdir_mark
 	def extract(self, base_tree):
 		if os.path.exists(base_tree):
 			self.get_kernel_tree(base_tree)
 		else:
-			args = self.job.config_get('mirror.ftp_kernel_org')
-			if args:
-				args = '-l ' + args
-			base_components = kernelexpand(base_tree, args)
+			base_components = self.kernelexpand(base_tree)
 			print 'kernelexpand: '
 			print base_components
 			self.get_kernel_tree(base_components.pop(0))
