@@ -648,19 +648,15 @@ class Job(dbmodels.Model, ModelExtensions):
 					  'asynchronous jobs require at least'
 					  + ' one host to run on'}
 				raise ValidationError(errors)
-		job.status = cls.Status.CREATED
 		job.save()
 		return job
 
 
 	def queue(self, hosts):
 		'Enqueue a job on the given hosts.'
-		self.status = self.Status.QUEUED
 		for host in hosts:
 			host.enqueue_job(self)
 			host.block_auto_assign(self)
-		self.submitted_on = datetime.datetime.now()
-		self.save()
 
 
 	def requeue(self, new_owner):
@@ -677,8 +673,6 @@ class Job(dbmodels.Model, ModelExtensions):
 
 
 	def abort(self):
-		self.status = Job.Status.ABORTED
-		self.save()
 		for queue_entry in self.hostqueueentry_set.all():
 			if queue_entry.active:
 				queue_entry.status = Job.Status.ABORT
