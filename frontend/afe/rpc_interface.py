@@ -183,7 +183,6 @@ def generate_control_file(tests, kernel=None, label=None):
 	tests: list of tests to run
 	kernel: kernel to install in generated control file
 	label: name of label to grab kernel config from
-	do_push_kernel: if True, the kernel will be uploaded to GFS if necessary
 	"""
 	if not tests:
 		return ''
