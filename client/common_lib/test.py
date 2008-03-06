@@ -217,8 +217,8 @@ def runtest(job, url, tag, args, dargs,
 	local_namespace['bindir'] = bindir
 	local_namespace['outputdir'] = outputdir
 
+	lockfile = open(os.path.join(job.tmpdir, '.testlock'), 'w')
 	try:
-		lockfile = open(os.path.join(job.tmpdir, '.testlock'), 'w')
 		fcntl.flock(lockfile, fcntl.LOCK_EX)
 		exec ("import %s%s" % (group, testname),
 		      local_namespace, global_namespace)
