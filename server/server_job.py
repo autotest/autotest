@@ -204,7 +204,8 @@ class server_job:
 
 
 	def run(self, reboot = False, install_before = False,
-					install_after = False, namespace = {}):
+		install_after = False, collect_crashdumps = True,
+		namespace = {}):
 		# use a copy so changes don't affect the original dictionary
 		namespace = namespace.copy()
 		machines = self.machines
@@ -232,7 +233,7 @@ class server_job:
 			exec(preamble + server_control, namespace, namespace)
 
 		finally:
-			if machines:
+			if machines and collect_crashdumps:
 				namespace['test_start_time'] = test_start_time
 				exec(preamble + crashdumps,
 				     namespace, namespace)
