@@ -18,9 +18,14 @@ def parallel(tasklist, timeout=None):
 	for task in tasklist:
 		if timeout:
 			remaining_timeout = max(endtime - time.time(), 1)
-		status = task.fork_waitfor(remaining_timeout)
-		if status != 0:
+		try:
+			status = task.fork_waitfor(remaining_timeout)
+		except AutoservSubcommandError:
 			error = True
+		else:
+			if status != 0:
+				error = True
+
 	if error:
 		raise AutoservError('One or more subcommands failed')
 

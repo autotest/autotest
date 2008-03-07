@@ -115,4 +115,4 @@ class AutoservSubcommandError(AutoservError):
 		self.exit_code = exit_code
 	def __str__(self):
 		return ("Subcommand %s failed with exit code %d" %
-			self.func, self.exit_code)
+			(self.func, self.exit_code))
