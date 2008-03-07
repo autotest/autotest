@@ -716,12 +716,15 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		else:
 			sys.exit(1)
 
-	# If we get here, then we assume the job is complete and good.
-	myjob.group_level = 0
-	myjob.record('END GOOD', None, None)
+	# Check to see how much disk space on / was consumed
 	df_root = system_output('df -mP / | tail -1').split()
 	free_space_mb_root_after = int(df_root[3])
 	if myjob.free_space_mb_root_before - free_space_mb_root_after > 5:
 		myjob.record('WARN', None, 'disk_usage',
 			     'disk usage on root is greater than 5Mb')
+
+	# If we get here, then we assume the job is complete and good.
+	myjob.group_level = 0
+	myjob.record('END GOOD', None, None)
+
 	myjob.complete(0)
