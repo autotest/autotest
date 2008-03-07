@@ -411,16 +411,9 @@ class RunMonitor(object):
 
 
 	def kill(self):
-		for i in range(0, 4):
-			if self.proc.poll() == None:
-				os.kill(self.proc.pid, signal.SIGTERM)
-				time.sleep(5)
-			# Check that the process was terminated
-			if self.proc.poll() != None:
-				return
-			
-		print ("""Error: process %d has not terminated""" % 
-								self.proc.pid)
+		if self.proc.poll() == None:
+			os.kill(self.proc.pid, signal.SIGCONT)
+			os.kill(self.proc.pid, signal.SIGTERM)
 		
 
 	def exit_code(self):
