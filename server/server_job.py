@@ -553,7 +553,7 @@ class client_logger(object):
 			tag, line = match.groups()
 			self._process_quoted_line(tag, line)
 		else:
-			print >> sys.stderr, line
+			print line
 
 
 	def _format_warnings(self, last_line, warnings):
@@ -604,7 +604,6 @@ class client_logger(object):
 
 	def flush(self):
 		sys.stdout.flush()
-		sys.stderr.flush()
 
 
 	def close(self):
