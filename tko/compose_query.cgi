@@ -6,9 +6,8 @@ and draws the matrix. There is a seperate SQL query made for every (x,y)
 in the matrix.
 """
 
-
 print "Content-type: text/html\n"
-import cgi, cgitb, re
+import cgi, cgitb, re, datetime, query_lib
 import sys, os
 import urllib 
 
@@ -20,7 +19,6 @@ client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
 sys.path.insert(0, client_bin)
 import kernel_versions
 
-
 html_header = """\
 <form action="compose_query.cgi" method="get">
 <table border="0">
@@ -28,7 +26,9 @@ html_header = """\
   <td>Column: </td>
   <td>Row: </td>
   <td>Condition: </td>
-  <td align="center"><a href="index.html">Help</a></td>
+  <td align="center">
+  <a href="http://test.kernel.org/autotest/AutotestTKOCondition">Help</a>
+  </td>
 </tr>
 <tr>
   <td>
@@ -42,7 +42,7 @@ html_header = """\
   </SELECT>
   </td>
   <td>
-    <input type="text" name="condition" size="30" maxlength="200" value="%s">
+    <input type="text" name="condition" size="30" value="%s">
     <input type="hidden" name="title" value="Report">
   </td>
   <td align="center"><input type="submit" value="Submit">
@@ -54,19 +54,20 @@ html_header = """\
 
 
 next_field = {
-	'machine_group': 'hostname',
-	'hostname': 'tag',
-	'tag': 'tag',
+    'machine_group': 'hostname',
+    'hostname': 'tag',
+    'tag': 'tag',
 
-	'kernel': 'test',
-	'test': 'test',
-	'label': 'label',
+    'kernel': 'test',
+    'test': 'label',
+    'label': 'tag',
 
-	'reason': 'reason',
-	'user': 'user',
-	'status': 'status',
+    'reason': 'tag',
+    'user': 'tag',
+    'status': 'tag',
+   
+    'time_daily': 'tag',
 }
-
 
 
 def parse_field(form, form_field, field_default):
@@ -88,6 +89,7 @@ form = cgi.FieldStorage()
 row = parse_field(form, 'rows', 'kernel')
 column = parse_field(form, 'columns', 'machine_group')
 condition_field = parse_condition(form, 'condition', '')
+
 ## caller can specify rows and columns that shall be included into the report
 ## regardless of whether actual test data is available yet
 force_row_field = parse_condition(form,'force_row','')
@@ -125,8 +127,23 @@ def construct_link(x, y):
 
 def create_select_options(selected_val):
 	ret = ""
-
 	for option in sorted(frontend.test_view_field_dict.keys()):
+                ## exceptional handling of id and time :(
+                ## To do: when we have more then two such prohibitions,
+                ## something better should be implemented
+                ## e.g. let frontend.test_view_field_dict
+                ## have tuples as a values: (next_field,bAllowGrouping)
+		if option == "id": 
+			## do not allow to group by id 
+			## because it may result in jumbo data transacted
+			continue  
+		if option == "time": 
+			## we have time_daily and time_weekly 
+			## in both drop down menus
+			## They are two different clones of "time"
+			## just 'time' should be avoided due to big
+                        ## data transfer
+			continue  
 		if selected_val == option:
 			selected = " SELECTED"
 		else:
@@ -134,7 +151,6 @@ def create_select_options(selected_val):
 
 		ret += '<OPTION VALUE="%s"%s>%s</OPTION>\n' % \
 						(option, selected, option)
-
 	return ret
 
 
@@ -144,6 +160,19 @@ def map_kernel_base(kernel_name):
 	kernel_name = kernel_name.replace('/','/<br>')
 	kernel_name = kernel_name.replace('/<br>/<br>','//')
 	return kernel_name
+
+
+def header_tuneup(field_name, header):
+        ## header tune up depends on particular field name and may include:
+        ## - breaking header into several strings if it is long url
+        ## - creating date from datetime stamp
+        ## - possibly, expect more various refinements for different fields
+        if field_name == 'kernel':
+                return  map_kernel_base(header)
+        elif field_name.startswith('time') and header != None:
+                return datetime.date(header.year, header.month, header.day)
+        else:
+                return header
 
 
 # Kernel name mappings -- the kernels table 'printable' field is
@@ -207,12 +236,16 @@ field_map = {
 def gen_matrix():
 	where = None
 	if condition_field.strip() != '':
-		where = query_lib.parse_scrub_and_gen_condition(
-		            condition_field, frontend.test_view_field_dict)
-		print "<!-- where clause: %s -->" % (where,)
+		try:
+			where = query_lib.parse_scrub_and_gen_condition(
+				condition_field, frontend.test_view_field_dict)
+			print "<!-- where clause: %s -->" % (where,)
+		except:
+			msg = "Unspecified error when parsing condition"
+			return [[display.box(msg)]]
 
 	test_data = frontend.get_matrix_data(db, column, row, where)
-        
+	
 	for f_row in force_row:
 		if not f_row in test_data.y_values:
 			test_data.y_values.append(f_row)
@@ -229,20 +262,26 @@ def gen_matrix():
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
 	for x in test_data.x_values:
-		link = construct_link(x, None)
 		dx = x
 		if field_map.has_key(column):
 			dx = field_map[column](x)
-		header_row.append(display.box(dx, header=True, link=link))
+		x_header = header_tuneup(column, dx)
+		link = construct_link(x, None)
+		header_row.append(display.box(x_header,header=True,link=link))
 
 	matrix = [header_row]
 	for y in test_data.y_values:
-		link = construct_link(None, y)
 		dy = y
 		if field_map.has_key(row):
 			dy = field_map[row](y)
-		cur_row = [display.box(dy, header=True, link=link)]
+		y_header = header_tuneup(row, dy)
+		link = construct_link(None, y)                
+		cur_row = [display.box(y_header, header=True, link=link)]
 		for x in test_data.x_values:
+			## next 2 lines: temporary, until non timestamped
+			## records are in the database
+			if x==datetime.datetime(1970,1,1): x = None
+			if y==datetime.datetime(1970,1,1): y = None
 			try:
 				box_data = test_data.data[x][y].status_count
 			except:
@@ -263,11 +302,11 @@ def gen_matrix():
 					link += x + '/'
 			else:
 				link = construct_link(x, y)
+                                
 			cur_row.append(display.status_precounted_box(db,
 			                                             box_data,
 			                                             link))
 		matrix.append(cur_row)
-
 	return matrix
 
 
