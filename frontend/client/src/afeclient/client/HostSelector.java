@@ -41,6 +41,7 @@ public class HostSelector {
         selectedTable.sortOnColumn(0);
         
         availableTable.setClickable(true);
+        availableTable.setColumnFilterChoice("Locked", "No");
         availableTable.getHosts();
         
         availableTable.setListener(new DynamicTable.DynamicTableListener() {
