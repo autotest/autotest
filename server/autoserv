@@ -18,11 +18,10 @@ import sys, os, re, server_job, hosts.site_host, utils, traceback, signal
 # Create separate process group
 os.setpgrp()
 
-# Implement SIGTERM handler
+# Implement SIGTERM handler	
 def handle_sigint(signum, frame):
-	signal.signal(signal.SIGTERM, signal.SIG_DFL)
-	os.killpg(os.getpgrp(), signal.SIGTERM)
-
+	os.killpg(os.getpgrp(), signal.SIGKILL)
+	
 # Set signal handler
 signal.signal(signal.SIGTERM, handle_sigint)
 
