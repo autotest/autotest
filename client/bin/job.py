@@ -78,10 +78,8 @@ class job:
 			df_root = system_output('df -mP / | tail -1').split()
 			self.free_space_mb_root_before = int(df_root[3])
 			self.usage_percent_root_before = int(df_root[4].rstrip('%'))
-			if (self.free_space_mb_root_before < 100 or 
-				self.usage_percent_root_before > 90):
-				self.record('WARN', 'check free space on root', 'free space is less than 100Mb or 10%')
-			pickle.dump(self.free_space_mb_root_before, file(self.control + '.fs', 'w'))
+			pickle.dump(self.free_space_mb_root_before,
+				    file(self.control + '.fs', 'w'))
 			
 			if os.path.exists(self.tmpdir):
 				system('umount -f %s > /dev/null 2> /dev/null'%\
