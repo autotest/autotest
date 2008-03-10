@@ -178,21 +178,25 @@ def get_acl_groups(**filter_data):
 def generate_control_file(tests, kernel=None, label=None):
 	"""\
 	Generates a client-side control file to load a kernel and run a set of
-	tests.
+	tests.  Returns a tuple (control_file, is_server, is_synchronous):
+	control_file - the control file text
+	is_server - is the control file a server-side control file?
+	is_synchronous - should the control file be run synchronously?
 
 	tests: list of tests to run
 	kernel: kernel to install in generated control file
 	label: name of label to grab kernel config from
 	"""
 	if not tests:
-		return ''
+		return '', False, False
 
-	is_server, test_objects, label = (
+	is_server, is_synchronous, test_objects, label = (
 	    rpc_utils.prepare_generate_control_file(tests, kernel, label))
 	if is_server:
-		return control_file.generate_server_control(test_objects)
-	return control_file.generate_client_control(test_objects, kernel,
-						    label)
+		cf_text = control_file.generate_server_control(test_objects)
+	cf_text = control_file.generate_client_control(test_objects, kernel,
+						       label)
+	return cf_text, is_server, is_synchronous
 
 
 def create_job(name, priority, control_file, control_type, is_synchronous=None,
@@ -233,9 +237,9 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
 		is_synchronous = (control_type == ControlType.SERVER)
 	# convert the synch flag to an actual type
 	if is_synchronous:
-		synch_type = models.Job.SynchType.SYNCHRONOUS
+		synch_type = models.Test.SynchType.SYNCHRONOUS
 	else:
-		synch_type = models.Job.SynchType.ASYNCHRONOUS
+		synch_type = models.Test.SynchType.ASYNCHRONOUS
 
 	job = models.Job.create(owner=owner, name=name, priority=priority,
 				control_file=control_file,
