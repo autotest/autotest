@@ -251,6 +251,16 @@ def memtotal():
 	return int(re.search(r'\d+', memtotal).group(0))
 
 
+def _convert_exit_status(sts):
+	if os.WIFSIGNALED(sts):
+		return -os.WTERMSIG(sts)
+	elif os.WIFEXITED(sts):
+		return os.WEXITSTATUS(sts)
+	else:
+		# impossible?
+		raise RuntimeError("Unknown exit status %d!" % sts)
+
+
 def system(cmd, ignorestatus = 0):
 	"""os.system replacement
 
@@ -263,7 +273,8 @@ def system(cmd, ignorestatus = 0):
 	"""
 	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 	try:
-		status = os.system(cmd) >> 8
+		status = os.system(cmd)
+		status = _convert_exit_status(status)
 	finally:
 		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
@@ -279,8 +290,9 @@ def system_output(command, ignorestatus = 0):
 		whether to raise a CmdError if command has a nonzero exit status
 	"""
 	(result, data) = commands.getstatusoutput(command)
+	result = _convert_exit_status(result)
 	if result != 0 and not ignorestatus:
-		raise CmdError('command failed: %s' % command, result >> 8)
+		raise CmdError('command failed: %s' % command, result)
 	return data
 
 
