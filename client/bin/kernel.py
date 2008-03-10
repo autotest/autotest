@@ -111,8 +111,8 @@ class kernel:
 
 	def kernelexpand(self, kernel):
 		# If we have something like a path, just use it as it is
-		if kernel.find('/') >= 0:
-			return kernel
+		if '/' in kernel:
+			return [kernel]
 
 		# Find the configured mirror list.
 		mirrors = self.job.config_get('mirror.mirrors')
