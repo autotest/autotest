@@ -93,6 +93,7 @@ True
 ...           'description': '',
 ...           'test_type': 'Client',
 ...           'test_class': 'Kernel',
+...           'synch_type': 'Asynchronous',
 ...           'path': '/my/path'}]
 True
 >>> rpc_interface.delete_test('sleeptest')
@@ -229,7 +230,7 @@ True
 3L
 
 # generate a control file
->>> control_file = rpc_interface.generate_control_file(
+>>> control_file, is_server, is_synch = rpc_interface.generate_control_file(
 ...     tests=['sleeptest', 'my_test'],
 ...     kernel='1.2.3.4',
 ...     label='my_label')
@@ -246,6 +247,8 @@ def step_init():
 def step_test():
 	job.run_test('testname')
 	job.run_test('testname')
+>>> is_server, is_synch
+(False, False)
 
 # create a job to run on host1, host2, and any two machines in my_label
 >>> rpc_interface.create_job(name='my_job',

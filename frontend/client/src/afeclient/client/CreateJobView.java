@@ -55,12 +55,13 @@ public class CreateJobView extends TabView {
     
     protected class TestCheckBox extends CheckBox {
         protected int id;
-        protected String testType;
+        protected String testType, synchType;
         
         public TestCheckBox(JSONObject test) {
             super(test.get("name").isString().stringValue());
             id = (int) test.get("id").isNumber().getValue();
             testType = test.get("test_type").isString().stringValue();
+            synchType = test.get("synch_type").isString().stringValue();
             String description = test.get("description").isString().stringValue();
             if (description.equals(""))
                 description = "No description";
@@ -73,6 +74,10 @@ public class CreateJobView extends TabView {
 
         public String getTestType() {
             return testType;
+        }
+
+        public String getSynchType() {
+            return synchType;
         }
     }
     
@@ -109,8 +114,17 @@ public class CreateJobView extends TabView {
         }
         
         public void setEnabled(boolean enabled) {
+            String synchType = null;
+            List checked = getChecked();
+            if (!checked.isEmpty())
+                synchType = ((TestCheckBox) checked.get(0)).getSynchType();
+            
             for(Iterator i = testBoxes.iterator(); i.hasNext(); ) {
-                ((TestCheckBox) i.next()).setEnabled(enabled);
+                TestCheckBox thisBox = (TestCheckBox) i.next();
+                boolean boxEnabled = enabled;
+                if (enabled && synchType != null)
+                    boxEnabled = thisBox.getSynchType().equals(synchType);
+                thisBox.setEnabled(boxEnabled);
             }
         }
         
@@ -173,7 +187,6 @@ public class CreateJobView extends TabView {
         }
         
         protected void onChanged() {
-            setRunSynchronous();
         }
     }
     
@@ -233,7 +246,6 @@ public class CreateJobView extends TabView {
                 public void onClick(Widget sender) {
                     generateControlFile(false);
                     setInputsEnabled();
-                    updateControlType();
                 }
             });
             String type = test.get("test_type").isString().stringValue();
@@ -274,7 +286,15 @@ public class CreateJobView extends TabView {
         JSONObject params = getControlFileParams(pushKernel);
         rpcProxy.rpcCall("generate_control_file", params, new JsonRpcCallback() {
             public void onSuccess(JSONValue result) {
-                controlFile.setText(result.isString().stringValue());
+                JSONArray results = result.isArray();
+                String controlFileText = results.get(0).isString().stringValue();
+                boolean isServer = results.get(1).isBoolean().booleanValue();
+                boolean isSynchronous = results.get(2).isBoolean().booleanValue();
+                controlFile.setText(controlFileText);
+                controlTypeSelect.setControlType(isServer ? 
+                                                serverTestsPanel.getTestType() : 
+                                                clientTestsPanel.getTestType());
+                runSynchronous.setChecked(isSynchronous);
                 kernelPushed = pushKernel;
                 if (finishedCallback != null)
                     finishedCallback.doCallback();
@@ -366,6 +386,7 @@ public class CreateJobView extends TabView {
                     editControlButton.setText(UNEDIT_CONTROL_STRING);
                     controlFilePanel.setOpen(true);
                     controlTypeSelect.setEnabled(true);
+                    runSynchronous.setEnabled(true);
                 }
                 else {
                     if (controlEdited && 
@@ -377,10 +398,9 @@ public class CreateJobView extends TabView {
                     setInputsEnabled();
                     editControlButton.setText(EDIT_CONTROL_STRING);
                     controlTypeSelect.setEnabled(false);
-                    updateControlType();
+                    runSynchronous.setEnabled(false);
                     controlEdited = false;
                 }
-                setRunSynchronous();
             }
         });
         
@@ -426,7 +446,7 @@ public class CreateJobView extends TabView {
         clientTestsPanel.reset();
         serverTestsPanel.reset();
         setInputsEnabled();
-        updateControlType();
+        controlTypeSelect.setControlType(clientTestsPanel.getTestType());
         controlTypeSelect.setEnabled(false);
         runSynchronous.setEnabled(false);
         runSynchronous.setChecked(false);
@@ -435,21 +455,6 @@ public class CreateJobView extends TabView {
         controlEdited = false;
         editControlButton.setText(EDIT_CONTROL_STRING);
         hostSelector.reset();
-    }
-    
-    protected void updateControlType() {
-        String type = clientTestsPanel.getTestType(); // the default
-        if (!serverTestsPanel.getChecked().isEmpty())
-            type = serverTestsPanel.getTestType();
-        controlTypeSelect.setControlType(type);
-    }
-    
-    protected void setRunSynchronous() {
-        boolean isServer = controlTypeSelect.getControlType().equals("Server");
-        runSynchronous.setChecked(isServer);
-        boolean enabled = isServer &&
-            editControlButton.getText().equals(UNEDIT_CONTROL_STRING);
-        runSynchronous.setEnabled(enabled);
     }
     
     protected void submitJob() {
