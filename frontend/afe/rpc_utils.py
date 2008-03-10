@@ -67,19 +67,42 @@ def get_user():
         return local_vars.user
 
 
+class InconsistencyException(Exception):
+	'Raised when a list of objects does not have a consistent value'
+
+
+def get_consistent_value(objects, field):
+	value = getattr(objects[0], field)
+	for obj in objects:
+		this_value = getattr(obj, field)
+		if this_value != value:
+			raise InconsistencyException(objects[0], obj)
+	return value
+
+
 def prepare_generate_control_file(tests, kernel, label):
 	test_objects = [models.Test.smart_get(test) for test in tests]
 	# ensure tests are all the same type
-	test_type = test_objects[0].test_type
-	for test in test_objects[1:]:
-		if test.test_type != test_type:
-			raise models.ValidationError(
-			    {'tests' : 'You cannot run both server- and '
-			               'client-side tests together (tests %s '
-			               'and %s differ' % (test_objects[0].name,
-							  test.name)})
+	try:
+		test_type = get_consistent_value(test_objects, 'test_type')
+	except InconsistencyException, exc:
+		test1, test2 = exc.args
+		raise models.ValidationError(
+		    {'tests' : 'You cannot run both server- and client-side '
+		     'tests together (tests %s and %s differ' % (
+		    test1.name, test2.name)})
+
+	try:
+		synch_type = get_consistent_value(test_objects, 'synch_type')
+	except InconsistencyException, exc:
+		test1, test2 = exc.args
+		raise models.ValidationError(
+		    {'tests' : 'You cannot run both synchronous and '
+		     'asynchronous tests together (tests %s and %s differ)' % (
+		    test1.name, test2.name)})
 
 	is_server = (test_type == models.Test.Types.SERVER)
+	is_synchronous = (synch_type == models.Test.SynchType.SYNCHRONOUS)
 	if is_server:
 		if kernel or label:
 			error = 'This field is not supported for server jobs'
@@ -93,4 +116,4 @@ def prepare_generate_control_file(tests, kernel, label):
 	if label:
 		label = models.Label.smart_get(label)
 
-	return is_server, test_objects, label
+	return is_server, is_synchronous, test_objects, label

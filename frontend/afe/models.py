@@ -427,6 +427,7 @@ class Test(dbmodels.Model, ModelExtensions):
 	name: test name
 	test_type: Client or Server
 	path: path to pass to run_test()
+	synch_type: whether the test should run synchronously or asynchronously
 
 	Optional:
 	test_class: used for categorization of tests
@@ -434,6 +435,7 @@ class Test(dbmodels.Model, ModelExtensions):
 	"""
 	Classes = enum.Enum('Kernel', 'Hardware', 'Canned Test Sets',
 			    string_values=True)
+	SynchType = enum.Enum('Asynchronous', 'Synchronous', start_value=1)
 	# TODO(showard) - this should be merged with Job.ControlType (but right
 	# now they use opposite values)
 	Types = enum.Enum('Client', 'Server', start_value=1)
@@ -443,6 +445,8 @@ class Test(dbmodels.Model, ModelExtensions):
 					choices=Classes.choices())
 	description = dbmodels.TextField(blank=True)
 	test_type = dbmodels.SmallIntegerField(choices=Types.choices())
+	synch_type = dbmodels.SmallIntegerField(choices=SynchType.choices(),
+						default=SynchType.ASYNCHRONOUS)
 	path = dbmodels.CharField(maxlength=255)
 
 	name_field = 'name'
@@ -454,10 +458,11 @@ class Test(dbmodels.Model, ModelExtensions):
 	class Admin:
 		fields = (
 		    (None, {'fields' :
-			    ('name', 'test_class', 'test_type', 'path',
-			       'description')}),
+			    ('name', 'test_class', 'test_type', 'synch_type',
+			     'path', 'description')}),
 		    )
-		list_display = ('name', 'test_type', 'description')
+		list_display = ('name', 'test_type', 'synch_type',
+				'description')
 		search_fields = ('name',)
 
 	def __str__(self):
@@ -596,7 +601,6 @@ class Job(dbmodels.Model, ModelExtensions):
 	"""
 	Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
 	ControlType = enum.Enum('Server', 'Client', start_value=1)
-	SynchType = enum.Enum('Asynchronous', 'Synchronous', start_value=1)
 	Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
 			   'Completed', 'Abort', 'Aborting', 'Aborted',
 			   'Failed', string_values=True)
@@ -610,8 +614,8 @@ class Job(dbmodels.Model, ModelExtensions):
 	control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
 						  blank=True) # to allow 0
 	created_on = dbmodels.DateTimeField(auto_now_add=True)
-	synch_type = dbmodels.SmallIntegerField(blank=True, null=True,
-						choices=SynchType.choices())
+	synch_type = dbmodels.SmallIntegerField(
+	    blank=True, null=True, choices=Test.SynchType.choices())
 	synch_count = dbmodels.IntegerField(blank=True, null=True)
 	synchronizing = dbmodels.BooleanField(default=False)
 
@@ -636,12 +640,8 @@ class Job(dbmodels.Model, ModelExtensions):
 		    control_file=control_file, control_type=control_type,
 		    synch_type=synch_type)
 
-		if job.synch_type == cls.SynchType.SYNCHRONOUS:
+		if job.synch_type == Test.SynchType.SYNCHRONOUS:
 			job.synch_count = len(hosts)
-			if not job.is_server_job():
-				errors = {'synch_type':
-					  'client jobs cannot be synchronous'}
-				raise ValidationError(errors)
 		else:
 			if len(hosts) == 0:
 				errors = {'hosts':
