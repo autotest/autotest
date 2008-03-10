@@ -261,7 +261,7 @@ def run(command, timeout=None, ignore_status=False,
 		start_time = time.time()
 		ret = _wait_for_command(sp, start_time, timeout, stdout_file,
 			                stderr_file, stdout_tee, stderr_tee)
-		result.exit_status = ret >> 8
+		result.exit_status = ret
 
 		result.duration = time.time() - start_time
 		# don't use os.read now, so we get all the rest of the output
