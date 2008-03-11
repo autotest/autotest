@@ -203,7 +203,7 @@ class SSHHost(base_classes.RemoteHost):
 		if self.wait_up(timeout):
 			self.__record("GOOD", None, "reboot.verify")
 		else:
-			self.__record("ABORT", None, "reboot.verify", "bringup failed")
+			self.__record("ABORT", None, "reboot.verify", "Host did not return from reboot")
 			raise AutoservRebootError("Host did not return from reboot")
 		print "Reboot complete"
 
