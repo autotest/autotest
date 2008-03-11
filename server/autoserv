@@ -15,13 +15,36 @@ check_python_version()
 
 import sys, os, re, server_job, hosts.site_host, utils, traceback, signal
 
+class PidFileManager(object):
+	pid_file = None
+
+	def open_pid_file(self, results_dir):
+		pid_file_path = os.path.join(results_dir, '.autoserv_execute')
+		assert not os.path.exists(pid_file_path)
+		self.pid_file = open(pid_file_path, 'w')
+		self.pid_file.write(str(os.getpid()) + '\n')
+		self.pid_file.flush()
+
+
+	def close_pid_file(self, exit_code, signal_code=0):
+		if not self.pid_file:
+			return
+		real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
+		self.pid_file.write(str(real_exit_code) + '\n')
+		self.pid_file.close()
+
+
+pid_file_manager = PidFileManager()
+
+
 # Create separate process group
 os.setpgrp()
 
-# Implement SIGTERM handler	
+# Implement SIGTERM handler
 def handle_sigint(signum, frame):
+	pid_file_manager.close_pid_file(1, signal.SIGTERM)
 	os.killpg(os.getpgrp(), signal.SIGKILL)
-	
+
 # Set signal handler
 signal.signal(signal.SIGTERM, handle_sigint)
 
@@ -40,6 +63,7 @@ usage: autoserv
 	[-v]                       # verify the machines only
 	[-R]                       # repair the machines
 	[-n]                       # no teeing the status to stdout/stderr
+	[-p]                       # write pidfile (.autoserv_execute)
 	<control file>             # name of the control file to run
 	[args ...]                 # args to pass through to the control file
 """
@@ -65,6 +89,7 @@ install_after  = parser.parse_opts('-I')
 verify   = parser.parse_opts('-v')
 repair   = parser.parse_opts('-R')
 no_tee   = parser.parse_opts('-n')
+write_pidfile = parser.parse_opts('-p')
 
 
 if len(parser.args) < 1 and not verify and not repair:
@@ -104,19 +129,24 @@ else:
 	job.stdout.tee_redirect(os.path.join(debug_dir, 'autoserv.stdout'))
 	job.stderr.tee_redirect(os.path.join(debug_dir, 'autoserv.stderr'))
 
-if repair:
-	job.repair()
-	sys.exit(0)
-elif verify:
-	job.verify()
-	sys.exit(0)
+if write_pidfile:
+	pid_file_manager.open_pid_file(results)
 
+# run the job
+exit_code = 0
 try:
-	job.run(reboot, install_before, install_after)
+	if repair:
+		job.repair()
+	elif verify:
+		job.verify()
+	else:
+		job.run(reboot, install_before, install_after)
 except:
 	job.aborted = True
 	traceback.print_exc()
 
-# if the job was aborted, return a non-zero error code
 if getattr(job, 'aborted', False):
-	sys.exit(1)
+	exit_code = 1
+pid_file_manager.close_pid_file(exit_code)
+
+sys.exit(exit_code)

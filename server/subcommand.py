@@ -1,6 +1,6 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess, traceback, time, utils
+import sys, os, subprocess, traceback, time, utils, signal
 from common.error import *
 
 
@@ -148,6 +148,7 @@ class subcommand:
 			return
 
 		# We are the child from this point on. Never return.
+		signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
 		if self.subdir:
 			os.chdir(self.subdir)
 		self.redirect_output()

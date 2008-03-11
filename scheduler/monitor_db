@@ -6,7 +6,7 @@ Autotest scheduler
 __author__ = "Paul Turner <pjt@google.com>"
 
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
-import optparse, signal, smtplib, socket, datetime, stat
+import optparse, signal, smtplib, socket, datetime, stat, pwd
 from common import global_config
 
 RESULTS_DIR = '.'
@@ -22,6 +22,8 @@ AUTOTEST_TKO_DIR = os.path.join(AUTOTEST_PATH, 'tko')
 if AUTOTEST_SERVER_DIR not in sys.path:
         sys.path.insert(0, AUTOTEST_SERVER_DIR)
 
+AUTOSERV_PID_FILE = '.autoserv_execute'
+
 _db = None
 _shutdown = False
 _notify_email = None
@@ -33,8 +35,7 @@ def main():
 	usage = 'usage: %prog [options] results_dir'
 
 	parser = optparse.OptionParser(usage)
-	parser.add_option('--no-recover', help='Skip machine/job recovery ' +
-	                  'step [for multiple monitors/rolling upgrades]',
+	parser.add_option('--recover-hosts', help='Try to recover dead hosts',
 	                  action='store_true')
 	parser.add_option('--logfile', help='Set a log file that all stdout ' +
  	                  'should be redirected to.  Stderr will go to this ' +
@@ -62,13 +63,13 @@ def main():
 		_testing_mode = True
 
 	init(options.logfile)
-	dispatcher = Dispatcher(do_recover = not options.no_recover)
+	dispatcher = Dispatcher()
+	dispatcher.do_initial_recovery(recover_hosts=options.recover_hosts)
 
 	try:
 		while not _shutdown:
 			dispatcher.tick()
 			time.sleep(20)
-		dispatcher.shut_down()
 	except:
 		log_stacktrace("Uncaught exception; terminating monitor_db")
 
@@ -175,6 +176,7 @@ class DatabaseConn:
 				self.conn.autocommit(True)
 				self.cur = self.conn.cursor()
 			except MySQLdb.OperationalError:
+				traceback.print_exc()
 				print "Can't connect to MYSQL; reconnecting"
 				time.sleep(self.reconnect_wait)
 				self.disconnect()
@@ -193,6 +195,7 @@ class DatabaseConn:
 				self.cur.execute(*args, **dargs)
 				return self.cur.fetchall()
 			except MySQLdb.OperationalError:
+				traceback.print_exc()
 				print "MYSQL connection died; reconnecting"
 				time.sleep(self.reconnect_wait)
 				self.connect()
@@ -211,46 +214,63 @@ def parse_results(results_dir, flags=""):
 	os.system(generate_parse_command(results_dir, flags))
 
 
+def send_notify_email(subject, message):
+	if not _notify_email:
+		return
+
+	message = "%s / %s / %s\n%s" % (socket.gethostname(), os.getpid(),
+					time.strftime("%X %x"), message)
+	sender = pwd.getpwuid(os.getuid())[0] # see os.getlogin() online docs
+	msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
+		 sender, _notify_email, subject, message)
+	mailer = smtplib.SMTP('localhost')
+	mailer.sendmail(sender, _notify_email, msg)
+	mailer.quit()
+
+
 def log_stacktrace(reason):
 	(type, value, tb) = sys.exc_info()
 	str = "EXCEPTION: %s\n" % reason
-	str += "%s / %s / %s\n" % (socket.gethostname(), os.getpid(),
-	                           time.strftime("%X %x"))
 	str += ''.join(traceback.format_exception(type, value, tb))
 
 	sys.stderr.write("\n%s\n" % str)
+	send_notify_email("monitor_db exception", str)
 
-	if _notify_email:
-		sender = "monitor_db"
-		subject = "monitor_db exception"
-		msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
-		         sender, _notify_email, subject, str)
-		mailer = smtplib.SMTP('localhost')
-		mailer.sendmail(sender, _notify_email, msg)
-		mailer.quit()
+
+def get_proc_poll_fn(pid):
+	proc_path = os.path.join('/proc', str(pid))
+	def poll_fn():
+		if os.path.exists(proc_path):
+			return None
+		return 0 # we can't get a real exit code
+	return poll_fn
+
+
+def kill_autoserv(pid, poll_fn=None):
+	print 'killing', pid
+	if poll_fn is None:
+		poll_fn = get_proc_poll_fn(pid)
+	if poll_fn() == None:
+		os.kill(pid, signal.SIGCONT)
+		os.kill(pid, signal.SIGTERM)
 
 
 class Dispatcher:
-	def __init__(self, do_recover=True):
+	def __init__(self):
 		self._agents = []
-		self.shutting_down = False
 
-		if do_recover:
-			self._recover_lost()
-		
 
-	def shut_down(self):
-		print "Shutting down!"
-		self.shutting_down = True
-		while self._agents:
-			self.tick()
-			time.sleep(40)
+	def do_initial_recovery(self, recover_hosts=True):
+		# always recover processes
+		self._recover_processes()
+
+		if recover_hosts:
+			self._recover_hosts()
 
 
 	def tick(self):
-		if not self.shutting_down:
-			self._find_aborting()
-			self._find_more_work()
+		self._find_aborting()
+		self._find_more_work()
 		self._handle_agents()
 
 
@@ -271,45 +291,135 @@ class Dispatcher:
 		self._agents.remove(agent)
 
 
-	def _recover_lost(self):
-		rows = _db.execute("""SELECT * FROM host_queue_entries WHERE active AND NOT complete AND status != 'Abort' AND status != 'Aborting'""")
-		if len(rows) > 0:
-			queue_entries = [HostQueueEntry(row=i) for i in rows]
-			for queue_entry in queue_entries:
-				job = queue_entry.job
-				if job.is_synchronous():
-					for child_entry in job.get_host_queue_entries():
-						child_entry.requeue()
-				else:
-					queue_entry.requeue()
-				queue_entry.clear_results_dir()
-			
-		rebooting_host_ids = []
+	def find_orphaned_autoservs(self):
+		"""\
+		Returns a dict mapping pids to command lines for root autoserv
+		processes that have been orphaned.
+		"""
+		proc = subprocess.Popen(
+		    ['/bin/ps', 'x', '-o', 'pid,ppid,comm,args'],
+		    stdout=subprocess.PIPE)
+		# split each line into the four columns output by ps
+		procs = [line.split(None, 3) for line in
+			 proc.communicate()[0].splitlines()]
+		autoserv_procs = [(int(proc[0]), proc[3]) # pid, args
+				  for proc in procs
+				  if proc[2] == 'autoserv' # comm
+				  and proc[1] == '1'] # ppid
+		return dict(autoserv_procs)
+
+
+	def recover_queue_entry(self, queue_entry, run_monitor):
+		job = queue_entry.job
+		if job.is_synchronous():
+			all_queue_entries = job.get_host_queue_entries()
+		else:
+			all_queue_entries = [queue_entry]
+		all_queue_entry_ids = [queue_entry.id for queue_entry
+				       in all_queue_entries]
+		queue_task = RecoveryQueueTask(
+		    job=queue_entry.job,
+		    queue_entries=all_queue_entries,
+		    run_monitor=run_monitor)
+		self.add_agent(Agent(tasks=[queue_task],
+				     queue_entry_ids=all_queue_entry_ids))
+
+
+	def _recover_processes(self):
+		orphans = self.find_orphaned_autoservs()
+
+		# first, recover running queue entries
+		rows = _db.execute("""SELECT * FROM host_queue_entries
+		                      WHERE status = 'Running'""")
+		queue_entries = [HostQueueEntry(row=i) for i in rows]
+		requeue_entries = []
+		recovered_entry_ids = set()
+		for queue_entry in queue_entries:
+			run_monitor = PidfileRunMonitor(
+			    queue_entry.results_dir())
+			pid, exit_code = run_monitor.get_pidfile_info()
+			if pid is None:
+				# autoserv apparently never got run, so requeue
+				requeue_entries.append(queue_entry)
+				continue
+			if queue_entry.id in recovered_entry_ids:
+				# synchronous job we've already recovered
+				continue
+			print 'Recovering queue entry %d (pid %d)' % (
+			    queue_entry.id, pid)
+			job = queue_entry.job
+			if job.is_synchronous():
+				for entry in job.get_host_queue_entries():
+					assert entry.active
+					recovered_entry_ids.add(entry.id)
+			self.recover_queue_entry(queue_entry,
+						 run_monitor)
+			orphans.pop(pid, None)
+
+		# and requeue other active queue entries
+		rows = _db.execute("""SELECT * FROM host_queue_entries
+		                      WHERE active AND NOT complete
+				      AND status != 'Running'
+				      AND status != 'Pending'
+				      AND status != 'Abort'
+				      AND status != 'Aborting'""")
+		queue_entries = [HostQueueEntry(row=i) for i in rows]
+		for queue_entry in queue_entries + requeue_entries:
+			print 'Requeuing running QE %d' % queue_entry.id
+			queue_entry.clear_results_dir()
+			queue_entry.requeue()
+
+
+		# now kill any remaining autoserv processes
+		for pid in orphans.keys():
+			print 'Killing orphan %d (%s)' % (pid, orphans[pid])
+			kill_autoserv(pid)
+
+		# recover aborting tasks
 		rows = _db.execute("""SELECT * FROM host_queue_entries
 				   WHERE status='Abort' or status='Aborting'""")
-		if len(rows) > 0:
-			queue_entries = [HostQueueEntry(row=i) for i in rows]
-			for queue_entry in queue_entries:
-				queue_host = queue_entry.get_host()
-				reboot_task = RebootTask(queue_host)
-				verify_task = VerifyTask(host = queue_host)
-				self.add_agent(Agent(tasks=[reboot_task,
-							    verify_task],
-					       queue_entry_ids=[queue_entry.id]))
-				queue_entry.set_status('Aborted')
-				# Secure the host from being picked up
-				queue_host.set_status('Rebooting')
-				rebooting_host_ids.append(queue_host.id)
+		queue_entries = [HostQueueEntry(row=i) for i in rows]
+		for queue_entry in queue_entries:
+			queue_host = queue_entry.get_host()
+			reboot_task = RebootTask(queue_host)
+			verify_task = VerifyTask(host = queue_host)
+			self.add_agent(Agent(tasks=[reboot_task,
+						    verify_task],
+				       queue_entry_ids=[queue_entry.id]))
+			queue_entry.set_status('Aborted')
+			# Secure the host from being picked up
+			queue_host.set_status('Rebooting')
 
+		# reverify hosts that were in the middle of verify, repair or
+		# reboot
 		rows = _db.execute("""SELECT * FROM hosts
-		                   WHERE status != 'Ready' AND NOT locked""")
-		if len(rows) > 0:
-			hosts = [Host(row=i) for i in rows]
-			for host in hosts:
-				if host.id in rebooting_host_ids:
-					continue
-				verify_task = VerifyTask(host = host)
-				self.add_agent(Agent(tasks = [verify_task]))
+				      WHERE locked = 0 AND
+				      (status = 'Repairing'
+				       OR status = 'Verifying'
+				       OR status = 'Rebooting')""")
+		hosts = [Host(row=i) for i in rows]
+		for host in hosts:
+			self.add_agent(Agent(tasks=[VerifyTask(host=host)]))
+
+
+	def _recover_hosts(self):
+		# look for both "Repair Failed" hosts, which we expect, and
+		# "Running" hosts with no active queue entries, which should
+		# never happen
+		rows = _db.execute(
+		    """SELECT * FROM hosts WHERE locked = 0 AND
+		       (status = 'Repair Failed'
+		        OR (status = 'Running' AND
+			    id NOT IN (SELECT host_id FROM host_queue_entries
+			               WHERE active)))""")
+		hosts = [Host(row=i) for i in rows]
+		for host in hosts:
+			if host.status == 'Running':
+				print ('Recovering running host %s - this '
+				       'probably indicates a scheduler bug' %
+				       host.hostname)
+			verify_task = VerifyTask(host = host)
+			self.add_agent(Agent(tasks = [verify_task]))
 
 
 	def _find_more_work(self):
@@ -388,6 +498,7 @@ class RunMonitor(object):
 		out_file = None
 		if self.log_file:
 			try:
+				os.makedirs(os.path.dirname(self.log_file))
 				out_file = open(self.log_file, 'a')
 				out_file.write("\n%s\n" % ('*'*80))
 				out_file.write("%s> %s\n" % (time.strftime("%X %x"), cmd))
@@ -409,14 +520,118 @@ class RunMonitor(object):
                 return proc
 
 
+	def get_pid(self):
+		return self.proc.pid
+
+
 	def kill(self):
-		if self.proc.poll() == None:
-			os.kill(self.proc.pid, signal.SIGCONT)
-			os.kill(self.proc.pid, signal.SIGTERM)
-		
+		kill_autoserv(self.get_pid(), self.exit_code)
+
 
 	def exit_code(self):
 		return self.proc.poll()
+
+
+class PidfileException(Exception):
+	"""\
+	Raised when there's some unexpected behavior with the pid file.
+	"""
+
+
+class PidfileRunMonitor(RunMonitor):
+	def __init__(self, results_dir, cmd=None, nice_level=None,
+		     log_file=None):
+		self.results_dir = os.path.abspath(results_dir)
+		self.pid_file = os.path.join(results_dir, AUTOSERV_PID_FILE)
+		self.lost_process = False
+		if cmd is None:
+			# we're reattaching to an existing pid, so don't call
+			# the superconstructor (we don't want to kick off a new
+			# process)
+			pass
+		else:
+			RunMonitor.__init__(self, cmd, nice_level, log_file)
+
+
+	def get_pid(self):
+		pid, exit_status = self.get_pidfile_info()
+		assert pid is not None
+		return pid
+
+
+	def check_proc_fs(self, pid):
+		cmdline_path = os.path.join('/proc', str(pid), 'cmdline')
+		try:
+			cmdline_file = open(cmdline_path, 'r')
+			cmdline = cmdline_file.read().strip()
+			cmdline_file.close()
+		except IOError:
+			return False
+		# /proc/.../cmdline has \x00 separating args
+		results_dir_arg = '\x00-r\x00%s\x00' % self.results_dir
+		if results_dir_arg not in cmdline:
+			print '%s not found in %s' % (repr(results_dir_arg),
+						      repr(cmdline))
+			return False
+		return True
+
+
+	def read_pidfile(self):
+		if not os.path.exists(self.pid_file):
+			return None, None
+		file_obj = open(self.pid_file, 'r')
+		lines = file_obj.readlines()
+		file_obj.close()
+		assert 1 <= len(lines) <= 2
+		try:
+			pid = int(lines[0])
+			exit_status = None
+			if len(lines) == 2:
+				exit_status = int(lines[1])
+		except ValueError, exc:
+			raise Exception('Corrupt pid file: ' + str(exc.args))
+
+		return pid, exit_status
+
+
+	def get_pidfile_info(self):
+		"""\
+		Returns:
+		 None, None if autoserv has not yet run
+		 pid,  None if autoserv is running
+		 pid, exit_status if autoserv has completed
+		"""
+		if self.lost_process:
+			return self.pid, self.exit_status
+
+		pid, exit_status = self.read_pidfile()
+
+		# double check autoserv is really running if it says it is
+		if (pid is not None and exit_status is None
+		    and not self.check_proc_fs(pid)):
+			# maybe process *just* exited
+			pid, exit_status = self.read_pidfile()
+			if not exit_status:
+				# autoserv exited without writing an exit code
+				# to the pidfile
+				error = ('autoserv died without writing exit '
+					 'code')
+				message = error + '\nPid: %s\nPidfile: %s' % (
+				    pid, self.pid_file)
+				print message
+				send_notify_email(error, message)
+				self.lost_process = True
+				self.pid = pid
+				self.exit_status = 1
+				return self.pid, self.exit_status
+
+		return pid, exit_status
+
+
+	def exit_code(self):
+		pid, exit_code = self.get_pidfile_info()
+		assert pid is not None
+		return exit_code
 
 
 class Agent(object):
@@ -476,13 +691,6 @@ class Agent(object):
 	
 class AgentTask(object):
 	def __init__(self, cmd, failure_tasks = []):
-		"""\
-		By default, on failure, the Agent's task queue is cleared and
-		replaced with the tasks in failure_tasks.  If
-		clear_queue_on_failure=False, the task queue will not be
-		cleared, and the tasks in failure_tasks will be inserted at the
-		beginning of the queue.
-		"""
 		self.done = False
 		self.failure_tasks = failure_tasks
 		self.started = False
@@ -549,12 +757,13 @@ class AgentTask(object):
 	def run(self):
 		if self.cmd:
 			print "agent starting monitor"
-
 			log_file = None
 			if hasattr(self, 'host'):
-				log_file = os.path.join(os.path.join(RESULTS_DIR, 'hosts'), self.host.hostname)
-				
-			self.monitor = RunMonitor(self.cmd, nice_level = AUTOSERV_NICE_LEVEL, log_file = log_file)
+				log_file = os.path.join(RESULTS_DIR, 'hosts',
+							self.host.hostname)
+			self.monitor = RunMonitor(
+			    self.cmd, nice_level = AUTOSERV_NICE_LEVEL,
+			    log_file = log_file)
 
 
 class RepairTask(AgentTask):
@@ -630,6 +839,8 @@ class VerifyTask(AgentTask):
 			os.makedirs(target_dir)
 		files = os.listdir(self.temp_results_dir)
 		for filename in files:
+			if filename == AUTOSERV_PID_FILE:
+				continue
 			self.force_move(os.path.join(self.temp_results_dir,
 						     filename),
 					os.path.join(target_dir, filename))
@@ -674,12 +885,25 @@ class QueueTask(AgentTask):
 		self.queue_entries = queue_entries
 
 
-	@staticmethod	
-	def _write_keyval(queue_entry, field, value):	
-		key_path = os.path.join(queue_entry.results_dir(), 'keyval')
+	@staticmethod
+	def _write_keyval(results_dir, field, value):
+		key_path = os.path.join(results_dir, 'keyval')
 		keyval_file = open(key_path, 'a')
 		print >> keyval_file, '%s=%d' % (field, value)
 		keyval_file.close()
+
+
+	def results_dir(self):
+		return self.queue_entries[0].results_dir()
+
+
+	def run(self):
+		"""\
+		Override AgentTask.run() so we can use a PidfileRunMonitor.
+		"""
+		self.monitor = PidfileRunMonitor(self.results_dir(),
+						 cmd=self.cmd,
+						 nice_level=AUTOSERV_NICE_LEVEL)
 
 
 	def prolog(self):
@@ -701,9 +925,8 @@ class QueueTask(AgentTask):
 		# write some job timestamps into the job keyval file
 		queued = time.mktime(self.job.created_on.timetuple())
 		started = time.time()
-		self._write_keyval(self.queue_entries[0], "job_queued", queued)
-		self._write_keyval(self.queue_entries[0], "job_started",
-				   started)
+		self._write_keyval(self.results_dir(), "job_queued", queued)
+		self._write_keyval(self.results_dir(), "job_started", started)
 		for queue_entry in self.queue_entries:
 			print "starting queue_task on %s/%s" % (queue_entry.host.hostname, queue_entry.id)
 			queue_entry.set_status('Running')
@@ -722,8 +945,7 @@ class QueueTask(AgentTask):
 
 		# write another timestamp into the job keyval file
 		finished = time.time()
-		self._write_keyval(self.queue_entries[0], "job_finished",
-				   finished)
+		self._write_keyval(self.results_dir(), "job_finished", finished)
 		for queue_entry in self.queue_entries:
 			queue_entry.set_status(status)
 			queue_entry.host.set_status('Ready')
@@ -733,9 +955,25 @@ class QueueTask(AgentTask):
 				parse_results(self.job.results_dir())
 		else:
 			for queue_entry in self.queue_entries:
-				parse_results(queue_entry.results_dir(), flags='-l 2')
-		
+				parse_results(queue_entry.results_dir(),
+					      flags='-l 2')
+
 		print "queue_task finished with %s/%s" % (status, self.success)
+
+
+class RecoveryQueueTask(QueueTask):
+	def __init__(self, job, queue_entries, run_monitor):
+		QueueTask.__init__(self, job, queue_entries, cmd=None)
+		self.run_monitor = run_monitor
+
+
+	def run(self):
+		self.monitor = self.run_monitor
+
+
+	def prolog(self):
+		# recovering an existing process - don't do prolog
+		pass
 
 
 class RebootTask(AgentTask):
@@ -940,6 +1178,7 @@ class Host(DBObject):
 			self.current_task().requeue()
 		
 	def set_status(self,status):
+		print '%s -> %s' % (self.hostname, status)
 		self.update_field('status',status)
 
 
@@ -1240,9 +1479,10 @@ class Job(DBObject):
 		hostnames = ','.join([entry.get_host().hostname
 				      for entry in queue_entries])
 
-		params = [_autoserv_path, '-n', '-r', results_dir,
-			'-b', '-u', self.owner, '-l', self.name,
-			'-m', hostnames, ctrl.name]
+		params = [_autoserv_path, '-p', '-n',
+			  '-r', os.path.abspath(results_dir),
+			  '-b', '-u', self.owner, '-l', self.name,
+			  '-m', hostnames, ctrl.name]
 
 		if not self.is_server_job():
 			params.append('-c')
