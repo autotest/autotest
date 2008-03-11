@@ -21,7 +21,20 @@ parser.add_option('-o', help='one: parse a single results directory',
 					dest='singledir', action='store_true')
 parser.add_option('-l', help='levels of subdirectories to include in job name',
 					type='int', dest='level', default=1)
+parser.add_option('-s', help='Database server hostname',
+					dest='db_host', action='store')
+parser.add_option('-u', help='Database username',
+					dest='db_user', action='store')
+parser.add_option('-p', help='Database password',
+					dest='db_pass', action='store')
+parser.add_option('-d', help='Database name',
+					dest='db_name', action='store')
 (options, args) = parser.parse_args()
+
+if len(args) == 0:
+	print "ERROR: You need to at least provide a directory to parse\n"
+	parser.print_help()
+	sys.exit(1)
 
 dir = os.path.abspath(args[0])
 assert os.path.exists(dir)
@@ -36,8 +49,10 @@ debug = True
 failcc = ""
 # The user to notify on job failures - TOOD, pull into the config file
 notify_user = None
-
-db = db.db(autocommit=False)  # do commits transactionally
+# do commits transactionally
+db = db.db(autocommit=False, host=options.db_host,
+           user=options.db_user, password=options.db_pass,
+           database=options.db_name)
 
 
 def mailfailure(jobname, job, mesgtxt):
