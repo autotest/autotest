@@ -58,6 +58,8 @@ def color_keys_row():
 class box:
 	def __init__(self, data, color_key = None, header = False, link = None,
 		     tooltip = None ):
+		if data:
+			data = "<tt>%s</tt>" % data
 		if link and tooltip:
 			self.data = '<a href="%s" title="%s">%s</a>' \
 						% (link, tooltip, data)
@@ -166,10 +168,9 @@ def status_html(db, status_count, shade):
 
 def status_count_box(db, tests, link = None):
 	"""
-	Display a table within a box, representing the status count of
-	the group of tests (e.g. 10 GOOD, 2 WARN, 3 FAIL).
-
-	Starts from a list of test objects
+	Display a ratio of total number of GOOD tests
+	to total number of all tests in the group of tests.
+	More info (e.g. 10 GOOD, 2 WARN, 3 FAIL) is in tooltips
 	"""
 	if not tests:
 		return box(None, None)
@@ -183,10 +184,10 @@ def status_count_box(db, tests, link = None):
 
 def status_precounted_box(db, status_count, link = None):
 	"""
-	Display a table within a box, representing the status count of
-	the group of tests (e.g. 10 GOOD, 2 WARN, 3 FAIL)
-	"""
-		
+	Display a ratio of total number of GOOD tests
+	to total number of all tests in the group of tests.
+	More info (e.g. 10 GOOD, 2 WARN, 3 FAIL) is in tooltips
+	"""		
 	if not status_count:
 		return box(None, None)
 	
