@@ -1,0 +1,66 @@
+#!/usr/bin/expect
+#
+# Reboot a machine connected to a Cyclades PM IPDU
+#
+# Copyright 2008 Google Inc., Scott Zawalski <scottz@google.com>
+# Based heavily off of reboot-sentry by Ryan Kubiak
+# Released under the GPL v2
+
+set P "reboot-cyclades"
+
+if {[llength $argv] < 5} {
+    puts stderr "Usage: $P <ts host> <ts port> <user> <pass> <outlet>"
+    exit 1
+}
+
+#Max number of attempts before stopping
+set max_attempts {5}
+set tshost [lindex $argv 0]
+set tsport [lindex $argv 1]
+set user [lindex $argv 2]
+set pass [lindex $argv 3]
+set outlet [lindex $argv 4]
+set connected {0}
+set attempts {0}
+
+while {$connected == 0 && $attempts < $max_attempts} {
+	spawn telnet $tshost $tsport
+	sleep 5
+	send "\r"
+	set timeout 10
+	set attempts [expr $attempts +1 ]
+	expect {
+		#Connection closed
+		"Connection closed by foreign host." {
+		    puts "Retrying attempt $attempts"
+		  }
+		#Already logged in
+		"pm>" {
+		    send "cycle $outlet\r"
+		    expect "Outlet turned off"
+		    expect "Outlet turned on"
+		    send "exit\r"
+		    puts "Machine successfully rebooted."
+		    exit 0
+		    }
+		#Login
+		"Username" {
+		    send "$user\r"
+		    expect "Password:"
+		    send "$pass\r"
+		    expect "pm>"
+		    send "cycle $outlet\r"
+		    expect "Outlet turned off"
+		    expect "Outlet turned on"
+		    send "exit\r"
+		    puts "Machine successfully rebooted."
+		    exit 0
+		    }
+		timeout {
+		    puts "Timed out connecting."
+		    }
+		}
+	}
+
+puts "Unable to connect after $attempts connection attempts."
+exit 1
