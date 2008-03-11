@@ -15,15 +15,15 @@ class db_sql:
 		
 		# grab the host, database
 		if not host:
-			host = c.get_config_value("TKO", "host", 'localhost')
+			host = c.get_config_value("TKO", "host")
 		if not database:
-			database = c.get_config_value("TKO", "database", 'tko')
+			database = c.get_config_value("TKO", "database")
 		
 		# grab the user and password
 		if not user:
-			user = c.get_config_value("TKO", "user", 'nobody')
+			user = c.get_config_value("TKO", "user")
 		if not password:
-			password = c.get_config_value("TKO", "password", '')
+			password = c.get_config_value("TKO", "password")
 			
 		self.con = self.connect(host, database, user, password)
 		self.cur = self.con.cursor()
