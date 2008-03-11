@@ -155,16 +155,15 @@ class DatabaseConn:
 		# get global config and parse for info
 		c = global_config.global_config
 		dbase = "AUTOTEST_WEB"
-		DB_HOST = c.get_config_value(dbase, "host", "localhost")
-		DB_SCHEMA = c.get_config_value(dbase, "database",
-					       "autotest_web")
+		DB_HOST = c.get_config_value(dbase, "host")
+		DB_SCHEMA = c.get_config_value(dbase, "database")
 		
 		global _testing_mode
 		if _testing_mode:
 			DB_SCHEMA = 'stresstest_autotest_web'
 
-		DB_USER = c.get_config_value(dbase, "user", "autotest")
-		DB_PASS = c.get_config_value(dbase, "password", "google")
+		DB_USER = c.get_config_value(dbase, "user")
+		DB_PASS = c.get_config_value(dbase, "password")
 
 		while not self.conn:
 			try:
