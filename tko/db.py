@@ -355,7 +355,7 @@ def db(*args, **dargs):
 	
 	# read db_type from global config
 	c = global_config.global_config
-	db_type = c.get_config_value("TKO", "db_type", 'mysql')
+	db_type = c.get_config_value("TKO", "db_type", default="mysql")
 	db_type = 'db_' + db_type
 	exec ('import %s; db = %s.%s(*args, **dargs)'
 	      % (db_type, db_type, db_type))
