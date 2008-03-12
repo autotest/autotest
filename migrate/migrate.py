@@ -168,9 +168,13 @@ class MigrationManager(object):
 		print 'At version', version
 
 
-	def migrate_to_latest(self):
+	def get_latest_version(self):
 		migrations = self.get_migrations()
-		latest_version = migrations[-1].version
+		return migrations[-1].version
+
+
+	def migrate_to_latest(self):
+		latest_version = self.get_latest_version()
 		self.migrate_to_version(latest_version)
 
 
@@ -238,6 +242,14 @@ class MigrationManager(object):
 		Create a fresh DB, copy the existing DB to it, and then
 		try to synchronize it.
 		"""
+		self.read_db_info()
+		self.open_connection()
+		db_version = self.get_db_version()
+		self.close_connection()
+		# don't do anything if we're already at the latest version
+		if db_version == self.get_latest_version():
+			print 'Skipping simulation, already at latest version'
+			return
 		# get existing data
 		self.read_db_info()
 		print 'Dumping existing data'
