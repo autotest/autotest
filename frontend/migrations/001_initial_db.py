@@ -6,7 +6,6 @@ required_tables = ('acl_groups', 'acl_groups_hosts', 'acl_groups_users',
 
 
 def migrate_up(manager):
-	assert not manager.check_migrate_table_exists()
 	manager.execute("SHOW TABLES")
 	tables = [row[0] for row in manager.cursor.fetchall()]
 	db_initialized = True
@@ -25,6 +24,10 @@ def migrate_up(manager):
 		manager.execute_script(CREATE_DB_SQL)
 
 	manager.create_migrate_table()
+
+
+def migrate_down(manager):
+	manager.execute_script(DROP_DB_SQL)
 
 
 CREATE_DB_SQL = """\
@@ -172,4 +175,19 @@ CREATE TABLE `users` (
   `access_level` int(11) default '0',
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+"""
+
+
+DROP_DB_SQL = """\
+DROP TABLE IF EXISTS `acl_groups`;
+DROP TABLE IF EXISTS `acl_groups_hosts`;
+DROP TABLE IF EXISTS `acl_groups_users`;
+DROP TABLE IF EXISTS `autotests`;
+DROP TABLE IF EXISTS `host_queue_entries`;
+DROP TABLE IF EXISTS `hosts`;
+DROP TABLE IF EXISTS `hosts_labels`;
+DROP TABLE IF EXISTS `ineligible_host_queues`;
+DROP TABLE IF EXISTS `jobs`;
+DROP TABLE IF EXISTS `labels`;
+DROP TABLE IF EXISTS `users`;
 """
