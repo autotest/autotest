@@ -313,7 +313,7 @@ class SSHHost(base_classes.RemoteHost):
 				execution was not 0
 		"""
 		stdout = stdout_tee or sys.stdout
-		stderr = stderr_tee or sys.stderr
+		stderr = stderr_tee or sys.stdout
 		print "ssh: %s" % (command,)
 		env = " ".join("=".join(pair) for pair in self.env.iteritems())
 		full_cmd = '%s "%s %s"' % (self.ssh_command(connect_timeout),
