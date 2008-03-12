@@ -192,10 +192,8 @@ def generate_control_file(tests, kernel=None, label=None):
 
 	is_server, is_synchronous, test_objects, label = (
 	    rpc_utils.prepare_generate_control_file(tests, kernel, label))
-	if is_server:
-		cf_text = control_file.generate_server_control(test_objects)
-	cf_text = control_file.generate_client_control(test_objects, kernel,
-						       label)
+	cf_text = control_file.generate_control(test_objects, kernel, label,
+                                                is_server)
 	return cf_text, is_server, is_synchronous
 
 
