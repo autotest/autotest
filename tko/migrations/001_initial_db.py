@@ -4,7 +4,6 @@ required_tables = ('machines', 'jobs', 'patches', 'tests', 'test_attributes',
 		   'iteration_result')
 
 def migrate_up(manager):
-	assert not manager.check_migrate_table_exists()
 	manager.execute("SHOW TABLES")
 	tables = [row[0] for row in manager.cursor.fetchall()]
 	db_initialized = True
@@ -25,7 +24,11 @@ def migrate_up(manager):
 	manager.create_migrate_table()
 
 
-CREATE_DB_SQL = """\
+def migrate_down(manager):
+	manager.execute_script(DROP_DB_SQL)
+
+
+DROP_DB_SQL = """\
 -- drop all views (since they depend on some or all of the following tables)
 DROP VIEW IF EXISTS test_view;
 DROP VIEW IF EXISTS perf_view;
@@ -39,7 +42,10 @@ DROP TABLE IF EXISTS jobs;
 DROP TABLE IF EXISTS machines;
 DROP TABLE IF EXISTS kernels;
 DROP TABLE IF EXISTS status;
+"""
 
+
+CREATE_DB_SQL = DROP_DB_SQL + """\
 -- status key
 CREATE TABLE status (
 status_idx int(10) unsigned NOT NULL auto_increment PRIMARY KEY ,		-- numerical status
