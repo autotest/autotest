@@ -40,7 +40,6 @@ class MigrationManager(object):
 	def read_db_info(self):
 		# grab the config file and parse for info
 		c = global_config.global_config
-		print "database = %s\n" % (self.database)
 		self.db_host = c.get_config_value(self.database, "host")
 		self.db_name = c.get_config_value(self.database, "database")
 		self.username = c.get_config_value(self.database, "user")
@@ -55,6 +54,7 @@ class MigrationManager(object):
 	def open_connection(self):
 		self.connection = self.connect(self.db_host, self.db_name,
 					       self.username, self.password)
+		self.connection.autocommit(True)
 		self.cursor = self.connection.cursor()
 
 
@@ -87,8 +87,11 @@ class MigrationManager(object):
 
 
 	def create_migrate_table(self):
-		self.execute("CREATE TABLE %s (`version` integer)" %
-			     MIGRATE_TABLE)
+		if not self.check_migrate_table_exists():
+			self.execute("CREATE TABLE %s (`version` integer)" %
+				     MIGRATE_TABLE)
+		else:
+			self.execute("DELETE FROM %s" % MIGRATE_TABLE)
 		self.execute("INSERT INTO %s VALUES (0)" % MIGRATE_TABLE)
 		assert self.cursor.rowcount == 1
 
@@ -105,11 +108,13 @@ class MigrationManager(object):
 			return 0
 		self.execute("SELECT * FROM %s" % MIGRATE_TABLE)
 		rows = self.cursor.fetchall()
+		if len(rows) == 0:
+			return 0
 		assert len(rows) == 1 and len(rows[0]) == 1
 		return rows[0][0]
 
 
-	def get_migrations(self, minimum_version=None):
+	def get_migrations(self, minimum_version=None, maximum_version=None):
 		migrate_files = [filename for filename
 				 in os.listdir(self.migrations_dir)
 				 if re.match(r'^\d\d\d_.*\.py$', filename)]
@@ -118,28 +123,46 @@ class MigrationManager(object):
 		if minimum_version is not None:
 			migrations = [migration for migration in migrations
 				      if migration.version >= minimum_version]
+		if maximum_version is not None:
+			migrations = [migration for migration in migrations
+				      if migration.version <= maximum_version]
 		return migrations
 
 
-	def do_migration(self, migration):
-		assert self.get_db_version() == migration.version - 1
-		print 'Applying migration', migration.module
+	def do_migration(self, migration, migrate_up=True):
+		if migrate_up:
+			assert self.get_db_version() == migration.version - 1
+			direction = 'up'
+			method_name = 'migrate_up'
+			new_version = migration.version
+		else:
+			assert self.get_db_version() == migration.version
+			direction = 'down'
+			method_name = 'migrate_down'
+			new_version = migration.version - 1
+		print 'Applying migration %s %s' % (migration.module, direction)
 		module_object = __import__(migration.module,
 					   globals(), locals(), [])
-		up_method = getattr(module_object, 'migrate_up', None)
-		assert up_method is not None
-		up_method(self)
-		self.set_db_version(migration.version)
+		method = getattr(module_object, method_name, None)
+		assert method is not None
+		method(self)
+		self.set_db_version(new_version)
 
 
 	def migrate_to_version(self, version):
 		current_version = self.get_db_version()
-		# no support for migrating down right now
-		assert current_version <= version
+		if current_version < version:
+			lower, upper = current_version, version
+			migrate_up = True
+		else:
+			lower, upper = version, current_version
+			migrate_up = False
 
-		migrations = self.get_migrations(current_version + 1)
+		migrations = self.get_migrations(lower + 1, upper)
+		if not migrate_up:
+			migrations.reverse()
 		for migration in migrations:
-			self.do_migration(migration)
+			self.do_migration(migration, migrate_up)
 
 		assert self.get_db_version() == version
 		print 'At version', version
@@ -178,22 +201,29 @@ class MigrationManager(object):
 		    'db' : self.db_name})
 
 
-	def do_sync_db(self):
+	def migrate_to_version_or_latest(self, version):
+		if version is None:
+			self.migrate_to_latest()
+		else:
+			self.migrate_to_version(version)
+
+
+	def do_sync_db(self, version=None):
 		self.read_db_info()
 		self.open_connection()
 		print 'Migration starting for database', self.db_name
-		self.migrate_to_latest()
+		self.migrate_to_version_or_latest(version)
 		print 'Migration complete'
 
 
-	def test_sync_db(self):
+	def test_sync_db(self, version=None):
 		"""\
 		Create a fresh DB and run all migrations on it.
 		"""
 		self.initialize_test_db()
 		try:
 			print 'Starting migration test on DB', self.db_name
-			self.migrate_to_latest()
+			self.migrate_to_version_or_latest(version)
 			# show schema to the user
 			os.system('mysqldump %s --no-data=true '
 				  '--add-drop-table=false' %
@@ -203,7 +233,7 @@ class MigrationManager(object):
 		print 'Test finished successfully'
 
 
-	def simulate_sync_db(self):
+	def simulate_sync_db(self, version=None):
 		"""\
 		Create a fresh DB, copy the existing DB to it, and then
 		try to synchronize it.
@@ -222,13 +252,13 @@ class MigrationManager(object):
 		os.remove(dump_file)
 		try:
 			print 'Starting migration test on DB', self.db_name
-			self.migrate_to_latest()
+			self.migrate_to_version_or_latest(version)
 		finally:
 			self.remove_test_db()
 		print 'Test finished successfully'
 
 
-USAGE = 'must specify one of [sync|test|simulate|safesync]'
+USAGE = '%s sync|test|simulate|safesync [version]' % sys.argv[0]
 
 
 def main():
@@ -242,17 +272,21 @@ def main():
 	manager = MigrationManager(options.database)
 	
 	if len(args) > 0:
+		if len(args) > 1:
+			version = int(args[1])
+		else:
+			version = None
 		if args[0] == 'sync':
-			manager.do_sync_db()
+			manager.do_sync_db(version)
 		elif args[0] == 'test':
-			manager.test_sync_db()
+			manager.test_sync_db(version)
 		elif args[0] == 'simulate':
-			manager.simulate_sync_db()
+			manager.simulate_sync_db(version)
 		elif args[0] == 'safesync':
 			print 'Simluating migration'
-			manager.simulate_sync_db()
+			manager.simulate_sync_db(version)
 			print 'Performing real migration'
-			manager.do_sync_db()
+			manager.do_sync_db(version)
 		else:
 			print USAGE
 		return
