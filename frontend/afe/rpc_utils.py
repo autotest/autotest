@@ -103,16 +103,6 @@ def prepare_generate_control_file(tests, kernel, label):
 
 	is_server = (test_type == models.Test.Types.SERVER)
 	is_synchronous = (synch_type == models.Test.SynchType.SYNCHRONOUS)
-	if is_server:
-		if kernel or label:
-			error = 'This field is not supported for server jobs'
-			error_dict = {}
-			if kernel:
-				error_dict['kernel'] = error
-			if label:
-				error_dict['label'] = error
-			raise models.ValidationError(error_dict)
-
 	if label:
 		label = models.Label.smart_get(label)
 

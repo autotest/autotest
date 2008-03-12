@@ -11,7 +11,7 @@ AUTOTEST_DIR = os.path.abspath(os.path.join(
     os.path.dirname(frontend.settings.__file__), '..'))
 
 
-KERNEL_INSTALL_TEMPLATE = """\
+CLIENT_KERNEL_TEMPLATE = """\
 def step_init():
 	job.next_step([step_test])
 	testkernel = job.kernel('%(kernel)s')
@@ -21,6 +21,20 @@ def step_init():
 
 def step_test():
 """
+
+SERVER_KERNEL_TEMPLATE = """\
+kernel_install_control = \"""
+%s	pass
+\"""
+
+at = autotest.Autotest()
+def install_kernel(machine):
+	host = hosts.SSHHost(machine)
+	at.run(kernel_install_control, host=host)
+parallel_simple(install_kernel, machines)
+
+""" % CLIENT_KERNEL_TEMPLATE
+
 
 def kernel_config_line(kernel, platform):
 	if (not kernel.endswith('.rpm') and platform and
@@ -36,11 +50,19 @@ def read_control_file(test):
 	return control_contents
 
 
-def get_kernel_stanza(kernel, platform, kernel_args):
-	return KERNEL_INSTALL_TEMPLATE % {
+def get_kernel_stanza(kernel, platform=None, kernel_args='', is_server=False):
+	if is_server:
+		template = SERVER_KERNEL_TEMPLATE
+		indent = ''
+	else:
+		template = CLIENT_KERNEL_TEMPLATE
+		indent = '\t'
+
+	stanza = template % {
 	    'kernel' : kernel,
 	    'kernel_config_line' : kernel_config_line(kernel, platform),
 	    'kernel_args' : kernel_args}
+	return stanza, indent
 
 
 def get_tests_stanza(tests):
@@ -52,16 +74,11 @@ def indent_text(text, indent):
 	return '\n'.join(lines)
 
 
-def generate_client_control(tests, kernel=None, platform=None):
+def generate_control(tests, kernel=None, platform=None, is_server=False):
 	control_file = ''
 	indent = ''
 	if kernel:
-		control_file = get_kernel_stanza(kernel, platform, '')
-		indent = '\t'
-
+		control_file, indent = get_kernel_stanza(kernel, platform,
+							 is_server=is_server)
 	control_file += indent_text(get_tests_stanza(tests), indent)
 	return control_file
-
-
-def generate_server_control(tests):
-	return get_tests_stanza(tests)
