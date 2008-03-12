@@ -262,11 +262,10 @@ public class CreateJobView extends TabView {
         JSONObject params = new JSONObject();
         JSONArray tests = new JSONArray();
         List checkedTests = serverTestsPanel.getChecked();
-        String kernelString = ""; 
         if (checkedTests.isEmpty()) {
             checkedTests = clientTestsPanel.getChecked();
-            kernelString = kernel.getText();
         }
+        String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
             params.put("kernel", new JSONString(kernelString));
             params.put("do_push_kernel", JSONBoolean.getInstance(pushKernel));
@@ -316,18 +315,17 @@ public class CreateJobView extends TabView {
         if (!clientTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(true);
             serverTestsPanel.setEnabled(false);
-            kernel.setEnabled(true);
         }
         else if (!serverTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(false);
             serverTestsPanel.setEnabled(true);
-            kernel.setEnabled(false);
         }
         else {
             clientTestsPanel.setEnabled(true);
             serverTestsPanel.setEnabled(true);
-            kernel.setEnabled(true);
         }
+
+        kernel.setEnabled(true);
     }
     
     protected void disableInputs() {
