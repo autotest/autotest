@@ -51,6 +51,7 @@ signal.signal(signal.SIGTERM, handle_sigint)
 
 usage = """\
 usage: autoserv
+	[-h, --help]               # This help message
 	[-m machine,[machine,...]] # list of machines to pass to control file
 	[-M machines_file]         # list of machines (from a file)
 	[-c]                       # control file is a client side control
@@ -89,8 +90,12 @@ install_after  = parser.parse_opts('-I')
 verify   = parser.parse_opts('-v')
 repair   = parser.parse_opts('-R')
 no_tee   = parser.parse_opts('-n')
+help     = parser.parse_opts('-h') or parser.parse_opts('--help')
 write_pidfile = parser.parse_opts('-p')
 
+if help is True:
+  print usage
+  sys.exit(0)
 
 if len(parser.args) < 1 and not verify and not repair:
 	print usage
