@@ -1,5 +1,5 @@
 #!/usr/bin/python -u
-import os, re, parse, frontend, db, sys, socket
+import os, re, parse, frontend, db, sys, socket, fcntl
 from optparse import OptionParser
 from traceback import format_exception
 
@@ -118,15 +118,14 @@ def do_parse(jobname, path):
 	db.commit()
 
 
-
-for path in jobs_list:
+def parse_path(path):
 	job_elements = path.split('/')[-options.level:]
 					# last 'level' elements of path
 	jobname = '/'.join(job_elements)
 	machine_list = os.path.join(path, '.machines')
 	if os.path.exists(machine_list):
 		# This is a multi-machine job
-		for m in open(machine_list, 'r').readlines():
+		for m in open(machine_list):
 			machine = m.rstrip()
 			if not machine:
 				continue
@@ -143,15 +142,13 @@ for path in jobs_list:
 			do_parse(jobname, path)
 		except:
 			print format_error()
-			continue
 
 
-# Generate vertical text pngs for pretty display in tables.
-#
-# rows = db.select('distinct hostname', 'machines', {})
-# machines = [row[0] for row in rows]
-# 
-# for machine in machines:
-# 	dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-# 	vertical_text = os.path.join(dir, 'vertical_text.py')
-# 	os.system(vertical_text + ' ' + machine)
+for path in jobs_list:
+	lockfile = open(os.path.join(path, ".parse.lock"), "w")
+	fcntl.flock(lockfile, fcntl.LOCK_EX)
+	try:
+		parse_path(path)
+	finally:
+		fcntl.flock(lockfile, fcntl.LOCK_UN)
+		lockfile.close()
