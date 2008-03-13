@@ -326,8 +326,8 @@ id does not match
 ['host2', 'host1']
 
 
-# advanced args
-# #############
+# advanced usage
+# ##############
 
 # is_synchronous
 >>> rpc_interface.create_job(name='my_job',
@@ -341,3 +341,28 @@ id does not match
 >>> data = rpc_interface.get_jobs()
 >>> data[0]['synch_type']
 'Asynchronous'
+
+# get hosts ACL'd to a user
+>>> hosts = rpc_interface.get_hosts_acld_to('debug_user')
+>>> [host['hostname'] for host in hosts]
+['host1', 'host2']
+
+>>> rpc_interface.add_acl_group(name='mygroup')
+4L
+>>> rpc_interface.acl_group_add_users('mygroup', ['debug_user'])
+>>> rpc_interface.acl_group_add_hosts('mygroup', ['host1'])
+>>> rpc_interface.acl_group_remove_hosts('Everyone', ['host1'])
+>>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
+>>> data['users'], data['hosts']
+(['debug_user', 'showard'], ['host2'])
+>>> data = rpc_interface.get_acl_groups(name='mygroup')[0]
+>>> data['users'], data['hosts']
+(['debug_user'], ['host1'])
+
+>>> hosts = rpc_interface.get_hosts_acld_to('debug_user')
+>>> hosts.sort()
+>>> [host['hostname'] for host in hosts]
+['host1', 'host2']
+>>> hosts = rpc_interface.get_hosts_acld_to('showard')
+>>> [host['hostname'] for host in hosts]
+['host2']
