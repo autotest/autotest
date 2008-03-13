@@ -920,7 +920,7 @@ class QueueTask(AgentTask):
 		if self.job.is_synchronous() or self.job.num_machines()==1:
 			results_dir = self.job.results_dir()
 			cmdfile = os.path.join(results_dir, '.parse.cmd')
-			cmd = generate_parse_command(results_dir)
+			cmd = generate_parse_command(results_dir, '-n')
 			print >> open(cmdfile, 'w'), cmd
 		else:
 			for queue_entry in self.queue_entries:
@@ -928,7 +928,7 @@ class QueueTask(AgentTask):
 				cmdfile = os.path.join(results_dir,
 						       '.parse.cmd')
 				cmd = generate_parse_command(results_dir,
-							     '-l 2')
+							     '-l 2 -n')
 				print >> open(cmdfile, 'w'), cmd
 
 		# write some job timestamps into the job keyval file
