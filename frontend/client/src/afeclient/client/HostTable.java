@@ -10,9 +10,11 @@ import com.google.gwt.json.client.JSONValue;
  */
 public class HostTable extends DynamicTable {
     protected static final String LOCKED_TEXT = "locked_text";
+    protected static final String OTHER_LABELS = "other_labels";
     public static final String[][] HOST_COLUMNS = {
         {"hostname", "Hostname"}, {"platform", "Platform"}, 
-        {"status", "Status"}, {LOCKED_TEXT, "Locked"}
+        {OTHER_LABELS, "Other labels"}, {"status", "Status"}, 
+        {LOCKED_TEXT, "Locked"}
     };
     
     protected static JSONArray hosts = null;
@@ -23,9 +25,14 @@ public class HostTable extends DynamicTable {
         super(HOST_COLUMNS);
         makeClientSortable();
         
+        StaticDataRepository staticData = StaticDataRepository.getRepository();
+        JSONArray labels = staticData.getData("labels").isArray();
+        String[] labelStrings = Utils.JSONtoStrings(labels);
+        
         String[] searchColumns = {"Hostname"};
         addSearchBox(searchColumns, "Hostname:");
         addColumnFilter("Platform");
+        addColumnFilter("Other labels", labelStrings, false);
         addColumnFilter("Status");
         addColumnFilter("Locked");
         
@@ -37,6 +44,22 @@ public class HostTable extends DynamicTable {
         boolean locked = row.get("locked").isNumber().getValue() > 0;
         String lockedText = locked ? "Yes" : "No";
         row.put(LOCKED_TEXT, new JSONString(lockedText));
+        
+        JSONString jsonPlatform = row.get("platform").isString();
+        String platform = "";
+        if (jsonPlatform != null)
+            platform = jsonPlatform.stringValue();
+        JSONArray labels = row.get("labels").isArray();
+        String labelString = "";
+        for (int i = 0; i < labels.size(); i++) {
+            String label = labels.get(i).isString().stringValue();
+            if (label.equals(platform))
+                continue;
+            if (!labelString.equals(""))
+                labelString += ", ";
+            labelString += label;
+        }
+        row.put(OTHER_LABELS, new JSONString(labelString));
     }
     
     public void getHosts() {

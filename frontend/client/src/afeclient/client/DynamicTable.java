@@ -46,13 +46,17 @@ public class DynamicTable extends DataTable {
     class ColumnFilter implements Filter {
         public int column;
         public ListBox select = new ListBox();
-        public boolean isManualChoices = false;
+        public boolean isManualChoices = false, isExactMatch = true;
         
         public ColumnFilter(int column) {
             this.column = column;
             select.setStylePrimaryName("filter-box");
         }
         
+        public void setExactMatch(boolean isExactMatch) {
+            this.isExactMatch = isExactMatch;
+        }
+
         public String getSelectedValue() {
             return select.getItemText(select.getSelectedIndex()); 
         }
@@ -62,7 +66,9 @@ public class DynamicTable extends DataTable {
         }
         
         public boolean acceptRow(String[] row) {
-            return row[column].equals(getSelectedValue());
+            if (isExactMatch)
+                return row[column].equals(getSelectedValue());
+            return row[column].indexOf(getSelectedValue()) != -1;
         }
         
         public void setChoices(String[] choices) {
@@ -478,14 +484,18 @@ public class DynamicTable extends DataTable {
      * column in a list box, and filters based on the user's choice.  This
      * method allows the caller to specify the choices for the list box.
      * @param column the title of the column to filter on
-     * @param choices the choices for the filter box (not includes "All values")
+     * @param choices the choices for the filter box (not including "All values")
+     * @param exactMatch if true, the column value must match exactly; otherwise,
+     *        it must contain the filter value
      */
-    public void addColumnFilter(String column, String[] choices) {
+    public void addColumnFilter(String column, String[] choices,
+                                boolean exactMatch) {
         final ColumnFilter filter = new ColumnFilter(columnNameToIndex(column));
         if (choices != null) {
             filter.setChoices(choices);
             filter.isManualChoices = true;
         }
+        filter.setExactMatch(exactMatch);
         filter.select.addChangeListener(new ChangeListener() {
             public void onChange(Widget sender) {
                 doAllFilters();
@@ -508,7 +518,7 @@ public class DynamicTable extends DataTable {
      * present in the table.
      */
     public void addColumnFilter(String column) {
-        addColumnFilter(column, null);
+        addColumnFilter(column, null, true);
     }
     
     /**
