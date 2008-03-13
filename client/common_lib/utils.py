@@ -1,4 +1,4 @@
-import os, sys, re, shutil, urlparse, urllib, pickle
+import os, sys, re, shutil, urlparse, urllib, pickle, random
 from error import *
 
 def write_keyval(path, dictionary):
@@ -84,3 +84,20 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
 		install(*args, **dargs)
 		if os.path.exists(srcdir):
 			pickle.dump(new_version, open(versionfile, 'w'))
+
+
+class run_randomly:
+	def __init__(self):
+		self.test_list = []
+
+
+	def add(self, *args, **dargs):
+		test = (args, dargs)
+		self.test_list.append(test)
+
+
+	def run(self, fn):
+		while self.test_list:
+			test_index = random.randint(0, len(self.test_list)-1)
+			(args, dargs) = self.test_list.pop(test_index)
+			fn(*args, **dargs)
