@@ -247,16 +247,25 @@ class ModelExtensions(object):
 
 
 	@classmethod
+	def clean_object_dicts(cls, field_dicts):
+		"""\
+		Take a list of dicts corresponding to object (as returned by
+		query.values()) and clean the data to be more suitable for
+		returning to the user.
+		"""
+		for i in range(len(field_dicts)):
+			cls.clean_foreign_keys(field_dicts[i])
+			field_dicts[i] = cls.convert_human_readable_values(
+			    field_dicts[i], to_human_readable=True)
+
+	@classmethod
 	def list_objects(cls, filter_data):
 		"""\
 		Like query_objects, but return a list of dictionaries.
 		"""
 		query = cls.query_objects(filter_data)
 		field_dicts = list(query.values())
-		for i in range(len(field_dicts)):
-			cls.clean_foreign_keys(field_dicts[i])
-			field_dicts[i] = cls.convert_human_readable_values(
-			    field_dicts[i], to_human_readable=True)
+		cls.clean_object_dicts(field_dicts)
 		return field_dicts
 
 
@@ -280,6 +289,14 @@ class ModelExtensions(object):
 			    'Invalid positional argument: %s (%s)' % (
 			    str(arg), type(arg)))
 		return cls.objects.get(**kwargs)
+
+
+	def get_object_dict(self):
+		"""\
+		Return a dictionary mapping fields to this object's values.
+		"""
+		return dict((field_name, getattr(self, field_name))
+			    for field_name in self.get_field_dict().iterkeys())
 
 
 class Label(dbmodels.Model, ModelExtensions):

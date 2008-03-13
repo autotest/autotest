@@ -50,8 +50,13 @@ public class HostTable extends DynamicTable {
             }
         };
         
-        if(hosts == null)
-            rpcProxy.rpcCall("get_hosts", null, handleHosts);
+        if(hosts == null) {
+            JSONObject params = new JSONObject();
+            JSONValue user = StaticDataRepository.getRepository().getData(
+                "user_login");
+            params.put("user", user);
+            rpcProxy.rpcCall("get_hosts_acld_to", params, handleHosts);
+        }
         else
             handleHosts.onSuccess(hosts);
     }
