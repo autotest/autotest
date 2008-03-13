@@ -75,12 +75,6 @@ class job:
 		self.control = os.path.abspath(control)
 
 		if not cont:
-			df_root = system_output('df -mP / | tail -1').split()
-			self.free_space_mb_root_before = int(df_root[3])
-			self.usage_percent_root_before = int(df_root[4].rstrip('%'))
-			pickle.dump(self.free_space_mb_root_before,
-				    file(self.control + '.fs', 'w'))
-			
 			if os.path.exists(self.tmpdir):
 				system('umount -f %s > /dev/null 2> /dev/null'%\
 					 	self.tmpdir, ignorestatus=True)
@@ -106,8 +100,6 @@ class job:
 
 			shutil.copyfile(self.control,
 					os.path.join(self.resultdir, 'control'))
-		else:
-			self.free_space_mb_root_before = pickle.load(file(self.control + '.fs', 'r'))
 
 
 		self.control = control
@@ -501,10 +493,6 @@ class job:
 			os.unlink(self.control + '.state')
 		except:
 			pass
-		try:
-			os.unlink(self.control + '.fs')
-		except:
-			pass
 
 		self.harness.run_complete()
 		sys.exit(status)
@@ -713,13 +701,6 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 			myjob.complete(1)
 		else:
 			sys.exit(1)
-
-	# Check to see how much disk space on / was consumed
-	df_root = system_output('df -mP / | tail -1').split()
-	free_space_mb_root_after = int(df_root[3])
-	if myjob.free_space_mb_root_before - free_space_mb_root_after > 5:
-		myjob.record('WARN', None, 'disk_usage',
-			     'disk usage on root is greater than 5Mb')
 
 	# If we get here, then we assume the job is complete and good.
 	myjob.group_level = 0
