@@ -107,3 +107,16 @@ def prepare_generate_control_file(tests, kernel, label):
 		label = models.Label.smart_get(label)
 
 	return is_server, is_synchronous, test_objects, label
+
+
+def gather_unique_dicts(dict_iterable):
+	"""\
+	Pick out unique objects (by ID) from an iterable of object dicts.
+	"""
+	id_set = set()
+	result = []
+	for obj in dict_iterable:
+		if obj['id'] not in id_set:
+			id_set.add(obj['id'])
+			result.append(obj)
+	return result

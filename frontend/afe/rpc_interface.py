@@ -29,6 +29,7 @@ See doctests/rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
+import itertools
 import models, control_file, rpc_utils
 
 # labels
@@ -86,6 +87,19 @@ def get_hosts(**filter_data):
 		host['platform'] = platform and platform.name or None
 	return rpc_utils.prepare_for_serialization(hosts)
 
+
+def get_hosts_acld_to(user, **filter_data):
+	"""\
+	Like get_hosts(), but only return hosts to which the given user has
+	ACL access.
+	"""
+	user = models.User.smart_get(user)
+	# get hosts for each ACL group to which this user belongs
+	host_groups = [get_hosts(acl_group=acl_group, **filter_data)
+		       for acl_group in user.aclgroup_set.all()]
+	# consolidate into unique hosts
+	hosts = rpc_utils.gather_unique_dicts(itertools.chain(*host_groups))
+	return hosts
 
 
 # tests
@@ -347,7 +361,7 @@ def get_static_data():
 	users: sorted list of all usernames
 	labels: sorted list of all label names
 	tests: sorted list of all test names
-	user_login: username
+	user_login: logged-in username
 	"""
 	result = {}
 	result['priorities'] = models.Job.Priority.choices()
