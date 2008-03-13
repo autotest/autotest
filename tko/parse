@@ -21,6 +21,8 @@ parser.add_option('-o', help='one: parse a single results directory',
 					dest='singledir', action='store_true')
 parser.add_option('-l', help='levels of subdirectories to include in job name',
 					type='int', dest='level', default=1)
+parser.add_option('-n', help='no blocking on an existing parse',
+		  dest='noblock', action='store_true')
 parser.add_option('-s', help='Database server hostname',
 					dest='db_host', action='store')
 parser.add_option('-u', help='Database username',
@@ -146,7 +148,15 @@ def parse_path(path):
 
 for path in jobs_list:
 	lockfile = open(os.path.join(path, ".parse.lock"), "w")
-	fcntl.flock(lockfile, fcntl.LOCK_EX)
+	try:
+		flags = fcntl.LOCK_EX
+		if options.noblock:
+			flags |= fcntl.LOCK_NB
+		fcntl.flock(lockfile, flags)
+	except IOError:
+		# only happens when non-blocking if the lock is already held
+		lockfile.close()
+		continue   # a parse is already running here, skip it
 	try:
 		parse_path(path)
 	finally:
