@@ -437,11 +437,15 @@ class server_job:
 		"""
 		status_file = os.path.join(self.resultdir, 'status.log')
 		status_log = open(status_file, 'a')
+		need_reparse = False
 		for line in msg.splitlines():
 			line = self.record_prefix + line + '\n'
 			status_log.write(line)
+			if self.__need_reparse(line):
+				need_reparse = True
 		status_log.close()
-		self.__parse_status()
+		if need_reparse:
+			self.__parse_status()
 
 
 	def __record(self, status_code, subdir, operation, status='',
@@ -465,7 +469,22 @@ class server_job:
 				os.mkdir(test_dir)
 			status_file = os.path.join(test_dir, 'status')
 			open(status_file, "a").write(msg)
-		self.__parse_status()
+		if self.__need_reparse(msg):
+			self.__parse_status()
+
+
+	def __need_reparse(self, line):
+		# the parser will not record results if lines have more than
+		# one level of indentation
+		indent = len(re.search(r"^(\t*)", line).group(1))
+		if indent > 1:
+			return False
+		# we can also skip START lines, as they add nothing
+		line = line.lstrip("\t")
+		if line.startswith("START\t"):
+			return False
+		# otherwise, we should do a parse
+		return True
 
 
 	def __parse_status(self):
