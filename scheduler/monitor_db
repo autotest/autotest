@@ -147,7 +147,17 @@ class DatabaseConn:
 		self.conn = None
 		self.cur = None
 
+		import MySQLdb.converters
+		self.convert_dict = MySQLdb.converters.conversions
+		self.convert_dict.setdefault(bool, self.convert_boolean)
+
 		self.connect()
+
+
+	@staticmethod
+	def convert_boolean(boolean, conversion_dict):
+		'Convert booleans to integer strings'
+		return str(int(boolean))
 
 
 	def connect(self):
@@ -168,10 +178,9 @@ class DatabaseConn:
 
 		while not self.conn:
 			try:
-				self.conn = MySQLdb.connect(host=DB_HOST,
-				                            user=DB_USER,
-				                            passwd=DB_PASS,
-				                            db=DB_SCHEMA)
+				self.conn = MySQLdb.connect(
+				    host=DB_HOST, user=DB_USER, passwd=DB_PASS,
+				    db=DB_SCHEMA, conv=self.convert_dict)
 
 				self.conn.autocommit(True)
 				self.cur = self.conn.cursor()
