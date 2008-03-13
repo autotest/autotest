@@ -29,6 +29,18 @@ public class ClientMain implements EntryPoint, HistoryListener {
     public void onModuleLoad() {
         JsonRpcProxy.getProxy().setUrl(RPC_URL);
         
+        // initialize static data, and don't show main UI until that's done
+        StaticDataRepository.getRepository().refresh(
+                                 new StaticDataRepository.FinishedCallback() {
+            public void onFinished() {
+                finishLoading();
+            }
+        });
+        
+        NotifyManager.getInstance().initialize();
+    }
+    
+    protected void finishLoading() {
         jobList = new JobListView(new JobTableListener() {
             public void onJobClicked(int jobId) {
                 showJob(jobId);
@@ -66,18 +78,6 @@ public class ClientMain implements EntryPoint, HistoryListener {
             public void onTabSelected(SourcesTabEvents sender, int tabIndex) {}
         });
         
-        // initialize static data, and don't show main UI until that's done
-        StaticDataRepository.getRepository().refresh(
-                                 new StaticDataRepository.FinishedCallback() {
-            public void onFinished() {
-                finishLoading();
-            }
-        });
-        
-        NotifyManager.getInstance().initialize();
-    }
-    
-    protected void finishLoading() {
         final RootPanel tabsRoot = RootPanel.get("tabs");
         tabsRoot.add(mainTabPanel);
         

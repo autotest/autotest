@@ -27,6 +27,17 @@ public class Utils {
         return result;
     }
     
+    /**
+     * Converts a <code>JSONArray</code> of <code>JSONStrings</code> to an 
+     * array of Java <code>Strings</code>.
+     */
+    public static String[] JSONtoStrings(JSONArray strings) {
+        String[] result = new String[strings.size()];
+        for (int i = 0; i < strings.size(); i++)
+            result[i] = strings.get(i).isString().stringValue();
+        return result;
+    }
+    
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
         String result = "";
         Set statusSet = counts.keySet();
