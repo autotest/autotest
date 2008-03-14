@@ -276,7 +276,8 @@ class SSHHost(base_classes.RemoteHost):
 
 	def ssh_base_command(self, connect_timeout=30):
 		SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
-				   'BatchMode=yes -o ConnectTimeout=%d'
+				   'BatchMode=yes -o ConnectTimeout=%d ' + \
+				   '-o ServerAliveInterval=300'
 		assert isinstance(connect_timeout, (int, long))
 		assert connect_timeout > 0 # can't disable the timeout
 		return SSH_BASE_COMMAND % connect_timeout
