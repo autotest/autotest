@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python2.4 -u
 
 import os, sys, re, subprocess, tempfile
 import MySQLdb, MySQLdb.constants.ER
