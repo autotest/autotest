@@ -22,7 +22,10 @@ def setup(tarball, topdir):
 	# MySQL doesn't create this directory on it's own.  
 	# This is where database logs and files are created.
 	#
-	os.mkdir(topdir + '/mysql/var')
+	try:
+		os.mkdir(topdir + '/mysql/var')
+	except:
+		pass
 	#
 	# Initialize the database.
 	#
