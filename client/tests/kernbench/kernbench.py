@@ -3,7 +3,7 @@ from autotest_utils import *
 import re
 
 class kernbench(test.test):
-	version = 1
+	version = 2
 
 	def setup(self, build_dir = None):
 		if not build_dir:
@@ -57,7 +57,9 @@ class kernbench(test.test):
 		kernel.config(defconfig=True, logged=False)
 
 
-	def execute(self, iterations = 1, threads = 2*count_cpus(), dir = None, version = None):
+	def execute(self, iterations = 1, threads = None, dir = None, version = None):
+		if not threads:
+			threads = self.job.cpu_count()*2
 		if dir:
 			build_dir = dir
 		else:

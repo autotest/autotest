@@ -2,7 +2,7 @@ import test,time,os,signal
 from autotest_utils import *
 
 class tbench(test.test):
-	version = 1
+	version = 2 
 
 	# http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
 	def setup(self, tarball = 'dbench-3.04.tar.gz'):
@@ -13,9 +13,12 @@ class tbench(test.test):
 		system('./configure')
 		system('make')
 
-	def execute(self, iterations = 1, args = count_cpus()):
+	def execute(self, iterations = 1, nprocs = None, args = ''):
 		# only supports combined server+client model at the moment
 		# should support separate I suppose, but nobody uses it
+		if not nprocs:
+			nprocs = self.job.cpu_count()
+		args += ' %s' % nprocs
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
