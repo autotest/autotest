@@ -372,9 +372,11 @@ class job:
 
 	# Check the passed kernel identifier against the command line
 	# and the running kernel, abort the job on missmatch.
-	def kernel_check_ident(self, expected_when, expected_id, expected_cl, subdir, type = 'src'):
-		print "POST BOOT: checking booted kernel mark=%d identity='%s' changelist=%s type='%s'" \
-			% (expected_when, expected_id, expected_cl, type)
+	def kernel_check_ident(self, expected_when, expected_id, subdir,
+			       type = 'src'):
+		print (("POST BOOT: checking booted kernel " +
+			"mark=%d identity='%s' type='%s'") %
+		       (expected_when, expected_id, type))
 
 		running_id = running_os_ident()
 
@@ -386,13 +388,6 @@ class job:
 		if m:
 			cmdline_when = int(m.groups()[0])
 
-		cl_re = re.compile(r'\d{7,}')
-		cl_match = cl_re.search(system_output('uname -v').split()[1])
-		if cl_match:
-			current_cl = cl_match.group()
-		else:
-			current_cl = None
-
 		# We have all the facts, see if they indicate we
 		# booted the requested kernel or not.
 		bad = False
@@ -403,17 +398,12 @@ class job:
 		if expected_when != cmdline_when:
 			print "check_kernel_ident: kernel command line mismatch"
 			bad = True
-		if expected_cl and current_cl and str(expected_cl) != current_cl:
-			print 'check_kernel_ident: kernel changelist mismatch'
-			bad = True
 
 		if bad:
 			print "   Expected Ident: " + expected_id
 			print "    Running Ident: " + running_id
 			print "    Expected Mark: %d" % (expected_when)
 			print "Command Line Mark: %d" % (cmdline_when)
-			print "   Expected P4 CL: %s" % expected_cl
-			print "            P4 CL: %s" % current_cl
 			print "     Command Line: " + cmdline
 
 			raise JobError("boot failure", "reboot.verify")

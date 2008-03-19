@@ -491,9 +491,8 @@ class kernel:
 			ident = self.get_kernel_build_ident()
 			args += " IDENT=%d" % (when)
 
-			# TODO: how do we get the changelist number here?
 			self.job.next_step_prepend(["job.kernel_check_ident",
-						when, ident, None, self.subdir])
+						    when, ident, self.subdir])
 
 		# Check if the kernel has been installed, if not install
 		# as the default tag and boot that.
@@ -614,12 +613,6 @@ class rpm_kernel:
 			system('rm -rf ' + self.log_dir)
 		os.mkdir(self.log_dir)
 		self.installed_as = None
-		cl_re = re.compile(r'[-.](\d{7,})\.rpm$')
-		match = cl_re.findall(rpm_package)
-		if match:
-			self.changelist = match[0]
-		else:
-			self.changelist = None
 
 
 	@logging.record
@@ -695,11 +688,13 @@ class rpm_kernel:
 		# If we can check the kernel identity do so.
 		if ident:
 			when = int(time.time())
-			ident = '-'.join([self.version, self.rpm_name.split('-')[1], self.release])
+			ident = '-'.join([self.version,
+					  self.rpm_name.split('-')[1],
+					  self.release])
 			args += " IDENT=%d" % (when)
 
 		self.job.next_step_prepend(["job.kernel_check_ident",
-			when, ident, self.changelist, self.subdir, 'rpm'])
+			when, ident, self.subdir, 'rpm'])
 
 		# Boot the selected tag.
 		self.add_to_bootloader(args=args, tag=self.installed_as)
