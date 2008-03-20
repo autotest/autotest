@@ -41,7 +41,7 @@ BOOT_TIME = 1800
 
 
 
-class Autotest(installable_object.InstallableObject):
+class BaseAutotest(installable_object.InstallableObject):
 	"""
 	This class represents the Autotest program.
 
@@ -60,7 +60,7 @@ class Autotest(installable_object.InstallableObject):
 		self.got = False
 		self.installed = False
 		self.serverdir = utils.get_server_dir()
-		super(Autotest, self).__init__()
+		super(BaseAutotest, self).__init__()
 
 
 	@logging.record
@@ -139,7 +139,7 @@ class Autotest(installable_object.InstallableObject):
 		os.chdir(location)
 		os.system('tools/make_clean')
 		os.chdir(cwd)
-		super(Autotest, self).get(location)
+		super(BaseAutotest, self).get(location)
 		self.got = True
 
 
@@ -159,15 +159,23 @@ class Autotest(installable_object.InstallableObject):
 			AutotestRunError: if there is a problem executing
 				the control file
 		"""
+		host = self._get_host_and_setup(host)
 		results_dir = os.path.abspath(results_dir)
+		atrun = _Run(host, results_dir)
+		self._do_run(control_file, results_dir, host, atrun, timeout)
+
+
+	def _get_host_and_setup(self, host):
 		if not host:
 			host = self.host
 		if not self.installed:
 			self.install(host)
 
 		host.wait_up(timeout=30)
-		
-		atrun = _Run(host, results_dir)
+		return host
+
+
+	def _do_run(self, control_file, results_dir, host, atrun, timeout):
 		try:
 			atrun.verify_machine()
 		except:
@@ -263,25 +271,32 @@ class _Run(object):
 		self.host.run('umount %s' % tmpdir, ignore_status=True)
 
 
-	def __execute_section(self, section, timeout):
-		print "Executing %s/bin/autotest %s/control phase %d" % \
-					(self.autodir, self.autodir,
-					 section)
-
+	def get_full_cmd(self, section):
 		# build up the full command we want to run over the host
 		cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
 		if section > 0:
 			cmd.append('-c')
 		cmd.append(self.remote_control_file)
-		full_cmd = ' '.join(cmd)
+		return ' '.join(cmd)
 
+
+	def get_client_log(self, section):
 		# open up the files we need for our logging
 		client_log_file = os.path.join(self.results_dir, 'debug',
 					       'client.log.%d' % section)
-		client_log = open(client_log_file, 'w', 0)
+		return open(client_log_file, 'w', 0)
+
+
+	def execute_section(self, section, timeout):
+		print "Executing %s/bin/autotest %s/control phase %d" % \
+					(self.autodir, self.autodir,
+					 section)
+
+		full_cmd = self.get_full_cmd(section)
+		client_log = self.get_client_log(section)
+		redirector = server_job.client_logger(self.host.job)
 
 		try:
-			redirector = server_job.client_logger(self.host.job)
 			result = self.host.run(full_cmd, ignore_status=True,
 					       timeout=timeout,
 					       stdout_tee=client_log,
@@ -306,7 +321,7 @@ class _Run(object):
 			end_time = time.time() + timeout
 			time_left = end_time - time.time()
 		while not timeout or time_left > 0:
-			last = self.__execute_section(section, time_left)
+			last = self.execute_section(section, time_left)
 			if timeout:
 				time_left = end_time - time.time()
 				if time_left <= 0:
@@ -368,3 +383,16 @@ def _get_autodir(host):
 		except AutoservRunError:
 			pass
 	raise AutotestRunError("Cannot figure out autotest directory")
+
+
+# site_autotest.py may be non-existant or empty, make sure that an appropriate
+# SiteAutotest class is created nevertheless
+try:
+	from site_autotest import SiteAutotest
+except ImportError:
+	class SiteAutotest(BaseAutotest):
+		pass
+
+
+class Autotest(SiteAutotest):
+	pass
