@@ -129,8 +129,7 @@ def get(location, local_copy = False):
 			tmpfileobj.close()
 			return tmpfile
 
-
-def __nuke_subprocess(subproc):
+def nuke_subprocess(subproc):
        # the process has not terminated within timeout,
        # kill it via an escalating series of signals.
        signal_queue = [signal.SIGTERM, signal.SIGKILL]
@@ -218,7 +217,7 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 	# the process has not terminated within timeout,
 	# kill it via an escalating series of signals.
 	if exit_status_indication is None:
-		__nuke_subprocess(subproc)
+		nuke_subprocess(subproc)
 	raise AutoservRunError('Command not complete within %s seconds'
 			       % timeout, None)
 
@@ -248,10 +247,23 @@ def run(command, timeout=None, ignore_status=False,
 		AutoservRunError: the exit code of the command
 			execution was not 0
 	"""
+	return join_bg_job(run_bg(command), timeout, ignore_status,
+		stdout_tee, stderr_tee)
+
+
+def run_bg(command):
+	"""Run the command in a subprocess and return the subprocess."""
 	result = CmdResult(command)
 	sp = subprocess.Popen(command, stdout=subprocess.PIPE,
 			      stderr=subprocess.PIPE,
 			      shell=True, executable="/bin/bash")
+	return sp, result
+
+
+def join_bg_job(bg_job, timeout=None, ignore_status=False,
+	stdout_tee=None, stderr_tee=None):
+	"""Join the subprocess with the current thread. See run description."""
+	sp, result = bg_job
 	stdout_file = StringIO.StringIO()
 	stderr_file = StringIO.StringIO()
 
