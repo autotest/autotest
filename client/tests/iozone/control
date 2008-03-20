@@ -1,1 +1,1 @@
-job.run_test('iozone','/mnt')
+job.run_test('iozone')
