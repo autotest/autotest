@@ -22,6 +22,36 @@ def rangelist_to_list(rangelist):
 		raise ValueError(msg)
 	return result
 
+def rounded_memtotal():
+	# Get total of all physical mem, in Kbytes
+	usable_Kbytes = memtotal()
+	# usable_Kbytes is system's usable DRAM in Kbytes,
+	#   as reported by memtotal() from device /proc/meminfo memtotal
+	#   after Linux deducts 1.5% to 5.1% for system table overhead
+	# Undo the unknown actual deduction by rounding up
+	#   to next small multiple of a big power-of-two
+	#   eg  12GB - 5.1% gets rounded back up to 12GB
+	mindeduct = 0.015  # 1.5 percent
+	maxdeduct = 0.055  # 5.5 percent
+	# deduction range 1.5% .. 5.5% supports physical mem sizes
+	#    6GB .. 12GB in steps of .5GB
+	#   12GB .. 24GB in steps of 1 GB
+	#   24GB .. 48GB in steps of 2 GB ...
+	# Finer granularity in physical mem sizes would require
+	#   tighter spread between min and max possible deductions
+
+	# increase mem size by at least min deduction, without rounding
+	min_Kbytes   = int(usable_Kbytes / (1.0 - mindeduct))
+	# increase mem size further by 2**n rounding, by 0..roundKb or more
+	round_Kbytes = int(usable_Kbytes / (1.0 - maxdeduct)) - min_Kbytes
+	# find least binary roundup 2**n that covers worst-cast roundKb
+	mod2n = 1 << int(math.ceil(math.log(round_Kbytes, 2)))
+	# have round_Kbytes <= mod2n < round_Kbytes*2
+	# round min_Kbytes up to next multiple of mod2n
+	phys_Kbytes = min_Kbytes + mod2n - 1
+	phys_Kbytes = phys_Kbytes - (phys_Kbytes % mod2n)  # clear low bits
+	return phys_Kbytes
+
 class cpuset:
 	def print_one_cpuset(self, name):
 		dir = os.path.join('/dev/cpuset', name)
@@ -29,7 +59,8 @@ class cpuset:
 		print "\tcpus: %s" % read_one_line(dir + '/cpus')
 		mems = read_one_line(dir + '/mems')
 		print "\tmems: %s" % mems
-		memtotal = node_size() * len(rangelist_to_list(mems))
+		node_size_ = rounded_memtotal()*1024 / len(numa_nodes())
+		memtotal = node_size_ * len(rangelist_to_list(mems))
 		print "\tmemtotal: %s" % human_format(memtotal)
 		tasks = [x.rstrip() for x in open(dir + '/tasks').readlines()]
 		print "\ttasks: %s" % ','.join(tasks)
@@ -90,19 +121,23 @@ class cpuset:
 		self.name = name
 		self.delete_after_use = 0
 		#
+		memtotal_Mbytes = rounded_memtotal() >> 10
 		if not job_size:  # default to all installed memory
-			job_size = memtotal() / 1024
+			job_size = memtotal_Mbytes 
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)"% \
 		    (name, root, job_size, job_pid)
 		self.memory = job_size
 		# Convert jobsize to bytes
 		job_size = job_size << 20
 		if not grep('cpuset', '/proc/filesystems'):
-			print "No CPU set support"
-			return
+			raise AutotestError("No cpuset support; please reboot")
 		if not os.path.exists(self.super_root):
 			os.mkdir(self.super_root)
 			system('mount -t cpuset none %s' % self.super_root)
+		if not os.path.exists(os.path.join(self.super_root, "cpus")):
+			raise AutotestError("Root container /dev/cpuset is empty; please reboot")
+		if not os.path.exists(self.root):
+			raise AutotestError("Parent container %s does not exist" % self.root)
 		if cpus == None:
 			cpus = range(0, count_cpus())
 		print "cpus=", cpus
@@ -119,13 +154,13 @@ class cpuset:
 
 			# Find some free nodes to use to create this
 			# cpuset
-			node_size = memtotal() * 1024 / len(all_nodes)
-			nodes_needed = int(math.ceil(job_size / node_size))
-
+			node_size = ((memtotal_Mbytes<<20)*1.0) / len(all_nodes)
+			nodes_needed = int(math.ceil((1.0*job_size) / math.ceil(node_size)))
 			mems = self.available_mems()[-nodes_needed:]
-			alloc_size = human_format(len(mems) * node_size)
+			if len(all_nodes) < nodes_needed:
+				raise AutotestError("Container's memory is bigger than entire machine")
 			if len(mems) < nodes_needed:
-				raise AutotestError("Insufficient memory available")
+				raise AutotestError("Existing containers are holding memory nodes needed by new container")
 
 			# Set up the cpuset
 			mems_spec = ','.join(['%d' % x for x in mems])
