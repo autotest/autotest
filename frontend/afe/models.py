@@ -369,6 +369,8 @@ class Host(dbmodels.Model, ModelExtensions):
 
 
 	def save(self):
+		# extra spaces in the hostname can be a sneaky source of errors
+		self.hostname = self.hostname.strip()
 		# is this a new object being saved for the first time?
 		first_time = (self.id is None)
 		super(Host, self).save()
