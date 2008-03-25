@@ -72,6 +72,7 @@ class ServiceHandler(object):
     
     def handleRequest(self, json):
         err=None
+        err_traceback = None
         result = None
         id_=''
 
@@ -95,16 +96,18 @@ class ServiceHandler(object):
             try:
                 meth = self.findServiceEndpoint(methName)
             except Exception, e:
-                traceback.print_exc()
+                err_traceback = traceback.format_exc()
+                print err_traceback
                 err = e
 
         if err == None:
             try:
                 result = self.invokeServiceEndpoint(meth, args)
             except Exception, e:
-                traceback.print_exc()
+                err_traceback = traceback.format_exc()
+                print err_traceback
                 err = e
-        resultdata = self.translateResult(result, err, id_)
+        resultdata = self.translateResult(result, err, err_traceback, id_)
 
         return resultdata
 
@@ -130,9 +133,10 @@ class ServiceHandler(object):
     def invokeServiceEndpoint(self, meth, args):
         return meth(*args)
 
-    def translateResult(self, rslt, err, id_):
+    def translateResult(self, rslt, err, err_traceback, id_):
         if err != None:
-            err = {"name": err.__class__.__name__, "message":str(err)}
+            err = {"name": err.__class__.__name__, "message":str(err),
+                   "traceback": err_traceback}
             rslt = None
 
         try:
