@@ -408,7 +408,7 @@ class job:
 
 			raise JobError("boot failure", "reboot.verify")
 
-		self.record('GOOD', subdir, 'reboot.verify')
+		self.record('GOOD', subdir, 'reboot.verify', expected_id)
 
 
 	def filesystem(self, device, mountpoint = None, loop_size = 0):

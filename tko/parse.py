@@ -178,6 +178,7 @@ class job:
 		group_subdir = None
 		group_status = status_stack(self)
 		sought_level = 0        # we log events at indent level 0
+		current_kernel = self.kernel
 		for line in open(self.status, 'r').readlines():
 			dprint('\nSTATUS: ' + line.rstrip())
 			if not re.search(r'^\t*\S', line):
@@ -264,6 +265,8 @@ class job:
 				testname = 'boot.%d' % boot_count
 				dprint('reboot verified')
 				reboot_inprogress = 0
+				verify_ident = reason.strip()
+				current_kernel = kernel(self.dir, verify_ident)
 				boot_count += 1
 			if alert_pending:
 				status = 'ALERT'
@@ -281,7 +284,7 @@ class job:
 						      'timestamp')
 			test_status = group_status.end()
 			self.tests.append(test(subdir, testname, test_status,
-					       reason, self.kernel, self,
+					       reason, current_kernel, self,
 					       finished_time))
 			dprint('')
 
@@ -291,12 +294,12 @@ class job:
 					('----', subdir, testname, reason))
 			self.tests.append(test('----', testname, 'ABORT', 
 				'machine did not return from reboot',
-				self.kernel, self))
+				current_kernel, self))
 			dprint('')
 
 
 class kernel:
-	def __init__(self, topdir):
+	def __init__(self, topdir, verify_ident=None):
 		self.base = 'UNKNOWN'
 		self.patches = []
 		patch_hashes = []
@@ -315,6 +318,8 @@ class kernel:
 					print words
 					self.patches.append(patch(*words[0:]))
 					patch_hashes.append(words[2])
+		elif verify_ident:
+			self.base = verify_ident
 		else:
 			for sysinfo in ['sysinfo/reboot1', 'sysinfo']:
 				uname_file = os.path.join(topdir, sysinfo, 'uname_-a')
