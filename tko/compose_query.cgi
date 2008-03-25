@@ -257,8 +257,9 @@ def gen_matrix():
 		msg = "There are no results for this query (yet?)."
 		return [[display.box(msg)]]
 
-	link = 'compose_query.cgi?columns=%s&rows=%s&condition=%s' % (
-	                row, column, condition_field)
+	dict_url = {'columns': row,
+	           'rows': column, 'condition': condition_field}	
+	link = 'compose_query.cgi?' + urllib.urlencode(dict_url)
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
 	for x in test_data.x_values:
