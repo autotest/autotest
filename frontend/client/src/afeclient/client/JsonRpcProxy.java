@@ -84,26 +84,25 @@ public class JsonRpcProxy {
                     responseValue = JSONParser.parse(responseText);
                 }
                 catch (JSONException exc) {
-                    notify.showError(exc.toString());
+                    notify.showError(exc.toString(), responseText);
                     return;
                 }
                 
                 JSONObject responseObject = responseValue.isObject();
-                JSONObject error = responseObject.get("error").isObject();
-                if (error != null) {
-                    callback.onError(error);
+                JSONValue error = responseObject.get("error");
+                if (error == null) {
+                    notify.showError("Bad JSON response", responseText);
+                    return;
+                }
+                else if (error.isObject() != null) {
+                    callback.onError(error.isObject());
                     return;
                 }
 
                 JSONValue result = responseObject.get("result");
                 callback.onSuccess(result);
-
-                // Element error_iframe =
-                // DOM.getElementById("error_iframe");
-                // DOM.setInnerHTML(error_iframe,
-                // responseText);
-                }
-            });
+            }
+        });
         return success;
     }
 }
