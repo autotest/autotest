@@ -355,6 +355,9 @@ class _Run(object):
 						self.host.hostname,
 						BOOT_TIME,))
 				continue
+			self.host.job.record("ABORT", None, None,
+					     "Autotest client terminated " +
+					     "unexpectedly")
 			raise AutotestRunError("Aborting - unknown "
 				"return code: %s\n" % last)
 
