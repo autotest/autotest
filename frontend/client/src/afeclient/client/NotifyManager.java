@@ -1,7 +1,11 @@
 package afeclient.client;
 
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
+import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.TextArea;
 
 /**
  * A singleton class to manage popup notifications, including error messages and
@@ -40,9 +44,32 @@ public class NotifyManager {
         }
     }
     
+    class ErrorLog extends Composite {
+        protected DisclosurePanel disclosurePanel = 
+            new DisclosurePanel("Error log");
+        protected TextArea errorTextArea = new TextArea();
+        
+        public ErrorLog() {
+            errorTextArea.setCharacterWidth(120);
+            errorTextArea.setVisibleLines(30);
+            errorTextArea.setReadOnly(true);
+            disclosurePanel.add(errorTextArea);
+            initWidget(disclosurePanel);
+        }
+        
+        public void logError(String error) {
+            String errorText = errorTextArea.getText();
+            if (!errorText.equals(""))
+                errorText += "\n------------------------------\n";
+            errorText += error;
+            errorTextArea.setText(errorText);
+        }
+    }
+    
     protected NotifyBox errorNotify = new NotifyBox(true);
     protected NotifyBox messageNotify = new NotifyBox(true);
     protected NotifyBox loadingNotify = new NotifyBox(false);
+    protected ErrorLog errorLog = new ErrorLog();
     
     private NotifyManager() {
         errorNotify.addStyle("error");
@@ -54,6 +81,9 @@ public class NotifyManager {
     public void initialize() {
         errorNotify.hide();
         messageNotify.hide();
+        
+        RootPanel.get("error_log").add(errorLog);
+        errorLog.setVisible(false);
     }
     
     public static NotifyManager getInstance() {
@@ -63,8 +93,17 @@ public class NotifyManager {
     /**
      * Show an error message.
      */
-    public void showError(String error) {
+    public void showError(String error, String logMessage) {
+        String errorLogText = error;
+        if (logMessage != null)
+            errorLogText += "\n" + logMessage; 
         errorNotify.showMessage(error);
+        errorLog.logError(errorLogText);
+        errorLog.setVisible(true);
+    }
+    
+    public void showError(String error) {
+        showError(error, null);
     }
     
     /**

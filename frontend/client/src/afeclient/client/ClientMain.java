@@ -29,6 +29,8 @@ public class ClientMain implements EntryPoint, HistoryListener {
     public void onModuleLoad() {
         JsonRpcProxy.getProxy().setUrl(RPC_URL);
         
+        NotifyManager.getInstance().initialize();
+        
         // initialize static data, and don't show main UI until that's done
         StaticDataRepository.getRepository().refresh(
                                  new StaticDataRepository.FinishedCallback() {
@@ -36,8 +38,6 @@ public class ClientMain implements EntryPoint, HistoryListener {
                 finishLoading();
             }
         });
-        
-        NotifyManager.getInstance().initialize();
     }
     
     protected void finishLoading() {
