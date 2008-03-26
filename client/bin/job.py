@@ -348,7 +348,7 @@ class job:
 			print "Containers not enabled by latest reboot"
 			return  # containers weren't enabled in this kernel boot
 		pid = os.getpid()
-		if not root:
+		if root is None:
 			root = 'sys'
 		if not name:
 			name = 'test%d' % pid  # make arbitrary unique name
