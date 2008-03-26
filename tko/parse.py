@@ -189,6 +189,10 @@ class job:
 				# we now log events at indent level 1
 				dprint('Found job level start marker. Looking for level 1 groups now')
 				continue
+			if re.search(r'^END [^\t]*\t----\t----', line):
+				sought_level = 0
+				# the job is ended
+				dprint('Found job level end marker. Loocking for level 0 lines now')
 			indent = re.search('^(\t*)', line).group(0).count('\t')
 			line = line.lstrip()
 			line = line.rstrip('\n')
