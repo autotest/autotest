@@ -1,5 +1,7 @@
 # Django settings for frontend project.
 
+from frontend.common import global_config
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -11,12 +13,19 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-DATABASE_ENGINE = 'mysql_old'           # 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'ado_mssql'.
-DATABASE_NAME = 'autotest_web'             # Or path to database file if using sqlite3.
-DATABASE_USER = 'autotest'             # Not used with sqlite3.
-DATABASE_PASSWORD = 'password'         # Not used with sqlite3.
-DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
+DATABASE_ENGINE = 'mysql_old'  # 'postgresql_psycopg2', 'postgresql', 
+                               # 'mysql', 'sqlite3' or 'ado_mssql'.
+DATABASE_PORT = ''             # Set to empty string for default. 
+                               # Not used with sqlite3.
+
+c = global_config.global_config
+DATABASE_HOST = c.get_config_value("AUTOTEST_WEB", "host")  
+# Or path to database file if using sqlite3.
+DATABASE_NAME = c.get_config_value("AUTOTEST_WEB", "database")
+# The following not used with sqlite3.
+DATABASE_USER = c.get_config_value("AUTOTEST_WEB", "user")
+DATABASE_PASSWORD = c.get_config_value("AUTOTEST_WEB", "password")
+      
 
 # prefix applied to all URLs - useful if requests are coming through apache,
 # and you need this app to coexist with others
