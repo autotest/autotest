@@ -15,6 +15,13 @@ check_python_version()
 
 import sys, os, re, server_job, hosts.site_host, utils, traceback, signal
 
+
+# send stdin to /dev/null
+dev_null = os.open(os.devnull, os.O_RDONLY)
+os.dup2(dev_null, sys.stdin.fileno())
+os.close(dev_null)
+
+
 class PidFileManager(object):
 	pid_file = None
 
