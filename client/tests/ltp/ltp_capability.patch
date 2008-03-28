@@ -1,0 +1,19 @@
+diff -urN ltp-full-20080229_main/runtest/syscalls ltp-full-20080229/runtest/syscalls
+--- ltp-full-20080229_main/runtest/syscalls	2008-03-10 11:59:48.566035000 -0700
++++ ltp-full-20080229/runtest/syscalls	2008-03-10 12:09:21.132093000 -0700
+@@ -29,11 +29,11 @@
+ 
+ brk01 brk01
+ 
+-capget01 capget01
+-capget02 capget02
++#capget01 capget01
++#capget02 capget02
+ 
+-capset01 capset01
+-capset02 capset02
++#capset01 capset01
++#capset02 capset02
+ 
+ chdir01 chdir01
+ chdir01A symlink01 -T chdir01
