@@ -249,7 +249,8 @@ class job:
 				subdir = None
 			if line.startswith('END'):
 				subdir = group_subdir
-			if indent != sought_level and status != 'ABORT':
+			if (indent != sought_level and status != 'ABORT' and
+			    not testname.startswith('reboot.')):
 				# we're in a block group
 				if subdir:
 					dprint('set group_subdir: %s' % subdir)
