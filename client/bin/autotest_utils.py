@@ -29,19 +29,25 @@ def difflist(list1, list2):
 	return diff
 
 
-def cat_file_to_cmd(file, command, ignorestatus = 0):
+def cat_file_to_cmd(file, command, ignorestatus = 0, return_output = False):
 	"""
 	equivalent to 'cat file | command' but knows to use 
 	zcat or bzcat if appropriate
 	"""
-	if not os.path.isfile(file):
-		raise NameError, 'invalid file %s to cat to command %s' % (file, command)
-	if file.endswith('.bz2'):
-		return system('bzcat ' + file + ' | ' + command, ignorestatus)
-	elif (file.endswith('.gz') or file.endswith('.tgz')):
-		return system('zcat ' + file + ' | ' + command, ignorestatus)
+	if return_output:
+		run_cmd = system_output
 	else:
-		return system('cat ' + file + ' | ' + command, ignorestatus)
+		run_cmd = system
+
+	if not os.path.isfile(file):
+		raise NameError('invalid file %s to cat to command %s'
+			% (file, command))
+	if file.endswith('.bz2'):
+		return run_cmd('bzcat ' + file + ' | ' + command, ignorestatus)
+	elif (file.endswith('.gz') or file.endswith('.tgz')):
+		return run_cmd('zcat ' + file + ' | ' + command, ignorestatus)
+	else:
+		return run_cmd('cat ' + file + ' | ' + command, ignorestatus)
 
 
 def extract_tarball_to_dir(tarball, dir):
@@ -59,16 +65,14 @@ def extract_tarball_to_dir(tarball, dir):
 
 
 def extract_tarball(tarball):
-	"""Returns the first found newly created directory by the tarball extraction"""
-	oldlist = os.listdir('.')
-	cat_file_to_cmd(tarball, 'tar xf -')
-	newlist = os.listdir('.')
-	newfiles = difflist(oldlist, newlist)   # what is new dir ?
-	new_dir = None
-	for newfile in newfiles:
-		if (os.path.isdir(newfile)):
-			return newfile
-	raise NameError, "extracting tarball produced no dir"
+	"""Returns the first extracted directory by the tarball."""
+	extracted = cat_file_to_cmd(tarball, 'tar xvf -',
+		return_output=True).splitlines()
+	extracted.sort() # So we get the aphabetically first new directory
+	new_dirs = [os.path.normpath(f) for f in extracted if f[-1] == '/']
+	if not new_dirs:
+		raise NameError('extracting tarball produced no dir')
+	return new_dirs[0]
 
 
 def get_md5sum(file_path):
