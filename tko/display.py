@@ -1,4 +1,4 @@
-import os, re, parse, sys, frontend
+import os, re, sys, frontend
 
 color_map = {
 	'header'        : '#e5e5c0', # greyish yellow
