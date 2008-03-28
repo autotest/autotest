@@ -24,6 +24,20 @@ class kernelexpandTest(unittest.TestCase):
 		self.assertEqual(sample, correct)
 
 
+	def test_decompose_fail(self):
+		success = False
+		try:
+			sample = decompose_kernel('1.0.0.0.0')
+			success = True
+		except NameError:
+			pass
+		except Exception, e:
+			self.fail('expected NameError, got something else')
+
+		if success:
+			self.fail('expected NameError, was successful')
+
+
 	def test_decompose_rcN(self):
 		correct = [
 		  [ km + 'v2.6/testing/v2.6.23/linux-2.6.23-rc1.tar.bz2',
