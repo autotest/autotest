@@ -1,6 +1,6 @@
 # Django settings for frontend project.
 
-from frontend.common import global_config
+from common import global_config
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
