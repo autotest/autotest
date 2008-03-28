@@ -74,14 +74,13 @@ def decompose_kernel_once(kernel):
 def decompose_kernel(kernel):
 	kernel_patches = []
 
-	old_kernel = ''
 	done = False
-	while not done and old_kernel != kernel:
-		old_kernel = kernel
-
-		(done, kernel, patch_list) = decompose_kernel_once(old_kernel)
+	while not done:
+		(done, kernel, patch_list) = decompose_kernel_once(kernel)
 		if patch_list:
 			kernel_patches.insert(0, patch_list)
+	if not len(kernel_patches):
+		raise NameError('kernelexpand: %s: unknown kernel' % (kernel))
 
 	return kernel_patches
 
@@ -172,7 +171,11 @@ if __name__ == '__main__':
 	#]
 	mirrors = options.mirror
 
-	components = decompose_kernel(kernel)
+	try:
+		components = decompose_kernel(kernel)
+	except NameError, e:
+		sys.stderr.write(e.args[0] + "\n")
+		sys.exit(1)
 
 	if mirrors:
 		components = mirror_kernel_components(mirrors, components)
