@@ -9,12 +9,20 @@ MIGRATE_TABLE = 'migrate_info'
 DEFAULT_MIGRATIONS_DIR = 'migrations'
 
 class Migration(object):
-	version = None
-	module = None
-
 	def __init__(self, filename):
 		self.version = int(filename[:3])
-		self.module = filename[:-3]
+		self.name = filename[:-3]
+		self.module = __import__(self.name, globals(), locals(), [])
+		assert hasattr(self.module, 'migrate_up')
+		assert hasattr(self.module, 'migrate_down')
+
+
+	def migrate_up(self, manager):
+		self.module.migrate_up(manager)
+
+
+	def migrate_down(self, manager):
+		self.module.migrate_down(manager)
 
 
 class MigrationManager(object):
@@ -22,8 +30,7 @@ class MigrationManager(object):
 	cursor = None
 	migrations_dir = None
 
-	def __init__(self, database, migrations_dir=None, db_host=None, db_name=None,
-		     username=None, password=None):
+	def __init__(self, database, migrations_dir=None):
 		self.database = database
 		if migrations_dir is None:
 			migrations_dir = os.path.abspath(DEFAULT_MIGRATIONS_DIR)
@@ -31,10 +38,10 @@ class MigrationManager(object):
 		sys.path.append(migrations_dir)
 		assert os.path.exists(migrations_dir)
 
-		self.db_host = db_host
-		self.db_name = db_name
-		self.username = username
-		self.password = password
+		self.db_host = None
+		self.db_name = None
+		self.username = None
+		self.password = None
 
 
 	def read_db_info(self):
@@ -130,22 +137,17 @@ class MigrationManager(object):
 
 
 	def do_migration(self, migration, migrate_up=True):
+		print 'Applying migration %s' % migration.name, # no newline
 		if migrate_up:
+			print 'up'
 			assert self.get_db_version() == migration.version - 1
-			direction = 'up'
-			method_name = 'migrate_up'
+			migration.migrate_up(self)
 			new_version = migration.version
 		else:
+			print 'down'
 			assert self.get_db_version() == migration.version
-			direction = 'down'
-			method_name = 'migrate_down'
+			migration.migrate_down(self)
 			new_version = migration.version - 1
-		print 'Applying migration %s %s' % (migration.module, direction)
-		module_object = __import__(migration.module,
-					   globals(), locals(), [])
-		method = getattr(module_object, method_name, None)
-		assert method is not None
-		method(self)
 		self.set_db_version(new_version)
 
 
