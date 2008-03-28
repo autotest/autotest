@@ -15,6 +15,9 @@ mappings = [
 	[ r'^\d+\.\d+\.\d+$', '', True, [
 		kernel + 'v%(major)s/linux-%(full)s.tar.bz2'
 	]],
+	[ r'^\d+\.\d+\.\d+\.\d+$', '', True, [
+		kernel + 'v%(major)s/linux-%(full)s.tar.bz2'
+	]],
 	[ r'-rc\d+$', '%(minor-prev)s', True, [
 		kernel + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2',
 		kernel + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
