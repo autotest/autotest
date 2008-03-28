@@ -395,7 +395,7 @@ sub add {
   push (@newkernel, "\tappend=\"$param{args}\"\n") if defined $param{args};
   push (@newkernel, "\tinitrd=$param{initrd}\n") if defined $param{initrd};
   push (@newkernel, "\troot=$param{root}\n") if defined $param{root};
-  push (@newkernel, "\tread-only\n\n");
+  ##push (@newkernel, "\tread-only\n\n");
 
   if (!defined $param{position} || $param{position} !~ /end|\d+/) {
     $param{position}=0;
@@ -852,9 +852,17 @@ sub detect_bootloader_from_conf {
         return @boot_loader;
     } elsif (@boot_loader == 1) {
         return pop( @boot_loader );
-    } else {
-        return undef;
+    } elsif (@boot_loader == 2) {
+	if ($boot_loader[0] eq 'lilo' && $boot_loader[1] eq 'yaboot') {
+		return 'lilo';
+	}
     }
+
+    if (scalar(@boot_loader) > 1) {
+        warn "Warning: Multiple bootloader configs; not certain which is in use.\n";
+	warn "         " . join(' ', @boot_loader) . "\n";
+    }
+    return undef;
 }
 
 =head2 detect_bootloader_from_mbr([@devices])
@@ -915,6 +923,7 @@ sub detect_bootloader_from_mbr {
         }
     } else {
         warn "Warning: Multiple MBR's present; not certain which is in use.\n";
+	warn "         " . join(' ', @boot_loader) . "\n";
         return undef;
     }
 
