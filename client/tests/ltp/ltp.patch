@@ -1,16 +1,18 @@
---- ltp-full-20060918/testcases/network/nfs/cthon04/tests.init.old	2007-03-10 13:54:32.811518000 -0800
-+++ ltp-full-20060918/testcases/network/nfs/cthon04/tests.init	2007-03-10 13:54:56.009862000 -0800
-@@ -75,7 +75,7 @@
- #	Tru64 UNIX
- #	SVR4
- #	Linux
--PATH=/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/sbin:/usr/sbin:.
-+#PATH=/bin:/usr/bin:/usr/ucb:/usr/ccs/bin:/sbin:/usr/sbin:.
+diff -urN ltp-full-20080229_vanilla/runtest/syscalls ltp-full-20080229/runtest/syscalls
+--- ltp-full-20080229_vanilla/runtest/syscalls	2008-02-28 23:55:41.000000000 -0800
++++ ltp-full-20080229/runtest/syscalls	2008-03-07 10:35:28.000000000 -0800
+@@ -981,7 +981,7 @@
+ vhangup02 vhangup02
  
- # Use this path for:
- #	DG/UX
---- src/testcases/kernel/syscalls/paging/Makefile       Sun Aug 20 23:58:42 2006
-+++ newsrc/testcases/kernel/syscalls/paging/Makefile    Mon Nov  5 10:13:57 2007
+ #vmsplice test cases
+-vmsplice01 vmsplice01
++#vmsplice01 vmsplice01
+ 
+ wait02 wait02
+ 
+diff -urN ltp-full-20080229_vanilla/testcases/kernel/syscalls/paging/Makefile ltp-full-20080229/testcases/kernel/syscalls/paging/Makefile
+--- ltp-full-20080229_vanilla/testcases/kernel/syscalls/paging/Makefile	2008-02-28 23:55:46.000000000 -0800
++++ ltp-full-20080229/testcases/kernel/syscalls/paging/Makefile	2008-03-07 10:37:48.000000000 -0800
 @@ -25,7 +25,9 @@
  all: $(TARGETS)
 
@@ -21,8 +23,9 @@
 
  clean:
  	rm -f $(TARGETS)
---- src/testcases/network/nfsv4/acl/Makefile    Tue Mar 13 12:25:46 2007
-+++ newsrc/testcases/network/nfsv4/acl/Makefile Mon Nov  5 10:14:56 2007
+diff -urN ltp-full-20080229_vanilla/testcases/network/nfsv4/acl/Makefile ltp-full-20080229/testcases/network/nfsv4/acl/Makefile
+--- ltp-full-20080229_vanilla/testcases/network/nfsv4/acl/Makefile	2008-02-28 23:55:52.000000000 -0800
++++ ltp-full-20080229/testcases/network/nfsv4/acl/Makefile	2008-03-07 10:38:23.000000000 -0800
 @@ -19,7 +19,9 @@
  	$(CC) $(CFLAGS) $(LDFLAGS) -o acl1 acl1.c $(LIBS)
 
