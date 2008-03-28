@@ -1,6 +1,29 @@
 import os, sys, re, shutil, urlparse, urllib, pickle, random
 from error import *
 
+
+def read_keyval(path):
+	"""
+	Read a key-value pair format file into a dictionary, and return it.
+	Takes either a filename or directory name as input. If it's a
+	directory name, we assume you want the file to be called keyval.
+	"""
+	if os.path.isdir(path):
+		path = os.path.join(path, 'keyval')
+	keyval = {}
+	for line in open(path):
+		line = re.sub('#.*', '', line.rstrip())
+		if not re.search(r'^\w+=', line):
+			raise ValueError('Invalid format line: %s' % line)
+		key, value = line.split('=', 1)
+		if re.search('^\d+$', value):
+			value = int(value)
+		elif re.search('^(\d+\.)?\d+$', value):
+			value = float(value)
+		keyval[key] = value
+	return keyval
+
+
 def write_keyval(path, dictionary):
 	if os.path.isdir(path):
 		path = os.path.join(path, 'keyval')
