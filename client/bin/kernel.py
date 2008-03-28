@@ -119,14 +119,15 @@ class kernel:
 		if not mirrors:
 			# LEGACY: convert the kernel.org mirror
 			mirror = self.job.config_get('mirror.ftp_kernel_org')
-			mirrors = [
-			  [ 'http://www.kernel.org/pub/linux/kernel/v2.6',
-			    mirror + '/v2.6' ],
-			  [ 'http://www.kernel.org/pub/linux/kernel/people/' +
-			    'akpm/patches/2.6', mirror + '/akpm'],
-			  [ 'http://www.kernel.org/pub/linux/kernel/people/' +
-			    'mbligh', mirror + '/mbligh']
-			]
+			if mirror:
+				korg = 'http://www.kernel.org/pub/linux/kernel'
+				mirrors = [
+				  [ korg + '/v2.6', mirror + '/v2.6' ],
+				  [ korg + '/people/akpm/patches/2.6',
+				    mirror + '/akpm' ],
+				  [ korg + '/people/mbligh',
+				    mirror + '/mbligh' ],
+				]
 
 		patches = kernelexpand.expand_classic(kernel, mirrors)
 		print patches
