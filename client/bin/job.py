@@ -343,13 +343,11 @@ class job:
 		return result
 
 
-	def new_container(self, mbytes=None, cpus=None, root=None, name=None):
+	def new_container(self, mbytes=None, cpus=None, root='', name=None):
 		if not grep('cpuset', '/proc/filesystems'):
 			print "Containers not enabled by latest reboot"
 			return  # containers weren't enabled in this kernel boot
 		pid = os.getpid()
-		if root is None:
-			root = 'sys'
 		if not name:
 			name = 'test%d' % pid  # make arbitrary unique name
 		self.container = cpuset.cpuset(name, job_size=mbytes, 
