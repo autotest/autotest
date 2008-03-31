@@ -1,1 +1,8 @@
+TIME="SHORT"
+
+DOC = """
+This test simply sleeps for 1 second.  It's a good way to test profilers and
+double check that autotest is working.
+"""
+
 job.run_test('sleeptest')
