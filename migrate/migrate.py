@@ -272,7 +272,12 @@ class MigrationManager(object):
 		print 'Test finished successfully'
 
 
-USAGE = '%s sync|test|simulate|safesync [version]' % sys.argv[0]
+USAGE = """\
+%s [options] sync|test|simulate|safesync [version]
+Options:
+    -d --database   Which database to act on
+    -a --action     Which action to perform"""\
+    % sys.argv[0]
 
 
 def main():
