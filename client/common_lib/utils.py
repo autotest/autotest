@@ -1,5 +1,10 @@
-import os, sys, re, shutil, urlparse, urllib, pickle, random
-from error import *
+#!/usr/bin/python
+#
+# Copyright 2008 Google Inc. Released under the GPL v2
+
+import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
+import sys, time, urllib, urlparse
+import error
 
 
 def read_keyval(path):
@@ -54,7 +59,7 @@ def get_file(src, dest, permissions=None):
 		try:
 			urllib.urlretrieve(src, dest)
 		except IOError, e:
-			raise AutotestError('Unable to retrieve %s (to %s)'
+			raise error.AutotestError('Unable to retrieve %s (to %s)'
 					    % (src, dest), e)
 	else:
 		shutil.copyfile(src, dest)
@@ -109,7 +114,239 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
 			pickle.dump(new_version, open(versionfile, 'w'))
 
 
+def run(command, timeout=None, ignore_status=False,
+	stdout_tee=None, stderr_tee=None):
+	"""
+	Run a command on the host.
+
+	Args:
+		command: the command line string
+		timeout: time limit in seconds before attempting to
+			kill the running process. The run() function
+			will take a few seconds longer than 'timeout'
+			to complete if it has to kill the process.
+		ignore_status: do not raise an exception, no matter what
+			the exit code of the command is.
+		stdout_tee: optional file-like object to which stdout data
+		            will be written as it is generated (data will still
+			    be stored in result.stdout)
+		stderr_tee: likewise for stderr
+
+	Returns:
+		a CmdResult object
+
+	Raises:
+		AutoservRunError: the exit code of the command
+			execution was not 0
+	"""
+	return join_bg_job(run_bg(command), timeout, ignore_status,
+		stdout_tee, stderr_tee)
+
+
+def run_bg(command):
+	"""Run the command in a subprocess and return the subprocess."""
+	result = CmdResult(command)
+	sp = subprocess.Popen(command, stdout=subprocess.PIPE,
+			      stderr=subprocess.PIPE,
+			      shell=True, executable="/bin/bash")
+	return sp, result
+
+
+def join_bg_job(bg_job, timeout=None, ignore_status=False,
+	stdout_tee=None, stderr_tee=None):
+	"""Join the subprocess with the current thread. See run description."""
+	sp, result = bg_job
+	stdout_file = StringIO.StringIO()
+	stderr_file = StringIO.StringIO()
+
+	try:
+		# We are holding ends to stdin, stdout pipes
+		# hence we need to be sure to close those fds no mater what
+		start_time = time.time()
+		ret = _wait_for_command(sp, start_time, timeout, stdout_file,
+			                stderr_file, stdout_tee, stderr_tee)
+		result.exit_status = ret
+
+		result.duration = time.time() - start_time
+		# don't use os.read now, so we get all the rest of the output
+		_process_output(sp.stdout, stdout_file, stdout_tee,
+				use_os_read=False)
+		_process_output(sp.stderr, stderr_file, stderr_tee,
+				use_os_read=False)
+	finally:
+		# close our ends of the pipes to the sp no matter what
+		sp.stdout.close()
+		sp.stderr.close()
+
+	result.stdout = stdout_file.getvalue()
+	result.stderr = stderr_file.getvalue()
+
+	if not ignore_status and result.exit_status > 0:
+		raise error.AutoservRunError("command execution error", result)
+
+	return result
+
+
+def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
+		      stdout_tee, stderr_tee):
+	if timeout:
+		stop_time = start_time + timeout
+		time_left = stop_time - time.time()
+	else:
+		time_left = None # so that select never times out
+	while not timeout or time_left > 0:
+		# select will return when stdout is ready (including when it is
+		# EOF, that is the process has terminated).
+		ready, _, _ = select.select([subproc.stdout, subproc.stderr],
+					     [], [], time_left)
+		# os.read() has to be used instead of
+		# subproc.stdout.read() which will otherwise block
+		if subproc.stdout in ready:
+			_process_output(subproc.stdout, stdout_file,
+					stdout_tee)
+		if subproc.stderr in ready:
+			_process_output(subproc.stderr, stderr_file,
+					stderr_tee)
+
+		exit_status_indication = subproc.poll()
+
+		if exit_status_indication is not None:
+			return exit_status_indication
+		if timeout:
+			time_left = stop_time - time.time()
+
+	# the process has not terminated within timeout,
+	# kill it via an escalating series of signals.
+	if exit_status_indication is None:
+		nuke_subprocess(subproc)
+	raise error.AutoservRunError('Command not complete within %s seconds'
+			       % timeout, None)
+
+
+def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
+	if use_os_read:
+		data = os.read(pipe.fileno(), 1024)
+	else:
+		data = pipe.read()
+	fbuffer.write(data)
+	if teefile:
+		teefile.write(data)
+		teefile.flush()
+
+
+def nuke_subprocess(subproc):
+       # the process has not terminated within timeout,
+       # kill it via an escalating series of signals.
+       signal_queue = [signal.SIGTERM, signal.SIGKILL]
+       for sig in signal_queue:
+	       try:
+		       os.kill(subproc.pid, sig)
+	       # The process may have died before we could kill it.
+	       except OSError:
+		       pass
+
+	       for i in range(5):
+		       rc = subproc.poll()
+		       if rc != None:
+			       return
+		       time.sleep(1)
+
+
+def nuke_pid(pid):
+       # the process has not terminated within timeout,
+       # kill it via an escalating series of signals.
+       signal_queue = [signal.SIGTERM, signal.SIGKILL]
+       for sig in signal_queue:
+	       try:
+		       os.kill(pid, sig)
+
+	       # The process may have died before we could kill it.
+	       except OSError:
+		       pass
+
+	       try:
+		       for i in range(5):
+			       status = os.waitpid(pid, os.WNOHANG)[0]
+			       if status == pid:
+				       return
+			       time.sleep(1)
+
+		       if status != pid:
+			       raise error.AutoservRunError('Could not kill %d'
+				       % pid, None)
+
+	       # the process died before we join it.
+	       except OSError:
+		       pass
+
+
+def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
+	if use_os_read:
+		data = os.read(pipe.fileno(), 1024)
+	else:
+		data = pipe.read()
+	fbuffer.write(data)
+	if teefile:
+		teefile.write(data)
+		teefile.flush()
+
+
+def system(command, timeout=None, ignore_status=False):
+	return run(command, timeout, ignore_status,
+		stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
+
+
+def system_output(command, timeout=None, ignore_status=False):
+	out = run(command, timeout, ignore_status).stdout
+	if out[-1:] == '\n': out = out[:-1]
+	return out
+
+
+class CmdResult(object):
+	"""
+	Command execution result.
+
+	command:     String containing the command line itself
+	exit_status: Integer exit code of the process
+	stdout:      String containing stdout of the process
+	stderr:      String containing stderr of the process
+	duration:    Elapsed wall clock time running the process
+	"""
+
+
+	def __init__(self, command = None):
+		self.command = command
+		self.exit_status = None
+		self.stdout = ""
+		self.stderr = ""
+		self.duration = 0
+
+
+	def __repr__(self):
+		wrapper = textwrap.TextWrapper(width = 78, 
+					       initial_indent="\n    ",
+					       subsequent_indent="    ")
+		
+		stdout = self.stdout.rstrip()
+		if stdout:
+			stdout = "\nstdout:\n%s" % stdout
+		
+		stderr = self.stderr.rstrip()
+		if stderr:
+			stderr = "\nstderr:\n%s" % stderr
+		
+		return ("* Command: %s\n"
+			"Exit status: %s\n"
+			"Duration: %s\n"
+			"%s"
+			"%s"
+			% (wrapper.fill(self.command), self.exit_status, 
+			self.duration, stdout, stderr))
+
+
 class run_randomly:
+
+
 	def __init__(self):
 		self.test_list = []
 
