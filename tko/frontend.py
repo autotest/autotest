@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, re, db, sys
+import os, re, db, sys, datetime
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
@@ -8,9 +8,9 @@ import kernel_versions
 
 root_url_file = os.path.join(tko, '.root_url')
 if os.path.exists(root_url_file):
-        html_root = open(root_url_file, 'r').readline().rstrip()
+	html_root = open(root_url_file, 'r').readline().rstrip()
 else:
-        html_root = '/results/'
+	html_root = '/results/'
 
 
 class status_cell:
@@ -23,7 +23,6 @@ class status_cell:
 
 
 	def add(self, status, count, job_tags):
-		assert not self.status_count.has_key(status)
 		assert count > 0
 
 		self.job_tag = job_tags
@@ -55,18 +54,36 @@ class status_data:
 		# List of rows columns (y-values)
 		self.y_values = smart_sort(list(y_values), y_field)
 
-
+def truncateTimeFieldsInAllRecords(rows, pos):
+	## reduces hours:min:sec to 00:00:00 in time stamps
+	## in each record i.e. in each element of "rows"
+	## Argument pos is equal to position of x-field or y-field
+	## depending in which field we are going to make such truncation
+	def truncateTimeFieldInOneRecord(row):
+		altRow = list(row)
+		if altRow[pos]!=None:
+			altRow[pos] = datetime.datetime(
+				altRow[pos].year,
+				altRow[pos].month,
+				altRow[pos].day
+				)
+		return tuple(altRow)
+	return map(truncateTimeFieldInOneRecord, rows)
+	            
 def get_matrix_data(db, x_axis, y_axis, where = None):
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
 	x_field = test_view_field_dict[x_axis]
 	y_field = test_view_field_dict[y_axis]
-	fields = ('%s, %s, status, COUNT(status), ' +
+	fields = ( '%s, %s, status, COUNT(status), ' +
 		  'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
 		 ) % (x_field, y_field)
 	group_by = '%s, %s, status' % (x_field, y_field)
 	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
-
+	if x_field.endswith("time"):
+		rows = truncateTimeFieldsInAllRecords(rows, 0)
+	if y_field.endswith("time"):
+		rows = truncateTimeFieldsInAllRecords(rows, 1)
 	return status_data(rows, x_field, y_field)
 
 
@@ -82,6 +99,9 @@ test_view_field_dict = {
 	'tag'           : 'job_tag',
 	'user'          : 'job_username',
 	'status'        : 'status_word',
+	'time'          : 'test_finished_time',
+	'time_daily'    : 'test_finished_time',
+	'id'            : 'test_idx',	    
 }
 
 def smart_sort(list, field):
@@ -89,8 +109,16 @@ def smart_sort(list, field):
 		def kernel_encode(kernel):
 		        return kernel_versions.version_encode(kernel) 
 		list.sort(key = kernel_encode, reverse = True)
-	else:
-		list.sort()
+	elif field.endswith('time'):
+		## old records may contain time=None 
+		## make None comparable with timestamp as string
+		def handleNone(date_time):
+			if date_time==None:
+				return datetime.datetime(1970,1,1,0,0,0)
+			else:
+				return date_time
+		list = map(handleNone,list)
+	list.sort()
 	return list
 
 
@@ -255,7 +283,7 @@ class iteration:
 
 
 	def __init__(self, iteration, key, value):
- 		self.iteration = iteration
+		self.iteration = iteration
 		self.key = key
 		self.value = value
 
