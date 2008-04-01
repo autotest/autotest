@@ -250,9 +250,28 @@ def count_cpus():
 
 
 # Returns total memory in kb
+def read_from_meminfo(key):
+	meminfo = system_output('grep %s /proc/meminfo' % key)
+	return int(re.search(r'\d+', meminfo).group(0))
+
+
 def memtotal():
-	memtotal = system_output('grep MemTotal /proc/meminfo')
-	return int(re.search(r'\d+', memtotal).group(0))
+	return read_from_meminfo('MemTotal')
+
+
+def freememtotal():
+	return read_from_meminfo('MemFree')
+
+
+def sysctl_kernel(key, value=None):
+	"""(Very) partial implementation of sysctl, for kernel params"""
+	if value:
+		# write
+		write_one_line('/proc/sys/kernel/%s' % key, value)
+	else:
+		# read
+		out = read_one_line('/proc/sys/kernel/%s' % key)
+		return int(re.search(r'\d+', out).group(0))
 
 
 def _convert_exit_status(sts):
@@ -434,7 +453,6 @@ def read_one_line(filename):
 
 
 def write_one_line(filename, str):
-	str.rstrip()
 	open(filename, 'w').write(str.rstrip() + "\n")
 
 
