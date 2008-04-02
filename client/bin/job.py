@@ -260,7 +260,7 @@ class job:
 			cpus  = container.get('cpus', None)
 			if not cpus:    # get old name
 				cpus  = container.get('cpu', None)
-			root  = container.get('root', None)
+			root  = container.get('root', '')
 			self.new_container(mbytes=mbytes, cpus=cpus, 
 					root=root, name=cname)
 			# We are running in a container now...
