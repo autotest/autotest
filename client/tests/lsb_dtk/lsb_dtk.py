@@ -28,7 +28,7 @@ class lsb_dtk(test.test):
 
 
 	def install_lsb_packages(self, srcdir, cachedir, my_config):
-		# Installing LSB DTK manager packages
+		# First, we download the LSB DTK manager package, worry about installing it later
 		self.dtk_manager_arch = my_config.get('dtk-manager', 'arch-%s' % self.get_lsb_arch())
 		self.dtk_manager_url = my_config.get('dtk-manager', 'tarball_url') % self.dtk_manager_arch
 		if not self.dtk_manager_url:
@@ -39,8 +39,6 @@ class lsb_dtk(test.test):
 			self.dtk_manager_pkg = unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
 		else:
 			raise TestError('Could not find DTK manager package md5, cannot cache DTK manager tarball')
-		print 'Installing LSB DTK manager RPM'
-		package.install(self.dtk_manager_pkg)
 
 		# Get LSB tarball, cache it and uncompress under autotest srcdir
 		if my_config.get('lsb', 'override_default_url') == 'no':
@@ -68,8 +66,8 @@ class lsb_dtk(test.test):
 		self.lsb_pkg_list = []
 		for self.line in self.rpm_file_list.readlines():
 			try:
-				# We already installed lsb-dtk-manager, so we can remove it
-				# from the list of packages
+				# We will install lsb-dtk-manager separately, so we can remove
+				# it from the list of packages
 				if not 'lsb-dtk-manager' in self.line:
 					self.line = re.findall(self.pkg_pattern, self.line)[0]
 					self.lsb_pkg_list.append(self.line)
@@ -97,14 +95,20 @@ class lsb_dtk(test.test):
 
 		# According to the host distro detection, we can install the packages
 		# using the list previously assembled
-		print 'Installing LSB RPM packages'
-		for self.lsb_rpm in self.lsb_pkg_list:
-			if self.distro_type == 'redhat-based':
+		if self.distro_type == 'redhat-based':
+			print 'Installing LSB RPM packages'
+			package.install(self.dtk_manager_pkg)
+			for self.lsb_rpm in self.lsb_pkg_list:
 				package.install(self.lsb_rpm, nodeps = True)
-			elif self.distro_type == 'debian-based':
+		elif self.distro_type == 'debian-based':
+			print 'Remember that you must have the following lsb compliance packages installed:'
+			print 'lsb-core lsb-cxx lsb-graphics lsb-desktop lsb-qt4 lsb-languages lsb-multimedia lsb-printing'
+			print 'Converting and installing LSB packages'
+			self.dtk_manager_dpkg = package.convert(self.dtk_manager_pkg, 'dpkg')
+			package.install(self.dtk_manager_dpkg)
+			for self.lsb_rpm in self.lsb_pkg_list:
 				self.lsb_dpkg = package.convert(self.lsb_rpm, 'dpkg')
 				package.install(self.lsb_dpkg, nodeps = True)
-
 
 	def link_lsb_libraries(self, config):
 		print 'Linking LSB libraries'
