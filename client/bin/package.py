@@ -253,18 +253,18 @@ def convert(package, destination_format):
 	if destination_format == 'dpkg':
 		deb_pattern = re.compile('[A-Za-z0-9_.-]*[.][d][e][b]')
 		conv_output = system_output('alien --to-deb %s 2>/dev/null' % package)
-		return re.findall(deb_pattern, conv_output)[0]
+		converted_package = re.findall(deb_pattern, conv_output)[0]
 	elif destination_format == 'rpm':
 		rpm_pattern = re.compile('[A-Za-z0-9_.-]*[.][r][p][m]')
 		conv_output = system_output('alien --to-rpm %s 2>/dev/null' % package)
-		return re.findall(rpm_pattern, conv_output)[0]
+		converted_package = re.findall(rpm_pattern, conv_output)[0]
 	else:
 		e_msg = 'Convertion to format %s not implemented' % destination_format
 		raise NotImplementedError(e_msg)
 
-	print 'Package %s successfuly converted to %s' % (package, destination_format)
-
-	return os.path.abspath(package)
+	print 'Package %s successfuly converted to %s' % \
+		(os.path.basename(package), os.path.basename(converted_package))
+	return os.path.abspath(converted_package)
 
 
 def os_support():
