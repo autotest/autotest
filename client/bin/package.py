@@ -137,7 +137,7 @@ def __dpkg_info(dpkg_package):
 		package_info['version'] = system_output(v_cmd)
 		package_info['arch'] = system_output(a_cmd)
 		# Checking if package is installed
-		package_status = system_output(i_cmd)
+		package_status = system_output(i_cmd, ignorestatus = 1)
 		not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
 		dpkg_not_installed = re.search(not_inst_pattern, package_status)
 		if dpkg_not_installed:
@@ -262,8 +262,9 @@ def convert(package, destination_format):
 		e_msg = 'Convertion to format %s not implemented' % destination_format
 		raise NotImplementedError(e_msg)
 
-	return 'Package %s successfuly converted to %s' % \
-	(package, destination_format)
+	print 'Package %s successfuly converted to %s' % (package, destination_format)
+
+	return os.path.abspath(package)
 
 
 def os_support():
