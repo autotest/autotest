@@ -3,7 +3,7 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import sys, time, urllib, urlparse
+import sys, time, textwrap, urllib, urlparse
 import error
 
 
