@@ -1,5 +1,5 @@
 package afeclient.client;
 
 public interface SimpleCallback {
-    public void doCallback();
+    public void doCallback(Object source);
 }

@@ -300,9 +300,11 @@ True
 >>> rpc_interface.requeue_job(1)
 2L
 
-# only the id differs
+# only the id differs (and possibly created_on)
 >>> data = rpc_interface.get_jobs()
 >>> for key in data[1].keys():
+...	if key == 'created_on': # created_on may or may not differ in testing
+...		continue
 ...	if data[1][key] != data[0][key]:
 ...		print key, 'does not match'
 id does not match
@@ -343,7 +345,7 @@ id does not match
 'Asynchronous'
 
 # get hosts ACL'd to a user
->>> hosts = rpc_interface.get_hosts_acld_to('debug_user')
+>>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
 >>> [host['hostname'] for host in hosts]
 ['host1', 'host2']
 
@@ -359,10 +361,10 @@ id does not match
 >>> data['users'], data['hosts']
 (['debug_user'], ['host1'])
 
->>> hosts = rpc_interface.get_hosts_acld_to('debug_user')
+>>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
 >>> hosts.sort()
 >>> [host['hostname'] for host in hosts]
 ['host1', 'host2']
->>> hosts = rpc_interface.get_hosts_acld_to('showard')
+>>> hosts = rpc_interface.get_hosts(acl_group__users__login='showard')
 >>> [host['hostname'] for host in hosts]
 ['host2']

@@ -247,6 +247,16 @@ class ModelExtensions(object):
 
 
 	@classmethod
+	def query_count(cls, filter_data):
+		"""\
+		Like query_objects, but retreive only the count of results.
+		"""
+		filter_data.pop('query_start', None)
+		filter_data.pop('query_limit', None)
+		return cls.query_objects(filter_data).count()
+
+
+	@classmethod
 	def clean_object_dicts(cls, field_dicts):
 		"""\
 		Take a list of dicts corresponding to object (as returned by
@@ -257,6 +267,7 @@ class ModelExtensions(object):
 			cls.clean_foreign_keys(field_dicts[i])
 			field_dicts[i] = cls.convert_human_readable_values(
 			    field_dicts[i], to_human_readable=True)
+
 
 	@classmethod
 	def list_objects(cls, filter_data):
@@ -733,7 +744,7 @@ class IneligibleHostQueue(dbmodels.Model):
 			list_display = ('id', 'job', 'host')
 
 
-class HostQueueEntry(dbmodels.Model):
+class HostQueueEntry(dbmodels.Model, ModelExtensions):
 	job = dbmodels.ForeignKey(Job)
 	host = dbmodels.ForeignKey(Host, blank=True, null=True)
 	priority = dbmodels.SmallIntegerField()

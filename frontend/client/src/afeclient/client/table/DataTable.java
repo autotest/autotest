@@ -1,4 +1,4 @@
-package afeclient.client;
+package afeclient.client.table;
 
 
 
@@ -7,7 +7,9 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.Widget;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A table to display data from JSONObjects.  Each row displays data from one 
@@ -24,12 +26,18 @@ import com.google.gwt.user.client.ui.Widget;
 public class DataTable extends Composite {
     public static final String HEADER_STYLE = "data-row-header";
     public static final String CLICKABLE_STYLE = "data-row-clickable";
+    public static final String HIGHLIGHTED_STYLE = "data-row-highlighted";
+    // for indexing into column subarrays (i.e. columns[1][COL_NAME])
+    public static final int COL_NAME = 0, COL_TITLE = 1;
     
     protected FlexTable table;
     
     protected String[][] columns;
     protected int headerRow = 0;
     protected boolean clickable = false;
+    
+    // keep a list of JSONObjects corresponding to rows in the table
+    protected List jsonObjects = new ArrayList();
 
     /**
      * @param columns An array specifying the name of each column and the field
@@ -76,6 +84,7 @@ public class DataTable extends Composite {
         while (getRowCount() > 0) {
             removeRow(0);
         }
+        jsonObjects.clear();
     }
     
     /**
@@ -112,7 +121,7 @@ public class DataTable extends Composite {
      * Add a row from an array of Strings, one String for each column.
      * @param rowData Data for each column, in left-to-right column order.
      */
-    public void addRowFromData(String[] rowData) {
+    protected void addRowFromData(String[] rowData) {
         int row = table.getRowCount();
         for(int i = 0; i < columns.length; i++)
             table.setHTML(row, i, rowData[i]);
@@ -126,6 +135,7 @@ public class DataTable extends Composite {
      */
     public void addRow(JSONObject row) {
         preprocessRow(row);
+        jsonObjects.add(row);
         addRowFromData(getRowText(row));
     }
     
@@ -146,11 +156,12 @@ public class DataTable extends Composite {
 
     /**
      * Remove a data row from the table.
-     * @param row The index of the row, where the first data row is indexed 0.
+     * @param rowIndex The index of the row, where the first data row is indexed 0.
      * Header rows are ignored.
      */
-    public void removeRow(int row) {
-        int realRow = row + getHeaderRowCount();
+    public void removeRow(int rowIndex) {
+        jsonObjects.remove(rowIndex);
+        int realRow = rowIndex + 1; // header row
         table.removeRow(realRow);
         for(int i = realRow; i < table.getRowCount(); i++)
             setRowStyle(i);
@@ -158,31 +169,26 @@ public class DataTable extends Composite {
     
     /**
      * Returns the number of data rows in the table.  The actual number of 
-     * visible table rows is more than this, due to the header rows.
+     * visible table rows is more than this, due to the header row.
      */
     public int getRowCount() {
-        return table.getRowCount() - getHeaderRowCount();
-    }
-
-    /**
-     * Adds a header row to the table.  This is an extra row that is added above
-     * the row of column titles and below any other header rows that have been
-     * added.  The row consists of a single cell.
-     * @param widget A widget to add to the cell.
-     * @return The row index of the new header row.
-     */
-    public int addHeaderRow(Widget widget) {
-        int row = table.insertRow(headerRow);
-        headerRow++;
-        table.getFlexCellFormatter().setColSpan(row, 0, columns.length);
-        table.setWidget(row, 0, widget);
-        return row;
+        return table.getRowCount() - 1;
     }
     
     /**
-     * Returns the number of header rows, including the column title row.
+     * Get the JSONObject corresponding to the indexed row.
      */
-    public int getHeaderRowCount() {
-        return headerRow + 1;
+    public JSONObject getRow(int rowIndex) {
+        return (JSONObject) jsonObjects.get(rowIndex);
+    }
+    
+    public void highlightRow(int row) {
+        row++; // account for header row
+        table.getRowFormatter().addStyleName(row, HIGHLIGHTED_STYLE);
+    }
+    
+    public void unhighlightRow(int row) {
+        row++; // acount for header row
+        table.getRowFormatter().removeStyleName(row, HIGHLIGHTED_STYLE);
     }
 }
