@@ -1,5 +1,9 @@
 package afeclient.client;
 
+import afeclient.client.table.ListFilter;
+import afeclient.client.table.SearchFilter;
+import afeclient.client.table.TableDecorator;
+
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -20,8 +24,8 @@ public class JobDetailView extends TabView {
     public static final String NO_URL = "about:blank";
     public static final String NO_JOB = "No job selected";
     public static final String GO_TEXT = "Go";
-    public static final String REFRESH_TEXT = "Refresh";
     public static final int NO_JOB_ID = -1;
+    public static final int HOSTS_PER_PAGE = 30;
     
     public String getElementId() {
         return "view_job";
@@ -33,7 +37,8 @@ public class JobDetailView extends TabView {
 
     protected RootPanel allJobData;
     
-    protected JobHostsTable hostsTable;
+    protected JobHostsTable hostsTable = new JobHostsTable();
+    protected TableDecorator tableDecorator = new TableDecorator(hostsTable);
     protected TextBox idInput = new TextBox();
     protected Button idFetchButton = new Button(GO_TEXT);
     protected Button abortButton = new Button("Abort job");
@@ -54,8 +59,7 @@ public class JobDetailView extends TabView {
     public void setJobID(int id) {
         this.jobId = id;
         idInput.setText(Integer.toString(id));
-        idFetchButton.setText(REFRESH_TEXT);
-        refresh();
+        fetchData();
     }
 
     public void resetPage() {
@@ -63,7 +67,7 @@ public class JobDetailView extends TabView {
         allJobData.setVisible(false);
     }
 
-    public void refresh() {
+    public void fetchData() {
         pointToResults(NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
@@ -101,7 +105,7 @@ public class JobDetailView extends TabView {
                 
                 allJobData.setVisible(true);
                 
-                hostsTable.getHosts(jobId);
+                hostsTable.setJobId(jobId);
             }
 
             public void onError(JSONObject errorObject) {
@@ -160,16 +164,11 @@ public class JobDetailView extends TabView {
                 fetchById();
             }
         });
-        idInput.addKeyboardListener(new KeyboardListener() {
-            public void onKeyPress(Widget sender, char keyCode, int modifiers) {
-                idFetchButton.setText(GO_TEXT);
-            }
-            public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyUp(Widget sender, char keyCode, int modifiers) {} 
-        });
         
-        hostsTable = new JobHostsTable(rpcProxy);
-        RootPanel.get("job_hosts_table").add(hostsTable);
+        hostsTable.setRowsPerPage(HOSTS_PER_PAGE);
+        tableDecorator.addPaginators();
+        addTableFilters();
+        RootPanel.get("job_hosts_table").add(tableDecorator);
         
         abortButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -184,6 +183,18 @@ public class JobDetailView extends TabView {
             } 
         });
         RootPanel.get("view_requeue").add(requeueButton);
+    }
+    
+    protected void addTableFilters() {
+        SearchFilter hostnameFilter = new SearchFilter("host__hostname");
+        hostnameFilter.setExactMatch(false);
+        ListFilter statusFilter = new ListFilter("status");
+        StaticDataRepository staticData = StaticDataRepository.getRepository();
+        JSONArray statuses = staticData.getData("job_statuses").isArray();
+        statusFilter.setChoices(Utils.JSONtoStrings(statuses));
+        
+        tableDecorator.addFilter("Hostname", hostnameFilter);
+        tableDecorator.addFilter("Status", statusFilter);
     }
     
     protected void abortJob() {
@@ -247,5 +258,11 @@ public class JobDetailView extends TabView {
         }
         if (newJobId != jobId)
             setJobID(newJobId);
+    }
+    
+    public void refresh() {
+        super.refresh();
+        if (jobId != NO_JOB_ID)
+            fetchData();
     }
 }

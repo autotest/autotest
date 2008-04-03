@@ -50,4 +50,13 @@ public class Utils {
         }
         return result;
     }
+    
+    public static JSONObject copyJSONObject(JSONObject source) {
+        JSONObject dest = new JSONObject();
+        for(Iterator i = source.keySet().iterator(); i.hasNext(); ) {
+            String key = (String) i.next();
+            dest.put(key, source.get(key));
+        }
+        return dest;
+    }
 }

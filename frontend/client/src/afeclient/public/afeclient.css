@@ -41,6 +41,10 @@ tr.data-row-clickable:hover {
   background: #FFFFBB;
 }
 
+.data-row-highlighted {
+  background: #FFFFBB;
+}
+
 .gwt-TabBar .gwt-TabBarItem {
   background: #CCDDFF;
   margin-right: 2px;
@@ -66,9 +70,16 @@ tr.data-row-clickable:hover {
   margin-bottom: 0.5em;
 }
 
-.job-filter-link {
+.job-filter-links .gwt-TabBarItem {
   padding: 0.3em;
   margin-right: 1em;
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.job-filter-links .gwt-TabBarItem-selected {
+  background: #AACCFF;
 }
 
 .selected-link {

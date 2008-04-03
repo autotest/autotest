@@ -1,9 +1,17 @@
 package afeclient.client;
 
-import java.util.ArrayList;
-import java.util.List;
+import afeclient.client.table.ArrayDataSource;
+import afeclient.client.table.DataSource;
+import afeclient.client.table.SelectionManager;
+import afeclient.client.table.TableDecorator;
+import afeclient.client.table.DataSource.DefaultDataCallback;
+import afeclient.client.table.DynamicTable.DynamicTableListener;
+import afeclient.client.table.SelectionManager.SelectionListener;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -13,10 +21,15 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * A widget to facilitate selection of a group of hosts for running a job.  The
  * widget displays two side-by-side tables; the left table is a normal 
- * {@link HostTable} displaying available, unselected hosts, and the right table 
+ * {@link RpcHostTable} displaying available, unselected hosts, and the right table 
  * displays selected hosts.  Click on a host in either table moves it to the 
  * other (i.e. selects or deselects a host).  The widget provides several 
  * convenience controls (such as one to remove all selected hosts) and a special
@@ -31,57 +44,76 @@ public class HostSelector {
         public List metaHosts = new ArrayList();
     }
     
-    protected HostTable availableTable = new HostTable(TABLE_SIZE);
-    protected DynamicTable selectedTable = 
-        new DynamicTable(HostTable.HOST_COLUMNS);
+    protected ArrayDataSource selectedHostData = new ArrayDataSource("hostname");
+    
+    protected HostTable availableTable = new RpcHostTable();
+    protected HostTableDecorator availableDecorator = 
+        new HostTableDecorator(availableTable, TABLE_SIZE);
+    protected HostTable selectedTable = new HostTable(selectedHostData);
+    protected TableDecorator selectedDecorator = 
+        new TableDecorator(selectedTable);
+    
+    protected SelectionManager availableSelection = 
+        new SelectionManager(availableTable, false);
     
     public HostSelector() {
         selectedTable.setClickable(true);
-        selectedTable.addPaginator(TABLE_SIZE);
-        selectedTable.sortOnColumn(0);
+        selectedTable.setRowsPerPage(TABLE_SIZE);
+        selectedDecorator.addPaginators();
         
         availableTable.setClickable(true);
-        availableTable.setColumnFilterChoice("Locked", "No");
-        availableTable.getHosts();
+        availableDecorator.lockedFilter.setSelectedChoice("No");
         
-        availableTable.setListener(new DynamicTable.DynamicTableListener() {
-            public void onRowClicked(int dataRow, int column) {
-                selectRow(dataRow);
+        availableSelection.addListener(new SelectionListener() {
+            public void onAdd(Collection objects) {
+                for (Iterator i = objects.iterator(); i.hasNext(); )
+                    selectRow((JSONObject) i.next());
+                selectionRefresh();
+            }
+
+            public void onRemove(Collection objects) {
+                for (Iterator i = objects.iterator(); i.hasNext(); )
+                    deselectRow((JSONObject) i.next());
+                selectionRefresh();
             }
         });
-        selectedTable.setListener(new DynamicTable.DynamicTableListener() {
-            public void onRowClicked(int dataRow, int column) {
-                deselectRow(dataRow);
+
+        selectedTable.addListener(new DynamicTableListener() {
+            public void onRowClicked(int rowIndex, JSONObject row) {
+                deselectRow(row);
+                selectionRefresh();
             }
+            
+            public void onTableRefreshed() {}
         });
         
-        RootPanel.get("create_available_table").add(availableTable);
-        RootPanel.get("create_selected_table").add(selectedTable);
+        RootPanel.get("create_available_table").add(availableDecorator);
+        RootPanel.get("create_selected_table").add(selectedDecorator);
         
-        Button addVisibleButton = new Button("Add currently displayed");
+        Button addVisibleButton = new Button("Select visible");
         addVisibleButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 addVisible();
             }
         });
-        Button addFilteredButton = new Button("Add all filtered");
+        Button addFilteredButton = new Button("Select all");
         addFilteredButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                moveAll(availableTable, selectedTable);
+                addAllFiltered();
             }
         });
-        Button removeAllButton = new Button("Remove all");
+        Button removeAllButton = new Button("Select none");
         removeAllButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                moveAll(selectedTable, availableTable);
+                deselectAll();
             }
         });
         
         Panel availableControls = new HorizontalPanel();
         availableControls.add(addVisibleButton);
         availableControls.add(addFilteredButton);
+        availableControls.add(removeAllButton);
         RootPanel.get("create_available_controls").add(availableControls);
-        RootPanel.get("create_selected_controls").add(removeAllButton);
         
         final ListBox metaLabelSelect = new ListBox();
         populateLabels(metaLabelSelect);
@@ -101,12 +133,15 @@ public class HostSelector {
                     NotifyManager.getInstance().showError(error);
                     return;
                 }
-                String[] rowData = new String[4];
-                rowData[0] = META_PREFIX + number;
-                rowData[1] = label;
-                rowData[2] = rowData[3] = "";
-                selectedTable.addRowFromData(rowData);
-                selectedTable.updateData();
+                
+                JSONObject metaObject = new JSONObject();
+                metaObject.put("hostname", new JSONString(META_PREFIX + number));
+                metaObject.put("platform", new JSONString(label));
+                metaObject.put("labels", new JSONArray());
+                metaObject.put("status", new JSONString(""));
+                metaObject.put("locked", new JSONNumber(0));
+                selectRow(metaObject);
+                selectionRefresh();
             }
         });
         RootPanel.get("create_meta_select").add(metaLabelSelect);
@@ -114,43 +149,36 @@ public class HostSelector {
         RootPanel.get("create_meta_button").add(metaButton);
     }
     
-    protected void moveRow(int row, DynamicTable from, DataTable to) {
-        String[] rowData = from.removeDataRow(row);
-        if(isMetaEntry(rowData))
-            return;
-        to.addRowFromData(rowData);
+    protected void selectRow(JSONObject row) {
+        selectedHostData.addItem(row);
     }
     
-    protected void updateAfterMove(DynamicTable from, DynamicTable to) {
-        from.updateData();
-        to.updateData();
-    }
-    
-    protected void selectRow(int row) {
-        moveRow(row, availableTable, selectedTable);
-        updateAfterMove(availableTable, selectedTable);
-    }
-    
-    protected void deselectRow(int row) {
-        moveRow(row, selectedTable, availableTable);
-        updateAfterMove(selectedTable, availableTable);
+    protected void deselectRow(JSONObject row) {
+        selectedHostData.removeItem(row);
     }
     
     protected void addVisible() {
-        int start = availableTable.getVisibleStart();
-        int count = availableTable.getVisibleCount();
-        for (int i = 0; i < count; i++) {
-            moveRow(start, availableTable, selectedTable);
+        List rowsToAdd = new ArrayList();
+        for (int i = 0; i < availableTable.getRowCount(); i++) {
+            rowsToAdd.add(availableTable.getRow(i));
         }
-        updateAfterMove(availableTable, selectedTable);
+        availableSelection.selectObjects(rowsToAdd);
     }
     
-    protected void moveAll(DynamicTable from, DynamicTable to) {
-        int total = from.getFilteredRowCount();
-        for (int i = 0; i < total; i++) {
-            moveRow(0, from, to);
-        }
-        updateAfterMove(from, to);
+    protected void addAllFiltered() {
+        DataSource availableDataSource = availableTable.getDataSource();
+        availableDataSource.getPage(null, null, null, null, 
+                                    new DefaultDataCallback() {
+            public void handlePage(JSONArray data) {
+                availableSelection.selectObjects(new JSONArrayList(data));
+            }
+        });
+    }
+    
+    protected void deselectAll() {
+        availableSelection.deselectAll();
+        // get rid of leftover meta-host entries
+        selectedHostData.clear();
     }
     
     protected void populateLabels(ListBox list) {
@@ -161,12 +189,16 @@ public class HostSelector {
         }
     }
     
-    protected boolean isMetaEntry(String[] row) {
-        return row[0].startsWith(META_PREFIX);
+    protected String getHostname(JSONObject row) {
+        return row.get("hostname").isString().stringValue();
     }
     
-    protected int getMetaNumber(String[] row) {
-        return Integer.parseInt(row[0].substring(META_PREFIX.length()));
+    protected boolean isMetaEntry(JSONObject row) {
+        return getHostname(row).startsWith(META_PREFIX);
+    }
+    
+    protected int getMetaNumber(JSONObject row) {
+        return Integer.parseInt(getHostname(row).substring(META_PREFIX.length()));
     }
     
     /**
@@ -174,17 +206,18 @@ public class HostSelector {
      */
     public HostSelection getSelectedHosts() {
         HostSelection selection = new HostSelection();
-        for(int i = 0; i < selectedTable.getFilteredRowCount(); i++) {
-            String[] row = selectedTable.getDataRow(i);
+        List selectionArray = selectedHostData.getItems();
+        for(Iterator i = selectionArray.iterator(); i.hasNext(); ) {
+            JSONObject row = (JSONObject) i.next();
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
-                String platform = row[1];
+                String platform = row.get("platform").isString().stringValue();
                 for(int counter = 0; counter < count; counter++) {
                     selection.metaHosts.add(platform);
                 }
             }
             else {
-                String hostname = row[0];
+                String hostname = getHostname(row);
                 selection.hosts.add(hostname);
             }
         }
@@ -196,6 +229,20 @@ public class HostSelector {
      * Reset the widget (deselect all hosts).
      */
     public void reset() {
-        moveAll(selectedTable, availableTable);
+        deselectAll();
+        selectionRefresh();
+    }
+    
+    /**
+     * Refresh as necessary for selection change, but don't make any RPCs.
+     */
+    protected void selectionRefresh() {
+        selectedTable.refresh();
+        availableSelection.refreshSelection();
+    }
+    
+    public void refresh() {
+        availableTable.refresh();
+        selectionRefresh();
     }
 }

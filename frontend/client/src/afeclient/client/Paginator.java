@@ -9,16 +9,15 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.Widget;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 /**
  * A widget to faciliate pagination of tables.  Shows currently displayed rows, 
  * total row count, and buttons for moving among pages.
  */
 public class Paginator extends Composite {
-
-    public interface PaginatorCallback {
-        public void doRequest(int start);
-    }
-    
     class LinkWithDisable extends Composite {
         protected Panel panel = new FlowPanel();
         protected Label label;
@@ -31,6 +30,7 @@ public class Paginator extends Composite {
             panel.add(label);
             link.setStyleName("paginator-link");
             label.setStyleName("paginator-link");
+            setEnabled(false); // default to not enabled
             initWidget(panel);
         }
         
@@ -49,7 +49,7 @@ public class Paginator extends Composite {
     }
 
     protected int resultsPerPage, numTotalResults;
-    protected PaginatorCallback callback;
+    protected List changeListeners = new ArrayList();
     protected int currentStart = 0;
 
     protected HorizontalPanel mainPanel = new HorizontalPanel();
@@ -57,40 +57,33 @@ public class Paginator extends Composite {
                               firstControl, lastControl;
     protected Label statusLabel = new Label();
 
-    public Paginator(int resultsPerPage, PaginatorCallback callback) {
-        this.resultsPerPage = resultsPerPage;
-        this.callback = callback;
-
+    public Paginator() {
         prevControl = new LinkWithDisable("< Previous");
         prevControl.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 currentStart -= Paginator.this.resultsPerPage;
-                Paginator.this.callback.doRequest(currentStart);
-                update();
+                notifyListeners();
             }
         });
         nextControl = new LinkWithDisable("Next >");
         nextControl.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 currentStart += Paginator.this.resultsPerPage;
-                Paginator.this.callback.doRequest(currentStart);
-                update();
+                notifyListeners();
             }
         });
         firstControl = new LinkWithDisable("<< First");
         firstControl.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 currentStart = 0;
-                Paginator.this.callback.doRequest(currentStart);
-                update();
+                notifyListeners();
             } 
         });
         lastControl = new LinkWithDisable("Last >>");
         lastControl.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 currentStart = getLastPageStart();
-                Paginator.this.callback.doRequest(currentStart);
-                update();
+                notifyListeners();
             } 
         });
         
@@ -131,6 +124,13 @@ public class Paginator extends Composite {
     public int getResultsPerPage() {
         return resultsPerPage;
     }
+    
+    /**
+     * Set the size of a page.
+     */
+    public void setResultsPerPage(int resultsPerPage) {
+        this.resultsPerPage = resultsPerPage;
+    }
 
     /**
      * Set the total number of results in the current working set.
@@ -139,7 +139,6 @@ public class Paginator extends Composite {
         this.numTotalResults = numResults;
         if (currentStart >= numResults)
             currentStart = getLastPageStart();
-        update();
     }
     
     /**
@@ -147,7 +146,6 @@ public class Paginator extends Composite {
      */
     public void setStart(int start) {
         this.currentStart = start;
-        update();
     }
     
     protected int getLastPageStart() {
@@ -155,7 +153,7 @@ public class Paginator extends Composite {
         return ((numTotalResults - 1) / resultsPerPage) * resultsPerPage;
     }
 
-    protected void update() {
+    public void update() {
         boolean prevEnabled = !(currentStart == 0);
         boolean nextEnabled = currentStart + resultsPerPage < numTotalResults;
         firstControl.setEnabled(prevEnabled);
@@ -167,5 +165,19 @@ public class Paginator extends Composite {
             displayStart = 0;
         statusLabel.setText(displayStart + "-" + getEnd() + 
                             " of " + numTotalResults); 
+    }
+    
+    public void addChangeListener(SimpleCallback listener) {
+        changeListeners.add(listener);
+    }
+    
+    public void removeChangeListener(SimpleCallback listener) {
+        changeListeners.remove(listener);
+    }
+    
+    protected void notifyListeners() {
+        for (Iterator i = changeListeners.iterator(); i.hasNext(); ) {
+            ((SimpleCallback) i.next()).doCallback(this);
+        }
     }
 }

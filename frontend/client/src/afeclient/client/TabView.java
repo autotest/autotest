@@ -34,8 +34,11 @@ public abstract class TabView extends Composite {
     }
     
     // primarily for subclasses to override
+    public void refresh() {}
+    
     public void display() {
         ensureInitialized();
+        refresh();
     }
     
     public String getTitle() {
