@@ -296,13 +296,13 @@ public class CreateJobView extends TabView {
                 runSynchronous.setChecked(isSynchronous);
                 kernelPushed = pushKernel;
                 if (finishedCallback != null)
-                    finishedCallback.doCallback();
+                    finishedCallback.doCallback(this);
             }
 
             public void onError(JSONObject errorObject) {
                 super.onError(errorObject);
                 if (errorCallback != null)
-                    errorCallback.doCallback();
+                    errorCallback.doCallback(this);
             }
         });
     }
@@ -460,7 +460,7 @@ public class CreateJobView extends TabView {
         submitJobButton.setEnabled(false);
         
         final SimpleCallback doSubmit = new SimpleCallback() {
-            public void doCallback() {
+            public void doCallback(Object source) {
                 JSONObject args = new JSONObject();
                 args.put("name", new JSONString(jobName.getText()));
                 String priority = priorityList.getItemText(
@@ -502,11 +502,16 @@ public class CreateJobView extends TabView {
         // ensure kernel is pushed before submitting
         if (!kernelPushed)
             generateControlFile(true, doSubmit, new SimpleCallback() {
-                public void doCallback() {
+                public void doCallback(Object source) {
                     submitJobButton.setEnabled(true);
                 }
             });
         else
-            doSubmit.doCallback();
+            doSubmit.doCallback(this);
+    }
+    
+    public void refresh() {
+        super.refresh();
+        hostSelector.refresh();
     }
 }

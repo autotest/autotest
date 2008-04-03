@@ -29,7 +29,6 @@ See doctests/rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import itertools
 import models, control_file, rpc_utils
 
 # labels
@@ -88,18 +87,8 @@ def get_hosts(**filter_data):
 	return rpc_utils.prepare_for_serialization(hosts)
 
 
-def get_hosts_acld_to(user, **filter_data):
-	"""\
-	Like get_hosts(), but only return hosts to which the given user has
-	ACL access.
-	"""
-	user = models.User.smart_get(user)
-	# get hosts for each ACL group to which this user belongs
-	host_groups = [get_hosts(acl_group=acl_group, **filter_data)
-		       for acl_group in user.aclgroup_set.all()]
-	# consolidate into unique hosts
-	hosts = rpc_utils.gather_unique_dicts(itertools.chain(*host_groups))
-	return hosts
+def get_num_hosts(**filter_data):
+	return models.Host.query_count(filter_data)
 
 
 # tests
@@ -299,19 +288,12 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
 def get_num_jobs(not_yet_run=False, running=False, finished=False,
 		 **filter_data):
 	"""\
-        Get the number of jobs matching the given filters.  query_start and
-        query_limit parameters are ignored.  See get_jobs() for documentation of
-        extra filter parameters.
+        See get_jobs() for documentation of extra filter parameters.
         """
-        filter_data.pop('query_start', None)
-        filter_data.pop('query_limit', None)
-	filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
-								running,
-								finished)
-	return models.Job.query_objects(filter_data).count()
+	return models.Job.query_count(filter_data)
 
 
-def job_status(id):
+def job_status(job_id, **filter_data):
 	"""\
 	Get status of job with the given id number.  Returns a dictionary
 	mapping hostnames to dictionaries with two keys each:
@@ -321,9 +303,10 @@ def job_status(id):
 			  then a label name).  For real host entries,
 			  meta_count is None.
 	"""
-	job = models.Job.objects.get(id=id)
+	filter_data['job'] = job_id
+	job_entries = models.HostQueueEntry.query_objects(filter_data)
 	hosts_status = {}
-	for queue_entry in job.hostqueueentry_set.all():
+	for queue_entry in job_entries:
 		is_meta = queue_entry.is_meta_host_entry()
 		if is_meta:
 			name = queue_entry.meta_host.name
@@ -334,6 +317,14 @@ def job_status(id):
 			hosts_status[name] = {'meta_count': None}
 		hosts_status[name]['status'] = queue_entry.status
 	return hosts_status
+
+
+def job_num_entries(job_id, **filter_data):
+	"""\
+	Get the number of host queue entries associated with this job.
+	"""
+	filter_data['job'] = job_id
+	return models.HostQueueEntry.query_count(filter_data)
 
 
 def get_jobs_summary(**filter_data):
@@ -374,4 +365,6 @@ def get_static_data():
 			    models.Label.objects.all().order_by('name')]
 	result['tests'] = get_tests(sort_by='name')
 	result['user_login'] = rpc_utils.get_user().login
+	result['host_statuses'] = models.Host.Status.names
+	result['job_statuses'] = models.Job.Status.names
 	return result

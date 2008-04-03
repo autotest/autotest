@@ -9,10 +9,16 @@ public class HostListView extends TabView {
         return "hosts";
     }
     
-    protected HostTable hostTable = new HostTable(HOSTS_PER_PAGE);
+    protected HostTable table = new RpcHostTable();
+    protected HostTableDecorator hostTableDecorator = 
+        new HostTableDecorator(table, HOSTS_PER_PAGE);
     
     public void initialize() {
-        hostTable.getHosts();
-        RootPanel.get("hosts_list").add(hostTable);
+        RootPanel.get("hosts_list").add(hostTableDecorator);
+    }
+
+    public void refresh() {
+        super.refresh();
+        table.refresh();
     }
 }

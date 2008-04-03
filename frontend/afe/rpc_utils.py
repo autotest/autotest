@@ -14,6 +14,7 @@ def prepare_for_serialization(objects):
 	serialization.
 	-convert datetimes to strings
 	"""
+	objects = gather_unique_dicts(objects)
 	new_objects = []
 	for data in objects:
 		new_data = {}
