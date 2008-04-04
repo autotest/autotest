@@ -588,7 +588,8 @@ class PidfileRunMonitor(RunMonitor):
 			# process)
 			pass
 		else:
-			RunMonitor.__init__(self, cmd, nice_level, log_file)
+			super(PidfileRunMonitor, self).__init__(cmd,
+							 nice_level, log_file)
 
 
 	def get_pid(self):
@@ -794,6 +795,7 @@ class AgentTask(object):
 		self.task = None
 		self.agent = None
 		self.monitor = None
+		self.success = None
 
 
 	def poll(self):
@@ -829,9 +831,19 @@ class AgentTask(object):
 	def prolog(self):
 		pass
 
+	
+	def create_temp_resultsdir(self, suffix=''):
+		self.temp_results_dir = tempfile.mkdtemp(suffix=suffix)
+
+
+	def cleanup(self):
+		if (hasattr(self, 'temp_results_dir') and 
+		    os.path.exists(self.temp_results_dir)):
+			shutil.rmtree(self.temp_results_dir)
+
 
 	def epilog(self):
-		pass
+		self.cleanup()
 
 
 	def start(self):
@@ -843,11 +855,12 @@ class AgentTask(object):
 
 		self.started = True
 
-
+	
 	def abort(self):
 		if self.monitor:
 			self.monitor.kill()
 		self.done = True
+		self.cleanup()
 
 
 	def run(self):
@@ -868,10 +881,12 @@ class RepairTask(AgentTask):
 		fail_queue_entry: queue entry to mark failed if this repair
 		fails.
 		"""
-		cmd = [_autoserv_path , '-R', '-m', host.hostname]
+		self.create_temp_resultsdir('.repair')
+		cmd = [_autoserv_path , '-R', '-m', host.hostname,
+		       '-r', self.temp_results_dir]
 		self.host = host
 		self.fail_queue_entry = fail_queue_entry
-		AgentTask.__init__(self, cmd)
+		super(RepairTask, self).__init__(cmd)
 
 
 	def prolog(self):
@@ -880,6 +895,7 @@ class RepairTask(AgentTask):
 
 
 	def epilog(self):
+		super(RepairTask, self).epilog()
 		if self.success:
 			self.host.set_status('Ready')
 		else:
@@ -895,7 +911,7 @@ class VerifyTask(AgentTask):
 		self.host = host or queue_entry.host
 		self.queue_entry = queue_entry
 
-		self.temp_results_dir = tempfile.mkdtemp(suffix='.verify')
+		self.create_temp_resultsdir('.verify')
 		cmd = [_autoserv_path,'-v','-m',self.host.hostname,
 		       '-r', self.temp_results_dir]
 
@@ -904,7 +920,8 @@ class VerifyTask(AgentTask):
 			fail_queue_entry = queue_entry
 		failure_tasks = [RepairTask(self.host, fail_queue_entry)]
 
-		AgentTask.__init__(self, cmd, failure_tasks=failure_tasks)
+		super(VerifyTask, self).__init__(cmd,
+						 failure_tasks=failure_tasks)
 
 
 	def prolog(self):
@@ -916,11 +933,17 @@ class VerifyTask(AgentTask):
 		self.host.set_status('Verifying')
 
 
-	def epilog(self):
+	def cleanup(self):
+		if not os.path.exists(self.temp_results_dir):
+			return
 		if self.queue_entry and (self.success or
-					 not self.queue_entry.meta_host):
+		   			 not self.queue_entry.meta_host):
 			self.move_results()
-		shutil.rmtree(self.temp_results_dir)
+		super(VerifyTask, self).cleanup()
+
+
+	def epilog(self):
+		super(VerifyTask, self).epilog()
 
 		if self.success:
 			self.host.set_status('Ready')
@@ -957,11 +980,12 @@ class VerifyTask(AgentTask):
 
 class VerifySynchronousTask(VerifyTask):
 	def __init__(self, queue_entry):
-		VerifyTask.__init__(self, queue_entry = queue_entry)
+		super(VerifySynchronousTask, self).__init__(
+						 queue_entry = queue_entry)
 
 
 	def epilog(self):
-		VerifyTask.epilog(self)
+		super(VerifySynchronousTask, self).epilog()
 		if self.success:
 			if self.queue_entry.job.num_complete() > 0:
 				# some other entry failed verify, and we've
@@ -976,7 +1000,7 @@ class VerifySynchronousTask(VerifyTask):
 
 class QueueTask(AgentTask):
 	def __init__(self, job, queue_entries, cmd):
-		AgentTask.__init__(self, cmd)
+		super(QueueTask, self).__init__(cmd)
 		self.job = job
 		self.queue_entries = queue_entries
 
@@ -1034,6 +1058,7 @@ class QueueTask(AgentTask):
 
 
 	def epilog(self):
+		super(QueueTask, self).epilog()
 		if self.success:
 			status = 'Completed'
 		else:
@@ -1059,7 +1084,8 @@ class QueueTask(AgentTask):
 
 class RecoveryQueueTask(QueueTask):
 	def __init__(self, job, queue_entries, run_monitor):
-		QueueTask.__init__(self, job, queue_entries, cmd=None)
+		super(RecoveryQueueTask, self).__init__(job,
+						 queue_entries, cmd=None)
 		self.run_monitor = run_monitor
 
 
@@ -1079,10 +1105,11 @@ class RebootTask(AgentTask):
 		# Current implementation of autoserv requires control file
 		# to be passed on reboot action request. TODO: remove when no
 		# longer appropriate.
+		self.create_temp_resultsdir('.reboot')
 		self.cmd = [_autoserv_path, '-b', '-m', host.hostname,
-			    '/dev/null']
+			    '-r', self.temp_results_dir, '/dev/null']
 		self.host = host
-		AgentTask.__init__(self, self.cmd,
+		super(RebootTask, self).__init__(self.cmd,
 				   failure_tasks=[RepairTask(host)])
 
 
@@ -1097,7 +1124,7 @@ class AbortTask(AgentTask):
 		self.agents_to_abort = agents_to_abort
 		for agent in agents_to_abort:
 			agent.dispatcher.remove_agent(agent)
-		AgentTask.__init__(self, '')
+		super(AbortTask, self).__init__('')
 
 
 	def prolog(self):
@@ -1107,8 +1134,10 @@ class AbortTask(AgentTask):
 		
 
 	def epilog(self):
+		super(AbortTask, self).epilog()
 		self.queue_entry.set_status('Aborted')
 		self.success = True
+
 
 	def run(self):
 		for agent in self.agents_to_abort:
@@ -1208,8 +1237,8 @@ class DBObject(object):
 class IneligibleHostQueue(DBObject):
 	def __init__(self, id=None, row=None, new_record=None):
 		fields = ['id', 'job_id', 'host_id']
-		DBObject.__init__(self, fields, id=id, row=row,
-				  new_record=new_record)
+		super(IneligibleHostQueue, self).__init__(fields, id=id,
+				 row=row, new_record=new_record)
 
 
 	@classmethod
@@ -1220,7 +1249,7 @@ class IneligibleHostQueue(DBObject):
 class Host(DBObject):
 	def __init__(self, id=None, row=None):
 		fields =  ['id', 'hostname', 'locked', 'synch_id','status']
-		DBObject.__init__(self, fields, id=id, row=row)
+		super(Host, self).__init__(fields, id=id, row=row)
 
 
 	@classmethod
@@ -1283,8 +1312,7 @@ class HostQueueEntry(DBObject):
 		assert id or row
 		fields = ['id', 'job_id', 'host_id', 'priority', 'status',
 			  'meta_host', 'active', 'complete']
-		DBObject.__init__(self, fields, id=id, row=row)
-
+		super(HostQueueEntry, self).__init__(fields, id=id, row=row)
 		self.job = Job(self.job_id)
 
 		if self.host_id:
@@ -1430,7 +1458,7 @@ class HostQueueEntry(DBObject):
 class Job(DBObject):
 	def __init__(self, id=None, row=None):
 		assert id or row
-		DBObject.__init__(self,
+		super(Job, self).__init__(
 				  ['id','owner','name','priority',
 				   'control_file','control_type','created_on',
 				   'synch_type', 'synch_count','synchronizing'],
