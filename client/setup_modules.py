@@ -1,6 +1,6 @@
 __author__ = "jadmanski@google.com (John Admanski)"
 
-import os, glob, sys, new, string
+import os, sys, new
 
 
 def _create_module(name):
@@ -30,10 +30,13 @@ def _create_module_and_parents(name):
 def _import_children_into_module(parent_module_name, path):
 	"""Import all the packages on a path into a parent module"""
 	# find all the packages at 'path'
-	package_dirs = glob.glob(os.path.join(path, "*", "__init__.py"))
 	names = []
-	for package_dir in package_dirs:
-		names.append(os.path.basename(os.path.dirname(package_dir)))
+	for filename in os.listdir(path):
+		full_name = os.path.join(path, filename)
+		if not os.path.isdir(full_name):
+			continue   # skip files
+		if "__init__.py" in os.listdir(full_name):
+			names.append(filename)
 	# import all the packages and insert them into 'parent_module'
 	sys.path.insert(0, path)
 	for name in names:
