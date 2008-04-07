@@ -20,11 +20,5 @@ testname = common.test.testname
 
 
 def runtest(job, url, tag, args, dargs):
-	t = subcommand(common.test.runtest,
-		       [job, url, tag, args, dargs, locals(), globals()])
-	t.fork_start()
-	try:
-		t.fork_waitfor()
-	except AutoservSubcommandError, e:
-		raise TestError("Test '%s' failed with exit code %d" %
-				(url, e.exit_code))
+	common.test.runtest(job, url, tag, args, dargs,
+			    locals(), globals())

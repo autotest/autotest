@@ -267,7 +267,7 @@ class server_job:
 			test.runtest(self, url, tag, args, dargs)
 			self.record('GOOD', subdir, testname, 'completed successfully')
 		except Exception, detail:
-			self.record('FAIL', subdir, testname, format_error())
+			self.record('FAIL', subdir, testname, str(detail) + "\n" + format_error())
 
 
 	def run_group(self, function, *args, **dargs):
