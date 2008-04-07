@@ -65,14 +65,14 @@ class Bootloader(object):
 		results = []
 		info = {}
 		for line in retval.splitlines():
-			if line == '':
-				if info != {}:
+			if not line.strip():
+				if info:
 					results.append(info)
 					info = {}
 			else:
 				key, val = line.split(":", 1)
 				info[key.strip()] = val.strip()
-		if info != {}:
+		if info:
 			results.append(info)
 
 		return results
@@ -80,8 +80,8 @@ class Bootloader(object):
 
 	def get_info(self, index):
 		results = self.__get_info(index)
-		if info:
-			return info[0]
+		if results:
+			return results[0]
 		else:
 			return {}
 
