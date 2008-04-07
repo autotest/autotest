@@ -461,6 +461,7 @@ class SSHHost(base_classes.RemoteHost):
 				break
 			time.sleep(60)
 
+		print '__copy_files: copying %s to %s' % (sources, dest)
 		try:
 			utils.run('rsync --rsh="%s" -az %s %s' % (
 			    self.ssh_base_command(), ' '.join(sources), dest))
