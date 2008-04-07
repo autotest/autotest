@@ -17,7 +17,7 @@ import harness, config
 import sysinfo
 import cpuset
 
-class job:
+class base_job:
 	"""The actual job against which we do everything.
 
 	Properties:
@@ -52,7 +52,8 @@ class job:
 
 	DEFAULT_LOG_FILENAME = "status"
 
-	def __init__(self, control, jobtag, cont, harness_type=None):
+	def __init__(self, control, jobtag, cont, harness_type=None,
+			use_external_logging = False):
 		"""
 			control
 				The control file (pathname of)
@@ -130,6 +131,9 @@ class job:
 		self.group_level = 1
 
 		self.harness.run_start()
+		
+		if use_external_logging:
+			self.enable_external_logging()
 
 
 	def relative_path(self, path):
@@ -414,8 +418,21 @@ class job:
 			mountpoint = self.tmpdir
 		return filesystem.filesystem(self, device, mountpoint,loop_size)
 
+	
+	def enable_external_logging(self):
+		pass
+
+
+	def disable_external_logging(self):
+		pass
+	
+
+	def reboot_setup(self):
+		pass
+
 
 	def reboot(self, tag='autotest'):
+		self.reboot_setup()
 		self.record('GOOD', None, 'reboot.start')
 		self.harness.run_reboot()
 		default = self.config_get('boot.set_default')
@@ -483,6 +500,7 @@ class job:
 			pass
 
 		self.harness.run_complete()
+		self.disable_external_logging()
 		sys.exit(status)
 
 
@@ -628,7 +646,8 @@ from autotest_utils import *
 			open(status_file, "a").write(msg + "\n")
 
 
-def runjob(control, cont = False, tag = "default", harness_type = ''):
+def runjob(control, cont = False, tag = "default", harness_type = '',
+	   use_external_logging = False):
 	"""The main interface to this module
 
 	control
@@ -653,7 +672,8 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
-		myjob = job(control, tag, cont, harness_type)
+		myjob = job(control, tag, cont, harness_type,
+			    use_external_logging)
 
 		# Load in the users control file, may do any one of:
 		#  1) execute in toto
@@ -695,3 +715,15 @@ def runjob(control, cont = False, tag = "default", harness_type = ''):
 	myjob.record('END GOOD', None, None)
 
 	myjob.complete(0)
+
+
+# site_job.py may be non-existant or empty, make sure that an appropriate
+# site_job class is created nevertheless
+try:
+	from site_job import site_job
+except ImportError:
+	class site_job(base_job):
+		pass
+
+class job(site_job):
+	pass

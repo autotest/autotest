@@ -106,7 +106,7 @@ except ImportError:
 		return {}
 
 
-class server_job:
+class base_server_job:
 	"""The actual job against which we do everything.
 
 	Properties:
@@ -203,6 +203,24 @@ class server_job:
 		self.verify()
 
 
+	def enable_external_logging(self):
+		"""Start or restart external logging mechanism.
+		"""
+		pass
+
+
+	def disable_external_logging(self):
+		""" Pause or stop external logging mechanism.
+		"""
+		pass
+
+
+	def use_external_logging(self):
+		"""Return True if external logging should be used.
+		"""
+		return False
+
+
 	def run(self, reboot = False, install_before = False,
 		install_after = False, collect_crashdumps = True,
 		namespace = {}):
@@ -217,7 +235,8 @@ class server_job:
 		test_start_time = int(time.time())
 
 		os.chdir(self.resultdir)
-
+		
+		self.enable_external_logging()
 		status_log = os.path.join(self.resultdir, 'status.log')
 		try:
 			if install_before and machines:
@@ -237,6 +256,7 @@ class server_job:
 				namespace['test_start_time'] = test_start_time
 				exec(preamble + crashdumps,
 				     namespace, namespace)
+			self.disable_external_logging()
 			if reboot and machines:
 				exec(preamble + reboot_segment,
 				     namespace, namespace)
@@ -630,3 +650,14 @@ class client_logger(object):
 			self._process_line(self.leftover)
 		self._process_logs()
 		self.flush()
+
+# site_server_job.py may be non-existant or empty, make sure that an
+# appropriate site_server_job class is created nevertheless
+try:
+	from site_server_job import site_server_job
+except ImportError:
+	class site_server_job(base_server_job):
+		pass
+	
+class server_job(site_server_job):
+	pass

@@ -37,6 +37,9 @@ parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
 parser.add_option("-H", "--harness", dest="harness", type="string", default='',
 			help="set the harness type")
 
+parser.add_option("-l", "--external_logging", dest="log", action="store_true",
+			default=False, help="enable external logging")
+
 def usage():
 	parser.print_help()
 	sys.exit(1)
@@ -48,4 +51,5 @@ if len(args) != 1:
 	usage()
 
 # JOB: run the specified job control file.
-job.runjob(os.path.abspath(args[0]), options.cont, options.tag, options.harness)
+job.runjob(os.path.abspath(args[0]), options.cont, options.tag, options.harness,
+	   options.log)
