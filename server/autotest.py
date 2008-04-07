@@ -175,6 +175,29 @@ class BaseAutotest(installable_object.InstallableObject):
 		return host
 
 
+	def read_keyval(self, dest):
+		keyval = {}
+		try:
+			keyval = utils.read_keyval(dest)
+		except IOError:
+			traceback.print_exc()
+		return keyval
+
+
+	def prepend_keyval(self, dest, keyval):
+		try:
+			new_keyval = utils.read_keyval(dest)
+			# Old entries should overwrite new entries.
+			for key, val in keyval.iteritems():
+				new_keyval[key] = val
+			# Delete existing keyval file
+			os.remove(os.path.join(dest, 'keyval'))
+			# Write out new info to keyval file
+			utils.write_keyval(dest, new_keyval)
+		except IOError:
+			traceback.print_exc()
+
+
 	def _do_run(self, control_file, results_dir, host, atrun, timeout):
 		try:
 			atrun.verify_machine()
@@ -215,9 +238,11 @@ class BaseAutotest(installable_object.InstallableObject):
 
 			# get the results
 			results = os.path.join(atrun.autodir, 'results',
-					       'default')
+						      'default')
+			keyval = self.read_keyval(results_dir)
 			# Copy all dirs in default to results_dir
 			host.get_file(results + '/', results_dir)
+			self.prepend_keyval(results_dir, keyval)
 
 
 	def run_timed_test(self, test_name, results_dir = '.', host = None,
@@ -276,6 +301,8 @@ class _Run(object):
 		cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
 		if section > 0:
 			cmd.append('-c')
+		if self.host.job.use_external_logging():
+			cmd.append('-l')
 		cmd.append(self.remote_control_file)
 		return ' '.join(cmd)
 

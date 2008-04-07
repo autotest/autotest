@@ -312,6 +312,7 @@ class SSHHost(base_classes.RemoteHost):
 		Raises:
 			AutoservRunError: the exit code of the command 
 				execution was not 0
+			AutoservSSHTimeout: ssh connection has timed out
 		"""
 		stdout = stdout_tee or sys.stdout
 		stderr = stderr_tee or sys.stdout
