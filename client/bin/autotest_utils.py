@@ -66,13 +66,14 @@ def extract_tarball_to_dir(tarball, dir):
 
 def extract_tarball(tarball):
 	"""Returns the first extracted directory by the tarball."""
-	extracted = cat_file_to_cmd(tarball, 'tar xvf -',
+	extracted = cat_file_to_cmd(tarball, 'tar xvf - 2>/dev/null',
 		return_output=True).splitlines()
-	extracted.sort() # So we get the aphabetically first new directory
-	new_dirs = [os.path.normpath(f) for f in extracted if f[-1] == '/']
-	if not new_dirs:
+	# match up to first / in path
+	m = re.match('(.*?)/.*',extracted[1])
+	if not m:
 		raise NameError('extracting tarball produced no dir')
-	return new_dirs[0]
+
+	return m.group(1)
 
 
 def get_md5sum(file_path):
