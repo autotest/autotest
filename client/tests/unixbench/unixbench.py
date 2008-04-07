@@ -2,7 +2,7 @@ import test
 from autotest_utils import *
 
 class unixbench(test.test):
-	version = 1
+	version = 2
 
 	# http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
 	def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
@@ -14,13 +14,18 @@ class unixbench(test.test):
 		system('make')
 
 
-	def execute(self, iterations = 1, args = ''):
+	def execute(self, iterations = 1, args = '', stepsecs=0):
 		vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' % 
 		       (self.tmpdir, self.resultsdir))
 		profilers = self.job.profilers
 		keyval = open(self.resultsdir + '/keyval', 'w')
 		self.err = None
-
+		if stepsecs:
+			# change time per subtest from unixbench's defaults of
+			#   10 secs for small tests, 30 secs for bigger tests
+			vars += ' systime=%i looper=%i seconds=%i'\
+				' dhrytime=%i arithtime=%i' \
+				% ((stepsecs,)*5) 
 		if not profilers.only():
 			for i in range(iterations):
 				os.chdir(self.srcdir)
