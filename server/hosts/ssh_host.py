@@ -20,8 +20,8 @@ stutsman@google.com (Ryan Stutsman)
 
 import types, os, sys, signal, subprocess, time, re, socket
 import base_classes, utils, bootloader
-
 from common.error import *
+
 
 
 class SSHHost(base_classes.RemoteHost):
@@ -330,6 +330,19 @@ class SSHHost(base_classes.RemoteHost):
 			raise AutoservRunError("command execution error",
 			                       result)
 		return result
+
+
+	def run_short(self, command, **kwargs):
+		"""
+		Calls the run() command with a short default timeout.
+		
+		Args:
+			Takes the same arguments as does run(),
+			with the exception of the timeout argument which 
+			here is fixed at 60 seconds.
+			It returns the result of run.
+		"""
+		return self.run(command, timeout=60, **kwargs)
 
 
 	def run_grep(self, command, timeout=30, ignore_status=False,
