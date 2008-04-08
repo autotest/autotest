@@ -1,5 +1,7 @@
 package afeclient.client.table;
 
+import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -19,8 +21,8 @@ public class SearchFilter extends FieldFilter {
         });
     }
 
-    public String getMatchValue() {
-        return searchBox.getText();
+    public JSONValue getMatchValue() {
+        return new JSONString(searchBox.getText());
     }
 
     public boolean isActive() {

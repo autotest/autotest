@@ -9,7 +9,6 @@ import afeclient.client.table.DynamicTable.DynamicTableListener;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.RootPanel;
@@ -67,7 +66,7 @@ public class JobListView extends TabView {
     protected void populateUsers() {
         StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray userArray = staticData.getData("users").isArray();
-        String[] userStrings = Utils.JSONtoStrings(userArray);
+        String[] userStrings = Utils.JSONObjectsToStrings(userArray, "login");
         ownerFilter.setChoices(userStrings);
         String currentUser = staticData.getData("user_login").isString().stringValue();
         ownerFilter.setSelectedChoice(currentUser);
@@ -103,9 +102,11 @@ public class JobListView extends TabView {
         jobStateFilter = new JobStateFilter();
         for (int i = 0; i < LINK_COUNT; i++)
             jobStateFilter.addLink(linkLabels[i]);
+        // all jobs is selected by default
+        jobStateFilter.setSelectedLink(ALL);
         jobStateFilter.addListener(new SimpleCallback() {
             public void doCallback(Object source) {
-                History.newItem(getHistoryToken());
+                CustomHistory.newItem(getHistoryToken());
             } 
         });
         jobTable.addFilter(jobStateFilter);
@@ -113,9 +114,6 @@ public class JobListView extends TabView {
         jobControls.add(jobStateFilter.getWidget());
         
         RootPanel.get("job_control_links").add(jobControls);
-
-        // all jobs is selected by default
-        jobStateFilter.setSelectedLink(ALL);
     }
 
     public String getHistoryToken() {

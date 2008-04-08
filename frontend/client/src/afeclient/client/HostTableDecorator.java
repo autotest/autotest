@@ -8,6 +8,8 @@ import afeclient.client.table.TableDecorator;
 import com.google.gwt.json.client.JSONArray;
 
 public class HostTableDecorator extends TableDecorator {
+    
+    
     protected SearchFilter hostnameFilter;
     protected ListFilter labelFilter, statusFilter;
     protected BooleanFilter lockedFilter;
@@ -18,15 +20,12 @@ public class HostTableDecorator extends TableDecorator {
         addPaginators();
         
         StaticDataRepository staticData = StaticDataRepository.getRepository();
-        JSONArray labels = staticData.getData("labels").isArray();
-        String[] labelStrings = Utils.JSONtoStrings(labels);
         JSONArray statuses = staticData.getData("host_statuses").isArray();
         String[] statusStrings = Utils.JSONtoStrings(statuses);
         
         hostnameFilter = new SearchFilter("hostname");
         hostnameFilter.setExactMatch(false);
-        labelFilter = new ListFilter("labels__name");
-        labelFilter.setChoices(labelStrings);
+        labelFilter = new LabelFilter();
         statusFilter = new ListFilter("status");
         statusFilter.setChoices(statusStrings);
         lockedFilter = new BooleanFilter("locked");

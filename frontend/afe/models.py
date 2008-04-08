@@ -221,8 +221,8 @@ class ModelExtensions(object):
 		filter_data include:
 		-query_start: index of first return to return
 		-query_limit: maximum number of results to return
-		-sort_by: name of field to sort on.  prefixing a '-' onto this
-		 argument changes the sort to descending order.
+		-sort_by: list of fields to sort on.  prefixing a '-' onto a
+		 field name changes the sort to descending order.
 		-extra_args: keyword args to pass to query.extra() (see Django
 		 DB layer documentation)
 		"""
@@ -231,7 +231,7 @@ class ModelExtensions(object):
 		if query_start and not query_limit:
 			raise ValueError('Cannot pass query_start without '
 					 'query_limit')
-		sort_by = filter_data.pop('sort_by', None)
+		sort_by = filter_data.pop('sort_by', [])
 		extra_args = filter_data.pop('extra_args', None)
 		query_dict = {}
 		for field, value in filter_data.iteritems():
@@ -239,8 +239,8 @@ class ModelExtensions(object):
 		query = cls.objects.filter(**query_dict)
 		if extra_args:
 			query = query.extra(**extra_args)
-		if sort_by:
-			query = query.order_by(sort_by)
+		assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
+		query = query.order_by(*sort_by)
 		if query_start is not None and query_limit is not None:
 			query_limit += query_start
 		return query[query_start:query_limit]

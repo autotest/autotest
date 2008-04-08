@@ -53,6 +53,20 @@ def extra_job_filters(not_yet_run=False, running=False, finished=False):
 	return {'where': where}
 
 
+def extra_host_filters(multiple_labels=[]):
+	"""\
+	Generate SQL WHERE clauses for matching hosts in an intersection of
+	labels.
+	"""
+	extra_args = {}
+	where_str = ('hosts.id in (select host_id from hosts_labels '
+		     'where label_id=%s)')
+	extra_args['where'] = [where_str] * len(multiple_labels)
+	extra_args['params'] = [models.Label.smart_get(label).id
+				for label in multiple_labels]
+	return extra_args
+
+
 local_vars = threading.local()
 
 def set_user(user):
@@ -121,3 +135,9 @@ def gather_unique_dicts(dict_iterable):
 			id_set.add(obj['id'])
 			result.append(obj)
 	return result
+
+
+def sorted(in_list):
+	new_list = list(in_list)
+	new_list.sort()
+	return new_list

@@ -92,13 +92,6 @@ public class DynamicTable extends DataTable
             panel.add(sortIndicators[i], id);
             table.setWidget(0, i, panel);
         }
-        
-        table.addTableListener(new TableListener() {
-            public void onCellClicked(SourcesTableEvents sender, int row, 
-                                      int column) {
-                
-            }
-        });
     }
     
     protected void sortOnColumnIndex(int column, int sortDirection) {
