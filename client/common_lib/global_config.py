@@ -10,6 +10,12 @@ import sys
 import ConfigParser
 import error
 
+dirname = os.path.dirname(sys.modules[__name__].__file__)
+DEFAULT_CONFIG_FILE = os.path.abspath(os.path.join(dirname, 
+						"../../global_config.ini"))
+DEFAULT_SHADOW_FILE = os.path.abspath(os.path.join(dirname, 
+						"../../shadow_config.ini"))
+						
 
 class ConfigError(error.AutotestError):
 	pass
@@ -20,8 +26,17 @@ class ConfigValueError(ConfigError):
 
 
 class global_config(object):
-
 	config = None
+	config_file = DEFAULT_CONFIG_FILE
+	shadow_file = DEFAULT_SHADOW_FILE
+	
+	
+	def set_config_files(self, config_file=DEFAULT_CONFIG_FILE, 
+				shadow_file=DEFAULT_SHADOW_FILE):
+		self.config_file = config_file
+		self.shadow_file = shadow_file
+		self.config = None
+
 
 	def get_config_value(self, section, key, type=str, default=None):
 	        if self.config == None:
@@ -55,19 +70,17 @@ class global_config(object):
 
 
 	def parse_config_file(self):
-		dirname = os.path.dirname(sys.modules[__name__].__file__)
-		root = os.path.abspath(os.path.join(dirname, "../../"))
-		config_file = os.path.join(root, "global_config.ini")
+		if not os.path.exists(self.config_file):
+			raise ConfigError('%s not found' % (self.config_file))
 		self.config = ConfigParser.ConfigParser()
-		self.config.read(config_file)
+		self.config.read(self.config_file)
 
 		# now also read the shadow file if there is one
 		# this will overwrite anything that is found in the 
 		# other config
-		config_file = os.path.join(root, "shadow_config.ini")
-		if os.path.exists(config_file):
+		if os.path.exists(self.shadow_file):
 			shadow_config = ConfigParser.ConfigParser()
-			shadow_config.read(config_file)
+			shadow_config.read(self.shadow_file)
 			# now we merge shadow into global
 			self.merge_configs(shadow_config)
 			
@@ -105,7 +118,7 @@ class global_config(object):
 			msg = ("Could not covert %s in section %s" % 
 				(key, section))
 			raise ConfigValueError(msg)
-		
+
 		
 # insure the class is a singleton.  Now the symbol global_config 
 # will point to the one and only one instace of the class
