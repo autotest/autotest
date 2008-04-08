@@ -76,7 +76,13 @@ def delete_host(id):
 	models.Host.smart_get(id).delete()
 
 
-def get_hosts(**filter_data):
+def get_hosts(multiple_labels=[], **filter_data):
+	"""\
+	multiple_labels: match hosts in all of the labels given.  Should be a
+	list of label names.
+	"""
+	filter_data['extra_args'] = (
+	    rpc_utils.extra_host_filters(multiple_labels))
 	hosts = models.Host.list_objects(filter_data)
 	for host in hosts:
 		host_obj = models.Host.objects.get(id=host['id'])
@@ -87,7 +93,9 @@ def get_hosts(**filter_data):
 	return rpc_utils.prepare_for_serialization(hosts)
 
 
-def get_num_hosts(**filter_data):
+def get_num_hosts(multiple_labels=[], **filter_data):
+	filter_data['extra_args'] = (
+	    rpc_utils.extra_host_filters(multiple_labels))
 	return models.Host.query_count(filter_data)
 
 
@@ -276,7 +284,7 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
         all hosts have completed.
         -finished: Include only jobs for which all hosts have completed (or
         aborted).
-        At most one of these fields should be specified.
+        At most one of these three fields should be specified.
 	"""
 	filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
 								running,
@@ -349,25 +357,25 @@ def get_jobs_summary(**filter_data):
 def get_static_data():
 	"""\
 	Returns a dictionary containing a bunch of data that shouldn't change
-	often.  This includes:
+	often and is otherwise inaccessible.  This includes:
 	priorities: list of job priority choices
 	default_priority: default priority value for new jobs
-	users: sorted list of all usernames
-	labels: sorted list of all label names
-	tests: sorted list of all test names
+	users: sorted list of all users
+	labels: sorted list of all labels
+	tests: sorted list of all tests
 	user_login: logged-in username
+	host_statuses: sorted list of possible Host statuses
+	job_statuses: sorted list of possible HostQueueEntry statuses
 	"""
 	result = {}
 	result['priorities'] = models.Job.Priority.choices()
 	default_priority = models.Job.get_field_dict()['priority'].default
 	default_string = models.Job.Priority.get_string(default_priority)
 	result['default_priority'] = default_string
-	result['users'] = [user.login for user in
-			   models.User.objects.all().order_by('login')]
-	result['labels'] = [label.name for label in
-			    models.Label.objects.all().order_by('name')]
-	result['tests'] = get_tests(sort_by='name')
+	result['users'] = get_users(sort_by=['login'])
+	result['labels'] = get_labels(sort_by=['-platform', 'name'])
+	result['tests'] = get_tests(sort_by=['name'])
 	result['user_login'] = rpc_utils.get_user().login
-	result['host_statuses'] = models.Host.Status.names
-	result['job_statuses'] = models.Job.Status.names
+	result['host_statuses'] = rpc_utils.sorted(models.Host.Status.names)
+	result['job_statuses'] = rpc_utils.sorted(models.Job.Status.names)
 	return result

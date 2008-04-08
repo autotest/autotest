@@ -4,12 +4,14 @@ body {
 
 .data-table {
   border: 2px solid #A0A0A0;
+  empty-cells: show;
 }
 
 .data-table td {
   margin: 0;
   padding: 0.2em 0.4em;
   white-space: nowrap;
+  border-bottom: 1px solid #C0C0C0;
 }
 
 .data-row-header {

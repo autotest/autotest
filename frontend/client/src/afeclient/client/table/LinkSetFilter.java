@@ -26,7 +26,8 @@ public abstract class LinkSetFilter extends Filter implements TabListener {
     }
     
     public void setSelectedLink(int link) {
-        linkBar.selectTab(link);
+        if (link != linkBar.getSelectedTab())
+            linkBar.selectTab(link);
     }
 
     public void onTabSelected(SourcesTabEvents sender, int tabIndex) {

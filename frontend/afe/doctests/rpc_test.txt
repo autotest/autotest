@@ -322,8 +322,8 @@ id does not match
 >>> [host['hostname'] for host in data]
 ['host2']
 
-# sort_by = '-hostname' indicates sorting in descending order by hostname
->>> data = rpc_interface.get_hosts(sort_by='-hostname')
+# sort_by = ['-hostname'] indicates sorting in descending order by hostname
+>>> data = rpc_interface.get_hosts(sort_by=['-hostname'])
 >>> [host['hostname'] for host in data]
 ['host2', 'host1']
 

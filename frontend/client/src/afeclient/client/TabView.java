@@ -2,7 +2,6 @@ package afeclient.client;
 
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
-import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Composite;
 
 /**
@@ -46,7 +45,7 @@ public abstract class TabView extends Composite {
     }
     
     public void updateHistory() {
-        History.newItem(getHistoryToken());
+        CustomHistory.newItem(getHistoryToken());
     }
     
     public String getHistoryToken() {

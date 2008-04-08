@@ -123,7 +123,8 @@ public class HostSelector {
         metaButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 int selected = metaLabelSelect.getSelectedIndex();
-                String label = metaLabelSelect.getItemText(selected);
+                String labelName = metaLabelSelect.getItemText(selected);
+                String label = Utils.decodeLabelName(labelName);
                 String number = metaNumber.getText();
                 try {
                     Integer.parseInt(number);
@@ -182,10 +183,9 @@ public class HostSelector {
     }
     
     protected void populateLabels(ListBox list) {
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
-        JSONArray labels = staticData.getData("labels").isArray();
-        for(int i = 0; i < labels.size(); i++) {
-            list.addItem(labels.get(i).isString().stringValue());
+        String[] labelNames = Utils.getLabelStrings();
+        for(int i = 0; i < labelNames.length; i++) {
+            list.addItem(labelNames[i]);
         }
     }
     

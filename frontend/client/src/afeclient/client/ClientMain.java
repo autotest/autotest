@@ -77,7 +77,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
                     return false;
                 tabViews[tabIndex].ensureInitialized();
                 tabViews[tabIndex].updateHistory();
-                // let onHistoryChanged() call TabView.display()
+                tabViews[tabIndex].display();
                 return true;
             }
             public void onTabSelected(SourcesTabEvents sender, int tabIndex) {}
@@ -93,7 +93,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
         });
         customPanel.otherWidgetsPanel.add(refreshButton);
         
-        History.addHistoryListener(this);
+        CustomHistory.addHistoryListener(this);
         String initialToken = History.getToken();
         if (!initialToken.equals("")) {
             onHistoryChanged(initialToken);
@@ -130,7 +130,6 @@ public class ClientMain implements EntryPoint, HistoryListener {
                     tabViews[i].handleHistoryToken(restOfToken);
                 }
                 
-                tabViews[i].display();
                 if (mainTabPanel.getTabBar().getSelectedTab() != i)
                     mainTabPanel.selectTab(i);
                 

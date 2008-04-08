@@ -1,5 +1,7 @@
 package afeclient.client.table;
 
+import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -30,13 +32,24 @@ public class ListFilter extends FieldFilter {
     public void setExactMatch(boolean isExactMatch) {
         this.isExactMatch = isExactMatch;
     }
+    
+    protected String getItemText(int index) {
+        return select.getItemText(index);
+    }
+    
+    protected String getSelectedText() {
+        int selected = select.getSelectedIndex();
+        if (selected == -1)
+            return "";
+        return getItemText(selected);
+    }
 
-    public String getMatchValue() {
-        return select.getItemText(select.getSelectedIndex()); 
+    public JSONValue getMatchValue() {
+        return new JSONString(getSelectedText()); 
     }
     
     public boolean isActive() {
-        return !getMatchValue().equals(allValuesText);
+        return !getSelectedText().equals(allValuesText);
     }
     
     public Widget getWidget() {
@@ -46,7 +59,7 @@ public class ListFilter extends FieldFilter {
     public void setChoices(String[] choices) {
         String selectedValue = null;
         if (select.getSelectedIndex() != -1)
-            selectedValue = getMatchValue();
+            selectedValue = getSelectedText();
         
         select.clear();
         select.addItem(allValuesText);
