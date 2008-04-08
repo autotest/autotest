@@ -59,7 +59,9 @@ public class RpcDataSource implements DataSource {
         if (sortOn != null) {
             if (sortDirection.intValue() == DataSource.DESCENDING)
                 sortOn = "-" + sortOn;
-            params.put("sort_by", new JSONString(sortOn));
+            JSONArray sortList = new JSONArray();
+            sortList.set(0, new JSONString(sortOn));
+            params.put("sort_by", sortList);
         }
         
         JsonRpcProxy.getProxy().rpcCall(getDataMethod, params, 

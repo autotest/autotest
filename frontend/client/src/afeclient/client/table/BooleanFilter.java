@@ -12,7 +12,7 @@ public class BooleanFilter extends ListFilter {
     }
 
     public void addParams(JSONObject params) {
-        String selected = getMatchValue();
+        String selected = getSelectedText();
         params.put(fieldName, JSONBoolean.getInstance(selected.equals("Yes")));
     }
 }

@@ -3,6 +3,7 @@ package afeclient.client;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -12,6 +13,8 @@ import java.util.Set;
  * Utility methods.
  */
 public class Utils {
+    public static final String PLATFORM_SUFFIX = " (platform)";
+    
     public static final ClassFactory factory = new SiteClassFactory();
     
     /**
@@ -33,8 +36,23 @@ public class Utils {
      */
     public static String[] JSONtoStrings(JSONArray strings) {
         String[] result = new String[strings.size()];
-        for (int i = 0; i < strings.size(); i++)
+        for (int i = 0; i < strings.size(); i++) {
             result[i] = strings.get(i).isString().stringValue();
+        }
+        return result;
+    }
+    
+    /**
+     * Converts a <code>JSONArray</code> of <code>JSONObjects</code> to an 
+     * array of Java <code>Strings</code> by grabbing the specified field from
+     * each object.
+     */
+    public static String[] JSONObjectsToStrings(JSONArray objects, String field) {
+        String[] result = new String[objects.size()];
+        for (int i = 0; i < objects.size(); i++) {
+            JSONValue fieldValue = objects.get(i).isObject().get(field);
+            result[i] = fieldValue.isString().stringValue();
+        }
         return result;
     }
     
@@ -58,5 +76,29 @@ public class Utils {
             dest.put(key, source.get(key));
         }
         return dest;
+    }
+    
+    public static String[] getLabelStrings() {
+        StaticDataRepository staticData = StaticDataRepository.getRepository();
+        JSONArray labels = staticData.getData("labels").isArray();
+        String[] result = new String[labels.size()];
+        for (int i = 0; i < labels.size(); i++) {
+            JSONObject label = labels.get(i).isObject();
+            String name = label.get("name").isString().stringValue();
+            boolean platform = label.get("platform").isNumber().getValue() != 0;
+            if (platform) {
+                name += PLATFORM_SUFFIX;
+            }
+            result[i] = name;
+        }
+        return result;
+    }
+    
+    public static String decodeLabelName(String labelName) {
+        if (labelName.endsWith(PLATFORM_SUFFIX)) {
+            int nameLength = labelName.length() - PLATFORM_SUFFIX.length();
+            return labelName.substring(0, nameLength);
+        }
+        return labelName;
     }
 }
