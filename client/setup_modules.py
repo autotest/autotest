@@ -63,8 +63,8 @@ def _setup_common_library(root_module_name):
 	else:
 		client_name = root_module_name + ".client"
 	# import the top-level common library
-	common_lib = __import__(client_name + ".common_lib", globals(),
-				locals(), [""])
+	common_lib = __import__(client_name, globals(), locals(),
+				["common_lib"]).common_lib
 	sys.modules["common"] = common_lib
 	# patch up all the root_module_name.*.common libs
 	for module_name in sys.modules.iterkeys():
@@ -73,8 +73,9 @@ def _setup_common_library(root_module_name):
 			sys.modules[module_name] = common_lib
 	# import the specific common libraries
 	for library in common_lib.__all__:
-		module = __import__(client_name + ".common_lib." + library,
-				    globals(), locals(), [""])
+		module = __import__(client_name + ".common_lib", globals(),
+				    locals(), [library])
+		module = getattr(module, library)
 		setattr(common_lib, library, module)
 		sys.modules["common.%s" % library] = module
 
