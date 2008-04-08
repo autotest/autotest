@@ -290,6 +290,9 @@ def get_num_jobs(not_yet_run=False, running=False, finished=False,
 	"""\
         See get_jobs() for documentation of extra filter parameters.
         """
+	filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
+								running,
+								finished)
 	return models.Job.query_count(filter_data)
 
 
