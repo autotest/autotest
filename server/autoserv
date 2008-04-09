@@ -10,10 +10,10 @@ __author__ = """\
 mbligh@google.com (Martin J. Bligh)
 """
 
-from common.check_version import check_python_version
-check_python_version()
+import sys, os, re, traceback, signal
 
-import sys, os, re, server_job, hosts.site_host, utils, traceback, signal
+import common
+from autotest_lib.server import server_job, utils
 
 
 # send stdin to /dev/null

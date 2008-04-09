@@ -15,8 +15,7 @@ stutsman@google.com (Ryan Stutsman)"""
 
 # host abstract classes
 from base_classes import Host
-from base_classes import SiteHost
-from base_classes import RemoteHost
+from remote import SiteHost, RemoteHost
 
 # host implementation classes
 from ssh_host import SSHHost

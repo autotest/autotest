@@ -18,13 +18,15 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import types, os, sys, signal, subprocess, time, re, socket
-import base_classes, utils, bootloader
-from common.error import *
+import types, os, sys, signal, subprocess, time, re, socket, pdb
+
+from autotest_lib.client.common_lib import error
+from autotest_lib.server import utils
+import remote, bootloader
 
 
 
-class SSHHost(base_classes.RemoteHost):
+class SSHHost(remote.RemoteHost):
 	"""
 	This class represents a remote machine controlled through an ssh 
 	session on which you can run programs.
@@ -109,7 +111,7 @@ class SSHHost(base_classes.RemoteHost):
 		for dir in self.tmp_dirs:
 			try:
 				self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
-			except AutoservRunError:
+			except error.AutoservRunError:
 				pass
 		# kill the console logger
 		if getattr(self, 'logger_popen', None):
@@ -134,7 +136,7 @@ class SSHHost(base_classes.RemoteHost):
 		# Get the gateway of the remote machine
 		try:
 			traceroute = self.run('traceroute -n %s' % local_ip)
-		except AutoservRunError:
+		except error.AutoservRunError:
 			return
 		first_node = traceroute.stdout.split("\n")[0]
 		match = re.search(r'\s+((\d+\.){3}\d+)\s+', first_node)
@@ -146,7 +148,7 @@ class SSHHost(base_classes.RemoteHost):
 		try:
 			self.run('ping -c 1 %s' % router_ip)
 			arp = self.run('arp -n -a %s' % router_ip)
-		except AutoservRunError:
+		except error.AutoservRunError:
 			return
 		match = re.search(r'\s+(([0-9A-F]{2}:){5}[0-9A-F]{2})\s+', arp.stdout)
 		if match:
@@ -182,7 +184,7 @@ class SSHHost(base_classes.RemoteHost):
 			return
 		try:
 			self.run('modprobe netconsole %s' % self.__netconsole_param)
-		except AutoservRunError:
+		except error.AutoservRunError:
 			# if it fails there isn't much we can do, just keep going
 			pass
 
@@ -190,21 +192,23 @@ class SSHHost(base_classes.RemoteHost):
 	def __unload_netconsole_module(self):
 		try:
 			self.run('modprobe -r netconsole')
-		except AutoservRunError:
+		except error.AutoservRunError:
 			pass
 
 
 	def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
 		if not self.wait_down(300):	# Make sure he's dead, Jim
 			self.__record("ABORT", None, "reboot.verify", "shutdown failed")
-			raise AutoservRebootError("Host did not shut down")
+			raise error.AutoservRebootError(
+			    "Host did not shut down")
 		self.wait_up(timeout)
 		time.sleep(2) # this is needed for complete reliability
 		if self.wait_up(timeout):
 			self.__record("GOOD", None, "reboot.verify")
 		else:
 			self.__record("ABORT", None, "reboot.verify", "Host did not return from reboot")
-			raise AutoservRebootError("Host did not return from reboot")
+			raise error.AutoservRebootError(
+			    "Host did not return from reboot")
 		print "Reboot complete"
 
 
@@ -214,7 +218,8 @@ class SSHHost(base_classes.RemoteHost):
 		"""
 		if not self.__console_run(r"'~$hardreset'"):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
-			raise AutoservUnsupportedError('Hard reset unavailable')
+			raise error.AutoservUnsupportedError(
+			    'Hard reset unavailable')
 
 		if wait:
 			self.wait_for_restart(timeout)
@@ -324,11 +329,11 @@ class SSHHost(base_classes.RemoteHost):
 		if result.exit_status == 255:  # ssh's exit status for timeout
 			if re.match(r'^ssh: connect to host .* port .*: ' +
 			            r'Connection timed out\r$', result.stderr):
-				raise AutoservSSHTimeout("ssh timed out",
-				                         result)
+				raise error.AutoservSSHTimeout("ssh timed out",
+							       result)
 		if not ignore_status and result.exit_status > 0:
-			raise AutoservRunError("command execution error",
-			                       result)
+			raise error.AutoservRunError("command execution error",
+						     result)
 		return result
 
 
@@ -394,7 +399,7 @@ class SSHHost(base_classes.RemoteHost):
 			if regexp and stream:
 				err_re = re.compile (regexp)
 				if err_re.search(stream):
-					raise AutoservRunError(
+					raise error.AutoservRunError(
 					    '%s failed, found error pattern: '
 					    '"%s"' % (command, regexp), result)
 
@@ -407,8 +412,8 @@ class SSHHost(base_classes.RemoteHost):
 						return
 
 		if not ignore_status and result.exit_status > 0:
-			raise AutoservRunError("command execution error",
-					       result)
+			raise error.AutoservRunError("command execution error",
+						     result)
 
 
 	def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,
@@ -442,7 +447,7 @@ class SSHHost(base_classes.RemoteHost):
 		self.__record("GOOD", None, "reboot.start")
 		try:
 			self.run('(sleep 5; reboot) </dev/null >/dev/null 2>&1 &')
-		except AutoservRunError:
+		except error.AutoservRunError:
 			self.__record("ABORT", None, "reboot.start",
 				      "reboot command failed")
 			raise
@@ -664,11 +669,11 @@ class SSHHost(base_classes.RemoteHost):
 			print "Performing a hardreset on %s" % self.hostname
 			try:
 				self.hardreset()
-			except AutoservUnsupportedError:
+			except error.AutoservUnsupportedError:
 				print "Hardreset is unsupported on %s" % self.hostname
 		if not self.wait_up(60 * 30):
 			# 30 minutes should be more than enough
-			raise AutoservHostError
+			raise error.AutoservHostError
 		print 'Host up, continuing'
 
 
@@ -694,7 +699,7 @@ class SSHHost(base_classes.RemoteHost):
 		Check that uptime is available and monotonically increasing.
 		"""
 		if not self.ping():
-			raise AutoservHostError('Client is not pingable')
+			raise error.AutoservHostError('Client is not pingable')
 		result = self.run("/bin/cat /proc/uptime", 30)
 		return result.stdout.strip().split()[0]
 

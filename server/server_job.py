@@ -140,7 +140,7 @@ class base_server_job:
 			client
 				True if a client-side control file
 		"""
-		path = os.path.dirname(sys.modules['server_job'].__file__)
+		path = os.path.dirname(__file__)
 		self.autodir = os.path.abspath(os.path.join(path, '..'))
 		self.serverdir = os.path.join(self.autodir, 'server')
 		self.testdir   = os.path.join(self.serverdir, 'tests')
