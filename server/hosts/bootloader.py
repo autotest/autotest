@@ -18,9 +18,8 @@ import os.path
 import sys
 import weakref
 
-import utils
-
-from common.error import *
+from autotest_lib.client.common_lib import error
+from autotest_lib.server import utils
 
 
 BOOTTOOL_SRC = '../client/tools/boottool'  # Get it from autotest client
@@ -172,7 +171,8 @@ class Bootloader(object):
 
 	def install_boottool(self):
 		if self.__host() is None:
-			raise AutoservError("Host does not exist anymore")
+			raise error.AutoservError(
+			    "Host does not exist anymore")
 		tmpdir = self.__host().get_tmp_dir()
 		self.__host().send_file(os.path.abspath(os.path.join(
 			utils.get_server_dir(), BOOTTOOL_SRC)), tmpdir)
