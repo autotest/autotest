@@ -1,0 +1,10 @@
+diff --git a/LDFLAGS b/LDFLAGS
+index aa701d9..557a15d 100644
+--- a/LDFLAGS
++++ b/LDFLAGS
+@@ -13,4 +13,4 @@
+ # For use with Linux, you may try the following flags to
+ # allow for the NPTL-specific compilation (used in some test cases)
+ # Note: this sometimes require the package nptl-devel.*.rpm to be installed.
+-#-I /usr/include/nptl -L /usr/lib/nptl -D_XOPEN_SOURCE=600 -lpthread -lrt -lm
++-I /usr/include/nptl -L /usr/lib/nptl -D_XOPEN_SOURCE=600 -lpthread -lrt -lm
