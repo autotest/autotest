@@ -13,7 +13,6 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 import atexit, os, re, shutil, textwrap, sys, tempfile, types, urllib
-import hosts
 from common.utils import *
 
 
@@ -263,6 +262,3 @@ class AutoservOptionParser:
 				return ret
 		else:
 			return default
-
-
-
