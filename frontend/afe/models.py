@@ -372,9 +372,11 @@ class Host(dbmodels.Model, ModelExtensions):
 	labels = dbmodels.ManyToManyField(Label, blank=True,
 					  filter_interface=dbmodels.HORIZONTAL)
 	locked = dbmodels.BooleanField(default=False)
-	synch_id = dbmodels.IntegerField(blank=True, null=True)
+	synch_id = dbmodels.IntegerField(blank=True, null=True,
+					 editable=settings.FULL_ADMIN)
 	status = dbmodels.CharField(maxlength=255, default=Status.READY,
-	                            choices=Status.choices())
+	                            choices=Status.choices(),
+				    editable=settings.FULL_ADMIN)
 
 	name_field = 'hostname'
 
@@ -437,12 +439,6 @@ class Host(dbmodels.Model, ModelExtensions):
 		# TODO(showard) - showing platform requires a SQL query for
 		# each row (since labels are many-to-many) - should we remove
 		# it?
-		if not settings.FULL_ADMIN:
-			fields = (
-			    (None, {'fields' :
-				    ('hostname', 'status', 'locked',
-				     'labels')}),
-			    )
 		list_display = ('hostname', 'platform', 'locked', 'status')
 		list_filter = ('labels', 'locked')
 		search_fields = ('hostname', 'status')
@@ -725,8 +721,7 @@ class Job(dbmodels.Model, ModelExtensions):
 
 	if settings.FULL_ADMIN:
 		class Admin:
-			list_display = ('id', 'owner', 'name', 'control_type',
-					'status')
+			list_display = ('id', 'owner', 'name', 'control_type')
 
 	def __str__(self):
 		return '%s (%s-%s)' % (self.name, self.id, self.owner)
