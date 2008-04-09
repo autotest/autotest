@@ -57,3 +57,4 @@ def run_tests(module_list, verbosity=1):
 		print 'OK'
 	else:
 		print 'FAIL: %d errors' % total_errors
+	return total_errors
