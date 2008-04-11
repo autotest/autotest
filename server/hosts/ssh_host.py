@@ -572,8 +572,8 @@ class SSHHost(remote.RemoteHost):
 			    utils.scp_remote_escape(dest))
 
 		self.__copy_files(processed_source, remote_dest)
-		self.run('find "%s" -type d | xargs -r chmod o+rx' % dest)
-		self.run('find "%s" -type f | xargs -r chmod o+r' % dest)
+		self.run('find "%s" -type d | xargs -i -r chmod o+rx "{}"' % dest)
+		self.run('find "%s" -type f | xargs -i -r chmod o+r "{}"' % dest)
 
 	def get_tmp_dir(self):
 		"""
