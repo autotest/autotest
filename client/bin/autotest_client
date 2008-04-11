@@ -1,9 +1,11 @@
 #!/usr/bin/python
-from common.check_version import check_python_version
-check_python_version()
+import common
 
 import sys, os, time
 from subprocess import *
+
+import autotest_lib.client.bin.autotest_utils
+utils = autotest_lib.client.bin.autotest_utils
 
 # We want to set the output (stdout&stderr) of the autotest binary onto our
 # stdout channel. We went to get the status stream of autotest back on our
@@ -14,6 +16,10 @@ from subprocess import *
 os.dup2(2,3)
 # Join our stderr in with our stdout
 os.dup2(1,2)
+
+# If we're using cpusets, run inside the root one by default
+if os.path.exists("/dev/cpuset/tasks"):
+	utils.write_one_line("/dev/cpuset/tasks", str(os.getpid()))
 
 autodir = os.path.dirname(sys.argv[0])
 autotest = os.path.join(autodir, 'autotest')
