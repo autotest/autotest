@@ -236,7 +236,7 @@ class ModelExtensions(object):
 		query_dict = {}
 		for field, value in filter_data.iteritems():
 			query_dict[field] = value
-		query = cls.objects.filter(**query_dict)
+		query = cls.objects.filter(**query_dict).distinct()
 		if extra_args:
 			query = query.extra(**extra_args)
 		assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
