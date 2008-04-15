@@ -686,7 +686,8 @@ class SSHHost(remote.RemoteHost):
 			The number of CPUs
 		"""
 		
-		proc_cpuinfo = self.run("cat /proc/cpuinfo").stdout
+		proc_cpuinfo = self.run("cat /proc/cpuinfo",
+				stdout_tee=open('/dev/null', 'w')).stdout
 		cpus = 0
 		for line in proc_cpuinfo.splitlines():
 			if line.startswith('processor'):
