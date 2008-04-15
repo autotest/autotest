@@ -206,7 +206,7 @@ public class CreateJobView extends TabView {
     protected Button submitJobButton = new Button("Submit Job");
     
     protected boolean controlEdited = false;
-    protected boolean kernelPushed = false;
+    protected boolean controlReadyForSubmit = false;
     
     public CreateJobView(JobCreateListener listener) {
         this.listener = listener;
@@ -258,7 +258,7 @@ public class CreateJobView extends TabView {
         }
     }
     
-    protected JSONObject getControlFileParams(boolean pushKernel) {
+    protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
         JSONArray tests = new JSONArray();
         List checkedTests = serverTestsPanel.getChecked();
@@ -268,7 +268,6 @@ public class CreateJobView extends TabView {
         String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
             params.put("kernel", new JSONString(kernelString));
-            params.put("do_push_kernel", JSONBoolean.getInstance(pushKernel));
         }
         
         for (int i = 0; i < checkedTests.size(); i++) {
@@ -279,10 +278,10 @@ public class CreateJobView extends TabView {
         return params;
     }
     
-    protected void generateControlFile(final boolean pushKernel, 
+    protected void generateControlFile(final boolean readyForSubmit, 
                                        final SimpleCallback finishedCallback,
                                        final SimpleCallback errorCallback) {
-        JSONObject params = getControlFileParams(pushKernel);
+        JSONObject params = getControlFileParams(readyForSubmit);
         rpcProxy.rpcCall("generate_control_file", params, new JsonRpcCallback() {
             public void onSuccess(JSONValue result) {
                 JSONArray results = result.isArray();
@@ -294,7 +293,7 @@ public class CreateJobView extends TabView {
                                                 serverTestsPanel.getTestType() : 
                                                 clientTestsPanel.getTestType());
                 runSynchronous.setChecked(isSynchronous);
-                kernelPushed = pushKernel;
+                controlReadyForSubmit = readyForSubmit;
                 if (finishedCallback != null)
                     finishedCallback.doCallback(this);
             }
@@ -307,8 +306,8 @@ public class CreateJobView extends TabView {
         });
     }
     
-    protected void generateControlFile(boolean pushKernel) {
-        generateControlFile(pushKernel, null, null);
+    protected void generateControlFile(boolean readyForSubmit) {
+        generateControlFile(readyForSubmit, null, null);
     }
     
     protected void setInputsEnabled() {
@@ -499,8 +498,8 @@ public class CreateJobView extends TabView {
             }
         };
         
-        // ensure kernel is pushed before submitting
-        if (!kernelPushed)
+        // ensure control file is ready for submission
+        if (!controlReadyForSubmit)
             generateControlFile(true, doSubmit, new SimpleCallback() {
                 public void doCallback(Object source) {
                     submitJobButton.setEnabled(true);
