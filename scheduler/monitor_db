@@ -6,7 +6,7 @@ Autotest scheduler
 __author__ = "Paul Turner <pjt@google.com>"
 
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
-import optparse, signal, smtplib, socket, datetime, stat, pwd
+import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
 from common import global_config
 
 RESULTS_DIR = '.'
@@ -536,16 +536,24 @@ class RunMonitor(object):
 		if self.log_file:
 			try:
 				os.makedirs(os.path.dirname(self.log_file))
+			except OSError, exc:
+				if exc.errno != errno.EEXIST:
+					log_stacktrace(
+					    'Unexpected error creating logfile '
+					    'directory for %s' % self.log_file)
+			try:
 				out_file = open(self.log_file, 'a')
 				out_file.write("\n%s\n" % ('*'*80))
-				out_file.write("%s> %s\n" % (time.strftime("%X %x"), cmd))
+				out_file.write("%s> %s\n" %
+					       (time.strftime("%X %x"), cmd))
 				out_file.write("%s\n" % ('*'*80))
-			except:
-				pass
-				
+			except (OSError, IOError):
+				log_stacktrace('Error opening log file %s' %
+					       self.log_file)
+
 		if not out_file:
 			out_file = open('/dev/null', 'w')
-			
+
 		in_devnull = open('/dev/null', 'r')
 		print "cmd = %s" % cmd
 		print "path = %s" % os.getcwd()
