@@ -76,11 +76,12 @@ public class ClientMain implements EntryPoint, HistoryListener {
                 if (mainTabPanel.getTabBar().getSelectedTab() == tabIndex)
                     return false;
                 tabViews[tabIndex].ensureInitialized();
-                tabViews[tabIndex].updateHistory();
                 tabViews[tabIndex].display();
                 return true;
             }
-            public void onTabSelected(SourcesTabEvents sender, int tabIndex) {}
+            public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
+                tabViews[tabIndex].updateHistory();
+            }
         });
         
         final RootPanel tabsRoot = RootPanel.get("tabs");
