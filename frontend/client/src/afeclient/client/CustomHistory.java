@@ -41,8 +41,9 @@ public class CustomHistory implements HistoryListener {
     }
     
     public static void newItem(String historyToken) {
-        if (!History.getToken().equals(historyToken))
-            theInstance.ignoreNextChange = true;
+        if (History.getToken().equals(historyToken))
+            return;
+        theInstance.ignoreNextChange = true;
         History.newItem(historyToken);
     }
 }
