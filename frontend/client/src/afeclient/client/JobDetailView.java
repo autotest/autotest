@@ -60,6 +60,7 @@ public class JobDetailView extends TabView {
         this.jobId = id;
         idInput.setText(Integer.toString(id));
         fetchData();
+        updateHistory();
     }
 
     public void resetPage() {
@@ -134,7 +135,6 @@ public class JobDetailView extends TabView {
         String id = idInput.getText();
         try {
             setJobID(Integer.parseInt(id));
-            updateHistory();
         }
         catch (NumberFormatException exc) {
             String error = "Invalid job ID " + id;
