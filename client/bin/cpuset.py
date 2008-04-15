@@ -52,6 +52,28 @@ def rounded_memtotal():
 	phys_Kbytes = phys_Kbytes - (phys_Kbytes % mod2n)  # clear low bits
 	return phys_Kbytes
 
+
+def my_container_name():
+	# Get current process's inherited or self-built container name
+	#   within /dev/cpuset.  Is '/' for root container, '/sys', etc. 
+	return read_one_line('/proc/%i/cpuset' % os.getpid())
+
+
+def my_mem_nodes():
+	# Get list of numa memory nodes owned by current process's container.
+	mems = read_one_line('/dev/cpuset%s/mems' % my_container_name())
+	return rangelist_to_list(mems)
+
+
+def mbytes_per_mem_node():
+	# Get mbyte size of each numa mem node, as float
+	# Replaces autotest_utils.node_size().
+	# Based on guessed total physical mem size, not on kernel's 
+	#   lesser 'available memory' after various system tables.
+	# Can be non-integer when kernel sets up 15 nodes instead of 16.
+	return rounded_memtotal() / (len(numa_nodes()) * 1024.0)
+
+
 class cpuset:
 	def get_tasks(self, setname):
 		return [x.rstrip() for x in open(setname+'/tasks').readlines()]
