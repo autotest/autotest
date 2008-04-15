@@ -31,7 +31,7 @@ class ServiceProxy(object):
     def __init__(self, serviceURL, serviceName=None, headers=None):
         self.__serviceURL = serviceURL
         self.__serviceName = serviceName
-        self.__headers = headers
+        self.__headers = headers or {}
 
     def __getattr__(self, name):
         if self.__serviceName != None:
@@ -48,7 +48,8 @@ class ServiceProxy(object):
          resp = json_decoder.decode(respdata)
          if resp['error'] != None:
              error_message = (resp['error']['name'] + ': ' +
-                              resp['error']['message'])
+                              resp['error']['message'] + '\n' +
+                              resp['error']['traceback'])
              raise JSONRPCException(error_message)
          else:
              return resp['result']
