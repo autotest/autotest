@@ -355,14 +355,14 @@ class base_job:
 		if not name:
 			name = 'test%d' % pid  # make arbitrary unique name
 		self.container = cpuset.cpuset(name, job_size=mbytes, 
-			job_pid=pid, cpus=cpus, root=root, cleanup=1)
+			job_pid=pid, cpus=cpus, root=root)
 		# This job's python shell is now running in the new container
 		# and all forked test processes will inherit that container
 
 
 	def release_container(self):
 		if self.container:
-			self.container.release(job_pid=os.getpid())
+			self.container.release()
 			self.container = None
 
 
