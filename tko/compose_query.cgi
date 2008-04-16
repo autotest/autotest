@@ -89,26 +89,15 @@ def parse_condition(form, form_field, field_default):
 form = cgi.FieldStorage()
 
 title_field = parse_condition(form, 'title', '')
-try:
-        row = parse_field(form, 'rows')
-        column = parse_field(form, 'columns')
-        condition_field = parse_condition(form, 'condition','')
-
-except KeyError:
-	## first time here
-	## to start faster, begin with records of last week only
-	cut_off = datetime.datetime.now() - datetime.timedelta(7)
-	cut_off = datetime.date(cut_off.year, cut_off.month, cut_off.day)
-	condition_field = parse_condition(form, 'condition',
-					"time > '%s'" % str(cut_off))
-	row = 'kernel'
-	column = 'machine_group'
-
+row = parse_field(form, 'rows', 'kernel')
+column = parse_field(form, 'columns', 'machine_group')
+condition_field = parse_condition(form, 'condition', '')
 
 ## caller can specify rows and columns that shall be included into the report
 ## regardless of whether actual test data is available yet
 force_row_field = parse_condition(form,'force_row','')
 force_column_field = parse_condition(form,'force_column','')
+
 
 def split_forced_fields(force_field):
 	if force_field:
