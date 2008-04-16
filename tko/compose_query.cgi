@@ -43,7 +43,7 @@ html_header = """\
   </td>
   <td>
     <input type="text" name="condition" size="30" value="%s">
-    <input type="hidden" name="title" value="Report">
+    <input type="hidden" name="title" value="%s">
   </td>
   <td align="center"><input type="submit" value="Submit">
   </td>
@@ -86,10 +86,12 @@ def parse_condition(form, form_field, field_default):
 
 form = cgi.FieldStorage()
 
+title_field = parse_condition(form, 'title', '')
 try:
         row = parse_field(form, 'rows')
         column = parse_field(form, 'columns')
         condition_field = parse_condition(form, 'condition','')
+
 except KeyError:
 	## first time here
 	## to start faster, begin with records of last week only
@@ -132,8 +134,10 @@ def construct_link(x, y):
 		next_column = next_field[column]
 		condition_list.append("%s='%s'" % (column, x))
 	next_condition = '&'.join(condition_list)
-	return 'compose_query.cgi?' + urllib.urlencode({'columns': next_column,
-	           'rows': next_row, 'condition': next_condition})
+	link = 'compose_query.cgi?' + urllib.urlencode({'columns': next_column,
+	           'rows': next_row, 'condition': next_condition,
+	           'title': title_field})
+	return link
 
 
 def create_select_options(selected_val):
@@ -268,7 +272,8 @@ def gen_matrix():
 		return [[display.box(msg)]]
 
 	dict_url = {'columns': row,
-	           'rows': column, 'condition': condition_field}	
+	           'rows': column, 'condition': condition_field,
+	           'title': title_field}
 	link = 'compose_query.cgi?' + urllib.urlencode(dict_url)
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
@@ -329,7 +334,9 @@ def main():
 	display.print_main_header()
 	print html_header % (create_select_options(column),
 	                     create_select_options(row),
-	                     condition_field)
+	                     condition_field, title_field)
+	if title_field:
+		print '<h1> %s </h1>' % (title_field)
 	print display.color_keys_row()
 	display.print_table(gen_matrix())
 	print display.color_keys_row()
