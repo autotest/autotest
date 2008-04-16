@@ -22,6 +22,7 @@ def rangelist_to_list(rangelist):
 		raise ValueError(msg)
 	return result
 
+
 def rounded_memtotal():
 	# Get total of all physical mem, in Kbytes
 	usable_Kbytes = memtotal()
@@ -74,34 +75,41 @@ def mbytes_per_mem_node():
 	return rounded_memtotal() / (len(numa_nodes()) * 1024.0)
 
 
+def get_tasks(setname):
+	return [x.rstrip() for x in open(setname+'/tasks').readlines()]
+
+
+def print_one_cpuset(name):
+	dir = os.path.join('/dev/cpuset', name)
+	cpus = read_one_line(dir + '/cpus')
+	mems = read_one_line(dir + '/mems')
+	node_size_ = rounded_memtotal()*1024 / len(numa_nodes())
+	memtotal = node_size_ * len(rangelist_to_list(mems))
+	tasks = ','.join(get_tasks(dir))
+	print "cpuset %s: size %s; tasks %s; cpus %s; mems %s" % \
+	      (name, human_format(memtotal), tasks, cpus, mems)
+
+
+def print_all_cpusets():
+	for cpuset in glob.glob('/dev/cpuset/*'):
+		print_one_cpuset(re.sub(r'.*/', '', cpuset))
+
+
+def get_mems(setname):
+	file_name = os.path.join(setname, "mems")
+	if os.path.exists(file_name):
+		return rangelist_to_list(read_one_line(file_name))
+	else:
+		return ""
+
+
 class cpuset:
-	def get_tasks(self, setname):
-		return [x.rstrip() for x in open(setname+'/tasks').readlines()]
-
-	def print_one_cpuset(self, name):
-		dir = os.path.join('/dev/cpuset', name)
-		cpus = read_one_line(dir + '/cpus')
-		mems = read_one_line(dir + '/mems')
-		node_size_ = rounded_memtotal()*1024 / len(numa_nodes())
-		memtotal = node_size_ * len(rangelist_to_list(mems))
-		tasks = ','.join(self.get_tasks(dir))
-		print "cpuset %s: size %s; tasks %s; cpus %s; mems %s" % \
-			(name, human_format(memtotal), tasks, cpus, mems)
-
-	def print_all_cpusets():
-		for cpuset in glob.glob('/dev/cpuset/*'):
-			print_one_cpuset(re.sub(r'.*/', '', cpuset))
+	super_root = "/dev/cpuset"
 
 
 	def display(self):
-		self.print_one_cpuset(os.path.join(self.root,self.name))
+		print_one_cpuset(os.path.join(self.root, self.name))
 
-	def get_mems(self, setname):
-		file_name = os.path.join(setname, "mems")
-		if os.path.exists(file_name):
-			return rangelist_to_list(read_one_line(file_name))
-		else:
-			return ""
 
 	# Start with the nodes available one level up in the cpuset tree,
 	#   subtract off nodes of all siblings at this level.
@@ -109,15 +117,17 @@ class cpuset:
 		available = set(parent_nodes)
 		for sub_cpusets in glob.glob('%s/*/mems' % self.root):
 			sub_cpusets = os.path.dirname(sub_cpusets)
-			available -= set(self.get_mems(sub_cpusets))
+			available -= set(get_mems(sub_cpusets))
 		return list(available)
 
-	def release(self, job_pid=None):
-		# job_pid arg is no longer needed
+	def release(self):
+		# don't do anything if this is a top-level dir
+		if self.root == self.cpudir:
+			return
 		print "releasing ", self.cpudir
 		parent_t = os.path.join(self.root, 'tasks')
 		# Transfer survivors (and self) to parent
-		for task in self.get_tasks(self.cpudir):
+		for task in get_tasks(self.cpudir):
 			write_one_line(parent_t, task)
 		os.rmdir(self.cpudir)
 		if os.path.exists(self.cpudir):
@@ -125,22 +135,30 @@ class cpuset:
 						+ self.cpudir)
 
 
-	def __init__(self, name, job_size, job_pid, cpus = None,
-	    root = "", cleanup = 1):
-		# Create a cpuset container and move job_pid into it
-		# Allocate the list "cpus" of cpus to that container
+	def __init__(self, name, job_size=None, job_pid=None, cpus=None,
+		     root=""):
+		"""\
+		Create a cpuset container and move job_pid into it
+		Allocate the list "cpus" of cpus to that container
 
-		# name = arbitrary string tag
-		# job size = reqested memory for job in megabytes
-		# job pid = pid of job we're putting into the container
-		# cleanup = 1, set notify_on_release (unimplemented)
-		self.super_root = "/dev/cpuset"
+			name = arbitrary string tag
+			job_size = reqested memory for job in megabytes
+			job_pid = pid of job we're putting into the container
+			cpu = list of cpu indicies to associate with the cpuset
+			root = the cpuset to create this new set in
+		"""
 		self.root = os.path.join(self.super_root, root)
 		self.name = name
-		#
-		memtotal_Mbytes = rounded_memtotal() >> 10
-		if not job_size:  # default to all installed memory
-			job_size = memtotal_Mbytes 
+
+		# default to all installed memory
+		memtotal_bytes = rounded_memtotal() << 10
+		if not job_size:
+			job_size = memtotal_bytes >> 20
+
+		# default to the current pid
+		if not job_pid:
+			job_pid = os.getpid()
+
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)" % \
 		    (name, root, job_size, job_pid)
 		self.memory = job_size
@@ -158,7 +176,7 @@ class cpuset:
 			raise AutotestError('Parent container %s does not exist'
 						 % self.root)
 		if cpus == None:
-			cpus = range(0, count_cpus())
+			cpus = range(count_cpus())
 		self.cpus = cpus
 		all_nodes = numa_nodes()
 
@@ -166,13 +184,14 @@ class cpuset:
 		if os.path.exists(self.cpudir):
 			self.release()   # destructively replace old
 
-		node_size = ((memtotal_Mbytes<<20)*1.0) / len(all_nodes)
-		nodes_needed = int(math.ceil((1.0*job_size) / 
+		node_size = float(memtotal_bytes) / len(all_nodes)
+		nodes_needed = int(math.ceil(float(job_size) /
 					     math.ceil(node_size)))
+
 		if nodes_needed > len(all_nodes):
 			raise AutotestError("Container's memory is bigger "
 						"than entire machine")
-		parent_nodes = self.get_mems(self.root)
+		parent_nodes = get_mems(self.root)
 		if nodes_needed > len(parent_nodes):
 			raise AutotestError("Container's memory is bigger "
 						"than parent's")
@@ -193,7 +212,7 @@ class cpuset:
 			# Above sends err msg to client.log.0, but no exception,
 			#   if mems_spec contained any now-taken nodes
 			# Confirm that siblings didn't grab our chosen mems:
-			nodes_gotten = len(self.get_mems(self.cpudir))
+			nodes_gotten = len(get_mems(self.cpudir))
 			if nodes_gotten >= nodes_needed:
 				break   # success
 			print "cpuset %s lost race for nodes" % name, mems_spec
@@ -206,4 +225,3 @@ class cpuset:
 		write_one_line(os.path.join(self.cpudir, 'tasks'), 
 				"%d" % job_pid)
 		self.display()
-
