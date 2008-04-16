@@ -71,11 +71,13 @@ next_field = {
 }
 
 
-def parse_field(form, form_field):
+def parse_field(form, form_field, field_default):
+	if not form_field in form:
+		return field_default
 	field_input = form[form_field].value.lower()
 	if field_input and field_input in frontend.test_view_field_dict:
 		return field_input
-	return ''
+	return field_default
 
 
 def parse_condition(form, form_field, field_default):
