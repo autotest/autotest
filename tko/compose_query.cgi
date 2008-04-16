@@ -105,7 +105,7 @@ force_row =  split_forced_fields(force_row_field)
 force_column =  split_forced_fields(force_column_field)
   
 cgitb.enable()
-db = db.db()
+db_obj = db.db()
 
 
 def construct_link(x, y):
@@ -203,7 +203,7 @@ map_kernel_map = None
 def map_kernel_init():
 	fields = ['base', 'k.kernel_idx', 'name', 'url']
 	map = {}
-	for (base, idx, name, url) in db.select(','.join(fields),
+	for (base, idx, name, url) in db_obj.select(','.join(fields),
 			'kernels k,patches p', 'k.kernel_idx=p.kernel_idx'):
 		match = re.match(r'.*(-mm[0-9]+|-git[0-9]+)\.(bz2|gz)$', url)
 		if match:
@@ -244,7 +244,10 @@ def gen_matrix():
 			msg = "Unspecified error when parsing condition"
 			return [[display.box(msg)]]
 
-	test_data = frontend.get_matrix_data(db, column, row, where)
+	try:
+		test_data = frontend.get_matrix_data(db_obj, column, row, where)
+	except db.MySQLTooManyRows, error:
+		return [[display.box(str(error))]]			
 	
 	for f_row in force_row:
 		if not f_row in test_data.y_values:
@@ -304,7 +307,7 @@ def gen_matrix():
 			else:
 				link = construct_link(x, y)
                                 
-			cur_row.append(display.status_precounted_box(db,
+			cur_row.append(display.status_precounted_box(db_obj,
 			                                             box_data,
 			                                             link))
 		matrix.append(cur_row)
