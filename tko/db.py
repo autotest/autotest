@@ -1,6 +1,9 @@
 import re, os, sys, types
 from common import global_config
 
+class MySQLTooManyRows(Exception):
+	pass
+
 
 class db_sql:
 	def __init__(self, debug = False, autocommit=True, host = None,
@@ -59,8 +62,8 @@ class db_sql:
 		return self.cur.fetchall()[0][0]
 
 
-	def select(self, fields, table, where, wherein={}, distinct = False,
-							group_by = None):
+	def select(self, fields, table, where, wherein={},
+		   distinct = False, group_by = None, max_rows = None):
 		"""\
 			This selects all the fields requested from a
 			specific table with a particular where clause.
@@ -109,7 +112,10 @@ class db_sql:
 			cmd.append(' GROUP BY ' + group_by)
 
 		self.dprint('%s %s' % (' '.join(cmd), values))
-		self.cur.execute(' '.join(cmd), values)
+		numRec = self.cur.execute(' '.join(cmd), values)
+		if max_rows != None and numRec > max_rows:
+			msg = 'Exceeded allowed number of records'
+			raise MySQLTooManyRows(msg)
 		return self.cur.fetchall()
 
 

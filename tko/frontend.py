@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import os, re, db, sys, datetime
+MAX_RECORDS = 10000
+MAX_CELLS = 100000
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
@@ -53,6 +55,10 @@ class status_data:
 		self.x_values = smart_sort(data.keys(), x_field)
 		# List of rows columns (y-values)
 		self.y_values = smart_sort(list(y_values), y_field)
+		if len(self.y_values)*len(self.x_values) > MAX_CELLS:
+			msg = 'Exceeded allowed number of cells in a table'
+			raise db.MySQLTooManyRows(msg)
+			
 
 def truncateTimeFieldsInAllRecords(rows, pos):
 	## reduces hours:min:sec to 00:00:00 in time stamps
@@ -70,7 +76,7 @@ def truncateTimeFieldsInAllRecords(rows, pos):
 		return tuple(altRow)
 	return map(truncateTimeFieldInOneRecord, rows)
 	            
-def get_matrix_data(db, x_axis, y_axis, where = None):
+def get_matrix_data(db_obj, x_axis, y_axis, where = None):
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
 	x_field = test_view_field_dict[x_axis]
@@ -79,7 +85,8 @@ def get_matrix_data(db, x_axis, y_axis, where = None):
 		  'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
 		 ) % (x_field, y_field)
 	group_by = '%s, %s, status' % (x_field, y_field)
-	rows = db.select(fields, 'test_view', where=where, group_by=group_by)
+	rows = db_obj.select(fields, 'test_view',
+			where=where, group_by=group_by, max_rows = MAX_RECORDS)
 	if x_field.endswith("time"):
 		rows = truncateTimeFieldsInAllRecords(rows, 0)
 	if y_field.endswith("time"):
