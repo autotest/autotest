@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, re, db, sys, datetime
-MAX_RECORDS = 10000
-MAX_CELLS = 100000
+MAX_RECORDS = 20000L
+MAX_CELLS = 300000L
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
@@ -55,27 +55,12 @@ class status_data:
 		self.x_values = smart_sort(data.keys(), x_field)
 		# List of rows columns (y-values)
 		self.y_values = smart_sort(list(y_values), y_field)
-		if len(self.y_values)*len(self.x_values) > MAX_CELLS:
+		nCells = len(self.y_values)*len(self.x_values)
+		if nCells > MAX_CELLS:
 			msg = 'Exceeded allowed number of cells in a table'
 			raise db.MySQLTooManyRows(msg)
 			
 
-def truncateTimeFieldsInAllRecords(rows, pos):
-	## reduces hours:min:sec to 00:00:00 in time stamps
-	## in each record i.e. in each element of "rows"
-	## Argument pos is equal to position of x-field or y-field
-	## depending in which field we are going to make such truncation
-	def truncateTimeFieldInOneRecord(row):
-		altRow = list(row)
-		if altRow[pos]!=None:
-			altRow[pos] = datetime.datetime(
-				altRow[pos].year,
-				altRow[pos].month,
-				altRow[pos].day
-				)
-		return tuple(altRow)
-	return map(truncateTimeFieldInOneRecord, rows)
-	            
 def get_matrix_data(db_obj, x_axis, y_axis, where = None):
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
@@ -87,10 +72,6 @@ def get_matrix_data(db_obj, x_axis, y_axis, where = None):
 	group_by = '%s, %s, status' % (x_field, y_field)
 	rows = db_obj.select(fields, 'test_view',
 			where=where, group_by=group_by, max_rows = MAX_RECORDS)
-	if x_field.endswith("time"):
-		rows = truncateTimeFieldsInAllRecords(rows, 0)
-	if y_field.endswith("time"):
-		rows = truncateTimeFieldsInAllRecords(rows, 1)
 	return status_data(rows, x_field, y_field)
 
 
@@ -107,8 +88,7 @@ test_view_field_dict = {
 	'user'          : 'job_username',
 	'status'        : 'status_word',
 	'time'          : 'test_finished_time',
-	'time_daily'    : 'test_finished_time',
-	'id'            : 'test_idx',	    
+	'time_daily'    : 'DATE(test_finished_time)'
 }
 
 def smart_sort(list, field):

@@ -66,7 +66,8 @@ next_field = {
     'user': 'tag',
     'status': 'tag',
    
-    'time_daily': 'tag',
+    'time': 'tag',
+    'time_daily': 'time',
 }
 
 
@@ -138,22 +139,6 @@ def construct_link(x, y):
 def create_select_options(selected_val):
 	ret = ""
 	for option in sorted(frontend.test_view_field_dict.keys()):
-                ## exceptional handling of id and time :(
-                ## To do: when we have more then two such prohibitions,
-                ## something better should be implemented
-                ## e.g. let frontend.test_view_field_dict
-                ## have tuples as a values: (next_field,bAllowGrouping)
-		if option == "id": 
-			## do not allow to group by id 
-			## because it may result in jumbo data transacted
-			continue  
-		if option == "time": 
-			## we have time_daily and time_weekly 
-			## in both drop down menus
-			## They are two different clones of "time"
-			## just 'time' should be avoided due to big
-                        ## data transfer
-			continue  
 		if selected_val == option:
 			selected = " SELECTED"
 		else:
@@ -179,8 +164,6 @@ def header_tuneup(field_name, header):
         ## - possibly, expect more various refinements for different fields
         if field_name == 'kernel':
                 return  map_kernel_base(header)
-        elif field_name.startswith('time') and header != None:
-                return datetime.date(header.year, header.month, header.day)
         else:
                 return header
 
@@ -289,7 +272,7 @@ def gen_matrix():
 		if field_map.has_key(row):
 			dy = field_map[row](y)
 		y_header = header_tuneup(row, dy)
-		link = construct_link(None, y)                
+		link = construct_link(None, y)
 		cur_row = [display.box(y_header, header=True, link=link)]
 		for x in test_data.x_values:
 			## next 2 lines: temporary, until non timestamped
