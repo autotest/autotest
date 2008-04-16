@@ -238,7 +238,21 @@ def gen_matrix():
 			return [[display.box(msg)]]
 
 	try:
-		test_data = frontend.get_matrix_data(db_obj, column, row, where)
+		## Unfortunately, we can not request reasons of failure always
+		## because it may result in an inflated size of data transfer
+		## (at the moment we fetch 500 bytes of reason descriptions into
+		## each cell )
+		## If 'status' in [row,column] then either width or height
+		## of the table <=7, hence table is not really 2D, and
+		## query_reason is relatively save.
+		## At the same time view when either rows or columns grouped
+		## by status is when users need reasons of failures the most.
+		
+		## TO DO: implement [Show/Hide reasons] button or link in
+		## all views and make thorough performance testing 
+		test_data = frontend.get_matrix_data(db_obj, column, row, where,
+				query_reasons = ('status' in [row,column])
+				)
 	except db.MySQLTooManyRows, error:
 		return [[display.box(str(error))]]			
 	
@@ -280,7 +294,7 @@ def gen_matrix():
 			if x==datetime.datetime(1970,1,1): x = None
 			if y==datetime.datetime(1970,1,1): y = None
 			try:
-				box_data = test_data.data[x][y].status_count
+				box_data = test_data.data[x][y]
 			except:
 				cur_row.append(display.box(None, None))
 				continue
