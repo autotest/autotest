@@ -65,16 +65,26 @@ def extract_tarball_to_dir(tarball, dir):
 
 
 def extract_tarball(tarball):
-	"""Returns the first extracted directory by the tarball."""
+	"""Returns the directory extracted by the tarball."""
 	extracted = cat_file_to_cmd(tarball, 'tar xvf - 2>/dev/null',
 					return_output=True).splitlines()
+
+	dir = None
+
 	for line in extracted:
 		line = re.sub(r'^./', '', line)
 		if not line or line == '.':
 			continue
-		if os.path.isdir(line):
-			return line
-	raise NameError('extracting tarball produced no dir')
+		topdir = line.split('/')[0]
+		if os.path.isdir(topdir):
+			if dir:
+				assert(dir == topdir)
+			else:
+				dir = topdir 
+	if dir:
+		return dir
+	else:
+		raise NameError('extracting tarball produced no dir')
 
 
 def get_md5sum(file_path):
