@@ -20,11 +20,12 @@ class status_cell:
 	def __init__(self):
 		# Count is a dictionary: status -> count of tests with status
 		self.status_count = {}
+		self.reasons_list = []
 		self.job_tag = None
 		self.job_tag_count = 0
 
 
-	def add(self, status, count, job_tags):
+	def add(self, status, count, job_tags, reasons = None):
 		assert count > 0
 
 		self.job_tag = job_tags
@@ -33,21 +34,31 @@ class status_cell:
 			self.job_tag = None
 		
 		self.status_count[status] = count
+		### status == 6 means 'GOOD'
+		if status != 6:
+			## None implies sorting problems and extra CRs in a cell
+			if reasons:
+				self.reasons_list.append(reasons)
 
 
 class status_data:
-	def __init__(self, sql_rows, x_field, y_field):
+	def __init__(self, sql_rows, x_field, y_field, query_reasons = False):
 		data = {}
 		y_values = set()
 
 		# Walk through the query, filing all results by x, y info
-		for (x, y, status, count, job_tags) in sql_rows:
+		for row in sql_rows:
+			if query_reasons:
+				(x,y, status, count, job_tags, reasons) = row
+			else:
+				(x,y, status, count, job_tags) = row
+				reasons = None
 			if not data.has_key(x):
 				data[x] = {}
 			if not data[x].has_key(y):
 				y_values.add(y)
 				data[x][y] = status_cell()
-			data[x][y].add(status, count, job_tags)
+			data[x][y].add(status, count, job_tags, reasons)
 
 		# 2-d hash of data - [x-value][y-value]
 		self.data = data
@@ -61,18 +72,24 @@ class status_data:
 			raise db.MySQLTooManyRows(msg)
 			
 
-def get_matrix_data(db_obj, x_axis, y_axis, where = None):
+def get_matrix_data(db_obj, x_axis, y_axis, where = None,
+		    query_reasons = False):
 	# Searches on the test_view table - x_axis and y_axis must both be
 	# column names in that table.
 	x_field = test_view_field_dict[x_axis]
 	y_field = test_view_field_dict[y_axis]
-	fields = ( '%s, %s, status, COUNT(status), ' +
-		  'LEFT(GROUP_CONCAT(job_tag), 100)' # limit what's returned
-		 ) % (x_field, y_field)
+	query_fields_list = [x_field, y_field, 'status','COUNT(status)']
+	query_fields_list.append("LEFT(GROUP_CONCAT(job_tag),100)")
+	if query_reasons:
+		query_fields_list.append(
+			"LEFT(GROUP_CONCAT(DISTINCT reason SEPARATOR '|'),500)"
+			)
+	fields = ','.join(query_fields_list)
+
 	group_by = '%s, %s, status' % (x_field, y_field)
 	rows = db_obj.select(fields, 'test_view',
 			where=where, group_by=group_by, max_rows = MAX_RECORDS)
-	return status_data(rows, x_field, y_field)
+	return status_data(rows, x_field, y_field, query_reasons)
 
 
 # Dictionary used simply for fast lookups from short reference names for users
@@ -90,6 +107,7 @@ test_view_field_dict = {
 	'time'          : 'test_finished_time',
 	'time_daily'    : 'DATE(test_finished_time)'
 }
+
 
 def smart_sort(list, field):
 	if field == 'kernel_printable':
@@ -130,7 +148,8 @@ class group:
 
 	def tests(self, where = {}):
 		values = [self.name]
-		sql = 't inner join machines m on m.machine_idx=t.machine_idx where m.machine_group=%s'
+		sql = 't inner join machines m on m.machine_idx=t.machine_idx'
+		sql += ' where m.machine_group=%s'
 		for key in where.keys():
 			sql += ' and %s=%%s' % key
 			values.append(where[key])
@@ -178,7 +197,8 @@ class test:
 		fields = ['test_idx', 'job_idx', 'test', 'subdir', 
 			  'kernel_idx', 'status', 'reason', 'machine_idx']
 		tests = []
-		for row in db.select(','.join(fields), 'tests', where, wherein,distinct):
+		for row in db.select(','.join(fields), 'tests', where,
+				     wherein,distinct):
 			tests.append(klass(db, *row))
 		return tests
 
@@ -192,7 +212,8 @@ class test:
 		return [klass(db, *row) for row in rows]
 
 		
-	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx, status_num, reason, machine_idx):
+	def __init__(self, db, test_idx, job_idx, testname, subdir, kernel_idx,
+		     status_num, reason, machine_idx):
 		self.idx = test_idx
 		self.job = job(db, job_idx)
 		self.testname = testname
