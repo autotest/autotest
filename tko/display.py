@@ -147,19 +147,29 @@ def shade_from_status_count(status_count):
 	return shade
 
 
-def status_html(db, status_count, shade):
+def status_html(db, box_data, shade):
 	"""
 	status_count: dict mapping from status (integer key) to count
 	eg. { 'GOOD' : 4, 'FAIL' : 1 }
 	"""
+	status_count = box_data.status_count
 	if 6 in status_count.keys():
 		html = "%d&nbsp;/&nbsp;%d " \
 			%(status_count[6],sum(status_count.values()))
 	else:
 		html = "%d&nbsp;/&nbsp;%d " % \
 			(0, sum(status_count.values()))
-	tooltip = ""
 
+	if box_data.reasons_list:
+		box_data.reasons_list.sort()
+		for reason in box_data.reasons_list:
+			reason = reason.replace('<br>','\n')
+			reason = reason.replace('<','[').replace('>',']')
+			reason = reason.replace('|','\n').replace('&',' AND ')
+			reason = reason.replace('\n','<br>')
+			html += '<br>' + reason
+
+	tooltip = ""
 	for status in sorted(status_count.keys(), reverse = True):
 		status_word = db.status_word[status]
 		tooltip += "%d %s " % (status_count[status], status_word)
@@ -182,19 +192,21 @@ def status_count_box(db, tests, link = None):
 	return status_precounted_box(db, status_count, link)
 
 
-def status_precounted_box(db, status_count, link = None):
+def status_precounted_box(db, box_data, link = None):
 	"""
 	Display a ratio of total number of GOOD tests
 	to total number of all tests in the group of tests.
 	More info (e.g. 10 GOOD, 2 WARN, 3 FAIL) is in tooltips
-	"""		
+	"""
+	status_count = box_data.status_count
 	if not status_count:
 		return box(None, None)
 	
 	shade = shade_from_status_count(status_count)	
-	html,tooltip = status_html(db, status_count, shade)
+	html,tooltip = status_html(db, box_data, shade)
 	precounted_box = box(html, shade, False, link, tooltip)
 	return precounted_box
+
 
 def print_table(matrix):
 	"""
