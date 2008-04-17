@@ -15,15 +15,10 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import os
-import os.path
-import time
-import urllib
+import os, os.path, time, urllib
 
-import kernel
-import utils
-
-from common.error import *
+from autotest_lib.client.common_lib.error import *
+from autotest_lib.server import kernel, utils
 
 
 class DEBKernel(kernel.Kernel):

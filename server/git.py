@@ -12,13 +12,12 @@ ryanh@us.ibm.com (Ryan Harper)
 """
 
 
-import os
-import urllib2
+import os, urllib2
 
-from common.error import *
-import utils
-from utils import *
-import installable_object
+from autotest_lib.client.common_lib.error import *
+from autotest_lib.server import utils, installable_object
+from autotest_lib.server.utils import *
+
 
 class GitRepo(installable_object.InstallableObject):
 	"""

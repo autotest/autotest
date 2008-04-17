@@ -13,7 +13,8 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 import atexit, os, re, shutil, textwrap, sys, tempfile, types, urllib
-from common.utils import *
+
+from autotest_lib.client.common_lib.utils import *
 
 
 # A dictionary of pid and a list of tmpdirs for that pid
