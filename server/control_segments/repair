@@ -6,5 +6,5 @@ def repair(machine):
 		site_repair(host)
 	host.reboot()
 
-parallel_simple(repair, machines, log=False)
+job.parallel_simple(repair, machines, log=False)
 
