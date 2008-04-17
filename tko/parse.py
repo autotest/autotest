@@ -1,416 +1,188 @@
-#!/usr/bin/python
-import os, re, md5, sys, email.Message, smtplib, datetime
+#!/usr/bin/python -u
 
-client_bin = os.path.join(os.path.dirname(__file__), '../client/bin')
-sys.path.insert(0, os.path.abspath(client_bin))
-from autotest_utils import read_keyval
+import os, sys, optparse, fcntl, errno, traceback
 
-user = re.compile(r'user(\s*)=')
-label = re.compile(r'label(\s*)=')
-
-debug = True
-
-# XXX: these mail bits came almost verbatim from mirror/mirror and this should
-# probably be refactored into another file and used by both.
-def mail(from_address, to_addresses, cc_addresses, subject, message_text):
-	# if passed a string for the to_addresses convert it to a tuple
-	if type(to_addresses) is str:
-		to_addresses = (to_addresses,)
-
-	message = email.Message.Message()
-	message["To"] = ", ".join(to_addresses)
-	message["Cc"] = ", ".join(cc_addresses)
-	message["From"] = from_address
-	message["Subject"] = subject
-	message.set_payload(message_text)
-
-	try:
-		sendmail(message.as_string())
-	except SendmailException, e:
-		server = smtplib.SMTP("localhost")
-		server.sendmail(from_address, to_addresses, cc_addresses, message.as_string())
-		server.quit()
+import common
+from autotest_lib.client.common_lib import mail as common_mail
+from autotest_lib.tko import db as tko_db, utils, status_lib
 
 
-MAIL = "sendmail"
+def parse_args():
+	# build up our options parser and parse sys.argv
+	parser = optparse.OptionParser()
+	parser.add_option("-m", help="Send mail for FAILED tests",
+			  dest="mailit", action="store_true")
+	parser.add_option("-r", help="Reparse the results of a job",
+			  dest="reparse", action="store_true")
+	parser.add_option("-o", help="Parse a single results directory",
+			  dest="singledir", action="store_true")
+	parser.add_option("-l", help=("Levels of subdirectories to include "
+				      "in the job name"),
+			  type="int", dest="level", default=1)
+	parser.add_option("-n", help="No blocking on an existing parse",
+			  dest="noblock", action="store_true")
+	parser.add_option("-s", help="Database server hostname",
+			  dest="db_host", action="store")
+	parser.add_option("-u", help="Database username", dest="db_user",
+			  action="store")
+	parser.add_option("-p", help="Database password", dest="db_pass",
+			  action="store")
+	parser.add_option("-d", help="Database name", dest="db_name",
+			  action="store")
+	options, args = parser.parse_args()
 
-class SendmailException(Exception):
-	pass
+	# we need a results directory
+	if len(args) == 0:
+		utils.dprint("ERROR: at least one results directory must "
+			     "be provided")
+		parser.print_help()
+		sys.exit(1)
 
-def sendmail(message):
-	"""Send an email using sendmail"""
-	# open a pipe to the mail program and
-	# write the data to the pipe
-	p = os.popen("%s -t" % MAIL, 'w')
-	p.write(message)
-	exitcode = p.close()
-	if exitcode:
-		raise SendmailException("Exit code: %s" % exitcode)
-
-# XXX: End of code from mirror/mirror
-
-
-def shorten_patch(long):
-	short = os.path.basename(long)
-	short = re.sub(r'^patch-', '', short)
-	short = re.sub(r'\.(bz2|gz)$', '', short)
-	short = re.sub(r'\.patch$', '', short)
-	short = re.sub(r'\+', '_', short)
-	return short
-
-
-def dprint(info):
-	if debug:
-		sys.stderr.write(str(info) + '\n')
-
-
-def get_timestamp(mapping, field):
-	val = mapping.get(field, None)
-	if val is not None:
-		val = datetime.datetime.fromtimestamp(int(val))
-	return val
+	# pass the options back
+	return options, args
 
 
-class status_stack:
-	def __init__(self, job):
-		self.job = job
-		self.status_stack = [self.job.statuses[-1]]
+def format_failure_message(jobname, kernel, testname, status, reason):
+	format_string = "%-12s %-20s %-12s %-10s %s"
+	return format_string % (jobname, kernel, testname, status, reason)
 
 
-	def current_status(self):
-		return self.status_stack[-1]
+def mailfailure(jobname, job, message):
+	message_lines = [""]
+	message_lines.append("The following tests FAILED for this job")
+	message_lines.append("http://%s/results/%s" %
+			     (socket.gethostname(), jobname))
+	message_lines.append("")
+	message_lines.append(format_failure_message("Job name", "Kernel",
+						    "Test name", "FAIL/WARN",
+						    "Failure reason"))
+	message_lines.append(format_failure_message("=" * 8, "=" * 6, "=" * 8,
+						    "=" * 8, "=" * 14))
+	message_header = "\n".join(message_lines)
+
+	subject = "AUTOTEST: FAILED tests from job %s" % jobname
+	common_mail.send("", job.user, "", subject, message_header + message)
 
 
-	def update(self, new_status):
-		if new_status not in self.job.statuses:
-			return
-		old = self.job.statuses.index(self.current_status())
-		new = self.job.statuses.index(new_status)
-		if new < old:
-			self.status_stack[-1] = new_status
+def parse_one(db, jobname, path, reparse, mail_on_failure):
+	"""
+	Parse a single job. Optionally send email on failure.
+	"""
+	utils.dprint("\nScanning %s (%s)" % (jobname, path))
+	if reparse and db.find_job(jobname):
+		utils.dprint("! Deleting old copy of job results to "
+				 "reparse it")
+		db.delete_job(jobname)
+	if db.find_job(jobname):
+		utils.dprint("! Job is already parsed, done")
+		return
+
+	# parse out the job
+	parser = status_lib.parser(0)
+	job = parser.make_job(path)
+	status_log = os.path.join(path, "status.log")
+	if not os.path.exists(status_log):
+		status_log = os.path.join(path, "status")
+	if not os.path.exists(status_log):
+		utils.dprint("! Unable to parse job, no status file")
+		return
+
+	# parse the status logs
+	utils.dprint("+ Parsing dir=%s, jobname=%s" % (path, jobname))
+	status_lines = open(status_log).readlines()
+	parser.start(job)
+	tests = parser.end(status_lines)
+	job.tests = tests
+
+	# check for failures
+	message_lines = [""]
+	for test in job.tests:
+		if not test.subdir:
+			continue
+		utils.dprint("* testname, status, reason: %s %s %s"
+			     % (test.subdir, test.status, test.reason))
+		if test.status in ("FAIL", "WARN"):
+			message_lines.append(format_failure_message(
+			    jobname, test.kernel.base, test.subdir,
+			    test.status, test.reason))
+	message = "\n".join(message_lines)
+
+	# send out a email report of failure
+	if len(message) > 2 and mail_on_failure:
+		utils.dprint("Sending email report of failure on %s to %s"
+			     % (jobname, job.user))
+		mailfailure(jobname, job, message)
+
+	# write the job into the database
+	db.insert_job(jobname, job)
+	db.commit()
 
 
-	def start(self):
-		self.status_stack.append(self.job.statuses[-1])
-
-
-	def end(self):
-		result = self.status_stack.pop()
-		if len(self.status_stack) == 0:
-			self.status_stack.append(self.job.statuses[-1])
-		return result
-
-
-
-class job:
-	statuses = ['NOSTATUS', 'ERROR', 'ABORT', 'FAIL', 'WARN', 'GOOD',
-		    'ALERT']
-
-	def __init__(self, dir):
-		self.dir = dir
-		self.control = os.path.join(dir, "control")
-		self.status = os.path.join(dir, "status.log")
-		if not os.path.exists(self.status):
-			self.status = os.path.join(dir, "status")
-		self.variables = {}
-		self.tests = []
-		self.kernel = None
-
-		# Get the user + tag info from the keyval file.
+def parse_path(db, path, level, reparse, mail_on_failure):
+	machine_list = os.path.join(path, ".machines")
+	if os.path.exists(machine_list):
+		# multi-machine job
+		for m in file(machine_list):
+			machine = m.rstrip()
+			if not machine:
+				continue
+			jobpath = os.path.join(path, machine)
+			jobname = "%s/%s" % (os.path.basename(path), machine)
+			try:
+				parse_one(db, jobname, jobpath, reparse,
+					  mail_on_failure)
+			except Exception:
+				traceback.print_exc()
+				continue
+	else:
+		# single machine job
+		job_elements = path.split("/")[-level:]
+		jobname = "/".join(job_elements)
 		try:
-			keyval = read_keyval(dir)
-			print keyval
-		except:
-			keyval = {}
-		self.user = keyval.get('user', None)
-		self.label = keyval.get('label', None)
-		self.machine = keyval.get('hostname', None)
-		if self.machine:
-			assert ',' not in self.machine
-		self.queued_time = get_timestamp(keyval, 'job_queued')
-		self.started_time = get_timestamp(keyval, 'job_started')
-		self.finished_time = get_timestamp(keyval, 'job_finished')
-		self.machine_owner = keyval.get('owner', None)
-
-		if not self.machine:
-			self.get_machine()
-
-		print 'MACHINE NAME: ' + self.machine
-		if not os.path.exists(self.status):
-			return None
-
-		self.grope_status()
+			parse_one(db, jobname, path, reparse, mail_on_failure)
+		except Exception:
+			traceback.print_exc()
 
 
-	def get_machine(self):
+def main():
+	options, args = parse_args()
+	results_dir = os.path.abspath(args[0])
+	assert os.path.exists(results_dir)
+
+	# build up the list of job dirs to parse
+	if options.singledir:
+		jobs_list = [results_dir]
+	else:
+		jobs_list = [os.path.join(results_dir, subdir)
+			     for subdir in os.listdir(results_dir)]
+
+	# build up the database
+	db = tko_db.db(autocommit=False, host=options.db_host,
+		       user=options.db_user, password=options.db_pass,
+		       database=options.db_name)
+
+	# parse all the jobs
+	for path in jobs_list:
+		lockfile = open(os.path.join(path, ".parse.lock"), "w")
+		flags = fcntl.LOCK_EX
+		if options.noblock:
+			flags != fcntl.LOCK_NB
 		try:
-			hostname = os.path.join(self.dir, "sysinfo/hostname")
-			self.machine = open(hostname, 'r').readline().rstrip()
-			return
-		except:
-			pass
+			fcntl.flock(lockfile, flags)
+		except IOError, e:
+			# was this because the lock is unavailable?
+			if e.errno == errno.EWOULDBLOCK:
+				lockfile.close()
+				continue
+			else:
+				raise # something unexpected happened
 		try:
-			uname = os.path.join(self.dir, "sysinfo/uname_-a")
-			self.machine = open(uname, 'r').readline().split()[1]
-			return
-		except:
-			pass
-		raise "Could not figure out machine name"
+			parse_path(db, path, options.level, options.reparse,
+				   options.mailit)
+		finally:
+			fcntl.flock(lockfile, fcntl.LOCK_UN)
+			lockfile.close()
 
 
-	def grope_status(self):
-		"""
-		Note that what we're looking for here is level 1 groups
-		(ie end markers with 1 tab in front)
-
-		For back-compatiblity, we also count level 0 groups that
-		are not job-level events, if there's no start/end job level
-		markers: "START   ----    ----"
-		"""
-		dprint('=====================================================')
-		dprint(self.dir)
-		dprint('=====================================================')
-		self.kernel = kernel(self.dir)
-
-		reboot_inprogress = 0	# Saw reboot start and not finish
-		boot_count = 0
-		alert_pending = None	# Saw an ALERT for this test
-		group_subdir = None
-		group_status = status_stack(self)
-		sought_level = 0        # we log events at indent level 0
-		current_kernel = self.kernel
-		for line in open(self.status, 'r').readlines():
-			dprint('\nSTATUS: ' + line.rstrip())
-			if not re.search(r'^\t*\S', line):
-				dprint('Continuation line, ignoring')
-				continue	# ignore continuation lines
-			if re.search(r'^START\t----\t----', line):
-				sought_level = 1
-				# we now log events at indent level 1
-				dprint('Found job level start marker. Looking for level 1 groups now')
-				continue
-			if re.search(r'^END [^\t]*\t----\t----', line):
-				sought_level = 0
-				# the job is ended
-				dprint('Found job level end marker. Loocking for level 0 lines now')
-			indent = re.search('^(\t*)', line).group(0).count('\t')
-			line = line.lstrip()
-			line = line.rstrip('\n')
-			if line.startswith('START\t'):
-				group_subdir = None
-				group_status.start()
-				dprint('start line, ignoring')
-				continue	# ignore start lines
-			reason = None
-			if line.startswith('END '):
-				elements = line.split('\t')
-				elements[0] = elements[0][4:] # remove 'END '
-				end = True
-			else:
-				elements = line.split('\t')
-				end = False
-			(status, subdir, testname, reason) = elements[0:4]
-			status, subdir, testname = elements[:3]
-			reason = elements[-1]
-			optional_fields = dict(element.split('=', 1)
-					       for element in elements[3:-1])
-			group_status.update(status)
-			dprint('GROPE_STATUS: ' +
-			       str([group_status.current_status(), status,
-				    subdir, testname, reason]))
-			if status == 'ALERT':
-				dprint('job level alert, recording')
-				alert_pending = reason
-				continue
-			if testname == 'Autotest.install' and status == 'GOOD':
-				dprint('Sucessful autotest install, ignoring')
-				continue
-			if testname == '----':
-				if status == 'ABORT' and not end:
-					testname = 'JOB'
-				else:
-					dprint('job level event, ignoring')
-					# This is a job level event, not a test
-					continue
-			################################################
-			# REMOVE THIS SECTION ONCE OLD FORMAT JOBS ARE GONE
-			################################################
-			if re.search(r'^(GOOD|FAIL|WARN) ', line):
-				status, testname, reason = line.split(None, 2)
-
-				if testname.startswith('kernel.'):
-					subdir = 'build'
-				else:
-					subdir = testname
-			if testname.startswith('completed'):
-				raise 'testname is crap'
-			################################################
-			if subdir == '----':
-				subdir = None
-			if line.startswith('END'):
-				subdir = group_subdir
-			if (indent != sought_level and status != 'ABORT' and
-			    not testname.startswith('reboot.')):
-				# we're in a block group
-				if subdir:
-					dprint('set group_subdir: %s' % subdir)
-					group_subdir = subdir
-				dprint('incorrect indent level %d != %d, ignoring' % (indent, sought_level))
-				continue
-			if not re.search(r'^(boot(\.\d+)?$|kernel\.)', testname):
-				# This is a real test
-				if subdir and subdir.count('.'):
-					# eg dbench.ext3
-					testname = subdir
-			if testname == 'reboot.start':
-				dprint('reboot start event, ignoring')
-				reboot_inprogress = 1
-				continue
-			if testname == 'reboot.verify':
-				testname = 'boot.%d' % boot_count
-				dprint('reboot verified')
-				reboot_inprogress = 0
-				verify_ident = reason.strip()
-				current_kernel = kernel(self.dir, verify_ident)
-				boot_count += 1
-			if alert_pending:
-				status = 'ALERT'
-				reason = alert_pending
-				alert_pending = None
-			if status in self.statuses:
-				dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s'
-				       % (group_status.current_status(),
-					  subdir, testname, reason))
-			else:
-				dprint('WARNING: Invalid status code. Ignoring')
-				continue
-
-			finished_time = get_timestamp(optional_fields,
-						      'timestamp')
-			test_status = group_status.end()
-			self.tests.append(test(subdir, testname, test_status,
-					       reason, current_kernel, self,
-					       finished_time))
-			dprint('')
-
-		if reboot_inprogress:
-			testname = 'boot.%d' % boot_count
-			dprint('Adding: %s\nSubdir:%s\nTestname:%s\n%s' %
-					('----', subdir, testname, reason))
-			self.tests.append(test('----', testname, 'ABORT', 
-				'machine did not return from reboot',
-				current_kernel, self))
-			dprint('')
-
-
-class kernel:
-	def __init__(self, topdir, verify_ident=None):
-		self.base = 'UNKNOWN'
-		self.patches = []
-		patch_hashes = []
-		# HACK. we don't have proper build tags in the status file yet
-		# so we hardcode build/ and do it at the start of the job
-		build_log = os.path.join(topdir, 'build/debug/build_log')
-
-		if os.path.exists(build_log):
-			for line in open(build_log, 'r'):
-				print line
-				(type, rest) = line.split(': ', 1)
-				words = rest.split()
-				if type == 'BASE':
-					self.base = words[0]
-				if type == 'PATCH':
-					print words
-					self.patches.append(patch(*words[0:]))
-					patch_hashes.append(words[2])
-		elif verify_ident:
-			self.base = verify_ident
-		else:
-			for sysinfo in ['sysinfo/reboot1', 'sysinfo']:
-				uname_file = os.path.join(topdir, sysinfo, 'uname_-a')
-				if not os.path.exists(uname_file):
-					continue
-				uname = open(uname_file, 'r').readline().split()
-				self.base = uname[2]
-				re.sub(r'-autotest$', '', self.base)
-				break
-		print 'kernel.__init__() found kernel version %s' % self.base
-		if self.base == 'UNKNOWN':
-			self.kernel_hash = 'UNKNOWN'
-		else:
-			self.kernel_hash = self.get_kver_hash(self.base, patch_hashes)
-
-
-	def get_kver_hash(self, base, patch_hashes):
-		"""\
-		Calculate a hash representing the unique combination of
-		the kernel base version plus 
-		"""
-		key_string = ','.join([base] + patch_hashes)
-		return md5.new(key_string).hexdigest()
-
-
-class patch:
-	def __init__(self, spec, reference=None, hash=None):
-		# NEITHER OF THE ABOVE SHOULD HAVE DEFAULTS!!!! HACK HACK
-		if not reference:
-			reference = spec
-		print 'PATCH::%s %s %s' % (spec, reference, hash)
-		self.spec = spec
-		self.reference = reference
-		self.hash = hash
-
-
-class test:
-	def __init__(self, subdir, testname, status, reason, kernel, job,
-		     finished_time=None):
-		# NOTE: subdir may be none here for lines that aren't an
-		# actual test
-		self.subdir = subdir
-		self.testname = testname
-		self.status = status
-		self.reason = reason
-		self.version = None
-		self.keyval = None
-
-		if subdir:
-			keyval = os.path.join(job.dir, subdir, 'results/keyval')
-			if os.path.exists(keyval):
-				self.keyval = keyval
-			keyval2 = os.path.join(job.dir, subdir, 'keyval')
-			if os.path.exists(keyval2):
-				self.version = open(keyval2, 'r').readline().split('=')[1]
-		else:
-			self.keyval = None
-		self.iterations = []
-		self.kernel = kernel
-		self.machine = job.machine
-		self.finished_time = finished_time
-
-		dprint("PARSING TEST %s %s %s" % (subdir, testname, self.keyval))
-
-		if not self.keyval:
-			return
-		count = 1
-		lines = []
-		for line in open(self.keyval, 'r').readlines():
-			if not re.search('\S', line):		# blank line
-				self.iterations.append(iteration(count, lines))
-				lines = []
-				count += 1
-			else:
-				lines.append(line)
-		if lines:
-			self.iterations.append(iteration(count, lines))
-
-
-class iteration:
-	def __init__(self, index, lines):
-		self.index = index
-		self.keyval = {}
-
-		dprint("ADDING ITERATION %d" % index)
-		for line in lines:
-			line = line.rstrip();
-			(key, value) = line.split('=', 1)
-			self.keyval[key] = value
+if __name__ == "__main__":
+	main()
