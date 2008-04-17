@@ -15,7 +15,6 @@ import sys, os, re, traceback, signal
 import common
 from autotest_lib.server import server_job, utils
 
-
 # send stdin to /dev/null
 dev_null = os.open(os.devnull, os.O_RDONLY)
 os.dup2(dev_null, sys.stdin.fileno())
@@ -72,6 +71,7 @@ usage: autoserv
 	[-R]                       # repair the machines
 	[-n]                       # no teeing the status to stdout/stderr
 	[-p]                       # write pidfile (.autoserv_execute)
+	[-P jobname]               # parse the results of the job
 	<control file>             # name of the control file to run
 	[args ...]                 # args to pass through to the control file
 """
@@ -99,10 +99,11 @@ repair   = parser.parse_opts('-R')
 no_tee   = parser.parse_opts('-n')
 help     = parser.parse_opts('-h') or parser.parse_opts('--help')
 write_pidfile = parser.parse_opts('-p')
+parse_job = parser.parse_opts_param('-P', '')
 
 if help is True:
-  print usage
-  sys.exit(0)
+	print usage
+	sys.exit(0)
 
 if len(parser.args) < 1 and not verify and not repair:
 	print usage
@@ -132,7 +133,7 @@ else:
 	control = None
 
 job = server_job.server_job(control, parser.args[1:], results, label,
-							user, machines, client)
+			    user, machines, client, parse_job)
 debug_dir = os.path.join(results, 'debug')
 if no_tee:
 	job.stdout.redirect(os.path.join(debug_dir, 'autoserv.stdout'))
@@ -152,7 +153,10 @@ try:
 	elif verify:
 		job.verify()
 	else:
-		job.run(reboot, install_before, install_after)
+		try:
+			job.run(reboot, install_before, install_after)
+		finally:
+			job._cleanup()
 except:
 	job.aborted = True
 	traceback.print_exc()
