@@ -208,7 +208,7 @@ class base_server_job:
 			self.job_model.machine_idx = machine_idx
 
 
-	def _cleanup(self):
+	def cleanup_parser(self):
 		"""This should be called after the server job is finished
 		to carry out any remaining cleanup (e.g. flushing any
 		remaining test results to the results db)"""
@@ -217,6 +217,7 @@ class base_server_job:
 		final_tests = self.parser.end()
 		for test in final_tests:
 			self.results_db.insert_test(self.job_model, test)
+		self.using_parser = False
 
 
 	def verify(self):
@@ -280,7 +281,7 @@ class base_server_job:
 							      machine)
 				self.init_parser(self.resultdir)
 				result = function(machine)
-				self._cleanup()
+				self.cleanup_parser()
 				return result
 		else:
 			wrapper = function
