@@ -116,7 +116,9 @@ class SSHHost(remote.RemoteHost):
 		# kill the console logger
 		if getattr(self, 'logger_popen', None):
 			self.__kill(self.logger_popen)
-			self.job.warning_loggers.discard(self.warning_stream)
+			if self.job:
+				self.job.warning_loggers.discard(
+				    self.warning_stream)
 			self.warning_stream.close()
 		# kill the netconsole logger
 		if getattr(self, 'netlogger_popen', None):
@@ -251,7 +253,8 @@ class SSHHost(remote.RemoteHost):
 		dev_null = open(os.devnull, 'w')
 
 		self.warning_stream = os.fdopen(r, 'r', 0)
-		self.job.warning_loggers.add(self.warning_stream)
+		if self.job:
+			self.job.warning_loggers.add(self.warning_stream)
 		self.logger_popen = subprocess.Popen(cmd, stderr=dev_null)
 		os.close(w)
 
