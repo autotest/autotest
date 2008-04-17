@@ -10,7 +10,7 @@ running through autotest.
 
 __author__ = 'cranger@google.com (Colby Ranger)'
 
-from common import barrier
+from autotest_lib.client.common_lib import barrier
 
 
 def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,

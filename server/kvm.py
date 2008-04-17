@@ -16,11 +16,8 @@ stutsman@google.com (Ryan Stutsman)
 
 import os
 
-import hypervisor
-import utils
-import hosts
-
-from common.error import *
+from autotest_lib.client.common_lib.error import *
+from autotest_lib.server import hypervisor, utils, hosts
 
 
 _qemu_ifup_script= """\

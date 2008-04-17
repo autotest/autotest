@@ -34,12 +34,14 @@ def load_control_segment(name):
 preamble = """\
 import os, sys
 
-import hosts, autotest, kvm, git, standalone_profiler
-import source_kernel, rpm_kernel, deb_kernel, git_kernel
-from common.error import *
-from common import barrier
-from subcommand import *
-from utils import run, get_tmp_dir, sh_escape
+from autotest_lib.server import hosts, autotest, kvm, git, standalone_profiler
+from autotest_lib.server import source_kernel, rpm_kernel, deb_kernel
+from autotest_lib.server import git_kernel
+from autotest_lib.server.subcommand import *
+from autotest_lib.server.utils import run, get_tmp_dir, sh_escape
+
+from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import barrier
 
 autotest.Autotest.job = job
 hosts.SSHHost.job = job
@@ -705,7 +707,7 @@ class client_logger(object):
 # site_server_job.py may be non-existant or empty, make sure that an
 # appropriate site_server_job class is created nevertheless
 try:
-	from site_server_job import site_server_job
+	from autotest_lib.server.site_server_job import site_server_job
 except ImportError:
 	class site_server_job(base_server_job):
 		pass
