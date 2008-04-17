@@ -5,4 +5,4 @@ def run(machine):
 	print 'Kernel ver:     ' + host.get_kernel_ver()
 	print 'Kernel cmdline: ' + host.get_cmdline()
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)

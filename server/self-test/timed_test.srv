@@ -9,4 +9,4 @@ def run(machine):
 	except autotest.AutotestTimeoutError:
 		print 'Timeout test success!'
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)

@@ -3,4 +3,4 @@ def run(machine):
 	at = autotest.Autotest(host)
 	at.run_test('sleeptest')
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)
