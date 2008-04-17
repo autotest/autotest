@@ -5,20 +5,19 @@
 
 import os
 
-from subcommand import *
-from common.error import *
-from utils import *
+from autotest_lib.client.common_lib import test as common_test
+from autotest_lib.client.common_lib.error import *
+from autotest_lib.server.subcommand import *
+from autotest_lib.server.utils import *
 
-import common.test
 
-
-class test(common.test.base_test):
+class test(common_test.base_test):
 	pass
 
 
-testname = common.test.testname
+testname = common_test.testname
 
 
 def runtest(job, url, tag, args, dargs):
-	common.test.runtest(job, url, tag, args, dargs,
+	common_test.runtest(job, url, tag, args, dargs,
 			    locals(), globals())

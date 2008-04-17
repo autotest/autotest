@@ -23,11 +23,9 @@ import tempfile
 import shutil
 import time
 
-import installable_object
-import utils
-import server_job
-from common import logging
-from common.error import *
+from autotest_lib.server import installable_object, utils, server_job
+from autotest_lib.client.common_lib import logging
+from autotest_lib.client.common_lib.error import *
 
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
