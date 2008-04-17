@@ -4,4 +4,4 @@ def run(machine):
 	host = hosts.SSHHost(machine)
 	at.run_test('sleeptest', host = host)
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)

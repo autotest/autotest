@@ -40,7 +40,7 @@ def f(i):
 	g[i].run('scp "%s":"%s" "%s"' % (g[0].hostname, big_file, tmp_dir,))
 	print g[i].run('sha1sum "%s"' % (os.path.join(tmp_dir, "big_file"),)).stdout.strip()
 
-parallel_simple(f, args)
+job.parallel_simple(f, args)
 
 
 print "XXXX end of control file"

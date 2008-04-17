@@ -3,4 +3,4 @@ def run(machine):
 	while True:
 		host.reboot()
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)
