@@ -156,7 +156,7 @@ try:
 		try:
 			job.run(reboot, install_before, install_after)
 		finally:
-			job._cleanup()
+			job.cleanup_parser()
 except:
 	job.aborted = True
 	traceback.print_exc()
