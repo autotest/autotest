@@ -1035,21 +1035,6 @@ class QueueTask(AgentTask):
 
 
 	def prolog(self):
-		# write the parser commands into the results directories
-		if self.job.is_synchronous() or self.job.num_machines()==1:
-			results_dir = self.job.results_dir()
-			cmdfile = os.path.join(results_dir, '.parse.cmd')
-			cmd = generate_parse_command(results_dir, '-n')
-			print >> open(cmdfile, 'w'), cmd
-		else:
-			for queue_entry in self.queue_entries:
-				results_dir = queue_entry.results_dir()
-				cmdfile = os.path.join(results_dir,
-						       '.parse.cmd')
-				cmd = generate_parse_command(results_dir,
-							     '-l 2 -n')
-				print >> open(cmdfile, 'w'), cmd
-
 		# write some job timestamps into the job keyval file
 		queued = time.mktime(self.job.created_on.timetuple())
 		started = time.time()
@@ -1617,7 +1602,14 @@ class Job(DBObject):
 		hostnames = ','.join([entry.get_host().hostname
 				      for entry in queue_entries])
 
-		params = [_autoserv_path, '-p', '-n',
+		# determine the job tag
+		if self.is_synchronous() or self.num_machines() == 1:
+			job_name = "%s-%s" % (self.id, self.owner)
+		else:
+			job_name = "%s-%s/%s" % (self.id, self.owner,
+						 hostnames)
+
+		params = [_autoserv_path, '-P', job_name, '-p', '-n',
 			  '-r', os.path.abspath(results_dir),
 			  '-b', '-u', self.owner, '-l', self.name,
 			  '-m', hostnames, ctrl.name]
