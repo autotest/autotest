@@ -1,0 +1,457 @@
+import re, os, md5
+
+from autotest_lib.client.common_lib import utils as common_utils
+from autotest_lib.tko import utils as tko_utils, models, status_lib
+
+
+class job(models.job):
+	def __init__(self, dir):
+		job_dict = job.load_from_dir(dir)
+		super(job, self).__init__(dir, **job_dict)
+
+	@staticmethod
+	def load_from_dir(dir):
+		try:
+			keyval = common_utils.read_keyval(dir)
+			tko_utils.dprint(str(keyval))
+		except Exception:
+			keyval = {}
+
+		user = keyval.get("user", None)
+		label = keyval.get("label", None)
+		machine = keyval.get("hostname", None)
+		if machine:
+			assert "," not in machine
+		queued_time = tko_utils.get_timestamp(keyval, "job_queued")
+		started_time = tko_utils.get_timestamp(keyval, "job_started")
+		finished_time = tko_utils.get_timestamp(keyval, "job_finished")
+		machine_owner = keyval.get("owner", None)
+
+		if not machine:
+			machine = job.find_hostname(dir)
+		tko_utils.dprint("MACHINE NAME: %s" % machine)
+
+		return {"user": user, "label": label, "machine": machine,
+			"queued_time": queued_time,
+			"started_time": started_time,
+			"finished_time": finished_time,
+			"machine_owner": machine_owner}
+
+
+	@staticmethod
+	def find_hostname(path):
+		hostname = os.path.join(path, "sysinfo", "hostname")
+		try:
+			machine = open(hostname).readline().rstrip()
+			return machine
+		except Exception:
+			tko_utils.dprint("Could not read a hostname from "
+					 "sysinfo/hostname")
+
+		uname = os.path.join(path, "sysinfo", "uname_-a")
+		try:
+			machine = open(uname).readline().split()[1]
+			return
+		except Exception:
+			tko_utils.dprint("Could not read a hostname from "
+					 "sysinfo/uname_-a")
+
+		raise Exception("Unable to find a machine name")
+
+
+class kernel(models.kernel):
+	def __init__(self, job, verify_ident=None):
+		kernel_dict = kernel.load_from_dir(job.dir, verify_ident)
+		super(kernel, self).__init__(**kernel_dict)
+
+
+	@staticmethod
+	def load_from_dir(dir, verify_ident=None):
+		# try and load the booted kernel version
+		build_log = os.path.join(dir, "build", "debug", "build_log")
+		attributes = kernel.load_from_build_log(build_log)
+		if not attributes:
+			if verify_ident:
+				base = verify_ident
+			else:
+				base = kernel.load_from_sysinfo(dir)
+			patches = []
+			hashes = []
+		else:
+			base, patches, hashes = attributes
+		tko_utils.dprint("kernel.__init__() found kernel version %s"
+				 % base)
+
+		# compute the kernel hash
+		if base == "UNKNOWN":
+			kernel_hash = "UNKNOWN"
+		else:
+			kernel_hash = kernel.compute_hash(base, hashes)
+
+		return {"base": base, "patches": patches,
+			"kernel_hash": kernel_hash}
+
+
+	@staticmethod
+	def compute_hash(base, hashes):
+		key_string = ','.join([base] + hashes)
+		return md5.new(key_string).hexdigest()
+
+
+	@staticmethod
+	def load_from_sysinfo(path):
+		for subdir in ("reboot1", ""):
+			uname_path = os.path.join(path, "sysinfo", subdir,
+						  "uname_-a")
+			if not os.path.exists(uname_path):
+				continue
+			uname = open(uname_path).readline().split()
+			return re.sub("-autotest$", "", uname[2])
+		return "UNKNOWN"
+
+
+	@staticmethod
+	def load_from_build_log(path):
+		if not os.path.exists(path):
+			return None
+
+		base, patches, hashes = "UNKNOWN", [], []
+		for line in file(path):
+			head, rest = line.split(": ", 1)
+			rest = rest.split()
+			if head == "BASE":
+				base = rest[0]
+			elif head == "PATCH":
+				patches.append(patch(*rest))
+				hashes.append(rest[2])
+		return base, patches, hashes
+
+
+class test(models.test):
+	def __init__(self, job, subdir, testname, status, reason, test_kernel,
+		     finished_time):
+		tko_utils.dprint("parsing test %s %s" % (subdir, testname))
+
+		if subdir:
+			# grab iterations from the results keyval
+			keyval = os.path.join(job.dir, subdir, "results",
+					      "keyval")
+			iterations = iteration.load_from_keyval(keyval)
+
+			# grab version from the subdir keyval
+			keyval = os.path.join(job.dir, subdir, "keyval")
+			attributes = test.load_attributes(keyval)
+			# for backwards compatibility
+			if "version" in attributes:
+				v = attributes["version"]
+				v = "%s\n" % v
+				attributes["version"] = v
+			else:
+				attributes["version"] = None
+		else:
+			iterations = []
+			attributes = {"version": None}
+
+		super(test, self).__init__(subdir, testname, status, reason,
+					   test_kernel, job.machine,
+					   finished_time, iterations,
+					   attributes)
+
+
+	@staticmethod
+	def load_version(path):
+		if not os.path.exists(path):
+			return None
+		for line in file(path):
+			match = re.search(r"^version=(.*)$", line)
+			if match:
+				return match.group(1)
+
+
+	@staticmethod
+	def load_attributes(path):
+		if not os.path.exists(path):
+			return {}
+		return common_utils.read_keyval(path)
+
+
+class patch(models.patch):
+	def __init__(self, spec, reference, hash):
+		tko_utils.dprint("PATCH::%s %s %s" % (spec, reference, hash))
+		super(patch, self).__init__(spec, reference, hash)
+		self.spec = spec
+		self.reference = reference
+		self.hash = hash
+
+
+class iteration(models.iteration):
+	def __init__(self, index, lines):
+		keyval = dict(line.split("=", 1) for line in lines)
+		super(iteration, self).__init__(index, keyval)
+
+
+	@classmethod
+	def load_from_keyval(cls, path):
+		if not os.path.exists(path):
+			return []
+		# pull any values we can from the keyval file
+		iterations = []
+		index = 1
+		lines = []
+		for line in file(path):
+			line = line.strip()
+			if line:
+				lines.append(line)
+			else:
+				iterations.append(cls(index, lines))
+				index += 1
+				lines = []
+		if lines:
+			iterations.append(cls(index, lines))
+		return iterations
+
+
+class status_line(object):
+	def __init__(self, indent, status, subdir, testname, reason,
+		     optional_fields):
+		# pull out the type & status of the line
+		if status == "START":
+			self.type = "START"
+			self.status = None
+		elif status.startswith("END "):
+			self.type = "END"
+			self.status = status[4:]
+		else:
+			self.type = "STATUS"
+			self.status = status
+		assert (self.status is None or
+			self.status in status_lib.status_stack.statuses)
+
+		# save all the other parameters
+		self.indent = indent
+		self.subdir = self.parse_name(subdir)
+		self.testname = self.parse_name(testname)
+		self.reason = reason
+		self.optional_fields = optional_fields
+
+
+	@staticmethod
+	def parse_name(name):
+		if name == "----":
+			return None
+		return name
+
+
+	@staticmethod
+	def is_status_line(line):
+		return re.search(r"^\t*\S", line) is not None
+
+
+	@classmethod
+	def parse_line(cls, line):
+		if not status_line.is_status_line(line):
+			return None
+		indent, line = re.search(r"^(\t*)(.*)$", line).groups()
+		indent = len(indent)
+
+		# split the line into the fixed and optional fields
+		parts = line.split("\t")
+		status, subdir, testname = parts[0:3]
+		reason = parts[-1]
+		optional_parts = parts[3:-1]
+
+		# all the optional parts should be of the form "key=value"
+		assert sum('=' not in part for part in optional_parts) == 0
+		optional_fields = dict(part.split("=", 1)
+				       for part in optional_parts)
+
+		# build up a new status_line and return it
+		return cls(indent, status, subdir, testname, reason,
+			   optional_fields)
+
+
+class parser(object):
+	@staticmethod
+	def make_job(dir):
+		return job(dir)
+
+
+	def start(self, job):
+		self.job = job
+		self.finished = False
+		self.line_buffer = status_lib.line_buffer()
+		self.state = self.state_iterator(self.line_buffer)
+		self.state.next()
+
+
+	def process_lines(self, lines):
+		# push all the lines into the buffer
+		for line in lines:
+			self.line_buffer.put(line)
+		# run the state machine to clear out the buffer
+		self.state.next()
+		# return any new tests parsed out by the state machine
+		new_tests = self.new_tests
+		self.new_tests = []
+		return new_tests
+
+
+	def end(self, lines=[]):
+		# push all the lines into the buffer
+		for line in lines:
+			self.line_buffer.put(line)
+		# run the state machine to clear out the buffer
+		self.finished = True
+		self.state.next()
+		# return any new tests parsed out by the state machine
+		return self.new_tests
+
+
+	def state_iterator(self, buffer):
+		self.new_tests = []
+		boot_count = 0
+		group_subdir = None
+		sought_level = 0
+		stack = status_lib.status_stack()
+		current_kernel = kernel(self.job)
+		boot_in_progress = False
+		alert_pending = None
+
+		while not self.finished or buffer.size():
+			# stop processing once the buffer is empty
+			if buffer.size() == 0:
+				yield None
+				continue
+
+			# parse the next line
+			line = buffer.get()
+			tko_utils.dprint('\nSTATUS: ' + line.strip())
+			line = status_line.parse_line(line)
+			if line is None:
+				tko_utils.dprint('non-status line, ignoring')
+				continue # ignore non-status lines
+
+			# have we hit the job start line?
+			if (line.type == "START" and not line.subdir and
+			    not line.testname):
+				sought_level = 1
+				tko_utils.dprint("found job level start "
+						 "marker, looking for level "
+						 "1 groups now")
+				continue
+
+			# have we hit the job end line?
+			if (line.type == "END" and not line.subdir and
+			    not line.testname):
+				tko_utils.dprint("found job level end "
+						 "marker, looking for level "
+						 "0 lines now")
+				sought_level = 0
+
+			# START line, just push another layer on to the stack
+			if line.type == "START":
+				group_subdir = None
+				stack.start()
+				tko_utils.dprint("start line, ignoring")
+				continue
+			# otherwise, update the status on the stack
+			else:
+				tko_utils.dprint("GROPE_STATUS: %s" %
+						 [stack.current_status(),
+						  line.status, line.subdir,
+						  line.testname, line.reason])
+				stack.update(line.status)
+
+			if line.status == "ALERT":
+				tko_utils.dprint("job level alert, recording")
+				alert_pending = line.reason
+				continue
+
+			# ignore Autotest.install => GOOD lines
+			if (line.testname == "Autotest.install" and
+			    line.status == "GOOD"):
+				tko_utils.dprint("Successful Autotest "
+						 "install, ignoring")
+				continue
+
+			# convert job-level ABORTs into a 'JOB' test, and
+			# ignore other job-level events
+			if line.testname is None:
+				if (line.status == "ABORT" and
+				    line.type != "END"):
+					line.testname = "JOB"
+				else:
+					tko_utils.dprint("job level event, "
+							"ignoring")
+					continue
+
+			# use the group subdir for END lines
+			if line.type == "END":
+				line.subdir = group_subdir
+
+			# are we inside a block group?
+			if (line.indent != sought_level and
+			    line.status != "ABORT" and
+			    not line.testname.startswith('reboot.')):
+				if line.subdir:
+					tko_utils.dprint("set group_subdir: "
+							 + line.subdir)
+					group_subdir = line.subdir
+				tko_utils.dprint("ignoring incorrect indent "
+						 "level %d != %d," %
+						 (line.indent, sought_level))
+				continue
+
+			# use the subdir as the testname, except for
+			# boot.* and kernel.* tests
+			if (line.testname is None or
+			    not re.search(r"^(boot(\.\d+)?$|kernel\.)",
+					  line.testname)):
+				if line.subdir and '.' in line.subdir:
+					line.testname = line.subdir
+
+			# has a reboot started?
+			if line.testname == "reboot.start":
+				tko_utils.dprint("reboot start event, "
+						 "ignoring")
+				boot_in_progress = True
+				continue
+
+			# has a reboot finished?
+			if line.testname == "reboot.verify":
+				line.testname = "boot.%d" % boot_count
+				tko_utils.dprint("reboot verified")
+				boot_in_progress = False
+				verify_ident = line.reason.strip()
+				current_kernel = kernel(self.job, verify_ident)
+				boot_count += 1
+
+			if alert_pending:
+				line.status = "ALERT"
+				line.reason = alert_pending
+				alert_pending = None
+
+			# create the actual test object
+			finished_time = tko_utils.get_timestamp(
+			    line.optional_fields, "timestamp")
+			final_status = stack.end()
+			tko_utils.dprint("Adding: "
+					 "%s\nSubdir:%s\nTestname:%s\n%s" %
+					 (final_status, line.subdir,
+					  line.testname, line.reason))
+			new_test = test(self.job, line.subdir, line.testname,
+					final_status, line.reason,
+					current_kernel, finished_time)
+			self.new_tests.append(new_test)
+
+		# the job is finished, but we never came back from reboot
+		if boot_in_progress:
+			testname = "boot.%d" % boot_count
+			reason = "machine did not return from reboot"
+			tko_utils.dprint(("Adding: ABORT\nSubdir:----\n"
+					  "Testname:%s\n%s")
+					 % (testname, reason))
+			new_test = test(self.job, None, testname, "ABORT",
+					reason, current_kernel, None)
+			self.new_tests.append(new_test)
+		yield None
