@@ -129,7 +129,7 @@ class kernel(models.kernel):
 
 class test(models.test):
 	def __init__(self, job, subdir, testname, status, reason, test_kernel,
-		     finished_time):
+		     started_time, finished_time):
 		tko_utils.dprint("parsing test %s %s" % (subdir, testname))
 
 		if subdir:
@@ -154,8 +154,8 @@ class test(models.test):
 
 		super(test, self).__init__(subdir, testname, status, reason,
 					   test_kernel, job.machine,
-					   finished_time, iterations,
-					   attributes)
+					   started_time, finished_time,
+					   iterations, attributes)
 
 
 	@staticmethod
@@ -316,6 +316,7 @@ class parser(object):
 		current_kernel = kernel(self.job)
 		boot_in_progress = False
 		alert_pending = None
+		started_time = None
 
 		while not self.finished or buffer.size():
 			# stop processing once the buffer is empty
@@ -349,9 +350,15 @@ class parser(object):
 				sought_level = 0
 
 			# START line, just push another layer on to the stack
+			# and grab the start time if this is at the job level
+			# we're currently seeking
 			if line.type == "START":
 				group_subdir = None
 				stack.start()
+				if line.indent == sought_level:
+					started_time = \
+						     tko_utils.get_timestamp(
+					    line.optional_fields, "timestamp")
 				tko_utils.dprint("start line, ignoring")
 				continue
 			# otherwise, update the status on the stack
@@ -412,6 +419,8 @@ class parser(object):
 
 			# has a reboot started?
 			if line.testname == "reboot.start":
+				started_time = tko_utils.get_timestamp(
+				    line.optional_fields, "timestamp")
 				tko_utils.dprint("reboot start event, "
 						 "ignoring")
 				boot_in_progress = True
@@ -441,7 +450,9 @@ class parser(object):
 					  line.testname, line.reason))
 			new_test = test(self.job, line.subdir, line.testname,
 					final_status, line.reason,
-					current_kernel, finished_time)
+					current_kernel, started_time,
+					finished_time)
+			started_time = None
 			self.new_tests.append(new_test)
 
 		# the job is finished, but we never came back from reboot
@@ -452,6 +463,6 @@ class parser(object):
 					  "Testname:%s\n%s")
 					 % (testname, reason))
 			new_test = test(self.job, None, testname, "ABORT",
-					reason, current_kernel, None)
+					reason, current_kernel, None, None)
 			self.new_tests.append(new_test)
 		yield None
