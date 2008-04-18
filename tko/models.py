@@ -21,13 +21,15 @@ class kernel(object):
 
 class test(object):
 	def __init__(self, subdir, testname, status, reason, test_kernel,
-		     machine, finished_time, iterations, attributes):
+		     machine, started_time, finished_time, iterations,
+		     attributes):
 		self.subdir = subdir
 		self.testname = testname
 		self.status = status
 		self.reason = reason
 		self.kernel = test_kernel
 		self.machine = machine
+		self.started_time = started_time
 		self.finished_time = finished_time
 		self.iterations = iterations
 		self.attributes = attributes

@@ -286,6 +286,7 @@ class db_sql:
 			'subdir':test.subdir, 'kernel_idx':kver,
 			'status':self.status_idx[test.status],
 			'reason':test.reason, 'machine_idx':job.machine_idx,
+			'started_time': test.started_time,
 			'finished_time':test.finished_time}
 		self.insert('tests', data, commit=commit)
 		test_idx = self.get_last_autonumber_value()
