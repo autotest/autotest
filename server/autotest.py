@@ -379,6 +379,7 @@ class _Run(object):
 						"boot after %ds" % (
 						self.host.hostname,
 						BOOT_TIME,))
+				self.host.reboot_followup()
 				continue
 			self.host.job.record("ABORT", None, None,
 					     "Autotest client terminated " +

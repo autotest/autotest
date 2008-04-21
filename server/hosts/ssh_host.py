@@ -455,8 +455,13 @@ class SSHHost(remote.RemoteHost):
 				      "reboot command failed")
 			raise
 		if wait:
-			self.wait_for_restart(timeout)
-			self.__load_netconsole_module() # if the builtin fails
+			self.wait_for_restart(timeout) 
+			self.reboot_followup()
+
+
+	def reboot_followup(self):
+		super(SSHHost, self).reboot_followup()
+		self.__load_netconsole_module() # if the builtin fails
 
 
 	def __copy_files(self, sources, dest):
