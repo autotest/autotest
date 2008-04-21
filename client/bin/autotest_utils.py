@@ -279,7 +279,7 @@ def sysctl_kernel(key, value=None):
 	"""(Very) partial implementation of sysctl, for kernel params"""
 	if value:
 		# write
-		write_one_line('/proc/sys/kernel/%s' % key, value)
+		write_one_line('/proc/sys/kernel/%s' % key, str(value))
 	else:
 		# read
 		out = read_one_line('/proc/sys/kernel/%s' % key)
