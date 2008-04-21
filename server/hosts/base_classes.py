@@ -56,6 +56,11 @@ class Host(object):
 	def reboot_setup(self):
 		pass
 
+
+	def reboot_followup(self):
+		pass
+
+
 	def get_file(self, source, dest):
 		pass
 
