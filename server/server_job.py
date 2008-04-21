@@ -230,7 +230,7 @@ class base_server_job:
 			namespace = {'machines' : self.machines, 'job' : self}
 			exec(preamble + verify, namespace, namespace)
 		except Exception, e:
-			msg = 'Verify failed\n' + str(e) + '\n' + format_error()
+			msg = 'Verify failed\n' + str(e) + '\n' + traceback.format_exc()
 			self.record('ABORT', None, None, msg)
 			raise
 
@@ -356,7 +356,8 @@ class base_server_job:
 			test.runtest(self, url, tag, args, dargs)
 			self.record('GOOD', subdir, testname, 'completed successfully')
 		except Exception, detail:
-			self.record('FAIL', subdir, testname, str(detail) + "\n" + format_error())
+			self.record('FAIL', subdir, testname,
+			            str(detail) + "\n" + traceback.format_exc())
 
 
 	def run_group(self, function, *args, **dargs):
@@ -389,7 +390,7 @@ class base_server_job:
 				self.record('END GOOD', None, name)
 			except:
 				self.record_prefix = old_record_prefix
-				self.record('END FAIL', None, name, format_error())
+				self.record('END FAIL', None, name, traceback.format_exc())
 		# We don't want to raise up an error higher if it's just
 		# a TestError - we want to carry on to other tests. Hence
 		# this outer try/except block.
@@ -397,7 +398,7 @@ class base_server_job:
 			pass
 		except:
 			raise error.TestError(name + ' failed\n' +
-					      format_error())
+					      traceback.format_exc())
 
 		return result
 
