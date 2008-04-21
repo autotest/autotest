@@ -1,5 +1,6 @@
 import datetime
-from django.db import models as dbmodels
+from django.db import models as dbmodels, backend
+from django.utils import datastructures
 from frontend.afe import enum
 from frontend import settings
 
@@ -16,6 +17,63 @@ class AclAccessViolation(Exception):
 	Raised when an operation is attempted with proper permissions as
 	dictated by ACLs.
 	"""
+
+
+class ExtendedManager(dbmodels.Manager):
+	"""\
+	Extended manager supporting subquery filtering.
+	"""
+
+	class _RawSqlQ(dbmodels.Q):
+		"""\
+		A Django "Q" object constructed with a raw SQL query.
+		"""
+		def __init__(self, sql, params=[]):
+			self._sql = sql
+			self._params = params[:]
+
+
+		def get_sql(self, opts):
+			return (datastructures.SortedDict(),
+				[self._sql],
+				self._params)
+
+
+	@staticmethod
+	def _get_quoted_field(table, field):
+		return (backend.quote_name(table) + '.' +
+			backend.quote_name(field))
+
+
+	def _do_subquery_filter(self, key_field, subquery, not_in=False):
+		select_fields, where, params = subquery._get_sql_clause()
+		subquery_table = subquery.model._meta.db_table
+		subselect = '(SELECT ' + self._get_quoted_field(subquery_table,
+								key_field)
+		subselect += where + ')'
+
+		in_str = not_in and 'NOT IN' or 'IN'
+		pk_field = self._get_quoted_field(self.model._meta.db_table,
+						  self.model._meta.pk.column)
+		where_sql = ' '.join((pk_field, in_str, subselect))
+		filter_obj = self._RawSqlQ(where_sql, params)
+		return self.complex_filter(filter_obj)
+
+
+	def filter_in_subquery(self, key_field, subquery):
+		"""\
+		Construct a filter to perform a subquery match, i.e.
+		WHERE id IN (SELECT host_id FROM ... WHERE ...)
+		-key_field - the field to select in the subquery (host_id above)
+		-subquery - a query object for the subquery
+		"""
+		return self._do_subquery_filter(key_field, subquery)
+
+
+	def filter_not_in_subquery(self, key_field, subquery):
+		'Like filter_in_subquery, but use NOT IN rather than IN.'
+		return self._do_subquery_filter(key_field, subquery,
+						not_in=True)
 
 
 class ModelExtensions(object):
@@ -325,6 +383,7 @@ class Label(dbmodels.Model, ModelExtensions):
 	platform = dbmodels.BooleanField(default=False)
 
 	name_field = 'name'
+	objects = ExtendedManager()
 
 
 	def enqueue_job(self, job):
@@ -333,14 +392,6 @@ class Label(dbmodels.Model, ModelExtensions):
 					     status=Job.Status.QUEUED,
 					     priority=job.priority)
 		queue_entry.save()
-
-
-	def block_auto_assign(self, job):
-		"""\
-		Placeholder to allow labels to be used in place of hosts
-		(as meta-hosts).
-		"""
-		pass
 
 
 	class Meta:
@@ -379,6 +430,7 @@ class Host(dbmodels.Model, ModelExtensions):
 				    editable=settings.FULL_ADMIN)
 
 	name_field = 'hostname'
+	objects = ExtendedManager()
 
 
 	def save(self):
@@ -402,12 +454,6 @@ class Host(dbmodels.Model, ModelExtensions):
 			self.status = Host.Status.READY
 			self.save()
 		queue_entry.save()
-
-
-	def block_auto_assign(self, job):
-		'Block this host from being assigned to a job.'
-		block = IneligibleHostQueue(job=job, host=self)
-		block.save()
 
 
 	def platform(self):
@@ -476,6 +522,7 @@ class Test(dbmodels.Model, ModelExtensions):
 	path = dbmodels.CharField(maxlength=255)
 
 	name_field = 'name'
+	objects = ExtendedManager()
 
 
 	class Meta:
@@ -511,6 +558,7 @@ class User(dbmodels.Model, ModelExtensions):
 	access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
 	name_field = 'login'
+	objects = ExtendedManager()
 
 
 	def save(self):
@@ -560,6 +608,8 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 	Optional:
 	description: arbitrary description of group
 	"""
+	# REMEMBER: whenever ACL membership changes, something MUST call
+	# Job.recompute_all_blocks().
 	name = dbmodels.CharField(maxlength=255, unique=True)
 	description = dbmodels.CharField(maxlength=255, blank=True)
 	users = dbmodels.ManyToManyField(User,
@@ -568,6 +618,27 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 					 filter_interface=dbmodels.HORIZONTAL)
 
 	name_field = 'name'
+	objects = ExtendedManager()
+
+
+	# need to recompute blocks on group deletion
+	def delete(self):
+		super(AclGroup, self).delete()
+		Job.recompute_all_blocks()
+
+
+	# if you have a model attribute called "Manipulator", Django will
+	# automatically insert it into the beginning of the superclass list
+	# for the model's manipulators
+	class Manipulator(object):
+		"""
+		Custom manipulator to recompute job blocks whenever ACLs are
+		added or membership is changed through manipulators.
+		"""
+		def save(self, new_data):
+			obj = super(AclGroup.Manipulator, self).save(new_data)
+			Job.recompute_all_blocks()
+			return obj
 
 
 	class Meta:
@@ -585,7 +656,7 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 AclGroup._meta.object_name = 'acl_group'
 
 
-class JobManager(dbmodels.Manager):
+class JobManager(ExtendedManager):
 	'Custom manager to provide efficient status counts querying.'
 	def get_status_counts(self, job_ids):
 		"""\
@@ -682,7 +753,36 @@ class Job(dbmodels.Model, ModelExtensions):
 		'Enqueue a job on the given hosts.'
 		for host in hosts:
 			host.enqueue_job(self)
-			host.block_auto_assign(self)
+		self.recompute_blocks()
+
+
+	def recompute_blocks(self):
+		"""\
+		Clear out the blocks (ineligible_host_queues) for this job and
+		recompute the set.  The set of blocks is the union of:
+		-all hosts already assigned to this job
+		-all hosts not ACL accessible to this job's owner
+		"""
+		job_entries = self.hostqueueentry_set.all()
+		accessible_hosts = Host.objects.filter(
+		    acl_group__users__login=self.owner)
+		query = Host.objects.filter_in_subquery('host_id', job_entries)
+		query |= Host.objects.filter_not_in_subquery('id',
+							     accessible_hosts)
+
+		old_ids = [block.id for block in
+			   self.ineligiblehostqueue_set.all()]
+		for host in query:
+			block = IneligibleHostQueue(job=self, host=host)
+			block.save()
+		IneligibleHostQueue.objects.filter(id__in=old_ids).delete()
+
+
+	@classmethod
+	def recompute_all_blocks(cls):
+		'Recompute blocks for all queued and active jobs.'
+		for job in cls.objects.filter(hostqueueentry__complete=False):
+			job.recompute_blocks()
 
 
 	def requeue(self, new_owner):
@@ -731,6 +831,8 @@ class IneligibleHostQueue(dbmodels.Model):
 	job = dbmodels.ForeignKey(Job)
 	host = dbmodels.ForeignKey(Host)
 
+	objects = ExtendedManager()
+
 	class Meta:
 		db_table = 'ineligible_host_queues'
 
@@ -748,6 +850,8 @@ class HostQueueEntry(dbmodels.Model, ModelExtensions):
 					db_column='meta_host')
 	active = dbmodels.BooleanField(default=False)
 	complete = dbmodels.BooleanField(default=False)
+
+	objects = ExtendedManager()
 
 
 	def is_meta_host_entry(self):
