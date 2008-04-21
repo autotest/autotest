@@ -1,5 +1,5 @@
 AUTHOR = "Martin Bligh (mbligh@google.com)"
-NAME = "Disktest"
+NAME = "Disktest using export"
 DOC = """\
 Pattern test of the disk, using unique signatures for each block and each
 iteration of the test. Designed to check for data corruption issues in the
@@ -9,4 +9,6 @@ TIME = "MEDIUM"
 TEST_CATEGORY = "Kernel"
 TEST_TYPE = "client"
 
-job.run_test('disktest')
+import glob
+disks = glob.glob('/export/*')
+job.run_test('disktest', disks)
