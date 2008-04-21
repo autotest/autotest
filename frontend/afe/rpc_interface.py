@@ -152,21 +152,25 @@ def modify_acl_group(id, **data):
 def acl_group_add_users(id, users):
 	users = [models.User.smart_get(user) for user in users]
 	models.AclGroup.smart_get(id).users.add(*users)
+	models.Job.recompute_all_blocks()
 
 
 def acl_group_remove_users(id, users):
 	users = [models.User.smart_get(user) for user in users]
 	models.AclGroup.smart_get(id).users.remove(*users)
+	models.Job.recompute_all_blocks()
 
 
 def acl_group_add_hosts(id, hosts):
 	hosts = [models.Host.smart_get(host) for host in hosts]
 	models.AclGroup.smart_get(id).hosts.add(*hosts)
+	models.Job.recompute_all_blocks()
 
 
 def acl_group_remove_hosts(id, hosts):
 	hosts = [models.Host.smart_get(host) for host in hosts]
 	models.AclGroup.smart_get(id).hosts.remove(*hosts)
+	models.Job.recompute_all_blocks()
 
 
 def delete_acl_group(id):
