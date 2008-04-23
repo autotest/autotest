@@ -1,0 +1,11 @@
+<b>Ran the control file: </b>
+<pre>
+{{ obj.job.control_file }}
+</pre>
+<b>Created on:</b> {{ obj.job.created_on }}<br />
+<b>Owner: </b>{{ obj.job.owner }}<br />
+<b>Labels: </b>
+	{% for label in obj.host.labels.all %}
+		{{ label.name }}{% if not forloop.last %}, {% endif %} 
+	{% endfor %}
+<br />

@@ -1,6 +1,11 @@
 from django.conf.urls.defaults import *
 import os
 from frontend import settings
+from frontend.afe.feeds import feed
+
+feeds = {
+    'jobs' : feed.JobFeed
+}
 
 pattern_list = [(r'^(?:|noauth/)rpc/', 'frontend.afe.rpc_handler.rpc_handler')]
 
@@ -19,7 +24,12 @@ debug_pattern_list = [
     # redirect /tko to local apache server
     (r'^(?P<path>tko/.*)$',
      'frontend.afe.views.redirect_with_extra_data',
-     {'url': 'http://%(server_name)s/%(path)s?%(getdata)s'})
+     {'url': 'http://%(server_name)s/%(path)s?%(getdata)s'}),
+
+    # Job feeds
+    (r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
+     {'feed_dict': feeds})
+
 ]
 
 if settings.DEBUG:
