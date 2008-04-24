@@ -59,8 +59,7 @@ public class JobDetailView extends TabView {
     public void setJobID(int id) {
         this.jobId = id;
         idInput.setText(Integer.toString(id));
-        fetchData();
-        updateHistory();
+        updateHistory(); // will result in a refresh if the page is showing
     }
 
     public void resetPage() {

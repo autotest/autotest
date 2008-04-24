@@ -308,40 +308,6 @@ def get_num_jobs(not_yet_run=False, running=False, finished=False,
 	return models.Job.query_count(filter_data)
 
 
-def job_status(job_id, **filter_data):
-	"""\
-	Get status of job with the given id number.  Returns a dictionary
-	mapping hostnames to dictionaries with two keys each:
-	 * 'status' : the job status for that host
-	 * 'meta_count' : For meta host entires, gives a count of how many
-	                  entries there are for this label (the hostname is
-			  then a label name).  For real host entries,
-			  meta_count is None.
-	"""
-	filter_data['job'] = job_id
-	job_entries = models.HostQueueEntry.query_objects(filter_data)
-	hosts_status = {}
-	for queue_entry in job_entries:
-		is_meta = queue_entry.is_meta_host_entry()
-		if is_meta:
-			name = queue_entry.meta_host.name
-			hosts_status.setdefault(name, {'meta_count': 0})
-			hosts_status[name]['meta_count'] += 1
-		else:
-			name = queue_entry.host.hostname
-			hosts_status[name] = {'meta_count': None}
-		hosts_status[name]['status'] = queue_entry.status
-	return hosts_status
-
-
-def job_num_entries(job_id, **filter_data):
-	"""\
-	Get the number of host queue entries associated with this job.
-	"""
-	filter_data['job'] = job_id
-	return models.HostQueueEntry.query_count(filter_data)
-
-
 def get_jobs_summary(**filter_data):
 	"""\
 	Like get_jobs(), but adds a 'stauts_counts' field, which is a dictionary
@@ -354,6 +320,24 @@ def get_jobs_summary(**filter_data):
 	for job in jobs:
 		job['status_counts'] = all_status_counts[job['id']]
 	return rpc_utils.prepare_for_serialization(jobs)
+
+
+# host queue entries
+
+def get_host_queue_entries(**filter_data):
+	"""\
+	TODO
+	"""
+	return rpc_utils.prepare_for_serialization(
+	    models.HostQueueEntry.list_objects(filter_data))
+
+
+def get_num_host_queue_entries(**filter_data):
+	"""\
+	Get the number of host queue entries associated with this job.
+	"""
+	return models.HostQueueEntry.query_count(filter_data)
+
 
 
 # other
