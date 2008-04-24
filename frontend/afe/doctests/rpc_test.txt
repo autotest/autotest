@@ -280,13 +280,19 @@ True
 >>> rpc_interface.get_num_jobs(name='my_job')
 1L
 
-# check job status, i.e. status for each host in the job
-# job_status requires ID number, not job name
->>> data = rpc_interface.job_status(1)
->>> data == {'host1': {'status': 'Queued', 'meta_count': None},
-...          'host2': {'status': 'Queued', 'meta_count': None},
-...          'my_label': {'status': 'Queued', 'meta_count': 2}}
+# check host queue entries for a job
+>>> data = rpc_interface.get_host_queue_entries(job=1)
+>>> data == [{'status': 'Queued', 'complete': 0, 'host': 'host1', 'priority': 0,
+...           'meta_host': None, 'job': 1L, 'active': 0, 'id': 1L},
+...          {'status': 'Queued', 'complete': 0, 'host': 'host2', 'priority': 0,
+...           'meta_host': None, 'job': 1L, 'active': 0, 'id': 2L},
+...          {'status': 'Queued', 'complete': 0, 'host': None, 'priority': 0,
+...           'meta_host': 'my_label', 'job': 1L, 'active': 0, 'id': 3L},
+...          {'status': 'Queued', 'complete': 0, 'host': None, 'priority': 0,
+...           'meta_host': 'my_label', 'job': 1L, 'active': 0, 'id': 4L}]
 True
+>>> rpc_interface.get_num_host_queue_entries(job=1)
+4L
 
 # get_jobs_summary adds status counts to the rest of the get_jobs info
 >>> data = rpc_interface.get_jobs_summary()

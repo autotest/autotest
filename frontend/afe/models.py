@@ -114,9 +114,9 @@ class ModelExtensions(object):
 		<field>
 		"""
 		for field in cls._meta.fields:
-			if field.rel:
-				data[field.name] = data[field.column]
-				del data[field.column]
+			if field.rel and field.attname != field.name:
+				data[field.name] = data[field.attname]
+				del data[field.attname]
 
 
 	# TODO(showard) - is there a way to not have to do this?
@@ -164,6 +164,8 @@ class ModelExtensions(object):
 		new_data = dict(data)
 		field_dict = cls.get_field_dict()
 		for field_name in data:
+			if data[field_name] is None:
+				continue
 			field_obj = field_dict[field_name]
 			# convert enum values
 			if field_obj.choices:
@@ -180,7 +182,8 @@ class ModelExtensions(object):
 			elif field_obj.rel:
 				dest_obj = field_obj.rel.to.smart_get(
 				    data[field_name])
-				if to_human_readable:
+				if (to_human_readable and
+				    dest_obj.name_field is not None):
 					new_data[field_name] = (
 					    getattr(dest_obj,
 						    dest_obj.name_field))
