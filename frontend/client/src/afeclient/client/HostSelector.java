@@ -80,8 +80,12 @@ public class HostSelector {
 
         selectedTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
-                deselectRow(row);
-                selectionRefresh();
+                if (isMetaEntry(row)) {
+                    deselectRow(row);
+                    selectionRefresh();
+                }
+                else
+                    availableSelection.deselectObject(row);
             }
             
             public void onTableRefreshed() {}
@@ -180,6 +184,7 @@ public class HostSelector {
         availableSelection.deselectAll();
         // get rid of leftover meta-host entries
         selectedHostData.clear();
+        selectionRefresh();
     }
     
     protected void populateLabels(ListBox list) {
