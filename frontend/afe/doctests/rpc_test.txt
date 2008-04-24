@@ -39,7 +39,8 @@
 >>> data == [{'id': 1L,
 ...           'name': 'test_label',
 ...           'platform': 1,
-...           'kernel_config': '/my/kernel/config'}]
+...           'kernel_config': '/my/kernel/config',
+...           'invalid': 0}]
 True
 
 # get_labels return multiple matches as lists of dictionaries
@@ -50,8 +51,10 @@ True
 >>> rpc_interface.add_label(name='label3', platform=False)
 4L
 >>> data = rpc_interface.get_labels(platform=False)
->>> data == [{'id': 2L, 'name': 'label1', 'platform': 0, 'kernel_config': ''},
-...          {'id': 4L, 'name': 'label3', 'platform': 0, 'kernel_config': ''}]
+>>> data == [{'id': 2L, 'name': 'label1', 'platform': 0, 'kernel_config': '',
+...           'invalid': 0},
+...          {'id': 4L, 'name': 'label3', 'platform': 0, 'kernel_config': '',
+...           'invalid': 0}]
 True
 
 # delete_label takes an ID or a name as well
@@ -76,7 +79,8 @@ True
 ...           'synch_id': None,
 ...           'status': 'Hello',
 ...           'labels': [],
-...           'platform': None}]
+...           'platform': None,
+...           'invalid': 0}]
 True
 >>> rpc_interface.delete_host('ipaj1')
 >>> rpc_interface.get_hosts() == []
@@ -144,9 +148,9 @@ True
 >>> rpc_interface.add_host(hostname='host2')
 3L
 >>> rpc_interface.add_label(name='label1')
-5L
+2L
 >>> rpc_interface.add_label(name='label2', platform=True)
-6L
+3L
 
 # add hosts to labels
 >>> rpc_interface.host_add_labels('host1', ['label1'])
@@ -220,7 +224,7 @@ True
 
 # add some entries to play with
 >>> rpc_interface.add_label(name='my_label', kernel_config='my_kernel_config')
-7L
+5L
 >>> test_control_path = os.path.join(test_path, 'test.control')
 >>> rpc_interface.add_test(name='sleeptest', test_type='Client',
 ...                        test_class='Kernel', path=test_control_path)
