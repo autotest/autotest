@@ -1,4 +1,4 @@
-import re, os, sys, types, time
+import re, os, sys, types, time, random
 
 import common
 from autotest_lib.client.common_lib import global_config
@@ -9,31 +9,14 @@ class MySQLTooManyRows(Exception):
 
 
 class db_sql:
-	def __init__(self, debug = False, autocommit=True, host = None,
-				database = None, user = None, password = None):
+	def __init__(self, debug=False, autocommit=True, host=None,
+		     database=None, user=None, password=None):
 		self.debug = debug
 		self.autocommit = autocommit
 
-		self.host = host
-		self.database = database
-		self.user = user
-		self.password = password
+		self._load_config(host, database, user, password)
 
-		# grab the global config
-		c = global_config.global_config
-
-		# grab the host, database
-		if not self.host:
-			self.host = c.get_config_value("TKO", "host")
-		if not self.database:
-			self.database = c.get_config_value("TKO", "database")
-
-		# grab the user and password
-		if not self.user:
-			self.user = c.get_config_value("TKO", "user")
-		if not self.password:
-			self.password = c.get_config_value("TKO", "password")
-
+		self.con = None
 		self._init_db()
 
 		# if not present, insert statuses
@@ -53,11 +36,46 @@ class db_sql:
 		self.machine_group = {}
 
 
+	def _load_config(self, host, database, user, password):
+		# grab the global config
+		get_value = global_config.global_config.get_config_value
+
+		# grab the host, database
+		if not host:
+			self.host = get_value("TKO", "host")
+		if not database:
+			self.database = get_value("TKO", "database")
+
+		# grab the user and password
+		if not user:
+			self.user = get_value("TKO", "user")
+		if not password:
+			self.password = get_value("TKO", "password")
+
+		# grab the timeout configuration
+		self.query_timeout = get_value("TKO", "query_timeout",
+					       type=int, default=3600)
+		self.min_delay = get_value("TKO", "min_retry_delay", type=int,
+					   default=20)
+		self.max_delay = get_value("TKO", "max_retry_delay", type=int,
+					   default=60)
+
+
 	def _init_db(self):
+		# make sure we clean up any existing connection
+		if self.con:
+			self.con.close()
+			self.con = None
+
 		# create the db connection and cursor
 		self.con = self.connect(self.host, self.database,
 					self.user, self.password)
 		self.cur = self.con.cursor()
+
+
+	def _random_delay(self):
+		delay = random.randint(self.min_delay, self.max_delay)
+		time.sleep(delay)
 
 
 	def _run_with_retry(self, function, *args, **dargs):
@@ -66,8 +84,7 @@ class db_sql:
 		is intended for internal use with database functions, not
 		for generic use."""
 		OperationalError = _get_error_class("OperationalError")
-		# TODO: make this configurable
-		TIMEOUT = 3600 # one hour
+
 		success = False
 		start_time = time.time()
 		while not success:
@@ -76,10 +93,11 @@ class db_sql:
 			except OperationalError:
 				stop_time = time.time()
 				elapsed_time = stop_time - start_time
-				if elapsed_time > TIMEOUT:
+				if elapsed_time > self.query_timeout:
 					raise
 				else:
 					try:
+						self._random_delay()
 						self._init_db()
 					except OperationalError:
 						pass
