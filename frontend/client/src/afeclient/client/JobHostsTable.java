@@ -12,17 +12,18 @@ import afeclient.client.table.Filter;
  */
 public class JobHostsTable extends DynamicTable {
     public static final String[][] JOB_HOSTS_COLUMNS = {
-        {"hostname", "Host"}, {"status", "Status"}
+        {"host", "Host"}, {"status", "Status"}
     };
     
     protected int jobId;
     
     public JobHostsTable() {
         super(JOB_HOSTS_COLUMNS, 
-              new JobStatusDataSource("job_status", "job_num_entries"));
+              new JobStatusDataSource("get_host_queue_entries", 
+                                      "get_num_host_queue_entries"));
         addFilter(new Filter() {
             public void addParams(JSONObject params) {
-                params.put("job_id", new JSONNumber(jobId));
+                params.put("job", new JSONNumber(jobId));
             }
 
             public Widget getWidget() {
