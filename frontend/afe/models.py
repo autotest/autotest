@@ -76,6 +76,15 @@ class ExtendedManager(dbmodels.Manager):
 						not_in=True)
 
 
+class ValidObjectsManager(ExtendedManager):
+	"""
+	Manager returning only objects with invalid=False.
+	"""
+	def get_query_set(self):
+		queryset = super(ValidObjectsManager, self).get_query_set()
+		return queryset.filter(invalid=False)
+
+
 class ModelExtensions(object):
 	"""\
 	Mixin with convenience functions for models, built on top of the
@@ -213,13 +222,13 @@ class ModelExtensions(object):
 		errors = {}
 		cls = type(self)
 		field_dict = self.get_field_dict()
+		manager = cls.get_valid_manager()
 		for field_name, field_obj in field_dict.iteritems():
 			if not field_obj.unique:
 				continue
 
 			value = getattr(self, field_name)
-			existing_objs = cls.objects.filter(
-			    **{field_name : value})
+			existing_objs = manager.filter(**{field_name : value})
 			num_existing = existing_objs.count()
 
 			if num_existing == 0:
@@ -272,7 +281,7 @@ class ModelExtensions(object):
 
 
 	@classmethod
-	def query_objects(cls, filter_data):
+	def query_objects(cls, filter_data, valid_only=True):
 		"""\
 		Returns a QuerySet object for querying the given model_class
 		with the given filter_data.  Optional special arguments in
@@ -294,7 +303,11 @@ class ModelExtensions(object):
 		query_dict = {}
 		for field, value in filter_data.iteritems():
 			query_dict[field] = value
-		query = cls.objects.filter(**query_dict).distinct()
+		if valid_only:
+			manager = cls.get_valid_manager()
+		else:
+			manager = cls.objects
+		query = manager.filter(**query_dict).distinct()
 		if extra_args:
 			query = query.extra(**extra_args)
 		assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
@@ -368,7 +381,66 @@ class ModelExtensions(object):
 			    for field_name in self.get_field_dict().iterkeys())
 
 
-class Label(dbmodels.Model, ModelExtensions):
+	@classmethod
+	def get_valid_manager(cls):
+		return cls.objects
+
+
+class ModelWithInvalid(ModelExtensions):
+	"""
+	Overrides model methods save() and delete() to support invalidation in
+	place of actual deletion.  Subclasses must have a boolean "invalid"
+	field.
+	"""
+
+	def save(self):
+		# see if this object was previously added and invalidated
+		my_name = getattr(self, self.name_field)
+		filters = {self.name_field : my_name, 'invalid' : True}
+		try:
+			old_object = self.__class__.objects.get(**filters)
+		except self.DoesNotExist:
+			# no existing object
+			super(ModelWithInvalid, self).save()
+			return
+
+		self.id = old_object.id
+		super(ModelWithInvalid, self).save()
+
+
+	def clean_object(self):
+		"""
+		This method is called when an object is marked invalid.
+		Subclasses should override this to clean up relationships that
+		should no longer exist if the object were deleted."""
+		pass
+
+
+	def delete(self):
+		assert not self.invalid
+		self.invalid = True
+		self.save()
+		self.clean_object()
+
+
+	@classmethod
+	def get_valid_manager(cls):
+		return cls.valid_objects
+
+
+	class Manipulator(object):
+		"""
+		Force default manipulators to look only at valid objects -
+		otherwise they will match against invalid objects when checking
+		uniqueness.
+		"""
+		@classmethod
+		def _prepare(cls, model):
+			super(ModelWithInvalid.Manipulator, cls)._prepare(model)
+			cls.manager = model.valid_objects
+
+
+class Label(ModelWithInvalid, dbmodels.Model):
 	"""\
 	Required:
 	name: label name
@@ -381,9 +453,15 @@ class Label(dbmodels.Model, ModelExtensions):
 	name = dbmodels.CharField(maxlength=255, unique=True)
 	kernel_config = dbmodels.CharField(maxlength=255, blank=True)
 	platform = dbmodels.BooleanField(default=False)
+	invalid = dbmodels.BooleanField(default=False,
+					editable=settings.FULL_ADMIN)
 
 	name_field = 'name'
 	objects = ExtendedManager()
+	valid_objects = ValidObjectsManager()
+
+	def clean_object(self):
+		self.host_set.clear()
 
 
 	def enqueue_job(self, job):
@@ -399,12 +477,14 @@ class Label(dbmodels.Model, ModelExtensions):
 
 	class Admin:
 		list_display = ('name', 'kernel_config')
+		# see Host.Admin
+		manager = ValidObjectsManager()
 
 	def __str__(self):
 		return self.name
 
 
-class Host(dbmodels.Model, ModelExtensions):
+class Host(ModelWithInvalid, dbmodels.Model):
 	"""\
 	Required:
 	hostname
@@ -428,9 +508,17 @@ class Host(dbmodels.Model, ModelExtensions):
 	status = dbmodels.CharField(maxlength=255, default=Status.READY,
 	                            choices=Status.choices(),
 				    editable=settings.FULL_ADMIN)
+	invalid = dbmodels.BooleanField(default=False,
+					editable=settings.FULL_ADMIN)
 
 	name_field = 'hostname'
 	objects = ExtendedManager()
+	valid_objects = ValidObjectsManager()
+
+
+	def clean_object(self):
+		self.aclgroup_set.clear()
+		self.labels.clear()
 
 
 	def save(self):
@@ -488,6 +576,9 @@ class Host(dbmodels.Model, ModelExtensions):
 		list_display = ('hostname', 'platform', 'locked', 'status')
 		list_filter = ('labels', 'locked')
 		search_fields = ('hostname', 'status')
+		# undocumented Django feature - if you set manager here, the
+		# admin code will use it, otherwise it'll use a default Manager
+		manager = ValidObjectsManager()
 
 	def __str__(self):
 		return self.hostname
@@ -857,17 +948,6 @@ class HostQueueEntry(dbmodels.Model, ModelExtensions):
 	def is_meta_host_entry(self):
 		'True if this is a entry has a meta_host instead of a host.'
 		return self.host is None and self.meta_host is not None
-
-
-	def save(self):
-		if self.host:
-			user = self.job.user()
-			if user is None or not user.has_access(self.host):
-				raise AclAccessViolation(
-				    'User %s does not have permission to '
-				    'access host %s' % (self.job.owner,
-							self.host.hostname))
-		super(HostQueueEntry, self).save()
 
 
 	class Meta:

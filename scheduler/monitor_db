@@ -123,7 +123,8 @@ def idle_hosts():
 				(id IN (SELECT DISTINCT hl.host_id FROM host_queue_entries hqe 
 				INNER JOIN hosts_labels hl ON hqe.meta_host=hl.label_id WHERE not hqe.complete AND not hqe.active))
 		)
-		AND locked=false AND (h.status IS null OR h.status='Ready')	""")
+		AND locked=false AND invalid=false
+		AND (h.status IS null OR h.status='Ready')	""")
 	hosts = [Host(row=i) for i in rows]
 	return hosts
 
@@ -440,8 +441,8 @@ class Dispatcher:
 	def _reverify_hosts_where(self, where,
 				  print_message='Reverifying host %s',
 				  exclude_ids=set()):
-		rows = _db.execute('SELECT * FROM hosts WHERE locked = 0 AND ' +
-				   where)
+		rows = _db.execute('SELECT * FROM hosts WHERE locked = 0 AND '
+				   'invalid = 0 AND ' + where)
 		hosts = [Host(row=i) for i in rows]
 		for host in hosts:
 			if host.id in exclude_ids:
@@ -1241,7 +1242,8 @@ class IneligibleHostQueue(DBObject):
 
 class Host(DBObject):
 	def __init__(self, id=None, row=None):
-		fields =  ['id', 'hostname', 'locked', 'synch_id','status']
+		fields =  ['id', 'hostname', 'locked', 'synch_id','status',
+			   'invalid']
 		super(Host, self).__init__(fields, id=id, row=row)
 
 
