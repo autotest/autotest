@@ -21,6 +21,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
     protected JobDetailView jobDetail;
     protected CreateJobView createJob;
     protected HostListView hostListView;
+    protected HostDetailView hostDetailView;
     
     protected TabView[] tabViews;
 
@@ -57,12 +58,10 @@ public class ClientMain implements EntryPoint, HistoryListener {
             }
         });
         hostListView = new HostListView();
+        hostDetailView = new HostDetailView();
         
-        tabViews = new TabView[4];
-        tabViews[0] = jobList;
-        tabViews[1] = jobDetail;
-        tabViews[2] = createJob;
-        tabViews[3] = hostListView;
+        tabViews = new TabView[] {jobList, jobDetail, createJob, hostListView, 
+                                  hostDetailView};
         
         CustomTabPanel customPanel = new CustomTabPanel();
         mainTabPanel = customPanel.tabPanel;
@@ -110,7 +109,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
     
     protected void showJob(int jobId) {
         jobDetail.ensureInitialized();
-        jobDetail.setJobID(jobId);
+        jobDetail.fetchJob(jobId);
         mainTabPanel.selectTab(1);
     }
 
