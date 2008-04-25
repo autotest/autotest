@@ -6,7 +6,7 @@ This is the core infrastructure.
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 # standard stuff
-import os, sys, re, pickle, shutil, time, traceback
+import os, sys, re, pickle, shutil, time, traceback, types, copy
 # autotest stuff
 from autotest_utils import *
 from parallel import *
@@ -16,6 +16,12 @@ import kernel, xen, test, profilers, filesystem, fd_stack, boottool
 import harness, config
 import sysinfo
 import cpuset
+
+
+JOB_PREAMBLE = """
+from common.error import *
+from autotest_utils import *
+"""
 
 
 class StepError(AutotestError):
@@ -79,6 +85,8 @@ class base_job:
 		self.resultdir = os.path.join(self.autodir, 'results', jobtag)
 		self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
 		self.control = os.path.abspath(control)
+		self.state_file = self.control + '.state'
+		self.state = None
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
@@ -500,13 +508,41 @@ class base_job:
 		"""Clean up and exit"""
 		# We are about to exit 'complete' so clean up the control file.
 		try:
-			os.unlink(self.control + '.state')
+			os.unlink(self.state_file)
 		except:
 			pass
 
 		self.harness.run_complete()
 		self.disable_external_logging()
 		sys.exit(status)
+
+
+	def set_state(self, var, val):
+		# Deep copies make sure that the state can't be altered
+		# without it being re-written.  Perf wise, deep copies
+		# are overshadowed by pickling/loading.
+		self.state[var] = copy.deepcopy(val)
+		pickle.dump(self.state, open(self.state_file, 'w'))
+
+
+	def __load_state(self):
+		assert(self.state == None)
+		try:
+			self.state = pickle.load(open(self.state_file, 'r'))
+			return True
+		except Exception:
+			print "Initializing the state engine."
+			self.state = {}
+			self.set_state('steps', []) # writes pickle file
+			return False
+
+
+	def get_state(self, var, default=None):
+		if var in self.state or default == None:
+			val = self.state[var]
+		else:
+			val = default
+		return copy.deepcopy(val)
 
 
 	def __create_step_tuple(self, fn, args, dargs):
@@ -528,19 +564,18 @@ class base_job:
 		return (fn, args, dargs)
 
 
-	steps = []
 	def next_step(self, fn, *args, **dargs):
 		"""Define the next step"""
-		step = self.__create_step_tuple(fn, args, dargs)
-		self.steps.append(step)
-		pickle.dump(self.steps, open(self.control + '.state', 'w'))
+		steps = self.get_state('steps')
+		steps.append(self.__create_step_tuple(fn, args, dargs))
+		self.set_state('steps', steps)
 
 
 	def next_step_prepend(self, fn, *args, **dargs):
 		"""Insert a new step, executing first"""
-		step = self.__create_step_tuple(fn, args, dargs)
-		self.steps.insert(0, step)
-		pickle.dump(self.steps, open(self.control + '.state', 'w'))
+		steps = self.get_state('steps')
+		steps.insert(0, self.__create_step_tuple(fn, args, dargs))
+		self.set_state('steps', steps)
 
 
 	def step_engine(self):
@@ -548,29 +583,28 @@ class base_job:
 		step_init we will be using this engine to drive multiple runs.
 		"""
 		"""Do the next step"""
-		lcl = dict({'job': self})
 
-		str = """
-from common.error import *
-from autotest_utils import *
-"""
-		exec(str, lcl, lcl)
+		# Set up the environment and then interpret the control file.
+		# Some control files will have code outside of functions,
+		# which means we need to have our state engine initialized
+		# before reading in the file.
+		state_existed = self.__load_state()
+		lcl = {'job': self}
+		exec(JOB_PREAMBLE, lcl, lcl)
 		execfile(self.control, lcl, lcl)
 
-		state = self.control + '.state'
-		# If there is a mid-job state file load that in and continue
-		# where it indicates.  Otherwise start stepping at the passed
-		# entry.
-		try:
-			self.steps = pickle.load(open(state, 'r'))
-		except:
+		# If we loaded in a mid-job state file, then we presumably
+		# know what steps we have yet to run.
+		if not state_existed:
 			if lcl.has_key('step_init'):
 				self.next_step([lcl['step_init']])
 
-		# Run the step list.
-		while len(self.steps) > 0:
-			(fn, args, dargs) = self.steps.pop(0)
-			pickle.dump(self.steps, open(state, 'w'))
+		# Iterate through the steps.  If we reboot, we'll simply
+		# continue iterating on the next step.
+		while len(self.get_state('steps')) > 0:
+			steps = self.get_state('steps')
+			(fn, args, dargs) = steps.pop(0)
+			self.set_state('steps', steps)
 
 			lcl['__args'] = args
 			lcl['__dargs'] = dargs
