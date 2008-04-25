@@ -17,6 +17,11 @@ import harness, config
 import sysinfo
 import cpuset
 
+
+class StepError(AutotestError):
+	pass
+
+
 class base_job:
 	"""The actual job against which we do everything.
 
@@ -504,19 +509,36 @@ class base_job:
 		sys.exit(status)
 
 
+	def __create_step_tuple(self, fn, args, dargs):
+		# Legacy code passes in an array where the first arg is
+		# the function or its name.
+		if isinstance(fn, list):
+			assert(len(args) == 0)
+			assert(len(dargs) == 0)
+			args = fn[1:]
+			fn = fn[0]
+		# Pickling actual functions is harry, thus we have to call
+		# them by name.  Unfortunately, this means only functions
+		# defined globally can be used as a next step.
+		if isinstance(fn, types.FunctionType):
+			fn = fn.__name__
+		if not isinstance(fn, types.StringTypes):
+			raise StepError("Next steps must be functions or "
+			                "strings containing the function name")
+		return (fn, args, dargs)
+
+
 	steps = []
-	def next_step(self, step):
+	def next_step(self, fn, *args, **dargs):
 		"""Define the next step"""
-		if not isinstance(step[0], basestring):
-			step[0] = step[0].__name__
+		step = self.__create_step_tuple(fn, args, dargs)
 		self.steps.append(step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
 
-	def next_step_prepend(self, step):
+	def next_step_prepend(self, fn, *args, **dargs):
 		"""Insert a new step, executing first"""
-		if not isinstance(step[0], basestring):
-			step[0] = step[0].__name__
+		step = self.__create_step_tuple(fn, args, dargs)
 		self.steps.insert(0, step)
 		pickle.dump(self.steps, open(self.control + '.state', 'w'))
 
@@ -547,12 +569,12 @@ from autotest_utils import *
 
 		# Run the step list.
 		while len(self.steps) > 0:
-			step = self.steps.pop(0)
+			(fn, args, dargs) = self.steps.pop(0)
 			pickle.dump(self.steps, open(state, 'w'))
 
-			cmd = step.pop(0)
-			lcl['__args'] = step
-			exec(cmd + "(*__args)", lcl, lcl)
+			lcl['__args'] = args
+			lcl['__dargs'] = dargs
+			exec(fn + "(*__args, **__dargs)", lcl, lcl)
 
 
 	def record(self, status_code, subdir, operation, status = ''):
