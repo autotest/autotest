@@ -533,7 +533,7 @@ class base_job:
 		except Exception:
 			print "Initializing the state engine."
 			self.state = {}
-			self.set_state('steps', []) # writes pickle file
+			self.set_state('__steps', []) # writes pickle file
 			return False
 
 
@@ -566,16 +566,16 @@ class base_job:
 
 	def next_step(self, fn, *args, **dargs):
 		"""Define the next step"""
-		steps = self.get_state('steps')
+		steps = self.get_state('__steps')
 		steps.append(self.__create_step_tuple(fn, args, dargs))
-		self.set_state('steps', steps)
+		self.set_state('__steps', steps)
 
 
 	def next_step_prepend(self, fn, *args, **dargs):
 		"""Insert a new step, executing first"""
-		steps = self.get_state('steps')
+		steps = self.get_state('__steps')
 		steps.insert(0, self.__create_step_tuple(fn, args, dargs))
-		self.set_state('steps', steps)
+		self.set_state('__steps', steps)
 
 
 	def step_engine(self):
@@ -601,10 +601,10 @@ class base_job:
 
 		# Iterate through the steps.  If we reboot, we'll simply
 		# continue iterating on the next step.
-		while len(self.get_state('steps')) > 0:
-			steps = self.get_state('steps')
+		while len(self.get_state('__steps')) > 0:
+			steps = self.get_state('__steps')
 			(fn, args, dargs) = steps.pop(0)
-			self.set_state('steps', steps)
+			self.set_state('__steps', steps)
 
 			lcl['__args'] = args
 			lcl['__dargs'] = dargs
