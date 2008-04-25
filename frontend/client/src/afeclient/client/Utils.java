@@ -56,6 +56,18 @@ public class Utils {
         return result;
     }
     
+    /**
+     * Get a value out of an array of size 1.
+     * @return array[0]
+     * @throws IllegalArgumentException if the array is not of size 1
+     */
+    public static JSONValue getSingleValueFromArray(JSONArray array) {
+        if(array.size() != 1) {
+            throw new IllegalArgumentException("Array is not of size 1");
+        }
+        return array.get(0);
+    }
+    
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
         String result = "";
         Set statusSet = counts.keySet();

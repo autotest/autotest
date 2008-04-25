@@ -18,9 +18,8 @@ import java.util.Map;
  * consolidate metahosts of the same label.
  */
 class JobStatusDataSource extends RpcDataSource {
-    public JobStatusDataSource(String getDataMethod, 
-                               String getCountMethod) {
-        super(getDataMethod, getCountMethod);
+    public JobStatusDataSource() {
+        super("get_host_queue_entries", "get_num_host_queue_entries");
     }
     
     protected JSONArray handleJsonResult(JSONValue result) {
