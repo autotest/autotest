@@ -1,90 +1,58 @@
 package afeclient.client;
 
+import afeclient.client.table.DynamicTable;
 import afeclient.client.table.ListFilter;
 import afeclient.client.table.SearchFilter;
+import afeclient.client.table.SimpleFilter;
 import afeclient.client.table.TableDecorator;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.RootPanel;
-import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Iterator;
 import java.util.Set;
 
-public class JobDetailView extends TabView {
+public class JobDetailView extends DetailView {
+    public static final String[][] JOB_HOSTS_COLUMNS = {
+        {"host", "Host"}, {"status", "Status"}
+    };
     public static final String NO_URL = "about:blank";
-    public static final String NO_JOB = "No job selected";
-    public static final String GO_TEXT = "Go";
     public static final int NO_JOB_ID = -1;
     public static final int HOSTS_PER_PAGE = 30;
     
-    public String getElementId() {
-        return "view_job";
-    }
-    
-    protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
-
     protected int jobId = NO_JOB_ID;
 
-    protected RootPanel allJobData;
-    
-    protected JobHostsTable hostsTable = new JobHostsTable();
+    protected DynamicTable hostsTable = new DynamicTable(JOB_HOSTS_COLUMNS, 
+                                                         new JobStatusDataSource());
     protected TableDecorator tableDecorator = new TableDecorator(hostsTable);
-    protected TextBox idInput = new TextBox();
-    protected Button idFetchButton = new Button(GO_TEXT);
+    protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
     protected Button requeueButton = new Button("Requeue job");
     
-    protected void showText(String text, String elementId) {
-        DOM.setInnerText(RootPanel.get(elementId).getElement(), text);
-    }
-
-    protected void showField(JSONObject job, String field, String elementId) {
-        JSONString jsonString = job.get(field).isString();
-        String value = "";
-        if (jsonString != null)
-            value = jsonString.stringValue();
-        showText(value, elementId);
-    }
-
-    public void setJobID(int id) {
-        this.jobId = id;
-        idInput.setText(Integer.toString(id));
-        updateHistory(); // will result in a refresh if the page is showing
-    }
-
-    public void resetPage() {
-        showText(NO_JOB, "view_title");
-        allJobData.setVisible(false);
-    }
-
-    public void fetchData() {
+    protected void fetchData() {
         pointToResults(NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
             public void onSuccess(JSONValue result) {
-                JSONArray resultArray = result.isArray();
-                if(resultArray.size() == 0) {
+                JSONObject jobObject;
+                try {
+                    jobObject = Utils.getSingleValueFromArray(result.isArray()).isObject();
+                }
+                catch (IllegalArgumentException exc) {
                     NotifyManager.getInstance().showError("No such job found");
                     resetPage();
                     return;
                 }
-                JSONObject jobObject = resultArray.get(0).isObject();
                 String name = jobObject.get("name").isString().stringValue();
                 String owner = jobObject.get("owner").isString().stringValue();
-                String jobLogsId = jobId + "-" + owner;
-                String title = "Job: " + name + " (" + jobLogsId + ")";
-                showText(title, "view_title");
                 
                 showText(name, "view_label");
                 showText(owner, "view_owner");
@@ -101,12 +69,16 @@ public class JobDetailView extends TabView {
                 showText(countString, "view_status");
                 abortButton.setVisible(!allFinishedCounts(counts));
                 
+                String jobLogsId = jobId + "-" + owner;
                 pointToResults(getResultsURL(jobId), getLogsURL(jobLogsId));
                 
-                allJobData.setVisible(true);
+                String title = "Job: " + name + " (" + jobLogsId + ")";
+                displayObjectData(title);
                 
-                hostsTable.setJobId(jobId);
+                jobFilter.setParameter("job", new JSONNumber(jobId));
+                hostsTable.refresh();
             }
+
 
             public void onError(JSONObject errorObject) {
                 super.onError(errorObject);
@@ -130,39 +102,10 @@ public class JobDetailView extends TabView {
         return true;
     }
     
-    public void fetchById() {
-        String id = idInput.getText();
-        try {
-            setJobID(Integer.parseInt(id));
-        }
-        catch (NumberFormatException exc) {
-            String error = "Invalid job ID " + id;
-            NotifyManager.getInstance().showError(error);
-        }
-    }
-
     public void initialize() {
-        allJobData = RootPanel.get("view_data");
+        super.initialize();
         
-        resetPage();
-        
-        RootPanel.get("job_id_fetch_controls").add(idInput);
-        RootPanel.get("job_id_fetch_controls").add(idFetchButton);
         idInput.setVisibleLength(5);
-        idInput.addKeyboardListener(new KeyboardListener() {
-            public void onKeyPress(Widget sender, char keyCode, int modifiers) {
-                if (keyCode == (char) KEY_ENTER)
-                    fetchById();
-            }
-
-            public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyUp(Widget sender, char keyCode, int modifiers) {}
-        });
-        idFetchButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                fetchById();
-            }
-        });
         
         hostsTable.setRowsPerPage(HOSTS_PER_PAGE);
         tableDecorator.addPaginators();
@@ -183,8 +126,11 @@ public class JobDetailView extends TabView {
         });
         RootPanel.get("view_requeue").add(requeueButton);
     }
+
     
     protected void addTableFilters() {
+        hostsTable.addFilter(jobFilter);
+        
         SearchFilter hostnameFilter = new SearchFilter("host__hostname");
         hostnameFilter.setExactMatch(false);
         ListFilter statusFilter = new ListFilter("status");
@@ -212,7 +158,7 @@ public class JobDetailView extends TabView {
         rpcProxy.rpcCall("requeue_job", params, new JsonRpcCallback() {
             public void onSuccess(JSONValue result) {
                 int newId = (int) result.isNumber().getValue();
-                setJobID(newId);
+                fetchJob(newId);
             }
         });
     }
@@ -240,28 +186,44 @@ public class JobDetailView extends TabView {
                                "href", logsUrl);
     }
     
-    public String getHistoryToken() {
-        String token = super.getHistoryToken();
-        if (jobId != NO_JOB_ID)
-            token += "_" + jobId;
-        return token;
-    }
-
-    public void handleHistoryToken(String token) {
-        int newJobId;
-        try {
-            newJobId = Integer.parseInt(token);
-        }
-        catch (NumberFormatException exc) {
-            return;
-        }
-        if (newJobId != jobId)
-            setJobID(newJobId);
+    protected String getNoObjectText() {
+        return "No job selected";
     }
     
-    public void refresh() {
-        super.refresh();
-        if (jobId != NO_JOB_ID)
-            fetchData();
+    protected String getFetchControlsElementId() {
+        return "job_id_fetch_controls";
+    }
+    
+    protected String getDataElementId() {
+        return "view_data";
+    }
+    
+    protected String getTitleElementId() {
+        return "view_title";
+    }
+
+    protected String getObjectId() {
+        if (jobId == NO_JOB_ID)
+            return NO_OBJECT;
+        return Integer.toString(jobId);
+    }
+    
+    public String getElementId() {
+        return "view_job";
+    }
+
+    protected void setObjectId(String id) {
+        int newJobId;
+        try {
+            newJobId = Integer.parseInt(id);
+        }
+        catch (NumberFormatException exc) {
+            throw new IllegalArgumentException();
+        }
+        this.jobId = newJobId;
+    }
+    
+    public void fetchJob(int jobId) {
+        fetchById(Integer.toString(jobId));
     }
 }
