@@ -110,13 +110,21 @@ class ModelExtensions(object):
 	@classmethod
 	def clean_foreign_keys(cls, data):
 		"""\
-		Convert foreign key fields in data from <field>_id to just
-		<field>
+		-Convert foreign key fields in data from <field>_id to just
+		<field>.
+		-replace foreign key objects with their IDs
+		This method modifies data in-place.
 		"""
 		for field in cls._meta.fields:
-			if field.rel and field.attname != field.name:
+			if not field.rel:
+				continue
+			if (field.attname != field.name and
+			    field.attname in data):
 				data[field.name] = data[field.attname]
 				del data[field.attname]
+			value = data[field.name]
+			if isinstance(value, dbmodels.Model):
+				data[field.name] = value.id
 
 
 	# TODO(showard) - is there a way to not have to do this?
@@ -160,8 +168,9 @@ class ModelExtensions(object):
 
 		If to_human_readable=True, perform the inverse - i.e. convert
 		numeric values to human readable values.
+
+		This method modifies data in-place.
 		"""
-		new_data = dict(data)
 		field_dict = cls.get_field_dict()
 		for field_name in data:
 			if data[field_name] is None:
@@ -176,7 +185,7 @@ class ModelExtensions(object):
 					else:
 						to_val, from_val = choice_data
 					if from_val == data[field_name]:
-						new_data[field_name] = to_val
+						data[field_name] = to_val
 						break
 			# convert foreign key values
 			elif field_obj.rel:
@@ -184,12 +193,11 @@ class ModelExtensions(object):
 				    data[field_name])
 				if (to_human_readable and
 				    dest_obj.name_field is not None):
-					new_data[field_name] = (
+					data[field_name] = (
 					    getattr(dest_obj,
 						    dest_obj.name_field))
 				else:
-					new_data[field_name] = dest_obj.id
-		return new_data
+					data[field_name] = dest_obj.id
 
 
 	@classmethod
@@ -213,7 +221,7 @@ class ModelExtensions(object):
 		errors = cls.validate_field_names(data)
 		if errors:
 			raise ValidationError(errors)
-		data = cls.convert_human_readable_values(data)
+		cls.convert_human_readable_values(data)
 		return data
 
 
@@ -303,6 +311,8 @@ class ModelExtensions(object):
 					 'query_limit')
 		sort_by = filter_data.pop('sort_by', [])
 		extra_args = filter_data.pop('extra_args', None)
+
+		# filters
 		query_dict = {}
 		for field, value in filter_data.iteritems():
 			query_dict[field] = value
@@ -311,8 +321,12 @@ class ModelExtensions(object):
 		else:
 			manager = cls.objects
 		query = manager.filter(**query_dict).distinct()
+
+		# other arguments
 		if extra_args:
 			query = query.extra(**extra_args)
+
+		# sorting + paging
 		assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
 		query = query.order_by(*sort_by)
 		if query_start is not None and query_limit is not None:
@@ -339,7 +353,7 @@ class ModelExtensions(object):
 		"""
 		for i in range(len(field_dicts)):
 			cls.clean_foreign_keys(field_dicts[i])
-			field_dicts[i] = cls.convert_human_readable_values(
+			cls.convert_human_readable_values(
 			    field_dicts[i], to_human_readable=True)
 
 
@@ -380,8 +394,11 @@ class ModelExtensions(object):
 		"""\
 		Return a dictionary mapping fields to this object's values.
 		"""
-		return dict((field_name, getattr(self, field_name))
-			    for field_name in self.get_field_dict().iterkeys())
+		object_dict = dict((field_name, getattr(self, field_name))
+				   for field_name
+				   in self.get_field_dict().iterkeys())
+		self.clean_object_dicts([object_dict])
+		return object_dict
 
 
 	@classmethod

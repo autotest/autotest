@@ -328,8 +328,15 @@ def get_host_queue_entries(**filter_data):
 	"""\
 	TODO
 	"""
-	return rpc_utils.prepare_for_serialization(
-	    models.HostQueueEntry.list_objects(filter_data))
+	query = models.HostQueueEntry.query_objects(filter_data)
+	all_dicts = []
+	for queue_entry in query.select_related():
+		entry_dict = queue_entry.get_object_dict()
+		if entry_dict['host'] is not None:
+			entry_dict['host'] = queue_entry.host.get_object_dict()
+		entry_dict['job'] = queue_entry.job.get_object_dict()
+		all_dicts.append(entry_dict)
+	return rpc_utils.prepare_for_serialization(all_dicts)
 
 
 def get_num_host_queue_entries(**filter_data):

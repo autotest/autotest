@@ -37,7 +37,8 @@ class JobStatusDataSource extends RpcDataSource {
                 continue;
             }
             
-            // non-metahost - just insert the HostQueueEntry directly
+            // non-metahost
+            processHostData(queueEntry);
             rows.set(rows.size(), queueEntry);
         }
         
@@ -46,6 +47,18 @@ class JobStatusDataSource extends RpcDataSource {
         return rows;
     }
     
+    protected void processHostData(JSONObject queueEntry) {
+        JSONObject host = queueEntry.get("host").isObject();
+        queueEntry.put("hostname", host.get("hostname"));
+        // don't show host details if the job is complete - it'll only confuse
+        // the user
+        boolean complete = queueEntry.get("complete").isNumber().getValue() > 0;
+        if (!complete) {
+            queueEntry.put("host_status", host.get("status"));
+            queueEntry.put("host_locked", Utils.getLockedText(host));
+        }
+    }
+
     protected void incrementMetaHostCount(Map metaHostCounts, JSONObject queueEntry) {
         String label = queueEntry.get("meta_host").isString().stringValue();
         String status = queueEntry.get("status").isString().stringValue();
@@ -70,7 +83,7 @@ class JobStatusDataSource extends RpcDataSource {
             String label = (String) key.get(0), status = (String) key.get(1);
             int count = ((Integer) metaHostCounts.get(key)).intValue();
             JSONObject row = new JSONObject();
-            row.put("host", new JSONString(label + " (label)"));
+            row.put("hostname", new JSONString(label + " (label)"));
             row.put("status", new JSONString(Integer.toString(count) + 
                                              " " + status));
             rows.set(rows.size(), row);

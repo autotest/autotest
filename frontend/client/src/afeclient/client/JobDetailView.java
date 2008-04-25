@@ -5,6 +5,7 @@ import afeclient.client.table.ListFilter;
 import afeclient.client.table.SearchFilter;
 import afeclient.client.table.SimpleFilter;
 import afeclient.client.table.TableDecorator;
+import afeclient.client.table.DynamicTable.DynamicTableListener;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -21,11 +22,16 @@ import java.util.Set;
 
 public class JobDetailView extends DetailView {
     public static final String[][] JOB_HOSTS_COLUMNS = {
-        {"host", "Host"}, {"status", "Status"}
+        {"hostname", "Host"}, {"status", "Status"}, 
+        {"host_status", "Host Status"}, {"host_locked", "Host Locked"}
     };
     public static final String NO_URL = "about:blank";
     public static final int NO_JOB_ID = -1;
     public static final int HOSTS_PER_PAGE = 30;
+    
+    public interface JobDetailListener {
+        public void onHostSelected(String hostname);
+    }
     
     protected int jobId = NO_JOB_ID;
 
@@ -35,7 +41,12 @@ public class JobDetailView extends DetailView {
     protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
     protected Button requeueButton = new Button("Requeue job");
+    protected JobDetailListener listener;
     
+    public JobDetailView(JobDetailListener listener) {
+        this.listener = listener;
+    }
+
     protected void fetchData() {
         pointToResults(NO_URL, NO_URL);
         JSONObject params = new JSONObject();
@@ -108,6 +119,16 @@ public class JobDetailView extends DetailView {
         idInput.setVisibleLength(5);
         
         hostsTable.setRowsPerPage(HOSTS_PER_PAGE);
+        hostsTable.setClickable(true);
+        hostsTable.addListener(new DynamicTableListener() {
+            public void onRowClicked(int rowIndex, JSONObject row) {
+                JSONObject host = row.get("host").isObject();
+                String hostname = host.get("hostname").isString().stringValue();
+                listener.onHostSelected(hostname);
+            }
+
+            public void onTableRefreshed() {}
+        });
         tableDecorator.addPaginators();
         addTableFilters();
         RootPanel.get("job_hosts_table").add(tableDecorator);
