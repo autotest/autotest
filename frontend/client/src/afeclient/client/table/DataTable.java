@@ -97,12 +97,12 @@ public class DataTable extends Composite {
     protected void preprocessRow(JSONObject row) {}
     
     protected String getTextForValue(JSONValue value) {
-        if (value.isNumber() != null)
+        if (value == null || value.isNull() != null)
+            return "";
+        else if (value.isNumber() != null)
             return Integer.toString((int) value.isNumber().getValue());
         else if (value.isString() != null)
             return  value.isString().stringValue();
-        else if (value.isNull() != null)
-            return "";
         else
             throw new IllegalArgumentException(value.toString());
     }

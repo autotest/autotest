@@ -4,7 +4,8 @@
 # a bit of setup to allow overriding rpc_interace with an RPC proxy
 # (to use RPC, we would say
 #   import rpc_client_lib
-#   rpc_interface = rpc_client_lib.get_proxy('http://hostname:8000/rpc/')
+#   rpc_interface = rpc_client_lib.get_proxy(
+#                             'http://hostname:8000/afe/server/noauth/rpc/')
 # )
 >>> if 'rpc_interface' not in globals():
 ...   from frontend.afe import rpc_interface, rpc_utils, models
@@ -282,14 +283,51 @@ True
 
 # check host queue entries for a job
 >>> data = rpc_interface.get_host_queue_entries(job=1)
->>> data == [{'status': 'Queued', 'complete': 0, 'host': 'host1', 'priority': 0,
-...           'meta_host': None, 'job': 1L, 'active': 0, 'id': 1L},
-...          {'status': 'Queued', 'complete': 0, 'host': 'host2', 'priority': 0,
-...           'meta_host': None, 'job': 1L, 'active': 0, 'id': 2L},
-...          {'status': 'Queued', 'complete': 0, 'host': None, 'priority': 0,
-...           'meta_host': 'my_label', 'job': 1L, 'active': 0, 'id': 3L},
-...          {'status': 'Queued', 'complete': 0, 'host': None, 'priority': 0,
-...           'meta_host': 'my_label', 'job': 1L, 'active': 0, 'id': 4L}]
+>>> len(data)
+4
+
+# get rid of created_on, it's nondeterministic
+>>> data[0]['job']['created_on'] = data[2]['job']['created_on'] = None
+
+# get_host_queue_entries returns full info about the job within each queue entry
+>>> job = data[0]['job']
+>>> job == {'control_file': control_file, # refer to the control file we used
+...         'control_type': 'Client',
+...         'created_on': None,
+...         'id': 1L,
+...         'name': 'my_job',
+...         'owner': 'debug_user',
+...         'priority': 'Low',
+...         'synch_count': None,
+...         'synch_type': 'Asynchronous',
+...         'synchronizing': 0}
+True
+
+# get_host_queue_entries returns a lot of data, so let's only check a couple
+>>> data[0] == (
+... {'active': 0,
+...  'complete': 0,
+...  'host': {'hostname': 'host1', # full host info here
+...           'id': 2L,
+...           'invalid': 0,
+...           'locked': 0,
+...           'status': 'Ready',
+...           'synch_id': None},
+...  'id': 1L,
+...  'job': job, # full job info here
+...  'meta_host': None,
+...  'priority': 0,
+...  'status': 'Queued'})
+True
+>>> data[2] == (
+... {'active': 0,
+...  'complete': 0,
+...  'host': None,
+...  'id': 3L,
+...  'job': job,
+...  'meta_host': 'my_label',
+...  'priority': 0,
+...  'status': 'Queued'})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4L

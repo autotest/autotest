@@ -1,6 +1,9 @@
 package afeclient.client;
 
 import afeclient.client.CreateJobView.JobCreateListener;
+import afeclient.client.HostDetailView.HostDetailListener;
+import afeclient.client.HostListView.HostListListener;
+import afeclient.client.JobDetailView.JobDetailListener;
 import afeclient.client.JobListView.JobSelectListener;
 
 import com.google.gwt.core.client.EntryPoint;
@@ -51,14 +54,26 @@ public class ClientMain implements EntryPoint, HistoryListener {
                 showJob(jobId);
             }
         });
-        jobDetail = new JobDetailView();
+        jobDetail = new JobDetailView(new JobDetailListener() {
+            public void onHostSelected(String hostname) {
+                showHost(hostname);
+            }
+        });
         createJob = Utils.factory.getCreateJobView(new JobCreateListener() {
             public void onJobCreated(int jobId) {
                 showJob(jobId);
             }
         });
-        hostListView = new HostListView();
-        hostDetailView = new HostDetailView();
+        hostListView = new HostListView(new HostListListener() {
+            public void onHostSelected(String hostname) {
+                showHost(hostname);
+            }
+        });
+        hostDetailView = new HostDetailView(new HostDetailListener() {
+            public void onJobSelected(int jobId) {
+                showJob(jobId);
+            }
+        });
         
         tabViews = new TabView[] {jobList, jobDetail, createJob, hostListView, 
                                   hostDetailView};
@@ -110,7 +125,24 @@ public class ClientMain implements EntryPoint, HistoryListener {
     protected void showJob(int jobId) {
         jobDetail.ensureInitialized();
         jobDetail.fetchJob(jobId);
-        mainTabPanel.selectTab(1);
+        selectTab(jobDetail);
+    }
+
+    protected void showHost(String hostname) {
+        hostDetailView.ensureInitialized();
+        hostDetailView.fetchById(hostname);
+        selectTab(hostDetailView);
+    }
+    
+    protected void selectTab(TabView tab) {
+        for (int i = 0; i < tabViews.length; i++) {
+            if (tabViews[i] == tab) {
+                mainTabPanel.selectTab(i);
+                return;
+            }
+        }
+        
+        throw new IllegalArgumentException("Tab not found");
     }
 
     public void onHistoryChanged(String historyToken) {

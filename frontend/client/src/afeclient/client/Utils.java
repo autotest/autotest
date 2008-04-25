@@ -113,4 +113,9 @@ public class Utils {
         }
         return labelName;
     }
+    
+    public static JSONString getLockedText(JSONObject host) {
+        boolean locked = host.get("locked").isNumber().getValue() > 0;
+        return new JSONString(locked ? "Yes" : "No");
+    }
 }

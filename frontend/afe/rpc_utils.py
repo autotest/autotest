@@ -15,16 +15,22 @@ def prepare_for_serialization(objects):
 	-convert datetimes to strings
 	"""
 	objects = gather_unique_dicts(objects)
-	new_objects = []
-	for data in objects:
+	return _prepare_data(objects)
+
+
+def _prepare_data(data):
+	'Recursively process data structures'
+	if isinstance(data, dict):
 		new_data = {}
 		for key, value in data.iteritems():
-			if isinstance(value, datetime.datetime):
-				new_data[key] = str(value)
-			else:
-				new_data[key] = value
-		new_objects.append(new_data)
-	return new_objects
+			new_data[key] = _prepare_data(value)
+		return new_data
+	elif isinstance(data, list):
+		return [_prepare_data(item) for item in data]
+	elif isinstance(data, datetime.datetime):
+		return str(data)
+	else:
+		return data
 
 
 def extra_job_filters(not_yet_run=False, running=False, finished=False):

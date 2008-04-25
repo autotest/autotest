@@ -1,6 +1,5 @@
 package afeclient.client;
 
-import afeclient.client.table.RpcDataSource;
 import afeclient.client.table.SimpleFilter;
 
 import com.google.gwt.json.client.JSONValue;
@@ -10,7 +9,7 @@ import com.google.gwt.json.client.JSONValue;
  */
 public class RpcHostTable extends HostTable {
     public RpcHostTable() {
-        super(new RpcDataSource("get_hosts", "get_num_hosts"));
+        super(new HostDataSource());
         sortOnColumn("Hostname");
         SimpleFilter aclFilter = new SimpleFilter();
         JSONValue user = StaticDataRepository.getRepository().getData("user_login");
