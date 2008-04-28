@@ -118,7 +118,7 @@ class ServiceHandler(object):
             raise ServiceRequestNotTranslatable(data)
         req = customConvertJson(req) # -srh
         return req
-     
+
     def findServiceEndpoint(self, name):
         try:
             meth = getattr(self.service, name)
@@ -142,8 +142,11 @@ class ServiceHandler(object):
         try:
             data = json_encoder.encode({"result":rslt,"id":id_,"error":err})
         except TypeError, e:
-            traceback.print_exc()
-            err = {"name": "JSONEncodeException", "message":"Result Object Not Serializable"}
+            err_traceback = traceback.format_exc()
+            print err_traceback
+            err = {"name" : "JSONEncodeException",
+                   "message" : "Result Object Not Serializable",
+                   "traceback" : err_traceback}
             data = json_encoder.encode({"result":None, "id":id_,"error":err})
-            
+
         return data
