@@ -42,8 +42,6 @@ def main():
 	parser.add_option('--logfile', help='Set a log file that all stdout ' +
  	                  'should be redirected to.  Stderr will go to this ' +
 	                  'file + ".err"')
-	parser.add_option('--notify', help='Set an email address to be ' +
-	                  'notified of exceptions')
 	parser.add_option('--test', help='Indicate that scheduler is under ' +
 			  'test and should use dummy autoserv and no parsing',
 			  action='store_true')
@@ -55,8 +53,12 @@ def main():
 	global RESULTS_DIR
 	RESULTS_DIR = args[0]
 
+	# read in notify_email from global_config
+	c = global_config.global_config
 	global _notify_email
-	_notify_email = options.notify
+	val = c.get_config_value("SCHEDULER", "notify_email")
+	if val != "":
+		_notify_email = val 
 	
 	if options.test:
 		global _autoserv_path
