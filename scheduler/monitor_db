@@ -287,6 +287,7 @@ class Dispatcher:
 		self._find_aborting()
 		self._find_more_work()
 		self._handle_agents()
+		self._clear_inactive_blocks()
 
 
 	def add_agent(self, agent):
@@ -458,6 +459,20 @@ class Dispatcher:
 		message = 'Reverifying dead host %s'
 		self._reverify_hosts_where("status = 'Repair Failed'",
 					   print_message=message)
+
+
+	def _clear_inactive_blocks(self):
+		"""
+		Clear out blocks for all completed jobs.
+		"""
+		# this would be simpler using NOT IN (subquery), but MySQL
+		# treats all IN subqueries as dependent, so this optimizes much
+		# better
+		_db.execute("""
+		    DELETE ihq FROM ineligible_host_queues ihq
+		    LEFT JOIN (SELECT job_id FROM host_queue_entries
+		               WHERE NOT complete) hqe
+		    USING (job_id) WHERE hqe.job_id IS NULL""")
 
 
 	def _find_more_work(self):
@@ -1221,9 +1236,10 @@ class DBObject(object):
 
 
 	@classmethod
-	def fetch(cls, where):
+	def fetch(cls, where, params=()):
 		rows = _db.execute(
-		    'SELECT * FROM %s WHERE %s' % (cls._get_table(), where))
+		    'SELECT * FROM %s WHERE %s' % (cls._get_table(), where),
+		    params)
 		for row in rows:
 			yield cls(row=row)
 
