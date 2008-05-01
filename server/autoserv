@@ -176,6 +176,7 @@ def main():
 		except SystemExit, e:
 			exit_code = e.code
 		except:
+			traceback.print_exc()
 			# If we don't know what happened, we'll classify it as
 			# an 'abort' and return 1.
 			exit_code = 1
