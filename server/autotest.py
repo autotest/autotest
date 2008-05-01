@@ -173,27 +173,51 @@ class BaseAutotest(installable_object.InstallableObject):
 		return host
 
 
-	def read_keyval(self, dest):
-		keyval = {}
+	def prepare_for_copying_logs(self, src, dest, host):
+		keyval_path = ''
+		if not os.path.exists(os.path.join(dest, 'keyval')):
+			# Client-side keyval file can be copied directly
+			return keyval_path
+		# Copy client-side keyval to temporary location
 		try:
-			keyval = utils.read_keyval(dest)
-		except IOError:
-			traceback.print_exc()
-		return keyval
+			try:
+				# Create temp file
+				fd, keyval_path = tempfile.mkstemp(
+						'.keyval_%s' % host.hostname)
+				host.get_file(os.path.join(src, 'keyval'),
+					      keyval_path)
+			finally:
+				# It's better to lose information in keyval
+				# file on the remote host than to override
+				# server side's keyval file
+				host.run('rm -rf %s' % os.path.join(src,
+								    'keyval'))
+		except AutoservRunError, AutoservSSHTimeout:
+			print "Prepare for copying logs failed"
+		return keyval_path
 
 
-	def prepend_keyval(self, dest, keyval):
+	def process_copied_logs(self, dest, host, keyval_path):
+		if not os.path.exists(os.path.join(dest, 'keyval')):
+			# Client-side keyval file was copied directly
+			return
+		# Append contents of keyval_<host> file to keyval file
 		try:
-			new_keyval = utils.read_keyval(dest)
-			# Old entries should overwrite new entries.
-			for key, val in keyval.iteritems():
-				new_keyval[key] = val
-			# Delete existing keyval file
-			os.remove(os.path.join(dest, 'keyval'))
-			# Write out new info to keyval file
-			utils.write_keyval(dest, new_keyval)
+			# Read in new and old keyval files
+			new_keyval = utils.read_keyval(keyval_path)
+			old_keyval = utils.read_keyval(os.path.join(dest,
+								    'keyval'))
+			# 'Delete' from new keyval entries that are in both
+			tmp_keyval = {}
+			for key, val in new_keyval.iteritems():
+				if key not in old_keyval:
+					tmp_keyval[key] = val
+			# Append new info to keyval file
+			utils.write_keyval(dest, tmp_keyval)
+			# Delete keyval_<host> file
+			os.remove(keyval_path)
 		except IOError:
-			traceback.print_exc()
+			print "Process copied logs failed"
 
 
 	def _do_run(self, control_file, results_dir, host, atrun, timeout):
@@ -237,10 +261,11 @@ class BaseAutotest(installable_object.InstallableObject):
 			# get the results
 			results = os.path.join(atrun.autodir, 'results',
 						      'default')
-			keyval = self.read_keyval(results_dir)
 			# Copy all dirs in default to results_dir
+			keyval_path = self.prepare_for_copying_logs(results,
+						results_dir, host)
 			host.get_file(results + '/', results_dir)
-			self.prepend_keyval(results_dir, keyval)
+			self.process_copied_logs(results_dir, host, keyval_path)
 
 
 	def run_timed_test(self, test_name, results_dir = '.', host = None,
