@@ -34,6 +34,10 @@ class TestError(AutotestError):
 	"""Indicates an error which terminates and fails the test."""
 	pass
 
+class TestNAError(AutotestError):
+	"""Indictates that the test is Not Applicable.  Should be thrown
+	when various conditions are such that the test is inappropriate"""
+	pass
 
 class CmdError(TestError):
 	"""\

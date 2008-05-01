@@ -14,7 +14,7 @@ Andy Whitcroft <apw@shadowen.org>
 import os, sys, re, time, select, subprocess, traceback
 
 from autotest_lib.client.bin import fd_stack
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, logging
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.server.utils import *
@@ -39,14 +39,12 @@ from autotest_lib.server import source_kernel, rpm_kernel, deb_kernel
 from autotest_lib.server import git_kernel
 from autotest_lib.server.subcommand import *
 from autotest_lib.server.utils import run, get_tmp_dir, sh_escape
-
 from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.common_lib import barrier
 
 autotest.Autotest.job = job
 hosts.SSHHost.job = job
 barrier = barrier.barrier
-
 if len(machines) > 1:
 	open('.machines', 'w').write('\\n'.join(machines) + '\\n')
 """
@@ -230,7 +228,8 @@ class base_server_job:
 			namespace = {'machines' : self.machines, 'job' : self}
 			exec(preamble + verify, namespace, namespace)
 		except Exception, e:
-			msg = 'Verify failed\n' + str(e) + '\n' + traceback.format_exc()
+			msg = ('Verify failed\n' + str(e) + '\n' 
+				+ traceback.format_exc())
 			self.record('ABORT', None, None, msg)
 			raise
 
@@ -355,9 +354,11 @@ class base_server_job:
 		try:
 			test.runtest(self, url, tag, args, dargs)
 			self.record('GOOD', subdir, testname, 'completed successfully')
+		except error.TestNAError, detail:
+			self.record('TEST_NA', subdir, testmame, str(detail))
 		except Exception, detail:
-			self.record('FAIL', subdir, testname,
-			            str(detail) + "\n" + traceback.format_exc())
+			info = str(detail) + "\n" + traceback.format_exc()
+			self.record('FAIL', subdir, testname, info)
 
 
 	def run_group(self, function, *args, **dargs):
@@ -390,7 +391,9 @@ class base_server_job:
 				self.record('END GOOD', None, name)
 			except:
 				self.record_prefix = old_record_prefix
-				self.record('END FAIL', None, name, traceback.format_exc())
+				self.record('END FAIL', None, name, 
+						traceback.format_exc())
+
 		# We don't want to raise up an error higher if it's just
 		# a TestError - we want to carry on to other tests. Hence
 		# this outer try/except block.
@@ -413,9 +416,8 @@ class base_server_job:
 
 		Format is <status code>\t<subdir>\t<operation>\t<status>
 
-		status code: (GOOD|WARN|FAIL|ABORT)
-			or   START
-			or   END (GOOD|WARN|FAIL|ABORT)
+		status code: see common_lib.logging.is_valid_status()
+		             for valid status definition
 
 		subdir: MUST be a relevant subdirectory in the results,
 		or None, which will be represented as '----'
@@ -488,8 +490,7 @@ class base_server_job:
 		else:
 			substr = '----'
 
-		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
-								status_code):
+		if not logging.is_valid_status(status_code):
 			raise ValueError('Invalid status code supplied: %s' %
 					 status_code)
 		if not operation:

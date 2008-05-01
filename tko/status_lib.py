@@ -1,9 +1,10 @@
 import collections
+import common
+from autotest_lib.client.common_lib import logging
 
 
 class status_stack(object):
-	statuses = ["ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
-		    "NOSTATUS"]
+	statuses = logging.job_statuses
 
 
 	def __init__(self):
