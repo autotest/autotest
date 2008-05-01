@@ -21,17 +21,17 @@ class get_timestamp_test(unittest.TestCase):
 		self.assertEquals(utc_date.microsecond, 0)
 
 
-	def testReturnsNoneOnMissingValue(self):
+	def test_returns_none_on_missing_value(self):
 		date = utils.get_timestamp({}, "missing_key")
 		self.assertEquals(date, None)
 
 
-	def testFailsOnNonIntegerValues(self):
+	def test_fails_on_non_integer_values(self):
 		self.assertRaises(ValueError, utils.get_timestamp,
 				  {"key": "zero"}, "key")
 
 
-	def testDateCanBeStringOrInteger(self):
+	def test_date_can_be_string_or_integer(self):
 		int_times = [1, 12, 123, 1234, 12345, 123456]
 		str_times = [str(t) for t in int_times]
 		for int_t, str_t in itertools.izip(int_times, str_times):
