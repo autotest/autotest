@@ -7,10 +7,11 @@ in the matrix.
 """
 
 print "Content-type: text/html\n"
-import cgi, cgitb, re, datetime, query_lib
+import cgi, cgitb, re, datetime, query_lib, time
 import sys, os
 import urllib 
 
+total_wall_time_start = time.time();
 tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
 sys.path.insert(0, tko)
 
@@ -233,6 +234,7 @@ field_map = {
 	'kernel':map_kernel
 }
 
+sql_wall_time = 0
 
 def gen_matrix():
 	where = None
@@ -245,6 +247,7 @@ def gen_matrix():
 			msg = "Unspecified error when parsing condition"
 			return [[display.box(msg)]]
 
+	wall_time_start = time.time()
 	try:
 		## Unfortunately, we can not request reasons of failure always
 		## because it may result in an inflated size of data transfer
@@ -261,6 +264,9 @@ def gen_matrix():
 		test_data = frontend.get_matrix_data(db_obj, column, row, where,
 				query_reasons = ('status' in [row,column])
 				)
+		global sql_wall_time
+		sql_wall_time = time.time() - wall_time_start
+
 	except db.MySQLTooManyRows, error:
 		return [[display.box(str(error))]]			
 	
@@ -334,7 +340,9 @@ def main():
 	print display.color_keys_row()
 	display.print_table(gen_matrix())
 	print display.color_keys_row()
+	total_wall_time = time.time() - total_wall_time_start
+	print '<p style="font-size:x-small;">sql access wall time = %s secs, \
+		 total wall time = %s secs</p>' % (sql_wall_time, total_wall_time)
 	print '</body></html>'
-
 
 main()
