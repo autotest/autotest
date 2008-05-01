@@ -16,9 +16,11 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.http.client.URL;
 
 import java.util.Iterator;
 import java.util.Set;
+
 
 public class JobDetailView extends DetailView {
     public static final String[][] JOB_HOSTS_COLUMNS = {
@@ -195,7 +197,9 @@ public class JobDetailView extends DetailView {
      * @param jobLogsId id-owner, e.g. "172-showard"
      */
     protected String getLogsURL(String jobLogsId) {
-        return "/results/" + jobLogsId;
+	String val = URL.encode("/results/" + jobLogsId);
+        return "/tko/retrieve_logs.cgi?job=" + val;
+//        return "/tko/retrieve_logs.cgi?job=%2Fresults%2F" + jobLogsId;
     }
     
     protected void pointToResults(String resultsUrl, String logsUrl) {
