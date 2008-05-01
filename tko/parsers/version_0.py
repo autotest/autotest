@@ -381,6 +381,11 @@ class parser(object):
 						 "install, ignoring")
 				continue
 
+			# ignore END lines for a reboot group
+			if (line.testname == "reboot" and line.type == "END"):
+				tko_utils.dprint("reboot group, ignoring")
+				continue
+
 			# convert job-level ABORTs into a 'JOB' test, and
 			# ignore other job-level events
 			if line.testname is None:

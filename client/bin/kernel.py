@@ -80,6 +80,7 @@ class kernel:
 
 		logpath = os.path.join(self.log_dir, 'build_log')
 		self.logfile = open(logpath, 'w+')
+		self.applied_patches = []
 
 		self.target_arch = None
 		self.build_target = 'bzImage'
@@ -196,10 +197,12 @@ class kernel:
 			else:
 				ref = force_copy(local, self.results_dir)
 				ref = self.job.relative_path(ref)
-			log = 'PATCH: %s %s %s\n' % (spec, ref, md5sum)
+			patch_id = "%s %s %s" % (spec, ref, md5sum)
+			log = "PATCH: " + patch_id + "\n"
 			print log
 			cat_file_to_cmd(local, 'patch -p1 > /dev/null')
 			self.logfile.write(log)
+			self.applied_patches.append(patch_id)
 
 
 	def get_kernel_tree(self, base_tree):
@@ -493,7 +496,8 @@ class kernel:
 			args += " IDENT=%d" % (when)
 
 			self.job.next_step_prepend(["job.kernel_check_ident",
-						    when, ident, self.subdir])
+						    when, ident, self.subdir,
+						    self.applied_patches])
 
 		# Check if the kernel has been installed, if not install
 		# as the default tag and boot that.
