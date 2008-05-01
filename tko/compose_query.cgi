@@ -131,6 +131,19 @@ def construct_link(x, y):
 	return link
 
 
+def construct_logs_link(x, y, job_tag):
+	job_path = frontend.html_root + job_tag + '/'
+	test = ''
+	if (row == 'test' and
+	    not y.split('.')[0] in ('boot', 'build', 'install')):
+		test = y
+	if (column == 'test' and
+	    not x.split('.')[0] in ('boot', 'build', 'install')):
+		test = x
+	return 'retrieve_logs.cgi?' + urllib.urlencode({'job' : job_path,
+		 'test' : test})
+
+
 def create_select_options(selected_val):
 	ret = ""
 	for option in sorted(frontend.test_view_field_dict.keys()):
@@ -296,17 +309,7 @@ def gen_matrix():
 				continue
 			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
-				link = frontend.html_root + job_tag + '/'
-				if (row == 'test' and
-				   not 'boot' in y and
-				   not 'build' in y and
-				   not 'install' in y ):
-					link += y + '/'
-				if (column == 'test' and
-				   not 'boot' in x and
-				   not 'build' in x and
-				   not 'install' in x):
-					link += x + '/'
+				link = construct_logs_link(x, y, job_tag)
 			else:
 				link = construct_link(x, y)
                                 

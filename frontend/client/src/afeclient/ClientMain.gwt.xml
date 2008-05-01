@@ -1,6 +1,7 @@
 <module>
 	<inherits name='com.google.gwt.user.User'/>
 	<inherits name='com.google.gwt.json.JSON'/>
+	<inherits name='com.google.gwt.http.HTTP'/>
 
 	<entry-point class='afeclient.client.ClientMain'/>
 	
