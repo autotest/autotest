@@ -10,14 +10,14 @@ class test_status_line(unittest.TestCase):
 	statuses = ["GOOD", "WARN", "FAIL", "ABORT"]
 
 
-	def testHandlesSTART(self):
+	def test_handles_start(self):
 		line = version_0.status_line(0, "START", "----", "test",
 					     "", {})
 		self.assertEquals(line.type, "START")
 		self.assertEquals(line.status, None)
 
 
-	def testHandlesSTATUS(self):
+	def test_handles_status(self):
 		for stat in self.statuses:
 			line = version_0.status_line(0, stat, "----", "test",
 						     "", {})
@@ -25,7 +25,7 @@ class test_status_line(unittest.TestCase):
 			self.assertEquals(line.status, stat)
 
 
-	def testHandlesENDSTATUS(self):
+	def test_handles_endstatus(self):
 		for stat in self.statuses:
 			line = version_0.status_line(0, "END " + stat, "----",
 						     "test", "", {})
@@ -33,7 +33,7 @@ class test_status_line(unittest.TestCase):
 			self.assertEquals(line.status, stat)
 
 
-	def testFailsOnBadStatus(self):
+	def test_fails_on_bad_status(self):
 		for stat in self.statuses:
 			self.assertRaises(AssertionError,
 					  version_0.status_line, 0,
@@ -41,7 +41,7 @@ class test_status_line(unittest.TestCase):
 					  "", {})
 
 
-	def testSavesAllFields(self):
+	def test_saves_all_fields(self):
 		line = version_0.status_line(5, "GOOD", "subdir_name",
 					     "test_name", "my reason here",
 					     {"key1": "value",
@@ -57,19 +57,19 @@ class test_status_line(unittest.TestCase):
 				   "key3": "value3"})
 
 
-	def testParsesBlankSubdir(self):
+	def test_parses_blank_subdir(self):
 		line = version_0.status_line(0, "GOOD", "----", "test",
 					     "", {})
 		self.assertEquals(line.subdir, None)
 
 
-	def testParsesBlankTestname(self):
+	def test_parses_blank_testname(self):
 		line = version_0.status_line(0, "GOOD", "subdir", "----",
 					     "", {})
 		self.assertEquals(line.testname, None)
 
 
-	def testParseLineSmoketest(self):
+	def test_parse_line_smoketest(self):
 		input_data = ("\t\t\tGOOD\t----\t----\t"
 			      "field1=val1\tfield2=val2\tTest Passed")
 		line = version_0.status_line.parse_line(input_data)
@@ -82,7 +82,7 @@ class test_status_line(unittest.TestCase):
 		self.assertEquals(line.optional_fields,
 				  {"field1": "val1", "field2": "val2"})
 
-	def testParseLineHandlesNewline(self):
+	def test_parse_line_handles_newline(self):
 		input_data = ("\t\tGOOD\t----\t----\t"
 			      "field1=val1\tfield2=val2\tNo newline here!")
 		for suffix in ("", "\n"):
@@ -99,7 +99,7 @@ class test_status_line(unittest.TestCase):
 					   "field2": "val2"})
 
 
-	def testParseLineFailsOnUntabbedLines(self):
+	def test_parse_line_fails_on_untabbed_lines(self):
 		input_data = "   GOOD\trandom\tfields\tof text"
 		line = version_0.status_line.parse_line(input_data)
 		self.assertEquals(line, None)
@@ -113,7 +113,7 @@ class test_status_line(unittest.TestCase):
 		self.assertEquals(line.optional_fields, {})
 
 
-	def testParseLineFailsOnBadOptionalFields(self):
+	def test_parse_line_fails_on_bad_optional_fields(self):
 		input_data = "GOOD\tfield1\tfield2\tfield3\tfield4"
 		self.assertRaises(AssertionError,
 				  version_0.status_line.parse_line,
