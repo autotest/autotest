@@ -15,46 +15,6 @@ import sys, os, re, traceback, signal
 import common
 from autotest_lib.server import server_job, utils
 
-# send stdin to /dev/null
-dev_null = os.open(os.devnull, os.O_RDONLY)
-os.dup2(dev_null, sys.stdin.fileno())
-os.close(dev_null)
-
-
-class PidFileManager(object):
-	pid_file = None
-
-	def open_pid_file(self, results_dir):
-		pid_file_path = os.path.join(results_dir, '.autoserv_execute')
-		assert not os.path.exists(pid_file_path)
-		self.pid_file = open(pid_file_path, 'w')
-		self.pid_file.write(str(os.getpid()) + '\n')
-		self.pid_file.flush()
-
-
-	def close_pid_file(self, exit_code, signal_code=0):
-		if not self.pid_file:
-			return
-		real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
-		self.pid_file.write(str(real_exit_code) + '\n')
-		self.pid_file.close()
-
-
-pid_file_manager = PidFileManager()
-
-
-# Create separate process group
-os.setpgrp()
-
-# Implement SIGTERM handler
-def handle_sigint(signum, frame):
-	pid_file_manager.close_pid_file(1, signal.SIGTERM)
-	os.killpg(os.getpgrp(), signal.SIGKILL)
-
-# Set signal handler
-signal.signal(signal.SIGTERM, handle_sigint)
-
-
 usage = """\
 usage: autoserv
 	[-h, --help]               # This help message
@@ -76,93 +36,153 @@ usage: autoserv
 	[args ...]                 # args to pass through to the control file
 """
 
-args = sys.argv[1:]
-parser = utils.AutoservOptionParser(args)
 
-# Get a useful value for running 'USER'
-realuser = os.environ.get('USER')
-if not realuser:
-	realuser = 'anonymous'
+class PidFileManager(object):
+	pid_file = None
 
-machines = parser.parse_opts_param('-m', None, split = ',')
-machines_file = parser.parse_opts_param('-M', None)
-results  = parser.parse_opts_param('-r', os.path.abspath('.'))
-results  = os.path.abspath(results)
-label    = parser.parse_opts_param('-l', '')
-user     = parser.parse_opts_param('-u', realuser)
-client   = parser.parse_opts('-c')
-reboot   = parser.parse_opts('-b')
-install_before = parser.parse_opts('-i')
-install_after  = parser.parse_opts('-I')
-verify   = parser.parse_opts('-v')
-repair   = parser.parse_opts('-R')
-no_tee   = parser.parse_opts('-n')
-help     = parser.parse_opts('-h') or parser.parse_opts('--help')
-write_pidfile = parser.parse_opts('-p')
-parse_job = parser.parse_opts_param('-P', '')
+	def open_pid_file(self, results_dir):
+		pid_file_path = os.path.join(results_dir, '.autoserv_execute')
+		assert not os.path.exists(pid_file_path)
+		self.pid_file = open(pid_file_path, 'w')
+		self.pid_file.write(str(os.getpid()) + '\n')
+		self.pid_file.flush()
 
-if help is True:
-	print usage
-	sys.exit(0)
 
-if len(parser.args) < 1 and not verify and not repair:
-	print usage
-	sys.exit(-1)
+	def close_pid_file(self, exit_code, signal_code=0):
+		if not self.pid_file:
+			return
+		real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
+		self.pid_file.write(str(real_exit_code) + '\n')
+		self.pid_file.close()
+		self.pid_file = None
 
-if machines_file:
-	machines = []
-	for m in open(machines_file, 'r').readlines():
-		m = re.sub('#.*', '', m).strip()   # remove comments, spaces
-		if m:
-			machines.append(m)
-	print "Read list of machines from file: %s" % machines_file
-	print ','.join(machines)
 
-if machines:
-	for machine in machines:
-		if not machine or re.search('\s', machine):
-			print "Invalid machine %s" % str(machine)
-			sys.exit(1)
-	machines = list(set(machines))
-	machines.sort()
+def run_autoserv(pid_file_manager, results, parser):
+	# send stdin to /dev/null
+	dev_null = os.open(os.devnull, os.O_RDONLY)
+	os.dup2(dev_null, sys.stdin.fileno())
+	os.close(dev_null)
 
-# We have a control file unless it's just a verify/repair job
-if len(parser.args) > 0:
-	control = parser.args[0]
-else:
-	control = None
+	# Create separate process group
+	os.setpgrp()
 
-job = server_job.server_job(control, parser.args[1:], results, label,
-			    user, machines, client, parse_job)
-debug_dir = os.path.join(results, 'debug')
-if no_tee:
-	job.stdout.redirect(os.path.join(debug_dir, 'autoserv.stdout'))
-	job.stderr.redirect(os.path.join(debug_dir, 'autoserv.stderr'))
-else:
-	job.stdout.tee_redirect(os.path.join(debug_dir, 'autoserv.stdout'))
-	job.stderr.tee_redirect(os.path.join(debug_dir, 'autoserv.stderr'))
+	# Implement SIGTERM handler
+	def handle_sigint(signum, frame):
+		pid_file_manager.close_pid_file(1, signal.SIGTERM)
+		os.killpg(os.getpgrp(), signal.SIGKILL)
 
-if write_pidfile:
-	pid_file_manager.open_pid_file(results)
+	# Set signal handler
+	signal.signal(signal.SIGTERM, handle_sigint)
 
-# run the job
-exit_code = 0
-try:
-	if repair:
-		job.repair()
-	elif verify:
-		job.verify()
+	# Get a useful value for running 'USER'
+	realuser = os.environ.get('USER')
+	if not realuser:
+		realuser = 'anonymous'
+
+	machines = parser.parse_opts_param('-m', None, split = ',')
+	machines_file = parser.parse_opts_param('-M', None)
+	label    = parser.parse_opts_param('-l', '')
+	user     = parser.parse_opts_param('-u', realuser)
+	client   = parser.parse_opts('-c')
+	reboot   = parser.parse_opts('-b')
+	install_before = parser.parse_opts('-i')
+	install_after  = parser.parse_opts('-I')
+	verify   = parser.parse_opts('-v')
+	repair   = parser.parse_opts('-R')
+	no_tee   = parser.parse_opts('-n')
+	help     = parser.parse_opts('-h') or parser.parse_opts('--help')
+	parse_job = parser.parse_opts_param('-P', '')
+
+	if help is True:
+		print usage
+		sys.exit(0)
+
+	if len(parser.args) < 1 and not verify and not repair:
+		print usage
+		sys.exit(1)
+
+	# We have a control file unless it's just a verify/repair job
+	if len(parser.args) > 0:
+		control = parser.args[0]
 	else:
+		control = None
+
+	if machines_file:
+		machines = []
+		for m in open(machines_file, 'r').readlines():
+			# remove comments, spaces
+			m = re.sub('#.*', '', m).strip()
+			if m:
+				machines.append(m)
+		print "Read list of machines from file: %s" % machines_file
+		print ','.join(machines)
+
+	if machines:
+		for machine in machines:
+			if not machine or re.search('\s', machine):
+				print "Invalid machine %s" % str(machine)
+				sys.exit(1)
+		machines = list(set(machines))
+		machines.sort()
+
+	job = server_job.server_job(control, parser.args[1:], results, label,
+				    user, machines, client, parse_job)
+	debug_dir = os.path.join(results, 'debug')
+	stdout = os.path.join(debug_dir, 'autoserv.stdout')
+	stderr = os.path.join(debug_dir, 'autoserv.stderr')
+	if no_tee:
+		job.stdout.redirect(stdout)
+		job.stderr.redirect(stderr)
+	else:
+		job.stdout.tee_redirect(stdout)
+		job.stderr.tee_redirect(stderr)
+
+	# run the job
+	exit_code = 0
+	try:
+		if repair:
+			job.repair()
+		elif verify:
+			job.verify()
+		else:
+			try:
+				job.run(reboot, install_before, install_after)
+			finally:
+				job.cleanup_parser()
+	except:
+		job.aborted = True
+		traceback.print_exc()
+
+	if getattr(job, 'aborted', False):
+		sys.exit(1)
+
+
+def main():
+	pid_file_manager = PidFileManager()
+
+	args = sys.argv[1:]
+	parser = utils.AutoservOptionParser(args)
+
+	results  = parser.parse_opts_param('-r', '.')
+	results  = os.path.abspath(results)
+	write_pidfile = parser.parse_opts('-p')
+	if write_pidfile:
+		pid_file_manager.open_pid_file(results)
+
+	exit_code = 0
+	try:
 		try:
-			job.run(reboot, install_before, install_after)
-		finally:
-			job.cleanup_parser()
-except:
-	job.aborted = True
-	traceback.print_exc()
+			run_autoserv(pid_file_manager, results, parser)
+		except SystemExit, e:
+			exit_code = e.code
+		except:
+			# If we don't know what happened, we'll classify it as
+			# an 'abort' and return 1.
+			exit_code = 1
+	finally:
+		pid_file_manager.close_pid_file(exit_code)
+	sys.exit(exit_code)
 
-if getattr(job, 'aborted', False):
-	exit_code = 1
-pid_file_manager.close_pid_file(exit_code)
 
-sys.exit(exit_code)
+if __name__ == '__main__':
+	main()
