@@ -2,7 +2,20 @@
 Logging helper tools.
 """
 
+import re
+
 __author__ = 'jadmanski@google.com (John Admanski)'
+
+
+job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
+		"NOSTATUS"]
+
+def is_valid_status(status):
+	if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT|TEST_NA))$', 
+			status):
+		return False
+	else:
+		return True
 
 
 def record(fn):

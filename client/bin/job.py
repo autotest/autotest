@@ -7,15 +7,14 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 # standard stuff
 import os, sys, re, pickle, shutil, time, traceback, types, copy
+
 # autotest stuff
-from autotest_utils import *
-from parallel import *
-from common.error import *
-from common import barrier
-import kernel, xen, test, profilers, filesystem, fd_stack, boottool
-import harness, config
-import sysinfo
-import cpuset
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error, barrier, logging
+
+import parallel, kernel, xen, test, profilers, filesystem, fd_stack, boottool
+import harness, config, sysinfo, cpuset
+
 
 
 JOB_PREAMBLE = """
@@ -24,7 +23,7 @@ from autotest_utils import *
 """
 
 
-class StepError(AutotestError):
+class StepError(error.AutotestError):
 	pass
 
 
@@ -90,9 +89,10 @@ class base_job:
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
-				system('umount -f %s > /dev/null 2> /dev/null'%\
-					 	self.tmpdir, ignorestatus=True)
-				system('rm -rf ' + self.tmpdir)
+				cmd = ('umount -f %s > /dev/null 2> /dev/null'
+					 	% (self.tmpdir))
+				autotest_utils.system(cmd, ignorestatus=True)
+				autotest_utils.system('rm -rf ' + self.tmpdir)
 			os.mkdir(self.tmpdir)
 
 			results = os.path.join(self.autodir, 'results')
@@ -101,11 +101,12 @@ class base_job:
 				
 			download = os.path.join(self.testdir, 'download')
 			if os.path.exists(download):
-				system('rm -rf ' + download)
+				autotest_utils.system('rm -rf ' + download)
 			os.mkdir(download)
 				
 			if os.path.exists(self.resultdir):
-				system('rm -rf ' + self.resultdir)
+				autotest_utils.system('rm -rf ' 
+							+ self.resultdir)
 			os.mkdir(self.resultdir)
 			os.mkdir(self.sysinfodir)
 
@@ -231,21 +232,21 @@ class base_job:
 		for dep in deps: 
 			try: 
 				os.chdir(os.path.join(self.autodir, 'deps', dep))
-				system('./' + dep + '.py')
+				autotest_utils.system('./' + dep + '.py')
 			except: 
-				error = "setting up dependency " + dep + "\n"
-				raise UnhandledError(error)
+				err = "setting up dependency " + dep + "\n"
+				raise error.UnhandledError(err)
 
 
 	def __runtest(self, url, tag, args, dargs):
 		try:
 			l = lambda : test.runtest(self, url, tag, args, dargs)
-			pid = fork_start(self.resultdir, l)
-			fork_waitfor(self.resultdir, pid)
-		except AutotestError:
+			pid = parallel.fork_start(self.resultdir, l)
+			parallel.fork_waitfor(self.resultdir, pid)
+		except error.AutotestError:
 			raise
 		except:
-			raise UnhandledError('running test ' + \
+			raise error.UnhandledError('running test ' + \
 				self.__class__.__name__ + "\n")
 
 
@@ -259,7 +260,8 @@ class base_job:
 		"""
 
 		if not url:
-			raise TypeError("Test name is invalid. Switched arguments?")
+			raise TypeError("Test name is invalid. "
+			                "Switched arguments?")
 		(group, testname) = test.testname(url)
 		tag = dargs.pop('tag', None)
 		container = dargs.pop('container', None)
@@ -285,6 +287,10 @@ class base_job:
 		def group_func():
 			try:
 				self.__runtest(url, tag, args, dargs)
+			except error.TestNAError, detail:
+				self.record('TEST_NA', subdir, testname,
+					    str(detail))
+				raise
 			except Exception, detail:
 				self.record('FAIL', subdir, testname,
 					    str(detail))
@@ -295,7 +301,7 @@ class base_job:
 		result, exc_info = self.__rungroup(subdir, group_func)
 		if container:
 			self.release_container()
-		if exc_info and isinstance(exc_info[1], TestError):
+		if exc_info and isinstance(exc_info[1], error.TestError):
 			return False
 		elif exc_info:
 			raise exc_info[0], exc_info[1], exc_info[2]
@@ -325,10 +331,12 @@ class base_job:
 			result = function(*args, **dargs)
 			self.group_level -= 1
 			self.record('END GOOD', None, name)
+		except error.TestNAError, e:
+			self.record('END TEST_NA', None, name, str(e))
 		except Exception, e:
 			exc_info = sys.exc_info()
 			self.group_level -= 1
-			err_msg = str(e) + '\n' + format_error()
+			err_msg = str(e) + '\n' + traceback.format_exc()
 			self.record('END FAIL', None, name, err_msg)
 
 		return result, exc_info
@@ -352,9 +360,9 @@ class base_job:
 						   *args, **dargs)
 
 		# if there was a non-TestError exception, raise it
-		if exc_info and not isinstance(exc_info[1], TestError):
+		if exc_info and not isinstance(exc_info[1], error.TestError):
 			err = ''.join(traceback.format_exception(*exc_info))
-			raise TestError(name + ' failed\n' + err)
+			raise error.TestError(name + ' failed\n' + err)
 
 		# pass back the actual return value from the function
 		return result
@@ -421,7 +429,7 @@ class base_job:
 			print "Command Line Mark: %d" % (cmdline_when)
 			print "     Command Line: " + cmdline
 
-			raise JobError("boot failure", "reboot.verify")
+			raise error.JobError("boot failure", "reboot.verify")
 
 		self.record('GOOD', subdir, 'reboot.verify', expected_id)
 
@@ -453,7 +461,8 @@ class base_job:
 			self.bootloader.set_default(tag)
 		else:
 			self.bootloader.boot_once(tag)
-		system("(sleep 5; reboot) </dev/null >/dev/null 2>&1 &")
+		cmd = "(sleep 5; reboot) </dev/null >/dev/null 2>&1 &"
+		autotest_utils.system(cmd)
 		self.quit()
 
 
@@ -469,7 +478,8 @@ class base_job:
 		for i, task in enumerate(tasklist):
 			self.log_filename = old_log_filename + (".%d" % i)
 			task_func = lambda: task[0](*task[1:])
-			pids.append(fork_start(self.resultdir, task_func))
+			pids.append(parallel.fork_start(self.resultdir, 
+							task_func))
 
 		old_log_path = os.path.join(self.resultdir, old_log_filename)
 		old_log = open(old_log_path, "a")
@@ -477,7 +487,7 @@ class base_job:
 		for i, pid in enumerate(pids):
 			# wait for the task to finish
 			try:
-				fork_waitfor(self.resultdir, pid)
+				parallel.fork_waitfor(self.resultdir, pid)
 			except Exception, e:
 				exceptions.append(e)
 			# copy the logs from the subtask into the main log
@@ -495,13 +505,13 @@ class base_job:
 		# handle any exceptions raised by the parallel tasks
 		if exceptions:
 			msg = "%d task(s) failed" % len(exceptions)
-			raise JobError(msg, str(exceptions), exceptions)
+			raise error.JobError(msg, str(exceptions), exceptions)
 
 
 	def quit(self):
 		# XXX: should have a better name.
 		self.harness.run_pause()
-		raise JobContinue("more to come")
+		raise error.JobContinue("more to come")
 
 
 	def complete(self, status):
@@ -649,8 +659,7 @@ class base_job:
 		else:
 			substr = '----'
 		
-		if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT))$', \
-								status_code):
+		if not logging.is_valid_status(status_code):
 			raise ValueError("Invalid status code supplied: %s" % status_code)
 		if not operation:
 			operation = '----'
@@ -719,12 +728,13 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 	try:
 		# Check that the control file is valid
 		if not os.path.exists(control):
-			raise JobError(control + ": control file not found")
+			raise error.JobError(control + 
+						": control file not found")
 
 		# When continuing, the job is complete when there is no
 		# state file, ensure we don't try and continue.
 		if cont and not os.path.exists(state):
-			raise JobComplete("all done")
+			raise error.JobComplete("all done")
 		if cont == False and os.path.exists(state):
 			os.unlink(state)
 
@@ -736,13 +746,13 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 		#  2) define steps, and select the first via next_step()
 		myjob.step_engine()
 
-	except JobContinue:
+	except error.JobContinue:
 		sys.exit(5)
 
-	except JobComplete:
+	except error.JobComplete:
 		sys.exit(1)
 
-	except JobError, instance:
+	except error.JobError, instance:
 		print "JOB ERROR: " + instance.args[0]
 		if myjob:
 			command = None
@@ -756,7 +766,7 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 			sys.exit(1)
 
 	except Exception, e:
-		msg = str(e) + '\n' + format_error()
+		msg = str(e) + '\n' + traceback.format_exc()
 		print "JOB ERROR: " + msg
 		if myjob:
 			myjob.group_level = 0

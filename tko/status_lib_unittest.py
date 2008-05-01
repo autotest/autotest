@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import unittest
-
 import common
 from autotest_lib.tko import status_lib
+from autotest_lib.client.common_lib import logging
 
 
 class line_buffer_test(unittest.TestCase):
@@ -78,6 +78,8 @@ class line_buffer_test(unittest.TestCase):
 
 
 class status_stack_test(unittest.TestCase):
+	statuses = logging.job_statuses
+
 	def testDefaultToNOSTATUS(self):
 		stack = status_lib.status_stack()
 		self.assertEquals(stack.current_status(), "NOSTATUS")
@@ -101,20 +103,18 @@ class status_stack_test(unittest.TestCase):
 
 
 	def testAnythingOverridesNostatus(self):
-		statuses = ["ABORT", "ERROR", "FAIL", "WARN", "GOOD"]
-		for status in statuses:
+		for status in self.statuses:
 			stack = status_lib.status_stack()
 			stack.update(status)
 			self.assertEquals(stack.current_status(), status)
 
 
 	def testWorseOverridesBetter(self):
-		statuses = ["ABORT", "ERROR", "FAIL", "WARN", "GOOD"]
-		for i in xrange(len(statuses)):
-			worse_status = statuses[i]
-			for j in xrange(i + 1, len(statuses)):
+		for i in xrange(len(self.statuses)):
+			worse_status = self.statuses[i]
+			for j in xrange(i + 1, len(self.statuses)):
 				stack = status_lib.status_stack()
-				better_status = statuses[j]
+				better_status = self.statuses[j]
 				stack.update(better_status)
 				stack.update(worse_status)
 				self.assertEquals(stack.current_status(),
@@ -122,12 +122,11 @@ class status_stack_test(unittest.TestCase):
 
 
 	def testBetterNeverOverridesBetter(self):
-		statuses = ["ABORT", "ERROR", "FAIL", "WARN", "GOOD"]
-		for i in xrange(len(statuses)):
-			better_status = statuses[i]
+		for i in xrange(len(self.statuses)):
+			better_status = self.statuses[i]
 			for j in xrange(i):
 				stack = status_lib.status_stack()
-				worse_status = statuses[j]
+				worse_status = self.statuses[j]
 				stack.update(worse_status)
 				stack.update(better_status)
 				self.assertEquals(stack.current_status(),

@@ -100,6 +100,7 @@ class box:
 def grade_from_status(status):
 	# % of goodness
 	# GOOD (6)  -> 1
+	# TEST_NA (8) is not counted
 	# ##  If the test doesn't PASS, it FAILS
 	# else -> 0
 
@@ -113,9 +114,14 @@ def average_grade_from_status_count(status_count):
 	average_grade = 0
 	total_count = 0
 	for key in status_count.keys():
-		average_grade += grade_from_status(key)*status_count[key]
-		total_count += status_count[key]
-	average_grade = average_grade / total_count
+		if key != 8: # TEST_NA status
+			average_grade += (grade_from_status(key)
+						* status_count[key])
+			total_count += status_count[key]
+	if total_count != 0:
+		average_grade = average_grade / total_count
+	else:
+		average_grade = 0.0
 	return average_grade
 
 
