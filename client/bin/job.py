@@ -85,7 +85,7 @@ class base_job:
 		self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
 		self.control = os.path.abspath(control)
 		self.state_file = self.control + '.state'
-		self.state = None
+		self.__load_state()
 
 		if not cont:
 			if os.path.exists(self.tmpdir):
@@ -124,7 +124,8 @@ class base_job:
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
-		self.group_level = 0
+
+		self._init_group_level()
 
 		self.config = config.config(self)
 
@@ -142,7 +143,7 @@ class base_job:
 
 		if not cont:
 			self.record('START', None, None)
-		self.group_level = 1
+			self._increment_group_level()
 
 		self.harness.run_start()
 		
@@ -327,15 +328,16 @@ class base_job:
 		result, exc_info = None, None
 		try:
 			self.record('START', None, name)
-			self.group_level += 1
+			self._increment_group_level()
 			result = function(*args, **dargs)
-			self.group_level -= 1
+			self._decrement_group_level()
 			self.record('END GOOD', None, name)
 		except error.TestNAError, e:
+			self._decrement_group_level()
 			self.record('END TEST_NA', None, name, str(e))
 		except Exception, e:
 			exc_info = sys.exc_info()
-			self.group_level -= 1
+			self._decrement_group_level()
 			err_msg = str(e) + '\n' + traceback.format_exc()
 			self.record('END FAIL', None, name, err_msg)
 
@@ -390,20 +392,20 @@ class base_job:
 	def cpu_count(self):
 		if self.container:
 			return len(self.container.cpus)
-		return count_cpus()  # use total system count
+		return autotest_utils.count_cpus()  # use total system count
 
 
 	# Check the passed kernel identifier against the command line
 	# and the running kernel, abort the job on missmatch.
 	def kernel_check_ident(self, expected_when, expected_id, subdir,
-			       type = 'src'):
+			       type = 'src', patches=[]):
 		print (("POST BOOT: checking booted kernel " +
 			"mark=%d identity='%s' type='%s'") %
 		       (expected_when, expected_id, type))
 
-		running_id = running_os_ident()
+		running_id = autotest_utils.running_os_ident()
 
-		cmdline = read_one_line("/proc/cmdline")
+		cmdline = autotest_utils.read_one_line("/proc/cmdline")
 
 		find_sum = re.compile(r'.*IDENT=(\d+)')
 		m = find_sum.match(cmdline)
@@ -415,7 +417,8 @@ class base_job:
 		# booted the requested kernel or not.
 		bad = False
 		if (type == 'src' and expected_id != running_id or
-		    type == 'rpm' and not running_id.startswith(expected_id + '::')):
+		    type == 'rpm' and
+		    not running_id.startswith(expected_id + '::')):
 			print "check_kernel_ident: kernel identifier mismatch"
 			bad = True
 		if expected_when != cmdline_when:
@@ -431,7 +434,13 @@ class base_job:
 
 			raise error.JobError("boot failure", "reboot.verify")
 
+		kernel_info = {'kernel': expected_id}
+		for i, patch in enumerate(patches):
+			kernel_info["patch%d" % i] = patch
 		self.record('GOOD', subdir, 'reboot.verify', expected_id)
+		self._decrement_group_level()
+		self.record('END GOOD', subdir, 'reboot',
+			    optional_fields=kernel_info)
 
 
 	def filesystem(self, device, mountpoint = None, loop_size = 0):
@@ -454,6 +463,8 @@ class base_job:
 
 	def reboot(self, tag='autotest'):
 		self.reboot_setup()
+		self.record('START', None, 'reboot')
+		self._increment_group_level()
 		self.record('GOOD', None, 'reboot.start')
 		self.harness.run_reboot()
 		default = self.config_get('boot.set_default')
@@ -536,15 +547,15 @@ class base_job:
 
 
 	def __load_state(self):
-		assert(self.state == None)
+		assert not hasattr(self, "state")
 		try:
 			self.state = pickle.load(open(self.state_file, 'r'))
-			return True
+			self.state_existed = True
 		except Exception:
 			print "Initializing the state engine."
 			self.state = {}
 			self.set_state('__steps', []) # writes pickle file
-			return False
+			self.state_existed = False
 
 
 	def get_state(self, var, default=None):
@@ -598,14 +609,13 @@ class base_job:
 		# Some control files will have code outside of functions,
 		# which means we need to have our state engine initialized
 		# before reading in the file.
-		state_existed = self.__load_state()
 		lcl = {'job': self}
 		exec(JOB_PREAMBLE, lcl, lcl)
 		execfile(self.control, lcl, lcl)
 
 		# If we loaded in a mid-job state file, then we presumably
 		# know what steps we have yet to run.
-		if not state_existed:
+		if not self.state_existed:
 			if lcl.has_key('step_init'):
 				self.next_step([lcl['step_init']])
 
@@ -621,7 +631,22 @@ class base_job:
 			exec(fn + "(*__args, **__dargs)", lcl, lcl)
 
 
-	def record(self, status_code, subdir, operation, status = ''):
+	def _init_group_level(self):
+		self.group_level = self.get_state("__group_level", default=0)
+
+
+	def _increment_group_level(self):
+		self.group_level += 1
+		self.set_state("__group_level", self.group_level)
+
+
+	def _decrement_group_level(self):
+		self.group_level -= 1
+		self.set_state("__group_level", self.group_level)
+
+
+	def record(self, status_code, subdir, operation, status = '',
+		   optional_fields=None):
 		"""
 		Record job-level status
 
@@ -654,42 +679,53 @@ class base_job:
 
 		if subdir:
 			if re.match(r'[\n\t]', subdir):
-				raise ValueError("Invalid character in subdir string")
+				raise ValueError("Invalid character in "
+						 "subdir string")
 			substr = subdir
 		else:
 			substr = '----'
 		
 		if not logging.is_valid_status(status_code):
-			raise ValueError("Invalid status code supplied: %s" % status_code)
+			raise ValueError("Invalid status code supplied: %s" %
+					 status_code)
 		if not operation:
 			operation = '----'
+
 		if re.match(r'[\n\t]', operation):
-			raise ValueError("Invalid character in operation string")
+			raise ValueError("Invalid character in "
+					 "operation string")
 		operation = operation.rstrip()
+
+		if not optional_fields:
+			optional_fields = {}
+
 		status = status.rstrip()
 		status = re.sub(r"\t", "  ", status)
 		# Ensure any continuation lines are marked so we can
 		# detect them in the status file to ensure it is parsable.
-		status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ", status)
+		status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ",
+				status)
 
 		# Generate timestamps for inclusion in the logs
 		epoch_time = int(time.time())  # seconds since epoch, in UTC
 		local_time = time.localtime(epoch_time)
-		epoch_time_str = "timestamp=%d" % (epoch_time,)
-		local_time_str = time.strftime("localtime=%b %d %H:%M:%S",
-					       local_time)
+		optional_fields["timestamp"] = str(epoch_time)
+		optional_fields["localtime"] = time.strftime("%b %d %H:%M:%S",
+							     local_time)
 
-		msg = '\t'.join(str(x) for x in (status_code, substr, operation,
-						 epoch_time_str, local_time_str,
-						 status))
+		fields = [status_code, substr, operation]
+		fields += ["%s=%s" % x for x in optional_fields.iteritems()]
+		fields.append(status)
+
+		msg = '\t'.join(str(x) for x in fields)
 		msg = '\t' * self.group_level + msg
 
 		msg_tag = ""
 		if "." in self.log_filename:
 			msg_tag = self.log_filename.split(".", 1)[1]
 
-		self.harness.test_status_detail(status_code, substr, operation,
-						status, msg_tag)
+		self.harness.test_status_detail(status_code, substr,
+						operation, status, msg_tag)
 		self.harness.test_status(msg, msg_tag)
 
 		# log to stdout (if enabled)
@@ -758,9 +794,10 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 			command = None
 			if len(instance.args) > 1:
 				command = instance.args[1]
-			myjob.group_level = 0
 			myjob.record('ABORT', None, command, instance.args[0])
+			myjob._decrement_group_level()
 			myjob.record('END ABORT', None, None)
+			assert(myjob.group_level == 0)
 			myjob.complete(1)
 		else:
 			sys.exit(1)
@@ -769,16 +806,18 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 		msg = str(e) + '\n' + traceback.format_exc()
 		print "JOB ERROR: " + msg
 		if myjob:
-			myjob.group_level = 0
 			myjob.record('ABORT', None, None, msg)
+			myjob._decrement_group_level()
 			myjob.record('END ABORT', None, None)
+			assert(myjob.group_level == 0)
 			myjob.complete(1)
 		else:
 			sys.exit(1)
 
 	# If we get here, then we assume the job is complete and good.
-	myjob.group_level = 0
+	myjob._decrement_group_level()
 	myjob.record('END GOOD', None, None)
+	assert(myjob.group_level == 0)
 
 	myjob.complete(0)
 
