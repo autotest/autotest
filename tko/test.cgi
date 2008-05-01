@@ -9,9 +9,8 @@ import cgi, cgitb, os, sys, re
 sys.stdout.flush()
 cgitb.enable()
 
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
-sys.path.insert(0, tko)
-import db, display, frontend
+import common
+from autotest_lib.tko import db, display, frontend
 
 db = db.db()
 

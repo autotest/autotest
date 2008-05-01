@@ -6,12 +6,9 @@ import cgi, cgitb, os, sys, re, subprocess
 cgitb.enable()
 Popen = subprocess.Popen
 
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
-sys.path.insert(0, tko)
-import db, display, frontend, plotgraph
-client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
-sys.path.insert(0, client_bin)
-import kernel_versions
+import common
+from autotest_lib.tko import db, display, frontend, plotgraph
+from autotest_lib.client.bin import kernel_versions
 
 db = db.db()
 

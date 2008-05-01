@@ -7,18 +7,14 @@ in the matrix.
 """
 
 print "Content-type: text/html\n"
-import cgi, cgitb, re, datetime, query_lib, time
-import sys, os
-import urllib 
 
-total_wall_time_start = time.time();
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
-sys.path.insert(0, tko)
+import sys, os, urllib, cgi, cgitb, re, datetime, time
 
-import display, frontend, db, query_lib
-client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
-sys.path.insert(0, client_bin)
-import kernel_versions
+total_wall_time_start = time.time()
+
+import common
+from autotest_lib.tko import display, frontend, db, query_lib
+from autotest_lib.client.bin import kernel_versions
 
 html_header = """\
 <form action="compose_query.cgi" method="get">
