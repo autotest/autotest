@@ -25,7 +25,6 @@ from autotest_lib.server import utils
 import remote, bootloader
 
 
-
 class SSHHost(remote.RemoteHost):
 	"""
 	This class represents a remote machine controlled through an ssh 
@@ -747,7 +746,14 @@ class SSHHost(remote.RemoteHost):
 
 
 	def ssh_ping(self, timeout = 60):
-		self.run('true', timeout = timeout, connect_timeout = timeout)
+		try:
+			self.run('true', timeout = timeout, connect_timeout = timeout)
+		except error.AutoservSSHTimeout:
+			msg = "ssh ping timed out. timeout = %s" % timeout
+			raise error.AutoservSSHTimeout(msg)
+		except error.AutoservRunError:
+			msg = "command true failed in ssh ping"
+			raise error.AutoservRunError(msg)
 
 
 	def get_autodir(self):
