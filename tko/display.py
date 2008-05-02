@@ -54,22 +54,27 @@ def color_keys_row():
 """ % html
 	return html
 
+def hover_html(link, href, hover_text):
+	""" Returns the snippet of html for generating the hover over links.
+	"""
+	return '<center><a class="info" href="%s">%s<span>%s</span></a></center>' % \
+		(link, href, hover_text)
 
 class box:
 	def __init__(self, data, color_key = None, header = False, link = None,
-		     tooltip = None ):
+		     tooltip = None, row_label = None, column_label = None):
 		if data:
 			data = "<tt>%s</tt>" % data
 		if link and tooltip:
-			self.data = '<a href="%s" title="%s">%s</a>' \
-						% (link, tooltip, data)
+			self.data = hover_html(link, data, '%s:%s<br>%s' % 
+						(row_label, column_label, tooltip))
 		elif tooltip:
-			self.data = '<a href="%s" title="%s">%s</a>' \
-						% ('#', tooltip, data)			
+			self.data = hover_html('#', data, tooltip)
 		elif link:
 			self.data = '<a href="%s">%s</a>' % (link, data)
 		else:
-			self.data = data
+			self.data = hover_html('about:blank',
+				'&nbsp;&nbsp;&nbsp;', '%s:%s' % (row_label, column_label))
 
 		if color_map.has_key(color_key):
 			self.color = color_map[color_key]
@@ -198,7 +203,8 @@ def status_count_box(db, tests, link = None):
 	return status_precounted_box(db, status_count, link)
 
 
-def status_precounted_box(db, box_data, link = None):
+def status_precounted_box(db, box_data, link = None,
+				 x_label = None, y_label = None):
 	"""
 	Display a ratio of total number of GOOD tests
 	to total number of all tests in the group of tests.
@@ -210,7 +216,8 @@ def status_precounted_box(db, box_data, link = None):
 	
 	shade = shade_from_status_count(status_count)	
 	html,tooltip = status_html(db, box_data, shade)
-	precounted_box = box(html, shade, False, link, tooltip)
+	precounted_box = box(html, shade, False, link, tooltip,
+				x_label, y_label)
 	return precounted_box
 
 
@@ -248,8 +255,31 @@ def sort_tests(tests):
 
 
 def print_main_header():
+	hover_css="""\
+a.info{
+    position:relative; /*this is the key*/
+    z-index:1
+    color:#000;
+    text-decoration:none}
+
+a.info:hover{z-index:25;}
+
+a.info span{display: none}
+
+a.info:hover span{ /*the span will display just on :hover state*/
+    display:block;
+    position:absolute;
+    top:1em; left:1em;
+    min-width: 100px;
+    overflow: visible;
+    border:1px solid #036;
+    background-color:#fff; color:#000;
+    text-align: left
+}
+"""
 	print '<head><style type="text/css">'
 	print 'a { text-decoration: none }'
+	print hover_css
 	print '</style></head>'
 	print '<h2>'
 	print '<a href="compose_query.cgi">Functional</a>'
