@@ -292,6 +292,7 @@ def gen_matrix():
 		header_row.append(display.box(x_header,header=True,link=link))
 
 	matrix = [header_row]
+	# For each row, we are looping horizontally over the columns.
 	for y in test_data.y_values:
 		dy = y
 		if field_map.has_key(row):
@@ -307,17 +308,18 @@ def gen_matrix():
 			try:
 				box_data = test_data.data[x][y]
 			except:
-				cur_row.append(display.box(None, None))
+				cur_row.append(display.box(None, None, 
+							row_label=y, column_label=x))
 				continue
 			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
 				link = construct_logs_link(x, y, job_tag)
 			else:
 				link = construct_link(x, y)
-                                
+
 			cur_row.append(display.status_precounted_box(db_obj,
 			                                             box_data,
-			                                             link))
+			                                             link, y, x))
 		matrix.append(cur_row)
 	return matrix
 
