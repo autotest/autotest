@@ -1376,10 +1376,10 @@ class HostQueueEntry(DBObject):
 
 	def unblock_host(self, host_id):
 		print "removing block %s/%s" % (self.job.id, host_id)
-		blocks = list(IneligibleHostQueue.fetch(
-		    'job_id=%d and host_id=%d' % (self.job.id, host_id)))
-		assert len(blocks) == 1
-		blocks[0].delete()
+		blocks = IneligibleHostQueue.fetch(
+		    'job_id=%d and host_id=%d' % (self.job.id, host_id))
+		for block in blocks:
+			block.delete()
 
 
 	def results_dir(self):
