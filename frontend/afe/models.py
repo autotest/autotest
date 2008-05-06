@@ -1,5 +1,5 @@
 import datetime
-from django.db import models as dbmodels, backend
+from django.db import models as dbmodels, backend, connection
 from django.utils import datastructures
 from frontend.afe import enum
 from frontend import settings
@@ -45,35 +45,87 @@ class ExtendedManager(dbmodels.Manager):
 			backend.quote_name(field))
 
 
-	def _do_subquery_filter(self, key_field, subquery, not_in=False):
+	@classmethod
+	def _get_sql_string_for(cls, value):
+		"""
+		>>> ExtendedManager._get_sql_string_for((1L, 2L))
+		'(1,2)'
+		>>> ExtendedManager._get_sql_string_for(['abc', 'def'])
+		'abc,def'
+		"""
+		if isinstance(value, list):
+			return ','.join(cls._get_sql_string_for(item)
+					for item in value)
+		if isinstance(value, tuple):
+			return '(%s)' % cls._get_sql_string_for(list(value))
+		if isinstance(value, long):
+			return str(int(value))
+		return str(value)
+
+
+	def _do_subquery_filter(self, other_table_key, subquery,
+				this_table_key, not_in=False):
 		select_fields, where, params = subquery._get_sql_clause()
 		subquery_table = subquery.model._meta.db_table
 		subselect = '(SELECT ' + self._get_quoted_field(subquery_table,
-								key_field)
+								other_table_key)
 		subselect += where + ')'
 
 		in_str = not_in and 'NOT IN' or 'IN'
-		pk_field = self._get_quoted_field(self.model._meta.db_table,
-						  self.model._meta.pk.column)
-		where_sql = ' '.join((pk_field, in_str, subselect))
+		if this_table_key is None:
+			# default to primary key
+			this_table_key = self.model._meta.pk.column
+		key_field = self._get_quoted_field(self.model._meta.db_table,
+						   this_table_key)
+		where_sql = ' '.join((key_field, in_str, subselect))
 		filter_obj = self._RawSqlQ(where_sql, params)
 		return self.complex_filter(filter_obj)
 
 
-	def filter_in_subquery(self, key_field, subquery):
+	def filter_in_subquery(self, other_table_key, subquery,
+			       this_table_key=None):
 		"""\
 		Construct a filter to perform a subquery match, i.e.
 		WHERE id IN (SELECT host_id FROM ... WHERE ...)
 		-key_field - the field to select in the subquery (host_id above)
 		-subquery - a query object for the subquery
+		-this_table_key - the field to match (id above).  Default to
+		                  this table's primary key.
 		"""
-		return self._do_subquery_filter(key_field, subquery)
+		return self._do_subquery_filter(other_table_key, subquery,
+						this_table_key)
 
 
-	def filter_not_in_subquery(self, key_field, subquery):
+	def filter_not_in_subquery(self, other_table_key, subquery,
+				   this_table_key=None):
 		'Like filter_in_subquery, but use NOT IN rather than IN.'
-		return self._do_subquery_filter(key_field, subquery,
-						not_in=True)
+		return self._do_subquery_filter(other_table_key, subquery,
+						this_table_key, not_in=True)
+
+
+	def create_in_bulk(self, fields, values):
+		'TODO docstring'
+		if not values:
+			return
+		field_dict = self.model.get_field_dict()
+		field_names = [field_dict[field].column for field in fields]
+		sql = 'INSERT INTO %s %s' % (
+		    self.model._meta.db_table,
+		    self._get_sql_string_for(tuple(field_names)))
+		sql += ' VALUES ' + self._get_sql_string_for(list(values))
+		cursor = connection.cursor()
+		cursor.execute(sql)
+
+
+	def delete_in_bulk(self, ids):
+		'TODO docstring'
+		if not ids:
+			return
+		sql = 'DELETE FROM %s WHERE id IN %s' % (
+		    self.model._meta.db_table,
+		    self._get_sql_string_for(tuple(ids)))
+		cursor = connection.cursor()
+		cursor.execute(sql)
 
 
 class ValidObjectsManager(ExtendedManager):
@@ -720,7 +772,7 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 	description: arbitrary description of group
 	"""
 	# REMEMBER: whenever ACL membership changes, something MUST call
-	# Job.recompute_all_blocks().
+	# on_change()
 	name = dbmodels.CharField(maxlength=255, unique=True)
 	description = dbmodels.CharField(maxlength=255, blank=True)
 	users = dbmodels.ManyToManyField(User,
@@ -732,10 +784,33 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 	objects = ExtendedManager()
 
 
+	def _get_affected_jobs(self):
+		# find incomplete jobs with owners in this ACL
+		jobs = Job.objects.filter_in_subquery('login', self.users.all(),
+						      this_table_key='owner')
+		jobs = jobs.filter(hostqueueentry__complete=False)
+		return jobs
+
+
+	def on_change(self, affected_jobs=None):
+		"""
+		Method to be called every time the ACL group or its membership
+		changes.  affected_jobs is a list of jobs potentially affected
+		by this ACL change; if None, it will be computed from the ACL
+		group.
+		"""
+		if affected_jobs is None:
+			affected_jobs = self._get_affected_jobs()
+		for job in affected_jobs:
+			job.recompute_blocks()
+
+
 	# need to recompute blocks on group deletion
 	def delete(self):
+		# need to get jobs before we delete, but call on_change after
+		affected_jobs = list(self._get_affected_jobs())
 		super(AclGroup, self).delete()
-		Job.recompute_all_blocks()
+		self.on_change(affected_jobs)
 
 
 	# if you have a model attribute called "Manipulator", Django will
@@ -748,7 +823,7 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 		"""
 		def save(self, new_data):
 			obj = super(AclGroup.Manipulator, self).save(new_data)
-			Job.recompute_all_blocks()
+			self.on_change()
 			return obj
 
 
@@ -883,16 +958,17 @@ class Job(dbmodels.Model, ModelExtensions):
 
 		old_ids = [block.id for block in
 			   self.ineligiblehostqueue_set.all()]
-		for host in query:
-			block = IneligibleHostQueue(job=self, host=host)
-			block.save()
-		IneligibleHostQueue.objects.filter(id__in=old_ids).delete()
+		block_values = [(self.id, host.id) for host in query]
+		IneligibleHostQueue.objects.create_in_bulk(('job', 'host'),
+							   block_values)
+		IneligibleHostQueue.objects.delete_in_bulk(old_ids)
 
 
 	@classmethod
 	def recompute_all_blocks(cls):
 		'Recompute blocks for all queued and active jobs.'
-		for job in cls.objects.filter(hostqueueentry__complete=False):
+		for job in cls.objects.filter(
+		    hostqueueentry__complete=False).distinct():
 			job.recompute_blocks()
 
 
@@ -938,7 +1014,7 @@ class Job(dbmodels.Model, ModelExtensions):
 		return '%s (%s-%s)' % (self.name, self.id, self.owner)
 
 
-class IneligibleHostQueue(dbmodels.Model):
+class IneligibleHostQueue(dbmodels.Model, ModelExtensions):
 	job = dbmodels.ForeignKey(Job)
 	host = dbmodels.ForeignKey(Host)
 
