@@ -230,6 +230,48 @@ def nohup(command, stdout='/dev/null', stderr='/dev/null', background=True,
 	system(cmd)
 
 
+def default_mappings(machines):
+	"""
+	Returns a simple mapping in which all machines are assigned to the
+	same key.  Provides the default behavior for 
+	form_ntuples_from_machines. """
+	mappings = {}
+	failures = []
+	
+	mach = machines[0]
+	mappings['ident'] = [mach]
+	if len(machines) > 1:	
+		machines = machines[1:]
+		for machine in machines:
+			mappings['ident'].append(machine)
+		
+	return (mappings, failures)
+
+
+def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
+	"""Returns a set of ntuples from machines where the machines in an
+	   ntuple are in the same mapping, and a set of failures which are
+	   (machine name, reason) tuples."""
+	ntuples = []
+	(mappings, failures) = mapping_func(machines)
+	
+	# now run through the mappings and create n-tuples.
+	# throw out the odd guys out
+	for key in mappings:
+		key_machines = mappings[key]
+		total_machines = len(key_machines)
+
+		# form n-tuples 
+		while len(key_machines) >= n:
+			ntuples.append(key_machines[0:n])
+			key_machines = key_machines[n:]
+
+		for mach in key_machines:
+			failures.append((mach, "machine can not be tupled"))
+
+	return (ntuples, failures)
+
+
 class AutoservOptionParser:
 	"""Custom command-line options parser for autoserv.
 
