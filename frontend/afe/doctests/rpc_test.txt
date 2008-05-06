@@ -208,8 +208,8 @@ True
 >>> rpc_interface.acl_group_remove_users('my_group', ['showard'])
 >>> rpc_interface.acl_group_remove_hosts('my_group', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='my_group')
->>> data[0]['users'] == data[0]['hosts'] == []
-True
+>>> data[0]['users'], data[0]['hosts']
+([], [])
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone']
