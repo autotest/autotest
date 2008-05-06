@@ -751,9 +751,9 @@ class SSHHost(remote.RemoteHost):
 		except error.AutoservSSHTimeout:
 			msg = "ssh ping timed out. timeout = %s" % timeout
 			raise error.AutoservSSHTimeout(msg)
-		except error.AutoservRunError:
+		except error.AutoservRunError, exc:
 			msg = "command true failed in ssh ping"
-			raise error.AutoservRunError(msg)
+			raise error.AutoservRunError(msg, exc.args[1])
 
 
 	def get_autodir(self):
