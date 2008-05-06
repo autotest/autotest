@@ -150,6 +150,25 @@ class base_job:
 		if use_external_logging:
 			self.enable_external_logging()
 
+		# load the max disk usage rate - default to no monitoring
+		self.max_disk_usage_rate = self.get_state('__monitor_disk',
+							  default=0.0)
+
+
+	def monitor_disk_usage(self, max_rate):
+		"""\
+		Signal that the job should monitor disk space usage on /
+		and generate a warning if a test uses up disk space at a
+		rate exceeding 'max_rate'.
+
+		Parameters:
+		     max_rate - the maximium allowed rate of disk consumption
+		                during a test, in MB/hour, or 0 to indicate
+				no limit.
+		"""
+		self.set_state('__monitor_disk', max_rate)
+		self.max_disk_usage_rate = max_rate
+
 
 	def relative_path(self, path):
 		"""\
@@ -285,6 +304,10 @@ class base_job:
 					root=root, name=cname)
 			# We are running in a container now...
 
+		def log_warning(reason):
+			self.record("WARN", subdir, testname, reason)
+		@disk_usage_monitor.watch(log_warning, "/",
+					  self.max_disk_usage_rate)
 		def group_func():
 			try:
 				self.__runtest(url, tag, args, dargs)
@@ -299,6 +322,7 @@ class base_job:
 			else:
 				self.record('GOOD', subdir, testname,
 					    'completed successfully')
+
 		result, exc_info = self.__rungroup(subdir, group_func)
 		if container:
 			self.release_container()
@@ -745,6 +769,61 @@ class base_job:
 			status_file = os.path.join(dir,
 						   self.DEFAULT_LOG_FILENAME)
 			open(status_file, "a").write(msg + "\n")
+
+
+class disk_usage_monitor:
+	def __init__(self, logging_func, device, max_mb_per_hour):
+		self.func = logging_func
+		self.device = device
+		self.max_mb_per_hour = max_mb_per_hour
+
+
+	def start(self):
+		self.initial_space = autotest_utils.freespace(self.device)
+		self.start_time = time.time()
+
+
+	def stop(self):
+		# if no maximum usage rate was set, we don't need to
+		# generate any warnings
+		if not self.max_mb_per_hour:
+			return
+
+		final_space = autotest_utils.freespace(self.device)
+		used_space = self.initial_space - final_space
+		stop_time = time.time()
+		total_time = stop_time - self.start_time
+		# round up the time to one minute, to keep extremely short
+		# tests from generating false positives due to short, badly
+		# timed bursts of activity
+		total_time = max(total_time, 60.0)
+
+		# determine the usage rate
+		bytes_per_sec = used_space / total_time
+		mb_per_sec = bytes_per_sec / 1024**2
+		mb_per_hour = mb_per_sec * 60 * 60
+
+		if mb_per_hour > self.max_mb_per_hour:
+			msg = ("disk space on %s was consumed at a rate of "
+			       "%.2f MB/hour")
+			msg %= (self.device, mb_per_hour)
+			self.func(msg)
+
+
+	@classmethod
+	def watch(cls, *monitor_args, **monitor_dargs):
+		""" Generic decorator to wrap a function call with the
+		standard create-monitor -> start -> call -> stop idiom."""
+		def decorator(func):
+			def watched_func(*args, **dargs):
+				monitor = cls(*monitor_args, **monitor_dargs)
+				monitor.start()
+				try:
+					func(*args, **dargs)
+				finally:
+					monitor.stop()
+			return watched_func
+		return decorator
 
 
 def runjob(control, cont = False, tag = "default", harness_type = '',

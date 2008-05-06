@@ -533,9 +533,14 @@ def locate(pattern, root=os.getcwd()):
 
 
 def freespace(path):
-	# Find free space available in bytes
+	"""Return the disk free space, in bytes"""
 	s = os.statvfs(path)
-	return s[statvfs.F_BAVAIL] * long(s[statvfs.F_BSIZE])
+	return s.f_bavail * s.f_bsize
+
+
+def disk_block_size(path):
+	"""Return the disk block size, in bytes"""
+	return os.statvfs(path).f_bsize
 
 
 def get_cpu_family():
