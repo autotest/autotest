@@ -90,7 +90,8 @@ class db_sql:
 		while not success:
 			try:
 				result = function(*args, **dargs)
-			except OperationalError:
+			except OperationalError, e:
+				self._log_operational_error(e)
 				stop_time = time.time()
 				elapsed_time = stop_time - start_time
 				if elapsed_time > self.query_timeout:
@@ -99,11 +100,18 @@ class db_sql:
 					try:
 						self._random_delay()
 						self._init_db()
-					except OperationalError:
-						pass
+					except OperationalError, e:
+						self._log_operational_error(e)
 			else:
 				success = True
 		return result
+
+
+	def _log_operational_error(self, e):
+		msg = ("An operational error occured during a database "
+		       "operation: %s" % str(e))
+		print >> sys.stderr, msg
+		sys.stderr.flush() # we want these msgs to show up immediately
 
 
 	def dprint(self, value):
