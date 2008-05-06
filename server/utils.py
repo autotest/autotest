@@ -204,7 +204,7 @@ def unarchive(host, source_material):
 
 
 def get_server_dir():
-	path = os.path.dirname(sys.modules['utils'].__file__)
+	path = os.path.dirname(sys.modules['autotest_lib.server.utils'].__file__)
 	return os.path.abspath(path)
 
 
