@@ -6,6 +6,7 @@ if it is available."""
 try:
 	from site_host import SiteHost
 except ImportError:
+	import base_classes
 	class SiteHost(base_classes.Host):
 		def __init__(self):
 			super(SiteHost, self).__init__()
