@@ -377,13 +377,25 @@ public class CreateJobView extends TabView {
                 DOM.eventCancelBubble(DOM.eventGetCurrentEvent(), true);
                 
                 if (editControlButton.getText().equals(EDIT_CONTROL_STRING)) {
-                    generateControlFile(true);
-                    controlFile.setReadOnly(false);
                     disableInputs();
-                    editControlButton.setText(UNEDIT_CONTROL_STRING);
-                    controlFilePanel.setOpen(true);
-                    controlTypeSelect.setEnabled(true);
-                    runSynchronous.setEnabled(true);
+                    editControlButton.setEnabled(false);
+                    SimpleCallback onGotControlFile = new SimpleCallback() {
+                        public void doCallback(Object source) {
+                            controlFile.setReadOnly(false);
+                            editControlButton.setText(UNEDIT_CONTROL_STRING);
+                            controlFilePanel.setOpen(true);
+                            controlTypeSelect.setEnabled(true);
+                            runSynchronous.setEnabled(true);
+                            editControlButton.setEnabled(true);
+                        }
+                    };
+                    SimpleCallback onControlFileError = new SimpleCallback() {
+                        public void doCallback(Object source) {
+                            setInputsEnabled();
+                            editControlButton.setEnabled(true);
+                        }
+                    };
+                    generateControlFile(true, onGotControlFile, onControlFileError);
                 }
                 else {
                     if (controlEdited && 
