@@ -31,6 +31,7 @@ _shutdown = False
 _notify_email = None
 _autoserv_path = 'autoserv'
 _testing_mode = False
+_global_config_section = 'SCHEDULER'
 
 
 def main():
@@ -56,7 +57,7 @@ def main():
 	# read in notify_email from global_config
 	c = global_config.global_config
 	global _notify_email
-	val = c.get_config_value("SCHEDULER", "notify_email")
+	val = c.get_config_value(_global_config_section, "notify_email")
 	if val != "":
 		_notify_email = val 
 	
@@ -271,6 +272,11 @@ def kill_autoserv(pid, poll_fn=None):
 
 class Dispatcher:
 	autoserv_procs_cache = None
+	max_running_agents = global_config.global_config.get_config_value(
+	    _global_config_section, 'max_running_jobs', type=int)
+	max_jobs_started_per_cycle = (
+	    global_config.global_config.get_config_value(
+	        _global_config_section, 'max_jobs_started_per_cycle', type=int))
 
 	def __init__(self):
 		self._agents = []
@@ -307,6 +313,11 @@ class Dispatcher:
 
 	def remove_agent(self, agent):
 		self._agents.remove(agent)
+
+
+	def num_started_agents(self):
+		return len([agent for agent in self._agents
+			    if agent.is_started()])
 
 
 	@classmethod
@@ -480,7 +491,6 @@ class Dispatcher:
 	def _find_more_work(self):
 		print "finding work"
 
-		num_started = 0
 		for host in idle_hosts():
 			tasks = host.next_queue_entries()
 			if tasks:
@@ -489,10 +499,6 @@ class Dispatcher:
 						agent = next.run(assigned_host=host)
 						if agent:							
 							self.add_agent(agent)
-
-							num_started += 1
-							if num_started>=100:
-								return
 							break
 					except:
 						next.set_status('Failed')
@@ -529,13 +535,27 @@ class Dispatcher:
 
 	def _handle_agents(self):
 		still_running = []
+		num_started = self.num_started_agents()
+		start_new = (num_started < self.max_running_agents)
+		num_started_this_cycle = 0
 		for agent in self._agents:
+			if not agent.is_started():
+				if not start_new:
+					still_running.append(agent)
+					continue
+				num_started += 1
+				num_started_this_cycle += 1
+				if (num_started >= self.max_running_agents or
+				    num_started_this_cycle >=
+				    self.max_jobs_started_per_cycle):
+					start_new = False
 			agent.tick()
 			if not agent.is_done():
 				still_running.append(agent)
 			else:
 				print "agent finished"
 		self._agents = still_running
+		print num_started, 'running agents'
 
 
 class RunMonitor(object):
@@ -800,6 +820,10 @@ class Agent(object):
 		self.queue = Queue.Queue(0)
 		for task in self.active_task.failure_tasks:
 			self.add_task(task)
+
+
+	def is_started(self):
+		return self.active_task is not None
 
 
 	def is_done(self):
