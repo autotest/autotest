@@ -45,7 +45,10 @@ class ServiceProxy(object):
          request = urllib2.Request(self.__serviceURL, data=postdata,
                                    headers=self.__headers)
          respdata = urllib2.urlopen(request).read()
-         resp = json_decoder.decode(respdata)
+         try:
+             resp = json_decoder.decode(respdata)
+         except ValueError:
+             raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
          if resp['error'] != None:
              error_message = (resp['error']['name'] + ': ' +
                               resp['error']['message'] + '\n' +
