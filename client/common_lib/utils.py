@@ -136,7 +136,7 @@ def run(command, timeout=None, ignore_status=False,
 		a CmdResult object
 
 	Raises:
-		AutoservRunError: the exit code of the command
+		CmdError: the exit code of the command
 			execution was not 0
 	"""
 	return join_bg_job(run_bg(command), timeout, ignore_status,
@@ -158,15 +158,16 @@ def join_bg_job(bg_job, timeout=None, ignore_status=False,
 	sp, result = bg_job
 	stdout_file = StringIO.StringIO()
 	stderr_file = StringIO.StringIO()
+	(ret, timeouterr) = (0, False)
 
 	try:
 		# We are holding ends to stdin, stdout pipes
 		# hence we need to be sure to close those fds no mater what
 		start_time = time.time()
-		ret = _wait_for_command(sp, start_time, timeout, stdout_file,
-			                stderr_file, stdout_tee, stderr_tee)
+		(ret, timeouterr) = _wait_for_command(sp, start_time,
+					timeout, stdout_file, stderr_file,
+					stdout_tee, stderr_tee)
 		result.exit_status = ret
-
 		result.duration = time.time() - start_time
 		# don't use os.read now, so we get all the rest of the output
 		_process_output(sp.stdout, stdout_file, stdout_tee,
@@ -181,12 +182,17 @@ def join_bg_job(bg_job, timeout=None, ignore_status=False,
 	result.stdout = stdout_file.getvalue()
 	result.stderr = stderr_file.getvalue()
 
-	if not ignore_status and result.exit_status > 0:
-		raise error.AutoservRunError("command execution error", result)
+	if result.exit_status != 0:
+		if timeouterr:
+			raise error.CmdError('Command not complete within'
+					     ' %s seconds' % timeout, result)
+		elif not ignore_status:
+			raise error.CmdError("command execution error", result)
 
 	return result
 
-
+# this returns a tuple with the return code and a flag to specify if the error
+# is due to the process not terminating within timeout
 def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 		      stdout_tee, stderr_tee):
 	if timeout:
@@ -211,16 +217,17 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
 		exit_status_indication = subproc.poll()
 
 		if exit_status_indication is not None:
-			return exit_status_indication
+			return (exit_status_indication, False)
+
 		if timeout:
 			time_left = stop_time - time.time()
 
 	# the process has not terminated within timeout,
 	# kill it via an escalating series of signals.
 	if exit_status_indication is None:
-		nuke_subprocess(subproc)
-	raise error.AutoservRunError('Command not complete within %s seconds'
-			       % timeout, None)
+		exit_status_indication = nuke_subprocess(subproc)
+
+	return (exit_status_indication, True)
 
 
 def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
@@ -248,7 +255,7 @@ def nuke_subprocess(subproc):
 	       for i in range(5):
 		       rc = subproc.poll()
 		       if rc != None:
-			       return
+			       return rc
 		       time.sleep(1)
 
 
@@ -296,8 +303,13 @@ def system(command, timeout=None, ignore_status=False):
 		stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
 
 
-def system_output(command, timeout=None, ignore_status=False):
-	out = run(command, timeout, ignore_status).stdout
+def system_output(command, timeout=None, ignore_status=False,
+		  retain_output=False):
+	if retain_output:
+		out = run(command, timeout, ignore_status,
+			  stdout_tee=sys.stdout, stderr_tee=sys.stderr).stdout
+	else:
+		out = run(command, timeout, ignore_status).stdout
 	if out[-1:] == '\n': out = out[:-1]
 	return out
 

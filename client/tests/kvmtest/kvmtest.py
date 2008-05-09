@@ -66,7 +66,7 @@ class kvmtest(test.test):
 		print("Summary: Passed %d Failed %d" %(passed, failed))
 		# if we had any tests not passed, fail entire test
 		if failed != 0:
-			raise CmdError('kvm-test-replay', 1)
+			raise TestError('kvm-test-replay')
 
 
 	def __get_expected_file(self, logfile):

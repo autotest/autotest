@@ -43,12 +43,12 @@ class CmdError(TestError):
 	"""\
 	Indicates that a command failed, is fatal to the test unless caught.
 	"""
-	def __init__(self, command, result_code):
-		TestError.__init__(self, command, result_code)
+	def __init__(self, command, result_obj):
+		TestError.__init__(self, command, result_obj)
 
 
 	def __str__(self):
-		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1])
+		return "Command <" + self.args[0] + "> failed, rc=%d" % (self.args[1].exit_status)
 
 class PackageError(TestError):
 	"""Indicates an error trying to perform a package operation."""

@@ -53,7 +53,7 @@ class btreplay(test.test):
 		# wait until blktrace is really done
 		slept = 0.0
 		while system("ps -C blktrace > /dev/null",
-			     ignorestatus=True) == 0:
+			     ignore_status=True) == 0:
 			time.sleep(0.1)
 			slept += 0.1
 			if slept > 30.0:

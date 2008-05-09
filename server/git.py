@@ -89,7 +89,7 @@ class GitRepo(installable_object.InstallableObject):
 			rv = self.gitcmd(cmd, True)
 			if rv.exit_status != 0:
 				print rv.stderr
-				raise CmdError('Failed to clone git url', rv.exit_status)
+				raise CmdError('Failed to clone git url', rv)
 			else:
 				print rv.stdout
 
@@ -101,7 +101,7 @@ class GitRepo(installable_object.InstallableObject):
 				if rv.exit_status != 0:
 					print rv.stderr
 					e_msg = 'Failed to pull git repo data'
-					raise CmdError(e_msg, rv.exit_status)
+					raise CmdError(e_msg, rv)
 			else:
 				print 'repo up-to-date'
 
