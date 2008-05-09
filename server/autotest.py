@@ -92,7 +92,14 @@ class BaseAutotest(installable_object.InstallableObject):
 		host.setup()
 		print "Installing autotest on %s" % host.hostname
 
-		autodir = _get_autodir(host)
+		# Let's try to figure out where autotest is installed. If we can't,
+		# (autotest not installed) just assume '/usr/local/autotest' and 
+		# proceed.
+		try:
+			autodir = _get_autodir(host)
+		except AutoservRunError:
+			autodir = '/usr/local/autotest'
+
 		host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
 		if getattr(host, 'site_install_autotest', None):
