@@ -104,7 +104,16 @@ class ExtendedManager(dbmodels.Manager):
 
 
 	def create_in_bulk(self, fields, values):
-		'TODO docstring'
+		"""
+		Creates many objects with a single SQL query.
+		field - list of field names (model attributes, not actual DB
+		        field names) for which values will be specified.
+		values - list of tuples containing values.  Each tuple contains
+		         the values for the specified fields for a single
+			 object.
+		Example: Host.objects.create_in_bulk(['hostname', 'status'],
+		             [('host1', 'Ready'), ('host2', 'Running')])
+		"""
 		if not values:
 			return
 		field_dict = self.model.get_field_dict()
@@ -118,7 +127,11 @@ class ExtendedManager(dbmodels.Manager):
 
 
 	def delete_in_bulk(self, ids):
-		'TODO docstring'
+		"""
+		Deletes many objects with a single SQL query.  ids should be a
+		list of object ids to delete.  Nonexistent ids will be silently
+		ignored.
+		"""
 		if not ids:
 			return
 		sql = 'DELETE FROM %s WHERE id IN %s' % (
