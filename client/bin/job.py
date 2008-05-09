@@ -91,7 +91,7 @@ class base_job:
 			if os.path.exists(self.tmpdir):
 				cmd = ('umount -f %s > /dev/null 2> /dev/null'
 					 	% (self.tmpdir))
-				autotest_utils.system(cmd, ignorestatus=True)
+				autotest_utils.system(cmd, ignore_status=True)
 				autotest_utils.system('rm -rf ' + self.tmpdir)
 			os.mkdir(self.tmpdir)
 
@@ -395,7 +395,7 @@ class base_job:
 
 
 	def new_container(self, mbytes=None, cpus=None, root='', name=None):
-		if not grep('cpuset', '/proc/filesystems'):
+		if not autotest_utils.grep('cpuset', '/proc/filesystems'):
 			print "Containers not enabled by latest reboot"
 			return  # containers weren't enabled in this kernel boot
 		pid = os.getpid()

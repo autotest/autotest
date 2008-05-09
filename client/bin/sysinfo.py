@@ -71,8 +71,8 @@ def _log_per_reboot_data():
 		if (os.path.exists(file)):
 			shutil.copyfile(file, os.path.basename(file))
 
-	system('dmesg -c > dmesg', ignorestatus=1)
-	system('df -mP > df', ignorestatus=1)
+	system('dmesg -c > dmesg', ignore_status=True)
+	system('df -mP > df', ignore_status=True)
 	if local:
 		site_sysinfo.log_per_reboot_data()
 
@@ -90,8 +90,8 @@ def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
 		os.chdir(test_sysinfo_dir)
 		system('ln -s %s reboot_current' % reboot_dir)
 
-		system('dmesg -c > dmesg', ignorestatus=True)
-		system('df -mP > df', ignorestatus=True)
+		system('dmesg -c > dmesg', ignore_status=True)
+		system('df -mP > df', ignore_status=True)
 		if local:
 			site_sysinfo.log_after_each_test()
 	finally:

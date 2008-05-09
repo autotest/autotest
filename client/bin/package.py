@@ -137,7 +137,7 @@ def __dpkg_info(dpkg_package):
 		package_info['version'] = system_output(v_cmd)
 		package_info['arch'] = system_output(a_cmd)
 		# Checking if package is installed
-		package_status = system_output(i_cmd, ignorestatus = 1)
+		package_status = system_output(i_cmd, ignore_status=True)
 		not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
 		dpkg_not_installed = re.search(not_inst_pattern, package_status)
 		if dpkg_not_installed:
@@ -290,4 +290,3 @@ def os_support():
 		support_info['conversion'] = False
 
 	return support_info
-
