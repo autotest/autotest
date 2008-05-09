@@ -52,7 +52,7 @@ class netperf2(test.test):
 		# we should really record the pid we forked off, but there
 		# was no obvious way to run the daemon in the foreground.
 		# Hacked it for now
-		system('killall netserver', ignorestatus=1)
+		system('killall netserver', ignore_status=True)
 		system(self.server_path)
 
 

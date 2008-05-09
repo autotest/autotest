@@ -252,7 +252,7 @@ class kernel:
 		# setup_config_file(config_file, config_overrides)
 
 		# Not needed on 2.6, but hard to tell -- handle failure
-		system('make dep', ignorestatus=1)
+		system('make dep', ignore_status=True)
 		threads = 2 * count_cpus()
 		build_string = 'make -j %d %s %s' % (threads, make_opts,
 					     self.build_target)

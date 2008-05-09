@@ -16,7 +16,7 @@ def grep(pattern, file):
 	returns 1 if the pattern is present in the file, 0 if not.
 	"""
 	command = 'grep "%s" > /dev/null' % pattern
-	ret = cat_file_to_cmd(file, command, ignorestatus = 1)
+	ret = cat_file_to_cmd(file, command, ignore_status=True)
 	return not ret
 
 
@@ -29,7 +29,7 @@ def difflist(list1, list2):
 	return diff
 
 
-def cat_file_to_cmd(file, command, ignorestatus = 0, return_output = False):
+def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
 	"""
 	equivalent to 'cat file | command' but knows to use 
 	zcat or bzcat if appropriate
@@ -43,11 +43,11 @@ def cat_file_to_cmd(file, command, ignorestatus = 0, return_output = False):
 		raise NameError('invalid file %s to cat to command %s'
 			% (file, command))
 	if file.endswith('.bz2'):
-		return run_cmd('bzcat ' + file + ' | ' + command, ignorestatus)
+		return run_cmd('bzcat ' + file + ' | ' + command, ignore_status)
 	elif (file.endswith('.gz') or file.endswith('.tgz')):
-		return run_cmd('zcat ' + file + ' | ' + command, ignorestatus)
+		return run_cmd('zcat ' + file + ' | ' + command, ignore_status)
 	else:
-		return run_cmd('cat ' + file + ' | ' + command, ignorestatus)
+		return run_cmd('cat ' + file + ' | ' + command, ignore_status)
 
 
 def extract_tarball_to_dir(tarball, dir):
@@ -147,7 +147,7 @@ def file_contains_pattern(file, pattern):
 	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
 		raise NameError('file %s does not exist' % file)
-	return not system('egrep -q "' + pattern + '" ' + file, ignorestatus = 1)
+	return not system('egrep -q "' + pattern + '" ' + file, ignore_status=True)
 
 
 def list_grep(list, pattern):
@@ -296,41 +296,6 @@ def _convert_exit_status(sts):
 		raise RuntimeError("Unknown exit status %d!" % sts)
 
 
-def system(cmd, ignorestatus = 0):
-	"""os.system replacement
-
-	We have our own definition of system here, as the stock os.system doesn't
-	correctly handle sigpipe 
-	(ie things like "yes | head" will hang because yes doesn't get the SIGPIPE).
- 
-	Also the stock os.system didn't raise errors based on exit status, this 
-	version does unless you explicitly specify ignorestatus=1
-	"""
-	signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-	try:
-		status = os.system(cmd)
-		status = _convert_exit_status(status)
-	finally:
-		signal.signal(signal.SIGPIPE, signal.SIG_IGN)
-
-	if ((status != 0) and not ignorestatus):
-		raise CmdError(cmd, status)
-	return status
-
-
-def system_output(command, ignorestatus = 0):
-	"""Run command and return its output
-
-	ignorestatus
-		whether to raise a CmdError if command has a nonzero exit status
-	"""
-	(result, data) = commands.getstatusoutput(command)
-	result = _convert_exit_status(result)
-	if result != 0 and not ignorestatus:
-		raise CmdError('command failed: %s' % command, result)
-	return data
-
-
 def where_art_thy_filehandles():
 	"""Dump the current list of filehandles"""
 	os.system("ls -l /proc/%d/fd >> /dev/tty" % os.getpid())
@@ -430,7 +395,7 @@ def check_for_kernel_feature(feature):
 		grep = 'grep'
 	grep += ' ^CONFIG_%s= %s' % (feature, config)
 
-	if not system_output(grep, ignorestatus = 1):
+	if not system_output(grep, ignore_status=True):
 		raise ValueError("Kernel doesn't have a %s feature" % (feature))
 
 
@@ -633,7 +598,7 @@ def ping_default_gateway():
 	if m:
 		gw = m.group(1)
 		cmd = 'ping %s -c 5 > /dev/null' % gw
-		return system(cmd, ignorestatus = True)
+		return system(cmd, ignore_status=True)
 	
 	raise TestError('Unable to find default gateway')
 
