@@ -212,8 +212,7 @@ class BaseAutotest(installable_object.InstallableObject):
 		try:
 			# Read in new and old keyval files
 			new_keyval = utils.read_keyval(keyval_path)
-			old_keyval = utils.read_keyval(os.path.join(dest,
-								    'keyval'))
+			old_keyval = utils.read_keyval(dest)
 			# 'Delete' from new keyval entries that are in both
 			tmp_keyval = {}
 			for key, val in new_keyval.iteritems():
