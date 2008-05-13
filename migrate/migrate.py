@@ -3,7 +3,8 @@
 import os, sys, re, subprocess, tempfile
 import MySQLdb, MySQLdb.constants.ER
 from optparse import OptionParser
-from common import global_config
+import common
+from autotest_lib.client.common_lib import global_config
 
 MIGRATE_TABLE = 'migrate_info'
 DEFAULT_MIGRATIONS_DIR = 'migrations'
@@ -47,6 +48,7 @@ class MigrationManager(object):
 	def read_db_info(self):
 		# grab the config file and parse for info
 		c = global_config.global_config
+		sections = c.get_sections()
 		self.db_host = c.get_config_value(self.database, "host")
 		self.db_name = c.get_config_value(self.database, "database")
 		self.username = c.get_config_value(self.database, "user")
