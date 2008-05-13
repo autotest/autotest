@@ -60,10 +60,37 @@ def my_container_name():
 	return read_one_line('/proc/%i/cpuset' % os.getpid())
 
 
+def get_mem_nodes(container_full_name):
+	file_name = os.path.join(container_full_name, "mems")
+	if os.path.exists(file_name):
+		return rangelist_to_list(read_one_line(file_name))
+	else:
+		return []
+
+
+def available_exclusive_mem_nodes(parent_container):
+	# Get list of numa memory nodes of parent container which could 
+	#  be allocated exclusively to new child containers.
+	# This excludes any nodes now allocated (exclusively or not) 
+	#  to existing children.
+	available = set(get_mem_nodes(parent_container))
+	for child_container in glob.glob('%s/*/mems' % parent_container):
+		child_container = os.path.dirname(child_container)
+		busy = set(get_mem_nodes(child_container))
+		available -= busy
+	return list(available)
+
+
 def my_mem_nodes():
 	# Get list of numa memory nodes owned by current process's container.
-	mems = read_one_line('/dev/cpuset%s/mems' % my_container_name())
-	return rangelist_to_list(mems)
+	return get_mem_nodes('/dev/cpuset%s' % my_container_name())
+
+
+def my_available_exclusive_mem_nodes():
+	# Get list of numa memory nodes owned by current process's container,
+	#  which could be allocated exclusively to new child containers.
+        # This excludes any nodes now allocated (exclusively or not) to existing children.
+	return available_exclusive_mem_nodes('/dev/cpuset%s' % my_container_name())
 
 
 def mbytes_per_mem_node():
@@ -83,7 +110,7 @@ def print_one_cpuset(name):
 	dir = os.path.join('/dev/cpuset', name)
 	cpus = read_one_line(dir + '/cpus')
 	mems = read_one_line(dir + '/mems')
-	node_size_ = rounded_memtotal()*1024 / len(numa_nodes())
+	node_size_ = int(mbytes_per_mem_node()) << 20
 	memtotal = node_size_ * len(rangelist_to_list(mems))
 	tasks = ','.join(get_tasks(dir))
 	print "cpuset %s: size %s; tasks %s; cpus %s; mems %s" % \
@@ -95,14 +122,6 @@ def print_all_cpusets():
 		print_one_cpuset(re.sub(r'.*/', '', cpuset))
 
 
-def get_mems(setname):
-	file_name = os.path.join(setname, "mems")
-	if os.path.exists(file_name):
-		return rangelist_to_list(read_one_line(file_name))
-	else:
-		return ""
-
-
 class cpuset:
 	super_root = "/dev/cpuset"
 
@@ -111,19 +130,7 @@ class cpuset:
 		print_one_cpuset(os.path.join(self.root, self.name))
 
 
-	# Start with the nodes available one level up in the cpuset tree,
-	#   subtract off nodes of all siblings at this level.
-	def available_mems(self, parent_nodes):
-		available = set(parent_nodes)
-		for sub_cpusets in glob.glob('%s/*/mems' % self.root):
-			sub_cpusets = os.path.dirname(sub_cpusets)
-			available -= set(get_mems(sub_cpusets))
-		return list(available)
-
 	def release(self):
-		# don't do anything if this is a top-level dir
-		if self.root == self.cpudir:
-			return
 		print "releasing ", self.cpudir
 		parent_t = os.path.join(self.root, 'tasks')
 		# Transfer survivors (and self) to parent
@@ -150,10 +157,10 @@ class cpuset:
 		self.root = os.path.join(self.super_root, root)
 		self.name = name
 
-		# default to all installed memory
-		memtotal_bytes = rounded_memtotal() << 10
 		if not job_size:
-			job_size = memtotal_bytes >> 20
+			# default to biggest container we can make here
+			job_size = int( mbytes_per_mem_node() *
+			    len(available_exclusive_mem_nodes(self.root)) )
 
 		# default to the current pid
 		if not job_pid:
@@ -162,8 +169,6 @@ class cpuset:
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)" % \
 		    (name, root, job_size, job_pid)
 		self.memory = job_size
-		# Convert jobsize to bytes
-		job_size = job_size << 20
 		if not grep('cpuset', '/proc/filesystems'):
 			raise AutotestError('No cpuset support; please reboot')
 		if not os.path.exists(self.super_root):
@@ -178,27 +183,21 @@ class cpuset:
 		if cpus == None:
 			cpus = range(count_cpus())
 		self.cpus = cpus
-		all_nodes = numa_nodes()
 
 		self.cpudir = os.path.join(self.root, name)
 		if os.path.exists(self.cpudir):
 			self.release()   # destructively replace old
 
-		node_size = float(memtotal_bytes) / len(all_nodes)
-		nodes_needed = int(math.ceil(float(job_size) /
-					     math.ceil(node_size)))
+		nodes_needed = int(math.ceil( float(job_size) /
+					math.ceil(mbytes_per_mem_node()) ))
 
-		if nodes_needed > len(all_nodes):
-			raise AutotestError("Container's memory is bigger "
-						"than entire machine")
-		parent_nodes = get_mems(self.root)
-		if nodes_needed > len(parent_nodes):
+		if nodes_needed > len(get_mem_nodes(self.root)):
 			raise AutotestError("Container's memory is bigger "
 						"than parent's")
 
 		while True:
 			# Pick specific free mem nodes for this cpuset
-			mems = self.available_mems(parent_nodes)
+			mems = available_exclusive_mem_nodes(self.root)
 			if len(mems) < nodes_needed:
 				raise AutotestError('Existing containers hold '
 					'mem nodes needed by new container')
@@ -212,7 +211,7 @@ class cpuset:
 			# Above sends err msg to client.log.0, but no exception,
 			#   if mems_spec contained any now-taken nodes
 			# Confirm that siblings didn't grab our chosen mems:
-			nodes_gotten = len(get_mems(self.cpudir))
+			nodes_gotten = len(get_mem_nodes(self.cpudir))
 			if nodes_gotten >= nodes_needed:
 				break   # success
 			print "cpuset %s lost race for nodes" % name, mems_spec
