@@ -299,7 +299,7 @@ class base_job:
 			cpus  = container.get('cpus', None)
 			if not cpus:    # get old name
 				cpus  = container.get('cpu', None)
-			root  = container.get('root', '')
+			root  = container.get('root', None)
 			self.new_container(mbytes=mbytes, cpus=cpus, 
 					root=root, name=cname)
 			# We are running in a container now...
@@ -394,7 +394,7 @@ class base_job:
 		return result
 
 
-	def new_container(self, mbytes=None, cpus=None, root='', name=None):
+	def new_container(self, mbytes=None, cpus=None, root=None, name=None):
 		if not autotest_utils.grep('cpuset', '/proc/filesystems'):
 			print "Containers not enabled by latest reboot"
 			return  # containers weren't enabled in this kernel boot
@@ -911,3 +911,4 @@ except ImportError:
 
 class job(site_job):
 	pass
+
