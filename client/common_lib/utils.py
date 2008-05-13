@@ -7,6 +7,14 @@ import sys, time, textwrap, urllib, urlparse
 import error
 
 
+def read_one_line(filename):
+	return open(filename, 'r').readline().strip()
+
+
+def write_one_line(filename, str):
+	open(filename, 'w').write(str.rstrip() + "\n")
+
+
 def read_keyval(path):
 	"""
 	Read a key-value pair format file into a dictionary, and return it.
