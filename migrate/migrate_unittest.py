@@ -3,7 +3,8 @@
 import unittest
 import MySQLdb
 import migrate
-from common import global_config
+import common
+from autotest_lib.client.common_lib import global_config
 
 # Which section of the global config to pull info from.  We won't actually use
 # that DB, we'll use the corresponding test DB (test_<db name>).

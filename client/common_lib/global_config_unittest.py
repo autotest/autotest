@@ -58,7 +58,9 @@ class global_config_test(unittest.TestCase):
 	def tearDown(self):
 		os.remove(self.global_file)
 		os.remove(self.shadow_file)
-		
+		self.conf.set_config_files(global_config.DEFAULT_CONFIG_FILE,
+					global_config.DEFAULT_SHADOW_FILE)
+
 
 	def testFloat(self):
 		val = self.conf.get_config_value("SECTION_A", "value_1", float)
