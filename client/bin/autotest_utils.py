@@ -425,14 +425,6 @@ def check_kernel_ver(ver):
 							(kernel_ver, ver))
 
 
-def read_one_line(filename):
-	return open(filename, 'r').readline().strip()
-
-
-def write_one_line(filename, str):
-	open(filename, 'w').write(str.rstrip() + "\n")
-
-
 def human_format(number):
 	# Convert number to kilo / mega / giga format.
 	if number < 1024:
