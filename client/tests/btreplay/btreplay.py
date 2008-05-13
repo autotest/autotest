@@ -89,6 +89,7 @@ class btreplay(test.test):
 			profilers.stop(self)
 			profilers.report(self)
 
+		self.job.stdout.filehandle.flush()
 		self.__format_results(open(self.debugdir + '/stdout').read())
 
 
@@ -128,3 +129,4 @@ systime=%f
 avg_q2c_latency=%f
 """ % (elapsed, systime, q2c)
 		out.close()
+

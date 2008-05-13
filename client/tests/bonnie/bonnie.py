@@ -41,20 +41,22 @@ class bonnie(test.test):
 			testdir = self.tmpdir
 
 		args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
-
+		cmd = self.srcdir + '/bonnie++ ' + args
+		results = ''
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(self.srcdir + '/bonnie++ ' + args)
+				results += system_output(cmd) + '\n'
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(self.srcdir + '/bonnie++ ' + args)
+			results += system_output(cmd) + '\n'
 			profilers.stop(self)
 			profilers.report(self)
 
-		self.__format_results(open(self.debugdir + '/stdout').read())
+		print results
+		self.__format_results(results)
 
 	def __format_results(self, results):
 		strip_plus = lambda s: re.sub(r"^\++$", "0", s)
