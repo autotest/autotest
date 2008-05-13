@@ -87,22 +87,23 @@ class sysbench(test.test):
 
 			profilers = self.job.profilers
 			if not profilers.only():
-				system(cmd + ' run')
+				results = system_output(cmd + ' run') + '\n'
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
-				print "Profiling run ..."
-				system(cmd + ' run')
+				results = "Profiling run ...\n"
+				results += system_output(cmd + ' run') + '\n'
 				profilers.stop(self)
 				profilers.report(self)
 		except:
 			system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 			raise
 
+		print results
 		system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
-		self.__format_results(open(self.debugdir + '/stdout').read())
+		self.__format_results(results)
 
 
 	def execute_mysql(self, build, num_threads, max_time, read_only, args):
@@ -143,22 +144,23 @@ class sysbench(test.test):
 
 			profilers = self.job.profilers
                 	if not profilers.only():
-				system(cmd + ' run')
+				results = system(cmd + ' run') + '\n'
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
-				print "Profiling run ..."
-				system(cmd + ' run')
+				results = "Profiling run ...\n" 
+				results += system_output(cmd + ' run') + '\n'
 				profilers.stop(self)
 				profilers.report(self)
 		except:
 			system(bin + '/mysqladmin shutdown')
 			raise
 
+		print results
 		system(bin + '/mysqladmin shutdown')
 
-		self.__format_results(open(self.debugdir + '/stdout').read())
+		self.__format_results(results)
 
 
 	def __format_results(self, results):

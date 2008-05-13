@@ -54,20 +54,22 @@ class reaim(test.test):
 		os.chdir(self.srcdir)
 		print os.getcwd()
 		cmd = self.ldlib + ' ./reaim ' + args + ' ' + extra_args
+		results = ''
 
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(cmd)
+				results += system_output(cmd) + '\n'
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(cmd)
+			results += system_output(cmd) + '\n'
 			profilers.stop(self)
 			profilers.report(self)
 
-		self.__format_results(open(self.debugdir + '/stdout').read())
+		print results
+		self.__format_results(results)
 
 
 	def __format_results(self, results):

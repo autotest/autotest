@@ -22,18 +22,21 @@ class dbench(test.test):
 		if dir:
 			args += ' -D ' + dir
 		args += ' %s' % nprocs
+		cmd = self.srcdir + '/dbench ' + args
+		results = ''
 		if not profilers.only():
 			for i in range(iterations):
-				system(self.srcdir + '/dbench ' + args)
+				results += system_output(cmd) + '\n'
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(self.srcdir + '/dbench ' + args)
+			results += system_output(cmd) + '\n'
 			profilers.stop(self)
 			profilers.report(self)
 
-		self.__format_results(open(self.debugdir + '/stdout').read())
+		print results
+		self.__format_results(results)
 
 
 	def __format_results(self, results):
