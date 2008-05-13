@@ -3,6 +3,10 @@ __author__ = """Copyright Google, Peter Dahl, Martin J. Bligh   2007"""
 import os, sys, re, glob, math
 from autotest_utils import *
 
+
+super_root = "/dev/cpuset"
+
+
 # Convert '1-3,7,9-12' to [1,2,3,7,9,10,11,12]
 def rangelist_to_list(rangelist):
 	result = []
@@ -102,6 +106,19 @@ def mbytes_per_mem_node():
 	return rounded_memtotal() / (len(numa_nodes()) * 1024.0)
 
 
+def get_cpus(container_full_name):
+        file_name = os.path.join(container_full_name, "cpus")
+        if os.path.exists(file_name):
+                return rangelist_to_list(read_one_line(file_name))
+        else:
+                return []
+
+
+def my_cpus():
+        # Get list of cpu cores owned by current process's container.
+        return get_cpus('/dev/cpuset%s' % my_container_name())
+
+
 def get_tasks(setname):
 	return [x.rstrip() for x in open(setname+'/tasks').readlines()]
 
@@ -122,9 +139,21 @@ def print_all_cpusets():
 		print_one_cpuset(re.sub(r'.*/', '', cpuset))
 
 
-class cpuset:
-	super_root = "/dev/cpuset"
+def release_dead_containers(parent=super_root):
+	# Delete temp subcontainers nested within parent container
+	#   that are now dead (having no tasks and no sub-containers) 
+	#   and recover their cpu and mem resources.
+	# Must not call when a parallel task may be allocating containers!
+	# Limit to test* names to preserve permanent containers.
+	for child in glob.glob('%s/test*' % parent):
+		print 'releasing dead container', child
+		release_dead_containers(child)  # bottom-up tree walk
+		# rmdir has no effect when container still 
+		#   has tasks or sub-containers
+		os.rmdir(child)
 
+
+class cpuset:
 
 	def display(self):
 		print_one_cpuset(os.path.join(self.root, self.name))
@@ -143,7 +172,7 @@ class cpuset:
 
 
 	def __init__(self, name, job_size=None, job_pid=None, cpus=None,
-		     root=""):
+		     root=None):
 		"""\
 		Create a cpuset container and move job_pid into it
 		Allocate the list "cpus" of cpus to that container
@@ -154,13 +183,34 @@ class cpuset:
 			cpu = list of cpu indicies to associate with the cpuset
 			root = the cpuset to create this new set in
 		"""
-		self.root = os.path.join(self.super_root, root)
+		if not os.path.exists(os.path.join(super_root, "cpus")):
+			raise AutotestError('Root container /dev/cpuset is '
+						'empty; please reboot')
+
 		self.name = name
 
-		if not job_size:
-			# default to biggest container we can make here
+		if root == None:
+			# default to nested in process's current container
+			root = my_container_name()[1:]
+		self.root = os.path.join(super_root, root)
+		if not os.path.exists(self.root):
+			raise AutotestError('Parent container %s does not exist'
+						% self.root)
+
+		if job_size == None:
+			# default to biggest container we can make under root
 			job_size = int( mbytes_per_mem_node() *
 			    len(available_exclusive_mem_nodes(self.root)) )
+		if not job_size:
+			raise AutotestError('Creating container with no mem')
+		self.memory = job_size
+
+		if cpus == None:
+			# default to biggest container we can make under root
+			cpus = get_cpus(self.root)
+		if not cpus:
+			raise AutotestError('Creating container with no cpus')
+		self.cpus = cpus
 
 		# default to the current pid
 		if not job_pid:
@@ -168,21 +218,6 @@ class cpuset:
 
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)" % \
 		    (name, root, job_size, job_pid)
-		self.memory = job_size
-		if not grep('cpuset', '/proc/filesystems'):
-			raise AutotestError('No cpuset support; please reboot')
-		if not os.path.exists(self.super_root):
-			os.mkdir(self.super_root)
-			system('mount -t cpuset none %s' % self.super_root)
-		if not os.path.exists(os.path.join(self.super_root, "cpus")):
-			raise AutotestError('Root container /dev/cpuset is '
-						'empty; please reboot')
-		if not os.path.exists(self.root):
-			raise AutotestError('Parent container %s does not exist'
-						 % self.root)
-		if cpus == None:
-			cpus = range(count_cpus())
-		self.cpus = cpus
 
 		self.cpudir = os.path.join(self.root, name)
 		if os.path.exists(self.cpudir):
@@ -200,7 +235,8 @@ class cpuset:
 			mems = available_exclusive_mem_nodes(self.root)
 			if len(mems) < nodes_needed:
 				raise AutotestError('Existing containers hold '
-					'mem nodes needed by new container')
+					'%d mem nodes needed by new container'
+					% (nodes_needed - len(mems)) )
 			mems = mems[-nodes_needed:]
 			mems_spec = ','.join(['%d' % x for x in mems])
 			os.mkdir(self.cpudir)
