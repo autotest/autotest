@@ -154,7 +154,7 @@ def _installtest(job, url):
 	get_file(url, os.path.join(group_dir, 'test.tgz'))
 	old_wd = os.getcwd()
 	os.chdir(group_dir)
-	tar = tarfile.TarFile('test.tgz')
+	tar = tarfile.open('test.tgz')
 	for member in tar.getmembers():
 		tar.extract(member)
 	tar.close()
