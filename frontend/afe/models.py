@@ -582,7 +582,8 @@ class Host(ModelWithInvalid, dbmodels.Model):
 	status: string describing status of host
 	"""
 	Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
-	                   'Repair Failed', 'Dead', string_values=True)
+	                   'Repair Failed', 'Dead', 'Rebooting',
+	                    string_values=True)
 
 	hostname = dbmodels.CharField(maxlength=255, unique=True)
 	labels = dbmodels.ManyToManyField(Label, blank=True,
