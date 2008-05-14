@@ -628,12 +628,28 @@ class SSHHost(remote.RemoteHost):
 		return True
 
 
+	def _are_wait_up_processes_up(self):
+		"""
+		Checks if the SSHHOST waitup processes is running on the
+		remote host.
+
+		Returns True if all the waitup processes are running, False
+		otherwise.
+		"""
+		for procname in self.get_wait_up_processes():
+			exit_status = self.run("ps -e | grep '%s'" % procname,
+					       ignore_status=True).exit_status
+			if exit_status != 0:
+				return False
+		return True
+
+
 	def wait_up(self, timeout=None):
 		"""
 		Wait until the remote host is up or the timeout expires.
 		
 		In fact, it will wait until an ssh connection to the remote 
-		host can be established.
+		host can be established, and getty is running.
 		
 		Args:
 			timeout: time limit in seconds before returning even
@@ -648,10 +664,16 @@ class SSHHost(remote.RemoteHost):
 		while not timeout or time.time() < end_time:
 			try:
 				self.ssh_ping()
-			except:
+			except (error.AutoservRunError,
+				error.AutoservSSHTimeout):
 				pass
 			else:
-				return True
+				try:
+					if self._are_wait_up_processes_up():
+						return True
+				except (error.AutoservRunError,
+					error.AutoservSSHTimeout):
+					pass
 			time.sleep(1)
 		
 		return False
