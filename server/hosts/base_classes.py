@@ -20,6 +20,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import time
 
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import utils
 import bootloader
 
@@ -75,6 +76,18 @@ class Host(object):
 
 	def is_up(self):
 		pass
+
+
+	def get_wait_up_processes(self):
+		"""
+		Gets the list of local processes to wait for in wait_up.
+		"""
+		get_config = global_config.global_config.get_config_value
+		proc_list = get_config("HOSTS", "wait_up_processes",
+				       default="").strip()
+		processes = set(p.strip() for p in proc_list.split(","))
+		processes.discard("")
+		return processes
 
 
 	def wait_up(self, timeout):
