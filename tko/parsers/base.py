@@ -1,4 +1,6 @@
-from autotest_lib.tko import status_lib
+import traceback
+
+from autotest_lib.tko import status_lib, utils as tko_utils
 
 
 class parser(object):
@@ -33,7 +35,14 @@ class parser(object):
 		self.line_buffer.put_multiple(lines)
 		# run the state machine to clear out the buffer
 		self.finished = True
-		return self.state.next()
+		try:
+			return self.state.next()
+		except StopIteration:
+			msg = ("WARNING: parser was end()ed multiple times\n"
+			       "Current traceback:\n" +
+			       traceback.format_exc())
+			tko_utils.dprint(msg)
+			return []
 
 
 	@staticmethod
