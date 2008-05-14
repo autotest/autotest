@@ -30,6 +30,22 @@ class line_buffer_test(unittest.TestCase):
 		self.assertEquals(lines, results)
 
 
+	def test_put_multiple_same_as_multiple_puts(self):
+		buf_put, buf_multi = [status_lib.line_buffer()
+				      for x in xrange(2)]
+		lines = ["line #%d" % x for x in xrange(10)]
+		for line in lines:
+			buf_put.put(line)
+		buf_multi.put_multiple(lines)
+		counter = 0
+		while buf_put.size():
+			self.assertEquals(buf_put.size(), buf_multi.size())
+			line = "line #%d" % counter
+			self.assertEquals(buf_put.get(), line)
+			self.assertEquals(buf_multi.get(), line)
+			counter += 1
+
+
 	def test_put_back_is_lifo(self):
 		buf = status_lib.line_buffer()
 		lines = ["1", "2", "3"]
@@ -147,7 +163,7 @@ class status_stack_test(unittest.TestCase):
 
 
 class parser_test(unittest.TestCase):
-	available_versions = [0]
+	available_versions = [0, 1]
 	def test_can_import_available_versions(self):
 		for version in self.available_versions:
 			p = status_lib.parser(0)

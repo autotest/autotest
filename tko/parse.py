@@ -3,8 +3,8 @@
 import os, sys, optparse, fcntl, errno, traceback
 
 import common
-from autotest_lib.client.common_lib import mail as common_mail
-from autotest_lib.tko import db as tko_db, utils, status_lib
+from autotest_lib.client.common_lib import mail, utils
+from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib
 
 
 def parse_args():
@@ -33,8 +33,8 @@ def parse_args():
 
 	# we need a results directory
 	if len(args) == 0:
-		utils.dprint("ERROR: at least one results directory must "
-			     "be provided")
+		tko_utils.dprint("ERROR: at least one results directory must "
+				 "be provided")
 		parser.print_help()
 		sys.exit(1)
 
@@ -61,34 +61,45 @@ def mailfailure(jobname, job, message):
 	message_header = "\n".join(message_lines)
 
 	subject = "AUTOTEST: FAILED tests from job %s" % jobname
-	common_mail.send("", job.user, "", subject, message_header + message)
+	mail.send("", job.user, "", subject, message_header + message)
 
 
 def parse_one(db, jobname, path, reparse, mail_on_failure):
 	"""
 	Parse a single job. Optionally send email on failure.
 	"""
-	utils.dprint("\nScanning %s (%s)" % (jobname, path))
+	tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
 	if reparse and db.find_job(jobname):
-		utils.dprint("! Deleting old copy of job results to "
+		tko_utils.dprint("! Deleting old copy of job results to "
 				 "reparse it")
 		db.delete_job(jobname)
 	if db.find_job(jobname):
-		utils.dprint("! Job is already parsed, done")
+		tko_utils.dprint("! Job is already parsed, done")
 		return
 
+	# look up the status version
+	try:
+		job_keyval = utils.read_keyval(path)
+	except IOError, e:
+		if e.errno == errno.ENOENT:
+			status_version = 0
+		else:
+			raise
+	else:
+		status_version = job_keyval.get("status_version", 0)
+
 	# parse out the job
-	parser = status_lib.parser(0)
+	parser = status_lib.parser(status_version)
 	job = parser.make_job(path)
 	status_log = os.path.join(path, "status.log")
 	if not os.path.exists(status_log):
 		status_log = os.path.join(path, "status")
 	if not os.path.exists(status_log):
-		utils.dprint("! Unable to parse job, no status file")
+		tko_utils.dprint("! Unable to parse job, no status file")
 		return
 
 	# parse the status logs
-	utils.dprint("+ Parsing dir=%s, jobname=%s" % (path, jobname))
+	tko_utils.dprint("+ Parsing dir=%s, jobname=%s" % (path, jobname))
 	status_lines = open(status_log).readlines()
 	parser.start(job)
 	tests = parser.end(status_lines)
@@ -99,8 +110,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
 	for test in job.tests:
 		if not test.subdir:
 			continue
-		utils.dprint("* testname, status, reason: %s %s %s"
-			     % (test.subdir, test.status, test.reason))
+		tko_utils.dprint("* testname, status, reason: %s %s %s"
+				 % (test.subdir, test.status, test.reason))
 		if test.status in ("FAIL", "WARN"):
 			message_lines.append(format_failure_message(
 			    jobname, test.kernel.base, test.subdir,
@@ -109,8 +120,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
 
 	# send out a email report of failure
 	if len(message) > 2 and mail_on_failure:
-		utils.dprint("Sending email report of failure on %s to %s"
-			     % (jobname, job.user))
+		tko_utils.dprint("Sending email report of failure on %s to %s"
+				 % (jobname, job.user))
 		mailfailure(jobname, job, message)
 
 	# write the job into the database

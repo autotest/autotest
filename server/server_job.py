@@ -121,6 +121,9 @@ class base_server_job:
 			the control file for this job
 	"""
 
+	STATUS_VERSION = 1
+
+
 	def __init__(self, control, args, resultdir, label, user, machines,
 		     client=False, parse_job=""):
 		"""
@@ -169,8 +172,9 @@ class base_server_job:
 
 		if os.path.exists(self.status):
 			os.unlink(self.status)
-		job_data = { 'label' : label, 'user' : user,
-					'hostname' : ','.join(machines) }
+		job_data = {'label' : label, 'user' : user,
+                            'hostname' : ','.join(machines),
+                            'status_version' : str(self.STATUS_VERSION)}
 		job_data.update(get_site_job_data(self))
 		write_keyval(self.resultdir, job_data)
 
@@ -192,7 +196,7 @@ class base_server_job:
 		tko_utils.redirect_parser_debugging(parse_log)
 		# create a job model object and set up the db
 		self.results_db = tko_db.db(autocommit=True)
-		self.parser = status_lib.parser(0)
+		self.parser = status_lib.parser(self.STATUS_VERSION)
 		self.job_model = self.parser.make_job(resultdir)
 		self.parser.start(self.job_model)
 		# check if a job already exists in the db and insert it if

@@ -271,6 +271,13 @@ class SSHHost(remote.RemoteHost):
 		return result == 0
 
 
+	def __run_group(self, function, *args, **dargs):
+		if self.job:
+			self.job.run_group(function, *args, **dargs)
+		else:
+			function(*args, **dargs)
+
+
 	def __record(self, status_code, subdir, operation, status = ''):
 		if self.job:
 			self.job.record(status_code, subdir, operation, status)
@@ -451,17 +458,22 @@ class SSHHost(remote.RemoteHost):
 				default = int(self.bootloader.get_default())
 				label = self.bootloader.get_titles()[default]
 			self.bootloader.add_args(label, kernel_args)
+
+		# define a function for the reboot and run it in a group
 		print "Reboot: initiating reboot"
-		self.__record("GOOD", None, "reboot.start")
-		try:
-			self.run('(sleep 5; reboot) </dev/null >/dev/null 2>&1 &')
-		except error.AutoservRunError:
-			self.__record("ABORT", None, "reboot.start",
-				      "reboot command failed")
-			raise
-		if wait:
-			self.wait_for_restart(timeout) 
-			self.reboot_followup()
+		def reboot():
+			self.__record("GOOD", None, "reboot.start")
+			try:
+				self.run('(sleep 5; reboot) '
+					 '</dev/null >/dev/null 2>&1 &')
+			except error.AutoservRunError:
+				self.__record("ABORT", None, "reboot.start",
+					      "reboot command failed")
+				raise
+			if wait:
+				self.wait_for_restart(timeout) 
+				self.reboot_followup()
+		self.__run_group(reboot)
 
 
 	def reboot_followup(self):
