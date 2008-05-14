@@ -52,6 +52,10 @@ class line_buffer(object):
 		self.buffer.appendleft(line)
 
 
+	def put_multiple(self, lines):
+		self.buffer.extendleft(lines)
+
+
 	def put_back(self, line):
 		self.buffer.append(line)
 
