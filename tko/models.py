@@ -1,3 +1,6 @@
+import md5
+
+
 class job(object):
 	def __init__(self, dir, user, label, machine, queued_time,
 		     started_time, finished_time, machine_owner):
@@ -17,6 +20,12 @@ class kernel(object):
 		self.base = base
 		self.patches = patches
 		self.kernel_hash = kernel_hash
+
+
+	@staticmethod
+	def compute_hash(base, hashes):
+		key_string = ','.join([base] + hashes)
+		return md5.new(key_string).hexdigest()
 
 
 class test(object):

@@ -1,7 +1,8 @@
-import re, os, md5
+import re, os
 
 from autotest_lib.client.common_lib import utils as common_utils
 from autotest_lib.tko import utils as tko_utils, models, status_lib
+from autotest_lib.tko.parsers import base
 
 
 class job(models.job):
@@ -90,12 +91,6 @@ class kernel(models.kernel):
 
 		return {"base": base, "patches": patches,
 			"kernel_hash": kernel_hash}
-
-
-	@staticmethod
-	def compute_hash(base, hashes):
-		key_string = ','.join([base] + hashes)
-		return md5.new(key_string).hexdigest()
 
 
 	@staticmethod
@@ -270,45 +265,14 @@ class status_line(object):
 			   optional_fields)
 
 
-class parser(object):
+class parser(base.parser):
 	@staticmethod
 	def make_job(dir):
 		return job(dir)
 
 
-	def start(self, job):
-		self.job = job
-		self.finished = False
-		self.line_buffer = status_lib.line_buffer()
-		self.state = self.state_iterator(self.line_buffer)
-		self.state.next()
-
-
-	def process_lines(self, lines):
-		# push all the lines into the buffer
-		for line in lines:
-			self.line_buffer.put(line)
-		# run the state machine to clear out the buffer
-		self.state.next()
-		# return any new tests parsed out by the state machine
-		new_tests = self.new_tests
-		self.new_tests = []
-		return new_tests
-
-
-	def end(self, lines=[]):
-		# push all the lines into the buffer
-		for line in lines:
-			self.line_buffer.put(line)
-		# run the state machine to clear out the buffer
-		self.finished = True
-		self.state.next()
-		# return any new tests parsed out by the state machine
-		return self.new_tests
-
-
 	def state_iterator(self, buffer):
-		self.new_tests = []
+		new_tests = []
 		boot_count = 0
 		group_subdir = None
 		sought_level = 0
@@ -321,7 +285,8 @@ class parser(object):
 		while not self.finished or buffer.size():
 			# stop processing once the buffer is empty
 			if buffer.size() == 0:
-				yield None
+				yield new_tests
+				new_tests = []
 				continue
 
 			# parse the next line
@@ -458,7 +423,7 @@ class parser(object):
 					current_kernel, started_time,
 					finished_time)
 			started_time = None
-			self.new_tests.append(new_test)
+			new_tests.append(new_test)
 
 		# the job is finished, but we never came back from reboot
 		if boot_in_progress:
@@ -469,5 +434,5 @@ class parser(object):
 					 % (testname, reason))
 			new_test = test(self.job, None, testname, "ABORT",
 					reason, current_kernel, None, None)
-			self.new_tests.append(new_test)
-		yield None
+			new_tests.append(new_test)
+		yield new_tests
