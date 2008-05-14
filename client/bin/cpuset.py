@@ -1,8 +1,8 @@
 __author__ = """Copyright Google, Peter Dahl, Martin J. Bligh   2007"""
 
 import os, sys, re, glob, math
-from autotest_utils import *
-
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error
 
 super_root = "/dev/cpuset"
 
@@ -29,7 +29,7 @@ def rangelist_to_list(rangelist):
 
 def rounded_memtotal():
 	# Get total of all physical mem, in Kbytes
-	usable_Kbytes = memtotal()
+	usable_Kbytes = autotest_utils.memtotal()
 	# usable_Kbytes is system's usable DRAM in Kbytes,
 	#   as reported by memtotal() from device /proc/meminfo memtotal
 	#   after Linux deducts 1.5% to 5.1% for system table overhead
@@ -61,13 +61,13 @@ def rounded_memtotal():
 def my_container_name():
 	# Get current process's inherited or self-built container name
 	#   within /dev/cpuset.  Is '/' for root container, '/sys', etc. 
-	return read_one_line('/proc/%i/cpuset' % os.getpid())
+	return autotest_utils.read_one_line('/proc/%i/cpuset' % os.getpid())
 
 
 def get_mem_nodes(container_full_name):
 	file_name = os.path.join(container_full_name, "mems")
 	if os.path.exists(file_name):
-		return rangelist_to_list(read_one_line(file_name))
+		return rangelist_to_list(autotest_utils.read_one_line(file_name))
 	else:
 		return []
 
@@ -91,9 +91,10 @@ def my_mem_nodes():
 
 
 def my_available_exclusive_mem_nodes():
-	# Get list of numa memory nodes owned by current process's container,
-	#  which could be allocated exclusively to new child containers.
-        # This excludes any nodes now allocated (exclusively or not) to existing children.
+	# Get list of numa memory nodes owned by current process's
+	# container, which could be allocated exclusively to new child
+	# containers.  This excludes any nodes now allocated
+	# (exclusively or not) to existing children.
 	return available_exclusive_mem_nodes('/dev/cpuset%s' % my_container_name())
 
 
@@ -103,20 +104,20 @@ def mbytes_per_mem_node():
 	# Based on guessed total physical mem size, not on kernel's 
 	#   lesser 'available memory' after various system tables.
 	# Can be non-integer when kernel sets up 15 nodes instead of 16.
-	return rounded_memtotal() / (len(numa_nodes()) * 1024.0)
+	return rounded_memtotal() / (len(autotest_utils.numa_nodes()) * 1024.0)
 
 
 def get_cpus(container_full_name):
-        file_name = os.path.join(container_full_name, "cpus")
-        if os.path.exists(file_name):
-                return rangelist_to_list(read_one_line(file_name))
-        else:
-                return []
+	file_name = os.path.join(container_full_name, "cpus")
+	if os.path.exists(file_name):
+		return rangelist_to_list(autotest_utils.read_one_line(file_name))
+	else:
+		return []
 
 
 def my_cpus():
-        # Get list of cpu cores owned by current process's container.
-        return get_cpus('/dev/cpuset%s' % my_container_name())
+	# Get list of cpu cores owned by current process's container.
+	return get_cpus('/dev/cpuset%s' % my_container_name())
 
 
 def get_tasks(setname):
@@ -125,13 +126,13 @@ def get_tasks(setname):
 
 def print_one_cpuset(name):
 	dir = os.path.join('/dev/cpuset', name)
-	cpus = read_one_line(dir + '/cpus')
-	mems = read_one_line(dir + '/mems')
+	cpus = autotest_utils.read_one_line(dir + '/cpus')
+	mems = autotest_utils.read_one_line(dir + '/mems')
 	node_size_ = int(mbytes_per_mem_node()) << 20
 	memtotal = node_size_ * len(rangelist_to_list(mems))
 	tasks = ','.join(get_tasks(dir))
 	print "cpuset %s: size %s; tasks %s; cpus %s; mems %s" % \
-	      (name, human_format(memtotal), tasks, cpus, mems)
+	      (name, autotest_utils.human_format(memtotal), tasks, cpus, mems)
 
 
 def print_all_cpusets():
@@ -164,10 +165,10 @@ class cpuset:
 		parent_t = os.path.join(self.root, 'tasks')
 		# Transfer survivors (and self) to parent
 		for task in get_tasks(self.cpudir):
-			write_one_line(parent_t, task)
+			autotest_utils.write_one_line(parent_t, task)
 		os.rmdir(self.cpudir)
 		if os.path.exists(self.cpudir):
-			raise AutotestError('Could not delete container ' 
+			raise error.AutotestError('Could not delete container '
 						+ self.cpudir)
 
 
@@ -184,8 +185,8 @@ class cpuset:
 			root = the cpuset to create this new set in
 		"""
 		if not os.path.exists(os.path.join(super_root, "cpus")):
-			raise AutotestError('Root container /dev/cpuset is '
-						'empty; please reboot')
+			raise error.AutotestError('Root container /dev/cpuset '
+						'is empty; please reboot')
 
 		self.name = name
 
@@ -194,22 +195,25 @@ class cpuset:
 			root = my_container_name()[1:]
 		self.root = os.path.join(super_root, root)
 		if not os.path.exists(self.root):
-			raise AutotestError('Parent container %s does not exist'
-						% self.root)
+			raise error.AutotestError(('Parent container %s'
+						   '  does not exist')
+						   % self.root)
 
 		if job_size == None:
 			# default to biggest container we can make under root
 			job_size = int( mbytes_per_mem_node() *
 			    len(available_exclusive_mem_nodes(self.root)) )
 		if not job_size:
-			raise AutotestError('Creating container with no mem')
+			raise error.AutotestError('Creating container '
+						  'with no mem')
 		self.memory = job_size
 
 		if cpus == None:
 			# default to biggest container we can make under root
 			cpus = get_cpus(self.root)
 		if not cpus:
-			raise AutotestError('Creating container with no cpus')
+			raise error.AutotestError('Creating container '
+						  'with no cpus')
 		self.cpus = cpus
 
 		# default to the current pid
@@ -217,7 +221,7 @@ class cpuset:
 			job_pid = os.getpid()
 
 		print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)" % \
-		    (name, root, job_size, job_pid)
+		      (name, root, job_size, job_pid)
 
 		self.cpudir = os.path.join(self.root, name)
 		if os.path.exists(self.cpudir):
@@ -227,23 +231,27 @@ class cpuset:
 					math.ceil(mbytes_per_mem_node()) ))
 
 		if nodes_needed > len(get_mem_nodes(self.root)):
-			raise AutotestError("Container's memory is bigger "
-						"than parent's")
+			raise error.AutotestError("Container's memory "
+						  "is bigger than parent's")
 
 		while True:
 			# Pick specific free mem nodes for this cpuset
 			mems = available_exclusive_mem_nodes(self.root)
 			if len(mems) < nodes_needed:
-				raise AutotestError('Existing containers hold '
-					'%d mem nodes needed by new container'
-					% (nodes_needed - len(mems)) )
+				raise error.AutotestError(('Existing container'
+							   ' hold %d mem nodes'
+							   ' needed by new'
+							   'container')
+							  % (nodes_needed
+							     - len(mems)))
 			mems = mems[-nodes_needed:]
 			mems_spec = ','.join(['%d' % x for x in mems])
 			os.mkdir(self.cpudir)
-			write_one_line(os.path.join(self.cpudir,
+			autotest_utils.write_one_line(os.path.join(self.cpudir,
 					'mem_exclusive'), '1')
-			write_one_line(os.path.join(self.cpudir,'mems'), 
-					mems_spec)
+			autotest_utils.write_one_line(os.path.join(self.cpudir,
+								   'mems'),
+						      mems_spec)
 			# Above sends err msg to client.log.0, but no exception,
 			#   if mems_spec contained any now-taken nodes
 			# Confirm that siblings didn't grab our chosen mems:
@@ -256,7 +264,10 @@ class cpuset:
 
 		# add specified cpu cores and own task pid to container:
 		cpu_spec = ','.join(['%d' % x for x in cpus])
-		write_one_line(os.path.join(self.cpudir, 'cpus'), cpu_spec)
-		write_one_line(os.path.join(self.cpudir, 'tasks'), 
-				"%d" % job_pid)
+		autotest_utils.write_one_line(os.path.join(self.cpudir,
+							   'cpus'),
+					      cpu_spec)
+		autotest_utils.write_one_line(os.path.join(self.cpudir,
+							   'tasks'),
+					      "%d" % job_pid)
 		self.display()

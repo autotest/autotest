@@ -1,0 +1,13 @@
+TIME="SHORT"
+
+DOC = """
+This is a container functional test, to check that the containers are
+setup in /dev/cpuset/
+"""
+
+cont_args = {'cpus': [2, 3],
+	     'mbytes': 100,
+	     'name': 'autotest_container'}
+job.new_container(**cont_args)
+job.run_test('container_functional', **cont_args)
+job.release_container()
