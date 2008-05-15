@@ -566,7 +566,7 @@ class base_server_job:
 				os.mkdir(test_dir)
 			status_file = os.path.join(test_dir, 'status')
 			open(status_file, "a").write(msg)
-		self.__parse_status([msg])
+		self.__parse_status(msg.splitlines())
 
 
 	def __parse_status(self, new_lines):
