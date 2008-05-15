@@ -16,9 +16,9 @@
 #	src		eg. tests/<test>/src
 #	tmpdir		eg. tmp/<testname.tag>
 
-import os, re, fcntl, shutil, tarfile
+import os, sys, re, fcntl, shutil, tarfile
 
-from error import *
+import error
 from utils import write_keyval, is_url, update_version
 
 
@@ -39,7 +39,7 @@ class base_test:
 			msg = ("%s already exists, test <%s> may have already "
 			       + "run with tag <%s>") % (tagged_testname,
 							 testname, tag)
-			raise TestError(msg)
+			raise error.TestError(msg)
 		else:
 			os.mkdir(self.outputdir)
 
@@ -76,7 +76,7 @@ class base_test:
 
 	def assert_(self, expr, msg='Assertion failed.'):
 		if not expr:
-			raise TestError(msg)
+			raise error.TestError(msg)
 
 
         def write_keyval(self, dictionary):
@@ -111,10 +111,10 @@ class base_test:
 				self.cleanup()
 				self.job.stderr.restore()
 				self.job.stdout.restore()
-		except AutotestError:
+		except error.AutotestError:
 			raise
 		except:
-			raise UnhandledError('running test ' + \
+			raise error.UnhandledError('running test ' + \
 				self.__class__.__name__ + "\n")
 
 
@@ -205,7 +205,7 @@ def runtest(job, url, tag, args, dargs,
 	elif os.path.exists(bindir):
 		testdir = job.testdir
 	elif not os.path.exists(bindir):
-		raise TestError(testname + ': test does not exist')
+		raise error.TestError(testname + ': test does not exist')
 
 	if group:
 		sys.path.insert(0, os.path.join(testdir, 'download'))
