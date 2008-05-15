@@ -47,6 +47,19 @@ html_header = """\
 </tr>
 </table>
 </form>
+<form action="save_query.cgi" method="get">
+<table border="0">
+<tr>
+ <td>Name your query:&nbsp;&nbsp;</td>
+  <td>
+    <input type="text" name="label" size="15" value="">
+  </td>
+  <td align="center">&nbsp;<input type="submit" value="Save Query">
+  </td>
+ <td>&nbsp;&nbsp;<a href="query_history.cgi">View saved queries</a></td>
+</tr>
+</table>
+</form>
 """
 
 
@@ -210,7 +223,8 @@ def map_kernel_init():
 		key = base + ' p%d' % (idx)
 		if not map.has_key(key):
 			map[key] = map_kernel_base(base) + ' p%d' % (idx)
-		map[key] += '<br>+<span title="' + name + '">' + name[0:25] + '</span>'
+		map[key] += ('<br>+<span title="' + name + '">' +
+			     name[0:25] + '</span>')
 
 	return map
 
@@ -309,7 +323,7 @@ def gen_matrix():
 				box_data = test_data.data[x][y]
 			except:
 				cur_row.append(display.box(None, None, 
-							row_label=y, column_label=x))
+					       row_label=y, column_label=x))
 				continue
 			job_tag = test_data.data[x][y].job_tag
 			if job_tag:
@@ -317,9 +331,9 @@ def gen_matrix():
 			else:
 				link = construct_link(x, y)
 
-			cur_row.append(display.status_precounted_box(db_obj,
-			                                             box_data,
-			                                             link, y, x))
+			apnd = display.status_precounted_box(db_obj, box_data,
+							     link, y, x)
+			cur_row.append(apnd)
 		matrix.append(cur_row)
 	return matrix
 
@@ -339,8 +353,10 @@ def main():
 	display.print_table(gen_matrix())
 	print display.color_keys_row()
 	total_wall_time = time.time() - total_wall_time_start
-	print '<p style="font-size:x-small;">sql access wall time = %s secs, \
-		 total wall time = %s secs</p>' % (sql_wall_time, total_wall_time)
+	perf_info = '<p style="font-size:x-small;">'
+	perf_info += 'sql access wall time = %s secs,' % sql_wall_time
+	perf_info += 'total wall time = %s secs</p>' % total_wall_time
+	print perf_info
 	print '</body></html>'
 
 main()
