@@ -229,18 +229,6 @@ def parse_results(results_dir, flags=""):
 	os.system(generate_parse_command(results_dir, flags))
 
 
-def send_notify_email(subject, message):
-	if not _notify_email:
-		return
-
-	message = "%s / %s / %s\n%s" % (socket.gethostname(), os.getpid(),
-					time.strftime("%X %x"), message)
-	sender = pwd.getpwuid(os.getuid())[0] # see os.getlogin() online docs
-	msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
-		 sender, _notify_email, subject, message)
-	mailer = smtplib.SMTP('localhost')
-	mailer.sendmail(sender, _notify_email, msg)
-	mailer.quit()
 
 
 def log_stacktrace(reason):
@@ -249,7 +237,7 @@ def log_stacktrace(reason):
 	str += ''.join(traceback.format_exception(type, value, tb))
 
 	sys.stderr.write("\n%s\n" % str)
-	send_notify_email("monitor_db exception", str)
+	email_manager.enqueue_notify_email("monitor_db exception", str)
 
 
 def get_proc_poll_fn(pid):
@@ -268,6 +256,41 @@ def kill_autoserv(pid, poll_fn=None):
 	if poll_fn() == None:
 		os.kill(pid, signal.SIGCONT)
 		os.kill(pid, signal.SIGTERM)
+
+
+class EmailNotificationManager(object):
+	def __init__(self):
+		self._emails = []
+		# see os.getlogin() online docs
+		self._sender = pwd.getpwuid(os.getuid())[0]
+
+
+	def enqueue_notify_email(self, subject, message):
+		if not _notify_email:
+			return
+
+		body = 'Subject: ' + subject + '\n'
+		body += "%s / %s / %s\n%s" % (socket.gethostname(),
+					      os.getpid(),
+					      time.strftime("%X %x"), message)
+		self._emails.append(body)
+
+
+	def send_queued_emails(self):
+		if not self._emails:
+			return
+		subject = 'Scheduler notifications from ' + socket.gethostname()
+		separator = '\n' + '-' * 40 + '\n'
+		body = separator.join(self._emails)
+		msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
+		    self._sender, _notify_email, subject, body)
+
+		mailer = smtplib.SMTP('localhost')
+		mailer.sendmail(self._sender, _notify_email, msg)
+		mailer.quit()
+		self._emails = []
+
+email_manager = EmailNotificationManager()
 
 
 class Dispatcher:
@@ -296,6 +319,7 @@ class Dispatcher:
 		self._find_more_work()
 		self._handle_agents()
 		self._clear_inactive_blocks()
+		email_manager.send_queued_emails()
 
 
 	def add_agent(self, agent):
@@ -724,7 +748,8 @@ class PidfileRunMonitor(RunMonitor):
 				message = error + '\nPid: %s\nPidfile: %s' % (
 				    pid, self.pid_file)
 				print message
-				send_notify_email(error, message)
+				email_manager.enqueue_notify_email(error,
+								   message)
 				self.on_lost_process(pid)
 				return self.pid, self.exit_status
 
@@ -746,8 +771,8 @@ class PidfileRunMonitor(RunMonitor):
 
 		print message
 		if time.time() - self.start_time > PIDFILE_TIMEOUT:
-			send_notify_email('Process has failed to write pidfile',
-					  message)
+			email_manager.enqueue_notify_email(
+			    'Process has failed to write pidfile', message)
 			if pid is not None:
 				kill_autoserv(pid)
 			else:
