@@ -837,7 +837,7 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 		"""
 		def save(self, new_data):
 			obj = super(AclGroup.Manipulator, self).save(new_data)
-			self.on_change()
+			obj.on_change()
 			return obj
 
 
