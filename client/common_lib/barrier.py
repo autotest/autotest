@@ -1,15 +1,13 @@
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys
-import socket
-import errno
+import sys, socket, errno
 from time import time, sleep
+import error
 
-from error import *
 
-
-class BarrierError(JobError):
+class BarrierError(error.JobError):
 	pass
+
 
 class barrier:
 	""" Multi-machine barrier support
@@ -109,18 +107,22 @@ class barrier:
 		self.report("tag=%s port=%d timeout=%d" \
 			% (self.tag, self.port, self.timeout))
 
+
 	def get_host_from_id(self, id):
 		# Remove any trailing local identifier following a #.
 		# This allows multiple members per host which is particularly
 		# helpful in testing.
 		return id.split('#')[0]
 
+
 	def report(self, out):
 		print "barrier:", self.hostid, out
 		sys.stdout.flush()
 
+
 	def update_timeout(self, timeout):
 		self.timeout = (time() - self.start) + timeout
+
 
 	def remaining(self):
 		timeout = self.timeout - (time() - self.start)
@@ -129,6 +131,7 @@ class barrier:
 
 		self.report("remaining: %d" % (timeout))
 		return timeout
+
 
 	def master_welcome(self, connection):
 		(client, addr) = connection
@@ -183,6 +186,7 @@ class barrier:
 		self.waiting[name] = connection
 		self.seen += 1
 
+
 	def slave_hello(self, connection):
 		(client, addr) = connection
 		name = None
@@ -217,6 +221,7 @@ class barrier:
 		# They seem to be valid record them.
 		self.waiting[self.hostid] = connection
 		self.seen = 1
+
 
 	def master_release(self):
 		# Check everyone is still there, that they have not
@@ -254,7 +259,8 @@ class barrier:
 			except socket.timeout:
 				self.report("release timeout: " + name)
 				pass
-	
+
+
 	def waiting_close(self):
 		# Either way, close out all the clients.  If we have
 		# not released them then they know to abort.
@@ -267,6 +273,7 @@ class barrier:
 				client.close()
 			except:
 				pass
+
 
 	def run_server(self, is_master):
 		self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -312,6 +319,7 @@ class barrier:
 			self.waiting_close()
 			self.server.close()
 			raise
+
 
 	def run_client(self, is_master):
 		while self.remaining() > 0:
@@ -362,6 +370,7 @@ class barrier:
 
 		self.waiting_close()
 
+
 	def slave_wait(self):
 		remote = self.waiting[self.hostid][0]
 		mode = "wait"
@@ -405,6 +414,7 @@ class barrier:
 			raise BarrierError("master abort -- duplicate client")
 		else:
 			raise BarrierError("master handshake failure: " + mode)
+
 
 	def rendevous(self, *hosts):
 		self.start = time()
