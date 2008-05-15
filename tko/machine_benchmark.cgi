@@ -18,6 +18,8 @@ benchmark_key = {
 def main():
 
 	display.print_main_header()
+	## it is table only; mouse hovering off
+	display.set_brief_mode() 
 
 	rows = db.select('test', 'tests', {}, distinct = True)
 	benchmarks = []
