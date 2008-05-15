@@ -16,7 +16,7 @@ stutsman@google.com (Ryan Stutsman)"""
 
 import os, os.path, time, urllib
 
-from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import error
 from autotest_lib.server import kernel, utils
 
 
@@ -51,10 +51,10 @@ class RPMKernel(kernel.Kernel):
 				RPMKernel.get() with a .rpm package.
 		"""
 		if len(label) > 15:
-			raise AutoservError("label for kernel is too long \
+			raise error.AutoservError("label for kernel is too long \
 			(> 15 chars): %s" % label)
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
+			raise error.AutoservError("A kernel must first be \
 			specified via get()")
 		rpm = self.source_material
 
@@ -94,7 +94,7 @@ class RPMKernel(kernel.Kernel):
 				RPMKernel.get() with a .rpm package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
+			raise error.AutoservError("A kernel must first be \
 			specified via get()")
 		
 		retval = utils.run('rpm -qpi %s | grep Version | \
@@ -114,7 +114,7 @@ class RPMKernel(kernel.Kernel):
 				RPMKernel.get() with a .rpm package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
+			raise error.AutoservError("A kernel must first be \
 			specified via get()")
 		
 		vmlinuz = utils.run('rpm -q -l -p %s \
@@ -136,7 +136,7 @@ class RPMKernel(kernel.Kernel):
 				RPMKernel.get() with a .rpm package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
+			raise error.AutoservError("A kernel must first be \
 			specified via get()")
 		
 		vmlinux = utils.run('rpm -q -l -p %s \
@@ -157,7 +157,7 @@ class RPMKernel(kernel.Kernel):
 				RPMKernel.get() with a .rpm package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
+			raise error.AutoservError("A kernel must first be \
 			specified via get()")
 
 		res = utils.run('rpm -q -l -p %s \

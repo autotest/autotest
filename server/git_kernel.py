@@ -15,9 +15,7 @@ ryanh@us.ibm.com (Ryan Harper)
 import os
 import urllib2
 
-import git
-import source_kernel
-from utils import *
+import git, source_kernel
 
 
 class GitKernel(git.GitRepo):

@@ -14,9 +14,9 @@ ryanh@us.ibm.com (Ryan Harper)
 
 import os, urllib2
 
-from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils, installable_object
-from autotest_lib.server.utils import *
+from autotest_lib.server import utils
 
 
 class GitRepo(installable_object.InstallableObject):
@@ -43,7 +43,7 @@ class GitRepo(installable_object.InstallableObject):
 		self.weburl = weburl
 
 		# path to .git dir
-		self.gitpath = sh_escape(os.path.join(self.repodir,'.git'))
+		self.gitpath = utils.sh_escape(os.path.join(self.repodir,'.git'))
 
 		# base git command , pointing to gitpath git dir
 		self.gitcmdbase = 'git --git-dir=%s' % self.gitpath
@@ -89,7 +89,7 @@ class GitRepo(installable_object.InstallableObject):
 			rv = self.gitcmd(cmd, True)
 			if rv.exit_status != 0:
 				print rv.stderr
-				raise CmdError('Failed to clone git url', rv)
+				raise error.CmdError('Failed to clone git url', rv)
 			else:
 				print rv.stdout
 
@@ -101,7 +101,7 @@ class GitRepo(installable_object.InstallableObject):
 				if rv.exit_status != 0:
 					print rv.stderr
 					e_msg = 'Failed to pull git repo data'
-					raise CmdError(e_msg, rv)
+					raise error.CmdError(e_msg, rv)
 			else:
 				print 'repo up-to-date'
 

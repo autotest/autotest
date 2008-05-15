@@ -6,9 +6,6 @@
 import os
 
 from autotest_lib.client.common_lib import test as common_test
-from autotest_lib.client.common_lib.error import *
-from autotest_lib.server.subcommand import *
-from autotest_lib.server.utils import *
 
 
 class test(common_test.base_test):

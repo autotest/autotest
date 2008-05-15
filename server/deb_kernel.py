@@ -17,7 +17,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import os, os.path, time, urllib
 
-from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import error
 from autotest_lib.server import kernel, utils
 
 
@@ -52,8 +52,8 @@ class DEBKernel(kernel.Kernel):
 				DEBKernel.get() with a .deb package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
-			specified via get()")
+			raise error.AutoservError("A kernel must first be "
+						  "specified via get()")
 		
 		remote_tmpdir = host.get_tmp_dir()
 		basename = os.path.basename(self.source_material)
@@ -80,8 +80,8 @@ class DEBKernel(kernel.Kernel):
 				DEBKernel.get() with a .deb package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
-			specified via get()")
+			raise error.AutoservError("A kernel must first be "
+			                          "specified via get()")
 		
 		retval= utils.run('dpkg-deb -f "%s" version' % 
 			utils.sh_escape(self.source_material),)
@@ -115,8 +115,8 @@ class DEBKernel(kernel.Kernel):
 				DEBKernel.get() with a .deb package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
-			specified via get()")
+			raise error.AutoservError("A kernel must first be "
+			                          "specified via get()")
 		
 		return "/boot/initrd.img-%s" % (self.get_version(),)
 	
@@ -140,8 +140,8 @@ class DEBKernel(kernel.Kernel):
 				DEBKernel.get() with a .deb package.
 		"""
 		if self.source_material is None:
-			raise AutoservError("A kernel must first be \
-			specified via get()")
+			raise error.AutoservError("A kernel must first be "
+			                          "specified via get()")
 		
 		remote_tmpdir = host.get_tmp_dir()
 		basename = os.path.basename(self.source_material)

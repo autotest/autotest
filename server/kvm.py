@@ -16,7 +16,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import os
 
-from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import error
 from autotest_lib.server import hypervisor, utils, hosts
 
 
@@ -116,7 +116,7 @@ class KVM(hypervisor.Hypervisor):
 		elif cpu_flags.find('svm') != -1:
 			module_type= "amd"
 		else:
-			raise AutoservVirtError("No harware "
+			raise error.AutoservVirtError("No harware "
 				"virtualization extensions found, "
 				"KVM cannot run")
 
@@ -223,7 +223,7 @@ class KVM(hypervisor.Hypervisor):
 				self.host.run('make -C "%s" clean' % (
 					utils.sh_escape(self.build_dir),),
 					timeout=600)
-			except AutoservRunError:
+			except error.AutoservRunError:
 				# directory was already clean and contained 
 				# no makefile
 				pass
@@ -306,7 +306,7 @@ class KVM(hypervisor.Hypervisor):
 			if not address["is_used"]:
 				break
 		else:
-			raise AutoservVirtError(
+			raise error.AutoservVirtError(
 				"No more addresses available")
 
 		retval= self.host.run(
@@ -428,7 +428,7 @@ class KVM(hypervisor.Hypervisor):
 					# have references to the guests.
 					return
 		else:
-			raise AutoservVirtError("Unknown guest hostname")
+			raise error.AutoservVirtError("Unknown guest hostname")
 
 		pid_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_pid" % (address["ip"],)))
@@ -470,10 +470,10 @@ class KVM(hypervisor.Hypervisor):
 				if address["is_used"]:
 					break
 				else:
-					raise AutoservVirtError("guest "
+					raise error.AutoservVirtError("guest "
 						"hostname not in use")
 		else:
-			raise AutoservVirtError("Unknown guest hostname")
+			raise error.AutoservVirtError("Unknown guest hostname")
 
 		monitor_file_name= utils.sh_escape(os.path.join(self.pid_dir, 
 			"vhost%s_monitor" % (address["ip"],)))
