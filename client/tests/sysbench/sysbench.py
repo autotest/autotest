@@ -85,25 +85,28 @@ class sysbench(test.test):
 			if read_only:
 				cmd = cmd + ' --oltp-read-only=on'
 
+			results = []
+
 			profilers = self.job.profilers
 			if not profilers.only():
-				results = system_output(cmd + ' run') + '\n'
+				results.append(system_output(cmd + ' run',
+							retain_output=True))
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
-				results = "Profiling run ...\n"
-				results += system_output(cmd + ' run') + '\n'
+				results.append("Profiling run ...")
+				results.append(system_output(cmd + ' run',
+							retain_output=True))
 				profilers.stop(self)
 				profilers.report(self)
 		except:
 			system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 			raise
 
-		print results
 		system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
-		self.__format_results(results)
+		self.__format_results("\n".join(results))
 
 
 	def execute_mysql(self, build, num_threads, max_time, read_only, args):
@@ -142,25 +145,28 @@ class sysbench(test.test):
 			if read_only:
 				cmd = cmd + ' --oltp-read-only=on'
 
+			results = []
+
 			profilers = self.job.profilers
                 	if not profilers.only():
-				results = system(cmd + ' run') + '\n'
+				results.append(system_output(cmd + ' run',
+							 retain_output=True))
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
-				results = "Profiling run ...\n" 
-				results += system_output(cmd + ' run') + '\n'
+				results.append("Profiling run ...")
+				results.append(system_output(cmd + ' run',
+							retain_output=True))
 				profilers.stop(self)
 				profilers.report(self)
 		except:
 			system(bin + '/mysqladmin shutdown')
 			raise
 
-		print results
 		system(bin + '/mysqladmin shutdown')
 
-		self.__format_results(results)
+		self.__format_results("\n".join(results))
 
 
 	def __format_results(self, results):
@@ -180,4 +186,3 @@ class sysbench(test.test):
 
 		print >> out, 'threads=%s\ntps=%s' % (threads, tps)
 		out.close()
-
