@@ -23,20 +23,20 @@ class dbench(test.test):
 			args += ' -D ' + dir
 		args += ' %s' % nprocs
 		cmd = self.srcdir + '/dbench ' + args
-		results = ''
+		results = []
 		if not profilers.only():
 			for i in range(iterations):
-				results += system_output(cmd) + '\n'
+				results.append(system_output(cmd,
+							retain_output=True))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			results += system_output(cmd) + '\n'
+			results.append(system_output(cmd, retain_output=True))
 			profilers.stop(self)
 			profilers.report(self)
 
-		print results
-		self.__format_results(results)
+		self.__format_results("\n".join(results))
 
 
 	def __format_results(self, results):
