@@ -18,8 +18,7 @@
 
 import os, sys, re, fcntl, shutil, tarfile
 
-import error
-from utils import write_keyval, is_url, update_version
+from autotest_lib.client.common_lib import error, utils
 
 
 class base_test:
@@ -67,8 +66,8 @@ class base_test:
 		try:
 			self.initialize()
 			# compile and install the test, if needed.
-			update_version(self.srcdir, self.preserve_srcdir,
-						self.version, self.setup)
+			utils.update_version(self.srcdir, self.preserve_srcdir,
+					     self.version, self.setup)
 		finally:
 			self.job.stderr.restore()
 			self.job.stdout.restore()
@@ -80,7 +79,7 @@ class base_test:
 
 
         def write_keyval(self, dictionary):
-		write_keyval(self.resultsdir, dictionary)
+		utils.write_keyval(self.resultsdir, dictionary)
 
 
 	def initialize(self):
@@ -104,8 +103,9 @@ class base_test:
 
 			try:
 				os.chdir(self.outputdir)
-				write_keyval(self.outputdir,
-					     { 'version' : self.version })
+				version_keyval = {'version': self.version}
+				utils.write_keyval(self.outputdir,
+						   version_keyval)
 				self.execute(*args, **dargs)
 			finally:
 				self.cleanup()
@@ -178,7 +178,7 @@ def runtest(job, url, tag, args, dargs,
 
 	# if this is not a plain test name then download and install the
 	# specified test
-	if is_url(url):
+	if utils.is_url(url):
 		(group, testname) = _installtest(job, url)
 		bindir = os.path.join(job.testdir, 'download', group, testname)
 		site_bindir = None
