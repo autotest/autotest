@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 #
 # Copyright 2007 Google Inc. All Rights Reserved.
 
@@ -10,6 +10,7 @@ running through autotest.
 
 __author__ = 'cranger@google.com (Colby Ranger)'
 
+import common
 from autotest_lib.client.common_lib import barrier
 
 

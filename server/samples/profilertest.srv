@@ -1,6 +1,3 @@
-#!/usr/bin/python2.4
-# -*- mode: python; -*-
-
 import time
 
 ssh_hosts = [hosts.SSHHost(m, initialize=False) for m in machines]
