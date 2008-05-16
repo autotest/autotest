@@ -1117,6 +1117,26 @@ class QueueTask(AgentTask):
 			self.job.write_to_machines_file(self.queue_entries[0])
 
 
+	def _finish_task(self):
+		# write out the finished time into the results keyval
+		finished = time.time()
+		self._write_keyval(self.results_dir(), "job_finished",
+				   finished)
+
+		# parse the results of the job
+		if self.job.is_synchronous() or self.job.num_machines() == 1:
+			parse_results(self.job.results_dir())
+		else:
+			for queue_entry in self.queue_entries:
+				parse_results(queue_entry.results_dir(),
+					      flags="-l 2")
+
+
+	def abort(self):
+		super(QueueTask, self).abort()
+		self._finish_task()
+
+
 	def epilog(self):
 		super(QueueTask, self).epilog()
 		if self.success:
@@ -1124,20 +1144,11 @@ class QueueTask(AgentTask):
 		else:
 			status = 'Failed'
 
-		# write another timestamp into the job keyval file
-		finished = time.time()
-		self._write_keyval(self.results_dir(), "job_finished", finished)
 		for queue_entry in self.queue_entries:
 			queue_entry.set_status(status)
 			queue_entry.host.set_status('Ready')
 
-		if self.job.is_synchronous() or self.job.num_machines()==1:
-			if self.job.is_finished():
-				parse_results(self.job.results_dir())
-		else:
-			for queue_entry in self.queue_entries:
-				parse_results(queue_entry.results_dir(),
-					      flags='-l 2')
+		self._finish_task()
 
 		print "queue_task finished with %s/%s" % (status, self.success)
 
