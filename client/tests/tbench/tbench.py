@@ -19,21 +19,20 @@ class tbench(test.test):
 		if not nprocs:
 			nprocs = self.job.cpu_count()
 		args += ' %s' % nprocs
-		results = ''
+		results = []
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				results += self.run_tbench(args)
+				results.append(self.run_tbench(args))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			results += self.run_tbench(args)
+			results.append(self.run_tbench(args))
 			profilers.stop(self)
 			profilers.report(self)
 
-		print results
-		self.__format_results(results)
+		self.__format_results("\n".join(results))
 
 
 	def run_tbench(self, args):
@@ -42,12 +41,13 @@ class tbench(test.test):
 			time.sleep(1)
 			client = self.srcdir + '/client.txt'
 			args = '-c ' + client + ' ' + '%s' % args
-			results = system_output(self.srcdir + '/tbench ' + args) 
+			cmd = os.path.join(self.srcdir, "tbench") + " " + args
+			results = system_output(cmd, retain_output=True)
 			os.kill(pid, signal.SIGTERM)    # clean up the server
 		else:				# child
 			server = self.srcdir + '/tbench_srv'
 			os.execlp(server, server)
-		return results + '\n'
+		return results
 
 
 	def __format_results(self, results):
