@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 import os, sys
 import unittest
@@ -23,4 +23,4 @@ if __name__ == "__main__":
 	os.path.walk(root, lister, None)
 	alltests = unittest.TestSuite(suites)
 	runner = unittest.TextTestRunner(verbosity=2)
-        runner.run(alltests)
+	runner.run(alltests)

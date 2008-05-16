@@ -1,16 +1,7 @@
-#!/usr/bin/python2.4
-import sys
-import os, os.path
+#!/usr/bin/python
+import email.Message, optparse, os, os.path, re, shutil, smtplib, sys, tempfile
 import time
-import optparse
-import smtplib
-import email.Message
-import tempfile
-import shutil
-import re
-
-import rsync
-import trigger
+import rsync, trigger, common
 
 excludes = ('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz')
 
@@ -19,8 +10,8 @@ default_clients_path = os.path.expanduser(
 default_config_path = os.path.expanduser(
 			os.path.join ('~', '.autotest_mirror_config'))
 options = optparse.Values(defaults={'email': None,
-				    'clients': default_clients_path,
-				    'config': default_config_path})
+					'clients': default_clients_path,
+					'config': default_config_path})
 
 # This counter gets appended and incremented for all jobs created
 # this ensures that no two jobs of the same name are created during
@@ -37,12 +28,12 @@ AUTOTEST_WRAPPER = """def step_init():
 	job.next_step([step_test])
 	testkernel = job.kernel(kernel)
 
-        if patches:
+	if patches:
 		testkernel.patch(*patches)
-        if config:
-	        testkernel.config(config)
-        else:
-		testkernel.config('', None, True)        
+	if config:
+		testkernel.config(config)
+	else:
+		testkernel.config('', None, True)
 	testkernel.build()
 	testkernel.boot()
 
@@ -64,38 +55,34 @@ def test_kernel(client, control, kernel, config, patches=None):
 		since the control file will be created in the host's
 		queue automatically
 	"""
-        is_autoserv_ctl = control.endswith('.srv')
 
-        # Open a temp file to create the generated control file in
+	is_autoserv_ctl = control.endswith('.srv')
+
+	# Open a temp file to create the generated control file in
 	tmpfile = tempfile.mktemp()
 	c = open(tmpfile, 'w')
 
-        print >> c, PREAMBLE % tuple([repr(s) for s in (kernel,
-                                                        config,
-                                                        patches)])
+	print >> c, PREAMBLE % tuple([repr(s) for s in (kernel, config, patches)])
 
-        if not is_autoserv_ctl:
-	        print >> c,  AUTOTEST_WRAPPER
+	if not is_autoserv_ctl:
+		print >> c,  AUTOTEST_WRAPPER
 
-        # Open the basis control file and pull its contents into this one
+	# Open the basis control file and pull its contents into this one
 	control = open(os.path.expanduser(control), "r")
 
-        # If is an AT file then we need to indent to match wrapper
-        # function level indentation, srv files don't need this indentation
-        indent = ('\t', '')[is_autoserv_ctl]
+	# If is an AT file then we need to indent to match wrapper
+	# function level indentation, srv files don't need this indentation
+	indent = ('\t', '')[is_autoserv_ctl]
 	for line in control:
 		print >> c, "%s%s" % (indent, line.rstrip())
 	c.close()
 
 	# Create a name for the queued file
-        # if we came from an .srv file create an .srv file
-        extension = ('', '.srv')[is_autoserv_ctl]
+	# if we came from an .srv file create an .srv file
+	extension = ('', '.srv')[is_autoserv_ctl]
 	global counter
-	output = os.path.join(options.queuedir, client,
-                              "%s-%d%.3d%s" % (kernel,
-                                               int(time.time()),
-                                               counter,
-                                               extension))
+	output = os.path.join(options.queuedir, client, "%s-%d%.3d%s" % (kernel, \
+						int(time.time()), counter, extension))
 	counter = (counter + 1) % 1000
 	shutil.move(tmpfile, output)
 	return output
@@ -111,8 +98,8 @@ def load_conf(conf_path):
 		Lines beginning with # are stripped from the conf file
 	"""
 	machine_controls = {}
-        if not os.path.exists(conf_path):
-        	return machine_controls
+	if not os.path.exists(conf_path):
+		return machine_controls
 	conf_file = open(conf_path)
 	for line in conf_file.readlines():
 		if line.startswith('#'):
@@ -150,6 +137,7 @@ MAIL = "sendmail"
 class SendmailException(Exception):
 	pass
 
+
 def sendmail(message):
 	"""Send an email using sendmail"""
 	# open a pipe to the mail program and
@@ -159,22 +147,22 @@ def sendmail(message):
 	exitcode = p.close()
 	if exitcode:
 		raise SendmailException("Exit code: %s" % exitcode)
-		
+
+
 def send_kernel_mail(kernel_list):
 	if not options.email:
 		return
-        if len(kernel_list) < 1:
-        	return
+	if len(kernel_list) < 1:
+		return
 	message = "\n".join(kernel_list)
 	message = "Testing new kernel releases:\n%s" % message
 
-	mail("autotest-server@localhost",
-	     options.email,
-	     "autotest new kernel notification",
-	     message)
-
+	mail("autotest-server@localhost", options.email, \
+		"autotest new kernel notification", message)
 
 encode_sep = re.compile('(\D+)')
+
+
 def kver_encode(version):
 	if 'rc' not in version:
 		version += '-rc99'
@@ -188,8 +176,8 @@ def kver_encode(version):
 
 
 def kver_cmp(a, b):
-  a, b = kver_encode(a), kver_encode(b)
-  return cmp(a, b)
+	a, b = kver_encode(a), kver_encode(b)
+	return cmp(a, b)
 
 
 def closest_kver_leq(klist, kver):
@@ -213,18 +201,18 @@ def perform_client_tests(kernel_list):
 		# and the tests that each one is to execute
 		for machine, controls in machines.items():
 			config_paths = load_conf(os.path.join(options.config,
-							      machine))
+								machine))
 			config = '/boot/config'
 			if len(config_paths) > 0:
 				kvers = config_paths.keys()
 				close =  closest_kver_leq(kvers,
-							  kernel)
+								kernel)
 				config = config_paths[close][0]
 			for control in controls:
 				test_kernel(machine,
-					    control,
-					    kernel,
-					    config)
+						control,
+						kernel,
+						config)
 
 
 def main():
@@ -254,20 +242,20 @@ if __name__ == '__main__':
 	usage = "mirror [options] <mirrordir> <queuedir>"
 	parser = optparse.OptionParser(usage=usage)
 	parser.add_option("-e", "--email", dest="email",
-			  help="Email address to alert for new kernels",
-			  metavar="EMAIL")
+				help="Email address to alert for new kernels",
+				metavar="EMAIL")
 	parser.add_option("-c", "--clients", dest="clients",
-			  help="Location of the file that describes which \
-			  control file to run on which clients; defaults \
-			  to %s" % default_clients_path,
-			  metavar="CLIENTS",
-			  default=default_clients_path)
+				help="Location of the file that describes which \
+				control file to run on which clients; defaults \
+				to %s" % default_clients_path, \
+				metavar="CLIENTS", \
+				default=default_clients_path)
 	parser.add_option("-f", "--config", dest="config",
-			  help="Location of the directory that describes which \
-			  config files to use on which clients; defaults \
-			  to %s" % default_config_path,
-			  metavar="CONFIG",
-			  default=default_config_path)
+				help="Location of the directory that describes which \
+				config files to use on which clients; defaults \
+				to %s" % default_config_path,
+				metavar="CONFIG",
+				default=default_config_path)
 	(options, args) = parser.parse_args()
 	if len(args) < 2:
 		parser.print_help()

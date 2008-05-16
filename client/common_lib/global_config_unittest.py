@@ -1,11 +1,7 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
-import os, sys
-import tempfile
-import unittest
-import types
+import os, sys, tempfile, unittest, types
 import global_config
-
 
 
 global_config_ini_contents = """

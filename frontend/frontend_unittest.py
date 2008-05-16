@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 """
 This file provides a unittest.TestCase wrapper around the Django unit test
@@ -6,6 +6,7 @@ runner.
 """
 
 import unittest, os
+import common
 
 manage_path = os.path.join(os.path.dirname(__file__), 'manage.py')
 
