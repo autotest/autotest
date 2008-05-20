@@ -15,7 +15,8 @@ else:
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version', 
 	'/proc/cpuinfo', '/proc/cmdline', '/proc/modules']
 # commands = ['lshw']        # this causes problems triggering CDROM drives
-commands = ['uname -a', 'lspci -vvn', 'gcc --version', 'ld --version', 'hostname']
+commands = ['uname -a', 'lspci -vvn', 'gcc --version', 'ld --version',
+            'mount', 'hostname']
 path = ['/usr/bin', '/bin']
 
 
