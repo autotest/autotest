@@ -28,13 +28,28 @@ class ExtendedManager(dbmodels.Manager):
 		"""\
 		A Django "Q" object constructed with a raw SQL query.
 		"""
-		def __init__(self, sql, params=[]):
+		def __init__(self, sql, params=[], joins={}):
+			"""
+			sql: the SQL to go into the WHERE clause
+
+			params: substitution params for the WHERE SQL
+
+			joins: a dict mapping alias to (table, join_type,
+			condition). This converts to the SQL:
+			"join_type table AS alias ON condition"
+			For example:
+			alias='host_hqe',
+			table='host_queue_entries',
+			join_type='INNER JOIN',
+			condition='host_hqe.host_id=hosts.id'
+			"""
 			self._sql = sql
 			self._params = params[:]
+			self._joins = datastructures.SortedDict(joins)
 
 
 		def get_sql(self, opts):
-			return (datastructures.SortedDict(),
+			return (self._joins,
 				[self._sql],
 				self._params)
 
@@ -63,44 +78,85 @@ class ExtendedManager(dbmodels.Manager):
 		return str(value)
 
 
-	def _do_subquery_filter(self, other_table_key, subquery,
-				this_table_key, not_in=False):
-		select_fields, where, params = subquery._get_sql_clause()
-		subquery_table = subquery.model._meta.db_table
-		subselect = '(SELECT ' + self._get_quoted_field(subquery_table,
-								other_table_key)
-		subselect += where + ')'
+	@staticmethod
+	def _get_sql_query_for(query_object, select_field):
+		query_table = query_object.model._meta.db_table
+		quoted_field = ExtendedManager._get_quoted_field(query_table,
+								 select_field)
+		_, where, params = query_object._get_sql_clause()
+		# where includes the FROM clause
+		return '(SELECT DISTINCT ' + quoted_field + where + ')', params
 
-		in_str = not_in and 'NOT IN' or 'IN'
-		if this_table_key is None:
+
+	def _get_key_on_this_table(self, key_field=None):
+		if key_field is None:
 			# default to primary key
-			this_table_key = self.model._meta.pk.column
-		key_field = self._get_quoted_field(self.model._meta.db_table,
-						   this_table_key)
-		where_sql = ' '.join((key_field, in_str, subselect))
-		filter_obj = self._RawSqlQ(where_sql, params)
+			key_field = self.model._meta.pk.column
+		return self._get_quoted_field(self.model._meta.db_table,
+					      key_field)
+
+
+	def _do_subquery_filter(self, subquery_key, subquery, subquery_alias,
+				this_table_key=None, not_in=False):
+		"""
+		This method constructs SQL queries to accomplish IN/NOT IN
+		subquery filtering using explicit joins.  It does this by
+		LEFT JOINing onto the subquery and then checking to see if
+		the joined column is NULL or not.
+
+		We use explicit joins instead of the SQL IN operator because
+		MySQL (at least some versions) considers all IN subqueries to be
+		dependent, so using explicit joins can be MUCH faster.
+
+		The query we're going for is:
+		SELECT * FROM <this table>
+		  LEFT JOIN (<subquery>) AS <subquery_alias>
+		    ON <subquery_alias>.<subquery_key> =
+		       <this table>.<this_table_key>
+		WHERE <subquery_alias>.<subquery_key> IS [NOT] NULL
+		"""
+		subselect, params = self._get_sql_query_for(subquery,
+							    subquery_key)
+
+		this_full_key = self._get_key_on_this_table(this_table_key)
+		alias_full_key = self._get_quoted_field(subquery_alias,
+							subquery_key)
+		join_condition = alias_full_key + ' = ' + this_full_key
+		joins = {subquery_alias : (subselect, # join table
+					   'LEFT JOIN', # join type
+					   join_condition)} # join on
+
+		if not_in:
+			where_sql = alias_full_key + ' IS NULL'
+		else:
+			where_sql = alias_full_key + ' IS NOT NULL'
+		filter_obj = self._RawSqlQ(where_sql, params, joins)
 		return self.complex_filter(filter_obj)
 
 
-	def filter_in_subquery(self, other_table_key, subquery,
+	def filter_in_subquery(self, subquery_key, subquery, subquery_alias,
 			       this_table_key=None):
 		"""\
 		Construct a filter to perform a subquery match, i.e.
 		WHERE id IN (SELECT host_id FROM ... WHERE ...)
-		-key_field - the field to select in the subquery (host_id above)
+		-subquery_key - the field to select in the subquery (host_id
+		                above)
 		-subquery - a query object for the subquery
-		-this_table_key - the field to match (id above).  Default to
+		-subquery_alias - a logical name for the query, to be used in
+		                  the SQL (i.e. 'valid_hosts')
+		-this_table_key - the field to match (id above).  Defaults to
 		                  this table's primary key.
 		"""
-		return self._do_subquery_filter(other_table_key, subquery,
-						this_table_key)
+		return self._do_subquery_filter(subquery_key, subquery,
+						subquery_alias, this_table_key)
 
 
-	def filter_not_in_subquery(self, other_table_key, subquery,
-				   this_table_key=None):
+	def filter_not_in_subquery(self, subquery_key, subquery,
+				   subquery_alias, this_table_key=None):
 		'Like filter_in_subquery, but use NOT IN rather than IN.'
-		return self._do_subquery_filter(other_table_key, subquery,
-						this_table_key, not_in=True)
+		return self._do_subquery_filter(subquery_key, subquery,
+						subquery_alias, this_table_key,
+						not_in=True)
 
 
 	def create_in_bulk(self, fields, values):
@@ -800,8 +856,9 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 
 	def _get_affected_jobs(self):
 		# find incomplete jobs with owners in this ACL
-		jobs = Job.objects.filter_in_subquery('login', self.users.all(),
-						      this_table_key='owner')
+		jobs = Job.objects.filter_in_subquery(
+		    'login', self.users.all(), subquery_alias='this_acl_users',
+		    this_table_key='owner')
 		jobs = jobs.filter(hostqueueentry__complete=False)
 		return jobs
 
@@ -966,9 +1023,10 @@ class Job(dbmodels.Model, ModelExtensions):
 		job_entries = self.hostqueueentry_set.all()
 		accessible_hosts = Host.objects.filter(
 		    acl_group__users__login=self.owner)
-		query = Host.objects.filter_in_subquery('host_id', job_entries)
-		query |= Host.objects.filter_not_in_subquery('id',
-							     accessible_hosts)
+		query = Host.objects.filter_in_subquery(
+		    'host_id', job_entries, subquery_alias='job_entries')
+		query |= Host.objects.filter_not_in_subquery(
+		    'id', accessible_hosts, subquery_alias='accessible_hosts')
 
 		old_ids = [block.id for block in
 			   self.ineligiblehostqueue_set.all()]
