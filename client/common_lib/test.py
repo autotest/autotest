@@ -16,7 +16,7 @@
 #	src		eg. tests/<test>/src
 #	tmpdir		eg. tmp/<testname.tag>
 
-import os, sys, re, fcntl, shutil, tarfile
+import os, sys, re, fcntl, shutil, tarfile, warnings
 
 from autotest_lib.client.common_lib import error, utils
 
@@ -78,8 +78,40 @@ class base_test:
 			raise error.TestError(msg)
 
 
+	def write_test_keyval(self, attr_dict):
+		utils.write_keyval(self.outputdir, attr_dict)
+
+
+	@staticmethod
+	def _append_type_to_keys(dictionary, typename):
+		new_dict = {}
+		for key, value in dictionary.iteritems():
+			new_key = "%s{%s}" % (key, typename)
+			new_dict[new_key] = value
+		return new_dict
+
+
+	def write_iteration_keyval(self, attr_dict, perf_dict):
+		attr_dict = self._append_type_to_keys(attr_dict, "attr")
+		perf_dict = self._append_type_to_keys(perf_dict, "perf")
+
+		utils.write_keyval(self.resultsdir, attr_dict,
+				   type_tag="attr")
+		utils.write_keyval(self.resultsdir, perf_dict,
+				   type_tag="perf")
+
+		keyval_path = os.path.join(self.resultsdir, "keyval")
+		print >> open(keyval_path, "a"), ""
+
+
+	# TODO: deprecate, remove from code in favour of
+	# the write_*_keyval methods
         def write_keyval(self, dictionary):
-		utils.write_keyval(self.resultsdir, dictionary)
+		warnings.warn("test.write_keyval is deprecated, use "
+			      "test.write_test_keyval or "
+			      "test.write_iteration_keyval instead",
+			      DeprecationWarning)
+		self.write_iteration_keyval({}, dictionary)
 
 
 	def initialize(self):
@@ -103,9 +135,8 @@ class base_test:
 
 			try:
 				os.chdir(self.outputdir)
-				version_keyval = {'version': self.version}
-				utils.write_keyval(self.outputdir,
-						   version_keyval)
+				version_dict = {'version': self.version}
+				self.write_test_keyval(version_dict)
 				self.execute(*args, **dargs)
 			finally:
 				self.cleanup()

@@ -320,15 +320,20 @@ class db_sql:
 
 		for i in test.iterations:
 			data['iteration'] = i.index
-			for key in i.keyval:
+			for key, value in i.attr_keyval.iteritems():
 				data['attribute'] = key
-				data['value'] = i.keyval[key]
-				self.insert('iteration_result',
-                                            data,
-                                            commit=commit)
+				data['value'] = value
+				self.insert('iteration_attributes', data,
+					    commit=commit)
+			for key, value in i.perf_keyval.iteritems():
+				data['attribute'] = key
+				data['value'] = value
+				self.insert('iteration_result', data,
+					    commit=commit)
 
 		for key, value in test.attributes.iteritems():
-			data = {'test_idx': test_idx, 'attribute': key, 'value': value}
+			data = {'test_idx': test_idx, 'attribute': key,
+				'value': value}
 			self.insert('test_attributes', data, commit=commit)
 
 
