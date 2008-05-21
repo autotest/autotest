@@ -37,13 +37,31 @@ def read_keyval(path):
 	return keyval
 
 
-def write_keyval(path, dictionary):
+def write_keyval(path, dictionary, type_tag=None):
+	"""
+	Write a key-value pair format file out to a file. This uses append
+	mode to open the file, so existing text will not be overwritten or
+	reparsed.
+
+	If type_tag is None, then the key must be composed of alphanumeric
+	characters (or dashes+underscores). However, if type-tag is not
+	null then the keys must also have "{type_tag}" as a suffix. At
+	the moment the only valid values of type_tag are "attr" and "perf".
+	"""
 	if os.path.isdir(path):
 		path = os.path.join(path, 'keyval')
 	keyval = open(path, 'a')
+
+	if type_tag is None:
+		key_regex = re.compile(r'^[-\w]+$')
+	else:
+		if type_tag not in ('attr', 'perf'):
+			raise ValueError('Invalid type tag: %s' % type_tag)
+		escaped_tag = re.escape(type_tag)
+		key_regex = re.compile(r'^[-\w]+\{%s\}$' % escaped_tag)
 	try:
 		for key, value in dictionary.iteritems():
-			if re.search(r'[^-\w]', key):
+			if not key_regex.search(key):
 				raise ValueError('Invalid key: %s' % key)
 			keyval.write('%s=%s\n' % (key, value))
 	finally:
