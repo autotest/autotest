@@ -4,8 +4,9 @@ import os, sys
 import unittest
 
 # ensure the root is where it should be
-root = os.path.dirname(__file__)
-sys.path.append(root)
+root = os.path.abspath(os.path.dirname(__file__))
+from client import setup_modules
+setup_modules.setup(base_path=root, root_module_name="autotest_lib")
 
 
 suites = []
@@ -14,7 +15,8 @@ def lister(dummy, dirname, files):
 	for f in files:
 		if f.endswith('_unittest.py'):
 			temp = os.path.join(dirname, f).strip('.py')
-			mod = temp[1:].replace('/', '.')
+			mod = ('autotest_lib' 
+				+ temp[len(root):].replace('/', '.'))
 			suite = loader.loadTestsFromName(mod)
 			suites.append(suite)
 
