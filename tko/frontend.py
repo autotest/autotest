@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, re, db, sys, datetime
-MAX_RECORDS = 20000L
-MAX_CELLS = 300000L
+MAX_RECORDS = 50000L
+MAX_CELLS = 500000L
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
