@@ -1,3 +1,5 @@
+import os, re
+
 from autotest_lib.tko import models, status_lib, utils as tko_utils
 from autotest_lib.tko.parsers import base, version_0
 
@@ -13,6 +15,41 @@ class kernel(models.kernel):
 			patches = []
 			kernel_hash = "UNKNOWN"
 		super(kernel, self).__init__(base, patches, kernel_hash)
+
+
+class test(models.test):
+	@staticmethod
+	def load_iterations(keyval_path):
+		return iteration.load_from_keyval(keyval_path)
+
+
+class iteration(models.iteration):
+	@staticmethod
+	def parse_line_into_dicts(line, attr_dict, perf_dict):
+		typed_match = re.search("^([^=]*)\{(\w*)\}=(.*)$", line)
+		if typed_match:
+			key, val_type, value = typed_match.groups()
+			if val_type == "attr":
+				attr_dict[key] = value
+			elif val_type == "perf":
+				perf_dict[key] = value
+			else:
+				msg = ("WARNING: line '%s' found in test "
+				       "iteration keyval could not be parsed")
+				msg %= line
+				tko_utils.dprint(msg)
+				return # skip the line
+		else:
+			# old-fashioned untyped match, assume perf
+			untyped_match = re.search("^([^=]*)=(.*)$", line)
+			if not untyped_match:
+				msg = ("WARNING: line '%s' found in test "
+				       "iteration keyval could not be parsed")
+				msg %= line
+				tko_utils.dprint(msg)
+				return # skip this line
+			key, value = untyped_match.groups()
+			perf_dict[key] = value
 
 
 class status_line(version_0.status_line):
@@ -51,9 +88,7 @@ class status_line(version_0.status_line):
 
 # the default implementations from version 0 will do for now
 job = version_0.job
-test = version_0.test
 patch = version_0.patch
-iteration = version_0.iteration
 
 
 class parser(base.parser):
@@ -165,10 +200,14 @@ class parser(base.parser):
 				if line.testname is None:
 					line.testname = "JOB"
 
-				new_test = test(self.job, line.subdir,
-						line.testname, current_status,
-						line.reason, current_kernel,
-						started_time, finished_time)
+				new_test = test.parse_test(self.job,
+							   line.subdir,
+							   line.testname,
+							   current_status,
+							   line.reason,
+							   current_kernel,
+							   started_time,
+							   finished_time)
 				msg = "ADD: %s\nSubdir: %s\nTestname: %s\n%s"
 				msg %= (new_test.status, new_test.subdir,
 					new_test.testname, new_test.reason)

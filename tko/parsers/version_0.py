@@ -123,51 +123,27 @@ class kernel(models.kernel):
 
 
 class test(models.test):
-	def __init__(self, job, subdir, testname, status, reason, test_kernel,
-		     started_time, finished_time):
-		tko_utils.dprint("parsing test %s %s" % (subdir, testname))
-
-		if subdir:
-			# grab iterations from the results keyval
-			keyval = os.path.join(job.dir, subdir, "results",
-					      "keyval")
-			iterations = iteration.load_from_keyval(keyval)
-
-			# grab version from the subdir keyval
-			keyval = os.path.join(job.dir, subdir, "keyval")
-			attributes = test.load_attributes(keyval)
-			# for backwards compatibility
-			if "version" in attributes:
-				v = attributes["version"]
-				v = "%s\n" % v
-				attributes["version"] = v
-			else:
-				attributes["version"] = None
+	def __init__(self, subdir, testname, status, reason, test_kernel,
+		     machine, started_time, finished_time, iterations,
+		     attributes):
+		# for backwards compatibility with the original parser
+		# implementation, if there is no test version we need a NULL
+		# value to be used; also, if there is a version it should
+		# be terminated by a newline
+		if "version" in attributes:
+			attributes["version"] += "\n"
 		else:
-			iterations = []
-			attributes = {"version": None}
+			attributes["version"] = None
 
 		super(test, self).__init__(subdir, testname, status, reason,
-					   test_kernel, job.machine,
-					   started_time, finished_time,
-					   iterations, attributes)
+					   test_kernel, machine, started_time,
+					   finished_time, iterations,
+					   attributes)
 
 
 	@staticmethod
-	def load_version(path):
-		if not os.path.exists(path):
-			return None
-		for line in file(path):
-			match = re.search(r"^version=(.*)$", line)
-			if match:
-				return match.group(1)
-
-
-	@staticmethod
-	def load_attributes(path):
-		if not os.path.exists(path):
-			return {}
-		return common_utils.read_keyval(path)
+	def load_iterations(keyval_path):
+		return iteration.load_from_keyval(keyval_path)
 
 
 class patch(models.patch):
@@ -180,30 +156,10 @@ class patch(models.patch):
 
 
 class iteration(models.iteration):
-	def __init__(self, index, lines):
-		keyval = dict(line.split("=", 1) for line in lines)
-		super(iteration, self).__init__(index, keyval)
-
-
-	@classmethod
-	def load_from_keyval(cls, path):
-		if not os.path.exists(path):
-			return []
-		# pull any values we can from the keyval file
-		iterations = []
-		index = 1
-		lines = []
-		for line in file(path):
-			line = line.strip()
-			if line:
-				lines.append(line)
-			else:
-				iterations.append(cls(index, lines))
-				index += 1
-				lines = []
-		if lines:
-			iterations.append(cls(index, lines))
-		return iterations
+	@staticmethod
+	def parse_line_into_dicts(line, attr_dict, perf_dict):
+		key, value = line.split("=", 1)
+		perf_dict[key] = value
 
 
 class status_line(object):
@@ -418,10 +374,12 @@ class parser(base.parser):
 					 "%s\nSubdir:%s\nTestname:%s\n%s" %
 					 (final_status, line.subdir,
 					  line.testname, line.reason))
-			new_test = test(self.job, line.subdir, line.testname,
-					final_status, line.reason,
-					current_kernel, started_time,
-					finished_time)
+			new_test = test.parse_test(self.job, line.subdir,
+						   line.testname,
+						   final_status, line.reason,
+						   current_kernel,
+						   started_time,
+						   finished_time)
 			started_time = None
 			new_tests.append(new_test)
 
@@ -432,7 +390,8 @@ class parser(base.parser):
 			tko_utils.dprint(("Adding: ABORT\nSubdir:----\n"
 					  "Testname:%s\n%s")
 					 % (testname, reason))
-			new_test = test(self.job, None, testname, "ABORT",
-					reason, current_kernel, None, None)
+			new_test = test.parse_test(self.job, None, testname,
+						   "ABORT", reason,
+						   current_kernel, None, None)
 			new_tests.append(new_test)
 		yield new_tests
