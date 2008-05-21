@@ -220,7 +220,7 @@ class base_server_job:
 			return
 		final_tests = self.parser.end()
 		for test in final_tests:
-			self.results_db.insert_test(self.job_model, test)
+			self.__insert_test(test)
 		self.using_parser = False
 
 
@@ -574,7 +574,21 @@ class base_server_job:
 			return
 		new_tests = self.parser.process_lines(new_lines)
 		for test in new_tests:
+			self.__insert_test(test)
+
+
+	def __insert_test(self, test):
+		""" An internal method to insert a new test result into the
+		database. This method will not raise an exception, even if an
+		error occurs during the insert, to avoid failing a test
+		simply because of unexpected database issues."""
+		try:
 			self.results_db.insert_test(self.job_model, test)
+		except Exception:
+			msg = ("WARNING: An unexpected error occured while "
+			       "inserting test results into the database. "
+			       "Ignoring error.\n" + traceback.format_exc())
+			print >> sys.stderr, msg
 
 
 # a file-like object for catching stderr from an autotest client and
