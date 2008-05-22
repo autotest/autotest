@@ -860,7 +860,7 @@ class AclGroup(dbmodels.Model, ModelExtensions):
 		    'login', self.users.all(), subquery_alias='this_acl_users',
 		    this_table_key='owner')
 		jobs = jobs.filter(hostqueueentry__complete=False)
-		return jobs
+		return jobs.distinct()
 
 
 	def on_change(self, affected_jobs=None):
