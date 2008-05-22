@@ -78,6 +78,7 @@ def main():
 	except:
 		log_stacktrace("Uncaught exception; terminating monitor_db")
 
+	email_manager.send_queued_emails()
 	_db.disconnect()
 
 
