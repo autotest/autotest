@@ -149,7 +149,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
 	def run(self, control_file, results_dir = '.', host = None,
-		timeout=None):
+		timeout=None, tag=None, parallel_flag=False):
 		"""
 		Run an autotest job on the remote machine.
 		
@@ -159,14 +159,20 @@ class BaseAutotest(installable_object.InstallableObject):
 				on the local filesystem
 			host: a Host instance on which the control file should
 				be run
-		
+		        tag: tag name for the client side instance of autotest
+			parallel_flag: flag set when multiple jobs are run at the
+			          same time
 		Raises:
 			AutotestRunError: if there is a problem executing
 				the control file
 		"""
 		host = self._get_host_and_setup(host)
 		results_dir = os.path.abspath(results_dir)
-		atrun = _Run(host, results_dir)
+
+		if tag:
+			results_dir = os.path.join(results_dir, tag)
+
+		atrun = _Run(host, results_dir, tag, parallel_flag)
 		self._do_run(control_file, results_dir, host, atrun, timeout)
 
 
@@ -265,8 +271,13 @@ class BaseAutotest(installable_object.InstallableObject):
 				pass
 
 			# get the results
-			results = os.path.join(atrun.autodir, 'results',
-						      'default')
+			if not atrun.tag:
+				results = os.path.join(atrun.autodir,
+						       'results', 'default')
+			else:
+				results = os.path.join(atrun.autodir,
+						       'results', atrun.tag)
+
 			# Copy all dirs in default to results_dir
 			keyval_path = self.prepare_for_copying_logs(results,
 						results_dir, host)
@@ -274,8 +285,8 @@ class BaseAutotest(installable_object.InstallableObject):
 			self.process_copied_logs(results_dir, host, keyval_path)
 
 
-	def run_timed_test(self, test_name, results_dir = '.', host = None,
-			   timeout=None, *args, **dargs):
+	def run_timed_test(self, test_name, results_dir='.', host=None,
+			   timeout=None, tag=None, *args, **dargs):
 		"""
 		Assemble a tiny little control file to just run one test,
 		and run it as an autotest client-side test
@@ -287,13 +298,13 @@ class BaseAutotest(installable_object.InstallableObject):
 		opts = ["%s=%s" % (o[0], repr(o[1])) for o in dargs.items()]
 		cmd = ", ".join([repr(test_name)] + map(repr, args) + opts)
 		control = "job.run_test(%s)\n" % cmd
-		self.run(control, results_dir, host, timeout=timeout)
+		self.run(control, results_dir, host, timeout=timeout, tag=tag)
 
 
-	def run_test(self, test_name, results_dir = '.', host = None,
-		     *args, **dargs):
-		self.run_timed_test(test_name, results_dir, host, None,
-				    *args, **dargs)
+	def run_test(self, test_name, results_dir='.', host=None,
+		     tag=None, *args, **dargs):
+		self.run_timed_test(test_name, results_dir, host, timeout=None,
+				    tag=tag, *args, **dargs)
 
 
 class _Run(object):
@@ -304,15 +315,23 @@ class _Run(object):
 	It is not intended to be used directly, rather control files
 	should be run using the run method in Autotest.
 	"""
-	def __init__(self, host, results_dir):
+	def __init__(self, host, results_dir, tag, parallel_flag):
 		self.host = host
 		self.results_dir = results_dir
 		self.env = host.env
-
+		self.tag = tag
+		self.parallel_flag = parallel_flag
 		self.autodir = _get_autodir(self.host)
-		self.manual_control_file = os.path.join(self.autodir, 'control')
-		self.remote_control_file = os.path.join(self.autodir,
-							     'control.autoserv')
+		if tag:
+			self.manual_control_file = os.path.join(self.autodir,
+							'control.%s' % tag)
+			self.remote_control_file = os.path.join(self.autodir,
+						'control.%s.autoserv' % tag)
+		else:
+			self.manual_control_file = os.path.join(self.autodir,
+								'control')
+			self.remote_control_file = os.path.join(self.autodir,
+							'control.autoserv')
 
 
 	def verify_machine(self):
@@ -321,15 +340,20 @@ class _Run(object):
 			self.host.run('ls %s > /dev/null 2>&1' % binary)
 		except:
 			raise "Autotest does not appear to be installed"
-		tmpdir = os.path.join(self.autodir, 'tmp')
-		self.host.run('umount %s' % tmpdir, ignore_status=True)
 
+		if not self.parallel_flag:
+			tmpdir = os.path.join(self.autodir, 'tmp')
+			download = os.path.join(self.autodir, 'tests/download')
+			self.host.run('umount %s' % tmpdir, ignore_status=True)
+			self.host.run('umount %s' % download, ignore_status=True)
 
 	def get_full_cmd(self, section):
 		# build up the full command we want to run over the host
 		cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
 		if section > 0:
 			cmd.append('-c')
+		if self.tag:
+			cmd.append('-t %s' % self.tag)
 		if self.host.job.use_external_logging():
 			cmd.append('-l')
 		cmd.append(self.remote_control_file)

@@ -88,22 +88,24 @@ class base_job:
 		self.__load_state()
 
 		if not cont:
-			if os.path.exists(self.tmpdir):
-				cmd = ('umount -f %s > /dev/null 2> /dev/null'
-					 	% (self.tmpdir))
-				autotest_utils.system(cmd, ignore_status=True)
-				autotest_utils.system('rm -rf ' + self.tmpdir)
-			os.mkdir(self.tmpdir)
+			"""
+			Don't cleanup the tmp dir (which contains the lockfile)
+			in the constructor, this would be a problem for multiple
+			jobs starting at the same time on the same client. Instead
+			do the delete at the server side. We simply create the tmp
+			directory here if it does not already exist.
+			"""
+			if not os.path.exists(self.tmpdir):
+				os.mkdir(self.tmpdir)
 
 			results = os.path.join(self.autodir, 'results')
 			if not os.path.exists(results):
 				os.mkdir(results)
 				
 			download = os.path.join(self.testdir, 'download')
-			if os.path.exists(download):
-				autotest_utils.system('rm -rf ' + download)
-			os.mkdir(download)
-				
+			if not os.path.exists(download):
+				os.mkdir(download)
+
 			if os.path.exists(self.resultdir):
 				autotest_utils.system('rm -rf ' 
 							+ self.resultdir)
