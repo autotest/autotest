@@ -267,9 +267,10 @@ class base_job:
 			parallel.fork_waitfor(self.resultdir, pid)
 		except error.AutotestError:
 			raise
-		except:
-			raise error.UnhandledError('running test ' + \
-				self.__class__.__name__ + "\n")
+		except Exception, e:
+			msg = "Unhandled %s error occured during test\n"
+			msg %= str(e.__class__.__name__)
+			raise error.UnhandledError(msg)
 
 
 	def run_test(self, url, *args, **dargs):
