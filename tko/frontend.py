@@ -114,15 +114,22 @@ def smart_sort(list, field):
 		def kernel_encode(kernel):
 		        return kernel_versions.version_encode(kernel) 
 		list.sort(key = kernel_encode, reverse = True)
-	elif field.endswith('time'):
-		## old records may contain time=None 
-		## make None comparable with timestamp as string
-		def handleNone(date_time):
-			if date_time==None:
-				return datetime.datetime(1970,1,1,0,0,0)
+	## old records may contain time=None 
+	## make None comparable with timestamp datetime or date
+	elif field == 'test_finished_time':
+		def convert_None_to_datetime(date_time):
+			if not date_time:
+				return datetime.datetime(1970, 1, 1, 0, 0, 0)
 			else:
 				return date_time
-		list = map(handleNone,list)
+		list = map(convert_None_to_datetime, list)
+	elif field == 'DATE(test_finished_time)':
+		def convert_None_to_date(date):
+			if not date:
+				return datetime.date(1970, 1, 1)
+			else:
+				return date
+		list = map(convert_None_to_date, list)
 	list.sort()
 	return list
 
