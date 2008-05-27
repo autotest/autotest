@@ -1,14 +1,14 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess, traceback, time, utils, signal
-
-from autotest_lib.client.common_lib.error import *
+import sys, os, subprocess, traceback, time, signal
+from autotest_lib.server import utils
+from autotest_lib.client.common_lib import error
 
 
 def parallel(tasklist, timeout=None):
 	"""Run an set of predefined subcommands in parallel"""
 	pids = []
-	error = False
+	run_error = False
 	for task in tasklist:
 		task.fork_start()
 
@@ -21,14 +21,14 @@ def parallel(tasklist, timeout=None):
 			remaining_timeout = max(endtime - time.time(), 1)
 		try:
 			status = task.fork_waitfor(remaining_timeout)
-		except AutoservSubcommandError:
-			error = True
+		except error.AutoservSubcommandError:
+			run_error = True
 		else:
 			if status != 0:
-				error = True
+				run_error = True
 
-	if error:
-		raise AutoservError('One or more subcommands failed')
+	if run_error:
+		raise error.AutoservError('One or more subcommands failed')
 
 
 def parallel_simple(function, arglist, log=True, timeout=None):
@@ -197,5 +197,5 @@ class subcommand:
 				for line in open(self.stderr).readlines():
 					print line,
 			print "\n--------------------------------------------\n"
-			raise AutoservSubcommandError(self.func, status)
+			raise error.AutoservSubcommandError(self.func, status)
 		return status
