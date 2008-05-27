@@ -68,8 +68,6 @@ class test(object):
 			iteration_keyval = os.path.join(job.dir, subdir,
 							"results", "keyval")
 			iterations = cls.load_iterations(iteration_keyval)
-			iterations = iteration.load_from_keyval(
-			    iteration_keyval)
 
 			# grab test attributes from the subdir keyval
 			test_keyval = os.path.join(job.dir, subdir, "keyval")
