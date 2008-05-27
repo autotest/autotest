@@ -25,7 +25,7 @@ import time
 
 from autotest_lib.server import installable_object, utils, server_job
 from autotest_lib.client.common_lib import logging
-from autotest_lib.client.common_lib.error import *
+from autotest_lib.client.common_lib import error
 
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
@@ -122,12 +122,12 @@ class BaseAutotest(installable_object.InstallableObject):
 
 		# if that fails try to install using svn
 		if utils.run('which svn').exit_status:
-			raise AutoservError('svn not found in path on \
+			raise error.AutoservError('svn not found in path on \
 			target machine: %s' % host.name)
 		try:
 			host.run('svn checkout %s %s' %
 				 (AUTOTEST_SVN, autodir))
-		except AutoservRunError, e:
+		except error.AutoservRunError, e:
 			host.run('svn checkout %s %s' %
 				 (AUTOTEST_HTTP, autodir))
 		print "Installation of autotest completed"
@@ -205,7 +205,7 @@ class BaseAutotest(installable_object.InstallableObject):
 				# server side's keyval file
 				host.run('rm -rf %s' % os.path.join(src,
 								    'keyval'))
-		except AutoservRunError, AutoservSSHTimeout:
+		except error.AutoservRunError, error.AutoservSSHTimeout:
 			print "Prepare for copying logs failed"
 		return keyval_path
 
@@ -265,7 +265,7 @@ class BaseAutotest(installable_object.InstallableObject):
 			# make an effort to wait for the machine to come up
 			try:
 				host.wait_up(timeout=30)
-			except AutoservError:
+			except error.AutoservError:
 				# don't worry about any errors, we'll try and
 				# get the results anyway
 				pass
@@ -387,7 +387,7 @@ class _Run(object):
 		if result.exit_status == 1:
 			self.host.job.aborted = True
 		if not result.stderr:
-  			raise AutotestRunError(
+  			raise error.AutotestRunError(
 			    "execute_section: %s failed to return anything\n"
 			    "stdout:%s\n" % (full_cmd, result.stdout))
 
@@ -414,7 +414,7 @@ class _Run(object):
 				print "Client is rebooting"
 				print "Waiting for client to halt"
 				if not self.host.wait_down(HALT_TIME):
-					raise AutotestRunError("%s \
+					raise error.AutotestRunError("%s \
 					failed to shutdown after %ds" %
 							(self.host.hostname,
 							HALT_TIME))
@@ -427,11 +427,11 @@ class _Run(object):
 					    self.host.hostname,)
 					try:
 						self.host.hardreset(wait=False)
-					except AutoservUnsupportedError:
+					except error.AutoservUnsupportedError:
 						print "Hardreset unsupported on %s" % (
 						    self.host.hostname,)
-					raise AutotestRunError("%s failed to "
-						"boot after %ds" % (
+					raise error.AutotestRunError("%s failed" 
+						" to boot after %ds" % (
 						self.host.hostname,
 						BOOT_TIME,))
 				self.host.reboot_followup()
@@ -439,12 +439,12 @@ class _Run(object):
 			self.host.job.record("ABORT", None, None,
 					     "Autotest client terminated " +
 					     "unexpectedly")
-			raise AutotestRunError("Aborting - unknown "
+			raise error.AutotestRunError("Aborting - unknown "
 				"return code: %s\n" % last)
 
 		# should only get here if we timed out
 		assert timeout
-		raise AutotestTimeoutError()
+		raise error.AutotestTimeoutError()
 
 
 def _get_autodir(host):
@@ -457,16 +457,16 @@ def _get_autodir(host):
 		dir = os.path.dirname(host.run(cmd).stdout)
 		if dir:
 			return dir
-	except AutoservRunError:
+	except error.AutoservRunError:
 		pass
 	for path in ['/usr/local/autotest', '/home/autotest']:
 		try:
 			host.run('ls %s > /dev/null 2>&1' % \
 					 os.path.join(path, 'bin/autotest'))
 			return path
-		except AutoservRunError:
+		except error.AutoservRunError:
 			pass
-	raise AutotestRunError("Cannot figure out autotest directory")
+	raise error.AutotestRunError("Cannot figure out autotest directory")
 
 
 # site_autotest.py may be non-existant or empty, make sure that an appropriate
