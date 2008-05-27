@@ -14,14 +14,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import re
-import os
-import sys
-import subprocess
-import urllib
-import tempfile
-import shutil
-import time
+import re, os, sys, traceback, subprocess, urllib, tempfile, shutil, time
 
 from autotest_lib.server import installable_object, utils, server_job
 from autotest_lib.client.common_lib import logging
