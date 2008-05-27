@@ -128,7 +128,7 @@ class iteration(object):
 		iterations = []
 		index = 1
 		attr, perf = {}, {}
-		for line in file(path):
+		for line in file(keyval_path):
 			line = line.strip()
 			if line:
 				cls.parse_line_into_dicts(line, attr, perf)
