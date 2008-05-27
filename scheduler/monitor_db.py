@@ -508,7 +508,7 @@ class Dispatcher:
 		# better
 		_db.execute("""
 		    DELETE ihq FROM ineligible_host_queues ihq
-		    LEFT JOIN (SELECT DISTINCT job_id FROM host_queue_entries
+		    LEFT JOIN (SELECT job_id FROM host_queue_entries
 		               WHERE NOT complete) hqe
 		    USING (job_id) WHERE hqe.job_id IS NULL""")
 
