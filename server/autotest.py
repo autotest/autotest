@@ -205,7 +205,7 @@ class BaseAutotest(installable_object.InstallableObject):
 				# server side's keyval file
 				host.run('rm -rf %s' % os.path.join(src,
 								    'keyval'))
-		except error.AutoservRunError, error.AutoservSSHTimeout:
+		except (error.AutoservRunError, error.AutoservSSHTimeout):
 			print "Prepare for copying logs failed"
 		return keyval_path
 
