@@ -57,18 +57,18 @@ class BaseAutotest(installable_object.InstallableObject):
 	@logging.record
 	def install(self, host = None):
 		"""
-		Install autotest.  If get() was not called previously, an 
-		attempt will be made to install from the autotest svn 
+		Install autotest.  If get() was not called previously, an
+		attempt will be made to install from the autotest svn
 		repository.
-		
+
 		Args:
 			host: a Host instance on which autotest will be
 				installed
-		
+
 		Raises:
 			AutoservError: if a tarball was not specified and
 				the target host does not have svn installed in its path
-		
+
 		TODO(poirier): check dependencies
 		autotest needs:
 		bzcat
@@ -145,7 +145,7 @@ class BaseAutotest(installable_object.InstallableObject):
 		timeout=None, tag=None, parallel_flag=False):
 		"""
 		Run an autotest job on the remote machine.
-		
+
 		Args:
 			control_file: an open file-like-obj of the control file
 			results_dir: a str path where the results should be stored
@@ -193,11 +193,12 @@ class BaseAutotest(installable_object.InstallableObject):
 				host.get_file(os.path.join(src, 'keyval'),
 					      keyval_path)
 			finally:
-				# It's better to lose information in keyval
-				# file on the remote host than to override
-				# server side's keyval file
-				host.run('rm -rf %s' % os.path.join(src,
-								    'keyval'))
+				# We will squirrel away the client side keyval
+				# away and move it back when we are done
+				self.temp_keyval_path = tempfile.mktemp()
+				host.run('mv %s %s' %
+				         (os.path.join(src, 'keyval'),
+				         self.temp_keyval_path))
 		except (error.AutoservRunError, error.AutoservSSHTimeout):
 			print "Prepare for copying logs failed"
 		return keyval_path
@@ -225,6 +226,15 @@ class BaseAutotest(installable_object.InstallableObject):
 			print "Process copied logs failed"
 
 
+	def postprocess_copied_logs(self, src, host):
+		# we can now put our keyval file back
+		try:
+			host.run('mv %s %s' % (self.temp_keyval_path,
+		                 os.path.join(src, 'keyval')))
+		except:
+			pass
+
+
 	def _do_run(self, control_file, results_dir, host, atrun, timeout):
 		try:
 			atrun.verify_machine()
@@ -238,14 +248,14 @@ class BaseAutotest(installable_object.InstallableObject):
 			os.makedirs(debug)
 		except:
 			pass
-		
+
 		# Ready .... Aim ....
 		for control in [atrun.remote_control_file,
 				atrun.remote_control_file + '.state',
 				atrun.manual_control_file,
 				atrun.manual_control_file + '.state']:
 			host.run('rm -f ' + control)
-		
+
 		# Copy control_file to remote_control_file on the host
 		tmppath = utils.get(control_file)
 		host.send_file(tmppath, atrun.remote_control_file)
@@ -276,6 +286,7 @@ class BaseAutotest(installable_object.InstallableObject):
 						results_dir, host)
 			host.get_file(results + '/', results_dir)
 			self.process_copied_logs(results_dir, host, keyval_path)
+			self.postprocess_copied_logs(results, host)
 
 
 	def run_timed_test(self, test_name, results_dir='.', host=None,
@@ -423,7 +434,7 @@ class _Run(object):
 					except error.AutoservUnsupportedError:
 						print "Hardreset unsupported on %s" % (
 						    self.host.hostname,)
-					raise error.AutotestRunError("%s failed" 
+					raise error.AutotestRunError("%s failed"
 						" to boot after %ds" % (
 						self.host.hostname,
 						BOOT_TIME,))
