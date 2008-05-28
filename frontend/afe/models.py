@@ -180,6 +180,7 @@ class ExtendedManager(dbmodels.Manager):
 		sql += ' VALUES ' + self._get_sql_string_for(list(values))
 		cursor = connection.cursor()
 		cursor.execute(sql)
+		connection._commit()
 
 
 	def delete_in_bulk(self, ids):
@@ -195,6 +196,7 @@ class ExtendedManager(dbmodels.Manager):
 		    self._get_sql_string_for(tuple(ids)))
 		cursor = connection.cursor()
 		cursor.execute(sql)
+		connection._commit()
 
 
 class ValidObjectsManager(ExtendedManager):
