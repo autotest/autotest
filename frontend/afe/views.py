@@ -1,7 +1,19 @@
 import urllib2
 
-from frontend.afe import models
+from frontend.afe import models, rpc_handler, rpc_interface, site_rpc_interface
+from frontend.afe import rpc_utils
 from django.http import HttpResponse, HttpResponsePermanentRedirect
+
+# since site_rpc_interface is later in the list, its methods will override those
+# of rpc_interface
+rpc_handler_obj = rpc_handler.RpcHandler((rpc_interface, site_rpc_interface),
+					 document_module=rpc_interface)
+
+
+def handle_rpc(request):
+	rpc_utils.set_user(request.afe_user)
+	return rpc_handler_obj.handle_rpc_request(request)
+
 
 def model_documentation(request):
 	doc = '<h2>Models</h2>\n'
