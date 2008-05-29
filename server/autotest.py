@@ -27,9 +27,7 @@ AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
 # Timeouts for powering down and up respectively
 HALT_TIME = 300
 BOOT_TIME = 1800
-
-
-
+CRASH_RECOVERY_TIME = 9000
 
 
 class BaseAutotest(installable_object.InstallableObject):
@@ -443,8 +441,13 @@ class _Run(object):
 			self.host.job.record("ABORT", None, None,
 					     "Autotest client terminated " +
 					     "unexpectedly")
-			raise error.AutotestRunError("Aborting - unknown "
-				"return code: %s\n" % last)
+			# give the client machine a chance to recover from
+			# possible crash
+			self.host.wait_up(CRASH_RECOVERY_TIME)
+			raise error.AutotestRunError("Aborting - unexpected "
+						     "final status message "
+						     "from client: %s\n"
+						     % last)
 
 		# should only get here if we timed out
 		assert timeout
