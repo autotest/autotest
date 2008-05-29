@@ -14,12 +14,57 @@ stutsman@google.com (Ryan Stutsman)
 
 import atexit, os, re, shutil, textwrap, sys, tempfile, types, urllib
 
-from autotest_lib.client.common_lib.utils import *
+from autotest_lib.client.common_lib import utils
 
 
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
 
+
+############# we need pass throughs for the methods in client/common_lib/utils
+def run(command, timeout=None, ignore_status=False, 
+	stdout_tee=None, stderr_tee=None):
+	return utils.run(command, timeout, ignore_status, 
+			 stdout_tee, stderr_tee)
+
+
+def run_bg(command):
+	return utils.run_bg(command)
+
+
+def join_bg_job(bg_job, timeout=None, ignore_status=False,
+		stdout_tee=None, stderr_tee=None):
+	return utils.join_bg_job(bg_job, timeout, ignore_status,
+				 stdout_tee, stderr_tee)
+
+
+def nuke_subprocess(subproc):
+	return utils.nuke_subprocess(subproc)
+
+
+def nuke_pid(pid):
+	return utils.nuke_pid(pid)
+
+
+def system(command, timeout=None, ignore_status=False):
+	return utils.system(command, timeout, ignore_status)
+
+
+def system_output(command, timeout=None, ignore_status=False,
+		  retain_output=False):
+	return utils.system_output(command, timeout, ignore_status, 
+				   retain_output)
+
+
+def read_keyval(path):
+	return utils.read_keyval(path)
+
+
+def write_keyval(path, dictionary):
+	return utils.write_keyval(path, dictionary)
+
+
+####################################################################
 
 def sh_escape(command):
 	"""
@@ -36,10 +81,10 @@ def sh_escape(command):
 
 	See also: http://www.tldp.org/LDP/abs/html/escapingsection.html
 	"""
-	command= command.replace("\\", "\\\\")
-	command= command.replace("$", r'\$')
-	command= command.replace('"', r'\"')
-	command= command.replace('`', r'\`')
+	command = command.replace("\\", "\\\\")
+	command = command.replace("$", r'\$')
+	command = command.replace('"', r'\"')
+	command = command.replace('`', r'\`')
 	return command
 
 
@@ -209,7 +254,7 @@ def get_server_dir():
 
 
 def find_pid(command):
-	for line in system_output('ps -eo pid,cmd').rstrip().split('\n'):
+	for line in utils.system_output('ps -eo pid,cmd').rstrip().split('\n'):
 		(pid, cmd) = line.split(None, 1)
 		if re.search(command, cmd):
 			return int(pid)
@@ -227,7 +272,7 @@ def nohup(command, stdout='/dev/null', stderr='/dev/null', background=True,
 		cmd += ' 2> %s' % stderr
 	if background:
 		cmd += ' &'
-	system(cmd)
+	utils.system(cmd)
 
 
 def default_mappings(machines):
