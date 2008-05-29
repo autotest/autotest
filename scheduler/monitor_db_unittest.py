@@ -28,6 +28,9 @@ INSERT INTO hosts_labels (host_id, label_id) VALUES
   (1, 1), (2, 2);
 """
 
+class Dummy(object):
+	'Dummy object that can have attribute assigned to it'
+
 class DispatcherTest(unittest.TestCase):
 	_jobs_scheduled = []
 	_job_counter = 0
@@ -101,6 +104,7 @@ class DispatcherTest(unittest.TestCase):
 			else:
 				host = hqe_self.host
 			self._record_job_scheduled(hqe_self.job.id, host.id)
+			return Dummy()
 		monitor_db.HostQueueEntry.run = run_stub
 
 
@@ -185,7 +189,7 @@ class DispatcherTest(unittest.TestCase):
 		'Basic nonmetahost scheduling'
 		self._create_job_simple([1], use_metahosts)
 		self._create_job_simple([2], use_metahosts)
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._assert_job_scheduled_on(1, 1)
 		self._assert_job_scheduled_on(2, 2)
 		self._check_for_extra_schedulings()
@@ -197,7 +201,7 @@ class DispatcherTest(unittest.TestCase):
 		self._create_job_simple([2], use_metahosts)
 		self._create_job_simple([1,2], use_metahosts)
 		self._create_job_simple([1], use_metahosts, priority=1)
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._assert_job_scheduled_on(4, 1) # higher priority
 		self._assert_job_scheduled_on(2, 2) # earlier job over later
 		self._check_for_extra_schedulings()
@@ -210,17 +214,17 @@ class DispatcherTest(unittest.TestCase):
 		"""
 		self._create_job_simple([1], use_metahosts)
 		self._do_query('UPDATE hosts SET status="Running" WHERE id=1')
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
 		self._do_query('UPDATE hosts SET status="Ready", locked=1 '
 			       'WHERE id=1')
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
 		self._do_query('UPDATE hosts SET locked=0, invalid=1 '
 			       'WHERE id=1')
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
 
@@ -228,7 +232,7 @@ class DispatcherTest(unittest.TestCase):
 		'Only idle hosts get scheduled'
 		self._create_job(hosts=[1], active=1)
 		self._create_job_simple([1], use_metahosts)
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
 
@@ -272,7 +276,7 @@ class DispatcherTest(unittest.TestCase):
 		"""
 		self._create_job(metahosts=[1])
 		self._create_job(hosts=[1])
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._assert_job_scheduled_on(2, 1)
 		self._check_for_extra_schedulings()
 
@@ -283,7 +287,7 @@ class DispatcherTest(unittest.TestCase):
 		that job.
 		"""
 		self._create_job(metahosts=[1], hosts=[1])
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._assert_job_scheduled_on(1, 1)
 		self._check_for_extra_schedulings()
 
@@ -294,7 +298,7 @@ class DispatcherTest(unittest.TestCase):
 		self._create_job(metahosts=[1])
 		self._do_query('INSERT INTO ineligible_host_queues '
 			       '(job_id, host_id) VALUES (1, 1)')
-		self._dispatcher._find_more_work()
+		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
 
