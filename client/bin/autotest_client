@@ -1,11 +1,9 @@
 #!/usr/bin/python
 import common
 
-import sys, os, time, getpass
-from subprocess import *
+import sys, os, time, getpass, subprocess
 
-import autotest_lib.client.bin.autotest_utils
-utils = autotest_lib.client.bin.autotest_utils
+from autotest_lib.client.common_lib import utils
 
 # We want to set the output (stdout&stderr) of the autotest binary onto our
 # stdout channel. We went to get the status stream of autotest back on our
@@ -24,5 +22,6 @@ if os.path.exists("/dev/cpuset/tasks") and getpass.getuser() == "root":
 autodir = os.path.dirname(sys.argv[0])
 autotest = os.path.join(autodir, 'autotest')
 cmd = ' '.join([autotest, '-H simple'] + sys.argv[1:])
-exit_code = call(cmd, shell=True, stderr=STDOUT, close_fds=False)
+exit_code = subprocess.call(cmd, shell=True, stderr=subprocess.STDOUT,
+			    close_fds=False)
 sys.exit(exit_code) # pass on the exit status from autotest
