@@ -119,20 +119,6 @@ def enable_logging(logfile):
 	sys.stderr = err_fd
 
 
-def idle_hosts():
-	rows = _db.execute("""
-		SELECT * FROM hosts h WHERE 
-		id NOT IN (SELECT host_id FROM host_queue_entries WHERE active) AND (
-				(id IN (SELECT host_id FROM host_queue_entries WHERE not complete AND not active)) 
-			OR
-				(id IN (SELECT DISTINCT hl.host_id FROM host_queue_entries hqe 
-				INNER JOIN hosts_labels hl ON hqe.meta_host=hl.label_id WHERE not hqe.complete AND not hqe.active))
-		)
-		AND locked=false AND invalid=false
-		AND (h.status IS null OR h.status='Ready')	""")
-	hosts = [Host(row=i) for i in rows]
-	return hosts
-
 def queue_entries_to_abort():
 	rows = _db.execute("""
 		SELECT * FROM host_queue_entries WHERE status='Abort';
@@ -316,7 +302,7 @@ class Dispatcher:
 	def tick(self):
 		Dispatcher.autoserv_procs_cache = None
 		self._find_aborting()
-		self._find_more_work()
+		self._schedule_new_jobs()
 		self._handle_agents()
 		self._clear_inactive_blocks()
 		email_manager.send_queued_emails()
@@ -512,21 +498,99 @@ class Dispatcher:
 		    USING (job_id) WHERE hqe.job_id IS NULL""")
 
 
-	def _find_more_work(self):
+	def _extract_host_and_queue_entry(self, row):
+		# each row contains host columns followed by host queue entry
+		# columns
+		num_host_cols = Host.num_cols()
+		assert len(row) == num_host_cols + HostQueueEntry.num_cols()
+		host = Host(row=row[:num_host_cols])
+		queue_entry = HostQueueEntry(row=row[num_host_cols:])
+		return host, queue_entry
+
+
+	def _get_runnable_entries(self, extra_join='', extra_where=''):
+		query = (
+		    'SELECT DISTINCT h.*, queued_hqe.* FROM hosts h '
+		    # join with running entries
+		    """
+		    LEFT JOIN (SELECT host_id FROM host_queue_entries
+		               WHERE active)
+		    AS active_hqe
+		    ON (h.id = active_hqe.host_id)
+		    """ +
+		    extra_join +
+		    # exclude hosts with a running entry
+		    'WHERE active_hqe.host_id IS NULL '
+		    # exclude locked, invalid, and non-Ready hosts
+		    """
+		    AND h.locked=false AND h.invalid=false
+		    AND (h.status IS null OR h.status='Ready')
+		    """)
+		if extra_where:
+			query += 'AND ' + extra_where + '\n'
+		# respect priority, then sort by ID (most recent first)
+		query += 'ORDER BY queued_hqe.priority DESC, queued_hqe.id'
+
+		rows = _db.execute(query)
+		return [self._extract_host_and_queue_entry(row) for row in rows]
+
+
+	def _get_runnable_nonmetahosts(self):
+		# find queued HQEs scheduled directly against hosts
+		queued_hqe_join = """
+		INNER JOIN (SELECT * FROM host_queue_entries
+		            WHERE not complete AND not active)
+		AS queued_hqe
+		ON (h.id = queued_hqe.host_id)
+		"""
+		return self._get_runnable_entries(queued_hqe_join)
+
+
+	def _get_runnable_metahosts(self):
+		# join with labels for metahost matching
+		labels_join = 'INNER JOIN hosts_labels hl ON hl.host_id=h.id'
+		# find queued HQEs scheduled for metahosts that match idle hosts
+		queued_hqe_join = """
+		INNER JOIN (SELECT * FROM host_queue_entries hqe
+		            WHERE host_id IS NULL
+			    AND not complete AND not active)
+		AS queued_hqe
+		ON (queued_hqe.meta_host=hl.label_id)
+		"""
+		# need to exclude blocks hosts as well for metahosts
+		block_join = """
+		LEFT JOIN ineligible_host_queues ihq
+		ON (ihq.job_id=queued_hqe.job_id AND ihq.host_id=h.id)
+		"""
+		block_where = 'ihq.job_id IS NULL'
+		extra_join = '\n'.join([labels_join, queued_hqe_join,
+					block_join])
+		return self._get_runnable_entries(extra_join,
+						  extra_where=block_where)
+
+
+	def _schedule_new_jobs(self):
 		print "finding work"
 
-		for host in idle_hosts():
-			tasks = host.next_queue_entries()
-			for next in tasks:
-				try:
-					agent = next.run(assigned_host=host)
-					if agent:
-						self.add_agent(agent)
-						break
-				except:
-					next.set_status('Failed')
-
-					log_stacktrace("task_id = %d" % next.id)
+		scheduled_hosts, scheduled_queue_entries = set(), set()
+		runnable = (self._get_runnable_nonmetahosts() +
+			    self._get_runnable_metahosts())
+		for host, queue_entry in runnable:
+			# we may get duplicate entries for a host or a queue
+			# entry.  we need to schedule each host and each queue
+			# entry only once.
+			if (host.id in scheduled_hosts or
+			    queue_entry.id in scheduled_queue_entries):
+				continue
+			try:
+				agent = queue_entry.run(assigned_host=host)
+				self.add_agent(agent)
+				scheduled_hosts.add(host.id)
+				scheduled_queue_entries.add(queue_entry.id)
+			except: # handle bugs in job assignment gracefully
+				queue_entry.set_status('Failed')
+				log_stacktrace("queue entry id = %d" %
+					       queue_entry.id)
 
 
 	def _find_aborting(self):
@@ -1213,11 +1277,11 @@ class AbortTask(AgentTask):
 
 
 class DBObject(object):
-	def __init__(self, fields, id=None, row=None, new_record=False):
-		assert (bool(id) != bool(row)) and fields
+	def __init__(self, id=None, row=None, new_record=False):
+		assert (bool(id) != bool(row))
 
 		self.__table = self._get_table()
-		self.__fields = fields
+		fields = self._fields()
 
 		self.__new_record = new_record
 
@@ -1229,9 +1293,9 @@ class DBObject(object):
 							(self.__table, id)
 			row = rows[0]
 
-		assert len(row)==len(fields), (
+		assert len(row) == self.num_cols(), (
 		    "table = %s, row = %s/%d, fields = %s/%d" % (
-		    self.__table, row, len(row), fields, len(fields)))
+		    self.__table, row, len(row), fields, self.num_cols()))
 
 		self.__valid_fields = {}
 		for i,value in enumerate(row):
@@ -1246,6 +1310,16 @@ class DBObject(object):
 		raise NotImplementedError('Subclasses must override this')
 
 
+	@classmethod
+	def _fields(cls):
+		raise NotImplementedError('Subclasses must override this')
+
+
+	@classmethod
+	def num_cols(cls):
+		return len(cls._fields())
+
+
 	def count(self, where, table = None):
 		if not table:
 			table = self.__table
@@ -1258,10 +1332,6 @@ class DBObject(object):
 		assert len(rows) == 1
 
 		return int(rows[0][0])
-
-
-	def num_cols(self):
-		return len(self.__fields)
 
 
 	def update_field(self, field, value):
@@ -1279,7 +1349,7 @@ class DBObject(object):
 
 	def save(self):
 		if self.__new_record:
-			keys = self.__fields[1:] # avoid id
+			keys = self._fields()[1:] # avoid id
 			columns = ','.join([str(key) for key in keys])
 			values = ['"%s"' % self.__dict__[key] for key in keys]
 			values = ','.join(values)
@@ -1304,9 +1374,8 @@ class DBObject(object):
 
 class IneligibleHostQueue(DBObject):
 	def __init__(self, id=None, row=None, new_record=None):
-		fields = ['id', 'job_id', 'host_id']
-		super(IneligibleHostQueue, self).__init__(fields, id=id,
-				 row=row, new_record=new_record)
+		super(IneligibleHostQueue, self).__init__(id=id, row=row,
+							  new_record=new_record)
 
 
 	@classmethod
@@ -1314,16 +1383,25 @@ class IneligibleHostQueue(DBObject):
 		return 'ineligible_host_queues'
 
 
+	@classmethod
+	def _fields(cls):
+		return ['id', 'job_id', 'host_id']
+
+
 class Host(DBObject):
 	def __init__(self, id=None, row=None):
-		fields =  ['id', 'hostname', 'locked', 'synch_id','status',
-			   'invalid']
-		super(Host, self).__init__(fields, id=id, row=row)
+		super(Host, self).__init__(id=id, row=row)
 
 
 	@classmethod
 	def _get_table(cls):
 		return 'hosts'
+
+
+	@classmethod
+	def _fields(cls):
+		return ['id', 'hostname', 'locked', 'synch_id','status',
+			'invalid']
 
 
 	def current_task(self):
@@ -1340,29 +1418,6 @@ class Host(DBObject):
 			return HostQueueEntry(row=results)
 
 
-	def next_queue_entries(self):
-		if self.locked:
-			print "%s locked, not queuing" % self.hostname
-			return []
-#		print "%s/%s looking for work" % (self.hostname, self.platform_id)
-		rows = _db.execute("""
-			SELECT * FROM host_queue_entries
-			WHERE ((host_id=%s) OR (meta_host IS NOT null AND
-			(meta_host IN (
-				SELECT label_id FROM hosts_labels WHERE host_id=%s
-				)
-			)
-			AND job_id NOT IN (
-				SELECT job_id FROM ineligible_host_queues
-				WHERE host_id=%s
-			)))
-			AND NOT complete AND NOT active
-			ORDER BY priority DESC, meta_host, id
-			LIMIT 1
-		""", (self.id,self.id, self.id))
-
-		return [HostQueueEntry(row=i) for i in rows]
-
 	def yield_work(self):
 		print "%s yielding work" % self.hostname
 		if self.current_task():
@@ -1376,9 +1431,7 @@ class Host(DBObject):
 class HostQueueEntry(DBObject):
 	def __init__(self, id=None, row=None):
 		assert id or row
-		fields = ['id', 'job_id', 'host_id', 'priority', 'status',
-			  'meta_host', 'active', 'complete']
-		super(HostQueueEntry, self).__init__(fields, id=id, row=row)
+		super(HostQueueEntry, self).__init__(id=id, row=row)
 		self.job = Job(self.job_id)
 
 		if self.host_id:
@@ -1393,6 +1446,12 @@ class HostQueueEntry(DBObject):
 	@classmethod
 	def _get_table(cls):
 		return 'host_queue_entries'
+
+
+	@classmethod
+	def _fields(cls):
+		return ['id', 'job_id', 'host_id', 'priority', 'status',
+			  'meta_host', 'active', 'complete']
 
 
 	def set_host(self, host):
@@ -1524,11 +1583,7 @@ class HostQueueEntry(DBObject):
 class Job(DBObject):
 	def __init__(self, id=None, row=None):
 		assert id or row
-		super(Job, self).__init__(
-				  ['id','owner','name','priority',
-				   'control_file','control_type','created_on',
-				   'synch_type', 'synch_count','synchronizing'],
-				  id=id, row=row)
+		super(Job, self).__init__(id=id, row=row)
 
 		self.job_dir = os.path.join(RESULTS_DIR, "%s-%s" % (self.id,
 								    self.owner))
@@ -1537,6 +1592,13 @@ class Job(DBObject):
 	@classmethod
 	def _get_table(cls):
 		return 'jobs'
+
+
+	@classmethod
+	def _fields(cls):
+		return  ['id', 'owner', 'name', 'priority', 'control_file',
+			 'control_type', 'created_on', 'synch_type',
+			 'synch_count', 'synchronizing']
 
 
 	def is_server_job(self):
