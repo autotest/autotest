@@ -7,16 +7,20 @@ import afeclient.client.table.SimpleFilter;
 import afeclient.client.table.TableDecorator;
 import afeclient.client.table.DynamicTable.DynamicTableListener;
 
+import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.HTTPRequest;
+import com.google.gwt.user.client.ResponseTextHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
-import com.google.gwt.http.client.URL;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -43,6 +47,8 @@ public class JobDetailView extends DetailView {
     protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
     protected Button requeueButton = new Button("Requeue job");
+    protected HTML tkoResultsHtml = new HTML();
+    protected ScrollPanel tkoResultsScroller = new ScrollPanel(tkoResultsHtml);
     protected JobDetailListener listener;
     
     public JobDetailView(JobDetailListener listener) {
@@ -148,6 +154,9 @@ public class JobDetailView extends DetailView {
             } 
         });
         RootPanel.get("view_requeue").add(requeueButton);
+        
+        tkoResultsScroller.setStyleName("results-frame");
+        RootPanel.get("tko_results").add(tkoResultsScroller);
     }
 
     
@@ -199,16 +208,23 @@ public class JobDetailView extends DetailView {
     protected String getLogsURL(String jobLogsId) {
 	String val = URL.encode("/results/" + jobLogsId);
         return "/tko/retrieve_logs.cgi?job=" + val;
-//        return "/tko/retrieve_logs.cgi?job=%2Fresults%2F" + jobLogsId;
     }
     
     protected void pointToResults(String resultsUrl, String logsUrl) {
         DOM.setElementProperty(DOM.getElementById("results_link"),
                                "href", resultsUrl);
-        DOM.setElementProperty(DOM.getElementById("results_iframe"),
-                               "src", resultsUrl);
         DOM.setElementProperty(DOM.getElementById("raw_results_link"),
                                "href", logsUrl);
+        if (resultsUrl == NO_URL) {
+            tkoResultsHtml.setHTML("");
+            return;
+        }
+        
+        HTTPRequest.asyncGet(resultsUrl + "&brief=1", new ResponseTextHandler() {
+            public void onCompletion(String responseText) {
+                tkoResultsHtml.setHTML(responseText);
+            }
+        });
     }
     
     protected String getNoObjectText() {
