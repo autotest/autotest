@@ -7,7 +7,7 @@ feeds = {
     'jobs' : feed.JobFeed
 }
 
-pattern_list = [(r'^(?:|noauth/)rpc/', 'frontend.afe.rpc_handler.rpc_handler')]
+pattern_list = [(r'^(?:|noauth/)rpc/', 'frontend.afe.views.handle_rpc')]
 
 debug_pattern_list = [
     (r'^model_doc/', 'frontend.afe.views.model_documentation'),
