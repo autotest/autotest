@@ -78,11 +78,15 @@ class db_sql:
 		time.sleep(delay)
 
 
-	def _run_with_retry(self, function, *args, **dargs):
+	def run_with_retry(self, function, *args, **dargs):
 		"""Call function(*args, **dargs) until either it passes
-		without an operational error, or a timeout is reached. This
-		is intended for internal use with database functions, not
-		for generic use."""
+		without an operational error, or a timeout is reached.
+		This will re-connect to the database, so it is NOT safe
+		to use this inside of a database transaction.
+
+		It can be safely used with transactions, but the
+		transaction start & end must be completely contained
+		within the call to 'function'."""
 		OperationalError = _get_error_class("OperationalError")
 
 		success = False
@@ -188,7 +192,10 @@ class db_sql:
 			return self.cur.fetchall()
 
 		# run the query, re-trying after operational errors
-		return self._run_with_retry(exec_sql)
+		if self.autocommit:
+			return self.run_with_retry(exec_sql)
+		else:
+			return exec_sql()
 
 
 	def select_sql(self, fields, table, sql, values):
@@ -204,7 +211,10 @@ class db_sql:
 			return self.cur.fetchall()
 
 		# run the query, re-trying after operational errors
-		return self._run_with_retry(exec_sql)
+		if self.autocommit:
+			return self.run_with_retry(exec_sql)
+		else:
+			return exec_sql()
 
 
 	def _exec_sql_with_commit(self, sql, values, commit):
@@ -213,7 +223,7 @@ class db_sql:
 			def exec_sql():
 				self.cur.execute(sql, values)
 				self.con.commit()
-			self._run_with_retry(exec_sql)
+			self.run_with_retry(exec_sql)
 		else:
 			# take one shot at running the query
 			self.cur.execute(sql, values)
