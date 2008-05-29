@@ -18,6 +18,7 @@ doctest_dir = 'doctests'
 doctest_paths = [os.path.join(doctest_dir, filename) for filename
 		 in os.listdir(os.path.join(app_name, doctest_dir))
 		 if not filename.startswith('.')]
+doctest_paths.sort()
 
 def get_modules():
 	modules = []
