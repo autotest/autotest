@@ -271,11 +271,11 @@ class SSHHost(remote.RemoteHost):
 		return result == 0
 
 
-	def __run_group(self, function, *args, **dargs):
+	def __run_reboot_group(self, reboot_func):
 		if self.job:
-			self.job.run_group(function, *args, **dargs)
+			self.job.run_reboot(reboot_func, self.get_kernel_ver)
 		else:
-			function(*args, **dargs)
+			reboot_func()
 
 
 	def __record(self, status_code, subdir, operation, status = ''):
@@ -473,7 +473,7 @@ class SSHHost(remote.RemoteHost):
 			if wait:
 				self.wait_for_restart(timeout) 
 				self.reboot_followup()
-		self.__run_group(reboot)
+		self.__run_reboot_group(reboot)
 
 
 	def reboot_followup(self):
