@@ -51,7 +51,7 @@ class test(object):
 	def load_iterations(keyval_path):
 		"""Abstract method to load a list of iterations from a keyval
 		file."""
-		raise NotImplemented
+		raise NotImplementedError
 
 
 	@classmethod
@@ -111,7 +111,7 @@ class iteration(object):
 			attr_dict: generic iteration attributes
 			perf_dict: iteration performance results
 		"""
-		raise NotImplemented
+		raise NotImplementedError
 
 
 	@classmethod
