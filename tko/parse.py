@@ -140,8 +140,9 @@ def parse_path(db, path, level, reparse, mail_on_failure):
 			jobpath = os.path.join(path, machine)
 			jobname = "%s/%s" % (os.path.basename(path), machine)
 			try:
-				parse_one(db, jobname, jobpath, reparse,
-					  mail_on_failure)
+				db.run_with_retry(parse_one, db, jobname,
+						  path, reparse,
+						  mail_on_failure)
 			except Exception:
 				traceback.print_exc()
 				continue
@@ -150,7 +151,8 @@ def parse_path(db, path, level, reparse, mail_on_failure):
 		job_elements = path.split("/")[-level:]
 		jobname = "/".join(job_elements)
 		try:
-			parse_one(db, jobname, path, reparse, mail_on_failure)
+			db.run_with_retry(parse_one, db, jobname, path,
+					  reparse, mail_on_failure)
 		except Exception:
 			traceback.print_exc()
 
