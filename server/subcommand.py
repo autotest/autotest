@@ -1,8 +1,8 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
 import sys, os, subprocess, traceback, time, signal
-from autotest_lib.server import utils
-from autotest_lib.client.common_lib import error
+
+from autotest_lib.client.common_lib import error, utils
 
 
 def parallel(tasklist, timeout=None):

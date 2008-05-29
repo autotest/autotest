@@ -165,8 +165,8 @@ def run(command, timeout=None, ignore_status=False,
 		CmdError: the exit code of the command
 			execution was not 0
 	"""
-	return join_bg_job(run_bg(command), timeout, ignore_status,
-		stdout_tee, stderr_tee)
+	return join_bg_job(run_bg(command), command, timeout, ignore_status,
+			   stdout_tee, stderr_tee)
 
 
 def run_bg(command):
@@ -178,7 +178,7 @@ def run_bg(command):
 	return sp, result
 
 
-def join_bg_job(bg_job, timeout=None, ignore_status=False,
+def join_bg_job(bg_job, command, timeout=None, ignore_status=False,
 	stdout_tee=None, stderr_tee=None):
 	"""Join the subprocess with the current thread. See run description."""
 	sp, result = bg_job
@@ -210,10 +210,11 @@ def join_bg_job(bg_job, timeout=None, ignore_status=False,
 
 	if result.exit_status != 0:
 		if timeouterr:
-			raise error.CmdError('Command not complete within'
-					     ' %s seconds' % timeout, result)
+			raise error.CmdError(command, result, "Command did not "
+					     "complete within %d seconds" % timeout)
 		elif not ignore_status:
-			raise error.CmdError("command execution error", result)
+			raise error.CmdError(command, result,
+					     "Command returned non-zero exit status")
 
 	return result
 
