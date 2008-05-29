@@ -391,12 +391,13 @@ class base_server_job:
 				self.record('START', None, name)
 				self.record_prefix += '\t'
 				result = function(*args, **dargs)
-				self.record_prefix = old_record_prefix
-				self.record('END GOOD', None, name)
-			except:
+			except Exception:
 				self.record_prefix = old_record_prefix
 				self.record('END FAIL', None, name, 
 						traceback.format_exc())
+			else:
+				self.record_prefix = old_record_prefix
+				self.record('END GOOD', None, name)
 
 		# We don't want to raise up an error higher if it's just
 		# a TestError - we want to carry on to other tests. Hence
@@ -410,7 +411,36 @@ class base_server_job:
 		return result
 
 
-	def record(self, status_code, subdir, operation, status=''):
+	def run_reboot(self, reboot_func, get_kernel_func):
+		"""\
+		A specialization of run_group meant specifically for handling
+		a reboot. Includes support for capturing the kernel version
+		after the reboot.
+
+		reboot_func: a function that carries out the reboot
+
+		get_kernel_func: a function that returns a string
+		representing the kernel version.
+		"""
+
+		old_record_prefix = self.record_prefix
+		try:
+			self.record('START', None, 'reboot')
+			self.record_prefix += '\t'
+			reboot_func()
+		except Exception:
+			self.record_prefix = old_record_prefix
+			self.record('END FAIL', None, 'reboot',
+				    traceback.format_exc())
+		else:
+			kernel = get_kernel_func()
+			self.record_prefix = old_record_prefix
+			self.record('END GOOD', None, 'reboot',
+				    optional_fields={"kernel": kernel})
+
+
+	def record(self, status_code, subdir, operation, status='',
+		   optional_fields=None):
 		"""
 		Record job-level status
 
@@ -448,7 +478,8 @@ class base_server_job:
 			self.__record("WARN", None, None, msg, timestamp)
 
 		# write out the actual status log line
-		self.__record(status_code, subdir, operation, status)
+		self.__record(status_code, subdir, operation, status,
+			      optional_fields=optional_fields)
 
 
 	def _read_warnings(self):
@@ -481,7 +512,8 @@ class base_server_job:
 
 
 	def _render_record(self, status_code, subdir, operation, status='',
-			   epoch_time=None, record_prefix=None):
+			   epoch_time=None, record_prefix=None,
+			   optional_fields=None):
 		"""
 		Internal Function to generate a record to be written into a
 		status log. For use by server_job.* classes only.
@@ -509,20 +541,26 @@ class base_server_job:
 		# detect them in the status file to ensure it is parsable.
 		status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
 
+		if not optional_fields:
+			optional_fields = {}
+
 		# Generate timestamps for inclusion in the logs
 		if epoch_time is None:
 			epoch_time = int(time.time())
 		local_time = time.localtime(epoch_time)
-		epoch_time_str = "timestamp=%d" % (epoch_time,)
-		local_time_str = time.strftime("localtime=%b %d %H:%M:%S",
-					       local_time)
+		optional_fields["timestamp"] = str(epoch_time)
+		optional_fields["localtime"] = time.strftime("%b %d %H:%M:%S",
+							     local_time)
+
+		fields = [status_code, substr, operation]
+		fields += ["%s=%s" % x for x in optional_fields.iteritems()]
+		fields.append(status)
 
 		if record_prefix is None:
 			record_prefix = self.record_prefix
 
-		msg = '\t'.join(str(x) for x in (status_code, substr, operation,
-						 epoch_time_str, local_time_str,
-						 status))
+		msg = '\t'.join(str(x) for x in fields)
+
 		return record_prefix + msg + '\n'
 
 
@@ -546,7 +584,7 @@ class base_server_job:
 
 
 	def __record(self, status_code, subdir, operation, status='',
-		     epoch_time=None):
+		     epoch_time=None, optional_fields=None):
 		"""
 		Actual function for recording a single line into the status
 		logs. Should never be called directly, only by job.record as
@@ -554,7 +592,8 @@ class base_server_job:
 		"""
 
 		msg = self._render_record(status_code, subdir, operation,
-					  status, epoch_time)
+					  status, epoch_time,
+					  optional_fields=optional_fields)
 
 
 		status_file = os.path.join(self.resultdir, 'status.log')
