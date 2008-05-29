@@ -28,24 +28,6 @@ def run(command, timeout=None, ignore_status=False,
 			 stdout_tee, stderr_tee)
 
 
-def run_bg(command):
-	return utils.run_bg(command)
-
-
-def join_bg_job(bg_job, timeout=None, ignore_status=False,
-		stdout_tee=None, stderr_tee=None):
-	return utils.join_bg_job(bg_job, timeout, ignore_status,
-				 stdout_tee, stderr_tee)
-
-
-def nuke_subprocess(subproc):
-	return utils.nuke_subprocess(subproc)
-
-
-def nuke_pid(pid):
-	return utils.nuke_pid(pid)
-
-
 def system(command, timeout=None, ignore_status=False):
 	return utils.system(command, timeout, ignore_status)
 
