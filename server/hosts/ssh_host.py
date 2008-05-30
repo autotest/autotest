@@ -628,20 +628,23 @@ class SSHHost(remote.RemoteHost):
 		return True
 
 
-	def _are_wait_up_processes_up(self):
+	def _is_wait_up_process_up(self):
 		"""
-		Checks if the SSHHOST waitup processes is running on the
+		Checks if any SSHHOST waitup processes are running yet on the
 		remote host.
 
-		Returns True if all the waitup processes are running, False
+		Returns True if any the waitup processes are running, False
 		otherwise.
 		"""
-		for procname in self.get_wait_up_processes():
+		processes = self.get_wait_up_processes()
+		if len(processes) == 0:
+			return True # wait up processes aren't being used
+		for procname in processes:
 			exit_status = self.run("ps -e | grep '%s'" % procname,
 					       ignore_status=True).exit_status
-			if exit_status != 0:
-				return False
-		return True
+			if exit_status == 0:
+				return True
+		return False
 
 
 	def wait_up(self, timeout=None):
@@ -669,7 +672,7 @@ class SSHHost(remote.RemoteHost):
 				pass
 			else:
 				try:
-					if self._are_wait_up_processes_up():
+					if self._is_wait_up_process_up():
 						return True
 				except (error.AutoservRunError,
 					error.AutoservSSHTimeout):
