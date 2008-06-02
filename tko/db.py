@@ -13,7 +13,6 @@ class db_sql:
 		     database=None, user=None, password=None):
 		self.debug = debug
 		self.autocommit = autocommit
-
 		self._load_config(host, database, user, password)
 
 		self.con = None
@@ -41,15 +40,23 @@ class db_sql:
 		get_value = global_config.global_config.get_config_value
 
 		# grab the host, database
-		if not host:
+		if host:
+			self.host = host
+		else:
 			self.host = get_value("TKO", "host")
-		if not database:
+		if database:
+			self.database = database
+		else:
 			self.database = get_value("TKO", "database")
 
 		# grab the user and password
-		if not user:
+		if user:
+			self.user = user
+		else:
 			self.user = get_value("TKO", "user")
-		if not password:
+		if password:
+			self.password = password
+		else:
 			self.password = get_value("TKO", "password")
 
 		# grab the timeout configuration
