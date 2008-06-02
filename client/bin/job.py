@@ -85,6 +85,7 @@ class base_job:
 		self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
 		self.control = os.path.abspath(control)
 		self.state_file = self.control + '.state'
+		self.current_step_ancestry = []
 		self.__load_state()
 
 		if not cont:
@@ -604,12 +605,13 @@ class base_job:
 		# Pickling actual functions is harry, thus we have to call
 		# them by name.  Unfortunately, this means only functions
 		# defined globally can be used as a next step.
-		if isinstance(fn, types.FunctionType):
+		if callable(fn):
 			fn = fn.__name__
 		if not isinstance(fn, types.StringTypes):
 			raise StepError("Next steps must be functions or "
 			                "strings containing the function name")
-		return (fn, args, dargs)
+		ancestry = copy.copy(self.current_step_ancestry)
+		return (ancestry, fn, args, dargs)
 
 
 	def next_step(self, fn, *args, **dargs):
@@ -626,6 +628,68 @@ class base_job:
 		self.set_state('__steps', steps)
 
 
+	def _run_step_fn(self, local_vars, fn, args, dargs):
+		"""Run a (step) function within the given context"""
+
+		local_vars['__args'] = args
+		local_vars['__dargs'] = dargs
+		exec('__ret = %s(*__args, **__dargs)' % fn,
+		     local_vars, local_vars)
+		return local_vars['__ret']
+
+
+	def _create_frame(self, global_vars, ancestry, fn_name):
+		"""Set up the environment like it would have been when this
+		function was first defined.
+
+		Child step engine 'implementations' must have 'return locals()'
+		at end end of their steps.  Because of this, we can call the
+		parent function and get back all child functions (i.e. those
+		defined within it).
+
+		Unfortunately, the call stack of the function calling 
+		job.next_step might have been deeper than the function it
+		added.  In order to make sure that the environment is what it
+		should be, we need to then pop off the frames we built until
+		we find the frame where the function was first defined."""
+
+		# The copies ensure that the parent frames are not modified
+		# while building child frames.  This matters if we then
+		# pop some frames in the next part of this function.
+		current_frame = copy.copy(global_vars)
+		frames = [current_frame] 
+		for steps_fn_name in ancestry:
+			ret = self._run_step_fn(current_frame,
+			                        steps_fn_name, [], {})
+			current_frame = copy.copy(ret)
+			frames.append(current_frame)
+
+		while len(frames) > 2:
+			if fn_name not in frames[-2]:
+				break
+			if frames[-2][fn_name] != frames[-1][fn_name]:
+				break
+			frames.pop() 
+			ancestry.pop()
+
+		return (frames[-1], ancestry)
+
+
+	def _add_step_init(self, local_vars, current_function):
+		"""If the function returned a dictionary that includes a
+		function named 'step_init', prepend it to our list of steps.
+		This will only get run the first time a function with a nested
+		use of the step engine is run."""
+
+		if (isinstance(local_vars, dict) and
+		    'step_init' in local_vars and
+		    callable(local_vars['step_init'])):
+			# The init step is a child of the function
+			# we were just running.
+			self.current_step_ancestry.append(current_function)
+			self.next_step_prepend('step_init')
+
+
 	def step_engine(self):
 		"""the stepping engine -- if the control file defines
 		step_init we will be using this engine to drive multiple runs.
@@ -636,26 +700,29 @@ class base_job:
 		# Some control files will have code outside of functions,
 		# which means we need to have our state engine initialized
 		# before reading in the file.
-		lcl = {'job': self}
-		exec(JOB_PREAMBLE, lcl, lcl)
-		execfile(self.control, lcl, lcl)
+		global_control_vars = {'job': self}
+		exec(JOB_PREAMBLE, global_control_vars, global_control_vars)
+		execfile(self.control, global_control_vars, global_control_vars)
 
 		# If we loaded in a mid-job state file, then we presumably
 		# know what steps we have yet to run.
 		if not self.state_existed:
-			if lcl.has_key('step_init'):
-				self.next_step([lcl['step_init']])
+			if global_control_vars.has_key('step_init'):
+				self.next_step(global_control_vars['step_init'])
 
 		# Iterate through the steps.  If we reboot, we'll simply
 		# continue iterating on the next step.
 		while len(self.get_state('__steps')) > 0:
 			steps = self.get_state('__steps')
-			(fn, args, dargs) = steps.pop(0)
+			(ancestry, fn_name, args, dargs) = steps.pop(0)
 			self.set_state('__steps', steps)
 
-			lcl['__args'] = args
-			lcl['__dargs'] = dargs
-			exec(fn + "(*__args, **__dargs)", lcl, lcl)
+			ret = self._create_frame(global_control_vars, ancestry,
+			                         fn_name)
+			local_vars, self.current_step_ancestry = ret
+			local_vars = self._run_step_fn(local_vars, fn_name,
+			                               args, dargs)
+			self._add_step_init(local_vars, fn_name)
 
 
 	def _init_group_level(self):
