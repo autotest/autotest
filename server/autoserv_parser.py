@@ -37,10 +37,10 @@ class base_autoserv_parser(object):
 	def __init__(self):
 		self.args = sys.argv[1:]
 		if len(self.args) == 0:
-			print self.print_usage()
+			print self.get_usage()
 			sys.exit(1)
 		if self.parse_opts('-h') or self.parse_opts('--help'):
-			print self.print_usage()
+			print self.get_usage()
 			sys.exit(0)
 
 
