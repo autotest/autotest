@@ -3,7 +3,6 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 import mock
-import pdb
 
 class A(object):
 	var = 8
@@ -22,6 +21,9 @@ class B(A):
 	def method3(self, z):
 		return self.x + z
 
+	def method4(self, z, w):
+		return self.x * z + w
+
 
 # say we want to test that do_stuff is doing what we think it is doing
 def do_stuff(a, b, func):
@@ -30,6 +32,7 @@ def do_stuff(a, b, func):
 	print func("how many")
 	print a.method2(5)
 	print b.method1()
+	print b.method4(1, 3)
 	print b.method2(3)
 	print b.method2("hello")
 
@@ -51,12 +54,13 @@ def main():
 	f.expect_call("how many").and_return(42)
 	m1.method2.expect_call(5).and_return(0)
 	m2.method1.expect_call().and_return(2)
+	m2.method4.expect_call(1, 4).and_return(6)
 	m2.method2.expect_call(3).and_return(6)
 	m2.method2.expect_call(mock.is_string_comparator()).and_return("foo")
 
 	# check the recording order
 	for func_call in god.recording:
-		print func_call[0]
+		print func_call
 
 	# once we start making calls into the methods we are in
 	# playback mode
