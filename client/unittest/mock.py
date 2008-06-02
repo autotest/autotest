@@ -18,15 +18,24 @@ class equality_comparator(argument_comparator):
 		return parameter == self.value
 
 
+	def __str__(self):
+		return repr(self.value)
+
+
 class is_string_comparator(argument_comparator):
 	def is_satisfied_by(self, parameter):
 		return isinstance(parameter, basestring)
 
 
+	def __str__(self):
+		return "a string"
+
+
 class function_map(object):
-	def __init__(self, return_val, *args, **dargs):
+	def __init__(self, symbol, return_val, *args, **dargs):
 		self.return_val = return_val
 		self.args = []
+		self.symbol = symbol
 		for arg in args:
 			if isinstance(arg, argument_comparator):
 				self.args.append(arg)
@@ -37,7 +46,7 @@ class function_map(object):
 
 
 	def and_return(self, return_val):
-		self.return_val = return_val	
+		self.return_val = return_val
 
 
 	def match(self, *args, **dargs):
@@ -45,12 +54,17 @@ class function_map(object):
 			return False
 
 		for i, expected_arg in enumerate(self.args):
-			return expected_arg.is_satisfied_by(args[i])
+			if not expected_arg.is_satisfied_by(args[i]):
+				return False
 
 		if self.dargs != dargs:
 			return False
 
 		return True
+
+
+	def __str__(self):
+		return _dump_function_call(self.symbol, self.args, self.dargs)
 
 
 class mock_function(object):
@@ -76,11 +90,9 @@ class mock_function(object):
 
 	
 	def expect_call(self, *args, **dargs):
-		mapping = function_map(None, *args, **dargs)
+		mapping = function_map(self.symbol, None, *args, **dargs)
 		if self.record:
-			self.record(self.symbol, mapping)
-		else:
-			self.default_return_val = mapping.return_val
+			self.record(mapping)
 		
 		return mapping
 
@@ -137,34 +149,32 @@ class mock_god:
 	def __method_playback(self, symbol, *args, **dargs):
 		if len(self.recording) != 0:
 			func_call = self.recording[0]
-			if func_call[0] != symbol:
-				msg = ("unexpected call: %s args=%s dargs=%s\n"
-				       "expected %s args=%s dargs=%s" 
-				       % (symbol, args, dargs, func_call[0],
-				         func_call[1].args, func_call[1].dargs))
+			if func_call.symbol != symbol:
+				msg = ("Unexpected call: %s. Expected %s" 
+				    % (_dump_function_call(symbol, args, dargs), 
+				       func_call))
 				self.errors.append(msg)
 				return None
 			
-			if not func_call[1].match(*args, **dargs):
-				msg = ("%s called with args=%s dargs=%s\n" 
-					"expected args=%s dargs=%s"
-					% (symbol, args, dargs, 
-					func_call[1].args, func_call[1].dargs))
+			if not func_call.match(*args, **dargs):
+				msg = ("%s called. Expected %s"
+				    % (_dump_function_call(symbol, args, dargs), 
+				      func_call))
 				self.errors.append(msg)
 				return None
 				
 			# this is the expected call so pop it and return
 			self.recording.popleft()
-			return func_call[1].return_val
+			return func_call.return_val
 		else:
-			msg = ("unexpected call: %s args=%s dargs=%s\n"
-			       % (symbol, args, dargs))
+			msg = ("unexpected call: %s"
+			       % (_dump_function_call(symbol, args, dargs)))
 			self.errors.append(msg)
 			return None
 
 
-	def __record_call(self, symbol, mapping):
-		self.recording.append((symbol, mapping))
+	def __record_call(self, mapping):
+		self.recording.append(mapping)
 
 
 	def check_playback(self):
@@ -178,7 +188,16 @@ class mock_god:
 			return False
 		elif len(self.recording) != 0:
 			for func_call in self.recording:
-				print "%s not called" % (func_call[0])
+				print "%s not called" % (func_call)
 			return False
 		else:
 			return True
+
+
+def _dump_function_call(symbol, args, dargs):
+	arg_vec = []
+	for arg in args:
+		arg_vec.append(str(arg))
+	for key, val in dargs.iteritems():
+		arg_vec.append("%s=%s" % (key,val))
+	return "%s(%s)" % (symbol, ', '.join(arg_vec))
