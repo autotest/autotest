@@ -240,8 +240,9 @@ True
 ...     kernel='1.2.3.4',
 ...     label='my_label')
 >>> control_file
-"def step_init():\n\tjob.next_step([step_test])\n\ttestkernel = job.kernel('1.2.3.4')\n\ttestkernel.config('my_kernel_config')\n\ttestkernel.install()\n\ttestkernel.boot(args='')\n\ndef step_test():\n\tjob.run_test('testname')\n\tjob.run_test('testname')"
+"kernel = '1.2.3.4'\ndef step_init():\n\tjob.next_step([step_test])\n\ttestkernel = job.kernel('1.2.3.4')\n\ttestkernel.config('my_kernel_config')\n\ttestkernel.install()\n\ttestkernel.boot(args='')\n\ndef step_test():\n\tjob.next_step('step0')\n\tjob.next_step('step1')\n\ndef step0():\n\tjob.run_test('testname')\n\ndef step1():\n\tjob.run_test('testname')"
 >>> print control_file #doctest: +NORMALIZE_WHITESPACE
+kernel = '1.2.3.4'
 def step_init():
 	job.next_step([step_test])
 	testkernel = job.kernel('1.2.3.4')
@@ -250,7 +251,11 @@ def step_init():
 	testkernel.boot(args='')
 <BLANKLINE>
 def step_test():
+	job.next_step('step0')
+	job.next_step('step1')
+def step0():
 	job.run_test('testname')
+def step1():
 	job.run_test('testname')
 >>> is_server, is_synch
 (False, False)
