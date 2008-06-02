@@ -297,38 +297,3 @@ def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
 			failures.append((mach, "machine can not be tupled"))
 
 	return (ntuples, failures)
-
-
-class AutoservOptionParser:
-	"""Custom command-line options parser for autoserv.
-
-	We can't use the general getopt methods here, as there will be unknown
-	extra arguments that we pass down into the control file instead.
-	Thus we process the arguments by hand, for which we are duly repentant.
-	Making a single function here just makes it harder to read. Suck it up.
-	"""
-
-	def __init__(self, args):
-		self.args = args
-
-
-	def parse_opts(self, flag):
-		if self.args.count(flag):
-			idx = self.args.index(flag)
-			self.args[idx : idx+1] = []
-			return True
-		else:
-			return False
-
-
-	def parse_opts_param(self, flag, default = None, split = False):
-		if self.args.count(flag):
-			idx = self.args.index(flag)
-			ret = self.args[idx+1]
-			self.args[idx : idx+2] = []
-			if split:
-				return ret.split(split)
-			else:
-				return ret
-		else:
-			return default

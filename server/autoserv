@@ -14,27 +14,7 @@ import sys, os, re, traceback, signal
 
 import common
 from autotest_lib.server import server_job, utils
-
-usage = """\
-usage: autoserv
-	[-h, --help]               # This help message
-	[-m machine,[machine,...]] # list of machines to pass to control file
-	[-M machines_file]         # list of machines (from a file)
-	[-c]                       # control file is a client side control
-	[-r resultsdir]            # specify results directory (default '.')
-	[-i]                       # reinstall machines before running the job
-	[-I]                       # reinstall machines after running the job
-	[-b]                       # reboot all specified machines after the job
-	[-l label]                 # label for the job (arbitrary string)
-	[-u user]                  # username for the job (email address)
-	[-v]                       # verify the machines only
-	[-R]                       # repair the machines
-	[-n]                       # no teeing the status to stdout/stderr
-	[-p]                       # write pidfile (.autoserv_execute)
-	[-P jobname]               # parse the results of the job
-	<control file>             # name of the control file to run
-	[args ...]                 # args to pass through to the control file
-"""
+from autotest_lib.server import autoserv_parser
 
 
 class PidFileManager(object):
@@ -160,8 +140,8 @@ def run_autoserv(pid_file_manager, results, parser):
 def main():
 	pid_file_manager = PidFileManager()
 
-	args = sys.argv[1:]
-	parser = utils.AutoservOptionParser(args)
+	# grab the parser
+	parser = autoserv_parser.autoserv_parser
 
 	results  = parser.parse_opts_param('-r', '.')
 	results  = os.path.abspath(results)
