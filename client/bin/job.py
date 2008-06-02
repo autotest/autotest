@@ -86,6 +86,7 @@ class base_job:
 		self.control = os.path.abspath(control)
 		self.state_file = self.control + '.state'
 		self.current_step_ancestry = []
+		self.next_step_index = 0 
 		self.__load_state()
 
 		if not cont:
@@ -614,10 +615,21 @@ class base_job:
 		return (ancestry, fn, args, dargs)
 
 
-	def next_step(self, fn, *args, **dargs):
-		"""Define the next step"""
+	def next_step_append(self, fn, *args, **dargs):
+		"""Define the next step and place it at the end"""
 		steps = self.get_state('__steps')
 		steps.append(self.__create_step_tuple(fn, args, dargs))
+		self.set_state('__steps', steps)
+
+
+	def next_step(self, fn, *args, **dargs):
+		"""Create a new step and place it after any steps added
+		while running the current step but before any steps added in
+		previous steps"""
+		steps = self.get_state('__steps')
+		steps.insert(self.next_step_index,
+		             self.__create_step_tuple(fn, args, dargs))
+		self.next_step_index += 1
 		self.set_state('__steps', steps)
 
 
@@ -625,6 +637,7 @@ class base_job:
 		"""Insert a new step, executing first"""
 		steps = self.get_state('__steps')
 		steps.insert(0, self.__create_step_tuple(fn, args, dargs))
+		self.next_step_index += 1
 		self.set_state('__steps', steps)
 
 
@@ -717,6 +730,7 @@ class base_job:
 			(ancestry, fn_name, args, dargs) = steps.pop(0)
 			self.set_state('__steps', steps)
 
+			self.next_step_index = 0
 			ret = self._create_frame(global_control_vars, ancestry,
 			                         fn_name)
 			local_vars, self.current_step_ancestry = ret
