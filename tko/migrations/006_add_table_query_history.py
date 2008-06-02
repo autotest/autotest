@@ -9,7 +9,7 @@ def migrate_down(manager):
 ADD_TABLE_QUERY_HISTORY = """
 CREATE TABLE IF NOT EXISTS query_history
 (uid VARCHAR(32), time_created VARCHAR(32), user_comment VARCHAR(256),
-url VARCHAR(65534));
+url VARCHAR(1000));
 """
 
 DROP_TABLE_QUERY_HISTORY = """
