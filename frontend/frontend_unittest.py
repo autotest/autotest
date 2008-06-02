@@ -8,11 +8,11 @@ runner.
 import unittest, os
 import common
 
-manage_path = os.path.join(os.path.dirname(__file__), 'manage.py')
 
 class FrontendTest(unittest.TestCase):
 	def test_all(self):
-		result = os.system(manage_path + ' test')
+		manage_dir = os.path.dirname(__file__)
+		result = os.system("cd %s && ./manage.py test" % (manage_dir))
 		self.assert_(result == 0)
 
 
