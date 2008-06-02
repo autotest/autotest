@@ -391,10 +391,11 @@ class base_server_job:
 				self.record('START', None, name)
 				self.record_prefix += '\t'
 				result = function(*args, **dargs)
-			except Exception:
+			except Exception, e:
 				self.record_prefix = old_record_prefix
-				self.record('END FAIL', None, name, 
-						traceback.format_exc())
+				err_msg = str(e) + '\n'
+				err_msg += traceback.format_exc()
+				self.record('END FAIL', None, name, err_msg)
 			else:
 				self.record_prefix = old_record_prefix
 				self.record('END GOOD', None, name)
@@ -428,10 +429,10 @@ class base_server_job:
 			self.record('START', None, 'reboot')
 			self.record_prefix += '\t'
 			reboot_func()
-		except Exception:
+		except Exception, e:
 			self.record_prefix = old_record_prefix
-			self.record('END FAIL', None, 'reboot',
-				    traceback.format_exc())
+			err_msg = str(e) + '\n' + traceback.format_exc()
+			self.record('END FAIL', None, 'reboot', err_msg)
 		else:
 			kernel = get_kernel_func()
 			self.record_prefix = old_record_prefix
