@@ -4,6 +4,10 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import collections
 
 
+class NoBackingFunctionError(Exception):
+	pass
+
+
 class argument_comparator(object):
 	def is_satisfied_by(self, parameter):
 		raise NotImplementedError
@@ -68,7 +72,7 @@ class function_map(object):
 
 
 class mock_function(object):
-	def __init__(self, symbol, default_return_val=None, 
+	def __init__(self, symbol, default_return_val=None,
 		     record=None, playback=None):
 		self.default_return_val = default_return_val
 		self.num_calls = 0
@@ -88,35 +92,48 @@ class mock_function(object):
 		else:
 			return self.default_return_val
 
-	
+
 	def expect_call(self, *args, **dargs):
 		mapping = function_map(self.symbol, None, *args, **dargs)
 		if self.record:
 			self.record(mapping)
-		
+
 		return mapping
 
 
+class mask_function(mock_function):
+	def __init__(self, symbol, original_function, default_return_val=None,
+		     record=None, playback=None):
+		super(mask_function, self).__init__(symbol,
+		                                    default_return_val,
+		                                    record, playback)
+		self.original_function = original_function
+
+
+	def run_original_function(self, *args, **dargs):
+		return self.original_function(*args, **dargs)
+
+
 class mock_class(object):
-	def __init__(self, cls, name, default_ret_val=None, 
+	def __init__(self, cls, name, default_ret_val=None,
 	             record=None, playback=None):
 		self.errors = []
 		self.name = name
 		self.record = record
 		self.playback = playback
 
-		symbols = dir(cls)
-		for symbol in symbols:
+		for symbol in dir(cls):
 			if symbol.startswith("_"):
 				continue
-				
-			if callable(getattr(cls, symbol)):
+
+			orig_symbol = getattr(cls, symbol)
+			if callable(orig_symbol):
 				f_name = "%s.%s" % (self.name, symbol)
 				func = mock_function(f_name, default_ret_val,
 					             self.record, self.playback)
 				setattr(self, symbol, func)
 			else:
-				setattr(self, symbol, getattr(cls, symbol))
+				setattr(self, symbol, orig_symbol)
 
 
 class mock_god:
@@ -129,40 +146,60 @@ class mock_god:
 		"""
 		Given something that defines a namespace cls (class, object,
 		module), and a (hopefully unique) name, will create a
-		mock_class object with that name and that possessess all 
+		mock_class object with that name and that possessess all
 		the public attributes of cls.  default_ret_val sets the
 		default_ret_val on all methods of the cls mock.
 		"""
-		return mock_class(cls, name, default_ret_val, 
+		return mock_class(cls, name, default_ret_val,
 		                  self.__record_call, self.__method_playback)
 
 
 	def create_mock_function(self, symbol, default_return_val=None):
 		"""
-		create a mock_function with name symbol and default return 
+		create a mock_function with name symbol and default return
 		value of default_ret_val.
 		"""
-		return mock_function(symbol, default_return_val, 
+		return mock_function(symbol, default_return_val,
 		                  self.__record_call, self.__method_playback)
+
+
+	def mock_up(self, obj, name, default_ret_val=None):
+		"""
+		Given an object (class instance or module) and a registration
+		name, then replace all its methods with mock function objects
+		(passing the orignal functions to the mock functions).
+		"""
+		for symbol in dir(obj):
+			if symbol.startswith("__"):
+				continue
+
+			orig_symbol = getattr(obj, symbol)
+			if callable(orig_symbol):
+				f_name = "%s.%s" % (name, symbol)
+				func = mask_function(f_name, orig_symbol,
+						     default_ret_val,
+					             self.__record_call,
+					             self.__method_playback)
+				setattr(obj, symbol, func)
 
 
 	def __method_playback(self, symbol, *args, **dargs):
 		if len(self.recording) != 0:
 			func_call = self.recording[0]
 			if func_call.symbol != symbol:
-				msg = ("Unexpected call: %s. Expected %s" 
-				    % (_dump_function_call(symbol, args, dargs), 
+				msg = ("Unexpected call: %s. Expected %s"
+				    % (_dump_function_call(symbol, args, dargs),
 				       func_call))
 				self.errors.append(msg)
 				return None
-			
+
 			if not func_call.match(*args, **dargs):
 				msg = ("%s called. Expected %s"
-				    % (_dump_function_call(symbol, args, dargs), 
+				    % (_dump_function_call(symbol, args, dargs),
 				      func_call))
 				self.errors.append(msg)
 				return None
-				
+
 			# this is the expected call so pop it and return
 			self.recording.popleft()
 			return func_call.return_val

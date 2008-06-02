@@ -6,23 +6,31 @@ import mock
 
 class A(object):
 	var = 8
-	
+
 	def __init__(self):
 		self.x = 0
 
 	def method1(self):
 		self.x += 1
 		return self.x
-	
+
 	def method2(self, y):
 		return y * self.x
-	
+
 class B(A):
 	def method3(self, z):
 		return self.x + z
 
 	def method4(self, z, w):
 		return self.x * z + w
+
+
+class C(B):
+	def method5(self):
+		self.method1()
+		t = self.method2(4)
+		u = self.method3(t)
+		return u
 
 
 # say we want to test that do_stuff is doing what we think it is doing
@@ -32,7 +40,7 @@ def do_stuff(a, b, func):
 	print func("how many")
 	print a.method2(5)
 	print b.method1()
-	print b.method4(1, 3)
+	print b.method4(1, 4)
 	print b.method2(3)
 	print b.method2("hello")
 
@@ -68,7 +76,24 @@ def main():
 
 	# we can now check that playback succeeded
 	print god.check_playback()
-	
+
+	# now test the ability to mock out all methods of an object
+	# except those under test
+	c = C()
+	god.mock_up(c, "c")
+
+	# setup recording
+	c.method1.expect_call()
+	c.method2.expect_call(4).and_return(4)
+	c.method3.expect_call(4).and_return(5)
+
+	# perform the test
+	answer = c.method5.run_original_function()
+
+	# check playback
+	print "answer = %s" % (answer)
+	print god.check_playback()
+
 
 if __name__ == "__main__":
 	main()
