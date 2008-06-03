@@ -3,7 +3,7 @@
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 import sys, os, pickle
-from common.error import *
+from autotest_lib.client.common_lib import error
 
 def fork_start(tmp, l):
 	sys.stdout.flush()
@@ -17,11 +17,11 @@ def fork_start(tmp, l):
 		try:
 			l()
 
-		except AutotestError:
+		except error.AutotestError:
 			raise
 
 		except:
-			raise UnhandledError("test failed and threw:\n")
+			raise error.UnhandledError("test failed and threw:\n")
 
 	except Exception, detail:
 		ename = tmp + "/debug/error-%d" % (os.getpid())
@@ -44,4 +44,4 @@ def fork_waitfor(tmp, pid):
 		raise pickle.load(file(ename, 'r'))
 
 	if (status != 0):
-		raise TestError("test failed rc=%d" % (status))
+		raise error.TestError("test failed rc=%d" % (status))

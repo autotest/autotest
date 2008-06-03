@@ -1,16 +1,16 @@
 __author__ = """Copyright Martin J. Bligh, Google, 2006"""
 
 import os, re, string
-from autotest_utils import *
-from common.error import *
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error, utils
 
 def list_mount_devices():
 	devices = []
 	# list mounted filesystems
-	for line in system_output('mount').splitlines():
+	for line in utils.system_output('mount').splitlines():
 		devices.append(line.split()[0])
 	# list mounted swap devices
-	for line in system_output('swapon -s').splitlines():
+	for line in utils.system_output('swapon -s').splitlines():
 		if line.startswith('/'):	# skip header line
 			devices.append(line.split()[0])
 	return devices
@@ -18,7 +18,7 @@ def list_mount_devices():
 
 def list_mount_points():
 	mountpoints = []
-	for line in system_output('mount').splitlines():
+	for line in utils.system_output('mount').splitlines():
 		mountpoints.append(line.split()[2])
 	return mountpoints 
 
@@ -57,7 +57,7 @@ class filesystem:
 		self.fstype = None
 		self.loop = loop_size
 		if self.loop:
-			system('dd if=/dev/zero of=%s bs=1M count=%d' % \
+			utils.system('dd if=/dev/zero of=%s bs=1M count=%d' % \
 							(device, loop_size))
 
 
@@ -80,9 +80,9 @@ class filesystem:
 		print mkfs_cmd
 		sys.stdout.flush()
 		try:
-			system("yes | " + mkfs_cmd)
+			utils.system("yes | " + mkfs_cmd)
 		except:
-			self.job.record('FAIL', None, mkfs_cmd, format_error())
+			self.job.record('FAIL', None, mkfs_cmd, error.format_error())
 			raise
 		else:
 			self.job.record('GOOD', None, mkfs_cmd)
@@ -98,9 +98,9 @@ class filesystem:
 		print fsck_cmd
 		sys.stdout.flush()
 		try:
-			system("yes | " + fsck_cmd)
+			utils.system("yes | " + fsck_cmd)
 		except:
-			self.job.record('FAIL', None, fsck_cmd, format_error())
+			self.job.record('FAIL', None, fsck_cmd, error.format_error())
 			raise
 		else:
 			self.job.record('GOOD', None, fsck_cmd)
@@ -129,9 +129,9 @@ class filesystem:
 		print mount_cmd
 		sys.stdout.flush()
 		try:
-			system(mount_cmd)
+			utils.system(mount_cmd)
 		except:
-			self.job.record('FAIL', None, mount_cmd, format_error())
+			self.job.record('FAIL', None, mount_cmd, error.format_error())
 			raise
 		else:
 			self.job.record('GOOD', None, mount_cmd)
@@ -144,9 +144,9 @@ class filesystem:
 		print umount_cmd
 		sys.stdout.flush()
 		try:
-			system(umount_cmd)
+			utils.system(umount_cmd)
 		except:
-			self.job.record('FAIL', None, umount_cmd, format_error())
+			self.job.record('FAIL', None, umount_cmd, error.format_error())
 			raise
 		else:
 			self.job.record('GOOD', None, umount_cmd)

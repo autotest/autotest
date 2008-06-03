@@ -7,8 +7,6 @@ check_python_version()
 
 import os, sys, shutil
 import job, kernel, test
-from common.error import *
-from autotest_utils import *
 from optparse import OptionParser
 
 # Use the name of the binary to find the real installation directory
@@ -28,9 +26,9 @@ os.environ['PYTHONPATH'] = autodirbin
 
 parser = OptionParser()
 
-parser.add_option("-c", "--continue", dest="cont", action="store_true", 
+parser.add_option("-c", "--continue", dest="cont", action="store_true",
 			default=False, help="continue previously started job")
-		  
+
 parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
 			help="set the job tag")
 

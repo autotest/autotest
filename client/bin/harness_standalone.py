@@ -5,7 +5,7 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-from autotest_utils import *
+from autotest_lib.client.common_lib import utils
 import os, harness, shutil
 
 class harness_standalone(harness.harness):
@@ -35,14 +35,14 @@ class harness_standalone(harness.harness):
 		# see if system supports event.d versus inittab
 		if os.path.exists('/etc/event.d'):
 			# NB: assuming current runlevel is default
-			initdefault = system_output('runlevel').split()[1]
+			initdefault = utils.system_output('runlevel').split()[1]
 		else:
-			initdefault = system_output('grep :initdefault: /etc/inittab')
+			initdefault = utils.system_output('grep :initdefault: /etc/inittab')
 			initdefault = initdefault.split(':')[1]
 
 		try:
-			system('ln -sf %s /etc/init.d/autotest' % rc)
-			system('ln -sf %s /etc/rc%s.d/S99autotest' % \
+			utils.system('ln -sf %s /etc/init.d/autotest' % rc)
+			utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % \
 							(rc, initdefault))
 		except:
 			print "WARNING: linking init scripts failed"

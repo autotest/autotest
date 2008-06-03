@@ -3,22 +3,24 @@ from common.check_version import check_python_version
 check_python_version()
 
 import os
-from autotest_utils import *
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import autotest_utils
 
 version = 1
 
 def setup(tarball, topdir): 
 	srcdir = os.path.join(topdir, 'src')
 	if not os.path.exists(tarball):
-		get_file('http://www.packetfactory.net/libnet/dist/libnet.tar.gz', tarball)
-	extract_tarball_to_dir(tarball, 'src')
+		utils.get_file('http://www.packetfactory.net/libnet/dist/libnet.tar.gz',
+			       tarball)
+	autotest_utils.extract_tarball_to_dir(tarball, 'src')
 	os.chdir(srcdir)
-	system ('./configure --prefix=%s/libnet' % topdir)
-	system('make')
-	system('make install')
+	utils.system ('./configure --prefix=%s/libnet' % topdir)
+	utils.system('make')
+	utils.system('make install')
 
 	os.chdir(topdir)
 	
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'libnet.tar.gz')
-update_version(pwd+'/src', False, version, setup, tarball, pwd)
+utils.update_version(pwd+'/src', False, version, setup, tarball, pwd)

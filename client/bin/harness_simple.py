@@ -4,7 +4,6 @@ The simple harness interface
 
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
-from autotest_utils import *
 import os, harness, time
 
 class harness_simple(harness.harness):
