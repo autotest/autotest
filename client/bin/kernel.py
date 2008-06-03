@@ -1,10 +1,10 @@
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
-import os,os.path,shutil,urllib,copy,pickle,re,glob,time
-from autotest_utils import *
-from common import logging
-from fd_stack import tee_output_logdir_mark
+import os, os.path, shutil, copy, pickle, re, glob, time
 import kernel_config, test, os_dep, kernelexpand
+from fd_stack import tee_output_logdir_mark
+import autotest_utils
+from autotest_lib.client.common_lib import logging, utils
 
 
 class kernel:
@@ -67,15 +67,15 @@ class kernel:
 
 		if not leave:
 			if os.path.isdir(self.src_dir):
-				system('rm -rf ' + self.src_dir)
+				utils.system('rm -rf ' + self.src_dir)
 			if os.path.isdir(self.build_dir):
-				system('rm -rf ' + self.build_dir)
+				utils.system('rm -rf ' + self.build_dir)
 
 		if not os.path.exists(self.src_dir):
 			os.mkdir(self.src_dir)
 		for path in [self.config_dir, self.log_dir, self.results_dir]:
 			if os.path.exists(path):
-				system('rm -rf ' + path)
+				utils.system('rm -rf ' + path)
 			os.mkdir(path)
 
 		logpath = os.path.join(self.log_dir, 'build_log')
@@ -179,7 +179,7 @@ class kernel:
 			print "get_file %s %s %s %s" % (patch, dest, self.src_dir, basename(patch))
 			get_file(patch, dest)
 			# probably safer to use the command, not python library
-			md5sum = system_output('md5sum ' + dest).split()[0]
+			md5sum = utils.system_output('md5sum ' + dest).split()[0]
 			local_patches.append((patch, dest, md5sum))
 		return local_patches
 
@@ -220,7 +220,8 @@ class kernel:
 			tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
 			get_file(base_tree, tarball)
 			print 'Extracting kernel tarball:', tarball, '...'
-			extract_tarball_to_dir(tarball, self.build_dir)
+			autotest_utils.extract_tarball_to_dir(tarball,
+			                                      self.build_dir)
 
 
 	def extraversion(self, tag, append=1):
@@ -230,8 +231,8 @@ class kernel:
 			p = extraversion_sub + '\\1-%s/' % tag
 		else:
 			p = extraversion_sub + '-%s/' % tag
-		system('mv Makefile Makefile.old')
-		system('sed "%s" < Makefile.old > Makefile' % p)
+		utils.system('mv Makefile Makefile.old')
+		utils.system('sed "%s" < Makefile.old > Makefile' % p)
 
 
 	@logging.record
@@ -252,15 +253,15 @@ class kernel:
 		# setup_config_file(config_file, config_overrides)
 
 		# Not needed on 2.6, but hard to tell -- handle failure
-		system('make dep', ignore_status=True)
-		threads = 2 * count_cpus()
+		utils.system('make dep', ignore_status=True)
+		threads = 2 * autotest_utils.count_cpus()
 		build_string = 'make -j %d %s %s' % (threads, make_opts,
 					     self.build_target)
 					# eg make bzImage, or make zImage
 		print build_string
 		system(build_string)
 		if kernel_config.modules_needed('.config'):
-			system('make -j %d modules' % (threads))
+			utils.system('make -j %d modules' % (threads))
 
 		kernel_version = self.get_kernel_build_ver()
 		kernel_version = re.sub('-autotest', '', kernel_version)
@@ -280,10 +281,11 @@ class kernel:
 			 			% (timefile, make_opts, threads)
 		build_string += ' > %s 2>&1' % output
 		print build_string
-		system(build_string)
+		utils.system(build_string)
 
 		if (not os.path.isfile('vmlinux')):
-			raise TestError("no vmlinux found, kernel build failed")
+			errmsg = "no vmlinux found, kernel build failed"
+			raise error.TestError(errmsg)
 
 
 	@logging.record
@@ -292,7 +294,7 @@ class kernel:
 		"""make clean in the kernel tree"""
 		os.chdir(self.build_dir) 
 		print "make clean"
-		system('make clean > /dev/null 2> /dev/null')
+		utils.system('make clean > /dev/null 2> /dev/null')
 
 
 	@logging.record
@@ -310,7 +312,7 @@ class kernel:
 			initrd
 				initrd image file to build
 		"""
-		vendor = get_os_vendor()
+		vendor = autotest_utils.get_os_vendor()
 		
 		if os.path.isfile(initrd):
 			print "Existing %s file, will remove it." % initrd
@@ -323,19 +325,19 @@ class kernel:
 			args = ''
 
 		if vendor in ['Red Hat', 'Fedora Core']:
-			system('mkinitrd %s %s %s' % (args, initrd, version))
+			utils.system('mkinitrd %s %s %s' % (args, initrd, version))
 		elif vendor in ['SUSE']:
-			system('mkinitrd %s -k %s -i %s -M %s' % (args, image, initrd, system_map))
+			utils.system('mkinitrd %s -k %s -i %s -M %s' % (args, image, initrd, system_map))
 		elif vendor in ['Debian', 'Ubuntu']:
 			if os.path.isfile('/usr/sbin/mkinitrd'):
 				cmd = '/usr/sbin/mkinitrd'
 			elif os.path.isfile('/usr/sbin/mkinitramfs'):
 				cmd = '/usr/sbin/mkinitramfs'
 			else:
-				raise TestError('No Debian initrd builder')
-			system('%s %s -o %s %s' % (cmd, args, initrd, version))
+				raise error.TestError('No Debian initrd builder')
+			utils.system('%s %s -o %s %s' % (cmd, args, initrd, version))
 		else:
-			raise TestError('Unsupported vendor %s' % vendor)
+			raise error.TestError('Unsupported vendor %s' % vendor)
 
 
 	def set_build_image(self, image):
@@ -377,16 +379,16 @@ class kernel:
 		self.initrd = ''
 
 		# copy to boot dir
-		force_copy('vmlinux', self.vmlinux)
+		autotest_utils.force_copy('vmlinux', self.vmlinux)
 		if (self.build_image != 'vmlinux'):
 			force_copy(self.build_image, self.image)
-		force_copy('System.map', self.system_map)
-		force_copy('.config', self.config)
+		autotest_utils.force_copy('System.map', self.system_map)
+		autotest_utils.force_copy('.config', self.config)
 
 		if not kernel_config.modules_needed('.config'):
 			return
 
-		system('make modules_install INSTALL_MOD_PATH=%s' % prefix)
+		utils.system('make modules_install INSTALL_MOD_PATH=%s' % prefix)
 		if prefix == '/':
 			self.initrd = self.boot_dir + '/initrd-' + tag
 			self.mkinitrd(self.get_kernel_build_ver(), self.image,
@@ -430,7 +432,7 @@ class kernel:
 		Work out the current kernel architecture (as a kernel arch)
 		"""
 		if not arch:
-			arch = get_current_kernel_arch()
+			arch = autotest_utils.get_current_kernel_arch()
 		if re.match('i.86', arch):
 			return 'i386'
 		elif re.match('sun4u', arch):
@@ -479,7 +481,7 @@ class kernel:
 		(release, version) = self.get_kernel_build_release()
 
 		if not release or not version:
-			raise JobError('kernel has no identity')
+			raise error.JobError('kernel has no identity')
 
 		return release + '::' + version
 
@@ -615,7 +617,7 @@ class rpm_kernel:
 		self.log_dir = os.path.join(subdir, 'debug')
 		self.subdir = os.path.basename(subdir)
 		if os.path.exists(self.log_dir):
-			system('rm -rf ' + self.log_dir)
+			utils.system('rm -rf ' + self.log_dir)
 		os.mkdir(self.log_dir)
 		self.installed_as = None
 
@@ -625,13 +627,13 @@ class rpm_kernel:
 	def install(self, tag='autotest'):
 		self.installed_as = tag
 
-		self.rpm_name = system_output('rpm -qp ' + self.rpm_package)
+		self.rpm_name = utils.system_output('rpm -qp ' + self.rpm_package)
 
 		# install
-		system('rpm -i --force ' + self.rpm_package)
+		utils.system('rpm -i --force ' + self.rpm_package)
 
 		# get file list
-		files = system_output('rpm -ql ' + self.rpm_name).splitlines()
+		files = utils.system_output('rpm -ql ' + self.rpm_name).splitlines()
 
 		# search for vmlinuz
 		for file in files:
@@ -639,7 +641,9 @@ class rpm_kernel:
 				self.image = file
 				break
 		else:
-			raise TestError(self.rpm_package + " doesn't contain /boot/vmlinuz")
+			errmsg = "%s doesn't contain /boot/vmlinuz"
+			errmsg %= self.rpm_package
+			raise error.TestError(errmsg)
 
 		# search for initrd
 		self.initrd = ''
@@ -649,7 +653,7 @@ class rpm_kernel:
 				break
 
 		# get version and release number
-		self.version, self.release = system_output(
+		self.version, self.release = utils.system_output(
 			'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q ' + self.rpm_name).splitlines()[0:2]
 
 
