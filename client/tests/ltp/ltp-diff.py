@@ -14,10 +14,8 @@
 #	   Non-zero if results differ, or bad input
 
 
-import sys
-import string
-import re
-import urllib
+import sys, string, re
+from autotest_lib.client.comon_lib import utils
 
 def usage():
 	print "\nUsage: \n\
@@ -39,7 +37,7 @@ def get_results(results_files):
 	for file in results_files:
 		runs[i] = {}
 		try:
-			fh = urllib.urlopen(file)
+			fh = utils.urlopen(file)
 			results = fh.readlines()
 			fh.close()
 		except:

@@ -1,27 +1,29 @@
-import test
 import os
-from autotest_utils import *
+import test
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import utils
 
 class ltp(test.test):
 	version = 4
 
 	# http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
 	def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('patch -p1 < ../ltp.patch')
+		utils.system('patch -p1 < ../ltp.patch')
 
 		# comment the capability tests if we fail to load the capability module
 		try:
-			system('modprobe capability')
+			utils.system('modprobe capability')
 		except CmdError, detail:
-			system('patch -p1 < ../ltp_capability.patch')
+			utils.system('patch -p1 < ../ltp_capability.patch')
 
-		system('cp ../scan.c pan/')   # saves having lex installed
-		system('make -j %d' % count_cpus())
-		system('yes n | make install')
+		utils.system('cp ../scan.c pan/')   # saves having lex installed
+		utils.system('make -j %d' % count_cpus())
+		utils.system('yes n | make install')
 
 
 	# Note: to run a specific test, try '-f cmdfile -s test' in the
@@ -41,7 +43,7 @@ class ltp(test.test):
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
-		system(cmd)
+		utils.system(cmd)
 		if profilers.present():
 			profilers.stop(self)
 			profilers.report(self)

@@ -1,6 +1,8 @@
-import test, pickle
-from autotest_utils import *
-import re
+import re, pickle, os
+import test
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class kernbench(test.test):
 	version = 2
@@ -22,7 +24,7 @@ class kernbench(test.test):
 		# On ia64, we default to 2.6.20, as it can't compile 2.6.14.
 		if version:
 			default_ver = version
-		elif get_current_kernel_arch() == 'ia64':
+		elif autotest_utils.get_current_kernel_arch() == 'ia64':
 			default_ver = '2.6.20'
 		else:
 			default_ver = '2.6.14'
@@ -38,7 +40,7 @@ class kernbench(test.test):
 			return
 
 		# Clear out the old version
-		system("echo rm -rf '" + build_dir + "/*'")
+		utils.system("echo rm -rf '" + build_dir + "/*'")
 
 		pickle.dump(default_ver, open(kversionfile, 'w'))
 
@@ -97,13 +99,13 @@ class kernbench(test.test):
 
 		kernel.clean(logged=False)    # Don't leave litter lying around
 		os.chdir(self.resultsdir)
-		system("grep -h elapsed time.* > time")
+		utils.system("grep -h elapsed time.* > time")
 
 		self.__format_results(open('time').read())
 
 
 	def __format_results(self, results):
 		out = open('keyval', 'w')
-		for result in extract_all_time_results(results):
+		for result in autotest_utils.extract_all_time_results(results):
 			print >> out, "user=%s\nsystem=%s\nelapsed=%s\n" % result
 		out.close()

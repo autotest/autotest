@@ -1,5 +1,5 @@
-import shutil, re, os, os.path, string
-from autotest_utils import *
+import shutil, re, os, string
+from autotest_lib.client.common_lib import utils, error
 
 class boottool:
 	def __init__(self, boottool_exec=None):
@@ -13,11 +13,11 @@ class boottool:
 			self.boottool_exec = autodir + '/tools/boottool'
 
 		if not self.boottool_exec:
-			raise AutotestError('Failed to set boottool_exec')
+			raise error.AutotestError('Failed to set boottool_exec')
 
 
 	def run_boottool(self, params):
-		return system_output('%s %s' % (self.boottool_exec, params))
+		return utils.system_output('%s %s' % (self.boottool_exec, params))
 
 
 	def bootloader(self):

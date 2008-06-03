@@ -1,8 +1,8 @@
-import test
-from autotest_utils import *
+from autotest.client.common_lib import error
+from autotest_client.bin import test
 
 class aborttest(test.test):
 	version = 1
 
 	def execute(self):
-		raise JobError('Arrrrrrrrggggh. You are DOOOMED')
+		raise error.JobError('Arrrrrrrrggggh. You are DOOOMED')
