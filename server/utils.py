@@ -12,7 +12,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import atexit, os, re, shutil, textwrap, sys, tempfile, types, urllib
+import atexit, os, re, shutil, textwrap, sys, tempfile, types
 
 from autotest_lib.client.common_lib import utils
 
@@ -36,6 +36,15 @@ def system_output(command, timeout=None, ignore_status=False,
 		  retain_output=False):
 	return utils.system_output(command, timeout, ignore_status, 
 				   retain_output)
+
+
+def urlopen(url, data=None, proxies=None, timeout=300):
+	return utils.urlopen(url, data=data, proxies=proxies, timeout=timeout)
+
+
+def urlretrieve(url, filename=None, reporthook=None, data=None, timeout=300):
+	return utils.urlretrieve(url, filename=filename, reporthook=reporthook,
+	                         data=data, timeout=timeout)
 
 
 def read_keyval(path):
@@ -129,7 +138,7 @@ def get(location, local_copy = False):
 		# location is a URL
 		if location.startswith('http') or location.startswith('ftp'):
 			tmpfile = os.path.join(tmpdir, os.path.basename(location))
-			urllib.urlretrieve(location, tmpfile)
+			utils.urlretrieve(location, tmpfile)
 			return tmpfile
 		# location is a local path
 		elif os.path.exists(os.path.abspath(location)):

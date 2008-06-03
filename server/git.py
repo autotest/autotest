@@ -12,11 +12,9 @@ ryanh@us.ibm.com (Ryan Harper)
 """
 
 
-import os, urllib2
-
+import os
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils, installable_object
-from autotest_lib.server import utils
 
 
 class GitRepo(installable_object.InstallableObject):
@@ -142,13 +140,13 @@ class GitRepo(installable_object.InstallableObject):
 		r = 0
 
 		print 'checking %s for changes' %(url)
-		u = urllib2.urlopen(url)
+		u = utils.urlopen(url)
 		lines = u.read().split('\n')
 
 		while __needs_refresh(lines) and r < max_refresh:
 			print 'refreshing url'
 			r = r+1
-			u = urllib2.urlopen(url)
+			u = utils.urlopen(url)
 			lines = u.read().split('\n')
 
 		if r >= max_refresh:
