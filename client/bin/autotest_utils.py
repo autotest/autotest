@@ -1,11 +1,10 @@
 """Convenience functions for use by tests or whomever.
 """
 
-import os,os.path,shutil,urllib,sys,signal,commands,pickle,glob,statvfs
-from common.error import *
-import re,string,fnmatch
+import os, shutil, sys, signal, commands, pickle, glob, statvfs
+import re, string, fnmatch
+from autotest_lib.client.common_lib import error, utils
 
-from common.utils import *
 
 
 def grep(pattern, file):
@@ -35,9 +34,9 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
 	zcat or bzcat if appropriate
 	"""
 	if return_output:
-		run_cmd = system_output
+		run_cmd = utils.system_output
 	else:
-		run_cmd = system
+		run_cmd = utils.system
 
 	if not os.path.isfile(file):
 		raise NameError('invalid file %s to cat to command %s'
@@ -91,7 +90,7 @@ def get_md5sum(file_path):
 	"""Gets the md5sum of a file. You must provide a valid path to the file"""
 	if not os.path.isfile(file_path):
 		raise ValueError, 'invalid file %s to verify' % file_path
-	return system_output("md5sum " + file_path + " | awk '{print $1}'")
+	return utils.system_output("md5sum " + file_path + " | awk '{print $1}'")
 
 
 def unmap_url_cache(cachedir, url, expected_md5):
@@ -120,7 +119,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
 	else:
 		# File is not there, let's download it
 		src = url
-	return unmap_url(cachedir, src, cachedir)
+	return utils.unmap_url(cachedir, src, cachedir)
 
 
 def basename(path):
@@ -140,14 +139,14 @@ def force_copy(src, dest):
 
 def force_link(src, dest):
 	"""Link src to dest, overwriting it if it exists"""
-	return system("ln -sf %s %s" % (src, dest))
+	return utils.system("ln -sf %s %s" % (src, dest))
 
 
 def file_contains_pattern(file, pattern):
 	"""Return true if file contains the specified egrep pattern"""
 	if not os.path.isfile(file):
 		raise NameError('file %s does not exist' % file)
-	return not system('egrep -q "' + pattern + '" ' + file, ignore_status=True)
+	return not utils.system('egrep -q "' + pattern + '" ' + file, ignore_status=True)
 
 
 def list_grep(list, pattern):
@@ -186,10 +185,10 @@ def get_vmlinux():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	vmlinux = '/boot/vmlinux-%s' % system_output('uname -r')
+	vmlinux = '/boot/vmlinux-%s' % utils.system_output('uname -r')
 	if os.path.isfile(vmlinux):
 		return vmlinux
-	vmlinux = '/lib/modules/%s/build/vmlinux' % system_output('uname -r')
+	vmlinux = '/lib/modules/%s/build/vmlinux' % utils.system_output('uname -r')
 	if os.path.isfile(vmlinux):
 		return vmlinux
 	return None
@@ -200,10 +199,10 @@ def get_systemmap():
 
 	Ahem. This is crap. Pray harder. Bad Martin.
 	"""
-	map = '/boot/System.map-%s' % system_output('uname -r')
+	map = '/boot/System.map-%s' % utils.system_output('uname -r')
 	if os.path.isfile(map):
 		return map
-	map = '/lib/modules/%s/build/System.map' % system_output('uname -r')
+	map = '/lib/modules/%s/build/System.map' % utils.system_output('uname -r')
 	if os.path.isfile(map):
 		return map
 	return None
@@ -211,7 +210,7 @@ def get_systemmap():
 
 def get_modules_dir():
 	"""Return the modules dir for the running kernel version"""
-	kernel_version = system_output('uname -r')
+	kernel_version = utils.system_output('uname -r')
 	return '/lib/modules/%s/kernel' % kernel_version
 
 
@@ -245,7 +244,7 @@ def get_current_kernel_arch():
 
 def get_file_arch(filename):
 	# -L means follow symlinks
-	file_data = system_output('file -L ' + filename)
+	file_data = utils.system_output('file -L ' + filename)
 	if file_data.count('80386'):
 		return 'i386'
 	return None
@@ -263,7 +262,7 @@ def count_cpus():
 
 # Returns total memory in kb
 def read_from_meminfo(key):
-	meminfo = system_output('grep %s /proc/meminfo' % key)
+	meminfo = utils.system_output('grep %s /proc/meminfo' % key)
 	return int(re.search(r'\d+', meminfo).group(0))
 
 
@@ -279,10 +278,10 @@ def sysctl_kernel(key, value=None):
 	"""(Very) partial implementation of sysctl, for kernel params"""
 	if value:
 		# write
-		write_one_line('/proc/sys/kernel/%s' % key, str(value))
+		utils.write_one_line('/proc/sys/kernel/%s' % key, str(value))
 	else:
 		# read
-		out = read_one_line('/proc/sys/kernel/%s' % key)
+		out = utils.read_one_line('/proc/sys/kernel/%s' % key)
 		return int(re.search(r'\d+', out).group(0))
 
 
@@ -395,7 +394,7 @@ def check_for_kernel_feature(feature):
 		grep = 'grep'
 	grep += ' ^CONFIG_%s= %s' % (feature, config)
 
-	if not system_output(grep, ignore_status=True):
+	if not utils.system_output(grep, ignore_status=True):
 		raise ValueError("Kernel doesn't have a %s feature" % (feature))
 
 
@@ -414,14 +413,14 @@ def check_glibc_ver(ver):
 	glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
 	glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
 	if glibc_ver.split('.') < ver.split('.'):
-		raise TestError("Glibc is too old (%s). Glibc >= %s is needed." % \
+		raise error.TestError("Glibc is too old (%s). Glibc >= %s is needed." % \
 							(glibc_ver, ver))
 
 def check_kernel_ver(ver):
-	kernel_ver = system_output('uname -r')
+	kernel_ver = utils.system_output('uname -r')
 	kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
 	if kv_tmp[0].split('.') < ver.split('.'):
-		raise TestError("Kernel is too old (%s). Kernel > %s is needed." % \
+		raise error.TestError("Kernel is too old (%s). Kernel > %s is needed." % \
 							(kernel_ver, ver))
 
 
@@ -501,17 +500,17 @@ def disk_block_size(path):
 
 
 def get_cpu_family():
-	procinfo = system_output('cat /proc/cpuinfo')
+	procinfo = utils.system_output('cat /proc/cpuinfo')
 	CPU_FAMILY_RE = re.compile(r'^cpu family\s+:\s+(\S+)', re.M)
 	matches = CPU_FAMILY_RE.findall(procinfo)
 	if matches:
 		return int(matches[0])
 	else:
-		raise TestError('Could not get valid cpu family data')
+		raise error.TestError('Could not get valid cpu family data')
 
 
 def get_disks():
-	df_output = system_output('df')
+	df_output = utils.system_output('df')
 	disk_re = re.compile(r'^(/dev/hd[a-z]+)3', re.M)
 	return disk_re.findall(df_output)
 
@@ -521,17 +520,17 @@ def load_module(module_name):
 	if module_is_loaded(module_name):
 		return False
 
-	system('/sbin/modprobe ' + module_name)
+	utils.system('/sbin/modprobe ' + module_name)
 	return True
 
 
 def unload_module(module_name):
-	system('/sbin/rmmod ' + module_name)
+	utils.system('/sbin/rmmod ' + module_name)
 
 
 def module_is_loaded(module_name):
 	module_name = module_name.replace('-', '_')
-	modules = system_output('/sbin/lsmod').splitlines()
+	modules = utils.system_output('/sbin/lsmod').splitlines()
 	for module in modules:
 		if module.startswith(module_name) and module[len(module_name)] == ' ':
 			return True
@@ -539,22 +538,22 @@ def module_is_loaded(module_name):
 
 
 def get_loaded_modules():
-	lsmod_output = system_output('/sbin/lsmod').splitlines()[1:]
+	lsmod_output = utils.system_output('/sbin/lsmod').splitlines()[1:]
 	return [line.split(None, 1)[0] for line in lsmod_output]
 
 
 def get_huge_page_size():
-	output = system_output('grep Hugepagesize /proc/meminfo')
+	output = utils.system_output('grep Hugepagesize /proc/meminfo')
 	return int(output.split()[1]) # Assumes units always in kB. :(
 
 
 def get_num_huge_pages():
-	raw_hugepages = system_output('/sbin/sysctl vm.nr_hugepages')
+	raw_hugepages = utils.system_output('/sbin/sysctl vm.nr_hugepages')
 	return int(raw_hugepages.split()[2])
 
 
 def set_num_huge_pages(num):
-	system('/sbin/sysctl vm.nr_hugepages=%d' % num)
+	utils.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
 
 
 def get_system_nodes():
@@ -568,7 +567,7 @@ def get_cpu_vendor():
 	vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
 	for i in xrange(1, len(vendors)):
 		if vendors[i] != vendors[0]:
-			raise TestError('multiple cpu vendors found: ' + str(vendors))
+			raise error.TestError('multiple cpu vendors found: ' + str(vendors))
 	return vendors[0]
 
 
@@ -576,7 +575,7 @@ def probe_cpus():
 	"""
 	    This routine returns a list of cpu devices found under /sys/devices/system/cpu.
 	"""
-	output = system_output(
+	output = utils.system_output(
 	           'find /sys/devices/system/cpu/ -maxdepth 1 -type d -name cpu*')
 	return output.splitlines()
 
@@ -590,9 +589,9 @@ def ping_default_gateway():
 	if m:
 		gw = m.group(1)
 		cmd = 'ping %s -c 5 > /dev/null' % gw
-		return system(cmd, ignore_status=True)
+		return utils.system(cmd, ignore_status=True)
 	
-	raise TestError('Unable to find default gateway')
+	raise error.TestError('Unable to find default gateway')
 
 
 try:
