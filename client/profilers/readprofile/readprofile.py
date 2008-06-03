@@ -1,23 +1,24 @@
-import profiler,shutil
-from autotest_utils import *
+import profiler, shutil
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import autotest_utils
 
 class readprofile(profiler.profiler):
 	version = 1
 
 # http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
 	def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
-		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
+		self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('./configure')
+		utils.system('./configure')
 		os.chdir('sys-utils')
-		system('make readprofile')
+		utils.system('make readprofile')
 
 
 	def initialize(self):
 		try:
-			system('grep -iq " profile=" /proc/cmdline')
+			utils.system('grep -iq " profile=" /proc/cmdline')
 		except CmdError:
 			raise AutotestError('readprofile not enabled')
 
@@ -25,7 +26,7 @@ class readprofile(profiler.profiler):
 
 
 	def start(self, test):
-		system(self.cmd + ' -r')
+		utils.system(self.cmd + ' -r')
 
 
 	def stop(self, test):
@@ -42,5 +43,5 @@ class readprofile(profiler.profiler):
 		args += ' -p ' + self.rawprofile
 		cmd = self.cmd + ' ' + args
 		txtprofile = test.profdir + '/profile.text'
-		system(cmd + ' | sort -nr > ' + txtprofile)
-		system('bzip2 ' + self.rawprofile)
+		utils.system(cmd + ' | sort -nr > ' + txtprofile)
+		utils.system('bzip2 ' + self.rawprofile)

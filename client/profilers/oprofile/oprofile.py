@@ -1,6 +1,7 @@
 # Will need some libaries to compile. Do 'apt-get build-dep oprofile' 
 import profiler, shutil
-from autotest_utils import *
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import autotest_utils
 
 class oprofile(profiler.profiler):
 	version = 5
@@ -20,17 +21,17 @@ class oprofile(profiler.profiler):
 			return
 
 		try:
-			self.tarball = unmap_url(self.bindir, tarball,
+			self.tarball = utils.unmap_url(self.bindir, tarball,
 								self.tmpdir)
-			extract_tarball_to_dir(self.tarball, self.srcdir)
+			autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 			os.chdir(self.srcdir)
-		
+
 			patch = os.path.join(self.bindir,"oprofile-69455.patch")
-			system('patch -p1 < %s' % patch)
-			system('./configure --with-kernel-support --prefix=' + \
+			utils.system('patch -p1 < %s' % patch)
+			utils.system('./configure --with-kernel-support --prefix=' + \
 								self.srcdir)
-			system('make')
-			system('make install')
+			utils.system('make')
+			utils.system('make install')
 		except:
 			# Build from source failed.
 			# But maybe can still use the local copy
@@ -78,19 +79,19 @@ class oprofile(profiler.profiler):
 			print "Using machine local copy of oprofile"
 			self.opreport = '/usr/bin/opreport'
 			self.opcontrol = '/usr/bin/opcontrol'
-		
-		system(self.opcontrol + setup)
+
+		utils.system(self.opcontrol + setup)
 
 
 	def start(self, test):
-		system(self.opcontrol + ' --shutdown')
-		system(self.opcontrol + ' --reset')
-		system(self.opcontrol + ' --start')
+		utils.system(self.opcontrol + ' --shutdown')
+		utils.system(self.opcontrol + ' --reset')
+		utils.system(self.opcontrol + ' --start')
 
 
 	def stop(self, test):
-		system(self.opcontrol + ' --stop')
-		system(self.opcontrol + ' --dump')
+		utils.system(self.opcontrol + ' --stop')
+		utils.system(self.opcontrol + ' --dump')
 
 
 	def report(self, test):
@@ -100,14 +101,12 @@ class oprofile(profiler.profiler):
 			report = self.opreport + ' -l ' + self.vmlinux
 			if os.path.exists(get_modules_dir()):
 				report += ' -p ' + get_modules_dir()
-			system(report + ' > ' + reportfile)
+			utils.system(report + ' > ' + reportfile)
 		else:
-			system("echo 'no vmlinux found.' > %s" %reportfile)
-		
+			utils.system("echo 'no vmlinux found.' > %s" %reportfile)
+
 		# output profile summary report
 		reportfile = test.profdir + '/oprofile.user'
-		system(self.opreport + ' --long-filenames ' + ' > ' + reportfile)
+		utils.system(self.opreport + ' --long-filenames ' + ' > ' + reportfile)
 
-		system(self.opcontrol + ' --shutdown')
-
-
+		utils.system(self.opcontrol + ' --shutdown')

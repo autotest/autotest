@@ -5,7 +5,8 @@ The interface as required for ABAT.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-from autotest_utils import *
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import utils
 import os, harness, time, re
 
 def autobench_load(fn):
@@ -74,7 +75,7 @@ class harness_ABAT(harness.harness):
 		device = None
 		root = re.compile(r'^\S*(/dev/\S+).*\s/\s*$')
 		
-		df = system_output('df -lP')
+		df = utils.system_output('df -lP')
 		for line in df.split("\n"):
 			m = root.match(line)
 			if m:
@@ -117,7 +118,7 @@ class harness_ABAT(harness.harness):
 
 		# For RedHat installs we do not load up the module.conf
 		# as they cannot be builtin.  Pass them as arguments.
-		vendor = get_os_vendor()
+		vendor = autotest_utils.get_os_vendor()
 		if vendor in ['Red Hat', 'Fedora Core'] and 'modules' in conf:
 			args = '--allow-missing'
 			for mod in conf['modules']:

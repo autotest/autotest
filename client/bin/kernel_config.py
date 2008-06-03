@@ -1,8 +1,8 @@
 # TODO: need a function to get the newest config file older than us from
 # the repo.
 
-from autotest_utils import *
-from kernel_versions import *
+from autotest_lib.client.bin import autotest_utils, kernel_versions
+from autotest_lib.client.common_lib import error, utils
 
 def apply_overrides(orig_file, changes_file, output_file):
 	override = dict()
@@ -37,16 +37,18 @@ def apply_overrides(orig_file, changes_file, output_file):
 
 
 def diff_configs(old, new):
-	system('diff -u %s %s > %s' % (old, new, new + '.diff'), ignore_status=True)
+	utils.system('diff -u %s %s > %s' % (old, new, new + '.diff'),
+		     ignore_status=True)
 
 
 
 def modules_needed(config):
-	return (grep('CONFIG_MODULES=y', config) and grep('=m', config))
+	return (autotest_utils.grep('CONFIG_MODULES=y', config)
+		and autotest_utils.grep('=m', config))
 
 
 def config_by_name(name, set):
-	version = version_choose_config(name, set[1:])
+	version = kernel_versions.version_choose_config(name, set[1:])
 	if version:
 		return set[0] + version
 	return None
@@ -92,12 +94,12 @@ class kernel_config:
 		if (orig_file == '' or defconfig):	# use defconfig
 			print "kernel_config: using defconfig to configure kernel"
 			os.chdir(build_dir)
-			system('make defconfig')
+			utils.system('make defconfig')
 		else:
 			print "kernel_config: using " + orig_file + \
 							" to configure kernel"
 			self.orig_config = config_dir + '/config.orig'
-			get_file(orig_file, self.orig_config)
+			utils.get_file(orig_file, self.orig_config)
 			self.update_config(self.orig_config, self.orig_config+'.new')
 			diff_configs(self.orig_config, self.orig_config+'.new')
 
@@ -119,6 +121,6 @@ class kernel_config:
 	def update_config(self, old_config, new_config = 'None'):
 		os.chdir(self.build_dir)
 		shutil.copyfile(old_config, self.build_config)
-		system('yes "" | make oldconfig > /dev/null')
+		utils.system('yes "" | make oldconfig > /dev/null')
 		if new_config:
 			shutil.copyfile(self.build_config, new_config)

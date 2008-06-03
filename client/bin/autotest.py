@@ -1,4 +1,3 @@
-from autotest_utils import *
 import os, sys
 
 class system:
@@ -16,4 +15,3 @@ class system:
 
 	def boot(self, tag=None):
 		print "I OUGHT TO REBOOT NOW!"
-

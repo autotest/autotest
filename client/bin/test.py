@@ -20,11 +20,8 @@
 
 import os, traceback
 
-from autotest_utils import *
-from common.error import *
-
-import sysinfo
-import common.test
+from autotest_lib.client.common_lib import error, utils, test
+from autotest_lib.client.bin import sysinfo
 
 
 class test(common.test.base_test):
@@ -39,7 +36,7 @@ def _grab_sysinfo(mytest):
 		sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
 		sysinfo.log_after_each_test(sysinfo_dir, mytest.job.sysinfodir)
 		if os.path.exists(mytest.tmpdir):
-			system('rm -rf ' + mytest.tmpdir)
+			utils.system('rm -rf ' + mytest.tmpdir)
 	except:
 		print 'after-test error:'
 		traceback.print_exc(file=sys.stdout)
