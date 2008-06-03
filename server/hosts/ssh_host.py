@@ -213,11 +213,18 @@ class SSHHost(remote.RemoteHost):
 		print "Reboot complete"
 
 
-	def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True):
+	def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
+	              conmux_command='hardreset'):
 		"""
-		Reach out and slap the box in the power switch
+		Reach out and slap the box in the power switch.
+		Args:
+			conmux_command: The command to run via the conmux interface
+			timeout: timelimit in seconds before the machine is considered unreachable
+			wait: Whether or not to wait for the machine to reboot
+		
 		"""
-		if not self.__console_run(r"'~$hardreset'"):
+		conmux_command = r"'~$%s'" % conmux_command
+		if not self.__console_run(conmux_command):
 			self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
 			raise error.AutoservUnsupportedError(
 			    'Hard reset unavailable')
