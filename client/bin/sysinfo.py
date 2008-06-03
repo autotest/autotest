@@ -1,15 +1,14 @@
 #!/usr/bin/python
-from common.check_version import check_python_version
-check_python_version()
 
-import os, shutil, re, glob, sys
+import common
+
+import os, shutil, re, glob
 from autotest_lib.client.common_lib import utils
 
-dirname = os.path.dirname(sys.modules['sysinfo'].__file__)
-if os.path.exists(os.path.join(dirname,'site_sysinfo.py')):
-	import site_sysinfo
+try:
+	from autotest_lib.client.bin import site_sysinfo
 	local = True
-else:
+except ImportError:
 	local = False
 
 # stuff to log per reboot
