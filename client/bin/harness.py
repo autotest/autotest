@@ -5,7 +5,6 @@ The interface between the client and the server when hosted.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-from autotest_utils import *
 import os, sys
 
 class harness:

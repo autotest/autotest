@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from autotest_utils import *
+from autotest_lib.client.bin import autotest_utils
 import os
 
 stdout = fd_stack(1, sys.stdout)
@@ -20,4 +20,3 @@ stdout.restore()
 print "stdout all done 1"
 os.system ("echo stdout all done 2")
 os.system ("date")
-

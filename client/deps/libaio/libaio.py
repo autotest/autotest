@@ -3,16 +3,17 @@ from common.check_version import check_python_version
 check_python_version()
 
 import os
-from autotest_utils import *
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import autotest_utils
 
 version = 1
 
-def setup(tarball, topdir): 
+def setup(tarball, topdir):
 	srcdir = os.path.join(topdir, 'src')
-	extract_tarball_to_dir(tarball, srcdir)
+	autotest_utils.extract_tarball_to_dir(tarball, srcdir)
 	os.chdir(srcdir)
-	system ('make')
-	system ('make prefix=%s install' % topdir)
+	utils.system ('make')
+	utils.system ('make prefix=%s install' % topdir)
 	os.chdir(topdir)
 
 
@@ -23,5 +24,4 @@ def setup(tarball, topdir):
 
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'libaio_0.3.106.orig.tar.gz')
-update_version(pwd+'/src', False, version, setup, tarball, pwd)
-
+utils.update_version(pwd+'/src', False, version, setup, tarball, pwd)

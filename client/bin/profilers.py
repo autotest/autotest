@@ -1,6 +1,6 @@
 import os
-from autotest_utils import *
-from common.error import *
+
+from autotest_lib.client.common_lib import error, utils
 
 class profilers:
 
@@ -23,7 +23,9 @@ class profilers:
 		newprofiler.bindir = self.profdir + '/' + profiler
 		newprofiler.srcdir = newprofiler.bindir + '/src'
 		newprofiler.tmpdir = self.tmpdir + '/' + profiler
-		update_version(newprofiler.srcdir, newprofiler.preserve_srcdir, newprofiler.version, newprofiler.setup, *args, **dargs)
+		utils.update_version(newprofiler.srcdir, newprofiler.preserve_srcdir,
+				     newprofiler.version, newprofiler.setup,
+				     *args, **dargs)
 		newprofiler.initialize(*args, **dargs)
 		self.list.append(newprofiler)
 

@@ -7,9 +7,8 @@ as dpkg and rpm.
 __author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
 
 import os, os_dep, re
-from common.error import *
-from autotest_utils import *
-
+from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error, utils
 
 # As more package methods are implemented, this list grows up
 KNOWN_PACKAGE_MANAGERS = ['rpm', 'dpkg']
@@ -31,7 +30,7 @@ def __rpm_info(rpm_package):
 	"""
 	# We will make good use of what the file command has to tell us about the
 	# package :)
-	file_result = system_output('file ' + rpm_package)
+	file_result = utils.system_output('file ' + rpm_package)
 	package_info = {}
 	package_info['type'] = 'rpm'
 	try:
@@ -44,20 +43,20 @@ def __rpm_info(rpm_package):
 		s_cmd = 'rpm -qp --qf %{SOURCE} ' + rpm_package + ' 2>/dev/null'
 		a_cmd = 'rpm -qp --qf %{ARCH} ' + rpm_package + ' 2>/dev/null'
 		v_cmd = 'rpm -qp ' + rpm_package + ' 2>/dev/null' 
-		i_cmd = 'rpm -q ' + system_output(v_cmd) + ' 2>&1 >/dev/null' 
+		i_cmd = 'rpm -q ' + utils.system_output(v_cmd) + ' 2>&1 >/dev/null' 
 
 		package_info['system_support'] = True
 		# Checking whether this is a source or src package
-		source = system_output(s_cmd)
+		source = utils.system_output(s_cmd)
 		if source == '(none)':
 			package_info['source'] = False
 		else:
 			package_info['source'] = True
-		package_info['version'] = system_output(v_cmd)
-		package_info['arch'] = system_output(a_cmd)
+		package_info['version'] = utils.system_output(v_cmd)
+		package_info['arch'] = utils.system_output(a_cmd)
 		# Checking if package is installed
 		try:
-			system(i_cmd)
+			utils.system(i_cmd)
 			package_info['installed'] = True
 		except:
 			package_info['installed'] = False
@@ -117,7 +116,7 @@ def __dpkg_info(dpkg_package):
 	"""
 	# We will make good use of what the file command has to tell us about the
 	# package :)
-	file_result = system_output('file ' + dpkg_package)
+	file_result = utils.system_output('file ' + dpkg_package)
 	package_info = {}
 	package_info['type'] = 'dpkg'
 	# There's no single debian source package as is the case
@@ -131,13 +130,13 @@ def __dpkg_info(dpkg_package):
 		# i_cmd - Command to determiine if package is installed
 		a_cmd = 'dpkg -f ' + dpkg_package + ' Architecture 2>/dev/null'
 		v_cmd = 'dpkg -f ' + dpkg_package + ' Package 2>/dev/null'
-		i_cmd = 'dpkg -s ' + system_output(v_cmd) + ' 2>/dev/null'
+		i_cmd = 'dpkg -s ' + utils.system_output(v_cmd) + ' 2>/dev/null'
 
 		package_info['system_support'] = True
-		package_info['version'] = system_output(v_cmd)
-		package_info['arch'] = system_output(a_cmd)
+		package_info['version'] = utils.system_output(v_cmd)
+		package_info['arch'] = utils.system_output(a_cmd)
 		# Checking if package is installed
-		package_status = system_output(i_cmd, ignore_status=True)
+		package_status = utils.system_output(i_cmd, ignore_status=True)
 		not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
 		dpkg_not_installed = re.search(not_inst_pattern, package_status)
 		if dpkg_not_installed:
@@ -178,7 +177,7 @@ def info(package):
 	if not os.path.isfile(package):
 		raise ValueError('invalid file %s to verify' % package)
 	# Use file and libmagic to determine the actual package file type.
-	file_result = system_output('file ' + package)
+	file_result = utils.system_output('file ' + package)
 	for package_manager in KNOWN_PACKAGE_MANAGERS:
 		if package_manager == 'rpm':
 			package_pattern = re.compile('RPM', re.IGNORECASE)
@@ -194,7 +193,7 @@ def info(package):
 
 	# If it's not one of the implemented package manager methods, there's
 	# not much that can be done, hence we throw an exception.
-	raise PackageError('Unknown package type %s' % file_result)
+	raise error.PackageError('Unknown package type %s' % file_result)
 
 
 def install(package, nodeps = False):
@@ -212,7 +211,7 @@ def install(package, nodeps = False):
 	if not system_support:
 		e_msg = 'Client does not have package manager %s to handle %s install' \
 		% (type, package)
-		raise PackageError(e_msg)
+		raise error.PackageError(e_msg)
 
 	opt_args = ''
 	if type == 'rpm':
@@ -232,7 +231,7 @@ def install(package, nodeps = False):
 	# At this point, the most likely thing to go wrong is that there are 
 	# unmet dependencies for the package. We won't cover this case, at 
 	# least for now.
-	system(install_command)
+	utils.sytem(install_command)
 	return 'Package %s was installed successfuly' % package
 
 
@@ -246,17 +245,17 @@ def convert(package, destination_format):
 		os_dep.command('alien')
 	except:
 		e_msg = 'Cannot convert to %s, alien not installed' % destination_format
-		raise TestError(e_msg)
+		raise error.TestError(e_msg)
 
 	# alien supports converting to many formats, but its interesting to map
 	# convertions only for the implemented package types.
 	if destination_format == 'dpkg':
 		deb_pattern = re.compile('[A-Za-z0-9_.-]*[.][d][e][b]')
-		conv_output = system_output('alien --to-deb %s 2>/dev/null' % package)
+		conv_output = utils.system_output('alien --to-deb %s 2>/dev/null' % package)
 		converted_package = re.findall(deb_pattern, conv_output)[0]
 	elif destination_format == 'rpm':
 		rpm_pattern = re.compile('[A-Za-z0-9_.-]*[.][r][p][m]')
-		conv_output = system_output('alien --to-rpm %s 2>/dev/null' % package)
+		conv_output = utils.system_output('alien --to-rpm %s 2>/dev/null' % package)
 		converted_package = re.findall(rpm_pattern, conv_output)[0]
 	else:
 		e_msg = 'Convertion to format %s not implemented' % destination_format
