@@ -20,15 +20,16 @@
 
 import os, traceback
 
-from autotest_lib.client.common_lib import error, utils, test
+from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import test as common_test
 from autotest_lib.client.bin import sysinfo
 
 
-class test(common.test.base_test):
+class test(common_test.base_test):
 	pass
 
 
-testname = common.test.testname
+testname = common_test.testname
 
 
 def _grab_sysinfo(mytest):
@@ -41,6 +42,7 @@ def _grab_sysinfo(mytest):
 		print 'after-test error:'
 		traceback.print_exc(file=sys.stdout)
 
+
 def runtest(job, url, tag, args, dargs):
-	common.test.runtest(job, url, tag, args, dargs,
-			    locals(), globals(), _grab_sysinfo)
+	common_test.runtest(job, url, tag, args, dargs,
+	                    locals(), globals(), _grab_sysinfo)
