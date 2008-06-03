@@ -13,8 +13,6 @@ ryanh@us.ibm.com (Ryan Harper)
 
 
 import os
-import urllib2
-
 import git, source_kernel
 
 

@@ -14,8 +14,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)"""
 
 
-import os, os.path, time, urllib
-
+import os, time
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import kernel, utils
 

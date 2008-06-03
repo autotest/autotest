@@ -6,9 +6,9 @@ __author__ = 'rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)'
 
 from ConfigParser import ConfigParser
 from StringIO import StringIO
-from urllib import urlretrieve
 from os import path
 import types
+from autotest_lib.client.common_lib import utils
 
 __all__ = ['config_loader']
 
@@ -36,7 +36,7 @@ class config_loader:
 			# Config file is a URL. Download it to a temp dir
 			if cfg.startswith('http') or cfg.startswith('ftp'):
 				self.cfg = path.join(tmpdir, path.basename(cfg))
-				urlretrieve(cfg, self.cfg)
+				utils.urlretrieve(cfg, self.cfg)
 				self.parser.read(self.cfg)
 			# Config is a valid filesystem path to a file.
 			elif path.exists(path.abspath(cfg)):

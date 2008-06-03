@@ -3,7 +3,7 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import sys, time, textwrap, urllib, urlparse
+import socket, sys, time, textwrap, urllib, urlparse
 import error, barrier
 
 
@@ -74,6 +74,29 @@ def is_url(path):
 	url_parts = urlparse.urlparse(path)
 	return (url_parts[0] in ('http', 'ftp'))
 
+
+def urlopen(url, data=None, proxies=None, timeout=300):
+	"""Wrapper to urllib.urlopen with timeout addition."""
+
+	# Save old timeout
+	old_timeout = socket.getdefaulttimeout()
+	socket.setdefaulttimeout(timeout)
+	try:
+		return urllib.urlopen(url, data=data, proxies=proxies)
+	finally:
+		socket.setdefaulttimeout(old_timeout)
+
+
+def urlretrieve(url, filename=None, reporthook=None, data=None, timeout=300):
+	"""Wrapper to urllib.urlretrieve with timeout addition."""
+	old_timeout = socket.getdefaulttimeout()
+	socket.setdefaulttimeout(timeout)
+	try:
+		return urllib.urlretrieve(url, filename=filename,
+		                          reporthook=reporthook, data=data)
+	finally:
+		socket.setdefaulttimeout(old_timeout)
+	
 
 def get_file(src, dest, permissions=None):
 	"""Get a file from src, which can be local or a remote URL"""
