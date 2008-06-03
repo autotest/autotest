@@ -15,7 +15,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import os, os.path, time, urllib
+import os, os.path, time
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import kernel, utils
