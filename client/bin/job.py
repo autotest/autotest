@@ -10,7 +10,7 @@ import os, sys, re, pickle, shutil, time, traceback, types, copy
 
 # autotest stuff
 from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import error, barrier, logging
+from autotest_lib.client.common_lib import error, barrier, logging, utils
 
 import parallel, kernel, xen, test, profilers, filesystem, fd_stack, boottool
 import harness, config, sysinfo, cpuset
@@ -109,7 +109,7 @@ class base_job:
 				os.mkdir(download)
 
 			if os.path.exists(self.resultdir):
-				autotest_utils.system('rm -rf ' 
+				utils.system('rm -rf ' 
 							+ self.resultdir)
 			os.mkdir(self.resultdir)
 			os.mkdir(self.sysinfodir)
@@ -256,7 +256,7 @@ class base_job:
 		for dep in deps: 
 			try: 
 				os.chdir(os.path.join(self.autodir, 'deps', dep))
-				autotest_utils.system('./' + dep + '.py')
+				utils.system('./' + dep + '.py')
 			except: 
 				err = "setting up dependency " + dep + "\n"
 				raise error.UnhandledError(err)
@@ -434,7 +434,7 @@ class base_job:
 
 		running_id = autotest_utils.running_os_ident()
 
-		cmdline = autotest_utils.read_one_line("/proc/cmdline")
+		cmdline = utils.read_one_line("/proc/cmdline")
 
 		find_sum = re.compile(r'.*IDENT=(\d+)')
 		m = find_sum.match(cmdline)
@@ -502,7 +502,7 @@ class base_job:
 		else:
 			self.bootloader.boot_once(tag)
 		cmd = "(sleep 5; reboot) </dev/null >/dev/null 2>&1 &"
-		autotest_utils.system(cmd)
+		utils.system(cmd)
 		self.quit()
 
 

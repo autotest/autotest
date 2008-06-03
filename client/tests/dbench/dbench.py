@@ -1,17 +1,18 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import autotest_utils, test
+from autotest_lib.client.common_lib import utils
 
 class dbench(test.test):
 	version = 1
 
 	# http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
 	def setup(self, tarball = 'dbench-3.04.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 
 	def execute(self, iterations = 1, dir = None, nprocs = None, args = ''):
@@ -26,13 +27,14 @@ class dbench(test.test):
 		results = []
 		if not profilers.only():
 			for i in range(iterations):
-				results.append(system_output(cmd,
+				results.append(utils.system_output(cmd,
 							retain_output=True))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			results.append(system_output(cmd, retain_output=True))
+			results.append(utils.system_output(cmd,
+			                                   retain_output=True))
 			profilers.stop(self)
 			profilers.report(self)
 

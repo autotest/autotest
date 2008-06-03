@@ -2,8 +2,9 @@
 from common.check_version import check_python_version
 check_python_version()
 
-import os,os.path,shutil,re,glob
-from autotest_utils import *
+import os, shutil, re, glob, sys
+from autotest_lib.client.common_lib import utils
+
 dirname = os.path.dirname(sys.modules['sysinfo'].__file__)
 if os.path.exists(os.path.join(dirname,'site_sysinfo.py')):
 	import site_sysinfo
@@ -31,7 +32,8 @@ def run_command(command, output):
 		pathname = dir + '/' + cmd
 		if not os.path.exists(pathname):
 			continue
-		system("%s %s > %s 2> /dev/null" % (pathname, args, output))
+		tmp_cmd = "%s %s > %s 2> /dev/null" % (pathname, args, output)
+		utils.system(tmp_cmd)
 
 
 def reboot_count():
@@ -72,8 +74,8 @@ def _log_per_reboot_data():
 		if (os.path.exists(file)):
 			shutil.copyfile(file, os.path.basename(file))
 
-	system('dmesg -c > dmesg', ignore_status=True)
-	system('df -mP > df', ignore_status=True)
+	utils.system('dmesg -c > dmesg', ignore_status=True)
+	utils.system('df -mP > df', ignore_status=True)
 	if local:
 		site_sysinfo.log_per_reboot_data()
 
@@ -89,10 +91,10 @@ def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
 
 		os.makedirs(test_sysinfo_dir)
 		os.chdir(test_sysinfo_dir)
-		system('ln -s %s reboot_current' % reboot_dir)
+		utils.system('ln -s %s reboot_current' % reboot_dir)
 
-		system('dmesg -c > dmesg', ignore_status=True)
-		system('df -mP > df', ignore_status=True)
+		utils.system('dmesg -c > dmesg', ignore_status=True)
+		utils.system('df -mP > df', ignore_status=True)
 		if local:
 			site_sysinfo.log_after_each_test()
 	finally:
