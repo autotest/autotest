@@ -20,7 +20,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import types, os, sys, signal, subprocess, time, re, socket, pdb
 
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, pxssh
 from autotest_lib.server import utils
 import remote, bootloader
 
@@ -53,7 +53,8 @@ class SSHHost(remote.RemoteHost):
 	def __init__(self, hostname, user="root", port=22, initialize=True,
 		     conmux_log="console.log",
 		     conmux_server=None, conmux_attach=None,
-		     netconsole_log=None, netconsole_port=6666, autodir=None):
+		     netconsole_log=None, netconsole_port=6666, autodir=None,
+		     password=''):
 		"""
 		Construct a SSHHost object
 		
@@ -69,6 +70,7 @@ class SSHHost(remote.RemoteHost):
 		self.tmp_dirs= []
 		self.initialize = initialize
 		self.autodir = autodir
+		self.password = password
 
 		super(SSHHost, self).__init__()
 
@@ -517,8 +519,8 @@ class SSHHost(remote.RemoteHost):
 			utils.run('rsync --rsh="%s" -az %s %s' % (
 			    self.ssh_base_command(), ' '.join(sources), dest))
 		except Exception:
-			utils.run('scp -rpq %s "%s"' % (
-			    ' '.join(sources), dest))
+			utils.run('scp -rpq -P %d %s "%s"' % (
+			    self.port, ' '.join(sources), dest))
 
 
 	def get_file(self, source, dest):
@@ -808,3 +810,43 @@ class SSHHost(remote.RemoteHost):
 
 	def get_autodir(self):
 		return self.autodir
+
+
+	def ssh_setup_key(self):
+		try:
+			print 'Performing ssh key setup on %s:%d as %s' % \
+			    (self.hostname, self.port, self.user)
+
+			host = pxssh.pxssh()
+			host.login(self.hostname, self.user, self.password,
+				port=self.port)
+
+			try:
+				public_key = utils.get_public_key()
+
+				host.sendline('mkdir -p ~/.ssh')
+				host.prompt()
+				host.sendline('chmod 700 ~/.ssh')
+				host.prompt()
+				host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
+					(public_key))
+				host.prompt()
+				host.sendline('chmod 600 ~/.ssh/authorized_keys')
+				host.prompt()
+
+				print 'SSH key setup complete'
+
+			finally:
+				host.logout()
+
+		except:
+			pass
+
+
+	def setup(self):
+		if not self.password == '':
+			try:
+				self.ssh_ping()
+			except error.AutoservRunError:
+				self.ssh_setup_key()
+

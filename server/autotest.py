@@ -88,7 +88,7 @@ class BaseAutotest(installable_object.InstallableObject):
 		# proceed.
 		try:
 			autodir = _get_autodir(host)
-		except AutotestRunError:
+		except error.AutotestRunError:
 			autodir = '/usr/local/autotest'
 
 		host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
