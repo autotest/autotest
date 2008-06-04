@@ -114,6 +114,7 @@ def smart_sort(list, field):
 		def kernel_encode(kernel):
 		        return kernel_versions.version_encode(kernel) 
 		list.sort(key = kernel_encode, reverse = True)
+		return list
 	## old records may contain time=None 
 	## make None comparable with timestamp datetime or date
 	elif field == 'test_finished_time':
