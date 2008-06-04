@@ -72,6 +72,9 @@ def run_autoserv(pid_file_manager, results, parser):
 	no_tee   = parser.parse_opts('-n')
 	help     = parser.parse_opts('-h') or parser.parse_opts('--help')
 	parse_job = parser.parse_opts_param('-P', '')
+	ssh_user = parser.parse_opts_param('--ssh-user', 'root')
+	ssh_port = int(parser.parse_opts_param('--ssh-port', '22'))
+	ssh_pass = parser.parse_opts_param('--ssh-pass', '')
 
 	if help is True:
 		print usage
@@ -106,7 +109,8 @@ def run_autoserv(pid_file_manager, results, parser):
 		machines.sort()
 
 	job = server_job.server_job(control, parser.args[1:], results, label,
-				    user, machines, client, parse_job)
+				    user, machines, client, parse_job,
+				    ssh_user, ssh_port, ssh_pass)
 	debug_dir = os.path.join(results, 'debug')
 	stdout = os.path.join(debug_dir, 'autoserv.stdout')
 	stderr = os.path.join(debug_dir, 'autoserv.stderr')
