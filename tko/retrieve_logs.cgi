@@ -3,7 +3,8 @@
 import cgi, os, sys
 
 page = """\
-Location: %s\r\n\r
+Content-Type: text/plain
+Refresh: 0; url=%s\r\n\r
 """
 
 # Get access to directories
@@ -31,5 +32,8 @@ keyval = retrieve_logs(autodir, job_path)
 testname = ''
 if 'test' in form:
 	testname = form['test'].value
+	full_path = os.path.join(autodir, job_path, form['test'].value)
+	if not os.path.exists(full_path):
+		testname = ''
 path = "%s%s" % (form['job'].value, testname)
 print page % path
