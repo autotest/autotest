@@ -379,12 +379,15 @@ class _Run(object):
 		redirector = server_job.client_logger(self.host.job)
 
 		try:
+			old_resultdir = self.host.job.resultdir
+			self.host.job.resultdir = self.results_dir
 			result = self.host.run(full_cmd, ignore_status=True,
 					       timeout=timeout,
 					       stdout_tee=client_log,
 					       stderr_tee=redirector)
 		finally:
 			redirector.close()
+			self.host.job.resultdir = old_resultdir
 
 		if result.exit_status == 1:
 			self.host.job.aborted = True
