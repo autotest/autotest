@@ -1,7 +1,7 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 
-import collections
+import re, collections
 
 
 class NoBackingFunctionError(Exception):
@@ -24,6 +24,19 @@ class equality_comparator(argument_comparator):
 
 	def __str__(self):
 		return repr(self.value)
+
+
+class regex_comparator(argument_comparator):
+	def __init__(self, pattern, flags=0):
+		self.regex = re.compile(pattern, flags)
+
+
+	def is_satisfied_by(self, parameter):
+		return self.regex.search(parameter) is not None
+
+
+	def __str__(self):
+		return self.regex.pattern
 
 
 class is_string_comparator(argument_comparator):
