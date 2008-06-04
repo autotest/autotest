@@ -512,10 +512,10 @@ class CmdResult(object):
 
 
 class run_randomly:
-
-
-	def __init__(self):
+	def __init__(self, run_sequentially=False):
+		# Run sequentially is for debugging control files
 		self.test_list = []
+		self.run_sequentially = run_sequentially
 
 
 	def add(self, *args, **dargs):
@@ -526,5 +526,7 @@ class run_randomly:
 	def run(self, fn):
 		while self.test_list:
 			test_index = random.randint(0, len(self.test_list)-1)
+			if self.run_sequentially:
+				test_index = 0
 			(args, dargs) = self.test_list.pop(test_index)
 			fn(*args, **dargs)
