@@ -131,7 +131,7 @@ class test(models.test):
 		# value to be used; also, if there is a version it should
 		# be terminated by a newline
 		if "version" in attributes:
-			attributes["version"] += "\n"
+			attributes["version"] = str(attributes["version"])
 		else:
 			attributes["version"] = None
 
