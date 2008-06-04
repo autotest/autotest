@@ -39,6 +39,7 @@ from autotest_lib.server import source_kernel, rpm_kernel, deb_kernel
 from autotest_lib.server import git_kernel
 from autotest_lib.server.subcommand import *
 from autotest_lib.server.utils import run, get_tmp_dir, sh_escape
+from autotest_lib.server.utils import parse_machine
 from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.common_lib import barrier
 
@@ -53,7 +54,10 @@ client_wrapper = """
 at = autotest.Autotest()
 
 def run_client(machine):
-	host = hosts.SSHHost(machine)
+	hostname, user, password, port = parse_machine(machine,
+		ssh_user, ssh_port, ssh_pass)
+
+	host = hosts.SSHHost(hostname, user, port, password=password)
 	at.run(control, host=host)
 
 job.parallel_simple(run_client, machines)
@@ -61,7 +65,11 @@ job.parallel_simple(run_client, machines)
 
 crashdumps = """
 def crashdumps(machine):
-	host = hosts.SSHHost(machine, initialize=False)
+	hostname, user, password, port = parse_machine(machine,
+		ssh_user, ssh_port, ssh_pass)
+
+	host = hosts.SSHHost(hostname, user, port, initialize=False, \
+	    password=password)
 	host.get_crashdumps(test_start_time)
 
 job.parallel_simple(crashdumps, machines, log=False)
@@ -69,7 +77,11 @@ job.parallel_simple(crashdumps, machines, log=False)
 
 reboot_segment="""\
 def reboot(machine):
-	host = hosts.SSHHost(machine, initialize=False)
+	hostname, user, password, port = parse_machine(machine,
+		ssh_user, ssh_port, ssh_pass)
+
+	host = hosts.SSHHost(hostname, user, port, initialize=False, \
+	    password=password)
 	host.reboot()
 
 job.parallel_simple(reboot, machines, log=False)
@@ -77,7 +89,11 @@ job.parallel_simple(reboot, machines, log=False)
 
 install="""\
 def install(machine):
-	host = hosts.SSHHost(machine, initialize=False)
+	hostname, user, password, port = parse_machine(machine,
+		ssh_user, ssh_port, ssh_pass)
+
+	host = hosts.SSHHost(hostname, user, port, initialize=False, \
+	    password=password)
 	host.machine_install()
 
 job.parallel_simple(install, machines, log=False)
@@ -125,7 +141,8 @@ class base_server_job:
 
 
 	def __init__(self, control, args, resultdir, label, user, machines,
-		     client=False, parse_job=""):
+		     client=False, parse_job="",
+		     ssh_user='root', ssh_port=22, ssh_pass=''):
 		"""
 			control
 				The control file (pathname of)
@@ -166,6 +183,9 @@ class base_server_job:
 		self.client = client
 		self.record_prefix = ''
 		self.warning_loggers = set()
+		self.ssh_user = ssh_user
+		self.ssh_port = ssh_port
+		self.ssh_pass = ssh_pass
 
 		self.stdout = fd_stack.fd_stack(1, sys.stdout)
 		self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -229,7 +249,9 @@ class base_server_job:
 			raise error.AutoservError(
 			    'No machines specified to verify')
 		try:
-			namespace = {'machines' : self.machines, 'job' : self}
+			namespace = {'machines' : self.machines, 'job' : self, \
+						 'ssh_user' : self.ssh_user, 'ssh_port' : ssh_port, \
+						 'ssh_pass' : ssh_pass}
 			exec(preamble + verify, namespace, namespace)
 		except Exception, e:
 			msg = ('Verify failed\n' + str(e) + '\n' 
@@ -242,7 +264,9 @@ class base_server_job:
 		if not self.machines:
 			raise error.AutoservError(
 			    'No machines specified to repair')
-		namespace = {'machines' : self.machines, 'job' : self}
+		namespace = {'machines' : self.machines, 'job' : self, \
+					 'ssh_user' : self.ssh_user, 'ssh_port' : ssh_port, \
+					 'ssh_pass' : ssh_pass}
 		# no matter what happens during repair, go on to try to reverify
 		try:
 			exec(preamble + repair, namespace, namespace)
@@ -304,6 +328,9 @@ class base_server_job:
 		namespace['machines'] = machines
 		namespace['args'] = self.args
 		namespace['job'] = self
+		namespace['ssh_user'] = self.ssh_user
+		namespace['ssh_port'] = self.ssh_port
+		namespace['ssh_pass'] = self.ssh_pass
 		test_start_time = int(time.time())
 
 		os.chdir(self.resultdir)
