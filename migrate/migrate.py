@@ -48,7 +48,6 @@ class MigrationManager(object):
 	def read_db_info(self):
 		# grab the config file and parse for info
 		c = global_config.global_config
-		sections = c.get_sections()
 		self.db_host = c.get_config_value(self.database, "host")
 		self.db_name = c.get_config_value(self.database, "database")
 		self.username = c.get_config_value(self.database, "user")
