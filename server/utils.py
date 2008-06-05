@@ -306,3 +306,85 @@ def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
 			failures.append((mach, "machine can not be tupled"))
 
 	return (ntuples, failures)
+
+ 
+def parse_machine(machine, user = 'root', port = 22, password = ''):
+	"""
+	Parse the machine string user:pass@host:port and return it separately,
+	if the machine string is not complete, use the default parameters
+	when appropriate.
+	"""
+
+	user = user
+	port = port
+	password = password
+
+	if re.search('@', machine):
+		machine = machine.split('@')
+
+		if re.search(':', machine[0]):
+			machine[0] = machine[0].split(':')
+			user = machine[0][0]
+			password = machine[0][1]
+
+		else:
+			user = machine[0]
+
+		if re.search(':', machine[1]):
+			machine[1] = machine[1].split(':')
+			hostname = machine[1][0]
+			port = int(machine[1][1])
+
+		else:
+			hostname = machine[1]
+
+	elif re.search(':', machine):
+		machine = machine.split(':')
+		hostname = machine[0]
+		port = int(machine[1])
+
+	else:
+		hostname = machine
+
+	return hostname, user, password, port
+
+
+def get_public_key():
+	"""
+	Return a valid string ssh public key for the user executing autoserv or
+	autotest. If there's no DSA or RSA public key, create a DSA keypair with
+	ssh-keygen and return it.
+	"""
+
+	ssh_conf_path = os.path.join(os.environ['HOME'], '.ssh')
+
+	dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
+	dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
+
+	rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
+	rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
+
+	has_dsa_keypair = os.path.isfile(dsa_public_key_path) and \
+	    os.path.isfile(dsa_private_key_path)
+	has_rsa_keypair = os.path.isfile(rsa_public_key_path) and \
+	    os.path.isfile(rsa_private_key_path)
+
+	if has_dsa_keypair:
+		print 'DSA keypair found, using it'
+		public_key_path = dsa_public_key_path
+
+	elif has_rsa_keypair:
+		print 'RSA keypair found, using it'
+		public_key_path = rsa_public_key_path
+
+	else:
+		print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+		system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
+		public_key_path = dsa_public_key_path
+
+	public_key = open(public_key_path, 'r')
+	public_key_str = public_key.read()
+	public_key.close()
+
+	return public_key_str
+ 
