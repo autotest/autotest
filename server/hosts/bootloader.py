@@ -36,30 +36,30 @@ class Bootloader(object):
 
 	def __init__(self, host, xen_mode=False):
 		super(Bootloader, self).__init__()
-		self.__host = weakref.ref(host)
-		self.__boottool_path = None
+		self._host = weakref.ref(host)
+		self._boottool_path = None
 		self.xen_mode = xen_mode
 
 
 	def get_type(self):
-		return self.__run_boottool('--bootloader-probe').stdout.strip()
+		return self._run_boottool('--bootloader-probe').stdout.strip()
 
 
 	def get_architecture(self):
-		return self.__run_boottool('--arch-probe').stdout.strip()
+		return self._run_boottool('--arch-probe').stdout.strip()
 
 
 	def get_titles(self):
-		return self.__run_boottool('--info all | grep title | '
+		return self._run_boottool('--info all | grep title | '
 			'cut -d " " -f2-').stdout.strip().split('\n')
 
 
 	def get_default(self):
-		return self.__run_boottool('--default').stdout.strip()
+		return self._run_boottool('--default').stdout.strip()
 
 
-	def __get_info(self, info_id):
-		retval = self.__run_boottool('--info=%s' % info_id).stdout
+	def _get_info(self, info_id):
+		retval = self._run_boottool('--info=%s' % info_id).stdout
 
 		results = []
 		info = {}
@@ -78,7 +78,7 @@ class Bootloader(object):
 
 
 	def get_info(self, index):
-		results = self.__get_info(index)
+		results = self._get_info(index)
 		if results:
 			return results[0]
 		else:
@@ -86,11 +86,11 @@ class Bootloader(object):
 
 
 	def get_all_info(self):
-		return self.__get_info('all')
+		return self._get_info('all')
 
 
 	def set_default(self, index):
-		self.__run_boottool('--set-default=%s' % index)
+		self._run_boottool('--set-default=%s' % index)
 
 
 	# 'kernel' can be a position number or a title
@@ -101,26 +101,26 @@ class Bootloader(object):
 		if self.xen_mode:
 			parameters += ' --xen'
 		
-		self.__run_boottool(parameters)
+		self._run_boottool(parameters)
 
 
 	def add_xen_hypervisor_args(self, kernel, args):
-		self.__run_boottool('--xen --update-xenhyper=%s --xha="%s"' \
+		self._run_boottool('--xen --update-xenhyper=%s --xha="%s"' \
 				    % (kernel, args))
 
 
 	def remove_args(self, kernel, args):
-		params = '--update-kernel=%s --remove-args=%s' % (kernel, args)
+		params = '--update-kernel=%s --remove-args="%s"' % (kernel, args)
 		
 		#add parameter if this is a Xen entry
 		if self.xen_mode:
 			params += ' --xen'
 		
-		self.__run_boottool(params)
+		self._run_boottool(params)
 
 
 	def remove_xen_hypervisor_args(self, kernel, args):
-		self.__run_boottool('--xen --update-xenhyper=%s '
+		self._run_boottool('--xen --update-xenhyper=%s '
 			'--remove-args="%s"') % (kernel, args)
 
 
@@ -131,7 +131,7 @@ class Bootloader(object):
 		replaced.
 		"""
 		if title in self.get_titles():
-			self.__run_boottool('--remove-kernel "%s"' % (
+			self._run_boottool('--remove-kernel "%s"' % (
 				utils.sh_escape(title),))
 		
 		parameters = '--add-kernel "%s" --title "%s"' % (
@@ -158,40 +158,40 @@ class Bootloader(object):
 				parameters += ' --xenhyper "%s"' % (
 					utils.sh_escape(xen_hypervisor),)
 		
-		self.__run_boottool(parameters)
+		self._run_boottool(parameters)
 
 
 	def remove_kernel(self, kernel):
-		self.__run_boottool('--remove-kernel=%s' % kernel)
+		self._run_boottool('--remove-kernel=%s' % kernel)
 
 
 	def boot_once(self, title):
-		self.__run_boottool('--boot-once --title=%s' % title)
+		self._run_boottool('--boot-once --title=%s' % title)
 
 
 	def install_boottool(self):
-		if self.__host() is None:
+		if self._host() is None:
 			raise error.AutoservError(
 			    "Host does not exist anymore")
-		tmpdir = self.__host().get_tmp_dir()
-		self.__host().send_file(os.path.abspath(os.path.join(
+		tmpdir = self._host().get_tmp_dir()
+		self._host().send_file(os.path.abspath(os.path.join(
 			utils.get_server_dir(), BOOTTOOL_SRC)), tmpdir)
-		self.__boottool_path= os.path.join(tmpdir, 
+		self._boottool_path= os.path.join(tmpdir, 
 			os.path.basename(BOOTTOOL_SRC))
 
 
-	def __get_boottool_path(self):
-		if not self.__boottool_path:
+	def _get_boottool_path(self):
+		if not self._boottool_path:
 			self.install_boottool()
-		return self.__boottool_path
+		return self._boottool_path
 
 
-	def __set_boottool_path(self, path):
-		self.__boottool_path = path
+	def _set_boottool_path(self, path):
+		self._boottool_path = path
 
 	
-	boottool_path = property(__get_boottool_path, __set_boottool_path)
+	boottool_path = property(_get_boottool_path, _set_boottool_path)
 
 
-	def __run_boottool(self, cmd):
-		return self.__host().run(self.boottool_path + ' ' + cmd)
+	def _run_boottool(self, cmd):
+		return self._host().run(self.boottool_path + ' ' + cmd)
