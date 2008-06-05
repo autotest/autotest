@@ -519,9 +519,12 @@ class SSHHost(remote.RemoteHost):
 			utils.run('rsync --rsh="%s" -az %s %s' % (
 			    self.ssh_base_command(), ' '.join(sources), dest))
 		except Exception:
-			utils.run('scp -rpq -P %d %s "%s"' % (
-			    self.port, ' '.join(sources), dest))
-
+			try:
+				utils.run('scp -rpq -P %d %s "%s"' % (
+				    self.port, ' '.join(sources), dest))
+			except error.CmdError, cmderr:
+				raise error.AutoservRunError(cmderr.args[0],
+							     cmderr.args[1])
 
 	def get_file(self, source, dest):
 		"""
@@ -849,4 +852,3 @@ class SSHHost(remote.RemoteHost):
 				self.ssh_ping()
 			except error.AutoservRunError:
 				self.ssh_setup_key()
-
