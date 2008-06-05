@@ -1,17 +1,20 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils, kernel
+from autotest_lib.client.common_lib import utils
+
 
 class sparse(test.test):
 	version = 1
 
 	# http://www.codemonkey.org.uk/projects/git-snapshots/sparse/sparse-2006-04-28.tar.gz
 	def setup(self, tarball = 'sparse-2006-04-28.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('make')
-		system('ln check sparse')
+		utils.system('make')
+		utils.system('ln check sparse')
 	
 		self.top_dir = self.job.tmpdir+'/sparse'	
 		

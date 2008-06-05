@@ -1,17 +1,20 @@
-import test,time,os,signal
-from autotest_utils import *
+import time, os, signal, re
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class tbench(test.test):
 	version = 2 
 
 	# http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
 	def setup(self, tarball = 'dbench-3.04.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 	def execute(self, iterations = 1, nprocs = None, args = ''):
 		# only supports combined server+client model at the moment
@@ -42,7 +45,7 @@ class tbench(test.test):
 			client = self.srcdir + '/client.txt'
 			args = '-c ' + client + ' ' + '%s' % args
 			cmd = os.path.join(self.srcdir, "tbench") + " " + args
-			results = system_output(cmd, retain_output=True)
+			results = utils.system_output(cmd, retain_output=True)
 			os.kill(pid, signal.SIGTERM)    # clean up the server
 		else:				# child
 			server = self.srcdir + '/tbench_srv'

@@ -1,6 +1,5 @@
 import os
-import test
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils
 
 class ltp(test.test):

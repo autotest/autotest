@@ -1,5 +1,6 @@
-import test, os_dep
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils, os_dep
+from autotest_lib.client.common_lib import utils
+
 
 class rttester(test.test):
 	version = 1
@@ -7,9 +8,10 @@ class rttester(test.test):
 	# http://www.stardust.webpages.pl/files/patches/autotest/rttester.tar.bz2
 
 	def setup(self, tarball = 'rttester.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
 	def execute(self):
 		os.chdir(self.srcdir)
-		system(self.srcdir + '/check-all.sh')
+		utils.system(self.srcdir + '/check-all.sh')

@@ -1,7 +1,7 @@
-import test
-from autotest_utils import *
-import re, time
-from subprocess import *
+import re, time, subprocess
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class parallel_dd(test.test):
 	version = 1
@@ -13,7 +13,7 @@ class parallel_dd(test.test):
 		dd = 'dd if=/dev/zero of=%s bs=4K count=%d' % \
 						(self.fs.device, self.blocks)
 		print dd
-		system(dd + ' > /dev/null')
+		utils.system(dd + ' > /dev/null')
 
 
 	def raw_read(self):
@@ -22,7 +22,7 @@ class parallel_dd(test.test):
 		dd = 'dd if=%s of=/dev/null bs=4K count=%d' % \
 						(self.fs.device, self.blocks)
 		print dd
-		system(dd + ' > /dev/null')
+		utils.system(dd + ' > /dev/null')
 
 
 	def fs_write(self):
@@ -34,7 +34,8 @@ class parallel_dd(test.test):
 			dd = 'dd if=/dev/zero of=%s bs=4K count=%d' % \
 						(file, self.blocks_per_file)
 			print dd
-			p.append(Popen(dd + ' > /dev/null', shell=True))
+			p.append(subprocess.Popen(dd + ' > /dev/null',
+			                          shell=True))
 		print "Waiting for %d streams" % self.streams
 		# Wait for everyone to complete
 		for i in range(self.streams):
@@ -50,7 +51,7 @@ class parallel_dd(test.test):
 			file = os.path.join(self.job.tmpdir, 'poo%d' % (i+1))
 			dd = 'dd if=%s of=/dev/null bs=4K count=%d' % \
 						(file, self.blocks_per_file)
-			system(dd + ' > /dev/null')
+			utils.system(dd + ' > /dev/null')
 
 
 	def test(self, tag):

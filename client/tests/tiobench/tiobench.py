@@ -1,16 +1,19 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class tiobench(test.test):
 	version = 1
 
 	# http://prdownloads.sourceforge.net/tiobench/tiobench-0.3.3.tar.gz
 	def setup(self, tarball = 'tiobench-0.3.3.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('make')
+		utils.system('make')
 		
 	def execute(self, dir = None, iterations=1, args = None):
 		if not dir:
@@ -21,12 +24,12 @@ class tiobench(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system('./tiobench.pl --dir %s %s' %(dir, args))
+				utils.system('./tiobench.pl --dir %s %s' %(dir, args))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system('./tiobench.pl --dir %s %s' %(dir, args))
+			utils.system('./tiobench.pl --dir %s %s' %(dir, args))
 			profilers.stop(self)
 			profilers.report(self)
 			

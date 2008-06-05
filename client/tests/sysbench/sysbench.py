@@ -1,13 +1,16 @@
-import test, time, re, pwd
-from autotest_utils import *
+import time, re, pwd
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class sysbench(test.test):
 	version = 1
 
 	# http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
 	def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		self.job.setup_dep(['pgsql', 'mysql'])
 
 		os.chdir(self.srcdir)
@@ -16,8 +19,8 @@ class sysbench(test.test):
 		mysql_dir = os.path.join(self.autodir, 'deps/mysql/mysql')
 
 		# configure wants to get at pg_config, so add its path
-		system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
-		system('make -j %d' % count_cpus())
+		utils.system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
+		utils.system('make -j %d' % count_cpus())
 
 
 	def execute(self, db_type = 'pgsql', build = 1, \
@@ -36,7 +39,7 @@ class sysbench(test.test):
 
 		# Check for nobody user
 		try:
-			system(self.sudo + '/bin/true')
+			utils.system(self.sudo + '/bin/true')
 		except:
 			raise TestError('Unable to run as nobody')
 
@@ -54,14 +57,14 @@ class sysbench(test.test):
 		log = os.path.join(self.debugdir, 'pgsql.log')
 
 		if build == 1:
-			system('rm -rf ' + data)
+			utils.system('rm -rf ' + data)
 			os.mkdir(data)
 			os.chown(data, self.dbuid, 0)
-			system(self.sudo + bin + '/initdb -D ' + data)
+			utils.system(self.sudo + bin + '/initdb -D ' + data)
 
 		# Database must be able to write its output into debugdir
 		os.chown(self.debugdir, self.dbuid, 0)
-		system(self.sudo + bin + '/pg_ctl -D ' + data + \
+		utils.system(self.sudo + bin + '/pg_ctl -D ' + data + \
 			' -l ' + log + ' start')
 
 		# Wait for database to start
@@ -73,9 +76,9 @@ class sysbench(test.test):
 				'--pgsql-user=' + self.dbuser
 
 			if build == 1:
-				system(self.sudo + bin + '/createdb sbtest')
+				utils.system(self.sudo + bin + '/createdb sbtest')
 				cmd = base_cmd +' prepare'
-				system(cmd)
+				utils.system(cmd)
 
 			cmd = base_cmd + \
 				' --num-threads=' + str(num_threads) + \
@@ -89,22 +92,22 @@ class sysbench(test.test):
 
 			profilers = self.job.profilers
 			if not profilers.only():
-				results.append(system_output(cmd + ' run',
+				results.append(utils.system_output(cmd + ' run',
 							retain_output=True))
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
 				results.append("Profiling run ...")
-				results.append(system_output(cmd + ' run',
+				results.append(utils.system_output(cmd + ' run',
 							retain_output=True))
 				profilers.stop(self)
 				profilers.report(self)
 		except:
-			system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
+			utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 			raise
 
-		system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
+		utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
 		self.__format_results("\n".join(results))
 
@@ -115,12 +118,12 @@ class sysbench(test.test):
 		log = os.path.join(self.debugdir, 'mysql.log')
 
 		if build == 1:
-			system('rm -rf ' + data)
+			utils.system('rm -rf ' + data)
 			os.mkdir(data)	
 			os.chown(data, self.dbuid, 0)
-			system(bin + '/mysql_install_db --user=' + self.dbuser)
+			utils.system(bin + '/mysql_install_db --user=' + self.dbuser)
 
-		system(bin + '/mysqld_safe --log-error=' + log + \
+		utils.system(bin + '/mysqld_safe --log-error=' + log + \
 			' --user=' + self.dbuser + ' &')
 
 		# Wait for database to start
@@ -132,10 +135,10 @@ class sysbench(test.test):
 				'--mysql-user=root'
 
 			if build == 1:
-				system('echo "create database sbtest" | ' + \
+				utils.system('echo "create database sbtest" | ' + \
 					bin + '/mysql -u root')
 				cmd = base_cmd +' prepare'
-				system(cmd)
+				utils.system(cmd)
 
 			cmd = base_cmd + \
 				' --num-threads=' + str(num_threads) + \
@@ -149,22 +152,22 @@ class sysbench(test.test):
 
 			profilers = self.job.profilers
                 	if not profilers.only():
-				results.append(system_output(cmd + ' run',
+				results.append(utils.system_output(cmd + ' run',
 							 retain_output=True))
 
 			# Do a profiling run if necessary
 			if profilers.present():
 				profilers.start(self)
 				results.append("Profiling run ...")
-				results.append(system_output(cmd + ' run',
+				results.append(utils.system_output(cmd + ' run',
 							retain_output=True))
 				profilers.stop(self)
 				profilers.report(self)
 		except:
-			system(bin + '/mysqladmin shutdown')
+			utils.system(bin + '/mysqladmin shutdown')
 			raise
 
-		system(bin + '/mysqladmin shutdown')
+		utils.system(bin + '/mysqladmin shutdown')
 
 		self.__format_results("\n".join(results))
 

@@ -1,5 +1,7 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 # tests is a simple array of "cmd" "arguments"
 tests = [["./run.sh", "tests=func"],
@@ -16,13 +18,14 @@ class rtlinuxtests(test.test):
 
 	def setup(self, tarball = 'tests.tar.bz2'):
 		check_glibc_ver('2.5')
-		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
+		self.tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                        self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 		os.chdir(self.srcdir)
-		system('patch -p1 < ../path-fix.patch')
+		utils.system('patch -p1 < ../path-fix.patch')
 
 	def execute(self, args = ''):
 		os.chdir(self.srcdir)
 		for test in tests:
 			cmd = 'echo y | ' + test[name] + ' ' + args + ' ' + test[arglist]
-			system(cmd)
+			utils.system(cmd)

@@ -1,5 +1,6 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils, error
+
 
 class pktgen(test.test):
 	version = 1
@@ -7,9 +8,9 @@ class pktgen(test.test):
 	def execute(self, eth='eth0', count=50000, clone_skb=1, \
 			dst_ip='192.168.210.210', dst_mac='01:02:03:04:05:07'):
 		if not os.path.exists('/proc/net/pktgen'):
-			system('/sbin/modprobe pktgen')
+			utils.system('/sbin/modprobe pktgen')
 		if not os.path.exists('/proc/net/pktgen'):
-			raise UnhandledError('pktgen not loaded')
+			raise error.UnhandledError('pktgen not loaded')
 
 		print 'Adding devices to run'
 		self.pgdev = '/proc/net/pktgen/kpktgend_0'
@@ -37,7 +38,7 @@ class pktgen(test.test):
 		self.pgset('start')
 
 		output = os.path.join(self.resultsdir, eth)
-		system ('cp %s %s' % (self.ethdev, output))
+		utils.system ('cp %s %s' % (self.ethdev, output))
 
 
 	def pgset(self, command):
@@ -47,6 +48,6 @@ class pktgen(test.test):
 
 		if not grep('Result: OK', self.pgdev):
 			if not grep('Result: NA', self.pgdev):
-				system('cat ' + self.pgdev)
+				utils.system('cat ' + self.pgdev)
 				# raise UnhandledError('Result not OK')
 

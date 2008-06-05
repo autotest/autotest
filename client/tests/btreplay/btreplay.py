@@ -1,14 +1,16 @@
-import test, os_dep
 import time
-from autotest_utils import *
+from autotest_lib.client.bin import test, os_dep, autotest_utils
+from autotest_lib.client.common_lib import error, utils
+
 
 class btreplay(test.test):
 	version = 1
 
 	# http://brick.kernel.dk/snaps/blktrace-git-latest.tar.gz
 	def setup(self, tarball = 'blktrace-git-latest.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
 		self.job.setup_dep(['libaio'])
 		libs = '-L' + self.autodir + '/deps/libaio/lib -laio'
@@ -18,8 +20,8 @@ class btreplay(test.test):
 		self.make_flags = var_libs + ' ' + var_cflags
 
 		os.chdir(self.srcdir)
-		system('patch -p1 < ../Makefile.patch')
-		system(self.make_flags + ' make')
+		utils.system('patch -p1 < ../Makefile.patch')
+		utils.system(self.make_flags + ' make')
 
 
 	def initialize(self):
@@ -35,33 +37,33 @@ class btreplay(test.test):
 
                 # convert the trace (assumed to be in this test's base
                 # directory) into btreplay's required format
-                system("./btreplay/btrecord -d .. -D "+tmpdir+" "+dev)
+                utils.system("./btreplay/btrecord -d .. -D "+tmpdir+" "+dev)
 
                 # time a replay that omits "thinktime" between requests
                 # (by use of the -N flag)
-                system(self.ldlib+" /usr/bin/time ./btreplay/btreplay -d "+\
+                utils.system(self.ldlib+" /usr/bin/time ./btreplay/btreplay -d "+\
                         tmpdir+" -N -W "+dev+" "+extra_args+" 2>&1")
 
                 # trace a replay that reproduces inter-request delays, and
                 # analyse the trace with btt to determine the average request
                 # completion latency
-                system("./blktrace -D "+tmpdir+" "+alldevs+" >/dev/null &")
-                system(self.ldlib+" ./btreplay/btreplay -d "+tmpdir+" -W "+\
+                utils.system("./blktrace -D "+tmpdir+" "+alldevs+" >/dev/null &")
+                utils.system(self.ldlib+" ./btreplay/btreplay -d "+tmpdir+" -W "+\
                         dev+" "+extra_args)
-                system("killall -INT blktrace")
+                utils.system("killall -INT blktrace")
 		
 		# wait until blktrace is really done
 		slept = 0.0
-		while system("ps -C blktrace > /dev/null",
+		while utils.system("ps -C blktrace > /dev/null",
 			     ignore_status=True) == 0:
 			time.sleep(0.1)
 			slept += 0.1
 			if slept > 30.0:
-				system("killall -9 blktrace")
-				raise TestError("blktrace failed to exit after 30 seconds")
-                system("./blkparse -q -D "+tmpdir+" -d "+tmpdir+\
+				utils.system("killall -9 blktrace")
+				raise error.TestError("blktrace failed to exit after 30 seconds")
+                utils.system("./blkparse -q -D "+tmpdir+" -d "+tmpdir+\
                         "/trace.bin -O "+alldnames+" >/dev/null")
-                system("./btt/btt -i "+tmpdir+"/trace.bin")
+                utils.system("./btt/btt -i "+tmpdir+"/trace.bin")
         
 	def execute(self, iterations = 1, dev="", devices="",
 			extra_args = '', tmpdir = None):

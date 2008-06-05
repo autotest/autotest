@@ -1,13 +1,14 @@
-import test, re, os
-from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import utils
+import re, os
+from autotest_lib.client.bin import autotest_utils, tests
+from autotest_lib.client.common_lib import utils, error
 
 class libhugetlbfs(test.test):
 	version = 4
 
 	# http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
 	def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
-		tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
@@ -28,10 +29,10 @@ class libhugetlbfs(test.test):
 						      str(pages_requested))
 			pages_available = int(open('/proc/sys/vm/nr_hugepages', 'r').readline())
 		else:
-			raise TestNAError('Kernel does not support hugepages')
+			raise error.TestNAError('Kernel does not support hugepages')
 
 		if pages_available < pages_requested:
-			raise TestError('%d huge pages available, < %d pages requested' % (pages_available, pages_requested))
+			raise error.TestError('%d huge pages available, < %d pages requested' % (pages_available, pages_requested))
 
 		# Check if hugetlbfs has been mounted
 		if not autotest_utils.file_contains_pattern('/proc/mounts', 'hugetlbfs'):

@@ -1,5 +1,6 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test
+from autotest_lib.client.common_lib import utils
+
 
 class signaltest(test.test):
 	version = 1
@@ -9,7 +10,7 @@ class signaltest(test.test):
 
 	def setup(self):
 		os.chdir(self.srcdir)
-		system('make')
+		utils.system('make')
 
 	def execute(self, args = '-t 10 -l 100000'):
-		system(self.srcdir + '/signaltest ' + args)
+		utils.system(self.srcdir + '/signaltest ' + args)

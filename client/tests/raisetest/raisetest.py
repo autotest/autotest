@@ -1,8 +1,9 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test
+from autotest_lib.client.common_lib import error
+
 
 class raisetest(test.test):
 	version = 1
 
 	def execute(self):
-		raise TestError('Arrrrrrrrggggh. You are DOOOMED')
+		raise error.TestError('Arrrrrrrrggggh. You are DOOOMED')

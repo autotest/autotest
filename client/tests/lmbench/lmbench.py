@@ -1,20 +1,22 @@
 # This will need more work on the configuration stuff before it will function
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class lmbench(test.test):
 	version = 2
 
 	def setup(self, tarball = 'lmbench3.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
 		# http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
 		# + lmbench3.diff 
 		#	removes Makefile references to bitkeeper
 		#	default mail to no, fix job placement defaults (masouds)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('make')
+		utils.system('make')
 
 
 	def execute(self, iterations = 1, mem = '', fastmem = 'NO', 
@@ -31,15 +33,15 @@ class lmbench(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(cmd)
+				utils.system(cmd)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(cmd)
+			utils.system(cmd)
 			profilers.stop(self)
 			profilers.report(self)
 		# Get the results:
 		outputdir = self.srcdir + "/results"
 		results = self.resultsdir + "/summary.txt"
-		system("make -C " + outputdir + " summary > " + results)
+		utils.system("make -C " + outputdir + " summary > " + results)
