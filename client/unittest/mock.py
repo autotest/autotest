@@ -153,6 +153,7 @@ class mock_god:
 	def __init__(self):
 		self.recording = collections.deque()
 		self.errors = []
+		self._stubs = []
 
 
 	def create_mock_class(self, cls, name, default_ret_val=None):
@@ -194,6 +195,25 @@ class mock_god:
 					             self.__record_call,
 					             self.__method_playback)
 				setattr(obj, symbol, func)
+
+
+	def stub_with(self, namespace, symbol, new_attribute):
+		assert hasattr(namespace, symbol)
+		original_attribute = getattr(namespace, symbol)
+		self._stubs.append((namespace, symbol, original_attribute))
+		setattr(namespace, symbol, new_attribute)
+
+
+	def stub_function(self, namespace, symbol):
+		mock_attribute = self.create_mock_function(symbol)
+		self.stub_with(namespace, symbol, mock_attribute)
+
+
+	def unstub_all(self):
+		self._stubs.reverse()
+		for namespace, symbol, original_attribute in self._stubs:
+			setattr(namespace, symbol, original_attribute)
+		self._stubs = []
 
 
 	def __method_playback(self, symbol, *args, **dargs):
