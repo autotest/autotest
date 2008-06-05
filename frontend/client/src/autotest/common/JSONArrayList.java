@@ -8,7 +8,7 @@ import java.util.AbstractList;
 /**
  * Wraps a JSONArray in a handy-dandy java.util.List interface.
  */
-public class JSONArrayList extends AbstractList {
+public class JSONArrayList extends AbstractList<JSONValue> {
     protected JSONArray backingArray;
     
     public JSONArrayList(JSONArray array) {
@@ -19,12 +19,12 @@ public class JSONArrayList extends AbstractList {
         backingArray.set(index, object);
     }
 
-    public Object get(int index) {
+    public JSONValue get(int index) {
         return backingArray.get(index);
     }
 
     // JSONArrays don't directly support this
-    public Object remove(int arg0) {
+    public JSONValue remove(int arg0) {
         throw new UnsupportedOperationException();
     }
 

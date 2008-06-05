@@ -3,6 +3,7 @@ package autotest.afe;
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
+import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
