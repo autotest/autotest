@@ -119,8 +119,9 @@ class DispatcherTest(unittest.TestCase):
 	def _assert_job_scheduled_on(self, job_id, host_id):
 		record = (job_id, host_id)
 		self.assert_(record in self._jobs_scheduled,
-			     'Job %d not scheduled on host %d as expected' %
-			     (job_id, host_id))
+			     'Job %d not scheduled on host %d as expected\n'
+			     'Jobs scheduled: %s' %
+			     (job_id, host_id, self._jobs_scheduled))
 		self._jobs_scheduled.remove(record)
 
 
@@ -131,8 +132,8 @@ class DispatcherTest(unittest.TestCase):
 
 
 	def _create_job(self, hosts=[], metahosts=[], priority=0, active=0):
-		self._do_query('INSERT INTO jobs (name, priority) VALUES '
-			       '("test", %d)' % priority)
+		self._do_query('INSERT INTO jobs (name, owner, priority) '
+			       'VALUES ("test", "my_user", %d)' % priority)
 		self._job_counter += 1
 		job_id = self._job_counter
 		queue_entry_sql = (
@@ -179,6 +180,8 @@ class DispatcherTest(unittest.TestCase):
 		self._fill_in_test_data()
 		self._set_monitor_stubs()
 		self._dispatcher = monitor_db.Dispatcher()
+		self._jobs_scheduled = []
+		self._job_counter = 0
 
 
 	def tearDown(self):
@@ -257,7 +260,7 @@ class DispatcherTest(unittest.TestCase):
 		self._test_basic_scheduling_helper(True)
 
 
-	def test_priorities(self):
+	def test_metahost_priorities(self):
 		self._test_priorities_helper(True)
 
 
@@ -287,8 +290,11 @@ class DispatcherTest(unittest.TestCase):
 		that job.
 		"""
 		self._create_job(metahosts=[1], hosts=[1])
+		# make the nonmetahost entry complete, so the metahost can try
+		# to get scheduled
+		self._do_query('UPDATE host_queue_entries SET complete = 1 '
+		               'WHERE host_id=1')
 		self._dispatcher._schedule_new_jobs()
-		self._assert_job_scheduled_on(1, 1)
 		self._check_for_extra_schedulings()
 
 
@@ -296,8 +302,6 @@ class DispatcherTest(unittest.TestCase):
 		"ACL-inaccessible hosts can't get scheduled for metahosts"
 		self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
 		self._create_job(metahosts=[1])
-		self._do_query('INSERT INTO ineligible_host_queues '
-			       '(job_id, host_id) VALUES (1, 1)')
 		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
 
