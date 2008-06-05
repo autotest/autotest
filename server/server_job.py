@@ -382,11 +382,19 @@ class base_server_job:
 			if tag:
 				subdir += '.' + tag
 
+		outputdir = os.path.join(self.resultdir, subdir)
+		if os.path.exists(outputdir):
+			msg = ("%s already exists, test <%s> may have"
+			       " already run with tag <%s>"
+			       % (outputdir, testname, tag) )
+			raise error.TestError(msg)
+		os.mkdir(outputdir)
+
 		try:
 			test.runtest(self, url, tag, args, dargs)
 			self.record('GOOD', subdir, testname, 'completed successfully')
 		except error.TestNAError, detail:
-			self.record('TEST_NA', subdir, testmame, str(detail))
+			self.record('TEST_NA', subdir, testname, str(detail))
 		except Exception, detail:
 			info = str(detail) + "\n" + traceback.format_exc()
 			self.record('FAIL', subdir, testname, info)
@@ -410,8 +418,6 @@ class base_server_job:
 			if tag:
 				name = tag
 
-		# if tag:
-		#	name += '.' + tag
 		old_record_prefix = self.record_prefix
 		try:
 			try:
@@ -629,8 +635,6 @@ class base_server_job:
 		open(status_file, "a").write(msg)
 		if subdir:
 			test_dir = os.path.join(self.resultdir, subdir)
-			if not os.path.exists(test_dir):
-				os.mkdir(test_dir)
 			status_file = os.path.join(test_dir, 'status')
 			open(status_file, "a").write(msg)
 		self.__parse_status(msg.splitlines())
