@@ -1,4 +1,6 @@
-package afeclient.client;
+package autotest.common;
+
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;

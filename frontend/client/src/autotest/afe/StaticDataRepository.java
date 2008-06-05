@@ -1,4 +1,7 @@
-package afeclient.client;
+package autotest.afe;
+
+import autotest.common.JsonRpcCallback;
+import autotest.common.JsonRpcProxy;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;

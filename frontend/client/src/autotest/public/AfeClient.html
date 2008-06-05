@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>Autotest Frontend</title>
-    <script language='javascript' src='afeclient.ClientMain.nocache.js'>
+    <script language='javascript' src='autotest.AfeClient.nocache.js'>
     </script>
   </head>
 
@@ -15,9 +15,8 @@
       <b>Links</b><br>
       <a href="server/admin">Admin interface</a><br>
       <a href="/tko">Results database</a><br>
-      <a href="http://test.kernel.org/autotest">Documentation</a><br>
-      <a href="server/feeds/jobs/completed">Completed Jobs Feed</a><br>
-      <a href="server/feeds/jobs/failed">Failed Jobs Feed</a><br>
+      <a href="http://test.kernel.org/autotest">Public documentation</a><br>
+      <a href="http://wiki/Main/Autotest">Internal documentation</a>
     </span>
     <img src="header.png" />
     <br /><br />
@@ -75,7 +74,12 @@
           <tr><td class="field-name">Priority:</td>
               <td id="create_priority"></td><td></td></tr>
           <tr><td class="field-name">Kernel:</td>
-              <td id="create_kernel"></td><td></td></tr>
+              <td id="create_kernel"></td>
+              <td class="help">Example: "2.6.18-210.1_rc3" or 
+              "http://build/packages/kernel/experimental/kernel-smp-2.6.18-210.1_rc3.x86_64.rpm"
+              </td></tr>
+          <tr><td class="field-name">Use container:</td>
+              <td id="create_use_container"></td><td></td></tr>
           <tr><td class="field-name">Client tests:</td>
               <td id="create_client_tests" colspan="2"></td></tr>
           <tr><td class="field-name">Server tests:</td>

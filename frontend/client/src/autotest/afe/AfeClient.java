@@ -1,10 +1,15 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.CreateJobView.JobCreateListener;
-import afeclient.client.HostDetailView.HostDetailListener;
-import afeclient.client.HostListView.HostListListener;
-import afeclient.client.JobDetailView.JobDetailListener;
-import afeclient.client.JobListView.JobSelectListener;
+import autotest.afe.CreateJobView.JobCreateListener;
+import autotest.afe.HostDetailView.HostDetailListener;
+import autotest.afe.HostListView.HostListListener;
+import autotest.afe.JobDetailView.JobDetailListener;
+import autotest.afe.JobListView.JobSelectListener;
+import autotest.common.CustomHistory;
+import autotest.common.JsonRpcProxy;
+import autotest.common.ui.CustomTabPanel;
+import autotest.common.ui.NotifyManager;
+import autotest.common.ui.TabView;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.user.client.History;
@@ -17,7 +22,7 @@ import com.google.gwt.user.client.ui.TabListener;
 import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-public class ClientMain implements EntryPoint, HistoryListener {
+public class AfeClient implements EntryPoint, HistoryListener {
     static final String RPC_URL = "/afe/server/rpc/";
 
     protected JobListView jobList;
@@ -59,7 +64,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
                 showHost(hostname);
             }
         });
-        createJob = Utils.factory.getCreateJobView(new JobCreateListener() {
+        createJob = AfeUtils.factory.getCreateJobView(new JobCreateListener() {
             public void onJobCreated(int jobId) {
                 showJob(jobId);
             }
@@ -79,7 +84,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
                                   hostDetailView};
         
         CustomTabPanel customPanel = new CustomTabPanel();
-        mainTabPanel = customPanel.tabPanel;
+        mainTabPanel = customPanel.getTabPanel();
         for(int i = 0; i < tabViews.length; i++) {
             mainTabPanel.add(tabViews[i], tabViews[i].getTitle());
         }
@@ -106,7 +111,7 @@ public class ClientMain implements EntryPoint, HistoryListener {
                 tabViews[mainTabPanel.getTabBar().getSelectedTab()].refresh();
             } 
         });
-        customPanel.otherWidgetsPanel.add(refreshButton);
+        customPanel.getOtherWidgetsPanel().add(refreshButton);
         
         CustomHistory.addHistoryListener(this);
         String initialToken = History.getToken();

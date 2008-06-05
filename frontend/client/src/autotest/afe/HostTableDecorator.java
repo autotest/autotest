@@ -1,9 +1,10 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.BooleanFilter;
-import afeclient.client.table.ListFilter;
-import afeclient.client.table.SearchFilter;
-import afeclient.client.table.TableDecorator;
+import autotest.common.Utils;
+import autotest.common.table.BooleanFilter;
+import autotest.common.table.ListFilter;
+import autotest.common.table.SearchFilter;
+import autotest.common.table.TableDecorator;
 
 import com.google.gwt.json.client.JSONArray;
 

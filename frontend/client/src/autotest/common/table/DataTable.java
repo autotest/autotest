@@ -1,4 +1,4 @@
-package afeclient.client.table;
+package autotest.common.table;
 
 
 

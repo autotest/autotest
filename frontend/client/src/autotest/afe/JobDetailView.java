@@ -1,11 +1,15 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.DynamicTable;
-import afeclient.client.table.ListFilter;
-import afeclient.client.table.SearchFilter;
-import afeclient.client.table.SimpleFilter;
-import afeclient.client.table.TableDecorator;
-import afeclient.client.table.DynamicTable.DynamicTableListener;
+import autotest.common.JsonRpcCallback;
+import autotest.common.Utils;
+import autotest.common.table.DynamicTable;
+import autotest.common.table.ListFilter;
+import autotest.common.table.SearchFilter;
+import autotest.common.table.SimpleFilter;
+import autotest.common.table.TableDecorator;
+import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.ui.DetailView;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
@@ -84,7 +88,7 @@ public class JobDetailView extends DetailView {
                 showText(synchType.toLowerCase(), "view_synch_type");
                 
                 JSONObject counts = jobObject.get("status_counts").isObject();
-                String countString = Utils.formatStatusCounts(counts, ", ");
+                String countString = AfeUtils.formatStatusCounts(counts, ", ");
                 showText(countString, "view_status");
                 abortButton.setVisible(!allFinishedCounts(counts));
                 

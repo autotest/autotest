@@ -1,8 +1,8 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.JsonRpcProxy;
-import afeclient.client.JsonRpcCallback;
-import afeclient.client.Utils;
+import autotest.common.JsonRpcCallback;
+import autotest.common.JsonRpcProxy;
+import autotest.common.Utils;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;

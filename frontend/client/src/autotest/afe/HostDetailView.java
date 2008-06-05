@@ -1,12 +1,15 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.DataSource;
-import afeclient.client.table.DynamicTable;
-import afeclient.client.table.RpcDataSource;
-import afeclient.client.table.SimpleFilter;
-import afeclient.client.table.TableDecorator;
-import afeclient.client.table.DataSource.DataCallback;
-import afeclient.client.table.DynamicTable.DynamicTableListener;
+import autotest.common.Utils;
+import autotest.common.table.DataSource;
+import autotest.common.table.DynamicTable;
+import autotest.common.table.RpcDataSource;
+import autotest.common.table.SimpleFilter;
+import autotest.common.table.TableDecorator;
+import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.ui.DetailView;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;

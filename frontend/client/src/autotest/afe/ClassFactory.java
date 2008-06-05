@@ -1,6 +1,6 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.CreateJobView.JobCreateListener;
+import autotest.afe.CreateJobView.JobCreateListener;
 
 public class ClassFactory {
     public CreateJobView getCreateJobView(JobCreateListener listener) {

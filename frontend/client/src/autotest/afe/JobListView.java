@@ -1,10 +1,16 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.LinkSetFilter;
-import afeclient.client.table.ListFilter;
-import afeclient.client.table.SelectionManager;
-import afeclient.client.table.TableDecorator;
-import afeclient.client.table.DynamicTable.DynamicTableListener;
+import autotest.common.CustomHistory;
+import autotest.common.JsonRpcProxy;
+import autotest.common.SimpleCallback;
+import autotest.common.Utils;
+import autotest.common.table.LinkSetFilter;
+import autotest.common.table.ListFilter;
+import autotest.common.table.SelectionManager;
+import autotest.common.table.TableDecorator;
+import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.ui.Paginator;
+import autotest.common.ui.TabView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;

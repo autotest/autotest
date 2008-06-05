@@ -1,4 +1,4 @@
-package afeclient.client.table;
+package autotest.common.table;
 
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;

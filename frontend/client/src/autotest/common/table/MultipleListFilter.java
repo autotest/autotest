@@ -1,4 +1,4 @@
-package afeclient.client.table;
+package autotest.common.table;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONString;

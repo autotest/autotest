@@ -1,6 +1,6 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.Paginator;
+import autotest.common.ui.Paginator;
 
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
