@@ -1,5 +1,7 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 # tests is a simple array of "cmd" "arguments"
 tests = [["aio-dio-invalidate-failure", "poo"],
@@ -23,15 +25,16 @@ class aio_dio_bugs(test.test):
 
 	def setup(self):
 		os.chdir(self.srcdir)
-		system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
+		utils.system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
 
 
 	def execute(self, args = ''):
 		os.chdir(self.tmpdir)
-		libs = self.autodir+'/deps/libaio/lib/'
-		ld_path = prepend_path(libs, environ('LD_LIBRARY_PATH'))
+		libs = self.autodir + '/deps/libaio/lib/'
+		ld_path = autotest_utils.prepend_path(libs,
+		                                     environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
 		for test in tests:
 			cmd = self.srcdir + '/' + test[name] + ' ' \
 			      + args + ' ' + test[arglist]
-			system(var_ld_path + ' ' + cmd)
+			utils.system(var_ld_path + ' ' + cmd)

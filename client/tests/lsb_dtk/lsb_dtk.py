@@ -1,11 +1,10 @@
 # Wrapper to LSB testsuite
 # Copyright 2008, IBM Corp.
-import test
-import os
-import package
-import glob
-from autotest_utils import *
-from test_config import config_loader
+import os, glob
+from autotest_lib.client.bin import test, autotest_utils, package
+from autotest_lib.client.bin.test_config import config_loader
+from autotest_lib.client.common_lib import utils, error
+
 
 __author__ = '''
 pnaregun@in.ibm.com (Pavan Naregundi)
@@ -15,7 +14,7 @@ lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)
 class lsb_dtk(test.test):
 	version = 1
 	def get_lsb_arch(self):
-		self.arch = get_current_kernel_arch()
+		self.arch = autotest_utils.get_current_kernel_arch()
 		if self.arch in ['i386', 'i486', 'i586', 'i686', 'athlon']:
 			return 'ia32'
 		elif self.arch == 'ppc':
@@ -24,7 +23,7 @@ class lsb_dtk(test.test):
 			return self.arch
 		else:
 			e_msg = 'Architecture %s not supported by LSB' % self.arch
-			raise TestError(e_msg)
+			raise error.TestError(e_msg)
 
 
 	def install_lsb_packages(self, srcdir, cachedir, my_config):
@@ -32,13 +31,13 @@ class lsb_dtk(test.test):
 		self.dtk_manager_arch = my_config.get('dtk-manager', 'arch-%s' % self.get_lsb_arch())
 		self.dtk_manager_url = my_config.get('dtk-manager', 'tarball_url') % self.dtk_manager_arch
 		if not self.dtk_manager_url:
-			raise TestError('Could not get DTK manager URL from configuration file')
+			raise error.TestError('Could not get DTK manager URL from configuration file')
 		self.dtk_md5 = my_config.get('dtk-manager', 'md5-%s' % self.get_lsb_arch())
 		if self.dtk_md5:
 			print 'Caching LSB DTK manager RPM'
-			self.dtk_manager_pkg = unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
+			self.dtk_manager_pkg = autotest_utils.unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
 		else:
-			raise TestError('Could not find DTK manager package md5, cannot cache DTK manager tarball')
+			raise error.TestError('Could not find DTK manager package md5, cannot cache DTK manager tarball')
 
 		# Get LSB tarball, cache it and uncompress under autotest srcdir
 		if my_config.get('lsb', 'override_default_url') == 'no':
@@ -51,11 +50,11 @@ class lsb_dtk(test.test):
 		self.lsb_md5 = my_config.get('lsb', self.md5_key)
 		if self.lsb_md5:
 			print 'Caching LSB tarball'
-			self.lsb_pkg = unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
+			self.lsb_pkg = autotest_utils.unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
 		else:
-			raise TestError('Could not find LSB package md5, cannot cache LSB tarball')
+			raise error.TestError('Could not find LSB package md5, cannot cache LSB tarball')
 
-		extract_tarball_to_dir(self.lsb_pkg, srcdir)
+		autotest_utils.extract_tarball_to_dir(self.lsb_pkg, srcdir)
 
 		# Lets load a file that contains the list of RPMs
 		os.chdir(srcdir)
@@ -84,7 +83,7 @@ class lsb_dtk(test.test):
 				self.distro_type = 'debian-based'
 			else:
 				e_msg = 'Package conversion not supported. Cannot handle LSB package installation'
-				raise EnvironmentError()
+				raise EnvironmentError(e_msg)
 		elif distro_pkg_support['rpm']:
 			print 'Red Hat based distro detected'
 			self.distro_type = 'redhat-based'
@@ -160,7 +159,7 @@ class lsb_dtk(test.test):
 		if profilers.present():
 			profilers.start(self)
 		print 'Executing LSB main test script'
-		system(cmd)
+		utils.system(cmd)
 		if profilers.present():
 			profilers.stop(self)
 			profilers.report(self)

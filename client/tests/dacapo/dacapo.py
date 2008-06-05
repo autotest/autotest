@@ -7,11 +7,11 @@
 # institutions, as part of the DaCapo research project, which was funded by a 
 # National Science Foundation ITR Grant, CCR-0085792.
 #
-import test
 import os
-import package
-from autotest_utils import *
-from test_config import config_loader
+from autotest_lib.client.bin import autotest_utils, package
+from autotest_lib.client.bin.test_config import config_loader
+from autotest_lib.client.common_lib import utils
+
 
 class dacapo(test.test):
 	version = 1
@@ -56,26 +56,28 @@ class dacapo(test.test):
 		else:
 			self.dacapo_url = my_config.get('dacapo', 'tarball_url_alt')
 		if not self.dacapo_url:
-			raise TestError('Could not read dacapo URL from conf file')
+			raise error.TestError('Could not read dacapo URL from conf file')
 		# We can cache the dacapo package file if we take some
 		# precautions (checking md5 sum of the downloaded file)
 		self.dacapo_md5 = my_config.get('dacapo', 'package_md5')
 		if not self.dacapo_md5:
 			e_msg = 'Could not read dacapo package md5sum from conf file'
-			raise TestError(e_msg)
+			raise error.TestError(e_msg)
 		self.dacapo_pkg = \
-		unmap_url_cache(self.cachedir, self.dacapo_url, self.dacapo_md5)
+		autotest_utils.unmap_url_cache(self.cachedir, self.dacapo_url,
+		                               self.dacapo_md5)
 
 		# Get jvm package URL
 		self.jvm_pkg_url = my_config.get(jvm, 'jvm_pkg_url')
 		if not self.jvm_pkg_url:
-			raise TestError('Could not read java vm URL from conf file')
+			raise error.TestError('Could not read java vm URL from conf file')
 		# Let's cache the jvm package as well
 		self.jvm_pkg_md5 = my_config.get(jvm, 'package_md5')
 		if not self.jvm_pkg_md5:
-			raise TestError('Could not read java package_md5 from conf file')
+			raise error.TestError('Could not read java package_md5 from conf file')
 		self.jvm_pkg = \
-		unmap_url_cache(self.cachedir, self.jvm_pkg_url, self.jvm_pkg_md5)
+		autotest_utils.unmap_url_cache(self.cachedir, self.jvm_pkg_url,
+		                               self.jvm_pkg_md5)
 
 		# Install the jvm pakage
 		package.install(self.jvm_pkg)
@@ -83,7 +85,7 @@ class dacapo(test.test):
 		# Basic Java environment variables setup
 		self.java_root = my_config.get(jvm, 'java_root')
 		if not self.java_root:
-			raise TestError('Could not read java root dir from conf file')
+			raise error.TestError('Could not read java root dir from conf file')
 		self.set_java_environment(jvm, self.java_root)
 
 		# If use_global is set to 'yes', then we want to use the global
@@ -104,9 +106,9 @@ class dacapo(test.test):
 		+ self.iterations + test
 		# Execute the actual test
 		try:
-			system('java -jar %s %s' % (self.dacapo_pkg, self.args))
+			utils.system('java -jar %s %s' % (self.dacapo_pkg, self.args))
 		except:
 			e_msg = \
 			'Test %s has failed, command line options "%s"' % (test, self.args)
-			raise TestError(e_msg)
+			raise error.TestError(e_msg)
 

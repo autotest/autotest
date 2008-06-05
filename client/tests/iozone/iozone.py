@@ -1,26 +1,28 @@
 #!/usr/bin/python
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
 
-import test
-from autotest_utils import *
 
 class iozone(test.test):
 	version = 1
 
 	# http://www.iozone.org/src/current/iozone3_283.tar
 	def setup(self, tarball = 'iozone3_283.tar'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(os.path.join(self.srcdir, 'src/current'))
 
-		arch = get_current_kernel_arch()
+		arch = autotest_utils.get_current_kernel_arch()
 		if (arch == 'ppc'):
-			system('make linux-powerpc')
+			utils.system('make linux-powerpc')
 		elif (arch == 'ppc64'):
-			system('make linux-powerpc64')
+			utils.system('make linux-powerpc64')
 		elif (arch == 'x86_64'):
-			system('make linux-AMD64')
+			utils.system('make linux-AMD64')
 		else: 
-			system('make linux')
+			utils.system('make linux')
 
 
 	def execute(self, dir = None, iterations=1, args = None):
@@ -34,14 +36,14 @@ class iozone(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				output = system_output('%s/src/current/iozone %s' %
+				output = utils.system_output('%s/src/current/iozone %s' %
 				                       (self.srcdir, args))
 				self.__format_results(output)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			output = system_output('%s/src/current/iozone %s' %
+			output = utils.system_output('%s/src/current/iozone %s' %
 			                       (self.srcdir, args))
 			self.__format_results(output)
 			profilers.stop(self)

@@ -1,15 +1,17 @@
-import test
-import random
-from autotest_utils import *
+import random, os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils, error
+
 
 class kvmtest(test.test):
 	version = 1
 
 	def setup(self, tarball = 'kvm-test.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
-		system('python setup.py install')
+		utils.system('python setup.py install')
 
 
 	def execute(self, testdir = '', args = ''):
@@ -36,7 +38,7 @@ class kvmtest(test.test):
 			logfile = replaydir + "/%s.log" %(os.path.basename(d))
 
 			os.chdir(d)
-			rv = system("kvm-test-replay > %s" %(logfile), 1)
+			rv = utils.system("kvm-test-replay > %s" %(logfile), 1)
 
 			results.append((d, rv))
 			if rv != 0:
@@ -46,10 +48,10 @@ class kvmtest(test.test):
 				dest = os.path.join(replaydir,expected)
 
 				# make a copy of the screen shot
-				system("cp %s %s" %(screenshot, dest), 1)
+				utils.system("cp %s %s" %(screenshot, dest), 1)
 					  
 				# move the failure
-				system("mv failure-*.png %s" %(replaydir), 1)
+				utils.system("mv failure-*.png %s" %(replaydir), 1)
 
 		# generate html output
 		self.__format_results(results)
@@ -66,7 +68,7 @@ class kvmtest(test.test):
 		print("Summary: Passed %d Failed %d" %(passed, failed))
 		# if we had any tests not passed, fail entire test
 		if failed != 0:
-			raise TestError('kvm-test-replay')
+			raise error.TestError('kvm-test-replay')
 
 
 	def __get_expected_file(self, logfile):
@@ -97,7 +99,7 @@ class kvmtest(test.test):
 		# return the display whack existing server first, then spawn it
 		vncdisplay = "1"
 		print("Spawning vncserver on port %s"%(vncdisplay))
-		system('vncserver :%s' %(vncdisplay))
+		utils.system('vncserver :%s' %(vncdisplay))
 		return ':%s.0' %(vncdisplay)
 
 

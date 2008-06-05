@@ -1,16 +1,19 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class scrashme(test.test):
 	version = 1
 
 	# http://www.codemonkey.org.uk/projects/git-snapshots/scrashme/scrashme-2007-07-08.tar.gz
 	def setup(self, tarball = 'scrashme-2007-07-08.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('make')
+		utils.system('make')
 		
 	def execute(self, iterations = 1, args_list = ''):
 		if len(args_list) != 0:
@@ -21,11 +24,11 @@ class scrashme(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(self.srcdir + '/scrashme ' + args)
+				utils.system(self.srcdir + '/scrashme ' + args)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(self.srcdir + '/scrashme ' + args)
+			utils.system(self.srcdir + '/scrashme ' + args)
 			profilers.stop(self)
 			profilers.report(self)

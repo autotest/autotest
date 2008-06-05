@@ -1,16 +1,17 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils
+
 
 class fs_mark(test.test):
 	version = 1
 
 	# http://developer.osdl.org/dev/doubt/fs_mark/archive/fs_mark-3.2.tgz
 	def setup(self, tarball = 'fs_mark-3.2.tgz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('make')
+		utils.system('make')
 		
 	def execute(self, dir, iterations = 2, args = None):
 		os.chdir(self.srcdir)
@@ -20,11 +21,11 @@ class fs_mark(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system('./fs_mark -d %s %s' %(dir, args))
+				utils.system('./fs_mark -d %s %s' %(dir, args))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system('./fs_mark -d %s %s' %(dir, args))
+			utils.system('./fs_mark -d %s %s' %(dir, args))
 			profilers.stop(self)
 			profilers.report(self)

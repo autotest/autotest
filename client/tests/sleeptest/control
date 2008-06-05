@@ -1,4 +1,9 @@
-TIME="SHORT"
+AUTHOR = "Autotest Team"
+NAME = "Sleeptest"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
 
 DOC = """
 This test simply sleeps for 1 second.  It's a good way to test profilers and
