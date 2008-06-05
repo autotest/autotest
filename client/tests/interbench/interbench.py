@@ -1,3 +1,4 @@
+import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
@@ -7,7 +8,7 @@ class interbench(test.test):
 
 	# http://www.kernel.org/pub/linux/kernel/people/ck/apps/interbench/interbench-0.30.tar.bz2
 	def setup(self, tarball = 'interbench-0.30.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)

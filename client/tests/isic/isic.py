@@ -1,3 +1,4 @@
+import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
@@ -12,7 +13,7 @@ class isic(test.test):
 		self.job.setup_dep(['libnet'])
 
 	def setup(self, tarball = 'isic-0.06.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)

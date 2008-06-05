@@ -2,7 +2,7 @@ __author__ = """Copyright Google, Peter Dahl, Martin J. Bligh   2007"""
 
 import os, sys, re, glob, math
 from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import utils, error
 
 super_root = "/dev/cpuset"
 
@@ -61,13 +61,13 @@ def rounded_memtotal():
 def my_container_name():
 	# Get current process's inherited or self-built container name
 	#   within /dev/cpuset.  Is '/' for root container, '/sys', etc. 
-	return autotest_utils.read_one_line('/proc/%i/cpuset' % os.getpid())
+	return utils.read_one_line('/proc/%i/cpuset' % os.getpid())
 
 
 def get_mem_nodes(container_full_name):
 	file_name = os.path.join(container_full_name, "mems")
 	if os.path.exists(file_name):
-		return rangelist_to_list(autotest_utils.read_one_line(file_name))
+		return rangelist_to_list(utils.read_one_line(file_name))
 	else:
 		return []
 
@@ -110,7 +110,7 @@ def mbytes_per_mem_node():
 def get_cpus(container_full_name):
 	file_name = os.path.join(container_full_name, "cpus")
 	if os.path.exists(file_name):
-		return rangelist_to_list(autotest_utils.read_one_line(file_name))
+		return rangelist_to_list(utils.read_one_line(file_name))
 	else:
 		return []
 
@@ -126,8 +126,8 @@ def get_tasks(setname):
 
 def print_one_cpuset(name):
 	dir = os.path.join('/dev/cpuset', name)
-	cpus = autotest_utils.read_one_line(dir + '/cpus')
-	mems = autotest_utils.read_one_line(dir + '/mems')
+	cpus = utils.read_one_line(dir + '/cpus')
+	mems = utils.read_one_line(dir + '/mems')
 	node_size_ = int(mbytes_per_mem_node()) << 20
 	memtotal = node_size_ * len(rangelist_to_list(mems))
 	tasks = ','.join(get_tasks(dir))
@@ -165,7 +165,7 @@ class cpuset:
 		parent_t = os.path.join(self.root, 'tasks')
 		# Transfer survivors (and self) to parent
 		for task in get_tasks(self.cpudir):
-			autotest_utils.write_one_line(parent_t, task)
+			utils.write_one_line(parent_t, task)
 		os.rmdir(self.cpudir)
 		if os.path.exists(self.cpudir):
 			raise error.AutotestError('Could not delete container '
@@ -247,9 +247,9 @@ class cpuset:
 			mems = mems[-nodes_needed:]
 			mems_spec = ','.join(['%d' % x for x in mems])
 			os.mkdir(self.cpudir)
-			autotest_utils.write_one_line(os.path.join(self.cpudir,
+			utils.write_one_line(os.path.join(self.cpudir,
 					'mem_exclusive'), '1')
-			autotest_utils.write_one_line(os.path.join(self.cpudir,
+			utils.write_one_line(os.path.join(self.cpudir,
 								   'mems'),
 						      mems_spec)
 			# Above sends err msg to client.log.0, but no exception,
@@ -264,10 +264,10 @@ class cpuset:
 
 		# add specified cpu cores and own task pid to container:
 		cpu_spec = ','.join(['%d' % x for x in cpus])
-		autotest_utils.write_one_line(os.path.join(self.cpudir,
+		utils.write_one_line(os.path.join(self.cpudir,
 							   'cpus'),
 					      cpu_spec)
-		autotest_utils.write_one_line(os.path.join(self.cpudir,
+		utils.write_one_line(os.path.join(self.cpudir,
 							   'tasks'),
 					      "%d" % job_pid)
 		self.display()

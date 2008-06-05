@@ -1,3 +1,4 @@
+import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils, error
 
@@ -7,7 +8,7 @@ class netperf2(test.test):
 
 	# ftp://ftp.netperf.org/netperf/netperf-2.4.1.tar.gz
 	def setup(self, tarball = 'netperf-2.4.1.tar.gz'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)

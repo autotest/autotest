@@ -32,7 +32,7 @@ class aio_dio_bugs(test.test):
 		os.chdir(self.tmpdir)
 		libs = self.autodir + '/deps/libaio/lib/'
 		ld_path = autotest_utils.prepend_path(libs,
-		                                     environ('LD_LIBRARY_PATH'))
+                                      autotest_utils.environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
 		for test in tests:
 			cmd = self.srcdir + '/' + test[name] + ' ' \

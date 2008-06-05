@@ -1,7 +1,6 @@
-import os, sys
-import subprocess
+import os, sys, subprocess
 from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, errors
+from autotest_lib.client.common_lib import utils, error
 
 
 class disktest(test.test):
@@ -26,7 +25,7 @@ class disktest(test.test):
 
 
 	def execute(self, disks = None, gigabytes = None,
-						chunk_mb = memtotal() / 1024):
+				chunk_mb = autotest_utils.memtotal() / 1024):
 		os.chdir(self.srcdir)
 
 		if not disks:
