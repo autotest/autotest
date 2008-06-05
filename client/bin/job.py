@@ -9,19 +9,15 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 import os, sys, re, pickle, shutil, time, traceback, types, copy
 
 # autotest stuff
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
+from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
+from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
 from autotest_lib.client.common_lib import error, barrier, logging, utils
-
-import parallel, kernel, xen, test, profilers, filesystem, fd_stack, boottool
-import harness, config, sysinfo, cpuset
-
-
 
 JOB_PREAMBLE = """
 from common.error import *
 from autotest_utils import *
 """
-
 
 class StepError(error.AutotestError):
 	pass

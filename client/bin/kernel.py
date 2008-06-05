@@ -1,9 +1,9 @@
 __author__ = """Copyright Martin J. Bligh, 2006"""
 
-import os, os.path, shutil, copy, pickle, re, glob, time
-import kernel_config, test, os_dep, kernelexpand
-from fd_stack import tee_output_logdir_mark
-import autotest_utils
+import os, shutil, copy, pickle, re, glob, time
+from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
+from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
+from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import logging, utils
 
 
