@@ -25,6 +25,10 @@ from autotest_lib.server import utils
 import remote, bootloader
 
 
+class PermissionDeniedError(error.AutoservRunError):
+	pass
+
+
 class SSHHost(remote.RemoteHost):
 	"""
 	This class represents a remote machine controlled through an ssh 
@@ -306,13 +310,45 @@ class SSHHost(remote.RemoteHost):
 		return SSH_BASE_COMMAND % connect_timeout
 
 
-	def ssh_command(self, connect_timeout=30):
+	def ssh_command(self, connect_timeout=30, options=''):
 		"""Construct an ssh command with proper args for this host."""
 		ssh = self.ssh_base_command(connect_timeout)
-		return r'%s -l %s -p %d %s' % (ssh,
-					       self.user,
-					       self.port,
-					       self.hostname)
+		return r'%s %s -l %s -p %d %s' % (ssh,
+		                                  options,
+		                                  self.user,
+		                                  self.port,
+		                                  self.hostname)
+
+
+	def _run(self, command, timeout, ignore_status, stdout, stderr,
+	         connect_timeout, env, options):
+		"""Helper function for run()."""
+
+		ssh_cmd = self.ssh_command(connect_timeout, options)
+		echo_cmd = 'echo Connected. >&2'
+		full_cmd = '%s "%s;%s %s"' % (ssh_cmd, echo_cmd, env,
+		                              utils.sh_escape(command))
+		result = utils.run(full_cmd, timeout, True, stdout, stderr)
+
+		# The error messages will show up in band (indistinguishable
+		# from stuff sent through the SSH connection), so we have the
+		# remote computer echo the message "Connected." before running
+		# any command.  Since the following 2 errors have to do with
+		# connecting, it's safe to do these checks.
+		if result.exit_status == 255:
+			if re.search(r'^ssh: connect to host .* port .*: '
+			             r'Connection timed out\r$', result.stderr):
+				raise error.AutoservSSHTimeout("ssh timed out",
+							       result)
+			if result.stderr == "Permission denied.\r\n":
+				msg = "ssh permission denied"
+				raise PermissionDeniedError(msg, result)
+
+		if not ignore_status and result.exit_status > 0:
+			raise error.AutoservRunError("command execution error",
+						     result)
+
+		return result
 
 
 	def run(self, command, timeout=3600, ignore_status=False,
@@ -339,26 +375,27 @@ class SSHHost(remote.RemoteHost):
 		"""
 		stdout = stdout_tee or sys.stdout
 		stderr = stderr_tee or sys.stdout
-		print "ssh: %s" % (command,)
+		print "ssh: %s" % command
 		env = " ".join("=".join(pair) for pair in self.env.iteritems())
-		full_cmd = '%s "%s %s"' % (self.ssh_command(connect_timeout),
-		                           env, utils.sh_escape(command))
 		try:
-			result = utils.run(full_cmd, timeout, True, stdout, stderr)
-		# we get a CmdError here only if there is timeout of that command.
-		# Catch that and stuff it into AutoservRunError and raise it.
+			try:
+				return self._run(command, timeout,
+				                 ignore_status, stdout,
+				                 stderr, connect_timeout,
+				                 env, '')
+			except PermissionDeniedError:
+				print("Permission denied to ssh; re-running"
+				      "with increased logging:")
+				return self._run(command, timeout,
+				                 ignore_status, stdout,
+				                 stderr, connect_timeout,
+				                 env, '-v -v -v')
 		except error.CmdError, cmderr:
-			raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
-
-		if result.exit_status == 255:  # ssh's exit status for timeout
-			if re.match(r'^ssh: connect to host .* port .*: ' +
-			            r'Connection timed out\r$', result.stderr):
-				raise error.AutoservSSHTimeout("ssh timed out",
-							       result)
-		if not ignore_status and result.exit_status > 0:
-			raise error.AutoservRunError("command execution error",
-						     result)
-		return result
+			# We get a CmdError here only if there is timeout of
+			# that command.  Catch that and stuff it into
+			# AutoservRunError and raise it.
+			raise error.AutoservRunError(cmderr.args[0],
+			                             cmderr.args[1])
 
 
 	def run_short(self, command, **kwargs):
