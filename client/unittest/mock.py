@@ -60,10 +60,15 @@ class function_map(object):
 				self.args.append(equality_comparator(arg))
 
 		self.dargs = dargs
+		self.error = None
 
 
 	def and_return(self, return_val):
 		self.return_val = return_val
+
+
+	def and_raises(self, error):
+		self.error = error
 
 
 	def match(self, *args, **dargs):
@@ -94,6 +99,7 @@ class mock_function(object):
 		self.symbol = symbol
 		self.record = record
 		self.playback = playback
+
 
 
 	def __call__(self, *args, **dargs):
@@ -235,7 +241,10 @@ class mock_god:
 
 			# this is the expected call so pop it and return
 			self.recording.popleft()
-			return func_call.return_val
+			if func_call.error:
+				raise func_call.error
+			else:
+				return func_call.return_val
 		else:
 			msg = ("unexpected call: %s"
 			       % (_dump_function_call(symbol, args, dargs)))

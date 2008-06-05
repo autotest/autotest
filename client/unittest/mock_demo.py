@@ -4,6 +4,11 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 import mock
 
+
+class MyError(Exception):
+	pass
+
+
 class A(object):
 	var = 8
 
@@ -33,6 +38,14 @@ class C(B):
 		return u
 
 
+class D(C):
+	def method6(self, error):
+		if error:
+			raise MyError("woops")
+		else:
+			return 10
+
+
 # say we want to test that do_stuff is doing what we think it is doing
 def do_stuff(a, b, func):
 	print b.method1()
@@ -43,6 +56,14 @@ def do_stuff(a, b, func):
 	print b.method4(1, 4)
 	print b.method2(3)
 	print b.method2("hello")
+
+
+def do_more_stuff(d):
+	print d.method6(False)
+	try:
+		d.method6(True)
+	except:
+		print "caught error"
 
 
 def main():
@@ -92,6 +113,15 @@ def main():
 
 	# check playback
 	print "answer = %s" % (answer)
+	print god.check_playback()
+
+	# check exception returns too
+	m3 = god.create_mock_class(D, "D")
+	m3.method6.expect_call(False).and_return(10)
+	m3.method6.expect_call(True).and_raises(MyError("woops"))
+
+	do_more_stuff(m3)
+
 	print god.check_playback()
 
 
