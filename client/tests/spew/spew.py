@@ -8,7 +8,7 @@ class spew(test.test):
 
 	# ftp://ftp.berlios.de/pub/spew/1.0.5/spew-1.0.5.tgz
 	def setup(self, tarball = 'spew-1.0.5.tgz'):
-		self.tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		self.tarball = utils.unmap_url(self.bindir, tarball,
 		                                        self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 

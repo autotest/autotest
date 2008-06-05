@@ -373,7 +373,7 @@ def running_config():
 	"""
 	Return path of config file of the currently running kernel
 	"""
-	version = system_output('uname -r')
+	version = utils.system_output('uname -r')
 	for config in ('/proc/config.gz', \
 		       '/boot/config-%s' % version,
 		       '/lib/modules/%s/build/.config' % version):

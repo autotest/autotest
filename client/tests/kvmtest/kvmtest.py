@@ -7,7 +7,7 @@ class kvmtest(test.test):
 	version = 1
 
 	def setup(self, tarball = 'kvm-test.tar.gz'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)

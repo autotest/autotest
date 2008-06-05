@@ -15,11 +15,11 @@ class linus_stress(test.test):
 
 
 	def run_the_test(self, iterations):
-		write_one_line('/proc/sys/vm/dirty_ratio', '4')
-		write_one_line('/proc/sys/vm/dirty_background_ratio', '2')
+		utils.write_one_line('/proc/sys/vm/dirty_ratio', '4')
+		utils.write_one_line('/proc/sys/vm/dirty_background_ratio', '2')
 
 		cmd = os.path.join(self.srcdir, 'linus_stress')
-		args = "%d" % (memtotal() / 32)
+		args = "%d" % (autotest_utils.memtotal() / 32)
 
 		profilers = self.job.profilers
 		if profilers.present():
@@ -34,10 +34,10 @@ class linus_stress(test.test):
 
 
 	def execute(self, iterations = 1):
-		dirty_ratio = autotest_utils.read_one_line('/proc/sys/vm/dirty_ratio')
-		dirty_background_ratio = autotest_utils.read_one_line('/proc/sys/vm/dirty_background_ratio')
+		dirty_ratio = utils.read_one_line('/proc/sys/vm/dirty_ratio')
+		dirty_background_ratio = utils.read_one_line('/proc/sys/vm/dirty_background_ratio')
 		try:
 			self.run_the_test(iterations)
 		finally:
-			autotest_utils.write_one_line('/proc/sys/vm/dirty_ratio', dirty_ratio)
-			autotest_utils.write_one_line('/proc/sys/vm/dirty_background_ratio', dirty_background_ratio)
+			utils.write_one_line('/proc/sys/vm/dirty_ratio', dirty_ratio)
+			utils.write_one_line('/proc/sys/vm/dirty_background_ratio', dirty_background_ratio)

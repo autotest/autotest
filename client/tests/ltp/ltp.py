@@ -1,13 +1,13 @@
 import os
 from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, error
 
 class ltp(test.test):
 	version = 4
 
 	# http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
 	def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -17,11 +17,11 @@ class ltp(test.test):
 		# comment the capability tests if we fail to load the capability module
 		try:
 			utils.system('modprobe capability')
-		except CmdError, detail:
+		except error.CmdError, detail:
 			utils.system('patch -p1 < ../ltp_capability.patch')
 
 		utils.system('cp ../scan.c pan/')   # saves having lex installed
-		utils.system('make -j %d' % count_cpus())
+		utils.system('make -j %d' % autotest_utils.count_cpus())
 		utils.system('yes n | make install')
 
 

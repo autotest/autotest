@@ -11,7 +11,7 @@ class posixtest(test.test):
 	version = 1
 	# http://ufpr.dl.sourceforge.net/sourceforge/posixtest/posixtestsuite-1.5.2.tar.gz
 	def setup(self, tarball = 'posixtestsuite-1.5.2.tar.gz'):
-		self.posix_tarball = autotest_utils.unmap_url(self.bindir,
+		self.posix_tarball = utils.unmap_url(self.bindir,
 		                                              tarball,
 		                                              self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(self.posix_tarball,

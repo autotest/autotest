@@ -7,13 +7,13 @@ class cpu_hotplug(test.test):
 
 	# http://developer.osdl.org/dev/hotplug/tests/lhcs_regression-1.6.tgz
 	def setup(self, tarball = 'lhcs_regression-1.6.tgz'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		
 	def execute(self):
 		# Check if the kernel supports cpu hotplug
-		if running_config():
+		if autotest_utils.running_config():
 			autotest_utils.check_for_kernel_feature('HOTPLUG_CPU')
 		
 		# Check cpu nums, if equals 1, quit.
@@ -26,10 +26,10 @@ class cpu_hotplug(test.test):
 		for cpu in cpu_online_map():
 			if os.path.isfile('/sys/devices/system/cpu/cpu%s/online' % cpu):
 				utils.system('echo 0 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1)
-				utils.system('dmesg -c'
+				utils.system('dmesg -c')
 				time.sleep(3)
-				utils.system('echo 1 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1
-				utils.system('dmesg -c'
+				utils.system('echo 1 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1)
+				utils.system('dmesg -c')
 				time.sleep(3)
 		
 		# Begin this cpu hotplug test big guru.

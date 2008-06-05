@@ -1,3 +1,4 @@
+import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils, error
 
@@ -46,8 +47,8 @@ class pktgen(test.test):
 		file.write(command + '\n');
 		file.close
 
-		if not grep('Result: OK', self.pgdev):
-			if not grep('Result: NA', self.pgdev):
+		if not autotest_utils.grep('Result: OK', self.pgdev):
+			if not autotest_utils.grep('Result: NA', self.pgdev):
 				utils.system('cat ' + self.pgdev)
 				# raise UnhandledError('Result not OK')
 

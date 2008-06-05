@@ -8,7 +8,7 @@ class stress(test.test):
 
 	# http://weather.ou.edu/~apw/projects/stress/stress-0.18.8.tar.gz
 	def setup(self, tarball = 'stress-0.18.8.tar.gz'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -19,7 +19,7 @@ class stress(test.test):
 
 	def execute(self, iterations = 1, args = ''):
 		if not args:
-			threads = 2*count_cpus()
+			threads = 2*autotest_utils.count_cpus()
 			args = '-c %d -i %d -m %d -d %d -t 60 -v' % \
 				(threads, threads, threads, threads)
 
