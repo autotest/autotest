@@ -420,6 +420,7 @@ class ModelExtensions(object):
 		 field name changes the sort to descending order.
 		-extra_args: keyword args to pass to query.extra() (see Django
 		 DB layer documentation)
+		 -extra_where: extra WHERE clause to append
 		"""
 		query_start = filter_data.pop('query_start', None)
 		query_limit = filter_data.pop('query_limit', None)
@@ -427,7 +428,10 @@ class ModelExtensions(object):
 			raise ValueError('Cannot pass query_start without '
 					 'query_limit')
 		sort_by = filter_data.pop('sort_by', [])
-		extra_args = filter_data.pop('extra_args', None)
+		extra_args = filter_data.pop('extra_args', {})
+		extra_where = filter_data.pop('extra_where', None)
+		if extra_where:
+			extra_args.setdefault('where', []).append(extra_where)
 
 		# filters
 		query_dict = {}

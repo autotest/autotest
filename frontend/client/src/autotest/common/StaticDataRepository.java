@@ -1,7 +1,5 @@
-package autotest.afe;
+package autotest.common;
 
-import autotest.common.JsonRpcCallback;
-import autotest.common.JsonRpcProxy;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
@@ -13,7 +11,7 @@ import com.google.gwt.json.client.JSONValue;
  * storage.
  */
 public class StaticDataRepository {
-    interface FinishedCallback {
+    public interface FinishedCallback {
         public void onFinished();
     }
     // singleton

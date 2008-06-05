@@ -2,6 +2,11 @@ package autotest.common;
 
 import autotest.common.ui.NotifyManager;
 
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONException;
 import com.google.gwt.json.client.JSONNull;
@@ -10,8 +15,6 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.HTTPRequest;
-import com.google.gwt.user.client.ResponseTextHandler;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -24,7 +27,7 @@ public class JsonRpcProxy {
     
     protected NotifyManager notify = NotifyManager.getInstance();
     
-    protected String url;
+    protected RequestBuilder requestBuilder;
     
     // singleton
     private JsonRpcProxy() {}
@@ -37,7 +40,7 @@ public class JsonRpcProxy {
      * Set the URL to which requests are sent.
      */
     public void setUrl(String url) {
-        this.url = url;
+        requestBuilder = new RequestBuilder(RequestBuilder.POST, url);
     }
 
     protected JSONArray processParams(JSONObject params) {
@@ -60,51 +63,70 @@ public class JsonRpcProxy {
      * @param method name of the method to call
      * @param params dictionary of parameters to pass
      * @param callback callback to be notified of RPC call results
-     * @return true if the call was successfully initiated
      */
-    public boolean rpcCall(String method, JSONObject params,
-                           final JsonRpcCallback callback) {
-        //GWT.log("RPC " + method, null);
-        //GWT.log("args: " + params, null);
+    public void rpcCall(String method, JSONObject params,
+                        final JsonRpcCallback callback) {
         JSONObject request = new JSONObject();
         request.put("method", new JSONString(method));
         request.put("params", processParams(params));
         request.put("id", new JSONNumber(0));
-        
+
         notify.setLoading(true);
 
-        boolean success = HTTPRequest.asyncPost(url, 
-                                                request.toString(),
-                                                new ResponseTextHandler() {
-            public void onCompletion(String responseText) {
-                //GWT.log("Response: " + responseText, null);
-                
-                notify.setLoading(false);
-                
-                JSONValue responseValue = null;
-                try {
-                    responseValue = JSONParser.parse(responseText);
-                }
-                catch (JSONException exc) {
-                    notify.showError(exc.toString(), responseText);
-                    return;
-                }
-                
-                JSONObject responseObject = responseValue.isObject();
-                JSONValue error = responseObject.get("error");
-                if (error == null) {
-                    notify.showError("Bad JSON response", responseText);
-                    return;
-                }
-                else if (error.isObject() != null) {
-                    callback.onError(error.isObject());
-                    return;
-                }
+        try {
+          requestBuilder.sendRequest(request.toString(),
+                                     new RpcHandler(callback));
+        }
+        catch (RequestException e) {
+            notify.showError("Unable to connect to server");
+        }
+    }
 
-                JSONValue result = responseObject.get("result");
-                callback.onSuccess(result);
+    class RpcHandler implements RequestCallback {
+        private JsonRpcCallback callback;
+
+        public RpcHandler(JsonRpcCallback callback) {
+            this.callback = callback;
+        }
+
+        public void onError(Request request, Throwable exception) {
+            notify.showError("Unable to make RPC call", exception.toString());
+        }
+
+        public void onResponseReceived(Request request, Response response) {
+            notify.setLoading(false);
+
+            String responseText = response.getText();
+            int statusCode = response.getStatusCode();
+            if (statusCode != 200) {
+                notify.showError("Received error " +
+                                 Integer.toString(statusCode) + " " +
+                                 response.getStatusText(),
+                                 responseText);
             }
-        });
-        return success;
+
+            JSONValue responseValue = null;
+            try {
+                responseValue = JSONParser.parse(responseText);
+            }
+            catch (JSONException exc) {
+                notify.showError(exc.toString(), responseText);
+                return;
+            }
+
+            JSONObject responseObject = responseValue.isObject();
+            JSONValue error = responseObject.get("error");
+            if (error == null) {
+                notify.showError("Bad JSON response", responseText);
+                return;
+            }
+            else if (error.isObject() != null) {
+                callback.onError(error.isObject());
+                return;
+            }
+
+            JSONValue result = responseObject.get("result");
+            callback.onSuccess(result);
+        }
     }
 }

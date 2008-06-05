@@ -1,5 +1,7 @@
 package autotest.afe;
 
+import autotest.common.StaticDataRepository;
+
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;

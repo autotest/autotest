@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.common.StaticDataRepository;
 import autotest.common.table.SimpleFilter;
 
 import com.google.gwt.json.client.JSONValue;

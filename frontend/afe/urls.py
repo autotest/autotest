@@ -19,7 +19,7 @@ debug_pattern_list = [
                                     'www')}),
     # redirect / to compiled client
     (r'^$', 'django.views.generic.simple.redirect_to',
-     {'url': 'client/afeclient.ClientMain/ClientMain.html'}),
+     {'url': 'client/autotest.AfeClient/AfeClient.html'}),
 
     # redirect /tko to local apache server
     (r'^(?P<path>tko/.*)$',
