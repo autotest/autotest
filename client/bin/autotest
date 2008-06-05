@@ -6,8 +6,9 @@ from common.check_version import check_python_version
 check_python_version()
 
 import os, sys, shutil
-import job, kernel, test
 from optparse import OptionParser
+from autotest_lib.client.bin import job
+
 
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
