@@ -284,12 +284,26 @@ class base_job:
 			raise TypeError("Test name is invalid. "
 			                "Switched arguments?")
 		(group, testname) = test.testname(url)
-		tag = dargs.pop('tag', None)
-		container = dargs.pop('container', None)
+		namelen = len(testname)
+		dargs = dargs.copy()
+		tntag = dargs.pop('tag', None)
+		if tntag:  # testname tag is included in reported test name
+			testname += '.' + tntag
 		subdir = testname
-		if tag:
-			subdir += '.' + tag
+		sdtag = dargs.pop('subdir_tag', None)
+		if sdtag:  # subdir-only tag is not included in reports
+			subdir = subdir + '.' + sdtag
+		tag = subdir[namelen+1:]    # '' if none
 
+		outputdir = os.path.join(self.resultdir, subdir)
+		if os.path.exists(outputdir):
+			msg = ("%s already exists, test <%s> may have"
+				" already run with tag <%s>" 
+				% (outputdir, testname, tag) )
+			raise error.TestError(msg)
+		os.mkdir(outputdir)
+	
+		container = dargs.pop('container', None)
 		if container:
 			cname = container.get('name', None)
 			if not cname:   # get old name
@@ -324,7 +338,7 @@ class base_job:
 				self.record('GOOD', subdir, testname,
 					    'completed successfully')
 
-		result, exc_info = self.__rungroup(subdir, group_func)
+		result, exc_info = self.__rungroup(subdir, testname, group_func)
 		if container:
 			self.release_container()
 		if exc_info and isinstance(exc_info[1], error.TestError):
@@ -335,10 +349,12 @@ class base_job:
 			return True
 
 
-	def __rungroup(self, name, function, *args, **dargs):
+	def __rungroup(self, subdir, testname, function, *args, **dargs):
 		"""\
-		name:
+		subdir:
 		        name of the group
+		testname: 
+			name of the test to run, or support step
 		function:
 			subroutine to run
 		*args:
@@ -352,19 +368,19 @@ class base_job:
 
 		result, exc_info = None, None
 		try:
-			self.record('START', None, name)
+			self.record('START', subdir, testname)
 			self._increment_group_level()
 			result = function(*args, **dargs)
 			self._decrement_group_level()
-			self.record('END GOOD', None, name)
+			self.record('END GOOD', subdir, testname)
 		except error.TestNAError, e:
 			self._decrement_group_level()
-			self.record('END TEST_NA', None, name, str(e))
+			self.record('END TEST_NA', subdir, testname, str(e))
 		except Exception, e:
 			exc_info = sys.exc_info()
 			self._decrement_group_level()
 			err_msg = str(e) + '\n' + traceback.format_exc()
-			self.record('END FAIL', None, name, err_msg)
+			self.record('END FAIL', subdir, testname, err_msg)
 
 		return result, exc_info
 
@@ -383,7 +399,15 @@ class base_job:
 		if tag:
 			name = tag
 
-		result, exc_info = self.__rungroup(name, function,
+		outputdir = os.path.join(self.resultdir, name)
+		if os.path.exists(outputdir):
+			msg = ("%s already exists, test <%s> may have"
+				" already run with tag <%s>"
+				% (outputdir, name, name) )
+			raise error.TestError(msg)
+		os.mkdir(outputdir)
+
+		result, exc_info = self.__rungroup(name, name, function,
 						   *args, **dargs)
 
 		# if there was a non-TestError exception, raise it
@@ -843,9 +867,6 @@ class base_job:
 		# log to the subdir status log (if subdir is set)
 		if subdir:
 			dir = os.path.join(self.resultdir, subdir)
-			if not os.path.exists(dir):
-				os.mkdir(dir)
-
 			status_file = os.path.join(dir,
 						   self.DEFAULT_LOG_FILENAME)
 			open(status_file, "a").write(msg + "\n")
@@ -991,4 +1012,5 @@ except ImportError:
 
 class job(site_job):
 	pass
+
 
