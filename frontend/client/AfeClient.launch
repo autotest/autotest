@@ -15,6 +15,7 @@
 </listAttribute>
 <booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="false"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.google.gwt.dev.GWTShell"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-out www http://localhost:8000/afe/server/afeclient.ClientMain/ClientMain.html"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-out www http://localhost:8000/afe/server/autotest.AfeClient/AfeClient.html"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="AfeClient"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xmx256M"/>
 </launchConfiguration>
