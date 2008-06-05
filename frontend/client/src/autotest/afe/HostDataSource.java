@@ -1,11 +1,11 @@
-package afeclient.client;
+package autotest.afe;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-import afeclient.client.table.RpcDataSource;
+import autotest.common.table.RpcDataSource;
 
 public class HostDataSource extends RpcDataSource {
     protected static final String LOCKED_TEXT = "locked_text";
@@ -24,7 +24,7 @@ public class HostDataSource extends RpcDataSource {
     }
 
     protected void processHost(JSONObject host) {
-        host.put(LOCKED_TEXT, Utils.getLockedText(host));
+        host.put(LOCKED_TEXT, AfeUtils.getLockedText(host));
         
         JSONString jsonPlatform = host.get("platform").isString();
         String platform = "";

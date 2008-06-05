@@ -1,9 +1,9 @@
-package afeclient.client;
+package autotest.afe;
 
 
 
-import afeclient.client.table.DataSource;
-import afeclient.client.table.DynamicTable;
+import autotest.common.table.DataSource;
+import autotest.common.table.DynamicTable;
 
 public class HostTable extends DynamicTable {
     public static final String[][] HOST_COLUMNS = {

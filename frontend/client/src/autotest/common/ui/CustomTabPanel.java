@@ -1,4 +1,4 @@
-package afeclient.client;
+package autotest.common.ui;
 
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DeckPanel;
@@ -31,5 +31,13 @@ public class CustomTabPanel extends Composite {
         container.setCellHeight(tabDeck, "100%");
         
         initWidget(container);
+    }
+
+    public TabPanel getTabPanel() {
+        return tabPanel;
+    }
+
+    public Panel getOtherWidgetsPanel() {
+        return otherWidgetsPanel;
     }
 }

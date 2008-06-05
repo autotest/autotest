@@ -1,8 +1,8 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.Paginator;
-import afeclient.client.SimpleCallback;
-import afeclient.client.table.DataSource.DataCallback;
+import autotest.common.SimpleCallback;
+import autotest.common.table.DataSource.DataCallback;
+import autotest.common.ui.Paginator;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;

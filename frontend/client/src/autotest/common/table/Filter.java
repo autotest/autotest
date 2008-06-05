@@ -1,6 +1,6 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.SimpleCallback;
+import autotest.common.SimpleCallback;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Widget;

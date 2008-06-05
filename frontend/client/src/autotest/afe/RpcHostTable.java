@@ -1,6 +1,6 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.SimpleFilter;
+import autotest.common.table.SimpleFilter;
 
 import com.google.gwt.json.client.JSONValue;
 

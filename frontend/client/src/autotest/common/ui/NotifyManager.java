@@ -1,4 +1,4 @@
-package afeclient.client;
+package autotest.common.ui;
 
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosurePanel;

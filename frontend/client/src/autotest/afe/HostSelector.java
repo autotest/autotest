@@ -1,12 +1,14 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.ArrayDataSource;
-import afeclient.client.table.DataSource;
-import afeclient.client.table.SelectionManager;
-import afeclient.client.table.TableDecorator;
-import afeclient.client.table.DataSource.DefaultDataCallback;
-import afeclient.client.table.DynamicTable.DynamicTableListener;
-import afeclient.client.table.SelectionManager.SelectionListener;
+import autotest.common.JSONArrayList;
+import autotest.common.table.ArrayDataSource;
+import autotest.common.table.DataSource;
+import autotest.common.table.SelectionManager;
+import autotest.common.table.TableDecorator;
+import autotest.common.table.DataSource.DefaultDataCallback;
+import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.SelectionManager.SelectionListener;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -128,7 +130,7 @@ public class HostSelector {
             public void onClick(Widget sender) {
                 int selected = metaLabelSelect.getSelectedIndex();
                 String labelName = metaLabelSelect.getItemText(selected);
-                String label = Utils.decodeLabelName(labelName);
+                String label = AfeUtils.decodeLabelName(labelName);
                 String number = metaNumber.getText();
                 try {
                     Integer.parseInt(number);
@@ -188,7 +190,7 @@ public class HostSelector {
     }
     
     protected void populateLabels(ListBox list) {
-        String[] labelNames = Utils.getLabelStrings();
+        String[] labelNames = AfeUtils.getLabelStrings();
         for(int i = 0; i < labelNames.length; i++) {
             list.addItem(labelNames[i]);
         }

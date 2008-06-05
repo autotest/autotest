@@ -1,4 +1,6 @@
-package afeclient.client;
+package autotest.common.ui;
+
+import autotest.common.SimpleCallback;
 
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;

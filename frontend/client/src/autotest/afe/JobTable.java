@@ -1,8 +1,8 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.DataSource;
-import afeclient.client.table.DynamicTable;
-import afeclient.client.table.RpcDataSource;
+import autotest.common.table.DataSource;
+import autotest.common.table.DynamicTable;
+import autotest.common.table.RpcDataSource;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -28,7 +28,7 @@ public class JobTable extends DynamicTable {
 
     protected void preprocessRow(JSONObject row) {
         JSONObject counts = row.get("status_counts").isObject();
-        String countString = Utils.formatStatusCounts(counts, "<br>");
+        String countString = AfeUtils.formatStatusCounts(counts, "<br>");
         row.put(HOSTS_SUMMARY, new JSONString(countString));
         
         // remove seconds from created time

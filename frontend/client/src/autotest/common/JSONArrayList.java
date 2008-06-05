@@ -1,4 +1,4 @@
-package afeclient.client;
+package autotest.common;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONValue;

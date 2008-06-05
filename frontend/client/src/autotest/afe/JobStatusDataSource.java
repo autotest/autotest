@@ -1,6 +1,6 @@
-package afeclient.client;
+package autotest.afe;
 
-import afeclient.client.table.RpcDataSource;
+import autotest.common.table.RpcDataSource;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
@@ -55,7 +55,7 @@ class JobStatusDataSource extends RpcDataSource {
         boolean complete = queueEntry.get("complete").isNumber().getValue() > 0;
         if (!complete) {
             queueEntry.put("host_status", host.get("status"));
-            queueEntry.put("host_locked", Utils.getLockedText(host));
+            queueEntry.put("host_locked", AfeUtils.getLockedText(host));
         }
     }
 

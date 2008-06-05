@@ -1,4 +1,6 @@
-package afeclient.client;
+package autotest.common.ui;
+
+import autotest.common.JsonRpcProxy;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -71,7 +73,7 @@ public abstract class DetailView extends TabView {
         idInput.setText(id);
     }
     
-    protected void fetchById(String id) {
+    public void fetchById(String id) {
         try {
             updateObjectId(id);
         }

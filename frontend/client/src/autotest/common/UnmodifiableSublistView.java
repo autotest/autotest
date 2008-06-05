@@ -1,4 +1,4 @@
-package afeclient.client;
+package autotest.common;
 
 import java.util.AbstractList;
 import java.util.List;

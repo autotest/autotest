@@ -1,4 +1,12 @@
-package afeclient.client;
+package autotest.afe;
+
+import autotest.common.JsonRpcCallback;
+import autotest.common.JsonRpcProxy;
+import autotest.common.SimpleCallback;
+import autotest.common.Utils;
+import autotest.common.ui.NotifyManager;
+import autotest.common.ui.SimpleHyperlink;
+import autotest.common.ui.TabView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
