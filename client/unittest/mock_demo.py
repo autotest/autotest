@@ -2,8 +2,7 @@
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import mock
-
+import mock, mock_demo_MUT
 
 class MyError(Exception):
 	pass
@@ -121,8 +120,20 @@ def main():
 	m3.method6.expect_call(True).and_raises(MyError("woops"))
 
 	do_more_stuff(m3)
-
 	print god.check_playback()
+
+	# now check we can mock out a whole class (rather than just an instance)
+	mockA = god.create_mock_class_obj(A, "A")
+	oldA = mock_demo_MUT.A
+	mock_demo_MUT.A = mockA
+
+	m4 = mockA.expect_new()
+	m4.method1.expect_call().and_return(1)
+
+	mock_demo_MUT.do_create_stuff()
+	print god.check_playback()
+
+	mock_demo_MUT.A = oldA
 
 
 if __name__ == "__main__":

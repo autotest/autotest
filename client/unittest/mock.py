@@ -155,11 +155,75 @@ class mock_class(object):
 				setattr(self, symbol, orig_symbol)
 
 
+
 class mock_god:
 	def __init__(self):
 		self.recording = collections.deque()
 		self.errors = []
 		self._stubs = []
+
+
+	def create_mock_class_obj(self, cls, name, default_ret_val=None):
+		record = self.__record_call
+		playback = self.__method_playback
+		errors = self.errors
+
+		class cls_sub(cls):
+			cls_count = 0
+			creations = collections.deque()
+
+			# overwrite the initializer
+			def __init__(self, *args, **dargs):
+				pass
+
+
+			@classmethod
+			def expect_new(typ, *args, **dargs):
+				obj = typ.make_new(*args, **dargs)
+				typ.creations.append(obj)
+				return obj
+
+
+			def __new__(typ, *args, **dargs):
+				if len(typ.creations) == 0:
+					msg = ("not expecting call to %s "
+					       "constructor" % (name))
+					errors.append(msg)
+					return None
+				else:
+					return typ.creations.popleft()
+
+
+			@classmethod
+			def make_new(typ, *args, **dargs):
+				obj = super(cls_sub, typ).__new__(typ, *args,
+								  **dargs)
+
+				typ.cls_count += 1
+				obj_name = "%s_%s" % (name, typ.cls_count)
+				for symbol in dir(obj):
+					if (symbol.startswith("__") and
+                                            symbol.endswith("__")):
+						continue
+
+					orig_symbol = getattr(obj, symbol)
+					if callable(orig_symbol):
+						f_name = ("%s.%s" %
+                                                          (obj_name, symbol))
+						func = mock_function(f_name,
+                                                                default_ret_val,
+					             		record,
+							        playback)
+						setattr(obj, symbol, func)
+					else:
+						setattr(obj, symbol,
+                                                        orig_symbol)
+
+				return obj
+
+
+
+		return cls_sub
 
 
 	def create_mock_class(self, cls, name, default_ret_val=None):
