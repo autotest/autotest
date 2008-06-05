@@ -18,14 +18,25 @@ import sys,re
 # 
 #   02.06.00-rc99 -> 02.06.01-rc01 -> 02.06.01-rc99
 # 
-encode_sep = re.compile('(\D+)')
+encode_sep = re.compile(r'(\D+)')
+
 def version_encode(version):
 	bits = encode_sep.split(version)
-	if len(bits) < 6 or bits[5] != '-rc':
-		bits.insert(5, '99')
-		bits.insert(5, '-rc')
+	n = 9
+	if len(bits[0]) == 0:
+		n += 2
+	if len(bits) == n or (len(bits) > n and bits[n] != '_rc'):
+		# Insert missing _rc99 after 2 . 6 . 18 -smp- 220 . 0 
+		bits.insert(n, '_rc')
+		bits.insert(n+1, '99')
+	n = 5
+	if len(bits[0]) == 0:
+		n += 2
+	if len(bits) <= n or bits[n] != '-rc':
+		bits.insert(n, '-rc')
+		bits.insert(n+1, '99')
 	for n in range(0, len(bits), 2):
-		if len(bits[n]) < 2:
+		if len(bits[n]) == 1:
 			bits[n] = '0' + bits[n]
 
 	return ''.join(bits)
@@ -84,3 +95,21 @@ def version_choose_config(version, candidates):
 		version = version_limit(version, length)
 
 	return None
+
+
+def is_released_kernel(version):
+	# True if version name suggests a released kernel,  
+	#   not some release candidate or experimental kernel name
+	#   e.g.  2.6.18-smp-200.0  includes no other text, underscores, etc
+	version = version.strip('01234567890.-')
+	return version in ['', 'smp', 'smpx', 'pae']
+
+
+def is_release_candidate(version):
+	# True if version names a released kernel or release candidate,
+	#   not some experimental name containing arbitrary text
+	#   e.g.  2.6.18-smp-220.0_rc3  but not  2.6.18_patched
+	version = re.sub(r'[_-]rc\d+', '', version)
+	return is_released_kernel(version)
+
+
