@@ -30,18 +30,6 @@ class base_test:
 
 		self.outputdir = outputdir
 		tagged_testname = os.path.basename(self.outputdir)
-		# check if the outputdir already exists, because if it does
-		# then this test has already been run with the same tag earlier
-		# in this job
-		if os.path.exists(self.outputdir):
-			testname, tag = (tagged_testname + '.').split('.', 1)
-			msg = ("%s already exists, test <%s> may have already "
-			       + "run with tag <%s>") % (tagged_testname,
-							 testname, tag)
-			raise error.TestError(msg)
-		else:
-			os.mkdir(self.outputdir)
-
 		self.resultsdir = os.path.join(self.outputdir, 'results')
 		os.mkdir(self.resultsdir)
 		self.profdir = os.path.join(self.outputdir, 'profiling')
@@ -135,8 +123,12 @@ class base_test:
 
 			try:
 				os.chdir(self.outputdir)
-				version_dict = {'version': self.version}
-				self.write_test_keyval(version_dict)
+				dargs   = dargs.copy()
+				keyvals = dargs.pop('test_attributes', dict())
+				keyvals = keyvals.copy()
+				keyvals['version'] = self.version
+				self.write_test_keyval(keyvals)
+
 				self.execute(*args, **dargs)
 			finally:
 				self.cleanup()
