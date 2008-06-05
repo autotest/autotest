@@ -1,0 +1,28 @@
+NAME   = 'container_twoway.onepair'
+AUTHOR = 'Duane Sand, duanes@google.com'
+TIME   = 'SHORT'
+TEST_TYPE  = 'client'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'benchmark'
+DOC = """\
+	Run any single pair of benchmark tests concurrently on same 
+	host test machine in separate half-machine containers.
+	Programs are typically configured to have roughly-equal runtimes.
+	The test's client control file is not used; the testname.py
+	module is directly invoked by   job.run_test(testname)
+	"""
+
+from autotest_lib.client.bin import nway  
+
+args = {  # configure tests to each run about 2-3 minutes:
+	'dbench'   : {'args': '-t 120'},
+	'tbench'   : {'args': '-t 120'},
+	'iozone'   : {'args': '-a -q 4m -g 64m'},
+	#    iozone record sizes 4Kb..4Mb, file sizes 64Kb..64Mb
+	'unixbench': {'args': '-1 index', 'stepsecs': 5},
+	'membench' : {'args': {'time_limit': '120s', 
+			       'printing_loop_count': 5} }, 
+	# all other tests uses own defaults
+	}
+
+nway.run_twoway_pair(job, 'dbench', 'kernbench', args)
