@@ -1,6 +1,7 @@
 package autotest.afe;
 
 import autotest.common.JsonRpcCallback;
+import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.ListFilter;

@@ -3,6 +3,7 @@ package autotest.afe;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
+import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
@@ -495,8 +496,7 @@ public class CreateJobView extends TabView {
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 
-                boolean success =
-                    rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
+                rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
                     public void onSuccess(JSONValue result) {
                         int id = (int) result.isNumber().getValue();
                         NotifyManager.getInstance().showMessage(
@@ -512,9 +512,6 @@ public class CreateJobView extends TabView {
                         submitJobButton.setEnabled(true);
                     }
                 });
-                
-                if (!success)
-                    submitJobButton.setEnabled(true);
             }
         };
         

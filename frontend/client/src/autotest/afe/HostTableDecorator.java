@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.BooleanFilter;
 import autotest.common.table.ListFilter;
