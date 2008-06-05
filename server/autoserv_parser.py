@@ -1,29 +1,7 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 
-import sys
-
-
-usage = """\
-usage: autoserv
-	[-h, --help]               # This help message
-	[-m machine,[machine,...]] # list of machines to pass to control file
-	[-M machines_file]         # list of machines (from a file)
-	[-c]                       # control file is a client side control
-	[-r resultsdir]            # specify results directory (default '.')
-	[-i]                       # reinstall machines before running the job
-	[-I]                       # reinstall machines after running the job
-	[-b]                       # reboot all specified machines after the job
-	[-l label]                 # label for the job (arbitrary string)
-	[-u user]                  # username for the job (email address)
-	[-v]                       # verify the machines only
-	[-R]                       # repair the machines
-	[-n]                       # no teeing the status to stdout/stderr
-	[-p]                       # write pidfile (.autoserv_execute)
-	[-P jobname]               # parse the results of the job
-	<control file>             # name of the control file to run
-	[args ...]                 # args to pass through to the control file
-"""
+import os, sys, getopt, optparse
 
 
 class base_autoserv_parser(object):
@@ -36,38 +14,75 @@ class base_autoserv_parser(object):
 	"""
 	def __init__(self):
 		self.args = sys.argv[1:]
-		if len(self.args) == 0:
-			print self.get_usage()
-			sys.exit(1)
-		if self.parse_opts('-h') or self.parse_opts('--help'):
-			print self.get_usage()
-			sys.exit(0)
+		self.parser = optparse.OptionParser()
+		self.setup_options()
+		self.parse_args()
+		
+
+	def setup_options(self):
+		self.parser.add_option("-m", action="store", type="string",
+				       dest="machines",
+				       help="list of machines")
+		self.parser.add_option("-M", action="store", type="string",
+				       dest="machines_file",
+				       help="list of machines from file")
+		self.parser.add_option("-c", action="store_true",
+				       dest="client", default=False,
+				       help="control file is client side")
+		self.parser.add_option("-r", action="store", type="string",
+				       dest="results", default='.',
+				       help="specify results directory")
+		self.parser.add_option("-l", action="store", type="string",
+				       dest="label", default='',
+				       help="label for the job")
+		self.parser.add_option("-u", action="store", type="string",
+				       dest="user", 
+				       default=os.environ.get('USER'),
+				       help="username for the job")
+		self.parser.add_option("-P", action="store", type="string",
+				       dest="parse_job", 
+				       default='',
+				       help="parse the results of the job")
+		self.parser.add_option("-i", action="store_true",
+				       dest="install_before", default=False,
+			       help="reinstall machines before running the job")
+		self.parser.add_option("-I", action="store_true",
+				       dest="install_after", default=False,
+			        help="reinstall machines after running the job")
+	        self.parser.add_option("-b", action="store_true",
+				       dest="reboot", default=False,
+			               help="reboot all machines after job")
+		self.parser.add_option("-v", action="store_true",
+				       dest="verify", default=False,
+			               help="verify the machines only")
+		self.parser.add_option("-R", action="store_true",
+				       dest="repair", default=False,
+			               help="repair the machines")
+		self.parser.add_option("-n", action="store_true",
+				       dest="no_tee", default=False,
+			              help="no teeing the status to stdout/err")
+		self.parser.add_option("-p", action="store_true",
+				       dest="write_pidfile", default=False,
+			              help="write pidfile (.autoserv_execute)")
+		self.parser.add_option("--ssh-user", action="store",
+				       type="string", dest="ssh_user",
+				       default="root",
+				       help=("specify the user for ssh"
+				       "connections"))
+		self.parser.add_option("--ssh-port", action="store",
+				       type="int", dest="ssh_port",
+				       default=22,
+				       help=("specify the port to use for "
+					     "ssh connections"))
+		self.parser.add_option("--ssh-pass", action="store",
+				       type="string", dest="ssh_pass",
+				       default="",
+				       help=("specify the password to use "
+					     "for ssh connections"))
 
 
-	def get_usage(self):
-		return usage
-
-
-	def parse_opts(self, flag):
-		if self.args.count(flag):
-			idx = self.args.index(flag)
-			self.args[idx : idx+1] = []
-			return True
-		else:
-			return False
-
-
-	def parse_opts_param(self, flag, default = None, split = False):
-		if self.args.count(flag):
-			idx = self.args.index(flag)
-			ret = self.args[idx+1]
-			self.args[idx : idx+2] = []
-			if split:
-				return ret.split(split)
-			else:
-				return ret
-		else:
-			return default
+	def parse_args(self):
+		(self.options, self.args) = self.parser.parse_args()
 
 
 

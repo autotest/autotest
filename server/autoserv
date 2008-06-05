@@ -59,29 +59,24 @@ def run_autoserv(pid_file_manager, results, parser):
 	if not realuser:
 		realuser = 'anonymous'
 
-	machines = parser.parse_opts_param('-m', None, split = ',')
-	machines_file = parser.parse_opts_param('-M', None)
-	label    = parser.parse_opts_param('-l', '')
-	user     = parser.parse_opts_param('-u', realuser)
-	client   = parser.parse_opts('-c')
-	reboot   = parser.parse_opts('-b')
-	install_before = parser.parse_opts('-i')
-	install_after  = parser.parse_opts('-I')
-	verify   = parser.parse_opts('-v')
-	repair   = parser.parse_opts('-R')
-	no_tee   = parser.parse_opts('-n')
-	help     = parser.parse_opts('-h') or parser.parse_opts('--help')
-	parse_job = parser.parse_opts_param('-P', '')
-	ssh_user = parser.parse_opts_param('--ssh-user', 'root')
-	ssh_port = int(parser.parse_opts_param('--ssh-port', '22'))
-	ssh_pass = parser.parse_opts_param('--ssh-pass', '')
-
-	if help is True:
-		print usage
-		sys.exit(0)
+	machines = parser.options.machines.split(',')
+	machines_file = parser.options.machines_file
+	label    = parser.options.label
+	user     = parser.options.user
+	client   = parser.options.client
+	reboot   = parser.options.reboot
+	install_before = parser.options.install_before
+	install_after  = parser.options.install_after
+	verify   = parser.options.verify
+	repair   = parser.options.repair
+	no_tee   = parser.options.no_tee
+	parse_job = parser.options.parse_job
+	ssh_user = parser.options.ssh_user
+	ssh_port = parser.options.ssh_port
+	ssh_pass = parser.options.ssh_pass
 
 	if len(parser.args) < 1 and not verify and not repair:
-		print usage
+		print parser.parser.print_help()
 		sys.exit(1)
 
 	# We have a control file unless it's just a verify/repair job
@@ -147,9 +142,13 @@ def main():
 	# grab the parser
 	parser = autoserv_parser.autoserv_parser
 
-	results  = parser.parse_opts_param('-r', '.')
+	if len(sys.argv) == 1:
+		parser.parser.print_help()
+		sys.exit(1)
+
+	results  = parser.options.results
 	results  = os.path.abspath(results)
-	write_pidfile = parser.parse_opts('-p')
+	write_pidfile = parser.options.write_pidfile
 	if write_pidfile:
 		pid_file_manager.open_pid_file(results)
 
