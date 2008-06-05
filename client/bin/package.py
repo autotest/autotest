@@ -231,7 +231,7 @@ def install(package, nodeps = False):
 	# At this point, the most likely thing to go wrong is that there are 
 	# unmet dependencies for the package. We won't cover this case, at 
 	# least for now.
-	utils.sytem(install_command)
+	utils.system(install_command)
 	return 'Package %s was installed successfuly' % package
 
 
