@@ -1,4 +1,4 @@
-package afeclient.client.table;
+package autotest.common.table;
 
 import com.google.gwt.user.client.ui.SourcesTabEvents;
 import com.google.gwt.user.client.ui.TabBar;

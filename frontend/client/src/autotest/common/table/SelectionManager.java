@@ -1,6 +1,6 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.DynamicTable.DynamicTableListener;
 
 import com.google.gwt.json.client.JSONObject;
 

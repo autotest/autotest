@@ -1,6 +1,4 @@
-package afeclient.client;
-
-import afeclient.client.CreateJobView.JobCreateListener;
+package autotest.afe;
 
 public class SiteClassFactory extends ClassFactory {
 }

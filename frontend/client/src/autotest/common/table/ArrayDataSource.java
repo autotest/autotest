@@ -1,6 +1,6 @@
-package afeclient.client.table;
+package autotest.common.table;
 
-import afeclient.client.UnmodifiableSublistView;
+import autotest.common.UnmodifiableSublistView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;

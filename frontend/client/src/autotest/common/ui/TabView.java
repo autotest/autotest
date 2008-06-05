@@ -1,4 +1,6 @@
-package afeclient.client;
+package autotest.common.ui;
+
+import autotest.common.CustomHistory;
 
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;

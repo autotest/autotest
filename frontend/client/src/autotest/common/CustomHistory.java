@@ -1,4 +1,4 @@
-package afeclient.client;
+package autotest.common;
 
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.HistoryListener;
