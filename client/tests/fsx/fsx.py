@@ -3,7 +3,7 @@
 
 # NOTE - this should also have the ability to mount a filesystem, 
 # run the tests, unmount it, then fsck the filesystem
-
+import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
@@ -13,9 +13,9 @@ class fsx(test.test):
 
 	# http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
 	def setup(self, tarball = 'ext3-tools.tar.gz'):
-		self.tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		self.tarball = utils.unmap_url(self.bindir, tarball,
 		                                        self.tmpdir)
-		autoetst_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+		autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
 		self.job.setup_dep(['libaio'])
 		ldflags = '-L' + self.autodir + '/deps/libaio/lib'
@@ -36,7 +36,7 @@ class fsx(test.test):
 		os.chdir(testdir)
 		libs = self.autodir+'/deps/libaio/lib/'
 		ld_path = autotest_utils.prepend_path(libs,
-		                                   environ('LD_LIBRARY_PATH'))
+                                   autotest_utils.environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
 		cmd = self.srcdir + '/fsx-linux ' + args + ' poo'
 		profilers = self.job.profilers

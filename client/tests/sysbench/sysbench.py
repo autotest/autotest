@@ -8,7 +8,7 @@ class sysbench(test.test):
 
 	# http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
 	def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		self.job.setup_dep(['pgsql', 'mysql'])
@@ -20,11 +20,11 @@ class sysbench(test.test):
 
 		# configure wants to get at pg_config, so add its path
 		utils.system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
-		utils.system('make -j %d' % count_cpus())
+		utils.system('make -j %d' % autotest_utils.count_cpus())
 
 
 	def execute(self, db_type = 'pgsql', build = 1, \
-			num_threads = count_cpus(), max_time = 60, \
+			num_threads = autotest_utils.count_cpus(), max_time = 60, \
 			read_only = 0, args = ''):
 		plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
 		mlib = os.path.join(self.autodir, 'deps/mysql/mysql/lib/mysql')

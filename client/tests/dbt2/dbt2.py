@@ -1,5 +1,6 @@
 import os
 from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
 
 
 # Dbt-2 is a fair-use implementation of the TPC-C benchmark.  The test is 
@@ -10,7 +11,7 @@ class dbt2(test.test):
 
 	# http://osdn.dl.sourceforge.net/sourceforge/osdldbt/dbt2-0.39.tar.gz
 	def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		self.job.setup_dep(['pgsql', 'pgpool', 'mysql'])
@@ -53,7 +54,7 @@ class dbt2(test.test):
 	def execute_mysql(self, args = ''):
 		args = args
 		utils.system(self.srcdir + '.mysql/scripts/mysql/build_db.sh -g -w 1')
-		utils.system(self.srcdir + '.mysql/scripts/run_workload.sh ' + args
+		utils.system(self.srcdir + '.mysql/scripts/run_workload.sh ' + args)
 
  	def execute_pgpool(self, args = ''):
  		utils.system('%s/deps/pgpool/pgpool/bin/pgpool -f %s/../pgpool.conf' \

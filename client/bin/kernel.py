@@ -86,7 +86,7 @@ class kernel:
 		self.build_target = 'bzImage'
 		self.build_image = None
 
-		arch = get_current_kernel_arch()
+		arch = autotest_utils.get_current_kernel_arch()
 		if arch == 's390' or arch == 's390x':
 			self.build_target = 'image'
 		elif arch == 'ia64':
@@ -177,7 +177,7 @@ class kernel:
 			# FIXME: this isn't unique. Append something to it
 			# like wget does if it's not there?
 			print "get_file %s %s %s %s" % (patch, dest, self.src_dir, basename(patch))
-			get_file(patch, dest)
+			utils.get_file(patch, dest)
 			# probably safer to use the command, not python library
 			md5sum = utils.system_output('md5sum ' + dest).split()[0]
 			local_patches.append((patch, dest, md5sum))
@@ -218,7 +218,7 @@ class kernel:
 			os.chdir(os.path.dirname(self.src_dir))
 			# Figure out local destination for tarball
 			tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
-			get_file(base_tree, tarball)
+			utils.get_file(base_tree, tarball)
 			print 'Extracting kernel tarball:', tarball, '...'
 			autotest_utils.extract_tarball_to_dir(tarball,
 			                                      self.build_dir)
@@ -558,7 +558,7 @@ class kernel:
 
 		# If no 'target_arch' given assume native compilation
 		if target_arch == None:
-			target_arch = get_current_kernel_arch()
+			target_arch = autotest_utils.get_current_kernel_arch()
 			if target_arch == 'ppc64':
 				if self.build_target == 'bzImage':
 					self.build_target = 'vmlinux'

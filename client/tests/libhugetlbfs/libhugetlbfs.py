@@ -1,5 +1,5 @@
 import re, os
-from autotest_lib.client.bin import autotest_utils, tests
+from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils, error
 
 class libhugetlbfs(test.test):
@@ -7,7 +7,7 @@ class libhugetlbfs(test.test):
 
 	# http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
 	def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
@@ -25,7 +25,7 @@ class libhugetlbfs(test.test):
 		# Check huge page number
 		pages_available = 0
 		if os.path.exists('/proc/sys/vm/nr_hugepages'):
-			autotest_utils.write_one_line('/proc/sys/vm/nr_hugepages',
+			utils.write_one_line('/proc/sys/vm/nr_hugepages',
 						      str(pages_requested))
 			pages_available = int(open('/proc/sys/vm/nr_hugepages', 'r').readline())
 		else:

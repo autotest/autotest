@@ -1,4 +1,5 @@
-from autotest_lib.client.bin import test
+import os
+from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
 
@@ -7,7 +8,7 @@ class fio(test.test):
 
 	# http://brick.kernel.dk/snaps/fio-1.16.5.tar.bz2
 	def setup(self, tarball = 'fio-1.16.5.tar.bz2'):
-		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		tarball = utils.unmap_url(self.bindir, tarball,
 		                                   self.tmpdir)
 		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
@@ -27,12 +28,12 @@ class fio(test.test):
 		vars = 'LD_LIBRARY_PATH="' + self.autodir + '/deps/libaio/lib"'
 		##args = '-m -o ' + self.resultsdir + '/fio-tio.log ' + self.srcdir + '/examples/tiobench-example';
 		args = '--output ' + self.resultsdir + '/fio-mixed.log ' + self.bindir + '/fio-mixed.job';
-		util.system(vars + ' ./fio ' + args)
+		utils.system(vars + ' ./fio ' + args)
 
 		# Do a profiling run if necessary
 		profilers = self.job.profilers
 		if profilers.present():
 			profilers.start(self)
-			util.system(vars + ' ./fio ' + args)
+			utils.system(vars + ' ./fio ' + args)
 			profilers.stop(self)
 			profilers.report(self)
