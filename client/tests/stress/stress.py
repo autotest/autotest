@@ -1,17 +1,20 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class stress(test.test):
 	version = 1
 
 	# http://weather.ou.edu/~apw/projects/stress/stress-0.18.8.tar.gz
 	def setup(self, tarball = 'stress-0.18.8.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 
 	def execute(self, iterations = 1, args = ''):
@@ -23,12 +26,12 @@ class stress(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				system(self.srcdir + '/src/stress ' + args)
+				utils.system(self.srcdir + '/src/stress ' + args)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(self.srcdir + '/src/stress ' + args)
+			utils.system(self.srcdir + '/src/stress ' + args)
 			profilers.stop(self)
 			profilers.report(self)
 

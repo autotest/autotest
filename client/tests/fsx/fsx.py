@@ -4,16 +4,18 @@
 # NOTE - this should also have the ability to mount a filesystem, 
 # run the tests, unmount it, then fsck the filesystem
 
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class fsx(test.test):
 	version = 3
 
 	# http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
 	def setup(self, tarball = 'ext3-tools.tar.gz'):
-		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
+		self.tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                        self.tmpdir)
+		autoetst_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
 		self.job.setup_dep(['libaio'])
 		ldflags = '-L' + self.autodir + '/deps/libaio/lib'
@@ -23,8 +25,8 @@ class fsx(test.test):
 		self.make_flags = var_ldflags + ' ' + var_cflags
 		
 		os.chdir(self.srcdir)
-		system('patch -p1 < ../fsx-linux.diff')
-		system(self.make_flags + ' make fsx-linux')
+		utils.system('patch -p1 < ../fsx-linux.diff')
+		utils.system(self.make_flags + ' make fsx-linux')
 
 
 	def execute(self, testdir = None, repeat = '100000'):
@@ -33,16 +35,17 @@ class fsx(test.test):
 			testdir = self.tmpdir
 		os.chdir(testdir)
 		libs = self.autodir+'/deps/libaio/lib/'
-		ld_path = prepend_path(libs, environ('LD_LIBRARY_PATH'))
+		ld_path = autotest_utils.prepend_path(libs,
+		                                   environ('LD_LIBRARY_PATH'))
 		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
 		cmd = self.srcdir + '/fsx-linux ' + args + ' poo'
 		profilers = self.job.profilers
 		if not profilers.only():
-			system(var_ld_path + ' ' + cmd)
+			utils.system(var_ld_path + ' ' + cmd)
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(var_ld_path + ' ' + cmd)
+			utils.system(var_ld_path + ' ' + cmd)
 			profilers.stop(self)
 			profilers.report(self)

@@ -1,6 +1,7 @@
-import test
-from autotest_utils import *
-from common.error import *
+import os
+from autotest_lib.client.bin import test
+from autotest_lib.client.common_lib import error
+
 
 class selftest(test.test):
 	version = 1
@@ -28,7 +29,7 @@ class selftest(test.test):
 		print "checkpoint %d %d" % (current, checkpoint)
 
 		if (current != checkpoint):
-			raise JobError("selftest: sequence was " +
+			raise error.JobError("selftest: sequence was " +
 				"%d when %d expected" % (current, checkpoint))
 
 	def __throw(self):

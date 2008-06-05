@@ -1,5 +1,5 @@
-import test, os_dep
-from autotest_utils import *
+import autotest_lib.client.bin import test, os_dep, autotest_utils
+import autotest_lib.client.common_lib import utils
 
 
 def convert_size(values):
@@ -28,13 +28,14 @@ class bonnie(test.test):
 
 	# http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
 	def setup(self, tarball = 'bonnie++-1.03a.tgz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
 		os_dep.command('g++')
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 	def execute(self, testdir = None, iterations = 1, extra_args = '', user = 'root'):
 		if not testdir:
@@ -46,13 +47,14 @@ class bonnie(test.test):
 		profilers = self.job.profilers
 		if not profilers.only():
 			for i in range(iterations):
-				results.append(system_output(cmd,
-							retain_output=True))
+				results.append(utils.system_output(cmd,
+							    retain_output=True))
 
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			results.append(system_output(cmd, retain_output=True))
+			results.append(utils.system_output(cmd,
+			               retain_output=True))
 			profilers.stop(self)
 			profilers.report(self)
 

@@ -1,7 +1,8 @@
-import test
-from autotest_utils import *
 import os, sys
-from subprocess import *
+import subprocess
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils, errors
+
 
 class disktest(test.test):
 	version = 1
@@ -9,10 +10,10 @@ class disktest(test.test):
 	def setup(self):
 		os.mkdir(self.srcdir)
 		os.chdir(self.bindir)
-		system('cp disktest.c src/')
+		utils.system('cp disktest.c src/')
 		os.chdir(self.srcdir)
 		cflags = '-D_FILE_OFFSET_BITS=64 -D _GNU_SOURCE -static -Wall'
-		system('cc disktest.c ' + cflags + ' -o disktest')
+		utils.system('cc disktest.c ' + cflags + ' -o disktest')
 
 
 	def test_one_disk_chunk(self, disk, chunk):
@@ -20,7 +21,7 @@ class disktest(test.test):
 					(self.chunk_mb, disk, self.memory_mb)
 		cmd = "%s/disktest -m %d -f %s/testfile.%d -i -S" % \
 				(self.srcdir, self.chunk_mb, disk, chunk)
-		p = Popen(cmd, shell=True)
+		p = subprocess.Popen(cmd, shell=True)
 		return(p.pid)
 
 
@@ -33,16 +34,16 @@ class disktest(test.test):
 		if not gigabytes:
 			free = 100       # cap it at 100GB by default
 			for disk in disks:
-				free = min(freespace(disk) / 1024**3, free)
+				free = min(autotest_utils.freespace(disk) / 1024**3, free)
 			gigabytes = free
 			print "resizing to %s GB" % gigabytes
 			sys.stdout.flush()
 
 		self.chunk_mb = chunk_mb
-		self.memory_mb = memtotal()/1024
+		self.memory_mb = autotest_utils.memtotal()/1024
 		if self.memory_mb > chunk_mb:
 			e_msg = "Too much RAM (%dMB) for this test to work" % self.memory_mb
-			raise TestError(e_msg)
+			raise error.TestError(e_msg)
 
 		chunks = (1024 * gigabytes) / chunk_mb
 
@@ -57,5 +58,5 @@ class disktest(test.test):
 				if (retval != 0):
 					errors.append(retval)
 			if errors:
-				raise TestError("Errors from children: %s" % errors)
+				raise error.TestError("Errors from children: %s" % errors)
 

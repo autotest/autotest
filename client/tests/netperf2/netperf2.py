@@ -1,17 +1,19 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils, error
+
 
 class netperf2(test.test):
 	version = 1
 
 	# ftp://ftp.netperf.org/netperf/netperf-2.4.1.tar.gz
 	def setup(self, tarball = 'netperf-2.4.1.tar.gz'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 
 	def initialize(self):
@@ -45,7 +47,7 @@ class netperf2(test.test):
 			self.client(script, server_ip, args)
 			job.barrier(client_tag, 'stop',  30).rendevous(*all)
 		else:
-			raise UnhandledError('invalid role specified')
+			raise error.UnhandledError('invalid role specified')
 
 
 	def server_start(self):

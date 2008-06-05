@@ -1,5 +1,5 @@
-import test
-from autotest_utils import *
+from autotest_lib.client.bin import test, kernel
+
 
 class kernelbuild(test.test):
 	version = 1

@@ -1,5 +1,7 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class linus_stress(test.test):
 	version = 1
@@ -7,9 +9,9 @@ class linus_stress(test.test):
 	def setup(self):
 		os.mkdir(self.srcdir)
 		os.chdir(self.bindir)
-		system('cp linus_stress.c src/')
+		utils.system('cp linus_stress.c src/')
 		os.chdir(self.srcdir)
-		system('cc linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
+		utils.system('cc linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
 
 
 	def run_the_test(self, iterations):
@@ -24,7 +26,7 @@ class linus_stress(test.test):
 			profilers.start(self)
 
 		for i in range(iterations):
-			system(cmd + ' ' + args)
+			utils.system(cmd + ' ' + args)
 
 		if profilers.present():
 			profilers.stop(self)
@@ -32,10 +34,10 @@ class linus_stress(test.test):
 
 
 	def execute(self, iterations = 1):
-		dirty_ratio = read_one_line('/proc/sys/vm/dirty_ratio')
-		dirty_background_ratio = read_one_line('/proc/sys/vm/dirty_background_ratio')
+		dirty_ratio = autotest_utils.read_one_line('/proc/sys/vm/dirty_ratio')
+		dirty_background_ratio = autotest_utils.read_one_line('/proc/sys/vm/dirty_background_ratio')
 		try:
 			self.run_the_test(iterations)
 		finally:
-			write_one_line('/proc/sys/vm/dirty_ratio', dirty_ratio)
-			write_one_line('/proc/sys/vm/dirty_background_ratio', dirty_background_ratio)
+			autotest_utils.write_one_line('/proc/sys/vm/dirty_ratio', dirty_ratio)
+			autotest_utils.write_one_line('/proc/sys/vm/dirty_background_ratio', dirty_background_ratio)

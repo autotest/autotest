@@ -1,17 +1,20 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils, error
+
 
 class unixbench(test.test):
 	version = 2
 
 	# http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
 	def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
-		tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(tarball, self.srcdir)
+		tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                   self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 		os.chdir(self.srcdir)
 
-		system('patch -p1 < ../unixbench.patch')
-		system('make')
+		utils.system('patch -p1 < ../unixbench.patch')
+		utils.system('make')
 
 
 	def execute(self, iterations = 1, args = '', stepsecs=0):
@@ -29,20 +32,20 @@ class unixbench(test.test):
 		if not profilers.only():
 			for i in range(iterations):
 				os.chdir(self.srcdir)
-				system(vars + ' ./Run ' + args)
+				utils.system(vars + ' ./Run ' + args)
 				report = open(self.resultsdir + '/report')
 				self.format_results(report, keyval)
 				
 		# Do a profiling run if necessary
 		if profilers.present():
 			profilers.start(self)
-			system(vars + ' ./Run ' + args)
+			utils.system(vars + ' ./Run ' + args)
 			profilers.stop(self)
 			profilers.report(self)
 		
 		# check err string and possible throw
 		if self.err != None:
-			raise TestError(self.err)
+			raise error.TestError(self.err)
 
 	
 	def check_for_error(self, words):

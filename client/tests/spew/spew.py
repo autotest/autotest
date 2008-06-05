@@ -1,17 +1,20 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test, autotest_utils
+from autotest_lib.client.common_lib import utils
+
 
 class spew(test.test):
 	version = 1
 
 	# ftp://ftp.berlios.de/pub/spew/1.0.5/spew-1.0.5.tgz
 	def setup(self, tarball = 'spew-1.0.5.tgz'):
-		self.tarball = unmap_url(self.bindir, tarball, self.tmpdir)
-		extract_tarball_to_dir(self.tarball, self.srcdir)
+		self.tarball = autotest_utils.unmap_url(self.bindir, tarball,
+		                                        self.tmpdir)
+		autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
 		os.chdir(self.srcdir)
-		system('./configure')
-		system('make')
+		utils.system('./configure')
+		utils.system('make')
 
 
 	def execute(self, testdir = None, iterations = 1, filesize='100M', type='write', pattern='random'):
@@ -32,7 +35,7 @@ class spew(test.test):
 		open(self.resultsdir + '/command', 'w').write(cmd + '\n')
 		self.job.stdout.redirect(results)
 		try:
-			system(cmd)
+			utils.system(cmd)
 		finally:
 			self.job.stdout.restore()
 

@@ -1,5 +1,7 @@
-import test
-from autotest_utils import *
+import os
+from autotest_lib.client.bin import test
+from autotest_lib.client.common_lib import utils
+
 
 # tests is a simple array of "cmd" "arguments"
 tests = [["rmaptest", "-h -i100 -n100 -s100 -t100 -V10 -v file1.dat"],
@@ -15,7 +17,7 @@ class rmaptest(test.test):
 
 	def setup(self):
 		os.chdir(self.srcdir)
-		system('gcc -Wall -o rmaptest rmap-test.c')
+		utils.system('gcc -Wall -o rmaptest rmap-test.c')
 
 
 	def execute(self, args = ''):
@@ -23,4 +25,4 @@ class rmaptest(test.test):
 		for test in tests:
 			cmd = self.srcdir + '/' + test[name] + ' ' \
 			      + args + ' ' + test[arglist]
-			system(cmd)
+			utils.system(cmd)
