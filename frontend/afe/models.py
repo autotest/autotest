@@ -270,8 +270,6 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 	Optional:
 	description: arbitrary description of group
 	"""
-	# REMEMBER: whenever ACL membership changes, something MUST call
-	# on_change()
 	name = dbmodels.CharField(maxlength=255, unique=True)
 	description = dbmodels.CharField(maxlength=255, blank=True)
 	users = dbmodels.ManyToManyField(User,
@@ -281,50 +279,6 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 	name_field = 'name'
 	objects = model_logic.ExtendedManager()
-
-
-	def _get_affected_jobs(self):
-		# find incomplete jobs with owners in this ACL
-		jobs = Job.objects.filter_in_subquery(
-		    'login', self.users.all(), subquery_alias='this_acl_users',
-		    this_table_key='owner')
-		jobs = jobs.filter(hostqueueentry__complete=False)
-		return jobs.distinct()
-
-
-	def on_change(self, affected_jobs=None):
-		"""
-		Method to be called every time the ACL group or its membership
-		changes.  affected_jobs is a list of jobs potentially affected
-		by this ACL change; if None, it will be computed from the ACL
-		group.
-		"""
-		if affected_jobs is None:
-			affected_jobs = self._get_affected_jobs()
-		for job in affected_jobs:
-			job.recompute_blocks()
-
-
-	# need to recompute blocks on group deletion
-	def delete(self):
-		# need to get jobs before we delete, but call on_change after
-		affected_jobs = list(self._get_affected_jobs())
-		super(AclGroup, self).delete()
-		self.on_change(affected_jobs)
-
-
-	# if you have a model attribute called "Manipulator", Django will
-	# automatically insert it into the beginning of the superclass list
-	# for the model's manipulators
-	class Manipulator(object):
-		"""
-		Custom manipulator to recompute job blocks whenever ACLs are
-		added or membership is changed through manipulators.
-		"""
-		def save(self, new_data):
-			obj = super(AclGroup.Manipulator, self).save(new_data)
-			obj.on_change()
-			return obj
 
 
 	class Meta:
@@ -449,12 +403,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 		-all hosts not ACL accessible to this job's owner
 		"""
 		job_entries = self.hostqueueentry_set.all()
-		accessible_hosts = Host.objects.filter(
-		    acl_group__users__login=self.owner)
 		query = Host.objects.filter_in_subquery(
 		    'host_id', job_entries, subquery_alias='job_entries')
-		query |= Host.objects.filter_not_in_subquery(
-		    'id', accessible_hosts, subquery_alias='accessible_hosts')
 
 		old_ids = [block.id for block in
 			   self.ineligiblehostqueue_set.all()]

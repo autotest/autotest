@@ -513,10 +513,8 @@ class Dispatcher:
 		    'SELECT DISTINCT h.*, queued_hqe.* FROM hosts h '
 		    # join with running entries
 		    """
-		    LEFT JOIN (SELECT host_id FROM host_queue_entries
-		               WHERE active)
-		    AS active_hqe
-		    ON (h.id = active_hqe.host_id)
+		    LEFT JOIN host_queue_entries AS active_hqe
+		    ON (h.id = active_hqe.host_id AND active_hqe.active)
 		    """ +
 		    extra_join +
 		    # exclude hosts with a running entry
@@ -538,33 +536,40 @@ class Dispatcher:
 	def _get_runnable_nonmetahosts(self):
 		# find queued HQEs scheduled directly against hosts
 		queued_hqe_join = """
-		INNER JOIN (SELECT * FROM host_queue_entries
-		            WHERE not complete AND not active)
-		AS queued_hqe
-		ON (h.id = queued_hqe.host_id)
+		INNER JOIN host_queue_entries AS queued_hqe
+		ON (h.id = queued_hqe.host_id
+		    AND NOT queued_hqe.active AND NOT queued_hqe.complete)
 		"""
 		return self._get_runnable_entries(queued_hqe_join)
 
 
 	def _get_runnable_metahosts(self):
 		# join with labels for metahost matching
-		labels_join = 'INNER JOIN hosts_labels hl ON hl.host_id=h.id'
+		labels_join = 'INNER JOIN hosts_labels hl ON (hl.host_id=h.id)'
 		# find queued HQEs scheduled for metahosts that match idle hosts
 		queued_hqe_join = """
-		INNER JOIN (SELECT * FROM host_queue_entries hqe
-		            WHERE host_id IS NULL
-			    AND not complete AND not active)
-		AS queued_hqe
-		ON (queued_hqe.meta_host=hl.label_id)
+		INNER JOIN host_queue_entries AS queued_hqe
+		ON (queued_hqe.meta_host = hl.label_id
+		    AND queued_hqe.host_id IS NULL
+		    AND NOT queued_hqe.active AND NOT queued_hqe.complete)
 		"""
-		# need to exclude blocks hosts as well for metahosts
+		# need to exclude acl-inaccessible hosts
+		acl_join = """
+		INNER JOIN acl_groups_hosts ON h.id=acl_groups_hosts.host_id
+		INNER JOIN acl_groups_users
+		  ON acl_groups_users.acl_group_id=acl_groups_hosts.acl_group_id
+		INNER JOIN users ON acl_groups_users.user_id=users.id
+		INNER JOIN jobs
+		  ON users.login=jobs.owner AND jobs.id=queued_hqe.job_id
+		"""
+		# need to exclude blocked hosts
 		block_join = """
-		LEFT JOIN ineligible_host_queues ihq
+		LEFT JOIN ineligible_host_queues AS ihq
 		ON (ihq.job_id=queued_hqe.job_id AND ihq.host_id=h.id)
 		"""
-		block_where = 'ihq.job_id IS NULL'
+		block_where = 'ihq.id IS NULL'
 		extra_join = '\n'.join([labels_join, queued_hqe_join,
-					block_join])
+					acl_join, block_join])
 		return self._get_runnable_entries(extra_join,
 						  extra_where=block_where)
 
@@ -582,15 +587,10 @@ class Dispatcher:
 			if (host.id in scheduled_hosts or
 			    queue_entry.id in scheduled_queue_entries):
 				continue
-			try:
-				agent = queue_entry.run(assigned_host=host)
-				self.add_agent(agent)
-				scheduled_hosts.add(host.id)
-				scheduled_queue_entries.add(queue_entry.id)
-			except: # handle bugs in job assignment gracefully
-				queue_entry.set_status('Failed')
-				log_stacktrace("queue entry id = %d" %
-					       queue_entry.id)
+			agent = queue_entry.run(assigned_host=host)
+			self.add_agent(agent)
+			scheduled_hosts.add(host.id)
+			scheduled_queue_entries.add(queue_entry.id)
 
 
 	def _find_aborting(self):
