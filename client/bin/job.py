@@ -1012,5 +1012,3 @@ except ImportError:
 
 class job(site_job):
 	pass
-
-

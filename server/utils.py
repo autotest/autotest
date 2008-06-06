@@ -307,7 +307,7 @@ def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
 
 	return (ntuples, failures)
 
- 
+
 def parse_machine(machine, user = 'root', port = 22, password = ''):
 	"""
 	Parse the machine string user:pass@host:port and return it separately,
@@ -387,4 +387,3 @@ def get_public_key():
 	public_key.close()
 
 	return public_key_str
- 
