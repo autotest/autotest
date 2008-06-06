@@ -36,18 +36,35 @@ def log_query():
 		raise QueryHistoryError("Could not save query")
 
 
+def delete_query(time_stamp):
+	## query is marked for delete by time stamp
+	db_obj = db.db()
+	data_to_delete = {'time_created':time_stamp}
+	try:
+		db_obj.delete('query_history', data_to_delete)
+	except Exception:
+		raise QueryHistoryError("Could not delete query")
+	
+
 def body():
-	log_query()
-	print '<b>%s</b><br><br>' % "Your query has been saved"
-	print 'time: %s<br>' % tm
-	print 'comments: %s<br><br>' % comment
-	print '<table><tr align="center">'
-	print '<td align="center">'
+	if not 'delete' in dict_url.keys():
+		log_query()
+		print '<b>%s</b><br><br>' % "Your query has been saved"
+		print 'time: %s<br>' % tm
+		print 'comments: %s<br><br>' % comment
+	else:
+		## key 'delete' has arg value of time_stamp
+		## which identifies the query to be deleted
+		time_stamp = dict_url['delete']
+		delete_query(time_stamp)
+		print '<b>%s</b><br><br>' % "Your query has been deleted"
+
 	print '<a href="query_history.cgi">View saved queries</a>&nbsp;&nbsp;'
-	print '</td>'
-	print '<td align="center">'
-	print '<a href="%s">Back to Autotest</a><br>' % HTTP_REFERER
-	print '</td>'
+	print '<br><br>'
+	if not 'delete' in dict_url.keys():
+		print '<a href="%s">Back to Autotest</a><br>' % HTTP_REFERER
+	else:
+		print '<a href="compose_query.cgi">Autotest Results</a><br>'
 
 
 def main():
