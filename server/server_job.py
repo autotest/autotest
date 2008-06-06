@@ -164,6 +164,7 @@ class base_server_job:
 		self.tmpdir    = os.path.join(self.serverdir, 'tmp')
 		self.conmuxdir = os.path.join(self.autodir, 'conmux')
 		self.clientdir = os.path.join(self.autodir, 'client')
+		self.toolsdir = os.path.join(self.autodir, 'client/tools')
 		if control:
 			self.control = open(control, 'r').read()
 			self.control = re.sub('\r', '', self.control)
