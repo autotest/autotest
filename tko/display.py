@@ -22,13 +22,24 @@ color_map = {
 
 }
 
+_brief_mode = False
+
+
+def set_brief_mode():
+	global _brief_mode
+	_brief_mode = True
+
+
+def is_brief_mode():
+	return _brief_mode
+
 
 def color_keys_row():
 	""" Returns one row table with samples of 'NNpct' colors
 		defined in the color_map
 		and numbers of corresponding %%
 	"""
-	### This function does not require maintenance in case of	
+	### This function does not require maintenance in case of
 	### color_map augmenting - as long as 
 	### color keys for box shading have names that end with 'pct'
 	keys = filter(lambda key: key.endswith('pct'), color_map.keys())
@@ -55,27 +66,51 @@ def color_keys_row():
 """ % html
 	return html
 
-def hover_html(link, href, hover_text):
-	""" Returns the snippet of html for generating the hover over links.
-	"""
-	return '<center><a class="info" href="%s">%s<span>%s</span></a></center>' % \
-		(link, href, hover_text)
+
+def calculate_html(link, data, tooltip=None, row_label=None, column_label=None):
+	if not is_brief_mode():
+		hover_text = '%s:%s' % (row_label, column_label)
+		if data:  ## cell is not empty
+			hover_text += '<br>%s' % tooltip
+		else:
+			## avoid "None" printed in empty cells
+			data = '&nbsp;'
+		html = ('<center><a class="info" href="%s">'
+			'%s<span>%s</span></a></center>' %
+			(link, data, hover_text))
+		return html
+	# no hover if embedded into AFE but links shall redirect to new window
+	if data: ## cell is non empty
+		html =  '<a href="%s" target=NEW>%s</a>' % (link, data)
+		return html
+	else: ## cell is empty
+		return '&nbsp;'
+
 
 class box:
 	def __init__(self, data, color_key = None, header = False, link = None,
 		     tooltip = None, row_label = None, column_label = None):
+		
+		## in brief mode we display grid table only and nothing more
+		## - mouse hovering feature is stubbed in brief mode
+		## - any link opens new window or tab
+
+		redirect = ""
+		if is_brief_mode():
+			## we are acting under AFE
+			## any link shall open new window
+			redirect = " target=NEW"
+			
 		if data:
 			data = "<tt>%s</tt>" % data
-		if link and tooltip:
-			self.data = hover_html(link, data, '%s:%s<br>%s' % 
-						(row_label, column_label, tooltip))
-		elif tooltip:
-			self.data = hover_html('#', data, tooltip)
-		elif link:
-			self.data = '<a href="%s">%s</a>' % (link, data)
+		
+		if link and not tooltip:
+			## FlipAxis corner, column and row headers
+			self.data = ('<a href="%s"%s>%s</a>' %
+				     (link, redirect, data))
 		else:
-			self.data = hover_html('about:blank',
-				'&nbsp;&nbsp;&nbsp;', '%s:%s' % (row_label, column_label))
+			self.data = calculate_html(link, data, tooltip,
+						   row_label, column_label)
 
 		if color_map.has_key(color_key):
 			self.color = color_map[color_key]
@@ -303,3 +338,4 @@ def group_name(group):
 		(owner, machine) = name.split('/', 1)
 		name = owner + '<br>' + machine
 	return name
+
