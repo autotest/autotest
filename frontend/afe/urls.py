@@ -12,7 +12,7 @@ pattern_list = [(r'^(?:|noauth/)rpc/', 'frontend.afe.views.handle_rpc')]
 debug_pattern_list = [
     (r'^model_doc/', 'frontend.afe.views.model_documentation'),
     # for GWT hosted mode
-    (r'^(?P<forward_addr>afeclient.*)', 'frontend.afe.views.gwt_forward'),
+    (r'^(?P<forward_addr>autotest.*)', 'frontend.afe.views.gwt_forward'),
     # for GWT compiled files
     (r'^client/(?P<path>.*)$', 'django.views.static.serve',
      {'document_root': os.path.join(os.path.dirname(__file__), '..', 'client',

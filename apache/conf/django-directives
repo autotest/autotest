@@ -1,4 +1,4 @@
-Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient
+Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient"
 <Location "/afe">
     DirectoryIndex AfeClient.html
 </Location>
