@@ -14,30 +14,37 @@ def format_error():
 
 	return ''.join(trace)
 
+
 class JobContinue(SystemExit):
 	"""Allow us to bail out requesting continuance."""
 	pass
+
 
 class JobComplete(SystemExit):
 	"""Allow us to bail out indicating continuation not required."""
 	pass
 
+
 class AutotestError(Exception):
 	"""The parent of all errors deliberatly thrown within the client code."""
 	pass
+
 
 class JobError(AutotestError):
 	"""Indicates an error which terminates and fails the whole job."""
 	pass
 
+
 class TestError(AutotestError):
 	"""Indicates an error which terminates and fails the test."""
 	pass
+
 
 class TestNAError(AutotestError):
 	"""Indictates that the test is Not Applicable.  Should be thrown
 	when various conditions are such that the test is inappropriate"""
 	pass
+
 
 class CmdError(TestError):
 	"""\
@@ -54,9 +61,11 @@ class CmdError(TestError):
 			msg += ", " + self.args[2]
 		return msg
 
+
 class PackageError(TestError):
 	"""Indicates an error trying to perform a package operation."""
 	pass
+
 
 class UnhandledError(TestError):
 	"""Indicates an unhandled exception in a test."""
@@ -64,12 +73,15 @@ class UnhandledError(TestError):
 		msg = prefix + format_error()
 		TestError.__init__(self, msg)
 
+
 class InstallError(JobError):
 	"""Indicates an installation error which Terminates and fails the job."""
 	pass
 
+
 class AutotestRunError(AutotestError):
 	pass
+
 
 class AutotestTimeoutError(AutotestError):
 	"""This exception is raised when an autotest test exceeds the timeout
@@ -107,13 +119,16 @@ class AutoservUnsupportedError(AutoservError):
 	"""Error raised when you try to use an unsupported optional feature"""
 	pass
 
+
 class AutoservHostError(AutoservError):
 	"""Error reaching a host"""
 	pass
 
+
 class AutoservRebootError(AutoservError):
 	"""Error occured while rebooting a machine"""
 	pass
+
 
 class AutoservSubcommandError(AutoservError):
 	"""Indicates an error while executing a (forked) subcommand"""
@@ -121,6 +136,7 @@ class AutoservSubcommandError(AutoservError):
 		AutoservError.__init__(self, func, exit_code)
 		self.func = func
 		self.exit_code = exit_code
+
 	def __str__(self):
 		return ("Subcommand %s failed with exit code %d" %
 			(self.func, self.exit_code))
