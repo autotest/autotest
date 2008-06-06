@@ -39,4 +39,3 @@ def simple():
     f.close()
 
 simple()
-

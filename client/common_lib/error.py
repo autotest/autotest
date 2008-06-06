@@ -6,137 +6,137 @@ import sys
 from traceback import format_exception
 
 def format_error():
-	t, o, tb = sys.exc_info()
-	trace = format_exception(t, o, tb)
-	# Clear the backtrace to prevent a circular reference
-	# in the heap -- as per tutorial
-	tb = ''
+    t, o, tb = sys.exc_info()
+    trace = format_exception(t, o, tb)
+    # Clear the backtrace to prevent a circular reference
+    # in the heap -- as per tutorial
+    tb = ''
 
-	return ''.join(trace)
+    return ''.join(trace)
 
 
 class JobContinue(SystemExit):
-	"""Allow us to bail out requesting continuance."""
-	pass
+    """Allow us to bail out requesting continuance."""
+    pass
 
 
 class JobComplete(SystemExit):
-	"""Allow us to bail out indicating continuation not required."""
-	pass
+    """Allow us to bail out indicating continuation not required."""
+    pass
 
 
 class AutotestError(Exception):
-	"""The parent of all errors deliberatly thrown within the client code."""
-	pass
+    """The parent of all errors deliberatly thrown within the client code."""
+    pass
 
 
 class JobError(AutotestError):
-	"""Indicates an error which terminates and fails the whole job."""
-	pass
+    """Indicates an error which terminates and fails the whole job."""
+    pass
 
 
 class TestError(AutotestError):
-	"""Indicates an error which terminates and fails the test."""
-	pass
+    """Indicates an error which terminates and fails the test."""
+    pass
 
 
 class TestNAError(AutotestError):
-	"""Indictates that the test is Not Applicable.  Should be thrown
-	when various conditions are such that the test is inappropriate"""
-	pass
+    """Indictates that the test is Not Applicable.  Should be thrown
+    when various conditions are such that the test is inappropriate"""
+    pass
 
 
 class CmdError(TestError):
-	"""\
-	Indicates that a command failed, is fatal to the test unless caught.
-	"""
-	def __init__(self, command, result_obj, additional_text=None):
-		TestError.__init__(self, command, result_obj, additional_text)
+    """\
+    Indicates that a command failed, is fatal to the test unless caught.
+    """
+    def __init__(self, command, result_obj, additional_text=None):
+        TestError.__init__(self, command, result_obj, additional_text)
 
 
-	def __str__(self):
-		msg = "Command <%s> failed, rc=%d" % (self.args[0],
-						      self.args[1].exit_status)
-		if self.args[2]:
-			msg += ", " + self.args[2]
-		return msg
+    def __str__(self):
+        msg = "Command <%s> failed, rc=%d" % (self.args[0],
+                                              self.args[1].exit_status)
+        if self.args[2]:
+            msg += ", " + self.args[2]
+        return msg
 
 
 class PackageError(TestError):
-	"""Indicates an error trying to perform a package operation."""
-	pass
+    """Indicates an error trying to perform a package operation."""
+    pass
 
 
 class UnhandledError(TestError):
-	"""Indicates an unhandled exception in a test."""
-	def __init__(self, prefix):
-		msg = prefix + format_error()
-		TestError.__init__(self, msg)
+    """Indicates an unhandled exception in a test."""
+    def __init__(self, prefix):
+        msg = prefix + format_error()
+        TestError.__init__(self, msg)
 
 
 class InstallError(JobError):
-	"""Indicates an installation error which Terminates and fails the job."""
-	pass
+    """Indicates an installation error which Terminates and fails the job."""
+    pass
 
 
 class AutotestRunError(AutotestError):
-	pass
+    pass
 
 
 class AutotestTimeoutError(AutotestError):
-	"""This exception is raised when an autotest test exceeds the timeout
-	parameter passed to run_timed_test and is killed.
-	"""
+    """This exception is raised when an autotest test exceeds the timeout
+    parameter passed to run_timed_test and is killed.
+    """
 
 
 # server-specific errors
 
 class AutoservError(Exception):
-	pass
+    pass
 
 
 class AutoservSSHTimeout(AutoservError):
-	"""SSH experienced a connection timeout"""
-	pass
+    """SSH experienced a connection timeout"""
+    pass
 
 
 class AutoservRunError(AutoservError):
-	"""\
-	Errors raised by one of the run functions.  Should always be
-	constructed with a tuple of two args (error description (str),
-	run result object).
-	"""
-	def __init__(self, description, result_obj):
-		AutoservError.__init__(self, description, result_obj)
+    """\
+    Errors raised by one of the run functions.  Should always be
+    constructed with a tuple of two args (error description (str),
+    run result object).
+    """
+    def __init__(self, description, result_obj):
+        AutoservError.__init__(self, description, result_obj)
 
 
 class AutoservVirtError(AutoservError):
-	"""Vitualization related error"""
-	pass
+    """Vitualization related error"""
+    pass
 
 
 class AutoservUnsupportedError(AutoservError):
-	"""Error raised when you try to use an unsupported optional feature"""
-	pass
+    """Error raised when you try to use an unsupported optional feature"""
+    pass
 
 
 class AutoservHostError(AutoservError):
-	"""Error reaching a host"""
-	pass
+    """Error reaching a host"""
+    pass
 
 
 class AutoservRebootError(AutoservError):
-	"""Error occured while rebooting a machine"""
-	pass
+    """Error occured while rebooting a machine"""
+    pass
 
 
 class AutoservSubcommandError(AutoservError):
-	"""Indicates an error while executing a (forked) subcommand"""
-	def __init__(self, func, exit_code):
-		AutoservError.__init__(self, func, exit_code)
-		self.func = func
-		self.exit_code = exit_code
+    """Indicates an error while executing a (forked) subcommand"""
+    def __init__(self, func, exit_code):
+        AutoservError.__init__(self, func, exit_code)
+        self.func = func
+        self.exit_code = exit_code
 
-	def __str__(self):
-		return ("Subcommand %s failed with exit code %d" %
-			(self.func, self.exit_code))
+    def __str__(self):
+        return ("Subcommand %s failed with exit code %d" %
+                (self.func, self.exit_code))

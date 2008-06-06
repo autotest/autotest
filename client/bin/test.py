@@ -3,20 +3,20 @@
 # Shell class for a test, inherited by all individual tests
 #
 # Methods:
-#	__init__	initialise
-#	initialize	run once for each job
-#	setup		run once for each new version of the test installed
-#	run		run the test (wrapped by job.run_test())
+#       __init__        initialise
+#       initialize      run once for each job
+#       setup           run once for each new version of the test installed
+#       run             run the test (wrapped by job.run_test())
 #
 # Data:
-#	job		backreference to the job this test instance is part of
-#	outputdir	eg. results/<job>/<testname.tag>
-#	resultsdir	eg. results/<job>/<testname.tag>/results
-#	profdir		eg. results/<job>/<testname.tag>/profiling
-#	debugdir	eg. results/<job>/<testname.tag>/debug
-#	bindir		eg. tests/<test>
-#	src		eg. tests/<test>/src
-#	tmpdir		eg. tmp/<testname.tag>
+#       job             backreference to the job this test instance is part of
+#       outputdir       eg. results/<job>/<testname.tag>
+#       resultsdir      eg. results/<job>/<testname.tag>/results
+#       profdir         eg. results/<job>/<testname.tag>/profiling
+#       debugdir        eg. results/<job>/<testname.tag>/debug
+#       bindir          eg. tests/<test>
+#       src             eg. tests/<test>/src
+#       tmpdir          eg. tmp/<testname.tag>
 
 import os, traceback
 
@@ -26,23 +26,23 @@ from autotest_lib.client.bin import sysinfo
 
 
 class test(common_test.base_test):
-	pass
+    pass
 
 
 testname = common_test.testname
 
 
 def _grab_sysinfo(mytest):
-	try:
-		sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
-		sysinfo.log_after_each_test(sysinfo_dir, mytest.job.sysinfodir)
-		if os.path.exists(mytest.tmpdir):
-			utils.system('rm -rf ' + mytest.tmpdir)
-	except:
-		print 'after-test error:'
-		traceback.print_exc(file=sys.stdout)
+    try:
+        sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
+        sysinfo.log_after_each_test(sysinfo_dir, mytest.job.sysinfodir)
+        if os.path.exists(mytest.tmpdir):
+            utils.system('rm -rf ' + mytest.tmpdir)
+    except:
+        print 'after-test error:'
+        traceback.print_exc(file=sys.stdout)
 
 
 def runtest(job, url, tag, args, dargs):
-	common_test.runtest(job, url, tag, args, dargs,
-	                    locals(), globals(), _grab_sysinfo)
+    common_test.runtest(job, url, tag, args, dargs,
+                        locals(), globals(), _grab_sysinfo)

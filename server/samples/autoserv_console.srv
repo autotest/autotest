@@ -9,12 +9,12 @@
 # -Steve Howard (showard@google.com)
 
 if machines:
-	host = hosts.SSHHost(machines[0])
+    host = hosts.SSHHost(machines[0])
 
 try:
-	import IPython
-	ipshell = IPython.Shell.IPShellEmbed(argv=[])
-	ipshell()
+    import IPython
+    ipshell = IPython.Shell.IPShellEmbed(argv=[])
+    ipshell()
 except ImportError:
-	import code
-	code.interact("Autoserv console", raw_input, locals())
+    import code
+    code.interact("Autoserv console", raw_input, locals())

@@ -8,4 +8,4 @@ __author__ = 'showard@google.com (Steve Howard)'
 from json_rpc import proxy
 
 def get_proxy(*args, **kwargs):
-	return proxy.ServiceProxy(*args, **kwargs)
+    return proxy.ServiceProxy(*args, **kwargs)

@@ -1,33 +1,33 @@
 import os
 
 required_tables = ('acl_groups', 'acl_groups_hosts', 'acl_groups_users',
-		   'autotests', 'host_queue_entries', 'hosts', 'hosts_labels',
-		   'ineligible_host_queues', 'jobs', 'labels', 'users')
+                   'autotests', 'host_queue_entries', 'hosts', 'hosts_labels',
+                   'ineligible_host_queues', 'jobs', 'labels', 'users')
 
 
 def migrate_up(manager):
-	manager.execute("SHOW TABLES")
-	tables = [row[0] for row in manager.cursor.fetchall()]
-	db_initialized = True
-	for table in required_tables:
-		if table not in tables:
-			db_initialized = False
-			break
-	if not db_initialized:
-		response = raw_input(
-		    'Your autotest_web database does not appear to be '
-		    'initialized.  Do you want to recreate it (this will '
-		    'result in loss of any existing data) (yes/No)? ')
-		if response != 'yes':
-			raise Exception('User has chosen to abort migration')
+    manager.execute("SHOW TABLES")
+    tables = [row[0] for row in manager.cursor.fetchall()]
+    db_initialized = True
+    for table in required_tables:
+        if table not in tables:
+            db_initialized = False
+            break
+    if not db_initialized:
+        response = raw_input(
+            'Your autotest_web database does not appear to be '
+            'initialized.  Do you want to recreate it (this will '
+            'result in loss of any existing data) (yes/No)? ')
+        if response != 'yes':
+            raise Exception('User has chosen to abort migration')
 
-		manager.execute_script(CREATE_DB_SQL)
+        manager.execute_script(CREATE_DB_SQL)
 
-	manager.create_migrate_table()
+    manager.create_migrate_table()
 
 
 def migrate_down(manager):
-	manager.execute_script(DROP_DB_SQL)
+    manager.execute_script(DROP_DB_SQL)
 
 
 CREATE_DB_SQL = """\

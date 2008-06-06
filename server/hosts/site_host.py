@@ -11,7 +11,7 @@ base_classes.py contains logic to provision for this.
 Implementation details:
 You should import the "hosts" package instead of importing each type of host.
 
-	SiteHost: Host containing site-specific customizations.
+        SiteHost: Host containing site-specific customizations.
 """
 
 __author__ = """
@@ -24,14 +24,14 @@ stutsman@google.com (Ryan Stutsman)
 import base_classes, utils
 
 class SiteHost(base_classes.Host):
-	"""
-	Custom host to containing site-specific methods or attributes.
-	"""
-	
-	def __init__(self):
-		super(SiteHost, self).__init__()
-		self.serverdir = utils.get_server_dir()
+    """
+    Custom host to containing site-specific methods or attributes.
+    """
 
-	
-	def setup(self):
-		return
+    def __init__(self):
+        super(SiteHost, self).__init__()
+        self.serverdir = utils.get_server_dir()
+
+
+    def setup(self):
+        return

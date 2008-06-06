@@ -69,7 +69,7 @@ class ServiceHandler(object):
 
     def __init__(self, service):
         self.service=service
-    
+
     def handleRequest(self, json):
         err=None
         err_traceback = None
@@ -77,7 +77,7 @@ class ServiceHandler(object):
         id_=''
 
         #print 'Request:', json
-        
+
         try:
             req = self.translateRequest(json)
         except ServiceRequestNotTranslatable, e:

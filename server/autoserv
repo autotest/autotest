@@ -18,155 +18,155 @@ from autotest_lib.server import autoserv_parser
 
 
 class PidFileManager(object):
-	pid_file = None
+    pid_file = None
 
-	def open_pid_file(self, results_dir):
-		pid_file_path = os.path.join(results_dir, '.autoserv_execute')
-		assert not os.path.exists(pid_file_path)
-		self.pid_file = open(pid_file_path, 'w')
-		self.pid_file.write(str(os.getpid()) + '\n')
-		self.pid_file.flush()
+    def open_pid_file(self, results_dir):
+        pid_file_path = os.path.join(results_dir, '.autoserv_execute')
+        assert not os.path.exists(pid_file_path)
+        self.pid_file = open(pid_file_path, 'w')
+        self.pid_file.write(str(os.getpid()) + '\n')
+        self.pid_file.flush()
 
 
-	def close_pid_file(self, exit_code, signal_code=0):
-		if not self.pid_file:
-			return
-		real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
-		self.pid_file.write(str(real_exit_code) + '\n')
-		self.pid_file.close()
-		self.pid_file = None
+    def close_pid_file(self, exit_code, signal_code=0):
+        if not self.pid_file:
+            return
+        real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
+        self.pid_file.write(str(real_exit_code) + '\n')
+        self.pid_file.close()
+        self.pid_file = None
 
 
 def run_autoserv(pid_file_manager, results, parser):
-	# send stdin to /dev/null
-	dev_null = os.open(os.devnull, os.O_RDONLY)
-	os.dup2(dev_null, sys.stdin.fileno())
-	os.close(dev_null)
+    # send stdin to /dev/null
+    dev_null = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(dev_null, sys.stdin.fileno())
+    os.close(dev_null)
 
-	# Create separate process group
-	os.setpgrp()
+    # Create separate process group
+    os.setpgrp()
 
-	# Implement SIGTERM handler
-	def handle_sigint(signum, frame):
-		pid_file_manager.close_pid_file(1, signal.SIGTERM)
-		os.killpg(os.getpgrp(), signal.SIGKILL)
+    # Implement SIGTERM handler
+    def handle_sigint(signum, frame):
+        pid_file_manager.close_pid_file(1, signal.SIGTERM)
+        os.killpg(os.getpgrp(), signal.SIGKILL)
 
-	# Set signal handler
-	signal.signal(signal.SIGTERM, handle_sigint)
+    # Set signal handler
+    signal.signal(signal.SIGTERM, handle_sigint)
 
-	# Get a useful value for running 'USER'
-	realuser = os.environ.get('USER')
-	if not realuser:
-		realuser = 'anonymous'
+    # Get a useful value for running 'USER'
+    realuser = os.environ.get('USER')
+    if not realuser:
+        realuser = 'anonymous'
 
-	machines = parser.options.machines.split(',')
-	machines_file = parser.options.machines_file
-	label    = parser.options.label
-	user     = parser.options.user
-	client   = parser.options.client
-	reboot   = parser.options.reboot
-	install_before = parser.options.install_before
-	install_after  = parser.options.install_after
-	verify   = parser.options.verify
-	repair   = parser.options.repair
-	no_tee   = parser.options.no_tee
-	parse_job = parser.options.parse_job
-	ssh_user = parser.options.ssh_user
-	ssh_port = parser.options.ssh_port
-	ssh_pass = parser.options.ssh_pass
+    machines = parser.options.machines.split(',')
+    machines_file = parser.options.machines_file
+    label    = parser.options.label
+    user     = parser.options.user
+    client   = parser.options.client
+    reboot   = parser.options.reboot
+    install_before = parser.options.install_before
+    install_after  = parser.options.install_after
+    verify   = parser.options.verify
+    repair   = parser.options.repair
+    no_tee   = parser.options.no_tee
+    parse_job = parser.options.parse_job
+    ssh_user = parser.options.ssh_user
+    ssh_port = parser.options.ssh_port
+    ssh_pass = parser.options.ssh_pass
 
-	if len(parser.args) < 1 and not verify and not repair:
-		print parser.parser.print_help()
-		sys.exit(1)
+    if len(parser.args) < 1 and not verify and not repair:
+        print parser.parser.print_help()
+        sys.exit(1)
 
-	# We have a control file unless it's just a verify/repair job
-	if len(parser.args) > 0:
-		control = parser.args[0]
-	else:
-		control = None
+    # We have a control file unless it's just a verify/repair job
+    if len(parser.args) > 0:
+        control = parser.args[0]
+    else:
+        control = None
 
-	if machines_file:
-		machines = []
-		for m in open(machines_file, 'r').readlines():
-			# remove comments, spaces
-			m = re.sub('#.*', '', m).strip()
-			if m:
-				machines.append(m)
-		print "Read list of machines from file: %s" % machines_file
-		print ','.join(machines)
+    if machines_file:
+        machines = []
+        for m in open(machines_file, 'r').readlines():
+            # remove comments, spaces
+            m = re.sub('#.*', '', m).strip()
+            if m:
+                machines.append(m)
+        print "Read list of machines from file: %s" % machines_file
+        print ','.join(machines)
 
-	if machines:
-		for machine in machines:
-			if not machine or re.search('\s', machine):
-				print "Invalid machine %s" % str(machine)
-				sys.exit(1)
-		machines = list(set(machines))
-		machines.sort()
+    if machines:
+        for machine in machines:
+            if not machine or re.search('\s', machine):
+                print "Invalid machine %s" % str(machine)
+                sys.exit(1)
+        machines = list(set(machines))
+        machines.sort()
 
-	job = server_job.server_job(control, parser.args[1:], results, label,
-				    user, machines, client, parse_job,
-				    ssh_user, ssh_port, ssh_pass)
-	debug_dir = os.path.join(results, 'debug')
-	stdout = os.path.join(debug_dir, 'autoserv.stdout')
-	stderr = os.path.join(debug_dir, 'autoserv.stderr')
-	if no_tee:
-		job.stdout.redirect(stdout)
-		job.stderr.redirect(stderr)
-	else:
-		job.stdout.tee_redirect(stdout)
-		job.stderr.tee_redirect(stderr)
+    job = server_job.server_job(control, parser.args[1:], results, label,
+                                user, machines, client, parse_job,
+                                ssh_user, ssh_port, ssh_pass)
+    debug_dir = os.path.join(results, 'debug')
+    stdout = os.path.join(debug_dir, 'autoserv.stdout')
+    stderr = os.path.join(debug_dir, 'autoserv.stderr')
+    if no_tee:
+        job.stdout.redirect(stdout)
+        job.stderr.redirect(stderr)
+    else:
+        job.stdout.tee_redirect(stdout)
+        job.stderr.tee_redirect(stderr)
 
-	# run the job
-	exit_code = 0
-	try:
-		if repair:
-			job.repair()
-		elif verify:
-			job.verify()
-		else:
-			try:
-				job.run(reboot, install_before, install_after)
-			finally:
-				job.cleanup_parser()
-	except:
-		job.aborted = True
-		traceback.print_exc()
+    # run the job
+    exit_code = 0
+    try:
+        if repair:
+            job.repair()
+        elif verify:
+            job.verify()
+        else:
+            try:
+                job.run(reboot, install_before, install_after)
+            finally:
+                job.cleanup_parser()
+    except:
+        job.aborted = True
+        traceback.print_exc()
 
-	if getattr(job, 'aborted', False):
-		sys.exit(1)
+    if getattr(job, 'aborted', False):
+        sys.exit(1)
 
 
 def main():
-	pid_file_manager = PidFileManager()
+    pid_file_manager = PidFileManager()
 
-	# grab the parser
-	parser = autoserv_parser.autoserv_parser
+    # grab the parser
+    parser = autoserv_parser.autoserv_parser
 
-	if len(sys.argv) == 1:
-		parser.parser.print_help()
-		sys.exit(1)
+    if len(sys.argv) == 1:
+        parser.parser.print_help()
+        sys.exit(1)
 
-	results  = parser.options.results
-	results  = os.path.abspath(results)
-	write_pidfile = parser.options.write_pidfile
-	if write_pidfile:
-		pid_file_manager.open_pid_file(results)
+    results  = parser.options.results
+    results  = os.path.abspath(results)
+    write_pidfile = parser.options.write_pidfile
+    if write_pidfile:
+        pid_file_manager.open_pid_file(results)
 
-	exit_code = 0
-	try:
-		try:
-			run_autoserv(pid_file_manager, results, parser)
-		except SystemExit, e:
-			exit_code = e.code
-		except:
-			traceback.print_exc()
-			# If we don't know what happened, we'll classify it as
-			# an 'abort' and return 1.
-			exit_code = 1
-	finally:
-		pid_file_manager.close_pid_file(exit_code)
-	sys.exit(exit_code)
+    exit_code = 0
+    try:
+        try:
+            run_autoserv(pid_file_manager, results, parser)
+        except SystemExit, e:
+            exit_code = e.code
+        except:
+            traceback.print_exc()
+            # If we don't know what happened, we'll classify it as
+            # an 'abort' and return 1.
+            exit_code = 1
+    finally:
+        pid_file_manager.close_pid_file(exit_code)
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':
-	main()
+    main()

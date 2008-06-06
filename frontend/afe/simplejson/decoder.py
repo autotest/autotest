@@ -156,7 +156,7 @@ def JSONObject(match, context, _w=WHITESPACE.match):
         pairs = object_hook(pairs)
     return pairs, end
 pattern(r'{')(JSONObject)
-            
+
 def JSONArray(match, context, _w=WHITESPACE.match):
     values = []
     s = match.string
@@ -182,7 +182,7 @@ def JSONArray(match, context, _w=WHITESPACE.match):
         end = _w(s, end).end()
     return values, end
 pattern(r'\[')(JSONArray)
- 
+
 ANYTHING = [
     JSONObject,
     JSONArray,
@@ -198,7 +198,7 @@ class JSONDecoder(object):
     Simple JSON <http://json.org> decoder
 
     Performs the following translations in decoding:
-    
+
     +---------------+-------------------+
     | JSON          | Python            |
     +===============+===================+
@@ -231,7 +231,7 @@ class JSONDecoder(object):
         ``encoding`` determines the encoding used to interpret any ``str``
         objects decoded by this instance (utf-8 by default).  It has no
         effect when decoding ``unicode`` objects.
-        
+
         Note that currently only encodings that are a superset of ASCII work,
         strings of other encodings should be passed in as ``unicode``.
 

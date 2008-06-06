@@ -21,9 +21,9 @@ qemu_options= "-m 256 -hda /var/local/vdisk.img -snapshot"
 num_guests= 5
 g= []
 for i in range(num_guests):
-	g.append(hosts.KVMGuest(kvm_on_remote_host, qemu_options))
+    g.append(hosts.KVMGuest(kvm_on_remote_host, qemu_options))
 for i in range(num_guests):
-	g[i].wait_up()
+    g[i].wait_up()
 
 
 print "XXXX running transfers"
@@ -35,10 +35,10 @@ print g[0].run('sha1sum "%s"' % (big_file,)).stdout.strip()
 args= range(1, num_guests)
 
 def f(i):
-	print "This is %s" % i
-	tmp_dir= g[i].get_tmp_dir()
-	g[i].run('scp "%s":"%s" "%s"' % (g[0].hostname, big_file, tmp_dir,))
-	print g[i].run('sha1sum "%s"' % (os.path.join(tmp_dir, "big_file"),)).stdout.strip()
+    print "This is %s" % i
+    tmp_dir= g[i].get_tmp_dir()
+    g[i].run('scp "%s":"%s" "%s"' % (g[0].hostname, big_file, tmp_dir,))
+    print g[i].run('sha1sum "%s"' % (os.path.join(tmp_dir, "big_file"),)).stdout.strip()
 
 job.parallel_simple(f, args)
 
