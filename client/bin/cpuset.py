@@ -169,11 +169,10 @@ class cpuset:
         os.rmdir(self.cpudir)
         if os.path.exists(self.cpudir):
             raise error.AutotestError('Could not delete container '
-                                    + self.cpudir)
+                                      + self.cpudir)
 
 
-    def __init__(self, name, job_size=None, job_pid=None, cpus=None,
-                 root=None):
+    def __init__(self, name, job_size=None, job_pid=None, cpus=None, root=None):
         """\
         Create a cpuset container and move job_pid into it
         Allocate the list "cpus" of cpus to that container
@@ -186,7 +185,7 @@ class cpuset:
         """
         if not os.path.exists(os.path.join(super_root, "cpus")):
             raise error.AutotestError('Root container /dev/cpuset '
-                                    'is empty; please reboot')
+                                      'is empty; please reboot')
 
         self.name = name
 
@@ -195,8 +194,7 @@ class cpuset:
             root = my_container_name()[1:]
         self.root = os.path.join(super_root, root)
         if not os.path.exists(self.root):
-            raise error.AutotestError(('Parent container %s'
-                                       '  does not exist')
+            raise error.AutotestError(('Parent container %s does not exist')
                                        % self.root)
 
         if job_size == None:
@@ -204,16 +202,14 @@ class cpuset:
             job_size = int( mbytes_per_mem_node() *
                 len(available_exclusive_mem_nodes(self.root)) )
         if not job_size:
-            raise error.AutotestError('Creating container '
-                                      'with no mem')
+            raise error.AutotestError('Creating container with no mem')
         self.memory = job_size
 
         if cpus == None:
             # default to biggest container we can make under root
             cpus = get_cpus(self.root)
         if not cpus:
-            raise error.AutotestError('Creating container '
-                                      'with no cpus')
+            raise error.AutotestError('Creating container with no cpus')
         self.cpus = cpus
 
         # default to the current pid
@@ -238,20 +234,15 @@ class cpuset:
             # Pick specific free mem nodes for this cpuset
             mems = available_exclusive_mem_nodes(self.root)
             if len(mems) < nodes_needed:
-                raise error.AutotestError(('Existing container'
-                                           ' hold %d mem nodes'
-                                           ' needed by new'
-                                           'container')
-                                          % (nodes_needed
-                                             - len(mems)))
+                raise error.AutotestError(('Existing container hold %d mem '
+                                          'nodes needed by new container')
+                                          % (nodes_needed - len(mems)))
             mems = mems[-nodes_needed:]
             mems_spec = ','.join(['%d' % x for x in mems])
             os.mkdir(self.cpudir)
-            utils.write_one_line(os.path.join(self.cpudir,
-                            'mem_exclusive'), '1')
-            utils.write_one_line(os.path.join(self.cpudir,
-                                                       'mems'),
-                                          mems_spec)
+            utils.write_one_line(os.path.join(self.cpudir, 'mem_exclusive'),
+                                 '1')
+            utils.write_one_line(os.path.join(self.cpudir, 'mems'), mems_spec)
             # Above sends err msg to client.log.0, but no exception,
             #   if mems_spec contained any now-taken nodes
             # Confirm that siblings didn't grab our chosen mems:
@@ -264,10 +255,6 @@ class cpuset:
 
         # add specified cpu cores and own task pid to container:
         cpu_spec = ','.join(['%d' % x for x in cpus])
-        utils.write_one_line(os.path.join(self.cpudir,
-                                                   'cpus'),
-                                      cpu_spec)
-        utils.write_one_line(os.path.join(self.cpudir,
-                                                   'tasks'),
-                                      "%d" % job_pid)
+        utils.write_one_line(os.path.join(self.cpudir, 'cpus'), cpu_spec)
+        utils.write_one_line(os.path.join(self.cpudir, 'tasks'), "%d" % job_pid)
         self.display()
