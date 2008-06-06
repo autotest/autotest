@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
-import unittest, time, subprocess
+import unittest, time, subprocess, os, StringIO, tempfile
 import MySQLdb
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib.test_utils import mock
+
 import monitor_db
 
 _DEBUG = False
@@ -304,6 +306,334 @@ class DispatcherTest(unittest.TestCase):
 		self._create_job(metahosts=[1])
 		self._dispatcher._schedule_new_jobs()
 		self._check_for_extra_schedulings()
+
+
+class PidfileRunMonitorTest(unittest.TestCase):
+	results_dir = '/test/path'
+	pidfile_path = os.path.join(results_dir, monitor_db.AUTOSERV_PID_FILE)
+	pid = 12345
+	args = ('nice -n 10 autoserv -P 123-myuser/myhost -p -n '
+		'-r ' + results_dir + ' -b -u myuser -l my-job-name '
+		'-m myhost /tmp/filejx43Zi -c')
+	bad_args = args.replace(results_dir, '/random/results/dir')
+
+	def setUp(self):
+		self.god = mock.mock_god()
+		self.god.stub_function(monitor_db, 'open')
+		self.god.stub_function(os.path, 'exists')
+		self.god.stub_function(monitor_db.email_manager,
+				       'enqueue_notify_email')
+		self.monitor = monitor_db.PidfileRunMonitor(self.results_dir)
+
+
+	def tearDown(self):
+		self.god.unstub_all()
+
+
+	def set_not_yet_run(self):
+		os.path.exists.expect_call(self.pidfile_path).and_return(False)
+
+
+	def setup_pidfile(self, pidfile_contents):
+		os.path.exists.expect_call(self.pidfile_path).and_return(True)
+		pidfile = StringIO.StringIO(pidfile_contents)
+		monitor_db.open.expect_call(
+		    self.pidfile_path, 'r').and_return(pidfile)
+
+
+	def set_running(self):
+		self.setup_pidfile(str(self.pid) + '\n')
+
+
+	def set_complete(self, error_code):
+		self.setup_pidfile(str(self.pid) + '\n' +
+				   str(error_code) + '\n')
+
+
+	def _test_read_pidfile_helper(self, expected_pid, expected_exit_status):
+		pid, exit_status = self.monitor.read_pidfile()
+		self.assertEquals(pid, expected_pid)
+		self.assertEquals(exit_status, expected_exit_status)
+		self.god.check_playback()
+
+
+	def test_read_pidfile(self):
+		self.set_not_yet_run()
+		self._test_read_pidfile_helper(None, None)
+
+		self.set_running()
+		self._test_read_pidfile_helper(self.pid, None)
+
+		self.set_complete(123)
+		self._test_read_pidfile_helper(self.pid, 123)
+
+
+	def test_read_pidfile_error(self):
+		self.setup_pidfile('asdf')
+		self.assertRaises(monitor_db.PidfileException,
+				  self.monitor.read_pidfile)
+		self.god.check_playback()
+
+
+	def setup_proc_cmdline(self, args):
+		proc_cmdline = args.replace(' ', '\x00')
+		proc_file = StringIO.StringIO(proc_cmdline)
+		monitor_db.open.expect_call(
+		    '/proc/%d/cmdline' % self.pid, 'r').and_return(proc_file)
+
+
+	def setup_find_autoservs(self, process_dict):
+		self.god.stub_class_method(monitor_db.Dispatcher,
+					   'find_autoservs')
+		monitor_db.Dispatcher.find_autoservs.expect_call().and_return(
+		    process_dict)
+
+
+	def _test_get_pidfile_info_helper(self, expected_pid,
+					  expected_exit_status):
+		pid, exit_status = self.monitor.get_pidfile_info()
+		self.assertEquals(pid, expected_pid)
+		self.assertEquals(exit_status, expected_exit_status)
+		self.god.check_playback()
+
+
+	def test_get_pidfile_info(self):
+		'normal cases for get_pidfile_info'
+		# running
+		self.set_running()
+		self.setup_proc_cmdline(self.args)
+		self._test_get_pidfile_info_helper(self.pid, None)
+
+		# exited during check
+		self.set_running()
+		monitor_db.open.expect_call(
+		    '/proc/%d/cmdline' % self.pid, 'r').and_raises(IOError)
+		self.set_complete(123) # pidfile gets read again
+		self._test_get_pidfile_info_helper(self.pid, 123)
+
+		# completed
+		self.set_complete(123)
+		self._test_get_pidfile_info_helper(self.pid, 123)
+
+
+	def test_get_pidfile_info_running_no_proc(self):
+		'pidfile shows process running, but no proc exists'
+		# running but no proc
+		self.set_running()
+		monitor_db.open.expect_call(
+		    '/proc/%d/cmdline' % self.pid, 'r').and_raises(IOError)
+		self.set_running()
+		monitor_db.email_manager.enqueue_notify_email.expect_call(
+		    mock.is_string_comparator(), mock.is_string_comparator())
+		self._test_get_pidfile_info_helper(self.pid, 1)
+		self.assertTrue(self.monitor.lost_process)
+
+
+	def test_get_pidfile_info_not_yet_run(self):
+		"pidfile hasn't been written yet"
+		# process not running
+		self.set_not_yet_run()
+		self.setup_find_autoservs({})
+		self._test_get_pidfile_info_helper(None, None)
+
+		# process running
+		self.set_not_yet_run()
+		self.setup_find_autoservs({self.pid : self.args})
+		self._test_get_pidfile_info_helper(None, None)
+
+		# another process running under same pid
+		self.set_not_yet_run()
+		self.setup_find_autoservs({self.pid : self.bad_args})
+		self._test_get_pidfile_info_helper(None, None)
+
+
+class AgentTest(unittest.TestCase):
+	def setUp(self):
+		self.god = mock.mock_god()
+
+
+	def tearDown(self):
+		self.god.unstub_all()
+
+
+	def test_agent(self):
+		task1 = self.god.create_mock_class(monitor_db.AgentTask,
+						  'task1')
+		task2 = self.god.create_mock_class(monitor_db.AgentTask,
+						  'task2')
+		task3 = self.god.create_mock_class(monitor_db.AgentTask,
+						   'task3')
+
+		task1.start.expect_call()
+		task1.is_done.expect_call().and_return(False)
+		task1.poll.expect_call()
+		task1.is_done.expect_call().and_return(True)
+		task1.is_done.expect_call().and_return(True)
+		task1.success = True
+
+		task2.start.expect_call()
+		task2.is_done.expect_call().and_return(True)
+		task2.is_done.expect_call().and_return(True)
+		task2.success = False
+		task2.failure_tasks = [task3]
+
+		task3.start.expect_call()
+		task3.is_done.expect_call().and_return(True)
+		task3.is_done.expect_call().and_return(True)
+		task3.success = True
+
+		agent = monitor_db.Agent([task1, task2])
+		agent.dispatcher = object()
+		agent.start()
+		while not agent.is_done():
+			agent.tick()
+		self.god.check_playback()
+
+
+class AgentTasksTest(unittest.TestCase):
+	TEMP_DIR = '/temp/dir'
+	HOSTNAME = 'myhost'
+
+	def setUp(self):
+		self.god = mock.mock_god()
+		self.god.stub_with(tempfile, 'mkdtemp',
+				   mock.mock_function('mkdtemp', self.TEMP_DIR))
+		self.god.stub_class_method(monitor_db.RunMonitor, 'run')
+		self.god.stub_class_method(monitor_db.RunMonitor, 'exit_code')
+		self.host = self.god.create_mock_class(monitor_db.Host, 'host')
+		self.host.hostname = self.HOSTNAME
+		self.queue_entry = self.god.create_mock_class(
+		    monitor_db.HostQueueEntry, 'queue_entry')
+		self.queue_entry.host = self.host
+		self.queue_entry.meta_host = None
+
+
+	def tearDown(self):
+		self.god.unstub_all()
+
+
+	def run_task(self, task, success):
+		"""
+		Do essentially what an Agent would do, but protect againt
+		infinite looping from test errors.
+		"""
+		if not getattr(task, 'agent', None):
+			task.agent = object()
+		task.start()
+		count = 0
+		while not task.is_done():
+			count += 1
+			if count > 10:
+				print 'Task failed to finish'
+				# in case the playback has clues to why it
+				# failed
+				self.god.check_playback()
+				self.fail()
+			task.poll()
+		self.assertEquals(task.success, success)
+
+
+	def setup_run_monitor(self, exit_status):
+		monitor_db.RunMonitor.run.expect_call()
+		monitor_db.RunMonitor.exit_code.expect_call()
+		monitor_db.RunMonitor.exit_code.expect_call().and_return(
+		    exit_status)
+
+
+	def _test_repair_task_helper(self, success):
+		self.host.set_status.expect_call('Repairing')
+		if success:
+			self.setup_run_monitor(0)
+			self.host.set_status.expect_call('Ready')
+		else:
+			self.setup_run_monitor(1)
+			self.host.set_status.expect_call('Repair Failed')
+
+		task = monitor_db.RepairTask(self.host)
+		self.run_task(task, success)
+		self.assertEquals(task.monitor.cmd,
+				  ['autoserv', '-R', '-m', self.HOSTNAME, '-r',
+				   self.TEMP_DIR])
+		self.god.check_playback()
+
+
+	def test_repair_task(self):
+		self._test_repair_task_helper(True)
+		self._test_repair_task_helper(False)
+
+
+	def test_repair_task_with_queue_entry(self):
+		queue_entry = self.god.create_mock_class(
+		    monitor_db.HostQueueEntry, 'queue_entry')
+		self.host.set_status.expect_call('Repairing')
+		self.setup_run_monitor(1)
+		self.host.set_status.expect_call('Repair Failed')
+		queue_entry.handle_host_failure.expect_call()
+
+		task = monitor_db.RepairTask(self.host, queue_entry)
+		self.run_task(task, False)
+		self.god.check_playback()
+
+
+	def setup_verify_expects(self, success, use_queue_entry):
+		if use_queue_entry:
+			self.queue_entry.set_status.expect_call('Verifying')
+			self.queue_entry.verify_results_dir.expect_call(
+			    ).and_return('/verify/results/dir')
+			self.queue_entry.clear_results_dir.expect_call(
+			    '/verify/results/dir')
+		self.host.set_status.expect_call('Verifying')
+		if success:
+			self.setup_run_monitor(0)
+			self.host.set_status.expect_call('Ready')
+		else:
+			self.setup_run_monitor(1)
+			if use_queue_entry:
+				self.queue_entry.requeue.expect_call()
+
+
+	def _test_verify_task_with_host_helper(self, success, use_queue_entry):
+		self.setup_verify_expects(success, use_queue_entry)
+
+		if use_queue_entry:
+			task = monitor_db.VerifyTask(
+			    queue_entry=self.queue_entry)
+		else:
+			task = monitor_db.VerifyTask(host=self.host)
+		self.run_task(task, success)
+		self.assertEquals(task.monitor.cmd,
+				  ['autoserv', '-v', '-m', self.HOSTNAME, '-r',
+				   self.TEMP_DIR])
+		self.god.check_playback()
+
+
+	def test_verify_task_with_host(self):
+		self._test_verify_task_with_host_helper(True, False)
+		self._test_verify_task_with_host_helper(False, False)
+
+
+	def test_verify_task_with_queue_entry(self):
+		self._test_verify_task_with_host_helper(True, True)
+		self._test_verify_task_with_host_helper(False, True)
+
+
+	def test_verify_synchronous_task(self):
+		job = self.god.create_mock_class(monitor_db.Job, 'job')
+
+		self.setup_verify_expects(True, True)
+		job.num_complete.expect_call().and_return(0)
+		self.queue_entry.set_status.expect_call('Pending')
+		job.is_ready.expect_call().and_return(True)
+		job.run.expect_call(self.queue_entry)
+		self.queue_entry.job = job
+
+		task = monitor_db.VerifySynchronousTask(self.queue_entry)
+		task.agent = Dummy()
+		task.agent.dispatcher = Dummy()
+		self.god.stub_with(task.agent.dispatcher, 'add_agent',
+				   mock.mock_function('add_agent'))
+		self.run_task(task, True)
+		self.god.check_playback()
 
 
 if __name__ == '__main__':

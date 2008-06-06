@@ -3,7 +3,7 @@
 import unittest, os
 import common
 
-from autotest_lib.client.unittest import mock
+from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import error, utils as common_utils
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import bootloader, ssh_host
