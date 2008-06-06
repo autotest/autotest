@@ -46,6 +46,16 @@ def delete_label(id):
 	models.Label.smart_get(id).delete()
 
 
+def label_add_hosts(id, hosts):
+	label = models.Label.smart_get(id)
+	[models.Host.smart_get(host).labels.add(label) for host in hosts]
+
+
+def label_remove_hosts(id, hosts):
+	label = models.Label.smart_get(id)
+	[models.Host.smart_get(host).labels.remove(label) for host in hosts]
+
+
 def get_labels(**filter_data):
 	return rpc_utils.prepare_for_serialization(
 	    models.Label.list_objects(filter_data))
