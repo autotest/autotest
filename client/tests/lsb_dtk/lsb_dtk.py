@@ -1,6 +1,6 @@
 # Wrapper to LSB testsuite
 # Copyright 2008, IBM Corp.
-import os, glob
+import os, glob, re
 from autotest_lib.client.bin import test, autotest_utils, package
 from autotest_lib.client.bin.test_config import config_loader
 from autotest_lib.client.common_lib import utils, error
