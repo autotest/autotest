@@ -1,0 +1,9 @@
+AUTHOR = "Autotest Team"
+TIME = "MEDIUM"
+NAME = "Self Test"
+TEST_TYPE = "client"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "Stress"
+DOC = """\
+Stub information needs to be updated!
+"""
