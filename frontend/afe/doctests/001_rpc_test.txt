@@ -184,6 +184,54 @@ True
 >>> rpc_interface.get_hosts(labels__name='label2')
 []
 
+# Cleanup
+>>> rpc_interface.host_remove_labels('host2', ['label1'])
+>>> rpc_interface.host_remove_labels('host1', ['label1'])
+
+
+# Other interface for new CLI
+# add hosts to labels
+>>> rpc_interface.label_add_hosts('label1', ['host1'])
+>>> rpc_interface.label_add_hosts('label2', ['host1', 'host2'])
+
+# check labels for hosts
+>>> data = rpc_interface.get_hosts(hostname='host1')
+>>> data[0]['labels']
+['label1', 'label2']
+>>> data = rpc_interface.get_hosts(hostname='host2')
+>>> data[0]['labels']
+['label2']
+>>> data[0]['platform']
+'label2'
+
+# check host lists for labels -- use double underscore to specify fields of
+# related objects
+>>> data = rpc_interface.get_hosts(labels__name='label1')
+>>> [host['hostname'] for host in data]
+['host1']
+>>> data = rpc_interface.get_hosts(labels__name='label2')
+>>> [host['hostname'] for host in data]
+['host1', 'host2']
+
+# remove a host from a label
+>>> rpc_interface.label_remove_hosts('label2', ['host2'])
+>>> data = rpc_interface.get_hosts(hostname='host1')
+>>> data[0]['labels']
+['label1', 'label2']
+>>> data = rpc_interface.get_hosts(labels__name='label2')
+>>> [host['hostname'] for host in data]
+['host1']
+
+# Remove multiple hosts from a label
+>>> rpc_interface.label_add_hosts('label2', ['host2'])
+>>> data = rpc_interface.get_hosts(labels__name='label2')
+>>> [host['hostname'] for host in data]
+['host1', 'host2']
+>>> rpc_interface.label_remove_hosts('label2', ['host2', 'host1'])
+>>> rpc_interface.get_hosts(labels__name='label2')
+[]
+
+
 # ACL group relationships work similarly
 # note that all users and hosts are a member of 'Everyone' by default
 >>> rpc_interface.add_user(login='showard', access_level=0)
