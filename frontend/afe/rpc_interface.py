@@ -47,13 +47,13 @@ def delete_label(id):
 
 
 def label_add_hosts(id, hosts):
-	label = models.Label.smart_get(id)
-	[models.Host.smart_get(host).labels.add(label) for host in hosts]
+	host_objs = [models.Host.smart_get(host) for host in hosts]
+	models.Label.smart_get(id).host_set.add(*host_objs)
 
 
 def label_remove_hosts(id, hosts):
-	label = models.Label.smart_get(id)
-	[models.Host.smart_get(host).labels.remove(label) for host in hosts]
+	host_objs = [models.Host.smart_get(host) for host in hosts]
+	models.Label.smart_get(id).host_set.remove(*host_objs)
 
 
 def get_labels(**filter_data):
