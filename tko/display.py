@@ -235,8 +235,9 @@ def print_table(matrix):
 	Display the given matrix of data as a table.
 	"""
 
-	print '<table bgcolor="%s" cellspacing="1" cellpadding="5">' % (
-	    color_map['borders'])
+	print ('<table bgcolor="%s" cellspacing="1" cellpadding="5" '
+	       'style="margin-right: 200px;">') % (
+	       color_map['borders'])
 	for row in matrix:
 		print '<tr>'
 		for element in row:
