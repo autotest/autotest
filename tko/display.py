@@ -13,9 +13,9 @@ color_map = {
 
 	#### additional keys for shaded color of a box 
 	#### depending on stats of GOOD/FAIL
-	'100pct'  : '#80ff80', # green, 94% to 100% of success
+	'100pct'  : '#32CD32', # green, 94% to 100% of success
 	'95pct'   : '#c0ff80', # step twrds yellow, 88% to 94% of success
-	'90pct'   : '#ffff80', # yellow, 82% to 88%
+	'90pct'   : '#ffff00', # yellow, 82% to 88%
 	'85pct'   : '#ffc040', # 76% to 82%
 	'75pct'   : '#ff4040', # red, 1% to 76%
 	'0pct'    : '#d080d0', # violet, <1% of success	
