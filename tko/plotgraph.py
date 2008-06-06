@@ -13,14 +13,14 @@ Popen = subprocess.Popen
 def avg_dev(values):
 	if len(values) == 0:
 		return (0,0)
-	average = sum(values) / len(values)
+	average = float(sum(values)) / len(values)
 	sum_sq_dev = sum( [(x - average) ** 2 for x in values] )
         std_dev = sqrt(sum_sq_dev / float(len(values)));
         return (average, std_dev);
 
 
 class gnuplot:
-	def __init__(self, title, xlabel, ylabel, xsort = sorted, size = "1180,900"):
+	def __init__(self, title, xlabel, ylabel, xsort = sorted, size = "1180,900", keytitle = None):
 		self.title = title
 		self.xlabel = xlabel
 		self.ylabel = ylabel
@@ -29,6 +29,7 @@ class gnuplot:
 		self.xsort = xsort
 		self.xvalues = set([])
 		self.size = size
+		self.keytitle = keytitle
 
 	def xtics(self):
 		count = 1
@@ -69,7 +70,11 @@ class gnuplot:
 			p = Popen("/usr/bin/gnuplot", stdin = subprocess.PIPE)
 			g = p.stdin
 		g.write('set terminal png size %s\n' % self.size)
-		g.write('set key below\n')
+		if self.keytitle:
+			g.write('set key title "%s"\n' % self.keytitle)
+			g.write('set key outside\n')  # outside right
+		else:
+			g.write('set key below\n')
 		g.write('set title "%s"\n' % self.title)
 		g.write('set xlabel "%s"\n' % self.xlabel)
 		g.write('set ylabel "%s"\n' % self.ylabel)
