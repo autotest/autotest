@@ -250,8 +250,9 @@ class base_server_job:
 			    'No machines specified to verify')
 		try:
 			namespace = {'machines' : self.machines, 'job' : self, \
-						 'ssh_user' : self.ssh_user, 'ssh_port' : ssh_port, \
-						 'ssh_pass' : ssh_pass}
+						 'ssh_user' : self.ssh_user, \
+						 'ssh_port' : self.ssh_port, \
+						 'ssh_pass' : self.ssh_pass}
 			exec(preamble + verify, namespace, namespace)
 		except Exception, e:
 			msg = ('Verify failed\n' + str(e) + '\n' 
@@ -265,8 +266,9 @@ class base_server_job:
 			raise error.AutoservError(
 			    'No machines specified to repair')
 		namespace = {'machines' : self.machines, 'job' : self, \
-					 'ssh_user' : self.ssh_user, 'ssh_port' : ssh_port, \
-					 'ssh_pass' : ssh_pass}
+					 'ssh_user' : self.ssh_user, \
+					 'ssh_port' : self.ssh_port, \
+					 'ssh_pass' : self.ssh_pass}
 		# no matter what happens during repair, go on to try to reverify
 		try:
 			exec(preamble + repair, namespace, namespace)
