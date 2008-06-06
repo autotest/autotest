@@ -44,6 +44,10 @@ class D(C):
 		else:
 			return 10
 
+class E(D):
+	def __init__(self, val):
+		self.val = val
+
 
 # say we want to test that do_stuff is doing what we think it is doing
 def do_stuff(a, b, func):
@@ -95,7 +99,7 @@ def main():
 	do_stuff(m1, m2, f)
 
 	# we can now check that playback succeeded
-	print god.check_playback()
+	god.check_playback()
 
 	# now test the ability to mock out all methods of an object
 	# except those under test
@@ -112,7 +116,7 @@ def main():
 
 	# check playback
 	print "answer = %s" % (answer)
-	print god.check_playback()
+	god.check_playback()
 
 	# check exception returns too
 	m3 = god.create_mock_class(D, "D")
@@ -120,20 +124,20 @@ def main():
 	m3.method6.expect_call(True).and_raises(MyError("woops"))
 
 	do_more_stuff(m3)
-	print god.check_playback()
+	god.check_playback()
 
 	# now check we can mock out a whole class (rather than just an instance)
-	mockA = god.create_mock_class_obj(A, "A")
-	oldA = mock_demo_MUT.A
-	mock_demo_MUT.A = mockA
+	mockE = god.create_mock_class_obj(E, "E")
+	oldE = mock_demo_MUT.E
+	mock_demo_MUT.E = mockE
 
-	m4 = mockA.expect_new()
+	m4 = mockE.expect_new(val=7)
 	m4.method1.expect_call().and_return(1)
 
 	mock_demo_MUT.do_create_stuff()
-	print god.check_playback()
+	god.check_playback()
 
-	mock_demo_MUT.A = oldA
+	mock_demo_MUT.E = oldE
 
 
 if __name__ == "__main__":
