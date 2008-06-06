@@ -413,14 +413,14 @@ def check_glibc_ver(ver):
     glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
     glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
     if glibc_ver.split('.') < ver.split('.'):
-        raise error.TestError("Glibc is too old (%s). Glibc >= %s is needed." % \
+        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." % \
                                                 (glibc_ver, ver))
 
 def check_kernel_ver(ver):
     kernel_ver = utils.system_output('uname -r')
     kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
     if kv_tmp[0].split('.') < ver.split('.'):
-        raise error.TestError("Kernel is too old (%s). Kernel > %s is needed." % \
+        raise error.TestError("Kernel too old (%s). Kernel > %s is needed." % \
                                                 (kernel_ver, ver))
 
 
