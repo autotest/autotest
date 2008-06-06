@@ -579,4 +579,3 @@ class ModelWithInvalid(ModelExtensions):
 		def _prepare(cls, model):
 			super(ModelWithInvalid.Manipulator, cls)._prepare(model)
 			cls.manager = model.valid_objects
-
