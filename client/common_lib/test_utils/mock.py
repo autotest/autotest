@@ -1,10 +1,15 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 
-import re, collections
+import re, collections, StringIO, sys
 
 
-class NoBackingFunctionError(Exception):
+class CheckPlaybackError(Exception):
+	'Raised when mock playback does not match recorded calls.'
+
+
+class ExitException(Exception):
+	'Raised when the mocked sys.exit() is called'
 	pass
 
 
@@ -46,6 +51,19 @@ class is_string_comparator(argument_comparator):
 
 	def __str__(self):
 		return "a string"
+
+
+class is_instance_comparator(argument_comparator):
+	def __init__(self, cls):
+		self.cls = cls
+
+
+	def is_satisfied_by(self, parameter):
+		return isinstance(parameter, self.cls)
+
+
+	def __str__(self):
+		return "is a %s" % self.cls
 
 
 class function_map(object):
@@ -99,7 +117,7 @@ class mock_function(object):
 		self.symbol = symbol
 		self.record = record
 		self.playback = playback
-
+		self.__name__ = symbol
 
 
 	def __call__(self, *args, **dargs):
@@ -155,12 +173,18 @@ class mock_class(object):
 				setattr(self, symbol, orig_symbol)
 
 
-
 class mock_god:
-	def __init__(self):
+	NONEXISTENT_ATTRIBUTE = object()
+
+	def __init__(self, debug=False):
+		"""
+		With debug=True, all recorded method calls will be printed as
+		they happen.
+		"""
 		self.recording = collections.deque()
 		self.errors = []
 		self._stubs = []
+		self._debug = debug
 
 
 	def create_mock_class_obj(self, cls, name, default_ret_val=None):
@@ -268,8 +292,8 @@ class mock_god:
 
 
 	def stub_with(self, namespace, symbol, new_attribute):
-		assert hasattr(namespace, symbol)
-		original_attribute = getattr(namespace, symbol)
+		original_attribute = getattr(namespace, symbol,
+					     self.NONEXISTENT_ATTRIBUTE)
 		self._stubs.append((namespace, symbol, original_attribute))
 		setattr(namespace, symbol, new_attribute)
 
@@ -279,14 +303,25 @@ class mock_god:
 		self.stub_with(namespace, symbol, mock_attribute)
 
 
+	def stub_class_method(self, cls, symbol):
+		mock_attribute = self.create_mock_function(symbol)
+		self.stub_with(cls, symbol, staticmethod(mock_attribute))
+
+
 	def unstub_all(self):
 		self._stubs.reverse()
 		for namespace, symbol, original_attribute in self._stubs:
-			setattr(namespace, symbol, original_attribute)
+			if original_attribute == self.NONEXISTENT_ATTRIBUTE:
+				delattr(namespace, symbol)
+			else:
+				setattr(namespace, symbol, original_attribute)
 		self._stubs = []
 
 
 	def __method_playback(self, symbol, *args, **dargs):
+		if self._debug:
+			print 'Mock call:', _dump_function_call(symbol,
+								args, dargs)
 		if len(self.recording) != 0:
 			func_call = self.recording[0]
 			if func_call.symbol != symbol:
@@ -328,19 +363,68 @@ class mock_god:
 		if len(self.errors) > 0:
 			for error in self.errors:
 				print error
-			return False
+			raise CheckPlaybackError
 		elif len(self.recording) != 0:
 			for func_call in self.recording:
 				print "%s not called" % (func_call)
-			return False
-		else:
-			return True
+			raise CheckPlaybackError
+
+
+	def mock_exit(self):
+		def mock_exit_handler(self):
+			raise ExitException
+
+		self.saved_exit = sys.exit
+		sys.exit = mock_exit_handler
+
+
+	def unmock_exit(self):
+		sys.exit = self.saved_exit
+		self.saved_exit = None
+
+
+	def mock_stdout_stderr(self):
+		"""Mocks and saves the stdout & stderr output"""
+		self.mock_streams_stdout = StringIO.StringIO('')
+		self.mock_streams_stderr = StringIO.StringIO('')
+
+		sys.stdout = self.mock_streams_stdout
+		sys.stderr = self.mock_streams_stderr
+
+
+	def unmock_stdout_stderr(self):
+		"""Restores the stdout & stderr, and returns both
+		output strings"""
+		sys.stdout = sys.__stdout__
+		sys.stderr = sys.__stderr__
+		values = (self.mock_streams_stdout.getvalue(),
+			  self.mock_streams_stderr.getvalue())
+
+		self.mock_streams_stdout.close()
+		self.mock_streams_stderr.close()
+		return values
+
+
+	def mock_io_exit(self):
+		self.mock_exit()
+		self.mock_stdout_stderr()
+
+
+	def unmock_io_exit(self):
+		self.unmock_exit()
+		return self.unmock_stdout_stderr()
+
+
+def _arg_to_str(arg):
+	if isinstance(arg, argument_comparator):
+		return str(arg)
+	return repr(arg)
 
 
 def _dump_function_call(symbol, args, dargs):
 	arg_vec = []
 	for arg in args:
-		arg_vec.append(str(arg))
+		arg_vec.append(_arg_to_str(arg))
 	for key, val in dargs.iteritems():
-		arg_vec.append("%s=%s" % (key,val))
+		arg_vec.append("%s=%s" % (key, _arg_to_stv(val)))
 	return "%s(%s)" % (symbol, ', '.join(arg_vec))
