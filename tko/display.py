@@ -1,4 +1,5 @@
-import os, re, sys, frontend
+import os, re, string, sys
+import frontend, reason_qualifier
 
 color_map = {
 	'header'        : '#e5e5c0', # greyish yellow
@@ -172,8 +173,13 @@ def status_html(db, box_data, shade):
 			(0, sum(status_count.values()))
 
 	if box_data.reasons_list:
-		box_data.reasons_list.sort()
-		for reason in box_data.reasons_list:
+		reasons_list = box_data.reasons_list
+		aggregated_reasons_list = \
+			reason_qualifier.aggregate_reason_fields(reasons_list)
+		for reason in aggregated_reasons_list:
+			## a bit of more postprocessing
+			## to look nicer in a cell
+			## in future: to do subtable within the cell
 			reason = reason.replace('<br>','\n')
 			reason = reason.replace('<','[').replace('>',']')
 			reason = reason.replace('|','\n').replace('&',' AND ')
