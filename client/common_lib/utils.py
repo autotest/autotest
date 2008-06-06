@@ -481,12 +481,13 @@ class CmdResult(object):
 	"""
 
 
-	def __init__(self, command = None):
+	def __init__(self, command=None, stdout="", stderr="", 
+		     exit_status=None, duration=0):
 		self.command = command
-		self.exit_status = None
-		self.stdout = ""
-		self.stderr = ""
-		self.duration = 0
+		self.exit_status = exit_status
+		self.stdout = stdout
+		self.stderr = stderr
+		self.duration = duration
 
 
 	def __repr__(self):
