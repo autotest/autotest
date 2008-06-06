@@ -17,7 +17,7 @@ from autotest_lib.client.bin import fd_stack
 from autotest_lib.client.common_lib import error, logging
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
-from autotest_lib.server.utils import *
+from autotest_lib.client.common_lib import utils
 
 
 # load up a control segment
@@ -197,7 +197,7 @@ class base_server_job:
                             'hostname' : ','.join(machines),
                             'status_version' : str(self.STATUS_VERSION)}
 		job_data.update(get_site_job_data(self))
-		write_keyval(self.resultdir, job_data)
+		utils.write_keyval(self.resultdir, job_data)
 
 		self.parse_job = parse_job
 		if self.parse_job and len(machines) == 1:
@@ -356,8 +356,8 @@ class base_server_job:
 		finally:
 			if machines and collect_crashdumps:
 				namespace['test_start_time'] = test_start_time
-				exec(preamble + crashdumps,
-				     namespace, namespace)
+				exec(preamble + crashdumps, 
+					namespace, namespace)
 			self.disable_external_logging()
 			if reboot and machines:
 				exec(preamble + reboot_segment,
