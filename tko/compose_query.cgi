@@ -103,6 +103,9 @@ row = parse_field(form, 'rows', 'kernel')
 column = parse_field(form, 'columns', 'machine_group')
 condition_field = parse_condition(form, 'condition', '')
 
+if 'brief' in form.keys() and form['brief'].value <> '0':
+	display.set_brief_mode()
+
 ## caller can specify rows and columns that shall be included into the report
 ## regardless of whether actual test data is available yet
 force_row_field = parse_condition(form,'force_row','')
@@ -339,24 +342,30 @@ def gen_matrix():
 
 
 def main():
-	# create the actual page
-	print '<html><head><title>'
-	print 'Filtered Autotest Results'
-	print '</title></head><body>'
-	display.print_main_header()
-	print html_header % (create_select_options(column),
-	                     create_select_options(row),
-	                     condition_field, title_field)
-	if title_field:
-		print '<h1> %s </h1>' % (title_field)
-	print display.color_keys_row()
-	display.print_table(gen_matrix())
-	print display.color_keys_row()
-	total_wall_time = time.time() - total_wall_time_start
-	perf_info = '<p style="font-size:x-small;">'
-	perf_info += 'sql access wall time = %s secs,' % sql_wall_time
-	perf_info += 'total wall time = %s secs</p>' % total_wall_time
-	print perf_info
-	print '</body></html>'
+	if display.is_brief_mode():
+		## create main grid table only as provided by gen_matrix()
+		display.print_table(gen_matrix())
+	else:
+		# create the actual page 
+		print '<html><head><title>'
+		print 'Filtered Autotest Results'
+		print '</title></head><body>'
+		display.print_main_header()
+		print html_header % (create_select_options(column),
+		             create_select_options(row),
+		             condition_field, title_field)
+		if title_field:
+			print '<h1> %s </h1>' % (title_field)
+		print display.color_keys_row()
+		display.print_table(gen_matrix())
+		print display.color_keys_row()
+		total_wall_time = time.time() - total_wall_time_start
+		
+		perf_info = '<p style="font-size:x-small;">'
+		perf_info += 'sql access wall time = %s secs,' % sql_wall_time
+		perf_info += 'total wall time = %s secs</p>' % total_wall_time
+		print perf_info
+		print '</body></html>'
+
 
 main()
