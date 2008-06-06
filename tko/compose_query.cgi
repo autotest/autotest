@@ -57,6 +57,11 @@ html_header = """\
   <td align="center">&nbsp;<input type="submit" value="Save Query">
   </td>
  <td>&nbsp;&nbsp;<a href="query_history.cgi">View saved queries</a></td>
+  <td>
+    <input type="hidden" name="columns" value="%s">
+    <input type="hidden" name="rows" value="%s">
+    <input type="hidden" name="condition" value="%s">
+  </td>
 </tr>
 </table>
 </form>
@@ -352,8 +357,10 @@ def main():
 		print '</title></head><body>'
 		display.print_main_header()
 		print html_header % (create_select_options(column),
-		             create_select_options(row),
-		             condition_field, title_field)
+				     create_select_options(row),
+				     condition_field, title_field,
+				     ## history form
+				     column,row,condition_field)
 		if title_field:
 			print '<h1> %s </h1>' % (title_field)
 		print display.color_keys_row()
