@@ -1,6 +1,6 @@
 __author__ = """Copyright Martin J. Bligh, Google, 2006"""
 
-import os, re, string
+import os, re, string, sys
 from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import error, utils
 
