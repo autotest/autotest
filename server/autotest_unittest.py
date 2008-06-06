@@ -7,7 +7,7 @@ import common
 from autotest_lib.server import autotest, utils
 from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.server.hosts import ssh_host
-from autotest_lib.client.unittest import mock
+from autotest_lib.client.common_lib.test_utils import mock
 
 
 class TestBaseAutotest(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestBaseAutotest(unittest.TestCase):
 		self.os_obj = self.god.create_mock_class(os, "os")
 		autotest.os = self.os_obj
 
-		# stub out os.path 
+		# stub out os.path
 		self.path_obj = self.god.create_mock_class(os.path, "os.path")
 		autotest.os.path = self.path_obj
 
@@ -35,7 +35,7 @@ class TestBaseAutotest(unittest.TestCase):
 		func_call.and_return(self.server_dir)
 
 		# create our host mock (and give it a hostname)
-		self.host = self.god.create_mock_class(ssh_host.SSHHost, 
+		self.host = self.god.create_mock_class(ssh_host.SSHHost,
 		                                       "SSHHost")
 		self.host.hostname = "foo"
 
@@ -51,7 +51,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 	def test_constructor(self):
 		# we should check the calls
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 	def common_install_test_setup(self, autodir, is_site_install_autotest):
 	        # mock other methods
@@ -61,7 +61,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 		self.base_autotest.got = True
 		self.source_material = None
-		
+
 		# record calls
 		self.host.wait_up.expect_call(timeout=30)
 		self.host.setup.expect_call()
@@ -90,7 +90,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 		# check
 		self.assertTrue(self.base_autotest.installed)
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 		# put back
 		self.common_install_test_teardown(old_get_autodir)
@@ -111,7 +111,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 		# check
 		self.assertTrue(self.base_autotest.installed)
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 		# put back
 		self.common_install_test_teardown(old_get_autodir)
@@ -131,13 +131,13 @@ class TestBaseAutotest(unittest.TestCase):
 
 		# do tests
 		self.assertTrue(self.base_autotest.got)
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 
 	def test_get_default(self):
 		# setup the test
 		location = "autotest_lib.client"
-		self.path_obj.join.expect_call(self.base_autotest.serverdir, 
+		self.path_obj.join.expect_call(self.base_autotest.serverdir,
 		                               '../client').and_return(location)
 		self.path_obj.abspath.expect_call(location).and_return(location)
 		cwd = "current_dir"
@@ -151,7 +151,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 		# do tests
 		self.assertTrue(self.base_autotest.got)
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 
 	def test_run_default(self):
@@ -177,7 +177,7 @@ class TestBaseAutotest(unittest.TestCase):
 		new_func.expect_call(None).and_return(self.host)
 		results_dir = "results_dir"
 		self.path_obj.abspath.expect_call(".").and_return(results_dir)
-		newRun.expect_call(self.host, 
+		newRun.expect_call(self.host,
 		                   results_dir, None, False).and_return(run)
 		do_run.expect_call("control", results_dir, self.host, run, None)
 
@@ -185,7 +185,7 @@ class TestBaseAutotest(unittest.TestCase):
 		self.base_autotest.run("control")
 
 		# do test
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 		# put things back
 		self.base_autotest._get_host_and_setup = old_func
@@ -200,16 +200,16 @@ class TestBaseAutotest(unittest.TestCase):
 		dkeyval = "dest/keyval"
 
 		# setup
-		self.path_obj.join.expect_call(dest, 
+		self.path_obj.join.expect_call(dest,
 		                               'keyval').and_return(dkeyval)
 		self.path_obj.exists.expect_call(dkeyval).and_return(False)
 
 		# run test
-		self.base_autotest.prepare_for_copying_logs(src, dest, 
+		self.base_autotest.prepare_for_copying_logs(src, dest,
 		                                            self.host)
 
 		# check
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 
 	def test_prepare_for_copying_logs2(self):
@@ -222,28 +222,28 @@ class TestBaseAutotest(unittest.TestCase):
 
 		# make stub for tempfile.mkstemp
 		old_mkstemp = autotest.tempfile.mkstemp
-		mkstemp_obj = self.god.create_mock_function("tempfile.mkstemp") 
+		mkstemp_obj = self.god.create_mock_function("tempfile.mkstemp")
 		autotest.tempfile.mkstemp = mkstemp_obj
 
 		# setup
-		self.path_obj.join.expect_call(dest, 
+		self.path_obj.join.expect_call(dest,
 		                               'keyval').and_return(dkeyval)
 		self.path_obj.exists.expect_call(dkeyval).and_return(True)
-		mkstemp_obj.expect_call('.keyval_%s' 
+		mkstemp_obj.expect_call('.keyval_%s'
 		                     % self.host.hostname).and_return(file_path)
-		self.path_obj.join.expect_call(src, 
+		self.path_obj.join.expect_call(src,
 		                               'keyval').and_return(skeyval)
 		self.host.get_file.expect_call(skeyval, file_path[1])
-		self.path_obj.join.expect_call(src, 
+		self.path_obj.join.expect_call(src,
 		                               'keyval').and_return(skeyval)
 		self.host.run.expect_call('rm -rf %s' % (skeyval))
 
 		# run test
-		self.base_autotest.prepare_for_copying_logs(src, dest, 
+		self.base_autotest.prepare_for_copying_logs(src, dest,
 		                                            self.host)
 
 		# check results
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 		# set things back
 		autotest.tempfile.mkstemp = old_mkstemp
@@ -260,7 +260,7 @@ class TestBaseAutotest(unittest.TestCase):
 		self.base_autotest.process_copied_logs(dest, self.host, path)
 
 		# run check
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 
 	def test_process_copied_logs_with_dest_keyval(self):
@@ -286,7 +286,7 @@ class TestBaseAutotest(unittest.TestCase):
 		self.base_autotest.process_copied_logs(dest, self.host, path)
 
 		# run check
-		self.assertTrue(self.god.check_playback())
+		self.god.check_playback()
 
 
 	def test_run_timed_test(self):
