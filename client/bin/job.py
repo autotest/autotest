@@ -105,8 +105,7 @@ class base_job:
                 os.mkdir(download)
 
             if os.path.exists(self.resultdir):
-                utils.system('rm -rf '
-                                        + self.resultdir)
+                utils.system('rm -rf ' + self.resultdir)
             os.mkdir(self.resultdir)
             os.mkdir(self.sysinfodir)
 
@@ -151,8 +150,7 @@ class base_job:
             self.enable_external_logging()
 
         # load the max disk usage rate - default to no monitoring
-        self.max_disk_usage_rate = self.get_state('__monitor_disk',
-                                                  default=0.0)
+        self.max_disk_usage_rate = self.get_state('__monitor_disk', default=0.0)
 
 
     def monitor_disk_usage(self, max_rate):
@@ -235,8 +233,8 @@ class base_job:
         """Summon a kernel object"""
         (results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
         build_dir = 'linux'
-        return kernel.auto_kernel(self, base_tree, results_dir,
-                                  tmp_dir, build_dir, leave)
+        return kernel.auto_kernel(self, base_tree, results_dir, tmp_dir,
+                                  build_dir, leave)
 
 
     def barrier(self, *args, **kwds):
@@ -321,8 +319,7 @@ class base_job:
 
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
-        @disk_usage_monitor.watch(log_warning, "/",
-                                  self.max_disk_usage_rate)
+        @disk_usage_monitor.watch(log_warning, "/", self.max_disk_usage_rate)
         def group_func():
             try:
                 self.__runtest(url, tag, args, dargs)
@@ -407,8 +404,7 @@ class base_job:
             raise error.TestError(msg)
         os.mkdir(outputdir)
 
-        result, exc_info = self.__rungroup(name, name, function,
-                                           *args, **dargs)
+        result, exc_info = self.__rungroup(name, name, function, *args, **dargs)
 
         # if there was a non-TestError exception, raise it
         if exc_info and not isinstance(exc_info[1], error.TestError):
@@ -426,8 +422,8 @@ class base_job:
         pid = os.getpid()
         if not name:
             name = 'test%d' % pid  # make arbitrary unique name
-        self.container = cpuset.cpuset(name, job_size=mbytes,
-                job_pid=pid, cpus=cpus, root=root)
+        self.container = cpuset.cpuset(name, job_size=mbytes, job_pid=pid,
+                                       cpus=cpus, root=root)
         # This job's python shell is now running in the new container
         # and all forked test processes will inherit that container
 
@@ -538,8 +534,7 @@ class base_job:
         for i, task in enumerate(tasklist):
             self.log_filename = old_log_filename + (".%d" % i)
             task_func = lambda: task[0](*task[1:])
-            pids.append(parallel.fork_start(self.resultdir,
-                                            task_func))
+            pids.append(parallel.fork_start(self.resultdir, task_func))
 
         old_log_path = os.path.join(self.resultdir, old_log_filename)
         old_log = open(old_log_path, "a")
@@ -666,8 +661,7 @@ class base_job:
 
         local_vars['__args'] = args
         local_vars['__dargs'] = dargs
-        exec('__ret = %s(*__args, **__dargs)' % fn,
-             local_vars, local_vars)
+        exec('__ret = %s(*__args, **__dargs)' % fn, local_vars, local_vars)
         return local_vars['__ret']
 
 
@@ -692,8 +686,7 @@ class base_job:
         current_frame = copy.copy(global_vars)
         frames = [current_frame]
         for steps_fn_name in ancestry:
-            ret = self._run_step_fn(current_frame,
-                                    steps_fn_name, [], {})
+            ret = self._run_step_fn(current_frame, steps_fn_name, [], {})
             current_frame = copy.copy(ret)
             frames.append(current_frame)
 
@@ -751,11 +744,9 @@ class base_job:
             self.set_state('__steps', steps)
 
             self.next_step_index = 0
-            ret = self._create_frame(global_control_vars, ancestry,
-                                     fn_name)
+            ret = self._create_frame(global_control_vars, ancestry, fn_name)
             local_vars, self.current_step_ancestry = ret
-            local_vars = self._run_step_fn(local_vars, fn_name,
-                                           args, dargs)
+            local_vars = self._run_step_fn(local_vars, fn_name, args, dargs)
             self._add_step_init(local_vars, fn_name)
 
 
@@ -807,21 +798,18 @@ class base_job:
 
         if subdir:
             if re.match(r'[\n\t]', subdir):
-                raise ValueError("Invalid character in "
-                                 "subdir string")
+                raise ValueError("Invalid character in subdir string")
             substr = subdir
         else:
             substr = '----'
 
         if not logging.is_valid_status(status_code):
-            raise ValueError("Invalid status code supplied: %s" %
-                             status_code)
+            raise ValueError("Invalid status code supplied: %s" % status_code)
         if not operation:
             operation = '----'
 
         if re.match(r'[\n\t]', operation):
-            raise ValueError("Invalid character in "
-                             "operation string")
+            raise ValueError("Invalid character in operation string")
         operation = operation.rstrip()
 
         if not optional_fields:
@@ -831,8 +819,7 @@ class base_job:
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
-        status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ",
-                        status)
+        status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ", status)
 
         # Generate timestamps for inclusion in the logs
         epoch_time = int(time.time())  # seconds since epoch, in UTC
@@ -852,8 +839,8 @@ class base_job:
         if "." in self.log_filename:
             msg_tag = self.log_filename.split(".", 1)[1]
 
-        self.harness.test_status_detail(status_code, substr,
-                                        operation, status, msg_tag)
+        self.harness.test_status_detail(status_code, substr, operation, status,
+                                        msg_tag)
         self.harness.test_status(msg, msg_tag)
 
         # log to stdout (if enabled)
@@ -867,8 +854,7 @@ class base_job:
         # log to the subdir status log (if subdir is set)
         if subdir:
             dir = os.path.join(self.resultdir, subdir)
-            status_file = os.path.join(dir,
-                                       self.DEFAULT_LOG_FILENAME)
+            status_file = os.path.join(dir, self.DEFAULT_LOG_FILENAME)
             open(status_file, "a").write(msg + "\n")
 
 
@@ -905,8 +891,7 @@ class disk_usage_monitor:
         mb_per_hour = mb_per_sec * 60 * 60
 
         if mb_per_hour > self.max_mb_per_hour:
-            msg = ("disk space on %s was consumed at a rate of "
-                   "%.2f MB/hour")
+            msg = ("disk space on %s was consumed at a rate of %.2f MB/hour")
             msg %= (self.device, mb_per_hour)
             self.func(msg)
 
@@ -944,8 +929,7 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
     try:
         # Check that the control file is valid
         if not os.path.exists(control):
-            raise error.JobError(control +
-                                    ": control file not found")
+            raise error.JobError(control + ": control file not found")
 
         # When continuing, the job is complete when there is no
         # state file, ensure we don't try and continue.
@@ -954,8 +938,7 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
         if cont == False and os.path.exists(state):
             os.unlink(state)
 
-        myjob = job(control, tag, cont, harness_type,
-                    use_external_logging)
+        myjob = job(control, tag, cont, harness_type, use_external_logging)
 
         # Load in the users control file, may do any one of:
         #  1) execute in toto
