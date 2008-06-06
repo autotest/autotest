@@ -1,4 +1,4 @@
-import time
+import time, os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
@@ -23,7 +23,7 @@ class cpu_hotplug(test.test):
 		
 		# Have a simple and quick check first, FIX me please.
 		utils.system('dmesg -c > /dev/null')
-		for cpu in cpu_online_map():
+		for cpu in autotest_utils.cpu_online_map():
 			if os.path.isfile('/sys/devices/system/cpu/cpu%s/online' % cpu):
 				utils.system('echo 0 > /sys/devices/system/cpu/cpu%s/online' % cpu, 1)
 				utils.system('dmesg -c')
