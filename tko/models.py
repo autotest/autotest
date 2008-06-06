@@ -104,6 +104,7 @@ class iteration(object):
 		self.perf_keyval = perf_keyval
 
 
+
 	@staticmethod
 	def parse_line_into_dicts(line, attr_dict, perf_dict):
 		"""Abstract method to parse a keyval line and insert it into
