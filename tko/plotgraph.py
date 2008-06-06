@@ -94,10 +94,9 @@ class gnuplot:
 		for dataset in self.datasets:
 			count = 1
 			for label in self.xlabels:
-				if not dataset.has_key(label):
-					continue
-				data = dataset[label]
-				g.write("%d %s\n" % (count, str(data)))
+				if label in dataset:
+					data = dataset[label]
+					g.write("%d %s\n" % (count, str(data)))
 				count += 1
 			sys.stdout.flush()
 			g.write('e\n')
