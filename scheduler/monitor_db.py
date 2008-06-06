@@ -388,6 +388,7 @@ class Dispatcher:
 		for queue_entry in queue_entries:
 			run_monitor = PidfileRunMonitor(
 			    queue_entry.results_dir())
+			run_monitor.run()
 			pid, exit_code = run_monitor.get_pidfile_info()
 			if pid is None:
 				# autoserv apparently never got run, so requeue
@@ -646,13 +647,13 @@ class RunMonitor(object):
 	def __init__(self, cmd, nice_level = None, log_file = None):
 		self.nice_level = nice_level
 		self.log_file = log_file
-		self.proc = self.run(cmd)
+		self.cmd = cmd
 
-        def run(self, cmd):
+        def run(self):
 		if self.nice_level:
 			nice_cmd = ['nice','-n', str(self.nice_level)]
-			nice_cmd.extend(cmd)
-			cmd = nice_cmd
+			nice_cmd.extend(self.cmd)
+			self.cmd = nice_cmd
 
 		out_file = None
 		if self.log_file:
@@ -667,7 +668,8 @@ class RunMonitor(object):
 				out_file = open(self.log_file, 'a')
 				out_file.write("\n%s\n" % ('*'*80))
 				out_file.write("%s> %s\n" %
-					       (time.strftime("%X %x"), cmd))
+					       (time.strftime("%X %x"),
+						self.cmd))
 				out_file.write("%s\n" % ('*'*80))
 			except (OSError, IOError):
 				log_stacktrace('Error opening log file %s' %
@@ -677,14 +679,14 @@ class RunMonitor(object):
 			out_file = open('/dev/null', 'w')
 
 		in_devnull = open('/dev/null', 'r')
-		print "cmd = %s" % cmd
+		print "cmd = %s" % self.cmd
 		print "path = %s" % os.getcwd()
 
-		proc = subprocess.Popen(cmd, stdout=out_file,
-					stderr=subprocess.STDOUT, stdin=in_devnull)
+		self.proc = subprocess.Popen(self.cmd, stdout=out_file,
+					     stderr=subprocess.STDOUT,
+					     stdin=in_devnull)
 		out_file.close()
 		in_devnull.close()
-                return proc
 
 
 	def get_pid(self):
@@ -764,7 +766,8 @@ class PidfileRunMonitor(RunMonitor):
 			if len(lines) == 2:
 				exit_status = int(lines[1])
 		except ValueError, exc:
-			raise Exception('Corrupt pid file: ' + str(exc.args))
+			raise PidfileException('Corrupt pid file: ' +
+					       str(exc.args))
 
 		return pid, exit_status
 
@@ -1008,6 +1011,7 @@ class AgentTask(object):
 			self.monitor = RunMonitor(
 			    self.cmd, nice_level = AUTOSERV_NICE_LEVEL,
 			    log_file = log_file)
+			self.monitor.run()
 
 
 class RepairTask(AgentTask):
@@ -1159,6 +1163,7 @@ class QueueTask(AgentTask):
 		self.monitor = PidfileRunMonitor(self.results_dir(),
 						 cmd=self.cmd,
 						 nice_level=AUTOSERV_NICE_LEVEL)
+		self.monitor.run()
 
 
 	def prolog(self):
