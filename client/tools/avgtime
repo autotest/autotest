@@ -2,35 +2,34 @@
 import sys, os, re
 
 def avg_deviation(values):
-	sum = 0
-	count = 0
+    sum = 0
+    count = 0
 
-	if not values:
-		return (0, 0)
-	for x in values:
-		sum += x
-		count += 1
-	average = sum / count
-	sum_sq_dev = 0
-	for x in values:
-		sum_sq_dev += (x - average) ** 2
-	std_dev = (sum_sq_dev / count)**0.5
-	return (average, 100 * std_dev / average)
+    if not values:
+        return (0, 0)
+    for x in values:
+        sum += x
+        count += 1
+    average = sum / count
+    sum_sq_dev = 0
+    for x in values:
+        sum_sq_dev += (x - average) ** 2
+    std_dev = (sum_sq_dev / count)**0.5
+    return (average, 100 * std_dev / average)
 
 
-list = []	
+list = []
 for line in sys.stdin.readlines():
-	(user, system, elapsed, cpu) = line.split()[0:4]
-	user = float(re.match(r'([\d\.]+)', user).group(0))
-	system = float(re.match(r'([\d\.]+)', system).group(0))
-	m = re.match(r'(\d+):([\d\.]+)', elapsed)
-	elapsed = 60*int(m.group(1)) + float(m.group(2))
-	cpu = int(re.match(r'(\d+)', cpu).group(0))
+    (user, system, elapsed, cpu) = line.split()[0:4]
+    user = float(re.match(r'([\d\.]+)', user).group(0))
+    system = float(re.match(r'([\d\.]+)', system).group(0))
+    m = re.match(r'(\d+):([\d\.]+)', elapsed)
+    elapsed = 60*int(m.group(1)) + float(m.group(2))
+    cpu = int(re.match(r'(\d+)', cpu).group(0))
 
-	list.append((user, system, elapsed, cpu))
+    list.append((user, system, elapsed, cpu))
 
 print "   user: %0.2fs (%0.2f%%)" % avg_deviation([x[0] for x in list])
 print " system: %0.2fs (%0.2f%%)" % avg_deviation([x[1] for x in list])
 print "elapsed: %0.2fs (%0.2f%%)" % avg_deviation([x[2] for x in list])
 print "    cpu: %d%% (%0.2f%%)" % avg_deviation([x[3] for x in list])
-	

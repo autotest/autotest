@@ -9,12 +9,12 @@ from autotest_lib.client.common_lib import test as common_test
 
 
 class test(common_test.base_test):
-	pass
+    pass
 
 
 testname = common_test.testname
 
 
 def runtest(job, url, tag, args, dargs):
-	common_test.runtest(job, url, tag, args, dargs,
-			    locals(), globals())
+    common_test.runtest(job, url, tag, args, dargs,
+                        locals(), globals())

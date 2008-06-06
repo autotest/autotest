@@ -4,188 +4,188 @@ from autotest_lib.client.common_lib import utils
 
 
 class sysbench(test.test):
-	version = 1
+    version = 1
 
-	# http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
-	def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
-		tarball = utils.unmap_url(self.bindir, tarball,
-		                                   self.tmpdir)
-		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
-		self.job.setup_dep(['pgsql', 'mysql'])
+    # http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
+    def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
+        tarball = utils.unmap_url(self.bindir, tarball,
+                                           self.tmpdir)
+        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        self.job.setup_dep(['pgsql', 'mysql'])
 
-		os.chdir(self.srcdir)
+        os.chdir(self.srcdir)
 
-		pgsql_dir = os.path.join(self.autodir, 'deps/pgsql/pgsql')
-		mysql_dir = os.path.join(self.autodir, 'deps/mysql/mysql')
+        pgsql_dir = os.path.join(self.autodir, 'deps/pgsql/pgsql')
+        mysql_dir = os.path.join(self.autodir, 'deps/mysql/mysql')
 
-		# configure wants to get at pg_config, so add its path
-		utils.system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
-		utils.system('make -j %d' % autotest_utils.count_cpus())
-
-
-	def execute(self, db_type = 'pgsql', build = 1, \
-			num_threads = autotest_utils.count_cpus(), max_time = 60, \
-			read_only = 0, args = ''):
-		plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
-		mlib = os.path.join(self.autodir, 'deps/mysql/mysql/lib/mysql')
-		ld_path = prepend_path(plib, environ('LD_LIBRARY_PATH'))
-		ld_path = prepend_path(mlib, ld_path)
-		os.environ['LD_LIBRARY_PATH'] = ld_path
-
-		# The databases don't want to run as root so run them as nobody 
-		self.dbuser = 'nobody'
-		self.dbuid = pwd.getpwnam(self.dbuser)[2]
-		self.sudo = 'sudo -u ' + self.dbuser + ' '
-
-		# Check for nobody user
-		try:
-			utils.system(self.sudo + '/bin/true')
-		except:
-			raise TestError('Unable to run as nobody')
-
-		if (db_type == 'pgsql'):
-			self.execute_pgsql(build, num_threads, max_time, \
-				read_only, args)
-		elif (db_type == 'mysql'):
-			self.execute_mysql(build, num_threads, max_time, \
-				read_only, args)
+        # configure wants to get at pg_config, so add its path
+        utils.system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
+        utils.system('make -j %d' % autotest_utils.count_cpus())
 
 
-	def execute_pgsql(self, build, num_threads, max_time, read_only, args):
-		bin = os.path.join(self.autodir, 'deps/pgsql/pgsql/bin')
-		data = os.path.join(self.autodir, 'deps/pgsql/pgsql/data')
-		log = os.path.join(self.debugdir, 'pgsql.log')
+    def execute(self, db_type = 'pgsql', build = 1, \
+                    num_threads = autotest_utils.count_cpus(), max_time = 60, \
+                    read_only = 0, args = ''):
+        plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
+        mlib = os.path.join(self.autodir, 'deps/mysql/mysql/lib/mysql')
+        ld_path = prepend_path(plib, environ('LD_LIBRARY_PATH'))
+        ld_path = prepend_path(mlib, ld_path)
+        os.environ['LD_LIBRARY_PATH'] = ld_path
 
-		if build == 1:
-			utils.system('rm -rf ' + data)
-			os.mkdir(data)
-			os.chown(data, self.dbuid, 0)
-			utils.system(self.sudo + bin + '/initdb -D ' + data)
+        # The databases don't want to run as root so run them as nobody
+        self.dbuser = 'nobody'
+        self.dbuid = pwd.getpwnam(self.dbuser)[2]
+        self.sudo = 'sudo -u ' + self.dbuser + ' '
 
-		# Database must be able to write its output into debugdir
-		os.chown(self.debugdir, self.dbuid, 0)
-		utils.system(self.sudo + bin + '/pg_ctl -D ' + data + \
-			' -l ' + log + ' start')
+        # Check for nobody user
+        try:
+            utils.system(self.sudo + '/bin/true')
+        except:
+            raise TestError('Unable to run as nobody')
 
-		# Wait for database to start
-		time.sleep(5)
-
-		try:
-			base_cmd = self.srcdir + '/sysbench/sysbench ' + \
-				'--test=oltp --db-driver=pgsql ' + \
-				'--pgsql-user=' + self.dbuser
-
-			if build == 1:
-				utils.system(self.sudo + bin + '/createdb sbtest')
-				cmd = base_cmd +' prepare'
-				utils.system(cmd)
-
-			cmd = base_cmd + \
-				' --num-threads=' + str(num_threads) + \
-				' --max-time=' + str(max_time) + \
-				' --max-requests=0'
-
-			if read_only:
-				cmd = cmd + ' --oltp-read-only=on'
-
-			results = []
-
-			profilers = self.job.profilers
-			if not profilers.only():
-				results.append(utils.system_output(cmd + ' run',
-							retain_output=True))
-
-			# Do a profiling run if necessary
-			if profilers.present():
-				profilers.start(self)
-				results.append("Profiling run ...")
-				results.append(utils.system_output(cmd + ' run',
-							retain_output=True))
-				profilers.stop(self)
-				profilers.report(self)
-		except:
-			utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
-			raise
-
-		utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
-
-		self.__format_results("\n".join(results))
+        if (db_type == 'pgsql'):
+            self.execute_pgsql(build, num_threads, max_time, \
+                    read_only, args)
+        elif (db_type == 'mysql'):
+            self.execute_mysql(build, num_threads, max_time, \
+                    read_only, args)
 
 
-	def execute_mysql(self, build, num_threads, max_time, read_only, args):
-		bin = os.path.join(self.autodir, 'deps/mysql/mysql/bin')
-		data = os.path.join(self.autodir, 'deps/mysql/mysql/var')
-		log = os.path.join(self.debugdir, 'mysql.log')
+    def execute_pgsql(self, build, num_threads, max_time, read_only, args):
+        bin = os.path.join(self.autodir, 'deps/pgsql/pgsql/bin')
+        data = os.path.join(self.autodir, 'deps/pgsql/pgsql/data')
+        log = os.path.join(self.debugdir, 'pgsql.log')
 
-		if build == 1:
-			utils.system('rm -rf ' + data)
-			os.mkdir(data)	
-			os.chown(data, self.dbuid, 0)
-			utils.system(bin + '/mysql_install_db --user=' + self.dbuser)
+        if build == 1:
+            utils.system('rm -rf ' + data)
+            os.mkdir(data)
+            os.chown(data, self.dbuid, 0)
+            utils.system(self.sudo + bin + '/initdb -D ' + data)
 
-		utils.system(bin + '/mysqld_safe --log-error=' + log + \
-			' --user=' + self.dbuser + ' &')
+        # Database must be able to write its output into debugdir
+        os.chown(self.debugdir, self.dbuid, 0)
+        utils.system(self.sudo + bin + '/pg_ctl -D ' + data + \
+                ' -l ' + log + ' start')
 
-		# Wait for database to start
-		time.sleep(5)
+        # Wait for database to start
+        time.sleep(5)
 
-		try:
-			base_cmd = self.srcdir + '/sysbench/sysbench ' + \
-				'--test=oltp --db-driver=mysql ' + \
-				'--mysql-user=root'
+        try:
+            base_cmd = self.srcdir + '/sysbench/sysbench ' + \
+                    '--test=oltp --db-driver=pgsql ' + \
+                    '--pgsql-user=' + self.dbuser
 
-			if build == 1:
-				utils.system('echo "create database sbtest" | ' + \
-					bin + '/mysql -u root')
-				cmd = base_cmd +' prepare'
-				utils.system(cmd)
+            if build == 1:
+                utils.system(self.sudo + bin + '/createdb sbtest')
+                cmd = base_cmd +' prepare'
+                utils.system(cmd)
 
-			cmd = base_cmd + \
-				' --num-threads=' + str(num_threads) + \
-				' --max-time=' + str(max_time) + \
-				' --max-requests=0'
+            cmd = base_cmd + \
+                    ' --num-threads=' + str(num_threads) + \
+                    ' --max-time=' + str(max_time) + \
+                    ' --max-requests=0'
 
-			if read_only:
-				cmd = cmd + ' --oltp-read-only=on'
+            if read_only:
+                cmd = cmd + ' --oltp-read-only=on'
 
-			results = []
+            results = []
 
-			profilers = self.job.profilers
-                	if not profilers.only():
-				results.append(utils.system_output(cmd + ' run',
-							 retain_output=True))
+            profilers = self.job.profilers
+            if not profilers.only():
+                results.append(utils.system_output(cmd + ' run',
+                                        retain_output=True))
 
-			# Do a profiling run if necessary
-			if profilers.present():
-				profilers.start(self)
-				results.append("Profiling run ...")
-				results.append(utils.system_output(cmd + ' run',
-							retain_output=True))
-				profilers.stop(self)
-				profilers.report(self)
-		except:
-			utils.system(bin + '/mysqladmin shutdown')
-			raise
+            # Do a profiling run if necessary
+            if profilers.present():
+                profilers.start(self)
+                results.append("Profiling run ...")
+                results.append(utils.system_output(cmd + ' run',
+                                        retain_output=True))
+                profilers.stop(self)
+                profilers.report(self)
+        except:
+            utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
+            raise
 
-		utils.system(bin + '/mysqladmin shutdown')
+        utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
 
-		self.__format_results("\n".join(results))
+        self.__format_results("\n".join(results))
 
 
-	def __format_results(self, results):
-		threads = 0
-		tps = 0
+    def execute_mysql(self, build, num_threads, max_time, read_only, args):
+        bin = os.path.join(self.autodir, 'deps/mysql/mysql/bin')
+        data = os.path.join(self.autodir, 'deps/mysql/mysql/var')
+        log = os.path.join(self.debugdir, 'mysql.log')
 
-		out = open(self.resultsdir + '/keyval', 'w')
-		for line in results.split('\n'):
-			threads_re = re.search('Number of threads: (\d+)', line)
-			if threads_re:
-				threads = threads_re.group(1)
+        if build == 1:
+            utils.system('rm -rf ' + data)
+            os.mkdir(data)
+            os.chown(data, self.dbuid, 0)
+            utils.system(bin + '/mysql_install_db --user=' + self.dbuser)
 
-			tps_re = re.search('transactions:\s+\d+\s+\((\S+) per sec.\)', line)
-			if tps_re:
-				tps = tps_re.group(1)
-				break
+        utils.system(bin + '/mysqld_safe --log-error=' + log + \
+                ' --user=' + self.dbuser + ' &')
 
-		print >> out, 'threads=%s\ntps=%s' % (threads, tps)
-		out.close()
+        # Wait for database to start
+        time.sleep(5)
+
+        try:
+            base_cmd = self.srcdir + '/sysbench/sysbench ' + \
+                    '--test=oltp --db-driver=mysql ' + \
+                    '--mysql-user=root'
+
+            if build == 1:
+                utils.system('echo "create database sbtest" | ' + \
+                        bin + '/mysql -u root')
+                cmd = base_cmd +' prepare'
+                utils.system(cmd)
+
+            cmd = base_cmd + \
+                    ' --num-threads=' + str(num_threads) + \
+                    ' --max-time=' + str(max_time) + \
+                    ' --max-requests=0'
+
+            if read_only:
+                cmd = cmd + ' --oltp-read-only=on'
+
+            results = []
+
+            profilers = self.job.profilers
+            if not profilers.only():
+                results.append(utils.system_output(cmd + ' run',
+                                         retain_output=True))
+
+            # Do a profiling run if necessary
+            if profilers.present():
+                profilers.start(self)
+                results.append("Profiling run ...")
+                results.append(utils.system_output(cmd + ' run',
+                                        retain_output=True))
+                profilers.stop(self)
+                profilers.report(self)
+        except:
+            utils.system(bin + '/mysqladmin shutdown')
+            raise
+
+        utils.system(bin + '/mysqladmin shutdown')
+
+        self.__format_results("\n".join(results))
+
+
+    def __format_results(self, results):
+        threads = 0
+        tps = 0
+
+        out = open(self.resultsdir + '/keyval', 'w')
+        for line in results.split('\n'):
+            threads_re = re.search('Number of threads: (\d+)', line)
+            if threads_re:
+                threads = threads_re.group(1)
+
+            tps_re = re.search('transactions:\s+\d+\s+\((\S+) per sec.\)', line)
+            if tps_re:
+                tps = tps_re.group(1)
+                break
+
+        print >> out, 'threads=%s\ntps=%s' % (threads, tps)
+        out.close()

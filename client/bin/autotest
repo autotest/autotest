@@ -28,27 +28,27 @@ os.environ['PYTHONPATH'] = autodirbin
 parser = OptionParser()
 
 parser.add_option("-c", "--continue", dest="cont", action="store_true",
-			default=False, help="continue previously started job")
+                        default=False, help="continue previously started job")
 
 parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
-			help="set the job tag")
+                        help="set the job tag")
 
 parser.add_option("-H", "--harness", dest="harness", type="string", default='',
-			help="set the harness type")
+                        help="set the harness type")
 
 parser.add_option("-l", "--external_logging", dest="log", action="store_true",
-			default=False, help="enable external logging")
+                        default=False, help="enable external logging")
 
 def usage():
-	parser.print_help()
-	sys.exit(1)
+    parser.print_help()
+    sys.exit(1)
 
 options, args = parser.parse_args()
 
 # Check for a control file.
 if len(args) != 1:
-	usage()
+    usage()
 
 # JOB: run the specified job control file.
 job.runjob(os.path.abspath(args[0]), options.cont, options.tag, options.harness,
-	   options.log)
+           options.log)

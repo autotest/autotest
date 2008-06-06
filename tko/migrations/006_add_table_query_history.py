@@ -1,9 +1,9 @@
 def migrate_up(manager):
-	manager.execute_script(ADD_TABLE_QUERY_HISTORY)
+    manager.execute_script(ADD_TABLE_QUERY_HISTORY)
 
 
 def migrate_down(manager):
-	manager.execute_script(DROP_TABLE_QUERY_HISTORY)
+    manager.execute_script(DROP_TABLE_QUERY_HISTORY)
 
 
 ADD_TABLE_QUERY_HISTORY = """
@@ -15,4 +15,3 @@ url VARCHAR(1000));
 DROP_TABLE_QUERY_HISTORY = """
 DROP TABLE query_history;
 """
-

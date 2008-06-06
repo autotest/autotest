@@ -2,25 +2,24 @@
 import os
 
 def purge_src(top_dir):
-	for dir in os.listdir(top_dir):
-		if dir.startswith('.'):
-			continue
-		py = os.path.join (top_dir, dir, dir + '.py')
-		if not os.path.exists(py):
-			continue
-		ret = os.system('grep -q "preserve_srcdir = " ' + py)
-		src_path = os.path.abspath(os.path.join('tests', dir, 'src'))
-		if not os.path.exists(src_path):
-			continue
-		if ret:			# This should have a replaceable src dir
-			cmd = 'rm -rf ' + src_path
-		else:
-			cmd = 'cd %s; make clean > /dev/null 2>&1 ' % src_path
+    for dir in os.listdir(top_dir):
+        if dir.startswith('.'):
+            continue
+        py = os.path.join (top_dir, dir, dir + '.py')
+        if not os.path.exists(py):
+            continue
+        ret = os.system('grep -q "preserve_srcdir = " ' + py)
+        src_path = os.path.abspath(os.path.join('tests', dir, 'src'))
+        if not os.path.exists(src_path):
+            continue
+        if ret:                 # This should have a replaceable src dir
+            cmd = 'rm -rf ' + src_path
+        else:
+            cmd = 'cd %s; make clean > /dev/null 2>&1 ' % src_path
 
-		print cmd
-		os.system(cmd)
+        print cmd
+        os.system(cmd)
 
 
 for dir in ['tests', 'profilers', 'deps']:
-	purge_src(dir)
-
+    purge_src(dir)
