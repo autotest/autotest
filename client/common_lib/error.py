@@ -56,7 +56,7 @@ class CmdError(TestError):
 
 	def __str__(self):
 		msg = "Command <%s> failed, rc=%d" % (self.args[0],
-						      self.args[1])
+						      self.args[1].exit_status)
 		if self.args[2]:
 			msg += ", " + self.args[2]
 		return msg
