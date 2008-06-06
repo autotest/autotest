@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, cgi, cgitb, time
+import os, cgi, cgitb, time, urllib
 import db, unique_cookie
 
 ## setting script globals
@@ -9,8 +9,17 @@ if 'label' in form.keys():
 	comment = form['label'].value
 else:
 	comment = ''
+dict_url = {}
+for key in form.keys():
+	dict_url[key] = form[key].value
+
 tm = time.asctime()
+uid = unique_cookie.unique_id('tko_history')
 HTTP_REFERER = os.environ.get('HTTP_REFERER')
+if HTTP_REFERER == None:
+	## fall back strategy for proxy connection
+	## substitute relative url
+	HTTP_REFERER = 'compose_query.cgi?' + urllib.urlencode(dict_url)	
 
 
 class QueryHistoryError(Exception):
@@ -18,11 +27,9 @@ class QueryHistoryError(Exception):
 
 
 def log_query():
-	uid = unique_cookie.unique_id('tko_history')
 	db_obj = db.db()
 	data_to_insert = {'uid':uid, 'time_created':tm,
-			'user_comment':comment, 'url':HTTP_REFERER
-			}
+			  'user_comment':comment, 'url':HTTP_REFERER }
 	try:
 		db_obj.insert('query_history', data_to_insert)
 	except:
