@@ -124,10 +124,8 @@ class kernel:
                 korg = 'http://www.kernel.org/pub/linux/kernel'
                 mirrors = [
                   [ korg + '/v2.6', mirror + '/v2.6' ],
-                  [ korg + '/people/akpm/patches/2.6',
-                    mirror + '/akpm' ],
-                  [ korg + '/people/mbligh',
-                    mirror + '/mbligh' ],
+                  [ korg + '/people/akpm/patches/2.6', mirror + '/akpm' ],
+                  [ korg + '/people/mbligh', mirror + '/mbligh' ],
                 ]
 
         patches = kernelexpand.expand_classic(kernel, mirrors)
@@ -220,8 +218,7 @@ class kernel:
             tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
             utils.get_file(base_tree, tarball)
             print 'Extracting kernel tarball:', tarball, '...'
-            autotest_utils.extract_tarball_to_dir(tarball,
-                                                  self.build_dir)
+            autotest_utils.extract_tarball_to_dir(tarball, self.build_dir)
 
 
     def extraversion(self, tag, append=1):
@@ -497,9 +494,8 @@ class kernel:
             ident = self.get_kernel_build_ident()
             args += " IDENT=%d" % (when)
 
-            self.job.next_step_prepend(["job.kernel_check_ident",
-                                        when, ident, self.subdir,
-                                        self.applied_patches])
+            self.job.next_step_prepend(["job.kernel_check_ident", when, ident,
+                                       self.subdir, self.applied_patches])
 
         # Check if the kernel has been installed, if not install
         # as the default tag and boot that.
@@ -682,7 +678,8 @@ class rpm_kernel:
         args = ' '.join(arglist)
 
         # add the kernel entry
-        self.job.bootloader.add_kernel(self.image, tag, self.initrd, args = args, root = root)
+        self.job.bootloader.add_kernel(self.image, tag, self.initrd,
+                                       args = args, root = root)
 
 
     def boot(self, args='', ident=1):
@@ -703,7 +700,7 @@ class rpm_kernel:
             args += " IDENT=%d" % (when)
 
         self.job.next_step_prepend(["job.kernel_check_ident",
-                when, ident, self.subdir, 'rpm'])
+                                   when, ident, self.subdir, 'rpm'])
 
         # Boot the selected tag.
         self.add_to_bootloader(args=args, tag=self.installed_as)
