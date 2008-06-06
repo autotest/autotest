@@ -9,28 +9,46 @@ import datetime, xmlrpclib, threading
 from frontend.afe import models
 
 def prepare_for_serialization(objects):
-	"""\
-	Do necessary type conversions to values in data to allow for RPC
-	serialization.
-	-convert datetimes to strings
 	"""
-	objects = gather_unique_dicts(objects)
+	Prepare Python objects to be returned via RPC.
+	"""
+	if (isinstance(objects, list) and len(objects) and
+            isinstance(objects[0], dict) and 'id' in objects[0]):
+		objects = gather_unique_dicts(objects)
 	return _prepare_data(objects)
 
 
 def _prepare_data(data):
-	'Recursively process data structures'
+	"""
+	Recursively process data structures, performing necessary type
+	conversions to values in data to allow for RPC serialization:
+	-convert datetimes to strings
+	-convert tuples to lists
+	"""
 	if isinstance(data, dict):
 		new_data = {}
 		for key, value in data.iteritems():
 			new_data[key] = _prepare_data(value)
 		return new_data
-	elif isinstance(data, list):
+	elif isinstance(data, list) or isinstance(data, tuple):
 		return [_prepare_data(item) for item in data]
 	elif isinstance(data, datetime.datetime):
 		return str(data)
 	else:
 		return data
+
+
+def gather_unique_dicts(dict_iterable):
+	"""\
+	Pick out unique objects (by ID) from an iterable of object dicts.
+	"""
+	id_set = set()
+	result = []
+	for obj in dict_iterable:
+		if obj['id'] not in id_set:
+			id_set.add(obj['id'])
+			result.append(obj)
+	return result
 
 
 def extra_job_filters(not_yet_run=False, running=False, finished=False):
@@ -128,19 +146,6 @@ def prepare_generate_control_file(tests, kernel, label):
 		label = models.Label.smart_get(label)
 
 	return is_server, is_synchronous, test_objects, label
-
-
-def gather_unique_dicts(dict_iterable):
-	"""\
-	Pick out unique objects (by ID) from an iterable of object dicts.
-	"""
-	id_set = set()
-	result = []
-	for obj in dict_iterable:
-		if obj['id'] not in id_set:
-			id_set.add(obj['id'])
-			result.append(obj)
-	return result
 
 
 def sorted(in_list):
