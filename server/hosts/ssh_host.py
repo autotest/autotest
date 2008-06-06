@@ -20,7 +20,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import types, os, sys, signal, subprocess, time, re, socket, pdb
 
-from autotest_lib.client.common_lib import error, pxssh
+from autotest_lib.client.common_lib import error, pxssh, global_config
 from autotest_lib.server import utils
 import remote, bootloader
 
@@ -540,14 +540,17 @@ class SSHHost(remote.RemoteHost):
 		"""
 		# wait until there are only a small number of copies running
 		# before starting this one
-		MAXIMUM_SIMULTANEOUS_COPIES = 4
+		get_config = global_config.global_config.get_config_value
+		max_simultaneous = get_config("HOSTS",
+					      "max_simultaneous_file_copies",
+					      type=int)
 		while True:
 			copy_count = 0
 			procs = utils.system_output('ps -ef')
-			for line in procs:
+			for line in procs.splitlines():
 				if 'rsync ' in line or 'scp ' in line:
 					copy_count += 1
-			if copy_count < MAXIMUM_SIMULTANEOUS_COPIES:
+			if copy_count < max_simultaneous:
 				break
 			time.sleep(60)
 
