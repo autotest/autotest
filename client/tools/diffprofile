@@ -7,20 +7,20 @@ import os, sys, re
 results_per_sign = 10
 
 def parse_lines(filename):
-	results = []
-	start_key = 1
-	for line in open(filename).readlines():
-		try:
-			a = line.split()
-			key = ' '.join(a[start_key:])
-			count = int(a[0])
-			results.append((key, count))
-		except:		# presumably a header line
-			if re.match(r'samples\s*%\s*app name\s*symbol name', line):
-				start_key = 2
-			elif re.match(r'samples\s*%\s*image name\s*app name\s*symbol name', line):
-				start_key = 3
-	return results
+    results = []
+    start_key = 1
+    for line in open(filename).readlines():
+        try:
+            a = line.split()
+            key = ' '.join(a[start_key:])
+            count = int(a[0])
+            results.append((key, count))
+        except:         # presumably a header line
+            if re.match(r'samples\s*%\s*app name\s*symbol name', line):
+                start_key = 2
+            elif re.match(r'samples\s*%\s*image name\s*app name\s*symbol name', line):
+                start_key = 3
+    return results
 
 
 # Firstly, suck in both files.
@@ -29,43 +29,43 @@ new = {}
 diff = {}
 
 for (key, count) in parse_lines(sys.argv[1]):
-	# Oprofile seems to be ... erm ... broken. Keys can appear > once ;-(
-	if orig.has_key(key):
-		orig[key] += count
-	else:
-		orig[key] = count
-	if diff.has_key(key):
-		diff[key] -= count
-	else:
-		diff[key] = -count
+    # Oprofile seems to be ... erm ... broken. Keys can appear > once ;-(
+    if orig.has_key(key):
+        orig[key] += count
+    else:
+        orig[key] = count
+    if diff.has_key(key):
+        diff[key] -= count
+    else:
+        diff[key] = -count
 
 for (key, count) in parse_lines(sys.argv[2]):
-	if new.has_key(key):
-		new[key] += count
-	else:
-		new[key] = count
-	if diff.has_key(key):
-		diff[key] += count
-	else:
-		diff[key] = count
+    if new.has_key(key):
+        new[key] += count
+    else:
+        new[key] = count
+    if diff.has_key(key):
+        diff[key] += count
+    else:
+        diff[key] = count
 
 if len(orig) < 2* results_per_sign or len(new) < 2 * results_per_sign:
-	sys.exit(1)		# one of the files was blank?
+    sys.exit(1)             # one of the files was blank?
 
 # Now sort and print the diffs.
 def print_key(key):
-	if orig.has_key(key) and orig[key] > 0:
-		pct = (100 * diff[key]) / orig[key]
-	else:
-		pct = 0
-	print "%10d  %6.1f%% %s" % (diff[key], pct, key)
+    if orig.has_key(key) and orig[key] > 0:
+        pct = (100 * diff[key]) / orig[key]
+    else:
+        pct = 0
+    print "%10d  %6.1f%% %s" % (diff[key], pct, key)
 
 keys = sorted(diff.keys(), key=lambda x : diff[x], reverse = True)
 
 for key in keys[:results_per_sign]:
-	print_key(key)
+    print_key(key)
 
 print "\n...\n"
 
 for key in keys[len(keys)-results_per_sign:]:
-	print_key(key)
+    print_key(key)

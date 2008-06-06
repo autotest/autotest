@@ -7,15 +7,14 @@ import db
 usage = "usage: delete_job_results <job tag>"
 
 if len(sys.argv) < 2:
-	print usage
-	sys.exit(2)
+    print usage
+    sys.exit(2)
 tag = sys.argv[1]
 resultsdir = os.path.abspath(os.path.join(thisdir, '../results', tag))
 
 db = db.db()
 if not db.find_job(tag):
-	raise "Job tag %s does not exist in database" % tag
+    raise "Job tag %s does not exist in database" % tag
 
 db.delete_job(tag)
 shutil.rmtree(resultsdir)
-

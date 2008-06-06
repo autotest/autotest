@@ -1,7 +1,7 @@
 # This requires aio headers to build.
 # Should work automagically out of deps now.
 
-# NOTE - this should also have the ability to mount a filesystem, 
+# NOTE - this should also have the ability to mount a filesystem,
 # run the tests, unmount it, then fsck the filesystem
 import os
 from autotest_lib.client.bin import test, autotest_utils
@@ -9,68 +9,68 @@ from autotest_lib.client.common_lib import utils
 
 
 class aiostress(test.test):
-	version = 2
+    version = 2
 
-	def initialize(self):
-		self.job.setup_dep(['libaio'])
-		ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
-		cflags = '-I ' + self.autodir + '/deps/libaio/include'
-		self.gcc_flags = ldflags + ' ' + cflags
-
-
-	# ftp://ftp.suse.com/pub/people/mason/utils/aio-stress.c
-	def setup(self, tarball = None):
-		print self.srcdir, self.bindir, self.tmpdir
-		os.mkdir(self.srcdir)
-		os.chdir(self.srcdir)
-		utils.system('cp ' + self.bindir+'/aio-stress.c .')
-		os.chdir(self.srcdir)
-		self.gcc_flags += ' -Wall -lpthread -laio'
-		cmd = 'gcc ' + self.gcc_flags + ' aio-stress.c -o aio-stress'
-		utils.system(cmd)
+    def initialize(self):
+        self.job.setup_dep(['libaio'])
+        ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
+        cflags = '-I ' + self.autodir + '/deps/libaio/include'
+        self.gcc_flags = ldflags + ' ' + cflags
 
 
-	def execute(self, args = ''):
-		os.chdir(self.tmpdir)
-		libs = self.autodir+'/deps/libaio/lib/'
-		ld_path = autotest_utils.prepend_path(libs,
-		                      autotest_utils.environ('LD_LIBRARY_PATH'))
-		var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
-		cmd = self.srcdir + '/aio-stress ' + args + ' poo'
-		profilers = self.job.profilers
+    # ftp://ftp.suse.com/pub/people/mason/utils/aio-stress.c
+    def setup(self, tarball = None):
+        print self.srcdir, self.bindir, self.tmpdir
+        os.mkdir(self.srcdir)
+        os.chdir(self.srcdir)
+        utils.system('cp ' + self.bindir+'/aio-stress.c .')
+        os.chdir(self.srcdir)
+        self.gcc_flags += ' -Wall -lpthread -laio'
+        cmd = 'gcc ' + self.gcc_flags + ' aio-stress.c -o aio-stress'
+        utils.system(cmd)
 
-		if not profilers.only():
-			utils.system(var_ld_path + ' ' + cmd)
-			report = open(self.debugdir + '/stderr')
-			keyval = open(self.resultsdir + '/keyval', 'w')
-			_format_results(report, keyval)
 
-		# Do a profiling run if necessary
-		if profilers.present():
-			profilers.start(self)
-			utils.system(var_ld_path + ' ' + cmd)
-			profilers.stop(self)
-			profilers.report(self)
-			if profilers.only():
-				report = open(self.debugdir + '/stderr')
-				keyval = open(self.resultsdir + '/keyval', 'w')
-				_format_results(report, keyval)
+    def execute(self, args = ''):
+        os.chdir(self.tmpdir)
+        libs = self.autodir+'/deps/libaio/lib/'
+        ld_path = autotest_utils.prepend_path(libs,
+                              autotest_utils.environ('LD_LIBRARY_PATH'))
+        var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
+        cmd = self.srcdir + '/aio-stress ' + args + ' poo'
+        profilers = self.job.profilers
+
+        if not profilers.only():
+            utils.system(var_ld_path + ' ' + cmd)
+            report = open(self.debugdir + '/stderr')
+            keyval = open(self.resultsdir + '/keyval', 'w')
+            _format_results(report, keyval)
+
+        # Do a profiling run if necessary
+        if profilers.present():
+            profilers.start(self)
+            utils.system(var_ld_path + ' ' + cmd)
+            profilers.stop(self)
+            profilers.report(self)
+            if profilers.only():
+                report = open(self.debugdir + '/stderr')
+                keyval = open(self.resultsdir + '/keyval', 'w')
+                _format_results(report, keyval)
 
 
 
 def _format_results(report, keyval):
-	for line in report:
-		if 'threads' in line:
-			if 'files' in line:
-				if 'contexts' in line:
-					break
+    for line in report:
+        if 'threads' in line:
+            if 'files' in line:
+                if 'contexts' in line:
+                    break
 
-	for line in report:
-		line = line.split(')')[0]
-		key, value = line.split('(')
-		key = key.strip().replace(' ', '_')
-		value = value.split()[0]
-		print >> keyval, '%s=%s' % (key, value)
+    for line in report:
+        line = line.split(')')[0]
+        key, value = line.split('(')
+        key = key.strip().replace(' ', '_')
+        value = value.split()[0]
+        print >> keyval, '%s=%s' % (key, value)
 
 
 """

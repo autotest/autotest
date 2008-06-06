@@ -4,73 +4,73 @@ from autotest_lib.client.common_lib import utils
 
 
 def convert_size(values):
-        values = values.split(':')
-        size = values[0]
-        if len(values) > 1:
-                chunk = values[1]
+    values = values.split(':')
+    size = values[0]
+    if len(values) > 1:
+        chunk = values[1]
+    else:
+        chunk = 0
+    if size.endswith('G') or size.endswith('g'):
+        size = int(size[:-1]) * 2**30
+    else:
+        if size.endswith('M') or size.endswith('m'):
+            size = int(size[:-1])
+        size = int(size) * 2**20
+    if chunk:
+        if chunk.endswith('K') or chunk.endswith('k'):
+            chunk = int(chunk[:-1]) * 2**10
         else:
-                chunk = 0
-        if size.endswith('G') or size.endswith('g'):
-                size = int(size[:-1]) * 2**30
-        else:
-                if size.endswith('M') or size.endswith('m'):
-                        size = int(size[:-1])
-                size = int(size) * 2**20
-        if chunk:
-                if chunk.endswith('K') or chunk.endswith('k'):
-                        chunk = int(chunk[:-1]) * 2**10
-                else:
-                        chunk = int(chunk)
-        return [size, chunk]
+            chunk = int(chunk)
+    return [size, chunk]
 
 
 class bonnie(test.test):
-	version = 1
+    version = 1
 
-	# http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
-	def setup(self, tarball = 'bonnie++-1.03a.tgz'):
-		tarball = utils.unmap_url(self.bindir, tarball,
-		                                   self.tmpdir)
-		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
-		os.chdir(self.srcdir)
+    # http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
+    def setup(self, tarball = 'bonnie++-1.03a.tgz'):
+        tarball = utils.unmap_url(self.bindir, tarball,
+                                           self.tmpdir)
+        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        os.chdir(self.srcdir)
 
-		os_dep.command('g++')
-		utils.system('./configure')
-		utils.system('make')
+        os_dep.command('g++')
+        utils.system('./configure')
+        utils.system('make')
 
-	def execute(self, testdir = None, iterations = 1, extra_args = '', user = 'root'):
-		if not testdir:
-			testdir = self.tmpdir
+    def execute(self, testdir = None, iterations = 1, extra_args = '', user = 'root'):
+        if not testdir:
+            testdir = self.tmpdir
 
-		args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
-		cmd = self.srcdir + '/bonnie++ ' + args
-		results = []
-		profilers = self.job.profilers
-		if not profilers.only():
-			for i in range(iterations):
-				results.append(utils.system_output(cmd,
-							    retain_output=True))
+        args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
+        cmd = self.srcdir + '/bonnie++ ' + args
+        results = []
+        profilers = self.job.profilers
+        if not profilers.only():
+            for i in range(iterations):
+                results.append(utils.system_output(cmd,
+                                            retain_output=True))
 
-		# Do a profiling run if necessary
-		if profilers.present():
-			profilers.start(self)
-			results.append(utils.system_output(cmd,
-			               retain_output=True))
-			profilers.stop(self)
-			profilers.report(self)
+        # Do a profiling run if necessary
+        if profilers.present():
+            profilers.start(self)
+            results.append(utils.system_output(cmd,
+                           retain_output=True))
+            profilers.stop(self)
+            profilers.report(self)
 
-		self.__format_results("\n".join(results))
+        self.__format_results("\n".join(results))
 
-	def __format_results(self, results):
-		strip_plus = lambda s: re.sub(r"^\++$", "0", s)
-		out = open(self.resultsdir + '/keyval', 'w')
-		for line in results.split('\n'):
-			if len([c for c in line if c == ',']) != 26:
-				continue
-			fields = tuple(line.split(','))
-			fields = [strip_plus(f) for f in fields]
-			fields = tuple(convert_size(fields[1]) + fields[2:])
-			print >> out, """size=%s
+    def __format_results(self, results):
+        strip_plus = lambda s: re.sub(r"^\++$", "0", s)
+        out = open(self.resultsdir + '/keyval', 'w')
+        for line in results.split('\n'):
+            if len([c for c in line if c == ',']) != 26:
+                continue
+            fields = tuple(line.split(','))
+            fields = [strip_plus(f) for f in fields]
+            fields = tuple(convert_size(fields[1]) + fields[2:])
+            print >> out, """size=%s
 chnk=%s
 seqout_perchr_ksec=%s
 seqout_perchr_pctcp=%s
@@ -98,4 +98,4 @@ randcreate_read_pctcp=%s
 randcreate_delete_ksec=%s
 randcreate_delete_pctcp=%s
 """ % fields
-		out.close()
+        out.close()

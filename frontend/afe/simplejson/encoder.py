@@ -58,14 +58,14 @@ def encode_basestring_ascii(s):
         except KeyError:
             return '\\u%04x' % (ord(s),)
     return '"' + str(ESCAPE_ASCII.sub(replace, s)) + '"'
-        
+
 
 class JSONEncoder(object):
     """
     Extensible JSON <http://json.org> encoder for Python data structures.
 
     Supports the following objects and types by default:
-    
+
     +-------------------+---------------+
     | Python            | JSON          |
     +===================+===============+
@@ -287,7 +287,7 @@ class JSONEncoder(object):
 
         For example, to support arbitrary iterators, you could
         implement default like this::
-            
+
             def default(self, o):
                 try:
                     iterable = iter(o)
@@ -316,9 +316,9 @@ class JSONEncoder(object):
         """
         Encode the given object and yield each string
         representation as available.
-        
+
         For example::
-            
+
             for chunk in JSONEncoder().iterencode(bigobject):
                 mysocket.write(chunk)
         """

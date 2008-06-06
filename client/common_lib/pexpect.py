@@ -336,12 +336,12 @@ class spawn (object):
         the input from the child and output sent to the child. Sometimes you
         don't want to see everything you write to the child. You only want to
         log what the child sends back. For example::
-        
+
             child = pexpect.spawn('some_command')
             child.logfile_read = sys.stdout
 
         To separately log output sent to the child use logfile_send::
-        
+
             self.logfile_send = fout
 
         The delaybeforesend helps overcome a weird behavior that many users
@@ -704,7 +704,7 @@ class spawn (object):
         if timeout == -1:
             timeout = self.timeout
         if timeout is not None:
-            end_time = time.time() + timeout 
+            end_time = time.time() + timeout
         while True:
             if not self.getecho():
                 return True
@@ -1355,7 +1355,7 @@ class spawn (object):
         if timeout == -1:
             timeout = self.timeout
         if timeout is not None:
-            end_time = time.time() + timeout 
+            end_time = time.time() + timeout
         if searchwindowsize == -1:
             searchwindowsize = self.searchwindowsize
 
@@ -1653,7 +1653,7 @@ class searcher_string (object):
         # rescanning until we've read three more bytes.
         #
         # Sadly, I don't know enough about this interesting topic. /grahn
-        
+
         for index, s in self._strings:
             if searchwindowsize is None:
                 # the match, if any, can only be in the fresh data,
@@ -1732,7 +1732,7 @@ class searcher_re (object):
         'buffer' which have not been searched before.
 
         See class spawn for the 'searchwindowsize' argument.
-        
+
         If there is a match this returns the index of that string, and sets
         'start', 'end' and 'match'. Otherwise, returns -1."""
 

@@ -4,91 +4,91 @@ from autotest_lib.client.common_lib import utils, error
 
 
 class unixbench(test.test):
-	version = 2
+    version = 2
 
-	# http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
-	def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
-		tarball = utils.unmap_url(self.bindir, tarball,
-		                                   self.tmpdir)
-		autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
-		os.chdir(self.srcdir)
+    # http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
+    def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
+        tarball = utils.unmap_url(self.bindir, tarball,
+                                           self.tmpdir)
+        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        os.chdir(self.srcdir)
 
-		utils.system('patch -p1 < ../unixbench.patch')
-		utils.system('make')
-
-
-	def execute(self, iterations = 1, args = '', stepsecs=0):
-		vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' % 
-		       (self.tmpdir, self.resultsdir))
-		profilers = self.job.profilers
-		keyval = open(self.resultsdir + '/keyval', 'w')
-		self.err = None
-		if stepsecs:
-			# change time per subtest from unixbench's defaults of
-			#   10 secs for small tests, 30 secs for bigger tests
-			vars += ' systime=%i looper=%i seconds=%i'\
-				' dhrytime=%i arithtime=%i' \
-				% ((stepsecs,)*5) 
-		if not profilers.only():
-			for i in range(iterations):
-				os.chdir(self.srcdir)
-				utils.system(vars + ' ./Run ' + args)
-				report = open(self.resultsdir + '/report')
-				self.format_results(report, keyval)
-				
-		# Do a profiling run if necessary
-		if profilers.present():
-			profilers.start(self)
-			utils.system(vars + ' ./Run ' + args)
-			profilers.stop(self)
-			profilers.report(self)
-		
-		# check err string and possible throw
-		if self.err != None:
-			raise error.TestError(self.err)
-
-	
-	def check_for_error(self, words):
-		l = len(words)
-		if l >= 3 and words[-3:l] == ['no', 'measured', 'results']:
-			# found a problem so record it in err string
-			key = '_'.join(words[:-3])
-			if self.err == None: 
-				self.err = key
-			else:
-				self.err = self.err + " " + key
-			return True
-		else:
-			return False
+        utils.system('patch -p1 < ../unixbench.patch')
+        utils.system('make')
 
 
-	def format_results(self, report, keyval):
-		for i in range(9):
-			report.next()
-		for line in report:
-			if not line.strip():
-				break
+    def execute(self, iterations = 1, args = '', stepsecs=0):
+        vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' %
+               (self.tmpdir, self.resultsdir))
+        profilers = self.job.profilers
+        keyval = open(self.resultsdir + '/keyval', 'w')
+        self.err = None
+        if stepsecs:
+            # change time per subtest from unixbench's defaults of
+            #   10 secs for small tests, 30 secs for bigger tests
+            vars += ' systime=%i looper=%i seconds=%i'\
+                    ' dhrytime=%i arithtime=%i' \
+                    % ((stepsecs,)*5)
+        if not profilers.only():
+            for i in range(iterations):
+                os.chdir(self.srcdir)
+                utils.system(vars + ' ./Run ' + args)
+                report = open(self.resultsdir + '/report')
+                self.format_results(report, keyval)
 
-			words = line.split()
-			# look for problems first
-			if self.check_for_error(words):
-				continue
-					
-			# we should make sure that there are at least
-			# 6 guys before we start accessing the array
-			if len(words) >= 6:
-				key = '_'.join(words[:-6])
-				value = words[-6]
-				print >> keyval, '%s=%s' % (key, value)
-		for line in report:
-			if 'FINAL SCORE' in line:
-				print >> keyval, 'score=%s\n' % line.split()[-1]
-				break
+        # Do a profiling run if necessary
+        if profilers.present():
+            profilers.start(self)
+            utils.system(vars + ' ./Run ' + args)
+            profilers.stop(self)
+            profilers.report(self)
+
+        # check err string and possible throw
+        if self.err != None:
+            raise error.TestError(self.err)
+
+
+    def check_for_error(self, words):
+        l = len(words)
+        if l >= 3 and words[-3:l] == ['no', 'measured', 'results']:
+            # found a problem so record it in err string
+            key = '_'.join(words[:-3])
+            if self.err == None:
+                self.err = key
+            else:
+                self.err = self.err + " " + key
+            return True
+        else:
+            return False
+
+
+    def format_results(self, report, keyval):
+        for i in range(9):
+            report.next()
+        for line in report:
+            if not line.strip():
+                break
+
+            words = line.split()
+            # look for problems first
+            if self.check_for_error(words):
+                continue
+
+            # we should make sure that there are at least
+            # 6 guys before we start accessing the array
+            if len(words) >= 6:
+                key = '_'.join(words[:-6])
+                value = words[-6]
+                print >> keyval, '%s=%s' % (key, value)
+        for line in report:
+            if 'FINAL SCORE' in line:
+                print >> keyval, 'score=%s\n' % line.split()[-1]
+                break
 
 
 if __name__ == '__main__':
-	import sys
-	unixbench.format_results(sys.stdin, sys.stdout)
+    import sys
+    unixbench.format_results(sys.stdin, sys.stdout)
 
 
 """ Here is a sample report file:

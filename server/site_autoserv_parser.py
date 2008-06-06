@@ -9,6 +9,6 @@ add_usage = """\
 
 
 class site_autoserv_parser(base_autoserv_parser):
-	def get_usage(self):
-		usage = super(site_autoserv_parser, self).get_usage()
-		return usage+add_usage
+    def get_usage(self):
+        usage = super(site_autoserv_parser, self).get_usage()
+        return usage+add_usage

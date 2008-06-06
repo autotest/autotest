@@ -8,7 +8,7 @@ are required at a level they should be separated by underscores (_).
 Please no StudlyCaps.
 
 For example:
-	boot.default_args
+        boot.default_args
 """
 
 __author__ = """Copyright Andy Whitcroft 2006"""
@@ -16,33 +16,33 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 import os
 
 class config:
-	"""The BASIC job configuration
+    """The BASIC job configuration
 
-	Properties:
-		job
-			The job object for this job
-		config
-			The job configuration dictionary
-	"""
+    Properties:
+            job
+                    The job object for this job
+            config
+                    The job configuration dictionary
+    """
 
-	def __init__(self, job):
-		"""
-			job
-				The job object for this job
-		"""
-		self.job = job
-		self.config = {}
+    def __init__(self, job):
+        """
+                job
+                        The job object for this job
+        """
+        self.job = job
+        self.config = {}
 
 
-        def set(self, name, value):
-		if name == "proxy":
-			os.environ['http_proxy'] = value
-			os.environ['ftp_proxy'] = value
+    def set(self, name, value):
+        if name == "proxy":
+            os.environ['http_proxy'] = value
+            os.environ['ftp_proxy'] = value
 
-		self.config[name] = value
+        self.config[name] = value
 
-	def get(self, name):
-		if name in self.config:
-			return self.config[name]
-		else:
-			return None
+    def get(self, name):
+        if name in self.config:
+            return self.config[name]
+        else:
+            return None

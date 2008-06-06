@@ -1,7 +1,7 @@
 import test, time
 
 class sleeptest(test.test):
-	version = 1
+    version = 1
 
-	def execute(self, seconds = 1):
-		time.sleep(seconds)
+    def execute(self, seconds = 1):
+        time.sleep(seconds)

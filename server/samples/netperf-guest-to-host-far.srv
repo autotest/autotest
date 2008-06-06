@@ -2,19 +2,19 @@ print "XXXX start of control file"
 
 
 def check_kernel(host, version, package):
-	if host.run("uname -r").stdout.strip() != version:
-		print "XXXX installing kernel on %s" % (host.hostname,)
-		package.install(host)
-		
-		host.reboot()
-		host.wait_up()
+    if host.run("uname -r").stdout.strip() != version:
+        print "XXXX installing kernel on %s" % (host.hostname,)
+        package.install(host)
+
+        host.reboot()
+        host.wait_up()
 
 
 def install_kvm(kvm_on_host_var_name, host, source, addresses):
-	exec ("global %(var_name)s\n"
-		"%(var_name)s= kvm.KVM(host)\n"
-		"%(var_name)s.get(source)\n"
-		"%(var_name)s.install(addresses)\n" % {"var_name": kvm_on_host_var_name})
+    exec ("global %(var_name)s\n"
+            "%(var_name)s= kvm.KVM(host)\n"
+            "%(var_name)s.get(source)\n"
+            "%(var_name)s.install(addresses)\n" % {"var_name": kvm_on_host_var_name})
 
 
 print "XXXX creating SSHHost objects"

@@ -14,7 +14,7 @@ import unittest
 # Adjust the path so Python can find the autoserv modules
 src = os.path.abspath("%s/.." % (os.path.dirname(sys.argv[0]),))
 if src not in sys.path:
-	sys.path.insert(1, src)
+    sys.path.insert(1, src)
 
 import utils
 import autotest
@@ -22,119 +22,119 @@ import hosts
 
 
 class AutotestTestCase(unittest.TestCase):
-	def setUp(self):
-		self.autotest = autotest.Autotest()
-	
-	def tearDown(self):
-		pass
+    def setUp(self):
+        self.autotest = autotest.Autotest()
+
+    def tearDown(self):
+        pass
 
 
-	def testGetAutoDir(self):
-		class MockInstallHost:
-			def __init__(self):
-				self.commands = []
-				self.result = "autodir='/stuff/autotest'\n"
-			
-			def run(self, command):
-				if command == "grep autodir= /etc/autotest.conf":
-					result = hosts.CmdResult()
-					result.stdout = self.result
-					return result
-				else:
-					self.commands.append(command)
-		
-		host = MockInstallHost()
-		self.assertEqual('/stuff/autotest',
-				 autotest._get_autodir(host))
-		host.result = "autodir=/stuff/autotest\n"
-		self.assertEqual('/stuff/autotest',
-				 autotest._get_autodir(host))
-		host.result = 'autodir="/stuff/auto test"\n'
-		self.assertEqual('/stuff/auto test',
-				 autotest._get_autodir(host))
+    def testGetAutoDir(self):
+        class MockInstallHost:
+            def __init__(self):
+                self.commands = []
+                self.result = "autodir='/stuff/autotest'\n"
+
+            def run(self, command):
+                if command == "grep autodir= /etc/autotest.conf":
+                    result = hosts.CmdResult()
+                    result.stdout = self.result
+                    return result
+                else:
+                    self.commands.append(command)
+
+        host = MockInstallHost()
+        self.assertEqual('/stuff/autotest',
+                         autotest._get_autodir(host))
+        host.result = "autodir=/stuff/autotest\n"
+        self.assertEqual('/stuff/autotest',
+                         autotest._get_autodir(host))
+        host.result = 'autodir="/stuff/auto test"\n'
+        self.assertEqual('/stuff/auto test',
+                         autotest._get_autodir(host))
 
 
-	def testInstallFromDir(self):
-		class MockInstallHost:
-			def __init__(self):
-				self.commands = []
-			
-			def run(self, command):
-				if command == "grep autodir= /etc/autotest.conf":
-					result= hosts.CmdResult()
-					result.stdout = "autodir=/usr/local/autotest\n"
-					return result
-				else:
-					self.commands.append(command)
+    def testInstallFromDir(self):
+        class MockInstallHost:
+            def __init__(self):
+                self.commands = []
 
-			def send_file(self, src, dst):
-				self.commands.append("send_file: %s %s" % (src,
-									   dst))
-				
-		host = MockInstallHost()
-		tmpdir = utils.get_tmp_dir()
-		self.autotest.get(tmpdir)
-		self.autotest.install(host)
-		self.assertEqual(host.commands[0],
-				 'mkdir -p /usr/local/autotest')
-		self.assertTrue(host.commands[1].startswith('send_file: /tmp/'))
-		self.assertTrue(host.commands[1].endswith(
-			'/ /usr/local/autotest'))
+            def run(self, command):
+                if command == "grep autodir= /etc/autotest.conf":
+                    result= hosts.CmdResult()
+                    result.stdout = "autodir=/usr/local/autotest\n"
+                    return result
+                else:
+                    self.commands.append(command)
 
-		
+            def send_file(self, src, dst):
+                self.commands.append("send_file: %s %s" % (src,
+                                                           dst))
 
-	
-	def testInstallFromSVN(self):
-		class MockInstallHost:
-			def __init__(self):
-				self.commands = []
-			
-			def run(self, command):
-				if command == "grep autodir= /etc/autotest.conf":
-					result= hosts.CmdResult()
-					result.stdout = "autodir=/usr/local/autotest\n"
-					return result
-				else:
-					self.commands.append(command)
-		
-		host = MockInstallHost()
-		self.autotest.install(host)
-		self.assertEqual(host.commands,
-				 ['svn checkout '
-				  + autotest.AUTOTEST_SVN + ' '
-				  + "/usr/local/autotest"])
+        host = MockInstallHost()
+        tmpdir = utils.get_tmp_dir()
+        self.autotest.get(tmpdir)
+        self.autotest.install(host)
+        self.assertEqual(host.commands[0],
+                         'mkdir -p /usr/local/autotest')
+        self.assertTrue(host.commands[1].startswith('send_file: /tmp/'))
+        self.assertTrue(host.commands[1].endswith(
+                '/ /usr/local/autotest'))
 
-	
-	def testFirstInstallFromSVNFails(self):
-		class MockFirstInstallFailsHost:
-			def __init__(self):
-				self.commands = []
-			
-			def run(self, command):
-				if command == "grep autodir= /etc/autotest.conf":
-					result= hosts.CmdResult()
-					result.stdout = "autodir=/usr/local/autotest\n"
-					return result
-				else:
-					self.commands.append(command)
-					first = ('svn checkout ' +
-					    autotest.AUTOTEST_SVN + ' ' +
-					    "/usr/local/autotest")
-					if (command == first):
-						raise autotest.AutoservRunError(
-							"svn not found")
-		
-		host = MockFirstInstallFailsHost()
-		self.autotest.install(host)
-		self.assertEqual(host.commands,
-				 ['svn checkout ' + autotest.AUTOTEST_SVN +
-				  ' ' + "/usr/local/autotest",
-				  'svn checkout ' + autotest.AUTOTEST_HTTP +
-				  ' ' + "/usr/local/autotest"])
+
+
+
+    def testInstallFromSVN(self):
+        class MockInstallHost:
+            def __init__(self):
+                self.commands = []
+
+            def run(self, command):
+                if command == "grep autodir= /etc/autotest.conf":
+                    result= hosts.CmdResult()
+                    result.stdout = "autodir=/usr/local/autotest\n"
+                    return result
+                else:
+                    self.commands.append(command)
+
+        host = MockInstallHost()
+        self.autotest.install(host)
+        self.assertEqual(host.commands,
+                         ['svn checkout '
+                          + autotest.AUTOTEST_SVN + ' '
+                          + "/usr/local/autotest"])
+
+
+    def testFirstInstallFromSVNFails(self):
+        class MockFirstInstallFailsHost:
+            def __init__(self):
+                self.commands = []
+
+            def run(self, command):
+                if command == "grep autodir= /etc/autotest.conf":
+                    result= hosts.CmdResult()
+                    result.stdout = "autodir=/usr/local/autotest\n"
+                    return result
+                else:
+                    self.commands.append(command)
+                    first = ('svn checkout ' +
+                        autotest.AUTOTEST_SVN + ' ' +
+                        "/usr/local/autotest")
+                    if (command == first):
+                        raise autotest.AutoservRunError(
+                                "svn not found")
+
+        host = MockFirstInstallFailsHost()
+        self.autotest.install(host)
+        self.assertEqual(host.commands,
+                         ['svn checkout ' + autotest.AUTOTEST_SVN +
+                          ' ' + "/usr/local/autotest",
+                          'svn checkout ' + autotest.AUTOTEST_HTTP +
+                          ' ' + "/usr/local/autotest"])
 
 
 def suite():
-	return unittest.TestLoader().loadTestsFromTestCase(AutotestTestCase)
+    return unittest.TestLoader().loadTestsFromTestCase(AutotestTestCase)
 
 if __name__ == '__main__':
-	unittest.TextTestRunner(verbosity=2).run(suite())
+    unittest.TextTestRunner(verbosity=2).run(suite())

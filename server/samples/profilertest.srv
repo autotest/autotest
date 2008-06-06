@@ -5,63 +5,63 @@ at_hosts = [autotest.Autotest(h) for h in ssh_hosts]
 
 
 def add_profilers(at, profilers, timeout_sync, timeout_start, timeout_stop,
-			machines, name):
-	control_file = []
-	for profiler in profilers:
-		control_file.append("job.profilers.add(%s)"
-					% str(profiler)[1:-1])
+                        machines, name):
+    control_file = []
+    for profiler in profilers:
+        control_file.append("job.profilers.add(%s)"
+                                % str(profiler)[1:-1])
 
-	control_file.append("job.run_test('barriertest',%d,%d,%d,'%s','%s',%s)"
-			% (timeout_sync, timeout_start, timeout_stop,
-				at.host.hostname, "PROF_MASTER", str(machines)))
+    control_file.append("job.run_test('barriertest',%d,%d,%d,'%s','%s',%s)"
+                    % (timeout_sync, timeout_start, timeout_stop,
+                            at.host.hostname, "PROF_MASTER", str(machines)))
 
-	for profiler in profilers:
-		control_file.append("job.profilers.delete('%s')" % profiler[0])
+    for profiler in profilers:
+        control_file.append("job.profilers.delete('%s')" % profiler[0])
 
-	params = ["\n".join(control_file), "profile-" + profiler[0], at.host]
-	return subcommand(at.run, params, name)
+    params = ["\n".join(control_file), "profile-" + profiler[0], at.host]
+    return subcommand(at.run, params, name)
 
 
 def wait_for_profilers(machines, timeout = 180):
-	# wait until the profilers have started
-	sync_bar = barrier("PROF_MASTER", "sync_profilers",
-		timeout, port=63100)
-	sync_bar.rendevous_servers("PROF_MASTER", *machines)
+    # wait until the profilers have started
+    sync_bar = barrier("PROF_MASTER", "sync_profilers",
+            timeout, port=63100)
+    sync_bar.rendevous_servers("PROF_MASTER", *machines)
 
 
 def start_profilers(machines, timeout = 180):
-	# wait until the profilers have started
-	start_bar = barrier("PROF_MASTER", "start_profilers",
-		timeout, port=63100)
-	start_bar.rendevous_servers("PROF_MASTER", *machines)
+    # wait until the profilers have started
+    start_bar = barrier("PROF_MASTER", "start_profilers",
+            timeout, port=63100)
+    start_bar.rendevous_servers("PROF_MASTER", *machines)
 
 
 def stop_profilers(machines, timeout = 120):
-	stop_bar = barrier("PROF_MASTER", "stop_profilers", timeout, port=63100)
-	stop_bar.rendevous_servers("PROF_MASTER", *machines)
+    stop_bar = barrier("PROF_MASTER", "stop_profilers", timeout, port=63100)
+    stop_bar.rendevous_servers("PROF_MASTER", *machines)
 
 
 def server_sleep_test(seconds):
-	wait_for_profilers(machines)
-	start_profilers(machines)
-	for i in range(seconds):
-		print "%d of %d" % (i, seconds)
-		time.sleep(1)
-	stop_profilers(machines)
+    wait_for_profilers(machines)
+    start_profilers(machines)
+    for i in range(seconds):
+        print "%d of %d" % (i, seconds)
+        time.sleep(1)
+    stop_profilers(machines)
 
 
 def main():
-	timeout_sync = 180
-	timeout_start = 60
-	timeout_stop = 60
-	profilers = [["vmstat"], ["iostat"]]
+    timeout_sync = 180
+    timeout_start = 60
+    timeout_stop = 60
+    profilers = [["vmstat"], ["iostat"]]
 
-	tests = [subcommand(server_sleep_test, [20], "server_sleep_test")]
-	for at in at_hosts:
-		name = "profiled-%s" % at.host.hostname
-		tests.append(add_profilers(at, profilers, timeout_sync,
-				timeout_start, timeout_stop, machines, name))
-	parallel(tests)
+    tests = [subcommand(server_sleep_test, [20], "server_sleep_test")]
+    for at in at_hosts:
+        name = "profiled-%s" % at.host.hostname
+        tests.append(add_profilers(at, profilers, timeout_sync,
+                        timeout_start, timeout_stop, machines, name))
+    parallel(tests)
 
 
 main()

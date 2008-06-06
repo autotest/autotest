@@ -9,40 +9,40 @@ from autotest_lib.client.common_lib import utils
 import os, harness, shutil
 
 class harness_standalone(harness.harness):
-	"""The standalone server harness
+    """The standalone server harness
 
-	Properties:
-		job
-			The job object for this job
-	"""
+    Properties:
+            job
+                    The job object for this job
+    """
 
-	def __init__(self, job):
-		"""
-			job
-				The job object for this job
-		"""
-		self.autodir = os.path.abspath(os.environ['AUTODIR'])
-		self.setup(job)
+    def __init__(self, job):
+        """
+                job
+                        The job object for this job
+        """
+        self.autodir = os.path.abspath(os.environ['AUTODIR'])
+        self.setup(job)
 
-		src = job.control_get()
-		dest = os.path.join(self.autodir, 'control')
-		if os.path.abspath(src) != os.path.abspath(dest):
-			shutil.copyfile(src, dest)
-			job.control_set(dest)
+        src = job.control_get()
+        dest = os.path.join(self.autodir, 'control')
+        if os.path.abspath(src) != os.path.abspath(dest):
+            shutil.copyfile(src, dest)
+            job.control_set(dest)
 
-		print 'Symlinking init scripts'
-		rc = os.path.join(self.autodir, 'tools/autotest')
-		# see if system supports event.d versus inittab
-		if os.path.exists('/etc/event.d'):
-			# NB: assuming current runlevel is default
-			initdefault = utils.system_output('runlevel').split()[1]
-		else:
-			initdefault = utils.system_output('grep :initdefault: /etc/inittab')
-			initdefault = initdefault.split(':')[1]
+        print 'Symlinking init scripts'
+        rc = os.path.join(self.autodir, 'tools/autotest')
+        # see if system supports event.d versus inittab
+        if os.path.exists('/etc/event.d'):
+            # NB: assuming current runlevel is default
+            initdefault = utils.system_output('runlevel').split()[1]
+        else:
+            initdefault = utils.system_output('grep :initdefault: /etc/inittab')
+            initdefault = initdefault.split(':')[1]
 
-		try:
-			utils.system('ln -sf %s /etc/init.d/autotest' % rc)
-			utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % \
-							(rc, initdefault))
-		except:
-			print "WARNING: linking init scripts failed"
+        try:
+            utils.system('ln -sf %s /etc/init.d/autotest' % rc)
+            utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % \
+                                            (rc, initdefault))
+        except:
+            print "WARNING: linking init scripts failed"

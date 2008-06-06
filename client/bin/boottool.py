@@ -2,125 +2,124 @@ import shutil, re, os, string
 from autotest_lib.client.common_lib import utils, error
 
 class boottool:
-	def __init__(self, boottool_exec=None):
-		#variable to indicate if in mode to write entries for Xen
-		self.xen_mode = False
+    def __init__(self, boottool_exec=None):
+        #variable to indicate if in mode to write entries for Xen
+        self.xen_mode = False
 
-		if boottool_exec:
-			self.boottool_exec = boottool_exec
-		else:
-			autodir = os.environ['AUTODIR']
-			self.boottool_exec = autodir + '/tools/boottool'
+        if boottool_exec:
+            self.boottool_exec = boottool_exec
+        else:
+            autodir = os.environ['AUTODIR']
+            self.boottool_exec = autodir + '/tools/boottool'
 
-		if not self.boottool_exec:
-			raise error.AutotestError('Failed to set boottool_exec')
-
-
-	def run_boottool(self, params):
-		return utils.system_output('%s %s' % (self.boottool_exec, params))
+        if not self.boottool_exec:
+            raise error.AutotestError('Failed to set boottool_exec')
 
 
-	def bootloader(self):
-		return self.run_boottool('--bootloader-probe')
+    def run_boottool(self, params):
+        return utils.system_output('%s %s' % (self.boottool_exec, params))
 
 
-	def architecture(self):
-		return self.run_boottool('--arch-probe')
+    def bootloader(self):
+        return self.run_boottool('--bootloader-probe')
 
 
-	def list_titles(self):
-		print self.run_boottool('--info all | grep title')
+    def architecture(self):
+        return self.run_boottool('--arch-probe')
 
 
-	def print_entry(self, index):
-		print self.run_boottool('--info=%s' % index)
+    def list_titles(self):
+        print self.run_boottool('--info all | grep title')
 
 
-	def get_default(self):
-		self.run_boottool('--default')
+    def print_entry(self, index):
+        print self.run_boottool('--info=%s' % index)
 
 
-	def set_default(self, index):
-		print self.run_boottool('--set-default=%s' % index)
+    def get_default(self):
+        self.run_boottool('--default')
 
 
-	def enable_xen_mode(self):
-		self.xen_mode = True
+    def set_default(self, index):
+        print self.run_boottool('--set-default=%s' % index)
 
 
-	def disable_xen_mode(self):
-		self.xen_mode = False
+    def enable_xen_mode(self):
+        self.xen_mode = True
 
 
-	def get_xen_mode(self):
-		return self.xen_mode
+    def disable_xen_mode(self):
+        self.xen_mode = False
 
 
-	# 'kernel' can be an position number or a title
-	def add_args(self, kernel, args):
-		parameters = '--update-kernel=%s --args="%s"' % (kernel, args)
-
-		#add parameter if this is a Xen entry
-		if self.xen_mode:
-			parameters += ' --xen'
-
-		print self.run_boottool(parameters)
+    def get_xen_mode(self):
+        return self.xen_mode
 
 
-	def add_xen_hypervisor_args(self, kernel, args):
-		self.run_boottool('--xen --update-xenhyper=%s --xha="%s"') %(kernel, args)
- 
+    # 'kernel' can be an position number or a title
+    def add_args(self, kernel, args):
+        parameters = '--update-kernel=%s --args="%s"' % (kernel, args)
 
-	def remove_args(self, kernel, args):
-		parameters = '--update-kernel=%s --remove-args=%s' % (kernel, args)
+        #add parameter if this is a Xen entry
+        if self.xen_mode:
+            parameters += ' --xen'
 
-		#add parameter if this is a Xen entry
-		if self.xen_mode:
-			parameters += ' --xen'
-
-		print self.run_boottool(parameters)
+        print self.run_boottool(parameters)
 
 
-	def remove_xen_hypervisor_args(self, kernel, args):
-		self.run_boottool('--xen --update-xenhyper=%s --remove-args="%s"') \
-			% (kernel, args)
+    def add_xen_hypervisor_args(self, kernel, args):
+        self.run_boottool('--xen --update-xenhyper=%s --xha="%s"') %(kernel, args)
 
 
-	def add_kernel(self, path, title='autotest', initrd='', xen_hypervisor='', args=None, root=None, position='end'):
-		parameters = '--add-kernel=%s --title=%s' % (path, title)
+    def remove_args(self, kernel, args):
+        parameters = '--update-kernel=%s --remove-args=%s' % (kernel, args)
 
-		# add an initrd now or forever hold your peace
-		if initrd:
-			parameters += ' --initrd=%s' % initrd
+        #add parameter if this is a Xen entry
+        if self.xen_mode:
+            parameters += ' --xen'
 
-		# add parameter if this is a Xen entry
-		if self.xen_mode:
-			parameters += ' --xen'
-			if xen_hypervisor:
-				parameters += ' --xenhyper=%s' % xen_hypervisor
-
-		if args:
-			parameters += ' --args="%s"' % args
-		if root:
-			parameters += ' --root="%s"' % root
-		if position:
-			parameters += ' --position="%s"' % position
-
-		print self.run_boottool(parameters)
+        print self.run_boottool(parameters)
 
 
-	def remove_kernel(self, kernel):
-		print self.run_boottool('--remove-kernel=%s' % kernel)
+    def remove_xen_hypervisor_args(self, kernel, args):
+        self.run_boottool('--xen --update-xenhyper=%s --remove-args="%s"') \
+                % (kernel, args)
 
 
-	def boot_once(self, title):
-		print self.run_boottool('--boot-once --title=%s' % title)
+    def add_kernel(self, path, title='autotest', initrd='', xen_hypervisor='', args=None, root=None, position='end'):
+        parameters = '--add-kernel=%s --title=%s' % (path, title)
+
+        # add an initrd now or forever hold your peace
+        if initrd:
+            parameters += ' --initrd=%s' % initrd
+
+        # add parameter if this is a Xen entry
+        if self.xen_mode:
+            parameters += ' --xen'
+            if xen_hypervisor:
+                parameters += ' --xenhyper=%s' % xen_hypervisor
+
+        if args:
+            parameters += ' --args="%s"' % args
+        if root:
+            parameters += ' --root="%s"' % root
+        if position:
+            parameters += ' --position="%s"' % position
+
+        print self.run_boottool(parameters)
 
 
-	def info(self, index):
-		return self.run_boottool('--info=%s' % index)
+    def remove_kernel(self, kernel):
+        print self.run_boottool('--remove-kernel=%s' % kernel)
+
+
+    def boot_once(self, title):
+        print self.run_boottool('--boot-once --title=%s' % title)
+
+
+    def info(self, index):
+        return self.run_boottool('--info=%s' % index)
 
 
 # TODO:  backup()
 # TODO:  set_timeout()
-

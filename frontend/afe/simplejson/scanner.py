@@ -54,7 +54,7 @@ class Scanner(object):
                     match = self.scanner.scanner(string, matchend).match
                 yield rval, matchend
             lastend = matchend
-            
+
 def pattern(pattern, flags=FLAGS):
     def decorator(fn):
         fn.pattern = pattern

@@ -39,20 +39,20 @@ class ServiceProxy(object):
         return ServiceProxy(self.__serviceURL, name, self.__headers)
 
     def __call__(self, *args, **kwargs):
-         postdata = json_encoder.encode({"method": self.__serviceName,
-                                         'params': args + (kwargs,),
-                                         'id':'jsonrpc'})
-         request = urllib2.Request(self.__serviceURL, data=postdata,
-                                   headers=self.__headers)
-         respdata = urllib2.urlopen(request).read()
-         try:
-             resp = json_decoder.decode(respdata)
-         except ValueError:
-             raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
-         if resp['error'] != None:
-             error_message = (resp['error']['name'] + ': ' +
-                              resp['error']['message'] + '\n' +
-                              resp['error']['traceback'])
-             raise JSONRPCException(error_message)
-         else:
-             return resp['result']
+        postdata = json_encoder.encode({"method": self.__serviceName,
+                                        'params': args + (kwargs,),
+                                        'id':'jsonrpc'})
+        request = urllib2.Request(self.__serviceURL, data=postdata,
+                                  headers=self.__headers)
+        respdata = urllib2.urlopen(request).read()
+        try:
+            resp = json_decoder.decode(respdata)
+        except ValueError:
+            raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
+        if resp['error'] != None:
+            error_message = (resp['error']['name'] + ': ' +
+                             resp['error']['message'] + '\n' +
+                             resp['error']['traceback'])
+            raise JSONRPCException(error_message)
+        else:
+            return resp['result']

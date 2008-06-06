@@ -22,34 +22,34 @@ from autotest_lib.client.common_lib import utils
 # Specify the path to the client control files and the tag names
 # for the respective jobs here.
 tests = [("client/tests/sleeptest/control", "sleeptag0"),
-	 ("client/tests/sleeptest/control", "sleeptag1"),
-	 ]
+         ("client/tests/sleeptest/control", "sleeptag1"),
+         ]
 
 def run_client(at, machine_name, machine_num, instance):
-	control = open(os.path.join(job.autodir,tests[instance][0])).read()
-	'''
-	The get_sync_control_file method basically does the setup of the barriers
-	required to start these multiple tests at the same time and returns the
-	modified control file (that contains the barrier code added to it)
-	Check client/common_lib/utils.py for detailed documentation of how this
-	method sets up the barriers.
-	'''
-	control_new = utils.get_sync_control_file(control, machine_name,
-					machine_num, instance, len(tests))
-	'''
-	This control file is now simply passed in to the run method along with
-	a tag name of the test and a 'parallel_flag' that identifies this scenario
-	of running multiple tests on the same machine at the same time.
-	'''
-	at.run(control_new, tag='%s' % tests[instance][1], parallel_flag=True)
+    control = open(os.path.join(job.autodir,tests[instance][0])).read()
+    '''
+    The get_sync_control_file method basically does the setup of the barriers
+    required to start these multiple tests at the same time and returns the
+    modified control file (that contains the barrier code added to it)
+    Check client/common_lib/utils.py for detailed documentation of how this
+    method sets up the barriers.
+    '''
+    control_new = utils.get_sync_control_file(control, machine_name,
+                                    machine_num, instance, len(tests))
+    '''
+    This control file is now simply passed in to the run method along with
+    a tag name of the test and a 'parallel_flag' that identifies this scenario
+    of running multiple tests on the same machine at the same time.
+    '''
+    at.run(control_new, tag='%s' % tests[instance][1], parallel_flag=True)
 
 def main(machine_name, machine_num):
-	host = hosts.SSHHost(machine_name)
-	at = autotest.Autotest(host)
-	at.install()
+    host = hosts.SSHHost(machine_name)
+    at = autotest.Autotest(host)
+    at.install()
 
-	parallel([subcommand(run_client, [at, machine_name, machine_num, i])
-                  for i in range(len(tests))])
+    parallel([subcommand(run_client, [at, machine_name, machine_num, i])
+              for i in range(len(tests))])
 
 parallel([subcommand(main, [machines[i], i], machines[i])
-	  for i in range(len(machines))])
+          for i in range(len(machines))])
