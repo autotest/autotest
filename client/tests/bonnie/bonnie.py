@@ -29,8 +29,7 @@ class bonnie(test.test):
 
     # http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
     def setup(self, tarball = 'bonnie++-1.03a.tgz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
@@ -48,14 +47,12 @@ class bonnie(test.test):
         profilers = self.job.profilers
         if not profilers.only():
             for i in range(iterations):
-                results.append(utils.system_output(cmd,
-                                            retain_output=True))
+                results.append(utils.system_output(cmd, retain_output=True))
 
         # Do a profiling run if necessary
         if profilers.present():
             profilers.start(self)
-            results.append(utils.system_output(cmd,
-                           retain_output=True))
+            results.append(utils.system_output(cmd, retain_output=True))
             profilers.stop(self)
             profilers.report(self)
 

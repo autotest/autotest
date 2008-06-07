@@ -8,8 +8,7 @@ class stress(test.test):
 
     # http://weather.ou.edu/~apw/projects/stress/stress-0.18.8.tar.gz
     def setup(self, tarball = 'stress-0.18.8.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

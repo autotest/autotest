@@ -19,7 +19,7 @@ class disktest(test.test):
         print "testing %d MB files on %s in %d MB memory" % \
                                 (self.chunk_mb, disk, self.memory_mb)
         cmd = "%s/disktest -m %d -f %s/testfile.%d -i -S" % \
-                        (self.srcdir, self.chunk_mb, disk, chunk)
+                                (self.srcdir, self.chunk_mb, disk, chunk)
         p = subprocess.Popen(cmd, shell=True)
         return(p.pid)
 

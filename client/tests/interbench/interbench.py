@@ -8,8 +8,7 @@ class interbench(test.test):
 
     # http://www.kernel.org/pub/linux/kernel/people/ck/apps/interbench/interbench-0.30.tar.bz2
     def setup(self, tarball = 'interbench-0.30.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

@@ -6,8 +6,7 @@ class tsc(test.test):
     version = 1
 
     def setup(self, tarball = 'checktsc.tar'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('make')

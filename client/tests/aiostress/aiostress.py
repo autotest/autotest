@@ -34,7 +34,7 @@ class aiostress(test.test):
         os.chdir(self.tmpdir)
         libs = self.autodir+'/deps/libaio/lib/'
         ld_path = autotest_utils.prepend_path(libs,
-                              autotest_utils.environ('LD_LIBRARY_PATH'))
+                                      autotest_utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         cmd = self.srcdir + '/aio-stress ' + args + ' poo'
         profilers = self.job.profilers

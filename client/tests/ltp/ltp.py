@@ -7,8 +7,7 @@ class ltp(test.test):
 
     # http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
     def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

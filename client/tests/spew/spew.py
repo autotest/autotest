@@ -8,8 +8,7 @@ class spew(test.test):
 
     # ftp://ftp.berlios.de/pub/spew/1.0.5/spew-1.0.5.tgz
     def setup(self, tarball = 'spew-1.0.5.tgz'):
-        self.tarball = utils.unmap_url(self.bindir, tarball,
-                                                self.tmpdir)
+        self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
@@ -17,7 +16,8 @@ class spew(test.test):
         utils.system('make')
 
 
-    def execute(self, testdir = None, iterations = 1, filesize='100M', type='write', pattern='random'):
+    def execute(self, testdir = None, iterations = 1, filesize='100M',
+                                               type='write', pattern='random'):
         cmd = os.path.join(self.srcdir, 'src/spew')
         if not testdir:
             testdir = self.tmpdir

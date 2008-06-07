@@ -7,8 +7,7 @@ class bash_shared_mapping(test.test):
 
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
-        self.tarball = utils.unmap_url(self.bindir, tarball,
-                                       self.tmpdir)
+        self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
@@ -33,9 +32,8 @@ class bash_shared_mapping(test.test):
             pid[i] = os.spawnv(os.P_NOWAIT, usemem, args)
 
         cmd = "%s/bash-shared-mapping %s %d -t %d -n %d" % \
-                                (self.srcdir, file, kilobytes,
-                                 count_cpus(), iterations)
+                        (self.srcdir, file, kilobytes, count_cpus(), iterations)
         os.system(cmd)
 
-        for i in (0,1):
+        for i in (0, 1):
             os.kill(pid[i], signal.SIGKILL)

@@ -34,7 +34,7 @@ class harness:
         if os.path.isdir(configd):
             (name, dirs, files) = os.walk(configd).next()
             job.config_set('kernel.default_config_set',
-                                    [ configd + '/' ] + files)
+                           [ configd + '/' ] + files)
 
 
     def run_start(self):

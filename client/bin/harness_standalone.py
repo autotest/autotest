@@ -42,7 +42,6 @@ class harness_standalone(harness.harness):
 
         try:
             utils.system('ln -sf %s /etc/init.d/autotest' % rc)
-            utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % \
-                                            (rc, initdefault))
+            utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc,initdefault))
         except:
             print "WARNING: linking init scripts failed"

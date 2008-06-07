@@ -60,8 +60,7 @@ def decompose_kernel_once(kernel):
             raise "unable to determine major/minor version"
         params['minor'] = match.group(1)
         params['major'] = match.group(2)
-        params['minor-prev'] = match.group(2) + \
-                                '.%d' % (int(match.group(3)) - 1)
+        params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) -1)
 
         # Build the new kernel and patch list.
         new_kernel = becomes % params
@@ -97,8 +96,7 @@ def mirror_kernel_components(mirrors, components):
             (prefix, local) = mirror
             for patch in component:
                 if patch.startswith(prefix):
-                    new_patch = local + \
-                                    patch[len(prefix):]
+                    new_patch = local + patch[len(prefix):]
                     new_patches.append(new_patch)
         for patch in component:
             new_patches.append(patch)
@@ -146,12 +144,10 @@ if __name__ == '__main__':
 
     parser = OptionParser()
 
-    parser.add_option("-m", "--mirror",
-            type="string", dest="mirror", action="append", nargs=2,
-            help="mirror prefix")
+    parser.add_option("-m", "--mirror", type="string", dest="mirror",
+            action="append", nargs=2, help="mirror prefix")
     parser.add_option("-v", "--no-validate", dest="validate",
-            action="store_false", default=True,
-            help="prune invalid entries")
+            action="store_false", default=True, help="prune invalid entries")
 
     def usage():
         parser.print_help()

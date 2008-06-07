@@ -10,8 +10,7 @@ class pi_tests(test.test):
 
     def setup(self, tarball = 'pi_tests.tar.bz2'):
         autotest_utils.check_glibc_ver('2.5')
-        tarball = autotest_utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = autotest_utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

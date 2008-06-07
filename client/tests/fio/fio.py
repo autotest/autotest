@@ -8,8 +8,7 @@ class fio(test.test):
 
     # http://brick.kernel.dk/snaps/fio-1.16.5.tar.bz2
     def setup(self, tarball = 'fio-1.16.5.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])
