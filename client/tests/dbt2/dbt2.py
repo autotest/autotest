@@ -11,8 +11,7 @@ class dbt2(test.test):
 
     # http://osdn.dl.sourceforge.net/sourceforge/osdldbt/dbt2-0.39.tar.gz
     def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         self.job.setup_dep(['pgsql', 'pgpool', 'mysql'])
 
@@ -36,10 +35,10 @@ class dbt2(test.test):
 
         # Create symlinks to autotest's results directory from dbt-2's
         # preferred results directory to self.resultsdir
-        utils.system('ln -s %s %s' % (self.resultsdir, \
-                        self.srcdir + '.mysql/scripts/output'))
-        utils.system('ln -s %s %s' % (self.resultsdir, \
-                        self.srcdir + '.pgsql/scripts/output'))
+        utils.system('ln -s %s %s' %
+                     (self.resultsdir, self.srcdir + '.mysql/scripts/output'))
+        utils.system('ln -s %s %s' %
+                     (self.resultsdir, self.srcdir + '.pgsql/scripts/output'))
 
     def execute(self, db_type, args = ''):
         logfile = self.resultsdir + '/dbt2.log'

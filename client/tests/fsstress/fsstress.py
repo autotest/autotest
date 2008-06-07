@@ -9,8 +9,7 @@ class fsstress(test.test):
 
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
-        self.tarball = utils.unmap_url(self.bindir, tarball,
-                                                self.tmpdir)
+        self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
@@ -22,8 +21,7 @@ class fsstress(test.test):
         if not testdir:
             testdir = self.tmpdir
 
-        args = '-d ' + testdir + ' -p ' + nproc + ' -n ' + nops + ' ' + extra_args
-
+        args = '-d %s -p %s -n %s %s' % (testdir, nproc, nops, extra_args)
         cmd = self.srcdir + '/fsstress ' + args
         profilers = self.job.profilers
         if not profilers.only():

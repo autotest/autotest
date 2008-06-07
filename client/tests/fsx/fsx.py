@@ -13,8 +13,7 @@ class fsx(test.test):
 
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
-        self.tarball = utils.unmap_url(self.bindir, tarball,
-                                                self.tmpdir)
+        self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])

@@ -13,10 +13,10 @@ class xen(kernel.kernel):
         self.logfile.write('%s\n' % msg)
 
 
-    def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir, \
-                                    leave = False, kjob = None):
+    def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir,
+                                        leave = False, kjob = None):
         # call base-class
-        kernel.kernel.__init__(self, job, base_tree, results_dir, \
+        kernel.kernel.__init__(self, job, base_tree, results_dir,
                                         tmp_dir, build_dir, leave)
         self.kjob = kjob
 
@@ -142,8 +142,8 @@ class xen(kernel.kernel):
         self.job.bootloader.remove_kernel(tag)
 
         # add xen and xen kernel
-        self.job.bootloader.add_kernel(self.kjob.image, tag, \
-                                   self.kjob.initrd, self.xen_image)
+        self.job.bootloader.add_kernel(self.kjob.image, tag,
+                                       self.kjob.initrd, self.xen_image)
 
         # if no args passed, populate from /proc/cmdline
         if not args:
@@ -185,8 +185,7 @@ class xen(kernel.kernel):
                 break;
 
         # change out $XENGUEST in EXTRAVERSION line
-        system('sed -i.old "s,\$(XENGUEST),%s," %s' % \
-                                                (xenguest, makefile))
+        system('sed -i.old "s,\$(XENGUEST),%s," %s' % (xenguest, makefile))
 
 
     def get_xen_build_ver(self):

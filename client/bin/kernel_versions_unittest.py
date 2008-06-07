@@ -66,8 +66,8 @@ class kernel_versions_test(unittest.TestCase):
 
     releases    = ['2.6.1'      , '2.6.18-smp-220.0'   ]
     candidates  = ['2.6.1-rc1'  , '2.6.18-smp-220.0_rc1']
-    experiments = ['2.6.1-patch', '2.6.1-rc1_patch',
-                    '2.6.18-smp-220.0_patch', 'UNKNOWN']
+    experiments = ['2.6.1-patch', '2.6.1-rc1_patch', '2.6.18-smp-220.0_patch',
+                   'UNKNOWN']
 
     def test_is_released_kernel(self):
         for v in self.releases:

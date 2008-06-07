@@ -8,8 +8,7 @@ class netperf2(test.test):
 
     # ftp://ftp.netperf.org/netperf/netperf-2.4.1.tar.gz
     def setup(self, tarball = 'netperf-2.4.1.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
@@ -27,8 +26,8 @@ class netperf2(test.test):
         self.client_path = os.path.join(self.srcdir, 'src/netperf')
 
 
-    def execute(self, server_ip, client_ip, role,
-                                    script='snapshot_script', args=''):
+    def execute(self, server_ip, client_ip, role, script='snapshot_script',
+                                                                    args=''):
         server_tag = server_ip + '#netperf-server'
         client_tag = client_ip + '#netperf-client'
         all = [server_tag, client_tag]
@@ -36,10 +35,8 @@ class netperf2(test.test):
         if (role == 'server'):
             self.server_start()
             try:
-                job.barrier(server_tag, 'start',
-                                        600).rendevous(*all)
-                job.barrier(server_tag, 'stop',
-                                        3600).rendevous(*all)
+                job.barrier(server_tag, 'start', 600).rendevous(*all)
+                job.barrier(server_tag, 'stop', 3600).rendevous(*all)
             finally:
                 self.server_stop()
         elif (role == 'client'):

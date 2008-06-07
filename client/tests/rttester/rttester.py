@@ -9,8 +9,7 @@ class rttester(test.test):
     # http://www.stardust.webpages.pl/files/patches/autotest/rttester.tar.bz2
 
     def setup(self, tarball = 'rttester.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
     def execute(self):

@@ -8,8 +8,7 @@ class unixbench(test.test):
 
     # http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
     def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

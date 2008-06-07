@@ -23,6 +23,5 @@ class rmaptest(test.test):
     def execute(self, args = ''):
         os.chdir(self.tmpdir)
         for test in tests:
-            cmd = self.srcdir + '/' + test[name] + ' ' \
-                  + args + ' ' + test[arglist]
+            cmd = '%s/%s %s %s' % (self.srcdir, test[name], args, test[arglist])
             utils.system(cmd)

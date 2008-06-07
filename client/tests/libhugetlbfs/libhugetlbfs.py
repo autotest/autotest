@@ -7,8 +7,7 @@ class libhugetlbfs(test.test):
 
     # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
     def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
@@ -27,7 +26,8 @@ class libhugetlbfs(test.test):
         if os.path.exists('/proc/sys/vm/nr_hugepages'):
             utils.write_one_line('/proc/sys/vm/nr_hugepages',
                                           str(pages_requested))
-            pages_available = int(open('/proc/sys/vm/nr_hugepages', 'r').readline())
+            nr_hugepages = utils.read_one_line('/proc/sys/vm/nr_hugepages')
+            pages_available = int(nr_hugepages)
         else:
             raise error.TestNAError('Kernel does not support hugepages')
 

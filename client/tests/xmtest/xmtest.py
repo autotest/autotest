@@ -18,8 +18,7 @@ class xmtest(test.test):
     # cd tools
     # tar -czf xm-test.tgz xm-test
     def setup(self, tarball = 'xm-test.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

@@ -11,11 +11,8 @@ class posixtest(test.test):
     version = 1
     # http://ufpr.dl.sourceforge.net/sourceforge/posixtest/posixtestsuite-1.5.2.tar.gz
     def setup(self, tarball = 'posixtestsuite-1.5.2.tar.gz'):
-        self.posix_tarball = utils.unmap_url(self.bindir,
-                                                      tarball,
-                                                      self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.posix_tarball,
-                                              self.srcdir)
+        self.posix_tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+        autotest_utils.extract_tarball_to_dir(self.posix_tarball, self.srcdir)
         os.chdir(self.srcdir)
         # Applying a small patch that introduces some linux specific
         # linking options

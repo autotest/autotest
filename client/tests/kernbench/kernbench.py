@@ -83,8 +83,7 @@ class kernbench(test.test):
         if not profilers.only():
             for i in range(iterations):
                 print "Performance run, iteration %d ..." % i
-                timefile = os.path.join(self.resultsdir,
-                                                'time.%d' % i)
+                timefile = os.path.join(self.resultsdir, 'time.%d' % i)
                 kernel.build_timed(threads, timefile)
 
         # Do a profiling run if necessary

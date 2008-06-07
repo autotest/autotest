@@ -8,8 +8,7 @@ class sysbench(test.test):
 
     # http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
     def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         self.job.setup_dep(['pgsql', 'mysql'])
 
@@ -44,11 +43,9 @@ class sysbench(test.test):
             raise TestError('Unable to run as nobody')
 
         if (db_type == 'pgsql'):
-            self.execute_pgsql(build, num_threads, max_time, \
-                    read_only, args)
+            self.execute_pgsql(build, num_threads, max_time, read_only, args)
         elif (db_type == 'mysql'):
-            self.execute_mysql(build, num_threads, max_time, \
-                    read_only, args)
+            self.execute_mysql(build, num_threads, max_time, read_only, args)
 
 
     def execute_pgsql(self, build, num_threads, max_time, read_only, args):
@@ -64,16 +61,14 @@ class sysbench(test.test):
 
         # Database must be able to write its output into debugdir
         os.chown(self.debugdir, self.dbuid, 0)
-        utils.system(self.sudo + bin + '/pg_ctl -D ' + data + \
-                ' -l ' + log + ' start')
+        utils.system(self.sudo + bin + '/pg_ctl -D %s -l %s start' %(data, log))
 
         # Wait for database to start
         time.sleep(5)
 
         try:
-            base_cmd = self.srcdir + '/sysbench/sysbench ' + \
-                    '--test=oltp --db-driver=pgsql ' + \
-                    '--pgsql-user=' + self.dbuser
+            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp '
+                       '--db-driver=pgsql --pgsql-user=' + self.dbuser
 
             if build == 1:
                 utils.system(self.sudo + bin + '/createdb sbtest')
@@ -130,9 +125,8 @@ class sysbench(test.test):
         time.sleep(5)
 
         try:
-            base_cmd = self.srcdir + '/sysbench/sysbench ' + \
-                    '--test=oltp --db-driver=mysql ' + \
-                    '--mysql-user=root'
+            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp '
+                                     '--db-driver=mysql --mysql-user=root'
 
             if build == 1:
                 utils.system('echo "create database sbtest" | ' + \

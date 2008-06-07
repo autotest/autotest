@@ -7,8 +7,7 @@ class cpu_hotplug(test.test):
 
     # http://developer.osdl.org/dev/hotplug/tests/lhcs_regression-1.6.tgz
     def setup(self, tarball = 'lhcs_regression-1.6.tgz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
     def execute(self):

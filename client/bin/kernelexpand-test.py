@@ -17,9 +17,7 @@ mirrorA = [
 
 class kernelexpandTest(unittest.TestCase):
     def test_decompose_simple(self):
-        correct = [
-          [ km + 'v2.6/linux-2.6.23.tar.bz2' ]
-        ]
+        correct = [ [ km + 'v2.6/linux-2.6.23.tar.bz2' ] ]
         sample = decompose_kernel('2.6.23')
         self.assertEqual(sample, correct)
 
