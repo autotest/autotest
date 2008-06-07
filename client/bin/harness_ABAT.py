@@ -67,8 +67,7 @@ class harness_ABAT(harness.harness):
 
 
     def __send_status(self, code, subdir, operation, msg):
-        self.__send("STATUS %s %s %s %s" % \
-                                (code, subdir, operation, msg))
+        self.__send("STATUS %s %s %s %s" % (code, subdir, operation, msg))
 
 
     def __root_device(self):

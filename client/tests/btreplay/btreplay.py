@@ -8,8 +8,7 @@ class btreplay(test.test):
 
     # http://brick.kernel.dk/snaps/blktrace-git-latest.tar.gz
     def setup(self, tarball = 'blktrace-git-latest.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])
@@ -29,27 +28,27 @@ class btreplay(test.test):
 
 
     def _run_btreplay(self, dev, devices, tmpdir, extra_args):
-        alldevs="-d /dev/"+dev
+        alldevs = "-d /dev/" + dev
         alldnames = dev
         for d in devices.split():
-            alldevs += " -d /dev/"+d
-            alldnames += " "+d
+            alldevs += " -d /dev/" + d
+            alldnames += " " + d
 
         # convert the trace (assumed to be in this test's base
         # directory) into btreplay's required format
-        utils.system("./btreplay/btrecord -d .. -D "+tmpdir+" "+dev)
+        utils.system("./btreplay/btrecord -d .. -D %s %s" % (tmpdir, dev))
 
         # time a replay that omits "thinktime" between requests
         # (by use of the -N flag)
-        utils.system(self.ldlib+" /usr/bin/time ./btreplay/btreplay -d "+\
+        utils.system(self.ldlib + " /usr/bin/time ./btreplay/btreplay -d "+\
                 tmpdir+" -N -W "+dev+" "+extra_args+" 2>&1")
 
         # trace a replay that reproduces inter-request delays, and
         # analyse the trace with btt to determine the average request
         # completion latency
-        utils.system("./blktrace -D "+tmpdir+" "+alldevs+" >/dev/null &")
-        utils.system(self.ldlib+" ./btreplay/btreplay -d "+tmpdir+" -W "+\
-                dev+" "+extra_args)
+        utils.system("./blktrace -D %s %s >/dev/null &" % (tmpdir, alldevs))
+        utils.system(self.ldlib + " ./btreplay/btreplay -d %s -W %s %s" %
+                                                   (tmpdir, dev, extra_args))
         utils.system("killall -INT blktrace")
 
         # wait until blktrace is really done
@@ -60,13 +59,13 @@ class btreplay(test.test):
             slept += 0.1
             if slept > 30.0:
                 utils.system("killall -9 blktrace")
-                raise error.TestError("blktrace failed to exit after 30 seconds")
-        utils.system("./blkparse -q -D "+tmpdir+" -d "+tmpdir+\
-                "/trace.bin -O "+alldnames+" >/dev/null")
-        utils.system("./btt/btt -i "+tmpdir+"/trace.bin")
+                raise error.TestError("blktrace failed to exit in 30 seconds")
+        utils.system("./blkparse -q -D %s -d %s/trace.bin -O %s >/dev/null" %
+                                                    (tmpdir, tmpdir, alldnames))
+        utils.system("./btt/btt -i %s/trace.bin" % tmpdir)
 
-    def execute(self, iterations = 1, dev="", devices="",
-                    extra_args = '', tmpdir = None):
+    def execute(self, iterations = 1, dev="", devices="", extra_args = '',
+                                                                tmpdir = None):
         # @dev: The device against which the trace will be replayed.
         #       e.g. "sdb" or "md_d1"
         # @devices: A space-separated list of the underlying devices
@@ -109,11 +108,11 @@ class btreplay(test.test):
         systime = 0.0
         for n in range(len(s)):
             i = (len(s)-1) - n
-            systime += float(s[i])*(60**n)
+            systime += float(s[i]) * (60**n)
         elapsed = 0.0
         for n in range(len(e)):
             i = (len(e)-1) - n
-            elapsed += float(e[i])*(60**n)
+            elapsed += float(e[i]) * (60**n)
 
         q2c = 0.0
         for line in lines:

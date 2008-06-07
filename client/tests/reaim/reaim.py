@@ -9,8 +9,7 @@ class reaim(test.test):
 
     # http://prdownloads.sourceforge.net/re-aim-7/osdl-aim-7.0.1.13.tar.gz
     def setup(self, tarball = 'osdl-aim-7.0.1.13.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])
@@ -49,11 +48,11 @@ class reaim(test.test):
         # -e <number of users to end with>
         # -i <number of users to increment>
         workfile = os.path.join('data', workfile)
-        args = "-f %s -s %d -e %d -i %d" %(workfile,start,end,increment)
+        args = "-f %s -s %d -e %d -i %d" % (workfile, start, end, increment)
         config = os.path.join(self.srcdir, 'reaim.config')
         utils.system('cp -f %s/reaim.config %s' % (self.bindir, config))
         args += ' -c ./reaim.config'
-        open(config, 'a+').write("DISKDIR %s\n" % (tmpdir))
+        open(config, 'a+').write("DISKDIR %s\n" % tmpdir)
         os.chdir(self.srcdir)
         print os.getcwd()
         cmd = self.ldlib + ' ./reaim ' + args + ' ' + extra_args
@@ -63,14 +62,12 @@ class reaim(test.test):
         profilers = self.job.profilers
         if not profilers.only():
             for i in range(iterations):
-                results.append(utils.system_output(cmd,
-                                        retain_output=True))
+                results.append(utils.system_output(cmd, retain_output=True))
 
         # Do a profiling run if necessary
         if profilers.present():
             profilers.start(self)
-            resuls.append(utils.system_output(cmd,
-                                              retain_output=True))
+            resuls.append(utils.system_output(cmd, retain_output=True))
             profilers.stop(self)
             profilers.report(self)
 

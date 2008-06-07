@@ -8,8 +8,7 @@ class tbench(test.test):
 
     # http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
     def setup(self, tarball = 'dbench-3.04.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 

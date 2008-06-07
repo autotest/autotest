@@ -89,7 +89,7 @@ def version_choose_config(version, candidates):
     while length > 1:
         for o in range(n, -1, -1):
             if version_len(versions[o]) == (length + 1) and \
-               version_limit(versions[o], length) == version:
+                                version_limit(versions[o], length) == version:
                 return versions[o]
         length -= 2
         version = version_limit(version, length)

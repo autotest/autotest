@@ -4,9 +4,7 @@ from autotest_lib.client.common_lib import utils
 
 
 # tests is a simple array of "cmd" "arguments"
-tests = [["./run.sh", "tests=func"],
-         ["./run.sh", "tests=pi-tests"],
-        ]
+tests = [["./run.sh", "tests=func"], ["./run.sh", "tests=pi-tests"]]
 name = 0
 arglist = 1
 
@@ -18,8 +16,7 @@ class rtlinuxtests(test.test):
 
     def setup(self, tarball = 'tests.tar.bz2'):
         autotest_utils.check_glibc_ver('2.5')
-        self.tarball = utils.unmap_url(self.bindir, tarball,
-                                                self.tmpdir)
+        self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('patch -p1 < ../path-fix.patch')
@@ -27,5 +24,5 @@ class rtlinuxtests(test.test):
     def execute(self, args = ''):
         os.chdir(self.srcdir)
         for test in tests:
-            cmd = 'echo y | ' + test[name] + ' ' + args + ' ' + test[arglist]
+            cmd = 'echo y | %s %s %s' % (test[name], args, test[arglist])
             utils.system(cmd)

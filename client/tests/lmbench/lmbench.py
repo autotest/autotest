@@ -8,8 +8,7 @@ class lmbench(test.test):
     version = 2
 
     def setup(self, tarball = 'lmbench3.tar.bz2'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         # http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
         # + lmbench3.diff
         #       removes Makefile references to bitkeeper
@@ -20,10 +19,9 @@ class lmbench(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, mem = '', fastmem = 'NO',
-                    slowfs = 'NO', disks = '', disks_desc = '',
-                    mhz = '', remote = '', enough = '5000', sync_max = '1',
-                    fsdir = None, file = None):
+    def execute(self, iterations = 1, mem = '', fastmem = 'NO', slowfs = 'NO',
+                disks = '', disks_desc = '', mhz = '', remote = '',
+                enough = '5000', sync_max = '1', fsdir = None, file = None):
         if not fsdir:
             fsdir = self.tmpdir
         if not file:
@@ -42,6 +40,7 @@ class lmbench(test.test):
             utils.system(cmd)
             profilers.stop(self)
             profilers.report(self)
+
         # Get the results:
         outputdir = self.srcdir + "/results"
         results = self.resultsdir + "/summary.txt"

@@ -35,6 +35,6 @@ class aio_dio_bugs(test.test):
                               autotest_utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         for test in tests:
-            cmd = self.srcdir + '/' + test[name] + ' ' \
-                  + args + ' ' + test[arglist]
+            cmd = self.srcdir + '/' + test[name] + ' ' + args + ' ' \
+                                                               + test[arglist]
             utils.system(var_ld_path + ' ' + cmd)

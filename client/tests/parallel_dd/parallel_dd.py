@@ -34,8 +34,7 @@ class parallel_dd(test.test):
             dd = 'dd if=/dev/zero of=%s bs=4K count=%d' % \
                                     (file, self.blocks_per_file)
             print dd
-            p.append(subprocess.Popen(dd + ' > /dev/null',
-                                      shell=True))
+            p.append(subprocess.Popen(dd + ' > /dev/null', shell=True))
         print "Waiting for %d streams" % self.streams
         # Wait for everyone to complete
         for i in range(self.streams):
@@ -90,7 +89,8 @@ class parallel_dd(test.test):
         self.fs.unmount()
 
 
-    def execute(self, fs, fstype = 'ext2', iterations = 2, megabytes = 1000, streams = 2):
+    def execute(self, fs, fstype = 'ext2', iterations = 2, megabytes = 1000,
+                                                                   streams = 2):
         self.megabytes = megabytes
         self.blocks = megabytes * 256
         self.blocks_per_file = self.blocks / streams

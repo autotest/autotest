@@ -9,8 +9,7 @@ class iozone(test.test):
 
     # http://www.iozone.org/src/current/iozone3_283.tar
     def setup(self, tarball = 'iozone3_283.tar'):
-        tarball = utils.unmap_url(self.bindir, tarball,
-                                           self.tmpdir)
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(os.path.join(self.srcdir, 'src/current'))
 
@@ -26,8 +25,7 @@ class iozone(test.test):
 
 
     def execute(self, dir = None, iterations=1, args = None):
-        self.keyval = open(os.path.join(self.resultsdir, 'keyval'),
-                           'w')
+        self.keyval = open(os.path.join(self.resultsdir, 'keyval'), 'w')
         if not dir:
             dir = self.tmpdir
         os.chdir(dir)
@@ -55,8 +53,7 @@ class iozone(test.test):
     def __format_results(self, results):
         labels = ('write', 'rewrite', 'read', 'reread', 'randread',
                   'randwrite', 'bkwdread', 'recordrewrite',
-                  'strideread', 'fwrite', 'frewrite',
-                  'fread', 'freread')
+                  'strideread', 'fwrite', 'frewrite', 'fread', 'freread')
         for line in results.splitlines():
             fields = line.split()
             if len(fields) != 15:
