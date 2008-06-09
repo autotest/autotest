@@ -1,5 +1,5 @@
 import time
-from autotest_utils.client.bin import test
+from autotest_lib.client.bin import test
 
 class barriertest(test.test):
     version = 1
