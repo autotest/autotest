@@ -22,12 +22,10 @@ class dacapo(test.test):
         execute a specific jvm specified by the java_root variable.
         java_root - Base of the java vm installation
         '''
-        # Sun has changed the directory layout for java 6
-        # (now there's no jre directory). Let's work around this...
-        if jvm == 'sun16':
-            self.java_home = java_root
-        else:
+        if jvm.startswith('ibm'):
             self.java_home = os.path.join(java_root, 'jre')
+        else:
+            self.java_home = java_root
         self.java_bin = os.path.join(self.java_home, 'bin')
         self.java_lib =  os.path.join(self.java_home, 'lib')
         os.environ['JAVA_ROOT'] = java_root
