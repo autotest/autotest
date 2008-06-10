@@ -887,6 +887,7 @@ class SSHHost(remote.RemoteHost):
 
 
     def setup(self):
+        super(SSHHost, self).setup()
         if not self.password == '':
             try:
                 self.ssh_ping()

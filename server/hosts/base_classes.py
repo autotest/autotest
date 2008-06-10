@@ -36,6 +36,20 @@ class Host(object):
     This is an abstract class, leaf subclasses must implement the methods
     listed here. You must not instantiate this class but should
     instantiate one of those leaf subclasses.
+
+    When overriding methods that raise NotImplementedError, the leaf class
+    is fully responsible for the implementation and should not chain calls
+    to super. When overriding methods that are a NOP in Host, the subclass
+    should chain calls to super(). The criteria for fitting a new method into
+    one category or the other should be:
+        1. If two separate generic implementations could reasonably be
+           concatenated, then the abstract implementation should pass and
+           subclasses should chain calls to super.
+        2. If only one class could reasonably perform the stated function
+           (e.g. two separate run() implementations cannot both be executed)
+           then the method should raise NotImplementedError in Host, and
+           the implementor should NOT chain calls to super, to ensure that
+           only one implementation ever gets executed.
     """
 
     bootloader = None
@@ -47,12 +61,17 @@ class Host(object):
         self.env = {}
 
 
-    def run(self, command):
+    def setup(self):
         pass
+
+
+    def run(self, command):
+        raise NotImplementedError('Run not implemented!')
 
 
     def reboot(self):
-        pass
+        raise NotImplementedError('Reboot not implemented!')
+
 
     def reboot_setup(self):
         pass
@@ -63,19 +82,19 @@ class Host(object):
 
 
     def get_file(self, source, dest):
-        pass
+        raise NotImplementedError('Get file not implemented!')
 
 
     def send_file(self, source, dest):
-        pass
+        raise NotImplementedError('Send file not implemented!')
 
 
     def get_tmp_dir(self):
-        pass
+        raise NotImplementedError('Get temp dir not implemented!')
 
 
     def is_up(self):
-        pass
+        raise NotImplementedError('Is up not implemented!')
 
 
     def get_wait_up_processes(self):
@@ -91,15 +110,15 @@ class Host(object):
 
 
     def wait_up(self, timeout):
-        pass
+        raise NotImplementedError('Wait up not implemented!')
 
 
     def wait_down(self, timeout):
-        pass
+        raise NotImplementedError('Wait down not implemented!')
 
 
     def get_num_cpu(self):
-        pass
+        raise NotImplementedError('Get num CPU not implemented!')
 
 
     def machine_install(self):
@@ -109,8 +128,10 @@ class Host(object):
     def install(self, installableObject):
         installableObject.install(self)
 
+
     def get_crashdumps(self, test_start_time):
         pass
 
+
     def get_autodir(self):
-        return None
+        raise NotImplementedError('Get autodir not implemented!')
