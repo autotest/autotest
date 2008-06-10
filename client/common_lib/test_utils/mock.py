@@ -4,8 +4,14 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import re, collections, StringIO, sys
 
 
+class StubNotFoundError(Exception):
+    'Raised when god is asked to unstub an attribute that was not stubbed'
+    pass
+
+
 class CheckPlaybackError(Exception):
     'Raised when mock playback does not match recorded calls.'
+    pass
 
 
 class ExitException(Exception):
@@ -268,7 +274,7 @@ class mock_god:
         value of default_ret_val.
         """
         return mock_function(symbol, default_return_val,
-                          self.__record_call, self.__method_playback)
+                             self.__record_call, self.__method_playback)
 
 
     def mock_up(self, obj, name, default_ret_val=None):
@@ -294,7 +300,8 @@ class mock_god:
     def stub_with(self, namespace, symbol, new_attribute):
         original_attribute = getattr(namespace, symbol,
                                      self.NONEXISTENT_ATTRIBUTE)
-        self._stubs.append((namespace, symbol, original_attribute))
+        newstub = (namespace, symbol, original_attribute, new_attribute)
+        self._stubs.append(newstub)
         setattr(namespace, symbol, new_attribute)
 
 
@@ -308,13 +315,34 @@ class mock_god:
         self.stub_with(cls, symbol, staticmethod(mock_attribute))
 
 
+    def stub_class(self, namespace, symbol):
+        attr = getattr(namespace, symbol)
+        mock_class = self.create_mock_class_obj(attr, symbol)
+        self.stub_with(namespace, symbol, mock_class)
+
+
+    def _perform_unstub(self, stub):
+        namespace, symbol, orig_attr, new_attr = stub
+        if orig_attr == self.NONEXISTENT_ATTRIBUTE:
+            delattr(namespace, symbol)
+        else:
+            setattr(namespace, symbol, orig_attr)
+
+
+    def unstub(self, namespace, symbol):
+        for stub in reversed(self._stubs):
+            if (namespace, symbol) == (stub[0], stub[1]):
+                self._perform_unstub(stub)
+                self._stubs.remove(stub)
+                return
+
+        raise StubNotFoundError()
+
+
     def unstub_all(self):
         self._stubs.reverse()
-        for namespace, symbol, original_attribute in self._stubs:
-            if original_attribute == self.NONEXISTENT_ATTRIBUTE:
-                delattr(namespace, symbol)
-            else:
-                setattr(namespace, symbol, original_attribute)
+        for stub in self._stubs:
+            self._perform_unstub(stub)
         self._stubs = []
 
 
@@ -426,5 +454,5 @@ def _dump_function_call(symbol, args, dargs):
     for arg in args:
         arg_vec.append(_arg_to_str(arg))
     for key, val in dargs.iteritems():
-        arg_vec.append("%s=%s" % (key, _arg_to_stv(val)))
+        arg_vec.append("%s=%s" % (key, _arg_to_str(val)))
     return "%s(%s)" % (symbol, ', '.join(arg_vec))

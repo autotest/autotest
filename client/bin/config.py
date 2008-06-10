@@ -15,7 +15,7 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 
 import os
 
-class config:
+class config(object):
     """The BASIC job configuration
 
     Properties:

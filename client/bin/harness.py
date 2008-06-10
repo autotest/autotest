@@ -7,7 +7,7 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 
 import os, sys
 
-class harness:
+class harness(object):
     """The NULL server harness
 
     Properties:
