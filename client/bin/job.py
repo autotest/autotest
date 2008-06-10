@@ -23,7 +23,7 @@ class StepError(error.AutotestError):
     pass
 
 
-class base_job:
+class base_job(object):
     """The actual job against which we do everything.
 
     Properties:
@@ -83,7 +83,7 @@ class base_job:
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
         self.next_step_index = 0
-        self.__load_state()
+        self._load_state()
 
         if not cont:
             """
@@ -127,9 +127,7 @@ class base_job:
         self._init_group_level()
 
         self.config = config.config(self)
-
         self.harness = harness.select(harness_type, self)
-
         self.profilers = profilers.profilers(self)
 
         try:
@@ -256,7 +254,7 @@ class base_job:
                 raise error.UnhandledError(err)
 
 
-    def __runtest(self, url, tag, args, dargs):
+    def _runtest(self, url, tag, args, dargs):
         try:
             l = lambda : test.runtest(self, url, tag, args, dargs)
             pid = parallel.fork_start(self.resultdir, l)
@@ -322,7 +320,7 @@ class base_job:
         @disk_usage_monitor.watch(log_warning, "/", self.max_disk_usage_rate)
         def group_func():
             try:
-                self.__runtest(url, tag, args, dargs)
+                self._runtest(url, tag, args, dargs)
             except error.TestNAError, detail:
                 self.record('TEST_NA', subdir, testname,
                             str(detail))
@@ -335,7 +333,7 @@ class base_job:
                 self.record('GOOD', subdir, testname,
                             'completed successfully')
 
-        result, exc_info = self.__rungroup(subdir, testname, group_func)
+        result, exc_info = self._rungroup(subdir, testname, group_func)
         if container:
             self.release_container()
         if exc_info and isinstance(exc_info[1], error.TestError):
@@ -346,7 +344,7 @@ class base_job:
             return True
 
 
-    def __rungroup(self, subdir, testname, function, *args, **dargs):
+    def _rungroup(self, subdir, testname, function, *args, **dargs):
         """\
         subdir:
                 name of the group
@@ -590,7 +588,7 @@ class base_job:
         pickle.dump(self.state, open(self.state_file, 'w'))
 
 
-    def __load_state(self):
+    def _load_state(self):
         assert not hasattr(self, "state")
         try:
             self.state = pickle.load(open(self.state_file, 'r'))
