@@ -72,9 +72,9 @@ class is_instance_comparator(argument_comparator):
         return "is a %s" % self.cls
 
 
-class function_map(object):
-    def __init__(self, symbol, return_val, *args, **dargs):
-        self.return_val = return_val
+class base_mapping(object):
+    def __init__(self, symbol, return_obj, *args, **dargs):
+        self.return_obj = return_obj
         self.args = []
         self.symbol = symbol
         for arg in args:
@@ -85,14 +85,6 @@ class function_map(object):
 
         self.dargs = dargs
         self.error = None
-
-
-    def and_return(self, return_val):
-        self.return_val = return_val
-
-
-    def and_raises(self, error):
-        self.error = error
 
 
     def match(self, *args, **dargs):
@@ -111,6 +103,22 @@ class function_map(object):
 
     def __str__(self):
         return _dump_function_call(self.symbol, self.args, self.dargs)
+
+
+class function_mapping(base_mapping):
+    def __init__(self, symbol, return_val, *args, **dargs):
+        super(function_mapping, self).__init__(symbol, return_val, *args,
+                                               **dargs)
+
+
+    def and_return(self, return_obj):
+        self.return_obj = return_obj
+
+
+    def and_raises(self, error):
+        self.error = error
+
+
 
 
 class mock_function(object):
@@ -137,7 +145,7 @@ class mock_function(object):
 
 
     def expect_call(self, *args, **dargs):
-        mapping = function_map(self.symbol, None, *args, **dargs)
+        mapping = function_mapping(self.symbol, None, *args, **dargs)
         if self.record:
             self.record(mapping)
 
@@ -200,7 +208,6 @@ class mock_god:
 
         class cls_sub(cls):
             cls_count = 0
-            creations = collections.deque()
 
             # overwrite the initializer
             def __init__(self, *args, **dargs):
@@ -210,18 +217,13 @@ class mock_god:
             @classmethod
             def expect_new(typ, *args, **dargs):
                 obj = typ.make_new(*args, **dargs)
-                typ.creations.append(obj)
+                mapping = base_mapping(name, obj, *args, **dargs)
+                record(mapping)
                 return obj
 
 
             def __new__(typ, *args, **dargs):
-                if len(typ.creations) == 0:
-                    msg = ("not expecting call to %s "
-                           "constructor" % (name))
-                    errors.append(msg)
-                    return None
-                else:
-                    return typ.creations.popleft()
+                return playback(name, *args, **dargs)
 
 
             @classmethod
@@ -371,7 +373,7 @@ class mock_god:
             if func_call.error:
                 raise func_call.error
             else:
-                return func_call.return_val
+                return func_call.return_obj
         else:
             msg = ("unexpected call: %s"
                    % (_dump_function_call(symbol, args, dargs)))
