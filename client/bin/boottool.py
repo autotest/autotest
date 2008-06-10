@@ -1,7 +1,7 @@
 import shutil, re, os, string
 from autotest_lib.client.common_lib import utils, error
 
-class boottool:
+class boottool(object):
     def __init__(self, boottool_exec=None):
         #variable to indicate if in mode to write entries for Xen
         self.xen_mode = False
