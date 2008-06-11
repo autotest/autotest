@@ -2,11 +2,9 @@
 #
 # autotest <control file> - run the autotest control file specified.
 #
-from common.check_version import check_python_version
-check_python_version()
-
 import os, sys, shutil
 from optparse import OptionParser
+import common
 from autotest_lib.client.bin import job
 
 
