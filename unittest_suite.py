@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys
+import os
 import unittest
 
 # ensure the root is where it should be
@@ -15,10 +15,12 @@ def lister(dummy, dirname, files):
     for f in files:
         if f.endswith('_unittest.py'):
             temp = os.path.join(dirname, f).strip('.py')
-            mod = ('autotest_lib'
-                    + temp[len(root):].replace('/', '.'))
-            suite = loader.loadTestsFromName(mod)
-            suites.append(suite)
+            mod = 'autotest_lib' + temp[len(root):].replace('/', '.')
+            try:
+                suite = loader.loadTestsFromName(mod)
+                suites.append(suite)
+            except:
+                print "module failed to load: %s" % mod
 
 
 if __name__ == "__main__":
