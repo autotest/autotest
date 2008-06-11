@@ -8,7 +8,7 @@ class MySQLTooManyRows(Exception):
     pass
 
 
-class db_sql:
+class db_sql(object):
     def __init__(self, debug=False, autocommit=True, host=None,
                  database=None, user=None, password=None):
         self.debug = debug

@@ -254,7 +254,7 @@ class base_server_job:
                                      'ssh_user' : self.ssh_user, \
                                      'ssh_port' : self.ssh_port, \
                                      'ssh_pass' : self.ssh_pass}
-            exec(preamble + verify, namespace, namespace)
+            self._execute_code(preamble + verify, namespace, namespace)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n'
                     + traceback.format_exc())
@@ -272,7 +272,7 @@ class base_server_job:
                                  'ssh_pass' : self.ssh_pass}
         # no matter what happens during repair, go on to try to reverify
         try:
-            exec(preamble + repair, namespace, namespace)
+            self._execute_code(preamble + repair, namespace, namespace)
         except Exception, exc:
             print 'Exception occured during repair'
             traceback.print_exc()
@@ -342,7 +342,7 @@ class base_server_job:
         status_log = os.path.join(self.resultdir, 'status.log')
         try:
             if install_before and machines:
-                exec(preamble + install, namespace, namespace)
+                self._execute_code(preamble + install, namespace, namespace)
             if self.client:
                 namespace['control'] = self.control
                 open('control', 'w').write(self.control)
@@ -351,19 +351,20 @@ class base_server_job:
             else:
                 open('control.srv', 'w').write(self.control)
                 server_control = self.control
-            exec(preamble + server_control, namespace, namespace)
+            self._execute_code(preamble + server_control, namespace,
+                                   namespace)
 
         finally:
             if machines and collect_crashdumps:
                 namespace['test_start_time'] = test_start_time
-                exec(preamble + crashdumps,
-                        namespace, namespace)
+                self._execute_code(preamble + crashdumps, namespace,
+                                       namespace)
             self.disable_external_logging()
             if reboot and machines:
-                exec(preamble + reboot_segment,
-                     namespace, namespace)
+                self._execute_code(preamble + reboot_segment,namespace,
+                                       namespace)
             if install_after and machines:
-                exec(preamble + install, namespace, namespace)
+                self._execute_code(preamble + install, namespace, namespace)
 
 
     def run_test(self, url, *args, **dargs):
@@ -512,10 +513,10 @@ class base_server_job:
         # poll all our warning loggers for new warnings
         warnings = self._read_warnings()
         for timestamp, msg in warnings:
-            self.__record("WARN", None, None, msg, timestamp)
+            self._record("WARN", None, None, msg, timestamp)
 
         # write out the actual status log line
-        self.__record(status_code, subdir, operation, status,
+        self._record(status_code, subdir, operation, status,
                       optional_fields=optional_fields)
 
 
@@ -606,7 +607,7 @@ class base_server_job:
         Record a pre-rendered msg into the status logs. The only
         change this makes to the message is to add on the local
         indentation. Should not be called outside of server_job.*
-        classes. Unlike __record, this does not write the message
+        classes. Unlike _record, this does not write the message
         to standard output.
         """
         lines = []
@@ -620,7 +621,11 @@ class base_server_job:
         self.__parse_status(lines)
 
 
-    def __record(self, status_code, subdir, operation, status='',
+    def _execute_code(self, code, global_scope, local_scope):
+        exec(code, global_scope, local_scope)
+
+
+    def _record(self, status_code, subdir, operation, status='',
                  epoch_time=None, optional_fields=None):
         """
         Actual function for recording a single line into the status
