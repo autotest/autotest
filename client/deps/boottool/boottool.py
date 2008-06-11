@@ -1,8 +1,7 @@
 #!/usr/bin/python
-from common.check_version import check_python_version
-check_python_version()
 
 import os
+import common
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.bin import autotest_utils
 
