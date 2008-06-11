@@ -7,7 +7,9 @@ __author__ = "Paul Turner <pjt@google.com>"
 
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
 import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
-from common import global_config
+import common
+from autotest_lib.client.common_lib import global_config
+
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
