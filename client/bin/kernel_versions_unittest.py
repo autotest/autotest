@@ -1,6 +1,7 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 import unittest
-from kernel_versions import *
+import common
+from autotest_lib.client.bin import kernel_versions
 
 
 class kernel_versions_test(unittest.TestCase):
@@ -9,9 +10,9 @@ class kernel_versions_test(unittest.TestCase):
         for i in xrange(len(kernels)-1):
             k1 = kernels[i]
             k2 = kernels[i+1]
-            ek1 = version_encode(k1)
-            ek2 = version_encode(k2)
-            self.assert_(ek1 < ek2,
+            ek1 = kernel_versions.version_encode(k1)
+            ek2 = kernel_versions.version_encode(k2)
+            self.assertTrue(ek1 < ek2,
                     '%s (-> %s)  should sort <  %s (-> %s)'
                     % (k1, ek1, k2, ek2) )
 
@@ -71,16 +72,16 @@ class kernel_versions_test(unittest.TestCase):
 
     def test_is_released_kernel(self):
         for v in self.releases:
-            self.assert_(    is_released_kernel(v))
+            self.assertTrue(kernel_versions.is_released_kernel(v))
         for v in self.candidates + self.experiments:
-            self.assert_(not is_released_kernel(v))
+            self.assertFalse(kernel_versions.is_released_kernel(v))
 
 
     def test_is_release_candidate(self):
         for v in self.releases + self.candidates:
-            self.assert_(    is_release_candidate(v))
+            self.assertTrue(kernel_versions.is_release_candidate(v))
         for v in self.experiments:
-            self.assert_(not is_release_candidate(v))
+            self.assertFalse(kernel_versions.is_release_candidate(v))
 
 
 if  __name__ == "__main__":
