@@ -78,7 +78,8 @@ def select(which, job):
     if not which:
         which = 'standalone'
 
-    exec "import harness_%s" % (which)
-    exec "myharness = harness_%s.harness_%s(job)" % (which, which)
+    harness_name = 'harness_%s' % which
+    harness_module = __import__(harness_name)
+    harness_instance = getattr(harness_module, harness_name)(job)
 
-    return myharness
+    return harness_instance
