@@ -3,8 +3,8 @@
 # autotest <control file> - run the autotest control file specified.
 #
 import os, sys, shutil
-from optparse import OptionParser
 import common
+from optparse import OptionParser
 from autotest_lib.client.bin import job
 
 
