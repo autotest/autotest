@@ -15,7 +15,7 @@ from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
 from autotest_lib.client.common_lib import error, barrier, logging, utils
 
 JOB_PREAMBLE = """
-from autotest_lib.common.common_lib.error import *
+from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.bin.autotest_utils import *
 """
 
