@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
@@ -34,15 +34,7 @@ class BaseServerJobTest(unittest.TestCase):
         self.god.stub_function(base_server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
 
-        # mock away the parser
-        parser = self.god.create_mock_class_obj(parser_mod.parser,
-                                                "parser_class")
-        self.god.stub_with(parser_mod, 'parser', parser)
 
-        # mock away job in parser
-        parser_job = self.god.create_mock_class_obj(parser_mod0.job,
-                                                    "pjob")
-        self.god.stub_with(parser_mod0, 'job', parser_job)
 
 
     def tearDown(self):
@@ -106,9 +98,9 @@ class BaseServerJobTest(unittest.TestCase):
         tko_utils.redirect_parser_debugging.expect_call(file_obj)
         db = self.god.create_mock_class(tko_db.db_sql, "db_sql")
         tko_db.db.expect_call(autocommit=True).and_return(db)
-        parser = parser_mod.parser.expect_new()
+        parser = self.god.create_mock_class(parser_mod.parser, "parser_class")
         status_lib.parser.expect_call(1).and_return(parser)
-        job_model = parser_mod0.job.expect_new(results)
+        job_model = self.god.create_mock_class_obj(parser_mod0.job, "pjob")
         parser.make_job.expect_call(results).and_return(job_model)
         parser.start.expect_call(job_model)
         db.find_job.expect_call(mock.is_string_comparator())
