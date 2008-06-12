@@ -33,13 +33,13 @@ class Kernel(installable_object.InstallableObject):
     leaf subclasses.
     """
 
-    def get_version():
+    def get_version(self):
         pass
 
 
-    def get_image_name():
+    def get_image_name(self):
         pass
 
 
-    def get_initrd_name():
+    def get_initrd_name(self):
         pass
