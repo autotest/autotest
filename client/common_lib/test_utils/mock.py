@@ -14,11 +14,6 @@ class CheckPlaybackError(Exception):
     pass
 
 
-class ExitException(Exception):
-    'Raised when the mocked sys.exit() is called'
-    pass
-
-
 class argument_comparator(object):
     def is_satisfied_by(self, parameter):
         raise NotImplementedError
@@ -350,8 +345,9 @@ class mock_god:
 
     def __method_playback(self, symbol, *args, **dargs):
         if self._debug:
-            print 'Mock call:', _dump_function_call(symbol,
-                                                    args, dargs)
+            print >> sys.__stdout__, 'Mock call:', _dump_function_call(symbol,
+                                                                       args,
+                                                                       dargs)
         if len(self.recording) != 0:
             func_call = self.recording[0]
             if func_call.symbol != symbol:
@@ -392,28 +388,15 @@ class mock_god:
         """
         if len(self.errors) > 0:
             for error in self.errors:
-                print error
+                print >> sys.__stdout__, error
             raise CheckPlaybackError
         elif len(self.recording) != 0:
             for func_call in self.recording:
-                print "%s not called" % (func_call)
+                print >> sys.__stdout__, "%s not called" % (func_call)
             raise CheckPlaybackError
 
 
-    def mock_exit(self):
-        def mock_exit_handler(self):
-            raise ExitException
-
-        self.saved_exit = sys.exit
-        sys.exit = mock_exit_handler
-
-
-    def unmock_exit(self):
-        sys.exit = self.saved_exit
-        self.saved_exit = None
-
-
-    def mock_stdout_stderr(self):
+    def mock_io(self):
         """Mocks and saves the stdout & stderr output"""
         self.mock_streams_stdout = StringIO.StringIO('')
         self.mock_streams_stderr = StringIO.StringIO('')
@@ -422,7 +405,7 @@ class mock_god:
         sys.stderr = self.mock_streams_stderr
 
 
-    def unmock_stdout_stderr(self):
+    def unmock_io(self):
         """Restores the stdout & stderr, and returns both
         output strings"""
         sys.stdout = sys.__stdout__
@@ -433,16 +416,6 @@ class mock_god:
         self.mock_streams_stdout.close()
         self.mock_streams_stderr.close()
         return values
-
-
-    def mock_io_exit(self):
-        self.mock_exit()
-        self.mock_stdout_stderr()
-
-
-    def unmock_io_exit(self):
-        self.unmock_exit()
-        return self.unmock_stdout_stderr()
 
 
 def _arg_to_str(arg):

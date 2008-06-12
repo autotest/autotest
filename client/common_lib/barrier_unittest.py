@@ -11,11 +11,11 @@ class barrier_test(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god()
-        self.god.mock_stdout_stderr()
+        self.god.mock_io()
 
 
     def tearDown(self):
-        self.god.unmock_stdout_stderr()
+        self.god.unmock_io()
 
 
     def test_initialize(self):
