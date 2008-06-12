@@ -1,5 +1,5 @@
 # Will need some libaries to compile. Do 'apt-get build-dep oprofile'
-import profiler, shutil
+import os, profiler, shutil
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.bin import autotest_utils
 
@@ -44,7 +44,7 @@ class oprofile(profiler.profiler):
     def initialize(self, vmlinux = None, events = [], others = None,
                                                             local = None):
         if not vmlinux:
-            self.vmlinux = get_vmlinux()
+            self.vmlinux = autotest_utils.get_vmlinux()
         else:
             self.vmlinux = vmlinux
         if not len(events):
@@ -99,11 +99,11 @@ class oprofile(profiler.profiler):
         reportfile = test.profdir + '/oprofile.kernel'
         if self.vmlinux:
             report = self.opreport + ' -l ' + self.vmlinux
-            if os.path.exists(get_modules_dir()):
-                report += ' -p ' + get_modules_dir()
+            if os.path.exists(autotest_utils.get_modules_dir()):
+                report += ' -p ' + autotest_utils.get_modules_dir()
             utils.system(report + ' > ' + reportfile)
         else:
-            utils.system("echo 'no vmlinux found.' > %s" %reportfile)
+            utils.system("echo 'no vmlinux found.' > %s" % reportfile)
 
         # output profile summary report
         reportfile = test.profdir + '/oprofile.user'
