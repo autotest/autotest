@@ -4,7 +4,7 @@ import os, shutil, copy, pickle, re, glob, time
 from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
 from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import logging, utils
+from autotest_lib.client.common_lib import logging, utils, error
 
 
 class kernel:
@@ -33,7 +33,7 @@ class kernel:
 
     autodir = ''
 
-    def __init__(self, job, base_tree, subdir, tmp_dir, build_dir, leave = False):
+    def __init__(self, job, base_tree, subdir, tmp_dir, build_dir, leave=False):
         """Initialize the kernel build environment
 
         job
@@ -93,21 +93,19 @@ class kernel:
             self.build_target = 'all'
             self.build_image = 'vmlinux.gz'
 
-        if leave:
-            return
+        if not leave:
+            self.logfile.write('BASE: %s\n' % base_tree)
 
-        self.logfile.write('BASE: %s\n' % base_tree)
+            # Where we have direct version hint record that
+            # for later configuration selection.
+            shorthand = re.compile(r'^\d+\.\d+\.\d+')
+            if shorthand.match(base_tree):
+                self.base_tree_version = base_tree
+            else:
+                self.base_tree_version = None
 
-        # Where we have direct version hint record that
-        # for later configuration selection.
-        shorthand = re.compile(r'^\d+\.\d+\.\d+')
-        if shorthand.match(base_tree):
-            self.base_tree_version = base_tree
-        else:
-            self.base_tree_version = None
-
-        # Actually extract the tree.  Make sure we know it occured
-        self.extract(base_tree)
+            # Actually extract the tree.  Make sure we know it occured
+            self.extract(base_tree)
 
 
     def kernelexpand(self, kernel):
@@ -193,12 +191,12 @@ class kernel:
             if local.endswith('.bz2') or local.endswith('.gz'):
                 ref = spec
             else:
-                ref = force_copy(local, self.results_dir)
+                ref = autotest_utils.force_copy(local, self.results_dir)
                 ref = self.job.relative_path(ref)
             patch_id = "%s %s %s" % (spec, ref, md5sum)
             log = "PATCH: " + patch_id + "\n"
             print log
-            cat_file_to_cmd(local, 'patch -p1 > /dev/null')
+            autotest_utils.cat_file_to_cmd(local, 'patch -p1 > /dev/null')
             self.logfile.write(log)
             self.applied_patches.append(patch_id)
 
@@ -256,7 +254,7 @@ class kernel:
                                      self.build_target)
                                 # eg make bzImage, or make zImage
         print build_string
-        system(build_string)
+        utils.system(build_string)
         if kernel_config.modules_needed('.config'):
             utils.system('make -j %d modules' % (threads))
 
@@ -264,7 +262,8 @@ class kernel:
         kernel_version = re.sub('-autotest', '', kernel_version)
         self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
 
-        force_copy(self.build_dir+'/System.map', self.results_dir)
+        autotest_utils.force_copy(self.build_dir+'/System.map',
+                                  self.results_dir)
 
 
     def build_timed(self, threads, timefile = '/dev/null', make_opts = '',
@@ -372,15 +371,15 @@ class kernel:
         else:
             self.image = self.vmlinux
         self.system_map = self.boot_dir + '/System.map-' + tag
-        self.config = self.boot_dir + '/config-' + tag
+        self.config_file = self.boot_dir + '/config-' + tag
         self.initrd = ''
 
         # copy to boot dir
         autotest_utils.force_copy('vmlinux', self.vmlinux)
         if (self.build_image != 'vmlinux'):
-            force_copy(self.build_image, self.image)
+            autotest_utils.force_copy(self.build_image, self.image)
         autotest_utils.force_copy('System.map', self.system_map)
-        autotest_utils.force_copy('.config', self.config)
+        autotest_utils.force_copy('.config', self.config_file)
 
         if not kernel_config.modules_needed('.config'):
             return
@@ -574,7 +573,8 @@ class kernel:
         # but have no way of working out what arch the default
         # compiler DOES build for.
 
-        # Oh, and BTW, install_package() doesn't exist yet.
+        def install_package(package):
+            raise NotImplementedError("I don't exist yet!")
 
         if target_arch == 'ppc64':
             install_package('ppc64-cross')
