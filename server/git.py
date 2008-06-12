@@ -32,7 +32,7 @@ class GitRepo(installable_object.InstallableObject):
         if repodir == None:
             e_msg = 'You must provide a directory to hold the git repository'
             raise ValueError(e_msg)
-        self.repodir = sh_escape(repodir)
+        self.repodir = utils.sh_escape(repodir)
         if giturl == None:
             raise ValueError('You must provide a git URL to the repository')
         self.giturl = giturl
