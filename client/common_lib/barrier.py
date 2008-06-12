@@ -103,16 +103,19 @@ class barrier:
         self.tag = tag
         self.port = port
         self.timeout = timeout
-
         self.report("tag=%s port=%d timeout=%d" \
                 % (self.tag, self.port, self.timeout))
 
 
-    def get_host_from_id(self, id):
+    def get_host_from_id(self, hostid):
         # Remove any trailing local identifier following a #.
         # This allows multiple members per host which is particularly
         # helpful in testing.
-        return id.split('#')[0]
+        if not hostid.startswith('#'):
+            return hostid.split('#')[0]
+        else:
+            raise BarrierError("Invalid Host id: Host Address should "
+                               "be specified")
 
 
     def report(self, out):
@@ -121,13 +124,21 @@ class barrier:
 
 
     def update_timeout(self, timeout):
-        self.timeout = (time() - self.start) + timeout
+        try:
+            if getattr(self, 'start'):
+                self.timeout = (time() - self.start) + timeout
+        except AttributeError, a:
+            self.timeout = timeout
 
 
     def remaining(self):
-        timeout = self.timeout - (time() - self.start)
-        if (timeout <= 0):
-            raise BarrierError("timeout waiting for barrier")
+        try:
+            if getattr(self, 'start'):
+                timeout = self.timeout - (time() - self.start)
+                if (timeout <= 0):
+                    raise BarrierError("timeout waiting for barrier")
+        except AttributeError, a:
+            timeout = self.timeout
 
         self.report("remaining: %d" % (timeout))
         return timeout
