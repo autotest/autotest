@@ -172,7 +172,8 @@ class kernel:
             dest = os.path.join(self.src_dir, os.path.basename(patch))
             # FIXME: this isn't unique. Append something to it
             # like wget does if it's not there?
-            print "get_file %s %s %s %s" % (patch, dest, self.src_dir, os.path.basename(patch))
+            print "get_file %s %s %s %s" % (patch, dest, self.src_dir,
+                                            os.path.basename(patch))
             utils.get_file(patch, dest)
             # probably safer to use the command, not python library
             md5sum = utils.system_output('md5sum ' + dest).split()[0]
