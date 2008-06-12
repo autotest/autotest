@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os
+import os, sys
 import unittest
 
 # ensure the root is where it should be
@@ -24,7 +24,11 @@ def lister(dummy, dirname, files):
 
 
 if __name__ == "__main__":
-    os.path.walk(root, lister, None)
+    if len(sys.argv) == 2:
+        start = os.path.join(root, sys.argv[1])
+    else:
+        start = root
+    os.path.walk(start, lister, None)
     alltests = unittest.TestSuite(suites)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(alltests)
