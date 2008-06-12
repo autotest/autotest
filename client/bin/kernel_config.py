@@ -1,6 +1,7 @@
 # TODO: need a function to get the newest config file older than us from
 # the repo.
 
+import shutil, os
 from autotest_lib.client.bin import autotest_utils, kernel_versions
 from autotest_lib.client.common_lib import error, utils
 
@@ -110,7 +111,7 @@ class kernel_config:
                                             " to re-configure kernel"
             self.over_config = config_dir + '/config.over'
             overrides_local = self.over_config + '.changes'
-            get_file(overrides, overrides_local)
+            utils.get_file(overrides, overrides_local)
             apply_overrides(self.build_config, overrides_local, self.over_config)
             self.update_config(self.over_config, self.over_config+'.new')
             diff_configs(self.over_config, self.over_config+'.new')
