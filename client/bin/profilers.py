@@ -14,8 +14,8 @@ class profilers:
     def add(self, profiler, *args, **dargs):
         try:
             sys.path.insert(0, self.job.profdir + '/' + profiler)
-            exec 'import ' + profiler
-            exec 'newprofiler = %s.%s(self)' % (profiler, profiler)
+            profiler_module = __import__(profiler)
+            newprofiler = getattr(profiler_module, profiler)(self)
         finally:
             sys.path.pop(0)
         newprofiler.name = profiler

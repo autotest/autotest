@@ -103,7 +103,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
     cachedir = os.path.realpath(cachedir)
     if not os.path.isdir(cachedir):
         try:
-            system('mkdir -p ' + cachedir)
+            utils.system('mkdir -p ' + cachedir)
         except:
             raise ValueError('Could not create cache directory %s' % cachedir)
     file_from_url = os.path.basename(url)
@@ -122,6 +122,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
     return utils.unmap_url(cachedir, src, cachedir)
 
 
+# TODO: replace all instances with os.path.basename
 def basename(path):
     i = path.rfind('/');
     return path[i+1:]

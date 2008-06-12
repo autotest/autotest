@@ -18,7 +18,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<testname.tag>
 
-import os, traceback
+import os, traceback, sys
 
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.common_lib import test as common_test

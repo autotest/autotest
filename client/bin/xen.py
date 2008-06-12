@@ -4,6 +4,7 @@ __author__ = """Copyright Martin J. Bligh, 2006,
 import os, shutil, copy, pickle, re, glob
 from autotest_lib.client.bin import kernel, kernel_config, os_dep, test
 from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import utils
 
 
 class xen(kernel.kernel):
@@ -48,13 +49,13 @@ class xen(kernel.kernel):
         for t in targets:
             build_string = 'make -j %d %s %s' % (threads, make_opts, t)
             self.log('build_string: %s' % build_string)
-            system(build_string)
+            utils.system(build_string)
 
         # make a kernel job out of the kernel from the xen src if one isn't provided
         if self.kjob == None:
             # get xen kernel tree ready
             self.log("prep-ing xen'ified kernel source tree")
-            system('make prep-kernels')
+            utils.system('make prep-kernels')
 
             v = self.get_xen_kernel_build_ver()
             self.log('building xen kernel version: %s' % v)
@@ -118,10 +119,10 @@ class xen(kernel.kernel):
         os.environ['XEN_EXTRAVERSION'] = '-unstable-%s'% extraversion
 
         # install xen
-        system('make DESTDIR=%s -C xen install' % prefix)
+        utils.system('make DESTDIR=%s -C xen install' % prefix)
 
         # install tools
-        system('make DESTDIR=%s -C tools install' % prefix)
+        utils.system('make DESTDIR=%s -C tools install' % prefix)
 
         # install kernel
         ktag = self.kjob.get_kernel_build_ver()
@@ -185,7 +186,8 @@ class xen(kernel.kernel):
                 break;
 
         # change out $XENGUEST in EXTRAVERSION line
-        system('sed -i.old "s,\$(XENGUEST),%s," %s' % (xenguest, makefile))
+        utils.system('sed -i.old "s,\$(XENGUEST),%s," %s' % (xenguest,
+                                                             makefile))
 
 
     def get_xen_build_ver(self):
