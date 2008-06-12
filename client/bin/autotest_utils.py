@@ -122,12 +122,6 @@ def unmap_url_cache(cachedir, url, expected_md5):
     return utils.unmap_url(cachedir, src, cachedir)
 
 
-# TODO: replace all instances with os.path.basename
-def basename(path):
-    i = path.rfind('/');
-    return path[i+1:]
-
-
 def force_copy(src, dest):
     """Replace dest with a new copy of src, even if it exists"""
     if os.path.isfile(dest):
