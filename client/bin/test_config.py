@@ -53,15 +53,15 @@ class config_loader:
                 self.parser.readfp(self.cfg)
 
 
-    def get(self, section, name, default=None):
+    def get(self, section, option, default=None):
         """Get the value of a option.
 
         Section of the config file and the option name.
         You can pass a default value if the option doesn't exist.
         """
-        if not self.parser.has_option(section, name):
+        if not self.parser.has_option(section, option):
             return default
-        return self.parser.get(section, name)
+        return self.parser.get(section, option)
 
 
     def set(self, section, option, value):
@@ -71,20 +71,20 @@ class config_loader:
         """
         if not self.parser.has_section(section):
             self.parser.add_section(section)
-        return self.parser.set(section, name, value)
+        return self.parser.set(section, option, value)
 
 
-    def remove(self, section, name):
+    def remove(self, section, option):
         """Remove an option."""
         if self.parser.has_section(section):
-            self.parser.remove_option(section, name)
+            self.parser.remove_option(section, option)
 
 
     def save(self):
         """Save the configuration file with all modifications"""
-        if not self.filename:
+        if not self.cfg:
             return
-        fileobj = file(self.filename, 'w')
+        fileobj = file(self.cfg, 'w')
         try:
             self.parser.write(fileobj)
         finally:
