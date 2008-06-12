@@ -19,8 +19,8 @@ def lister(dummy, dirname, files):
             try:
                 suite = loader.loadTestsFromName(mod)
                 suites.append(suite)
-            except:
-                print "module failed to load: %s" % mod
+            except Exception, err:
+                print "module failed to load: %s: %s" % (mod, err)
 
 
 if __name__ == "__main__":
