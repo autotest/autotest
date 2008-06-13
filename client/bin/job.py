@@ -193,6 +193,7 @@ class base_job(object):
     def config_get(self, name):
         return self.config.get(name)
 
+
     def setup_dirs(self, results_dir, tmp_dir):
         if not tmp_dir:
             tmp_dir = os.path.join(self.tmpdir, 'build')
@@ -402,7 +403,7 @@ class base_job(object):
             raise error.TestError(msg)
         os.mkdir(outputdir)
 
-        result, exc_info = self.__rungroup(name, name, function, *args, **dargs)
+        result, exc_info = self._rungroup(name, name, function, *args, **dargs)
 
         # if there was a non-TestError exception, raise it
         if exc_info and not isinstance(exc_info[1], error.TestError):
