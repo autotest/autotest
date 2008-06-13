@@ -23,14 +23,15 @@ def _prepare_data(data):
     Recursively process data structures, performing necessary type
     conversions to values in data to allow for RPC serialization:
     -convert datetimes to strings
-    -convert tuples to lists
+    -convert tuples and sets to lists
     """
     if isinstance(data, dict):
         new_data = {}
         for key, value in data.iteritems():
             new_data[key] = _prepare_data(value)
         return new_data
-    elif isinstance(data, list) or isinstance(data, tuple):
+    elif (isinstance(data, list) or isinstance(data, tuple) or
+          isinstance(data, set)):
         return [_prepare_data(item) for item in data]
     elif isinstance(data, datetime.datetime):
         return str(data)
@@ -119,8 +120,10 @@ def get_consistent_value(objects, field):
     return value
 
 
-def prepare_generate_control_file(tests, kernel, label):
+def prepare_generate_control_file(tests, kernel, label, profilers):
     test_objects = [models.Test.smart_get(test) for test in tests]
+    profiler_objects = [models.Profiler.smart_get(profiler)
+                        for profiler in profilers]
     # ensure tests are all the same type
     try:
         test_type = get_consistent_value(test_objects, 'test_type')
@@ -145,10 +148,4 @@ def prepare_generate_control_file(tests, kernel, label):
     if label:
         label = models.Label.smart_get(label)
 
-    return is_server, is_synchronous, test_objects, label
-
-
-def sorted(in_list):
-    new_list = list(in_list)
-    new_list.sort()
-    return new_list
+    return is_server, is_synchronous, test_objects, profiler_objects, label
