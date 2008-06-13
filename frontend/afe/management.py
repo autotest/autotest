@@ -17,7 +17,7 @@ def create_admin_group(app, created_models, verbosity, **kwargs):
     admin_group.save() # must save before adding permissions
     PermissionModel = auth.models.Permission
     have_permissions = list(admin_group.permissions.all())
-    for model_name in ('host', 'label', 'test', 'acl_group'):
+    for model_name in ('host', 'label', 'test', 'acl_group', 'profiler'):
         for permission_type in ('add', 'change', 'delete'):
             codename = permission_type + '_' + model_name
             permissions = list(PermissionModel.objects.filter(

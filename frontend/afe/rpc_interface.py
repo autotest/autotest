@@ -130,6 +130,25 @@ def get_tests(**filter_data):
         models.Test.list_objects(filter_data))
 
 
+# profilers
+
+def add_profiler(name, description=None):
+    return models.Profiler.add_object(name=name, description=description).id
+
+
+def modify_profiler(id, **data):
+    models.Profiler.smart_get(id).update_object(data)
+
+
+def delete_profiler(id):
+    models.Profiler.smart_get(id).delete()
+
+
+def get_profilers(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Profiler.list_objects(filter_data))
+
+
 # users
 
 def add_user(login, access_level=None):
@@ -200,7 +219,7 @@ def get_acl_groups(**filter_data):
 
 # jobs
 
-def generate_control_file(tests, kernel=None, label=None):
+def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     """\
     Generates a client-side control file to load a kernel and run a set of
     tests.  Returns a tuple (control_file, is_server, is_synchronous):
@@ -211,14 +230,18 @@ def generate_control_file(tests, kernel=None, label=None):
     tests: list of tests to run
     kernel: kernel to install in generated control file
     label: name of label to grab kernel config from
+    profilers: list of profilers to activate during the job
     """
     if not tests:
         return '', False, False
 
-    is_server, is_synchronous, test_objects, label = (
-        rpc_utils.prepare_generate_control_file(tests, kernel, label))
-    cf_text = control_file.generate_control(test_objects, kernel, label,
-                                            is_server)
+    is_server, is_synchronous, test_objects, profiler_objects, label = (
+        rpc_utils.prepare_generate_control_file(tests, kernel, label,
+                                                profilers))
+    cf_text = control_file.generate_control(tests=test_objects, kernel=kernel,
+                                            platform=label,
+                                            profilers=profiler_objects,
+                                            is_server=is_server)
     return cf_text, is_server, is_synchronous
 
 
@@ -367,6 +390,7 @@ def get_static_data():
     users: sorted list of all users
     labels: sorted list of all labels
     tests: sorted list of all tests
+    profilers: sorted list of all profilers
     user_login: logged-in username
     host_statuses: sorted list of possible Host statuses
     job_statuses: sorted list of possible HostQueueEntry statuses
@@ -379,7 +403,8 @@ def get_static_data():
     result['users'] = get_users(sort_by=['login'])
     result['labels'] = get_labels(sort_by=['-platform', 'name'])
     result['tests'] = get_tests(sort_by=['name'])
+    result['profilers'] = get_profilers(sort_by=['name'])
     result['user_login'] = rpc_utils.get_user().login
-    result['host_statuses'] = rpc_utils.sorted(models.Host.Status.names)
-    result['job_statuses'] = rpc_utils.sorted(models.Job.Status.names)
+    result['host_statuses'] = sorted(models.Host.Status.names)
+    result['job_statuses'] = sorted(models.Job.Status.names)
     return result

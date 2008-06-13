@@ -105,6 +105,20 @@ True
 >>> rpc_interface.get_tests() == []
 True
 
+# profilers...
+>>> rpc_interface.add_profiler(name='oprofile')
+1L
+>>> rpc_interface.modify_profiler('oprofile', description='Oh profile!')
+>>> data = rpc_interface.get_profilers()
+>>> data == [{'id': 1L,
+...           'name': 'oprofile',
+...           'description': 'Oh profile!'}]
+True
+>>> rpc_interface.delete_profiler('oprofile')
+>>> rpc_interface.get_profilers() == []
+True
+
+
 # users...
 >>> rpc_interface.add_user(login='showard')
 2L

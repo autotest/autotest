@@ -204,6 +204,33 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         return self.name
 
 
+class Profiler(dbmodels.Model, model_logic.ModelExtensions):
+    """\
+    Required:
+    name: profiler name
+    test_type: Client or Server
+
+    Optional:
+    description: arbirary text description
+    """
+    name = dbmodels.CharField(maxlength=255, unique=True)
+    description = dbmodels.TextField(blank=True)
+
+    name_field = 'name'
+    objects = model_logic.ExtendedManager()
+
+
+    class Meta:
+        db_table = 'profilers'
+
+    class Admin:
+        list_display = ('name', 'description')
+        search_fields = ('name',)
+
+    def __str__(self):
+        return self.name
+
+
 class User(dbmodels.Model, model_logic.ModelExtensions):
     """\
     Required:
