@@ -153,6 +153,7 @@ def list_grep(list, pattern):
             return 1
     return 0
 
+
 def get_os_vendor():
     """Try to guess what's the os vendor
     """
@@ -478,9 +479,9 @@ def running_os_ident():
 # much like find . -name 'pattern'
 def locate(pattern, root=os.getcwd()):
     for path, dirs, files in os.walk(root):
-        for f in [os.path.abspath(os.path.join(path, f))
-                for f in files if fnmatch.fnmatch(f, pattern)]:
-            yield f
+        for f in files:
+            if fnmatch.fnmatch(f, pattern):
+                yield os.path.abspath(os.path.join(path, f)
 
 
 def freespace(path):
