@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
@@ -40,7 +41,6 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class CreateJobView extends TabView {
@@ -90,46 +90,66 @@ public class CreateJobView extends TabView {
         }
     }
     
-    protected class TestPanel extends Composite {
+    protected class CheckBoxPanel<T extends CheckBox> extends Composite {
         protected int numColumns;
         protected FlexTable table = new FlexTable();
-        protected List testBoxes = new ArrayList(); // List<TestCheckBox>
+        protected List<T> testBoxes = new ArrayList<T>();
+        
+        public CheckBoxPanel(int columns) {
+            numColumns = columns;
+            initWidget(table);
+        }
+        
+        public void add(T checkBox) {
+            int row = testBoxes.size() / numColumns;
+            int col = testBoxes.size() % numColumns;
+            table.setWidget(row, col, checkBox);
+            testBoxes.add(checkBox);
+        }
+
+        public List<T> getChecked() {
+            List<T> result = new ArrayList<T>();
+            for(T checkBox : testBoxes) {
+                if (checkBox.isChecked())
+                    result.add(checkBox);
+            }
+            return result;
+        }
+
+        public void setEnabled(boolean enabled) {
+            for(T thisBox : testBoxes) {
+                thisBox.setEnabled(enabled);
+            }
+        }
+
+        public void reset() {
+            setEnabled(false);
+        }
+    }
+    
+    protected class TestPanel extends CheckBoxPanel<TestCheckBox> {
         String testType = null;
         
         public TestPanel(String testType, int columns) {
-            this.testType = testType; 
-            numColumns = columns;
-            initWidget(table);
+            super(columns);
+            this.testType = testType;
         }
         
         public void addTest(TestCheckBox checkBox) {
             if (!checkBox.getTestType().equals(testType))
                 throw new RuntimeException(
                     "Inconsistent test type for test " + checkBox.getText());
-            int row = testBoxes.size() / numColumns;
-            int col = testBoxes.size() % numColumns;
-            table.setWidget(row, col, checkBox);
-            testBoxes.add(checkBox);
+            super.add(checkBox);
         }
         
-        public List getChecked() {
-            List result = new ArrayList();
-            for(Iterator i = testBoxes.iterator(); i.hasNext(); ) {
-                TestCheckBox test = (TestCheckBox) i.next();
-                if (test.isChecked())
-                    result.add(test);
-            }
-            return result;
-        }
-        
+        @Override
         public void setEnabled(boolean enabled) {
             String synchType = null;
-            List checked = getChecked();
+            List<TestCheckBox> checked = getChecked();
             if (!checked.isEmpty())
-                synchType = ((TestCheckBox) checked.get(0)).getSynchType();
+                synchType = checked.get(0).getSynchType();
             
-            for(Iterator i = testBoxes.iterator(); i.hasNext(); ) {
-                TestCheckBox thisBox = (TestCheckBox) i.next();
+            for(TestCheckBox thisBox : testBoxes) {
                 boolean boxEnabled = enabled;
                 if (enabled && synchType != null)
                     boxEnabled = thisBox.getSynchType().equals(synchType);
@@ -137,12 +157,6 @@ public class CreateJobView extends TabView {
             }
         }
         
-        public void reset() {
-            for(Iterator i = testBoxes.iterator(); i.hasNext(); ) {
-                ((TestCheckBox) i.next()).setChecked(false);
-            }
-        }
-
         public String getTestType() {
             return testType;
         }
@@ -206,6 +220,8 @@ public class CreateJobView extends TabView {
     protected TextBox kernel = new TextBox();
     protected TestPanel clientTestsPanel = new TestPanel(CLIENT_TYPE, TEST_COLUMNS), 
                         serverTestsPanel = new TestPanel(SERVER_TYPE, TEST_COLUMNS);
+    protected CheckBoxPanel<CheckBox> profilersPanel = 
+        new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
     protected TextArea controlFile = new TextArea();
     protected DisclosurePanel controlFilePanel = new DisclosurePanel();
     protected ControlTypeSelect controlTypeSelect;
@@ -245,7 +261,6 @@ public class CreateJobView extends TabView {
     }
     
     protected void populateTests() {
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray tests = staticData.getData("tests").isArray();
         
         for(int i = 0; i < tests.size(); i++) {
@@ -267,23 +282,48 @@ public class CreateJobView extends TabView {
         }
     }
     
+    protected void populatePriorities() {
+        JSONArray tests = staticData.getData("profilers").isArray();
+        
+        for(JSONValue profilerValue : new JSONArrayList(tests)) {
+            JSONObject profiler = profilerValue.isObject();
+            String name = profiler.get("name").isString().stringValue();
+            CheckBox checkbox = new CheckBox(name);
+            checkbox.addClickListener(new ClickListener() {
+                public void onClick(Widget sender) {
+                    generateControlFile(false);
+                    setInputsEnabled();
+                }
+            });
+            profilersPanel.add(checkbox);
+        }
+    }
+    
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
-        JSONArray tests = new JSONArray();
-        List checkedTests = serverTestsPanel.getChecked();
+        JSONArray tests = new JSONArray(), profilers = new JSONArray();
+        List<TestCheckBox> checkedTests = serverTestsPanel.getChecked();
         if (checkedTests.isEmpty()) {
             checkedTests = clientTestsPanel.getChecked();
         }
+        List<CheckBox> checkedProfilers = profilersPanel.getChecked();
         String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
             params.put("kernel", new JSONString(kernelString));
         }
         
-        for (int i = 0; i < checkedTests.size(); i++) {
-            TestCheckBox test = (TestCheckBox) checkedTests.get(i);
-            tests.set(i, new JSONNumber(test.getId()));
+        int i = 0;
+        for (TestCheckBox test : checkedTests) {
+            tests.set(i++, new JSONNumber(test.getId()));
         }
+        
+        i = 0;
+        for (CheckBox profiler : checkedProfilers) {
+            profilers.set(i++, new JSONString(profiler.getText()));
+        }
+        
         params.put("tests", tests);
+        params.put("profilers", profilers);
         return params;
     }
     
@@ -322,14 +362,17 @@ public class CreateJobView extends TabView {
     protected void setInputsEnabled() {
         if (!clientTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(true);
+            profilersPanel.setEnabled(true);
             serverTestsPanel.setEnabled(false);
         }
         else if (!serverTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(false);
+            profilersPanel.setEnabled(false);
             serverTestsPanel.setEnabled(true);
         }
         else {
             clientTestsPanel.setEnabled(true);
+            profilersPanel.setEnabled(true);
             serverTestsPanel.setEnabled(true);
         }
 
@@ -339,6 +382,7 @@ public class CreateJobView extends TabView {
     protected void disableInputs() {
         clientTestsPanel.setEnabled(false);
         serverTestsPanel.setEnabled(false);
+        profilersPanel.setEnabled(false);
         kernel.setEnabled(false);
     }
     
@@ -362,6 +406,7 @@ public class CreateJobView extends TabView {
         });
 
         populateTests();
+        populatePriorities();
         
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
@@ -453,6 +498,7 @@ public class CreateJobView extends TabView {
         RootPanel.get("create_priority").add(priorityList);
         RootPanel.get("create_client_tests").add(clientTestsPanel);
         RootPanel.get("create_server_tests").add(serverTestsPanel);
+        RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
         RootPanel.get("create_submit").add(submitJobButton);
     }
@@ -463,6 +509,7 @@ public class CreateJobView extends TabView {
         kernel.setText("");
         clientTestsPanel.reset();
         serverTestsPanel.reset();
+        profilersPanel.reset();
         setInputsEnabled();
         controlTypeSelect.setControlType(clientTestsPanel.getTestType());
         controlTypeSelect.setEnabled(false);

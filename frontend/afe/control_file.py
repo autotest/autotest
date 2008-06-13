@@ -101,7 +101,19 @@ def indent_text(text, indent):
     return '\n'.join(lines)
 
 
-def generate_control(tests, kernel=None, platform=None, is_server=False):
+def _get_profiler_commands(profilers, is_server):
+    'Return (prepend, append)'
+    prepend, append = [], []
+    if is_server:
+        return prepend, append
+    for profiler in profilers:
+        prepend.append("job.profilers.add('%s')" % profiler.name)
+        append.append("job.profilers.delete('%s')" % profiler.name)
+    return prepend, append
+
+
+def generate_control(tests, kernel=None, platform=None, is_server=False,
+                     profilers=[]):
     control_file_text = ''
     if kernel:
         control_file_text = get_kernel_stanza(kernel, platform,
@@ -109,5 +121,7 @@ def generate_control(tests, kernel=None, platform=None, is_server=False):
     elif not is_server:
         control_file_text = 'def step_init():\n'
 
-    control_file_text += get_tests_stanza(tests, is_server)
+    prepend, append = _get_profiler_commands(profilers, is_server)
+
+    control_file_text += get_tests_stanza(tests, is_server, prepend, append)
     return control_file_text
