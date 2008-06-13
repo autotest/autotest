@@ -280,17 +280,6 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
     return (exit_status_indication, True)
 
 
-def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
-    if use_os_read:
-        data = os.read(pipe.fileno(), 1024)
-    else:
-        data = pipe.read()
-    fbuffer.write(data)
-    if teefile:
-        teefile.write(data)
-        teefile.flush()
-
-
 def nuke_subprocess(subproc):
     # the process has not terminated within timeout,
     # kill it via an escalating series of signals.
