@@ -390,7 +390,6 @@ class Dispatcher:
         for queue_entry in queue_entries:
             run_monitor = PidfileRunMonitor(
                 queue_entry.results_dir())
-            run_monitor.run()
             pid, exit_code = run_monitor.get_pidfile_info()
             if pid is None:
                 # autoserv apparently never got run, so requeue
@@ -716,14 +715,7 @@ class PidfileRunMonitor(RunMonitor):
         self.pid_file = os.path.join(results_dir, AUTOSERV_PID_FILE)
         self.lost_process = False
         self.start_time = time.time()
-        if cmd is None:
-            # we're reattaching to an existing pid, so don't call
-            # the superconstructor (we don't want to kick off a new
-            # process)
-            pass
-        else:
-            super(PidfileRunMonitor, self).__init__(cmd,
-                                             nice_level, log_file)
+        super(PidfileRunMonitor, self).__init__(cmd, nice_level, log_file)
 
 
     def get_pid(self):
