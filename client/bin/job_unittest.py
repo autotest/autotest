@@ -22,6 +22,7 @@ class TestBaseJob(unittest.TestCase):
 
         # stub out some stuff
         self.god.stub_function(os.path, 'exists')
+        self.god.stub_function(os.path, 'isdir')
         self.god.stub_function(os, 'mkdir')
         self.god.stub_function(shutil, 'copyfile')
         self.god.stub_function(job, 'open')
@@ -101,6 +102,7 @@ class TestBaseJob(unittest.TestCase):
         # check
         self.god.check_playback()
 
+
     def test_constructor(self):
         self.construct_job(False)
 
@@ -118,6 +120,20 @@ class TestBaseJob(unittest.TestCase):
         # test
         self.job.monitor_disk_usage(max_rate)
         self.god.check_playback()
+
+
+    def test_relitive_path(self):
+        self.construct_job(True)
+        dummy = "asdf"
+        ret = self.job.relative_path(os.path.join(self.job.resultdir, dummy))
+        self.assertEquals(ret, dummy)
+
+
+    def test_control_functions(self):
+        self.construct_job(True)
+        control_file = "blah"
+        self.job.control_set(control_file)
+        self.assertEquals(self.job.control_get(), os.path.abspath(control_file))
 
 
     def test_harness_select(self):
@@ -157,6 +173,47 @@ class TestBaseJob(unittest.TestCase):
 
         # run and test
         self.job.config_get(name)
+        self.god.check_playback()
+
+
+    def test_setup_dirs_raise(self):
+        self.construct_job(True)
+
+        # setup
+        results_dir = 'foo'
+        tmp_dir = 'bar'
+
+        # record
+        os.path.exists.expect_call(tmp_dir).and_return(True)
+        os.path.isdir.expect_call(tmp_dir).and_return(False)
+
+        # test
+        self.assertRaises(ValueError, self.job.setup_dirs, results_dir, tmp_dir)
+        self.god.check_playback()
+
+
+    def test_setup_dirs(self):
+        self.construct_job(True)
+
+        # setup
+        results_dir1 = os.path.join(self.job.resultdir, 'build')
+        results_dir2 = os.path.join(self.job.resultdir, 'build.2')
+        results_dir3 = os.path.join(self.job.resultdir, 'build.3')
+        tmp_dir = 'bar'
+
+        # record
+        os.path.exists.expect_call(tmp_dir).and_return(False)
+        os.mkdir.expect_call(tmp_dir)
+        os.path.isdir.expect_call(tmp_dir).and_return(True)
+        os.path.exists.expect_call(results_dir1).and_return(True)
+        os.path.exists.expect_call(results_dir2).and_return(True)
+        os.path.exists.expect_call(results_dir3).and_return(False)
+        os.path.exists.expect_call(results_dir3).and_return(False)
+        os.mkdir.expect_call(results_dir3)
+
+        # test
+        self.assertEqual(self.job.setup_dirs(None, tmp_dir),
+                         (results_dir3, tmp_dir))
         self.god.check_playback()
 
 
