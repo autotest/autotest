@@ -13,17 +13,17 @@ from frontend import settings, afe
 # We use django.test.utils to run the tests against a fresh test database every
 # time.
 
-app_name = 'afe'
-doctest_dir = 'doctests'
+app_dir = os.path.dirname(__file__)
+doctest_dir = os.path.join(app_dir, 'doctests')
 doctest_paths = [os.path.join(doctest_dir, filename) for filename
-                 in os.listdir(os.path.join(app_name, doctest_dir))
+                 in os.listdir(doctest_dir)
                  if not filename.startswith('.')]
 doctest_paths.sort()
 
 def get_modules():
     modules = []
     module_names = [os.path.basename(filename)[:-3]
-                    for filename in glob.glob(app_name + '/*.py')
+                    for filename in glob.glob(os.path.join(app_dir, '*.py'))
                     if '__init__' not in filename
                     and 'test.py' not in filename]
     for module_name in module_names:
@@ -35,7 +35,11 @@ def get_modules():
 print_after = 'Ran %d tests from %s'
 
 
-def run_tests(module_list, verbosity=1):
+def run_tests(module_list=[], verbosity=1):
+    """
+    module_list is ignored - we're just required to have this signature as a
+    Django test runner.
+    """
     modules = get_modules()
     total_errors = 0
     old_db = settings.DATABASE_NAME
@@ -47,7 +51,7 @@ def run_tests(module_list, verbosity=1):
             print print_after % (test_count, module.__name__)
             total_errors += failures
         for path in doctest_paths:
-            failures, test_count = doctest.testfile(path)
+            failures, test_count = doctest.testfile(path, module_relative=False)
             print print_after % (test_count, path)
             total_errors += failures
     finally:

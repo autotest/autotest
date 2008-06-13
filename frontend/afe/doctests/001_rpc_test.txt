@@ -288,23 +288,23 @@ True
 ...     kernel='1.2.3.4',
 ...     label='my_label')
 >>> control_file
-"kernel = '1.2.3.4'\ndef step_init():\n\tjob.next_step([step_test])\n\ttestkernel = job.kernel('1.2.3.4')\n\ttestkernel.config('my_kernel_config')\n\ttestkernel.install()\n\ttestkernel.boot(args='')\n\ndef step_test():\n\tjob.next_step('step0')\n\tjob.next_step('step1')\n\ndef step0():\n\tjob.run_test('testname')\n\ndef step1():\n\tjob.run_test('testname')"
+"kernel = '1.2.3.4'\ndef step_init():\n        job.next_step([step_test])\n        testkernel = job.kernel('1.2.3.4')\n        testkernel.config('my_kernel_config')\n        testkernel.install()\n        testkernel.boot(args='')\n\ndef step_test():\n\tjob.next_step('step0')\n\tjob.next_step('step1')\n\ndef step0():\n\tjob.run_test('testname')\n\ndef step1():\n\tjob.run_test('testname')"
 >>> print control_file #doctest: +NORMALIZE_WHITESPACE
 kernel = '1.2.3.4'
 def step_init():
-	job.next_step([step_test])
-	testkernel = job.kernel('1.2.3.4')
-	testkernel.config('my_kernel_config')
-	testkernel.install()
-	testkernel.boot(args='')
+        job.next_step([step_test])
+        testkernel = job.kernel('1.2.3.4')
+        testkernel.config('my_kernel_config')
+        testkernel.install()
+        testkernel.boot(args='')
 <BLANKLINE>
 def step_test():
-	job.next_step('step0')
-	job.next_step('step1')
+        job.next_step('step0')
+        job.next_step('step1')
 def step0():
-	job.run_test('testname')
+        job.run_test('testname')
 def step1():
-	job.run_test('testname')
+        job.run_test('testname')
 >>> is_server, is_synch
 (False, False)
 
@@ -404,10 +404,10 @@ True
 # only the id differs (and possibly created_on)
 >>> data = rpc_interface.get_jobs()
 >>> for key in data[1].keys():
-...	if key == 'created_on': # created_on may or may not differ in testing
-...		continue
-...	if data[1][key] != data[0][key]:
-...		print key, 'does not match'
+...     if key == 'created_on': # created_on may or may not differ in testing
+...         continue
+...     if data[1][key] != data[0][key]:
+...         print key, 'does not match'
 id does not match
 
 
@@ -434,7 +434,7 @@ id does not match
 
 # is_synchronous
 >>> rpc_interface.create_job(name='my_job',
-...		             priority='Low',
+...                          priority='Low',
 ...                          control_file=control_file,
 ...                          control_type='Server',
 ...                          is_synchronous=False,
