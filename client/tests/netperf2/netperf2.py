@@ -52,13 +52,13 @@ class netperf2(test.test):
         # we should really record the pid we forked off, but there
         # was no obvious way to run the daemon in the foreground.
         # Hacked it for now
-        system('killall netserver', ignore_status=True)
-        system(self.server_path)
+        utils.system('killall netserver', ignore_status=True)
+        utils.system(self.server_path)
 
 
     def server_stop(self):
         # this should really just kill the pid I forked, but ...
-        system('killall netserver')
+        utils.system('killall netserver')
 
 
     def client(self, script, server_ip, args = 'CPU'):
@@ -69,7 +69,7 @@ class netperf2(test.test):
         self.job.stderr.tee_redirect(stderr_path)
 
         script_path = os.path.join(self.srcdir, 'doc/examples', script)
-        system('%s %s %s' % (script_path, server_ip, args))
+        utils.system('%s %s %s' % (script_path, server_ip, args))
 
         self.job.stdout.restore()
         self.job.stderr.restore()
