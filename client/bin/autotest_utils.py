@@ -481,7 +481,7 @@ def locate(pattern, root=os.getcwd()):
     for path, dirs, files in os.walk(root):
         for f in files:
             if fnmatch.fnmatch(f, pattern):
-                yield os.path.abspath(os.path.join(path, f)
+                yield os.path.abspath(os.path.join(path, f))
 
 
 def freespace(path):
