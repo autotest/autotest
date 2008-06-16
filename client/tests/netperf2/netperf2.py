@@ -45,7 +45,7 @@ class netperf2(test.test):
             self.client(script, server_ip, args)
             job.barrier(client_tag, 'stop',  30).rendevous(*all)
         else:
-            raise error.UnhandledError('invalid role specified')
+            raise error.TestError('invalid role specified')
 
 
     def server_start(self):
