@@ -133,6 +133,8 @@ class base_server_job:
                     <autodir>/conmux/
             testdir
                     <autodir>/server/tests/
+            site_testdir
+                    <autodir>/server/site_tests/
             control
                     the control file for this job
     """
@@ -161,6 +163,7 @@ class base_server_job:
         self.autodir = os.path.abspath(os.path.join(path, '..'))
         self.serverdir = os.path.join(self.autodir, 'server')
         self.testdir   = os.path.join(self.serverdir, 'tests')
+        self.site_testdir = os.path.join(self.serverdir, 'site_tests')
         self.tmpdir    = os.path.join(self.serverdir, 'tmp')
         self.conmuxdir = os.path.join(self.autodir, 'conmux')
         self.clientdir = os.path.join(self.autodir, 'client')
