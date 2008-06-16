@@ -29,7 +29,7 @@ See doctests/rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import models, control_file, rpc_utils
+import models, model_logic, control_file, rpc_utils
 
 # labels
 
@@ -262,7 +262,7 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
     owner = rpc_utils.get_user().login
     # input validation
     if not hosts and not meta_hosts:
-        raise models.ValidationError({
+        raise model_logic.ValidationError({
             'arguments' : "You must pass at least one of 'hosts' or "
                           "'meta_hosts'"
             })
