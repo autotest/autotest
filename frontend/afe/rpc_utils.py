@@ -6,7 +6,7 @@ only RPC interface functions go into that file.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime, xmlrpclib, threading
-from frontend.afe import models
+from frontend.afe import models, model_logic
 
 def prepare_for_serialization(objects):
     """
@@ -129,7 +129,7 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
         test_type = get_consistent_value(test_objects, 'test_type')
     except InconsistencyException, exc:
         test1, test2 = exc.args
-        raise models.ValidationError(
+        raise model_logic.ValidationError(
             {'tests' : 'You cannot run both server- and client-side '
              'tests together (tests %s and %s differ' % (
             test1.name, test2.name)})
@@ -138,7 +138,7 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
         synch_type = get_consistent_value(test_objects, 'synch_type')
     except InconsistencyException, exc:
         test1, test2 = exc.args
-        raise models.ValidationError(
+        raise model_logic.ValidationError(
             {'tests' : 'You cannot run both synchronous and '
              'asynchronous tests together (tests %s and %s differ)' % (
             test1.name, test2.name)})
