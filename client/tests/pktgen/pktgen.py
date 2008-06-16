@@ -11,7 +11,7 @@ class pktgen(test.test):
         if not os.path.exists('/proc/net/pktgen'):
             utils.system('/sbin/modprobe pktgen')
         if not os.path.exists('/proc/net/pktgen'):
-            raise error.UnhandledError('pktgen not loaded')
+            raise error.TestError('pktgen not loaded')
 
         print 'Adding devices to run'
         self.pgdev = '/proc/net/pktgen/kpktgend_0'
@@ -50,4 +50,3 @@ class pktgen(test.test):
         if not autotest_utils.grep('Result: OK', self.pgdev):
             if not autotest_utils.grep('Result: NA', self.pgdev):
                 utils.system('cat ' + self.pgdev)
-                # raise UnhandledError('Result not OK')
