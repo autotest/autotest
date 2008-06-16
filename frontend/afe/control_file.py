@@ -14,11 +14,11 @@ AUTOTEST_DIR = os.path.abspath(os.path.join(
 CLIENT_KERNEL_TEMPLATE = """\
 kernel = '%(kernel)s'
 def step_init():
-        job.next_step([step_test])
-        testkernel = job.kernel('%(kernel)s')
-        %(kernel_config_line)s
-        testkernel.install()
-        testkernel.boot(args='%(kernel_args)s')
+    job.next_step([step_test])
+    testkernel = job.kernel('%(kernel)s')
+    %(kernel_config_line)s
+    testkernel.install()
+    testkernel.boot(args='%(kernel_args)s')
 
 def step_test():
 """
@@ -26,18 +26,18 @@ def step_test():
 SERVER_KERNEL_TEMPLATE = """\
 kernel = '%%(kernel)s'
 kernel_install_control = \"""
-%s      pass
+%s    pass
 \"""
 
 at = autotest.Autotest()
 def install_kernel(machine):
-        host = hosts.SSHHost(machine)
-        at.run(kernel_install_control, host=host)
+    host = hosts.SSHHost(machine)
+    at.run(kernel_install_control, host=host)
 job.parallel_simple(install_kernel, machines)
 
 """ % CLIENT_KERNEL_TEMPLATE
 
-CLIENT_STEP_TEMPLATE = "\tjob.next_step('step%d')\n"
+CLIENT_STEP_TEMPLATE = "    job.next_step('step%d')\n"
 
 
 def kernel_config_line(kernel, platform):
@@ -79,7 +79,7 @@ def add_boilerplate_to_nested_steps(lines):
 
 
 def format_step(item, lines):
-    lines = indent_text(lines, '\t')
+    lines = indent_text(lines, '    ')
     lines = 'def step%d():\n%s' % (item, lines)
     return lines
 
