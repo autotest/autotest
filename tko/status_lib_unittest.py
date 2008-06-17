@@ -70,16 +70,6 @@ class line_buffer_test(unittest.TestCase):
         self.assertEquals(buf.size(), 3)
 
 
-    def test_size_increased_by_put(self):
-        buf = status_lib.line_buffer()
-        self.assertEquals(buf.size(), 0)
-        buf.put("1")
-        buf.put("2")
-        self.assertEquals(buf.size(), 2)
-        buf.put("3")
-        self.assertEquals(buf.size(), 3)
-
-
     def test_size_decreased_by_get(self):
         buf = status_lib.line_buffer()
         buf.put("1")

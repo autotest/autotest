@@ -1,6 +1,6 @@
 #!/usr/bin/python -u
 
-import os, sys, optparse, fcntl, errno, traceback
+import os, sys, optparse, fcntl, errno, traceback, socket
 
 import common
 from autotest_lib.client.common_lib import mail, utils
