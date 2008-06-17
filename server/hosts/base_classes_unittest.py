@@ -58,6 +58,11 @@ class test_host_class(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_run_output_notimplemented(self):
+        host = base_classes.Host()
+        self.assertRaises(NotImplementedError, host.run_output, "fake command")
+
+
     def test_get_wait_up_empty(self):
         global_config.global_config.get_config_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("")
