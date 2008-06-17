@@ -281,10 +281,9 @@ class job:
     def __init__(self, db, job_idx):
         where = {'job_idx' : job_idx}
         rows = db.select('tag, machine_idx', 'jobs', where)
-        if not rows:
-            return None
-        (self.tag, self.machine_idx) = rows[0]
-        self.job_idx = job_idx
+        if rows:
+            self.tag, self.machine_idx = rows[0]
+            self.job_idx = job_idx
 
 
 class iteration:
