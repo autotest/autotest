@@ -1,6 +1,6 @@
-import profiler, shutil
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+import os, shutil
+from autotest_lib.client.bin import autotest_utils, profiler
+from autotest_lib.client.common_lib import utils, error
 
 class readprofile(profiler.profiler):
     version = 1
@@ -19,8 +19,8 @@ class readprofile(profiler.profiler):
     def initialize(self):
         try:
             utils.system('grep -iq " profile=" /proc/cmdline')
-        except CmdError:
-            raise AutotestError('readprofile not enabled')
+        except error.CmdError:
+            raise error.AutotestError('readprofile not enabled')
 
         self.cmd = self.srcdir + '/sys-utils/readprofile'
 
@@ -39,7 +39,7 @@ class readprofile(profiler.profiler):
 
     def report(self, test):
         args  = ' -n'
-        args += ' -m ' + get_systemmap()
+        args += ' -m ' + autotest_utils.get_systemmap()
         args += ' -p ' + self.rawprofile
         cmd = self.cmd + ' ' + args
         txtprofile = test.profdir + '/profile.text'
