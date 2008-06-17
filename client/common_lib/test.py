@@ -137,9 +137,7 @@ class base_test:
         except error.AutotestError:
             raise
         except Exception, e:
-            msg = "Unhandled %s error occured during test\n"
-            msg %= str(e.__class__.__name__)
-            raise error.UnhandledError(msg)
+            raise error.UnhandledError(e)
 
 
 def testname(url):

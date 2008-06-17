@@ -250,9 +250,8 @@ class base_job(object):
             try:
                 os.chdir(os.path.join(self.autodir, 'deps', dep))
                 utils.system('./' + dep + '.py')
-            except:
-                err = "setting up dependency " + dep + "\n"
-                raise error.UnhandledError(err)
+            except Exception, e:
+                raise error.UnhandledError(e)
 
 
     def _runtest(self, url, tag, args, dargs):
@@ -263,9 +262,7 @@ class base_job(object):
         except error.AutotestError:
             raise
         except Exception, e:
-            msg = "Unhandled %s error occured during test\n"
-            msg %= str(e.__class__.__name__)
-            raise error.UnhandledError(msg)
+            raise error.UnhandledError(e)
 
 
     def run_test(self, url, *args, **dargs):
