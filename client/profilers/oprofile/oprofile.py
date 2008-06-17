@@ -1,7 +1,7 @@
 # Will need some libaries to compile. Do 'apt-get build-dep oprofile'
-import os, profiler, shutil
+import os, shutil
+from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
 
 class oprofile(profiler.profiler):
     version = 5

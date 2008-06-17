@@ -1,9 +1,9 @@
 # NOTE: if you get compile errors from config.h, referring you to a FAQ,
 # you might need to do 'cat < /dev/null > /usr/include/linux/config.h'.
 # But read the FAQ first.
-import profiler
+import os
+from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
 
 class lockmeter(profiler.profiler):
     version = 1
@@ -23,12 +23,11 @@ class lockmeter(profiler.profiler):
 
 
     def initialize(self):
-        try:
-            assert os.path.exists('/proc/lockmeter')
-        except:
-            print 'Lockmeter is not compiled into your kernel'
-            print 'Please fix and try again'
-            raise AssertionError
+        if not os.path.exists('/proc/lockmeter'):
+            msg = ('Lockmeter is not compiled into your kernel'
+                   'Please fix and try again')
+            print msg
+            raise AssertionError(msg)
 
 
     def start(self, test):
