@@ -203,20 +203,32 @@ class SSHHost(remote.RemoteHost):
             pass
 
 
-    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+    def _wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+        """ Underlying wait_for_restart function. For use from either
+        the public wait_for_restart(), or from SSHHost methods that wait
+        as part of a larger reboot process."""
         if not self.wait_down(300):     # Make sure he's dead, Jim
             self.__record("ABORT", None, "reboot.verify", "shutdown failed")
-            raise error.AutoservRebootError(
-                "Host did not shut down")
+            raise error.AutoservRebootError("Host did not shut down")
         self.wait_up(timeout)
         time.sleep(2) # this is needed for complete reliability
         if self.wait_up(timeout):
             self.__record("GOOD", None, "reboot.verify")
         else:
-            self.__record("ABORT", None, "reboot.verify", "Host did not return from reboot")
+            self.__record("ABORT", None, "reboot.verify",
+                          "Host did not return from reboot")
             raise error.AutoservRebootError(
                 "Host did not return from reboot")
         print "Reboot complete"
+
+
+    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+        """ Wait for the machine to come back from a reboot. This wraps the
+        logging of the reboot in a group, and grabs the kernel version on
+        the remote machine and includes it in the status logs. """
+        def reboot_func():
+            self._wait_for_restart(timeout=timeout)
+        self.__run_reboot_group(reboot_func)
 
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
@@ -236,7 +248,7 @@ class SSHHost(remote.RemoteHost):
                 'Hard reset unavailable')
 
         if wait:
-            self.wait_for_restart(timeout)
+            self._wait_for_restart(timeout)
         self.__record("GOOD", None, "reboot.start", "hard reset")
 
 
@@ -517,7 +529,7 @@ class SSHHost(remote.RemoteHost):
                               "reboot command failed")
                 raise
             if wait:
-                self.wait_for_restart(timeout)
+                self._wait_for_restart(timeout)
                 self.reboot_followup()
         self.__run_reboot_group(reboot)
 
