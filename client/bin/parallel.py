@@ -20,8 +20,8 @@ def fork_start(tmp, l):
         except error.AutotestError:
             raise
 
-        except:
-            raise error.UnhandledError("test failed and threw:\n")
+        except Exception, e:
+            raise error.UnhandledError(e)
 
     except Exception, detail:
         ename = tmp + "/debug/error-%d" % (os.getpid())

@@ -2,7 +2,7 @@
 Internal global error types
 """
 
-import sys
+import sys, traceback
 from traceback import format_exception
 
 def format_error():
@@ -69,9 +69,15 @@ class PackageError(TestError):
 
 class UnhandledError(TestError):
     """Indicates an unhandled exception in a test."""
-    def __init__(self, prefix):
-        msg = prefix + format_error()
-        TestError.__init__(self, msg)
+    def __init__(self, unhandled_exception):
+        if isinstance(unhandled_exception, TestError):
+            TestError.__init__(self, *unhandled_exception.args)
+        else:
+            msg = "Unhandled %s: %s"
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            msg += "\n" + "\n".join(traceback.format_exc())
+            TestError.__init__(self, msg)
 
 
 class InstallError(JobError):
