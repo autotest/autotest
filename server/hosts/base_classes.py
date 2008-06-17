@@ -69,6 +69,10 @@ class Host(object):
         raise NotImplementedError('Run not implemented!')
 
 
+    def run_output(self, command, *args, **dargs):
+        return self.run(command, *args, **dargs).stdout.rstrip()
+
+
     def reboot(self):
         raise NotImplementedError('Reboot not implemented!')
 
