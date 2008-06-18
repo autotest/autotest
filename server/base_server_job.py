@@ -645,6 +645,8 @@ class base_server_job:
         sys.stdout.write(msg)
         open(status_file, "a").write(msg)
         if subdir:
+            if not os.path.exists(subdir):
+                os.mkdir(subdir)
             test_dir = os.path.join(self.resultdir, subdir)
             status_file = os.path.join(test_dir, 'status')
             open(status_file, "a").write(msg)
