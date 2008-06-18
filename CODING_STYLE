@@ -15,13 +15,8 @@ Indentation & whitespace
 
 Format your code for an 80 character wide screen.
 
-Indentation is hard tabs, equivalent to 8 spaces. Yes, I know that's pretty
-large, but especially in Python where code flow is controlled by indentation
-levels, it's critical for it to be clearly visibile. 
-
-People will claim that doesn't allow them enough levels of indentation on an
-80 character screen - they need to fix their code instead: use smaller
-functions, and more local variables - it makes the code so much easier to read.
+Indentation is now 4 spaces, as opposed to hard tabs (which it used to be).
+This is the Python standard.
 
 Don't leave trailing whitespace, or put whitespace on blank lines.
 Leave TWO blank lines between functions - this is Python, there are no clear
