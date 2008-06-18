@@ -76,7 +76,7 @@ class UnhandledError(TestError):
             msg = "Unhandled %s: %s"
             msg %= (unhandled_exception.__class__.__name__,
                     unhandled_exception)
-            msg += "\n" + "\n".join(traceback.format_exc())
+            msg += "\n" + traceback.format_exc()
             TestError.__init__(self, msg)
 
 
