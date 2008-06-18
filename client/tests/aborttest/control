@@ -1,1 +1,11 @@
+AUTHOR = "Autotest Team"
+NAME = "Abort test"
+TEST_TYPE = "client"
+TEST_CLASS = "General"
+TEST_CATEGORY = "Functional"
+TIME = "SHORT"
+DOC = """\
+Raise a JobError to simulate a test aborting
+"""
+
 job.run_test('aborttest')

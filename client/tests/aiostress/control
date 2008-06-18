@@ -1,1 +1,19 @@
+AUTHOR = "Autotest Team"
+NAME = "aio stress"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "Kernel"
+TIME = "MEDIUM"
+TEST_TYPE = "client"
+DOC = """\
+aio-stress
+
+will open or create each file on the command line, and start a series
+of aio to it.  
+
+aio is done in a rotating loop.  first file1 gets 8 requests, then
+file2, then file3 etc.  As each file finishes writing, it is switched
+to reads
+
+io buffers are aligned in case you want to do raw io
+"""
 job.run_test('aiostress')
