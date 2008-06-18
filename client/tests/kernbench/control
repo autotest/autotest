@@ -1,1 +1,7 @@
+NAME = "Kernbench"
+TIME = "SHORT"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TEST_TYPE = "client"
+
 job.run_test('kernbench')
