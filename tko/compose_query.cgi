@@ -17,7 +17,7 @@ from autotest_lib.tko import display, frontend, db, query_lib
 from autotest_lib.client.bin import kernel_versions
 
 html_header = """\
-<form action="compose_query.cgi" method="get">
+<form action="/tko/compose_query.cgi" method="get">
 <table border="0">
 <tr>
   <td>Column: </td>
@@ -47,7 +47,7 @@ html_header = """\
 </tr>
 </table>
 </form>
-<form action="save_query.cgi" method="get">
+<form action="/tko/save_query.cgi" method="get">
 <table border="0">
 <tr>
  <td>Name your query:&nbsp;&nbsp;</td>
@@ -56,7 +56,7 @@ html_header = """\
   </td>
   <td align="center">&nbsp;<input type="submit" value="Save Query">
   </td>
- <td>&nbsp;&nbsp;<a href="query_history.cgi">View saved queries</a></td>
+ <td>&nbsp;&nbsp;<a href="/tko/query_history.cgi">View saved queries</a></td>
   <td>
     <input type="hidden" name="columns" value="%s">
     <input type="hidden" name="rows" value="%s">
@@ -143,7 +143,7 @@ def construct_link(x, y):
 		next_column = next_field[column]
 		condition_list.append("%s='%s'" % (column, x))
 	next_condition = '&'.join(condition_list)
-	link = 'compose_query.cgi?' + urllib.urlencode({'columns': next_column,
+	link = '/tko/compose_query.cgi?' + urllib.urlencode({'columns': next_column,
 	           'rows': next_row, 'condition': next_condition,
 	           'title': title_field})
 	return link
@@ -158,7 +158,7 @@ def construct_logs_link(x, y, job_tag):
 	if (column == 'test' and
 	    not x.split('.')[0] in ('boot', 'build', 'install')):
 		test = x
-	return 'retrieve_logs.cgi?' + urllib.urlencode({'job' : job_path,
+	return '/tko/retrieve_logs.cgi?' + urllib.urlencode({'job' : job_path,
 		 'test' : test})
 
 
@@ -302,7 +302,7 @@ def gen_matrix():
 	dict_url = {'columns': row,
 	           'rows': column, 'condition': condition_field,
 	           'title': title_field}
-	link = 'compose_query.cgi?' + urllib.urlencode(dict_url)
+	link = '/tko/compose_query.cgi?' + urllib.urlencode(dict_url)
 	header_row = [display.box("<center>(Flip Axis)</center>", link=link)]
 
 	for x in test_data.x_values:
