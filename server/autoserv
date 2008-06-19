@@ -116,6 +116,9 @@ def run_autoserv(pid_file_manager, results, parser):
         job.stdout.tee_redirect(stdout)
         job.stderr.tee_redirect(stderr)
 
+    # perform checks
+    job.precheck()
+
     # run the job
     exit_code = 0
     try:

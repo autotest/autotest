@@ -282,6 +282,13 @@ class base_server_job:
         self.verify()
 
 
+    def precheck(self):
+        """
+        perform any additional checks in derived classes.
+        """
+        pass
+
+
     def enable_external_logging(self):
         """Start or restart external logging mechanism.
         """
