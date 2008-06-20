@@ -141,7 +141,7 @@ def parse_path(db, path, level, reparse, mail_on_failure):
             jobname = "%s/%s" % (os.path.basename(path), machine)
             try:
                 db.run_with_retry(parse_one, db, jobname,
-                                  path, reparse,
+                                  jobpath, reparse,
                                   mail_on_failure)
             except Exception:
                 traceback.print_exc()
