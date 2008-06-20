@@ -90,7 +90,8 @@ class client_logger(object):
         else:
             print line
 
-     def _format_warnings(self, last_line, warnings):
+
+    def _format_warnings(self, last_line, warnings):
         # use the indentation of whatever the last log line was
         indent = self.extract_indent.match(last_line).group(1)
         # if the last line starts a new group, add an extra indent
