@@ -283,11 +283,11 @@ class base_job(object):
         dargs = dargs.copy()
         tntag = dargs.pop('tag', None)
         if tntag:  # testname tag is included in reported test name
-            testname += '.' + tntag
+            testname += '.' + str(tntag)
         subdir = testname
         sdtag = dargs.pop('subdir_tag', None)
         if sdtag:  # subdir-only tag is not included in reports
-            subdir = subdir + '.' + sdtag
+            subdir = subdir + '.' + str(sdtag)
         tag = subdir[namelen+1:]    # '' if none
 
         outputdir = os.path.join(self.resultdir, subdir)
