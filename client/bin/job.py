@@ -558,8 +558,8 @@ class base_job(object):
 
         # handle any exceptions raised by the parallel tasks
         if exceptions:
-            msg = "%d task(s) failed" % len(exceptions)
-            raise error.JobError(msg, str(exceptions), exceptions)
+            msg = "%d task(s) failed in job.parallel" % len(exceptions)
+            raise error.JobError(msg)
 
 
     def quit(self):
