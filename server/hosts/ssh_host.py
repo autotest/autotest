@@ -550,21 +550,6 @@ class SSHHost(remote.RemoteHost):
         pre-processed into the appropriate rsync/scp friendly
         format (%s@%s:%s).
         """
-        # wait until there are only a small number of copies running
-        # before starting this one
-        get_config = global_config.global_config.get_config_value
-        max_simultaneous = get_config("HOSTS",
-                                      "max_simultaneous_file_copies",
-                                      type=int)
-        while True:
-            copy_count = 0
-            procs = utils.system_output('ps -ef')
-            for line in procs.splitlines():
-                if 'rsync ' in line or 'scp ' in line:
-                    copy_count += 1
-            if copy_count < max_simultaneous:
-                break
-            time.sleep(60)
 
         print '__copy_files: copying %s to %s' % (sources, dest)
         try:
