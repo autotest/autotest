@@ -320,8 +320,9 @@ class base_job(object):
         def group_func():
             try:
                 self._runtest(url, tag, args, dargs)
-            except error.TestNAError, detail:
-                self.record('TEST_NA', subdir, testname,
+            except (error.TestNAError, error.TestUnknownError, error.TestError,
+                    error.TestFail), detail:
+                self.record(detail.exit_status, subdir, testname,
                             str(detail))
                 raise
             except Exception, detail:
@@ -367,9 +368,10 @@ class base_job(object):
             result = function(*args, **dargs)
             self._decrement_group_level()
             self.record('END GOOD', subdir, testname)
-        except error.TestNAError, e:
+        except (error.TestNAError, error.TestError, error.TestFail,
+                error.TestUnknownError), e:
             self._decrement_group_level()
-            self.record('END TEST_NA', subdir, testname, str(e))
+            self.record('END %s' % e.exit_status, subdir, testname, str(e))
         except Exception, e:
             exc_info = sys.exc_info()
             self._decrement_group_level()
