@@ -40,6 +40,7 @@ class TestError(AutotestError):
     exit_status="ERROR"
     pass
 
+
 class TestUnknownError(AutotestError):
     """Indicates an error which terminates and fails the test."""
     exit_status="FAIL"
@@ -52,10 +53,12 @@ class TestNAError(AutotestError):
     exit_status="TEST_NA"
     pass
 
+
 class TestFail(AutotestError):
     """Indicates that the test failed, but the job will not continue."""
     exit_status="FAIL"
     pass
+
 
 class TestWarn(AutotestError):
     """Indicates that bad things (may) have happened, but not an explicit
@@ -88,14 +91,14 @@ class PackageError(TestError):
 class UnhandledError(TestUnknownError):
     """Indicates an unhandled exception in a test."""
     def __init__(self, unhandled_exception):
-        if isinstance(unhandled_exception, TestError):
-            TestError.__init__(self, *unhandled_exception.args)
+        if isinstance(unhandled_exception, AutotestError):
+            TestUnknownError.__init__(self, *unhandled_exception.args)
         else:
             msg = "Unhandled %s: %s"
             msg %= (unhandled_exception.__class__.__name__,
                     unhandled_exception)
             msg += "\n" + traceback.format_exc()
-            TestError.__init__(self, msg)
+            TestUnknownError.__init__(self, msg)
 
 
 class InstallError(JobError):
