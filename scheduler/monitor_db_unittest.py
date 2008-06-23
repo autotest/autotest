@@ -551,9 +551,9 @@ class AgentTasksTest(unittest.TestCase):
 
         task = monitor_db.RepairTask(self.host)
         self.run_task(task, success)
-        self.assertEquals(task.monitor.cmd,
-                          ['autoserv', '-R', '-m', self.HOSTNAME, '-r',
-                           self.TEMP_DIR])
+        self.assertTrue(set(task.monitor.cmd) >
+                        set(['autoserv', '-R', '-m', self.HOSTNAME, '-r',
+                        self.TEMP_DIR]))
         self.god.check_playback()
 
 
@@ -601,9 +601,9 @@ class AgentTasksTest(unittest.TestCase):
         else:
             task = monitor_db.VerifyTask(host=self.host)
         self.run_task(task, success)
-        self.assertEquals(task.monitor.cmd,
-                          ['autoserv', '-v', '-m', self.HOSTNAME, '-r',
-                           self.TEMP_DIR])
+        self.assertTrue(set(task.monitor.cmd) >
+                        set(['autoserv', '-v', '-m', self.HOSTNAME, '-r',
+                        self.TEMP_DIR]))
         self.god.check_playback()
 
 
