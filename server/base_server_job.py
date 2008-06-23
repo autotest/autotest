@@ -407,9 +407,9 @@ class base_server_job:
         try:
             test.runtest(self, url, tag, args, dargs)
             self.record('GOOD', subdir, testname, 'completed successfully')
-        except error.TestNAError, detail:
-            self.record('TEST_NA', subdir, testname, str(detail))
-        except Exception, detail:
+        except (error.TestNAError, error.TestError, error.TestFail), detail:
+            self.record(detail.exit_status, subdir, testname, str(detail))
+        except (error.TestUnknownError, Exception), detail:
             info = str(detail) + "\n" + traceback.format_exc()
             self.record('FAIL', subdir, testname, info)
 
