@@ -11,7 +11,7 @@ job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
                 "NOSTATUS"]
 
 def is_valid_status(status):
-    if not re.match(r'(START|(END )?(GOOD|WARN|FAIL|ABORT|TEST_NA))$',
+    if not re.match(r'(START|(END )?('+'|'.join(job_statuses)+'))$',
                     status):
         return False
     else:
