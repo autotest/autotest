@@ -114,6 +114,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
             self.save()
         queue_entry.save()
 
+        block = IneligibleHostQueue(job=job, host=self)
+        block.save()
+
 
     def platform(self):
         # TODO(showard): slighly hacky?
@@ -307,6 +310,43 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
+    @staticmethod
+    def on_host_membership_change():
+        everyone = AclGroup.objects.get(name='Everyone')
+
+        # find hosts that aren't in any ACL group and add them to Everyone 
+        # TODO(showard): this is a bit of a hack, since the fact that this query
+        # works is kind of a coincidence of Django internals.  This trick
+        # doesn't work in general (on all foreign key relationships).  I'll
+        # replace it with a better technique when the need arises.
+        orphaned_hosts = Host.valid_objects.filter(acl_group__id__isnull=True)
+        everyone.hosts.add(*orphaned_hosts.distinct())
+
+        # find hosts in both Everyone and another ACL group, and remove them
+        # from Everyone
+        hosts_in_everyone = Host.valid_objects.filter_custom_join(
+            '_everyone', acl_group__name='Everyone')
+        acled_hosts = hosts_in_everyone.exclude(acl_group__name='Everyone')
+        everyone.hosts.remove(*acled_hosts.distinct())
+
+
+    def delete(self):
+        super(AclGroup, self).delete()
+        self.on_host_membership_change()
+
+
+    # if you have a model attribute called "Manipulator", Django will
+    # automatically insert it into the beginning of the superclass list
+    # for the model's manipulators
+    class Manipulator(object):
+        """
+        Custom manipulator to get notification when ACLs are changed through
+        the admin interface.
+        """
+        def save(self, new_data):
+            obj = super(AclGroup.Manipulator, self).save(new_data)
+            obj.on_host_membership_change()
+            return obj
 
     class Meta:
         db_table = 'acl_groups'
@@ -419,34 +459,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         'Enqueue a job on the given hosts.'
         for host in hosts:
             host.enqueue_job(self)
-        self.recompute_blocks()
-
-
-    def recompute_blocks(self):
-        """\
-        Clear out the blocks (ineligible_host_queues) for this job and
-        recompute the set.  The set of blocks is the union of:
-        -all hosts already assigned to this job
-        -all hosts not ACL accessible to this job's owner
-        """
-        job_entries = self.hostqueueentry_set.all()
-        query = Host.objects.filter_in_subquery(
-            'host_id', job_entries, subquery_alias='job_entries')
-
-        old_ids = [block.id for block in
-                   self.ineligiblehostqueue_set.all()]
-        block_values = [(self.id, host.id) for host in query]
-        IneligibleHostQueue.objects.create_in_bulk(('job', 'host'),
-                                                   block_values)
-        IneligibleHostQueue.objects.delete_in_bulk(old_ids)
-
-
-    @classmethod
-    def recompute_all_blocks(cls):
-        'Recompute blocks for all queued and active jobs.'
-        for job in cls.objects.filter(
-            hostqueueentry__complete=False).distinct():
-            job.recompute_blocks()
 
 
     def requeue(self, new_owner):
