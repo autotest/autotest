@@ -1,0 +1,17 @@
+# this doctest contains tests for miscellaneous features of the RPC interface
+# that would clutter the main rpc_test
+
+# setup
+>>> from frontend.afe import rpc_interface
+
+>>> rpc_interface.add_profiler(name='oprofile')
+2L
+>>> rpc_interface.add_profiler(name='iostat')
+3L
+
+# profiler support in control file generation
+>>> control_file, is_server, is_synch = rpc_interface.generate_control_file(
+...     tests=['sleeptest'],
+...     profilers=['oprofile', 'iostat'])
+>>> control_file
+"def step_init():\n\tjob.next_step('step0')\n\tjob.next_step('step1')\n\tjob.next_step('step2')\n\tjob.next_step('step3')\n\tjob.next_step('step4')\n\ndef step0():\n\tjob.profilers.add('oprofile')\n\ndef step1():\n\tjob.profilers.add('iostat')\n\ndef step2():\n\tjob.run_test('testname')\n\ndef step3():\n\tjob.profilers.delete('oprofile')\n\ndef step4():\n\tjob.profilers.delete('iostat')"
