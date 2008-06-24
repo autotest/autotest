@@ -18,179 +18,68 @@ class ExtendedManager(dbmodels.Manager):
     Extended manager supporting subquery filtering.
     """
 
-    class _RawSqlQ(dbmodels.Q):
-        """\
-        A Django "Q" object constructed with a raw SQL query.
+    class _CustomJoinQ(dbmodels.Q):
         """
-        def __init__(self, sql, params=[], joins={}):
-            """
-            sql: the SQL to go into the WHERE clause
+        Django "Q" object supporting a custom suffix for join aliases.See
+        filter_custom_join() for why this can be useful.
+        """
 
-            params: substitution params for the WHERE SQL
+        def __init__(self, join_suffix, **kwargs):
+            super(ExtendedManager._CustomJoinQ, self).__init__(**kwargs)
+            self._join_suffix = join_suffix
 
-            joins: a dict mapping alias to (table, join_type,
-            condition). This converts to the SQL:
-            "join_type table AS alias ON condition"
-            For example:
-            alias='host_hqe',
-            table='host_queue_entries',
-            join_type='INNER JOIN',
-            condition='host_hqe.host_id=hosts.id'
-            """
-            self._sql = sql
-            self._params = params[:]
-            self._joins = datastructures.SortedDict(joins)
+
+        @staticmethod
+        def _substitute_aliases(renamed_aliases, condition):
+            for old_alias, new_alias in renamed_aliases:
+                    condition = condition.replace(backend.quote_name(old_alias),
+                                                  backend.quote_name(new_alias))
+            return condition
+
+
+        @staticmethod
+        def _unquote_name(name):
+            'This may be MySQL specific'
+            if backend.quote_name(name) == name:
+                return name[1:-1]
+            return name
 
 
         def get_sql(self, opts):
-            return (self._joins,
-                    [self._sql],
-                    self._params)
+            joins, where, params = (
+                super(ExtendedManager._CustomJoinQ, self).get_sql(opts))
+
+            new_joins = datastructures.SortedDict()
+
+            # rename all join aliases and correct references in later joins
+            renamed_tables = []
+            # using iteritems seems to mess up the ordering here
+            for alias, (table, join_type, condition) in joins.items():
+                alias = self._unquote_name(alias)
+                new_alias = alias + self._join_suffix
+                renamed_tables.append((alias, new_alias))
+                condition = self._substitute_aliases(renamed_tables, condition)
+                new_alias = backend.quote_name(new_alias)
+                new_joins[new_alias] = (table, join_type, condition)
+
+            # correct references in where
+            new_where = []
+            for clause in where:
+                new_where.append(
+                    self._substitute_aliases(renamed_tables, clause))
+
+            return new_joins, new_where, params
 
 
-    @staticmethod
-    def _get_quoted_field(table, field):
-        return (backend.quote_name(table) + '.' +
-                backend.quote_name(field))
-
-
-    @classmethod
-    def _get_sql_string_for(cls, value):
+    def filter_custom_join(self, join_suffix, **kwargs):
         """
-        >>> ExtendedManager._get_sql_string_for((1L, 2L))
-        '(1,2)'
-        >>> ExtendedManager._get_sql_string_for(['abc', 'def'])
-        'abc,def'
+        Just like Django filter(), but allows the user to specify a custom
+        suffix for the join aliases involves in the filter.  This makes it
+        possible to join against a table multiple times (as long as a different
+        suffix is used each time), which is necessary for certain queries.
         """
-        if isinstance(value, list):
-            return ','.join(cls._get_sql_string_for(item)
-                            for item in value)
-        if isinstance(value, tuple):
-            return '(%s)' % cls._get_sql_string_for(list(value))
-        if isinstance(value, long):
-            return str(int(value))
-        return str(value)
-
-
-    @staticmethod
-    def _get_sql_query_for(query_object, select_field):
-        query_table = query_object.model._meta.db_table
-        quoted_field = ExtendedManager._get_quoted_field(query_table,
-                                                         select_field)
-        _, where, params = query_object._get_sql_clause()
-        # where includes the FROM clause
-        return '(SELECT DISTINCT ' + quoted_field + where + ')', params
-
-
-    def _get_key_on_this_table(self, key_field=None):
-        if key_field is None:
-            # default to primary key
-            key_field = self.model._meta.pk.column
-        return self._get_quoted_field(self.model._meta.db_table,
-                                      key_field)
-
-
-    def _do_subquery_filter(self, subquery_key, subquery, subquery_alias,
-                            this_table_key=None, not_in=False):
-        """
-        This method constructs SQL queries to accomplish IN/NOT IN
-        subquery filtering using explicit joins.  It does this by
-        LEFT JOINing onto the subquery and then checking to see if
-        the joined column is NULL or not.
-
-        We use explicit joins instead of the SQL IN operator because
-        MySQL (at least some versions) considers all IN subqueries to be
-        dependent, so using explicit joins can be MUCH faster.
-
-        The query we're going for is:
-        SELECT * FROM <this table>
-          LEFT JOIN (<subquery>) AS <subquery_alias>
-            ON <subquery_alias>.<subquery_key> =
-               <this table>.<this_table_key>
-        WHERE <subquery_alias>.<subquery_key> IS [NOT] NULL
-        """
-        subselect, params = self._get_sql_query_for(subquery,
-                                                    subquery_key)
-
-        this_full_key = self._get_key_on_this_table(this_table_key)
-        alias_full_key = self._get_quoted_field(subquery_alias,
-                                                subquery_key)
-        join_condition = alias_full_key + ' = ' + this_full_key
-        joins = {subquery_alias : (subselect, # join table
-                                   'LEFT JOIN', # join type
-                                   join_condition)} # join on
-
-        if not_in:
-            where_sql = alias_full_key + ' IS NULL'
-        else:
-            where_sql = alias_full_key + ' IS NOT NULL'
-        filter_obj = self._RawSqlQ(where_sql, params, joins)
-        return self.complex_filter(filter_obj)
-
-
-    def filter_in_subquery(self, subquery_key, subquery, subquery_alias,
-                           this_table_key=None):
-        """\
-        Construct a filter to perform a subquery match, i.e.
-        WHERE id IN (SELECT host_id FROM ... WHERE ...)
-        -subquery_key - the field to select in the subquery (host_id
-                        above)
-        -subquery - a query object for the subquery
-        -subquery_alias - a logical name for the query, to be used in
-                          the SQL (i.e. 'valid_hosts')
-        -this_table_key - the field to match (id above).  Defaults to
-                          this table's primary key.
-        """
-        return self._do_subquery_filter(subquery_key, subquery,
-                                        subquery_alias, this_table_key)
-
-
-    def filter_not_in_subquery(self, subquery_key, subquery,
-                               subquery_alias, this_table_key=None):
-        'Like filter_in_subquery, but use NOT IN rather than IN.'
-        return self._do_subquery_filter(subquery_key, subquery,
-                                        subquery_alias, this_table_key,
-                                        not_in=True)
-
-
-    def create_in_bulk(self, fields, values):
-        """
-        Creates many objects with a single SQL query.
-        field - list of field names (model attributes, not actual DB
-                field names) for which values will be specified.
-        values - list of tuples containing values.  Each tuple contains
-                 the values for the specified fields for a single
-                 object.
-        Example: Host.objects.create_in_bulk(['hostname', 'status'],
-                     [('host1', 'Ready'), ('host2', 'Running')])
-        """
-        if not values:
-            return
-        field_dict = self.model.get_field_dict()
-        field_names = [field_dict[field].column for field in fields]
-        sql = 'INSERT INTO %s %s' % (
-            self.model._meta.db_table,
-            self._get_sql_string_for(tuple(field_names)))
-        sql += ' VALUES ' + self._get_sql_string_for(list(values))
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        connection._commit()
-
-
-    def delete_in_bulk(self, ids):
-        """
-        Deletes many objects with a single SQL query.  ids should be a
-        list of object ids to delete.  Nonexistent ids will be silently
-        ignored.
-        """
-        if not ids:
-            return
-        sql = 'DELETE FROM %s WHERE id IN %s' % (
-            self.model._meta.db_table,
-            self._get_sql_string_for(tuple(ids)))
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        connection._commit()
+        filter_object = self._CustomJoinQ(join_suffix, **kwargs)
+        return self.complex_filter(filter_object)
 
 
 class ValidObjectsManager(ExtendedManager):

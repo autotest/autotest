@@ -247,7 +247,13 @@ True
 
 
 # ACL group relationships work similarly
-# note that all users and hosts are a member of 'Everyone' by default
+# note that all users are a member of 'Everyone' by default, and that hosts are
+# automatically made a member of 'Everyone' only when they are a member of no
+# other group
+>>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
+>>> [acl_group['name'] for acl_group in data]
+['Everyone']
+
 >>> rpc_interface.add_user(login='showard', access_level=0)
 3L
 >>> rpc_interface.add_acl_group(name='my_group')
@@ -263,9 +269,11 @@ True
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone', 'my_group']
+
+# note host has been automatically removed from 'Everyone'
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
-['Everyone', 'my_group']
+['my_group']
 
 >>> rpc_interface.acl_group_remove_users('my_group', ['showard'])
 >>> rpc_interface.acl_group_remove_hosts('my_group', ['host1'])
@@ -275,9 +283,12 @@ True
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone']
+
+# note host has been automatically added back to 'Everyone'
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone']
+
 
 # job management
 # ############
@@ -461,14 +472,13 @@ id does not match
 
 # get hosts ACL'd to a user
 >>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
->>> [host['hostname'] for host in hosts]
+>>> sorted([host['hostname'] for host in hosts])
 ['host1', 'host2']
 
 >>> rpc_interface.add_acl_group(name='mygroup')
 4L
 >>> rpc_interface.acl_group_add_users('mygroup', ['debug_user'])
 >>> rpc_interface.acl_group_add_hosts('mygroup', ['host1'])
->>> rpc_interface.acl_group_remove_hosts('Everyone', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
 >>> data['users'], data['hosts']
 (['debug_user', 'showard'], ['host2'])
@@ -477,9 +487,13 @@ id does not match
 (['debug_user'], ['host1'])
 
 >>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
->>> hosts.sort()
->>> [host['hostname'] for host in hosts]
+>>> sorted([host['hostname'] for host in hosts])
 ['host1', 'host2']
 >>> hosts = rpc_interface.get_hosts(acl_group__users__login='showard')
 >>> [host['hostname'] for host in hosts]
 ['host2']
+
+>>> rpc_interface.delete_acl_group('mygroup')
+>>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
+>>> sorted(data['hosts'])
+['host1', 'host2']
