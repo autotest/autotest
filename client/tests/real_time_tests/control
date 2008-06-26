@@ -1,0 +1,1 @@
+job.run_test('real_time_tests')
