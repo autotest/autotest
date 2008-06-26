@@ -1,0 +1,12 @@
+diff -Nurp realtime/scripts/setenv.sh src/scripts/setenv.sh
+--- realtime/scripts/setenv.sh	2008-06-10 11:48:10.000000000 +0530
++++ src/scripts/setenv.sh	2008-06-23 13:49:59.000000000 +0530
+@@ -6,7 +6,7 @@
+ #
+ #export TESTS_DIR=$(readlink -f $SCRIPTS_DIR/..)
+
+-TESTSUITE_NAME=testcases/realtime
++TESTSUITE_NAME=src
+ if [ -z "$PARENT" ]; then
+     PARENT=${PWD%/$TESTSUITE_NAME*}
+ fi
