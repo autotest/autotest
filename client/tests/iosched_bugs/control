@@ -1,0 +1,16 @@
+NAME = "iosched bugs"
+AUTHOR = "Divyesh Shah (dpshah@google.com)"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TIME = "SHORT"
+DOC = """\
+This is a functional test for the bug in AS io scheduler where
+reads or writes can be starved when switching a batch and a request from the
+previous batch is still in-flight. This test case should see writes being
+starved forever without the bugfix(220.4 and earlier kernels) and with the
+bugfix it should see the writer making forward progress.
+"""
+
+
+job.run_test('iosched_bugs')
