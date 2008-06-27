@@ -2,13 +2,9 @@
 
 import os, sys
 import unittest
+import common
 
-# ensure the root is where it should be
 root = os.path.abspath(os.path.dirname(__file__))
-from client import setup_modules
-setup_modules.setup(base_path=root, root_module_name="autotest_lib")
-
-
 suites = []
 def lister(dummy, dirname, files):
     loader = unittest.TestLoader()
