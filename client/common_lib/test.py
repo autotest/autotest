@@ -114,6 +114,11 @@ class base_test:
         pass
 
 
+    def execute(self):
+        raise NotImplementedError("This function must be overriden by "
+                                  "the test class")
+
+
     def _exec(self, args, dargs):
         try:
             self.job.stdout.tee_redirect(
@@ -173,7 +178,7 @@ def _installtest(job, url):
         f.close()
 
     print name + ": installing test url=" + url
-    get_file(url, os.path.join(group_dir, 'test.tgz'))
+    utils.get_file(url, os.path.join(group_dir, 'test.tgz'))
     old_wd = os.getcwd()
     os.chdir(group_dir)
     tar = tarfile.open('test.tgz')

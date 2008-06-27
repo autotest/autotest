@@ -73,13 +73,16 @@ class CmdError(TestError):
     """
     def __init__(self, command, result_obj, additional_text=None):
         TestError.__init__(self, command, result_obj, additional_text)
+        self.command = command
+        self.result_obj = result_obj
+        self.additional_text = additional_text
 
 
     def __str__(self):
-        msg = "Command <%s> failed, rc=%d" % (self.args[0],
-                                              self.args[1].exit_status)
-        if self.args[2]:
-            msg += ", " + self.args[2]
+        msg = "Command <%s> failed, rc=%d" % (self.command,
+                                              self.result_obj.exit_status)
+        if self.additional_text:
+            msg += ", " + self.additional_text
         return msg
 
 
