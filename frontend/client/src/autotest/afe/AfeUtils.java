@@ -6,7 +6,9 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -31,19 +33,39 @@ public class AfeUtils {
     }
     
     public static String[] getLabelStrings() {
+        return getFilteredLabelStrings(false, false);
+    }
+    
+    protected static String[] getFilteredLabelStrings(boolean onlyPlatforms,
+                                                      boolean onlyNonPlatforms) {
+        assert( !(onlyPlatforms && onlyNonPlatforms));
         StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray labels = staticData.getData("labels").isArray();
-        String[] result = new String[labels.size()];
+        List<String> result = new ArrayList<String>();
         for (int i = 0; i < labels.size(); i++) {
             JSONObject label = labels.get(i).isObject();
             String name = label.get("name").isString().stringValue();
-            boolean platform = label.get("platform").isNumber().getValue() != 0;
-            if (platform) {
-                name += PLATFORM_SUFFIX;
+            boolean labelIsPlatform =
+                label.get("platform").isNumber().doubleValue() != 0;
+            if ((onlyPlatforms && labelIsPlatform) ||
+                (onlyNonPlatforms && !labelIsPlatform)) {
+                    result.add(name);
+            } else if (!onlyPlatforms && !onlyNonPlatforms) {
+                if (labelIsPlatform) {
+                    name += PLATFORM_SUFFIX;
+                }
+                result.add(name);
             }
-            result[i] = name;
         }
-        return result;
+        return result.toArray(new String[0]);
+    }
+    
+    public static String[] getPlatformStrings() {
+      return getFilteredLabelStrings(true, false);
+    }
+    
+    public static String[] getNonPlatformLabelStrings() {
+        return getFilteredLabelStrings(false, true);
     }
     
     public static String decodeLabelName(String labelName) {
