@@ -7,6 +7,7 @@ import com.google.gwt.user.client.ui.Widget;
 
 public abstract class LinkSetFilter extends Filter implements TabListener {
     protected TabBar linkBar = new TabBar();
+    protected boolean enableNotification = true;
     
     public LinkSetFilter() {
         linkBar.setStyleName("job-filter-links");
@@ -26,12 +27,16 @@ public abstract class LinkSetFilter extends Filter implements TabListener {
     }
     
     public void setSelectedLink(int link) {
-        if (link != linkBar.getSelectedTab())
+        if (link != linkBar.getSelectedTab()) {
+            enableNotification = false;
             linkBar.selectTab(link);
+            enableNotification = true;
+        }
     }
 
     public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
-        notifyListeners();
+        if (enableNotification)
+            notifyListeners();
     }
 
     public boolean onBeforeTabSelected(SourcesTabEvents sender, int tabIndex) {

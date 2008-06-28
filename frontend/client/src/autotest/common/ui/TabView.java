@@ -56,6 +56,9 @@ public abstract class TabView extends Composite {
         return HISTORY_PREFIX + getElementId();
     }
     
+    /**
+     * Should *not* trigger a refresh.  refresh() will be called separately.
+     */
     public void handleHistoryToken(String token) {}
     
     public abstract void initialize();
