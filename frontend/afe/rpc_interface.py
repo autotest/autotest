@@ -269,6 +269,8 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
                           "'meta_hosts'"
             })
 
+    requested_host_counts = {}
+
     # convert hostnames & meta hosts to host/label objects
     host_objects = []
     for host in hosts or []:
@@ -277,6 +279,20 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
     for label in meta_hosts or []:
         this_label = models.Label.smart_get(label)
         host_objects.append(this_label)
+        requested_host_counts.setdefault(this_label.name, 0)
+        requested_host_counts[this_label.name] += 1
+
+    # check that each metahost request has enough hosts under the label
+    if meta_hosts:
+        labels = models.Label.query_objects(
+            {'name__in': requested_host_counts.keys()})
+        for label in labels:
+            count = label.host_set.count()
+            if requested_host_counts[label.name] > count:
+                error = ("You have requested %d %s's, but there are only %d."
+                         % (requested_host_counts[label.name],
+                            label.name, count))
+                raise model_logic.ValidationError({'arguments' : error})
 
     # default is_synchronous to some appropriate value
     ControlType = models.Job.ControlType
