@@ -142,6 +142,8 @@ public class CustomTabPanel extends Composite implements HistoryListener {
                 
                 if (getSelectedTabView() != tabView)
                     selectTabView(tabView);
+                else
+                    tabView.refresh();
                 
                 return;
             }
