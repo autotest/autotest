@@ -13,7 +13,8 @@ public class HostTableDecorator extends TableDecorator {
     
     
     protected SearchFilter hostnameFilter;
-    protected ListFilter labelFilter, statusFilter;
+    protected LabelFilter labelFilter;
+    protected ListFilter statusFilter;
     protected BooleanFilter lockedFilter;
     
     public HostTableDecorator(HostTable table, int rowsPerPage) {
@@ -33,6 +34,7 @@ public class HostTableDecorator extends TableDecorator {
         lockedFilter = new BooleanFilter("locked");
         
         addFilter("Hostname", hostnameFilter);
+        addControl("Platform", labelFilter.getPlatformWidget());
         addFilter("Label", labelFilter);
         addFilter("Status", statusFilter);
         addFilter("Locked", lockedFilter);

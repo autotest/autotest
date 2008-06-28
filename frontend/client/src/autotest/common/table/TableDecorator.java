@@ -34,12 +34,15 @@ public class TableDecorator extends Composite {
     
     public void addFilter(String text, Filter filter) {
         dataTable.addFilter(filter);
-        
-        enclosingTable.insertRow(numFilters);
-        int row = numFilters;
-        numFilters++;
-        enclosingTable.setText(row, 0, text);
-        enclosingTable.setWidget(row, 1, filter.getWidget());
+        addControl(text, filter.getWidget());
+    }
+    
+    protected void addControl(String text, Widget widget) {
+      enclosingTable.insertRow(numFilters);
+      int row = numFilters;
+      numFilters++;
+      enclosingTable.setText(row, 0, text);
+      enclosingTable.setWidget(row, 1, widget);
     }
     
     protected void fillDoubleCell(int row, int col, Widget widget, 
