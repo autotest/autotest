@@ -154,7 +154,7 @@ def release_dead_containers(parent=super_root):
         os.rmdir(child)
 
 
-class cpuset:
+class cpuset(object):
 
     def display(self):
         print_one_cpuset(os.path.join(self.root, self.name))
