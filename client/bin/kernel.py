@@ -7,7 +7,7 @@ from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import logging, utils, error
 
 
-class kernel:
+class kernel(object):
     """ Class for compiling kernels.
 
     Data for the object includes the src files
@@ -604,7 +604,7 @@ class kernel:
         pickle.dump(temp, open(filename, 'w'))
 
 
-class rpm_kernel:
+class rpm_kernel(object):
     """ Class for installing rpm kernel package
     """
 
