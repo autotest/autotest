@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
-import os, unittest, pickle, shutil, sys
+import os, unittest, pickle, shutil, sys, time
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
-from autotest_lib.client.bin import test
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, xen, kernel, autotest_utils, cpuset
+from autotest_lib.client.common_lib import utils, error, logging
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -134,7 +134,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_relitive_path(self):
+    def test_relative_path(self):
         self.construct_job(True)
         dummy = "asdf"
         ret = self.job.relative_path(os.path.join(self.job.resultdir, dummy))
@@ -229,6 +229,78 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_xen(self):
+        self.construct_job(True)
+
+        # setup
+        self.god.stub_function(self.job, "setup_dirs")
+        self.god.stub_class(xen, "xen")
+        results = 'results_dir'
+        tmp = 'tmp'
+        build = 'xen'
+        base_tree = object()
+
+        # record
+        self.job.setup_dirs.expect_call(results,
+                                        tmp).and_return((results, tmp))
+        myxen = xen.xen.expect_new(self.job, base_tree, results, tmp, build,
+                                   False, None)
+
+        # run job and check
+        axen = self.job.xen(base_tree, results, tmp)
+        self.god.check_playback()
+        self.assertEquals(myxen, axen)
+
+
+    def test_kernel_rpm(self):
+        self.construct_job(True)
+
+        # setup
+        self.god.stub_function(self.job, "setup_dirs")
+        self.god.stub_class(kernel, "rpm_kernel")
+        self.god.stub_function(kernel, "preprocess_path")
+        results = 'results_dir'
+        tmp = 'tmp'
+        build = 'xen'
+        path = "somepath.rpm"
+
+        # record
+        self.job.setup_dirs.expect_call(results,
+                                        tmp).and_return((results, tmp))
+        kernel.preprocess_path.expect_call(path).and_return(path)
+        mykernel = kernel.rpm_kernel.expect_new(self.job, path, results)
+
+        # check
+        akernel = self.job.kernel(path, results, tmp)
+        self.god.check_playback()
+        self.assertEquals(mykernel, akernel)
+
+
+    def test_kernel(self):
+        self.construct_job(True)
+
+        # setup
+        self.god.stub_function(self.job, "setup_dirs")
+        self.god.stub_class(kernel, "kernel")
+        self.god.stub_function(kernel, "preprocess_path")
+        results = 'results_dir'
+        tmp = 'tmp'
+        build = 'linux'
+        path = "somepath.deb"
+
+        # record
+        self.job.setup_dirs.expect_call(results,
+                                        tmp).and_return((results, tmp))
+        kernel.preprocess_path.expect_call(path).and_return(path)
+        mykernel = kernel.kernel.expect_new(self.job, path, results, tmp,
+                                            build, False)
+
+        # check
+        akernel = self.job.kernel(path, results, tmp)
+        self.god.check_playback()
+        self.assertEquals(mykernel, akernel)
+
+
     def test_run_test_logs_test_error_from_unhandled_error(self):
         self.construct_job(True)
 
@@ -294,6 +366,101 @@ class TestBaseJob(unittest.TestCase):
         # run and check
         self.job.run_test(testname)
         self.god.check_playback()
+
+
+    def new_container(self):
+        self.construct_job(True)
+
+        # set up stubs
+        self.god.stub_function(autotest_utils, "grep")
+        self.god.stub_function(os, "getpid")
+        self.god.stub_class(cpuset, "cpuset")
+        pid = 100
+        name = 'test%d' % pid
+
+        # record
+        autotest_utils.grep.expect_call('cpuset',
+            '/proc/filesystems').and_return(True)
+        os.getpid.expect_call().and_return(pid)
+
+        container = cpuset.cpuset.expect_new(name, job_size=None, job_pid=pid,
+                                             cpus=None, root=None)
+
+        # run test
+        self.job.new_container()
+        self.god.check_playback()
+        return container
+
+
+    def test_new_container(self):
+        container = self.new_container()
+        self.assertEquals(self.job.container, container)
+
+
+    def test_release_container(self):
+        self.new_container()
+
+        # record
+        self.job.container.release.expect_call()
+
+        # run
+        self.job.release_container()
+        self.god.check_playback()
+        self.assertEquals(self.job.container, None)
+
+
+    def test_record(self):
+        self.construct_job(True)
+
+        # steup
+        self.job.group_level = 1
+        status = ''
+        status_code = "PASS"
+        subdir = "subdir"
+        operation = "super_fun"
+        mytime = "1234"
+        msg_tag = ""
+        if "." in self.job.log_filename:
+            msg_tag = self.job.log_filename.split(".", 1)[1]
+        epoch_time = int(mytime)
+        local_time = time.localtime(epoch_time)
+        optional_fields = {}
+        optional_fields["timestamp"] = str(epoch_time)
+        optional_fields["localtime"] = time.strftime("%b %d %H:%M:%S",
+                                                     local_time)
+        fields = [status_code, subdir, operation]
+        fields += ["%s=%s" % x for x in optional_fields.iteritems()]
+        fields.append(status)
+        msg = '\t'.join(str(x) for x in fields)
+        msg = '\t' * self.job.group_level + msg
+
+        self.god.stub_function(logging, "is_valid_status")
+        self.god.stub_function(time, "time")
+        self.god.stub_function(self.job, "open")
+
+
+        # record
+        logging.is_valid_status.expect_call(status_code).and_return(True)
+        time.time.expect_call().and_return(mytime)
+        self.job.harness.test_status_detail.expect_call(status_code, subdir,
+                                                        operation, '', msg_tag)
+        self.job.harness.test_status.expect_call(msg, msg_tag)
+        myfile = self.god.create_mock_class(file, "file")
+        status_file = os.path.join(self.job.resultdir, self.job.log_filename)
+        self.job.open.expect_call(status_file, "a").and_return(myfile)
+        myfile.write.expect_call(msg + "\n")
+
+        dir = os.path.join(self.job.resultdir, subdir)
+        status_file = os.path.join(dir, self.job.DEFAULT_LOG_FILENAME)
+        self.job.open.expect_call(status_file, "a").and_return(myfile)
+        myfile.write.expect_call(msg + "\n")
+
+
+        # run test
+        self.god.unstub(self.job, "record")
+        self.job.record(status_code, subdir, operation)
+        self.god.check_playback()
+
 
 if __name__ == "__main__":
     unittest.main()
