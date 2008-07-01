@@ -560,8 +560,8 @@ class SSHHost(remote.RemoteHost):
                 utils.run('scp -rpq -P %d %s "%s"' % (
                     self.port, ' '.join(sources), dest))
             except error.CmdError, cmderr:
-                raise error.AutoservRunError(cmderr.args[0],
-                                             cmderr.args[1])
+                raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
+
 
     def get_file(self, source, dest):
         """
@@ -649,6 +649,7 @@ class SSHHost(remote.RemoteHost):
         self.run('find "%s" -type d | xargs -i -r chmod o+rx "{}"' % dest)
         self.run('find "%s" -type f | xargs -i -r chmod o+r "{}"' % dest)
 
+
     def get_tmp_dir(self):
         """
         Return the pathname of a directory on the host suitable
@@ -658,7 +659,7 @@ class SSHHost(remote.RemoteHost):
         on the destruction of the Host object that was used to obtain
         it.
         """
-        dir_name= self.run("mktemp -d /tmp/autoserv-XXXXXX").stdout.rstrip(" \n")
+        dir_name=self.run("mktemp -d /tmp/autoserv-XXXXXX").stdout.rstrip(" \n")
         self.tmp_dirs.append(dir_name)
         return dir_name
 
@@ -723,8 +724,7 @@ class SSHHost(remote.RemoteHost):
                 try:
                     if self._is_wait_up_process_up():
                         return True
-                except (error.AutoservRunError,
-                        error.AutoservSSHTimeout):
+                except (error.AutoservRunError, error.AutoservSSHTimeout):
                     pass
             time.sleep(1)
 
@@ -858,8 +858,7 @@ class SSHHost(remote.RemoteHost):
                 (self.hostname, self.port, self.user)
 
             host = pxssh.pxssh()
-            host.login(self.hostname, self.user, self.password,
-                    port=self.port)
+            host.login(self.hostname, self.user, self.password, port=self.port)
 
             try:
                 public_key = utils.get_public_key()
