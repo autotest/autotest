@@ -1,16 +1,13 @@
 #!/usr/bin/python
 
-__author__ = "raphtee@google.com (Travis Miller)"
-
 import unittest, os, time
 import common
 from autotest_lib.server import base_server_job, test, subcommand
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, error
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko.parsers import version_1 as parser_mod
 from autotest_lib.tko.parsers import version_0 as parser_mod0
-import pdb
 
 
 class BaseServerJobTest(unittest.TestCase):
@@ -228,9 +225,69 @@ class BaseServerJobTest(unittest.TestCase):
         outputdir = os.path.join(self.resultdir, testname)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
+        self.job.record.expect_call('START', testname, testname)
         test.runtest.expect_call(self.job, url, None, (), {})
         self.job.record.expect_call('GOOD', testname, testname,
                                     'completed successfully')
+        self.job.record.expect_call('END GOOD', testname, testname)
+
+        # run and check
+        self.job.run_test(url)
+        self.god.check_playback()
+
+
+    def test_run_test_with_test_error(self):
+        self.construct_server_job()
+
+        # setup
+        self.god.stub_function(test, 'testname')
+        self.god.stub_function(test, 'runtest')
+        self.god.stub_function(self.job, 'record')
+
+        # record
+        url = "my.test.url"
+        group = "group"
+        testname = "testname"
+        e = error.TestError("Unexpected error")
+        test.testname.expect_call(url).and_return((group, testname))
+        outputdir = os.path.join(self.resultdir, testname)
+        os.path.exists.expect_call(outputdir).and_return(False)
+        os.mkdir.expect_call(outputdir)
+        self.job.record.expect_call('START', testname, testname)
+        test.runtest.expect_call(self.job, url, None, (), {}).and_raises(e)
+        self.job.record.expect_call('ERROR', testname, testname,
+                                    'Unexpected error')
+        self.job.record.expect_call('END ERROR', testname, testname,
+                                    'Unexpected error')
+
+        # run and check
+        self.job.run_test(url)
+        self.god.check_playback()
+
+
+    def test_run_test_with_test_fail(self):
+        self.construct_server_job()
+
+        # setup
+        self.god.stub_function(test, 'testname')
+        self.god.stub_function(test, 'runtest')
+        self.god.stub_function(self.job, 'record')
+
+        # record
+        url = "my.test.url"
+        group = "group"
+        testname = "testname"
+        e = error.TestFail("The test failed!")
+        test.testname.expect_call(url).and_return((group, testname))
+        outputdir = os.path.join(self.resultdir, testname)
+        os.path.exists.expect_call(outputdir).and_return(False)
+        os.mkdir.expect_call(outputdir)
+        self.job.record.expect_call('START', testname, testname)
+        test.runtest.expect_call(self.job, url, None, (), {}).and_raises(e)
+        self.job.record.expect_call('FAIL', testname, testname,
+                                    'The test failed!')
+        self.job.record.expect_call('END FAIL', testname, testname,
+                                    'The test failed!')
 
         # run and check
         self.job.run_test(url)
