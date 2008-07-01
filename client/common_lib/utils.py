@@ -195,8 +195,10 @@ def run(command, timeout=None, ignore_status=False,
 def run_bg(command):
     """Run the command in a subprocess and return the subprocess."""
     result = CmdResult(command)
+    def reset_sigpipe():
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     sp = subprocess.Popen(command, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
+                          stderr=subprocess.PIPE, preexec_fn=reset_sigpipe,
                           shell=True, executable="/bin/bash")
     return sp, result
 
