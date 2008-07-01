@@ -172,7 +172,18 @@ class cpuset(object):
                                       + self.cpudir)
 
 
-    def __init__(self, name, job_size=None, job_pid=None, cpus=None, root=None):
+    def setup_network_containers(self, min_tx=0, max_tx=0, priority=2):
+        nc_tool = os.path.join(os.path.dirname(__file__), "..", "deps",
+                               "network_containers", "network_container")
+        cmd = ("%s --class_modify --cpuset_name %s --network_tx_min %d "
+               "--network_tx_max %d --network_priority %d")
+        cmd %= (nc_tool, self.name, min_tx * 10**6, max_tx * 10**6, priority)
+        print "network containers: %s" % cmd
+        utils.run(cmd)
+
+
+    def __init__(self, name, job_size=None, job_pid=None, cpus=None,
+                 root=None, network=None):
         """\
         Create a cpuset container and move job_pid into it
         Allocate the list "cpus" of cpus to that container
@@ -182,6 +193,12 @@ class cpuset(object):
                 job_pid = pid of job we're putting into the container
                 cpu = list of cpu indicies to associate with the cpuset
                 root = the cpuset to create this new set in
+                network = a dictionary of params to use for the network
+                          container, or None if you do not want to use
+                          network containment
+                    min_tx = minimum network tx in Mbps
+                    max_tx = maximum network tx in Mbps
+                    priority = network priority
         """
         if not os.path.exists(os.path.join(super_root, "cpus")):
             raise error.AutotestError('Root container /dev/cpuset '
@@ -216,8 +233,8 @@ class cpuset(object):
         if not job_pid:
             job_pid = os.getpid()
 
-        print "cpuset(name=%s, root=%s, job_size=%d, pid=%d)" % \
-              (name, root, job_size, job_pid)
+        print "cpuset(name=%s, root=%s, job_size=%d, pid=%d, network=%r)" % \
+              (name, root, job_size, job_pid, network)
 
         self.cpudir = os.path.join(self.root, name)
         if os.path.exists(self.cpudir):
@@ -252,6 +269,10 @@ class cpuset(object):
             print "cpuset %s lost race for nodes" % name, mems_spec
             # Return any mem we did get, and try again
             os.rmdir(self.cpudir)
+
+        # setup up the network container
+        if network is not None:
+            self.setup_network_containers(**network)
 
         # add specified cpu cores and own task pid to container:
         cpu_spec = ','.join(['%d' % x for x in cpus])
