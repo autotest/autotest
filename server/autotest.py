@@ -391,6 +391,7 @@ class _Run(object):
 
         if result.exit_status == 1:
             self.host.job.aborted = True
+            raise error.AutotestRunError("client job was aborted")
         if not result.stderr:
             raise error.AutotestRunError(
                 "execute_section: %s failed to return anything\n"
