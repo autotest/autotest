@@ -384,7 +384,8 @@ class TestBaseJob(unittest.TestCase):
         os.getpid.expect_call().and_return(pid)
 
         container = cpuset.cpuset.expect_new(name, job_size=None, job_pid=pid,
-                                             cpus=None, root=None)
+                                             cpus=None, root=None,
+                                             network=None)
 
         # run test
         self.job.new_container()
