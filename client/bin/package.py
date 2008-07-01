@@ -6,15 +6,15 @@ as dpkg and rpm.
 
 __author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
 
-import os, os_dep, re
-from autotest_lib.client.bin import autotest_utils
+import os, re
+from autotest_lib.client.bin import os_dep, autotest_utils
 from autotest_lib.client.common_lib import error, utils
 
 # As more package methods are implemented, this list grows up
 KNOWN_PACKAGE_MANAGERS = ['rpm', 'dpkg']
 
 
-def __rpm_info(rpm_package):
+def _rpm_info(rpm_package):
     """\
     Private function that returns a dictionary with information about an
     RPM package file
@@ -100,7 +100,7 @@ def __rpm_info(rpm_package):
     return package_info
 
 
-def __dpkg_info(dpkg_package):
+def _dpkg_info(dpkg_package):
     """\
     Private function that returns a dictionary with information about a
     dpkg package file
@@ -187,9 +187,9 @@ def info(package):
         result = re.search(package_pattern, file_result)
 
         if result and package_manager == 'rpm':
-            return __rpm_info(package)
+            return _rpm_info(package)
         elif result and package_manager == 'dpkg':
-            return __dpkg_info(package)
+            return _dpkg_info(package)
 
     # If it's not one of the implemented package manager methods, there's
     # not much that can be done, hence we throw an exception.
@@ -209,8 +209,8 @@ def install(package, nodeps = False):
     installed = my_package_info['installed']
 
     if not system_support:
-        e_msg = 'Client does not have package manager %s to handle %s install' \
-        % (type, package)
+        e_msg = ('Client does not have package manager %s to handle %s install'
+                 % (type, package))
         raise error.PackageError(e_msg)
 
     opt_args = ''
@@ -251,11 +251,13 @@ def convert(package, destination_format):
     # convertions only for the implemented package types.
     if destination_format == 'dpkg':
         deb_pattern = re.compile('[A-Za-z0-9_.-]*[.][d][e][b]')
-        conv_output = utils.system_output('alien --to-deb %s 2>/dev/null' % package)
+        conv_output = utils.system_output('alien --to-deb %s 2>/dev/null'
+                                          % package)
         converted_package = re.findall(deb_pattern, conv_output)[0]
     elif destination_format == 'rpm':
         rpm_pattern = re.compile('[A-Za-z0-9_.-]*[.][r][p][m]')
-        conv_output = utils.system_output('alien --to-rpm %s 2>/dev/null' % package)
+        conv_output = utils.system_output('alien --to-rpm %s 2>/dev/null'
+                                          % package)
         converted_package = re.findall(rpm_pattern, conv_output)[0]
     else:
         e_msg = 'Convertion to format %s not implemented' % destination_format
