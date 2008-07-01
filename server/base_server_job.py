@@ -390,11 +390,9 @@ class base_server_job:
         tag = None
         subdir = testname
 
-        if dargs.has_key('tag'):
-            tag = dargs['tag']
-            del dargs['tag']
-            if tag:
-                subdir += '.' + tag
+        tag = dargs.pop('tag', None)
+        if tag:
+            subdir += '.' + tag
 
         outputdir = os.path.join(self.resultdir, subdir)
         if os.path.exists(outputdir):
@@ -404,14 +402,46 @@ class base_server_job:
             raise error.TestError(msg)
         os.mkdir(outputdir)
 
+        def group_func():
+            try:
+                test.runtest(self, url, tag, args, dargs)
+            except (error.TestNAError, error.TestError, error.TestFail), e:
+                self.record(e.exit_status, subdir, testname, str(e))
+                raise
+            except (error.TestUnknownError, Exception), e:
+                info = str(e) + "\n" + traceback.format_exc()
+                self.record('FAIL', subdir, testname, info)
+                raise
+            else:
+                self.record('GOOD', subdir, testname,
+                            'completed successfully')
+        self._run_group(testname, subdir, group_func, *args, **dargs)
+
+
+    def _run_group(self, name, subdir, function, *args, **dargs):
+        """\
+        Underlying method for running something inside of a group.
+        """
+        result = None
+        old_record_prefix = self.record_prefix
         try:
-            test.runtest(self, url, tag, args, dargs)
-            self.record('GOOD', subdir, testname, 'completed successfully')
-        except (error.TestNAError, error.TestError, error.TestFail), detail:
-            self.record(detail.exit_status, subdir, testname, str(detail))
-        except (error.TestUnknownError, Exception), detail:
-            info = str(detail) + "\n" + traceback.format_exc()
-            self.record('FAIL', subdir, testname, info)
+            self.record('START', subdir, name)
+            self.record_prefix += '\t'
+            try:
+                result = function(*args, **dargs)
+            finally:
+                self.record_prefix = old_record_prefix
+        except (error.TestNAError, error.TestError, error.TestFail), e:
+            self.record("END %s" % e.exit_status, subdir, name, str(e))
+        except Exception, e:
+            err_msg = str(e) + '\n'
+            err_msg += traceback.format_exc()
+            self.record('END ABORT', subdir, name, err_msg)
+            raise error.JobError(name + ' failed\n' + traceback.format_exc())
+        else:
+            self.record('END GOOD', subdir, name)
+
+        return result
 
 
     def run_group(self, function, *args, **dargs):
@@ -422,41 +452,14 @@ class base_server_job:
                 arguments for the function
         """
 
-        result = None
         name = function.__name__
 
         # Allow the tag for the group to be specified.
-        if dargs.has_key('tag'):
-            tag = dargs['tag']
-            del dargs['tag']
-            if tag:
-                name = tag
+        tag = dargs.pop('tag', None)
+        if tag:
+            name = tag
 
-        old_record_prefix = self.record_prefix
-        try:
-            try:
-                self.record('START', None, name)
-                self.record_prefix += '\t'
-                result = function(*args, **dargs)
-            except Exception, e:
-                self.record_prefix = old_record_prefix
-                err_msg = str(e) + '\n'
-                err_msg += traceback.format_exc()
-                self.record('END FAIL', None, name, err_msg)
-            else:
-                self.record_prefix = old_record_prefix
-                self.record('END GOOD', None, name)
-
-        # We don't want to raise up an error higher if it's just
-        # a TestError - we want to carry on to other tests. Hence
-        # this outer try/except block.
-        except error.TestError:
-            pass
-        except:
-            raise error.TestError(name + ' failed\n' +
-                                  traceback.format_exc())
-
-        return result
+        return self._run_group(name, None, function, *args, **dargs)
 
 
     def run_reboot(self, reboot_func, get_kernel_func):
