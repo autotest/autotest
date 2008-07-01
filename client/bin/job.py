@@ -310,8 +310,9 @@ class base_job(object):
             if not cpus:    # get old name
                 cpus  = container.get('cpu', None)
             root  = container.get('root', None)
+            network = container.get('network', None)
             self.new_container(mbytes=mbytes, cpus=cpus,
-                            root=root, name=cname)
+                               root=root, name=cname, network=network)
             # We are running in a container now...
 
         def log_warning(reason):
@@ -414,7 +415,8 @@ class base_job(object):
         return result
 
 
-    def new_container(self, mbytes=None, cpus=None, root=None, name=None):
+    def new_container(self, mbytes=None, cpus=None, root=None, name=None,
+                      network=None):
         if not autotest_utils.grep('cpuset', '/proc/filesystems'):
             print "Containers not enabled by latest reboot"
             return  # containers weren't enabled in this kernel boot
@@ -422,7 +424,7 @@ class base_job(object):
         if not name:
             name = 'test%d' % pid  # make arbitrary unique name
         self.container = cpuset.cpuset(name, job_size=mbytes, job_pid=pid,
-                                       cpus=cpus, root=root)
+                                       cpus=cpus, root=root, network=network)
         # This job's python shell is now running in the new container
         # and all forked test processes will inherit that container
 
