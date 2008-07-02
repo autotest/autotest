@@ -415,7 +415,7 @@ class base_server_job:
             else:
                 self.record('GOOD', subdir, testname,
                             'completed successfully')
-        self._run_group(testname, subdir, group_func, *args, **dargs)
+        self._run_group(testname, subdir, group_func)
 
 
     def _run_group(self, name, subdir, function, *args, **dargs):
