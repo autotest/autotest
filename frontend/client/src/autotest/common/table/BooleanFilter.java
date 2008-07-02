@@ -11,6 +11,7 @@ public class BooleanFilter extends ListFilter {
         setChoices(choices);
     }
 
+    @Override
     public void addParams(JSONObject params) {
         String selected = getSelectedText();
         params.put(fieldName, JSONBoolean.getInstance(selected.equals("Yes")));

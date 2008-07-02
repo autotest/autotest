@@ -9,7 +9,6 @@ import com.google.gwt.json.client.JSONValue;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -22,15 +21,14 @@ class JobStatusDataSource extends RpcDataSource {
         super("get_host_queue_entries", "get_num_host_queue_entries");
     }
     
+    @Override
     protected JSONArray handleJsonResult(JSONValue result) {
         JSONArray rows = new JSONArray();
-        Map metaHostCounts = new HashMap();
+        Map<List<String>, Integer> metaHostCounts = new HashMap<List<String>, Integer>();
         JSONArray queueEntries = result.isArray();
-        int count = 0;
         for(int i = 0; i < queueEntries.size(); i++) {
             JSONObject queueEntry = queueEntries.get(i).isObject();
             JSONValue host = queueEntry.get("host");
-            String hostname, status;
             if (host.isNull() != null) {
                 // metahost
                 incrementMetaHostCount(metaHostCounts, queueEntry);
@@ -52,36 +50,35 @@ class JobStatusDataSource extends RpcDataSource {
         queueEntry.put("hostname", host.get("hostname"));
         // don't show host details if the job is complete - it'll only confuse
         // the user
-        boolean complete = queueEntry.get("complete").isNumber().getValue() > 0;
+        boolean complete = queueEntry.get("complete").isNumber().doubleValue() > 0;
         if (!complete) {
             queueEntry.put("host_status", host.get("status"));
             queueEntry.put("host_locked", AfeUtils.getLockedText(host));
         }
     }
 
-    protected void incrementMetaHostCount(Map metaHostCounts, JSONObject queueEntry) {
+    protected void incrementMetaHostCount(Map<List<String>, Integer> metaHostCounts, JSONObject queueEntry) {
         String label = queueEntry.get("meta_host").isString().stringValue();
         String status = queueEntry.get("status").isString().stringValue();
         if (status.equals("Queued"))
             status = "Unassigned";
-        List key = getMetaHostKey(label, status);
+        List<String> key = getMetaHostKey(label, status);
         
         int count = 0;
         if (metaHostCounts.containsKey(key))
-            count = ((Integer) metaHostCounts.get(key)).intValue();
-        metaHostCounts.put(key, new Integer(count + 1)); 
+            count = metaHostCounts.get(key).intValue();
+        metaHostCounts.put(key, Integer.valueOf(count + 1)); 
     }
 
-    private List getMetaHostKey(String label, String status) {
+    private List<String> getMetaHostKey(String label, String status) {
         // arrays don't hash correctly, so use a list instead
         return Arrays.asList(new String[] {label, status});
     }
     
-    protected void addMetaHostRows(Map metaHostCounts, JSONArray rows) {
-        for(Iterator i = metaHostCounts.keySet().iterator(); i.hasNext(); ) {
-            List key = (List) i.next();
-            String label = (String) key.get(0), status = (String) key.get(1);
-            int count = ((Integer) metaHostCounts.get(key)).intValue();
+    protected void addMetaHostRows(Map<List<String>, Integer> metaHostCounts, JSONArray rows) {
+        for (List<String> key : metaHostCounts.keySet()) {
+            String label = key.get(0), status = key.get(1);
+            int count = metaHostCounts.get(key).intValue();
             JSONObject row = new JSONObject();
             row.put("hostname", new JSONString(label + " (label)"));
             row.put("status", new JSONString(Integer.toString(count) + 

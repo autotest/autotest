@@ -25,7 +25,6 @@ import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -41,12 +40,13 @@ public class HostSelector {
     public static final int TABLE_SIZE = 10;
     public static final String META_PREFIX = "Any ";
     
-    class HostSelection {
-        public List hosts = new ArrayList();
-        public List metaHosts = new ArrayList();
+    static class HostSelection {
+        public List<String> hosts = new ArrayList<String>();
+        public List<String> metaHosts = new ArrayList<String>();
     }
     
-    protected ArrayDataSource selectedHostData = new ArrayDataSource("hostname");
+    protected ArrayDataSource<JSONObject> selectedHostData =
+        new ArrayDataSource<JSONObject>("hostname");
     
     protected HostTable availableTable = new RpcHostTable();
     protected HostTableDecorator availableDecorator = 
@@ -67,15 +67,17 @@ public class HostSelector {
         availableDecorator.lockedFilter.setSelectedChoice("No");
         
         availableSelection.addListener(new SelectionListener() {
-            public void onAdd(Collection objects) {
-                for (Iterator i = objects.iterator(); i.hasNext(); )
-                    selectRow((JSONObject) i.next());
+            public void onAdd(Collection<JSONObject> objects) {
+                for (JSONObject row : objects) {
+                    selectRow(row);
+                }
                 selectionRefresh();
             }
 
-            public void onRemove(Collection objects) {
-                for (Iterator i = objects.iterator(); i.hasNext(); )
-                    deselectRow((JSONObject) i.next());
+            public void onRemove(Collection<JSONObject> objects) {
+                for (JSONObject row : objects) {
+                    deselectRow(row);
+                }
                 selectionRefresh();
             }
         });
@@ -165,7 +167,7 @@ public class HostSelector {
     }
     
     protected void addVisible() {
-        List rowsToAdd = new ArrayList();
+        List<JSONObject> rowsToAdd = new ArrayList<JSONObject>();
         for (int i = 0; i < availableTable.getRowCount(); i++) {
             rowsToAdd.add(availableTable.getRow(i));
         }
@@ -176,8 +178,10 @@ public class HostSelector {
         DataSource availableDataSource = availableTable.getDataSource();
         availableDataSource.getPage(null, null, null, null, 
                                     new DefaultDataCallback() {
+            @Override
             public void handlePage(JSONArray data) {
-                availableSelection.selectObjects(new JSONArrayList(data));
+                availableSelection.selectObjects(
+                    new JSONArrayList<JSONObject>(data));
             }
         });
     }
@@ -213,9 +217,8 @@ public class HostSelector {
      */
     public HostSelection getSelectedHosts() {
         HostSelection selection = new HostSelection();
-        List selectionArray = selectedHostData.getItems();
-        for(Iterator i = selectionArray.iterator(); i.hasNext(); ) {
-            JSONObject row = (JSONObject) i.next();
+        List<JSONObject> selectionArray = selectedHostData.getItems();
+        for(JSONObject row : selectionArray ) {
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
                 String platform = row.get("platform").isString().stringValue();

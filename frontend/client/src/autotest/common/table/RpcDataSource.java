@@ -36,9 +36,10 @@ public class RpcDataSource implements DataSource {
         filterParams = params;
         JsonRpcProxy.getProxy().rpcCall(getCountMethod, params, 
                                         new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
-                int count = (int) result.isNumber().getValue();
-                numResults = new Integer(count);
+                int count = (int) result.isNumber().doubleValue();
+                numResults = Integer.valueOf(count);
                 callback.onGotData(count);
             }    
         });
@@ -66,6 +67,7 @@ public class RpcDataSource implements DataSource {
         
         JsonRpcProxy.getProxy().rpcCall(getDataMethod, params, 
                                         new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
                 JSONArray resultData = handleJsonResult(result);
                 callback.handlePage(resultData);

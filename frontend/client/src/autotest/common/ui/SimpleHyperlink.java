@@ -19,6 +19,7 @@ public class SimpleHyperlink extends Hyperlink {
         super(text, "");
     }
 
+    @Override
     public void onBrowserEvent(Event event) {
         if (DOM.eventGetType(event) == Event.ONCLICK) {
             if (clickListeners != null) {
@@ -28,6 +29,7 @@ public class SimpleHyperlink extends Hyperlink {
         }
     }
 
+    @Override
     public void addClickListener(ClickListener listener) {
         if (clickListeners == null) {
             clickListeners = new ClickListenerCollection();
@@ -35,6 +37,7 @@ public class SimpleHyperlink extends Hyperlink {
         clickListeners.add(listener);
     }
 
+    @Override
     public void removeClickListener(ClickListener listener) {
         if (clickListeners != null) {
             clickListeners.remove(listener);

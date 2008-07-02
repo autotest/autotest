@@ -27,14 +27,15 @@ public class HostDetailView extends DetailView implements DataCallback {
         public void onJobSelected(int jobId);
     }
     
-    class HostJobsTable extends DynamicTable {
+    static class HostJobsTable extends DynamicTable {
         public HostJobsTable(String[][] columns, DataSource dataSource) {
             super(columns, dataSource);
         }
 
+        @Override
         protected void preprocessRow(JSONObject row) {
             JSONObject job = row.get("job").isObject();
-            int jobId = (int) job.get("id").isNumber().getValue();
+            int jobId = (int) job.get("id").isNumber().doubleValue();
             row.put("job_id", new JSONString(Integer.toString(jobId)));
             row.put("job_owner", job.get("owner"));
             row.put("job_name", job.get("name"));
@@ -55,36 +56,44 @@ public class HostDetailView extends DetailView implements DataCallback {
         this.listener = listener;
     }
 
+    @Override
     public String getElementId() {
         return "view_host";
     }
 
+    @Override
     protected String getFetchControlsElementId() {
         return "view_host_fetch_controls";
     }
     
+    @Override
     protected String getDataElementId() {
         return "view_host_data";
     }
     
+    @Override
     protected String getTitleElementId() {
         return "view_host_title";
     }
 
+    @Override
     protected String getNoObjectText() {
         return "No host selected";
     }
     
+    @Override
     protected String getObjectId() {
         return hostname;
     }
     
+    @Override
     protected void setObjectId(String id) {
         if (id.length() == 0)
             throw new IllegalArgumentException();
         this.hostname = id;
     }
     
+    @Override
     protected void fetchData() {
         JSONObject params = new JSONObject();
         params.put("hostname", new JSONString(hostname));
@@ -110,13 +119,14 @@ public class HostDetailView extends DetailView implements DataCallback {
         showField(hostObject, "platform", "view_host_platform");
         showField(hostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
         showField(hostObject, HostDataSource.LOCKED_TEXT, "view_host_locked");
-        String title = "Host " + hostname;
-        displayObjectData(title);
+        String pageTitle = "Host " + hostname;
+        displayObjectData(pageTitle);
         
         hostFilter.setParameter("host__hostname", new JSONString(hostname));
         jobsTable.refresh();
     }
 
+    @Override
     public void initialize() {
         super.initialize();
         
@@ -127,7 +137,7 @@ public class HostDetailView extends DetailView implements DataCallback {
         jobsTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
                 JSONObject job = row.get("job").isObject();
-                int jobId = (int) job.get("id").isNumber().getValue();
+                int jobId = (int) job.get("id").isNumber().doubleValue();
                 listener.onJobSelected(jobId);
             }
 

@@ -16,7 +16,6 @@ import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -47,9 +46,8 @@ public class JsonRpcProxy {
         JSONArray result = new JSONArray();
         JSONObject newParams = new JSONObject();
         if (params != null) {
-            Set keys = params.keySet();
-            for (Iterator i = keys.iterator(); i.hasNext(); ) {
-                String key = (String) i.next();
+            Set<String> keys = params.keySet();
+            for (String key : keys) {
                 if (params.get(key) != JSONNull.getInstance())
                     newParams.put(key, params.get(key));
             }

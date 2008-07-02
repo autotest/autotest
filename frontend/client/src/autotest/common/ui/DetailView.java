@@ -29,6 +29,7 @@ public abstract class DetailView extends TabView {
     protected abstract void setObjectId(String id); // throws IllegalArgumentException
     protected abstract void fetchData();
     
+    @Override
     public void initialize() {
         resetPage();
         
@@ -88,6 +89,7 @@ public abstract class DetailView extends TabView {
             refresh();
     }
     
+    @Override
     public void handleHistoryToken(String token) {
         if (token.equals(getObjectId()))
             return;
@@ -99,12 +101,14 @@ public abstract class DetailView extends TabView {
         }
     }
     
+    @Override
     public void refresh() {
         super.refresh();
         if (!getObjectId().equals(NO_OBJECT))
             fetchData();
     }
     
+    @Override
     public String getHistoryToken() {
         String token = super.getHistoryToken();
         String objectId = getObjectId();

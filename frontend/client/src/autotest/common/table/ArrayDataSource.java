@@ -9,18 +9,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 
 /**
  * Data source that operates from a local array.  Does not support any 
  * filtering.
  */
-public class ArrayDataSource implements DataSource {
-    protected List data = new ArrayList();
+public class ArrayDataSource<T extends JSONObject> implements DataSource {
+    protected List<T> data = new ArrayList<T>();
     protected JSONObjectComparator comparator;
     
-    class JSONObjectComparator implements Comparator {
+    class JSONObjectComparator implements Comparator<T> {
         String compareKey;
         int direction;
         
@@ -29,9 +28,9 @@ public class ArrayDataSource implements DataSource {
             this.direction = direction;
         }
 
-        public int compare(Object arg0, Object arg1) {
-            String key0 = ((JSONObject) arg0).get(compareKey).toString();
-            String key1 = ((JSONObject) arg1).get(compareKey).toString();
+        public int compare(T arg0, T arg1) {
+            String key0 = arg0.get(compareKey).toString();
+            String key1 = arg1.get(compareKey).toString();
             return key0.compareTo(key1) * direction;
         }
     }
@@ -44,7 +43,7 @@ public class ArrayDataSource implements DataSource {
         comparator = new JSONObjectComparator(sortKey, ASCENDING);
     }
     
-    public void addItem(JSONObject item) {
+    public void addItem(T item) {
         // insert in sorted order
         int insertPosition = Collections.binarySearch(data, item, comparator);
         if (insertPosition < 0)
@@ -52,7 +51,7 @@ public class ArrayDataSource implements DataSource {
         data.add(insertPosition, item);
     }
     
-    public void removeItem(JSONObject item) {
+    public void removeItem(T item) {
         int position = Collections.binarySearch(data, item, comparator);
         assert position >= 0;
         data.remove(position);
@@ -62,25 +61,26 @@ public class ArrayDataSource implements DataSource {
         data.clear();
     }
     
-    public List getItems() {
+    public List<T> getItems() {
         return data;
     }
     
-    protected JSONArray createJSONArray(Collection objects) {
+    protected JSONArray createJSONArray(Collection<T> objects) {
         JSONArray result = new JSONArray();
         int count = 0;
-        for (Iterator i = objects.iterator(); i.hasNext(); count++) {
-            result.set(count, (JSONObject) i.next());
+        for (T object : objects) {
+            result.set(count, object);
+            count++;
         }
         return result;
     }
     
     public void getPage(Integer start, Integer maxCount, String sortOn,
                         Integer sortDirection, DataCallback callback) {
-        List sortedData = data;
+        List<T> sortedData = data;
         if (sortOn != null) {
             assert sortDirection != null;
-            sortedData = new ArrayList(data);
+            sortedData = new ArrayList<T>(data);
             Collections.sort(sortedData, 
                              new JSONObjectComparator(sortOn, 
                                                       sortDirection.intValue()));
@@ -88,7 +88,8 @@ public class ArrayDataSource implements DataSource {
         int startInt = start != null ? start.intValue() : 0;
         int maxCountInt = maxCount != null ? maxCount.intValue() : data.size();
         int size = Math.min(maxCountInt, data.size() - startInt);
-        List subList = new UnmodifiableSublistView(sortedData, startInt, size);
+        List<T> subList =
+            new UnmodifiableSublistView<T>(sortedData, startInt, size);
         callback.handlePage(createJSONArray(subList));
     }
 

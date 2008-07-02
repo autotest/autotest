@@ -13,6 +13,7 @@ public class MultipleListFilter extends ListFilter {
         select.setMultipleSelect(true);
     }
 
+    @Override
     public JSONValue getMatchValue() {
         JSONArray labels = new JSONArray();
         // skip first item ("all values")
@@ -25,10 +26,12 @@ public class MultipleListFilter extends ListFilter {
         return labels;
     }
 
+    @Override
     public boolean isActive() {
         return true;
     }
 
+    @Override
     public void setChoices(String[] choices) {
         super.setChoices(choices);
         int visibleSize = Math.min(select.getItemCount(), maxVisibleSize);

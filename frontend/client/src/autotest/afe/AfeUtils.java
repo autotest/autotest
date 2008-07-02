@@ -21,10 +21,10 @@ public class AfeUtils {
     
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
         String result = "";
-        Set statusSet = counts.keySet();
-        for (Iterator i = statusSet.iterator(); i.hasNext();) {
-            String status = (String) i.next();
-            int count = (int) counts.get(status).isNumber().getValue();
+        Set<String> statusSet = counts.keySet();
+        for (Iterator<String> i = statusSet.iterator(); i.hasNext();) {
+            String status = i.next();
+            int count = (int) counts.get(status).isNumber().doubleValue();
             result += Integer.toString(count) + " " + status;
             if (i.hasNext())
                 result += joinWith;
@@ -57,7 +57,7 @@ public class AfeUtils {
                 result.add(name);
             }
         }
-        return result.toArray(new String[0]);
+        return result.toArray(new String[result.size()]);
     }
     
     public static String[] getPlatformStrings() {
@@ -77,7 +77,7 @@ public class AfeUtils {
     }
     
     public static JSONString getLockedText(JSONObject host) {
-        boolean locked = host.get("locked").isNumber().getValue() > 0;
+        boolean locked = host.get("locked").isNumber().doubleValue() > 0;
         return new JSONString(locked ? "Yes" : "No");
     }
 }
