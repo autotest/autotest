@@ -12,14 +12,17 @@ import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
 import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.HTTPRequest;
-import com.google.gwt.user.client.ResponseTextHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
@@ -27,7 +30,6 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import java.util.Iterator;
 import java.util.Set;
 
 
@@ -60,11 +62,13 @@ public class JobDetailView extends DetailView {
         this.listener = listener;
     }
 
+    @Override
     protected void fetchData() {
         pointToResults(NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
                 JSONObject jobObject;
                 try {
@@ -96,14 +100,15 @@ public class JobDetailView extends DetailView {
                 String jobLogsId = jobId + "-" + owner;
                 pointToResults(getResultsURL(jobId), getLogsURL(jobLogsId));
                 
-                String title = "Job: " + name + " (" + jobLogsId + ")";
-                displayObjectData(title);
+                String jobTitle = "Job: " + name + " (" + jobLogsId + ")";
+                displayObjectData(jobTitle);
                 
                 jobFilter.setParameter("job", new JSONNumber(jobId));
                 hostsTable.refresh();
             }
 
 
+            @Override
             public void onError(JSONObject errorObject) {
                 super.onError(errorObject);
                 resetPage();
@@ -112,9 +117,8 @@ public class JobDetailView extends DetailView {
     }
     
     protected boolean allFinishedCounts(JSONObject statusCounts) {
-        Set keys = statusCounts.keySet();
-        for (Iterator i = keys.iterator(); i.hasNext(); ) {
-            String key = (String) i.next();
+        Set<String> keys = statusCounts.keySet();
+        for (String key : keys) {
             if (!(key.equals("Completed") || 
                   key.equals("Failed") ||
                   key.equals("Aborting") ||
@@ -126,6 +130,7 @@ public class JobDetailView extends DetailView {
         return true;
     }
     
+    @Override
     public void initialize() {
         super.initialize();
         
@@ -183,6 +188,7 @@ public class JobDetailView extends DetailView {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("abort_job", params, new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
                 refresh();
             }
@@ -193,8 +199,9 @@ public class JobDetailView extends DetailView {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("requeue_job", params, new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
-                int newId = (int) result.isNumber().getValue();
+                int newId = (int) result.isNumber().doubleValue();
                 fetchJob(newId);
             }
         });
@@ -220,44 +227,63 @@ public class JobDetailView extends DetailView {
                                "href", resultsUrl);
         DOM.setElementProperty(DOM.getElementById("raw_results_link"),
                                "href", logsUrl);
-        if (resultsUrl == NO_URL) {
+        if (resultsUrl.equals(NO_URL)) {
             tkoResultsHtml.setHTML("");
             return;
         }
-        
-        HTTPRequest.asyncGet(resultsUrl + "&brief=1", new ResponseTextHandler() {
-            public void onCompletion(String responseText) {
-                tkoResultsHtml.setHTML(responseText);
-            }
-        });
+
+        RequestBuilder requestBuilder =
+            new RequestBuilder(RequestBuilder.GET, resultsUrl + "&brief=1");
+        try {
+            requestBuilder.sendRequest("", new RequestCallback() {
+                public void onError(Request request, Throwable exception) {
+                    tkoResultsHtml.setHTML("");
+                    NotifyManager.getInstance().showError(
+                        exception.getLocalizedMessage());
+                }
+                public void onResponseReceived(Request request,
+                                               Response response) {
+                    tkoResultsHtml.setHTML(response.getText());
+                }
+            });
+        } catch (RequestException ex) {
+          NotifyManager.getInstance().showError(ex.getLocalizedMessage());
+        }
     }
     
+    @Override
     protected String getNoObjectText() {
         return "No job selected";
     }
     
+    @Override
     protected String getFetchControlsElementId() {
         return "job_id_fetch_controls";
     }
     
+    @Override
     protected String getDataElementId() {
         return "view_data";
     }
     
+    @Override
     protected String getTitleElementId() {
         return "view_title";
     }
 
+    @Override
     protected String getObjectId() {
         if (jobId == NO_JOB_ID)
             return NO_OBJECT;
         return Integer.toString(jobId);
     }
     
+    @Override
     public String getElementId() {
         return "view_job";
     }
 
+    @Override
     protected void setObjectId(String id) {
         int newJobId;
         try {

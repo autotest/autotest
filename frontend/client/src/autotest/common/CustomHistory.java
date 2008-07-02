@@ -4,7 +4,6 @@ import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.HistoryListener;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -13,9 +12,9 @@ import java.util.List;
  *
  */
 public class CustomHistory implements HistoryListener {
-    protected static CustomHistory theInstance = new CustomHistory();
+    protected static final CustomHistory theInstance = new CustomHistory();
     
-    protected List listeners = new ArrayList();
+    protected List<HistoryListener> listeners = new ArrayList<HistoryListener>();
     protected boolean ignoreNextChange = false;
     
     protected CustomHistory() {
@@ -28,8 +27,9 @@ public class CustomHistory implements HistoryListener {
             return;
         }
 
-        for (Iterator i = listeners.iterator(); i.hasNext(); )
-            ((HistoryListener) i.next()).onHistoryChanged(historyToken);
+        for (HistoryListener listener : listeners) {
+            listener.onHistoryChanged(historyToken);
+        }
     }
 
     public static void addHistoryListener(HistoryListener listener) {

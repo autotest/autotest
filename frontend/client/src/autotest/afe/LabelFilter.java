@@ -33,6 +33,7 @@ public class LabelFilter extends MultipleListFilter {
     });
     }
 
+    @Override
     protected String getItemText(int index) {
         return AfeUtils.decodeLabelName(super.getItemText(index));
     }

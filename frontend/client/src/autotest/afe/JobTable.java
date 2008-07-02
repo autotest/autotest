@@ -26,6 +26,7 @@ public class JobTable extends DynamicTable {
         sortOnColumn("ID", DataSource.DESCENDING);
     }
 
+    @Override
     protected void preprocessRow(JSONObject row) {
         JSONObject counts = row.get("status_counts").isObject();
         String countString = AfeUtils.formatStatusCounts(counts, "<br>");

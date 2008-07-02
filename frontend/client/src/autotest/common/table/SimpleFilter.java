@@ -5,31 +5,32 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
  * A simple filter that adds parameters from a string map.
  */
 public class SimpleFilter extends Filter {
-    protected Map parameters = new HashMap();
+    protected Map<String, JSONValue> parameters = new HashMap<String, JSONValue>();
     
     public void setParameter(String key, JSONValue value) {
         parameters.put(key, value);
     }
 
+    @Override
     public void addParams(JSONObject params) {
-        for (Iterator i = parameters.keySet().iterator(); i.hasNext(); ) {
-            String key = (String) i.next();
-            JSONValue value = (JSONValue) parameters.get(key);
+        for (String key : parameters.keySet()) {
+            JSONValue value = parameters.get(key);
             params.put(key, value);
         }
     }
 
+    @Override
     public Widget getWidget() {
         return null;
     }
 
+    @Override
     public boolean isActive() {
         return true;
     }

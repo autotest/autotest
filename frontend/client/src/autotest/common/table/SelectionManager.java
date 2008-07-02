@@ -14,14 +14,15 @@ import java.util.Map;
 import java.util.Set;
 
 public class SelectionManager {
-    protected Set selectedObjects = new JSONValueSet();
+    protected Set<JSONObject> selectedObjects = new JSONValueSet<JSONObject>();
     protected boolean selectOnlyOne = false;
     protected DynamicTable attachedTable;
-    protected List listeners = new ArrayList();
+    protected List<SelectionListener> listeners =
+        new ArrayList<SelectionListener>();
     
     public interface SelectionListener {
-        public void onAdd(Collection objects);
-        public void onRemove(Collection objects);
+        public void onAdd(Collection<JSONObject> objects);
+        public void onRemove(Collection<JSONObject> objects);
     }
     
     
@@ -29,29 +30,34 @@ public class SelectionManager {
      * Set that hashes JSONObjects by their ID, so that identical objects get 
      * matched together.
      */
-    class JSONValueSet extends AbstractSet {
-        protected Map backingMap = new HashMap();
+    static class JSONValueSet<T extends JSONObject> extends AbstractSet<T> {
+        protected Map<String, T> backingMap = new HashMap<String, T>();
         
         protected String getKey(Object obj) {
             return ((JSONObject) obj).get("id").toString();
         }
 
-        public boolean add(Object arg0) {
+        @Override
+        public boolean add(T arg0) {
             return backingMap.put(getKey(arg0), arg0) == null;
         }
 
-        public Iterator iterator() {
+        @Override
+        public Iterator<T> iterator() {
             return backingMap.values().iterator();
         }
 
+        @Override
         public boolean remove(Object arg0) {
             return backingMap.remove(getKey(arg0)) != null;
         }
 
+        @Override
         public boolean contains(Object o) {
             return backingMap.containsKey(getKey(o));
         }
 
+        @Override
         public int size() {
             return backingMap.size();
         }
@@ -82,8 +88,8 @@ public class SelectionManager {
         }
     }
     
-    protected Collection wrapObject(Object object) {
-        List list = new ArrayList();
+    protected Collection<JSONObject> wrapObject(JSONObject object) {
+        List<JSONObject> list = new ArrayList<JSONObject>();
         list.add(object);
         return list;
     }
@@ -92,7 +98,7 @@ public class SelectionManager {
         selectObjects(wrapObject(object));
     }
     
-    public void selectObjects(Collection objects) {
+    public void selectObjects(Collection<? extends JSONObject> objects) {
         if (selectOnlyOne) {
             assert objects.size() == 1;
             deselectAll();
@@ -104,14 +110,14 @@ public class SelectionManager {
         deselectObjects(wrapObject(object));
     }
     
-    public void deselectObjects(Collection objects) {
+    public void deselectObjects(Collection<JSONObject> objects) {
         addOrRemoveObjects(objects, false);
     }
     
-    protected void addOrRemoveObjects(Collection objects, boolean add) {
-        List actuallyUsed = new ArrayList();
-        for (Iterator i = objects.iterator(); i.hasNext(); ) {
-            Object object = i.next();
+    protected void addOrRemoveObjects(Collection<? extends JSONObject> objects,
+                                      boolean add) {
+        List<JSONObject> actuallyUsed = new ArrayList<JSONObject>();
+        for (JSONObject object : objects) {
             boolean used = false;
             if (add)
                 used = selectedObjects.add(object);
@@ -124,7 +130,7 @@ public class SelectionManager {
     }
     
     public void deselectAll() {
-        List removed = new ArrayList(selectedObjects);
+        List<JSONObject> removed = new ArrayList<JSONObject>(selectedObjects);
         selectedObjects.clear();
         notifyListeners(removed, false);
     }
@@ -140,10 +146,10 @@ public class SelectionManager {
         assert selectOnlyOne;
         if (selectedObjects.isEmpty())
             return null;
-        return (JSONObject) selectedObjects.iterator().next();
+        return selectedObjects.iterator().next();
     }
     
-    public Set getSelectedObjects() {
+    public Set<JSONObject> getSelectedObjects() {
         return selectedObjects;
     }
     
@@ -156,14 +162,14 @@ public class SelectionManager {
     }
     
     protected void notifyListeners(JSONObject object, boolean add) {
-        List objectList = new ArrayList();
+        List<JSONObject> objectList = new ArrayList<JSONObject>();
         objectList.add(object);
         notifyListeners(objectList, add);
     }
     
-    protected void notifyListeners(Collection objects, boolean add) {
-        for (Iterator i = listeners.iterator(); i.hasNext(); ) {
-            SelectionListener listener = (SelectionListener) i.next();
+    protected void notifyListeners(Collection<JSONObject> objects,
+                                   boolean add) {
+        for (SelectionListener listener : listeners) {
             if (add)
                 listener.onAdd(objects);
             else

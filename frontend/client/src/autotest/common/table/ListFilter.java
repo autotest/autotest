@@ -29,6 +29,7 @@ public class ListFilter extends FieldFilter {
             select.setItemText(0, allValuesText);
     }
     
+    @Override
     public void setExactMatch(boolean isExactMatch) {
         this.isExactMatch = isExactMatch;
     }
@@ -44,14 +45,17 @@ public class ListFilter extends FieldFilter {
         return getItemText(selected);
     }
 
+    @Override
     public JSONValue getMatchValue() {
         return new JSONString(getSelectedText()); 
     }
     
+    @Override
     public boolean isActive() {
         return !getSelectedText().equals(allValuesText);
     }
     
+    @Override
     public Widget getWidget() {
         return select;
     }

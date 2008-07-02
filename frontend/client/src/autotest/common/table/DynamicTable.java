@@ -13,7 +13,6 @@ import com.google.gwt.user.client.ui.SourcesTableEvents;
 import com.google.gwt.user.client.ui.TableListener;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -30,7 +29,7 @@ public class DynamicTable extends DataTable
         public void onTableRefreshed();
     }
     
-    class SortIndicator extends Composite {
+    static class SortIndicator extends Composite {
         protected Image image = new Image();
         
         public SortIndicator() {
@@ -55,11 +54,11 @@ public class DynamicTable extends DataTable
     protected SortIndicator[] sortIndicators;
     protected int sortedOn = NO_COLUMN;
     
-    protected List filters = new ArrayList();
-    protected List paginators = new ArrayList();
+    protected List<Filter> filters = new ArrayList<Filter>();
+    protected List<Paginator> paginators = new ArrayList<Paginator>();
     protected Integer rowsPerPage;
     
-    protected List listeners = new ArrayList();
+    protected List<DynamicTableListener> listeners = new ArrayList<DynamicTableListener>();
     
     public DynamicTable(String[][] columns, DataSource dataSource) {
         super(columns);
@@ -145,9 +144,9 @@ public class DynamicTable extends DataTable
      */
     public void setRowsPerPage(int rowsPerPage) {
         assert rowsPerPage > 0;
-        this.rowsPerPage = new Integer(rowsPerPage);
-        for (Iterator i = paginators.iterator(); i.hasNext(); ) {
-            ((Paginator) i.next()).setResultsPerPage(rowsPerPage);
+        this.rowsPerPage = Integer.valueOf(rowsPerPage);
+        for (Paginator paginator : paginators) {
+            paginator.setResultsPerPage(rowsPerPage);
         }
     }
     
@@ -156,20 +155,20 @@ public class DynamicTable extends DataTable
      * <code>refresh()</code> after this to display the results.
      */
     public void setPaginatorStart(int start) {
-        for (Iterator i = paginators.iterator(); i.hasNext(); ) {
-            ((Paginator) i.next()).setStart(start);
+        for (Paginator paginator : paginators) {
+            paginator.setStart(start);
         }
     }
     
     protected void refreshPaginators() {
-        for (Iterator i = paginators.iterator(); i.hasNext(); ) {
-            ((Paginator) i.next()).update();
+        for (Paginator paginator : paginators) {
+            paginator.update();
         }
     }
     
     protected void updatePaginatorTotalResults(int totalResults) {
-        for (Iterator i = paginators.iterator(); i.hasNext(); ) {
-            ((Paginator) i.next()).setNumTotalResults(totalResults);
+        for (Paginator paginator : paginators) {
+            paginator.setNumTotalResults(totalResults);
         }
     }
     
@@ -187,10 +186,10 @@ public class DynamicTable extends DataTable
     }
     
     protected void addFilterParams(JSONObject params) {
-        for (Iterator i = filters.iterator(); i.hasNext(); ) {
-            Filter filter = (Filter) i.next();
-            if (filter.isActive())
+        for (Filter filter : filters) {
+            if (filter.isActive()) {
                 filter.addParams(params);
+            }
         }
     }
     
@@ -208,13 +207,13 @@ public class DynamicTable extends DataTable
         String sortOn = null;
         if (!paginators.isEmpty()) {
             updatePaginatorTotalResults(totalCount);
-            Paginator p = (Paginator) paginators.get(0);
-            start = new Integer(p.getStart());
-            limit = new Integer(p.getResultsPerPage());
+            Paginator p = paginators.get(0);
+            start = Integer.valueOf(p.getStart());
+            limit = Integer.valueOf(p.getResultsPerPage());
         }
         if (sortedOn != NO_COLUMN)
             sortOn = columns[sortedOn][COL_NAME];
-        dataSource.getPage(start, limit, sortOn, new Integer(sortDirection),
+        dataSource.getPage(start, limit, sortOn, Integer.valueOf(sortDirection),
                            this); 
     }
 
@@ -262,13 +261,15 @@ public class DynamicTable extends DataTable
     
     protected void notifyListenersClicked(int rowIndex) {
         JSONObject row = getRow(rowIndex);
-        for (Iterator i = listeners.iterator(); i.hasNext(); )
-            ((DynamicTableListener) i.next()).onRowClicked(rowIndex, row);
+        for (DynamicTableListener listener : listeners) {
+            listener.onRowClicked(rowIndex, row);
+        }
     }
     
     protected void notifyListenersRefreshed() {
-        for (Iterator i = listeners.iterator(); i.hasNext(); )
-            ((DynamicTableListener) i.next()).onTableRefreshed();
+        for (DynamicTableListener listener : listeners) {
+            listener.onTableRefreshed();
+        }
     }
     
     // OTHER

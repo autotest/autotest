@@ -62,13 +62,13 @@ public class CreateJobView extends TabView {
     protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JobCreateListener listener;
     
-    protected class TestCheckBox extends CheckBox {
+    protected static class TestCheckBox extends CheckBox {
         protected int id;
         protected String testType, synchType;
         
         public TestCheckBox(JSONObject test) {
             super(test.get("name").isString().stringValue());
-            id = (int) test.get("id").isNumber().getValue();
+            id = (int) test.get("id").isNumber().doubleValue();
             testType = test.get("test_type").isString().stringValue();
             synchType = test.get("synch_type").isString().stringValue();
             String description = test.get("description").isString().stringValue();
@@ -162,7 +162,7 @@ public class CreateJobView extends TabView {
         }
     }
     
-    protected class ControlTypeSelect extends Composite {
+    protected static class ControlTypeSelect extends Composite {
         public static final String RADIO_GROUP = "controlTypeGroup";
         protected String clientType, serverType;
         protected RadioButton client, server;
@@ -237,6 +237,7 @@ public class CreateJobView extends TabView {
         this.listener = listener;
     }
 
+    @Override
     public String getElementId() {
         return "create_job";
     }
@@ -285,8 +286,7 @@ public class CreateJobView extends TabView {
     protected void populatePriorities() {
         JSONArray tests = staticData.getData("profilers").isArray();
         
-        for(JSONValue profilerValue : new JSONArrayList(tests)) {
-            JSONObject profiler = profilerValue.isObject();
+        for(JSONObject profiler : new JSONArrayList<JSONObject>(tests)) {
             String name = profiler.get("name").isString().stringValue();
             CheckBox checkbox = new CheckBox(name);
             checkbox.addClickListener(new ClickListener() {
@@ -332,6 +332,7 @@ public class CreateJobView extends TabView {
                                        final SimpleCallback errorCallback) {
         JSONObject params = getControlFileParams(readyForSubmit);
         rpcProxy.rpcCall("generate_control_file", params, new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
                 JSONArray results = result.isArray();
                 String controlFileText = results.get(0).isString().stringValue();
@@ -347,6 +348,7 @@ public class CreateJobView extends TabView {
                     finishedCallback.doCallback(this);
             }
 
+            @Override
             public void onError(JSONObject errorObject) {
                 super.onError(errorObject);
                 if (errorCallback != null)
@@ -386,8 +388,8 @@ public class CreateJobView extends TabView {
         kernel.setEnabled(false);
     }
     
+    @Override
     public void initialize() {
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
         populatePriorities(staticData.getData("priorities").isArray());
         
         kernel.addFocusListener(new FocusListener() {
@@ -544,8 +546,9 @@ public class CreateJobView extends TabView {
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 
                 rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
+                    @Override
                     public void onSuccess(JSONValue result) {
-                        int id = (int) result.isNumber().getValue();
+                        int id = (int) result.isNumber().doubleValue();
                         NotifyManager.getInstance().showMessage(
                                     "Job " + Integer.toString(id) + " created");
                         reset();
@@ -554,6 +557,7 @@ public class CreateJobView extends TabView {
                         submitJobButton.setEnabled(true);
                     }
 
+                    @Override
                     public void onError(JSONObject errorObject) {
                         super.onError(errorObject);
                         submitJobButton.setEnabled(true);
@@ -573,6 +577,7 @@ public class CreateJobView extends TabView {
             doSubmit.doCallback(this);
     }
     
+    @Override
     public void refresh() {
         super.refresh();
         hostSelector.refresh();

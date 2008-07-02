@@ -21,14 +21,17 @@ public class SearchFilter extends FieldFilter {
         });
     }
 
+    @Override
     public JSONValue getMatchValue() {
         return new JSONString(searchBox.getText());
     }
 
+    @Override
     public boolean isActive() {
         return !searchBox.getText().equals("");
     }
 
+    @Override
     public Widget getWidget() {
         return searchBox;
     }

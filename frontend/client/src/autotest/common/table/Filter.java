@@ -6,11 +6,11 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public abstract class Filter {
-    protected List changeListeners = new ArrayList();
+    protected List<SimpleCallback> changeListeners =
+        new ArrayList<SimpleCallback>();
     
     public abstract void addParams(JSONObject params);
     public abstract boolean isActive();
@@ -25,8 +25,8 @@ public abstract class Filter {
     }
     
     protected void notifyListeners() {
-        for (Iterator i = changeListeners.iterator(); i.hasNext(); ) {
-            ((SimpleCallback) i.next()).doCallback(this);
+        for (SimpleCallback listener : changeListeners) {
+            listener.doCallback(this);
         }
     }
 }

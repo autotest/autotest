@@ -15,7 +15,7 @@ public class NotifyManager {
     // singleton
     public static final NotifyManager theInstance = new NotifyManager();
     
-    class NotifyBox {
+    static class NotifyBox {
         protected PopupPanel panel;
         protected Label message = new Label();
         
@@ -44,7 +44,7 @@ public class NotifyManager {
         }
     }
     
-    class ErrorLog extends Composite {
+    static class ErrorLog extends Composite {
         protected DisclosurePanel disclosurePanel = 
             new DisclosurePanel("Error log");
         protected TextArea errorTextArea = new TextArea();
