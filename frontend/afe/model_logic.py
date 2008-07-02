@@ -82,6 +82,19 @@ class ExtendedManager(dbmodels.Manager):
         return self.complex_filter(filter_object)
 
 
+    @staticmethod
+    def _get_quoted_field(table, field):
+        return (backend.quote_name(table) + '.' + backend.quote_name(field))
+
+
+    def _get_key_on_this_table(self, key_field=None):
+        if key_field is None:
+            # default to primary key
+            key_field = self.model._meta.pk.column
+        return self._get_quoted_field(self.model._meta.db_table, key_field)
+
+
+
 class ValidObjectsManager(ExtendedManager):
     """
     Manager returning only objects with invalid=False.
