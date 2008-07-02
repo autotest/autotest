@@ -12,7 +12,6 @@ import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -20,7 +19,7 @@ import java.util.List;
  * total row count, and buttons for moving among pages.
  */
 public class Paginator extends Composite {
-    class LinkWithDisable extends Composite {
+    static class LinkWithDisable extends Composite {
         protected Panel panel = new FlowPanel();
         protected Label label;
         protected Hyperlink link;
@@ -51,7 +50,8 @@ public class Paginator extends Composite {
     }
 
     protected int resultsPerPage, numTotalResults;
-    protected List changeListeners = new ArrayList();
+    protected List<SimpleCallback> changeListeners =
+        new ArrayList<SimpleCallback>();
     protected int currentStart = 0;
 
     protected HorizontalPanel mainPanel = new HorizontalPanel();
@@ -178,8 +178,8 @@ public class Paginator extends Composite {
     }
     
     protected void notifyListeners() {
-        for (Iterator i = changeListeners.iterator(); i.hasNext(); ) {
-            ((SimpleCallback) i.next()).doCallback(this);
+        for (SimpleCallback listener : changeListeners) {
+            listener.doCallback(this);
         }
     }
 }

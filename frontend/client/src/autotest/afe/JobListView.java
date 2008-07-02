@@ -37,12 +37,14 @@ public class JobListView extends TabView {
         public void onJobSelected(int jobId);
     }
     
-    class JobStateFilter extends LinkSetFilter {
+    static class JobStateFilter extends LinkSetFilter {
+        @Override
         public void addParams(JSONObject params) {
             params.put(filterStrings[getSelectedLink()], 
                        JSONBoolean.getInstance(true));
         }
 
+        @Override
         public boolean isActive() {
             return getSelectedLink() < ALL;
         }
@@ -61,10 +63,12 @@ public class JobListView extends TabView {
 
     protected Hyperlink nextLink, prevLink;
     
+    @Override
     public String getElementId() {
         return "job_list";
     }
 
+    @Override
     public void refresh() {
         super.refresh();
         jobTable.refresh();
@@ -83,13 +87,14 @@ public class JobListView extends TabView {
         selectListener = listener;
     }
     
+    @Override
     public void initialize() {
         jobTable = new JobTable();
         jobTable.setRowsPerPage(JOBS_PER_PAGE);
         jobTable.setClickable(true);
         jobTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
-                int jobId = (int) row.get("id").isNumber().getValue();
+                int jobId = (int) row.get("id").isNumber().doubleValue();
                 selectListener.onJobSelected(jobId);
             }
             
@@ -123,11 +128,13 @@ public class JobListView extends TabView {
         RootPanel.get("job_control_links").add(jobControls);
     }
 
+    @Override
     public String getHistoryToken() {
         return super.getHistoryToken() + "_" + 
                historyTokens[jobStateFilter.getSelectedLink()];
     }
     
+    @Override
     public void handleHistoryToken(String token) {
         for (int i = 0; i < LINK_COUNT; i++) {
             if (token.equals(historyTokens[i]))

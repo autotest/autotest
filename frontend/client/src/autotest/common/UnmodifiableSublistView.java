@@ -3,11 +3,11 @@ package autotest.common;
 import java.util.AbstractList;
 import java.util.List;
 
-public class UnmodifiableSublistView extends AbstractList {
-    protected List backingList;
+public class UnmodifiableSublistView<T> extends AbstractList<T> {
+    protected List<T> backingList;
     protected int start, size;
     
-    public UnmodifiableSublistView(List list, int start, int size) {
+    public UnmodifiableSublistView(List<T> list, int start, int size) {
         assert start >= 0;
         assert size >= 0;
         assert start + size <= list.size();
@@ -17,12 +17,14 @@ public class UnmodifiableSublistView extends AbstractList {
         this.size = size;
     }
 
-    public Object get(int arg0) {
+    @Override
+    public T get(int arg0) {
         if (arg0 >= size())
             throw new IndexOutOfBoundsException();
         return backingList.get(arg0 + start);
     }
 
+    @Override
     public int size() {
         return this.size;
     }

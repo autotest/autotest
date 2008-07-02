@@ -8,26 +8,31 @@ import java.util.AbstractList;
 /**
  * Wraps a JSONArray in a handy-dandy java.util.List interface.
  */
-public class JSONArrayList extends AbstractList<JSONValue> {
+public class JSONArrayList<T extends JSONValue> extends AbstractList<T> {
     protected JSONArray backingArray;
     
     public JSONArrayList(JSONArray array) {
         backingArray = array;
     }
     
-    public void add(int index, JSONValue object) {
+    @Override
+    public void add(int index, T object) {
         backingArray.set(index, object);
     }
 
-    public JSONValue get(int index) {
-        return backingArray.get(index);
+    @SuppressWarnings("unchecked")
+    @Override
+    public T get(int index) {
+        return (T) backingArray.get(index);
     }
 
     // JSONArrays don't directly support this
-    public JSONValue remove(int arg0) {
+    @Override
+    public T remove(int arg0) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public int size() {
         return backingArray.size();
     }

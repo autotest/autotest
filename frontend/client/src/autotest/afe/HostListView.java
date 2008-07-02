@@ -19,6 +19,7 @@ public class HostListView extends TabView {
         this.listener = listener;
     }
 
+    @Override
     public String getElementId() {
         return "hosts";
     }
@@ -27,6 +28,7 @@ public class HostListView extends TabView {
     protected HostTableDecorator hostTableDecorator = 
         new HostTableDecorator(table, HOSTS_PER_PAGE);
     
+    @Override
     public void initialize() {
         table.setClickable(true);
         table.addListener(new DynamicTableListener() {
@@ -41,6 +43,7 @@ public class HostListView extends TabView {
         RootPanel.get("hosts_list").add(hostTableDecorator);
     }
 
+    @Override
     public void refresh() {
         super.refresh();
         table.refresh();

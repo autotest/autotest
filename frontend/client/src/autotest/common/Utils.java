@@ -6,7 +6,6 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
 import java.util.Collection;
-import java.util.Iterator;
 
 public class Utils {
 
@@ -14,10 +13,9 @@ public class Utils {
      * Converts a collection of Java <code>String</code>s into a <code>JSONArray
      * </code> of <code>JSONString</code>s.
      */
-    public static JSONArray stringsToJSON(Collection strings) {
+    public static JSONArray stringsToJSON(Collection<String> strings) {
         JSONArray result = new JSONArray();
-        for(Iterator i = strings.iterator(); i.hasNext(); ) {
-            String s = (String) i.next();
+        for(String s : strings) {
             result.set(result.size(), new JSONString(s));
         }
         return result;
@@ -63,8 +61,7 @@ public class Utils {
 
     public static JSONObject copyJSONObject(JSONObject source) {
         JSONObject dest = new JSONObject();
-        for(Iterator i = source.keySet().iterator(); i.hasNext(); ) {
-            String key = (String) i.next();
+        for(String key : source.keySet()) {
             dest.put(key, source.get(key));
         }
         return dest;

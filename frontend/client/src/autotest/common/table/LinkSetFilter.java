@@ -18,6 +18,7 @@ public abstract class LinkSetFilter extends Filter implements TabListener {
         linkBar.addTab(text);
     }
 
+    @Override
     public Widget getWidget() {
         return linkBar;
     }

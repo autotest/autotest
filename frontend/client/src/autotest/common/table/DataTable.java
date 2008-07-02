@@ -37,7 +37,7 @@ public class DataTable extends Composite {
     protected boolean clickable = false;
     
     // keep a list of JSONObjects corresponding to rows in the table
-    protected List jsonObjects = new ArrayList();
+    protected List<JSONObject> jsonObjects = new ArrayList<JSONObject>();
 
     /**
      * @param columns An array specifying the name of each column and the field
@@ -46,7 +46,12 @@ public class DataTable extends Composite {
      *  {'field_name2', 'Column Title 2'}, ...}.
      */ 
     public DataTable(String[][] columns) {
-        this.columns = columns;
+        int rows = columns.length;
+        this.columns = new String[rows][2];
+        for (int i = 0; i < rows; i++) {
+            System.arraycopy(columns[i], 0, this.columns[i], 0, 2);
+        }
+        
         table = new FlexTable();
         initWidget(table);
         
@@ -100,7 +105,7 @@ public class DataTable extends Composite {
         if (value == null || value.isNull() != null)
             return "";
         else if (value.isNumber() != null)
-            return Integer.toString((int) value.isNumber().getValue());
+            return Integer.toString((int) value.isNumber().doubleValue());
         else if (value.isString() != null)
             return  value.isString().stringValue();
         else
@@ -179,7 +184,7 @@ public class DataTable extends Composite {
      * Get the JSONObject corresponding to the indexed row.
      */
     public JSONObject getRow(int rowIndex) {
-        return (JSONObject) jsonObjects.get(rowIndex);
+        return jsonObjects.get(rowIndex);
     }
     
     public void highlightRow(int row) {
@@ -188,7 +193,7 @@ public class DataTable extends Composite {
     }
     
     public void unhighlightRow(int row) {
-        row++; // acount for header row
+        row++; // account for header row
         table.getRowFormatter().removeStyleName(row, HIGHLIGHTED_STYLE);
     }
 }

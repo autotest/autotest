@@ -17,6 +17,7 @@ abstract class FieldFilter extends Filter {
     
     public abstract JSONValue getMatchValue();
     
+    @Override
     public void addParams(JSONObject params) {
         String queryField = fieldName;
         if (!isExactMatch)

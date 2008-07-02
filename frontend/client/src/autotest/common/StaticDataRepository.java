@@ -32,6 +32,7 @@ public class StaticDataRepository {
     public void refresh(final FinishedCallback finished) {
         JsonRpcProxy.getProxy().rpcCall("get_static_data", null, 
                                         new JsonRpcCallback() {
+            @Override
             public void onSuccess(JSONValue result) {
                 dataObject = result.isObject();
                 finished.onFinished();

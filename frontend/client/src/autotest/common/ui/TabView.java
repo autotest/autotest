@@ -42,6 +42,7 @@ public abstract class TabView extends Composite {
         refresh();
     }
     
+    @Override
     public String getTitle() {
         return title;
     }
