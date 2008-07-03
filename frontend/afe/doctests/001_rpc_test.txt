@@ -81,7 +81,8 @@ True
 ...           'status': 'Hello',
 ...           'labels': [],
 ...           'platform': None,
-...           'invalid': 0}]
+...           'invalid': 0,
+...           'protection': 'Filesystem only'}]
 True
 >>> rpc_interface.delete_host('ipaj1')
 >>> rpc_interface.get_hosts() == []
@@ -306,6 +307,11 @@ True
 >>> rpc_interface.add_test(name='my_test', test_type='Client',
 ...                        test_class='Kernel', path=test_control_path)
 3L
+>>> rpc_interface.add_host(hostname='my_label_host1')
+4L
+>>> rpc_interface.add_host(hostname='my_label_host2')
+5L
+>>> rpc_interface.label_add_hosts(id='my_label', hosts=['my_label_host1', 'my_label_host2'])
 
 # generate a control file
 >>> control_file, is_server, is_synch = rpc_interface.generate_control_file(
@@ -378,7 +384,8 @@ True
 ...         'priority': 'Low',
 ...         'synch_count': None,
 ...         'synch_type': 'Asynchronous',
-...         'synchronizing': 0}
+...         'synchronizing': 0,
+...         'timeout': 72}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple
@@ -390,12 +397,14 @@ True
 ...           'invalid': 0,
 ...           'locked': 0,
 ...           'status': 'Ready',
-...           'synch_id': None},
+...           'synch_id': None,
+...           'protection': 'Filesystem only'},
 ...  'id': 1L,
 ...  'job': job, # full job info here
 ...  'meta_host': None,
 ...  'priority': 0,
-...  'status': 'Queued'})
+...  'status': 'Queued',
+...  'deleted': 0})
 True
 >>> data[2] == (
 ... {'active': 0,
@@ -405,7 +414,8 @@ True
 ...  'job': job,
 ...  'meta_host': 'my_label',
 ...  'priority': 0,
-...  'status': 'Queued'})
+...  'status': 'Queued',
+...  'deleted': 0})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4L
@@ -434,6 +444,10 @@ True
 ...     if data[1][key] != data[0][key]:
 ...         print key, 'does not match'
 id does not match
+
+# Remove the two hosts in my_label
+>>> rpc_interface.delete_host('my_label_host1')
+>>> rpc_interface.delete_host('my_label_host2')
 
 
 # extra querying parameters
