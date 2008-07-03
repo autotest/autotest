@@ -10,7 +10,7 @@ class iostat(profiler.profiler):
 
 
     def start(self, test):
-        cmd = "/usr/bin/iostat %d" % self.interval
+        cmd = "/usr/bin/iostat -tmx %d" % self.interval
         logfile = open(os.path.join(test.profdir, "iostat"), 'w')
         p = subprocess.Popen(cmd, shell=True, stdout=logfile, \
                                         stderr=subprocess.STDOUT)
