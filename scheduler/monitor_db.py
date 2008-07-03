@@ -552,9 +552,9 @@ class Dispatcher:
             extra_join +
             # exclude hosts with a running entry
             'WHERE active_hqe.host_id IS NULL '
-            # exclude locked, invalid, and non-Ready hosts
+            # exclude locked and non-Ready hosts
             """
-            AND h.locked=false AND h.invalid=false
+            AND h.locked=false
             AND (h.status IS null OR h.status='Ready')
             """)
         if extra_where:
@@ -600,7 +600,7 @@ class Dispatcher:
         LEFT JOIN ineligible_host_queues AS ihq
         ON (ihq.job_id=queued_hqe.job_id AND ihq.host_id=h.id)
         """
-        block_where = 'ihq.id IS NULL'
+        block_where = 'ihq.id IS NULL AND h.invalid = FALSE'
         extra_join = '\n'.join([labels_join, queued_hqe_join,
                                 acl_join, block_join])
         return self._get_runnable_entries(extra_join,
@@ -1482,7 +1482,7 @@ class HostQueueEntry(DBObject):
     @classmethod
     def _fields(cls):
         return ['id', 'job_id', 'host_id', 'priority', 'status',
-                  'meta_host', 'active', 'complete']
+                  'meta_host', 'active', 'complete', 'deleted']
 
 
     def set_host(self, host):
