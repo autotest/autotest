@@ -12,6 +12,7 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class AfeClient implements EntryPoint {
@@ -51,6 +52,13 @@ public class AfeClient implements EntryPoint {
         jobDetail = new JobDetailView(new JobDetailListener() {
             public void onHostSelected(String hostname) {
                 showHost(hostname);
+            }
+            
+            public void onCloneJob(JSONValue cloneInfo) {
+                createJob.ensureInitialized();
+                createJob.cloneJob(cloneInfo);
+                mainTabPanel.selectTabView(createJob);
+                
             }
         });
         createJob = AfeUtils.factory.getCreateJobView(new JobCreateListener() {

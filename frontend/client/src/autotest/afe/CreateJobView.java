@@ -243,6 +243,64 @@ public class CreateJobView extends TabView {
         return "create_job";
     }
     
+    public void cloneJob(JSONValue cloneInfo) {
+        reset();
+        disableInputs();
+        openControlFileEditor();
+        
+        JSONObject cloneObject = cloneInfo.isObject();
+        JSONObject jobObject = cloneObject.get("job").isObject();
+        
+        jobName.setText(jobObject.get("name").isString().stringValue());
+        
+        String priority = jobObject.get("priority").isString().stringValue();
+        for (int i = 0; i < priorityList.getItemCount(); i++) {
+            if (priorityList.getItemText(i).equals(priority)) {
+                priorityList.setSelectedIndex(i);
+                break;
+            }
+        }
+        
+        timeout.setText(Integer.toString(
+                (int) jobObject.get("timeout").isNumber().doubleValue()));
+        
+        controlTypeSelect.setControlType(
+                jobObject.get("control_type").isString().stringValue());
+        runSynchronous.setChecked(
+                jobObject.get("synch_type").isString().stringValue().equals("Synchronous"));
+        controlFile.setText(
+                jobObject.get("control_file").isString().stringValue());
+        controlReadyForSubmit = true;
+        
+        JSONArray hostInfo = cloneObject.get("hosts").isArray();
+        for (int i = 0; i < hostInfo.size(); i++) {
+            JSONObject host = hostInfo.get(i).isObject();
+            
+            host.put("locked_text", AfeUtils.getLockedText(host));
+        }
+        
+        hostSelector.availableSelection.selectObjects(new JSONArrayList<JSONObject>(hostInfo));
+        
+        JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
+        
+        for (String label : metaHostCounts.keySet()) {
+            String number = Integer.toString(
+                (int) metaHostCounts.get(label).isNumber().doubleValue());
+            hostSelector.selectMetaHost(label, number);
+        }
+        
+        hostSelector.refresh();
+    }
+    
+    protected void openControlFileEditor() {
+        controlFile.setReadOnly(false);
+        editControlButton.setText(UNEDIT_CONTROL_STRING);
+        controlFilePanel.setOpen(true);
+        controlTypeSelect.setEnabled(true);
+        runSynchronous.setEnabled(true);
+        editControlButton.setEnabled(true);
+    }
+    
     protected void populatePriorities(JSONArray priorities) {
         for(int i = 0; i < priorities.size(); i++) {
             JSONArray priorityData = priorities.get(i).isArray();
@@ -439,12 +497,7 @@ public class CreateJobView extends TabView {
                     editControlButton.setEnabled(false);
                     SimpleCallback onGotControlFile = new SimpleCallback() {
                         public void doCallback(Object source) {
-                            controlFile.setReadOnly(false);
-                            editControlButton.setText(UNEDIT_CONTROL_STRING);
-                            controlFilePanel.setOpen(true);
-                            controlTypeSelect.setEnabled(true);
-                            runSynchronous.setEnabled(true);
-                            editControlButton.setEnabled(true);
+                            openControlFileEditor();
                         }
                     };
                     SimpleCallback onControlFileError = new SimpleCallback() {

@@ -44,6 +44,7 @@ public class JobDetailView extends DetailView {
     
     public interface JobDetailListener {
         public void onHostSelected(String hostname);
+        public void onCloneJob(JSONValue result);
     }
     
     protected int jobId = NO_JOB_ID;
@@ -53,7 +54,7 @@ public class JobDetailView extends DetailView {
     protected TableDecorator tableDecorator = new TableDecorator(hostsTable);
     protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
-    protected Button requeueButton = new Button("Requeue job");
+    protected Button cloneButton = new Button("Clone job");
     protected HTML tkoResultsHtml = new HTML();
     protected ScrollPanel tkoResultsScroller = new ScrollPanel(tkoResultsHtml);
     protected JobDetailListener listener;
@@ -158,12 +159,12 @@ public class JobDetailView extends DetailView {
         });
         RootPanel.get("view_abort").add(abortButton);
         
-        requeueButton.addClickListener(new ClickListener() {
+        cloneButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                requeueJob();
+                cloneJob();
             } 
         });
-        RootPanel.get("view_requeue").add(requeueButton);
+        RootPanel.get("view_clone").add(cloneButton);
         
         tkoResultsScroller.setStyleName("results-frame");
         RootPanel.get("tko_results").add(tkoResultsScroller);
@@ -195,14 +196,13 @@ public class JobDetailView extends DetailView {
         });
     }
     
-    protected void requeueJob() {
+    protected void cloneJob() {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
-        rpcProxy.rpcCall("requeue_job", params, new JsonRpcCallback() {
+        rpcProxy.rpcCall("get_info_for_clone", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                int newId = (int) result.isNumber().doubleValue();
-                fetchJob(newId);
+                listener.onCloneJob(result);
             }
         });
     }

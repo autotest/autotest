@@ -370,7 +370,7 @@ def get_num_jobs(not_yet_run=False, running=False, finished=False,
 
 def get_jobs_summary(**filter_data):
     """\
-    Like get_jobs(), but adds a 'stauts_counts' field, which is a dictionary
+    Like get_jobs(), but adds a 'status_counts' field, which is a dictionary
     mapping status strings to the number of hosts currently with that
     status, i.e. {'Queued' : 4, 'Running' : 2}.
     """
@@ -380,6 +380,37 @@ def get_jobs_summary(**filter_data):
     for job in jobs:
         job['status_counts'] = all_status_counts[job['id']]
     return rpc_utils.prepare_for_serialization(jobs)
+
+
+def get_info_for_clone(id):
+    """\
+    Retrieves all the information needed to clone a job.
+    """
+    info = {}
+    job = models.Job.objects.get(id=id)
+    query = job.hostqueueentry_set.filter(deleted=False)
+    hosts = [queue_entry.host for queue_entry
+             in query if queue_entry.host]
+    meta_hosts = [queue_entry.meta_host.name for queue_entry
+                  in query if queue_entry.meta_host]
+    host_info = get_hosts(hostname__in=[host.hostname for host in hosts])
+
+    for host in host_info:
+        platform = host['platform']
+        if platform is not None and platform in host['labels']:
+            host['labels'].remove(platform)
+        host['other_labels'] = ', '.join(host['labels'])
+
+    meta_host_counts = {}
+    for meta_host in meta_hosts:
+        meta_host_counts.setdefault(meta_host, 0)
+        meta_host_counts[meta_host] += 1
+
+    info['job'] = job.get_object_dict()
+    info['meta_host_counts'] = meta_host_counts
+    info['hosts'] = host_info
+
+    return rpc_utils.prepare_for_serialization(info)
 
 
 # host queue entries
