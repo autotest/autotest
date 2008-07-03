@@ -86,6 +86,21 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     objects = model_logic.ExtendedManager()
     valid_objects = model_logic.ValidObjectsManager()
 
+    @staticmethod
+    def create_one_time_host(hostname):
+        query = Host.objects.filter(hostname=hostname)
+        if query.count() == 0:
+            host = Host(hostname=hostname, invalid=True)
+        else:
+            host = query[0]
+            if not host.invalid:
+                raise model_logic.ValidationError({
+                    'hostname' : '%s already exists!' % hostname
+                    })
+            host.clean_object()
+            host.status = Host.Status.READY
+        host.save()
+        return host
 
     def clean_object(self):
         self.aclgroup_set.clear()
@@ -101,6 +116,12 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.hosts.add(self)
+
+    def delete(self):
+        for queue_entry in self.hostqueueentry_set.all():
+            queue_entry.deleted = True
+            queue_entry.abort()
+        super(Host, self).delete()
 
 
     def enqueue_job(self, job):
@@ -466,7 +487,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     def requeue(self, new_owner):
         'Creates a new job identical to this one'
         hosts = [queue_entry.meta_host or queue_entry.host
-                 for queue_entry in self.hostqueueentry_set.all()]
+                 for queue_entry
+                 in self.hostqueueentry_set.filter(deleted=False)]
         new_job = Job.create(
             owner=new_owner, name=self.name, priority=self.priority,
             control_file=self.control_file,
@@ -478,13 +500,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     def abort(self):
         for queue_entry in self.hostqueueentry_set.all():
-            if queue_entry.active:
-                queue_entry.status = Job.Status.ABORT
-            elif not queue_entry.complete:
-                queue_entry.status = Job.Status.ABORTED
-                queue_entry.active = False
-                queue_entry.complete = True
-            queue_entry.save()
+            queue_entry.abort()
 
 
     def user(self):
@@ -528,6 +544,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
                                     db_column='meta_host')
     active = dbmodels.BooleanField(default=False)
     complete = dbmodels.BooleanField(default=False)
+    deleted = dbmodels.BooleanField(default=False)
 
     objects = model_logic.ExtendedManager()
 
@@ -536,6 +553,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         'True if this is a entry has a meta_host instead of a host.'
         return self.host is None and self.meta_host is not None
 
+    def abort(self):
+        if self.active:
+            self.status = Job.Status.ABORT
+        elif not self.complete:
+            self.status = Job.Status.ABORTED
+            self.active = False
+            self.complete = True
+        self.save()
 
     class Meta:
         db_table = 'host_queue_entries'

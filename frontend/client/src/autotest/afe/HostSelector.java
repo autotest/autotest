@@ -39,10 +39,12 @@ import java.util.List;
 public class HostSelector {
     public static final int TABLE_SIZE = 10;
     public static final String META_PREFIX = "Any ";
+    public static final String ONE_TIME = "(one-time host)";
     
     static class HostSelection {
         public List<String> hosts = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
+        public List<String> oneTimeHosts = new ArrayList<String>();
     }
     
     protected ArrayDataSource<JSONObject> selectedHostData =
@@ -150,6 +152,21 @@ public class HostSelector {
         RootPanel.get("create_meta_select").add(metaLabelSelect);
         RootPanel.get("create_meta_number").add(metaNumber);
         RootPanel.get("create_meta_button").add(metaButton);
+        
+        final TextBox oneTimeHostField = new TextBox();
+        final Button oneTimeHostButton = new Button("Add");
+        oneTimeHostButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                String hostname = oneTimeHostField.getText();
+                JSONObject oneTimeObject = new JSONObject();
+                oneTimeObject.put("hostname", new JSONString(hostname));
+                oneTimeObject.put("platform", new JSONString(ONE_TIME));
+                selectRow(oneTimeObject);
+                selectionRefresh();
+            }
+        });
+        RootPanel.get("create_one_time_field").add(oneTimeHostField);
+        RootPanel.get("create_one_time_button").add(oneTimeHostButton);
     }
     
     protected void selectMetaHost(String label, String number) {
@@ -216,6 +233,14 @@ public class HostSelector {
         return Integer.parseInt(getHostname(row).substring(META_PREFIX.length()));
     }
     
+    protected boolean isOneTimeHost(JSONObject row) {
+        JSONString platform = row.get("platform").isString();
+        if (platform == null) {
+            return false;
+        }
+        return platform.stringValue().equals(ONE_TIME);
+    }
+    
     /**
      * Retrieve the set of selected hosts.
      */
@@ -232,7 +257,11 @@ public class HostSelector {
             }
             else {
                 String hostname = getHostname(row);
-                selection.hosts.add(hostname);
+                if (isOneTimeHost(row)) {
+                    selection.oneTimeHosts.add(hostname);
+                } else {
+                    selection.hosts.add(hostname);
+                }
             }
         }
         
