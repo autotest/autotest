@@ -250,7 +250,8 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
 
 
 def create_job(name, priority, control_file, control_type, timeout=None,
-               is_synchronous=None, hosts=None, meta_hosts=None):
+               is_synchronous=None, hosts=None, meta_hosts=None,
+               one_time_hosts=None):
     """\
     Create and enqueue a job.
 
@@ -271,10 +272,10 @@ def create_job(name, priority, control_file, control_type, timeout=None,
 
     owner = rpc_utils.get_user().login
     # input validation
-    if not hosts and not meta_hosts:
+    if not hosts and not meta_hosts and not one_time_hosts:
         raise model_logic.ValidationError({
-            'arguments' : "You must pass at least one of 'hosts' or "
-                          "'meta_hosts'"
+            'arguments' : "You must pass at least one of 'hosts', "
+                          "'meta_hosts', or 'one_time_hosts'"
             })
 
     requested_host_counts = {}
@@ -289,6 +290,9 @@ def create_job(name, priority, control_file, control_type, timeout=None,
         host_objects.append(this_label)
         requested_host_counts.setdefault(this_label.name, 0)
         requested_host_counts[this_label.name] += 1
+    for host in one_time_hosts or []:
+        this_host = models.Host.create_one_time_host(host)
+        host_objects.append(this_host)
 
     # check that each metahost request has enough hosts under the label
     if meta_hosts:
