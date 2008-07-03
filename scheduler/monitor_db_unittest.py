@@ -230,6 +230,8 @@ class DispatcherTest(unittest.TestCase):
         self._do_query('UPDATE hosts SET locked=0, invalid=1 '
                        'WHERE id=1')
         self._dispatcher._schedule_new_jobs()
+        if not use_metahosts:
+            self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
 
 
