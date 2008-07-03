@@ -218,6 +218,7 @@ public class CreateJobView extends TabView {
     protected TextBox jobName = new TextBox();
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
+    protected TextBox timeout = new TextBox();
     protected TestPanel clientTestsPanel = new TestPanel(CLIENT_TYPE, TEST_COLUMNS), 
                         serverTestsPanel = new TestPanel(SERVER_TYPE, TEST_COLUMNS);
     protected CheckBoxPanel<CheckBox> profilersPanel = 
@@ -379,6 +380,7 @@ public class CreateJobView extends TabView {
         }
 
         kernel.setEnabled(true);
+        timeout.setEnabled(true);
     }
     
     protected void disableInputs() {
@@ -497,6 +499,7 @@ public class CreateJobView extends TabView {
         
         RootPanel.get("create_job_name").add(jobName);
         RootPanel.get("create_kernel").add(kernel);
+        RootPanel.get("create_timeout").add(timeout);
         RootPanel.get("create_priority").add(priorityList);
         RootPanel.get("create_client_tests").add(clientTestsPanel);
         RootPanel.get("create_server_tests").add(serverTestsPanel);
@@ -509,6 +512,8 @@ public class CreateJobView extends TabView {
         jobName.setText("");
         resetPriorityToDefault();
         kernel.setText("");
+        timeout.setText(StaticDataRepository.getRepository().
+            getData("job_timeout_default").isString().stringValue());
         clientTestsPanel.reset();
         serverTestsPanel.reset();
         profilersPanel.reset();
@@ -525,6 +530,22 @@ public class CreateJobView extends TabView {
     }
     
     protected void submitJob() {
+        // Read and validate the timeout
+        String timeoutString = timeout.getText();
+        final int timeoutInt;
+        try {
+            if (timeoutString.equals("") ||
+                (timeoutInt = Integer.parseInt(timeoutString)) <= 0) {
+                    String error = "Please enter a positive timeout";
+                    NotifyManager.getInstance().showError(error);
+                    return;
+            }
+        } catch (NumberFormatException e) {
+            String error = "Invalid timeout " + timeoutString;
+            NotifyManager.getInstance().showError(error);
+            return;
+        }
+      
         // disallow accidentally clicking submit twice
         submitJobButton.setEnabled(false);
         
@@ -540,6 +561,7 @@ public class CreateJobView extends TabView {
                          new JSONString(controlTypeSelect.getControlType()));
                 args.put("is_synchronous", 
                          JSONBoolean.getInstance(runSynchronous.isChecked()));
+                args.put("timeout", new JSONNumber(timeoutInt));
                 
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));

@@ -63,6 +63,9 @@ def main():
     if val != "":
         _notify_email = val
 
+    tick_pause = c.get_config_value(
+        _global_config_section, 'tick_pause_sec', type=int)
+
     if options.test:
         global _autoserv_path
         _autoserv_path = 'autoserv_dummy'
@@ -76,7 +79,7 @@ def main():
     try:
         while not _shutdown:
             dispatcher.tick()
-            time.sleep(20)
+            time.sleep(tick_pause)
     except:
         log_stacktrace("Uncaught exception; terminating monitor_db")
 
@@ -288,9 +291,13 @@ class Dispatcher:
     max_jobs_started_per_cycle = (
         global_config.global_config.get_config_value(
             _global_config_section, 'max_jobs_started_per_cycle', type=int))
+    clean_interval = (
+        global_config.global_config.get_config_value(
+            _global_config_section, 'clean_interval_minutes', type=int))
 
     def __init__(self):
         self._agents = []
+        self._last_clean_time = time.time()
 
 
     def do_initial_recovery(self, recover_hosts=True):
@@ -303,10 +310,13 @@ class Dispatcher:
 
     def tick(self):
         Dispatcher.autoserv_procs_cache = None
+        if self._last_clean_time + self.clean_interval * 60 < time.time():
+            self._abort_timed_out_jobs()
+            self._clear_inactive_blocks()
+            self._last_clean_time = time.time()
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
-        self._clear_inactive_blocks()
         email_manager.send_queued_emails()
 
 
@@ -484,6 +494,27 @@ class Dispatcher:
         message = 'Reverifying dead host %s'
         self._reverify_hosts_where("status = 'Repair Failed'",
                                    print_message=message)
+
+
+    def _abort_timed_out_jobs(self):
+        """
+        Aborts all jobs that have timed out and not completed
+        """
+        update = """
+            UPDATE host_queue_entries INNER JOIN jobs
+                ON host_queue_entries.job_id = jobs.id"""
+        timed_out = ' AND jobs.created_on + jobs.timeout*3600 < now()'
+
+        _db.execute(update + """
+            SET host_queue_entries.status = 'Abort'
+            WHERE host_queue_entries.active IS TRUE""" + timed_out)
+
+        _db.execute(update + """
+            SET host_queue_entries.status = 'Aborted',
+                host_queue_entries.active = FALSE,
+                host_queue_entries.complete = TRUE
+            WHERE host_queue_entries.active IS FALSE
+                AND host_queue_entries.complete IS FALSE""" + timed_out)
 
 
     def _clear_inactive_blocks(self):
@@ -1606,7 +1637,7 @@ class Job(DBObject):
     def _fields(cls):
         return  ['id', 'owner', 'name', 'priority', 'control_file',
                  'control_type', 'created_on', 'synch_type',
-                 'synch_count', 'synchronizing']
+                 'synch_count', 'synchronizing', 'timeout']
 
 
     def is_server_job(self):
