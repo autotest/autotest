@@ -401,6 +401,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                 simultaneously; used for server-side control files)
     synch_count: ???
     synchronizing: for scheduler use
+    timeout: hours until job times out
     """
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
@@ -421,6 +422,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         blank=True, null=True, choices=Test.SynchType.choices())
     synch_count = dbmodels.IntegerField(blank=True, null=True)
     synchronizing = dbmodels.BooleanField(default=False)
+    timeout = dbmodels.IntegerField()
 
 
     # custom manager
@@ -433,7 +435,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_type):
+               hosts, synch_type, timeout):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
@@ -441,7 +443,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         job = cls.add_object(
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
-            synch_type=synch_type)
+            synch_type=synch_type, timeout=timeout)
 
         if job.synch_type == Test.SynchType.SYNCHRONOUS:
             job.synch_count = len(hosts)
@@ -469,7 +471,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             owner=new_owner, name=self.name, priority=self.priority,
             control_file=self.control_file,
             control_type=self.control_type, hosts=hosts,
-            synch_type=self.synch_type)
+            synch_type=self.synch_type, timeout=self.timeout)
         new_job.queue(hosts)
         return new_job
 

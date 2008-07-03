@@ -30,6 +30,8 @@ See doctests/rpc_test.txt for (lots) more examples.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import models, model_logic, control_file, rpc_utils
+from autotest_lib.client.common_lib import global_config
+
 
 # labels
 
@@ -247,8 +249,8 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     return cf_text, is_server, is_synchronous
 
 
-def create_job(name, priority, control_file, control_type, is_synchronous=None,
-               hosts=None, meta_hosts=None):
+def create_job(name, priority, control_file, control_type, timeout=None,
+               is_synchronous=None, hosts=None, meta_hosts=None):
     """\
     Create and enqueue a job.
 
@@ -260,7 +262,13 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
     meta_hosts: list where each entry is a label name, and for each entry
                 one host will be chosen from that label to run the job
                 on.
+    timeout: hours until job times out
     """
+
+    if timeout is None:
+        timeout=global_config.global_config.get_config_value(
+            'AUTOTEST_WEB', 'job_timeout_default')
+
     owner = rpc_utils.get_user().login
     # input validation
     if not hosts and not meta_hosts:
@@ -309,7 +317,8 @@ def create_job(name, priority, control_file, control_type, is_synchronous=None,
                             control_file=control_file,
                             control_type=control_type,
                             synch_type=synch_type,
-                            hosts=host_objects)
+                            hosts=host_objects,
+                            timeout=timeout)
     job.queue(host_objects)
     return job.id
 
@@ -425,4 +434,6 @@ def get_static_data():
     result['user_login'] = rpc_utils.get_user().login
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.Job.Status.names)
+    result['job_timeout_default'] = global_config.global_config.get_config_value(
+        'AUTOTEST_WEB', 'job_timeout_default')
     return result
