@@ -1,6 +1,7 @@
 from django.db import models as dbmodels, connection
-from frontend.afe import enum, model_logic
+from frontend.afe import model_logic
 from frontend import settings
+from autotest_lib.client.common_lib import enum, host_protections
 
 
 class AclAccessViolation(Exception):
@@ -81,6 +82,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
                                 editable=settings.FULL_ADMIN)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
+    protection = dbmodels.SmallIntegerField(null=False,
+                                            choices=host_protections.choices,
+                                            default=host_protections.default)
 
     name_field = 'hostname'
     objects = model_logic.ExtendedManager()
@@ -169,7 +173,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         # each row (since labels are many-to-many) - should we remove
         # it?
         list_display = ('hostname', 'platform', 'locked', 'status')
-        list_filter = ('labels', 'locked')
+        list_filter = ('labels', 'locked', 'protection')
         search_fields = ('hostname', 'status')
         # undocumented Django feature - if you set manager here, the
         # admin code will use it, otherwise it'll use a default Manager

@@ -65,9 +65,9 @@ def get_labels(**filter_data):
 
 # hosts
 
-def add_host(hostname, status=None, locked=None):
+def add_host(hostname, status=None, locked=None, protection=None):
     return models.Host.add_object(hostname=hostname, status=status,
-                                  locked=locked).id
+                                  locked=locked, protection=protection).id
 
 
 def modify_host(id, **data):
