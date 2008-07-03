@@ -154,6 +154,13 @@ def release_dead_containers(parent=super_root):
         os.rmdir(child)
 
 
+def ionice(priority, sched_class=2):
+    print "setting disk priority to %d" % priority
+    cmd = "/usr/bin/ionice"
+    params = "-c%d -n%d -p%d" % (sched_class, priority, os.getpid())
+    utils.system(cmd + " " + params)
+
+
 class cpuset(object):
 
     def display(self):
@@ -182,8 +189,19 @@ class cpuset(object):
         utils.run(cmd)
 
 
+    def setup_disk_containers(self, disk):
+        self.disk_priorities = disk.get("priorities", range(8))
+        default_priority = disk.get("default", max(self.disk_priorities))
+        # set the allowed priorities
+        path = os.path.join(self.cpudir, "blockio.prios_allowed")
+        priorities = ",".join(str(p) for p in self.disk_priorities)
+        utils.write_one_line(path, "be:%s" % priorities)
+        # set the current process into the default priority
+        ionice(default_priority)
+
+
     def __init__(self, name, job_size=None, job_pid=None, cpus=None,
-                 root=None, network=None):
+                 root=None, network=None, disk=None):
         """\
         Create a cpuset container and move job_pid into it
         Allocate the list "cpus" of cpus to that container
@@ -199,6 +217,11 @@ class cpuset(object):
                     min_tx = minimum network tx in Mbps
                     max_tx = maximum network tx in Mbps
                     priority = network priority
+                disk = a dict of disk prorities to use, or None if you do not
+                       want to use disk containment
+                    priorities = list of priorities to restrict the cpuset to
+                    default = default priority to use, or max(priorities) if
+                              not specified
         """
         if not os.path.exists(os.path.join(super_root, "cpus")):
             raise error.AutotestError('Root container /dev/cpuset '
@@ -233,8 +256,8 @@ class cpuset(object):
         if not job_pid:
             job_pid = os.getpid()
 
-        print "cpuset(name=%s, root=%s, job_size=%d, pid=%d, network=%r)" % \
-              (name, root, job_size, job_pid, network)
+        print ("cpuset(name=%s, root=%s, job_size=%d, pid=%d, network=%r, "
+               "disk=%r)") % (name, root, job_size, job_pid, network, disk)
 
         self.cpudir = os.path.join(self.root, name)
         if os.path.exists(self.cpudir):
@@ -273,6 +296,13 @@ class cpuset(object):
         # setup up the network container
         if network is not None:
             self.setup_network_containers(**network)
+        self.network = network
+
+        # setup up the disk containment
+        if disk is not None:
+            self.setup_disk_containers(disk)
+        else:
+            self.disk_priorities = None
 
         # add specified cpu cores and own task pid to container:
         cpu_spec = ','.join(['%d' % x for x in cpus])
