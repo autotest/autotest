@@ -1333,14 +1333,15 @@ class DBObject(object):
         return int(rows[0][0])
 
 
-    def update_field(self, field, value):
+    def update_field(self, field, value, condition=''):
         assert self.__valid_fields[field]
 
         if self.__dict__[field] == value:
             return
 
-        query = "UPDATE %s SET %s = %%s WHERE id = %%s" % \
-                                                (self.__table, field)
+        query = "UPDATE %s SET %s = %%s WHERE id = %%s" % (self.__table, field)
+        if condition:
+            query += ' AND (%s)' % condition
         _db.execute(query, (value, self.id))
 
         self.__dict__[field] = value
@@ -1413,7 +1414,7 @@ class Host(DBObject):
         else:
             assert len(rows) == 1
             results = rows[0];
-#                       print "current = %s" % results
+#           print "current = %s" % results
             return HostQueueEntry(row=results)
 
 
@@ -1512,12 +1513,20 @@ class HostQueueEntry(DBObject):
 
 
     def set_status(self, status):
-        self.update_field('status', status)
+        abort_statuses = ['Abort', 'Aborting', 'Aborted']
+        if status not in abort_statuses:
+            condition = ' AND '.join(['status <> "%s"' % x
+                                      for x in abort_statuses])
+        else:
+            condition = ''
+        self.update_field('status', status, condition=condition)
+
         if self.host:
             hostname = self.host.hostname
         else:
             hostname = 'no host'
         print "%s/%d status -> %s" % (hostname, self.id, self.status)
+
         if status in ['Queued']:
             self.update_field('complete', False)
             self.update_field('active', False)
