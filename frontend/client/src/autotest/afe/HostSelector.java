@@ -143,19 +143,23 @@ public class HostSelector {
                     return;
                 }
                 
-                JSONObject metaObject = new JSONObject();
-                metaObject.put("hostname", new JSONString(META_PREFIX + number));
-                metaObject.put("platform", new JSONString(label));
-                metaObject.put("labels", new JSONArray());
-                metaObject.put("status", new JSONString(""));
-                metaObject.put("locked", new JSONNumber(0));
-                selectRow(metaObject);
+                selectMetaHost(label, number);
                 selectionRefresh();
             }
         });
         RootPanel.get("create_meta_select").add(metaLabelSelect);
         RootPanel.get("create_meta_number").add(metaNumber);
         RootPanel.get("create_meta_button").add(metaButton);
+    }
+    
+    protected void selectMetaHost(String label, String number) {
+        JSONObject metaObject = new JSONObject();
+        metaObject.put("hostname", new JSONString(META_PREFIX + number));
+        metaObject.put("platform", new JSONString(label));
+        metaObject.put("labels", new JSONArray());
+        metaObject.put("status", new JSONString(""));
+        metaObject.put("locked", new JSONNumber(0));
+        selectRow(metaObject);
     }
     
     protected void selectRow(JSONObject row) {
