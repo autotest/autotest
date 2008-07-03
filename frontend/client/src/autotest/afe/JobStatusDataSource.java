@@ -76,9 +76,9 @@ class JobStatusDataSource extends RpcDataSource {
     }
     
     protected void addMetaHostRows(Map<List<String>, Integer> metaHostCounts, JSONArray rows) {
-        for (List<String> key : metaHostCounts.keySet()) {
-            String label = key.get(0), status = key.get(1);
-            int count = metaHostCounts.get(key).intValue();
+        for (Map.Entry<List<String>, Integer> entry : metaHostCounts.entrySet()) {
+            String label = entry.getKey().get(0), status = entry.getKey().get(1);
+            int count = entry.getValue();
             JSONObject row = new JSONObject();
             row.put("hostname", new JSONString(label + " (label)"));
             row.put("status", new JSONString(Integer.toString(count) + 
