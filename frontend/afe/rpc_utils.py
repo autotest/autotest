@@ -92,21 +92,6 @@ def extra_host_filters(multiple_labels=[]):
     return extra_args
 
 
-local_vars = threading.local()
-
-def set_user(user):
-    """\
-    Sets the current request's logged-in user.  user should be a
-    afe.models.User object.
-    """
-    local_vars.user = user
-
-
-def get_user():
-    'Get the currently logged-in user as a afe.models.User object.'
-    return local_vars.user
-
-
 class InconsistencyException(Exception):
     'Raised when a list of objects does not have a consistent value'
 
