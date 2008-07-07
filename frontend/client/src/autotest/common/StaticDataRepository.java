@@ -46,4 +46,11 @@ public class StaticDataRepository {
     public JSONValue getData(String key) {
         return dataObject.get(key);
     }
+    
+    /**
+     * Set a value in the repository.
+     */
+    public void setData(String key, JSONValue data) {
+        dataObject.put(key, data);
+    }
 }
