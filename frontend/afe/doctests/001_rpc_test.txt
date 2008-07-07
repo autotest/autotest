@@ -8,11 +8,12 @@
 #                             'http://hostname:8000/afe/server/noauth/rpc/')
 # )
 >>> if 'rpc_interface' not in globals():
-...   from frontend.afe import rpc_interface, rpc_utils, models
+...   from frontend.afe import rpc_interface, models
+...   from frontend import thread_local
 ...   # set up a user for us to "login" as
 ...   user = models.User(login='debug_user')
 ...   user.save()
-...   rpc_utils.set_user(user)
+...   thread_local.set_user(user)
 ...
 
 # get directory of this test file; we'll need it later
