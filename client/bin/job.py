@@ -990,10 +990,10 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
 # site_job.py may be non-existant or empty, make sure that an appropriate
 # site_job class is created nevertheless
 try:
-    from site_job import site_job
+    from autotest_lib.client.bin.site_job import site_job
 except ImportError:
-    class site_job(base_job):
+    class site_job(object):
         pass
 
-class job(site_job):
+class job(site_job, base_job):
     pass
