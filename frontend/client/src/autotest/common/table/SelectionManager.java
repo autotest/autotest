@@ -1,5 +1,6 @@
 package autotest.common.table;
 
+import autotest.common.Utils;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 
 import com.google.gwt.json.client.JSONObject;
@@ -88,14 +89,8 @@ public class SelectionManager {
         }
     }
     
-    protected Collection<JSONObject> wrapObject(JSONObject object) {
-        List<JSONObject> list = new ArrayList<JSONObject>();
-        list.add(object);
-        return list;
-    }
-    
     public void selectObject(JSONObject object) {
-        selectObjects(wrapObject(object));
+        selectObjects(Utils.wrapObjectWithList(object));
     }
     
     public void selectObjects(Collection<? extends JSONObject> objects) {
@@ -107,7 +102,7 @@ public class SelectionManager {
     }
     
     public void deselectObject(JSONObject object) {
-        deselectObjects(wrapObject(object));
+        deselectObjects(Utils.wrapObjectWithList(object));
     }
     
     public void deselectObjects(Collection<JSONObject> objects) {
