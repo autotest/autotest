@@ -5,9 +5,18 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public class Utils {
+    public static final String[][] escapeMappings = {
+        {"&", "&amp;"},
+        {">", "&gt;"},
+        {"<", "&lt;"},
+        {"\"", "&quot;"},
+        {"'", "&apos;"},
+    };
 
     /**
      * Converts a collection of Java <code>String</code>s into a <code>JSONArray
@@ -65,6 +74,40 @@ public class Utils {
             dest.put(key, source.get(key));
         }
         return dest;
+    }
+    
+    public static String escape(String text) {
+        for (String[] mapping : escapeMappings) {
+            text = text.replaceAll(mapping[0], mapping[1]);
+        }
+        return text;
+    }
+    
+    public static String unescape(String text) {
+        // must iterate in reverse order
+        for (int i = escapeMappings.length - 1; i >= 0; i--) {
+            text = text.replaceAll(escapeMappings[i][1], escapeMappings[i][0]);
+        }
+        return text;
+    }
+    
+    public static <T> List<T> wrapObjectWithList(T object) {
+        List<T> list = new ArrayList<T>();
+        list.add(object);
+        return list;
+    }
+    
+    public static String joinStrings(String joiner, List<String> strings) {
+        if (strings.size() == 0) {
+            return "";
+        }
+        
+        StringBuilder result = new StringBuilder(strings.get(0));
+        for (int i = 1; i < strings.size(); i++) {
+            result.append(joiner);
+            result.append(strings.get(i));
+        }
+        return result.toString();
     }
 
 }
