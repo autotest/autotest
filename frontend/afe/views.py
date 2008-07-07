@@ -11,7 +11,6 @@ rpc_handler_obj = rpc_handler.RpcHandler((rpc_interface, site_rpc_interface),
 
 
 def handle_rpc(request):
-    rpc_utils.set_user(request.afe_user)
     return rpc_handler_obj.handle_rpc_request(request)
 
 

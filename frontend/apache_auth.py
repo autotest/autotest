@@ -2,6 +2,7 @@ from django.contrib.auth.models import User, Group, check_password
 from django.contrib import auth
 from django import http
 
+from frontend import thread_local
 from frontend.afe import models, management
 
 DEBUG_USER = 'debug_user'
@@ -61,5 +62,5 @@ class ApacheAuthMiddleware(object):
         user_object = auth.authenticate(username=user,
                                         password='')
         auth.login(request, user_object)
-        request.afe_user = models.User.objects.get(login=user)
+        thread_local.set_user(models.User.objects.get(login=user))
         return None
