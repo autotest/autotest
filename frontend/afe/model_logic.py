@@ -4,13 +4,79 @@ Extensions to Django's model logic.
 
 from django.db import models as dbmodels, backend, connection
 from django.utils import datastructures
-
+from frontend.afe import readonly_connection
 
 class ValidationError(Exception):
     """\
     Data validation error in adding or updating an object.  The associated
     value is a dictionary mapping field names to error strings.
     """
+
+
+def _wrap_with_readonly(method):
+        def wrapper_method(*args, **kwargs):
+            readonly_connection.connection.set_django_connection()
+            try:
+                return method(*args, **kwargs)
+            finally:
+                readonly_connection.connection.unset_django_connection()
+        wrapper_method.__name__ = method.__name__
+        return wrapper_method
+
+
+def _wrap_generator_with_readonly(generator):
+    """
+    We have to wrap generators specially.  Assume it performs
+    the query on the first call to next().
+    """
+    def wrapper_generator(*args, **kwargs):
+        generator_obj = generator(*args, **kwargs)
+        readonly_connection.connection.set_django_connection()
+        try:
+            first_value = generator_obj.next()
+        finally:
+            readonly_connection.connection.unset_django_connection()
+        yield first_value
+
+        while True:
+            yield generator_obj.next()
+
+    wrapper_generator.__name__ = generator.__name__
+    return wrapper_generator
+
+
+def _make_queryset_readonly(queryset):
+    """
+    Wrap all methods that do database queries with a readonly connection.
+    """
+    db_query_methods = ['count', 'get', 'get_or_create', 'latest', 'in_bulk',
+                        'delete']
+    for method_name in db_query_methods:
+        method = getattr(queryset, method_name)
+        wrapped_method = _wrap_with_readonly(method)
+        setattr(queryset, method_name, wrapped_method)
+
+    queryset.iterator = _wrap_generator_with_readonly(queryset.iterator)
+
+
+class ReadonlyQuerySet(dbmodels.query.QuerySet):
+    """
+    QuerySet object that performs all database queries with the read-only
+    connection.
+    """
+    def __init__(self, model=None):
+        super(ReadonlyQuerySet, self).__init__(model)
+        _make_queryset_readonly(self)
+
+
+    def values(self, *fields):
+        return self._clone(klass=ReadonlyValuesQuerySet, _fields=fields)
+
+
+class ReadonlyValuesQuerySet(dbmodels.query.ValuesQuerySet):
+    def __init__(self, model=None):
+        super(ReadonlyValuesQuerySet, self).__init__(model)
+        _make_queryset_readonly(self)
 
 
 class ExtendedManager(dbmodels.Manager):
@@ -348,6 +414,7 @@ class ModelExtensions(object):
         # other arguments
         if extra_args:
             query = query.extra(**extra_args)
+            query = query._clone(klass=ReadonlyQuerySet)
 
         # sorting + paging
         assert isinstance(sort_by, list) or isinstance(sort_by, tuple)

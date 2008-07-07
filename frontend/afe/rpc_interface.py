@@ -29,7 +29,8 @@ See doctests/rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import models, model_logic, control_file, rpc_utils
+from frontend.afe import models, model_logic, control_file, rpc_utils
+from frontend.afe import readonly_connection
 from autotest_lib.client.common_lib import global_config
 
 
@@ -296,8 +297,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
 
     # check that each metahost request has enough hosts under the label
     if meta_hosts:
-        labels = models.Label.query_objects(
-            {'name__in': requested_host_counts.keys()})
+        labels = models.Label.objects.filter(
+            name__in=requested_host_counts.keys())
         for label in labels:
             count = label.host_set.count()
             if requested_host_counts[label.name] > count:
