@@ -1,1 +1,13 @@
+AUTHOR = "Ying Tao <yingtao@cn.ibm.com>"
+TIME = "MEDIUM"
+NAME = "IOzone"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Benchmark"
+
+DOC = """
+Runs the standard IOzone filesystem benchmark. For more information see
+http://www.iozone.org
+"""
+
 job.run_test('iozone')

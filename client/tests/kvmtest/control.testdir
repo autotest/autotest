@@ -1,3 +1,14 @@
+AUTHOR = 'ryanh@us.ibm.com (Ryan Harper)'
+TIME = 'SHORT'
+NAME = 'KVM Test with custom testdir'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Kernel'
+TEST_CATEGORY = 'Functional'
+
+DOC = '''
+Run kvm-test, but using a custom kvm-test test dir (/opt/kvmtest_tests).
+'''
+
 # CHANGEME - point to your kvm-test test dirs
 TESTDIR="/opt/kvmtest_tests/"
 

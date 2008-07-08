@@ -1,1 +1,13 @@
+AUTHOR = 'ryanh@us.ibm.com (Ryan Harper)'
+TIME = 'SHORT'
+NAME = 'KVM Test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Kernel'
+TEST_CATEGORY = 'Functional'
+
+DOC = '''
+kvm-test is a package for automating guest installation. For more information
+see http://kvm.qumranet.com/kvmwiki/KVMTest
+'''
+
 job.run_test('kvmtest')
