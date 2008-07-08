@@ -35,6 +35,10 @@ def _import_children_into_module(parent_module_name, path):
         full_name = os.path.join(path, filename)
         if not os.path.isdir(full_name):
             continue   # skip files
+        if "." in filename:
+            continue   # if "." is in the name it's not a valid package name
+        if not os.access(full_name, os.R_OK | os.X_OK):
+            continue   # need read + exec access to make a dir importable
         if "__init__.py" in os.listdir(full_name):
             names.append(filename)
     # import all the packages and insert them into 'parent_module'
