@@ -1,1 +1,13 @@
+NAME = 'Sleeptest'
+AUTHOR = 'mbligh@google.com (Martin Bligh)'
+TIME = 'SHORT'
+TEST_CLASS = 'Useless'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'server'
+EXPERIMENTAL = 'False'
+
+DOC = """
+runs sleep for one second on the list of machines.
+"""
+
 job.run_test('sleeptest')
