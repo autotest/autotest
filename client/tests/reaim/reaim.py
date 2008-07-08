@@ -67,7 +67,7 @@ class reaim(test.test):
         # Do a profiling run if necessary
         if profilers.present():
             profilers.start(self)
-            resuls.append(utils.system_output(cmd, retain_output=True))
+            results.append(utils.system_output(cmd, retain_output=True))
             profilers.stop(self)
             profilers.report(self)
 
