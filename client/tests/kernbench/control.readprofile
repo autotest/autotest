@@ -1,8 +1,13 @@
+AUTHOR = "mbligh@google.com (Martin Bligh)"
 NAME = "Kernbench readprofile"
 TIME = "Medium"
 TEST_CLASS = "Kernel"
-TEST_CATEGORY = "Functional"
+TEST_CATEGORY = "Benchmark"
 TEST_TYPE = "client"
+
+DOC = """
+Run kernbench using the readprofile profiler.
+"""
 
 job.profilers.add('readprofile')
 job.run_test('kernbench', 0, 5)

@@ -81,7 +81,7 @@ class kvmtest(test.test):
         in the environment, then attempt to spawn a vncserver, and
         change env DISPLAY so that kvmtest can run
         """
-        for pidfile in locate("*:*.pid", dirname):
+        for pidfile in autotest_utils.locate("*:*.pid", dirname):
             pid = open(pidfile, 'r').readline().strip()
             # if the server is still active, just use it for display
             if os.path.exists('/proc/%s/status' % pid):
