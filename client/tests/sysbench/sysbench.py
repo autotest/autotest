@@ -1,6 +1,6 @@
-import time, re, pwd
+import os, time, re, pwd
 from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, error
 
 
 class sysbench(test.test):
@@ -18,7 +18,9 @@ class sysbench(test.test):
         mysql_dir = os.path.join(self.autodir, 'deps/mysql/mysql')
 
         # configure wants to get at pg_config, so add its path
-        utils.system('PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql' % (pgsql_dir, mysql_dir))
+        utils.system(
+            'PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql'
+            % (pgsql_dir, mysql_dir))
         utils.system('make -j %d' % autotest_utils.count_cpus())
 
 
@@ -27,8 +29,9 @@ class sysbench(test.test):
                     read_only = 0, args = ''):
         plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
         mlib = os.path.join(self.autodir, 'deps/mysql/mysql/lib/mysql')
-        ld_path = prepend_path(plib, environ('LD_LIBRARY_PATH'))
-        ld_path = prepend_path(mlib, ld_path)
+        ld_path = autotest_utils.prepend_path(plib,
+            autotest_utils.environ('LD_LIBRARY_PATH'))
+        ld_path = autotest_utils.prepend_path(mlib, ld_path)
         os.environ['LD_LIBRARY_PATH'] = ld_path
 
         # The databases don't want to run as root so run them as nobody
@@ -40,7 +43,7 @@ class sysbench(test.test):
         try:
             utils.system(self.sudo + '/bin/true')
         except:
-            raise TestError('Unable to run as nobody')
+            raise error.TestError('Unable to run as nobody')
 
         if (db_type == 'pgsql'):
             self.execute_pgsql(build, num_threads, max_time, read_only, args)
@@ -67,7 +70,7 @@ class sysbench(test.test):
         time.sleep(5)
 
         try:
-            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp '
+            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp ' \
                        '--db-driver=pgsql --pgsql-user=' + self.dbuser
 
             if build == 1:
@@ -125,7 +128,7 @@ class sysbench(test.test):
         time.sleep(5)
 
         try:
-            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp '
+            base_cmd = self.srcdir + '/sysbench/sysbench --test=oltp ' \
                                      '--db-driver=mysql --mysql-user=root'
 
             if build == 1:
