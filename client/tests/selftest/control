@@ -1,9 +1,11 @@
-AUTHOR = "Autotest Team"
+AUTHOR = "Andy Whitcroft <apw@shadowen.org>"
+EXPERIMENTAL = "True"
 TIME = "MEDIUM"
 NAME = "Self Test"
 TEST_TYPE = "client"
 TEST_CATEGORY = "Functional"
-TEST_CLASS = "Stress"
+TEST_CLASS = "Software"
 DOC = """\
-Stub information needs to be updated!
+Run a selftest on the autotest installed branch
 """
+job.run_test('selftest', 1)
