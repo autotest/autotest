@@ -226,8 +226,11 @@ public class DynamicTable extends DataTable
     
     public String[] getRowData(int row) {
         String[] data = new String[columns.length];
-        for (int i = 0; i < columns.length; i++)
+        for (int i = 0; i < columns.length; i++) {
+            if(isWidgetColumn(i))
+                continue;
             data[i] = table.getHTML(row, i);
+        }
         return data;
     }
     
@@ -239,6 +242,10 @@ public class DynamicTable extends DataTable
     // INPUT
     
     public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
+        
+        if(isWidgetColumn(cell)) 
+            return;
+        
         if (clientSortable && row == headerRow) {
             int newSortDirection = DataSource.ASCENDING;
             if (cell == sortedOn)

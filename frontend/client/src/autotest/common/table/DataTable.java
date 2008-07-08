@@ -1,12 +1,12 @@
 package autotest.common.table;
 
 
-
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +27,7 @@ public class DataTable extends Composite {
     public static final String HEADER_STYLE = "data-row-header";
     public static final String CLICKABLE_STYLE = "data-row-clickable";
     public static final String HIGHLIGHTED_STYLE = "data-row-highlighted";
+    public static final String WIDGET_COLUMN = "_WIDGET_COLUMN_";
     // for indexing into column subarrays (i.e. columns[1][COL_NAME])
     public static final int COL_NAME = 0, COL_TITLE = 1;
     
@@ -36,9 +37,16 @@ public class DataTable extends Composite {
     protected int headerRow = 0;
     protected boolean clickable = false;
     
+    protected TableWidgetFactory widgetFactory = null;
+    
     // keep a list of JSONObjects corresponding to rows in the table
     protected List<JSONObject> jsonObjects = new ArrayList<JSONObject>();
 
+    
+    public static interface TableWidgetFactory {
+        public Widget createWidget(int row, int cell);
+    }
+    
     /**
      * @param columns An array specifying the name of each column and the field
      * to which it corresponds.  The array should have the form
@@ -64,6 +72,10 @@ public class DataTable extends Composite {
         }
 
         table.getRowFormatter().setStylePrimaryName(0, HEADER_STYLE);
+    }
+    
+    public void setWidgetFactory(TableWidgetFactory widgetFactory) {
+        this.widgetFactory = widgetFactory;
     }
 
     protected void setRowStyle(int row) {
@@ -115,6 +127,9 @@ public class DataTable extends Composite {
     protected String[] getRowText(JSONObject row) {
         String[] rowText = new String[columns.length];
         for (int i = 0; i < columns.length; i++) {
+            if (isWidgetColumn(i))
+                continue;
+            
             String columnKey = columns[i][0];
             JSONValue columnValue = row.get(columnKey);
             rowText[i] = getTextForValue(columnValue);
@@ -128,9 +143,18 @@ public class DataTable extends Composite {
      */
     protected void addRowFromData(String[] rowData) {
         int row = table.getRowCount();
-        for(int i = 0; i < columns.length; i++)
-            table.setHTML(row, i, rowData[i]);
+        for(int i = 0; i < columns.length; i++) {
+            if(isWidgetColumn(i)) {
+                table.setWidget(row, i, widgetFactory.createWidget(row, i));
+            } else {
+                table.setHTML(row, i, rowData[i]);
+            }
+        }
         setRowStyle(row);
+    }
+
+    protected boolean isWidgetColumn(int i) {
+        return columns[i][0].equals(WIDGET_COLUMN);
     }
 
     /**
