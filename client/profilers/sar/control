@@ -1,0 +1,3 @@
+job.profilers.add('sar', 2)
+job.run_test('sleeptest', 5)
+job.profilers.delete('sar')
