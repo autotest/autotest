@@ -16,4 +16,4 @@ class real_time_tests(test.test):
 
     def execute(self, args = '-l 10'):
         os.chdir(self.srcdir)
-	utils.system('./run.sh -t func' + args)
+	utils.system('./run.sh -t func ' + args)
