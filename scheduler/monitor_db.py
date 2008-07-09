@@ -8,7 +8,7 @@ __author__ = "Paul Turner <pjt@google.com>"
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
 import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
 import common
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, host_protections
 
 
 RESULTS_DIR = '.'
@@ -1045,9 +1045,10 @@ class RepairTask(AgentTask):
         fail_queue_entry: queue entry to mark failed if this repair
         fails.
         """
+        protection = host_protections.Protection.get_string(host.protection)
         self.create_temp_resultsdir('.repair')
         cmd = [_autoserv_path , '-R', '-m', host.hostname,
-               '-r', self.temp_results_dir]
+               '-r', self.temp_results_dir, '--host-protection', protection]
         self.host = host
         self.fail_queue_entry = fail_queue_entry
         super(RepairTask, self).__init__(cmd)

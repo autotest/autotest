@@ -3,7 +3,7 @@
 import unittest, time, subprocess, os, StringIO, tempfile
 import MySQLdb
 import common
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 
 import monitor_db
@@ -495,6 +495,7 @@ class AgentTest(unittest.TestCase):
 class AgentTasksTest(unittest.TestCase):
     TEMP_DIR = '/temp/dir'
     HOSTNAME = 'myhost'
+    HOST_PROTECTION = host_protections.default
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -504,6 +505,7 @@ class AgentTasksTest(unittest.TestCase):
         self.god.stub_class_method(monitor_db.RunMonitor, 'exit_code')
         self.host = self.god.create_mock_class(monitor_db.Host, 'host')
         self.host.hostname = self.HOSTNAME
+        self.host.protection = self.HOST_PROTECTION
         self.queue_entry = self.god.create_mock_class(
             monitor_db.HostQueueEntry, 'queue_entry')
         self.queue_entry.host = self.host
@@ -553,9 +555,13 @@ class AgentTasksTest(unittest.TestCase):
 
         task = monitor_db.RepairTask(self.host)
         self.run_task(task, success)
+
+        expected_protection = host_protections.Protection.get_string(
+            host_protections.default)
         self.assertTrue(set(task.monitor.cmd) >
                         set(['autoserv', '-R', '-m', self.HOSTNAME, '-r',
-                        self.TEMP_DIR]))
+                             self.TEMP_DIR, '--host-protection',
+                             expected_protection]))
         self.god.check_playback()
 
 
