@@ -1,21 +1,4 @@
-#!/usr/bin/python
-#
-# Copyright 2007 Google Inc. Released under the GPL v2
-
-"""
-This module defines the InstallableObject class
-
-        InstallableObject: a software package that can be installed on a Host
-"""
-
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
-
-
-import utils
+from autotest_lib.server import utils
 
 
 class InstallableObject(object):
