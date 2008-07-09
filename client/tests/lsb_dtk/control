@@ -1,3 +1,13 @@
+NAME = "LSB-DTK"
+AUTHOR = "Pavan Naregundi <pnaregun@in.ibm.com>"
+TIME = "MEDIUM"
+TEST_CATEGORY = "FUNCTIONAL"
+TEST_CLASS = "KERNEL"
+TEST_TYPE = "CLIENT"
+DOC = """
+Test for LSB-DTK
+"""
+
 lsb_cfg = '''
 [lsb]
 tarball_url = http://ftp.freestandards.org/pub/lsb/bundles/released-3.1.1/dist-testkit/lsb-dist-testkit-3.1.1-5.%s.tar.gz
