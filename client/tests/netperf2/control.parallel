@@ -1,3 +1,14 @@
+NAME = "Netperf2 (Parallel)"
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+TIME = "MEDIUM"
+TEST_CATEGORY = "BENCHMARK"
+TEST_CLASS = "HARDWARE"
+TEST_TYPE = "CLIENT"
+DOC = """
+TCP/UDP/sockets/etc performance benchmark.
+See http://www.netperf.org/netperf/NetperfPage.html.
+"""
+
 def client():
     job.run_test('netperf2', '127.0.0.1', '127.0.0.1', 'client', tag='client')
 
