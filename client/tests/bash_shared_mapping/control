@@ -1,1 +1,12 @@
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+EXPERIMENTAL = 'True'  # Change if you use this and it works.  :-)
+NAME = "bash shared mapping"
+TIME = "SHORT"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TEST_TYPE = "client"
+DOC = """\
+Who knows...
+"""
+
 job.run_test('bash_shared_mapping')
