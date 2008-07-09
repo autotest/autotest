@@ -1,5 +1,5 @@
 NAME = "aio dio bugs"
-AUTHOR = "Autotest Team"
+AUTHOR = "Rafal Wijata <wijata@nec-labs.com>"
 TEST_TYPE = "client"
 TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Functional"
