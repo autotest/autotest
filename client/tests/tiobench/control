@@ -1,1 +1,13 @@
+NAME = 'Threaded IO Bench'
+AUTHOR = 'walkinair@cn.ibm.com'
+TIME = 'MEDIUM'
+TEST_CLASS = 'IO'
+TEST_CATEGORY = 'Benchmark'
+TEST_TYPE = 'client'
+EXPERIMENTAL = 'True'
+
+DOC = """
+Performs threaded I/O benchmarks.
+"""
+
 job.run_test('tiobench', '/mnt')
