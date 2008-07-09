@@ -71,6 +71,7 @@ def run_autoserv(pid_file_manager, results, parser):
     repair   = parser.options.repair
     no_tee   = parser.options.no_tee
     parse_job = parser.options.parse_job
+    host_protection = parser.options.host_protection
     ssh_user = parser.options.ssh_user
     ssh_port = parser.options.ssh_port
     ssh_pass = parser.options.ssh_pass
@@ -123,7 +124,7 @@ def run_autoserv(pid_file_manager, results, parser):
     exit_code = 0
     try:
         if repair:
-            job.repair()
+            job.repair(host_protection)
         elif verify:
             job.verify()
         else:
