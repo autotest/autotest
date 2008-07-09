@@ -3,7 +3,7 @@
 import unittest, os, time
 import common
 from autotest_lib.server import base_server_job, test, subcommand
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import utils, error, host_protections
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko.parsers import version_1 as parser_mod
@@ -132,19 +132,22 @@ class BaseServerJobTest(unittest.TestCase):
         self.construct_server_job()
 
         # record
-        namespace = {'machines' : self.machines, 'job' : self.job, \
-                     'ssh_user' : self.job.ssh_user, \
-                     'ssh_port' : self.job.ssh_port, \
-                     'ssh_pass' : self.job.ssh_pass}
+        verify_namespace = {'machines' : self.machines, 'job' : self.job,
+                            'ssh_user' : self.job.ssh_user,
+                            'ssh_port' : self.job.ssh_port,
+                            'ssh_pass' : self.job.ssh_pass}
+        repair_namespace = verify_namespace.copy()
+        repair_namespace['protection_level'] = host_protections.default
+
         arg = base_server_job.preamble + base_server_job.repair
-        self.job._execute_code.expect_call(arg, namespace,
-                                                namespace)
+        self.job._execute_code.expect_call(arg, repair_namespace,
+                                           repair_namespace)
         arg = base_server_job.preamble + base_server_job.verify
-        self.job._execute_code.expect_call(arg, namespace,
-                                                namespace)
+        self.job._execute_code.expect_call(arg, verify_namespace,
+                                           verify_namespace)
 
         # run and check
-        self.job.repair()
+        self.job.repair(host_protections.default)
         self.god.check_playback()
 
 
