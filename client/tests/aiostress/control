@@ -1,4 +1,4 @@
-AUTHOR = "Autotest Team"
+AUTHOR = "Masoud S <masouds@google.com>"
 NAME = "aio stress"
 TEST_CATEGORY = "Stress"
 TEST_CLASS = "Kernel"
@@ -16,4 +16,5 @@ to reads
 
 io buffers are aligned in case you want to do raw io
 """
+
 job.run_test('aiostress')
