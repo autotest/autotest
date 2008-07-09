@@ -1,10 +1,50 @@
+import sys, traceback
+
+from autotest_lib.client.common_lib import host_protections
+
+
 # This is pretty silly. Wait for s/w watchdog. Pray hard.
+def repair_filesystem_only(host):
+    host.wait_up(int(2.5 * 60 * 60))  # wait for 2.5 hours
+    if "site_repair_filesystem_only" in globals():
+        site_repair_filesystem_only(host)
+    host.reboot()
+
+
+def repair_full(host):
+    try:
+        repair_filesystem_only(host)
+        job.verify()
+    except Exception:
+        # the basic filesystem-only repair failed, try something more drastic
+        print "Filesystem-only repair failed"
+        traceback.print_exc()
+        try:
+            host.machine_install()
+        except NotImplementedError, e:
+            sys.stderr.write(str(e) + "\n\n")
+        if "site_repair_full" in globals():
+            site_repair_full(host)
+
+
 def repair(machine):
-	host = hosts.SSHHost(machine, initialize=False)
-	host.wait_up(int(2.5 * 60 * 60))  # wait for 2.5 hours
-	if "site_repair" in globals():
-		site_repair(host)
-	host.reboot()
+    protection = host_protections.Protection
+    try:
+        level = protection.get_value(protection_level)
+    except ValueError:
+        raise NotImplementedError("Unknown host protection level %s" %
+                                  protection_level)
+    # call the appropriate repair function based on protection level
+    if level == protection.DO_NOT_REPAIR:
+        print "Host is specified as 'Do not repair', skipping repair stage"
+    elif level == protection.FILESYSTEM_ONLY:
+        print "Attempting filesystem-only repair"
+        host = hosts.SSHHost(machine, initialize=False)
+        repair_filesystem_only(host)
+    elif level == protection.NO_PROTECTION:
+        print "Attempting full repair"
+        host = hosts.SSHHost(machine, initialize=False)
+        repair_full(host)
+
 
 job.parallel_simple(repair, machines, log=False)
-

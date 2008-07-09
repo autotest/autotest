@@ -265,14 +265,13 @@ class base_server_job:
             raise
 
 
-    def repair(self):
+    def repair(self, host_protection):
         if not self.machines:
-            raise error.AutoservError(
-                'No machines specified to repair')
-        namespace = {'machines' : self.machines, 'job' : self, \
-                                 'ssh_user' : self.ssh_user, \
-                                 'ssh_port' : self.ssh_port, \
-                                 'ssh_pass' : self.ssh_pass}
+            raise error.AutoservError('No machines specified to repair')
+        namespace = {'machines': self.machines, 'job': self,
+                     'ssh_user': self.ssh_user, 'ssh_port': self.ssh_port,
+                     'ssh_pass': self.ssh_pass,
+                     'protection_level': host_protection}
         # no matter what happens during repair, go on to try to reverify
         try:
             self._execute_code(preamble + repair, namespace, namespace)

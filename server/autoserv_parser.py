@@ -1,7 +1,6 @@
-__author__ = "raphtee@google.com (Travis Miller)"
-
-
 import os, sys, getopt, optparse
+
+from autotest_lib.client.common_lib import host_protections
 
 
 class base_autoserv_parser(object):
@@ -64,6 +63,13 @@ class base_autoserv_parser(object):
         self.parser.add_option("-p", action="store_true",
                                dest="write_pidfile", default=False,
                               help="write pidfile (.autoserv_execute)")
+        protection_levels = [host_protections.Protection.get_attr_name(s)
+                             for i, s in host_protections.choices]
+        self.parser.add_option("--host-protection", action="store",
+                               type="choice", dest="host_protection",
+                               default=host_protections.default,
+                               choices=protection_levels,
+                               help="level of host protection during repair")
         self.parser.add_option("--ssh-user", action="store",
                                type="string", dest="ssh_user",
                                default="root",
