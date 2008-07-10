@@ -1,1 +1,11 @@
+AUTHOR = "Randy.Dunlap <rdunlap@xenotime.net>"
+NAME = "fio"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+DOC='''
+Fsx is a file system regression test.
+'''
 job.run_test('fsx')
