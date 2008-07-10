@@ -12,6 +12,7 @@
 ...   from frontend import thread_local
 ...   # set up a user for us to "login" as
 ...   user = models.User(login='debug_user')
+...   user.access_level = 100
 ...   user.save()
 ...   thread_local.set_user(user)
 ...
