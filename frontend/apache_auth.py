@@ -31,8 +31,9 @@ class SimpleAuthBackend:
 
     @staticmethod
     def check_afe_user(username):
-        user, _ = models.User.objects.get_or_create(login=username)
-        user.save()
+        user, created = models.User.objects.get_or_create(login=username)
+        if created:
+            user.save()
 
     def get_user(self, user_id):
         try:
