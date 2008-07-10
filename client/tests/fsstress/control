@@ -1,1 +1,11 @@
+AUTHOR = "Ricardo Salveti de Araujo <rsalveti@linux.vnet.ibm.com"
+NAME = "fsstress"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+DOC='''
+Information about fsstress can be found at http://www.cs.duke.edu/ari/fstress/
+'''
 job.run_test('fsstress')

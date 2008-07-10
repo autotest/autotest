@@ -1,1 +1,12 @@
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+NAME = "fsfuzzer"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+
+DOC='''
+fsfuzzer is a file system fuzzer tool. This test simply runs fsfuzzer.
+'''
 job.run_test('fsfuzzer')
