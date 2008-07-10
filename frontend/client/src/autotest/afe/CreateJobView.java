@@ -123,7 +123,9 @@ public class CreateJobView extends TabView {
         }
 
         public void reset() {
-            setEnabled(false);
+            for (T thisBox : testBoxes) {
+                thisBox.setChecked(false);
+            }
         }
     }
     
