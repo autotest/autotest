@@ -26,11 +26,11 @@ public class JobListView extends TabView {
     protected static final int JOBS_PER_PAGE = 30;
     protected static final int QUEUED = 0, RUNNING = 1, FINISHED = 2, 
                                ALL = 3, LINK_COUNT = 4;
-    protected static final String[] historyTokens = {"queued", "running", 
+    private static final String[] historyTokens = {"queued", "running", 
                                                      "finished", "all"};
-    protected static final String[] linkLabels = {"Queued Jobs", "Running Jobs",
+    private static final String[] linkLabels = {"Queued Jobs", "Running Jobs",
                                                   "Finished Jobs", "All Jobs"};
-    protected static final String[] filterStrings = {"not_yet_run", "running",
+    private static final String[] filterStrings = {"not_yet_run", "running",
                                                      "finished"};
     
     interface JobSelectListener {

@@ -34,7 +34,7 @@ import java.util.Set;
 
 
 public class JobDetailView extends DetailView {
-    public static final String[][] JOB_HOSTS_COLUMNS = {
+    private static final String[][] JOB_HOSTS_COLUMNS = {
         {"hostname", "Host"}, {"status", "Status"}, 
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"}
     };
