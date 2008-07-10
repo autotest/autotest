@@ -1,6 +1,6 @@
 from django.db import models as dbmodels, connection
 from frontend.afe import model_logic
-from frontend import settings
+from frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections
 
 
@@ -116,12 +116,15 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         self.hostname = self.hostname.strip()
         # is this a new object being saved for the first time?
         first_time = (self.id is None)
+        if not first_time:
+            AclGroup.check_for_acl_violation_hosts([self])
         super(Host, self).save()
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.hosts.add(self)
 
     def delete(self):
+        AclGroup.check_for_acl_violation_hosts([self])
         for queue_entry in self.hostqueueentry_set.all():
             queue_entry.deleted = True
             queue_entry.abort()
@@ -281,29 +284,17 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     def save(self):
         # is this a new object being saved for the first time?
         first_time = (self.id is None)
+        user = thread_local.get_user()
+        if user and not user.is_superuser():
+            raise AclAccessViolation("You cannot modify users!")
         super(User, self).save()
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.users.add(self)
 
 
-    def has_access(self, target):
-        if self.access_level >= self.ACCESS_ROOT:
-            return True
-
-        if isinstance(target, int):
-            return self.access_level >= target
-        if isinstance(target, Job):
-            return (target.owner == self.login or
-                    self.access_level >= self.ACCESS_ADMIN)
-        if isinstance(target, Host):
-            acl_intersect = [group
-                             for group in self.aclgroup_set.all()
-                             if group in target.aclgroup_set.all()]
-            return bool(acl_intersect)
-        if isinstance(target, User):
-            return self.access_level >= target.access_level
-        raise ValueError('Invalid target type')
+    def is_superuser(self):
+        return self.access_level >= self.ACCESS_ROOT
 
 
     class Meta:
@@ -336,10 +327,33 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     @staticmethod
+    def check_for_acl_violation_hosts(hosts):
+        user = thread_local.get_user()
+        if user.is_superuser():
+            return None
+        accessible_host_ids = set(
+            host.id for host in Host.objects.filter(acl_group__users=user))
+        for host in hosts:
+            # Check if the user has access to this host,
+            # but only if it is not a metahost
+            if (isinstance(host, Host)
+                and int(host.id) not in accessible_host_ids):
+                raise AclAccessViolation("You do not have access to %s"
+                                         % str(host))
+
+    def check_for_acl_violation_acl_group(self):
+        user = thread_local.get_user()
+        if user.is_superuser():
+            return None
+        if not user in self.users.all():
+            raise AclAccessViolation("You do not have access to %s"
+                                     % self.name)
+
+    @staticmethod
     def on_host_membership_change():
         everyone = AclGroup.objects.get(name='Everyone')
 
-        # find hosts that aren't in any ACL group and add them to Everyone 
+        # find hosts that aren't in any ACL group and add them to Everyone
         # TODO(showard): this is a bit of a hack, since the fact that this query
         # works is kind of a coincidence of Django internals.  This trick
         # doesn't work in general (on all foreign key relationships).  I'll
@@ -356,6 +370,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def delete(self):
+        if (self.name == 'Everyone'):
+            raise AclAccessViolation("You cannot delete 'Everyone'!")
+        self.check_for_acl_violation_acl_group()
         super(AclGroup, self).delete()
         self.on_host_membership_change()
 
@@ -369,6 +386,11 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         the admin interface.
         """
         def save(self, new_data):
+            user = thread_local.get_user()
+            if (not user.is_superuser()
+                and self.original_object.name == 'Everyone'):
+                raise AclAccessViolation("You cannot modify 'Everyone'!")
+            self.original_object.check_for_acl_violation_acl_group()
             obj = super(AclGroup.Manipulator, self).save(new_data)
             obj.on_host_membership_change()
             return obj
@@ -465,6 +487,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
         """
+        AclGroup.check_for_acl_violation_hosts(hosts)
         job = cls.add_object(
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
@@ -503,6 +526,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def abort(self):
+        user = thread_local.get_user()
+        if not user.is_superuser() and user.login != self.owner:
+            raise AclAccessViolation("You cannot abort other people's jobs!")
         for queue_entry in self.hostqueueentry_set.all():
             queue_entry.abort()
 
