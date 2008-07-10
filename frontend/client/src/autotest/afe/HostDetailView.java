@@ -17,7 +17,7 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class HostDetailView extends DetailView implements DataCallback {
-    public static final String[][] HOST_JOBS_COLUMNS = {
+    private static final String[][] HOST_JOBS_COLUMNS = {
             {"job_id", "Job ID"}, {"job_owner", "Job Owner"}, 
             {"job_name", "Job Name"}, {"status", "Status"}
     };

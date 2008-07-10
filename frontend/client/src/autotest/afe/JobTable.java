@@ -15,7 +15,7 @@ public class JobTable extends DynamicTable {
     public static final String HOSTS_SUMMARY = "hosts_summary";
     public static final String CREATED_TEXT = "created_text";
 
-    public static final String[][] JOB_COLUMNS = { { "id", "ID" },
+    private static final String[][] JOB_COLUMNS = { { "id", "ID" },
             { "owner", "Owner" }, { "name", "Name" },
             { "priority", "Priority" }, { "control_type", "Client/Server" },
             { CREATED_TEXT, "Created" }, { HOSTS_SUMMARY, "Status" } };
