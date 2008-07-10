@@ -14,6 +14,7 @@ import autotest.common.ui.NotifyManager;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class HostDetailView extends DetailView implements DataCallback {
@@ -122,10 +123,17 @@ public class HostDetailView extends DetailView implements DataCallback {
         String pageTitle = "Host " + hostname;
         displayObjectData(pageTitle);
         
+        DOM.setElementProperty(DOM.getElementById("view_host_logs_link"), "href",
+                getLogLink(hostname));
+        
         hostFilter.setParameter("host__hostname", new JSONString(hostname));
         jobsTable.refresh();
     }
 
+    private String getLogLink(String hostname) {
+        return "/results/hosts/" + hostname;
+    }
+    
     @Override
     public void initialize() {
         super.initialize();
