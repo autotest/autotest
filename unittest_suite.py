@@ -1,22 +1,23 @@
 #!/usr/bin/python
 
-import os, sys
-import unittest
+import os, sys, unittest
 import common
 
 root = os.path.abspath(os.path.dirname(__file__))
-suites = []
+suites = unittest.TestSuite()
 def lister(dummy, dirname, files):
-    loader = unittest.TestLoader()
     for f in files:
         if f.endswith('_unittest.py'):
             temp = os.path.join(dirname, f).strip('.py')
-            mod = 'autotest_lib' + temp[len(root):].replace('/', '.')
+            mod_name = ['autotest_lib'] + temp[len(root)+1:].split('/')
+            mod = common.setup_modules.import_module(mod_name[-1],
+                                                     '.'.join(mod_name[:-1]))
             try:
-                suite = loader.loadTestsFromName(mod)
-                suites.append(suite)
+                loader = unittest.defaultTestLoader
+                suite = loader.loadTestsFromModule(mod)
+                suites.addTest(suite)
             except Exception, err:
-                print "module failed to load: %s: %s" % (mod, err)
+                print "module %s failed to load: %s" % (mod_name, err)
 
 
 if __name__ == "__main__":
@@ -25,6 +26,5 @@ if __name__ == "__main__":
     else:
         start = root
     os.path.walk(start, lister, None)
-    alltests = unittest.TestSuite(suites)
     runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(alltests)
+    runner.run(suites)
