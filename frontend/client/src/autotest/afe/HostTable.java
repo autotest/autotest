@@ -6,7 +6,7 @@ import autotest.common.table.DataSource;
 import autotest.common.table.DynamicTable;
 
 public class HostTable extends DynamicTable {
-    public static final String[][] HOST_COLUMNS = {
+    private static final String[][] HOST_COLUMNS = {
             {"hostname", "Hostname"}, {"platform", "Platform"}, 
             {HostDataSource.OTHER_LABELS, "Other labels"}, {"status", "Status"}, 
             {HostDataSource.LOCKED_TEXT, "Locked"}

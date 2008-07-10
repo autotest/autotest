@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class Utils {
-    public static final String[][] escapeMappings = {
+    private static final String[][] escapeMappings = {
         {"&", "&amp;"},
         {">", "&gt;"},
         {"<", "&lt;"},
