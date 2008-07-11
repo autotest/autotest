@@ -399,6 +399,8 @@ class ModelExtensions(object):
         extra_args = filter_data.pop('extra_args', {})
         extra_where = filter_data.pop('extra_where', None)
         if extra_where:
+            # escape %'s
+            extra_where = extra_where.replace('%', '%%')
             extra_args.setdefault('where', []).append(extra_where)
 
         # filters

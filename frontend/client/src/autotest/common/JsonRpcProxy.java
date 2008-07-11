@@ -16,29 +16,41 @@ import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * A singleton class to facilitate RPC calls to the server.
  */
 public class JsonRpcProxy {
-    public static final JsonRpcProxy theInstance = new JsonRpcProxy();
+    public static final String AFE_URL = "/afe/server/rpc/";
+    public static final String TKO_URL = "/new_tko/server/rpc/";
+    private static String defaultUrl;
+    
+    private static final Map<String,JsonRpcProxy> instanceMap = new HashMap<String,JsonRpcProxy>();
     
     protected NotifyManager notify = NotifyManager.getInstance();
     
     protected RequestBuilder requestBuilder;
     
-    // singleton
-    private JsonRpcProxy() {}
-    
-    public static JsonRpcProxy getProxy() {
-        return theInstance;
+    public static void setDefaultUrl(String url) {
+        defaultUrl = url;
     }
     
-    /**
-     * Set the URL to which requests are sent.
-     */
-    public void setUrl(String url) {
+    public static JsonRpcProxy getProxy(String url) {
+        if (!instanceMap.containsKey(url)) {
+            instanceMap.put(url, new JsonRpcProxy(url));
+        }
+        return instanceMap.get(url);
+    }
+    
+    public static JsonRpcProxy getProxy() {
+        assert defaultUrl != null;
+        return getProxy(defaultUrl);
+    }
+    
+    private JsonRpcProxy(String url) {
         requestBuilder = new RequestBuilder(RequestBuilder.POST, url);
     }
 
