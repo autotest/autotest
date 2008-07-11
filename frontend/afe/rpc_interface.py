@@ -443,6 +443,19 @@ def get_num_host_queue_entries(**filter_data):
     return models.HostQueueEntry.query_count(filter_data)
 
 
+def get_hqe_percentage_complete(**filter_data):
+    """
+    Computes the percentage of host queue entries matching the given filter data
+    that are complete.
+    """
+    query = models.HostQueueEntry.query_objects(filter_data)
+    complete_count = query.filter(complete=True).count()
+    total_count = query.count()
+    if total_count == 0:
+        return 1
+    return float(complete_count) / total_count
+
+
 # other
 
 def get_static_data():

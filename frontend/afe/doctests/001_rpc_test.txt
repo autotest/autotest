@@ -421,6 +421,8 @@ True
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4L
+>>> rpc_interface.get_hqe_percentage_complete(job=1)
+0.0
 
 # get_jobs_summary adds status counts to the rest of the get_jobs info
 >>> data = rpc_interface.get_jobs_summary()
