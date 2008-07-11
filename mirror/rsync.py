@@ -1,5 +1,7 @@
-#!/usr/bin/python
 import os
+import common
+from autotest_lib.client.common_lib import utils
+
 
 class rsync:
     command = '/usr/bin/rsync -rltvz'
@@ -28,5 +30,4 @@ class rsync:
         src = os.path.join(self.prefix, src)
         cmd = self.command + ' %s "%s" "%s"' % (self.exclude, src, dest)
         # print cmd + ' >> %s 2>&1' % self.tmpfile
-        if os.system(cmd + ' >> %s 2>&1' % self.tmpfile):
-            raise 'rsync command failed'
+        utils.system(cmd + ' >> %s 2>&1' % self.tmpfile)
