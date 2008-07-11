@@ -195,9 +195,9 @@ class parser(base.parser):
                 # if there was no testname, just use the subdir
                 if line.testname is None:
                     line.testname = line.subdir
-                # if there was no testname or subdir, use 'JOB'
+                # if there was no testname or subdir, use 'CLIENT_JOB'
                 if line.testname is None:
-                    line.testname = "JOB.%d" % job_count
+                    line.testname = "CLIENT_JOB.%d" % job_count
                     job_count += 1
                     if not status_lib.is_worse_than_or_equal_to(
                         current_status, "ABORT"):
