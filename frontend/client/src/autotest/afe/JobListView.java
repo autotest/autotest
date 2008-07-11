@@ -1,6 +1,5 @@
 package autotest.afe;
 
-import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
@@ -20,12 +19,15 @@ import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.RootPanel;
 
+import java.util.Map;
+
 public class JobListView extends TabView {
     protected static final String ALL_USERS = "All Users";
     protected static final String SELECTED_LINK_STYLE = "selected-link";
     protected static final int JOBS_PER_PAGE = 30;
     protected static final int QUEUED = 0, RUNNING = 1, FINISHED = 2, 
                                ALL = 3, LINK_COUNT = 4;
+    private static final int DEFAULT_LINK = ALL;
     private static final String[] historyTokens = {"queued", "running", 
                                                      "finished", "all"};
     private static final String[] linkLabels = {"Queued Jobs", "Running Jobs",
@@ -115,10 +117,10 @@ public class JobListView extends TabView {
         for (int i = 0; i < LINK_COUNT; i++)
             jobStateFilter.addLink(linkLabels[i]);
         // all jobs is selected by default
-        jobStateFilter.setSelectedLink(ALL);
+        jobStateFilter.setSelectedLink(DEFAULT_LINK);
         jobStateFilter.addListener(new SimpleCallback() {
             public void doCallback(Object source) {
-                CustomHistory.newItem(getHistoryToken());
+                updateHistory();
             } 
         });
         jobTable.addFilter(jobStateFilter);
@@ -129,16 +131,25 @@ public class JobListView extends TabView {
     }
 
     @Override
-    public String getHistoryToken() {
-        return super.getHistoryToken() + "_" + 
-               historyTokens[jobStateFilter.getSelectedLink()];
+    public Map<String, String> getHistoryArguments() {
+        Map<String, String> arguments = super.getHistoryArguments();
+        arguments.put("state_filter", historyTokens[jobStateFilter.getSelectedLink()]);
+        return arguments;
     }
     
     @Override
-    public void handleHistoryToken(String token) {
+    public void handleHistoryArguments(Map<String, String> arguments) {
+        String stateFilter = arguments.get("state_filter");
+        if (stateFilter == null) {
+            jobStateFilter.setSelectedLink(DEFAULT_LINK);
+            return;
+        }
+        
         for (int i = 0; i < LINK_COUNT; i++) {
-            if (token.equals(historyTokens[i]))
+            if (stateFilter.equals(historyTokens[i])) {
                 jobStateFilter.setSelectedLink(i);
+                return;
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package autotest.common;
 
+import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -7,7 +8,9 @@ import com.google.gwt.json.client.JSONValue;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Utils {
     private static final String[][] escapeMappings = {
@@ -109,5 +112,32 @@ public class Utils {
         }
         return result.toString();
     }
-
+    
+    public static Map<String,String> decodeUrlArguments(String urlArguments) {
+        Map<String, String> arguments = new HashMap<String, String>();
+        String[] components = urlArguments.split("&");
+        for (String component : components) {
+            String[] parts = component.split("=");
+            if (parts.length > 2) {
+                throw new IllegalArgumentException();
+            }
+            String key = URL.decodeComponent(parts[0]);
+            String value = "";
+            if (parts.length == 2) {
+                value = URL.decodeComponent(parts[1]);
+            }
+            arguments.put(key, value);
+        }
+        return arguments;
+    }
+    
+    public static String encodeUrlArguments(Map<String, String> arguments) {
+        List<String> components = new ArrayList<String>();
+        for (Map.Entry<String, String> entry : arguments.entrySet()) {
+            String key = URL.encodeComponent(entry.getKey());
+            String value = URL.encodeComponent(entry.getValue());
+            components.add(key + "=" + value);
+        }
+        return joinStrings("&", components);
+    }
 }

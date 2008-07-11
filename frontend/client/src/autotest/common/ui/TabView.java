@@ -1,10 +1,14 @@
 package autotest.common.ui;
 
 import autotest.common.CustomHistory;
+import autotest.common.Utils;
 
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.Composite;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A widget to facilitate building a tab panel from elements present in the 
@@ -15,7 +19,6 @@ import com.google.gwt.user.client.ui.Composite;
  * lazy initialization of the tab by waiting until the tab is first displayed.
  */
 public abstract class TabView extends Composite {
-    public static final String HISTORY_PREFIX = "h_";
     protected boolean initialized = false;
     protected String title;
     
@@ -54,13 +57,23 @@ public abstract class TabView extends Composite {
     }
     
     public String getHistoryToken() {
-        return HISTORY_PREFIX + getElementId();
+        return Utils.encodeUrlArguments(getHistoryArguments());
     }
     
     /**
+     * Subclasses should override this to store any additional history information.
+     */
+    protected Map<String, String> getHistoryArguments() {
+        Map<String, String> arguments = new HashMap<String, String>();
+        arguments.put("tab_id", getElementId());
+        return arguments;
+    }
+    
+    /**
+     * Subclasses should override this to actually handle the tokens.
      * Should *not* trigger a refresh.  refresh() will be called separately.
      */
-    public void handleHistoryToken(String token) {}
+    public void handleHistoryArguments(Map<String, String> arguments) {}
     
     public abstract void initialize();
     public abstract String getElementId();
