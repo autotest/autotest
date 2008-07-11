@@ -9,6 +9,8 @@ TEST_TYPE = "Client"
 EXPERIMENTAL = "True"
 DEPENDENCIES = "GCC"
 
-DOC = "Create lots of VMAs mapped by lots of tasks.  To tickle objrmap and the
-virtual scan."
+DOC = """
+Create lots of VMAs mapped by lots of tasks.  To tickle objrmap and the
+virtual scan.
+"""
 job.run_test('rmaptest')
