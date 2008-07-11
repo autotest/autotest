@@ -8,11 +8,11 @@ import error, barrier
 
 
 def read_one_line(filename):
-    return open(filename, 'r').readline().strip()
+    return open(filename, 'r').readline().rstrip('\n')
 
 
 def write_one_line(filename, str):
-    open(filename, 'w').write(str.rstrip() + "\n")
+    open(filename, 'w').write(str.rstrip('\n') + '\n')
 
 
 def read_keyval(path):
