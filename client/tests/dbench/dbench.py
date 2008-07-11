@@ -15,7 +15,11 @@ class dbench(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, dir = None, nprocs = None, args = ''):
+    def intialize(self):
+        self.results = []
+
+
+    def run_once(self, dir = None, nprocs = None, args = ''):
         if not nprocs:
             nprocs = self.job.cpu_count()
         profilers = self.job.profilers
@@ -24,24 +28,12 @@ class dbench(test.test):
             args += ' -D ' + dir
         args += ' %s' % nprocs
         cmd = self.srcdir + '/dbench ' + args
-        results = []
-        if not profilers.only():
-            for i in range(iterations):
-                results.append(utils.system_output(cmd, retain_output=True))
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            results.append(utils.system_output(cmd, retain_output=True))
-            profilers.stop(self)
-            profilers.report(self)
-
-        self.__format_results("\n".join(results))
+        self.results.append(utils.system_output(cmd, retain_output=True))
 
 
-    def __format_results(self, results):
+    def postprocess(self):
         out = open(self.resultsdir + '/keyval', 'w')
         pattern = re.compile(r"Throughput (.*?) MB/sec (.*?) procs")
-        for result in pattern.findall(results):
+        for result in pattern.findall("\n".join(self.results)):
             print >> out, "throughput=%s\nprocs=%s\n" % result
         out.close()

@@ -12,6 +12,5 @@ class tsc(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, args = ''):
-        for i in range(iterations):
-            utils.system(self.srcdir + '/checktsc ' + args)
+    def run_once(self, args = ''):
+        utils.system(self.srcdir + '/checktsc ' + args)
