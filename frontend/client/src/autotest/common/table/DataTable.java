@@ -44,7 +44,7 @@ public class DataTable extends Composite {
 
     
     public static interface TableWidgetFactory {
-        public Widget createWidget(int row, int cell);
+        public Widget createWidget(int row, int cell, JSONObject rowObject);
     }
     
     /**
@@ -145,7 +145,8 @@ public class DataTable extends Composite {
         int row = table.getRowCount();
         for(int i = 0; i < columns.length; i++) {
             if(isWidgetColumn(i)) {
-                table.setWidget(row, i, widgetFactory.createWidget(row, i));
+                table.setWidget(row, i, widgetFactory.createWidget(row - 1, i, 
+                                                                   jsonObjects.get(row - 1)));
             } else {
                 table.setHTML(row, i, rowData[i]);
             }

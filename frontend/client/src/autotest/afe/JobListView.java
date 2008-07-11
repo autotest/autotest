@@ -1,25 +1,38 @@
 package autotest.afe;
 
+import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
-import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.Paginator;
+import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.Widget;
+
 
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 
 public class JobListView extends TabView {
     protected static final String ALL_USERS = "All Users";
@@ -52,18 +65,76 @@ public class JobListView extends TabView {
         }
     }
 
-    protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+    class SelectedSetButtonPanel extends Composite {
+        protected Panel panel = new HorizontalPanel();
+        protected SimpleHyperlink selectAllLink = new SimpleHyperlink("Select All");
+        protected SimpleHyperlink deselectAllLink = new SimpleHyperlink("Select None");
+        protected Button abortButton = new Button("Abort Selected");
+        
+        public SelectedSetButtonPanel() {
+            initWidget(panel);
+            
+            panel.add(selectAllLink);
+            panel.add(new HTML(", "));
+            panel.add(deselectAllLink);
+            panel.add(abortButton);
+            
+            selectAllLink.addClickListener(new ClickListener() {
+                public void onClick(Widget sender) {
+                    List<JSONObject> rowsToAdd = new ArrayList<JSONObject>();
+                    for (int i = 0; i < jobTable.getRowCount(); i++) {
+                        rowsToAdd.add(jobTable.getRow(i));
+                    }
+                    jobTable.getSelectionManager().selectObjects(rowsToAdd);
+                    refresh();
+                }
+            });
+            
+            deselectAllLink.addClickListener(new ClickListener() {
+                public void onClick(Widget sender) {
+                    jobTable.getSelectionManager().deselectAll();
+                    refresh();
+                }
+            });
+            
+            abortButton.addClickListener(new ClickListener() {
+               public void onClick(Widget sender) {
+                   abortSelectedJobs();
+               }
+            });
+        }
+    }
+    
+    protected static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JSONObject jobFilterArgs = new JSONObject();
     protected JobSelectListener selectListener;
 
     protected JobTable jobTable;
     protected TableDecorator tableDecorator;
-    protected SelectionManager selectionManager;
     protected JobStateFilter jobStateFilter;
     protected ListFilter ownerFilter;
     protected Paginator paginator;
-
     protected Hyperlink nextLink, prevLink;
+    
+    
+    public void abortSelectedJobs() {
+        Set<JSONObject> selectedSet = 
+            jobTable.getSelectionManager().getSelectedObjects();
+        
+        JSONArray ids = new JSONArray();
+        for(JSONObject jsonObj : selectedSet) {
+            ids.set(ids.size(), jsonObj.get("id").isNumber());
+        }
+        
+        JSONObject params = new JSONObject();
+        params.put("job_ids", ids);
+        rpcProxy.rpcCall("abort_jobs", params, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+               refresh();
+            }
+        });
+    }
     
     @Override
     public String getElementId() {
@@ -100,8 +171,14 @@ public class JobListView extends TabView {
                 selectListener.onJobSelected(jobId);
             }
             
-            public void onTableRefreshed() {}
+            public void onTableRefreshed() {
+                jobTable.getSelectionManager().refreshSelection();
+            }
         });
+        
+        
+        SelectedSetButtonPanel buttonPanel = new SelectedSetButtonPanel();
+        RootPanel.get("selection_button_panel").add(buttonPanel);
         
         tableDecorator = new TableDecorator(jobTable);
         tableDecorator.addPaginators();

@@ -68,6 +68,17 @@ public class HostSelector {
         availableTable.setClickable(true);
         availableDecorator.lockedFilter.setSelectedChoice("No");
         
+        availableTable.addListener(new DynamicTableListener() {
+            public void onRowClicked(int rowIndex, JSONObject row) {
+                availableSelection.toggleSelected(row);
+                availableSelection.refreshSelection();
+            } 
+            
+            public void onTableRefreshed() {
+                availableSelection.refreshSelection();
+            }
+        });
+        
         availableSelection.addListener(new SelectionListener() {
             public void onAdd(Collection<JSONObject> objects) {
                 for (JSONObject row : objects) {

@@ -341,9 +341,20 @@ def requeue_job(id):
 def abort_job(id):
     """\
     Abort the job with the given id number.
+
+    TODO: this method is deprecated in favor of abort_jobs().  We need
+    to eventually remove this rpc call entirely.
     """
     job = models.Job.objects.get(id=id)
     job.abort()
+
+
+def abort_jobs(job_ids):
+    """\
+    Abort a list of jobs.
+    """
+    for job in models.Job.objects.in_bulk(job_ids).values():
+        job.abort()
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
