@@ -1,7 +1,6 @@
 package autotest.common.table;
 
 import autotest.common.Utils;
-import autotest.common.table.DynamicTable.DynamicTableListener;
 
 import com.google.gwt.json.client.JSONObject;
 
@@ -67,17 +66,6 @@ public class SelectionManager {
     public SelectionManager(DynamicTable table, boolean selectOnlyOne) {
         attachedTable = table;
         this.selectOnlyOne = selectOnlyOne;
-        
-        table.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
-                toggleSelected(row);
-                refreshSelection();
-            } 
-            
-            public void onTableRefreshed() {
-                refreshSelection();
-            }
-        });
     }
     
     public void refreshSelection() {
