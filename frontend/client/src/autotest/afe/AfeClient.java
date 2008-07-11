@@ -16,8 +16,6 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class AfeClient implements EntryPoint {
-    static final String RPC_URL = "/afe/server/rpc/";
-
     protected JobListView jobList;
     protected JobDetailView jobDetail;
     protected CreateJobView createJob;
@@ -30,8 +28,7 @@ public class AfeClient implements EntryPoint {
      * Application entry point.
      */
     public void onModuleLoad() {
-        JsonRpcProxy.getProxy().setUrl(RPC_URL);
-        
+        JsonRpcProxy.setDefaultUrl(JsonRpcProxy.AFE_URL);
         NotifyManager.getInstance().initialize();
         
         // initialize static data, and don't show main UI until that's done
