@@ -307,12 +307,12 @@ class parser(base.parser):
                 tko_utils.dprint("reboot group, ignoring")
                 continue
 
-            # convert job-level ABORTs into a 'JOB' test, and
+            # convert job-level ABORTs into a 'CLIENT_JOB' test, and
             # ignore other job-level events
             if line.testname is None:
                 if (line.status == "ABORT" and
                     line.type != "END"):
-                    line.testname = "JOB"
+                    line.testname = "CLIENT_JOB"
                 else:
                     tko_utils.dprint("job level event, "
                                     "ignoring")
