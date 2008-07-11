@@ -38,6 +38,20 @@ public class DoubleListSelector extends Composite implements ClickListener {
         public int compareTo(Item item) {
             return name.compareTo(item.name);
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Item)) {
+                return false;
+            }
+            Item other = (Item) obj;
+            return name.equals(other.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode() * value.hashCode();
+        }
     }
     
     public DoubleListSelector() {

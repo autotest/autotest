@@ -23,9 +23,6 @@ public class JobTable extends DynamicTable {
 
     private TableWidgetClickListener widgetListener = new TableWidgetClickListener() {
         public void onClick(TableClickWidget widget) {
-            CheckBox box = (CheckBox) widget.getContainedWidget();
-            boolean checked = box.isChecked();
-            
             availableSelection.toggleSelected(getRow(widget.getRow()));
             availableSelection.refreshSelection();
         }
@@ -43,7 +40,7 @@ public class JobTable extends DynamicTable {
         }
     };
     
-    public static final String[][] JOB_COLUMNS = { {WIDGET_COLUMN, "Select"}, { "id", "ID" },
+    private static final String[][] JOB_COLUMNS = { {WIDGET_COLUMN, "Select"}, { "id", "ID" },
             { "owner", "Owner" }, { "name", "Name" },
             { "priority", "Priority" }, { "control_type", "Client/Server" },
             { CREATED_TEXT, "Created" }, { HOSTS_SUMMARY, "Status" } };
