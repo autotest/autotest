@@ -58,13 +58,13 @@ class global_config_test(unittest.TestCase):
                                 global_config.DEFAULT_SHADOW_FILE)
 
 
-    def testFloat(self):
+    def test_float(self):
         val = self.conf.get_config_value("SECTION_A", "value_1", float)
         self.assertEquals(type(val), types.FloatType)
         self.assertEquals(val, 6.0)
 
 
-    def testInt(self):
+    def test_int(self):
         val = self.conf.get_config_value("SECTION_B", "value_1", int)
         self.assertEquals(type(val), types.IntType)
         self.assertTrue(val < 0)
@@ -74,18 +74,18 @@ class global_config_test(unittest.TestCase):
         self.assertTrue(val > 0)
 
 
-    def testString(self):
+    def test_string(self):
         val = self.conf.get_config_value("SECTION_A", "value_2")
         self.assertEquals(type(val),types.StringType)
         self.assertEquals(val, "hello")
 
 
-    def testOverride(self):
+    def test_override(self):
         val = self.conf.get_config_value("SECTION_C", "value_1")
         self.assertEquals(val, "somebody@remotehost")
 
 
-    def testException(self):
+    def test_exception(self):
         error = 0
         try:
             val = self.conf.get_config_value("SECTION_B",
@@ -95,7 +95,7 @@ class global_config_test(unittest.TestCase):
         self.assertEquals(error, 1)
 
 
-    def testBoolean(self):
+    def test_boolean(self):
         val = self.conf.get_config_value("SECTION_A", "value_3", bool)
         self.assertEquals(val, True)
         val = self.conf.get_config_value("SECTION_A", "value_4", bool)
@@ -106,7 +106,7 @@ class global_config_test(unittest.TestCase):
         self.assertEquals(val, False)
 
 
-    def testDefaults(self):
+    def test_defaults(self):
         val = self.conf.get_config_value("MISSING", "foo", float, 3.6)
         self.assertEquals(val, 3.6)
         val = self.conf.get_config_value("SECTION_A", "novalue", str,
