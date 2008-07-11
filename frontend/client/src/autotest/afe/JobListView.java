@@ -105,7 +105,7 @@ public class JobListView extends TabView {
         }
     }
     
-    protected static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+    private static final JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JSONObject jobFilterArgs = new JSONObject();
     protected JobSelectListener selectListener;
 
