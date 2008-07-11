@@ -357,8 +357,8 @@ class _Run(object):
 
 
     def execute_section(self, section, timeout):
-        print "Executing %s/bin/autotest %s/control phase %d"
-                                % (self.autodir, self.autodir, section)
+        print "Executing %s/bin/autotest %s/control phase %d" % \
+                                (self.autodir, self.autodir, section)
 
         full_cmd = self.get_full_cmd(section)
         client_log = self.get_client_log(section)
