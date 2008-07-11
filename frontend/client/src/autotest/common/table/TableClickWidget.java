@@ -43,5 +43,4 @@ public class TableClickWidget extends Composite implements ClickListener {
     public FocusWidget getContainedWidget() {
         return widget;
     }
-
 }
