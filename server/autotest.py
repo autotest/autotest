@@ -113,14 +113,12 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # if that fails try to install using svn
         if utils.run('which svn').exit_status:
-            raise error.AutoservError('svn not found in path on \
-            target machine: %s' % host.name)
+            raise error.AutoservError('svn not found on target machine: %s'
+                                                                   % host.name)
         try:
-            host.run('svn checkout %s %s' %
-                     (AUTOTEST_SVN, autodir))
+            host.run('svn checkout %s %s' % (AUTOTEST_SVN, autodir))
         except error.AutoservRunError, e:
-            host.run('svn checkout %s %s' %
-                     (AUTOTEST_HTTP, autodir))
+            host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
         print "Installation of autotest completed"
         self.installed = True
 
@@ -186,17 +184,14 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             try:
                 # Create temp file
-                fd, keyval_path = tempfile.mkstemp(
-                                '.keyval_%s' % host.hostname)
-                host.get_file(os.path.join(src, 'keyval'),
-                              keyval_path)
+                fd, keyval_path = tempfile.mkstemp('.keyval_%s' % host.hostname)
+                host.get_file(os.path.join(src, 'keyval'), keyval_path)
             finally:
                 # We will squirrel away the client side keyval
                 # away and move it back when we are done
                 self.temp_keyval_path = tempfile.mktemp()
                 host.run('mv %s %s' %
-                         (os.path.join(src, 'keyval'),
-                         self.temp_keyval_path))
+                         (os.path.join(src, 'keyval'), self.temp_keyval_path))
         except (error.AutoservRunError, error.AutoservSSHTimeout):
             print "Prepare for copying logs failed"
         return keyval_path
@@ -237,8 +232,7 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             atrun.verify_machine()
         except:
-            print "Verify machine failed on %s. Reinstalling" % \
-                                                    host.hostname
+            print "Verify machine failed on %s. Reinstalling" % host.hostname
             self.install(host)
         atrun.verify_machine()
         debug = os.path.join(results_dir, 'debug')
@@ -273,15 +267,13 @@ class BaseAutotest(installable_object.InstallableObject):
 
             # get the results
             if not atrun.tag:
-                results = os.path.join(atrun.autodir,
-                                       'results', 'default')
+                results = os.path.join(atrun.autodir, 'results', 'default')
             else:
-                results = os.path.join(atrun.autodir,
-                                       'results', atrun.tag)
+                results = os.path.join(atrun.autodir, 'results', atrun.tag)
 
             # Copy all dirs in default to results_dir
-            keyval_path = self.prepare_for_copying_logs(results,
-                                    results_dir, host)
+            keyval_path = self.prepare_for_copying_logs(results, results_dir,
+                                                        host)
             host.get_file(results + '/', results_dir)
             self.process_copied_logs(results_dir, host, keyval_path)
             self.postprocess_copied_logs(results, host)
@@ -304,7 +296,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def run_test(self, test_name, results_dir='.', host=None,
-                 tag=None, *args, **dargs):
+                                                      tag=None, *args, **dargs):
         self.run_timed_test(test_name, results_dir, host, timeout=None,
                             tag=tag, *args, **dargs)
 
@@ -324,16 +316,11 @@ class _Run(object):
         self.tag = tag
         self.parallel_flag = parallel_flag
         self.autodir = _get_autodir(self.host)
+        control = os.path.join(self.autodir, 'control')
         if tag:
-            self.manual_control_file = os.path.join(self.autodir,
-                                            'control.%s' % tag)
-            self.remote_control_file = os.path.join(self.autodir,
-                                    'control.%s.autoserv' % tag)
-        else:
-            self.manual_control_file = os.path.join(self.autodir,
-                                                    'control')
-            self.remote_control_file = os.path.join(self.autodir,
-                                            'control.autoserv')
+            control += '.' + tag
+        self.manual_control_file = control
+        self.remote_control_file = control + '.autoserv'
 
 
     def verify_machine(self):
@@ -370,9 +357,8 @@ class _Run(object):
 
 
     def execute_section(self, section, timeout):
-        print "Executing %s/bin/autotest %s/control phase %d" % \
-                                (self.autodir, self.autodir,
-                                 section)
+        print "Executing %s/bin/autotest %s/control phase %d"
+                                % (self.autodir, self.autodir, section)
 
         full_cmd = self.get_full_cmd(section)
         client_log = self.get_client_log(section)
@@ -420,38 +406,30 @@ class _Run(object):
                 print "Client is rebooting"
                 print "Waiting for client to halt"
                 if not self.host.wait_down(HALT_TIME):
-                    raise error.AutotestRunError("%s \
-                    failed to shutdown after %ds" %
-                                    (self.host.hostname,
-                                    HALT_TIME))
+                    err = "%s failed to shutdown after %d" % \
+                                                (self.host.hostname, HALT_TIME)
+                    raise error.AutotestRunError(err)
                 print "Client down, waiting for restart"
                 if not self.host.wait_up(BOOT_TIME):
                     # since reboot failed
                     # hardreset the machine once if possible
                     # before failing this control file
-                    print "Hardresetting %s" % (
-                        self.host.hostname,)
+                    print "Hardresetting %s" % self.host.hostname
                     try:
                         self.host.hardreset(wait=False)
                     except error.AutoservUnsupportedError:
-                        print "Hardreset unsupported on %s" % (
-                            self.host.hostname,)
-                    raise error.AutotestRunError("%s failed"
-                            " to boot after %ds" % (
-                            self.host.hostname,
-                            BOOT_TIME,))
+                        print "Hardreset unsupported on %s" % self.host.hostname
+                    raise error.AutotestRunError("%s failed to boot after %ds" %
+                                                (self.host.hostname, BOOT_TIME))
                 self.host.reboot_followup()
                 continue
             self.host.job.record("ABORT", None, None,
-                                 "Autotest client terminated " +
-                                 "unexpectedly")
+                                 "Autotest client terminated unexpectedly")
             # give the client machine a chance to recover from
             # possible crash
             self.host.wait_up(CRASH_RECOVERY_TIME)
-            raise error.AutotestRunError("Aborting - unexpected "
-                                         "final status message "
-                                         "from client: %s\n"
-                                         % last)
+            raise error.AutotestRunError("Aborting - unexpected final status "
+                                         "message from client: %s\n" % last)
 
         # should only get here if we timed out
         assert timeout
@@ -473,7 +451,7 @@ def _get_autodir(host):
     for path in ['/usr/local/autotest', '/home/autotest']:
         try:
             host.run('ls %s > /dev/null 2>&1' % \
-                             os.path.join(path, 'bin/autotest'))
+                                             os.path.join(path, 'bin/autotest'))
             return path
         except error.AutoservRunError:
             pass
