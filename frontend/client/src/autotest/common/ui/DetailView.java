@@ -12,6 +12,8 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
+import java.util.Map;
+
 
 
 public abstract class DetailView extends TabView {
@@ -90,36 +92,40 @@ public abstract class DetailView extends TabView {
     }
     
     @Override
-    public void handleHistoryToken(String token) {
-        if (token.equals(getObjectId()))
-            return;
-        try {
-            updateObjectId(token);
-        }
-        catch (IllegalArgumentException exc) {
-            return;
-        }
-    }
-    
-    @Override
     public void refresh() {
         super.refresh();
         if (!getObjectId().equals(NO_OBJECT))
             fetchData();
     }
     
-    @Override
-    public String getHistoryToken() {
-        String token = super.getHistoryToken();
-        String objectId = getObjectId();
-        if (!objectId.equals(NO_OBJECT))
-            token += "_" + objectId;
-        return token;
-    }
-    
     protected void displayObjectData(String title) {
         showText(title, getTitleElementId());
         RootPanel.get(getDataElementId()).setVisible(true);
     }
-
+    
+    @Override
+    protected Map<String, String> getHistoryArguments() {
+        Map<String, String> arguments = super.getHistoryArguments();
+        String objectId = getObjectId();
+        if (!objectId.equals(NO_OBJECT)) {
+            arguments.put("object_id", objectId);
+        }
+        return arguments;
+    }
+    
+    @Override
+    public void handleHistoryArguments(Map<String, String> arguments) {
+        String objectId = arguments.get("object_id");
+        if (objectId == null) {
+            resetPage();
+            return;
+        }
+        
+        try {
+            updateObjectId(objectId);
+        }
+        catch (IllegalArgumentException exc) {
+            return;
+        }
+    }
 }
