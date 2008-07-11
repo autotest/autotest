@@ -5,6 +5,7 @@ import com.google.gwt.user.client.HistoryListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Wrapper around gwt.user.client.History that won't call onHistoryChanged for
@@ -14,29 +15,61 @@ import java.util.List;
 public class CustomHistory implements HistoryListener {
     protected static final CustomHistory theInstance = new CustomHistory();
     
-    protected List<HistoryListener> listeners = new ArrayList<HistoryListener>();
-    protected boolean ignoreNextChange = false;
+    private List<CustomHistoryListener> listeners = new ArrayList<CustomHistoryListener>();
+    private boolean ignoreNextChange = false;
+    private String lastHistoryToken = "";
     
-    protected CustomHistory() {
+    public static interface CustomHistoryListener {
+        public void onHistoryChanged(Map<String, String> arguments);
+    }
+    
+    private CustomHistory() {
         History.addHistoryListener(this);
     }
     
+    /**
+     * Allows programmatic simulation of history changes, without actually changing history or the 
+     * URL.
+     */
+    public static void simulateHistoryToken(String token) {
+        theInstance.onHistoryChanged(token);
+    }
+    
+    public static void processInitialToken() {
+        String initialToken = History.getToken();
+        if (!initialToken.equals("")) {
+            theInstance.onHistoryChanged(initialToken);
+        }
+    }
+    
     public void onHistoryChanged(String historyToken) {
+        lastHistoryToken = historyToken;
         if (ignoreNextChange) {
             ignoreNextChange = false;
             return;
         }
+        
+        Map<String, String> arguments;
+        try {
+            arguments = Utils.decodeUrlArguments(historyToken);
+        } catch (IllegalArgumentException exc) {
+            return;
+        }
 
-        for (HistoryListener listener : listeners) {
-            listener.onHistoryChanged(historyToken);
+        for (CustomHistoryListener listener : listeners) {
+            listener.onHistoryChanged(arguments);
         }
     }
+    
+    public static String getLastHistoryToken() {
+        return theInstance.lastHistoryToken;
+    }
 
-    public static void addHistoryListener(HistoryListener listener) {
+    public static void addHistoryListener(CustomHistoryListener listener) {
         theInstance.listeners.add(listener);
     }
     
-    public static void removeHistoryListener(HistoryListener listener) {
+    public static void removeHistoryListener(CustomHistoryListener listener) {
         theInstance.listeners.remove(listener);
     }
     

@@ -42,12 +42,13 @@ class SimpleAuthBackend:
             return None
 
 
-class ApacheAuthMiddleware(object):
+class GetApacheUserMiddleware(object):
     """
     Middleware for use when Apache is doing authentication.  Looks for
-    REQUEST_USER in requests and logs that user in.  If no such header is
-    found, looks for HTTP_AUTHORIZATION header with username to login (this
-    allows CLI to authenticate).
+    REMOTE_USER in headers and passed the username found to
+    thread_local.set_user().  If no such header is found, looks for
+    HTTP_AUTHORIZATION header with username (this allows CLI to authenticate).
+    If neither of those are found, DEBUG_USER is used.
     """
 
     def process_request(self, request):
@@ -60,8 +61,20 @@ class ApacheAuthMiddleware(object):
         if user is None:
             # no user info - assume we're in development mode
             user = DEBUG_USER
-        user_object = auth.authenticate(username=user,
+        thread_local.set_user(user)
+
+
+class ApacheAuthMiddleware(GetApacheUserMiddleware):
+    """
+    Like GetApacheUserMiddleware, but also logs the user into Django's auth
+    system, and replaces the username in thread_local with the actual User model
+    object.
+    """
+
+    def process_request(self, request):
+        super(ApacheAuthMiddleware, self).process_request(request)
+        username = thread_local.get_user()
+        user_object = auth.authenticate(username=username,
                                         password='')
         auth.login(request, user_object)
-        thread_local.set_user(models.User.objects.get(login=user))
-        return None
+        thread_local.set_user(models.User.objects.get(login=username))
