@@ -1,7 +1,10 @@
 package autotest.common.table;
 
+import autotest.common.JSONArrayList;
 import autotest.common.Utils;
+import autotest.common.table.DataSource.DataCallback;
 
+import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 
 import java.util.AbstractSet;
@@ -112,6 +115,20 @@ public class SelectionManager {
         notifyListeners(actuallyUsed, add);
     }
     
+    /*
+     * Select all objects covering all pages, not just the currently displayed page in the table.
+     */
+    public void selectAll() {
+        DataSource dataSource = attachedTable.getDataSource();
+        dataSource.getPage(0, dataSource.getNumResults(), null, null, new DataCallback() {
+            public void handlePage(JSONArray data) {
+                selectObjects(new JSONArrayList<JSONObject>(data));
+            }
+
+            public void onGotData(int totalCount) {}
+        });
+    }
+    
     public void deselectAll() {
         List<JSONObject> removed = new ArrayList<JSONObject>(selectedObjects);
         selectedObjects.clear();
@@ -133,7 +150,12 @@ public class SelectionManager {
     }
     
     public Set<JSONObject> getSelectedObjects() {
+        // TODO: return a copy or an unmodifiable view
         return selectedObjects;
+    }
+    
+    public boolean isEmpty() {
+        return selectedObjects.isEmpty();
     }
     
     public void addListener(SelectionListener listener) {
