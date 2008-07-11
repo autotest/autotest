@@ -3,12 +3,26 @@ import common
 from autotest_lib.client.common_lib import logging
 
 
+statuses = logging.job_statuses
+
+
+def is_worse_than(lhs, rhs):
+    """ Compare two statuses and return a boolean indicating if the LHS status
+    is worse than the RHS status."""
+    return (statuses.index(lhs) < statuses.index(rhs))
+
+
+def is_worse_than_or_equal_to(lhs, rhs):
+    """ Compare two statuses and return a boolean indicating if the LHS status
+    is worse than or equal to the RHS status."""
+    if lhs == rhs:
+        return True
+    return is_worse_than(lhs, rhs)
+
+
 class status_stack(object):
-    statuses = logging.job_statuses
-
-
     def __init__(self):
-        self.status_stack = [self.statuses[-1]]
+        self.status_stack = [statuses[-1]]
 
 
     def current_status(self):
@@ -16,22 +30,20 @@ class status_stack(object):
 
 
     def update(self, new_status):
-        if new_status not in self.statuses:
+        if new_status not in statuses:
             return
-        old = self.statuses.index(self.current_status())
-        new = self.statuses.index(new_status)
-        if new < old:
+        if is_worse_than(new_status, self.current_status()):
             self.status_stack[-1] = new_status
 
 
     def start(self):
-        self.status_stack.append(self.statuses[-1])
+        self.status_stack.append(statuses[-1])
 
 
     def end(self):
         result = self.status_stack.pop()
         if len(self.status_stack) == 0:
-            self.status_stack.append(self.statuses[-1])
+            self.status_stack.append(statuses[-1])
         return result
 
 
