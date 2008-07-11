@@ -23,6 +23,7 @@ import java.util.List;
 public class CustomTabPanel extends Composite implements HistoryListener {
     protected TabPanel tabPanel = new TabPanel();
     protected Panel otherWidgetsPanel = new HorizontalPanel();
+    private Panel commonAreaPanel = new VerticalPanel();
     protected Button refreshButton = new Button("Refresh");
     protected int topBarHeight = 0;
     protected List<TabView> tabViews = new ArrayList<TabView>();
@@ -30,7 +31,9 @@ public class CustomTabPanel extends Composite implements HistoryListener {
     public CustomTabPanel() {
         VerticalPanel container = new VerticalPanel();
         HorizontalPanel top = new HorizontalPanel();
+        VerticalPanel bottom = new VerticalPanel();
         container.add(top);
+        container.add(bottom);
         
         // put the TabBar at the top left
         top.add(tabPanel.getTabBar());
@@ -40,10 +43,13 @@ public class CustomTabPanel extends Composite implements HistoryListener {
         // make a place for other widgets next to the tab bar
         top.add(otherWidgetsPanel);
         
+        // put a common area above the tab deck
+        bottom.add(commonAreaPanel);
+        
         // put the TabPanel's DeckPanel below
         DeckPanel tabDeck = tabPanel.getDeckPanel();
-        container.add(tabDeck);
-        container.setCellHeight(tabDeck, "100%");
+        bottom.add(tabDeck);
+        bottom.setCellHeight(tabDeck, "100%");
         
         tabPanel.addTabListener(new TabListener() {
             public boolean onBeforeTabSelected(SourcesTabEvents sender,
@@ -59,6 +65,11 @@ public class CustomTabPanel extends Composite implements HistoryListener {
                 tabViews.get(tabIndex).updateHistory();
             }
         });
+        
+        // transfer the DeckPanel's class to the entire bottom panel
+        String tabDeckClass = tabDeck.getStyleName();
+        tabDeck.setStyleName("");
+        bottom.setStyleName(tabDeckClass);
         
         refreshButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -121,6 +132,10 @@ public class CustomTabPanel extends Composite implements HistoryListener {
 
     public Panel getOtherWidgetsPanel() {
         return otherWidgetsPanel;
+    }
+    
+    public Panel getCommonAreaPanel() {
+        return commonAreaPanel;
     }
 
     public void onHistoryChanged(String historyToken) {
