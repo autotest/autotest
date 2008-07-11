@@ -5,6 +5,7 @@ import autotest.afe.HostDetailView.HostDetailListener;
 import autotest.afe.HostListView.HostListListener;
 import autotest.afe.JobDetailView.JobDetailListener;
 import autotest.afe.JobListView.JobSelectListener;
+import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.ui.CustomTabPanel;
@@ -82,6 +83,7 @@ public class AfeClient implements EntryPoint {
         
         final RootPanel tabsRoot = RootPanel.get("tabs");
         tabsRoot.add(mainTabPanel);
+        CustomHistory.processInitialToken();
         mainTabPanel.initialize();
         tabsRoot.setStyleName("");
     }

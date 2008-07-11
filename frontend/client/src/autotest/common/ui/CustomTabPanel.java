@@ -1,10 +1,8 @@
 package autotest.common.ui;
 
 import autotest.common.CustomHistory;
-import autotest.common.Utils;
+import autotest.common.CustomHistory.CustomHistoryListener;
 
-import com.google.gwt.user.client.History;
-import com.google.gwt.user.client.HistoryListener;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
@@ -22,13 +20,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class CustomTabPanel extends Composite implements HistoryListener {
+public class CustomTabPanel extends Composite implements CustomHistoryListener, TabListener {
     protected TabPanel tabPanel = new TabPanel();
     protected Panel otherWidgetsPanel = new HorizontalPanel();
     private Panel commonAreaPanel = new VerticalPanel();
     protected Button refreshButton = new Button("Refresh");
     protected int topBarHeight = 0;
     protected List<TabView> tabViews = new ArrayList<TabView>();
+    private boolean doUpdateHistory = true;
     
     public CustomTabPanel() {
         VerticalPanel container = new VerticalPanel();
@@ -53,20 +52,7 @@ public class CustomTabPanel extends Composite implements HistoryListener {
         bottom.add(tabDeck);
         bottom.setCellHeight(tabDeck, "100%");
         
-        tabPanel.addTabListener(new TabListener() {
-            public boolean onBeforeTabSelected(SourcesTabEvents sender,
-                                               int tabIndex) {
-                // do nothing if the user clicks the selected tab
-                if (tabPanel.getTabBar().getSelectedTab() == tabIndex)
-                    return false;
-                tabViews.get(tabIndex).ensureInitialized();
-                tabViews.get(tabIndex).display();
-                return true;
-            }
-            public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
-                tabViews.get(tabIndex).updateHistory();
-            }
-        });
+        tabPanel.addTabListener(this);
         
         // transfer the DeckPanel's class to the entire bottom panel
         String tabDeckClass = tabDeck.getStyleName();
@@ -90,11 +76,6 @@ public class CustomTabPanel extends Composite implements HistoryListener {
      * This must be called after this widget has been added to the page.
      */
     public void initialize() {
-        String initialToken = History.getToken();
-        if (!initialToken.equals("")) {
-            onHistoryChanged(initialToken);
-        }
-        
         // if the history token didn't provide a selected tab, default to the 
         // first tab
         if (getSelectedTabView() == null)
@@ -140,14 +121,7 @@ public class CustomTabPanel extends Composite implements HistoryListener {
         return commonAreaPanel;
     }
 
-    public void onHistoryChanged(String historyToken) {
-        Map<String, String> arguments;
-        try {
-            arguments = Utils.decodeUrlArguments(historyToken);
-        } catch (IllegalArgumentException exc) {
-            return;
-        }
-        
+    public void onHistoryChanged(Map<String, String> arguments) {
         String tabId = arguments.get("tab_id");
         if (tabId == null) {
             return;
@@ -158,13 +132,30 @@ public class CustomTabPanel extends Composite implements HistoryListener {
                 tabView.ensureInitialized();
                 tabView.handleHistoryArguments(arguments);
                 
-                if (getSelectedTabView() != tabView)
+                if (getSelectedTabView() != tabView) {
+                    doUpdateHistory = false;
                     selectTabView(tabView);
-                else
+                    doUpdateHistory = true;
+                } else {
                     tabView.refresh();
+                }
                 
                 return;
             }
         }
+    }
+
+    public boolean onBeforeTabSelected(SourcesTabEvents sender, int tabIndex) {
+        // do nothing if the user clicks the selected tab
+        if (tabPanel.getTabBar().getSelectedTab() == tabIndex)
+            return false;
+        tabViews.get(tabIndex).ensureInitialized();
+        tabViews.get(tabIndex).display();
+        return true;
+    }
+
+    public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
+        if (doUpdateHistory)
+            tabViews.get(tabIndex).updateHistory();
     }
 }
