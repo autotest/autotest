@@ -1,6 +1,7 @@
 package autotest.common.ui;
 
 import autotest.common.CustomHistory;
+import autotest.common.Utils;
 
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.HistoryListener;
@@ -19,6 +20,7 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class CustomTabPanel extends Composite implements HistoryListener {
     protected TabPanel tabPanel = new TabPanel();
@@ -139,21 +141,22 @@ public class CustomTabPanel extends Composite implements HistoryListener {
     }
 
     public void onHistoryChanged(String historyToken) {
-        if (!historyToken.startsWith(TabView.HISTORY_PREFIX))
+        Map<String, String> arguments;
+        try {
+            arguments = Utils.decodeUrlArguments(historyToken);
+        } catch (IllegalArgumentException exc) {
             return;
+        }
         
-        // remove prefix
-        historyToken = historyToken.substring(TabView.HISTORY_PREFIX.length());
+        String tabId = arguments.get("tab_id");
+        if (tabId == null) {
+            return;
+        }
+        
         for (TabView tabView : tabViews) {
-            String tabId = tabView.getElementId();
-            if (historyToken.startsWith(tabId)) {
+            if (tabId.equals(tabView.getElementId())) {
                 tabView.ensureInitialized();
-                
-                int prefixLength = tabId.length() + 1;
-                if (historyToken.length() > prefixLength) {
-                    String restOfToken = historyToken.substring(prefixLength);
-                    tabView.handleHistoryToken(restOfToken);
-                }
+                tabView.handleHistoryArguments(arguments);
                 
                 if (getSelectedTabView() != tabView)
                     selectTabView(tabView);
