@@ -176,7 +176,7 @@ class status_line(object):
             self.type = "STATUS"
             self.status = status
         assert (self.status is None or
-                self.status in status_lib.status_stack.statuses)
+                self.status in status_lib.statuses)
 
         # save all the other parameters
         self.indent = indent

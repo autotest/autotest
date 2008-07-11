@@ -59,8 +59,7 @@ class status_line(version_0.status_line):
             return False
 
         # make sure this was not a failure
-        get_index = status_lib.status_stack.statuses.index
-        if get_index(current_status) <= get_index("FAIL"):
+        if status_lib.is_worse_than_or_equal_to(current_status, "FAIL"):
             return False
 
         # it must have been a successful reboot
@@ -105,7 +104,7 @@ class parser(base.parser):
 
     def state_iterator(self, buffer):
         new_tests = []
-        boot_count = 0
+        job_count, boot_count = 0, 0
         min_stack_size = 0
         stack = status_lib.status_stack()
         current_kernel = kernel("", [])  # UNKNOWN
@@ -198,7 +197,13 @@ class parser(base.parser):
                     line.testname = line.subdir
                 # if there was no testname or subdir, use 'JOB'
                 if line.testname is None:
-                    line.testname = "JOB"
+                    line.testname = "JOB.%d" % job_count
+                    job_count += 1
+                    if not status_lib.is_worse_than_or_equal_to(
+                        current_status, "ABORT"):
+                        # a job hasn't really failed just because some of the
+                        # tests it ran have
+                        current_status = "GOOD"
 
                 new_test = test.parse_test(self.job,
                                            line.subdir,
