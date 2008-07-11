@@ -37,7 +37,7 @@ def repair(machine):
     # call the appropriate repair function based on protection level
     if level == protection.DO_NOT_REPAIR:
         print "Host is specified as 'Do not repair', skipping repair stage"
-    elif level == protection.FILESYSTEM_ONLY:
+    elif level == protection.REPAIR_FILESYSTEM_ONLY:
         print "Attempting filesystem-only repair"
         host = hosts.SSHHost(machine, initialize=False)
         repair_filesystem_only(host)
