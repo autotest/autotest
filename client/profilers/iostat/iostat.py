@@ -1,6 +1,9 @@
-# sets up a subprocess to cat a file on a specified interval
-# really, really ought to autoswitch on a list of files or individual file
-import profiler,time,os,subprocess
+"""
+Run iostat with a default interval of 1 second. 
+"""
+import time, os, subprocess
+from autotest_lib.client.bin import profiler
+
 
 class iostat(profiler.profiler):
     version = 1

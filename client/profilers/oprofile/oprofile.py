@@ -1,4 +1,14 @@
-# Will need some libaries to compile. Do 'apt-get build-dep oprofile'
+"""
+OProfile is a system-wide profiler for Linux systems, 
+capable of profiling all running code at low overhead. 
+OProfile is released under the GNU GPL.
+
+It consists of a kernel driver and a daemon for collecting sample data, 
+and several post-profiling tools for turning data into information. 
+
+More Info: http://oprofile.sourceforge.net/
+Will need some libaries to compile. Do 'apt-get build-dep oprofile'
+"""
 import os, shutil
 from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils
