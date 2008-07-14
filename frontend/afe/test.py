@@ -1,6 +1,7 @@
+import common
 import os, doctest, glob, sys
 import django.test.utils, django.test.simple
-from frontend import settings, afe
+from autotest_lib.frontend import settings, afe
 
 # doctest takes a copy+paste log of a Python interactive session, runs a Python
 # interpreter, and replays all the inputs from the log, checking that the
@@ -27,8 +28,8 @@ def get_modules():
                     if '__init__' not in filename
                     and 'test.py' not in filename]
     for module_name in module_names:
-        __import__('frontend.afe', globals(), locals(), [module_name])
-        modules.append(getattr(afe, module_name))
+        mod = common.setup_modules.import_module(module_name, 'frontend.afe')
+        modules.append(mod)
     return modules
 
 
