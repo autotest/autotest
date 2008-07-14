@@ -1,10 +1,10 @@
 package autotest.afe;
 
-import autotest.common.table.DataSource;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.RpcDataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableClickWidget;
+import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.TableClickWidget.TableWidgetClickListener;
 
 import com.google.gwt.json.client.JSONObject;
@@ -48,7 +48,7 @@ public class JobTable extends DynamicTable {
     public JobTable() {
         super(JOB_COLUMNS, new RpcDataSource("get_jobs_summary", "get_num_jobs"));
         setWidgetFactory(widgetFactory);
-        sortOnColumn("ID", DataSource.DESCENDING);
+        sortOnColumn("id", SortDirection.DESCENDING);
         
         availableSelection = new SelectionManager(this, false);
     }

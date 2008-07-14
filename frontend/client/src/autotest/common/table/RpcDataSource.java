@@ -44,9 +44,16 @@ public class RpcDataSource implements DataSource {
             }    
         });
     }
+    
+    private String getSortString(SortSpec spec) {
+        String result = spec.getField();
+        if (spec.getDirection() == SortDirection.DESCENDING) {
+            return "-" + result;
+        }
+        return result;
+    }
 
-    public void getPage(Integer start, Integer maxCount, 
-                        String sortOn, Integer sortDirection, 
+    public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn, 
                         final DataCallback callback) {
         JSONObject params;
         if (filterParams == null)
@@ -58,10 +65,10 @@ public class RpcDataSource implements DataSource {
         if (maxCount != null)
             params.put("query_limit", new JSONNumber(maxCount.intValue()));
         if (sortOn != null) {
-            if (sortDirection.intValue() == DataSource.DESCENDING)
-                sortOn = "-" + sortOn;
             JSONArray sortList = new JSONArray();
-            sortList.set(0, new JSONString(sortOn));
+            for (SortSpec sortSpec : sortOn) {
+                sortList.set(sortList.size(), new JSONString(getSortString(sortSpec)));
+            }
             params.put("sort_by", sortList);
         }
         
