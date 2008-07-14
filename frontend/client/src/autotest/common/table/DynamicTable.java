@@ -2,6 +2,8 @@ package autotest.common.table;
 
 import autotest.common.SimpleCallback;
 import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.SortDirection;
+import autotest.common.table.DataSource.SortSpec;
 import autotest.common.ui.Paginator;
 
 import com.google.gwt.json.client.JSONArray;
@@ -13,6 +15,8 @@ import com.google.gwt.user.client.ui.SourcesTableEvents;
 import com.google.gwt.user.client.ui.TableListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -30,15 +34,17 @@ public class DynamicTable extends DataTable
     }
     
     static class SortIndicator extends Composite {
-        protected Image image = new Image();
+        public int column;
+        private Image image = new Image();
         
-        public SortIndicator() {
+        public SortIndicator(int column) {
+            this.column = column;
             initWidget(image);
             setVisible(false);
         }
         
-        public void sortOn(boolean up) {
-            image.setUrl(up ? SORT_UP_IMAGE : SORT_DOWN_IMAGE);
+        public void sortOn(SortDirection direction) {
+            image.setUrl(direction == SortDirection.ASCENDING ? SORT_UP_IMAGE : SORT_DOWN_IMAGE);
             setVisible(true);
         }
         
@@ -49,10 +55,9 @@ public class DynamicTable extends DataTable
     
     protected DataSource dataSource;
     
-    protected int sortDirection = DataSource.ASCENDING;
-    protected boolean clientSortable = false;
-    protected SortIndicator[] sortIndicators;
-    protected int sortedOn = NO_COLUMN;
+    private boolean clientSortable = false;
+    private SortIndicator[] sortIndicators;
+    private List<SortSpec> sortColumns = new ArrayList<SortSpec>();
     
     protected List<Filter> filters = new ArrayList<Filter>();
     protected List<Paginator> paginators = new ArrayList<Paginator>();
@@ -79,7 +84,7 @@ public class DynamicTable extends DataTable
         
         sortIndicators = new SortIndicator[columns.length];
         for(int i = 0; i < columns.length; i++) {
-            sortIndicators[i] = new SortIndicator();
+            sortIndicators[i] = new SortIndicator(i);
             
             // we have to use an HTMLPanel here to preserve styles correctly and
             // not break hover
@@ -93,33 +98,52 @@ public class DynamicTable extends DataTable
         }
     }
     
-    protected void sortOnColumnIndex(int column, int sortDirection) {
-        this.sortDirection = sortDirection;
-        
-        if(clientSortable) {
-            if (sortedOn != NO_COLUMN)
-                sortIndicators[sortedOn].sortOff();
-            sortIndicators[column].sortOn(sortDirection == DataSource.ASCENDING);
+    private void updateSortIndicators() {
+        if (!clientSortable) {
+            return;
         }
-        sortedOn = column;
+        
+        SortSpec firstSpec = getFirstSortSpec();
+        for (SortIndicator indicator : sortIndicators) {
+            if (columns[indicator.column][COL_NAME].equals(firstSpec.getField())) {
+                indicator.sortOn(firstSpec.getDirection());
+            } else {
+                indicator.sortOff();
+            }
+        }
+    }
+
+    private SortSpec getFirstSortSpec() {
+        if (sortColumns.isEmpty()) {
+            return null;
+        }
+        return sortColumns.get(0);
     }
     
     /**
      * Set column on which data is sorted.  You must call <code>refresh()</code>
      * after this to display the results.
-     * @param columnName name of the column to sort on
+     * @param columnField field of the column to sort on
      * @param sortDirection DynamicTable.ASCENDING or DynamicTable.DESCENDING
      */
-    public void sortOnColumn(String columnName, int sortDirection) {
-        sortOnColumnIndex(columnNameToIndex(columnName), sortDirection);
+    public void sortOnColumn(String columnField, SortDirection sortDirection) {
+        // remove any existing sort on this column
+        for (Iterator<SortSpec> i = sortColumns.iterator(); i.hasNext(); ) {
+            if (i.next().getField().equals(columnField)) {
+                i.remove();
+                break;
+            }
+        }
         
+        sortColumns.add(0, new SortSpec(columnField, sortDirection));
+        updateSortIndicators();
     }
     
     /**
      * Defaults to ascending order.
      */
-    public void sortOnColumn(String columnName) {
-        sortOnColumn(columnName, DataSource.ASCENDING);
+    public void sortOnColumn(String columnField) {
+        sortOnColumn(columnField, SortDirection.ASCENDING);
     }
     
     // PAGINATION
@@ -204,17 +228,19 @@ public class DynamicTable extends DataTable
     
     public void onGotData(int totalCount) {
         Integer start = null, limit = null;
-        String sortOn = null;
+        SortSpec[] sortOn = null;
         if (!paginators.isEmpty()) {
             updatePaginatorTotalResults(totalCount);
             Paginator p = paginators.get(0);
             start = Integer.valueOf(p.getStart());
             limit = Integer.valueOf(p.getResultsPerPage());
         }
-        if (sortedOn != NO_COLUMN)
-            sortOn = columns[sortedOn][COL_NAME];
-        dataSource.getPage(start, limit, sortOn, Integer.valueOf(sortDirection),
-                           this); 
+        
+        if (!sortColumns.isEmpty()) {
+            sortOn = new SortSpec[sortColumns.size()];
+            sortColumns.toArray(sortOn);
+        }
+        dataSource.getPage(start, limit, sortOn, this); 
     }
 
     public void handlePage(JSONArray data) {
@@ -242,15 +268,19 @@ public class DynamicTable extends DataTable
     // INPUT
     
     public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
-        
         if(isWidgetColumn(cell)) 
             return;
         
         if (clientSortable && row == headerRow) {
-            int newSortDirection = DataSource.ASCENDING;
-            if (cell == sortedOn)
-                newSortDirection = sortDirection * -1;
-            sortOnColumnIndex(cell, newSortDirection);
+            String columnName = columns[cell][COL_NAME];
+            SortDirection newSortDirection = SortDirection.ASCENDING;
+            SortSpec firstSortSpec = getFirstSortSpec();
+            // when clicking on the last sorted field, invert the sort
+            if (firstSortSpec != null && columnName.equals(firstSortSpec.getField())) {
+                newSortDirection = invertSortDirection(firstSortSpec.getDirection());
+            }
+            
+            sortOnColumn(columnName, newSortDirection);
             refresh();
         }
         
@@ -258,6 +288,11 @@ public class DynamicTable extends DataTable
             notifyListenersClicked(row - headerRow - 1);
     }
     
+    private SortDirection invertSortDirection(SortDirection direction) {
+        return direction == SortDirection.ASCENDING ? 
+                                        SortDirection.DESCENDING : SortDirection.ASCENDING;
+    }
+
     public void addListener(DynamicTableListener listener) {
         listeners.add(listener);
     }
@@ -279,14 +314,7 @@ public class DynamicTable extends DataTable
         }
     }
     
-    // OTHER
-
-    protected int columnNameToIndex(String column) {
-        for(int col = 0; col < columns.length; col++) {
-            if (columns[col][COL_TITLE].equals(column))
-                    return col;
-        }
-        
-        throw new IllegalArgumentException("Nonexistent column");
+    public List<SortSpec> getSortSpecs() {
+        return Collections.unmodifiableList(sortColumns);
     }
 }

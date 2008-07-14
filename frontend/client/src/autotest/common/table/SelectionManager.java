@@ -120,7 +120,7 @@ public class SelectionManager {
      */
     public void selectAll() {
         DataSource dataSource = attachedTable.getDataSource();
-        dataSource.getPage(0, dataSource.getNumResults(), null, null, new DataCallback() {
+        dataSource.getPage(null, null, null, new DataCallback() {
             public void handlePage(JSONArray data) {
                 selectObjects(new JSONArrayList<JSONObject>(data));
             }

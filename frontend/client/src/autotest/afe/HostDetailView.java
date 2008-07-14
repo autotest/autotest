@@ -7,6 +7,7 @@ import autotest.common.table.RpcDataSource;
 import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
@@ -102,7 +103,7 @@ public class HostDetailView extends DetailView implements DataCallback {
     }
     
     public void onGotData(int totalCount) {
-        hostDataSource.getPage(null, null, null, null, this);
+        hostDataSource.getPage(null, null, null, this);
     }
     
     public void handlePage(JSONArray data) {
@@ -139,7 +140,7 @@ public class HostDetailView extends DetailView implements DataCallback {
         super.initialize();
         
         jobsTable.setRowsPerPage(JOBS_PER_PAGE);
-        jobsTable.sortOnColumn("Job ID", DataSource.DESCENDING);
+        jobsTable.sortOnColumn("job_id", SortDirection.DESCENDING);
         jobsTable.addFilter(hostFilter);
         jobsTable.setClickable(true);
         jobsTable.addListener(new DynamicTableListener() {
