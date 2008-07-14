@@ -25,7 +25,7 @@ def read_keyval(path):
         path = os.path.join(path, 'keyval')
     keyval = {}
     for line in open(path):
-        line = re.sub('#.*', '', line.rstrip())
+        line = re.sub('#.*', '', line).rstrip()
         if not re.search(r'^[-\w]+=', line):
             raise ValueError('Invalid format line: %s' % line)
         key, value = line.split('=', 1)
