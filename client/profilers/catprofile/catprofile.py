@@ -1,6 +1,12 @@
-# sets up a subprocess to cat a file on a specified interval
-# really, really ought to autoswitch on a list of files or individual file
-import profiler,time,os
+"""
+Sets up a subprocses to cat a file on a specified interval
+
+Defaults options:
+job.profilers.add('catprofile', ['/proc/meminfo','/proc/uptime'],
+                  outfile=monitor, interval=1)
+"""
+import time, os
+from autotest_lib.client.bin import profiler
 
 class catprofile(profiler.profiler):
     version = 1

@@ -1,6 +1,14 @@
-# NOTE: if you get compile errors from config.h, referring you to a FAQ,
-# you might need to do 'cat < /dev/null > /usr/include/linux/config.h'.
-# But read the FAQ first.
+"""
+Lockstat is the basic tool used to control the kernel's Lockmeter
+functionality:  e.g., turning the kernel's data gathering on or off, and
+retrieving that data from the kernel so that Lockstat can massage it and
+produce printed reports.  See http://oss.sgi.com/projects/lockmeter for
+details.
+
+NOTE: if you get compile errors from config.h, referring you to a FAQ,
+you might need to do 'cat < /dev/null > /usr/include/linux/config.h'.
+But read the FAQ first.
+"""
 import os
 from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils
