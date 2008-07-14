@@ -1,5 +1,9 @@
-# sets up a subprocess to run mpstat on a specified interval
-import profiler,time,os,subprocess
+"""
+Sets up a subprocess to run mpstat on a specified interval, default 1 second
+"""
+import time, os, subprocess
+from autotest_lib.client.bin import profiler
+
 
 class mpstat(profiler.profiler):
     version = 1

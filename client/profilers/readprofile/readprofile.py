@@ -1,3 +1,13 @@
+"""
+readprofile - a tool to read kernel profiling information
+
+The readprofile command uses the /proc/profile information to print ascii data
+on standard output. The output is organized in three columns: the first is the
+number of clock ticks, the second is the name of the C function in the kernel
+where those many ticks occurred, and the third is the normalized `load' of the
+procedure, calculated as a ratio between the number of ticks and the length of
+the procedure. The output is filled with blanks to ease readability.
+"""
 import os, shutil
 from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils, error
