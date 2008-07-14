@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import os, sys, tempfile, unittest, types
-import global_config
+import common
+from autotest_lib.client.common_lib import global_config
 
 
 global_config_ini_contents = """

@@ -84,6 +84,13 @@ def _setup_common_library(root_module_name):
         sys.modules["common.%s" % library] = module
 
 
+def import_module(module, from_where):
+    """Equivalent to 'from from_where import module'
+    Returns the corresponding module"""
+    from_module = __import__(from_where, globals(), locals(), [module])
+    return getattr(from_module, module)
+
+
 def setup(base_path, root_module_name=""):
     """
     Perform all the necessary setup so that all the packages at

@@ -2,7 +2,8 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 
 import sys, socket, errno
 from time import time, sleep
-import error
+import common
+from autotest_lib.client.common_lib import error
 
 
 class BarrierError(error.JobError):
