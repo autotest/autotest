@@ -3,11 +3,13 @@ package autotest.afe;
 import autotest.common.JsonRpcCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
+import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.ListFilter;
 import autotest.common.table.SearchFilter;
 import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
+import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
@@ -36,7 +38,8 @@ import java.util.Set;
 public class JobDetailView extends DetailView {
     private static final String[][] JOB_HOSTS_COLUMNS = {
         {"hostname", "Host"}, {"status", "Status"}, 
-        {"host_status", "Host Status"}, {"host_locked", "Host Locked"}
+        {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
+        {DataTable.WIDGET_COLUMN, ""}
     };
     public static final String NO_URL = "about:blank";
     public static final int NO_JOB_ID = -1;
@@ -49,8 +52,8 @@ public class JobDetailView extends DetailView {
     
     protected int jobId = NO_JOB_ID;
 
-    protected DynamicTable hostsTable = new DynamicTable(JOB_HOSTS_COLUMNS, 
-                                                         new JobStatusDataSource());
+    private JobStatusDataSource jobStatusDataSource = new JobStatusDataSource();
+    protected DynamicTable hostsTable = new DynamicTable(JOB_HOSTS_COLUMNS, jobStatusDataSource);
     protected TableDecorator tableDecorator = new TableDecorator(hostsTable);
     protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
@@ -148,6 +151,26 @@ public class JobDetailView extends DetailView {
 
             public void onTableRefreshed() {}
         });
+        hostsTable.setWidgetFactory(new TableWidgetFactory() {
+            public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
+                JSONValue jobValue = hostQueueEntry.get("job");
+                if (jobValue == null) {
+                    return new HTML("");
+                }
+                
+                String path = "/debug";
+                if (jobStatusDataSource.getNumResults() > 1) {
+                    path = "/" + hostQueueEntry.get("hostname").isString().stringValue() + "/debug";
+                }
+                String html = "<a target=\"_blank\" href=\"";
+                JSONObject jobObject = jobValue.isObject();
+                html += getLogsURL(jobId + "-" + jobObject.get("owner").isString().stringValue(),
+                                   path);
+                html += "\">View Debug Logs</a>";
+                return new HTML(html);
+            }
+        });
+        
         tableDecorator.addPaginators();
         addTableFilters();
         RootPanel.get("job_hosts_table").add(tableDecorator);
@@ -218,7 +241,11 @@ public class JobDetailView extends DetailView {
      * @param jobLogsId id-owner, e.g. "172-showard"
      */
     protected String getLogsURL(String jobLogsId) {
-	String val = URL.encode("/results/" + jobLogsId);
+        return getLogsURL(jobLogsId, "");
+    }
+    
+    protected String getLogsURL(String jobLogsId, String path) {
+        String val = URL.encode("/results/" + jobLogsId + path);
         return "/tko/retrieve_logs.cgi?job=" + val;
     }
     
