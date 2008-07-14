@@ -186,7 +186,7 @@ class parser(base.parser):
                 if line.is_successful_reboot(current_status):
                     current_kernel = line.get_kernel()
                 # rename the reboot testname
-                if line.testname == "reboot":
+                if line.testname == "reboot" and line.subdir is None:
                     line.testname = "boot.%d" % boot_count
                     boot_count += 1
 

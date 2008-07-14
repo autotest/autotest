@@ -531,7 +531,12 @@ class SSHHost(remote.RemoteHost):
             if wait:
                 self._wait_for_restart(timeout)
                 self.reboot_followup()
-        self.__run_reboot_group(reboot)
+
+        # if this is a full reboot-and-wait, run the reboot inside a group
+        if wait:
+            self.__run_reboot_group(reboot)
+        else:
+            reboot()
 
 
     def reboot_followup(self):
