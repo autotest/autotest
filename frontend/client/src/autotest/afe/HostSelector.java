@@ -208,7 +208,7 @@ public class HostSelector {
     
     protected void addAllFiltered() {
         DataSource availableDataSource = availableTable.getDataSource();
-        availableDataSource.getPage(null, null, null, null, 
+        availableDataSource.getPage(null, null, null, 
                                     new DefaultDataCallback() {
             @Override
             public void handlePage(JSONArray data) {

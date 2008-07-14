@@ -4,16 +4,38 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 
 public interface DataSource {
-    public static final int ASCENDING = 1, DESCENDING = -1;
+    public static enum SortDirection {ASCENDING, DESCENDING}
     
     public interface DataCallback {
         public void onGotData(int totalCount);
         public void handlePage(JSONArray data);
     }
     
-    public class DefaultDataCallback implements DataCallback {
+    public static class DefaultDataCallback implements DataCallback {
         public void onGotData(int totalCount) {}
         public void handlePage(JSONArray data) {}
+    }
+    
+    public static class SortSpec {
+        private String field;
+        private SortDirection direction;
+        
+        public SortSpec(String field, SortDirection direction) {
+            this.field = field;
+            this.direction = direction;
+        }
+        
+        public int getDirectionMultiplier() {
+            return direction == SortDirection.ASCENDING ? 1 : -1;
+        }
+
+        public String getField() {
+            return field;
+        }
+
+        public SortDirection getDirection() {
+            return direction;
+        }
     }
     
     /** 
@@ -29,11 +51,10 @@ public interface DataSource {
      * called with the data.
      * @param start row to start with (for pagination)
      * @param maxCount maximum rows to be returned
-     * @param sortOn column name to sort on
-     * @param sortDirection ASCENDING or DESCENDING
+     * @param sortOn list of columns + directions to sort on; results will be sorted by the first 
+     *               field, then the second, etc.
      */
-    public void getPage(Integer start, Integer maxCount, 
-                        String sortOn, Integer sortDirection,
+    public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn, 
                         final DataCallback callback);
     
     /**
