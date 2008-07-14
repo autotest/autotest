@@ -1,4 +1,5 @@
 import os, sys
+import common
 from autotest_lib.client.common_lib import error, utils
 
 class profilers:
@@ -14,7 +15,8 @@ class profilers:
     def add(self, profiler, *args, **dargs):
         try:
             sys.path.insert(0, self.job.profdir + '/' + profiler)
-            profiler_module = __import__(profiler)
+            profiler_module = common.setup_modules.import_module(profiler,
+                                                                 'autotest_lib.client.profilers')
             newprofiler = getattr(profiler_module, profiler)(self)
         finally:
             sys.path.pop(0)
