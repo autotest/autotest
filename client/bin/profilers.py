@@ -13,13 +13,9 @@ class profilers:
 
     # add a profiler
     def add(self, profiler, *args, **dargs):
-        try:
-            sys.path.insert(0, self.job.profdir + '/' + profiler)
-            profiler_module = common.setup_modules.import_module(profiler,
-                                                                 'autotest_lib.client.profilers')
-            newprofiler = getattr(profiler_module, profiler)(self)
-        finally:
-            sys.path.pop(0)
+        profiler_module = common.setup_modules.import_module(profiler,
+                                                             'autotest_lib.client.profilers.%s' % profiler)
+        newprofiler = getattr(profiler_module, profiler)(self)
         newprofiler.name = profiler
         newprofiler.bindir = self.profdir + '/' + profiler
         newprofiler.srcdir = newprofiler.bindir + '/src'
