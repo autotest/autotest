@@ -3,7 +3,7 @@
 """
 Autotest scheduler
 """
-__author__ = "Paul Turner <pjt@google.com>"
+
 
 import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
 import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
@@ -1638,7 +1638,7 @@ class Job(DBObject):
     def _fields(cls):
         return  ['id', 'owner', 'name', 'priority', 'control_file',
                  'control_type', 'created_on', 'synch_type',
-                 'synch_count', 'synchronizing', 'timeout']
+                 'synch_count', 'synchronizing', 'timeout', 'run_verify']
 
 
     def is_server_job(self):
