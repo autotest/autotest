@@ -115,8 +115,16 @@ def get_num_hosts(multiple_labels=[], **filter_data):
 
 # tests
 
-def add_test(name, test_type, path, test_class=None, description=None):
+def add_test(name, test_type, path, author=None, dependencies=None,
+             experimental=True, run_verify=None, test_class=None, 
+             test_time=None, test_category=None, description=None,
+             sync_count=1):
     return models.Test.add_object(name=name, test_type=test_type, path=path,
+                                  author=author, dependencies=dependencies,
+                                  experimental=experimental,
+                                  run_verify=run_verify, test_time=test_time,
+                                  test_category=test_category,
+                                  sync_count=sync_count,
                                   test_class=test_class,
                                   description=description).id
 
@@ -253,7 +261,7 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
 
 def create_job(name, priority, control_file, control_type, timeout=None,
                is_synchronous=None, hosts=None, meta_hosts=None,
-               one_time_hosts=None):
+               run_verify=True, one_time_hosts=None):
     """\
     Create and enqueue a job.
 
@@ -324,7 +332,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                             control_type=control_type,
                             synch_type=synch_type,
                             hosts=host_objects,
-                            timeout=timeout)
+                            timeout=timeout,
+                            run_verify=run_verify)
     job.queue(host_objects)
     return job.id
 
