@@ -164,10 +164,14 @@ class db_sql(object):
 
         values = []
         if where and isinstance(where, types.DictionaryType):
-            # key/value pairs (which should be equal)
-            keys = [field + '=%s' for field in where.keys()]
-            values = [where[field] for field in where.keys()]
-
+            # key/value pairs (which should be equal, or None for null)
+            keys, values = [], []
+            for field, value in where.iteritems():
+                if value is None:
+                    keys.append(field + ' is null')
+                else:
+                    keys.append(field + '=%s')
+                    values.append(value)
             cmd.append(' where ' + ' and '.join(keys))
         elif where and isinstance(where, types.StringTypes):
             # the exact string
@@ -282,14 +286,14 @@ class db_sql(object):
         fields = data.keys()
         data_refs = [field + '=%s' for field in fields]
         data_values = [data[field] for field in fields]
-        cmd += ' set ' + ' and '.join(data_refs)
+        cmd += ' set ' + ', '.join(data_refs)
 
         where_keys = [field + '=%s' for field in where.keys()]
         where_values = [where[field] for field in where.keys()]
         cmd += ' where ' + ' and '.join(where_keys)
 
         values = data_values + where_values
-        print '%s %s' % (cmd, values)
+        self.dprint('%s %s' % (cmd, values))
 
         self._exec_sql_with_commit(cmd, values, commit)
 
@@ -299,6 +303,7 @@ class db_sql(object):
         for test_idx in self.find_tests(job_idx):
             where = {'test_idx' : test_idx}
             self.delete('iteration_result', where)
+            self.delete('iteration_attributes', where)
             self.delete('test_attributes', where)
         where = {'job_idx' : job_idx}
         self.delete('tests', where)
@@ -331,9 +336,13 @@ class db_sql(object):
                 'reason':test.reason, 'machine_idx':job.machine_idx,
                 'started_time': test.started_time,
                 'finished_time':test.finished_time}
-        self.insert('tests', data, commit=commit)
-        test_idx = self.get_last_autonumber_value()
-        data = { 'test_idx':test_idx }
+        if hasattr(test, "test_idx"):
+            test_idx = test.test_idx
+            self.update('tests', data, {'test_idx': test_idx}, commit=commit)
+        else:
+            self.insert('tests', data, commit=commit)
+            test_idx = test.test_idx = self.get_last_autonumber_value()
+        data = {'test_idx': test_idx}
 
         for i in test.iterations:
             data['iteration'] = i.index
@@ -441,8 +450,8 @@ class db_sql(object):
                     commit=commit)
 
 
-    def find_test(self, job_idx, subdir):
-        where = { 'job_idx':job_idx , 'subdir':subdir }
+    def find_test(self, job_idx, testname, subdir):
+        where = {'job_idx': job_idx , 'test': testname, 'subdir': subdir}
         rows = self.select('test_idx', 'tests', where)
         if rows:
             return rows[0][0]

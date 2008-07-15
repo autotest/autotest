@@ -56,7 +56,7 @@ class test(object):
 
     @classmethod
     def parse_test(cls, job, subdir, testname, status, reason, test_kernel,
-                   started_time, finished_time):
+                   started_time, finished_time, existing_instance=None):
         """Given a job and the basic metadata about the test that
         can be extracted from the status logs, parse the test
         keyval files and use it to construct a complete test
@@ -76,9 +76,28 @@ class test(object):
             iterations = []
             attributes = {}
 
-        return cls(subdir, testname, status, reason, test_kernel,
-                   job.machine, started_time, finished_time,
-                   iterations, attributes)
+        if existing_instance:
+            def constructor(*args, **dargs):
+                existing_instance.__init__(*args, **dargs)
+                return existing_instance
+        else:
+            constructor = cls
+        return constructor(subdir, testname, status, reason, test_kernel,
+                           job.machine, started_time, finished_time,
+                           iterations, attributes)
+
+
+    @classmethod
+    def parse_partial_test(cls, job, subdir, testname, reason, test_kernel,
+                           started_time):
+        """Given a job and the basic metadata available when a test is
+        started, create a test instance representing the partial result.
+        Assume that since the test is not complete there are no results files
+        actually available for parsing."""
+        tko_utils.dprint("parsing partial test %s %s" % (subdir, testname))
+
+        return cls(subdir, testname, "RUNNING", reason, test_kernel,
+                   job.machine, started_time, None, [], {})
 
 
     @staticmethod

@@ -8,7 +8,7 @@ __author__ = 'jadmanski@google.com (John Admanski)'
 
 
 job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
-                "NOSTATUS"]
+                "RUNNING", "NOSTATUS"]
 
 def is_valid_status(status):
     if not re.match(r'(START|(END )?('+'|'.join(job_statuses)+'))$',
