@@ -110,6 +110,7 @@ class parser(base.parser):
         current_kernel = kernel("", [])  # UNKNOWN
         started_time_stack = [None]
         subdir_stack = [None]
+        running_test = None
 
         while True:
             # are we finished with parsing?
@@ -142,9 +143,25 @@ class parser(base.parser):
             # initial line processing
             if line.type == "START":
                 stack.start()
-                if (line.testname, line.subdir) == (None,) * 2:
+                started_time = line.get_timestamp()
+                if (line.testname, line.subdir) == (None, None):
+                    # we just started a client, all tests are relative to here
                     min_stack_size = stack.size()
-                started_time_stack.append(line.get_timestamp())
+                elif stack.size() == min_stack_size + 1:
+                    # we just started a new test, insert a running record
+                    assert(running_test is None)
+                    running_test = test.parse_partial_test(self.job,
+                                                           line.subdir,
+                                                           line.testname,
+                                                           line.reason,
+                                                           current_kernel,
+                                                           started_time)
+                    msg = "RUNNING: %s\nSubdir: %s\nTestname: %s\n%s"
+                    msg %= (running_test.status, running_test.subdir,
+                            running_test.testname, running_test.reason)
+                    tko_utils.dprint(msg)
+                    new_tests.append(running_test)
+                started_time_stack.append(started_time)
                 subdir_stack.append(line.subdir)
                 continue
             elif line.type == "STATUS":
@@ -212,7 +229,9 @@ class parser(base.parser):
                                            line.reason,
                                            current_kernel,
                                            started_time,
-                                           finished_time)
+                                           finished_time,
+                                           running_test)
+                running_test = None
                 msg = "ADD: %s\nSubdir: %s\nTestname: %s\n%s"
                 msg %= (new_test.status, new_test.subdir,
                         new_test.testname, new_test.reason)
