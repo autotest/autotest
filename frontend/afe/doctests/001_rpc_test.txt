@@ -91,16 +91,25 @@ True
 True
 
 # tests...
->>> rpc_interface.add_test(name='sleeptest', test_type='Client',
+>>> rpc_interface.add_test(name='sleeptest', test_type='Client', author='Test',
+...                        description='Sleep Test', test_time=1,
+...                        test_category='Functional',
 ...                        test_class='Kernel', path='sleeptest')
 1L
 >>> rpc_interface.modify_test('sleeptest', path='/my/path')
 >>> data = rpc_interface.get_tests()
 >>> data == [{'id': 1L,
 ...           'name': 'sleeptest',
-...           'description': '',
+...           'author': 'Test',
+...           'description': 'Sleep Test',
+...           'dependencies': '',
+...           'experimental': 1,
+...           'sync_count': 1L,
 ...           'test_type': 'Client',
 ...           'test_class': 'Kernel',
+...           'test_time': 'SHORT',
+...           'run_verify': 1,
+...           'test_category': 'Functional',
 ...           'synch_type': 'Asynchronous',
 ...           'path': '/my/path'}]
 True
@@ -303,10 +312,13 @@ True
 >>> rpc_interface.add_label(name='my_label', kernel_config='my_kernel_config')
 5L
 >>> test_control_path = os.path.join(test_path, 'test.control')
->>> rpc_interface.add_test(name='sleeptest', test_type='Client',
+>>> rpc_interface.add_test(name='sleeptest', test_type='Client', author='Test',
+...                        test_category='Test',
 ...                        test_class='Kernel', path=test_control_path)
 2L
->>> rpc_interface.add_test(name='my_test', test_type='Client',
+>>> test_control_path = os.path.join(test_path, 'test.control.2')
+>>> rpc_interface.add_test(name='my_test', test_type='Client', author='Test',
+...                        test_category='Test',
 ...                        test_class='Kernel', path=test_control_path)
 3L
 >>> rpc_interface.add_host(hostname='my_label_host1')
@@ -387,7 +399,8 @@ True
 ...         'synch_count': None,
 ...         'synch_type': 'Asynchronous',
 ...         'synchronizing': 0,
-...         'timeout': 72}
+...         'timeout': 72,
+...         'run_verify': 1}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple

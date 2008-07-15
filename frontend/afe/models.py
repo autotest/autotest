@@ -189,30 +189,45 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
 class Test(dbmodels.Model, model_logic.ModelExtensions):
     """\
     Required:
+    author: author name
+    description: description of the test
     name: test name
+    time: short, medium, long
+    test_class: This describes the class for your the test belongs in.
+    test_category: This describes the category for your tests
     test_type: Client or Server
     path: path to pass to run_test()
     synch_type: whether the test should run synchronously or asynchronously
-
+    sync_count:  is a number >=1 (1 being the default). If it's 1, then it's an
+                 async job. If it's >1 it's sync job for that number of machines
+                 i.e. if sync_count = 2 it is a sync job that requires two 
+                 machines. 
     Optional:
-    test_class: used for categorization of tests
-    description: arbirary text description
+    dependencies: What the test requires to run. Comma deliminated list
+    experimental: If this is set to True production servers will ignore the test
+    run_verify: Whether or not the scheduler should run the verify stage
     """
-    Classes = enum.Enum('Kernel', 'Hardware', 'Canned Test Sets',
-                        string_values=True)
+    TestTime = enum.Enum('SHORT', 'MEDIUM', 'LONG', start_value=1)
     SynchType = enum.Enum('Asynchronous', 'Synchronous', start_value=1)
     # TODO(showard) - this should be merged with Job.ControlType (but right
     # now they use opposite values)
     Types = enum.Enum('Client', 'Server', start_value=1)
 
     name = dbmodels.CharField(maxlength=255, unique=True)
-    test_class = dbmodels.CharField(maxlength=255,
-                                    choices=Classes.choices())
+    author = dbmodels.CharField(maxlength=255)
+    test_class = dbmodels.CharField(maxlength=255)
+    test_category = dbmodels.CharField(maxlength=255)
+    dependencies = dbmodels.CharField(maxlength=255, blank=True)
     description = dbmodels.TextField(blank=True)
+    experimental = dbmodels.BooleanField(default=True)
+    run_verify = dbmodels.BooleanField(default=True)
+    test_time = dbmodels.SmallIntegerField(choices=TestTime.choices(),
+                                           default=TestTime.MEDIUM)
     test_type = dbmodels.SmallIntegerField(choices=Types.choices())
+    sync_count = dbmodels.IntegerField(default=1)
     synch_type = dbmodels.SmallIntegerField(choices=SynchType.choices(),
                                             default=SynchType.ASYNCHRONOUS)
-    path = dbmodels.CharField(maxlength=255)
+    path = dbmodels.CharField(maxlength=255, unique=True)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -224,11 +239,12 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     class Admin:
         fields = (
             (None, {'fields' :
-                    ('name', 'test_class', 'test_type', 'synch_type',
-                     'path', 'description')}),
+                    ('name', 'author', 'test_category', 'test_class',
+                     'test_time', 'synch_type', 'test_type', 'sync_count',
+                     'path', 'dependencies', 'experimental', 'run_verify',
+                     'description')}),
             )
-        list_display = ('name', 'test_type', 'synch_type',
-                        'description')
+        list_display = ('name', 'test_type', 'description', 'synch_type')
         search_fields = ('name',)
 
     def __str__(self):
@@ -447,6 +463,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     synch_type: Asynchronous or Synchronous (i.e. job must run on all hosts
                 simultaneously; used for server-side control files)
     synch_count: ???
+    run_verify: Whether or not to run the verify phase
     synchronizing: for scheduler use
     timeout: hours until job times out
     """
@@ -469,6 +486,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         blank=True, null=True, choices=Test.SynchType.choices())
     synch_count = dbmodels.IntegerField(blank=True, null=True)
     synchronizing = dbmodels.BooleanField(default=False)
+    run_verify = dbmodels.BooleanField(default=True)
     timeout = dbmodels.IntegerField()
 
 
@@ -482,7 +500,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_type, timeout):
+               hosts, synch_type, timeout, run_verify):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
@@ -491,7 +509,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         job = cls.add_object(
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
-            synch_type=synch_type, timeout=timeout)
+            synch_type=synch_type, timeout=timeout,
+            run_verify=run_verify)
 
         if job.synch_type == Test.SynchType.SYNCHRONOUS:
             job.synch_count = len(hosts)
@@ -520,7 +539,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             owner=new_owner, name=self.name, priority=self.priority,
             control_file=self.control_file,
             control_type=self.control_type, hosts=hosts,
-            synch_type=self.synch_type, timeout=self.timeout)
+            synch_type=self.synch_type, timeout=self.timeout,
+            run_verify=self.run_verify)
         new_job.queue(hosts)
         return new_job
 
