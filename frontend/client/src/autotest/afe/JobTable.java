@@ -40,8 +40,8 @@ public class JobTable extends DynamicTable {
         }
     };
     
-    private static final String[][] JOB_COLUMNS = { {WIDGET_COLUMN, "Select"}, { "id", "ID" },
-            { "owner", "Owner" }, { "name", "Name" },
+    private static final String[][] JOB_COLUMNS = { {CLICKABLE_WIDGET_COLUMN, "Select"}, 
+            { "id", "ID" }, { "owner", "Owner" }, { "name", "Name" },
             { "priority", "Priority" }, { "control_type", "Client/Server" },
             { CREATED_TEXT, "Created" }, { HOSTS_SUMMARY, "Status" } };
 

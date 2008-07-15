@@ -28,6 +28,9 @@ public class DataTable extends Composite {
     public static final String CLICKABLE_STYLE = "data-row-clickable";
     public static final String HIGHLIGHTED_STYLE = "data-row-highlighted";
     public static final String WIDGET_COLUMN = "_WIDGET_COLUMN_";
+    // use CLICKABLE_WIDGET_COLUMN for widget that expect to receive clicks.  The table will ignore
+    // click events coming from these columns.
+    public static final String CLICKABLE_WIDGET_COLUMN = "_CLICKABLE_WIDGET_COLUMN_";
     // for indexing into column subarrays (i.e. columns[1][COL_NAME])
     public static final int COL_NAME = 0, COL_TITLE = 1;
     
@@ -154,8 +157,12 @@ public class DataTable extends Composite {
         setRowStyle(row);
     }
 
-    protected boolean isWidgetColumn(int i) {
-        return columns[i][0].equals(WIDGET_COLUMN);
+    protected boolean isWidgetColumn(int column) {
+        return columns[column][COL_NAME].equals(WIDGET_COLUMN) || isClickableWidgetColumn(column);
+    }
+    
+    protected boolean isClickableWidgetColumn(int column) {
+        return columns[column][COL_NAME].equals(CLICKABLE_WIDGET_COLUMN);
     }
 
     /**

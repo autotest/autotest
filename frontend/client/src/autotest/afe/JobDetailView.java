@@ -39,7 +39,7 @@ public class JobDetailView extends DetailView {
     private static final String[][] JOB_HOSTS_COLUMNS = {
         {"hostname", "Host"}, {"status", "Status"}, 
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
-        {DataTable.WIDGET_COLUMN, ""}
+        {DataTable.CLICKABLE_WIDGET_COLUMN, ""}
     };
     public static final String NO_URL = "about:blank";
     public static final int NO_JOB_ID = -1;

@@ -268,10 +268,14 @@ public class DynamicTable extends DataTable
     // INPUT
     
     public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
-        if(isWidgetColumn(cell)) 
+        if(isClickableWidgetColumn(cell)) 
             return;
         
         if (clientSortable && row == headerRow) {
+            if (isWidgetColumn(cell)) {
+                // ignore sorting on widget columns
+                return;
+            }
             String columnName = columns[cell][COL_NAME];
             SortDirection newSortDirection = SortDirection.ASCENDING;
             SortSpec firstSortSpec = getFirstSortSpec();
