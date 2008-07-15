@@ -701,7 +701,7 @@ class rpm_kernel(object):
             args += " IDENT=%d" % (when)
 
         self.job.next_step_prepend(["job.kernel_check_ident",
-                                   when, ident, self.subdir, 'rpm'])
+                                    when, ident, None, 'rpm'])
 
         # Boot the selected tag.
         self.add_to_bootloader(args=args, tag=self.installed_as)
