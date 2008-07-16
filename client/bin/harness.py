@@ -6,7 +6,6 @@ The interface between the client and the server when hosted.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 import os, sys
-import common
 
 class harness(object):
     """The NULL server harness
@@ -80,8 +79,7 @@ def select(which, job):
         which = 'standalone'
 
     harness_name = 'harness_%s' % which
-    harness_module = common.setup_modules.import_module(harness_name,
-                                                        'autotest_lib.client.bin')
+    harness_module = __import__(harness_name)
     harness_instance = getattr(harness_module, harness_name)(job)
 
     return harness_instance
