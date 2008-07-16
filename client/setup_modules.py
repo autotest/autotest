@@ -54,36 +54,6 @@ def _import_children_into_module(parent_module_name, path):
     sys.path.pop(0)
 
 
-def _setup_common_library(root_module_name):
-    """
-    Setup aliases for all the common libraries, e.g.
-            common -> autotest_lib.client.common_lib
-            common.error -> autotest_lib.client.common_lib.error
-    """
-    # convert the root_module_name into a client module name
-    parts = root_module_name.split(".")
-    if parts[-1] == "client":
-        client_name = root_module_name
-    else:
-        client_name = root_module_name + ".client"
-    # import the top-level common library
-    common_lib = __import__(client_name, globals(), locals(),
-                            ["common_lib"]).common_lib
-    sys.modules["common"] = common_lib
-    # patch up all the root_module_name.*.common libs
-    for module_name in sys.modules.iterkeys():
-        if (module_name.startswith(root_module_name + ".") and
-            module_name.endswith(".common")):
-            sys.modules[module_name] = common_lib
-    # import the specific common libraries
-    for library in common_lib.__all__:
-        module = __import__(client_name + ".common_lib", globals(),
-                            locals(), [library])
-        module = getattr(module, library)
-        setattr(common_lib, library, module)
-        sys.modules["common.%s" % library] = module
-
-
 def import_module(module, from_where):
     """Equivalent to 'from from_where import module'
     Returns the corresponding module"""
@@ -103,7 +73,6 @@ def setup(base_path, root_module_name=""):
     """
     _create_module_and_parents(root_module_name)
     _import_children_into_module(root_module_name, base_path)
-    _setup_common_library(root_module_name)
 
 
 # This must run on Python versions less than 2.4.
