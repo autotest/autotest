@@ -11,10 +11,15 @@ class profilers:
         self.tmpdir = job.tmpdir
         self.profile_run_only = False
 
+
     # add a profiler
     def add(self, profiler, *args, **dargs):
-        profiler_module = __import__(profiler)
-        newprofiler = getattr(profiler_module, profiler)(self)
+        try:
+            sys.path.insert(0, self.job.profdir + '/' + profiler)
+            profiler_module = __import__(profiler)
+            newprofiler = getattr(profiler_module, profiler)(self)
+        finally:
+            sys.path.pop(0)
         newprofiler.name = profiler
         newprofiler.bindir = self.profdir + '/' + profiler
         newprofiler.srcdir = newprofiler.bindir + '/src'
