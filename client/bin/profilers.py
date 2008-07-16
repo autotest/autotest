@@ -13,8 +13,7 @@ class profilers:
 
     # add a profiler
     def add(self, profiler, *args, **dargs):
-        profiler_module = common.setup_modules.import_module(profiler,
-                                                             'autotest_lib.client.profilers.%s' % profiler)
+        profiler_module = __import__(profiler)
         newprofiler = getattr(profiler_module, profiler)(self)
         newprofiler.name = profiler
         newprofiler.bindir = self.profdir + '/' + profiler
