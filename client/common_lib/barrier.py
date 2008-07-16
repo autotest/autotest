@@ -2,8 +2,6 @@ import sys, socket, errno
 from time import time, sleep
 from autotest_lib.client.common_lib import error
 
-__author__ = """Copyright Andy Whitcroft 2006"""
-
 
 class barrier:
     """ Multi-machine barrier support
@@ -469,38 +467,3 @@ class barrier:
         else:
             self.report("selected as slave")
             self.run_server(is_master=False)
-
-#
-# TESTING -- direct test harness.
-#
-# For example, run in parallel:
-#   python bin/barrier.py 1 meeting
-#   python bin/barrier.py 2 meeting
-#   python bin/barrier.py 3 meeting
-#
-if __name__ == "__main__":
-    barrier = barrier('127.0.0.1#' + sys.argv[1], sys.argv[2], 60)
-
-    try:
-        all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ]
-        barrier.rendevous(*all)
-    except error.BarrierError, err:
-        print "barrier: 127.0.0.1#" + sys.argv[1] + \
-                                        ": barrier failed:", err
-        sys.exit(1)
-    else:
-        print "barrier: 127.0.0.1#" + sys.argv[1] + \
-                                ": all present and accounted for"
-
-    try:
-        all = [ '127.0.0.1#2', '127.0.0.1#1' ]
-        if 1 <= int(sys.argv[1]) <= 2:
-            barrier.rendevous_servers(*all)
-    except error.BarrierError, err:
-        print "barrier: 127.0.0.1#" + sys.argv[1] + \
-                                        ": barrier failed:", err
-        sys.exit(1)
-    else:
-        print "barrier: 127.0.0.1#" + sys.argv[1] + \
-                                ": all present and accounted for"
-        sys.exit(0)
