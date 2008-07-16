@@ -15,7 +15,7 @@ class dbench(test.test):
         utils.system('make')
 
 
-    def intialize(self):
+    def initialize(self):
         self.results = []
 
 
