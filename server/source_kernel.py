@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 """
@@ -8,16 +6,8 @@ This module defines the SourceKernel class
         SourceKernel: an linux kernel built from source
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
 
-
-import kernel
-import autotest
-
+from autotest_lib.server import kernel, autotest
 
 
 class SourceKernel(kernel.Kernel):
