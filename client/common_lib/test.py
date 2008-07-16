@@ -78,27 +78,25 @@ class base_test:
         return new_dict
 
 
-    def write_iteration_keyval(self, attr_dict, perf_dict):
-        attr_dict = self._append_type_to_keys(attr_dict, "attr")
-        perf_dict = self._append_type_to_keys(perf_dict, "perf")
+    def write_perf_keyval(self, perf_dict):
+        self.write_iteration_keyval({}, perf_dict)
 
-        utils.write_keyval(self.resultsdir, attr_dict,
-                           type_tag="attr")
-        utils.write_keyval(self.resultsdir, perf_dict,
-                           type_tag="perf")
+
+    def write_attr_keyval(self, attr_dict):
+        self.write_iteration_keyval(attr_dict, {})
+
+
+    def write_iteration_keyval(self, attr_dict, perf_dict):
+        if attr_dict:
+            attr_dict = self._append_type_to_keys(attr_dict, "attr")
+            utils.write_keyval(self.resultsdir, attr_dict, type_tag="attr")
+
+        if perf_dict:
+            perf_dict = self._append_type_to_keys(perf_dict, "perf")
+            utils.write_keyval(self.resultsdir, perf_dict, type_tag="perf")
 
         keyval_path = os.path.join(self.resultsdir, "keyval")
         print >> open(keyval_path, "a"), ""
-
-
-    # TODO: deprecate, remove from code in favour of
-    # the write_*_keyval methods
-    def write_keyval(self, dictionary):
-        warnings.warn("test.write_keyval is deprecated, use "
-                      "test.write_test_keyval or "
-                      "test.write_iteration_keyval instead",
-                      DeprecationWarning)
-        self.write_iteration_keyval({}, dictionary)
 
 
     def initialize(self):
