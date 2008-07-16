@@ -14,7 +14,6 @@ def format_error():
 
     return ''.join(trace)
 
-
 class JobContinue(SystemExit):
     """Allow us to bail out requesting continuance."""
     pass
@@ -88,6 +87,11 @@ class CmdError(TestError):
 
 class PackageError(TestError):
     """Indicates an error trying to perform a package operation."""
+    pass
+
+
+class BarrierError(JobError):
+    """Indicates an error happened during a barrier operation."""
     pass
 
 

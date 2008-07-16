@@ -1,13 +1,8 @@
-__author__ = """Copyright Andy Whitcroft 2006"""
-
 import sys, socket, errno
 from time import time, sleep
-import common
 from autotest_lib.client.common_lib import error
 
-
-class BarrierError(error.JobError):
-    pass
+__author__ = """Copyright Andy Whitcroft 2006"""
 
 
 class barrier:
@@ -115,7 +110,7 @@ class barrier:
         if not hostid.startswith('#'):
             return hostid.split('#')[0]
         else:
-            raise BarrierError("Invalid Host id: Host Address should "
+            raise error.BarrierError("Invalid Host id: Host Address should "
                                "be specified")
 
 
@@ -137,7 +132,7 @@ class barrier:
             if getattr(self, 'start'):
                 timeout = self.timeout - (time() - self.start)
                 if (timeout <= 0):
-                    raise BarrierError("timeout waiting for barrier")
+                    raise error.BarrierError("timeout waiting for barrier")
         except AttributeError, a:
             timeout = self.timeout
 
@@ -257,7 +252,7 @@ class barrier:
                 allpresent = 0
 
         if not allpresent:
-            raise BarrierError("master lost client")
+            raise error.BarrierError("master lost client")
 
         # If every ones checks in then commit the release.
         for name in self.waiting:
@@ -417,15 +412,15 @@ class barrier:
         if mode == "rlse":
             pass
         elif mode == "wait":
-            raise BarrierError("master abort -- barrier timeout")
+            raise error.BarrierError("master abort -- barrier timeout")
         elif mode == "ping":
-            raise BarrierError("master abort -- client lost")
+            raise error.BarrierError("master abort -- client lost")
         elif mode == "!tag":
-            raise BarrierError("master abort -- incorrect tag")
+            raise error.BarrierError("master abort -- incorrect tag")
         elif mode == "!dup":
-            raise BarrierError("master abort -- duplicate client")
+            raise error.BarrierError("master abort -- duplicate client")
         else:
-            raise BarrierError("master handshake failure: " + mode)
+            raise error.BarrierError("master handshake failure: " + mode)
 
 
     def rendevous(self, *hosts):
@@ -489,7 +484,7 @@ if __name__ == "__main__":
     try:
         all = [ '127.0.0.1#2', '127.0.0.1#1', '127.0.0.1#3' ]
         barrier.rendevous(*all)
-    except BarrierError, err:
+    except error.BarrierError, err:
         print "barrier: 127.0.0.1#" + sys.argv[1] + \
                                         ": barrier failed:", err
         sys.exit(1)
@@ -501,7 +496,7 @@ if __name__ == "__main__":
         all = [ '127.0.0.1#2', '127.0.0.1#1' ]
         if 1 <= int(sys.argv[1]) <= 2:
             barrier.rendevous_servers(*all)
-    except BarrierError, err:
+    except error.BarrierError, err:
         print "barrier: 127.0.0.1#" + sys.argv[1] + \
                                         ": barrier failed:", err
         sys.exit(1)
