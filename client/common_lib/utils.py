@@ -50,7 +50,16 @@ def write_keyval(path, dictionary, type_tag=None):
     """
     if os.path.isdir(path):
         path = os.path.join(path, 'keyval')
+
+    # If the file is already there, this is the results of a subsequent
+    # iteration - we should add a blank line before we start
+    if os.path.exists(path):
+        prefix = '\n'
+    else:
+        prefix = ''
+
     keyval = open(path, 'a')
+    keyval.write(prefix)
 
     if type_tag is None:
         key_regex = re.compile(r'^[-\w]+$')
