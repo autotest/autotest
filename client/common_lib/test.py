@@ -110,35 +110,13 @@ class base_test:
         pass
 
 
-    def warmup(self):
-        pass
-
-
-    def execute(self, iterations=1, *args, **dargs):
-        self.warmup(*args, **dargs)
-
-        profilers = self.job.profilers
-        # Dropped profilers.only() - if you want that, use iterations=0
-        for i in range(iterations):
-            self.run_once(*args, **dargs)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            self.run_once(*args, **dargs)
-            profilers.stop(self)
-            profilers.report(self)
-
-        # Do any postprocessing, normally extracting performance keyvals, etc
-        self.postprocess()
-
-
-    def postprocess(self):
-        pass
-
-
     def cleanup(self):
         pass
+
+
+    def execute(self):
+        raise NotImplementedError("This function must be overriden by "
+                                  "the test class")
 
 
     def _exec(self, args, dargs):
