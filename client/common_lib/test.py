@@ -47,10 +47,9 @@ class base_test:
             shutil.rmtree(self.tmpdir)
         os.mkdir(self.tmpdir)
 
-        self.job.stdout.tee_redirect(
-                os.path.join(self.debugdir, 'stdout'))
-        self.job.stderr.tee_redirect(
-                os.path.join(self.debugdir, 'stderr'))
+        self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
+        self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
+
         try:
             self.initialize()
             # compile and install the test, if needed.
@@ -103,6 +102,7 @@ class base_test:
 
 
     def initialize(self):
+        print 'No initialize phase defined'
         pass
 
 
