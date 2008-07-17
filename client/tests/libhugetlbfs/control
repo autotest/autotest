@@ -10,4 +10,4 @@ Tests basic huge pages functionality when using libhugetlbfs. For more info
 about libhugetlbfs see http://libhugetlbfs.ozlabs.org/
 '''
 
-job.run_test('libhugetlbfs', '/mnt')
+job.run_test('libhugetlbfs', dir='/mnt')

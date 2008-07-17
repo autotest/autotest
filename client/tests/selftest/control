@@ -8,4 +8,4 @@ TEST_CLASS = "Software"
 DOC = """\
 Run a selftest on the autotest installed branch
 """
-job.run_test('selftest', 1)
+job.run_test('selftest', cmd=1)

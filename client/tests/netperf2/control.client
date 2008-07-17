@@ -9,4 +9,8 @@ TCP/UDP/sockets/etc performance benchmark.
 See http://www.netperf.org/netperf/NetperfPage.html.
 """
 
-job.run_test('netperf2', '10.10.1.2', '10.10.1.6', 'client', tag='client')
+job.run_test('netperf2',
+             server_ip='10.10.1.2',
+             client_ip='10.10.1.6',
+             role='client',
+             tag='client')
