@@ -1,0 +1,66 @@
+AUTHOR = "mbligh@google.com (Martin Bligh)"
+TIME = "SHORT"
+NAME = "Netperf Multi-machine"
+TEST_CATEGORY = "Stress"
+TEST_TYPE = "Server"
+SYNC_COUNT = 2
+DOC = """
+netperf_test is a 2 machine test (server/client) that analyzes qos and returns
+the results. 
+
+The default test takes roughly 10 minutes to run.  The arguments that can be
+passed into the job.run_test are:
+
+time_limit       default 600 seconds
+bandwidth_min    default 1000 mbit
+bandwidth_max    default 1000 mbit
+priority         default 2
+container_name   default "/"
+"""
+
+from autotest_lib.server import utils
+
+
+def run(pair, time_limit=600, bandwidth_min=1000, bandwidth_max=1000,
+        priority=2, container_name=""):
+
+    print "running on %s and %s\n" % (pair[0], pair[1])
+    tagname = "%s_%s" % (pair[0], pair[1])
+    server = hosts.SSHHost(pair[0])
+    client = hosts.SSHHost(pair[1])
+
+    server_at = autotest.Autotest(server)
+    client_at = autotest.Autotest(client)
+
+    args = ('time_limit=%s, bandwidth_min=%s, bandwidth_max=%s, '
+            'priority=%s, container_name="%s"')
+    args %= (time_limit, bandwidth_min, bandwidth_max, priority, 
+             container_name)
+
+    control_file_template = "job.run_test('netperf2', server_ip='%s', client_ip='%s', role='%s')"
+
+    server_control_file = control_file_template % (pair[0], pair[1], 'server')
+    client_control_file = control_file_template % (pair[0], pair[1], 'client')
+
+    print 'SERVER CONTROL FILE'
+    print server_control_file
+    print 'CLIENT CONTROL FILE'
+    print client_control_file
+
+    server_command = subcommand(server_at.run,
+                               [server_control_file, server.hostname])
+    client_command = subcommand(client_at.run,
+                               [client_control_file, client.hostname])
+
+    parallel([server_command, client_command])
+
+
+# grab the pairs (and failures)
+(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+
+# log the failures
+for failure in failures:
+    job.record("FAIL", failure[0], "netperf2", failure[1])
+
+# now run through each pair and run
+parallel_simple(run, pairs)
