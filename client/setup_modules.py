@@ -70,7 +70,17 @@ def setup(base_path, root_module_name=""):
 
     Also, setup all the common.* aliases for modules in the common
     library.
+
+    The setup must be different if you are running on an Autotest server
+    or on a test manchine that just has the client directories installed.
     """
+    # Hack... Any better ideas?
+    if (root_module_name == 'autotest_lib.client' and
+        os.path.exists(os.path.join(os.path.dirname(__file__),
+                                    '..', 'server'))):
+        root_module_name = 'autotest_lib'
+        base_path = os.path.abspath(os.path.join(base_path, '..'))
+
     _create_module_and_parents(root_module_name)
     _import_children_into_module(root_module_name, base_path)
 
