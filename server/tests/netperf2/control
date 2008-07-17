@@ -39,8 +39,8 @@ def run(pair, time_limit=600, bandwidth_min=1000, bandwidth_max=1000,
 
     control_file_template = "job.run_test('netperf2', server_ip='%s', client_ip='%s', role='%s')"
 
-    server_control_file = control_file_template % (pair[0], pair[1], 'server')
-    client_control_file = control_file_template % (pair[0], pair[1], 'client')
+    server_control_file = control_file_template % (server.ip, client.ip, 'server')
+    client_control_file = control_file_template % (server.ip, client.ip, 'client')
 
     print 'SERVER CONTROL FILE'
     print server_control_file
