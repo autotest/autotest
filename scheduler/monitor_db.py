@@ -1433,7 +1433,7 @@ class Host(DBObject):
     @classmethod
     def _fields(cls):
         return ['id', 'hostname', 'locked', 'synch_id','status',
-                'invalid', 'protection']
+                'invalid', 'protection', 'locked_by_id', 'lock_time']
 
 
     def current_task(self):

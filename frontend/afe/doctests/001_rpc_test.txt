@@ -76,6 +76,9 @@ True
 1L
 >>> rpc_interface.modify_host('ipaj1', status='Hello')
 >>> data = rpc_interface.get_hosts()
+
+# delete the lock_time field, since that can't be reliably checked
+>>> del data[0]['lock_time']
 >>> data == [{'id': 1L,
 ...           'hostname': 'ipaj1',
 ...           'locked': 1,
@@ -84,7 +87,8 @@ True
 ...           'labels': [],
 ...           'platform': None,
 ...           'invalid': 0,
-...           'protection': 'Filesystem only'}]
+...           'protection': 'Repair filesystem only',
+...           'locked_by': 'debug_user'}]
 True
 >>> rpc_interface.delete_host('ipaj1')
 >>> rpc_interface.get_hosts() == []
@@ -413,7 +417,9 @@ True
 ...           'locked': 0,
 ...           'status': 'Ready',
 ...           'synch_id': None,
-...           'protection': 'Filesystem only'},
+...           'protection': 'Repair filesystem only',
+...           'locked_by': None,
+...           'lock_time': None},
 ...  'id': 1L,
 ...  'job': job, # full job info here
 ...  'meta_host': None,

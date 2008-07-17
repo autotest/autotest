@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import models as dbmodels, connection
 from frontend.afe import model_logic
 from frontend import settings, thread_local
@@ -55,6 +56,52 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
         return self.name
 
 
+class User(dbmodels.Model, model_logic.ModelExtensions):
+    """\
+    Required:
+    login :user login name
+
+    Optional:
+    access_level: 0=User (default), 1=Admin, 100=Root
+    """
+    ACCESS_ROOT = 100
+    ACCESS_ADMIN = 1
+    ACCESS_USER = 0
+
+    login = dbmodels.CharField(maxlength=255, unique=True)
+    access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
+
+    name_field = 'login'
+    objects = model_logic.ExtendedManager()
+
+
+    def save(self):
+        # is this a new object being saved for the first time?
+        first_time = (self.id is None)
+        user = thread_local.get_user()
+        if user and not user.is_superuser():
+            raise AclAccessViolation("You cannot modify users!")
+        super(User, self).save()
+        if first_time:
+            everyone = AclGroup.objects.get(name='Everyone')
+            everyone.users.add(self)
+
+
+    def is_superuser(self):
+        return self.access_level >= self.ACCESS_ROOT
+
+
+    class Meta:
+        db_table = 'users'
+
+    class Admin:
+        list_display = ('login', 'access_level')
+        search_fields = ('login',)
+
+    def __str__(self):
+        return self.login
+
+
 class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     """\
     Required:
@@ -85,6 +132,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     protection = dbmodels.SmallIntegerField(null=False,
                                             choices=host_protections.choices,
                                             default=host_protections.default)
+    locked_by = dbmodels.ForeignKey(User, null=True, blank=True, editable=False)
+    lock_time = dbmodels.DateTimeField(null=True, blank=True, editable=False)
 
     name_field = 'hostname'
     objects = model_logic.ExtendedManager()
@@ -118,6 +167,12 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         first_time = (self.id is None)
         if not first_time:
             AclGroup.check_for_acl_violation_hosts([self])
+        if self.locked and not self.locked_by:
+            self.locked_by = thread_local.get_user()
+            self.lock_time = datetime.now()
+        elif not self.locked and self.locked_by:
+            self.locked_by = None
+            self.lock_time = None
         super(Host, self).save()
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
@@ -276,52 +331,6 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
 
     def __str__(self):
         return self.name
-
-
-class User(dbmodels.Model, model_logic.ModelExtensions):
-    """\
-    Required:
-    login :user login name
-
-    Optional:
-    access_level: 0=User (default), 1=Admin, 100=Root
-    """
-    ACCESS_ROOT = 100
-    ACCESS_ADMIN = 1
-    ACCESS_USER = 0
-
-    login = dbmodels.CharField(maxlength=255, unique=True)
-    access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
-
-    name_field = 'login'
-    objects = model_logic.ExtendedManager()
-
-
-    def save(self):
-        # is this a new object being saved for the first time?
-        first_time = (self.id is None)
-        user = thread_local.get_user()
-        if user and not user.is_superuser():
-            raise AclAccessViolation("You cannot modify users!")
-        super(User, self).save()
-        if first_time:
-            everyone = AclGroup.objects.get(name='Everyone')
-            everyone.users.add(self)
-
-
-    def is_superuser(self):
-        return self.access_level >= self.ACCESS_ROOT
-
-
-    class Meta:
-        db_table = 'users'
-
-    class Admin:
-        list_display = ('login', 'access_level')
-        search_fields = ('login',)
-
-    def __str__(self):
-        return self.login
 
 
 class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
