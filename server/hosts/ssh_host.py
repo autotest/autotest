@@ -68,10 +68,11 @@ class SSHHost(remote.RemoteHost):
                 port: port the ssh daemon is listening on on the remote
                         machine
         """
-        self.hostname= hostname
-        self.user= user
-        self.port= port
-        self.tmp_dirs= []
+        self.hostname = hostname
+        self.ip = socket.getaddrinfo(hostname, None)[0][4][0]
+        self.user = user
+        self.port = port
+        self.tmp_dirs = []
         self.initialize = initialize
         self.autodir = autodir
         self.password = password
