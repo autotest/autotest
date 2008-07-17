@@ -506,4 +506,13 @@ def get_static_data():
     result['job_statuses'] = sorted(models.Job.Status.names)
     result['job_timeout_default'] = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default')
+
+    result['status_dictionary'] = {"Aborted": "Aborted",
+                                   "Verifying": "Verifying Host",
+                                   "Pending": "Waiting on other hosts",
+                                   "Running": "Running autoserv",
+                                   "Completed": "Autoserv completed",
+                                   "Failed": "Failed to complete",
+                                   "Aborting": "Abort in progress",
+                                   "Queued": "Queued"}
     return result
