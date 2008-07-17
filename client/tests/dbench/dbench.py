@@ -34,4 +34,4 @@ class dbench(test.test):
     def postprocess(self):
         pattern = re.compile(r"Throughput (.*?) MB/sec (.*?) procs")
         for (throughput, procs) in pattern.findall("\n".join(self.results)):
-            write_perf_keyval({'throughput':throughput, 'procs':procs})
+            self.write_perf_keyval({'throughput':throughput, 'procs':procs})
