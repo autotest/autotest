@@ -47,18 +47,6 @@ class base_test:
             shutil.rmtree(self.tmpdir)
         os.mkdir(self.tmpdir)
 
-        self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
-        self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
-
-        try:
-            self.initialize()
-            # compile and install the test, if needed.
-            utils.update_version(self.srcdir, self.preserve_srcdir,
-                                 self.version, self.setup)
-        finally:
-            self.job.stderr.restore()
-            self.job.stdout.restore()
-
 
     def assert_(self, expr, msg='Assertion failed.'):
         if not expr:
@@ -140,13 +128,24 @@ class base_test:
 
 
     def _exec(self, args, dargs):
+        self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
+        self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
+
         try:
-            self.job.stdout.tee_redirect(
-                os.path.join(self.debugdir, 'stdout'))
-            self.job.stderr.tee_redirect(
-                os.path.join(self.debugdir, 'stderr'))
+            _validate_args(args, dargs, self.initialize, self.setup,
+                           self.execute, self.cleanup)
 
             try:
+                # Initialize:
+                p_args, p_dargs = _cherry_pick_args(self.initialize,args,dargs)
+                self.initialize(*p_args, **p_dargs)
+
+                # Setup: (compile and install the test, if needed)
+                p_args, p_dargs = _cherry_pick_args(self.setup,args,dargs)
+                utils.update_version(self.srcdir, self.preserve_srcdir,
+                                     self.version, self.setup,
+                                     *p_args, **p_dargs)
+
                 os.chdir(self.outputdir)
                 dargs   = dargs.copy()
                 keyvals = dargs.pop('test_attributes', dict())
@@ -154,7 +153,17 @@ class base_test:
                 keyvals['version'] = self.version
                 self.write_test_keyval(keyvals)
 
-                self.execute(*args, **dargs)
+                # Execute:
+                if hasattr(self, 'run_once'):
+                    p_args, p_dargs = _cherry_pick_args(self.run_once,
+                                                        args, dargs)
+                    if 'iterations' in dargs:
+                        p_dargs['iterations'] = dargs['iterations']
+                else:
+                    p_args, p_dargs = _cherry_pick_args(self.execute,
+                                                        args, dargs)
+                self.execute(*p_args, **p_dargs)
+
             finally:
                 self.cleanup()
                 self.job.stderr.restore()
@@ -163,6 +172,49 @@ class base_test:
             raise
         except Exception, e:
             raise error.UnhandledError(e)
+
+
+def _cherry_pick_args(func, args, dargs):
+    # Cherry pick args:
+    if func.func_code.co_flags & 0x04:
+        # func accepts *args, so return the entire args.
+        p_args = args
+    else:
+        p_args = ()
+
+    # Cherry pick dargs:
+    if func.func_code.co_flags & 0x08:
+        # func accepts **dargs, so return the entire dargs.
+        p_dargs = dargs
+    else:
+        p_dargs = {}
+        for param in func.func_code.co_varnames[:func.func_code.co_argcount]:
+            if param in dargs:
+                p_dargs[param] = dargs[param]
+
+    return p_args, p_dargs
+
+
+def _validate_args(args, dargs, *funcs):
+    all_co_flags = 0
+    all_varnames = ()
+    for func in funcs:
+        all_co_flags |= func.func_code.co_flags
+        all_varnames += func.func_code.co_varnames[:func.func_code.co_argcount]
+
+    # Check if given args belongs to at least one of the methods below.
+    if len(args) > 0:
+        # Current implementation doesn't allow the use of args.
+        raise error.AutotestError('Unnamed arguments not accepted. Please, ' \
+                        'call job.run_test with named args only')
+
+    # Check if given dargs belongs to at least one of the methods below.
+    if len(dargs) > 0:
+        if not all_co_flags & 0x08:
+            # no func accepts *dargs, so:
+            for param in dargs:
+                if not param in all_varnames:
+                    raise error.AutotestError('Unknown parameter: %s' % param)
 
 
 def testname(url):

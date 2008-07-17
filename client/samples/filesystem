@@ -14,8 +14,8 @@ def test_fs():
 	fs.mkfs(fstype)
 	fs.mount()
 	try:
-		job.run_test('fsx', job.tmpdir, tag=fstype)
-		job.run_test('iozone', job.tmpdir, tag=fstype)
+		job.run_test('fsx', dir=job.tmpdir, tag=fstype)
+		job.run_test('iozone', dir=job.tmpdir, tag=fstype)
 		job.run_test('dbench', dir=job.tmpdir, tag=fstype)
 	finally:
 		fs.unmount()

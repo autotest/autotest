@@ -10,5 +10,4 @@ TEST_CATEGORY = "Kernel"
 TEST_TYPE = "client"
 
 import glob
-disks = glob.glob('/export/*')
-job.run_test('disktest', disks)
+job.run_test('disktest', disks=glob.glob('/export/*'))

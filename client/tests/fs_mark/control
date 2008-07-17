@@ -9,4 +9,4 @@ DOC='''
 Details of fs_mark can be found at: 
 http://devresources.linux-foundation.org/dev/doubt/fs_mark/index.html
 '''
-job.run_test('fs_mark', '/mnt')
+job.run_test('fs_mark', dir='/mnt')
