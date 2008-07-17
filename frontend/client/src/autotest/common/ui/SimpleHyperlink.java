@@ -17,6 +17,7 @@ public class SimpleHyperlink extends Hyperlink {
     
     public SimpleHyperlink(String text) {
         super(text, "");
+        getElement().getStyle().setProperty("display", "inline");
     }
 
     @Override

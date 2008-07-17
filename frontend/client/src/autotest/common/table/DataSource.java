@@ -25,6 +25,10 @@ public interface DataSource {
             this.direction = direction;
         }
         
+        public SortSpec(String field) {
+            this(field, SortDirection.ASCENDING);
+        }
+        
         public int getDirectionMultiplier() {
             return direction == SortDirection.ASCENDING ? 1 : -1;
         }
@@ -35,6 +39,23 @@ public interface DataSource {
 
         public SortDirection getDirection() {
             return direction;
+        }
+
+        @Override
+        public String toString() {
+            String prefix = "";
+            if (direction == SortDirection.DESCENDING) {
+                prefix = "-";
+            }
+            return prefix + field;
+        }
+        
+        public static SortSpec fromString(String sortString) {
+            if (sortString.charAt(0) == '-') {
+                return new SortSpec(sortString.substring(1), SortDirection.DESCENDING); 
+            } else {
+                return new SortSpec(sortString, SortDirection.ASCENDING);
+            }
         }
     }
     

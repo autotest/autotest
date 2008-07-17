@@ -21,11 +21,6 @@ debug_pattern_list = [
     (r'^$', 'django.views.generic.simple.redirect_to',
      {'url': 'client/autotest.AfeClient/AfeClient.html'}),
 
-    # redirect /tko to local apache server
-    (r'^(?P<path>tko/.*)$',
-     'frontend.afe.views.redirect_with_extra_data',
-     {'url': 'http://%(server_name)s/%(path)s?%(getdata)s'}),
-
     # Job feeds
     (r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
      {'feed_dict': feeds})
