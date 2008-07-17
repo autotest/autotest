@@ -19,7 +19,6 @@ import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
-import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -164,8 +163,8 @@ public class JobDetailView extends DetailView {
                 }
                 String html = "<a target=\"_blank\" href=\"";
                 JSONObject jobObject = jobValue.isObject();
-                html += getLogsURL(jobId + "-" + jobObject.get("owner").isString().stringValue(),
-                                   path);
+                html += Utils.getLogsURL(
+                    jobId + "-" + jobObject.get("owner").isString().stringValue() + path);
                 html += "\">View Debug Logs</a>";
                 return new HTML(html);
             }
@@ -241,12 +240,7 @@ public class JobDetailView extends DetailView {
      * @param jobLogsId id-owner, e.g. "172-showard"
      */
     protected String getLogsURL(String jobLogsId) {
-        return getLogsURL(jobLogsId, "");
-    }
-    
-    protected String getLogsURL(String jobLogsId, String path) {
-        String val = URL.encode("/results/" + jobLogsId + path);
-        return "/tko/retrieve_logs.cgi?job=" + val;
+        return Utils.getLogsURL(jobLogsId);
     }
     
     protected void pointToResults(String resultsUrl, String logsUrl) {

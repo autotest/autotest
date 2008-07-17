@@ -140,4 +140,12 @@ public class Utils {
         }
         return joinStrings("&", components);
     }
+
+    /**
+     * @param path should be of the form "123-showard/status.log" or just "123-showard"
+     */
+    public static String getLogsURL(String path) {
+        String val = URL.encode("/results/" + path);
+        return "/tko/retrieve_logs.cgi?job=" + val;
+    }
 }

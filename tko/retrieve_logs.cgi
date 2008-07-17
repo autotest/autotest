@@ -4,7 +4,7 @@ import cgi, os, sys
 
 page = """\
 Content-Type: text/plain
-Refresh: 0; url=%s\r\n\r
+Location: %s\r\n\r
 """
 
 # Get access to directories

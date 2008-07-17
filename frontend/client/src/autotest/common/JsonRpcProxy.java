@@ -112,7 +112,9 @@ public class JsonRpcProxy {
                 notify.showError("Received error " +
                                  Integer.toString(statusCode) + " " +
                                  response.getStatusText(),
+                                 response.getHeadersAsString() + "\n\n" +
                                  responseText);
+                return;
             }
 
             JSONValue responseValue = null;
