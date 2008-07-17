@@ -10,5 +10,5 @@ Run kernbench using the readprofile profiler.
 """
 
 job.profilers.add('readprofile')
-job.run_test('kernbench', 0, 5)
+job.run_test('kernbench', iterations=0, threads=5)
 job.profilers.delete('readprofile')

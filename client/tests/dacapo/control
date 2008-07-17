@@ -94,4 +94,4 @@ dacapo_tests = ['antlr', 'bloat', 'chart', 'eclipse', 'fop', 'hsqldb',
 # No go trough the tests and jvms
 for jvm in jvm_list:
 	for test in dacapo_tests:
-		job.run_test('dacapo', test, dacapo_config, jvm, tag = test + '-' + jvm)
+		job.run_test('dacapo', test=test, config=dacapo_config, jvm=jvm,			     tag = test + '-' + jvm)

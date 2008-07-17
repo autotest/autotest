@@ -16,4 +16,4 @@ print "TEST: listing bootloader entries"
 job.bootloader.list_titles()
 
 print "TEST: initing kernbench"
-job.run_test('kernbench', 2, 5)
+job.run_test('kernbench', iterations=2, threads=5)

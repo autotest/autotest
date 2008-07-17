@@ -1,6 +1,6 @@
 def tests(tag):
 	fs = job.filesystem('/dev/sda3', job.tmpdir)
-	job.run_test('parallel_dd', fs, 'ext2', 1, 1000, 2, tag=tag)
+	job.run_test('parallel_dd', fs=fs, fs_type='ext2', iterations=1, megabytes=1000, streams=2, tag=tag)
 
 def step_init():
 	testkernel = job.kernel('/usr/src/linux-2.6.18.tar.bz2')

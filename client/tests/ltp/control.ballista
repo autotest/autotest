@@ -8,4 +8,4 @@ DOC = """
 Linux Test Project. See http://ltp.sourceforge.net/
 """
 
-job.run_test('ltp', '-f ballista')
+job.run_test('ltp', args='-f ballista')

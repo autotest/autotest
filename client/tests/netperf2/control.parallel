@@ -10,9 +10,17 @@ See http://www.netperf.org/netperf/NetperfPage.html.
 """
 
 def client():
-    job.run_test('netperf2', '127.0.0.1', '127.0.0.1', 'client', tag='client')
+    job.run_test('netperf2',
+                 server_ip='127.0.0.1',
+                 client_ip='127.0.0.1',
+                 role='client',
+                 tag='client')
 
 def server():
-    job.run_test('netperf2', '127.0.0.1', '127.0.0.1', 'server', tag='server')
+    job.run_test('netperf2',
+                 server_ip='127.0.0.1',
+                 client_ip='127.0.0.1',
+                 role='server',
+                 tag='server')
 
 job.parallel([server], [client])

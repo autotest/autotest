@@ -13,6 +13,6 @@ def step_init():
 
 def step_test():
 	print "TEST: sleeptest"
-        job.run_test('sleeptest', 10)
+        job.run_test('sleeptest', seconds=10)
 	print "TEST: kernbench"
         job.run_test('kernbench')

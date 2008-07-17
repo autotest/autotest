@@ -10,4 +10,4 @@ DOC = """
 This suite provides a framework for testing the Xen userspace tools.
 """
 
-job.run_test('xmtest', '-e nobody@nowhere.org -d xmtest')
+job.run_test('xmtest', args='-e nobody@nowhere.org -d xmtest')
