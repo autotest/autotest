@@ -34,11 +34,12 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Set;
 
 
-public class JobDetailView extends DetailView {
+public class JobDetailView extends DetailView implements TableWidgetFactory {
     private static final String[][] JOB_HOSTS_COLUMNS = {
         {"hostname", "Host"}, {"status", "Status"}, 
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
-        {DataTable.CLICKABLE_WIDGET_COLUMN, ""}
+        // columns for status log and debug log links
+        {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, {DataTable.CLICKABLE_WIDGET_COLUMN, ""}  
     };
     public static final String NO_URL = "about:blank";
     public static final int NO_JOB_ID = -1;
@@ -150,25 +151,7 @@ public class JobDetailView extends DetailView {
 
             public void onTableRefreshed() {}
         });
-        hostsTable.setWidgetFactory(new TableWidgetFactory() {
-            public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
-                JSONValue jobValue = hostQueueEntry.get("job");
-                if (jobValue == null) {
-                    return new HTML("");
-                }
-                
-                String path = "/debug";
-                if (jobStatusDataSource.getNumResults() > 1) {
-                    path = "/" + hostQueueEntry.get("hostname").isString().stringValue() + "/debug";
-                }
-                String html = "<a target=\"_blank\" href=\"";
-                JSONObject jobObject = jobValue.isObject();
-                html += Utils.getLogsURL(
-                    jobId + "-" + jobObject.get("owner").isString().stringValue() + path);
-                html += "\">View Debug Logs</a>";
-                return new HTML(html);
-            }
-        });
+        hostsTable.setWidgetFactory(this);
         
         tableDecorator.addPaginators();
         addTableFilters();
@@ -318,5 +301,30 @@ public class JobDetailView extends DetailView {
     
     public void fetchJob(int jobId) {
         fetchById(Integer.toString(jobId));
+    }
+    
+    public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
+        JSONValue jobValue = hostQueueEntry.get("job");
+        if (jobValue == null) {
+            return new HTML("");
+        }
+        
+        JSONObject jobObject = jobValue.isObject();
+        String basePath = jobId + "-" + jobObject.get("owner").isString().stringValue() + 
+                          "/";
+        if (jobStatusDataSource.getNumResults() > 1) {
+            basePath += hostQueueEntry.get("hostname").isString().stringValue() + "/";
+        }
+        
+        if (cell == JOB_HOSTS_COLUMNS.length - 1) {
+            return new HTML(getLogsLinkHtml(basePath + "debug", "Debug logs"));
+        } else {
+            return new HTML(getLogsLinkHtml(basePath + "status.log", "Status log"));
+        }
+    }
+
+    private String getLogsLinkHtml(String url, String text) {
+        url = Utils.getLogsURL(url);
+        return "<a target=\"_blank\" href=\"" + url + "\">" + text + "</a>";
     }
 }

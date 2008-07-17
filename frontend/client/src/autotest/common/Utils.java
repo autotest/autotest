@@ -100,15 +100,15 @@ public class Utils {
         return list;
     }
     
-    public static String joinStrings(String joiner, List<String> strings) {
-        if (strings.size() == 0) {
+    public static <T> String joinStrings(String joiner, List<T> objects) {
+        if (objects.size() == 0) {
             return "";
         }
         
-        StringBuilder result = new StringBuilder(strings.get(0));
-        for (int i = 1; i < strings.size(); i++) {
+        StringBuilder result = new StringBuilder(objects.get(0).toString());
+        for (int i = 1; i < objects.size(); i++) {
             result.append(joiner);
-            result.append(strings.get(i));
+            result.append(objects.get(i).toString());
         }
         return result.toString();
     }

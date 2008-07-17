@@ -33,7 +33,7 @@ def _prepare_data(data):
     elif (isinstance(data, list) or isinstance(data, tuple) or
           isinstance(data, set)):
         return [_prepare_data(item) for item in data]
-    elif isinstance(data, datetime.datetime):
+    elif isinstance(data, datetime.date):
         return str(data)
     else:
         return data
