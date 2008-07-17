@@ -558,7 +558,7 @@ class AgentTasksTest(unittest.TestCase):
 
         expected_protection = host_protections.Protection.get_string(
             host_protections.default)
-        self.assertTrue(set(task.monitor.cmd) >
+        self.assertTrue(set(task.monitor.cmd) >=
                         set(['autoserv', '-R', '-m', self.HOSTNAME, '-r',
                              self.TEMP_DIR, '--host-protection',
                              expected_protection]))
@@ -609,7 +609,7 @@ class AgentTasksTest(unittest.TestCase):
         else:
             task = monitor_db.VerifyTask(host=self.host)
         self.run_task(task, success)
-        self.assertTrue(set(task.monitor.cmd) >
+        self.assertTrue(set(task.monitor.cmd) >=
                         set(['autoserv', '-v', '-m', self.HOSTNAME, '-r',
                         self.TEMP_DIR]))
         self.god.check_playback()
