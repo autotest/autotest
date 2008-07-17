@@ -71,9 +71,11 @@ class ApacheAuthMiddleware(GetApacheUserMiddleware):
     object.
     """
 
+
     def process_request(self, request):
         super(ApacheAuthMiddleware, self).process_request(request)
         username = thread_local.get_user()
+        thread_local.set_user(None)
         user_object = auth.authenticate(username=username,
                                         password='')
         auth.login(request, user_object)
