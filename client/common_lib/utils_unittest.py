@@ -186,6 +186,88 @@ class test_read_keyval(unittest.TestCase):
         self.assertEquals(keyval, {"a-b": "value"})
 
 
+class test_write_keyval(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(utils, "open")
+        self.god.stub_function(os.path, "isdir")
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def assertHasLines(self, value, lines):
+        vlines = value.splitlines()
+        vlines.sort()
+        self.assertEquals(vlines, sorted(lines))
+
+
+    def write_keyval(self, filename, dictionary, expected_filename=None,
+                     type_tag=None):
+        if expected_filename is None:
+            expected_filename = filename
+        test_file = StringIO.StringIO()
+        self.god.stub_function(test_file, "close")
+        utils.open.expect_call(expected_filename, "a").and_return(test_file)
+        test_file.close.expect_call()
+        if type_tag is None:
+            utils.write_keyval(filename, dictionary)
+        else:
+            utils.write_keyval(filename, dictionary, type_tag)
+        return test_file.getvalue()
+
+
+    def write_keyval_file(self, dictionary, type_tag=None):
+        os.path.isdir.expect_call("file").and_return(False)
+        return self.write_keyval("file", dictionary, type_tag=type_tag)
+
+
+    def test_accesses_files_directly(self):
+        os.path.isdir.expect_call("file").and_return(False)
+        result = self.write_keyval("file", {"a": "1"})
+        self.assertEquals(result, "a=1\n")
+
+
+    def test_accesses_directories_through_keyval_file(self):
+        os.path.isdir.expect_call("dir").and_return(True)
+        result = self.write_keyval("dir", {"b": "2"}, "dir/keyval")
+        self.assertEquals(result, "b=2\n")
+
+
+    def test_numbers_are_stringified(self):
+        result = self.write_keyval_file({"c": 3})
+        self.assertEquals(result, "c=3\n")
+
+
+    def test_type_tags_are_excluded_by_default(self):
+        result = self.write_keyval_file({"d": "a string"})
+        self.assertEquals(result, "d=a string\n")
+        self.assertRaises(ValueError, self.write_keyval_file,
+                          {"d{perf}": "a string"})
+
+
+    def test_perf_tags_are_allowed(self):
+        result = self.write_keyval_file({"a{perf}": 1, "b{perf}": 2},
+                                        type_tag="perf")
+        self.assertHasLines(result, ["a{perf}=1", "b{perf}=2"])
+        self.assertRaises(ValueError, self.write_keyval_file,
+                          {"a": 1, "b": 2}, type_tag="perf")
+
+
+    def test_non_alphanumeric_keynames_are_rejected(self):
+        self.assertRaises(ValueError, self.write_keyval_file, {"x$": 0})
+
+
+    def test_underscores_are_allowed_in_key_names(self):
+        result = self.write_keyval_file({"a_b": "value"})
+        self.assertEquals(result, "a_b=value\n")
+
+
+    def test_dashes_are_allowed_in_key_names(self):
+        result = self.write_keyval_file({"a-b": "value"})
+        self.assertEquals(result, "a-b=value\n")
+
 
 if __name__ == "__main__":
     unittest.main()
