@@ -1,6 +1,8 @@
 package autotest.afe;
 
+import autotest.common.StaticDataRepository;
 import autotest.common.table.RpcDataSource;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
@@ -16,9 +18,26 @@ import java.util.Map;
  * Custom RpcDataSource to process the list of host queue entries for a job and
  * consolidate metahosts of the same label.
  */
-class JobStatusDataSource extends RpcDataSource {
+class JobStatusDataSource extends RpcDataSource { 
+    private JSONObject dictionary;
+    
     public JobStatusDataSource() {
         super("get_host_queue_entries", "get_num_host_queue_entries");
+        
+        // retrieve the dictionary from static data
+        StaticDataRepository staticData = StaticDataRepository.getRepository();
+        dictionary = staticData.getData("status_dictionary").isObject();
+    }
+    
+    private String translateStatus(String status)  {
+        if (dictionary.containsKey(status)) {
+            return dictionary.get(status).isString().stringValue();
+        }
+        else {
+            NotifyManager.getInstance().showError("Unknown status", "Can not find status " + 
+                                                  status);
+            return status;
+        }
     }
     
     @Override
@@ -28,6 +47,12 @@ class JobStatusDataSource extends RpcDataSource {
         JSONArray queueEntries = result.isArray();
         for(int i = 0; i < queueEntries.size(); i++) {
             JSONObject queueEntry = queueEntries.get(i).isObject();
+            
+            // translate status
+            String status = queueEntry.get("status").isString().stringValue();
+            String translation = translateStatus(status);
+            queueEntry.put("status", new JSONString(translation));
+            
             JSONValue host = queueEntry.get("host");
             if (host.isNull() != null) {
                 // metahost
