@@ -7,16 +7,16 @@ from autotest_lib.client.common_lib import control_data
 ControlData = control_data.ControlData
 
 CONTROL = """
-AUTHOR = "Author"
+AUTHOR = 'Author'
 DEPENDENCIES = "console, power"
 DOC = \"\"\"\
 doc stuff\"\"\"
 # EXPERIMENTAL should implicitly be False
 NAME = 'nA' "mE"
-RUN_VERIFY = 'FALSE'
-SYNC_COUNT = '2'
+RUN_VERIFY = False
+SYNC_COUNT = 2
 TIME='short'
-TEST_CLASS='Kernel'
+TEST_CLASS=u'Kernel'
 TEST_CATEGORY='Stress'
 TEST_TYPE='client'
 """
