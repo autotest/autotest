@@ -135,6 +135,38 @@ class ControlData(object):
         self._set_option('test_type', val, ['client', 'server'])
 
 
+def _extract_const(n):
+    assert(n.__class__ == compiler.ast.Assign)
+    assert(n.expr.__class__ == compiler.ast.Const)
+    assert(n.expr.value.__class__ in (str, int, float, unicode))
+    assert(n.nodes.__class__ == list)
+    assert(len(n.nodes) == 1)
+    assert(n.nodes[0].__class__ == compiler.ast.AssName)
+    assert(n.nodes[0].flags.__class__ == str)
+    assert(n.nodes[0].name.__class__ == str)
+
+    key = n.nodes[0].name.lower()
+    val = str(n.expr.value).strip()
+
+    return (key, val)
+
+
+def _extract_name(n):
+    assert(n.__class__ == compiler.ast.Assign)
+    assert(n.expr.__class__ == compiler.ast.Name)
+    assert(n.nodes.__class__ == list)
+    assert(len(n.nodes) == 1)
+    assert(n.nodes[0].__class__ == compiler.ast.AssName)
+    assert(n.nodes[0].flags.__class__ == str)
+    assert(n.nodes[0].name.__class__ == str)
+    assert(n.expr.name in ('False', 'True', 'None'))
+
+    key = n.nodes[0].name.lower()
+    val = str(n.expr.name)
+
+    return (key, val)
+
+
 def parse_control(path, raise_warnings=False):
     mod = compiler.parseFile(path)
 
@@ -144,21 +176,13 @@ def parse_control(path, raise_warnings=False):
 
     vars = {}
     for n in mod.node.nodes:
-        try:
-            assert(n.__class__ == compiler.ast.Assign)
-            assert(n.expr.__class__ == compiler.ast.Const)
-            assert(n.expr.value.__class__ == str)
-            assert(n.nodes.__class__ == list)
-            assert(len(n.nodes) == 1)
-            assert(n.nodes[0].__class__ == compiler.ast.AssName)
-            assert(n.nodes[0].flags.__class__ == str)
-            assert(n.nodes[0].name.__class__ == str)
+        for fn in (_extract_const, _extract_name):
+            try:
+                print n
+                key, val = fn(n)
 
-            key = n.nodes[0].name.lower()
-            val = n.expr.value
-
-            vars[key] = val.strip()
-        except AssertionError:
-            pass
+                vars[key] = val
+            except AssertionError, e:
+                pass
 
     return ControlData(vars, raise_warnings)
