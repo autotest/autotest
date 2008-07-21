@@ -8,4 +8,5 @@
 	<entry-point class='autotest.afe.AfeClient'/>
 	
 	<stylesheet src='afeclient.css'/>
+	<stylesheet src='standard.css'/>
 </module>

@@ -3,7 +3,7 @@ package autotest.common.table;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 
-abstract class FieldFilter extends Filter {
+public abstract class FieldFilter extends Filter {
     protected String fieldName;
     protected boolean isExactMatch = true;
     

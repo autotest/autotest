@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * A widget to facilitate selection of a group of hosts for running a job.  The
  * widget displays two side-by-side tables; the left table is a normal 
- * {@link RpcHostTable} displaying available, unselected hosts, and the right table 
+ * {@link HostTable} displaying available, unselected hosts, and the right table 
  * displays selected hosts.  Click on a host in either table moves it to the 
  * other (i.e. selects or deselects a host).  The widget provides several 
  * convenience controls (such as one to remove all selected hosts) and a special
@@ -50,7 +50,7 @@ public class HostSelector {
     protected ArrayDataSource<JSONObject> selectedHostData =
         new ArrayDataSource<JSONObject>("hostname");
     
-    protected HostTable availableTable = new RpcHostTable();
+    protected HostTable availableTable = new HostTable(new HostDataSource());
     protected HostTableDecorator availableDecorator = 
         new HostTableDecorator(availableTable, TABLE_SIZE);
     protected HostTable selectedTable = new HostTable(selectedHostData);
@@ -67,6 +67,7 @@ public class HostSelector {
         
         availableTable.setClickable(true);
         availableDecorator.lockedFilter.setSelectedChoice("No");
+        availableDecorator.aclFilter.setActive(true);
         
         availableTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
