@@ -24,7 +24,7 @@ public class HostListView extends TabView {
         return "hosts";
     }
     
-    protected HostTable table = new RpcHostTable();
+    protected HostTable table = new HostTable(new HostDataSource());
     protected HostTableDecorator hostTableDecorator = 
         new HostTableDecorator(table, HOSTS_PER_PAGE);
     
