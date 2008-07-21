@@ -2,6 +2,7 @@ package autotest.common;
 
 import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
@@ -40,7 +41,7 @@ public class Utils {
     public static String[] JSONtoStrings(JSONArray strings) {
         String[] result = new String[strings.size()];
         for (int i = 0; i < strings.size(); i++) {
-            result[i] = strings.get(i).isString().stringValue();
+            result[i] = jsonToString(strings.get(i));
         }
         return result;
     }
@@ -54,7 +55,7 @@ public class Utils {
         String[] result = new String[objects.size()];
         for (int i = 0; i < objects.size(); i++) {
             JSONValue fieldValue = objects.get(i).isObject().get(field);
-            result[i] = fieldValue.isString().stringValue();
+            result[i] = jsonToString(fieldValue);
         }
         return result;
     }
@@ -147,5 +148,20 @@ public class Utils {
     public static String getLogsURL(String path) {
         String val = URL.encode("/results/" + path);
         return "/tko/retrieve_logs.cgi?job=" + val;
+    }
+
+    public static String jsonToString(JSONValue value) {
+        JSONString string;
+        JSONNumber number;
+        if ((string = value.isString()) != null) {
+            return string.stringValue();
+        }
+        if ((number = value.isNumber()) != null) {
+            return Integer.toString((int) number.doubleValue());
+        }
+        if (value.isNull() != null) {
+            return "<null>";
+        }
+        return value.toString();
     }
 }
