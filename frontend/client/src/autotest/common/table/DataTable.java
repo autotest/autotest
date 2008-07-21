@@ -1,11 +1,12 @@
 package autotest.common.table;
 
 
+import autotest.common.ui.RightClickTable;
+
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ public class DataTable extends Composite {
     // for indexing into column subarrays (i.e. columns[1][COL_NAME])
     public static final int COL_NAME = 0, COL_TITLE = 1;
     
-    protected FlexTable table;
+    protected RightClickTable table;
     
     protected String[][] columns;
     protected int headerRow = 0;
@@ -63,7 +64,7 @@ public class DataTable extends Composite {
             System.arraycopy(columns[i], 0, this.columns[i], 0, 2);
         }
         
-        table = new FlexTable();
+        table = new RightClickTable();
         initWidget(table);
         
         table.setCellSpacing(0);
@@ -227,5 +228,9 @@ public class DataTable extends Composite {
     public void unhighlightRow(int row) {
         row++; // account for header row
         table.getRowFormatter().removeStyleName(row, HIGHLIGHTED_STYLE);
+    }
+    
+    public void sinkRightClickEvents() {
+        table.sinkRightClickEvents();
     }
 }
