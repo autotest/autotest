@@ -377,7 +377,7 @@ class ModelExtensions(object):
 
 
     @classmethod
-    def query_objects(cls, filter_data, valid_only=True):
+    def query_objects(cls, filter_data, valid_only=True, initial_query=None):
         """\
         Returns a QuerySet object for querying the given model_class
         with the given filter_data.  Optional special arguments in
@@ -402,16 +402,16 @@ class ModelExtensions(object):
             # escape %'s
             extra_where = extra_where.replace('%', '%%')
             extra_args.setdefault('where', []).append(extra_where)
+        use_distinct = not filter_data.pop('no_distinct', False)
 
-        # filters
-        query_dict = {}
-        for field, value in filter_data.iteritems():
-            query_dict[field] = value
-        if valid_only:
-            manager = cls.get_valid_manager()
-        else:
-            manager = cls.objects
-        query = manager.filter(**query_dict).distinct()
+        if initial_query is None:
+            if valid_only:
+                initial_query = cls.get_valid_manager()
+            else:
+                initial_query = cls.objects
+        query = initial_query.filter(**filter_data)
+        if use_distinct:
+            query = query.distinct()
 
         # other arguments
         if extra_args:
@@ -450,11 +450,11 @@ class ModelExtensions(object):
 
 
     @classmethod
-    def list_objects(cls, filter_data):
+    def list_objects(cls, filter_data, initial_query=None):
         """\
         Like query_objects, but return a list of dictionaries.
         """
-        query = cls.query_objects(filter_data)
+        query = cls.query_objects(filter_data, initial_query=initial_query)
         field_dicts = list(query.values())
         cls.clean_object_dicts(field_dicts)
         return field_dicts
