@@ -11,9 +11,11 @@ def add_profilers(at, profilers, timeout_sync, timeout_start, timeout_stop,
         control_file.append("job.profilers.add(%s)"
                                 % str(profiler)[1:-1])
 
-    control_file.append("job.run_test('barriertest',%d,%d,%d,'%s','%s',%s)"
-                    % (timeout_sync, timeout_start, timeout_stop,
-                            at.host.hostname, "PROF_MASTER", str(machines)))
+    control_file.append(("job.run_test('barriertest', timeout_sync=%d, "
+                         "timeout_start=%d, timeout_stop=%d, "
+                         "hostid='%s', masterid='%s', all_ids=%s)")
+                        % (timeout_sync, timeout_start, timeout_stop,
+                           at.host.hostname, "PROF_MASTER", str(machines)))
 
     for profiler in profilers:
         control_file.append("job.profilers.delete('%s')" % profiler[0])
