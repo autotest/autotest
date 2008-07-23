@@ -60,7 +60,7 @@ public class JobTable extends DynamicTable {
     @Override
     protected void preprocessRow(JSONObject row) {
         JSONObject counts = row.get("status_counts").isObject();
-        String countString = AfeUtils.formatStatusCounts(counts, "<br>");
+        String countString = AfeUtils.formatStatusCounts(counts, "\n");
         row.put(HOSTS_SUMMARY, new JSONString(countString));
         
         // remove seconds from created time

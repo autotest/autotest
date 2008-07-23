@@ -1,6 +1,7 @@
 package autotest.common.table;
 
 
+import autotest.common.Utils;
 import autotest.common.ui.RightClickTable;
 
 import com.google.gwt.json.client.JSONArray;
@@ -152,7 +153,7 @@ public class DataTable extends Composite {
                 table.setWidget(row, i, widgetFactory.createWidget(row - 1, i, 
                                                                    jsonObjects.get(row - 1)));
             } else {
-                table.setHTML(row, i, rowData[i]);
+                table.setHTML(row, i, Utils.escape(rowData[i]));
             }
         }
         setRowStyle(row);
