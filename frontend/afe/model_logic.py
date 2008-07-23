@@ -427,13 +427,14 @@ class ModelExtensions(object):
 
 
     @classmethod
-    def query_count(cls, filter_data):
+    def query_count(cls, filter_data, initial_query=None):
         """\
         Like query_objects, but retreive only the count of results.
         """
         filter_data.pop('query_start', None)
         filter_data.pop('query_limit', None)
-        return cls.query_objects(filter_data).count()
+        query = cls.query_objects(filter_data, initial_query=initial_query)
+        return query.count()
 
 
     @classmethod
