@@ -36,7 +36,7 @@ class barrier_test(unittest.TestCase):
         hostname = b.get_host_from_id('my_host#')
         self.assertEqual(hostname, 'my_host')
 
-        self.assertRaises(barrier.BarrierError, b.get_host_from_id, '#my_host')
+        self.assertRaises(error.BarrierError, b.get_host_from_id, '#my_host')
 
 
     def test_update_timeout(self):
@@ -59,7 +59,7 @@ class barrier_test(unittest.TestCase):
     def test_rendevous_timeout(self):
         # The rendevous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
-        self.assertRaises(barrier.BarrierError,
+        self.assertRaises(error.BarrierError,
                           self.rendevous_test, 0, port=63101)
 
 
@@ -73,7 +73,7 @@ class barrier_test(unittest.TestCase):
     def test_rendevous_servers_timeout(self):
         # The rendevous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
-        self.assertRaises(barrier.BarrierError,
+        self.assertRaises(error.BarrierError,
                           self.rendevous_test, 0, port=63002,
                           rendevous_servers=True)
 
@@ -91,7 +91,7 @@ class barrier_test(unittest.TestCase):
             # We need to ignore the exception on one side.
             try:
                 _rdv(addr)
-            except barrier.BarrierError:
+            except error.BarrierError:
                 if timeout == 0:
                     pass
 
