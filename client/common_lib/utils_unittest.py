@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, StringIO
+import os, unittest, StringIO, socket, urllib
 
 import common
 from autotest_lib.client.common_lib import utils
@@ -267,6 +267,154 @@ class test_write_keyval(unittest.TestCase):
     def test_dashes_are_allowed_in_key_names(self):
         result = self.write_keyval_file({"a-b": "value"})
         self.assertEquals(result, "a-b=value\n")
+
+
+class test_is_url(unittest.TestCase):
+    def test_accepts_http(self):
+        self.assertTrue(utils.is_url("http://example.com"))
+
+
+    def test_accepts_ftp(self):
+        self.assertTrue(utils.is_url("ftp://ftp.example.com"))
+
+
+    def test_rejects_local_path(self):
+        self.assertFalse(utils.is_url("/home/username/file"))
+
+
+    def test_rejects_local_filename(self):
+        self.assertFalse(utils.is_url("filename"))
+
+
+    def test_rejects_relative_local_path(self):
+        self.assertFalse(utils.is_url("somedir/somesubdir/file"))
+
+
+    def test_rejects_local_path_containing_url(self):
+        self.assertFalse(utils.is_url("somedir/http://path/file"))
+
+
+class test_urlopen(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def stub_urlopen_with_timeout_comparison(self, test_func, expected_return,
+                                             *expected_args):
+        expected_args += (None,) * (3 - len(expected_args))
+        def urlopen(url, data=None, proxies=None):
+            self.assertEquals(expected_args, (url, data, proxies))
+            test_func(socket.getdefaulttimeout())
+            return expected_return
+        self.god.stub_with(urllib, "urlopen", urlopen)
+
+
+    def stub_urlopen_with_timeout_check(self, expected_timeout,
+                                        expected_return, *expected_args):
+        def test_func(timeout):
+            self.assertEquals(timeout, expected_timeout)
+        self.stub_urlopen_with_timeout_comparison(test_func, expected_return,
+                                                  *expected_args)
+
+
+    def test_timeout_set_during_call(self):
+        self.stub_urlopen_with_timeout_check(30, "retval", "url")
+        retval = utils.urlopen("url", timeout=30)
+        self.assertEquals(retval, "retval")
+
+
+    def test_timeout_reset_after_call(self):
+        old_timeout = socket.getdefaulttimeout()
+        self.stub_urlopen_with_timeout_check(30, None, "url")
+        try:
+            socket.setdefaulttimeout(1234)
+            utils.urlopen("url", timeout=30)
+            self.assertEquals(1234, socket.getdefaulttimeout())
+        finally:
+            socket.setdefaulttimeout(old_timeout)
+
+
+    def test_timeout_set_by_default(self):
+        def test_func(timeout):
+            self.assertTrue(timeout is not None)
+        self.stub_urlopen_with_timeout_comparison(test_func, None, "url")
+        utils.urlopen("url")
+
+
+    def test_args_are_untouched(self):
+        self.stub_urlopen_with_timeout_check(30, None, "http://url",
+                                             "POST data",
+                                             ["proxy1", "proxy2"])
+        utils.urlopen("http://url", timeout=30, proxies=["proxy1", "proxy2"],
+                      data="POST data")
+
+
+class test_urlretrieve(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def stub_urlretrieve_with_timeout_comparison(self, test_func,
+                                                 expected_return,
+                                                 *expected_args):
+        expected_args += (None,) * (4 - len(expected_args))
+        def urlretrieve(url, filename=None, reporthook=None, data=None):
+            passed_args = (url, filename, reporthook, data)
+            self.assertEquals(expected_args, passed_args)
+            test_func(socket.getdefaulttimeout())
+            return expected_return
+        self.god.stub_with(urllib, "urlretrieve", urlretrieve)
+
+
+    def stub_urlretrieve_with_timeout_check(self, expected_timeout,
+                                            expected_return, *expected_args):
+        def test_func(timeout):
+            self.assertEquals(timeout, expected_timeout)
+        self.stub_urlretrieve_with_timeout_comparison(test_func,
+                                                      expected_return,
+                                                      *expected_args)
+
+
+    def test_timeout_set_during_call(self):
+        self.stub_urlretrieve_with_timeout_check(30, "retval", "url")
+        retval = utils.urlretrieve("url", timeout=30)
+        self.assertEquals(retval, "retval")
+
+
+    def test_timeout_reset_after_call(self):
+        old_timeout = socket.getdefaulttimeout()
+        self.stub_urlretrieve_with_timeout_check(30, None, "url")
+        try:
+            socket.setdefaulttimeout(2345)
+            utils.urlretrieve("url", timeout=30)
+            self.assertEquals(2345, socket.getdefaulttimeout())
+        finally:
+            socket.setdefaulttimeout(old_timeout)
+
+
+    def test_timeout_set_by_default(self):
+        def test_func(timeout):
+            self.assertTrue(timeout is not None)
+        self.stub_urlretrieve_with_timeout_comparison(test_func, None, "url")
+        utils.urlretrieve("url")
+
+
+    def test_args_are_untouched(self):
+        reporthook = lambda *args: None
+        self.stub_urlretrieve_with_timeout_check(30, None, "http://url",
+                                                 "destination_file",
+                                                 reporthook,
+                                                 "More POST data")
+        utils.urlretrieve("http://url", timeout=30, reporthook=reporthook,
+                          data="More POST data", filename="destination_file")
 
 
 if __name__ == "__main__":
