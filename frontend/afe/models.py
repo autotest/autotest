@@ -412,10 +412,11 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         """
         def save(self, new_data):
             user = thread_local.get_user()
-            if (not user.is_superuser()
-                and self.original_object.name == 'Everyone'):
-                raise AclAccessViolation("You cannot modify 'Everyone'!")
-            self.original_object.check_for_acl_violation_acl_group()
+            if hasattr(self, 'original_object'):
+                if (not user.is_superuser()
+                    and self.original_object.name == 'Everyone'):
+                    raise AclAccessViolation("You cannot modify 'Everyone'!")
+                self.original_object.check_for_acl_violation_acl_group()
             obj = super(AclGroup.Manipulator, self).save(new_data)
             obj.on_host_membership_change()
             return obj
