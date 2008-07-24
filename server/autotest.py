@@ -21,6 +21,7 @@ from autotest_lib.client.common_lib import logging
 from autotest_lib.client.common_lib import error
 
 
+
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
 
@@ -437,15 +438,15 @@ class _Run(object):
 
 
 def _get_autodir(host):
-    dir = host.get_autodir()
-    if dir:
-        return dir
+    autodir = host.get_autodir()
+    if autodir:
+        return autodir
     try:
         # There's no clean way to do this. readlink may not exist
         cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf 2> /dev/null"
-        dir = os.path.dirname(host.run(cmd).stdout)
-        if dir:
-            return dir
+        autodir = os.path.dirname(host.run(cmd).stdout)
+        if autodir:
+            return autodir
     except error.AutoservRunError:
         pass
     for path in ['/usr/local/autotest', '/home/autotest']:
