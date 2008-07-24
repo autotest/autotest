@@ -1,0 +1,23 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+  <head>
+    <title>{{ type }}</title>
+  </head>
+  <body>
+    <h2>{{ type }}</h2>
+
+    <p>{{ value }}</p>
+
+    <p><a href="#" onclick=
+        "document.getElementById('traceback').style.display='';return false;">
+      Show Traceback
+    </a></p>
+
+    <pre style="display:none" id="traceback">
+{{ traceback }}
+    </pre>
+
+  </body>
+</html>
