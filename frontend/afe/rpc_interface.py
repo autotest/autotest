@@ -416,7 +416,7 @@ def get_info_for_clone(id):
     job = models.Job.objects.get(id=id)
     query = job.hostqueueentry_set.filter(deleted=False)
     hosts = [queue_entry.host for queue_entry
-             in query if queue_entry.host]
+             in query if queue_entry.host and not queue_entry.meta_host]
     meta_hosts = [queue_entry.meta_host.name for queue_entry
                   in query if queue_entry.meta_host]
     host_info = get_hosts(hostname__in=[host.hostname for host in hosts])
