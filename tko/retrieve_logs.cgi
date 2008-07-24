@@ -3,6 +3,7 @@
 import cgi, os, sys
 
 page = """\
+Status: 302 Found
 Content-Type: text/plain
 Location: %s\r\n\r
 """
