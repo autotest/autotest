@@ -221,10 +221,8 @@ def join_bg_job(bg_job, command, timeout=None, ignore_status=False,
         result.exit_status = ret
         result.duration = time.time() - start_time
         # don't use os.read now, so we get all the rest of the output
-        _process_output(sp.stdout, stdout_file, stdout_tee,
-                        use_os_read=False)
-        _process_output(sp.stderr, stderr_file, stderr_tee,
-                        use_os_read=False)
+        _process_output(sp.stdout, stdout_file, stdout_tee, final_read=True)
+        _process_output(sp.stderr, stderr_file, stderr_tee, final_read=True)
     finally:
         # close our ends of the pipes to the sp no matter what
         sp.stdout.close()
@@ -260,11 +258,9 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
         # os.read() has to be used instead of
         # subproc.stdout.read() which will otherwise block
         if subproc.stdout in ready:
-            _process_output(subproc.stdout, stdout_file,
-                            stdout_tee)
+            _process_output(subproc.stdout, stdout_file, stdout_tee)
         if subproc.stderr in ready:
-            _process_output(subproc.stderr, stderr_file,
-                            stderr_tee)
+            _process_output(subproc.stderr, stderr_file, stderr_tee)
 
         exit_status_indication = subproc.poll()
 
@@ -328,11 +324,18 @@ def nuke_pid(pid):
             pass
 
 
-def _process_output(pipe, fbuffer, teefile=None, use_os_read=True):
-    if use_os_read:
-        data = os.read(pipe.fileno(), 1024)
+def _process_output(pipe, fbuffer, teefile=None, final_read=False):
+    if final_read:
+        # read in all the data we can from pipe and then stop
+        data = []
+        while select.select([pipe], [], [], 0)[0]:
+            data.append(os.read(pipe.fileno(), 1024))
+            if len(data[-1]) == 0:
+                break
+        data = "".join(data)
     else:
-        data = pipe.read()
+        # perform a single read
+        data = os.read(pipe.fileno(), 1024)
     fbuffer.write(data)
     if teefile:
         teefile.write(data)
