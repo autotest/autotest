@@ -164,4 +164,10 @@ public class Utils {
         }
         return value.toString();
     }
+
+    public static void setDefaultValue(Map<String, String> map, String key, String value) {
+        if (map.get(key) == null) {
+            map.put(key, value);
+        }
+    }
 }

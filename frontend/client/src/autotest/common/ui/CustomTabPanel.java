@@ -130,14 +130,17 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         for (TabView tabView : tabViews) {
             if (tabId.equals(tabView.getElementId())) {
                 tabView.ensureInitialized();
-                tabView.handleHistoryArguments(arguments);
+                if (arguments.size() > 1) {
+                    // only pass along arguments if there's more than just tab_id
+                    tabView.handleHistoryArguments(arguments);
+                }
                 
                 if (getSelectedTabView() != tabView) {
                     doUpdateHistory = false;
                     selectTabView(tabView);
                     doUpdateHistory = true;
                 } else {
-                    tabView.refresh();
+                    tabView.display();
                 }
                 
                 return;
