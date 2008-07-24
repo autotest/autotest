@@ -1,9 +1,9 @@
 package autotest.common.ui;
 
 import autotest.common.JsonRpcProxy;
+import autotest.common.Utils;
 
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
@@ -59,10 +59,7 @@ public abstract class DetailView extends TabView {
     }
 
     protected void showField(JSONObject object, String field, String elementId) {
-        JSONString jsonString = object.get(field).isString();
-        String value = "";
-        if (jsonString != null)
-            value = jsonString.stringValue();
+        String value = Utils.jsonToString(object.get(field));
         showText(value, elementId);
     }
 

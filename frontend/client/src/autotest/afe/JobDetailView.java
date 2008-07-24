@@ -90,6 +90,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
                 showText(owner, "view_owner");
                 showField(jobObject, "priority", "view_priority");
                 showField(jobObject, "created_on", "view_created");
+                showField(jobObject, "timeout", "view_timeout");
                 showField(jobObject, "control_type", "view_control_type");
                 showField(jobObject, "control_file", "view_control_file");
                 
