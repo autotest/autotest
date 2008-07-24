@@ -596,9 +596,3 @@ def drop_caches():
     utils.system("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
     utils.system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
-
-
-try:
-    from site_utils import *
-except ImportError:
-    pass
