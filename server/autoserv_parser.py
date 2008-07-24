@@ -28,6 +28,9 @@ class base_autoserv_parser(object):
         self.parser.add_option("-c", action="store_true",
                                dest="client", default=False,
                                help="control file is client side")
+        self.parser.add_option("-s", action="store_true",
+                               dest="server", default=False,
+                               help="control file is server side")
         self.parser.add_option("-r", action="store", type="string",
                                dest="results", default='.',
                                help="specify results directory")
