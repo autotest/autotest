@@ -98,7 +98,7 @@ public class HostSelector {
 
         selectedTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
-                if (isMetaEntry(row)) {
+                if (isMetaEntry(row) || isOneTimeHost(row)) {
                     deselectRow(row);
                     selectionRefresh();
                 }
