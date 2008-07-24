@@ -35,6 +35,13 @@ hooks = [(re.compile(regex.rstrip('\n')), make_alert(alert.rstrip('\n')))
 
 while True:
     line = sys.stdin.readline()
+    if len(line) == 0:
+        # this should only happen if the remote console unexpectedly goes away
+        # terminate this process so that we don't spin forever doing 0-length
+        # reads off of stdin
+        logfile.write("\nConsole connection unexpectedly lost. Terminating"
+                      " monitor.\n")
+        break
     logfile.write(line)
     for regex, callback in hooks:
         match = re.match(regex, line.strip())
