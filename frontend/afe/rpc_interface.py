@@ -514,5 +514,6 @@ def get_static_data():
                                    "Completed": "Autoserv completed",
                                    "Failed": "Failed to complete",
                                    "Aborting": "Abort in progress",
-                                   "Queued": "Queued"}
+                                   "Queued": "Queued",
+                                   "Starting": "Next in host's queue"}
     return result
