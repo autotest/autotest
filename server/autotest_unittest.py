@@ -2,11 +2,11 @@
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import os, unittest, tempfile
+import unittest, os, tempfile
 import common
-from autotest_lib.server import autotest
+from autotest_lib.server import autotest, utils
 from autotest_lib.server.hosts import ssh_host
-from autotest_lib.client.common_lib import utils as client_utils
+from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib.test_utils import mock
 import pdb
 
@@ -20,11 +20,11 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.hostname = "hostname"
 
         # stubs
-        self.god.stub_function(autotest.utils, "get_server_dir")
-        self.god.stub_function(autotest.utils, "run")
-        self.god.stub_function(autotest.utils, "get")
-        self.god.stub_function(autotest.utils, "read_keyval")
-        self.god.stub_function(autotest.utils, "write_keyval")
+        self.god.stub_function(utils, "get_server_dir")
+        self.god.stub_function(utils, "run")
+        self.god.stub_function(utils, "get")
+        self.god.stub_function(utils, "read_keyval")
+        self.god.stub_function(utils, "write_keyval")
         self.god.stub_function(tempfile, "mkstemp")
         self.god.stub_function(tempfile, "mktemp")
         self.god.stub_function(os, "getcwd")
@@ -34,6 +34,10 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "remove")
         self.god.stub_function(os.path, "abspath")
         self.god.stub_function(os.path, "exists")
+        self.god.stub_function(utils, "sh_escape")
+        self.god.stub_function(autotest, "open")
+        self.god.stub_function(autotest.global_config.global_config,
+                               "get_config_value")
         self.god.stub_class(autotest, "_Run")
 
 
@@ -46,7 +50,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.serverdir = "serverdir"
 
         # record
-        autotest.utils.get_server_dir.expect_call().and_return(self.serverdir)
+        utils.get_server_dir.expect_call().and_return(self.serverdir)
 
         # create the autotest object
         self.base_autotest = autotest.BaseAutotest(self.host)
@@ -66,27 +70,36 @@ class TestBaseAutotest(unittest.TestCase):
         self.construct()
 
         # setup
-        self.source_material = None
+        self.god.stub_class(packages, "PackageManager")
+        self.base_autotest.got = False
+        location = os.path.join(self.serverdir, '../client')
+        location = os.path.abspath.expect_call(location).and_return(location)
 
         # record
-        location = os.path.join(self.serverdir, '../client')
-        os.path.abspath.expect_call(location).and_return(location)
-        os.getcwd.expect_call().and_return("current/working/dir")
-        os.chdir.expect_call(location)
+        os.getcwd.expect_call().and_return('cwd')
+        os.chdir.expect_call(os.path.join(self.serverdir, '../client'))
         os.system.expect_call('tools/make_clean')
-        os.chdir.expect_call("current/working/dir")
-        autotest.utils.get.expect_call(location)
+        os.chdir.expect_call('cwd')
+        utils.get.expect_call(os.path.join(self.serverdir,
+            '../client')).and_return('source_material')
+
         self.host.wait_up.expect_call(timeout=30)
         self.host.setup.expect_call()
         self.host.get_autodir.expect_call().and_return("autodir")
+        utils.sh_escape.expect_call("autodir").and_return("autodir")
         self.host.run.expect_call('mkdir -p "autodir"')
-        if getattr(self.host, 'site_install_autotest', None):
-            self.host.site_install_autotest.expect_call().and_return(True)
-        else:
-            cmd_result = client_utils.CmdResult()
-            autotest.utils.run.expect_call('which svn').and_return(cmd_result)
-            self.host.run('svn checkout %s autodir' % (autotest.AUTOTEST_SVN))
+        c = autotest.global_config.global_config
+        c.get_config_value.expect_call("PACKAGES",
+            'fetch_location', type=list).and_return('repos')
+        pkgmgr = packages.PackageManager.expect_new('autodir',
+            repo_urls='repos', run_function=self.host.run,
+            run_function_dargs=dict(timeout=600))
+        pkg_dir = os.path.join('autodir', 'packages')
+        self.host.run.expect_call('ls | grep -v packages | xargs rm -rf')
+        pkgmgr.install_pkg.expect_call('autotest', 'client', pkg_dir,
+                                       'autodir', preserve_install_dir=True)
 
+        # run and check
         self.base_autotest.install()
         self.god.check_playback()
 
@@ -125,26 +138,46 @@ class TestBaseAutotest(unittest.TestCase):
                         run_obj.manual_control_file + '.state']:
             self.host.run.expect_call('rm -f ' + control)
 
-        autotest.utils.get.expect_call(control).and_return("temp")
-        self.host.send_file.expect_call("temp", run_obj.remote_control_file)
-        os.path.abspath.expect_call("temp").and_return("temp")
-        os.path.abspath.expect_call(control).and_return(control)
-        os.remove.expect_call("temp")
+        utils.get.expect_call(control).and_return("temp")
 
-        run_obj.execute_control.expect_call(timeout=None)
+        cfile = self.god.create_mock_class(file, "file")
+        autotest.open.expect_call("temp", 'r').and_return(cfile)
+        cfile_orig = "original control file"
+        cfile.read.expect_call().and_return(cfile_orig)
+        cfile.close.expect_call()
+        c = autotest.global_config.global_config
+        c.get_config_value.expect_call("PACKAGES",
+            'fetch_location', type=list).and_return('repos')
+        control_file_new = []
+        control_file_new.append('job.add_repository(repos)\n')
+        control_file_new.append(cfile_orig)
+        autotest.open.expect_call("temp", 'w').and_return(cfile)
+        cfile.write.expect_call('\n'.join(control_file_new))
+        cfile.close.expect_call()
+
+        self.host.send_file.expect_call("temp", run_obj.remote_control_file)
+        os.path.abspath.expect_call('temp').and_return('control_file')
+        os.path.abspath.expect_call('autodir/control.None.state').and_return(
+            'autodir/control.None.state')
+        os.remove.expect_call("temp")
+        run_obj.execute_control.expect_call(timeout=30)
         self.host.wait_up.expect_call(timeout=30)
-        results = os.path.join("autodir", 'results', 'default')
-        self.base_autotest.prepare_for_copying_logs.expect_call(results, '.',
-            self.host).and_return("keyval_path")
-        self.host.get_file.expect_call(results + '/', '.')
-        self.base_autotest.process_copied_logs.expect_call('.', self.host,
-                                                           "keyval_path")
+
+        run_obj.autodir = 'autodir'
+        results = os.path.join(run_obj.autodir,
+                               'results', 'default')
+        self.base_autotest.prepare_for_copying_logs.expect_call(
+            'autodir/results/default', '.', self.host).and_return('keyval_path')
+        self.host.get_file.expect_call('autodir/results/default/', '.')
+        self.base_autotest.process_copied_logs.expect_call('.',self.host,
+            'keyval_path')
         self.base_autotest.postprocess_copied_logs.expect_call(results,
-                                                               self.host)
+            self.host)
 
         # run and check output
-        self.base_autotest.run(control)
+        self.base_autotest.run(control, timeout=30)
         self.god.check_playback()
+
 
     def test_prepare_for_copying_logs(self):
         self.construct()
@@ -177,14 +210,14 @@ class TestBaseAutotest(unittest.TestCase):
                                                 'keyval')).and_return(True)
         old_keyval = {"version": 1, "author": "me"}
         new_keyval = {"version": 1, "data": "foo"}
-        autotest.utils.read_keyval.expect_call(
+        utils.read_keyval.expect_call(
             keyval_path).and_return(new_keyval)
-        autotest.utils.read_keyval.expect_call(dest).and_return(old_keyval)
+        utils.read_keyval.expect_call(dest).and_return(old_keyval)
         tmp_keyval = {}
         for key, val in new_keyval.iteritems():
             if key not in old_keyval:
                 tmp_keyval[key] = val
-        autotest.utils.write_keyval.expect_call(dest, tmp_keyval)
+        utils.write_keyval.expect_call(dest, tmp_keyval)
         os.remove.expect_call(keyval_path)
 
         # run check
