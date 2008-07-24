@@ -178,7 +178,6 @@ def parse_control(path, raise_warnings=False):
     for n in mod.node.nodes:
         for fn in (_extract_const, _extract_name):
             try:
-                print n
                 key, val = fn(n)
 
                 vars[key] = val
