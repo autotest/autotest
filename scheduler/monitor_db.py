@@ -1046,6 +1046,8 @@ class RepairTask(AgentTask):
         fails.
         """
         protection = host_protections.Protection.get_string(host.protection)
+        # normalize the protection name
+        protection = host_protections.Protection.get_attr_name(protection)
         self.create_temp_resultsdir('.repair')
         cmd = [_autoserv_path , '-R', '-m', host.hostname,
                '-r', self.temp_results_dir, '--host-protection', protection]
