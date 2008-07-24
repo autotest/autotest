@@ -93,6 +93,10 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+
+    # Note: we are violating the above recommendation about not using relative
+    # paths, but this appears to work fine.
+    "templates"
 )
 
 INSTALLED_APPS = (

@@ -1,8 +1,10 @@
-import urllib2
+import urllib2, sys, traceback, cgi
 
 from frontend.afe import models, rpc_handler, rpc_interface, site_rpc_interface
 from frontend.afe import rpc_utils
 from django.http import HttpResponse, HttpResponsePermanentRedirect
+from django.http import HttpResponseServerError
+from django.template import Context, loader
 
 # since site_rpc_interface is later in the list, its methods will override those
 # of rpc_interface
@@ -41,3 +43,14 @@ def gwt_forward(request, forward_addr):
         if header not in ('connection',):
             http_response[header] = value
     return http_response
+
+
+def handler500(request):
+    t = loader.get_template('500.html')
+    trace = traceback.format_exc()
+    context = Context({
+        'type': sys.exc_type,
+        'value': sys.exc_value,
+        'traceback': cgi.escape(trace)
+    })
+    return HttpResponseServerError(t.render(context))
