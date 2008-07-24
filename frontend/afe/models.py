@@ -481,7 +481,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     ControlType = enum.Enum('Server', 'Client', start_value=1)
     Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
                        'Completed', 'Abort', 'Aborting', 'Aborted',
-                       'Failed', string_values=True)
+                       'Failed', 'Starting', string_values=True)
 
     owner = dbmodels.CharField(maxlength=255)
     name = dbmodels.CharField(maxlength=255)
