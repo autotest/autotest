@@ -580,6 +580,7 @@ public class CreateJobView extends TabView {
         controlFile.setText("");
         controlFile.setReadOnly(true);
         controlEdited = false;
+        controlFilePanel.setOpen(false);
         editControlButton.setText(EDIT_CONTROL_STRING);
         hostSelector.reset();
     }
@@ -659,6 +660,6 @@ public class CreateJobView extends TabView {
     @Override
     public void refresh() {
         super.refresh();
-        hostSelector.refresh();
+        reset();
     }
 }
