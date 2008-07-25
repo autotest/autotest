@@ -157,7 +157,7 @@ True
 >>> data == [{'id': 2L,
 ...           'name': 'my_group',
 ...           'description': 'my new acl group',
-...           'users': [],
+...           'users': ['debug_user'],
 ...           'hosts': []}]
 True
 >>> rpc_interface.delete_acl_group('my_group')
@@ -279,7 +279,7 @@ True
 >>> rpc_interface.acl_group_add_hosts('my_group', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='my_group')
 >>> data[0]['users']
-['showard']
+['debug_user', 'showard']
 >>> data[0]['hosts']
 ['host1']
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
@@ -295,7 +295,7 @@ True
 >>> rpc_interface.acl_group_remove_hosts('my_group', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='my_group')
 >>> data[0]['users'], data[0]['hosts']
-([], [])
+(['debug_user'], [])
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone']

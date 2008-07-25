@@ -343,7 +343,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     """
     name = dbmodels.CharField(maxlength=255, unique=True)
     description = dbmodels.CharField(maxlength=255, blank=True)
-    users = dbmodels.ManyToManyField(User,
+    users = dbmodels.ManyToManyField(User, blank=True,
                                      filter_interface=dbmodels.HORIZONTAL)
     hosts = dbmodels.ManyToManyField(Host,
                                      filter_interface=dbmodels.HORIZONTAL)
@@ -402,6 +402,11 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         self.on_host_membership_change()
 
 
+    def add_current_user_if_empty(self):
+        if not self.users.count():
+            self.users.add(thread_local.get_user())
+
+
     # if you have a model attribute called "Manipulator", Django will
     # automatically insert it into the beginning of the superclass list
     # for the model's manipulators
@@ -418,6 +423,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                     raise AclAccessViolation("You cannot modify 'Everyone'!")
                 self.original_object.check_for_acl_violation_acl_group()
             obj = super(AclGroup.Manipulator, self).save(new_data)
+            if not hasattr(self, 'original_object'):
+                obj.users.add(thread_local.get_user())
+            obj.add_current_user_if_empty()
             obj.on_host_membership_change()
             return obj
 
