@@ -1,5 +1,6 @@
 # Django settings for frontend project.
 
+import os
 import common
 from autotest_lib.client.common_lib import global_config
 
@@ -94,9 +95,7 @@ TEMPLATE_DIRS = (
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 
-    # Note: we are violating the above recommendation about not using relative
-    # paths, but this appears to work fine.
-    "templates"
+    os.path.abspath(os.path.dirname(__file__) + '/templates')
 )
 
 INSTALLED_APPS = (
