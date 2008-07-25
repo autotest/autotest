@@ -455,19 +455,6 @@ True
 >>> data[0]['status_counts']
 {'Aborted': 4L}
 
-# requeue the job (queue a new copy)
->>> rpc_interface.requeue_job(1)
-2L
-
-# only the id differs (and possibly created_on)
->>> data = rpc_interface.get_jobs()
->>> for key in data[1].keys():
-...     if key == 'created_on': # created_on may or may not differ in testing
-...         continue
-...     if data[1][key] != data[0][key]:
-...         print key, 'does not match'
-id does not match
-
 # Remove the two hosts in my_label
 >>> rpc_interface.delete_host('my_label_host1')
 >>> rpc_interface.delete_host('my_label_host2')
@@ -501,7 +488,7 @@ id does not match
 ...                          control_type='Server',
 ...                          is_synchronous=False,
 ...                          hosts=['host1'])
-3L
+2L
 
 >>> data = rpc_interface.get_jobs()
 >>> data[0]['synch_type']

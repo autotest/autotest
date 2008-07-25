@@ -338,15 +338,6 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     return job.id
 
 
-def requeue_job(id):
-    """\
-    Create and enqueue a copy of the given job.
-    """
-    job = models.Job.objects.get(id=id)
-    new_job = job.requeue(thread_local.get_user().login)
-    return new_job.id
-
-
 def abort_job(id):
     """\
     Abort the job with the given id number.
