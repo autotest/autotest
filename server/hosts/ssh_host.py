@@ -339,6 +339,10 @@ class SSHHost(remote.RemoteHost):
 
         ssh_cmd = self.ssh_command(connect_timeout, options)
         echo_cmd = 'echo Connected. >&2'
+        if not env.strip():
+            env = ""
+        else:
+            env = "export %s;" % env
         full_cmd = '%s "%s;%s %s"' % (ssh_cmd, echo_cmd, env,
                                       utils.sh_escape(command))
         result = utils.run(full_cmd, timeout, True, stdout, stderr)
