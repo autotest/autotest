@@ -13,10 +13,9 @@ import java.util.Map;
  *
  */
 public class CustomHistory implements HistoryListener {
-    protected static final CustomHistory theInstance = new CustomHistory();
+    private static final CustomHistory theInstance = new CustomHistory();
     
     private List<CustomHistoryListener> listeners = new ArrayList<CustomHistoryListener>();
-    private boolean ignoreNextChange = false;
     private String lastHistoryToken = "";
     
     public static interface CustomHistoryListener {
@@ -36,18 +35,15 @@ public class CustomHistory implements HistoryListener {
     }
     
     public static void processInitialToken() {
-        String initialToken = History.getToken();
-        if (!initialToken.equals("")) {
-            theInstance.onHistoryChanged(initialToken);
-        }
+        theInstance.onHistoryChanged(History.getToken());
     }
     
     public void onHistoryChanged(String historyToken) {
-        lastHistoryToken = historyToken;
-        if (ignoreNextChange) {
-            ignoreNextChange = false;
+        if (historyToken.equals(lastHistoryToken)) {
             return;
         }
+        
+        lastHistoryToken = historyToken;
         
         Map<String, String> arguments;
         try {
@@ -74,9 +70,10 @@ public class CustomHistory implements HistoryListener {
     }
     
     public static void newItem(String historyToken) {
-        if (History.getToken().equals(historyToken))
+        if (historyToken.equals(getLastHistoryToken())) {
             return;
-        theInstance.ignoreNextChange = true;
+        }
+        theInstance.lastHistoryToken = historyToken;
         History.newItem(historyToken);
     }
 }
