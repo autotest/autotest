@@ -232,6 +232,7 @@ public class CreateJobView extends TabView {
     protected Button editControlButton = new Button(EDIT_CONTROL_STRING);
     protected HostSelector hostSelector;
     protected Button submitJobButton = new Button("Submit Job");
+    private Button resetButton = new Button("Reset");
     
     protected boolean controlEdited = false;
     protected boolean controlReadyForSubmit = false;
@@ -550,6 +551,12 @@ public class CreateJobView extends TabView {
             }
         });
         
+        resetButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                reset();
+            }
+        });
+        
         reset();
         
         RootPanel.get("create_job_name").add(jobName);
@@ -561,6 +568,7 @@ public class CreateJobView extends TabView {
         RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
         RootPanel.get("create_submit").add(submitJobButton);
+        RootPanel.get("create_reset").add(resetButton);
     }
     
     public void reset() {
@@ -660,6 +668,6 @@ public class CreateJobView extends TabView {
     @Override
     public void refresh() {
         super.refresh();
-        reset();
+        hostSelector.refresh();
     }
 }
