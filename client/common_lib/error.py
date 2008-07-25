@@ -34,36 +34,60 @@ class JobError(AutotestError):
     pass
 
 
-class TestError(AutotestError):
+class TestBaseException(AutotestError):
+    """The parent of all test exceptions."""
+
+
+class TestError(TestBaseException):
     """Indicates that something went wrong with the test harness itself."""
     exit_status="ERROR"
     pass
 
 
-class TestUnknownError(AutotestError):
-    """Indicates an error which terminates and fails the test."""
-    exit_status="FAIL"
-    pass
-
-
-class TestNAError(AutotestError):
+class TestNAError(TestBaseException):
     """Indictates that the test is Not Applicable.  Should be thrown
     when various conditions are such that the test is inappropriate."""
     exit_status="TEST_NA"
     pass
 
 
-class TestFail(AutotestError):
+class TestFail(TestBaseException):
     """Indicates that the test failed, but the job will not continue."""
     exit_status="FAIL"
     pass
 
 
-class TestWarn(AutotestError):
+class TestWarn(TestBaseException):
     """Indicates that bad things (may) have happened, but not an explicit
     failure."""
     exit_status="WARN"
     pass
+
+
+class UnhandledTestError(TestError):
+    """Indicates an unhandled error in a test."""
+    def __init__(self, unhandled_exception):
+        if isinstance(unhandled_exception, TestError):
+            TestError.__init__(self, *unhandled_exception.args)
+        else:
+            msg = "Unhandled %s: %s"
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            TestError.__init__(self, msg)
+
+
+class UnhandledTestFail(TestFail):
+    """Indicates an unhandled fail in a test."""
+    def __init__(self, unhandled_exception):
+        if isinstance(unhandled_exception, TestFail):
+            TestFail.__init__(self, *unhandled_exception.args)
+        else:
+            msg = "Unhandled %s: %s"
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            TestFail.__init__(self, msg)
 
 
 class CmdError(TestError):
@@ -93,19 +117,6 @@ class PackageError(TestError):
 class BarrierError(JobError):
     """Indicates an error happened during a barrier operation."""
     pass
-
-
-class UnhandledError(TestUnknownError):
-    """Indicates an unhandled exception in a test."""
-    def __init__(self, unhandled_exception):
-        if isinstance(unhandled_exception, AutotestError):
-            TestUnknownError.__init__(self, *unhandled_exception.args)
-        else:
-            msg = "Unhandled %s: %s"
-            msg %= (unhandled_exception.__class__.__name__,
-                    unhandled_exception)
-            msg += "\n" + traceback.format_exc()
-            TestUnknownError.__init__(self, msg)
 
 
 class InstallError(JobError):

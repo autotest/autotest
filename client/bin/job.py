@@ -252,7 +252,7 @@ class base_job(object):
                 os.chdir(os.path.join(self.autodir, 'deps', dep))
                 utils.system('./' + dep + '.py')
             except Exception, e:
-                raise error.UnhandledError(e)
+                raise error.UnhandledTestError(e)
 
 
     def _runtest(self, url, tag, args, dargs):
@@ -260,10 +260,10 @@ class base_job(object):
             l = lambda : test.runtest(self, url, tag, args, dargs)
             pid = parallel.fork_start(self.resultdir, l)
             parallel.fork_waitfor(self.resultdir, pid)
-        except error.AutotestError:
+        except error.TestBaseException:
             raise
         except Exception, e:
-            raise error.UnhandledError(e)
+            raise error.UnhandledTestError(e)
 
 
     def run_test(self, url, *args, **dargs):
@@ -322,8 +322,7 @@ class base_job(object):
         def group_func():
             try:
                 self._runtest(url, tag, args, dargs)
-            except (error.TestNAError, error.TestUnknownError, error.TestError,
-                    error.TestFail), detail:
+            except error.TestBaseException, detail:
                 self.record(detail.exit_status, subdir, testname,
                             str(detail))
                 raise
@@ -338,7 +337,7 @@ class base_job(object):
         result, exc_info = self._rungroup(subdir, testname, group_func)
         if container:
             self.release_container()
-        if exc_info and isinstance(exc_info[1], error.TestError):
+        if exc_info and isinstance(exc_info[1], error.TestBaseException):
             return False
         elif exc_info:
             raise exc_info[0], exc_info[1], exc_info[2]
@@ -370,8 +369,7 @@ class base_job(object):
             result = function(*args, **dargs)
             self._decrement_group_level()
             self.record('END GOOD', subdir, testname)
-        except (error.TestNAError, error.TestError, error.TestFail,
-                error.TestUnknownError), e:
+        except error.TestBaseException, e:
             self._decrement_group_level()
             self.record('END %s' % e.exit_status, subdir, testname, str(e))
         except Exception, e:
