@@ -312,7 +312,7 @@ class TestBaseJob(unittest.TestCase):
         class MyError(error.TestError):
             pass
         real_error = MyError("this is the real error message")
-        unhandled_error = error.UnhandledError(real_error)
+        unhandled_error = error.UnhandledTestError(real_error)
 
         # set up the recording
         testname = "error_test"
@@ -346,7 +346,7 @@ class TestBaseJob(unittest.TestCase):
         class MyError(Exception):
             pass
         real_error = MyError("this is the real error message")
-        unhandled_error = error.UnhandledError(real_error)
+        unhandled_error = error.UnhandledTestError(real_error)
         reason = first_line_comparator("Unhandled MyError: %s" % real_error)
 
         # set up the recording

@@ -162,7 +162,12 @@ class base_test:
                 else:
                     p_args, p_dargs = _cherry_pick_args(self.execute,
                                                         args, dargs)
-                self.execute(*p_args, **p_dargs)
+                try:
+                    self.execute(*p_args, **p_dargs)
+                except error.AutotestError:
+                    raise
+                except Exception, e:
+                    raise error.UnhandledTestFail(e)
 
             finally:
                 self.cleanup()
@@ -171,7 +176,7 @@ class base_test:
         except error.AutotestError:
             raise
         except Exception, e:
-            raise error.UnhandledError(e)
+            raise error.UnhandledTestError(e)
 
 
 def _cherry_pick_args(func, args, dargs):

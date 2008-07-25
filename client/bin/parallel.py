@@ -21,7 +21,7 @@ def fork_start(tmp, l):
             raise
 
         except Exception, e:
-            raise error.UnhandledError(e)
+            raise error.UnhandledTestError(e)
 
     except Exception, detail:
         ename = tmp + "/debug/error-%d" % (os.getpid())
