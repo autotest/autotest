@@ -540,21 +540,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             host.enqueue_job(self)
 
 
-    def requeue(self, new_owner):
-        'Creates a new job identical to this one'
-        hosts = [queue_entry.meta_host or queue_entry.host
-                 for queue_entry
-                 in self.hostqueueentry_set.filter(deleted=False)]
-        new_job = Job.create(
-            owner=new_owner, name=self.name, priority=self.priority,
-            control_file=self.control_file,
-            control_type=self.control_type, hosts=hosts,
-            synch_type=self.synch_type, timeout=self.timeout,
-            run_verify=self.run_verify)
-        new_job.queue(hosts)
-        return new_job
-
-
     def abort(self):
         user = thread_local.get_user()
         if not user.is_superuser() and user.login != self.owner:
