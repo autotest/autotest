@@ -183,35 +183,45 @@ def get_users(**filter_data):
 # acl groups
 
 def add_acl_group(name, description=None):
-    return models.AclGroup.add_object(name=name, description=description).id
+    group = models.AclGroup.add_object(name=name, description=description)
+    group.users.add(thread_local.get_user())
+    return group.id
 
 
 def modify_acl_group(id, **data):
-    models.AclGroup.smart_get(id).update_object(data)
+    group = models.AclGroup.smart_get(id)
+    group.check_for_acl_violation_acl_group()
+    group.update_object(data)
+    group.add_current_user_if_empty()
 
 
 def acl_group_add_users(id, users):
-    users = [models.User.smart_get(user) for user in users]
     group = models.AclGroup.smart_get(id)
+    group.check_for_acl_violation_acl_group()
+    users = [models.User.smart_get(user) for user in users]
     group.users.add(*users)
 
 
 def acl_group_remove_users(id, users):
-    users = [models.User.smart_get(user) for user in users]
     group = models.AclGroup.smart_get(id)
+    group.check_for_acl_violation_acl_group()
+    users = [models.User.smart_get(user) for user in users]
     group.users.remove(*users)
+    group.add_current_user_if_empty()
 
 
 def acl_group_add_hosts(id, hosts):
-    hosts = [models.Host.smart_get(host) for host in hosts]
     group = models.AclGroup.smart_get(id)
+    group.check_for_acl_violation_acl_group()
+    hosts = [models.Host.smart_get(host) for host in hosts]
     group.hosts.add(*hosts)
     group.on_host_membership_change()
 
 
 def acl_group_remove_hosts(id, hosts):
-    hosts = [models.Host.smart_get(host) for host in hosts]
     group = models.AclGroup.smart_get(id)
+    group.check_for_acl_violation_acl_group()
+    hosts = [models.Host.smart_get(host) for host in hosts]
     group.hosts.remove(*hosts)
     group.on_host_membership_change()
 
