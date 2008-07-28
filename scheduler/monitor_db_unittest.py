@@ -558,6 +558,14 @@ class AgentTasksTest(unittest.TestCase):
 
         expected_protection = host_protections.Protection.get_string(
             host_protections.default)
+        expected_protection = host_protections.Protection.get_attr_name(
+            expected_protection)
+
+        print task.monitor.cmd
+        print "_________________________\n"
+        print ['autoserv', '-R', '-m', self.HOSTNAME, '-r', self.TEMP_DIR,
+               '--host-protection', expected_protection]
+
         self.assertTrue(set(task.monitor.cmd) >=
                         set(['autoserv', '-R', '-m', self.HOSTNAME, '-r',
                              self.TEMP_DIR, '--host-protection',
