@@ -114,8 +114,6 @@ class function_mapping(base_mapping):
         self.error = error
 
 
-
-
 class mock_function(object):
     def __init__(self, symbol, default_return_val=None,
                  record=None, playback=None):
@@ -163,10 +161,9 @@ class mask_function(mock_function):
 class mock_class(object):
     def __init__(self, cls, name, default_ret_val=None,
                  record=None, playback=None):
-        self.errors = []
-        self.name = name
-        self.record = record
-        self.playback = playback
+        self.__name = name
+        self.__record = record
+        self.__playback = playback
 
         for symbol in dir(cls):
             if symbol.startswith("_"):
@@ -174,9 +171,9 @@ class mock_class(object):
 
             orig_symbol = getattr(cls, symbol)
             if callable(orig_symbol):
-                f_name = "%s.%s" % (self.name, symbol)
+                f_name = "%s.%s" % (self.__name, symbol)
                 func = mock_function(f_name, default_ret_val,
-                                     self.record, self.playback)
+                                     self.__record, self.__playback)
                 setattr(self, symbol, func)
             else:
                 setattr(self, symbol, orig_symbol)
@@ -348,6 +345,7 @@ class mock_god:
             print >> sys.__stdout__, 'Mock call:', _dump_function_call(symbol,
                                                                        args,
                                                                        dargs)
+
         if len(self.recording) != 0:
             func_call = self.recording[0]
             if func_call.symbol != symbol:
@@ -394,6 +392,7 @@ class mock_god:
             for func_call in self.recording:
                 print >> sys.__stdout__, "%s not called" % (func_call)
             raise CheckPlaybackError
+        self.recording.clear()
 
 
     def mock_io(self):
