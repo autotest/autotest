@@ -324,10 +324,10 @@ class TestBaseJob(unittest.TestCase):
         self.job._increment_group_level.expect_call()
         self.job._runtest.expect_call(testname, "", (), {}).and_raises(
             unhandled_error)
-        self.job.record.expect_call("FAIL", testname, testname,
+        self.job.record.expect_call("ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
         self.job._decrement_group_level.expect_call()
-        self.job.record.expect_call("END FAIL", testname, testname,
+        self.job.record.expect_call("END ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
 
         # run and check
@@ -359,9 +359,9 @@ class TestBaseJob(unittest.TestCase):
         self.job._increment_group_level.expect_call()
         self.job._runtest.expect_call(testname, "", (), {}).and_raises(
             unhandled_error)
-        self.job.record.expect_call("FAIL", testname, testname, reason)
+        self.job.record.expect_call("ERROR", testname, testname, reason)
         self.job._decrement_group_level.expect_call()
-        self.job.record.expect_call("END FAIL", testname, testname, reason)
+        self.job.record.expect_call("END ERROR", testname, testname, reason)
 
         # run and check
         self.job.run_test(testname)
