@@ -82,7 +82,7 @@ public class Utils {
     
     public static String escape(String text) {
         for (String[] mapping : escapeMappings) {
-            text = text.replaceAll(mapping[0], mapping[1]);
+            text = text.replace(mapping[0], mapping[1]);
         }
         return text;
     }
@@ -90,7 +90,7 @@ public class Utils {
     public static String unescape(String text) {
         // must iterate in reverse order
         for (int i = escapeMappings.length - 1; i >= 0; i--) {
-            text = text.replaceAll(escapeMappings[i][1], escapeMappings[i][0]);
+            text = text.replace(escapeMappings[i][1], escapeMappings[i][0]);
         }
         return text;
     }
