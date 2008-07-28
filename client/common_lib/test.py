@@ -132,6 +132,12 @@ class base_test:
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
 
         try:
+            # write out the test attributes into a keyval
+            dargs   = dargs.copy()
+            keyvals = dargs.pop('test_attributes', dict()).copy()
+            keyvals['version'] = self.version
+            self.write_test_keyval(keyvals)
+
             _validate_args(args, dargs, self.initialize, self.setup,
                            self.execute, self.cleanup)
 
@@ -146,14 +152,8 @@ class base_test:
                                      self.version, self.setup,
                                      *p_args, **p_dargs)
 
-                os.chdir(self.outputdir)
-                dargs   = dargs.copy()
-                keyvals = dargs.pop('test_attributes', dict())
-                keyvals = keyvals.copy()
-                keyvals['version'] = self.version
-                self.write_test_keyval(keyvals)
-
                 # Execute:
+                os.chdir(self.outputdir)
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
                                                         args, dargs)
