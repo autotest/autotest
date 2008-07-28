@@ -200,11 +200,7 @@ public class HostSelector {
     }
     
     protected void addVisible() {
-        List<JSONObject> rowsToAdd = new ArrayList<JSONObject>();
-        for (int i = 0; i < availableTable.getRowCount(); i++) {
-            rowsToAdd.add(availableTable.getRow(i));
-        }
-        availableSelection.selectObjects(rowsToAdd);
+        availableSelection.selectVisible();
     }
     
     protected void addAllFiltered() {
