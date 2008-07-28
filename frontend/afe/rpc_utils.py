@@ -8,6 +8,9 @@ __author__ = 'showard@google.com (Steve Howard)'
 import datetime, xmlrpclib, threading
 from frontend.afe import models, model_logic
 
+NULL_DATETIME = datetime.datetime.max
+NULL_DATE = datetime.date.max
+
 def prepare_for_serialization(objects):
     """
     Prepare Python objects to be returned via RPC.
@@ -34,6 +37,8 @@ def _prepare_data(data):
           isinstance(data, set)):
         return [_prepare_data(item) for item in data]
     elif isinstance(data, datetime.date):
+        if data is NULL_DATETIME or data is NULL_DATE:
+            return None
         return str(data)
     else:
         return data
