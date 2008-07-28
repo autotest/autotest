@@ -70,6 +70,7 @@ public class NotifyManager {
     protected NotifyBox messageNotify = new NotifyBox(true);
     protected NotifyBox loadingNotify = new NotifyBox(false);
     protected ErrorLog errorLog = new ErrorLog();
+    private int loadingCount = 0;
     
     private NotifyManager() {
         errorNotify.addStyle("error");
@@ -117,9 +118,16 @@ public class NotifyManager {
      * Set whether the loading box is displayed or not.
      */
     public void setLoading(boolean visible) {
-        if (visible)
-            loadingNotify.showMessage("Loading...");
-        else
-            loadingNotify.hide();
+        if (visible) {
+            if (loadingCount == 0) {
+                loadingNotify.showMessage("Loading...");
+            }
+            loadingCount++;
+        } else {
+            loadingCount--;
+            if (loadingCount == 0) {
+                loadingNotify.hide();
+            }
+        }
     }
 }
