@@ -135,6 +135,14 @@ public class SelectionManager {
         notifyListeners(removed, false);
     }
     
+    public void selectVisible() {
+        List<JSONObject> rowsToAdd = new ArrayList<JSONObject>();
+        for (int i = 0; i < attachedTable.getRowCount(); i++) {
+            rowsToAdd.add(attachedTable.getRow(i));
+        }
+        selectObjects(rowsToAdd);
+    }
+    
     public void toggleSelected(JSONObject object) {
         if (selectedObjects.contains(object))
             deselectObject(object);
