@@ -97,12 +97,18 @@ class parser(base.parser):
 
 
     @staticmethod
-    def make_dummy_abort(indent):
+    def make_dummy_abort(indent, subdir, testname):
         indent = "\t" * indent
-        return indent + "END ABORT\t----\t----\tUnexpected ABORT"
+        if not subdir:
+            subdir = "----"
+        if not testname:
+            testname = "----"
+        msg = indent + "END ABORT\t%s\t%s\tUnexpected ABORT"
+        return msg % (subdir, testname)
 
 
     def state_iterator(self, buffer):
+        line = None
         new_tests = []
         job_count, boot_count = 0, 0
         min_stack_size = 0
@@ -119,8 +125,15 @@ class parser(base.parser):
                     break
                 # we have status lines left on the stack,
                 # we need to implicitly abort them first
+                tko_utils.dprint('\nUnexpected end of job, aborting')
+                abort_subdir_stack = list(subdir_stack)
                 for i in reversed(xrange(stack.size())):
-                    buffer.put(self.make_dummy_abort(i))
+                    if abort_subdir_stack:
+                        subdir = abort_subdir_stack.pop()
+                    else:
+                        subdir = None
+                    abort = self.make_dummy_abort(i, subdir, subdir)
+                    buffer.put(abort)
 
             # stop processing once the buffer is empty
             if buffer.size() == 0:
@@ -188,7 +201,10 @@ class parser(base.parser):
             if indent < stack.size():
                 # yes, implicitly ABORT
                 buffer.put_back(raw_line)
-                abort = self.make_dummy_abort(stack.size() - 1)
+                tko_utils.dprint('Unxpected indent regression, aborting')
+                abort = self.make_dummy_abort(stack.size() - 1,
+                                              subdir_stack[-1],
+                                              subdir_stack[-1])
                 buffer.put_back(abort)
                 continue
             else:
