@@ -58,7 +58,7 @@ class SSHHost(remote.RemoteHost):
                  conmux_log="console.log",
                  conmux_server=None, conmux_attach=None,
                  netconsole_log=None, netconsole_port=6666, autodir=None,
-                 password=''):
+                 password='', target_file_owner=None):
         """
         Construct a SSHHost object
 
@@ -76,6 +76,7 @@ class SSHHost(remote.RemoteHost):
         self.initialize = initialize
         self.autodir = autodir
         self.password = password
+        self.target_file_owner = target_file_owner
 
         super(SSHHost, self).__init__()
 
@@ -658,6 +659,8 @@ class SSHHost(remote.RemoteHost):
         self.__copy_files(processed_source, remote_dest)
         self.run('find "%s" -type d | xargs -i -r chmod o+rx "{}"' % dest)
         self.run('find "%s" -type f | xargs -i -r chmod o+r "{}"' % dest)
+        if self.target_file_owner:
+            self.run('chown -R %s %s' % (self.target_file_owner, dest))
 
 
     def get_tmp_dir(self):
