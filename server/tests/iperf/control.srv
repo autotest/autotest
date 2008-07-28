@@ -1,0 +1,47 @@
+AUTHOR = "Bryce Boe <bboe@google.com>"
+TIME = "SHORT"
+NAME = "Iperf Multi-machine"
+TEST_CATEGORY = "Stress"
+TEST_TYPE = "Server"
+SYNC_COUNT = 2
+DOC = """
+Iperf is a 2 machine test (server/client) that measures maximum TCP and UDP
+bandwidth performace.
+
+TODO: List possible arguments for iperf
+"""
+
+from autotest_lib.server import utils
+
+
+def run(pair):
+    print "running on %s and %s\n" % (pair[0], pair[1])
+    tagname = "%s_%s" % (pair[0], pair[1])
+    server = hosts.SSHHost(pair[0])
+    client = hosts.SSHHost(pair[1])
+
+    server_at = autotest.Autotest(server)
+    client_at = autotest.Autotest(client)
+
+    template = "job.run_test('iperf', server_ip='%s', client_ip='%s', role='%s')"
+
+    server_control_file = template % (server.ip, client.ip, 'server')
+    client_control_file = template % (server.ip, client.ip, 'client')
+
+    server_command = subcommand(server_at.run,
+                               [server_control_file, server.hostname])
+    client_command = subcommand(client_at.run,
+                               [client_control_file, client.hostname])
+
+    parallel([server_command, client_command])
+
+
+# grab the pairs (and failures)
+(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+
+# log the failures
+for failure in failures:
+    job.record("FAIL", failure[0], "iperf", failure[1])
+
+# now run through each pair and run
+parallel_simple(run, pairs)
