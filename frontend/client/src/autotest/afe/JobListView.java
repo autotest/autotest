@@ -200,7 +200,7 @@ public class JobListView extends TabView implements TableActionsListener {
     }
 
     public void onSelectAll() {
-        jobTable.getSelectionManager().selectAll();
+        jobTable.getSelectionManager().selectVisible();
         refresh();
     }
 
