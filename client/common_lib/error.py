@@ -36,6 +36,7 @@ class JobError(AutotestError):
 
 class TestBaseException(AutotestError):
     """The parent of all test exceptions."""
+    pass
 
 
 class TestError(TestBaseException):
