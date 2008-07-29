@@ -5,7 +5,7 @@ import unittest_suite
 import common
 from autotest_lib.client.common_lib import utils
 
-root = os.path.abspath(os.path.dirname(__file__))
+root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
 def is_valid_directory(dirpath):
