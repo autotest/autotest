@@ -324,6 +324,11 @@ class base_server_job:
                 result = function(machine)
                 self.cleanup_parser()
                 return result
+        elif len(machines) > 1:
+            def wrapper(machine):
+                self.resultdir = os.path.join(self.resultdir, machine)
+                result = function(machine)
+                return result
         else:
             wrapper = function
         subcommand.parallel_simple(wrapper, machines, log, timeout)
