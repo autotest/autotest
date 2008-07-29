@@ -424,7 +424,7 @@ class _Run(object):
                                                 (self.host.hostname, BOOT_TIME))
                 self.host.reboot_followup()
                 continue
-            self.host.job.record("ABORT", None, None,
+            self.host.job.record("END ABORT", None, None,
                                  "Autotest client terminated unexpectedly")
             # give the client machine a chance to recover from
             # possible crash
