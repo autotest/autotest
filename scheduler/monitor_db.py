@@ -503,7 +503,7 @@ class Dispatcher:
         update = """
             UPDATE host_queue_entries INNER JOIN jobs
                 ON host_queue_entries.job_id = jobs.id"""
-        timed_out = ' AND jobs.created_on + jobs.timeout*3600 < now()'
+        timed_out = ' AND jobs.created_on + INTERVAL jobs.timeout HOUR < NOW()'
 
         _db.execute(update + """
             SET host_queue_entries.status = 'Abort'
