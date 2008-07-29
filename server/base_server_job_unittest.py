@@ -151,19 +151,18 @@ class BaseServerJobTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_parallel_simple(self):
+    def test_parallel_simple_with_one_machine(self):
         self.construct_server_job()
+        self.job.machines = ["hostname"]
 
         # setup
         func = self.god.create_mock_function("wrapper")
-        self.god.stub_function(subcommand, 'parallel_simple')
 
         # record
-        subcommand.parallel_simple.expect_call(func, self.machines,
-                                                True, None)
+        func.expect_call("hostname")
 
         # run and check
-        self.job.parallel_simple(func, self.machines)
+        self.job.parallel_simple(func, self.job.machines)
         self.god.check_playback()
 
 
