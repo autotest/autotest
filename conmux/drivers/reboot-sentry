@@ -20,44 +20,47 @@ set outlet [lindex $argv 2]
 set connected {0}
 set attempts {0}
 
-while {$connected == 0 && $attempts < 5} {
-	spawn telnet $tshost $tsport
-	sleep 5
-	send "\r"
-	set timeout 10
-	set attempts [ expr $attempts +1 ]
-	expect {
-		#Connection closed
-		"Connection closed by foreign host." {
-		    puts "Retrying attempt $attempts"
-		  }
-		#Already logged in
-		"Switched CDU:" {
-		    set connected {1}
-		    send "reboot $outlet\r"
-		    expect "Command successful"
-		    send "logout\r"
-		    puts "Machine successfully rebooted."
-		    exit 0
-			  }
-		#Login
-		"Username" {
-		    set connected {1}
-		    send "$user\r"
-		    expect "Password:"
-		    send "$pass\r"
-		    expect "Switched CD:"
-		    send "reboot $outlet\r"
-		    expect "Command successful"
-		    send "logout\r"
-		    puts "Machine successfully rebooted."
-		    exit 0
-		    }
-		timeout {
-		    puts "Timed out connecting."
-		    }
-		}
-	}
+while {$connected == 0 && $attempts < 10} {
+    spawn telnet $tshost $tsport
+    sleep 5
+    send "\r"
+    set timeout 10
+    set attempts [ expr $attempts +1 ]
+    expect {
+        #Connection closed
+        "Connection closed by foreign host." {
+            puts "Retrying attempt $attempts"
+            set rand [expr round(rand() * 15 + 6)]
+            puts "Waiting $rand before next attempt"
+            sleep $rand
+          }
+        #Already logged in
+        "Switched CDU:" {
+            set connected {1}
+            send "reboot $outlet\r"
+            expect "Command successful"
+            send "logout\r"
+            puts "Machine successfully rebooted."
+            exit 0
+              }
+        #Login
+        "Username" {
+            set connected {1}
+            send "$user\r"
+            expect "Password:"
+            send "$pass\r"
+            expect "Switched CD:"
+            send "reboot $outlet\r"
+            expect "Command successful"
+            send "logout\r"
+            puts "Machine successfully rebooted."
+            exit 0
+            }
+        timeout {
+            puts "Timed out connecting."
+            }
+        }
+    }
 
-puts "Unable to connect after 5 connection attempts."
+puts "Unable to connect after 10 connection attempts."
 exit 1
