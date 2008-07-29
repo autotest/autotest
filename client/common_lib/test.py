@@ -96,7 +96,7 @@ class base_test:
         pass
 
 
-    def warmup(self):
+    def warmup(self, *args, **dargs):
         pass
 
 
