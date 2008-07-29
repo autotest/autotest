@@ -97,14 +97,14 @@ class parser(base.parser):
 
 
     @staticmethod
-    def make_dummy_abort(indent, subdir, testname):
+    def make_dummy_abort(indent, subdir, testname, reason="Unexpected ABORT"):
         indent = "\t" * indent
         if not subdir:
             subdir = "----"
         if not testname:
             testname = "----"
-        msg = indent + "END ABORT\t%s\t%s\tUnexpected ABORT"
-        return msg % (subdir, testname)
+        msg = indent + "END ABORT\t%s\t%s\t%s"
+        return msg % (subdir, testname, reason)
 
 
     def state_iterator(self, buffer):
@@ -178,50 +178,57 @@ class parser(base.parser):
                 subdir_stack.append(line.subdir)
                 continue
             elif line.type == "STATUS":
-                stack.update(line.status)
-                indent = line.indent
-                started_time = None
-                finished_time = line.get_timestamp()
+                # ABORT if indentation was unexpectedly low
+                if line.indent < stack.size():
+                    buffer.put_back(raw_line)
+                    tko_utils.dprint("Unexpected indent regression, aborting")
+                    abort = self.make_dummy_abort(stack.size() - 1,
+                                                  subdir_stack[-1],
+                                                  subdir_stack[-1],
+                                                  line.reason)
+                    buffer.put_back(abort)
+                    continue
+                # update the subdir stack
                 if line.subdir:
                     subdir_stack[-1] = line.subdir
+                # update the status, start and finished times
+                stack.update(line.status)
+                current_status = stack.current_status()
+                started_time = None
+                finished_time = line.get_timestamp()
             elif line.type == "END":
-                if (line.testname, line.subdir) == (None,) * 2:
+                # ABORT if indentation was unexpectedly low
+                if line.indent + 1 < stack.size():
+                    buffer.put_back(raw_line)
+                    tko_utils.dprint("Unexpected indent regression, aborting")
+                    abort = self.make_dummy_abort(stack.size() - 1,
+                                                  subdir_stack[-1],
+                                                  subdir_stack[-1],
+                                                  line.reason)
+                    buffer.put_back(abort)
+                    continue
+                # grab the current subdir off of the subdir stack, or, if this
+                # is the end of a job, just pop it off
+                if (line.testname, line.subdir) == (None, None):
                     min_stack_size = stack.size() - 1
                     subdir_stack.pop()
                 else:
                     line.subdir = subdir_stack.pop()
+                # update the status, start and finished times
                 stack.update(line.status)
-                indent = line.indent + 1
-                started_time = started_time_stack.pop()
-                finished_time = line.get_timestamp()
-            else:
-                assert False
-
-            # have we unexpectedly exited a group?
-            if indent < stack.size():
-                # yes, implicitly ABORT
-                buffer.put_back(raw_line)
-                tko_utils.dprint('Unxpected indent regression, aborting')
-                abort = self.make_dummy_abort(stack.size() - 1,
-                                              subdir_stack[-1],
-                                              subdir_stack[-1])
-                buffer.put_back(abort)
-                continue
-            else:
-                # no, just update the group status
-                current_status = line.status
-                stack.update(current_status)
-
-            # do we need to pop the stack?
-            if line.type == "END":
                 current_status = stack.end()
                 stack.update(current_status)
+                started_time = started_time_stack.pop()
+                finished_time = line.get_timestamp()
+                # update the current kernel
                 if line.is_successful_reboot(current_status):
                     current_kernel = line.get_kernel()
-                # rename the reboot testname
+                # adjust the testname if this is a reboot
                 if line.testname == "reboot" and line.subdir is None:
                     line.testname = "boot.%d" % boot_count
                     boot_count += 1
+            else:
+                assert False
 
             # have we just finished a test?
             if stack.size() <= min_stack_size:
