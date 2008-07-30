@@ -161,6 +161,10 @@ def ionice(priority, sched_class=2):
     utils.system(cmd + " " + params)
 
 
+class CpusetsNotAvailable(error.AutotestError):
+    pass
+
+
 class cpuset(object):
 
     def display(self):
@@ -224,8 +228,8 @@ class cpuset(object):
                               not specified
         """
         if not os.path.exists(os.path.join(super_root, "cpus")):
-            raise error.AutotestError('Root container /dev/cpuset '
-                                      'is empty; please reboot')
+            raise CpusetsNotAvailable('/dev/cpuset is empty; the machine was'
+                                      ' not booted with cpuset support')
 
         self.name = name
 
