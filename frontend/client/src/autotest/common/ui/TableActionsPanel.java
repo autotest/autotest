@@ -14,16 +14,17 @@ import com.google.gwt.user.client.ui.Widget;
 public class TableActionsPanel extends Composite implements ClickListener, PopupListener {
     public static interface TableActionsListener {
         public ContextMenu getActionMenu();
-        public void onSelectAll();
+        public void onSelectAll(boolean visibleOnly);
         public void onSelectNone();
     }
 
     private TableActionsListener listener;
     private ToggleButton actionsButton = new ToggleButton("Actions");
     private SimpleHyperlink selectAll = new SimpleHyperlink("all");
+    private SimpleHyperlink selectVisible;
     private SimpleHyperlink selectNone = new SimpleHyperlink("none");
     
-    public TableActionsPanel(TableActionsListener tableActionsListener) {
+    public TableActionsPanel(TableActionsListener tableActionsListener, boolean wantSelectVisible) {
         listener = tableActionsListener;
         
         actionsButton.addClickListener(this);
@@ -34,6 +35,12 @@ public class TableActionsPanel extends Composite implements ClickListener, Popup
         selectPanel.add(new HTML("Select:&nbsp;"));
         selectPanel.add(selectAll);
         selectPanel.add(new HTML(",&nbsp;"));
+        if (wantSelectVisible) {
+            selectVisible = new SimpleHyperlink("visible");
+            selectVisible.addClickListener(this);
+            selectPanel.add(selectVisible);
+            selectPanel.add(new HTML(",&nbsp;"));
+        }
         selectPanel.add(selectNone);
         selectPanel.add(new HTML("&nbsp;"));
         selectPanel.add(actionsButton);
@@ -47,7 +54,9 @@ public class TableActionsPanel extends Composite implements ClickListener, Popup
             menu.showAt(actionsButton.getAbsoluteLeft(), 
                         actionsButton.getAbsoluteTop() + actionsButton.getOffsetHeight());
         } else if (sender == selectAll) {
-            listener.onSelectAll();
+            listener.onSelectAll(false);
+        } else if (sender == selectVisible) {
+            listener.onSelectAll(true);
         } else {
             assert sender == selectNone;
             listener.onSelectNone();
