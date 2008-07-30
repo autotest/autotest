@@ -151,6 +151,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
                     'hostname' : '%s already exists!' % hostname
                     })
             host.clean_object()
+            AclGroup.objects.get(name='Everyone').hosts.add(host)
             host.status = Host.Status.READY
         host.save()
         return host
