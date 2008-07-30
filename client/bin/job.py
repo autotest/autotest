@@ -312,8 +312,16 @@ class base_job(object):
             root  = container.get('root', None)
             network = container.get('network', None)
             disk = container.get('disk', None)
-            self.new_container(mbytes=mbytes, cpus=cpus, root=root, name=cname,
-                               network=network, disk=disk)
+            try:
+                self.new_container(mbytes=mbytes, cpus=cpus, root=root,
+                                   name=cname, network=network, disk=disk)
+            except cpuset.CpusetsNotAvailable, e:
+                self.record("START", subdir, testname)
+                self._increment_group_level()
+                self.record("ERROR", subdir, testname, str(e))
+                self._decrement_group_level()
+                self.record("END ERROR", subdir, testname)
+                return False
             # We are running in a container now...
 
         def log_warning(reason):
