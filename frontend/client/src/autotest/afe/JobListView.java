@@ -43,7 +43,7 @@ public class JobListView extends TabView implements TableActionsListener {
     private static final String[] filterStrings = {"not_yet_run", "running",
                                                      "finished"};
     
-    private TableActionsPanel actionPanel = new TableActionsPanel(this);
+    private TableActionsPanel actionPanel = new TableActionsPanel(this, true);
     
     private static final JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JSONObject jobFilterArgs = new JSONObject();
@@ -199,11 +199,15 @@ public class JobListView extends TabView implements TableActionsListener {
         return menu;
     }
 
-    public void onSelectAll() {
-        jobTable.getSelectionManager().selectVisible();
+    public void onSelectAll(boolean visibleOnly) {
+        if (visibleOnly) {
+            jobTable.getSelectionManager().selectVisible();
+        } else {
+            jobTable.getSelectionManager().selectAll();
+        }
         refresh();
     }
-
+    
     public void onSelectNone() {
         jobTable.getSelectionManager().deselectAll();
         refresh();
