@@ -279,6 +279,9 @@ public class CreateJobView extends TabView {
         timeout.setText(Integer.toString(
                 (int) jobObject.get("timeout").isNumber().doubleValue()));
         
+        skipVerify.setChecked(
+                jobObject.get("run_verify").isNumber().doubleValue() != 1);
+        
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
         runSynchronous.setChecked(
