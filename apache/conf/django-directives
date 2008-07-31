@@ -1,4 +1,4 @@
-RedirectMatch ^/$ /afe/
+RedirectMatch ^/$ /afe
 
 Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient"
 <Location "/afe">
