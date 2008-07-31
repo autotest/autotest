@@ -300,10 +300,6 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
         this.jobId = newJobId;
     }
     
-    public void fetchJob(int jobId) {
-        fetchById(Integer.toString(jobId));
-    }
-    
     public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
         JSONValue jobValue = hostQueueEntry.get("job");
         if (jobValue == null) {
