@@ -155,4 +155,8 @@ public class HostDetailView extends DetailView implements DataCallback {
         tableDecorator.addPaginators();
         RootPanel.get("view_host_jobs_table").add(tableDecorator);
     }
+
+    public void onError(JSONObject errorObject) {
+        // RPC handler will display error
+    }
 }

@@ -106,6 +106,14 @@ public class NotifyManager {
     public void showError(String error) {
         showError(error, null);
     }
+
+    /**
+     * Log a message to the error log without showing any popup.
+     */
+    public void log(String message) {
+        errorLog.logError(message);
+        errorLog.setVisible(true);
+    }
     
     /**
      * Show a notification message.

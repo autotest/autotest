@@ -126,6 +126,7 @@ public class SelectionManager {
             }
 
             public void onGotData(int totalCount) {}
+            public void onError(JSONObject errorObject) {}
         });
     }
     
