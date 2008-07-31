@@ -5,19 +5,25 @@ import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.TableListener;
-
-import java.util.HashSet;
-import java.util.Set;
+import com.google.gwt.user.client.ui.TableListenerCollection;
 
 /**
  * This is basically a hack to support browser contextmenu (right-click) events, until GWT supports
  * them directly.
  */
 public class RightClickTable extends FlexTable {
-    private static Event currentRightClickEvent = null;
+    protected static class RowColumn {
+        int row;
+        int column;
+        
+        public RowColumn(int row, int column) {
+            this.row = row;
+            this.column = column;
+        }
+    }
     
     // need to keep our own copy of the listener set since the superclass set isn't visible
-    private Set<TableListener> listeners = new HashSet<TableListener>();
+    protected TableListenerCollection listeners = new TableListenerCollection();
     
     public void sinkRightClickEvents() {
         setOnContextMenu(getElement());
@@ -35,41 +41,34 @@ public class RightClickTable extends FlexTable {
         listeners.remove(listener);
     }
     
-    private void fireRightClick(int row, int column) {
-        for (TableListener listener : listeners) {
-            listener.onCellClicked(this, row, column);
-        }
-    }
-    
     public static boolean isRightClick(Event event) {
-        return event == currentRightClickEvent;
+        return event.getType().equals("contextmenu");
     }
 
     @Override
     public void onBrowserEvent(Event event) {
-        if (event.getType().equals("contextmenu")) {
-            currentRightClickEvent = event;
+        String eventType = event.getType();
+        if (eventType.equals("click") || eventType.equals("contextmenu")) {
             event.preventDefault();
-            handleRightClick(event);
-        } else {
-            super.onBrowserEvent(event);
+            
+            // Find out which cell was actually clicked.
+            Element td = getEventTargetCell(event);
+            if (td == null) {
+              return;
+            }
+            
+            RowColumn position = getCellPosition(td);
+            listeners.fireCellClicked(this, position.row, position.column);
         }
     }
     
-    private void handleRightClick(Event event) {
+    protected RowColumn getCellPosition(Element td) {
         // This is copied from HTMLTable.onBrowserEvent().
-        
-        // Find out which cell was actually clicked.
-        Element td = getEventTargetCell(event);
-        if (td == null) {
-          return;
-        }
         Element tr = DOM.getParent(td);
         Element body = DOM.getParent(tr);
         int row = DOM.getChildIndex(body, tr);
         int column = DOM.getChildIndex(tr, td);
-        // Fire the event.
-        fireRightClick(row, column);
+        return new RowColumn(row, column);
     }
     
     private native void setOnContextMenu(Element elem) /*-{
