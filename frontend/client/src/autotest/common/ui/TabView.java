@@ -51,8 +51,6 @@ public abstract class TabView extends Composite {
     }
     
     public void updateHistory() {
-        if (!this.getWidget().isVisible())
-            return;
         CustomHistory.newItem(getHistoryToken());
     }
     
