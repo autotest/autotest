@@ -116,7 +116,7 @@ def get_num_hosts(multiple_labels=[], **filter_data):
 # tests
 
 def add_test(name, test_type, path, author=None, dependencies=None,
-             experimental=True, run_verify=None, test_class=None, 
+             experimental=True, run_verify=None, test_class=None,
              test_time=None, test_category=None, description=None,
              sync_count=1):
     return models.Test.add_object(name=name, test_type=test_type, path=path,

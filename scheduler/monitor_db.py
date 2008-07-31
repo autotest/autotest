@@ -1072,15 +1072,24 @@ class RepairTask(AgentTask):
 
 
 class VerifyTask(AgentTask):
-    def __init__(self, queue_entry=None, host=None):
+    def __init__(self, queue_entry=None, host=None, run_verify=True):
         assert bool(queue_entry) != bool(host)
 
         self.host = host or queue_entry.host
         self.queue_entry = queue_entry
 
         self.create_temp_resultsdir('.verify')
-        cmd = [_autoserv_path,'-v','-m',self.host.hostname,
-               '-r', self.temp_results_dir]
+
+        # TODO:
+        # While it is rediculous to instantiate a verify task object
+        # that doesnt actually run the verify task, this is hopefully a
+        # temporary hack and will have a cleaner way to skip this
+        # step later. (while ensuring that the original semantics don't change)
+        if not run_verify:
+            cmd = ["true"]
+        else:
+            cmd = [_autoserv_path,'-v','-m',self.host.hostname,
+                   '-r', self.temp_results_dir]
 
         fail_queue_entry = None
         if queue_entry and not queue_entry.meta_host:
@@ -1146,9 +1155,9 @@ class VerifyTask(AgentTask):
 
 
 class VerifySynchronousTask(VerifyTask):
-    def __init__(self, queue_entry):
-        super(VerifySynchronousTask, self).__init__(
-                                         queue_entry = queue_entry)
+    def __init__(self, queue_entry, run_verify=True):
+        super(VerifySynchronousTask, self).__init__(queue_entry=queue_entry,
+                                                    run_verify=run_verify)
 
 
     def epilog(self):
@@ -1759,7 +1768,8 @@ class Job(DBObject):
         if self.is_synchronous():
             if not self.is_ready():
                 return Agent([VerifySynchronousTask(
-                                queue_entry = queue_entry)],
+                                queue_entry=queue_entry,
+                                run_verify=self.run_verify)],
                              [queue_entry.id])
 
         queue_entry.set_status('Starting')
@@ -1796,11 +1806,11 @@ class Job(DBObject):
 
         tasks = []
         if not self.is_synchronous():
-            tasks.append(VerifyTask(queue_entry))
+            tasks.append(VerifyTask(queue_entry, run_verify=self.run_verify))
 
-        tasks.append(QueueTask(job = self,
-                               queue_entries = queue_entries,
-                               cmd = params))
+        tasks.append(QueueTask(job=self,
+                               queue_entries=queue_entries,
+                               cmd=params))
 
         ids = []
         for entry in queue_entries:
