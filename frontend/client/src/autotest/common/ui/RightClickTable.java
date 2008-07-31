@@ -47,9 +47,10 @@ public class RightClickTable extends FlexTable {
 
     @Override
     public void onBrowserEvent(Event event) {
-        String eventType = event.getType();
-        if (eventType.equals("click") || eventType.equals("contextmenu")) {
-            event.preventDefault();
+        if (event.getType().equals("click") || isRightClick(event)) {
+            if (isRightClick(event)) {
+                event.preventDefault();
+            }
             
             // Find out which cell was actually clicked.
             Element td = getEventTargetCell(event);
