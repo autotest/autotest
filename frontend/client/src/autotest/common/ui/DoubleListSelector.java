@@ -29,10 +29,16 @@ public class DoubleListSelector extends Composite implements ClickListener {
     public static class Item implements Comparable<Item> {
         public String name;
         public String value;
+        public boolean isReadOnly;
         
         public Item(String name, String value) {
             this.name = name;
             this.value = value;
+        }
+        
+        public Item(String name, String value, boolean isReadOnly) {
+            this(name, value);
+            this.isReadOnly = isReadOnly;
         }
 
         public int compareTo(Item item) {
@@ -87,8 +93,23 @@ public class DoubleListSelector extends Composite implements ClickListener {
         sinkEvents(Event.ONDBLCLICK);
     }
     
-    public void addItem(String item, String value) {
-        availableList.add(new Item(item, value));
+    public void addItem(String name, String value) {
+        availableList.add(new Item(name, value));
+        refresh();
+    }
+    
+    public void addReadonlySelectedItem(String name, String value) {
+        selectedList.add(new Item(name, value, true));
+        refresh();
+    }
+    
+    public void removeItem(String name) {
+        try {
+            availableList.remove(findItem(name, availableList));
+        } catch (IllegalArgumentException exc) {
+            selectedList.remove(findItem(name, selectedList));
+            // let exception propagate if item not found
+        }
         refresh();
     }
 
@@ -186,15 +207,20 @@ public class DoubleListSelector extends Composite implements ClickListener {
     }
     
     private void moveAll(List<Item> from, List<Item> to) {
-        for (Item item : from) {
+        for (Item item : new ArrayList<Item>(from)) {
+            if (item.isReadOnly) {
+                continue;
+            }
             to.add(item);
+            from.remove(item);
         }
-        from.clear();
         refresh();
     }
 
     private void moveItem(String name, List<Item> from, List<Item> to) {
         Item item = findItem(name, from);
+        if (item.isReadOnly)
+            return;
         from.remove(item);
         to.add(item);
         refresh();
