@@ -9,11 +9,13 @@ public interface DataSource {
     public interface DataCallback {
         public void onGotData(int totalCount);
         public void handlePage(JSONArray data);
+        public void onError(JSONObject errorObject);
     }
     
     public static class DefaultDataCallback implements DataCallback {
         public void onGotData(int totalCount) {}
         public void handlePage(JSONArray data) {}
+        public void onError(JSONObject errorObject) {}
     }
     
     public static class SortSpec {

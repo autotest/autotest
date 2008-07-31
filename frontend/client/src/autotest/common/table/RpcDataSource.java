@@ -41,7 +41,13 @@ public class RpcDataSource implements DataSource {
                 int count = (int) result.isNumber().doubleValue();
                 numResults = Integer.valueOf(count);
                 callback.onGotData(count);
-            }    
+            }
+
+            @Override
+            public void onError(JSONObject errorObject) {
+                super.onError(errorObject);
+                callback.onError(errorObject);
+            }
         });
     }
     
@@ -70,7 +76,13 @@ public class RpcDataSource implements DataSource {
             public void onSuccess(JSONValue result) {
                 JSONArray resultData = handleJsonResult(result);
                 callback.handlePage(resultData);
-            } 
+            }
+
+            @Override
+            public void onError(JSONObject errorObject) {
+                super.onError(errorObject);
+                callback.onError(errorObject);
+            }
         });
     }
 
