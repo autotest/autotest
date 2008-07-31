@@ -89,13 +89,13 @@ public class AfeClient implements EntryPoint {
     
     protected void showJob(int jobId) {
         jobDetail.ensureInitialized();
-        jobDetail.fetchJob(jobId);
+        jobDetail.updateObjectId(Integer.toString(jobId));
         mainTabPanel.selectTabView(jobDetail);
     }
 
     protected void showHost(String hostname) {
         hostDetailView.ensureInitialized();
-        hostDetailView.fetchById(hostname);
+        hostDetailView.updateObjectId(hostname);
         mainTabPanel.selectTabView(hostDetailView);
     }
 }

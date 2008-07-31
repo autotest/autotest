@@ -68,24 +68,22 @@ public abstract class DetailView extends TabView {
         RootPanel.get(getDataElementId()).setVisible(false);
     }
     
-    protected void updateObjectId(String id) {
-        setObjectId(id);
-        idInput.setText(id);
-    }
-    
-    public void fetchById(String id) {
+    public void updateObjectId(String id) {
         try {
-            updateObjectId(id);
+            setObjectId(id);
         }
         catch (IllegalArgumentException exc) {
             String error = "Invalid input: " + id;
             NotifyManager.getInstance().showError(error);
             return;
         }
-        
+        idInput.setText(id);
+    }
+    
+    public void fetchById(String id) {
+        updateObjectId(id);
         updateHistory();
-        if (isVisible())
-            refresh();
+        refresh();
     }
     
     @Override
