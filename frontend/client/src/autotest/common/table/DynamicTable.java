@@ -321,4 +321,8 @@ public class DynamicTable extends DataTable
     public List<SortSpec> getSortSpecs() {
         return Collections.unmodifiableList(sortColumns);
     }
+
+    public void onError(JSONObject errorObject) {
+        // nothing to do
+    }
 }
