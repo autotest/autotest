@@ -169,11 +169,13 @@ public class HostSelector {
         final Button oneTimeHostButton = new Button("Add");
         oneTimeHostButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                String hostname = oneTimeHostField.getText();
-                JSONObject oneTimeObject = new JSONObject();
-                oneTimeObject.put("hostname", new JSONString(hostname));
-                oneTimeObject.put("platform", new JSONString(ONE_TIME));
-                selectRow(oneTimeObject);
+                String[] hosts = oneTimeHostField.getText().split("[,\\s]+");
+                for (String hostname : hosts) {
+                    JSONObject oneTimeObject = new JSONObject();
+                    oneTimeObject.put("hostname", new JSONString(hostname));
+                    oneTimeObject.put("platform", new JSONString(ONE_TIME));
+                    selectRow(oneTimeObject);
+                }
                 selectionRefresh();
             }
         });
