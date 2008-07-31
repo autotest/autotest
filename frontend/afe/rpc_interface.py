@@ -420,13 +420,31 @@ def get_info_for_clone(id):
              in query if queue_entry.host and not queue_entry.meta_host]
     meta_hosts = [queue_entry.meta_host.name for queue_entry
                   in query if queue_entry.meta_host]
-    host_info = get_hosts(hostname__in=[host.hostname for host in hosts])
+    host_dicts = []
 
-    for host in host_info:
-        platform = host['platform']
-        if platform is not None and platform in host['labels']:
-            host['labels'].remove(platform)
-        host['other_labels'] = ', '.join(host['labels'])
+    for host in hosts:
+        host_dict = {}
+        host_dict['hostname'] = host.hostname
+        host_dict['id'] = host.id
+
+        # one-time host
+        if host.invalid:
+            host_dict['platform'] = '(one-time host)'
+            host_dict['locked_text'] = ''
+
+        else:
+            platform = host.platform()
+            if platform:
+                host_dict['platform'] = platform.name
+            else:
+                host_dict['platform'] = None
+            labels = [label.name for label in host.labels.all()]
+            if platform and platform.name in labels:
+                labels.remove(platform.name)
+            host_dict['other_labels'] = ', '.join(labels)
+            host_dict['status'] = host.status
+            host_dict['locked'] = host.locked
+        host_dicts.append(host_dict)
 
     meta_host_counts = {}
     for meta_host in meta_hosts:
@@ -435,7 +453,7 @@ def get_info_for_clone(id):
 
     info['job'] = job.get_object_dict()
     info['meta_host_counts'] = meta_host_counts
-    info['hosts'] = host_info
+    info['hosts'] = host_dicts
 
     return rpc_utils.prepare_for_serialization(info)
 
