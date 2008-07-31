@@ -65,12 +65,14 @@ public class CreateJobView extends TabView {
     protected static class TestCheckBox extends CheckBox {
         protected int id;
         protected String testType, synchType;
+        protected boolean skipVerify;
         
         public TestCheckBox(JSONObject test) {
             super(test.get("name").isString().stringValue());
             id = (int) test.get("id").isNumber().doubleValue();
             testType = test.get("test_type").isString().stringValue();
             synchType = test.get("synch_type").isString().stringValue();
+            skipVerify = ((int) test.get("run_verify").isNumber().doubleValue()) == 0;
             String description = test.get("description").isString().stringValue();
             if (description.equals(""))
                 description = "No description";
@@ -159,6 +161,15 @@ public class CreateJobView extends TabView {
             }
         }
         
+        public boolean shouldSkipVerify() {
+            for (TestCheckBox thisBox : getChecked()) { 
+                if (thisBox.skipVerify) { 
+                    return true; 
+                }
+            }
+            return false;
+        }
+        
         public String getTestType() {
             return testType;
         }
@@ -221,6 +232,7 @@ public class CreateJobView extends TabView {
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
     protected TextBox timeout = new TextBox();
+    protected CheckBox skipVerify = new CheckBox();
     protected TestPanel clientTestsPanel = new TestPanel(CLIENT_TYPE, TEST_COLUMNS), 
                         serverTestsPanel = new TestPanel(SERVER_TYPE, TEST_COLUMNS);
     protected CheckBoxPanel<CheckBox> profilersPanel = 
@@ -423,25 +435,40 @@ public class CreateJobView extends TabView {
         generateControlFile(readyForSubmit, null, null);
     }
     
+    public void handleSkipVerify(TestPanel panel) {
+        if (panel.shouldSkipVerify()) {
+            skipVerify.setChecked(true);
+            skipVerify.setEnabled(false);
+        }
+    }
+    
     protected void setInputsEnabled() {
         if (!clientTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(true);
             profilersPanel.setEnabled(true);
             serverTestsPanel.setEnabled(false);
+            handleSkipVerify(clientTestsPanel);
         }
         else if (!serverTestsPanel.getChecked().isEmpty()) {
             clientTestsPanel.setEnabled(false);
             profilersPanel.setEnabled(false);
             serverTestsPanel.setEnabled(true);
+            handleSkipVerify(serverTestsPanel);
         }
         else {
             clientTestsPanel.setEnabled(true);
             profilersPanel.setEnabled(true);
             serverTestsPanel.setEnabled(true);
+            skipVerify.setEnabled(true);
         }
 
         kernel.setEnabled(true);
         timeout.setEnabled(true);
+        skipVerify.setEnabled(true);
+    }
+
+    protected boolean shouldSkipVerify(TestPanel panel) {
+        return panel.shouldSkipVerify();
     }
     
     protected void disableInputs() {
@@ -472,6 +499,8 @@ public class CreateJobView extends TabView {
 
         populateTests();
         populatePriorities();
+        
+        RootPanel.get("create_skip_verify").add(skipVerify);
         
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
@@ -579,6 +608,7 @@ public class CreateJobView extends TabView {
             getData("job_timeout_default").isString().stringValue());
         clientTestsPanel.reset();
         serverTestsPanel.reset();
+        skipVerify.setChecked(false);
         profilersPanel.reset();
         setInputsEnabled();
         controlTypeSelect.setControlType(clientTestsPanel.getTestType());
@@ -626,7 +656,7 @@ public class CreateJobView extends TabView {
                 args.put("is_synchronous", 
                          JSONBoolean.getInstance(runSynchronous.isChecked()));
                 args.put("timeout", new JSONNumber(timeoutInt));
-                
+                args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
