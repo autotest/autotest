@@ -21,7 +21,8 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import base_classes, utils
+import base_classes
+from autotest_lib.server import utils
 
 class SiteHost(base_classes.Host):
     """
