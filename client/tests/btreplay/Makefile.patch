@@ -1,6 +1,6 @@
-diff -u -r blktrace.orig/Makefile blktrace/Makefile
---- blktrace.orig/Makefile	2007-12-11 06:25:04.000000000 +1100
-+++ blktrace/Makefile	2007-12-14 05:01:55.000000000 +1100
+diff -u -r blktrace_orig/Makefile blktrace/Makefile
+--- blktrace_orig/Makefile	Mon Jul 28 15:10:40 2008
++++ blktrace/Makefile	Mon Jul 28 15:11:56 2008
 @@ -1,8 +1,8 @@
  CC	= gcc
 -CFLAGS	= -Wall -O2 -g -W
@@ -11,11 +11,21 @@ diff -u -r blktrace.orig/Makefile blktrace/Makefile
 +LIBS	+= -lpthread
  SCRIPTS	= btrace
  
- ALL = $(PROGS) $(SCRIPTS) btt/btt btreplay/btrecord btreplay/btreplay
-diff -u -r blktrace.orig/btreplay/Makefile blktrace/btreplay/Makefile
---- blktrace.orig/btreplay/Makefile	2007-12-11 06:25:04.000000000 +1100
-+++ blktrace/btreplay/Makefile	2007-12-14 05:01:55.000000000 +1100
-@@ -6,14 +6,14 @@
+ ALL = $(PROGS) $(SCRIPTS) btt/btt btreplay/btrecord btreplay/btreplay \
+@@ -34,7 +34,7 @@
+ blkrawverify: blkrawverify.o
+ 	$(CC) $(ALL_CFLAGS) -o $@ $(filter %.o,$^)
+ 
+-$(PROGS): | depend
++$(PROGS): depend
+ 
+ docs:
+ 	$(MAKE) -C doc all
+Only in blktrace: Makefile~
+diff -u -r blktrace_orig/btreplay/Makefile blktrace/btreplay/Makefile
+--- blktrace_orig/btreplay/Makefile	Mon Jul 28 15:10:40 2008
++++ blktrace/btreplay/Makefile	Mon Jul 28 15:12:36 2008
+@@ -6,18 +6,18 @@
  #
  
  CC	= gcc
@@ -32,19 +42,23 @@ diff -u -r blktrace.orig/btreplay/Makefile blktrace/btreplay/Makefile
  
  all: depend $(PROGS)
  
-diff -u -r blktrace.orig/btt/Makefile blktrace/btt/Makefile
---- blktrace.orig/btt/Makefile	2007-12-11 06:25:04.000000000 +1100
-+++ blktrace/btt/Makefile	2007-12-14 05:01:55.000000000 +1100
-@@ -6,14 +6,14 @@
+-$(PROGS): | depend
++$(PROGS): depend
+ 
+ docs:
+ 	$(MAKE) -C doc all
+diff -u -r blktrace_orig/btt/Makefile blktrace/btt/Makefile
+--- blktrace_orig/btt/Makefile	Mon Jul 28 15:10:40 2008
++++ blktrace/btt/Makefile	Mon Jul 28 15:12:54 2008
+@@ -6,13 +6,13 @@
  #
  
  CC	= gcc
 -CFLAGS	= -Wall -W -O2 -g
 +CFLAGS	+= -Wall -W -O2 -g
  INCS	= -I. -I..
- OCFLAGS	= -UCOUNT_IOS -UDEBUG -DNDEBUG
  XCFLAGS	= -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
- override CFLAGS += $(INCS) $(XCFLAGS) $(OCFLAGS)
+ override CFLAGS += $(INCS) $(XCFLAGS)
  
  PROGS	= btt
 -LIBS	= $(PLIBS) $(ELIBS)
