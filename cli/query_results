@@ -1,0 +1,59 @@
+#!/usr/bin/python
+"""
+Selects all rows and columns that satisfy the condition specified
+and prints the matrix.
+"""
+import sys, os, re, optparse
+import common
+from autotest_lib.cli import rpc
+from autotest_lib.tko import display, frontend, db, query_lib
+from autotest_lib.client.bin import kernel_versions
+
+
+# First do all the options parsing
+parser = optparse.OptionParser()
+parser.add_option('-C', '--columns', action='store', dest='columns',
+            default='*', help='''columns to select:
+kernel hostname test label machine_group reason tag user status
+''')
+
+parser.add_option('-c', '--condition', action='store', dest='condition',
+            help = 'the SQL condition to restrict your query by')
+parser.add_option('-s', '--separator', action='store', default = ' | ',
+            dest='separator', help = 'output separator')
+parser.add_option('-n', '--nocount', action='store_true', default=False,
+                  help='Do not display line counts before each line')
+parser.add_option('-l', '--logpath', action='store_true', default=False,
+                  help='Reformats the the tag column into a URL \
+                        like http://autotest/results/[tag]. \
+                        This will append the tag column if it isn\'t provided.')
+
+(options, args) = parser.parse_args()
+
+columns = options.columns.split(',')
+
+url_prefix = rpc.get_autotest_server() + '/results/'
+if options.logpath:
+    if 'tag' not in columns:
+        columns.append('tag')
+    tag_index=columns.index('tag')
+
+columns = [frontend.test_view_field_dict.get(field, field) for field in columns]
+
+if options.condition:
+    where = query_lib.parse_scrub_and_gen_condition(
+                options.condition, frontend.test_view_field_dict)
+else:
+    where = None
+
+# Grab the data
+db = db.db()
+count = 0
+for row in db.select(','.join(columns), 'test_view', where):
+    values = [str(x) for x in row]
+    if options.logpath:
+        values[tag_index] = url_prefix + values[tag_index]
+    if not options.nocount:
+        print '[%d] ' % count,
+        count += 1
+    print options.separator.join(values)
