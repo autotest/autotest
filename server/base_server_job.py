@@ -409,10 +409,10 @@ class base_server_job:
         def group_func():
             try:
                 test.runtest(self, url, tag, args, dargs)
-            except (error.TestNAError, error.TestError, error.TestFail), e:
+            except error.TestBaseException, e:
                 self.record(e.exit_status, subdir, testname, str(e))
                 raise
-            except (error.TestUnknownError, Exception), e:
+            except Exception, e:
                 info = str(e) + "\n" + traceback.format_exc()
                 self.record('FAIL', subdir, testname, info)
                 raise
@@ -435,7 +435,7 @@ class base_server_job:
                 result = function(*args, **dargs)
             finally:
                 self.record_prefix = old_record_prefix
-        except (error.TestNAError, error.TestError, error.TestFail), e:
+        except error.TestBaseException, e:
             self.record("END %s" % e.exit_status, subdir, name, str(e))
         except Exception, e:
             err_msg = str(e) + '\n'
