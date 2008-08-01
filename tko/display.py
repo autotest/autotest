@@ -155,7 +155,7 @@ def average_grade_from_status_count(status_count):
     average_grade = 0
     total_count = 0
     for key in status_count.keys():
-        if key != 8: # TEST_NA status
+        if key not in (8, 9): # TEST_NA, RUNNING
             average_grade += (grade_from_status(key)
                                     * status_count[key])
             total_count += status_count[key]
@@ -199,13 +199,15 @@ def status_html(db, box_data, shade):
     status_count: dict mapping from status (integer key) to count
     eg. { 'GOOD' : 4, 'FAIL' : 1 }
     """
-    status_count = box_data.status_count
-    if 6 in status_count.keys():
-        html = "%d&nbsp;/&nbsp;%d " \
-                %(status_count[6],sum(status_count.values()))
-    else:
-        html = "%d&nbsp;/&nbsp;%d " % \
-                (0, sum(status_count.values()))
+    status_count_subset = box_data.status_count.copy()
+    status_count_subset[8] = 0  # Don't count TEST_NA
+    status_count_subset[9] = 0  # Don't count RUNNING
+    html = "%d&nbsp;/&nbsp;%d " % (status_count_subset.get(6, 0),
+                                   sum(status_count_subset.values()))
+    if 8 in box_data.status_count.keys():
+        html += ' (%d&nbsp;N/A)' % box_data.status_count[8]
+    if 9 in box_data.status_count.keys():
+        html += ' (%d&nbsp;running)' % box_data.status_count[9]
 
     if box_data.reasons_list:
         reasons_list = box_data.reasons_list
@@ -222,9 +224,9 @@ def status_html(db, box_data, shade):
             html += '<br>' + reason
 
     tooltip = ""
-    for status in sorted(status_count.keys(), reverse = True):
+    for status in sorted(box_data.status_count.keys(), reverse = True):
         status_word = db.status_word[status]
-        tooltip += "%d %s " % (status_count[status], status_word)
+        tooltip += "%d %s " % (box_data.status_count[status], status_word)
     return (html,tooltip)
 
 
