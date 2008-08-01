@@ -19,53 +19,17 @@ class btreplay(test.test):
         self.make_flags = var_libs + ' ' + var_cflags
 
         os.chdir(self.srcdir)
+
         utils.system('patch -p1 < ../Makefile.patch')
         utils.system(self.make_flags + ' make')
 
 
     def initialize(self):
         self.ldlib = 'LD_LIBRARY_PATH=%s/deps/libaio/lib'%(self.autodir)
+        self.results = []
 
 
-    def _run_btreplay(self, dev, devices, tmpdir, extra_args):
-        alldevs = "-d /dev/" + dev
-        alldnames = dev
-        for d in devices.split():
-            alldevs += " -d /dev/" + d
-            alldnames += " " + d
-
-        # convert the trace (assumed to be in this test's base
-        # directory) into btreplay's required format
-        utils.system("./btreplay/btrecord -d .. -D %s %s" % (tmpdir, dev))
-
-        # time a replay that omits "thinktime" between requests
-        # (by use of the -N flag)
-        utils.system(self.ldlib + " /usr/bin/time ./btreplay/btreplay -d "+\
-                tmpdir+" -N -W "+dev+" "+extra_args+" 2>&1")
-
-        # trace a replay that reproduces inter-request delays, and
-        # analyse the trace with btt to determine the average request
-        # completion latency
-        utils.system("./blktrace -D %s %s >/dev/null &" % (tmpdir, alldevs))
-        utils.system(self.ldlib + " ./btreplay/btreplay -d %s -W %s %s" %
-                                                   (tmpdir, dev, extra_args))
-        utils.system("killall -INT blktrace")
-
-        # wait until blktrace is really done
-        slept = 0.0
-        while utils.system("ps -C blktrace > /dev/null",
-                     ignore_status=True) == 0:
-            time.sleep(0.1)
-            slept += 0.1
-            if slept > 30.0:
-                utils.system("killall -9 blktrace")
-                raise error.TestError("blktrace failed to exit in 30 seconds")
-        utils.system("./blkparse -q -D %s -d %s/trace.bin -O %s >/dev/null" %
-                                                    (tmpdir, tmpdir, alldnames))
-        utils.system("./btt/btt -i %s/trace.bin" % tmpdir)
-
-    def execute(self, iterations = 1, dev="", devices="", extra_args = '',
-                                                                tmpdir = None):
+    def run_once(self, dev="", devices="", extra_args='', tmpdir=None):
         # @dev: The device against which the trace will be replayed.
         #       e.g. "sdb" or "md_d1"
         # @devices: A space-separated list of the underlying devices
@@ -78,29 +42,54 @@ class btreplay(test.test):
 
         os.chdir(self.srcdir)
 
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                self._run_btreplay(dev, devices, tmpdir, extra_args)
+        alldevs = "-d /dev/" + dev
+        alldnames = dev
+        for d in devices.split():
+            alldevs += " -d /dev/" + d
+            alldnames += " " + d
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            self._run_btreplay(dev, devices, tmpdir, extra_args)
-            profilers.stop(self)
-            profilers.report(self)
+        # convert the trace (assumed to be in this test's base
+        # directory) into btreplay's required format
+        #
+        # TODO: The test currently halts here as there is no trace in the
+        # test's base directory.
+        cmd = "./btreplay/btrecord -d .. -D %s %s" % (tmpdir, dev)
+        self.results.append(utils.system_output(cmd, retain_output=True))
 
-        self.job.stdout.filehandle.flush()
-        self.__format_results(open(self.debugdir + '/stdout').read())
+        # time a replay that omits "thinktime" between requests
+        # (by use of the -N flag)
+        cmd = self.ldlib + " /usr/bin/time ./btreplay/btreplay -d "+\
+              tmpdir+" -N -W "+dev+" "+extra_args+" 2>&1"
+        self.results.append(utils.system_output(cmd, retain_output=True))
+
+        # trace a replay that reproduces inter-request delays, and
+        # analyse the trace with btt to determine the average request
+        # completion latency
+        utils.system("./blktrace -D %s %s >/dev/null &" % (tmpdir, alldevs))
+        cmd = self.ldlib + " ./btreplay/btreplay -d %s -W %s %s" %\
+              (tmpdir, dev, extra_args)
+        self.results.append(utils.system_output(cmd, retain_output=True))
+        utils.system("killall -INT blktrace")
+
+        # wait until blktrace is really done
+        slept = 0.0
+        while utils.system("ps -C blktrace > /dev/null",
+                           ignore_status=True) == 0:
+            time.sleep(0.1)
+            slept += 0.1
+            if slept > 30.0:
+                utils.system("killall -9 blktrace")
+                raise error.TestError("blktrace failed to exit in 30 seconds")
+        utils.system("./blkparse -q -D %s -d %s/trace.bin -O %s >/dev/null" %
+                     (tmpdir, tmpdir, alldnames))
+        cmd = "./btt/btt -i %s/trace.bin" % tmpdir
+        self.results.append(utils.system_output(cmd, retain_output=True))
 
 
-    def __format_results(self, results):
-        out = open(self.resultsdir + '/keyval', 'w')
-        lines = results.split('\n')
-
-        for n in range(len(lines)):
-            if lines[n].strip() == "==================== All Devices ====================":
-                words = lines[n-2].split()
+    def postprocess(self):
+        for n in range(len(self.results)):
+            if self.results[n].strip() == "==================== All Devices ====================":
+                words = self.results[n-2].split()
                 s = words[1].strip('sytem').split(':')
                 e = words[2].strip('elapsd').split(':')
                 break
@@ -115,7 +104,7 @@ class btreplay(test.test):
             elapsed += float(e[i]) * (60**n)
 
         q2c = 0.0
-        for line in lines:
+        for line in self.results:
             words = line.split()
             if len(words) < 3:
                 continue
@@ -123,10 +112,5 @@ class btreplay(test.test):
                 q2c = float(words[2])
                 break
 
-
-        print >> out, """\
-time=%f
-systime=%f
-avg_q2c_latency=%f
-""" % (elapsed, systime, q2c)
-        out.close()
+        self.write_perf_keyval({'time':elapsed, 'systime':systime,
+                                'avg_q2c_latency':q2c})

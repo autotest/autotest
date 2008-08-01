@@ -18,12 +18,18 @@ class iperf(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-        self.server_path = "%s %%s &>/dev/null" % os.path.join(self.srcdir,
+        self.server_path = "%s %%s &" % os.path.join(self.srcdir,
                                                      'src/iperf -s -D')
         self.client_path = os.path.join(self.srcdir, 'src/iperf -c')
+        self.results = []
 
 
-    def execute(self, server_ip, client_ip, role, args=''):
+    def run_once(self, server_ip, client_ip, role, udp=False,
+                 bidirectional=False):
+        self.role = role
+        self.udp = udp
+        self.bidirectional = bidirectional
+
         server_tag = server_ip + '#iperf-server'
         client_tag = client_ip + '#iperf-client'
         all = [server_tag, client_tag]
@@ -31,7 +37,7 @@ class iperf(test.test):
         job = self.job
         if role == 'server':
             # Start server and synchronize on server-up
-            self.server_start(args)
+            self.server_start()
             try:
                 job.barrier(server_tag, 'server-up', 120).rendevous(*all)
 
@@ -43,7 +49,7 @@ class iperf(test.test):
         elif role == 'client':
             # Wait for server to start then run test
             job.barrier(client_tag, 'server-up', 120).rendevous(*all)
-            self.client(server_ip, args)
+            self.client(server_ip)
 
             # Tell the server the client is done
             job.barrier(client_tag, 'client-done',  120).rendevous(*all)
@@ -51,21 +57,33 @@ class iperf(test.test):
             raise error.TestError('invalid role specified')
 
 
-    def server_start(self, args):
+    def server_start(self):
         # we should really record the pid we forked off, but there
         # was no obvious way to run the daemon in the foreground.
         # Hacked it for now
 
-        utils.system('killall iperf', ignore_status=True)
-        print self.server_path % args
-        utils.system(self.server_path % args)
+        args = ''
+        if self.udp:
+            args += '-u'
+
+        utils.system('killall -9 iperf', ignore_status=True)
+        self.results.append(utils.system_output(self.server_path % args))
 
 
     def server_stop(self):
         # this should really just kill the pid I forked, but ...
-        utils.system('killall iperf')
+        utils.system('killall -9 iperf')
 
 
-    def client(self, server_ip, args):
-        # run some client stuff
-        utils.system('%s %s %s' % (self.client_path, server_ip, args))
+    def client(self, server_ip):
+        cmd = '%s %s' % (self.client_path, server_ip)
+        if self.udp:
+            cmd += ' -u'
+        if self.bidirectional:
+            cmd += ' -d'
+        self.results.append(utils.system_output(cmd))
+
+    def postprocess(self):
+        # TODO: Actually process the results
+        if self.role == 'client':
+            self.write_perf_keyval({'output':self.results})
