@@ -564,8 +564,8 @@ class SSHHost(remote.RemoteHost):
 
         print '__copy_files: copying %s to %s' % (sources, dest)
         try:
-            utils.run('rsync --rsh="%s" -az %s %s' % (
-                self.ssh_base_command(), ' '.join(sources), dest))
+            utils.run('rsync --rsh="%s -p %d" -az %s %s' % (
+                self.ssh_base_command(), self.port, ' '.join(sources), dest))
         except Exception:
             try:
                 utils.run('scp -rpq -P %d %s "%s"' % (
