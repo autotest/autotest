@@ -27,6 +27,9 @@ def convert_size(values):
 class bonnie(test.test):
     version = 1
 
+    def initialize(self):
+        self.results = []
+
     # http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
     def setup(self, tarball = 'bonnie++-1.03a.tgz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -37,62 +40,38 @@ class bonnie(test.test):
         utils.system('./configure')
         utils.system('make')
 
-    def execute(self, testdir = None, iterations = 1, extra_args = '', user = 'root'):
+
+    def run_once(self, testdir=None, extra_args='', user='root'):
         if not testdir:
             testdir = self.tmpdir
 
         args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
         cmd = self.srcdir + '/bonnie++ ' + args
-        results = []
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                results.append(utils.system_output(cmd, retain_output=True))
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            results.append(utils.system_output(cmd, retain_output=True))
-            profilers.stop(self)
-            profilers.report(self)
+        self.results.append(utils.system_output(cmd, retain_output=True))
 
-        self.__format_results("\n".join(results))
 
-    def __format_results(self, results):
+    def postprocess(self):
         strip_plus = lambda s: re.sub(r"^\++$", "0", s)
-        out = open(self.resultsdir + '/keyval', 'w')
-        for line in results.split('\n'):
-            if len([c for c in line if c == ',']) != 26:
+
+        keys = ('size', 'chnk', 'seqout_perchr_ksec',
+                'seqout_perchr_pctcp', 'seqout_perblk_ksec',
+                'seqout_perblk_pctcp', 'seqout_rewrite_ksec',
+                'seqout_rewrite_pctcp', 'seqin_perchr_ksec',
+                'seqin_perchr_pctcp', 'seqin_perblk_ksec',
+                'seqin_perblk_pctcp', 'rand_ksec', 'rand_pctcp', 'files',
+                'seqcreate_create_ksec', 'seqcreate_create_pctcp',
+                'seqcreate_read_ksec', 'seqcreate_read_pctcp',
+                'seqcreate_delete_ksec', 'seqcreate_delete_pctcp',
+                'randreate_create_ksec', 'randcreate_create_pctcp',
+                'randcreate_read_ksec', 'randcreate_read_pctcp',
+                'randcreate_delete_ksec', 'randcreate_delete_pctcp')
+
+        for line in self.results:
+            if line.count(',') != 26:
                 continue
-            fields = tuple(line.split(','))
+            fields = line.split(',')
             fields = [strip_plus(f) for f in fields]
-            fields = tuple(convert_size(fields[1]) + fields[2:])
-            print >> out, """size=%s
-chnk=%s
-seqout_perchr_ksec=%s
-seqout_perchr_pctcp=%s
-seqout_perblk_ksec=%s
-seqout_perblk_pctcp=%s
-seqout_rewrite_ksec=%s
-seqout_rewrite_pctcp=%s
-seqin_perchr_ksec=%s
-seqin_perchr_pctcp=%s
-seqin_perblk_ksec=%s
-seqin_perblk_pctcp=%s
-rand_ksec=%s
-rand_pctcp=%s
-files=%s
-seqcreate_create_ksec=%s
-seqcreate_create_pctcp=%s
-seqcreate_read_ksec=%s
-seqcreate_read_pctcp=%s
-seqcreate_delete_ksec=%s
-seqcreate_delete_pctcp=%s
-randreate_create_ksec=%s
-randcreate_create_pctcp=%s
-randcreate_read_ksec=%s
-randcreate_read_pctcp=%s
-randcreate_delete_ksec=%s
-randcreate_delete_pctcp=%s
-""" % fields
-        out.close()
+            fields = convert_size(fields[1]) + fields[2:]
+
+            self.write_perf_keyval(dict(zip(keys,fields)))

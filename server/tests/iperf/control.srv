@@ -8,7 +8,15 @@ DOC = """
 Iperf is a 2 machine test (server/client) that measures maximum TCP and UDP
 bandwidth performace.
 
-TODO: List possible arguments for iperf
+Arguments to run_test:
+
+server_ip     - the ip of the server (automatically filled in)
+client_ip     - the ip of the client (automatically filled in)
+role          - specifies either client or server (automatically filled in)
+udp           - [False/True] specifies if a UDP test should be run. Defaults to
+                TCP if unspecified.
+bidirectional - [False/True] specifies if a bidirectional test should be run.
+                Defaults to False
 """
 
 from autotest_lib.server import utils
@@ -23,7 +31,7 @@ def run(pair):
     server_at = autotest.Autotest(server)
     client_at = autotest.Autotest(client)
 
-    template = "job.run_test('iperf', server_ip='%s', client_ip='%s', role='%s')"
+    template = "job.run_test('iperf', server_ip='%s', client_ip='%s', role='%s', udp=False, bidirectional=False)"
 
     server_control_file = template % (server.ip, client.ip, 'server')
     client_control_file = template % (server.ip, client.ip, 'client')
