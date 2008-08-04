@@ -566,7 +566,9 @@ class SSHHost(remote.RemoteHost):
         try:
             utils.run('rsync --rsh="%s -p %d" -az %s %s' % (
                 self.ssh_base_command(), self.port, ' '.join(sources), dest))
-        except Exception:
+        except Exception, e:
+            print "warning: rsync failed with: %s" % e
+            print "attempting to copy with scp instead"
             try:
                 utils.run('scp -rpq -P %d %s "%s"' % (
                     self.port, ' '.join(sources), dest))
