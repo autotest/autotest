@@ -534,7 +534,8 @@ def get_static_data():
     result['job_timeout_default'] = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default')
 
-    result['status_dictionary'] = {"Aborted": "Aborted",
+    result['status_dictionary'] = {"Abort": "Abort",
+                                   "Aborted": "Aborted",
                                    "Verifying": "Verifying Host",
                                    "Pending": "Waiting on other hosts",
                                    "Running": "Running autoserv",
