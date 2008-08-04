@@ -497,6 +497,14 @@ def get_hqe_percentage_complete(**filter_data):
 
 # other
 
+def echo(data=""):
+    """\
+    Returns a passed in string. For doing a basic test to see if RPC calls
+    can successfully be made.
+    """
+    return data
+
+
 def get_static_data():
     """\
     Returns a dictionary containing a bunch of data that shouldn't change
