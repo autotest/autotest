@@ -24,6 +24,13 @@
 ...                                          'doctests')
 >>> test_path = os.path.abspath(test_path)
 
+# basic interface test
+######################
+
+# echo a comment
+>>> rpc_interface.echo('test string to echo')
+'test string to echo'
+
 # basic object management
 # #######################
 
