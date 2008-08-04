@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class spew(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # ftp://ftp.berlios.de/pub/spew/1.0.5/spew-1.0.5.tgz
     def setup(self, tarball = 'spew-1.0.5.tgz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class tbench(test.test):
     version = 2
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
     def setup(self, tarball = 'dbench-3.04.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -14,6 +18,7 @@ class tbench(test.test):
 
         utils.system('./configure')
         utils.system('make')
+
 
     def execute(self, iterations = 1, nprocs = None, args = ''):
         # only supports combined server+client model at the moment

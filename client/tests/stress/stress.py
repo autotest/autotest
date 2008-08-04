@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class stress(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://weather.ou.edu/~apw/projects/stress/stress-0.18.8.tar.gz
     def setup(self, tarball = 'stress-0.18.8.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

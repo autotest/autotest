@@ -12,9 +12,6 @@ class test(common_test.base_test):
     pass
 
 
-testname = common_test.testname
-
-
 def runtest(job, url, tag, args, dargs):
     common_test.runtest(job, url, tag, args, dargs,
                         locals(), globals())

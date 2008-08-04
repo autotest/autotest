@@ -8,6 +8,9 @@ class iosched_bugs(test.test):
     version = 1
     preserve_srcdir = True
 
+    def initialize(self):
+        self.job.require_gcc()
+
 
     def setup(self):
         os.chdir(self.srcdir)

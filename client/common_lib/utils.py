@@ -463,6 +463,20 @@ def get_sync_control_file(control, host_name, host_num,
     return "\n".join(control_new)
 
 
+def get_arch(run_function=run):
+    """
+    Get the hardware architecture of the machine.
+    run_function is used to execute the commands. It defaults to
+    utils.run() but a custom method (if provided) should be of the
+    same schema as utils.run. It should return a CmdResult object and
+    throw a CmdError exception.
+    """
+    arch = run_function('/bin/uname -m').stdout.rstrip()
+    if re.match(r'i\d86$', arch):
+        arch = 'i386'
+    return arch
+
+
 class CmdResult(object):
     """
     Command execution result.

@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils, error
 class unixbench(test.test):
     version = 2
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
     def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

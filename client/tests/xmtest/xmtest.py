@@ -11,6 +11,10 @@ from autotest_lib.client.common_lib import utils
 class xmtest(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # This test expects just the xm-test directory, as a tarball
     # from the Xen source tree
     # hg clone http://xenbits.xensource.com/xen-unstable.hg
@@ -25,6 +29,7 @@ class xmtest(test.test):
         utils.system('./autogen')
         utils.system('./configure')
         utils.system('make existing')
+
 
     def execute(self, args = ''):
         os.chdir(self.srcdir)

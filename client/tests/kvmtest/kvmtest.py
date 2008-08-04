@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils, error
 class kvmtest(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def setup(self, tarball = 'kvm-test.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)

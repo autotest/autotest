@@ -7,6 +7,10 @@ from autotest_lib.client.common_lib import utils
 class fsstress(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

@@ -25,6 +25,7 @@ class btreplay(test.test):
 
 
     def initialize(self):
+        self.job.require_gcc()
         self.ldlib = 'LD_LIBRARY_PATH=%s/deps/libaio/lib'%(self.autodir)
         self.results = []
 

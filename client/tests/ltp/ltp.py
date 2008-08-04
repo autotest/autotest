@@ -5,6 +5,10 @@ from autotest_lib.client.common_lib import utils, error
 class ltp(test.test):
     version = 4
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
     def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

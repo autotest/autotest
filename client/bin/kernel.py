@@ -4,7 +4,7 @@ import os, shutil, copy, pickle, re, glob, time
 from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
 from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import logging, utils, error
+from autotest_lib.client.common_lib import logging, utils, error, packages
 
 
 class kernel(object):
@@ -720,13 +720,27 @@ except ImportError:
     def preprocess_path(path):
         return path
 
+
 def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     """\
     Create a kernel object, dynamically selecting the appropriate class to use
     based on the path provided.
     """
-    path = preprocess_path(path)
-    if path.endswith('.rpm'):
-        return rpm_kernel(job, path, subdir)
+    kernel_path = preprocess_path(path)
+    if kernel_path.endswith('.rpm'):
+        # Fetch the rpm into the job's packages directory and pass it to
+        # rpm_kernel
+        rpm_name = os.path.basename(kernel_path)
+
+        # If the preprocessed path (kernel_path) is only a name then
+        # search for the kernel in all the repositories, else fetch the kernel
+        # from that specific path.
+        job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
+                             repo_url=os.path.dirname(kernel_path))
+
+        # TODO: rpm accepts http paths directly. It might be an optimization
+        # to pass in the http path directly to it. Fetching the file locally
+        # though.
+        return rpm_kernel(job, os.path.join(job.pkgdir, rpm_name), subdir)
     else:
-        return kernel(job, path, subdir, tmp_dir, build_dir, leave)
+        return kernel(job,kernel_path, subdir, tmp_dir, build_dir, leave)

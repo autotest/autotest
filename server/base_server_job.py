@@ -17,7 +17,7 @@ from autotest_lib.client.bin import fd_stack
 from autotest_lib.client.common_lib import error, logging
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, packages
 
 
 # load up a control segment
@@ -208,6 +208,9 @@ class base_server_job:
             self.init_parser(resultdir)
         else:
             self.using_parser = False
+        self.pkgmgr = packages.PackageManager(
+            self.autodir, run_function_dargs={'timeout':600})
+        self.pkgdir = os.path.join(self.autodir, 'packages')
 
 
     def init_parser(self, resultdir):
@@ -390,7 +393,7 @@ class base_server_job:
                 url of the test to run
         """
 
-        (group, testname) = test.testname(url)
+        (group, testname) = self.pkgmgr.get_package_name(url, 'test')
         tag = None
         subdir = testname
 

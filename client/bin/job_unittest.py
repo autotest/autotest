@@ -5,7 +5,7 @@ import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
 from autotest_lib.client.bin import test, xen, kernel, autotest_utils, cpuset
-from autotest_lib.client.common_lib import utils, error, logging
+from autotest_lib.client.common_lib import packages, utils, error, logging
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -70,12 +70,15 @@ class TestBaseJob(unittest.TestCase):
         download = os.path.join(self.autodir, 'tests', 'download')
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
         sysinfodir = os.path.join(resultdir, 'sysinfo')
+        pkgdir = os.path.join(self.autodir, 'packages')
 
         # record
         self.job._load_state.expect_call()
         if not cont:
             os.path.exists.expect_call(tmpdir).and_return(False)
             os.mkdir.expect_call(tmpdir)
+            os.path.exists.expect_call(pkgdir).and_return(False)
+            os.mkdir.expect_call(pkgdir)
             os.path.exists.expect_call(results).and_return(False)
             os.mkdir.expect_call(results)
             os.path.exists.expect_call(download).and_return(False)
@@ -259,16 +262,20 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(self.job, "setup_dirs")
         self.god.stub_class(kernel, "rpm_kernel")
         self.god.stub_function(kernel, "preprocess_path")
+        self.god.stub_function(self.job.pkgmgr, "fetch_pkg")
         results = 'results_dir'
         tmp = 'tmp'
         build = 'xen'
         path = "somepath.rpm"
+        packages_dir = os.path.join("autodir/packages", path)
 
         # record
         self.job.setup_dirs.expect_call(results,
                                         tmp).and_return((results, tmp))
         kernel.preprocess_path.expect_call(path).and_return(path)
-        mykernel = kernel.rpm_kernel.expect_new(self.job, path, results)
+        self.job.pkgmgr.fetch_pkg.expect_call(path, packages_dir, repo_url='')
+        mykernel = kernel.rpm_kernel.expect_new(self.job, packages_dir,
+                                                results)
 
         # check
         akernel = self.job.kernel(path, results, tmp)
@@ -305,7 +312,7 @@ class TestBaseJob(unittest.TestCase):
         self.construct_job(True)
 
         # set up stubs
-        self.god.stub_function(test, "testname")
+        self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(self.job, "_runtest")
 
         # create an unhandled error object
@@ -317,7 +324,8 @@ class TestBaseJob(unittest.TestCase):
         # set up the recording
         testname = "error_test"
         outputdir = os.path.join(self.job.resultdir, testname)
-        test.testname.expect_call(testname).and_return(("", testname))
+        self.job.pkgmgr.get_package_name.expect_call(
+            testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
         self.job.record.expect_call("START", testname, testname)
@@ -339,7 +347,7 @@ class TestBaseJob(unittest.TestCase):
         self.construct_job(True)
 
         # set up stubs
-        self.god.stub_function(test, "testname")
+        self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(self.job, "_runtest")
 
         # create an unhandled error object
@@ -352,7 +360,8 @@ class TestBaseJob(unittest.TestCase):
         # set up the recording
         testname = "error_test"
         outputdir = os.path.join(self.job.resultdir, testname)
-        test.testname.expect_call(testname).and_return(("", testname))
+        self.job.pkgmgr.get_package_name.expect_call(
+            testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
         self.job.record.expect_call("START", testname, testname)
