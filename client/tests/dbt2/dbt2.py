@@ -9,6 +9,10 @@ from autotest_lib.client.common_lib import utils
 class dbt2(test.test):
     version = 2
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://osdn.dl.sourceforge.net/sourceforge/osdldbt/dbt2-0.39.tar.gz
     def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -40,6 +44,7 @@ class dbt2(test.test):
         utils.system('ln -s %s %s' %
                      (self.resultsdir, self.srcdir + '.pgsql/scripts/output'))
 
+
     def execute(self, db_type, args = ''):
         logfile = self.resultsdir + '/dbt2.log'
 
@@ -50,10 +55,12 @@ class dbt2(test.test):
         elif (db_type == "pgsql"):
             self.execute_pgsql(args)
 
+
     def execute_mysql(self, args = ''):
         args = args
         utils.system(self.srcdir + '.mysql/scripts/mysql/build_db.sh -g -w 1')
         utils.system(self.srcdir + '.mysql/scripts/run_workload.sh ' + args)
+
 
     def execute_pgpool(self, args = ''):
         utils.system('%s/deps/pgpool/pgpool/bin/pgpool -f %s/../pgpool.conf' \

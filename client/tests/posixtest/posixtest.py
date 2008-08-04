@@ -9,6 +9,11 @@ __author__ = '''mohd.omar@in.ibm.com (Mohammed Omar)'''
 
 class posixtest(test.test):
     version = 1
+
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://ufpr.dl.sourceforge.net/sourceforge/posixtest/posixtestsuite-1.5.2.tar.gz
     def setup(self, tarball = 'posixtestsuite-1.5.2.tar.gz'):
         self.posix_tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

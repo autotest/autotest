@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class fs_mark(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://developer.osdl.org/dev/doubt/fs_mark/archive/fs_mark-3.2.tgz
     def setup(self, tarball = 'fs_mark-3.2.tgz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -13,6 +17,7 @@ class fs_mark(test.test):
         os.chdir(self.srcdir)
 
         utils.system('make')
+
 
     def execute(self, dir, iterations = 2, args = None):
         os.chdir(self.srcdir)

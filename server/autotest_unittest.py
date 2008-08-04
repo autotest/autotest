@@ -92,10 +92,12 @@ class TestBaseAutotest(unittest.TestCase):
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
         pkgmgr = packages.PackageManager.expect_new('autodir',
-            repo_urls='repos', run_function=self.host.run,
+            repo_urls='repos', do_locking=False, run_function=self.host.run,
             run_function_dargs=dict(timeout=600))
         pkg_dir = os.path.join('autodir', 'packages')
-        self.host.run.expect_call('ls | grep -v packages | xargs rm -rf')
+        cmd = ('cd autodir && ls | grep -v "^packages$"'
+               ' | xargs rm -rf && rm -rf .[^.]*')
+        self.host.run.expect_call(cmd)
         pkgmgr.install_pkg.expect_call('autotest', 'client', pkg_dir,
                                        'autodir', preserve_install_dir=True)
 

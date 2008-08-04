@@ -4,6 +4,7 @@ import unittest, os, time
 import common
 from autotest_lib.server import base_server_job, test, subcommand
 from autotest_lib.client.common_lib import utils, error, host_protections
+from autotest_lib.client.common_lib import packages
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko.parsers import version_1 as parser_mod
@@ -215,7 +216,7 @@ class BaseServerJobTest(unittest.TestCase):
         self.construct_server_job()
 
         # setup
-        self.god.stub_function(test, 'testname')
+        self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
         self.god.stub_function(self.job, 'record')
 
@@ -223,7 +224,8 @@ class BaseServerJobTest(unittest.TestCase):
         url = "my.test.url"
         group = "group"
         testname = "testname"
-        test.testname.expect_call(url).and_return((group, testname))
+        self.job.pkgmgr.get_package_name.expect_call(
+            url, 'test').and_return((group, testname))
         outputdir = os.path.join(self.resultdir, testname)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
@@ -242,7 +244,7 @@ class BaseServerJobTest(unittest.TestCase):
         self.construct_server_job()
 
         # setup
-        self.god.stub_function(test, 'testname')
+        self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
         self.god.stub_function(self.job, 'record')
 
@@ -251,7 +253,8 @@ class BaseServerJobTest(unittest.TestCase):
         group = "group"
         testname = "testname"
         e = error.TestError("Unexpected error")
-        test.testname.expect_call(url).and_return((group, testname))
+        self.job.pkgmgr.get_package_name.expect_call(
+            url, 'test').and_return((group, testname))
         outputdir = os.path.join(self.resultdir, testname)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
@@ -271,7 +274,7 @@ class BaseServerJobTest(unittest.TestCase):
         self.construct_server_job()
 
         # setup
-        self.god.stub_function(test, 'testname')
+        self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
         self.god.stub_function(self.job, 'record')
 
@@ -280,7 +283,8 @@ class BaseServerJobTest(unittest.TestCase):
         group = "group"
         testname = "testname"
         e = error.TestFail("The test failed!")
-        test.testname.expect_call(url).and_return((group, testname))
+        self.job.pkgmgr.get_package_name.expect_call(
+            url, 'test').and_return((group, testname))
         outputdir = os.path.join(self.resultdir, testname)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)

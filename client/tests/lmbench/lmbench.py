@@ -7,6 +7,10 @@ from autotest_lib.client.common_lib import utils
 class lmbench(test.test):
     version = 2
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def setup(self, tarball = 'lmbench3.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         # http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz

@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class interbench(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://www.kernel.org/pub/linux/kernel/people/ck/apps/interbench/interbench-0.30.tar.bz2
     def setup(self, tarball = 'interbench-0.30.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -13,6 +17,7 @@ class interbench(test.test):
         os.chdir(self.srcdir)
 
         utils.system('make')
+
 
     def execute(self, iterations = 1, args = ''):
         os.chdir(self.tmpdir)

@@ -7,6 +7,10 @@ from autotest_lib.client.common_lib import utils
 class iozone(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://www.iozone.org/src/current/iozone3_283.tar
     def setup(self, tarball = 'iozone3_283.tar'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

@@ -5,6 +5,9 @@ from autotest_lib.client.common_lib import utils, error
 class libhugetlbfs(test.test):
     version = 4
 
+    def initialize(self):
+        self.job.require_gcc()
+
     # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
     def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -17,6 +20,7 @@ class libhugetlbfs(test.test):
             utils.system('make')
         except:
             utils.system('make OBJDIRS=obj64')
+
 
     def execute(self, dir = None, pages_requested = 20):
         autotest_utils.check_kernel_ver("2.6.16")

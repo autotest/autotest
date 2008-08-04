@@ -29,9 +29,6 @@ class test(common_test.base_test):
     pass
 
 
-testname = common_test.testname
-
-
 def _grab_sysinfo(mytest):
     try:
         sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')

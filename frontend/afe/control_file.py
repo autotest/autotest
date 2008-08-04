@@ -86,6 +86,10 @@ def format_step(item, lines):
 
 def get_tests_stanza(tests, is_server, prepend=[], append=[]):
     raw_control_files = [read_control_file(test) for test in tests]
+    return _get_tests_stanza(raw_control_files, is_server, prepend, append)
+
+
+def _get_tests_stanza(raw_control_files, is_server, prepend, append):
     if is_server:
         return '\n'.join(raw_control_files)
     raw_steps = prepend + [add_boilerplate_to_nested_steps(step)

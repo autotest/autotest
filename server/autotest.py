@@ -18,7 +18,7 @@ import re, os, sys, traceback, subprocess, tempfile, shutil, time
 
 from autotest_lib.server import installable_object, utils, server_job
 from autotest_lib.client.common_lib import logging
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, global_config, packages
 
 
 
@@ -94,10 +94,31 @@ class BaseAutotest(installable_object.InstallableObject):
 
         host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
-        if getattr(host, 'site_install_autotest', None):
-            if host.site_install_autotest():
-                self.installed = True
-                return
+        # Fetch the autotest client from the nearest repository
+        try:
+            c = global_config.global_config
+            repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+            pkgmgr = packages.PackageManager(
+                autodir, repo_urls=repos, do_locking=False,
+                run_function=host.run,
+                run_function_dargs=dict(timeout=600))
+            # The packages dir is used to store all the packages that
+            # are fetched on that client. (for the tests,deps etc.
+            # too apart from the client)
+            pkg_dir = os.path.join(autodir, 'packages')
+            # clean up the autodir except for the packages directory
+            host.run('cd %s && ls | grep -v "^packages$"'
+                     ' | xargs rm -rf && rm -rf .[^.]*' % autodir)
+            pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
+                               preserve_install_dir=True)
+            self.installed = True
+            return
+        except global_config.ConfigError, e:
+            print ("Could not install autotest using the"
+                   " packaging system %s" %  e)
+        except (packages.PackageInstallError, error.AutoservRunError), e:
+            print "Could not install autotest from %s : %s " % (repos, e)
+
 
         # try to install from file or directory
         if self.source_material:
@@ -249,8 +270,29 @@ class BaseAutotest(installable_object.InstallableObject):
                         atrun.manual_control_file + '.state']:
             host.run('rm -f ' + control)
 
-        # Copy control_file to remote_control_file on the host
         tmppath = utils.get(control_file)
+
+        # Insert the job.add_repository() lines in the control file
+        # if there are any repos defined in global_config.ini
+        try:
+            cfile = open(tmppath, 'r')
+            cfile_orig = cfile.read()
+            cfile.close()
+            c = global_config.global_config
+            repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+            control_file_new = []
+            control_file_new.append('job.add_repository(%s)\n' % repos)
+            control_file_new.append(cfile_orig)
+
+            # Overwrite the control file with the new one
+            cfile = open(tmppath, 'w')
+            cfile.write('\n'.join(control_file_new))
+            cfile.close()
+        except global_config.ConfigError, e:
+            pass
+
+
+        # Copy control_file to remote_control_file on the host
         host.send_file(tmppath, atrun.remote_control_file)
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
             os.remove(tmppath)

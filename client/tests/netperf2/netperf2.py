@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils, error
 class netperf2(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # ftp://ftp.netperf.org/netperf/netperf-2.4.1.tar.gz
     def setup(self, tarball = 'netperf-2.4.1.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
