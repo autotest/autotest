@@ -10,7 +10,9 @@ class isic(test.test):
     # + http://www.stardust.webpages.pl/files/crap/isic-gcc41-fix.patch
 
     def initialize(self):
+        self.job.require_gcc()
         self.job.setup_dep(['libnet'])
+
 
     def setup(self, tarball = 'isic-0.06.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

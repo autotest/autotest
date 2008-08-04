@@ -8,10 +8,14 @@ class cyclictest(test.test):
     preserve_srcdir = True
 
     # git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
+    def initialize(self):
+        self.job.require_gcc()
+
 
     def setup(self):
         os.chdir(self.srcdir)
         utils.system('make')
+
 
     def execute(self, args = '-t 10 -l 100000'):
         utils.system(self.srcdir + '/cyclictest ' + args)

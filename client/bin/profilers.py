@@ -1,6 +1,6 @@
 import os, sys
 import common
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import error, utils, packages
 
 class profilers:
 
@@ -13,13 +13,27 @@ class profilers:
 
     # add a profiler
     def add(self, profiler, *args, **dargs):
+        prof_dir = os.path.join(self.profdir, profiler)
+
+        try:
+            self.job.install_pkg(profiler, 'prof', prof_dir)
+        except packages.PackageInstallError:
+            pass
+
+        # prof_dir might not be present locally in the case where it is not
+        # fetched from the repositoryr
+        if not os.path.exists(prof_dir):
+            raise error.JobError('profiler %s not present' % profiler)
+
         profiler_module = common.setup_modules.import_module(profiler,
                                                              'autotest_lib.client.profilers.%s' % profiler)
         newprofiler = getattr(profiler_module, profiler)(self)
+
+
         newprofiler.name = profiler
-        newprofiler.bindir = self.profdir + '/' + profiler
-        newprofiler.srcdir = newprofiler.bindir + '/src'
-        newprofiler.tmpdir = self.tmpdir + '/' + profiler
+        newprofiler.bindir = os.path.join(self.profdir, profiler)
+        newprofiler.srcdir = os.path.join(newprofiler.bindir, 'src')
+        newprofiler.tmpdir = os.path.join(self.tmpdir, profiler)
         utils.update_version(newprofiler.srcdir, newprofiler.preserve_srcdir,
                              newprofiler.version, newprofiler.setup,
                              *args, **dargs)

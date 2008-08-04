@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils, error
 class sysbench(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
     def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)

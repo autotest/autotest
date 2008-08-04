@@ -12,5 +12,9 @@ class tsc(test.test):
         utils.system('make')
 
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def run_once(self, args = ''):
         utils.system(self.srcdir + '/checktsc ' + args)

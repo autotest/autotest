@@ -102,6 +102,10 @@ class InconsistencyException(Exception):
 
 
 def get_consistent_value(objects, field):
+    if not objects:
+        # well a list of nothing is consistent
+        return None
+
     value = getattr(objects[0], field)
     for obj in objects:
         this_value = getattr(obj, field)

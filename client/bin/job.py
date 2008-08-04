@@ -13,6 +13,7 @@ from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
 from autotest_lib.client.common_lib import error, barrier, logging, utils
+from autotest_lib.client.common_lib import packages
 
 JOB_PREAMBLE = """
 from autotest_lib.client.common_lib.error import *
@@ -21,6 +22,9 @@ from autotest_lib.client.bin.autotest_utils import *
 """
 
 class StepError(error.AutotestError):
+    pass
+
+class NotAvailableError(error.AutotestError):
     pass
 
 
@@ -43,6 +47,8 @@ class base_job(object):
                     <autodir>/profilers/
             tmpdir
                     <autodir>/tmp/
+            pkgdir
+                    <autodir>/packages/
             resultdir
                     <autodir>/results/<jobtag>
             stdout
@@ -85,6 +91,9 @@ class base_job(object):
         self.current_step_ancestry = []
         self.next_step_index = 0
         self._load_state()
+        self.pkgmgr = packages.PackageManager(
+            self.autodir, run_function_dargs={'timeout':600})
+        self.pkgdir = os.path.join(self.autodir, 'packages')
 
         if not cont:
             """
@@ -96,6 +105,9 @@ class base_job(object):
             """
             if not os.path.exists(self.tmpdir):
                 os.mkdir(self.tmpdir)
+
+            if not os.path.exists(self.pkgdir):
+                os.mkdir(self.pkgdir)
 
             results = os.path.join(self.autodir, 'results')
             if not os.path.exists(results):
@@ -226,7 +238,8 @@ class base_job(object):
         """Summon a xen object"""
         (results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
         build_dir = 'xen'
-        return xen.xen(self, base_tree, results_dir, tmp_dir, build_dir, leave, kjob)
+        return xen.xen(self, base_tree, results_dir, tmp_dir, build_dir,
+                       leave, kjob)
 
 
     def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
@@ -242,17 +255,83 @@ class base_job(object):
         return barrier.barrier(*args, **kwds)
 
 
+    def install_pkg(self, name, pkg_type, install_dir):
+        '''
+        This method is a simple wrapper around the actual package
+        installation method in the Packager class. This is used
+        internally by the profilers, deps and tests code.
+        name : name of the package (ex: sleeptest, dbench etc.)
+        pkg_type : Type of the package (ex: test, dep etc.)
+        install_dir : The directory in which the source is actually
+                      untarred into. (ex: client/profilers/<name> for profilers)
+        '''
+        if len(self.pkgmgr.repo_urls) > 0:
+            self.pkgmgr.install_pkg(name, pkg_type,
+                                    self.pkgdir, install_dir)
+
+
+    def add_repository(self, repo_urls):
+        '''
+        Adds the repository locations to the job so that packages
+        can be fetched from them when needed. The repository list
+        needs to be a string list
+        Ex: job.add_repository(['http://blah1','http://blah2'])
+        '''
+        # TODO(aganti): Validate the list of the repository URLs.
+        repositories = repo_urls + self.pkgmgr.repo_urls
+        self.pkgmgr = packages.PackageManager(
+            self.autodir, repo_urls=repositories,
+            run_function_dargs={'timeout':600})
+        # Fetch the packages' checksum file that contains the checksums
+        # of all the packages if it is not already fetched. The checksum
+        # is always fetched whenever a job is first started. This
+        # is not done in the job's constructor as we don't have the list of
+        # the repositories there (and obviously don't care about this file
+        # if we are not using the repos)
+        try:
+            checksum_file_path = os.path.join(self.pkgmgr.pkgmgr_dir,
+                                              packages.CHECKSUM_FILE)
+            self.pkgmgr.fetch_pkg(packages.CHECKSUM_FILE, checksum_file_path,
+                                  use_checksum=False)
+        except packages.PackageFetchError, e:
+            # packaging system might not be working in this case
+            # Silently fall back to the normal case
+            pass
+
+
+    def require_gcc(self):
+        """
+        Test whether gcc is installed on the machine.
+        """
+        # check if gcc is installed on the system.
+        try:
+            utils.system('which gcc')
+        except error.CmdError, e:
+            raise NotAvailableError('gcc is required by this job and is '
+                                    'not available on the system')
+
+
     def setup_dep(self, deps):
         """Set up the dependencies for this test.
-
         deps is a list of libraries required for this test.
         """
+        # Fetch the deps from the repositories and set them up.
         for dep in deps:
+            dep_dir = os.path.join(self.autodir, 'deps', dep)
+            # Search for the dependency in the repositories if specified,
+            # else check locally.
             try:
-                os.chdir(os.path.join(self.autodir, 'deps', dep))
-                utils.system('./' + dep + '.py')
-            except Exception, e:
-                raise error.UnhandledTestError(e)
+                self.install_pkg(dep, 'dep', dep_dir)
+            except packages.PackageInstallError:
+                # see if the dep is there locally
+                pass
+
+            # dep_dir might not exist if it is not fetched from the repos
+            if not os.path.exists(dep_dir):
+                raise error.TestError("Dependency %s does not exist" % dep)
+
+            os.chdir(dep_dir)
+            utils.system('./' + dep + '.py')
 
 
     def _runtest(self, url, tag, args, dargs):
@@ -278,7 +357,7 @@ class base_job(object):
         if not url:
             raise TypeError("Test name is invalid. "
                             "Switched arguments?")
-        (group, testname) = test.testname(url)
+        (group, testname) = self.pkgmgr.get_package_name(url, 'test')
         namelen = len(testname)
         dargs = dargs.copy()
         tntag = dargs.pop('tag', None)

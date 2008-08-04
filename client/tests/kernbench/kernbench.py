@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class kernbench(test.test):
     version = 2
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def setup(self, build_dir = None):
         if not build_dir:
             build_dir = self.srcdir

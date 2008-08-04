@@ -6,6 +6,10 @@ from autotest_lib.client.common_lib import utils
 class fsfuzzer(test.test):
     version = 1
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     # http://people.redhat.com/sgrubb/files/fsfuzzer-0.6.tar.gz
     def setup(self, tarball = 'fsfuzzer-0.6.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
@@ -13,6 +17,7 @@ class fsfuzzer(test.test):
         os.chdir(self.srcdir)
 
         utils.system('make')
+
 
     def execute(self, iterations = 1, fstype = 'iso9660'):
         profilers = self.job.profilers

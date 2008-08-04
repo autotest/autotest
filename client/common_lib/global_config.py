@@ -102,6 +102,8 @@ class global_config(object):
                 return 0
             elif type == float:
                 return 0.0
+            elif type == list:
+                return []
             else:
                 return None
 
@@ -110,6 +112,10 @@ class global_config(object):
                 return False
             else:
                 return True
+
+        if type == list:
+            # Split the string using ',' and return a list
+            return [val.strip() for val in sval.split(',')]
 
         try:
             conv_val = type(sval)

@@ -18,10 +18,12 @@ class aio_dio_bugs(test.test):
     preserve_srcdir = True
 
     def initialize(self):
+        self.job.require_gcc()
         self.job.setup_dep(['libaio'])
         ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
         cflags = '-I ' + self.autodir + '/deps/libaio/include'
         self.gcc_flags = ldflags + ' ' + cflags
+
 
     def setup(self):
         os.chdir(self.srcdir)

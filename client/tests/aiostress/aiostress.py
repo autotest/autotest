@@ -12,6 +12,7 @@ class aiostress(test.test):
     version = 2
 
     def initialize(self):
+        self.job.require_gcc()
         self.job.setup_dep(['libaio'])
         ldflags = '-L ' + self.autodir + '/deps/libaio/lib'
         cflags = '-I ' + self.autodir + '/deps/libaio/include'

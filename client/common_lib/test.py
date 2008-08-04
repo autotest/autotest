@@ -18,7 +18,8 @@
 
 import os, sys, re, fcntl, shutil, tarfile, warnings
 
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import error, utils, packages
+from autotest_lib.client.bin import autotest_utils
 
 
 class base_test:
@@ -146,11 +147,17 @@ class base_test:
                 p_args, p_dargs = _cherry_pick_args(self.initialize,args,dargs)
                 self.initialize(*p_args, **p_dargs)
 
-                # Setup: (compile and install the test, if needed)
-                p_args, p_dargs = _cherry_pick_args(self.setup,args,dargs)
-                utils.update_version(self.srcdir, self.preserve_srcdir,
-                                     self.version, self.setup,
-                                     *p_args, **p_dargs)
+                lockfile = open(os.path.join(self.job.tmpdir, '.testlock'), 'w')
+                try:
+                    fcntl.flock(lockfile, fcntl.LOCK_EX)
+                    # Setup: (compile and install the test, if needed)
+                    p_args, p_dargs = _cherry_pick_args(self.setup,args,dargs)
+                    utils.update_version(self.srcdir, self.preserve_srcdir,
+                                         self.version, self.setup,
+                                         *p_args, **p_dargs)
+                finally:
+                    fcntl.flock(lockfile, fcntl.LOCK_UN)
+                    lockfile.close()
 
                 # Execute:
                 os.chdir(self.outputdir)
@@ -222,24 +229,8 @@ def _validate_args(args, dargs, *funcs):
                     raise error.AutotestError('Unknown parameter: %s' % param)
 
 
-def testname(url):
-    # Extract the testname from the test url.
-    match = re.match('[^:]+://(.*)/([^/]*)$', url)
-    if not match:
-        return ('', url)
-    (group, filename) = match.groups()
-
-    # Generate the group prefix.
-    group = re.sub(r'\W', '_', group)
-
-    # Drop the extension to get the raw test name.
-    testname = re.sub(r'\.tgz', '', filename)
-
-    return (group, testname)
-
-
 def _installtest(job, url):
-    (group, name) = testname(url)
+    (group, name) = job.pkgmgr.get_package_name(url, 'test')
 
     # Bail if the test is already installed
     group_dir = os.path.join(job.testdir, "download", group)
@@ -255,15 +246,19 @@ def _installtest(job, url):
         f.close()
 
     print name + ": installing test url=" + url
-    utils.get_file(url, os.path.join(group_dir, 'test.tgz'))
-    old_wd = os.getcwd()
-    os.chdir(group_dir)
-    tar = tarfile.open('test.tgz')
-    for member in tar.getmembers():
-        tar.extract(member)
-    tar.close()
-    os.chdir(old_wd)
-    os.remove(os.path.join(group_dir, 'test.tgz'))
+    tarball = os.path.basename(url)
+    tarball_path = os.path.join(group_dir, tarball)
+    test_dir = os.path.join(group_dir, name)
+    job.pkgmgr.fetch_pkg(tarball, tarball_path,
+                         repo_url = os.path.dirname(url))
+
+    # Create the directory for the test
+    if not os.path.exists(test_dir):
+        os.mkdir(os.path.join(group_dir, name))
+
+    job.pkgmgr.untar_pkg(tarball_path, test_dir)
+
+    os.remove(tarball_path)
 
     # For this 'sub-object' to be importable via the name
     # 'group.name' we need to provide an __init__.py,
@@ -282,7 +277,7 @@ def runtest(job, url, tag, args, dargs,
 
     # if this is not a plain test name then download and install the
     # specified test
-    if utils.is_url(url):
+    if url.endswith('.tar.bz2'):
         (group, testname) = _installtest(job, url)
         bindir = os.path.join(job.testdir, 'download', group, testname)
         site_bindir = None
@@ -298,6 +293,18 @@ def runtest(job, url, tag, args, dargs,
         else:
             site_bindir = None
 
+        # The job object here can be that of a server side job or a client
+        # side job. 'install_pkg' method won't be present for server side
+        # jobs, so do the fetch only if that method is present in the job
+        # obj.
+        if hasattr(job, 'install_pkg'):
+            try:
+                job.install_pkg(testname, 'test', bindir)
+            except packages.PackageInstallError, e:
+                # continue as a fall back mechanism and see if the test code
+                # already exists on the machine
+                pass
+
     outputdir = os.path.join(job.resultdir, testname)
     if tag:
         outputdir += '.' + tag
@@ -308,8 +315,12 @@ def runtest(job, url, tag, args, dargs,
         testdir = job.site_testdir
     elif os.path.exists(bindir):
         testdir = job.testdir
-    elif not os.path.exists(bindir):
+    else:
         raise error.TestError(testname + ': test does not exist')
+
+    local_namespace['job'] = job
+    local_namespace['bindir'] = bindir
+    local_namespace['outputdir'] = outputdir
 
     if group:
         sys.path.insert(0, os.path.join(testdir, 'download'))
@@ -317,21 +328,13 @@ def runtest(job, url, tag, args, dargs,
     else:
         sys.path.insert(0, os.path.join(testdir, testname))
 
-    local_namespace['job'] = job
-    local_namespace['bindir'] = bindir
-    local_namespace['outputdir'] = outputdir
-
-    lockfile = open(os.path.join(job.tmpdir, '.testlock'), 'w')
     try:
-        fcntl.flock(lockfile, fcntl.LOCK_EX)
         exec ("import %s%s" % (group, testname),
               local_namespace, global_namespace)
         exec ("mytest = %s%s.%s(job, bindir, outputdir)" %
               (group, testname, testname),
               local_namespace, global_namespace)
     finally:
-        fcntl.flock(lockfile, fcntl.LOCK_UN)
-        lockfile.close()
         sys.path.pop(0)
 
     pwd = os.getcwd()
