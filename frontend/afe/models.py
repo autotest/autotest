@@ -144,6 +144,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         query = Host.objects.filter(hostname=hostname)
         if query.count() == 0:
             host = Host(hostname=hostname, invalid=True)
+            host.do_validate()
         else:
             host = query[0]
             if not host.invalid:
