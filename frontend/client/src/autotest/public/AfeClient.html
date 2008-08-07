@@ -7,21 +7,22 @@
 
   <body>
     <!-- gwt history support -->
-    <iframe src="javascript:''" id="__gwt_historyFrame" 
+    <iframe src="javascript:''" id="__gwt_historyFrame"
             style="width:0;height:0;border:0"></iframe>
 
-    
+
     <span class="links-box" style="float: right;">
       <b>Links</b><br>
       <a href="server/admin">Admin interface</a><br>
       <a href="/tko">Results database</a><br>
+      <a href="/new_tko">New results interface</a><br>
       <a href="http://test.kernel.org/autotest">Documentation</a><br>
       <a href="server/feeds/jobs/completed">Completed Jobs Feed</a><br>
       <a href="server/feeds/jobs/failed">Failed Jobs Feed</a><br>
     </span>
     <img src="header.png" />
     <br /><br />
-    
+
     <div id="tabs" class="hidden">
       <div id="job_list" title="Job List">
         <div id="job_control_links" class="job-control"></div>
@@ -32,7 +33,7 @@
         <div id="job_pagination"></div>
         <div id="job_table"></div>
       </div>
-      
+
       <div id="view_job"  title="View Job">
         <span id="job_id_fetch" class="box-full">Fetch job by ID:
           <span id="job_id_fetch_controls"></span>
@@ -52,25 +53,26 @@
           <span id="view_timeout"></span> hours<br>
           <span class="field-name">Status:</span>
           <span id="view_status"></span><br>
-          
+
            <span class="field-name">
-             <span id="view_control_type"></span> control file 
+             <span id="view_control_type"></span> control file
              (<span id="view_synch_type"></span>):
            </span>
           <pre><div id="view_control_file" class="box"></div></pre>
           <span class="field-name">
             Full results
-            <a id="results_link" target="_blank">(open in new window)</a>
+            <a id="old_results_link" target="_blank">(open in new window)</a>
+            <a id="results_link" target="_blank">(new results interface)</a>
             <a id="raw_results_link" target="_blank">(raw results logs)</a><br>
           </span>
-          
+
           <span id="tko_results"></span><br>
-          
+
           <span class="field-name">Hosts</span>
           <div id="job_hosts_table"></div>
         </div>
       </div>
-      
+
       <div id="create_job"  title="Create Job">
         <table class="form-table">
           <tr><td class="field-name">Job name:</td>
@@ -124,11 +126,11 @@
           </tr>
         </table>
       </div>
-      
+
       <div id="hosts" title="Host List">
         <div id="hosts_list"></div>
       </div>
-      
+
       <div id="view_host" title="View Host">
         <span id="view_host_fetch" class="box-full">Fetch host:
           <span id="view_host_fetch_controls"></span>
@@ -153,7 +155,7 @@
     </div>
     <br>
     <div id="error_log"></div>
-    
+
     <!--  for debugging only -->
     <div id="error_display"></div>
   </body>
