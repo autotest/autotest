@@ -299,9 +299,9 @@ public class CreateJobView extends TabView {
             if (host.get("locked_text") == null) {
                 host.put("locked_text", AfeUtils.getLockedText(host));
             }
+            
+            hostSelector.selectRow(host);
         }
-        
-        hostSelector.availableSelection.selectObjects(new JSONArrayList<JSONObject>(hostInfo));
         
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
         

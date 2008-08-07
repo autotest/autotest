@@ -20,25 +20,36 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
     protected JSONObjectComparator comparator;
     
     class JSONObjectComparator implements Comparator<T> {
-        SortSpec sortSpec;
+        SortSpec[] sortSpecs;
         
-        public JSONObjectComparator(SortSpec spec) {
-            sortSpec = spec;
+        public JSONObjectComparator(SortSpec[] specs) {
+            sortSpecs = specs;
         }
 
         public int compare(T arg0, T arg1) {
-            String key0 = arg0.get(sortSpec.getField()).toString();
-            String key1 = arg1.get(sortSpec.getField()).toString();
-            return key0.compareTo(key1) * sortSpec.getDirectionMultiplier();
+            int compareValue = 0;
+            for (SortSpec sortSpec : sortSpecs) {
+                String key0 = arg0.get(sortSpec.getField()).toString();
+                String key1 = arg1.get(sortSpec.getField()).toString();
+                compareValue = key0.compareTo(key1) * sortSpec.getDirectionMultiplier();
+                if (compareValue != 0) {
+                    break;
+                }
+            }
+            return compareValue;
         }
     }
     
     /**
-     * @param sortKey key that will be used to keep items sorted internally. We
+     * @param sortKeys keys that will be used to keep items sorted internally. We
      * do this to ensure we can find and remove items quickly.
      */
-    public ArrayDataSource(String sortKey) {
-        comparator = new JSONObjectComparator(new SortSpec(sortKey, SortDirection.ASCENDING));
+    public ArrayDataSource(String[] sortKeys) {
+        SortSpec[] sortSpecs = new SortSpec[sortKeys.length];
+        for (int i = 0; i < sortKeys.length; i++) {
+            sortSpecs[i] = new SortSpec(sortKeys[i]);
+        }
+        comparator = new JSONObjectComparator(sortSpecs);
     }
     
     public void addItem(T item) {
@@ -77,13 +88,7 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
                         DataCallback callback) {
         List<T> sortedData = data;
         if (sortOn != null) {
-            sortedData = new ArrayList<T>(data);
-            // the first sort column must be the last we sort on
-            // this assumes a stable sort, which is guaranteed by Collection.sort()
-            for (int i = sortOn.length - 1; i >= 0; i--) {
-                Collections.sort(sortedData, 
-                                 new JSONObjectComparator(sortOn[i]));
-            }
+            Collections.sort(sortedData, new JSONObjectComparator(sortOn));
         }
         int startInt = start != null ? start.intValue() : 0;
         int maxCountInt = maxCount != null ? maxCount.intValue() : data.size();
