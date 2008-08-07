@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Autotest Frontend</title>
+    <script type="text/javascript" language='javascript' 
+      src='autotest.TkoClient.nocache.js'>
+    </script>
+  </head>
+
+  <body>
+    <!-- gwt history support -->
+    <iframe src="javascript:''" id="__gwt_historyFrame" tabIndex='-1' 
+      style="position:absolute;width:0;height:0;border:0"></iframe>
+
+    
+    <span class="links-box" style="float: right;">
+      <b>Links</b><br>
+      <a href="/afe">Autotest Frontend</a><br>
+      <a href="server/admin">Admin interface</a><br>
+      <a href="http://test.kernel.org/autotest">Documentation</a><br>
+    </span>
+    <img src="header.png" />
+    <br /><br />
+    
+    <div id="tabs" class="hidden">
+      <div id="common_panel">
+        <!-- Not a tab, but the common panel shown for all tabs -->
+        <div id="common_condition_div">
+          <span class="field-name">SQL filtering condition:</span>
+          <a href="http://test.kernel.org/autotest/TkoHowTo#filtering" target="_blank">Help</a>
+          <span id="common_quick_reference"></span><br>
+          <span id="common_sql_input"></span><br>
+        </div>
+      </div>
+      
+      <div id="spreadsheet_view" title="Spreadsheet">
+        <table><tr valign="top">
+          <td class="field-name">Rows:</td>
+          <td id="ss_row_select"></td>
+          <td class="field-name">Columns:</td>
+          <td id="ss_column_select"></td>
+          <td id="ss_swap"></td>
+        </tr></table>
+        <span id="ss_query_controls"></span><br>
+        
+        <span id="ss_job_completion"></span>
+        
+        <!-- table is necessary here to get layout right -->
+        <table><tr>
+          <td id="ss_actions"></td>
+        </tr></table>
+        <div id="ss_spreadsheet"></div>
+      </div>
+
+      <div id="table_view" title="Table">
+        <span class="field-name">Columns:</span><br>
+        <span id="table_column_select"></span><br>
+        <span id="table_actions"></span>
+        <span id="table_query_controls"></span>
+        
+        <div id="table_table"></div>
+      </div>
+
+      <div id="graphing_view" title="Graphing">
+        <span id="graphing_frontend"></span>
+      </div>
+      
+      <div id="test_detail_view" title="Test details">
+        <span id="td_fetch" class="box-full">Fetch test by ID:
+          <span id="td_fetch_controls"></span>
+        </span><br><br>
+        <div id="td_title" class="title"></div><br>
+        <div id="td_data">
+	        <span class="field-name">Test:</span>
+	        <span id="td_test"></span><br>
+	        <span class="field-name">Job tag:</span>
+	        <span id="td_job_tag"></span><br>
+	        <span class="field-name">Job name:</span>
+	        <span id="td_job_name"></span><br>
+	        <span class="field-name">Status:</span>
+	        <span id="td_status"></span><br>
+	        <span class="field-name">Reason:</span>
+	        <span id="td_reason"></span><br>
+	        <span class="field-name">Test started:</span>
+	        <span id="td_test_started"></span><br>
+	        <span class="field-name">Test finished:</span>
+	        <span id="td_test_finished"></span><br>
+	        <span class="field-name">Host:</span>
+	        <span id="td_hostname"></span><br>
+	        <span class="field-name">Platform:</span>
+	        <span id="td_platform"></span><br>
+	        <span class="field-name">Kernel:</span>
+	        <span id="td_kernel"></span><br>
+	        <br>
+	        
+	        <span class="field-name">Key log files:</span>
+	        <a id="td_view_logs_link" target="_blank">(view all logs)</a>
+	        <div id="td_log_files"></div>
+	      </div>
+      </div>
+
+    </div>
+    <br>
+    <div id="error_log"></div>
+  </body>
+</html>
