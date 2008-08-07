@@ -48,7 +48,7 @@ public class HostSelector {
     }
     
     protected ArrayDataSource<JSONObject> selectedHostData =
-        new ArrayDataSource<JSONObject>("hostname");
+        new ArrayDataSource<JSONObject>(new String[] {"hostname", "platform"});
     
     protected HostTable availableTable = new HostTable(new HostDataSource());
     protected HostTableDecorator availableDecorator = 
