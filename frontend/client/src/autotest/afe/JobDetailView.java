@@ -68,7 +68,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
 
     @Override
     protected void fetchData() {
-        pointToResults(NO_URL, NO_URL);
+        pointToResults(NO_URL, NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
@@ -103,7 +103,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
                 abortButton.setVisible(!allFinishedCounts(counts));
                 
                 String jobLogsId = jobId + "-" + owner;
-                pointToResults(getResultsURL(jobId), getLogsURL(jobLogsId));
+                pointToResults(getResultsURL(jobId), getLogsURL(jobLogsId), 
+                               getOldResultsUrl(jobId));
                 
                 String jobTitle = "Job: " + name + " (" + jobLogsId + ")";
                 displayObjectData(jobTitle);
@@ -213,7 +214,12 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
         });
     }
     
-    protected String getResultsURL(int jobId) {
+    private String getResultsURL(int jobId) {
+        return "/new_tko/#tab_id=spreadsheet_view&row=hostname&column=test_name&" +
+               "condition=job_tag+LIKE+'" + Integer.toString(jobId) + "-%2525'";
+    }
+    
+    private String getOldResultsUrl(int jobId) {
         return "/tko/compose_query.cgi?" +
                "columns=test&rows=hostname&condition=tag%7E%27" + 
                Integer.toString(jobId) + "-%25%27&title=Report";
@@ -227,18 +233,17 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
         return Utils.getLogsURL(jobLogsId);
     }
     
-    protected void pointToResults(String resultsUrl, String logsUrl) {
-        DOM.setElementProperty(DOM.getElementById("results_link"),
-                               "href", resultsUrl);
-        DOM.setElementProperty(DOM.getElementById("raw_results_link"),
-                               "href", logsUrl);
+    protected void pointToResults(String resultsUrl, String logsUrl, String oldResultsUrl) {
+        DOM.getElementById("results_link").setAttribute("href", resultsUrl);
+        DOM.getElementById("old_results_link").setAttribute("href", oldResultsUrl);
+        DOM.getElementById("raw_results_link").setAttribute("href", logsUrl);
         if (resultsUrl.equals(NO_URL)) {
             tkoResultsHtml.setHTML("");
             return;
         }
 
         RequestBuilder requestBuilder =
-            new RequestBuilder(RequestBuilder.GET, resultsUrl + "&brief=1");
+            new RequestBuilder(RequestBuilder.GET, oldResultsUrl + "&brief=1");
         try {
             requestBuilder.sendRequest("", new RequestCallback() {
                 public void onError(Request request, Throwable exception) {

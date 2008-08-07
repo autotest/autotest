@@ -1,0 +1,53 @@
+/* this combination of styles makes a div clip it's contents */
+div.clipper {
+  position: relative;
+  overflow: hidden;
+}
+
+/* necessary to get row headers aligned with table */
+table.spreadsheet-parent td {
+  vertical-align: top;
+}
+
+/* allow headers to scroll with table */
+table.spreadsheet-headers {
+  position: relative;
+}
+
+.spreadsheet-headers td, .spreadsheet-data td {
+  border-bottom: 1px solid gray;
+  border-right: 1px solid gray;
+}
+
+.spreadsheet-headers td {
+  background: #CCDDFF;
+}
+
+/* don't wrap cells automatically */
+.spreadsheet-data td {
+  white-space: pre;
+}
+
+.spreadsheet-data div, .spreadsheet-headers div {
+  padding: 2px;
+  cursor: pointer;
+}
+
+/* allow empty cells to override the clickable cursor */
+div.spreadsheet-cell-nonclickable {
+  cursor: default;
+}
+
+.highlighted {
+  background-color: #FFFFBB;
+}
+
+.log-file-panel {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.log-file-text {
+  white-space: pre;
+  font-family: monospace;
+}

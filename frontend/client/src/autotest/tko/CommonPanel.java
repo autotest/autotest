@@ -1,0 +1,142 @@
+package autotest.tko;
+
+import autotest.common.Utils;
+import autotest.common.ui.ElementWidget;
+import autotest.common.ui.SimpleHyperlink;
+import autotest.tko.TkoUtils.FieldInfo;
+
+import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.PopupPanel;
+import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.TextArea;
+import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.client.ui.PopupPanel.PositionCallback;
+
+import java.util.Map;
+
+class CommonPanel extends Composite implements ClickListener, PositionCallback {
+    private static final String SHOW_QUICK_REFERENCE = "Show quick reference";
+    private static final String HIDE_QUICK_REFERENCE = "Hide quick reference";
+    private static CommonPanel theInstance = new CommonPanel();
+    
+    private TextArea customSqlBox = new TextArea();
+    private SimpleHyperlink quickReferenceLink = new SimpleHyperlink(SHOW_QUICK_REFERENCE);
+    private PopupPanel quickReferencePopup;
+    private String currentCondition = "";
+    
+    private CommonPanel() {
+        ElementWidget panelElement = new ElementWidget(DOM.getElementById("common_panel"));
+        panelElement.removeFromDocument();
+        initWidget(panelElement);
+    }
+    
+    public void initialize() {
+        customSqlBox.setSize("50em", "5em");
+        quickReferenceLink.addClickListener(this);
+        RootPanel.get("common_sql_input").add(customSqlBox);
+        RootPanel.get("common_quick_reference").add(quickReferenceLink);
+        
+        generateQuickReferencePopup();
+    }
+    
+    public static CommonPanel getPanel() {
+        return theInstance;
+    }
+    
+    /**
+     * For testability.
+     */
+    public static void setInstance(CommonPanel panel) {
+        theInstance = panel;
+    }
+    
+    public void setConditionVisible(boolean visible) {
+        RootPanel.get("common_condition_div").setVisible(visible);
+    }
+    
+    public String getSqlCondition() {
+        return customSqlBox.getText().trim();
+    }
+    
+    public void setSqlCondition(String text) {
+        customSqlBox.setText(text);
+        saveSqlCondition();
+    }
+    
+    public void saveSqlCondition() {
+        currentCondition = getSqlCondition();
+    }
+    
+    public String getSavedCondition() {
+        return currentCondition;
+    }
+
+    public String getRefinedCondition(TestSet tests) {
+        String newCondition = tests.getCondition();
+        if (newCondition.equals("") || newCondition.equals(currentCondition)) {
+            return currentCondition;
+        }
+        return appendCondition(currentCondition, "(" + newCondition + ")");
+    }
+
+    public void refineCondition(TestSet tests) {
+        setSqlCondition(getRefinedCondition(tests));
+    }
+
+    private static String appendCondition(String condition, String toAppend) {
+        if (!condition.equals(""))
+            condition += " AND ";
+        return condition + toAppend;
+    }
+
+    public void handleHistoryArguments(Map<String, String> arguments) {
+        setSqlCondition(arguments.get("condition"));
+    }
+    
+    public void addHistoryArguments(Map<String, String> arguments) {
+        arguments.put("condition", getSavedCondition());
+    }
+
+    public void fillDefaultHistoryValues(Map<String, String> arguments) {
+        Utils.setDefaultValue(arguments, "condition", "");
+    }
+
+    public void onClick(Widget sender) {
+        assert sender == quickReferenceLink;
+        if (isQuickReferenceShowing()) {
+            quickReferencePopup.hide();
+            quickReferenceLink.setText(SHOW_QUICK_REFERENCE);
+        } else {
+            quickReferencePopup.setPopupPositionAndShow(this);
+            quickReferenceLink.setText(HIDE_QUICK_REFERENCE);
+        }
+    }
+
+    private boolean isQuickReferenceShowing() {
+        return quickReferenceLink.getText().equals(HIDE_QUICK_REFERENCE);
+    }
+
+    private void generateQuickReferencePopup() {
+        FlexTable fieldTable = new FlexTable();
+        fieldTable.setText(0, 0, "Name");
+        fieldTable.setText(0, 1, "Field");
+        fieldTable.getRowFormatter().setStyleName(0, "data-row-header");
+        int row = 1;
+        for (FieldInfo fieldInfo : TkoUtils.getFieldList("all_fields")) {
+            fieldTable.setText(row, 0, fieldInfo.name);
+            fieldTable.setText(row, 1, fieldInfo.field);
+            row++;
+        }
+        quickReferencePopup = new PopupPanel(false);
+        quickReferencePopup.add(fieldTable);
+    }
+
+    public void setPosition(int offsetWidth, int offsetHeight) {
+        quickReferencePopup.setPopupPosition(
+             customSqlBox.getAbsoluteLeft() + customSqlBox.getOffsetWidth(), 
+             customSqlBox.getAbsoluteTop());
+    }
+}
