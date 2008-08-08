@@ -30,6 +30,7 @@ abstract class ConditionTabView extends TabView {
             refresh();
             needsRefresh = false;
         }
+        visible = true;
     }
 
     protected void saveCondition() {

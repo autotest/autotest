@@ -19,6 +19,7 @@ import autotest.common.ui.RightClickTable;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.DoubleListSelector.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.json.client.JSONObject;
@@ -46,7 +47,7 @@ import java.util.Map;
 
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsListener, SelectionListener,
-                                  ClickListener, TableWidgetFactory {
+                                  ClickListener, TableWidgetFactory, CommonPanelListener {
     private static final int ROWS_PER_PAGE = 30;
     private static final String[] DEFAULT_COLUMNS = 
         {"test_idx", "test_name", "job_tag", "hostname", "status"};
@@ -82,6 +83,7 @@ public class TableView extends ConditionTabView
     
     public TableView(TestSelectionListener listener) {
         this.listener = listener;
+        commonPanel.addListener(this);
     }
 
     @Override
@@ -462,5 +464,9 @@ public class TableView extends ConditionTabView
     @Override
     protected boolean hasFirstQueryOccurred() {
         return table != null;
+    }
+
+    public void onSetControlsVisible(boolean visible) {
+        TkoUtils.setElementVisible("table_all_controls", visible);
     }
 }

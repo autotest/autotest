@@ -17,12 +17,10 @@ public class ElementWidget extends Widget {
     public ElementWidget(Element element) {
         this.element = element;
         setElement(element);
-    }
-
-    /**
-     * Remove the wrapped element from the document.
-     */
-    public void removeFromDocument() {
         DOM.removeChild(DOM.getParent(element), element);
+    }
+    
+    public ElementWidget(String elementId) {
+        this(DOM.getElementById(elementId));
     }
 }

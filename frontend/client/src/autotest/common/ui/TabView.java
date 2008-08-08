@@ -3,8 +3,6 @@ package autotest.common.ui;
 import autotest.common.CustomHistory;
 import autotest.common.Utils;
 
-import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.Composite;
 
 import java.util.HashMap;
@@ -21,13 +19,12 @@ import java.util.Map;
 public abstract class TabView extends Composite {
     protected boolean initialized = false;
     protected String title;
+    protected boolean visible;
     
     public TabView() {
-        Element thisTabElement = DOM.getElementById(getElementId());
-        ElementWidget thisTab = new ElementWidget(thisTabElement);
-        thisTab.removeFromDocument();
+        ElementWidget thisTab = new ElementWidget(getElementId());
         initWidget(thisTab);
-        title = DOM.getElementAttribute(thisTabElement, "title");
+        title = thisTab.getElement().getAttribute("title");
     }
     
     public void ensureInitialized() {
@@ -43,6 +40,15 @@ public abstract class TabView extends Composite {
     public void display() {
         ensureInitialized();
         refresh();
+        visible = true;
+    }
+    
+    public void hide() {
+        visible = false;
+    }
+    
+    protected boolean isTabVisible() {
+        return visible;
     }
     
     @Override

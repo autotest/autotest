@@ -216,3 +216,8 @@ tr.data-row-clickable:hover {
 .extra-space-left {
   margin-left: 1em;
 }
+
+.SimpleHyperlink {
+  display: inline;
+  white-space: nowrap;
+}
