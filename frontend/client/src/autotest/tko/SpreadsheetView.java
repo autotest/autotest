@@ -11,6 +11,7 @@ import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.DoubleListSelector.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
 import autotest.tko.Spreadsheet.HeaderImpl;
@@ -40,7 +41,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SpreadsheetView extends ConditionTabView 
-                             implements SpreadsheetListener, TableActionsListener {
+                             implements SpreadsheetListener, TableActionsListener, 
+                                        CommonPanelListener {
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
     
@@ -74,6 +76,7 @@ public class SpreadsheetView extends ConditionTabView
     
     public SpreadsheetView(SpreadsheetViewListener listener) {
         this.listener = listener;
+        commonPanel.addListener(this);
     }
     
     @Override
@@ -481,5 +484,12 @@ public class SpreadsheetView extends ConditionTabView
     private void setLoading(boolean loading) {
         queryButton.setEnabled(!loading);
         NotifyManager.getInstance().setLoading(loading);
+    }
+
+    public void onSetControlsVisible(boolean visible) {
+        TkoUtils.setElementVisible("ss_all_controls", visible);
+        if (isTabVisible()) {
+            spreadsheet.fillWindow(true);
+        }
     }
 }
