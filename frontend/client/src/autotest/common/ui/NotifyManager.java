@@ -2,27 +2,32 @@ package autotest.common.ui;
 
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosurePanel;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextArea;
+import com.google.gwt.user.client.ui.Widget;
 
 /**
  * A singleton class to manage popup notifications, including error messages and
  * the "loading..." box.
  */
 public class NotifyManager {
+    private static final String SPINNER_IMAGE = "mbligh_spinner.gif";
+    
     // singleton
     public static final NotifyManager theInstance = new NotifyManager();
     
     static class NotifyBox {
-        protected PopupPanel panel;
-        protected Label message = new Label();
+        private PopupPanel panel;
+        private Label message = new Label();
         
         public NotifyBox(boolean autoHide) {
             message.setStyleName("notify");
             panel = new PopupPanel(autoHide);
-            panel.add(message);
+            panel.getElement().getStyle().setProperty("vertical-align", "middle");
         }
         
         public void addStyle(String style) {
@@ -40,6 +45,12 @@ public class NotifyManager {
         
         public void showMessage(String messageString) {
             message.setText(messageString);
+            showWidget(message);
+        }
+
+        public void showWidget(Widget widget) {
+            panel.clear();
+            panel.add(widget);
             show();
         }
     }
@@ -69,6 +80,7 @@ public class NotifyManager {
     protected NotifyBox errorNotify = new NotifyBox(true);
     protected NotifyBox messageNotify = new NotifyBox(true);
     protected NotifyBox loadingNotify = new NotifyBox(false);
+    private HorizontalPanel loadingPanel = new HorizontalPanel();
     protected ErrorLog errorLog = new ErrorLog();
     private int loadingCount = 0;
     
@@ -82,6 +94,12 @@ public class NotifyManager {
     public void initialize() {
         errorNotify.hide();
         messageNotify.hide();
+        
+        loadingPanel.setVerticalAlignment(HorizontalPanel.ALIGN_MIDDLE);
+        loadingPanel.setSpacing(3);
+        loadingPanel.add(new Image(SPINNER_IMAGE));
+        loadingPanel.add(new Label("Loading..."));
+        loadingPanel.add(new Image(SPINNER_IMAGE));
         
         RootPanel.get("error_log").add(errorLog);
         errorLog.setVisible(false);
@@ -99,8 +117,7 @@ public class NotifyManager {
         if (logMessage != null)
             errorLogText += "\n" + logMessage; 
         errorNotify.showMessage(error);
-        errorLog.logError(errorLogText);
-        errorLog.setVisible(true);
+        log(errorLogText);
     }
     
     public void showError(String error) {
@@ -128,7 +145,7 @@ public class NotifyManager {
     public void setLoading(boolean visible) {
         if (visible) {
             if (loadingCount == 0) {
-                loadingNotify.showMessage("Loading...");
+                loadingNotify.showWidget(loadingPanel);
             }
             loadingCount++;
         } else {
