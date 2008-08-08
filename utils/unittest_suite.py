@@ -23,6 +23,27 @@ LONG_TESTS = set((
     'frontend_unittest.py',
     ))
 
+DEPENDENCIES = {
+    # Annotate dependencies here. The format is
+    # module: [list of modules on which it is dependent]
+    # (All modules in the list must run before this module can)
+
+    # Note: Do not make a short test dependent on a long one. This will cause
+    # the suite to fail if it is run without the --full flag, since the module
+    # that the short test depends on will not be run.
+
+
+    # The next two dependencies are not really dependencies. This is actually a
+    # hack to keep these three modules from running at the same time, since they
+    # all create and destroy a database with the same name.
+    'autotest_lib.frontend.frontend_unittest':
+        ['autotest_lib.migrate.migrate_unittest'],
+
+    'autotest_lib.scheduler.monitor_db_unittest':
+        ['autotest_lib.frontend.frontend_unittest',
+         'autotest_lib.migrate.migrate_unittest'],
+}
+
 modules = []
 
 
@@ -54,14 +75,22 @@ def run_test(mod_name):
 def run_tests(start, full=False):
     os.path.walk(start, lister, full)
 
-    functions = []
+    functions = {}
+    names_to_functions = {}
     for module in modules:
         # Create a function that'll test a particular module.  module=module
         # is a hack to force python to evaluate the params now.  We then
         # rename the function to make error reporting nicer.
         run_module = lambda module=module: run_test(module)
-        run_module.__name__ = '.'.join(module)
-        functions.append(run_module)
+        name = '.'.join(module)
+        run_module.__name__ = name
+        names_to_functions[name] = run_module
+        functions[run_module] = set()
+
+    for fn, deps in DEPENDENCIES.iteritems():
+        if fn in names_to_functions:
+            functions[names_to_functions[fn]] = set(
+                names_to_functions[dep] for dep in deps)
 
     try:
         dargs = {}
@@ -80,6 +109,10 @@ def main():
         parser.error('Unexpected argument(s): %s' % args)
         parser.print_help()
         sys.exit(1)
+
+    # Strip the arguments off the command line, so that the unit tests do not
+    # see them.
+    sys.argv = [sys.argv[0]]
 
     errors = run_tests(os.path.join(root, options.start), options.full)
     if errors:
