@@ -26,22 +26,28 @@
       <div id="common_panel">
         <!-- Not a tab, but the common panel shown for all tabs -->
         <div id="common_condition_div">
-          <span class="field-name">SQL filtering condition:</span>
-          <a href="http://test.kernel.org/autotest/TkoHowTo#filtering" target="_blank">Help</a>
-          <span id="common_quick_reference"></span><br>
-          <span id="common_sql_input"></span><br>
+          <div id="common_show_hide_controls" style="float: right"></div>
+          <div id="common_all_controls">
+            <span class="field-name">SQL filtering condition:</span>
+            <a href="http://test.kernel.org/autotest/TkoHowTo#filtering"
+               target="_blank">Help</a>
+            <span id="common_quick_reference"></span><br>
+            <div id="common_sql_input"></div>
+          </div>
         </div>
       </div>
       
       <div id="spreadsheet_view" title="Spreadsheet">
-        <table><tr valign="top">
-          <td class="field-name">Rows:</td>
-          <td id="ss_row_select"></td>
-          <td class="field-name">Columns:</td>
-          <td id="ss_column_select"></td>
-          <td id="ss_swap"></td>
-        </tr></table>
-        <span id="ss_query_controls"></span><br>
+        <div id="ss_all_controls">
+          <table><tr valign="top">
+            <td class="field-name">Rows:</td>
+            <td id="ss_row_select"></td>
+            <td class="field-name">Columns:</td>
+            <td id="ss_column_select"></td>
+            <td id="ss_swap"></td>
+          </tr></table>
+          <span id="ss_query_controls"></span><br>
+        </div>
         
         <span id="ss_job_completion"></span>
         
@@ -53,10 +59,12 @@
       </div>
 
       <div id="table_view" title="Table">
-        <span class="field-name">Columns:</span><br>
-        <span id="table_column_select"></span><br>
-        <span id="table_actions"></span>
-        <span id="table_query_controls"></span>
+        <div id="table_all_controls">
+          <span class="field-name">Columns:</span><br>
+          <span id="table_column_select"></span><br>
+          <span id="table_actions"></span>
+          <span id="table_query_controls"></span>
+        </div>
         
         <div id="table_table"></div>
       </div>

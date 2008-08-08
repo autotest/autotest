@@ -45,6 +45,7 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         top.add(otherWidgetsPanel);
         
         // put a common area above the tab deck
+        commonAreaPanel.setWidth("100%");
         bottom.add(commonAreaPanel);
         
         // put the TabPanel's DeckPanel below
@@ -152,6 +153,10 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         // do nothing if the user clicks the selected tab
         if (tabPanel.getTabBar().getSelectedTab() == tabIndex)
             return false;
+        TabView selectedTabView = getSelectedTabView();
+        if (selectedTabView != null) {
+            selectedTabView.hide();
+        }
         tabViews.get(tabIndex).ensureInitialized();
         tabViews.get(tabIndex).display();
         return true;

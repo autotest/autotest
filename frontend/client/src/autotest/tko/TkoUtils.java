@@ -10,6 +10,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.DOM;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,5 +67,9 @@ public class TkoUtils {
             elem.removeChild(child);
             child = nextChild;
         }
+    }
+
+    static void setElementVisible(String elementId, boolean visible) {
+        DOM.getElementById(elementId).getStyle().setProperty("display", visible ? "" : "none");
     }
 }
