@@ -30,6 +30,9 @@ parser.add_option('-l', '--logpath', action='store_true', default=False,
 
 (options, args) = parser.parse_args()
 
+if not options.condition:
+    parser.error('You must specify at least one condition.')
+
 columns = options.columns.split(',')
 
 url_prefix = rpc.get_autotest_server() + '/results/'
