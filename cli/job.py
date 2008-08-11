@@ -30,8 +30,9 @@ class job(topic_common.atest):
 
     def _convert_status(self, results):
         for result in results:
-            status = ['%s:%s' % (key, val) for key, val in
-                      result['status_counts'].iteritems()]
+            total = sum(result['status_counts'].values())
+            status = ['%s:%s(%.1f%%)' % (key, val, 100.0*float(val)/total)
+                      for key, val in result['status_counts'].iteritems()]
             status.sort()
             result['status_counts'] = ', '.join(status)
 
