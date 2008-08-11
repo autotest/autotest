@@ -26,7 +26,7 @@ class main_unittest(cli_mock.cli_unittest):
     def test_main_help(self):
         """Main help level"""
         self._test_help(argv=['atest'],
-                        out_words_ok=['usage: atest [acl|host|job|label|user] '
+                        out_words_ok=['usage: atest [acl|host|job|label|test|user] '
                                       '[action] [options]'],
                         err_words_ok=[])
 
@@ -49,7 +49,7 @@ class main_unittest(cli_mock.cli_unittest):
     def test_main_no_topic(self):
         self.run_cmd(['atest'], exit_code=1,
                      out_words_ok=['usage: atest '
-                                   '[acl|host|job|label|user] '
+                                   '[acl|host|job|label|test|user] '
                                    '[action] [options]'],
                      err_words_ok=['No topic argument'])
 
@@ -57,7 +57,7 @@ class main_unittest(cli_mock.cli_unittest):
     def test_main_bad_topic(self):
         self.run_cmd(['atest', 'bad_topic'], exit_code=1,
                      out_words_ok=['usage: atest [acl|host|job|'
-                                 'label|user] [action] [options]'],
+                                 'label|test|user] [action] [options]'],
                      err_words_ok=['Invalid topic bad_topic\n'])
 
 
