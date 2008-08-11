@@ -457,6 +457,7 @@ class base_job(object):
             self._decrement_group_level()
             self.record('END GOOD', subdir, testname)
         except error.TestBaseException, e:
+            exc_info = sys.exc_info()
             self._decrement_group_level()
             self.record('END %s' % e.exit_status, subdir, testname, str(e))
         except Exception, e:
