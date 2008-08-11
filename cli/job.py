@@ -227,7 +227,7 @@ class job_create(action_common.atest_create, job):
                                help='This is server-side job',
                                action='store_true', default=False)
         self.parser.add_option('-t', '--test',
-                               help='Run a job with these tests')
+                               help='List of tests to run')
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
         self.parser.add_option('-m', '--machine', help='List of machines to '
