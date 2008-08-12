@@ -94,7 +94,7 @@ True
 ...           'labels': [],
 ...           'platform': None,
 ...           'invalid': 0,
-...           'protection': 'Repair filesystem only',
+...           'protection': 'No protection',
 ...           'locked_by': 'debug_user'}]
 True
 >>> rpc_interface.delete_host('ipaj1')
@@ -424,7 +424,7 @@ True
 ...           'locked': 0,
 ...           'status': 'Ready',
 ...           'synch_id': None,
-...           'protection': 'Repair filesystem only',
+...           'protection': 'No protection',
 ...           'locked_by': None,
 ...           'lock_time': None},
 ...  'id': 1L,
