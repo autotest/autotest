@@ -119,7 +119,7 @@ except ImportError:
         return {}
 
 
-class base_server_job:
+class base_server_job(object):
     """The actual job against which we do everything.
 
     Properties:
@@ -143,7 +143,7 @@ class base_server_job:
 
 
     def __init__(self, control, args, resultdir, label, user, machines,
-                 client=False, parse_job="",
+                 client=False, parse_job='',
                  ssh_user='root', ssh_port=22, ssh_pass=''):
         """
                 control
