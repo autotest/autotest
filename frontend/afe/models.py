@@ -129,7 +129,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
                                 editable=settings.FULL_ADMIN)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
-    protection = dbmodels.SmallIntegerField(null=False,
+    protection = dbmodels.SmallIntegerField(null=False, blank=True,
                                             choices=host_protections.choices,
                                             default=host_protections.default)
     locked_by = dbmodels.ForeignKey(User, null=True, blank=True, editable=False)
