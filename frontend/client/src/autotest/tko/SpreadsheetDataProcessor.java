@@ -29,7 +29,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private Command onFinished;
     private Duration timer;
     
-    public class TooManyCellsError extends Exception {
+    public static class TooManyCellsError extends Exception {
         public int cellCount;
 
         public TooManyCellsError(int cellCount) {
