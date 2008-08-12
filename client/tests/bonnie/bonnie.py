@@ -28,8 +28,8 @@ class bonnie(test.test):
     version = 1
 
     def initialize(self):
-        self.results = []
         self.job.require_gcc()
+        self.results = []
 
     # http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
     def setup(self, tarball = 'bonnie++-1.03a.tgz'):
