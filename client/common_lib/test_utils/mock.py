@@ -24,8 +24,41 @@ class equality_comparator(argument_comparator):
         self.value = value
 
 
+    @staticmethod
+    def _types_match(arg1, arg2):
+        if isinstance(arg1, basestring) and isinstance(arg2, basestring):
+            return True
+        return type(arg1) == type(arg2)
+
+
+    @classmethod
+    def _compare(cls, actual_arg, expected_arg):
+        if isinstance(expected_arg, argument_comparator):
+            return expected_arg.is_satisfied_by(actual_arg)
+        if not cls._types_match(expected_arg, actual_arg):
+            return False
+
+        if isinstance(expected_arg, list) or isinstance(expected_arg, tuple):
+            # recurse on lists/tuples
+            for actual_item, expected_item in zip(actual_arg, expected_arg):
+                if not cls._compare(actual_item, expected_item):
+                    return False
+        elif isinstance(expected_arg, dict):
+            # recurse on dicts
+            if not cls._compare(sorted(actual_arg.keys()),
+                                sorted(expected_arg.keys())):
+                return False
+            for key, value in actual_arg.iteritems():
+                if not cls._compare(value, expected_arg[key]):
+                    return False
+        elif actual_arg != expected_arg:
+            return False
+
+        return True
+
+
     def is_satisfied_by(self, parameter):
-        return parameter == self.value
+        return self._compare(parameter, self.value)
 
 
     def __str__(self):
@@ -70,15 +103,10 @@ class is_instance_comparator(argument_comparator):
 class base_mapping(object):
     def __init__(self, symbol, return_obj, *args, **dargs):
         self.return_obj = return_obj
-        self.args = []
         self.symbol = symbol
-        for arg in args:
-            if isinstance(arg, argument_comparator):
-                self.args.append(arg)
-            else:
-                self.args.append(equality_comparator(arg))
-
-        self.dargs = dargs
+        self.args = [equality_comparator(arg) for arg in args]
+        self.dargs = dict((key, equality_comparator(value))
+                          for key, value in dargs.iteritems())
         self.error = None
 
 
@@ -90,8 +118,17 @@ class base_mapping(object):
             if not expected_arg.is_satisfied_by(args[i]):
                 return False
 
-        if self.dargs != dargs:
-            return False
+        # check for incorrect dargs
+        for key, value in dargs.iteritems():
+            if key not in self.dargs:
+                return False
+            if not self.dargs[key].is_satisfied_by(value):
+                return False
+
+        # check for missing dargs
+        for key in self.dargs.iterkeys():
+            if key not in dargs:
+                return False
 
         return True
 
@@ -342,9 +379,8 @@ class mock_god:
 
     def __method_playback(self, symbol, *args, **dargs):
         if self._debug:
-            print >> sys.__stdout__, 'Mock call:', _dump_function_call(symbol,
-                                                                       args,
-                                                                       dargs)
+            print >> sys.__stdout__, (' * Mock call: ' +
+                                      _dump_function_call(symbol, args, dargs))
 
         if len(self.recording) != 0:
             func_call = self.recording[0]
@@ -352,14 +388,14 @@ class mock_god:
                 msg = ("Unexpected call: %s. Expected %s"
                     % (_dump_function_call(symbol, args, dargs),
                        func_call))
-                self.errors.append(msg)
+                self._append_error(msg)
                 return None
 
             if not func_call.match(*args, **dargs):
                 msg = ("%s called. Expected %s"
                     % (_dump_function_call(symbol, args, dargs),
                       func_call))
-                self.errors.append(msg)
+                self._append_error(msg)
                 return None
 
             # this is the expected call so pop it and return
@@ -371,12 +407,18 @@ class mock_god:
         else:
             msg = ("unexpected call: %s"
                    % (_dump_function_call(symbol, args, dargs)))
-            self.errors.append(msg)
+            self._append_error(msg)
             return None
 
 
     def __record_call(self, mapping):
         self.recording.append(mapping)
+
+
+    def _append_error(self, error):
+        if self._debug:
+            print >> sys.__stdout__, ' *** ' + error
+        self.errors.append(error)
 
 
     def check_playback(self):
@@ -385,6 +427,8 @@ class mock_god:
         to __method_playback().
         """
         if len(self.errors) > 0:
+            if self._debug:
+                print '\nPlayback errors:'
             for error in self.errors:
                 print >> sys.__stdout__, error
             raise CheckPlaybackError
