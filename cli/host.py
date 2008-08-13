@@ -195,7 +195,7 @@ class host_stat(host):
 
 
 class host_jobs(host):
-    """atest host jobs --mlist <file>|<hosts>"""
+    """atest host jobs [--max-query] --mlist <file>|<hosts>"""
     usage_action = 'jobs'
 
     def __init__(self):
@@ -231,9 +231,8 @@ class host_jobs(host):
         for host in real_hosts:
             queue_entries = self.execute_rpc('get_host_queue_entries',
                                              host__hostname=host,
-                                             query_limit=self.max_queries)
-            queue_entries.sort(key=lambda qe: qe['job']['id'])
-            queue_entries.reverse()
+                                             query_limit=self.max_queries,
+                                             sort_by=['-job_id'])
             jobs = []
             for entry in queue_entries:
                 job = {'job_id': entry['job']['id'],
