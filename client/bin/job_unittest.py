@@ -473,5 +473,54 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_kernel_check_ident_success(self):
+        self.construct_job(True)
+
+        # set up the job class
+        self.job.group_level = 2
+
+        self.god.stub_function(autotest_utils, "running_os_ident")
+        autotest_utils.running_os_ident.expect_call().and_return("2.6.15-smp")
+
+        self.god.stub_function(utils, "read_one_line")
+        utils.read_one_line.expect_call("/proc/cmdline").and_return(
+            "blah more-blah root=lala IDENT=81234567 blah-again")
+
+        self.job.record.expect_call("GOOD", "sub", "reboot.verify",
+                                    "2.6.15-smp")
+        self.job._decrement_group_level.expect_call()
+        self.job.record.expect_call("END GOOD", "sub", "reboot",
+                                    optional_fields={"kernel": "2.6.15-smp"})
+
+        # run test
+        self.job.kernel_check_ident(81234567, "2.6.15-smp", "sub")
+        self.god.check_playback()
+
+
+    def test_kernel_check_ident_failure(self):
+        self.construct_job(True)
+
+        # set up the job class
+        self.job.group_level = 2
+
+        self.god.stub_function(autotest_utils, "running_os_ident")
+        autotest_utils.running_os_ident.expect_call().and_return("2.6.15-smp")
+
+        self.god.stub_function(utils, "read_one_line")
+        utils.read_one_line.expect_call("/proc/cmdline").and_return(
+            "blah more-blah root=lala IDENT=81234567 blah-again")
+
+        self.job.record.expect_call("ABORT", "sub", "reboot.verify",
+                                    "boot failure")
+        self.job._decrement_group_level.expect_call()
+        self.job.record.expect_call("END ABORT", "sub", "reboot",
+                                    optional_fields={"kernel": "2.6.15-smp"})
+
+        # run test
+        self.assertRaises(error.JobError, self.job.kernel_check_ident,
+                          91234567, "2.6.16-smp", "sub")
+        self.god.check_playback()
+
+
 if __name__ == "__main__":
     unittest.main()

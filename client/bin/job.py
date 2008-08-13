@@ -565,7 +565,11 @@ class base_job(object):
             print "Command Line Mark: %d" % (cmdline_when)
             print "     Command Line: " + cmdline
 
-            raise error.JobError("boot failure", "reboot.verify")
+            self.record("ABORT", subdir, "reboot.verify", "boot failure")
+            self._decrement_group_level()
+            kernel = {"kernel": running_id.split("::")[0]}
+            self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
+            raise error.JobError("reboot returned with the wrong kernel")
 
         kernel_info = {'kernel': expected_id}
         for i, patch in enumerate(patches):
@@ -1045,9 +1049,9 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
             command = None
             if len(instance.args) > 1:
                 command = instance.args[1]
-            myjob.record('ABORT', None, command, instance.args[0])
+                myjob.record('ABORT', None, command, instance.args[0])
             myjob._decrement_group_level()
-            myjob.record('END ABORT', None, None)
+            myjob.record('END ABORT', None, None, instance.args[0])
             assert(myjob.group_level == 0)
             myjob.complete(1)
         else:
@@ -1057,9 +1061,8 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
         msg = str(e) + '\n' + traceback.format_exc()
         print "JOB ERROR: " + msg
         if myjob:
-            myjob.record('ABORT', None, None, msg)
             myjob._decrement_group_level()
-            myjob.record('END ABORT', None, None)
+            myjob.record('END ABORT', None, None, msg)
             assert(myjob.group_level == 0)
             myjob.complete(1)
         else:
