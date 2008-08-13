@@ -25,13 +25,12 @@ public class NotifyManager {
         private Label message = new Label();
         
         public NotifyBox(boolean autoHide) {
-            message.setStyleName("notify");
             panel = new PopupPanel(autoHide);
-            panel.getElement().getStyle().setProperty("vertical-align", "middle");
+            panel.setStyleName("notify");
         }
         
         public void addStyle(String style) {
-            message.addStyleName(style);
+            panel.addStyleName(style);
         }
         
         public void hide() {
@@ -39,8 +38,8 @@ public class NotifyManager {
         }
         
         public void show() {
-            panel.setPopupPosition(0, 0);
             panel.show();
+            panel.getElement().getStyle().setProperty("position", "fixed");
         }
         
         public void showMessage(String messageString) {
