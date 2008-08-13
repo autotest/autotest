@@ -2,7 +2,7 @@
 
 import unittest, os, time
 import common
-from autotest_lib.server import base_server_job, test, subcommand
+from autotest_lib.server import server_job, test, subcommand
 from autotest_lib.client.common_lib import utils, error, host_protections
 from autotest_lib.client.common_lib import packages
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
@@ -28,8 +28,8 @@ class BaseServerJobTest(unittest.TestCase):
         self.god.stub_function(os, 'mkdir')
         self.god.stub_function(os, 'chdir')
         self.god.stub_function(os, 'unlink')
-        self.god.stub_function(base_server_job, 'get_site_job_data')
-        self.god.stub_function(base_server_job, 'open')
+        self.god.stub_function(server_job, 'get_site_job_data')
+        self.god.stub_function(server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
 
 
@@ -42,7 +42,7 @@ class BaseServerJobTest(unittest.TestCase):
     def construct_server_job(self):
         # setup recording for constructor
         file_obj = self.god.create_mock_class(file, "file")
-        base_server_job.open.expect_call(self.control,
+        server_job.open.expect_call(self.control,
                                          'r').and_return(file_obj)
         file_obj.read.expect_call().and_return('')
         os.path.exists.expect_call(
@@ -54,19 +54,19 @@ class BaseServerJobTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(True)
         os.unlink.expect_call(mock.is_string_comparator())
-        cls = base_server_job.base_server_job
+        cls = server_job.base_server_job
         compare = mock.is_instance_comparator(cls)
-        base_server_job.get_site_job_data.expect_call(
+        server_job.get_site_job_data.expect_call(
                 compare).and_return({})
         utils.write_keyval.expect_call(mock.is_string_comparator(),
                                        mock.is_instance_comparator(dict))
 
-        self.job = base_server_job.base_server_job(self.control,
-                                                   self.args,
-                                                   self.resultdir,
-                                                   self.label,
-                                                   self.user,
-                                                   self.machines)
+        self.job = server_job.base_server_job(self.control,
+                                              self.args,
+                                              self.resultdir,
+                                              self.label,
+                                              self.user,
+                                              self.machines)
 
         self.god.check_playback()
 
@@ -91,7 +91,7 @@ class BaseServerJobTest(unittest.TestCase):
 
         # set up recording
         file_obj = self.god.create_mock_class(file, "file")
-        base_server_job.open.expect_call(log, 'w',
+        server_job.open.expect_call(log, 'w',
                                          0).and_return(file_obj)
         tko_utils.redirect_parser_debugging.expect_call(file_obj)
         db = self.god.create_mock_class(tko_db.db_sql, "db_sql")
@@ -120,7 +120,7 @@ class BaseServerJobTest(unittest.TestCase):
                      'ssh_user' : self.job.ssh_user, \
                      'ssh_port' : self.job.ssh_port, \
                      'ssh_pass' : self.job.ssh_pass}
-        arg = base_server_job.preamble + base_server_job.verify
+        arg = server_job.preamble + server_job.verify
         self.job._execute_code.expect_call(arg, namespace,
                                                 namespace)
 
@@ -140,10 +140,10 @@ class BaseServerJobTest(unittest.TestCase):
         repair_namespace = verify_namespace.copy()
         repair_namespace['protection_level'] = host_protections.default
 
-        arg = base_server_job.preamble + base_server_job.repair
+        arg = server_job.preamble + server_job.repair
         self.job._execute_code.expect_call(arg, repair_namespace,
                                            repair_namespace)
-        arg = base_server_job.preamble + base_server_job.verify
+        arg = server_job.preamble + server_job.verify
         self.job._execute_code.expect_call(arg, verify_namespace,
                                            verify_namespace)
 
@@ -196,13 +196,13 @@ class BaseServerJobTest(unittest.TestCase):
         time.time.expect_call().and_return(my_time)
         os.chdir.expect_call(mock.is_string_comparator())
         self.job.enable_external_logging.expect_call()
-        base_server_job.open.expect_call(
+        server_job.open.expect_call(
                 'control.srv', 'w').and_return(file_obj)
         file_obj.write.expect_call('')
-        arg = base_server_job.preamble + ''
+        arg = server_job.preamble + ''
         self.job._execute_code.expect_call(arg, namespace,
                                                 namespace)
-        arg = base_server_job.preamble + base_server_job.crashdumps
+        arg = server_job.preamble + server_job.crashdumps
         self.job._execute_code.expect_call(arg, namespace2,
                                                 namespace2)
         self.job.disable_external_logging.expect_call()
