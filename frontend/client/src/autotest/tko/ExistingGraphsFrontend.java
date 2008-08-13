@@ -67,6 +67,8 @@ public class ExistingGraphsFrontend extends Composite {
                 refreshTests();
             }
         });
+
+        benchmark.addItem("(Please select a hostname first)");
         
         graphButton.addClickListener(new ClickListener() {
             public void onClick(Widget w) {
