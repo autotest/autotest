@@ -654,7 +654,7 @@ class host_jobs_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'host', 'jobs', 'host0',
                            '--ignore_site_file'],
                      rpcs=[('get_host_queue_entries',
-                            {'host__hostname': 'host0'},
+                            {'host__hostname': 'host0', 'query_limit': 20},
                             True,
                             [{u'status': u'Failed',
                               u'complete': 1,
@@ -743,7 +743,7 @@ class host_jobs_unittest(cli_mock.cli_unittest):
                               u'platform': u'plat0',
                               u'id': 2}]),
                            ('get_host_queue_entries',
-                            {'host__hostname': 'host1'},
+                            {'host__hostname': 'host1', 'query_limit': 20},
                             True,
                             [{u'status': u'Failed',
                               u'complete': 1,
@@ -801,7 +801,7 @@ class host_jobs_unittest(cli_mock.cli_unittest):
                                u'active': 0,
                                u'id': 3167}]),
                            ('get_host_queue_entries',
-                            {'host__hostname': 'host0'},
+                            {'host__hostname': 'host0', 'query_limit': 20},
                             True,
                             [{u'status': u'Failed',
                               u'complete': 1,
@@ -862,6 +862,74 @@ class host_jobs_unittest(cli_mock.cli_unittest):
                                    'kernel-smp-2.6.xyz.x86_64', 'Aborted',
                                    '289', 'user1', 'Aborted',
                                    'testjob'])
+
+
+    def test_execute_jobs_one_host_limit(self):
+        self.run_cmd(argv=['atest', 'host', 'jobs', 'host0',
+                           '--ignore_site_file', '-q', '10'],
+                     rpcs=[('get_host_queue_entries',
+                            {'host__hostname': 'host0', 'query_limit': 10},
+                            True,
+                            [{u'status': u'Failed',
+                              u'complete': 1,
+                              u'host': {u'status': u'Ready',
+                                        u'locked': 1,
+                                        u'locked_by': 'user0',
+                                        u'hostname': u'host0',
+                                        u'invalid': 0,
+                                        u'id': 3232,
+                                        u'synch_id': None},
+                              u'priority': 0,
+                              u'meta_host': u'meta0',
+                              u'job': {u'control_file':
+                                       (u"def step_init():\n"
+                                        "\tjob.next_step([step_test])\n"
+                                        "\ttestkernel = job.kernel("
+                                        "'kernel-smp-2.6.xyz.x86_64.rpm')\n"
+                                        "\ttestkernel.install()\n"
+                                        "\ttestkernel.boot()\n\n"
+                                        "def step_test():\n"
+                                        "\tjob.run_test('kernbench')\n\n"),
+                                       u'name': u'kernel-smp-2.6.xyz.x86_64',
+                                       u'control_type': u'Client',
+                                       u'synchronizing': None,
+                                       u'priority': u'Low',
+                                       u'owner': u'user0',
+                                       u'created_on': u'2008-01-09 10:45:12',
+                                       u'synch_count': None,
+                                       u'synch_type': u'Asynchronous',
+                                       u'id': 216},
+                                       u'active': 0,
+                                       u'id': 2981},
+                              {u'status': u'Aborted',
+                               u'complete': 1,
+                               u'host': {u'status': u'Ready',
+                                         u'locked': 1,
+                                         u'locked_by': 'user0',
+                                         u'hostname': u'host0',
+                                         u'invalid': 0,
+                                         u'id': 3232,
+                                         u'synch_id': None},
+                               u'priority': 0,
+                               u'meta_host': None,
+                               u'job': {u'control_file':
+                                        u"job.run_test('sleeptest')\n\n",
+                                        u'name': u'testjob',
+                                        u'control_type': u'Client',
+                                        u'synchronizing': 0,
+                                        u'priority': u'Low',
+                                        u'owner': u'user1',
+                                        u'created_on': u'2008-01-17 15:04:53',
+                                        u'synch_count': None,
+                                        u'synch_type': u'Asynchronous',
+                                        u'id': 289},
+                               u'active': 0,
+                               u'id': 3167}])],
+                     out_words_ok=['216', 'user0', 'Failed',
+                                   'kernel-smp-2.6.xyz.x86_64', 'Aborted',
+                                   '289', 'user1', 'Aborted',
+                                   'testjob'])
+
 
 class host_mod_unittest(cli_mock.cli_unittest):
     def test_parse_ready_dead(self):

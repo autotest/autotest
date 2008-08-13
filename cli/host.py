@@ -27,7 +27,7 @@ See topic_common.py for a High Level Design and Algorithm.
 
 """
 
-import os, sys
+import os, sys, socket
 from autotest_lib.cli import topic_common, action_common
 
 
@@ -153,6 +153,7 @@ class host_stat(host):
     usage_action = 'stat'
 
     def execute(self):
+        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         results = []
         # Convert wildcards into real host stats.
         existing_hosts = []
@@ -197,7 +198,23 @@ class host_jobs(host):
     """atest host jobs --mlist <file>|<hosts>"""
     usage_action = 'jobs'
 
+    def __init__(self):
+        super(host_jobs, self).__init__()
+        self.parser.add_option('-q', '--max-query',
+                               help='Limits the number of results '
+                               '(20 by default)',
+                               type='int', default=20)
+
+
+    def parse(self):
+        """Consume the specific options"""
+        (options, leftover) = super(host_jobs, self).parse(req_items=None)
+        self.max_queries = options.max_query
+        return (options, leftover)
+
+
     def execute(self):
+        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         results = []
         real_hosts = []
         for host in self.hosts:
@@ -213,7 +230,8 @@ class host_jobs(host):
 
         for host in real_hosts:
             queue_entries = self.execute_rpc('get_host_queue_entries',
-                                             host__hostname=host)
+                                             host__hostname=host,
+                                             query_limit=self.max_queries)
             queue_entries.sort(key=lambda qe: qe['job']['id'])
             queue_entries.reverse()
             jobs = []
