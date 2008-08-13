@@ -113,6 +113,21 @@ class test_status_line(unittest.TestCase):
         self.assertEquals(line.optional_fields, {})
 
 
+    def test_parse_line_fails_on_incomplete_lines(self):
+        input_data = "\t\tGOOD\tfield\tsecond field"
+        complete_data = input_data + "\tneeded last field"
+        line = version_0.status_line.parse_line(input_data)
+        self.assertEquals(line, None)
+        line = version_0.status_line.parse_line(complete_data)
+        self.assertEquals(line.indent, 2)
+        self.assertEquals(line.type, "STATUS")
+        self.assertEquals(line.status, "GOOD")
+        self.assertEquals(line.subdir, "field")
+        self.assertEquals(line.testname, "second field")
+        self.assertEquals(line.reason, "needed last field")
+        self.assertEquals(line.optional_fields, {})
+
+
     def test_parse_line_fails_on_bad_optional_fields(self):
         input_data = "GOOD\tfield1\tfield2\tfield3\tfield4"
         self.assertRaises(AssertionError,
