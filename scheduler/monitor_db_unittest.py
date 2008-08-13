@@ -33,11 +33,21 @@ INSERT INTO hosts_labels (host_id, label_id) VALUES
 class Dummy(object):
     'Dummy object that can have attribute assigned to it'
 
-class DispatcherTest(unittest.TestCase):
-    _jobs_scheduled = []
-    _job_counter = 0
+
+class IsRow(mock.argument_comparator):
+    def __init__(self, row_id):
+        self.row_id = row_id
 
 
+    def is_satisfied_by(self, parameter):
+        return list(parameter)[0] == self.row_id
+
+
+    def __str__(self):
+        return 'row with id %s' % self.row_id
+
+
+class BaseDispatcherTest(unittest.TestCase):
     def _read_db_info(self):
         config = global_config.global_config
         section = 'AUTOTEST_WEB'
@@ -82,6 +92,7 @@ class DispatcherTest(unittest.TestCase):
     def _open_test_db(self, schema):
         self._db_name = 'test_' + self._db_name
         self._connect_to_db()
+        self._do_query('DROP DATABASE IF EXISTS ' + self._db_name)
         self._do_query('CREATE DATABASE ' + self._db_name)
         self._disconnect_from_db()
         self._connect_to_db(self._db_name)
@@ -93,44 +104,29 @@ class DispatcherTest(unittest.TestCase):
         self._disconnect_from_db()
 
 
+    def _set_monitor_stubs(self):
+        monitor_db._db = monitor_db.DatabaseConn()
+        monitor_db._db.connect(db_name=self._db_name)
+
+
     def _fill_in_test_data(self):
         self._do_queries(_TEST_DATA)
 
 
-    def _set_monitor_stubs(self):
-        monitor_db._db = monitor_db.DatabaseConn()
-        monitor_db._db.connect(db_name=self._db_name)
-        def run_stub(hqe_self, assigned_host=None):
-            if hqe_self.meta_host:
-                host = assigned_host
-            else:
-                host = hqe_self.host
-            self._record_job_scheduled(hqe_self.job.id, host.id)
-            return Dummy()
-        monitor_db.HostQueueEntry.run = run_stub
+    def setUp(self):
+        self.god = mock.mock_god()
+        self._read_db_info()
+        schema = self._get_db_schema()
+        self._open_test_db(schema)
+        self._fill_in_test_data()
+        self._set_monitor_stubs()
+        self._dispatcher = monitor_db.Dispatcher()
+        self._job_counter = 0
 
 
-    def _record_job_scheduled(self, job_id, host_id):
-        record = (job_id, host_id)
-        self.assert_(record not in self._jobs_scheduled,
-                     'Job %d scheduled on host %d twice' %
-                     (job_id, host_id))
-        self._jobs_scheduled.append(record)
-
-
-    def _assert_job_scheduled_on(self, job_id, host_id):
-        record = (job_id, host_id)
-        self.assert_(record in self._jobs_scheduled,
-                     'Job %d not scheduled on host %d as expected\n'
-                     'Jobs scheduled: %s' %
-                     (job_id, host_id, self._jobs_scheduled))
-        self._jobs_scheduled.remove(record)
-
-
-    def _check_for_extra_schedulings(self):
-        if len(self._jobs_scheduled) != 0:
-            self.fail('Extra jobs scheduled: ' +
-                      str(self._jobs_scheduled))
+    def tearDown(self):
+        self._close_test_db()
+        self.god.unstub_all()
 
 
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=0):
@@ -163,6 +159,52 @@ class DispatcherTest(unittest.TestCase):
         self._create_job(priority=priority, active=active, **args)
 
 
+    def _update_hqe(self, set, where=''):
+        query = 'UPDATE host_queue_entries SET ' + set
+        if where:
+            query += ' WHERE ' + where
+        self._do_query(query)
+
+
+class DispatcherSchedulingTest(BaseDispatcherTest):
+    _jobs_scheduled = []
+
+    def _set_monitor_stubs(self):
+        super(DispatcherSchedulingTest, self)._set_monitor_stubs()
+        def run_stub(hqe_self, assigned_host=None):
+            hqe_self.set_status('Starting')
+            if hqe_self.meta_host:
+                host = assigned_host
+            else:
+                host = hqe_self.host
+            self._record_job_scheduled(hqe_self.job.id, host.id)
+            return Dummy()
+        monitor_db.HostQueueEntry.run = run_stub
+
+
+    def _record_job_scheduled(self, job_id, host_id):
+        record = (job_id, host_id)
+        self.assert_(record not in self._jobs_scheduled,
+                     'Job %d scheduled on host %d twice' %
+                     (job_id, host_id))
+        self._jobs_scheduled.append(record)
+
+
+    def _assert_job_scheduled_on(self, job_id, host_id):
+        record = (job_id, host_id)
+        self.assert_(record in self._jobs_scheduled,
+                     'Job %d not scheduled on host %d as expected\n'
+                     'Jobs scheduled: %s' %
+                     (job_id, host_id, self._jobs_scheduled))
+        self._jobs_scheduled.remove(record)
+
+
+    def _check_for_extra_schedulings(self):
+        if len(self._jobs_scheduled) != 0:
+            self.fail('Extra jobs scheduled: ' +
+                      str(self._jobs_scheduled))
+
+
     def _convert_jobs_to_metahosts(self, *job_ids):
         sql_tuple = '(' + ','.join(str(i) for i in job_ids) + ')'
         self._do_query('UPDATE host_queue_entries SET '
@@ -176,18 +218,9 @@ class DispatcherTest(unittest.TestCase):
 
 
     def setUp(self):
-        self._read_db_info()
-        schema = self._get_db_schema()
-        self._open_test_db(schema)
+        super(DispatcherSchedulingTest, self).setUp()
         self._fill_in_test_data()
-        self._set_monitor_stubs()
-        self._dispatcher = monitor_db.Dispatcher()
         self._jobs_scheduled = []
-        self._job_counter = 0
-
-
-    def tearDown(self):
-        self._close_test_db()
 
 
     def _test_basic_scheduling_helper(self, use_metahosts):
@@ -296,8 +329,7 @@ class DispatcherTest(unittest.TestCase):
         self._create_job(metahosts=[1], hosts=[1])
         # make the nonmetahost entry complete, so the metahost can try
         # to get scheduled
-        self._do_query('UPDATE host_queue_entries SET complete = 1 '
-                       'WHERE host_id=1')
+        self._update_hqe(set='complete = 1', where='host_id=1')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 
@@ -308,6 +340,87 @@ class DispatcherTest(unittest.TestCase):
         self._create_job(metahosts=[1])
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
+
+
+    def test_only_schedule_queued_entries(self):
+        self._create_job(metahosts=[1])
+        self._update_hqe(set='active=1, host_id=2')
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+
+class AbortTest(BaseDispatcherTest):
+    """
+    Test both the dispatcher abort functionality and AbortTask.
+    """
+    def setUp(self):
+        super(AbortTest, self).setUp()
+        self.god.stub_class(monitor_db, 'RebootTask')
+        self.god.stub_class(monitor_db, 'VerifyTask')
+        self.god.stub_class(monitor_db, 'AbortTask')
+        self.god.stub_class(monitor_db, 'HostQueueEntry')
+        self.god.stub_class(monitor_db, 'Agent')
+
+
+    def _setup_queue_entries(self, host_id, hqe_id):
+        host = monitor_db.Host(id=host_id)
+        self.god.stub_function(host, 'set_status')
+        hqe = monitor_db.HostQueueEntry.expect_new(row=IsRow(hqe_id))
+        hqe.id = hqe_id
+        return host, hqe
+
+
+    def _setup_abort_expects(self, host, hqe, abort_agent=None):
+        hqe.get_host.expect_call().and_return(host)
+        reboot_task = monitor_db.RebootTask.expect_new(host)
+        verify_task = monitor_db.VerifyTask.expect_new(host=host)
+        if abort_agent:
+            abort_task = monitor_db.AbortTask.expect_new(hqe, [abort_agent])
+            tasks = [mock.is_instance_comparator(monitor_db.AbortTask)]
+        else:
+            hqe.set_status.expect_call('Aborted')
+            host.set_status.expect_call('Rebooting')
+            tasks = []
+        tasks += [reboot_task, verify_task]
+        agent = monitor_db.Agent.expect_new(tasks=tasks,
+                                            queue_entry_ids=[hqe.id])
+        agent.queue_entry_ids = [hqe.id]
+        return agent
+
+
+    def test_find_aborting_inactive(self):
+        self._create_job(hosts=[1, 2])
+        self._update_hqe(set='status="Abort"')
+
+        host1, hqe1 = self._setup_queue_entries(1, 1)
+        host2, hqe2 = self._setup_queue_entries(2, 2)
+        agent1 = self._setup_abort_expects(host1, hqe1)
+        agent2 = self._setup_abort_expects(host2, hqe2)
+
+        self._dispatcher._find_aborting()
+
+        self.assertEquals(self._dispatcher._agents, [agent1, agent2])
+        self.god.check_playback()
+
+
+    def test_find_aborting_active(self):
+        self._create_job(hosts=[1, 2])
+        self._update_hqe(set='status="Abort", active=1')
+        # have to make an Agent for the active HQEs
+        task = self.god.create_mock_class(monitor_db.QueueTask, 'QueueTask')
+        agent = self.god.create_mock_class(monitor_db.Agent, 'OldAgent')
+        agent.queue_entry_ids = [1, 2]
+        self._dispatcher.add_agent(agent)
+
+        host1, hqe1 = self._setup_queue_entries(1, 1)
+        host2, hqe2 = self._setup_queue_entries(2, 2)
+        agent1 = self._setup_abort_expects(host1, hqe1, abort_agent=agent)
+        agent2 = self._setup_abort_expects(host2, hqe2)
+
+        self._dispatcher._find_aborting()
+
+        self.assertEquals(self._dispatcher._agents, [agent1, agent2])
+        self.god.check_playback()
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
@@ -554,6 +667,7 @@ class AgentTasksTest(unittest.TestCase):
             self.host.set_status.expect_call('Repair Failed')
 
         task = monitor_db.RepairTask(self.host)
+        self.assertEquals(task.failure_tasks, [])
         self.run_task(task, success)
 
         expected_protection = host_protections.Protection.get_string(
@@ -603,7 +717,20 @@ class AgentTasksTest(unittest.TestCase):
                 self.queue_entry.requeue.expect_call()
 
 
-    def _test_verify_task_with_host_helper(self, success, use_queue_entry):
+    def _check_verify_failure_tasks(self, verify_task):
+        self.assertEquals(len(verify_task.failure_tasks), 1)
+        repair_task = verify_task.failure_tasks[0]
+        self.assert_(isinstance(repair_task, monitor_db.RepairTask))
+        self.assertEquals(verify_task.host, repair_task.host)
+        if verify_task.queue_entry and not verify_task.queue_entry.meta_host:
+            self.assertEquals(repair_task.fail_queue_entry,
+                              verify_task.queue_entry)
+        else:
+            self.assertEquals(repair_task.fail_queue_entry, None)
+
+
+    def _test_verify_task_helper(self, success, use_queue_entry=False,
+                                 use_meta_host=False):
         self.setup_verify_expects(success, use_queue_entry)
 
         if use_queue_entry:
@@ -611,6 +738,7 @@ class AgentTasksTest(unittest.TestCase):
                 queue_entry=self.queue_entry)
         else:
             task = monitor_db.VerifyTask(host=self.host)
+        self._check_verify_failure_tasks(task)
         self.run_task(task, success)
         self.assertTrue(set(task.monitor.cmd) >=
                         set(['autoserv', '-v', '-m', self.HOSTNAME, '-r',
@@ -619,13 +747,20 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def test_verify_task_with_host(self):
-        self._test_verify_task_with_host_helper(True, False)
-        self._test_verify_task_with_host_helper(False, False)
+        self._test_verify_task_helper(True)
+        self._test_verify_task_helper(False)
 
 
     def test_verify_task_with_queue_entry(self):
-        self._test_verify_task_with_host_helper(True, True)
-        self._test_verify_task_with_host_helper(False, True)
+        self._test_verify_task_helper(True, use_queue_entry=True)
+        self._test_verify_task_helper(False, use_queue_entry=True)
+
+
+    def test_verify_task_with_metahost(self):
+        self._test_verify_task_helper(True, use_queue_entry=True,
+                                      use_meta_host=True)
+        self._test_verify_task_helper(False, use_queue_entry=True,
+                                      use_meta_host=True)
 
 
     def test_verify_synchronous_task(self):
