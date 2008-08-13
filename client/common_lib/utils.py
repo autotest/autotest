@@ -197,6 +197,7 @@ def run_bg(command):
     result = CmdResult(command)
     def reset_sigpipe():
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    print "running: %s" % command
     sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, preexec_fn=reset_sigpipe,
                           shell=True, executable="/bin/bash")
