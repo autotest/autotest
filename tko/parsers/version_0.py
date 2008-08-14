@@ -195,7 +195,7 @@ class status_line(object):
 
     @staticmethod
     def is_status_line(line):
-        return re.search(r"^\t*\S", line) is not None
+        return re.search(r"^\t*(\S[^\t]*\t){3}", line) is not None
 
 
     @classmethod
