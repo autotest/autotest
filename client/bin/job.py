@@ -908,6 +908,7 @@ class base_job(object):
             optional_fields = {}
 
         status = status.rstrip()
+        status = re.sub(r"\r", "", status)
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
