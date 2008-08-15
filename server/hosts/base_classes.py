@@ -22,7 +22,7 @@ import time
 
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import utils
-import bootloader
+from autotest_lib.server.hosts import bootloader
 
 
 class Host(object):
@@ -53,9 +53,10 @@ class Host(object):
     """
 
     bootloader = None
+    job = None
 
-    def __init__(self):
-        super(Host, self).__init__()
+    def __init__(self, *args, **dargs):
+        super(Host, self).__init__(*args, **dargs)
         self.serverdir = utils.get_server_dir()
         self.bootloader= bootloader.Bootloader(self)
         self.env = {}

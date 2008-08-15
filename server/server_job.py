@@ -44,7 +44,7 @@ from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.common_lib import barrier
 
 autotest.Autotest.job = job
-hosts.SSHHost.job = job
+hosts.Host.job = job
 barrier = barrier.barrier
 if len(machines) > 1:
         open('.machines', 'w').write('\\n'.join(machines) + '\\n')
@@ -54,47 +54,47 @@ client_wrapper = """
 at = autotest.Autotest()
 
 def run_client(machine):
-        hostname, user, password, port = parse_machine(machine,
-                ssh_user, ssh_port, ssh_pass)
+    hostname, user, passwd, port = parse_machine(
+        machine, ssh_user, ssh_port, ssh_pass)
 
-        host = hosts.SSHHost(hostname, user, port, password=password)
-        at.run(control, host=host)
+    host = hosts.create_host(hostname, user=user, port=port, password=passwd)
+    at.run(control, host=host)
 
 job.parallel_simple(run_client, machines)
 """
 
 crashdumps = """
 def crashdumps(machine):
-        hostname, user, password, port = parse_machine(machine,
-                ssh_user, ssh_port, ssh_pass)
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
 
-        host = hosts.SSHHost(hostname, user, port, initialize=False, \
-            password=password)
-        host.get_crashdumps(test_start_time)
+    host = hosts.create_host(hostname, user=user, port=port,
+                             initialize=False, password=passwd)
+    host.get_crashdumps(test_start_time)
 
 job.parallel_simple(crashdumps, machines, log=False)
 """
 
 reboot_segment="""\
 def reboot(machine):
-        hostname, user, password, port = parse_machine(machine,
-                ssh_user, ssh_port, ssh_pass)
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
 
-        host = hosts.SSHHost(hostname, user, port, initialize=False, \
-            password=password)
-        host.reboot()
+    host = hosts.create_host(hostname, user, port,
+                             initialize=False, password=passwd)
+    host.reboot()
 
 job.parallel_simple(reboot, machines, log=False)
 """
 
 install="""\
 def install(machine):
-        hostname, user, password, port = parse_machine(machine,
-                ssh_user, ssh_port, ssh_pass)
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
 
-        host = hosts.SSHHost(hostname, user, port, initialize=False, \
-            password=password)
-        host.machine_install()
+    host = hosts.create_host(hostname, user, port,
+                             initialize=False, password=passwd)
+    host.machine_install()
 
 job.parallel_simple(install, machines, log=False)
 """

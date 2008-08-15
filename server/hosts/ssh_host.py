@@ -22,14 +22,14 @@ import types, os, sys, signal, subprocess, time, re, socket, pdb
 
 from autotest_lib.client.common_lib import error, pxssh, global_config
 from autotest_lib.server import utils
-import remote, bootloader
+from autotest_lib.server.hosts import serial, bootloader
 
 
 class PermissionDeniedError(error.AutoservRunError):
     pass
 
 
-class SSHHost(remote.RemoteHost):
+class SSHHost(serial.SerialHost):
     """
     This class represents a remote machine controlled through an ssh
     session on which you can run programs.
@@ -52,13 +52,10 @@ class SSHHost(remote.RemoteHost):
     """
 
     DEFAULT_REBOOT_TIMEOUT = 1800
-    job = None
 
     def __init__(self, hostname, user="root", port=22, initialize=True,
-                 conmux_log="console.log",
-                 conmux_server=None, conmux_attach=None,
                  netconsole_log=None, netconsole_port=6666, autodir=None,
-                 password='', target_file_owner=None):
+                 password='', target_file_owner=None, *args, **dargs):
         """
         Construct a SSHHost object
 
@@ -68,8 +65,10 @@ class SSHHost(remote.RemoteHost):
                 port: port the ssh daemon is listening on on the remote
                         machine
         """
-        self.hostname = hostname
-        self.ip = socket.getaddrinfo(hostname, None)[0][4][0]
+        dargs["hostname"] = hostname
+        super(SSHHost, self).__init__(*args, **dargs)
+
+        self.ip = socket.getaddrinfo(self.hostname, None)[0][4][0]
         self.user = user
         self.port = port
         self.tmp_dirs = []
@@ -77,19 +76,6 @@ class SSHHost(remote.RemoteHost):
         self.autodir = autodir
         self.password = password
         self.target_file_owner = target_file_owner
-
-        super(SSHHost, self).__init__()
-
-        self.conmux_server = conmux_server
-        if conmux_attach:
-            self.conmux_attach = conmux_attach
-        else:
-            self.conmux_attach = os.path.abspath(os.path.join(
-                                    self.serverdir, '..',
-                                    'conmux', 'conmux-attach'))
-        self.logger_popen = None
-        self.warning_stream = None
-        self.__start_console_log(conmux_log)
 
         self.bootloader = bootloader.Bootloader(self)
 
@@ -115,18 +101,14 @@ class SSHHost(remote.RemoteHost):
         """
         Destroy a SSHHost object
         """
-        for dir in self.tmp_dirs:
-            try:
-                self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
-            except error.AutoservRunError:
-                pass
-        # kill the console logger
-        if getattr(self, 'logger_popen', None):
-            self.__kill(self.logger_popen)
-            if self.job:
-                self.job.warning_loggers.discard(
-                    self.warning_stream)
-            self.warning_stream.close()
+        super(SSHHost, self).__del__()
+
+        if hasattr(self, 'tmp_dirs'):
+            for dir in self.tmp_dirs:
+                try:
+                    self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
+                except error.AutoservRunError:
+                    pass
         # kill the netconsole logger
         if getattr(self, 'netlogger_popen', None):
             self.__unload_netconsole_module()
@@ -239,63 +221,21 @@ class SSHHost(remote.RemoteHost):
         Reach out and slap the box in the power switch.
         Args:
                 conmux_command: The command to run via the conmux interface
-                timeout: timelimit in seconds before the machine is considered unreachable
+                timeout: timelimit in seconds before the machine is
+                considered unreachable
                 wait: Whether or not to wait for the machine to reboot
 
         """
         conmux_command = r"'~$%s'" % conmux_command
-        if not self.__console_run(conmux_command):
-            self.__record("ABORT", None, "reboot.start", "hard reset unavailable")
+        if not self.run_conmux(conmux_command):
+            self.__record("ABORT", None, "reboot.start",
+                          "hard reset unavailable")
             raise error.AutoservUnsupportedError(
                 'Hard reset unavailable')
 
         if wait:
             self._wait_for_restart(timeout)
         self.__record("GOOD", None, "reboot.start", "hard reset")
-
-
-    def __conmux_hostname(self):
-        if self.conmux_server:
-            return '%s/%s' % (self.conmux_server, self.hostname)
-        else:
-            return self.hostname
-
-
-    def __start_console_log(self, logfilename):
-        """
-        Log the output of the console session to a specified file
-        """
-        if logfilename == None:
-            return
-        if not self.conmux_attach or not os.path.exists(self.conmux_attach):
-            return
-
-        r, w = os.pipe()
-        script_path = os.path.join(self.serverdir,
-                                   'warning_monitor.py')
-        cmd = [self.conmux_attach, self.__conmux_hostname(),
-               '%s %s %s %d' % (sys.executable, script_path,
-                                logfilename, w)]
-        dev_null = open(os.devnull, 'w')
-
-        self.warning_stream = os.fdopen(r, 'r', 0)
-        if self.job:
-            self.job.warning_loggers.add(self.warning_stream)
-        self.logger_popen = subprocess.Popen(cmd, stderr=dev_null)
-        os.close(w)
-
-
-    def __console_run(self, cmd):
-        """
-        Send a command to the conmux session
-        """
-        if not self.conmux_attach or not os.path.exists(self.conmux_attach):
-            return False
-        cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
-                                              self.__conmux_hostname(),
-                                              cmd)
-        result = utils.system(cmd, ignore_status=True)
-        return result == 0
 
 
     def __run_reboot_group(self, reboot_func):
