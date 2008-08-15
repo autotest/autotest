@@ -8,14 +8,11 @@ Implementation details:
 You should 'import hosts' instead of importing every available host module.
 """
 
-__author__ = """mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)"""
-
 
 # host abstract classes
 from base_classes import Host
-from remote import SiteHost, RemoteHost
+from remote import RemoteHost
+from site_host import SiteHost
 
 # host implementation classes
 from ssh_host import SSHHost
@@ -24,3 +21,8 @@ from kvm_guest import KVMGuest
 
 # bootloader classes
 from bootloader import Bootloader
+
+
+# generic host factory
+def create_host(hostname, **args):
+    return SSHHost(hostname, **args)
