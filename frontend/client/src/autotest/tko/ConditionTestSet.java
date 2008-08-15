@@ -34,11 +34,11 @@ class ConditionTestSet implements TestSet {
     
     public String getCondition() {
         ArrayList<String> parts = new ArrayList<String>();
-        for (Map.Entry<String, String> entry : fields.entrySet()) {
-            parts.add(entry.getKey() + " = '" + escapeQuotes(entry.getValue()) + "'");
-        }
         if (!initialCondition.trim().equals("")) {
             parts.add(initialCondition);
+        }
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            parts.add(entry.getKey() + " = '" + escapeQuotes(entry.getValue()) + "'");
         }
         return Utils.joinStrings(" AND ", parts);
     }

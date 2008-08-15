@@ -85,22 +85,8 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         return currentCondition;
     }
 
-    public String getRefinedCondition(TestSet tests) {
-        String newCondition = tests.getCondition();
-        if (newCondition.equals("") || newCondition.equals(currentCondition)) {
-            return currentCondition;
-        }
-        return appendCondition(currentCondition, "(" + newCondition + ")");
-    }
-
     public void refineCondition(TestSet tests) {
-        setSqlCondition(getRefinedCondition(tests));
-    }
-
-    private static String appendCondition(String condition, String toAppend) {
-        if (!condition.equals(""))
-            condition += " AND ";
-        return condition + toAppend;
+        setSqlCondition(tests.getCondition());
     }
 
     public void handleHistoryArguments(Map<String, String> arguments) {

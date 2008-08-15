@@ -120,33 +120,35 @@ public class Spreadsheet extends Composite implements ScrollListener, TableListe
                 case 1:
                     renderHeaders();
                     expandRowHeaders();
-                    // set main table to match header sizes
-                    matchRowHeights(rowHeaders, dataCells);
-                    matchColumnWidths(columnHeaders, dataCells);
-                    dataTable.setVisible(false);
                     break;
                 case 2:
                     // resize everything to the max dimensions (the window size)
                     fillWindow(false);
                     break;
                 case 3:
+                    // set main table to match header sizes
+                    matchRowHeights(rowHeaders, dataCells);
+                    matchColumnWidths(columnHeaders, dataCells);
+                    dataTable.setVisible(false);
+                    break;
+                case 4:
                     // render the main data table
                     renderSomeRows();
                     return true;
-                case 4:
+                case 5:
                     dataTable.updateBodyElems();
                     dataTable.setVisible(true);
                     break;
-                case 5:
+                case 6:
                     // now expand headers as necessary
                     // this can be very slow, so put it in it's own cycle
                     matchRowHeights(dataTable, rowHeaderCells);
                     break;
-                case 6:
+                case 7:
                     matchColumnWidths(dataTable, columnHeaderCells);
                     renderHeaders();
                     break;
-                case 7:
+                case 8:
                     // shrink the scroller if the table ended up smaller than the window
                     fillWindow(true);
                     DeferredCommand.addCommand(onFinished);
