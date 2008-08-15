@@ -31,6 +31,8 @@ class lockmeter(profiler.profiler):
 
 
     def initialize(self):
+        self.job.require_gcc()
+
         if not os.path.exists('/proc/lockmeter'):
             msg = ('Lockmeter is not compiled into your kernel'
                    'Please fix and try again')

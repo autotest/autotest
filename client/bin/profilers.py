@@ -26,9 +26,8 @@ class profilers:
             raise error.JobError('profiler %s not present' % profiler)
 
         profiler_module = common.setup_modules.import_module(profiler,
-                                                             'autotest_lib.client.profilers.%s' % profiler)
-        newprofiler = getattr(profiler_module, profiler)(self)
-
+                                  'autotest_lib.client.profilers.%s' % profiler)
+        newprofiler = getattr(profiler_module, profiler)(self.job)
 
         newprofiler.name = profiler
         newprofiler.bindir = os.path.join(self.profdir, profiler)

@@ -27,6 +27,8 @@ class readprofile(profiler.profiler):
 
 
     def initialize(self):
+        self.job.require_gcc()
+
         try:
             utils.system('grep -iq " profile=" /proc/cmdline')
         except error.CmdError:
