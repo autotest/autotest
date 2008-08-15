@@ -1,18 +1,10 @@
 """This class defines the Remote host class, mixing in the SiteHost class
 if it is available."""
 
-# site_host.py may be non-existant or empty, make sure that an appropriate
-# SiteHost class is created nevertheless
-try:
-    from site_host import SiteHost
-except ImportError:
-    import base_classes
-    class SiteHost(base_classes.Host):
-        def __init__(self):
-            super(SiteHost, self).__init__()
+from autotest_lib.server.hosts import base_classes
 
 
-class RemoteHost(SiteHost):
+class RemoteHost(base_classes.Host):
     """This class represents a remote machine on which you can run
     programs.
 
@@ -26,7 +18,7 @@ class RemoteHost(SiteHost):
     must not instantiate this class but should instantiate one of those
     leaf subclasses."""
 
-    hostname= None
+    def __init__(self, hostname, *args, **dargs):
+        super(RemoteHost, self).__init__(*args, **dargs)
 
-    def __init__(self):
-        super(RemoteHost, self).__init__()
+        self.hostname = hostname
