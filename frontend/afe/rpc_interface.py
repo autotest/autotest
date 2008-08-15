@@ -423,27 +423,19 @@ def get_info_for_clone(id):
     host_dicts = []
 
     for host in hosts:
-        host_dict = {}
-        host_dict['hostname'] = host.hostname
-        host_dict['id'] = host.id
-
         # one-time host
         if host.invalid:
+            host_dict = {}
+            host_dict['hostname'] = host.hostname
+            host_dict['id'] = host.id
             host_dict['platform'] = '(one-time host)'
             host_dict['locked_text'] = ''
-
         else:
-            platform = host.platform()
-            if platform:
-                host_dict['platform'] = platform.name
-            else:
-                host_dict['platform'] = None
-            labels = [label.name for label in host.labels.all()]
-            if platform and platform.name in labels:
-                labels.remove(platform.name)
-            host_dict['other_labels'] = ', '.join(labels)
-            host_dict['status'] = host.status
-            host_dict['locked'] = host.locked
+            host_dict = get_hosts(id=host.id)[0]
+            other_labels = host_dict['labels']
+            if host_dict['platform']:
+                other_labels.remove(host_dict['platform'])
+            host_dict['other_labels'] = ', '.join(other_labels)
         host_dicts.append(host_dict)
 
     meta_host_counts = {}
