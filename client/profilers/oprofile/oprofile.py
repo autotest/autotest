@@ -25,7 +25,7 @@ class oprofile(profiler.profiler):
 #       Force use of the local copy
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.3.tar.gz
-    def setup(self, tarball = 'oprofile-0.9.3.tar.bz2', local = None,
+    def setup(self, tarball='oprofile-0.9.3.tar.bz2', local=None,
                                                             *args, **dargs):
         if local == True:
             return
@@ -51,8 +51,9 @@ class oprofile(profiler.profiler):
                 raise
 
 
-    def initialize(self, vmlinux = None, events = [], others = None,
-                                                            local = None):
+    def initialize(self, vmlinux=None, events=[], others=None, local=None):
+        self.job.require_gcc()
+
         if not vmlinux:
             self.vmlinux = autotest_utils.get_vmlinux()
         else:
