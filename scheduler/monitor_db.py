@@ -531,99 +531,135 @@ class Dispatcher:
             USING (job_id) WHERE hqe.job_id IS NULL""")
 
 
-    def _extract_host_and_queue_entry(self, row):
-        # each row contains host columns followed by host queue entry
-        # columns
-        num_host_cols = Host.num_cols()
-        assert len(row) == num_host_cols + HostQueueEntry.num_cols()
-        host = Host(row=row[:num_host_cols])
-        queue_entry = HostQueueEntry(row=row[num_host_cols:])
-        return host, queue_entry
-
-
-    def _get_runnable_entries(self, extra_join='', extra_where=''):
-        query = (
-            'SELECT DISTINCT h.*, queued_hqe.* FROM hosts h '
-            # join with running entries
-            """
-            LEFT JOIN host_queue_entries AS active_hqe
-            ON (h.id = active_hqe.host_id AND active_hqe.active)
-            """ +
-            extra_join +
-            # exclude hosts with a running entry
-            'WHERE active_hqe.host_id IS NULL '
-            # exclude locked and non-Ready hosts
-            """
-            AND h.locked=false
-            AND (h.status IS null OR h.status='Ready')
-            """)
-        if extra_where:
-            query += 'AND ' + extra_where + '\n'
-        # respect priority, then sort by ID (most recent first)
-        query += 'ORDER BY queued_hqe.priority DESC, queued_hqe.id'
-
+    def _get_pending_queue_entries(self):
+        # prioritize by job priority, then non-metahost over metahost, then
+        # FIFO
+        query = """
+        SELECT * FROM host_queue_entries
+        WHERE NOT complete AND NOT active
+        ORDER BY priority DESC, meta_host, id
+        """
         rows = _db.execute(query)
-        return [self._extract_host_and_queue_entry(row) for row in rows]
+        self._queue_entries = [HostQueueEntry(row=row) for row in rows]
 
 
-    def _get_runnable_nonmetahosts(self):
-        # find queued HQEs scheduled directly against hosts
-        queued_hqe_join = """
-        INNER JOIN host_queue_entries AS queued_hqe
-        ON (h.id = queued_hqe.host_id
-            AND NOT queued_hqe.active AND NOT queued_hqe.complete)
-        """
-        return self._get_runnable_entries(queued_hqe_join)
+    def _get_ready_hosts(self):
+        query = """
+        SELECT h.*, hl.label_id, acl_groups_hosts.acl_group_id
+        FROM hosts h
 
-
-    def _get_runnable_metahosts(self):
-        # join with labels for metahost matching
-        labels_join = 'INNER JOIN hosts_labels hl ON (hl.host_id=h.id)'
-        # find queued HQEs scheduled for metahosts that match idle hosts
-        queued_hqe_join = """
-        INNER JOIN host_queue_entries AS queued_hqe
-        ON (queued_hqe.meta_host = hl.label_id
-            AND queued_hqe.host_id IS NULL
-            AND NOT queued_hqe.active AND NOT queued_hqe.complete)
-        """
-        # need to exclude acl-inaccessible hosts
-        acl_join = """
+        INNER JOIN hosts_labels hl ON hl.host_id=h.id
+        LEFT JOIN host_queue_entries AS active_hqe
+          ON (h.id = active_hqe.host_id AND active_hqe.active = 1)
         INNER JOIN acl_groups_hosts ON h.id=acl_groups_hosts.host_id
-        INNER JOIN acl_groups_users
-          ON acl_groups_users.acl_group_id=acl_groups_hosts.acl_group_id
-        INNER JOIN users ON acl_groups_users.user_id=users.id
-        INNER JOIN jobs
-          ON users.login=jobs.owner AND jobs.id=queued_hqe.job_id
+
+        WHERE active_hqe.host_id IS NULL
+        AND h.locked=false
+        AND (h.status IS null OR h.status='Ready')
         """
-        # need to exclude blocked hosts
-        block_join = """
-        LEFT JOIN ineligible_host_queues AS ihq
-        ON (ihq.job_id=queued_hqe.job_id AND ihq.host_id=h.id)
-        """
-        block_where = 'ihq.id IS NULL AND h.invalid = FALSE'
-        extra_join = '\n'.join([labels_join, queued_hqe_join,
-                                acl_join, block_join])
-        return self._get_runnable_entries(extra_join,
-                                          extra_where=block_where)
+        rows = _db.execute(query)
+        num_host_cols = Host.num_cols()
+        self._hosts = {}
+        self._host_acls = {}
+        self._label_hosts = {}
+        for row in rows:
+            host = Host(row=row[:-2])
+            label_id, acl_id = long(row[-2]), long(row[-1])
+            self._hosts[host.id] = host
+
+            self._host_acls.setdefault(host.id, set())
+            self._host_acls[host.id].add(acl_id)
+
+            self._label_hosts.setdefault(label_id, set())
+            self._label_hosts[label_id].add(host.id)
+
+
+    @staticmethod
+    def _get_job_ids_string(job_ids):
+        return ','.join(str(job_id) for job_id in job_ids)
+
+
+    def _get_job_acl_groups(self, job_ids):
+        query = """
+        SELECT jobs.id, acl_groups_users.acl_group_id
+        FROM jobs
+        INNER JOIN users ON users.login=jobs.owner
+        INNER JOIN acl_groups_users ON acl_groups_users.user_id=users.id
+        WHERE jobs.id IN (%s)
+        """ % self._get_job_ids_string(job_ids)
+        rows = _db.execute(query)
+        self._job_acls = {}
+        for row in rows:
+            job_id, acl_id = row
+            self._job_acls.setdefault(job_id, set())
+            self._job_acls[job_id].add(acl_id)
+
+
+    def _get_job_ineligible_hosts(self, job_ids):
+        query = """
+        SELECT jobs.id, ihq.host_id
+        FROM jobs
+        INNER JOIN ineligible_host_queues ihq ON ihq.job_id = jobs.id
+        WHERE jobs.id IN (%s)
+        """ % self._get_job_ids_string(job_ids)
+        rows = _db.execute(query)
+        self._job_ineligible_hosts = {}
+        for row in rows:
+            job_id, host_id = row
+            self._job_ineligible_hosts.setdefault(job_id, set())
+            self._job_ineligible_hosts[job_id].add(host_id)
+
+
+    def _find_eligible_host(self, queue_entry):
+        if not queue_entry.meta_host:
+            return self._hosts.pop(queue_entry.host_id, None)
+
+        label_id = queue_entry.meta_host
+        hosts_in_label = self._label_hosts.get(label_id, set())
+        ineligible_host_ids = self._job_ineligible_hosts.get(queue_entry.job_id,
+                                                             set())
+        job_acls = self._job_acls[queue_entry.job_id]
+        for host_id in set(hosts_in_label):
+            if host_id not in self._hosts:
+                # host already used by a non-metahost queue entry
+                self._label_hosts[label_id].remove(host_id)
+                continue
+            if self._hosts[host_id].invalid:
+                continue
+            if host_id in ineligible_host_ids:
+                continue
+            host_acls = self._host_acls[host_id]
+            if not host_acls.intersection(job_acls):
+                continue
+
+            self._label_hosts[label_id].remove(host_id)
+            return self._hosts.pop(host_id)
+        return None
 
 
     def _schedule_new_jobs(self):
         print "finding work"
 
-        scheduled_hosts, scheduled_queue_entries = set(), set()
-        runnable = (self._get_runnable_nonmetahosts() +
-                    self._get_runnable_metahosts())
-        for host, queue_entry in runnable:
-            # we may get duplicate entries for a host or a queue
-            # entry.  we need to schedule each host and each queue
-            # entry only once.
-            if (host.id in scheduled_hosts or
-                queue_entry.id in scheduled_queue_entries):
+        self._get_pending_queue_entries()
+        if not self._queue_entries:
+            return
+        relevant_jobs = set(queue_entry.job_id
+                            for queue_entry in self._queue_entries)
+
+        self._get_job_acl_groups(relevant_jobs)
+        self._get_job_ineligible_hosts(relevant_jobs)
+        self._get_ready_hosts()
+
+        for queue_entry in self._queue_entries:
+            assigned_host = self._find_eligible_host(queue_entry)
+            if not assigned_host:
                 continue
-            agent = queue_entry.run(assigned_host=host)
-            self.add_agent(agent)
-            scheduled_hosts.add(host.id)
-            scheduled_queue_entries.add(queue_entry.id)
+            self._run_queue_entry(queue_entry, assigned_host)
+
+
+    def _run_queue_entry(self, queue_entry, host):
+        agent = queue_entry.run(assigned_host=host)
+        self.add_agent(agent)
 
 
     def _find_aborting(self):
