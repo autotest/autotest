@@ -37,37 +37,49 @@ class iperf(test.test):
 
 
     def run_once(self, server_ip, client_ip, role, udp=False,
-                 bidirectional=False):
+                 bidirectional=False, test_time=10, stream_list=[1]):
         self.role = role
         self.udp = udp
         self.bidirectional = bidirectional
+        self.stream_list = stream_list
 
         server_tag = server_ip + '#iperf-server'
         client_tag = client_ip + '#iperf-client'
         all = [server_tag, client_tag]
 
-        if self.role == 'server':
-            self.ip = socket.gethostbyname(server_ip)
-            # Start server and synchronize on server-up
-            self.server_start()
-            try:
-                self.job.barrier(server_tag, 'start', 120).rendevous(*all)
+        for num_streams in stream_list:
+            print "Run: #%d" % num_streams
+            if self.role == 'server':
+                self.ip = socket.gethostbyname(server_ip)
+                # Start server and synchronize on server-up
+                self.server_start()
+                try:
+                    # Wait up to two minutes for the server and client
+                    # to reach this point
+                    print "server start"
+                    self.job.barrier(server_tag, 'start', 120).rendevous(*all)
 
-                # Stop the server when the client finishes
-                self.job.barrier(server_tag, 'finish', 600).rendevous(*all)
-            finally:
-               self.server_stop()
+                    # Stop the server when the client finishes
+                    # Wait up to test_time + 5 seconds for the task to complete
+                    print "servre finish"
+                    self.job.barrier(server_tag, 'finish',
+                                     test_time + 500).rendevous(*all)
+                finally:
+                    self.server_stop()
 
-        elif self.role == 'client':
-            self.ip = socket.gethostbyname(client_ip)
-            # Wait for server to start then run test
-            self.job.barrier(client_tag, 'start', 120).rendevous(*all)
-            self.client(server_ip)
+            elif role == 'client':
+                self.ip = socket.gethostbyname(client_ip)
+                # Wait up to two minutes for the server and client
+                # to reach this point
+                print "client stazrt"
+                self.job.barrier(client_tag, 'start', 120).rendevous(*all)
+                self.client(server_ip, test_time, num_streams)
 
-            # Tell the server the client is done
-            self.job.barrier(client_tag, 'finish', 120).rendevous(*all)
-        else:
-            raise error.TestError('invalid role specified')
+                # Wait up to 5 seconds for the server to also reach this point
+                print "client fnish"
+                self.job.barrier(client_tag, 'finish', 5).rendevous(*all)
+            else:
+                raise error.TestError('invalid role specified')
 
 
     def server_start(self):
@@ -89,15 +101,32 @@ class iperf(test.test):
         utils.system('killall -9 iperf', ignore_status=True)
 
 
-    def client(self, server_ip):
-        args = ''
+    def client(self, server_ip, test_time, num_streams):
+        args = '-t %d -P %d ' % (test_time, num_streams)
         if self.udp:
             args += '-u '
         if self.bidirectional:
             args += '-d '
 
         cmd = self.client_path % (server_ip, args)
-        self.results.append(utils.system_output(cmd, retain_output=True))
+        try:
+            self.results.append(utils.system_output(cmd, timeout=test_time+5,
+                                                    retain_output=True))
+        except error.CmdError, e:
+            """ Catch errors due to timeout, but raise others
+            The actual error string is:
+              "Command did not complete within %d seconds"
+            called in function join_bg_job in the file common_lib/utils.py
+
+            Looking for 'within' is probably not the best way to do this but
+            works for now"""
+
+            if 'within' in e.additional_text:
+                print e.additional_text
+                self.results.append(None)
+            else:
+                raise
+
 
     def postprocess(self):
         """The following patterns parse the following outputs:
@@ -132,37 +161,62 @@ class iperf(test.test):
                          'percent_error_dgrams', 'num_out_of_order_dgrams'])
 
         if self.role == 'client':
+            if len(self.stream_list) != len(self.results):
+                raise error.TestError('Mismatched number of results')
+
             keyval = {}
-            if self.udp:
-                regex = udp_regex
-                keys = udp_keys
-                # Ignore the first line
-                stdout = self.results[0].split('\n',1)[1]
-            else:
-                regex = tcp_regex
-                keys = tcp_keys
-                stdout = self.results[0]
+            runs = {'Bandwidth_S2C':[], 'Bandwidth_C2S':[],
+                    'Jitter_S2C':[], 'Jitter_C2S':[]}
 
-            for match in regex.findall(stdout):
-                stats = dict(zip(keys,match))
+            # Iterate over each stream and add values to the keyval
+            for i, streams in enumerate(self.stream_list):
+                # Handle Errors due to client timeouts
+                if self.results[i] == None:
+                    for key in runs:
+                        keyval['%s_%d' % (key, streams)] = 0
+                        keyval['CPU_C_%d' % streams] = (
+                            cpu_line.split(' ',2)[1][:-1])
+                    continue
 
-                # Determine Flow Direction
-                if (stats['local_ip'] == self.ip and
-                    stats['local_port'] == self.SERVER_PORT):
-                    keyval['Bandwidth_S2C'] = stats['bandwidth']
-                    try:
-                        keyval['Jitter_S2C'] = stats['jitter']
-                    except:
-                        pass
+                if self.udp:
+                    regex = udp_regex
+                    keys = udp_keys
+                    # Ignore the first line
+                    stdout = self.results[i].split('\n',1)[1]
                 else:
-                    keyval['Bandwidth_C2S'] = stats['bandwidth']
-                    try:
-                        keyval['Jitter_C2S'] = stats['jitter']
-                    except:
-                        pass
-            # Grab the CPU value from a line like:
-            # CPU: 17.26% -- 27 samples
-            keyval['CPU_C'] = stdout.split('\n')[-1].split(' ',2)[1][:-1]
+                    regex = tcp_regex
+                    keys = tcp_keys
+                    stdout = self.results[i]
+
+                # This will not find the average lines because the 'id' field
+                # is negative and doesn't match the patterns -- this is good
+                for match in regex.findall(stdout):
+                    stats = dict(zip(keys,match))
+
+                    # Determine Flow Direction
+                    if (stats['local_ip'] == self.ip and
+                        stats['local_port'] == self.SERVER_PORT):
+                        runs['Bandwidth_S2C'].append(int(stats['bandwidth']))
+                        try:
+                            runs['Jitter_S2C'].append(float(stats['jitter']))
+                        except:
+                            pass
+                    else:
+                        runs['Bandwidth_C2S'].append(int(stats['bandwidth']))
+                        try:
+                            runs['Jitter_C2S'].append(float(stats['jitter']))
+                        except:
+                            pass
+
+                # Calculate Averages assuming there are values
+                for key in [k for k in runs if len(runs[k]) > 0]:
+                    keyval['%s_%d' % (key, streams)] = (sum(runs[key]) /
+                                                        len(runs[key]))
+
+                # Grab the CPU value from a line like:
+                # CPU: 17.26% -- 27 samples
+                cpu_line = stdout.split('\n')[-1]
+                keyval['CPU_C_%d' % streams] = cpu_line.split(' ',2)[1][:-1]
 
             self.write_perf_keyval(keyval)
         else:
