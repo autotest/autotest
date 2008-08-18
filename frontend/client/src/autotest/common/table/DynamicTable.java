@@ -28,8 +28,7 @@ public class DynamicTable extends DataTable
     public static final String SORT_UP_IMAGE = "arrow_up.png",
                                SORT_DOWN_IMAGE = "arrow_down.png";
     
-    public interface DynamicTableListener {
-        public void onRowClicked(int rowIndex, JSONObject row);
+    public static interface DynamicTableListener extends DataTableListener {
         public void onTableRefreshed();
     }
     
@@ -63,12 +62,12 @@ public class DynamicTable extends DataTable
     protected List<Paginator> paginators = new ArrayList<Paginator>();
     protected Integer rowsPerPage;
     
-    protected List<DynamicTableListener> listeners = new ArrayList<DynamicTableListener>();
+    protected List<DynamicTableListener> dynamicTableListeners = 
+        new ArrayList<DynamicTableListener>();
     
     public DynamicTable(String[][] columns, DataSource dataSource) {
         super(columns);
         this.dataSource = dataSource;
-        table.addTableListener(this);
     }
     
     // SORTING
@@ -267,10 +266,8 @@ public class DynamicTable extends DataTable
     
     // INPUT
     
+    @Override
     public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
-        if(isClickableWidgetColumn(cell)) 
-            return;
-        
         if (clientSortable && row == headerRow) {
             if (isWidgetColumn(cell)) {
                 // ignore sorting on widget columns
@@ -286,10 +283,10 @@ public class DynamicTable extends DataTable
             
             sortOnColumn(columnName, newSortDirection);
             refresh();
+            return;
         }
         
-        if (row != headerRow)
-            notifyListenersClicked(row - headerRow - 1);
+        super.onCellClicked(sender, row, cell);
     }
     
     private SortDirection invertSortDirection(SortDirection direction) {
@@ -298,22 +295,17 @@ public class DynamicTable extends DataTable
     }
 
     public void addListener(DynamicTableListener listener) {
-        listeners.add(listener);
+        super.addListener(listener);
+        dynamicTableListeners.add(listener);
     }
     
     public void removeListener(DynamicTableListener listener) {
-        listeners.remove(listener);
-    }
-    
-    protected void notifyListenersClicked(int rowIndex) {
-        JSONObject row = getRow(rowIndex);
-        for (DynamicTableListener listener : listeners) {
-            listener.onRowClicked(rowIndex, row);
-        }
+        super.removeListener(listener);
+        dynamicTableListeners.remove(listener);
     }
     
     protected void notifyListenersRefreshed() {
-        for (DynamicTableListener listener : listeners) {
+        for (DynamicTableListener listener : dynamicTableListeners) {
             listener.onTableRefreshed();
         }
     }

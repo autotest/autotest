@@ -220,3 +220,16 @@ tr.data-row-clickable:hover {
   display: inline;
   white-space: nowrap;
 }
+
+.test-description {
+  white-space: pre;
+}
+
+.gwt-HorizontalSplitPanel {
+  border: 1px solid #ACF;
+}
+
+.gwt-HorizontalSplitPanel .hsplitter {
+  cursor: move;
+  background: #91c0ef;
+}
