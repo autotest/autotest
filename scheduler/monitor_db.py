@@ -284,6 +284,140 @@ class EmailNotificationManager(object):
 email_manager = EmailNotificationManager()
 
 
+class HostScheduler(object):
+    def _get_ready_hosts(self):
+        # avoid any host with a currently active queue entry against it
+        hosts = Host.fetch(
+            joins='LEFT JOIN host_queue_entries AS active_hqe '
+                  'ON (hosts.id = active_hqe.host_id AND '
+                      'active_hqe.active = TRUE)',
+            where="active_hqe.host_id IS NULL "
+                  "AND hosts.locked = FALSE "
+                  "AND (hosts.status IS NULL OR hosts.status = 'Ready')")
+        return dict((host.id, host) for host in hosts)
+
+
+    @staticmethod
+    def _get_sql_id_list(id_list):
+        return ','.join(str(item_id) for item_id in id_list)
+
+
+    @classmethod
+    def _get_many2many_dict(cls, query, id_list):
+        query %= cls._get_sql_id_list(id_list)
+        rows = _db.execute(query)
+        result = {}
+        for row in rows:
+            left_id, right_id = long(row[0]), long(row[1])
+            result.setdefault(left_id, set()).add(right_id)
+        return result
+
+
+    @classmethod
+    def _get_job_acl_groups(cls, job_ids):
+        query = """
+        SELECT jobs.id, acl_groups_users.acl_group_id
+        FROM jobs
+        INNER JOIN users ON users.login = jobs.owner
+        INNER JOIN acl_groups_users ON acl_groups_users.user_id = users.id
+        WHERE jobs.id IN (%s)
+        """
+        return cls._get_many2many_dict(query, job_ids)
+
+
+    @classmethod
+    def _get_job_ineligible_hosts(cls, job_ids):
+        query = """
+        SELECT job_id, host_id
+        FROM ineligible_host_queues
+        WHERE job_id IN (%s)
+        """
+        return cls._get_many2many_dict(query, job_ids)
+
+
+    @classmethod
+    def _get_host_acls(cls, host_ids):
+        query = """
+        SELECT host_id, acl_group_id
+        FROM acl_groups_hosts
+        WHERE host_id IN (%s)
+        """
+        return cls._get_many2many_dict(query, host_ids)
+
+
+    @classmethod
+    def _get_label_hosts(cls, host_ids):
+        query = """
+        SELECT label_id, host_id
+        FROM hosts_labels
+        WHERE host_id IN (%s)
+        """
+        return cls._get_many2many_dict(query, host_ids)
+
+
+    def refresh(self, pending_queue_entries):
+        self._hosts_available = self._get_ready_hosts()
+
+        relevant_jobs = [queue_entry.job_id
+                         for queue_entry in pending_queue_entries]
+        self._job_acls = self._get_job_acl_groups(relevant_jobs)
+        self._ineligible_hosts = self._get_job_ineligible_hosts(relevant_jobs)
+
+        host_ids = self._hosts_available.keys()
+        self._host_acls = self._get_host_acls(host_ids)
+        self._label_hosts = self._get_label_hosts(host_ids)
+
+
+    def _is_acl_accessible(self, host_id, queue_entry):
+        job_acls = self._job_acls.get(queue_entry.job_id, set())
+        host_acls = self._host_acls.get(host_id, set())
+        return len(host_acls.intersection(job_acls)) > 0
+
+
+    def _schedule_non_metahost(self, queue_entry):
+        if not self._is_acl_accessible(queue_entry.host_id, queue_entry):
+            return None
+        return self._hosts_available.pop(queue_entry.host_id, None)
+
+
+    def _is_host_usable(self, host_id):
+        if host_id not in self._hosts_available:
+            # host was already used during this scheduling cycle
+            return False
+        if self._hosts_available[host_id].invalid:
+            # Invalid hosts cannot be used for metahosts.  They're included in
+            # the original query because they can be used by non-metahosts.
+            return False
+        return True
+
+
+    def _schedule_metahost(self, queue_entry):
+        label_id = queue_entry.meta_host
+        hosts_in_label = self._label_hosts.get(label_id, set())
+        ineligible_host_ids = self._ineligible_hosts.get(queue_entry.job_id,
+                                                         set())
+
+        # must iterate over a copy so we can mutate the original while iterating
+        for host_id in list(hosts_in_label):
+            if not self._is_host_usable(host_id):
+                hosts_in_label.remove(host_id)
+                continue
+            if host_id in ineligible_host_ids:
+                continue
+            if not self._is_acl_accessible(host_id, queue_entry):
+                continue
+
+            hosts_in_label.remove(host_id)
+            return self._hosts_available.pop(host_id)
+        return None
+
+
+    def find_eligible_host(self, queue_entry):
+        if not queue_entry.meta_host:
+            return self._schedule_non_metahost(queue_entry)
+        return self._schedule_metahost(queue_entry)
+
+
 class Dispatcher:
     autoserv_procs_cache = None
     max_running_agents = global_config.global_config.get_config_value(
@@ -298,6 +432,7 @@ class Dispatcher:
     def __init__(self):
         self._agents = []
         self._last_clean_time = time.time()
+        self._host_scheduler = HostScheduler()
 
 
     def do_initial_recovery(self, recover_hosts=True):
@@ -532,126 +667,23 @@ class Dispatcher:
 
 
     def _get_pending_queue_entries(self):
-        # prioritize by job priority, then non-metahost over metahost, then
-        # FIFO
-        query = """
-        SELECT * FROM host_queue_entries
-        WHERE NOT complete AND NOT active
-        ORDER BY priority DESC, meta_host, id
-        """
-        rows = _db.execute(query)
-        self._queue_entries = [HostQueueEntry(row=row) for row in rows]
-
-
-    def _get_ready_hosts(self):
-        query = """
-        SELECT h.*, hl.label_id, acl_groups_hosts.acl_group_id
-        FROM hosts h
-
-        INNER JOIN hosts_labels hl ON hl.host_id=h.id
-        LEFT JOIN host_queue_entries AS active_hqe
-          ON (h.id = active_hqe.host_id AND active_hqe.active = 1)
-        INNER JOIN acl_groups_hosts ON h.id=acl_groups_hosts.host_id
-
-        WHERE active_hqe.host_id IS NULL
-        AND h.locked=false
-        AND (h.status IS null OR h.status='Ready')
-        """
-        rows = _db.execute(query)
-        num_host_cols = Host.num_cols()
-        self._hosts = {}
-        self._host_acls = {}
-        self._label_hosts = {}
-        for row in rows:
-            host = Host(row=row[:-2])
-            label_id, acl_id = long(row[-2]), long(row[-1])
-            self._hosts[host.id] = host
-
-            self._host_acls.setdefault(host.id, set())
-            self._host_acls[host.id].add(acl_id)
-
-            self._label_hosts.setdefault(label_id, set())
-            self._label_hosts[label_id].add(host.id)
-
-
-    @staticmethod
-    def _get_job_ids_string(job_ids):
-        return ','.join(str(job_id) for job_id in job_ids)
-
-
-    def _get_job_acl_groups(self, job_ids):
-        query = """
-        SELECT jobs.id, acl_groups_users.acl_group_id
-        FROM jobs
-        INNER JOIN users ON users.login=jobs.owner
-        INNER JOIN acl_groups_users ON acl_groups_users.user_id=users.id
-        WHERE jobs.id IN (%s)
-        """ % self._get_job_ids_string(job_ids)
-        rows = _db.execute(query)
-        self._job_acls = {}
-        for row in rows:
-            job_id, acl_id = row
-            self._job_acls.setdefault(job_id, set())
-            self._job_acls[job_id].add(acl_id)
-
-
-    def _get_job_ineligible_hosts(self, job_ids):
-        query = """
-        SELECT jobs.id, ihq.host_id
-        FROM jobs
-        INNER JOIN ineligible_host_queues ihq ON ihq.job_id = jobs.id
-        WHERE jobs.id IN (%s)
-        """ % self._get_job_ids_string(job_ids)
-        rows = _db.execute(query)
-        self._job_ineligible_hosts = {}
-        for row in rows:
-            job_id, host_id = row
-            self._job_ineligible_hosts.setdefault(job_id, set())
-            self._job_ineligible_hosts[job_id].add(host_id)
-
-
-    def _find_eligible_host(self, queue_entry):
-        if not queue_entry.meta_host:
-            return self._hosts.pop(queue_entry.host_id, None)
-
-        label_id = queue_entry.meta_host
-        hosts_in_label = self._label_hosts.get(label_id, set())
-        ineligible_host_ids = self._job_ineligible_hosts.get(queue_entry.job_id,
-                                                             set())
-        job_acls = self._job_acls[queue_entry.job_id]
-        for host_id in set(hosts_in_label):
-            if host_id not in self._hosts:
-                # host already used by a non-metahost queue entry
-                self._label_hosts[label_id].remove(host_id)
-                continue
-            if self._hosts[host_id].invalid:
-                continue
-            if host_id in ineligible_host_ids:
-                continue
-            host_acls = self._host_acls[host_id]
-            if not host_acls.intersection(job_acls):
-                continue
-
-            self._label_hosts[label_id].remove(host_id)
-            return self._hosts.pop(host_id)
-        return None
+        # prioritize by job priority, then non-metahost over metahost, then FIFO
+        return list(HostQueueEntry.fetch(
+            where='NOT complete AND NOT active',
+            order_by='priority DESC, meta_host, id'))
 
 
     def _schedule_new_jobs(self):
         print "finding work"
 
-        self._get_pending_queue_entries()
-        if not self._queue_entries:
+        queue_entries = self._get_pending_queue_entries()
+        if not queue_entries:
             return
-        relevant_jobs = set(queue_entry.job_id
-                            for queue_entry in self._queue_entries)
 
-        self._get_job_acl_groups(relevant_jobs)
-        self._get_job_ineligible_hosts(relevant_jobs)
-        self._get_ready_hosts()
+        self._host_scheduler.refresh(queue_entries)
 
-        for queue_entry in self._queue_entries:
-            assigned_host = self._find_eligible_host(queue_entry)
+        for queue_entry in queue_entries:
+            assigned_host = self._host_scheduler.find_eligible_host(queue_entry)
             if not assigned_host:
                 continue
             self._run_queue_entry(queue_entry, assigned_host)
@@ -1442,11 +1474,24 @@ class DBObject(object):
         _db.execute(query, (self.id,))
 
 
+    @staticmethod
+    def _prefix_with(string, prefix):
+        if string:
+            string = prefix + string
+        return string
+
+
     @classmethod
-    def fetch(cls, where, params=()):
-        rows = _db.execute(
-            'SELECT * FROM %s WHERE %s' % (cls._get_table(), where),
-            params)
+    def fetch(cls, where, params=(), joins='', order_by=''):
+        table = cls._get_table()
+        order_by = cls._prefix_with(order_by, 'ORDER BY ')
+        where = cls._prefix_with(where, 'WHERE ')
+        query = ('SELECT %(table)s.* FROM %(table)s %(joins)s '
+                 '%(where)s %(order_by)s' % {'table' : cls._get_table(),
+                                             'joins' : joins,
+                                             'where' : where,
+                                             'order_by' : order_by})
+        rows = _db.execute(query, params)
         for row in rows:
             yield cls(row=row)
 

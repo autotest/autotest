@@ -276,6 +276,13 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         self._check_for_extra_schedulings()
 
 
+    def _test_obey_ACLs_helper(self, use_metahosts):
+        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
+        self._create_job_simple([1], use_metahosts)
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+
     def test_basic_scheduling(self):
         self._test_basic_scheduling_helper(False)
 
@@ -292,8 +299,23 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         self._test_hosts_idle_helper(False)
 
 
+    def test_obey_ACLs(self):
+        self._test_obey_ACLs_helper(False)
+
+
+    def test_non_metahost_on_invalid_host(self):
+        """
+        Non-metahost entries can get scheduled on invalid hosts (this is how
+        one-time hosts work).
+        """
+        self._do_query('UPDATE hosts SET invalid=1')
+        self._test_basic_scheduling_helper(False)
+
+
     def test_metahost_scheduling(self):
-        'Basic metahost scheduling'
+        """
+        Basic metahost scheduling
+        """
         self._test_basic_scheduling_helper(True)
 
 
@@ -307,6 +329,10 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
 
     def test_metahost_hosts_idle(self):
         self._test_hosts_idle_helper(True)
+
+
+    def test_metahost_obey_ACLs(self):
+        self._test_obey_ACLs_helper(True)
 
 
     def test_nonmetahost_over_metahost(self):
@@ -330,14 +356,6 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         # make the nonmetahost entry complete, so the metahost can try
         # to get scheduled
         self._update_hqe(set='complete = 1', where='host_id=1')
-        self._dispatcher._schedule_new_jobs()
-        self._check_for_extra_schedulings()
-
-
-    def test_metahosts_obey_ACLs(self):
-        "ACL-inaccessible hosts can't get scheduled for metahosts"
-        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
-        self._create_job(metahosts=[1])
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 
