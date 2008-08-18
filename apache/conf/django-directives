@@ -1,3 +1,5 @@
+Include /usr/local/autotest/apache/conf/require-prefork
+
 RedirectMatch ^/$ /afe
 
 Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient"

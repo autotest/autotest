@@ -1,0 +1,6 @@
+<IfModule !prefork.c>
+    # Django requires the prefork MPM, so just fail with this bogus directive
+    # if it's not loaded. See 
+    # http://test.kernel.org/autotest/AutotestServerInstall for more info.
+    ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
+</IfModule>
