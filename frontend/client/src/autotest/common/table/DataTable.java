@@ -1,16 +1,18 @@
 package autotest.common.table;
 
 
-import autotest.common.Utils;
 import autotest.common.ui.RightClickTable;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.SourcesTableEvents;
+import com.google.gwt.user.client.ui.TableListener;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -25,7 +27,7 @@ import java.util.List;
  * <li>.data-row-one/.data-row-two - data row styles.  These two are alternated.
  * </ul>
  */
-public class DataTable extends Composite {
+public class DataTable extends Composite implements TableListener {
     public static final String HEADER_STYLE = "data-row-header";
     public static final String CLICKABLE_STYLE = "data-row-clickable";
     public static final String HIGHLIGHTED_STYLE = "data-row-highlighted";
@@ -36,6 +38,10 @@ public class DataTable extends Composite {
     // for indexing into column subarrays (i.e. columns[1][COL_NAME])
     public static final int COL_NAME = 0, COL_TITLE = 1;
     
+    public static interface DataTableListener {
+        public void onRowClicked(int rowIndex, JSONObject row);
+    }
+    
     protected RightClickTable table;
     
     protected String[][] columns;
@@ -43,6 +49,7 @@ public class DataTable extends Composite {
     protected boolean clickable = false;
     
     protected TableWidgetFactory widgetFactory = null;
+    private List<DataTableListener> listeners = new ArrayList<DataTableListener>();
     
     // keep a list of JSONObjects corresponding to rows in the table
     protected List<JSONObject> jsonObjects = new ArrayList<JSONObject>();
@@ -77,6 +84,7 @@ public class DataTable extends Composite {
         }
 
         table.getRowFormatter().setStylePrimaryName(0, HEADER_STYLE);
+        table.addTableListener(this);
     }
     
     public void setWidgetFactory(TableWidgetFactory widgetFactory) {
@@ -103,8 +111,8 @@ public class DataTable extends Composite {
      * Clear all data rows from the table.  Leaves the header rows intact.
      */
     public void clear() {
-        while (getRowCount() > 0) {
-            removeRow(0);
+        while (table.getRowCount() > 1) {
+            table.removeRow(1);
         }
         jsonObjects.clear();
     }
@@ -150,10 +158,9 @@ public class DataTable extends Composite {
         int row = table.getRowCount();
         for(int i = 0; i < columns.length; i++) {
             if(isWidgetColumn(i)) {
-                table.setWidget(row, i, widgetFactory.createWidget(row - 1, i, 
-                                                                   jsonObjects.get(row - 1)));
+                table.setWidget(row, i, getWidgetForCell(row, i));
             } else {
-                table.setHTML(row, i, Utils.escape(rowData[i]));
+                table.setText(row, i, rowData[i]);
             }
         }
         setRowStyle(row);
@@ -221,6 +228,10 @@ public class DataTable extends Composite {
         return jsonObjects.get(rowIndex);
     }
     
+    public List<JSONObject> getAllRows() {
+        return Collections.unmodifiableList(jsonObjects);
+    }
+    
     public void highlightRow(int row) {
         row++; // account for header row
         table.getRowFormatter().addStyleName(row, HIGHLIGHTED_STYLE);
@@ -233,5 +244,45 @@ public class DataTable extends Composite {
     
     public void sinkRightClickEvents() {
         table.sinkRightClickEvents();
+    }
+    
+    public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
+        if(isClickableWidgetColumn(cell)) 
+            return;
+        
+        if (row != headerRow) {
+            notifyListenersClicked(row - headerRow - 1);
+        }
+    }
+    
+    public void addListener(DataTableListener listener) {
+        listeners.add(listener);
+    }
+    
+    public void removeListener(DataTableListener listener) {
+        listeners.remove(listener);
+    }
+    
+    protected void notifyListenersClicked(int rowIndex) {
+        JSONObject row = getRow(rowIndex);
+        for (DataTableListener listener : listeners) {
+            listener.onRowClicked(rowIndex, row);
+        }
+    }
+    
+    public void refreshWidgets() {
+        for (int row = 1; row < table.getRowCount(); row++) {
+            for (int column = 0; column < columns.length; column++) {
+                if (!isWidgetColumn(column)) {
+                    continue;
+                }
+                table.clearCell(row, column);
+                table.setWidget(row, column, getWidgetForCell(row, column));
+            }
+        }
+    }
+
+    private Widget getWidgetForCell(int row, int column) {
+        return widgetFactory.createWidget(row - 1, column, jsonObjects.get(row - 1));
     }
 }

@@ -1,11 +1,12 @@
 package autotest.common.table;
 
-import autotest.common.JSONArrayList;
 import autotest.common.Utils;
-import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataTable.TableWidgetFactory;
+import autotest.common.table.TableClickWidget.TableWidgetClickListener;
 
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.Widget;
 
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -16,10 +17,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SelectionManager {
+/**
+ * This class manages a selection of rows on a DataTable.  It keeps track of selected objects and
+ * takes care of highlighting rows.  It can also be used for a DynamicTable, with support for paging
+ * etc., if you use DynamicTableSelectionManager.
+ * 
+ * It can also act as a TableWidgetFactory to supply checkboxes for selecting rows in a table.
+ *
+ */
+public class SelectionManager implements TableWidgetFactory, TableWidgetClickListener {
     protected Set<JSONObject> selectedObjects = new JSONValueSet<JSONObject>();
     protected boolean selectOnlyOne = false;
-    protected DynamicTable attachedTable;
+    protected DataTable attachedTable;
     protected List<SelectionListener> listeners =
         new ArrayList<SelectionListener>();
     
@@ -66,7 +75,7 @@ public class SelectionManager {
         }
     }
     
-    public SelectionManager(DynamicTable table, boolean selectOnlyOne) {
+    public SelectionManager(DataTable table, boolean selectOnlyOne) {
         attachedTable = table;
         this.selectOnlyOne = selectOnlyOne;
     }
@@ -116,18 +125,10 @@ public class SelectionManager {
     }
     
     /*
-     * Select all objects covering all pages, not just the currently displayed page in the table.
+     * Select all objects in the table.
      */
     public void selectAll() {
-        DataSource dataSource = attachedTable.getDataSource();
-        dataSource.getPage(null, null, null, new DataCallback() {
-            public void handlePage(JSONArray data) {
-                selectObjects(new JSONArrayList<JSONObject>(data));
-            }
-
-            public void onGotData(int totalCount) {}
-            public void onError(JSONObject errorObject) {}
-        });
+        selectObjects(attachedTable.getAllRows());
     }
     
     public void deselectAll() {
@@ -189,5 +190,20 @@ public class SelectionManager {
             else
                 listener.onRemove(objects);
         }
+    }
+
+    // code for acting as a TableWidgetFactory follows
+    
+    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+        CheckBox checkBox = new CheckBox();
+        if(selectedObjects.contains(rowObject)) {
+            checkBox.setChecked(true);
+        }
+        return new TableClickWidget(checkBox, this, row, cell);
+    }
+
+    public void onClick(TableClickWidget widget) {
+        toggleSelected(attachedTable.getRow(widget.getRow()));
+        refreshSelection();
     }
 }

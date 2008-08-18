@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.afe.TestSelector.TestSelectorListener;
 import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
@@ -43,12 +44,8 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CreateJobView extends TabView {
+public class CreateJobView extends TabView implements TestSelectorListener {
     public static final int TEST_COLUMNS = 5;
-    
-    // control file types
-    protected static final String CLIENT_TYPE = "Client";
-    protected static final String SERVER_TYPE = "Server";
     
     protected static final String EDIT_CONTROL_STRING = "Edit control file";
     protected static final String UNEDIT_CONTROL_STRING= "Revert changes";
@@ -62,37 +59,7 @@ public class CreateJobView extends TabView {
     protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JobCreateListener listener;
     
-    protected static class TestCheckBox extends CheckBox {
-        protected int id;
-        protected String testType, synchType;
-        protected boolean skipVerify;
-        
-        public TestCheckBox(JSONObject test) {
-            super(test.get("name").isString().stringValue());
-            id = (int) test.get("id").isNumber().doubleValue();
-            testType = test.get("test_type").isString().stringValue();
-            synchType = test.get("synch_type").isString().stringValue();
-            skipVerify = ((int) test.get("run_verify").isNumber().doubleValue()) == 0;
-            String description = test.get("description").isString().stringValue();
-            if (description.equals(""))
-                description = "No description";
-            setTitle(description);
-        }
-        
-        public int getId() {
-            return id;
-        }
-
-        public String getTestType() {
-            return testType;
-        }
-
-        public String getSynchType() {
-            return synchType;
-        }
-    }
-    
-    protected class CheckBoxPanel<T extends CheckBox> extends Composite {
+    private class CheckBoxPanel<T extends CheckBox> extends Composite {
         protected int numColumns;
         protected FlexTable table = new FlexTable();
         protected List<T> testBoxes = new ArrayList<T>();
@@ -131,59 +98,14 @@ public class CreateJobView extends TabView {
         }
     }
     
-    protected class TestPanel extends CheckBoxPanel<TestCheckBox> {
-        String testType = null;
-        
-        public TestPanel(String testType, int columns) {
-            super(columns);
-            this.testType = testType;
-        }
-        
-        public void addTest(TestCheckBox checkBox) {
-            if (!checkBox.getTestType().equals(testType))
-                throw new RuntimeException(
-                    "Inconsistent test type for test " + checkBox.getText());
-            super.add(checkBox);
-        }
-        
-        @Override
-        public void setEnabled(boolean enabled) {
-            String synchType = null;
-            List<TestCheckBox> checked = getChecked();
-            if (!checked.isEmpty())
-                synchType = checked.get(0).getSynchType();
-            
-            for(TestCheckBox thisBox : testBoxes) {
-                boolean boxEnabled = enabled;
-                if (enabled && synchType != null)
-                    boxEnabled = thisBox.getSynchType().equals(synchType);
-                thisBox.setEnabled(boxEnabled);
-            }
-        }
-        
-        public boolean shouldSkipVerify() {
-            for (TestCheckBox thisBox : getChecked()) { 
-                if (thisBox.skipVerify) { 
-                    return true; 
-                }
-            }
-            return false;
-        }
-        
-        public String getTestType() {
-            return testType;
-        }
-    }
-    
-    protected static class ControlTypeSelect extends Composite {
+    private static class ControlTypeSelect extends Composite {
         public static final String RADIO_GROUP = "controlTypeGroup";
-        protected String clientType, serverType;
         protected RadioButton client, server;
         protected Panel panel = new HorizontalPanel();
         
         public ControlTypeSelect() {
-            client = new RadioButton(RADIO_GROUP, CLIENT_TYPE);
-            server = new RadioButton(RADIO_GROUP, SERVER_TYPE);
+            client = new RadioButton(RADIO_GROUP, TestSelector.CLIENT_TYPE);
+            server = new RadioButton(RADIO_GROUP, TestSelector.SERVER_TYPE);
             panel.add(client);
             panel.add(server);
             client.setChecked(true); // client is default
@@ -233,8 +155,7 @@ public class CreateJobView extends TabView {
     protected TextBox kernel = new TextBox();
     protected TextBox timeout = new TextBox();
     protected CheckBox skipVerify = new CheckBox();
-    protected TestPanel clientTestsPanel = new TestPanel(CLIENT_TYPE, TEST_COLUMNS), 
-                        serverTestsPanel = new TestPanel(SERVER_TYPE, TEST_COLUMNS);
+    protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
     protected TextArea controlFile = new TextArea();
@@ -342,28 +263,6 @@ public class CreateJobView extends TabView {
         }
     }
     
-    protected void populateTests() {
-        JSONArray tests = staticData.getData("tests").isArray();
-        
-        for(int i = 0; i < tests.size(); i++) {
-            JSONObject test = tests.get(i).isObject();
-            TestCheckBox checkbox = new TestCheckBox(test);
-            checkbox.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
-                    generateControlFile(false);
-                    setInputsEnabled();
-                }
-            });
-            String type = test.get("test_type").isString().stringValue();
-            if (type.equals("Client"))
-                clientTestsPanel.addTest(checkbox);
-            else if (type.equals("Server"))
-                serverTestsPanel.addTest(checkbox);
-            else
-                throw new RuntimeException("Invalid control type: " + type);
-        }
-    }
-    
     protected void populatePriorities() {
         JSONArray tests = staticData.getData("profilers").isArray();
         
@@ -382,25 +281,20 @@ public class CreateJobView extends TabView {
     
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
-        JSONArray tests = new JSONArray(), profilers = new JSONArray();
-        List<TestCheckBox> checkedTests = serverTestsPanel.getChecked();
-        if (checkedTests.isEmpty()) {
-            checkedTests = clientTestsPanel.getChecked();
-        }
-        List<CheckBox> checkedProfilers = profilersPanel.getChecked();
+        
         String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
             params.put("kernel", new JSONString(kernelString));
         }
         
-        int i = 0;
-        for (TestCheckBox test : checkedTests) {
-            tests.set(i++, new JSONNumber(test.getId()));
+        JSONArray tests = new JSONArray();
+        for (JSONObject test : testSelector.getSelectedTests()) {
+            tests.set(tests.size(), test.get("id"));
         }
         
-        i = 0;
-        for (CheckBox profiler : checkedProfilers) {
-            profilers.set(i++, new JSONString(profiler.getText()));
+        JSONArray profilers = new JSONArray();
+        for (CheckBox profiler : profilersPanel.getChecked()) {
+            profilers.set(profilers.size(), new JSONString(profiler.getText()));
         }
         
         params.put("tests", tests);
@@ -420,9 +314,8 @@ public class CreateJobView extends TabView {
                 boolean isServer = results.get(1).isBoolean().booleanValue();
                 boolean isSynchronous = results.get(2).isBoolean().booleanValue();
                 controlFile.setText(controlFileText);
-                controlTypeSelect.setControlType(isServer ? 
-                                                serverTestsPanel.getTestType() : 
-                                                clientTestsPanel.getTestType());
+                controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE : 
+                                                            TestSelector.CLIENT_TYPE);
                 runSynchronous.setChecked(isSynchronous);
                 controlReadyForSubmit = readyForSubmit;
                 if (finishedCallback != null)
@@ -442,45 +335,38 @@ public class CreateJobView extends TabView {
         generateControlFile(readyForSubmit, null, null);
     }
     
-    public void handleSkipVerify(TestPanel panel) {
-        if (panel.shouldSkipVerify()) {
+    public void handleSkipVerify() {
+        boolean shouldSkipVerify = false;
+        for (JSONObject test : testSelector.getSelectedTests()) {
+            int runVerify = (int) test.get("run_verify").isNumber().doubleValue();
+            if (runVerify == 0) {
+                shouldSkipVerify = true;
+                break;
+            }
+        }
+        
+        if (shouldSkipVerify) {
             skipVerify.setChecked(true);
             skipVerify.setEnabled(false);
+        } else {
+            skipVerify.setEnabled(true);
         }
     }
     
     protected void setInputsEnabled() {
-        if (!clientTestsPanel.getChecked().isEmpty()) {
-            clientTestsPanel.setEnabled(true);
-            profilersPanel.setEnabled(true);
-            serverTestsPanel.setEnabled(false);
-            handleSkipVerify(clientTestsPanel);
-        }
-        else if (!serverTestsPanel.getChecked().isEmpty()) {
-            clientTestsPanel.setEnabled(false);
-            profilersPanel.setEnabled(false);
-            serverTestsPanel.setEnabled(true);
-            handleSkipVerify(serverTestsPanel);
-        }
-        else {
-            clientTestsPanel.setEnabled(true);
-            profilersPanel.setEnabled(true);
-            serverTestsPanel.setEnabled(true);
-            skipVerify.setEnabled(true);
-        }
-
+        testSelector.setEnabled(true);
+        profilersPanel.setEnabled(isClientTypeSelected());
+        handleSkipVerify();
         kernel.setEnabled(true);
         timeout.setEnabled(true);
-        skipVerify.setEnabled(true);
     }
 
-    protected boolean shouldSkipVerify(TestPanel panel) {
-        return panel.shouldSkipVerify();
+    protected  boolean isClientTypeSelected() {
+        return testSelector.getSelectedTestType().equals(TestSelector.CLIENT_TYPE);
     }
     
     protected void disableInputs() {
-        clientTestsPanel.setEnabled(false);
-        serverTestsPanel.setEnabled(false);
+        testSelector.setEnabled(false);
         profilersPanel.setEnabled(false);
         kernel.setEnabled(false);
     }
@@ -504,8 +390,10 @@ public class CreateJobView extends TabView {
             }
         });
 
-        populateTests();
         populatePriorities();
+        
+        testSelector = new TestSelector();
+        testSelector.setListener(this);
         
         RootPanel.get("create_skip_verify").add(skipVerify);
         
@@ -599,8 +487,7 @@ public class CreateJobView extends TabView {
         RootPanel.get("create_kernel").add(kernel);
         RootPanel.get("create_timeout").add(timeout);
         RootPanel.get("create_priority").add(priorityList);
-        RootPanel.get("create_client_tests").add(clientTestsPanel);
-        RootPanel.get("create_server_tests").add(serverTestsPanel);
+        RootPanel.get("create_tests").add(testSelector);
         RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
         RootPanel.get("create_submit").add(submitJobButton);
@@ -613,12 +500,11 @@ public class CreateJobView extends TabView {
         kernel.setText("");
         timeout.setText(StaticDataRepository.getRepository().
             getData("job_timeout_default").isString().stringValue());
-        clientTestsPanel.reset();
-        serverTestsPanel.reset();
+        testSelector.reset();
         skipVerify.setChecked(false);
         profilersPanel.reset();
         setInputsEnabled();
-        controlTypeSelect.setControlType(clientTestsPanel.getTestType());
+        controlTypeSelect.setControlType(TestSelector.CLIENT_TYPE);
         controlTypeSelect.setEnabled(false);
         runSynchronous.setEnabled(false);
         runSynchronous.setChecked(false);
@@ -706,5 +592,10 @@ public class CreateJobView extends TabView {
     public void refresh() {
         super.refresh();
         hostSelector.refresh();
+    }
+
+    public void onTestSelectionChanged() {
+        generateControlFile(false);
+        setInputsEnabled();
     }
 }
