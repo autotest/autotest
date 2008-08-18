@@ -44,7 +44,7 @@ def run_client(at, machine_name, machine_num, instance):
     at.run(control_new, tag='%s' % tests[instance][1], parallel_flag=True)
 
 def main(machine_name, machine_num):
-    host = hosts.SSHHost(machine_name)
+    host = hosts.create_host(machine_name)
     at = autotest.Autotest(host)
     at.install()
 

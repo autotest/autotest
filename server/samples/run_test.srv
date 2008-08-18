@@ -8,7 +8,7 @@ def usage():
     print "usage: -t <test name> -m <machines> -l <log dir>"
 
 def run(client):
-    m = hosts.SSHHost(client)
+    m = hosts.create_host(client)
     at = autotest.Autotest()
 
     results_dir = os.path.join(logdir, client)

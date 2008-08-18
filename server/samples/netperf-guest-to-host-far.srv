@@ -17,9 +17,9 @@ def install_kvm(kvm_on_host_var_name, host, source, addresses):
             "%(var_name)s.install(addresses)\n" % {"var_name": kvm_on_host_var_name})
 
 
-print "XXXX creating SSHHost objects"
-remote_host1= hosts.SSHHost("192.168.1.1")
-remote_host2= hosts.SSHHost("192.168.1.2")
+print "XXXX creating RemoteHost objects"
+remote_host1= hosts.create_host("192.168.1.1")
+remote_host2= hosts.create_host("192.168.1.2")
 
 kernel= deb_kernel.DEBKernel()
 kernel.get("/home/foo/linux-2.6.21.3-3_2.6.21.3-3_amd64.deb")

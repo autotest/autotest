@@ -17,7 +17,7 @@ myhostname = 'myhost'
 kernel = git_kernel.GitKernel(repodir, giturl, weburl)
 
 # ssh to remote host
-h = hosts.SSHHost(myhostname)
+h = hosts.create_host(myhostname)
 
 # acquire git repo, make sure it is up-to-date, clone repo into tmp dir
 kernel.get(h)
