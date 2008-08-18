@@ -1,5 +1,3 @@
-RedirectMatch ^/$ /afe/
-
 Alias /results "/usr/local/autotest/results/"
 <Directory /usr/local/autotest/results/>
     Options Indexes FollowSymLinks MultiViews
