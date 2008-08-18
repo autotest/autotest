@@ -51,6 +51,8 @@ class base_job(object):
                     <autodir>/packages/
             resultdir
                     <autodir>/results/<jobtag>
+            toolsdir
+                    <autodir>/tools/
             stdout
                     fd_stack object for stdout
             stderr
@@ -84,6 +86,7 @@ class base_job(object):
         self.site_testdir = os.path.join(self.autodir, 'site_tests')
         self.profdir = os.path.join(self.autodir, 'profilers')
         self.tmpdir = os.path.join(self.autodir, 'tmp')
+        self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', jobtag)
         self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
         self.control = os.path.abspath(control)

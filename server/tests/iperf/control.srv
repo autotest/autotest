@@ -31,7 +31,8 @@ def run(pair):
     server_at = autotest.Autotest(server)
     client_at = autotest.Autotest(client)
 
-    template = "job.run_test('iperf', server_ip='%s', client_ip='%s', role='%s', udp=False, bidirectional=False)"
+    template = ''.join(["job.run_test('iperf', server_ip='%s', client_ip=",
+                        "'%s', role='%s', udp=False, bidirectional=False)"])
 
     server_control_file = template % (server.ip, client.ip, 'server')
     client_control_file = template % (server.ip, client.ip, 'client')
