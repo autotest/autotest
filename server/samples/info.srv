@@ -1,5 +1,5 @@
 def run(machine):
-    host = hosts.SSHHost(machine, initialize = False)
+    host = hosts.create_host(machine, initialize = False)
     print 'Uptime:         ' + host.check_uptime()
     print 'Arch:           ' + host.get_arch()
     print 'Kernel ver:     ' + host.get_kernel_ver()

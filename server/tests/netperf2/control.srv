@@ -26,8 +26,8 @@ def run(pair, time_limit=600, bandwidth_min=1000, bandwidth_max=1000,
 
     print "running on %s and %s\n" % (pair[0], pair[1])
     tagname = "%s_%s" % (pair[0], pair[1])
-    server = hosts.SSHHost(pair[0])
-    client = hosts.SSHHost(pair[1])
+    server = hosts.create_host(pair[0])
+    client = hosts.create_host(pair[1])
 
     server_at = autotest.Autotest(server)
     client_at = autotest.Autotest(client)

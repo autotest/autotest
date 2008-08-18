@@ -1,4 +1,4 @@
-rh= hosts.SSHHost("192.168.1.1")
+rh= hosts.create_host("192.168.1.1")
 
 print rh.run("uname -a").stdout
 

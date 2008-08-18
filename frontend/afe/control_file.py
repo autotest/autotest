@@ -31,7 +31,7 @@ kernel_install_control = \"""
 
 at = autotest.Autotest()
 def install_kernel(machine):
-    host = hosts.SSHHost(machine)
+    host = hosts.create_host(machine)
     at.run(kernel_install_control, host=host)
 job.parallel_simple(install_kernel, machines)
 

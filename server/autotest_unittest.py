@@ -4,11 +4,10 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 import unittest, os, tempfile
 import common
-from autotest_lib.server import autotest, utils
-from autotest_lib.server.hosts import ssh_host
+from autotest_lib.server import autotest, utils, hosts
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib.test_utils import mock
-import pdb
+
 
 class TestBaseAutotest(unittest.TestCase):
     def setUp(self):
@@ -16,7 +15,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god = mock.mock_god()
 
         # create mock host object
-        self.host = self.god.create_mock_class(ssh_host.SSHHost, "host")
+        self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
         self.host.hostname = "hostname"
 
         # stubs
