@@ -8,7 +8,6 @@ import com.google.gwt.json.client.JSONObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -18,27 +17,6 @@ import java.util.List;
 public class ArrayDataSource<T extends JSONObject> implements DataSource {
     protected List<T> data = new ArrayList<T>();
     protected JSONObjectComparator comparator;
-    
-    class JSONObjectComparator implements Comparator<T> {
-        SortSpec[] sortSpecs;
-        
-        public JSONObjectComparator(SortSpec[] specs) {
-            sortSpecs = specs;
-        }
-
-        public int compare(T arg0, T arg1) {
-            int compareValue = 0;
-            for (SortSpec sortSpec : sortSpecs) {
-                String key0 = arg0.get(sortSpec.getField()).toString();
-                String key1 = arg1.get(sortSpec.getField()).toString();
-                compareValue = key0.compareTo(key1) * sortSpec.getDirectionMultiplier();
-                if (compareValue != 0) {
-                    break;
-                }
-            }
-            return compareValue;
-        }
-    }
     
     /**
      * @param sortKeys keys that will be used to keep items sorted internally. We

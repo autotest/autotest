@@ -205,11 +205,11 @@ public class JobListView extends TabView implements TableActionsListener {
         } else {
             jobTable.getSelectionManager().selectAll();
         }
-        refresh();
+        jobTable.refreshWidgets();
     }
     
     public void onSelectNone() {
         jobTable.getSelectionManager().deselectAll();
-        refresh();
+        jobTable.refreshWidgets();
     }
 }
