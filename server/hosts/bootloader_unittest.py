@@ -5,8 +5,8 @@ import common
 
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import error, utils as common_utils
-from autotest_lib.server import utils
-from autotest_lib.server.hosts import bootloader, ssh_host
+from autotest_lib.server import utils, hosts
+from autotest_lib.server.hosts import bootloader
 
 
 class test_bootloader_install(unittest.TestCase):
@@ -21,9 +21,9 @@ class test_bootloader_install(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def create_mock_sshhost(self):
-        # useful for building disposable SSHHost mocks
-        return self.god.create_mock_class(ssh_host.SSHHost, "SSHHost")
+    def create_mock_host(self):
+        # useful for building disposable RemoteHost mocks
+        return self.god.create_mock_class(hosts.RemoteHost, "host")
 
 
     def create_install_boottool_mock(self, loader, dst_dir):
@@ -37,7 +37,7 @@ class test_bootloader_install(unittest.TestCase):
 
 
     def test_install_fails_without_host(self):
-        host = self.create_mock_sshhost()
+        host = self.create_mock_host()
         loader = bootloader.Bootloader(host)
         del host
         self.assertRaises(error.AutoservError, loader.install_boottool)
@@ -50,7 +50,7 @@ class test_bootloader_install(unittest.TestCase):
         BOOTTOOL_SRC = os.path.abspath(BOOTTOOL_SRC)
         BOOTTOOL_DST = os.path.join(TMPDIR, "boottool")
         # set up the recording
-        host = self.create_mock_sshhost()
+        host = self.create_mock_host()
         host.get_tmp_dir.expect_call().and_return(TMPDIR)
         utils.get_server_dir.expect_call().and_return(SERVERDIR)
         host.send_file.expect_call(BOOTTOOL_SRC, TMPDIR)
@@ -65,7 +65,7 @@ class test_bootloader_install(unittest.TestCase):
 
     def test_get_path_automatically_installs(self):
         BOOTTOOL_DST = "/unittest/tmp/boottool"
-        host = self.create_mock_sshhost()
+        host = self.create_mock_host()
         loader = bootloader.Bootloader(host)
         # mock out loader.install_boottool
         mock_install = \
@@ -79,7 +79,7 @@ class test_bootloader_install(unittest.TestCase):
 
     def test_install_is_only_called_once(self):
         BOOTTOOL_DST = "/unittest/tmp/boottool"
-        host = self.create_mock_sshhost()
+        host = self.create_mock_host()
         loader = bootloader.Bootloader(host)
         # mock out loader.install_boottool
         mock_install = \
@@ -96,8 +96,7 @@ class test_bootloader_install(unittest.TestCase):
 class test_bootloader_methods(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
-        self.host = self.god.create_mock_class(ssh_host.SSHHost,
-                                               "SSHHost")
+        self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
         # creates a bootloader with _run_boottool mocked out
         self.loader = bootloader.Bootloader(self.host)
         self.god.stub_function(self.loader, "_run_boottool")

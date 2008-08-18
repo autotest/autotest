@@ -18,7 +18,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import ssh_host
+from autotest_lib.server.hosts import ssh_host
 
 
 class Guest(ssh_host.SSHHost):
@@ -39,7 +39,7 @@ class Guest(ssh_host.SSHHost):
     controlling_hypervisor = None
 
 
-    def __init__(self, controlling_hypervisor):
+    def __init__(self, controlling_hypervisor, *args, **dargs):
         """
         Construct a Guest object
 
@@ -48,15 +48,16 @@ class Guest(ssh_host.SSHHost):
                         responsible for the creation and management of
                         this guest
         """
-        hostname= controlling_hypervisor.new_guest()
-        super(Guest, self).__init__(hostname)
-        self.controlling_hypervisor= controlling_hypervisor
+        hostname = controlling_hypervisor.new_guest()
+        super(Guest, self).__init__(hostname, *args, **dargs)
+        self.controlling_hypervisor = controlling_hypervisor
 
 
     def __del__(self):
         """
         Destroy a Guest object
         """
+        super(Guest, self).__del__()
         self.controlling_hypervisor.delete_guest(self.hostname)
 
 

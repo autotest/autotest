@@ -1,4 +1,4 @@
-hosts = [hosts.SSHHost(h, initialize=False) for h in machines]
+hosts = [hosts.create_host(h, initialize=False) for h in machines]
 
 for host in hosts:
     print host.hostname

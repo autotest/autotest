@@ -10,7 +10,7 @@ def check_diskspace(host, path, gb):
 # This needs more stuff in it. Check for diskspace, etc. But it's a start.
 def verify(machine):
 	print 'Initializing host ' + machine
-	host = hosts.SSHHost(machine, initialize=False)
+	host = hosts.create_host(machine, initialize=False)
 	print 'Pinging host ' + machine
 	sys.stdout.flush()
 	host.ssh_ping()

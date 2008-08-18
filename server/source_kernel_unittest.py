@@ -3,14 +3,13 @@
 import unittest
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server.hosts import SSHHost
-from autotest_lib.server import source_kernel, autotest
+from autotest_lib.server import source_kernel, autotest, hosts
 
 
 class TestSourceKernel(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
-        self.host = self.god.create_mock_class(SSHHost, "host")
+        self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
         self.god.stub_class(source_kernel.autotest, "Autotest")
         self.kernel_autotest = source_kernel.autotest.Autotest.expect_new()
         self.k = "kernel"

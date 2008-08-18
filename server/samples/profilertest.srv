@@ -1,6 +1,6 @@
 import time
 
-ssh_hosts = [hosts.SSHHost(m, initialize=False) for m in machines]
+ssh_hosts = [hosts.create_host(m, initialize=False) for m in machines]
 at_hosts = [autotest.Autotest(h) for h in ssh_hosts]
 
 

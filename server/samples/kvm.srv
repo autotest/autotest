@@ -1,8 +1,8 @@
 print "XXXX start of control file"
 
 
-print "XXXX creating SSHHost object"
-remote_host= hosts.SSHHost("192.168.1.1")
+print "XXXX creating RemoteHost object"
+remote_host= hosts.create_host("192.168.1.1")
 
 
 print "XXXX installing KVM"

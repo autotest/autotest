@@ -1,5 +1,5 @@
 def run(machine):
-    host = hosts.SSHHost(machine)
+    host = hosts.create_host(machine)
     while True:
         host.reboot()
 

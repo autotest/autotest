@@ -1,7 +1,7 @@
 import utils
 
 print "Instantiating a machine object"
-m = hosts.SSHHost(machines[0])
+m = hosts.create_host(machines[0])
 print "Passed"
 
 print

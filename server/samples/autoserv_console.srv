@@ -1,5 +1,5 @@
 # autoserv_console.srv - gives you an interactive interpreter within an autoserv
-# control file.  If you pass "-m hostname", an SSHHost will be available under
+# control file.  If you pass "-m hostname", a RemoteHost will be available under
 # the variable "host".
 
 # If you install IPython (http://ipython.scipy.org/, Ubuntu package "ipython"),
@@ -9,7 +9,7 @@
 # -Steve Howard (showard@google.com)
 
 if machines:
-    host = hosts.SSHHost(machines[0])
+    host = hosts.create_host(machines[0])
 
 try:
     import IPython

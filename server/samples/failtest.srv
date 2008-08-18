@@ -1,5 +1,5 @@
 def run(machine):
-    host = hosts.SSHHost(machine)
+    host = hosts.create_host(machine)
     at = autotest.Autotest(host)
     at.run_test('failtest')
 
