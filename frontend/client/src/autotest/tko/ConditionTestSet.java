@@ -37,9 +37,18 @@ class ConditionTestSet implements TestSet {
         if (!initialCondition.trim().equals("")) {
             parts.add(initialCondition);
         }
+        
         for (Map.Entry<String, String> entry : fields.entrySet()) {
-            parts.add(entry.getKey() + " = '" + escapeQuotes(entry.getValue()) + "'");
+            String query = entry.getKey();  
+            String value = entry.getValue();
+            if (value.equals(Utils.JSON_NULL)) {
+              query += " is null";
+            } else {
+              query += " = '" + escapeQuotes(value) + "'";
+            }
+            parts.add(query);
         }
+        
         return Utils.joinStrings(" AND ", parts);
     }
 
