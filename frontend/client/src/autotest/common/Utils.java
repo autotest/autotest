@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Utils {
+    public static final String JSON_NULL = "<null>";
     private static final String[][] escapeMappings = {
         {"&", "&amp;"},
         {">", "&gt;"},
@@ -168,7 +169,7 @@ public class Utils {
             return Integer.toString((int) number.doubleValue());
         }
         if (value.isNull() != null) {
-            return "<null>";
+            return JSON_NULL;
         }
         return value.toString();
     }

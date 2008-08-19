@@ -185,11 +185,12 @@ public class SpreadsheetView extends ConditionTabView
         setJobCompletionHtml("&nbsp");
         
         String condition = commonPanel.getSavedCondition();
+        if (!condition.equals("")) {
+            condition = "(" + condition + ") AND ";
+        }
+        condition += "status != 'TEST_NA'";
         if (!currentShowIncomplete) {
-            if (!condition.equals("")) {
-                condition = "(" + condition + ") AND ";
-            }
-            condition += "status != 'RUNNING'";
+            condition += " AND status != 'RUNNING'";
         }
         final String finalCondition = condition;
         
