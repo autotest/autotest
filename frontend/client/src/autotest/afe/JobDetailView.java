@@ -216,7 +216,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
     
     private String getResultsURL(int jobId) {
         return "/new_tko/#tab_id=spreadsheet_view&row=hostname&column=test_name&" +
-               "condition=job_tag+LIKE+'" + Integer.toString(jobId) + "-%2525'";
+               "condition=job_tag+LIKE+'" + Integer.toString(jobId) + "-%2525'&" +
+               "show_incomplete=true";
     }
     
     private String getOldResultsUrl(int jobId) {

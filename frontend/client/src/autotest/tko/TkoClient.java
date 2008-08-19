@@ -61,6 +61,8 @@ public class TkoClient implements EntryPoint, SpreadsheetViewListener {
         tableView.ensureInitialized();
         if (isTriageView) {
             tableView.setupJobTriage();
+        } else {
+            tableView.setupDefaultView();
         }
         tableView.doQuery();
         mainTabPanel.selectTabView(tableView);
