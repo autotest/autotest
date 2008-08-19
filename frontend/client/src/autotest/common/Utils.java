@@ -122,7 +122,7 @@ public class Utils {
             if (parts.length > 2) {
                 throw new IllegalArgumentException();
             }
-            String key = URL.decodeComponent(parts[0]);
+            String key = decodeComponent(parts[0]);
             String value = "";
             if (parts.length == 2) {
                 value = URL.decodeComponent(parts[1]);
@@ -131,15 +131,23 @@ public class Utils {
         }
         return arguments;
     }
+
+    private static String decodeComponent(String component) {
+        return URL.decodeComponent(component.replace("%27", "'"));
+    }
     
     public static String encodeUrlArguments(Map<String, String> arguments) {
         List<String> components = new ArrayList<String>();
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
-            String key = URL.encodeComponent(entry.getKey());
-            String value = URL.encodeComponent(entry.getValue());
+            String key = encodeComponent(entry.getKey());
+            String value = encodeComponent(entry.getValue());
             components.add(key + "=" + value);
         }
         return joinStrings("&", components);
+    }
+
+    private static String encodeComponent(String component) {
+        return URL.encodeComponent(component).replace("'", "%27");
     }
 
     /**

@@ -124,6 +124,14 @@ public class TableView extends ConditionTabView
         }
     }
     
+    public void setupDefaultView() {
+        selectColumns(DEFAULT_COLUMNS);
+        statusGroupCheckbox.setChecked(false);
+        groupCheckbox.setChecked(false);
+        updateCheckboxes();
+        tableSorts.clear();
+    }
+    
     public void setupJobTriage() {
         // easier if we ensure it's deselected and then select it
         selectColumns(TRIAGE_GROUP_COLUMNS);
