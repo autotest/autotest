@@ -140,3 +140,6 @@ class Host(object):
 
     def get_autodir(self):
         raise NotImplementedError('Get autodir not implemented!')
+
+    def set_autodir(self):
+        raise NotImplementedError('Set autodir not implemented!')

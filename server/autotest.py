@@ -92,6 +92,9 @@ class BaseAutotest(installable_object.InstallableObject):
         except error.AutotestRunError:
             autodir = '/usr/local/autotest'
 
+        # Make the host object know as to where autotest is installed
+        host.set_autodir(autodir)
+
         host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
         # Fetch the autotest client from the nearest repository
