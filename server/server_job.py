@@ -80,7 +80,7 @@ def reboot(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
 
-    host = hosts.create_host(hostname, user, port,
+    host = hosts.create_host(hostname, user=user, port=port,
                              initialize=False, password=passwd)
     host.reboot()
 
@@ -92,7 +92,7 @@ def install(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
 
-    host = hosts.create_host(hostname, user, port,
+    host = hosts.create_host(hostname, user=user, port=port,
                              initialize=False, password=passwd)
     host.machine_install()
 
