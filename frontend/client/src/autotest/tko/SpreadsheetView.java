@@ -142,7 +142,7 @@ public class SpreadsheetView extends ConditionTabView
     
     protected TestSet getWholeTableTestSet() {
         boolean isSingleTest = spreadsheetProcessor.getNumTotalTests() == 1;
-        return new ConditionTestSet(isSingleTest, commonPanel.getSavedCondition());
+        return new ConditionTestSet(isSingleTest, getFullCondition());
     }
 
     protected void setupDrilldownMap() {
@@ -184,6 +184,22 @@ public class SpreadsheetView extends ConditionTabView
         spreadsheet.clear();
         setJobCompletionHtml("&nbsp");
         
+        final String condition = getFullCondition();
+        
+        setLoading(true);
+        spreadsheetProcessor.refresh(currentRowFields, currentColumnFields, condition,
+                                     new Command() {
+            public void execute() {
+                if (isJobFilteringCondition(condition)) {
+                    showCompletionPercentage(condition);
+                } else {
+                    setLoading(false);
+                }
+            }
+        });
+    }
+
+    private String getFullCondition() {
         String condition = commonPanel.getSavedCondition();
         if (!condition.equals("")) {
             condition = "(" + condition + ") AND ";
@@ -192,19 +208,7 @@ public class SpreadsheetView extends ConditionTabView
         if (!currentShowIncomplete) {
             condition += " AND status != 'RUNNING'";
         }
-        final String finalCondition = condition;
-        
-        setLoading(true);
-        spreadsheetProcessor.refresh(currentRowFields, currentColumnFields, finalCondition,
-                                     new Command() {
-            public void execute() {
-                if (isJobFilteringCondition(finalCondition)) {
-                    showCompletionPercentage(finalCondition);
-                } else {
-                    setLoading(false);
-                }
-            }
-        });
+        return condition;
     }
 
     public void doQuery() {
@@ -314,8 +318,7 @@ public class SpreadsheetView extends ConditionTabView
 
     private TestSet getTestSet(CellInfo cellInfo) {
         boolean isSingleTest = cellInfo.testCount == 1;
-        ConditionTestSet testSet = new ConditionTestSet(isSingleTest, 
-                                                        commonPanel.getSavedCondition());
+        ConditionTestSet testSet = new ConditionTestSet(isSingleTest, getFullCondition());
         
         if (cellInfo.row != null) {
             setSomeFields(testSet, currentRowFields, cellInfo.row);
