@@ -163,20 +163,28 @@ def get_test_labels(**filter_data):
 
 
 def get_test_labels_for_tests(**test_filter_data):
-    tests = models.Test.objects.query_using_test_view(test_filter_data)
-    labels = models.TestLabel.list_objects({'tests__in' : tests})
+    label_ids = models.TestView.objects.query_test_label_ids(test_filter_data)
+    labels = models.TestLabel.list_objects({'id__in' : label_ids})
     return rpc_utils.prepare_for_serialization(labels)
 
 
 def test_label_add_tests(label_id, **test_filter_data):
-    print label_id
-    test_objs = models.Test.objects.query_using_test_view(test_filter_data)
-    models.TestLabel.smart_get(label_id).tests.add(*test_objs)
+    test_ids = models.TestView.objects.query_test_ids(test_filter_data)
+    models.TestLabel.smart_get(label_id).tests.add(*test_ids)
 
 
 def test_label_remove_tests(label_id, **test_filter_data):
-    test_objs = models.Test.objects.query_using_test_view(test_filter_data)
-    models.TestLabel.smart_get(label_id).tests.remove(*test_objs)
+    label = models.TestLabel.smart_get(label_id)
+
+    # only include tests that actually have this label
+    extra_where = test_filter_data.get('extra_where', '')
+    if extra_where:
+        extra_where = '(' + extra_where + ') AND '
+    extra_where += 'test_labels.id = %s' % label.id
+    test_filter_data['extra_where'] = extra_where
+    test_ids = models.TestView.objects.query_test_ids(test_filter_data)
+
+    label.tests.remove(*test_ids)
 
 
 # saved queries
