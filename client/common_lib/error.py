@@ -107,6 +107,7 @@ class CmdError(TestError):
                                               self.result_obj.exit_status)
         if self.additional_text:
             msg += ", " + self.additional_text
+        msg += '\n' + repr(self.result_obj)
         return msg
 
 
@@ -153,7 +154,12 @@ class AutoservRunError(AutoservError):
     run result object).
     """
     def __init__(self, description, result_obj):
+        self.description = description
+        self.result_obj = result_obj
         AutoservError.__init__(self, description, result_obj)
+
+    def __str__(self):
+        return self.description + '\n' + repr(self.result_obj)
 
 
 class AutoservVirtError(AutoservError):
