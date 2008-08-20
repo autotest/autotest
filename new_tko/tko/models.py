@@ -132,14 +132,6 @@ class Job(dbmodels.Model):
         db_table = 'jobs'
 
 
-class TestManager(dbmodels.Manager):
-    'Custom manager for Test model'
-    def query_using_test_view(self, filter_data):
-        test_ids = [test_view.test_idx for test_view
-                    in TestView.query_objects(filter_data)]
-        return self.in_bulk(test_ids).values()
-
-
 class Test(dbmodels.Model):
     test_idx = dbmodels.IntegerField(primary_key=True)
     job = dbmodels.ForeignKey(Job, db_column='job_idx')
@@ -151,8 +143,6 @@ class Test(dbmodels.Model):
     machine = dbmodels.ForeignKey(Machine, db_column='machine_idx')
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
-
-    objects = TestManager()
 
     class Meta:
         db_table = 'tests'
@@ -237,24 +227,51 @@ class TestViewManager(TempManager):
         return query.extra(select=extra_select)
 
 
+    def _add_label_joins(self, query_set):
+        table_name = self.model._meta.db_table
+        filter_object = self._JoinQ()
+        filter_object.add_join(
+            'test_labels_tests',
+            'test_labels_tests.test_id = %s.test_idx' % table_name,
+            'LEFT JOIN')
+        filter_object.add_join(
+            'test_labels',
+            'test_labels.id = test_labels_tests.testlabel_id',
+            'LEFT JOIN')
+        return query_set.complex_filter(filter_object).distinct()
+
+
     def get_query_set_with_labels(self, filter_data):
         query_set = self.get_query_set()
         # TODO: make this check more thorough if necessary
         if 'test_labels' in filter_data.get('extra_where', ''):
-            table_name = self.model._meta.db_table
-            filter_object = self._JoinQ()
-            filter_object.add_join(
-                'test_labels_tests',
-                'test_labels_tests.test_id = %s.test_idx' % table_name,
-                'LEFT JOIN')
-            filter_object.add_join(
-                'test_labels',
-                'test_labels.id = test_labels_tests.testlabel_id',
-                'LEFT JOIN')
-            query_set = query_set.complex_filter(filter_object).distinct()
+            query_set = self._add_label_joins(query_set)
         else:
             filter_data['no_distinct'] = True
         return query_set
+
+
+    def query_test_ids(self, filter_data):
+        dicts = self.model.query_objects(filter_data).values('test_idx')
+        return [item['test_idx'] for item in dicts]
+
+
+    def _custom_select_query(self, query_set, selects):
+        query_selects, where, params = query_set._get_sql_clause()
+        if query_set._distinct:
+            distinct = 'DISTINCT '
+        else:
+            distinct = ''
+        sql_query = 'SELECT ' + distinct + ','.join(selects) + where
+        cursor = readonly_connection.connection.cursor()
+        cursor.execute(sql_query, params)
+        return cursor.fetchall()
+
+
+    def query_test_label_ids(self, filter_data):
+        query_set = self._add_label_joins(self.get_query_set()).distinct()
+        rows = self._custom_select_query(query_set, ['test_labels.id'])
+        return [row[0] for row in rows] # flatten rows to a list of ids
 
 
 class TestView(dbmodels.Model, model_logic.ModelExtensions):
