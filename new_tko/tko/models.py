@@ -230,7 +230,7 @@ class TestViewManager(TempManager):
 
     def get_query_set(self):
         query = super(TestViewManager, self).get_query_set()
-        
+
         # add extra fields to selects, using the SQL itself as the "alias"
         extra_select = dict((sql, sql)
                             for sql in self.model.extra_fields.iterkeys())
@@ -241,10 +241,11 @@ class TestViewManager(TempManager):
         query_set = self.get_query_set()
         # TODO: make this check more thorough if necessary
         if 'test_labels' in filter_data.get('extra_where', ''):
+            table_name = self.model._meta.db_table
             filter_object = self._JoinQ()
             filter_object.add_join(
                 'test_labels_tests',
-                'test_labels_tests.test_id = test_view.test_idx',
+                'test_labels_tests.test_id = %s.test_idx' % table_name,
                 'LEFT JOIN')
             filter_object.add_join(
                 'test_labels',
