@@ -85,6 +85,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.wait_up.expect_call(timeout=30)
         self.host.setup.expect_call()
         self.host.get_autodir.expect_call().and_return("autodir")
+        self.host.set_autodir.expect_call("autodir")
         utils.sh_escape.expect_call("autodir").and_return("autodir")
         self.host.run.expect_call('mkdir -p "autodir"')
         c = autotest.global_config.global_config

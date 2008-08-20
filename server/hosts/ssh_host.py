@@ -807,6 +807,15 @@ class SSHHost(serial.SerialHost):
         return self.autodir
 
 
+    def set_autodir(self, autodir):
+        '''
+        This method is called to make the host object aware of the
+        where autotest is installed. Called in server/autotest.py
+        after a successful install
+        '''
+        self.autodir = autodir
+
+
     def ssh_setup_key(self):
         try:
             print 'Performing ssh key setup on %s:%d as %s' % \
