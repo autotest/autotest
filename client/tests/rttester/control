@@ -7,7 +7,6 @@ TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Functional"
 TEST_TYPE = "Client"
 EXPERIMENTAL = "True"
-DEPENDENCIES = "GCC"
 
 DOC = "Runs some real time tests from rttester"
 job.run_test('rttester')

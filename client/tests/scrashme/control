@@ -3,8 +3,6 @@ AUTHOR='Yi Yang <yang.y.yi@gmail.com>'
 TEST_CATEGORY='Stress'
 TEST_CLASS='Kernel'
 TEST_TYPE='client'
-EXPERIMENTAL='True'
-DEPENDENCIES='GCC'
 TIME='MEDIUM'
 DOC='''\
 Runs the scrashme suite located at: 

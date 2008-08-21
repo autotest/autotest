@@ -7,7 +7,6 @@ TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Fuctional"
 TEST_TYPE = "Client"
 EXPERIMENTAL = "True"
-DEPENDENCIES = "GCC"
 
 DOC = """
 Create lots of VMAs mapped by lots of tasks.  To tickle objrmap and the
