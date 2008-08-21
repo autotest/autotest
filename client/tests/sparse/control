@@ -4,7 +4,6 @@ TIME='MEDIUM'
 TEST_TYPE='client'
 TEST_CATEGORY='Functional'
 TEST_CLASS='Kernel'
-DEPENDENCIES='GCC'
 AUTHOR='Martin Bligh <mbligh@google.com>'
 DOC='''\
 Sparse is a semantic parser of source files: it's neither a compiler

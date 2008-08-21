@@ -7,7 +7,6 @@ TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Functional"
 TEST_TYPE = "Client"
 EXPERIMENTAL = "True"
-DEPENDENCIES = "GCC"
 
 DOC = """Runs the Kernel Realtime tests from
 http://git.kernel.org/?p=linux/kernel/git/galak/ltp.git;a=tree;f=testcases/realtime"""

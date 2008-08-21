@@ -5,7 +5,6 @@ TIME='SHORT'
 TEST_TYPE='client'
 TEST_CLASS='Kernel'
 TEST_CATEGORY='Functional'
-DEPENDENCIES='GCC'
 DOC='''\
 Test signal passing to processes
 '''
