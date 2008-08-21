@@ -78,7 +78,7 @@ class ParallelExecute(object):
                 if len(self.functions[dependent]) == 0:
                     self.ready_to_run.append(dependent)
 
-        if len(self.functions) > 0:
+        if len(self.functions) > 0 and len(errors) == 0:
             errors.append("Deadlock detected")
 
         if len(errors) > 0:
