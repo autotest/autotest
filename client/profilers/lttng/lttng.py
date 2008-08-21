@@ -23,8 +23,11 @@ class lttng(profiler.profiler):
 
         self.ltt_bindir = os.path.join(self.srcdir, 'lttctl')
         self.lttctl = os.path.join(self.ltt_bindir, 'lttctl')
+        self.lttd = os.path.join(self.srcdir, 'lttd/lttd')
         self.armall = os.path.join(self.ltt_bindir, 'ltt-armall')
         self.mountpoint = '/mnt/debugfs'
+
+        os.putenv('LTT_DAEMON', self.lttd)
 
         if not os.path.exists(self.mountpoint):
             os.mkdir(self.mountpoint)
