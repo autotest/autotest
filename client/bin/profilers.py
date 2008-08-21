@@ -33,10 +33,10 @@ class profilers:
         newprofiler.bindir = os.path.join(self.profdir, profiler)
         newprofiler.srcdir = os.path.join(newprofiler.bindir, 'src')
         newprofiler.tmpdir = os.path.join(self.tmpdir, profiler)
+        newprofiler.initialize(*args, **dargs)
         utils.update_version(newprofiler.srcdir, newprofiler.preserve_srcdir,
                              newprofiler.version, newprofiler.setup,
                              *args, **dargs)
-        newprofiler.initialize(*args, **dargs)
         self.list.append(newprofiler)
 
 
