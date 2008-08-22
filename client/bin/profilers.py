@@ -16,7 +16,7 @@ class profilers:
         prof_dir = os.path.join(self.profdir, profiler)
 
         try:
-            self.job.install_pkg(profiler, 'prof', prof_dir)
+            self.job.install_pkg(profiler, 'profiler', prof_dir)
         except packages.PackageInstallError:
             pass
 
