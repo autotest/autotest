@@ -3,6 +3,13 @@
 import os, sys, fnmatch
 import common
 
+# do a basic check to see if pylint is even installed
+try:
+    import pylint
+except ImportError:
+    print "Unable to import pylint, it may need to be installed"
+    sys.exit(1)
+
 pylintrc_path = os.path.expanduser('~/.pylintrc')
 if not os.path.exists(pylintrc_path):
     open(pylintrc_path, 'w').close()
