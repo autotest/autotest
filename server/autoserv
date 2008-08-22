@@ -59,7 +59,7 @@ def run_autoserv(pid_file_manager, results, parser):
     if not realuser:
         realuser = 'anonymous'
 
-    machines = parser.options.machines.split(',')
+    machines = parser.options.machines.replace(',', ' ').strip().split()
     machines_file = parser.options.machines_file
     label = parser.options.label
     user = parser.options.user
