@@ -33,6 +33,7 @@ def _grab_sysinfo(mytest):
     try:
         sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
         sysinfo.log_after_each_test(sysinfo_dir, mytest.job.sysinfodir)
+        sysinfo.log_test_keyvals(mytest, sysinfo_dir)
         if os.path.exists(mytest.tmpdir):
             utils.system('rm -rf ' + mytest.tmpdir)
     except:

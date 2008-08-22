@@ -100,5 +100,36 @@ def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
         os.chdir(pwd)
 
 
+def log_test_keyvals(test, test_sysinfo_dir):
+    """
+    Extract some useful data from the sysinfo and write it out into
+    the test keyval.
+    """
+    keyval = {}
+
+    # grab a bunch of single line files and turn them into keyvals
+    files_to_log = ["cmdline", "uname_-a"]
+    keyval_fields = ["cmdline", "uname"]
+    for filename, field in zip(files_to_log, keyval_fields):
+        path = os.path.join(test_sysinfo_dir, "reboot_current", filename)
+        if os.path.exists(path):
+            keyval["sysinfo-%s" % field] = utils.read_one_line(path)
+
+    # grab the total memory
+    path = os.path.join(test_sysinfo_dir, "reboot_current", "meminfo")
+    if os.path.exists(path):
+        mem_data = open(path).read()
+        match = re.search(r"^MemTotal:\s+(\d+) kB$", mem_data, re.MULTILINE)
+        if match:
+            keyval["sysinfo-memtotal-in-kb"] = match.group(1)
+
+    # write out the data to the test keyval file
+    test.write_test_keyval(keyval)
+
+    # call the site-specific version of this function
+    if local:
+        site_sysinfo.log_test_keyvals(test, test_sysinfo_dir)
+
+
 if __name__ == '__main__':
     log_per_reboot_data()
