@@ -1846,14 +1846,14 @@ class Job(DBObject):
     def run(self, queue_entry):
         results_dir = self.create_results_dir(queue_entry)
 
-        queue_entry.set_status('Starting')
-
         if self.is_synchronous():
             if not self.is_ready():
                 return Agent([VerifySynchronousTask(
                                 queue_entry=queue_entry,
                                 run_verify=self.run_verify)],
                              [queue_entry.id])
+
+        queue_entry.set_status('Starting')
 
         ctrl = open(os.tmpnam(), 'w')
         if self.control_file:
