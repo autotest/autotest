@@ -18,9 +18,10 @@
 ...
 
 # get directory of this test file; we'll need it later
->>> import frontend.afe.test
+>>> import common
+>>> from autotest_lib.frontend.afe import test
 >>> import os
->>> test_path = os.path.join(os.path.dirname(frontend.afe.test.__file__),
+>>> test_path = os.path.join(os.path.dirname(test.__file__),
 ...                                          'doctests')
 >>> test_path = os.path.abspath(test_path)
 
