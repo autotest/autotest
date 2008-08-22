@@ -171,12 +171,28 @@ class cpuset(object):
         print_one_cpuset(os.path.join(self.root, self.name))
 
 
+    def merge_kswapd_kstaled_processes(self):
+        # pick one kswapd process and one kstaled process of container to
+        #   service all mem nodes of that container, to reduce cpu overheads
+        nodes = get_mem_nodes(self.cpudir)
+        active_node_mgr = str(nodes[0])
+        for node in nodes:
+            file = '/sys/devices/system/node/node%d/kswapd' % node
+            utils.write_one_line(file, active_node_mgr)
+
+
     def release(self):
         print "releasing ", self.cpudir
         parent_t = os.path.join(self.root, 'tasks')
         # Transfer survivors (and self) to parent
         for task in get_tasks(self.cpudir):
             utils.write_one_line(parent_t, task)
+        # Leave kswapd groupings unchanged as mem nodes are
+        #   returned to parent's pool of undedicated mem.
+        # No significant work is executed at parent level,
+        #   so we don't care whether those kswapd processes
+        #   are fully merged, or totally 1:1, or have
+        #   leftover subgroupings from prior nested containers.
         os.rmdir(self.cpudir)
         if os.path.exists(self.cpudir):
             raise error.AutotestError('Could not delete container '
@@ -205,7 +221,8 @@ class cpuset(object):
 
 
     def __init__(self, name, job_size=None, job_pid=None, cpus=None,
-                 root=None, network=None, disk=None):
+                 root=None, network=None, disk=None,
+                 kswapd_merge=False):
         """\
         Create a cpuset container and move job_pid into it
         Allocate the list "cpus" of cpus to that container
@@ -226,6 +243,13 @@ class cpuset(object):
                     priorities = list of priorities to restrict the cpuset to
                     default = default priority to use, or max(priorities) if
                               not specified
+                kswapd_merge = True if all mem nodes of container
+                    should be serviced by a single active kswapd process and a
+                    single kstaled process.
+                    False if each node should be serviced same as it was in
+                    parent container; root defaults to 1 kswapd and 1 kstaled 
+                    for each node.
+                    This option should be same for all temp containers on machine.
         """
         if not os.path.exists(os.path.join(super_root, "cpus")):
             raise CpusetsNotAvailable('/dev/cpuset is empty; the machine was'
@@ -260,8 +284,9 @@ class cpuset(object):
         if not job_pid:
             job_pid = os.getpid()
 
-        print ("cpuset(name=%s, root=%s, job_size=%d, pid=%d, network=%r, "
-               "disk=%r)") % (name, root, job_size, job_pid, network, disk)
+        print ("cpuset(name=%s, root=%s, job_size=%d, pid=%d, "
+                      "network=%r, disk=%r, kswapd_merge=%s)" % 
+               (name, root, job_size, job_pid, network, disk, kswapd_merge))
 
         self.cpudir = os.path.join(self.root, name)
         if os.path.exists(self.cpudir):
@@ -307,6 +332,9 @@ class cpuset(object):
             self.setup_disk_containers(disk)
         else:
             self.disk_priorities = None
+
+        if kswapd_merge:
+            self.merge_kswapd_kstaled_processes()
 
         # add specified cpu cores and own task pid to container:
         cpu_spec = ','.join(['%d' % x for x in cpus])
