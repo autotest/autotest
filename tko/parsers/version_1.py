@@ -217,7 +217,8 @@ class parser(base.parser):
                 # update the status, start and finished times
                 stack.update(line.status)
                 current_status = stack.end()
-                stack.update(current_status)
+                if stack.size() > min_stack_size:
+                    stack.update(current_status)
                 started_time = started_time_stack.pop()
                 finished_time = line.get_timestamp()
                 # update the current kernel
