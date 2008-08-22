@@ -18,9 +18,9 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import time
+import re, time
 
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import bootloader
 
@@ -54,12 +54,16 @@ class Host(object):
 
     bootloader = None
     job = None
+    DEFAULT_REBOOT_TIMEOUT = 1800
 
-    def __init__(self, *args, **dargs):
+    def __init__(self, initialize=True, target_file_owner=None,
+                 *args, **dargs):
         super(Host, self).__init__(*args, **dargs)
         self.serverdir = utils.get_server_dir()
         self.bootloader= bootloader.Bootloader(self)
         self.env = {}
+        self.initialize = initialize
+        self.target_file_owner = target_file_owner
 
 
     def setup(self):
@@ -103,9 +107,7 @@ class Host(object):
 
 
     def get_wait_up_processes(self):
-        """
-        Gets the list of local processes to wait for in wait_up.
-        """
+        """ Gets the list of local processes to wait for in wait_up. """
         get_config = global_config.global_config.get_config_value
         proc_list = get_config("HOSTS", "wait_up_processes",
                                default="").strip()
@@ -114,16 +116,29 @@ class Host(object):
         return processes
 
 
-    def wait_up(self, timeout):
+    def wait_up(self, timeout=None):
         raise NotImplementedError('Wait up not implemented!')
 
 
-    def wait_down(self, timeout):
+    def wait_down(self, timeout=None):
         raise NotImplementedError('Wait down not implemented!')
 
 
-    def get_num_cpu(self):
-        raise NotImplementedError('Get num CPU not implemented!')
+    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+        """ Wait for the host to come back from a reboot. This is a generic
+        implementation based entirely on wait_up and wait_down. """
+        if not self.wait_down(300):    # make sure the machine is down, first
+            self.record("ABORT", None, "reboot.verify", "shut down failed")
+            raise error.AutoservRebootError("Host did not shut down")
+        self.wait_up(timeout)
+        time.sleep(2)    # this is needed for complete reliability
+        if self.wait_up(timeout):
+            self.record("GOOD", None, "reboot.verify")
+        else:
+            self.record("ABORT", None, "reboot.verify",
+                        "Host did not return from reboot")
+            raise error.AutoservRebootError(
+                "Host did not return from reboot")
 
 
     def machine_install(self):
@@ -141,5 +156,66 @@ class Host(object):
     def get_autodir(self):
         raise NotImplementedError('Get autodir not implemented!')
 
+
     def set_autodir(self):
         raise NotImplementedError('Set autodir not implemented!')
+
+
+    # some extra methods simplify the retrieval of information about the
+    # Host machine, with generic implementations based on run(). subclasses
+    # should feel free to override these if they can provide better
+    # implementations for their specific Host types
+
+    def get_num_cpu(self):
+        """ Get the number of CPUs in the host according to /proc/cpuinfo. """
+
+        proc_cpuinfo = self.run("cat /proc/cpuinfo",
+                        stdout_tee=open('/dev/null', 'w')).stdout
+        cpus = 0
+        for line in proc_cpuinfo.splitlines():
+            if line.startswith('processor'):
+                cpus += 1
+        return cpus
+
+
+    def get_arch(self):
+        """ Get the hardware architecture of the remote machine. """
+        arch = self.run('/bin/uname -m').stdout.rstrip()
+        if re.match(r'i\d86$', arch):
+            arch = 'i386'
+        return arch
+
+
+    def get_kernel_ver(self):
+        """ Get the kernel version of the remote machine. """
+        return self.run('/bin/uname -r').stdout.rstrip()
+
+
+    def get_cmdline(self):
+        """ Get the kernel command line of the remote machine. """
+        return self.run('cat /proc/cmdline').stdout.rstrip()
+
+
+    # some extra helpers for doing job-related operations
+
+    def record(self, *args, **dargs):
+        """ Helper method for recording status logs against Host.job that
+        silently becomes a NOP if Host.job is not available. The args and
+        dargs are passed on to Host.job.record unchanged. """
+        if self.job:
+            self.job.record(*args, **dargs)
+
+
+    def log_reboot(self, reboot_func):
+        """ Decorator for wrapping a reboot in a group for status
+        logging purposes. The reboot_func parameter should be an actual
+        function that carries out the reboot.
+        """
+        if self.job and not hasattr(self, "RUNNING_LOG_REBOOT"):
+            self.RUNNING_LOG_REBOOT = True
+            try:
+                self.job.run_reboot(reboot_func, self.get_kernel_ver)
+            finally:
+                del self.RUNNING_LOG_REBOOT
+        else:
+            reboot_func()

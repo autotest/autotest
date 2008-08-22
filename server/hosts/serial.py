@@ -1,20 +1,19 @@
 import os, sys, subprocess
 
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, error
+from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import site_host
 
 
 class SerialHost(site_host.SiteHost):
+    DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
+
     def __init__(self, conmux_server=None, conmux_attach=None,
                  conmux_log="console.log", *args, **dargs):
         super(SerialHost, self).__init__(*args, **dargs)
 
         self.conmux_server = conmux_server
-        if conmux_attach:
-            self.conmux_attach = conmux_attach
-        else:
-            self.conmux_attach = os.path.abspath(os.path.join(
-                self.serverdir, '..', 'conmux', 'conmux-attach'))
+        self.conmux_attach = self._get_conmux_attach(conmux_attach)
 
         self.logger_popen = None
         self.warning_stream = None
@@ -22,14 +21,44 @@ class SerialHost(site_host.SiteHost):
 
 
     def __del__(self):
+        super(SerialHost, self).__del__()
         self.__stop_console_log()
 
 
-    def __conmux_hostname(self):
-        if self.conmux_server:
-            return '%s/%s' % (self.conmux_server, self.hostname)
+    @classmethod
+    def _get_conmux_attach(cls, conmux_attach=None):
+        if conmux_attach:
+            return conmux_attach
+
+        # assume we're using the conmux-attach provided with autotest
+        server_dir = server_utils.get_server_dir()
+        path = os.path.join(server_dir, "..", "conmux", "conmux-attach")
+        path = os.path.abspath(path)
+        return path
+
+
+    @staticmethod
+    def _get_conmux_hostname(hostname, conmux_server):
+        if conmux_server:
+            return "%s/%s" % (conmux_server, hostname)
         else:
-            return self.hostname
+            return hostname
+
+
+    def get_conmux_hostname(self):
+        return self._get_conmux_hostname(self.hostname, self.conmux_server)
+
+
+    @classmethod
+    def host_is_supported(cls, hostname, conmux_server=None,
+                          conmux_attach=None):
+        """ Returns a boolean indicating if the remote host with "hostname"
+        supports use as a SerialHost """
+        conmux_attach = cls._get_conmux_attach(conmux_attach)
+        conmux_hostname = cls._get_conmux_hostname(hostname, conmux_server)
+        cmd = "%s %s echo 2> /dev/null" % (conmux_attach, conmux_hostname)
+        result = utils.run(cmd)
+        return result.exit_status == 0
 
 
     def __start_console_log(self, logfilename):
@@ -44,7 +73,7 @@ class SerialHost(site_host.SiteHost):
         r, w = os.pipe()
         script_path = os.path.join(self.serverdir,
                                    'warning_monitor.py')
-        cmd = [self.conmux_attach, self.__conmux_hostname(),
+        cmd = [self.conmux_attach, self.get_conmux_hostname(),
                '%s %s %s %d' % (sys.executable, script_path,
                                 logfilename, w)]
         dev_null = open(os.devnull, 'w')
@@ -71,7 +100,35 @@ class SerialHost(site_host.SiteHost):
         if not self.conmux_attach or not os.path.exists(self.conmux_attach):
             return False
         cmd = '%s %s echo %s 2> /dev/null' % (self.conmux_attach,
-                                              self.__conmux_hostname(),
+                                              self.get_conmux_hostname(),
                                               cmd)
         result = utils.system(cmd, ignore_status=True)
         return result == 0
+
+
+    def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
+                  conmux_command='hardreset'):
+        """
+        Reach out and slap the box in the power switch.
+        Args:
+                conmux_command: The command to run via the conmux interface
+                timeout: timelimit in seconds before the machine is
+                considered unreachable
+                wait: Whether or not to wait for the machine to reboot
+
+        """
+        conmux_command = "'~$%s'" % conmux_command
+        def reboot():
+            if not self.run_conmux(conmux_command):
+                self.record("ABORT", None, "reboot.start",
+                            "hard reset unavailable")
+                raise error.AutoservUnsupportedError(
+                    'Hard reset unavailable')
+            self.record("GOOD", None, "reboot.start", "hard reset")
+            if wait:
+                self.wait_for_restart(timeout)
+
+        if wait:
+            self.log_reboot(reboot)
+        else:
+            reboot()
