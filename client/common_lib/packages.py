@@ -511,22 +511,12 @@ class BasePackageManager(object):
         return (local_checksum == repository_checksum)
 
 
-    def tar_package(self, pkg_name, src_dir, dest_dir, exclude_dirs=None):
+    def tar_package(self, pkg_name, src_dir, dest_dir, exclude_string=None):
         '''
         Create a tar.bz2 file with the name 'pkg_name' say test-blah.tar.bz2.
         Excludes the directories specified in exclude_dirs while tarring
         the source. Returns the tarball path.
         '''
-        exclude_string = ''
-        if exclude_dirs:
-            exclude_string = " ".join('--exclude=%s/*' % ex_dir
-                                       for ex_dir in exclude_dirs)
-            # The '.' here is needed to zip the files in the current
-            # directory. We use '-C' for tar to change to the required
-            # directory i.e. src_dir and then zip up the files in that
-            # directory(which is '.') excluding the ones in the exclude_dirs
-            exclude_string += " ."
-
         tarball_path = os.path.join(dest_dir, pkg_name)
 
         utils.system("tar -cvjf %s -C %s %s "

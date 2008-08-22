@@ -11,7 +11,34 @@ from autotest_lib.client.common_lib import packages, global_config
 from autotest_lib.server import utils as server_utils
 
 c = global_config.global_config
-exclude_dirs = ['deps', 'tests', 'site_tests', 'profilers']
+
+def get_exclude_string(client_dir):
+    '''
+    Get the exclude string for the tar command to exclude specific
+    subdirectories inside client_dir.
+    For profilers we need to exclude everything except the __ini__.py
+    file so that the profilers can be imported.
+    '''
+    exclude_string = ('--exclude=deps/* --exclude=tests/* '
+                      '--exclude=site_tests/*')
+
+    # Get the profilers directory
+    prof_dir = os.path.join(client_dir, 'profilers')
+
+    # Include the __init__.py file for the profilers and exclude all its
+    # subdirectories
+    for f in os.listdir(prof_dir):
+        if os.path.isdir(os.path.join(prof_dir, f)):
+            exclude_string += ' --exclude=profilers/%s' % f
+
+    # The '.' here is needed to zip the files in the current
+    # directory. We use '-C' for tar to change to the required
+    # directory i.e. src_dir and then zip up the files in that
+    # directory(which is '.') excluding the ones in the exclude_dirs
+    exclude_string += " ."
+
+    return exclude_string
+
 
 def parse_args():
     parser = optparse.OptionParser()
@@ -44,11 +71,13 @@ def parse_args():
 # Method to upload or remove package depending on the flag passed to it.
 def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
                     remove=False):
+    exclude_string = ' .'
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
         print "Processing %s ... " % name
         if pkg_type=='client':
             pkg_dir = src_dir
+            exclude_string  = get_exclude_string(pkg_dir)
         elif pkg_type=='test':
             # if the package is a test then look whether it is in client/tests
             # or client/site_tests
@@ -63,7 +92,7 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
             try:
                 temp_dir = tempfile.mkdtemp()
                 tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
-                                                  temp_dir, exclude_dirs)
+                                                  temp_dir, exclude_string)
                 pkgmgr.upload_pkg(tarball_path, repo_url, update_checksum=True)
             finally:
                 # remove the temporary directory
