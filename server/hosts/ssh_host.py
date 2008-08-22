@@ -22,14 +22,14 @@ import types, os, sys, signal, subprocess, time, re, socket, pdb
 
 from autotest_lib.client.common_lib import error, pxssh, global_config
 from autotest_lib.server import utils
-from autotest_lib.server.hosts import serial, bootloader
+from autotest_lib.server.hosts import site_host, bootloader
 
 
 class PermissionDeniedError(error.AutoservRunError):
     pass
 
 
-class SSHHost(serial.SerialHost):
+class SSHHost(site_host.SiteHost):
     """
     This class represents a remote machine controlled through an ssh
     session on which you can run programs.
@@ -51,9 +51,9 @@ class SSHHost(serial.SerialHost):
     implement the unimplemented methods in parent classes.
     """
 
-    DEFAULT_REBOOT_TIMEOUT = 1800
+    DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
 
-    def __init__(self, hostname, user="root", port=22, initialize=True,
+    def __init__(self, hostname, user="root", port=22,
                  netconsole_log=None, netconsole_port=6666, autodir=None,
                  password='', target_file_owner=None, *args, **dargs):
         """
@@ -72,10 +72,8 @@ class SSHHost(serial.SerialHost):
         self.user = user
         self.port = port
         self.tmp_dirs = []
-        self.initialize = initialize
         self.autodir = autodir
         self.password = password
-        self.target_file_owner = target_file_owner
 
         self.bootloader = bootloader.Bootloader(self)
 
@@ -187,72 +185,12 @@ class SSHHost(serial.SerialHost):
             pass
 
 
-    def _wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
-        """ Underlying wait_for_restart function. For use from either
-        the public wait_for_restart(), or from SSHHost methods that wait
-        as part of a larger reboot process."""
-        if not self.wait_down(300):     # Make sure he's dead, Jim
-            self.__record("ABORT", None, "reboot.verify", "shutdown failed")
-            raise error.AutoservRebootError("Host did not shut down")
-        self.wait_up(timeout)
-        time.sleep(2) # this is needed for complete reliability
-        if self.wait_up(timeout):
-            self.__record("GOOD", None, "reboot.verify")
-        else:
-            self.__record("ABORT", None, "reboot.verify",
-                          "Host did not return from reboot")
-            raise error.AutoservRebootError(
-                "Host did not return from reboot")
-        print "Reboot complete"
-
-
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
-        """ Wait for the machine to come back from a reboot. This wraps the
-        logging of the reboot in a group, and grabs the kernel version on
-        the remote machine and includes it in the status logs. """
+        """ Wait for the host to come back from a reboot. This wraps the
+        generic wait_for_restart implementation in a reboot group. """
         def reboot_func():
-            self._wait_for_restart(timeout=timeout)
-        self.__run_reboot_group(reboot_func)
-
-
-    def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
-                  conmux_command='hardreset'):
-        """
-        Reach out and slap the box in the power switch.
-        Args:
-                conmux_command: The command to run via the conmux interface
-                timeout: timelimit in seconds before the machine is
-                considered unreachable
-                wait: Whether or not to wait for the machine to reboot
-
-        """
-        conmux_command = r"'~$%s'" % conmux_command
-        if not self.run_conmux(conmux_command):
-            self.__record("ABORT", None, "reboot.start",
-                          "hard reset unavailable")
-            raise error.AutoservUnsupportedError(
-                'Hard reset unavailable')
-
-        if wait:
-            self._wait_for_restart(timeout)
-        self.__record("GOOD", None, "reboot.start", "hard reset")
-
-
-    def __run_reboot_group(self, reboot_func):
-        if self.job:
-            self.job.run_reboot(reboot_func, self.get_kernel_ver)
-        else:
-            reboot_func()
-
-
-    def __record(self, status_code, subdir, operation, status = ''):
-        if self.job:
-            self.job.record(status_code, subdir, operation, status)
-        else:
-            if not subdir:
-                subdir = "----"
-            msg = "%s\t%s\t%s\t%s" % (status_code, subdir, operation, status)
-            sys.stderr.write(msg + "\n")
+            super(SSHHost, self).wait_for_restart(timeout=timeout)
+        self.log_reboot(reboot_func)
 
 
     def ssh_base_command(self, connect_timeout=30):
@@ -466,21 +404,21 @@ class SSHHost(serial.SerialHost):
         # define a function for the reboot and run it in a group
         print "Reboot: initiating reboot"
         def reboot():
-            self.__record("GOOD", None, "reboot.start")
+            self.record("GOOD", None, "reboot.start")
             try:
                 self.run('(sleep 5; reboot) '
                          '</dev/null >/dev/null 2>&1 &')
             except error.AutoservRunError:
-                self.__record("ABORT", None, "reboot.start",
+                self.record("ABORT", None, "reboot.start",
                               "reboot command failed")
                 raise
             if wait:
-                self._wait_for_restart(timeout)
+                self.wait_for_restart(timeout)
                 self.reboot_followup()
 
         # if this is a full reboot-and-wait, run the reboot inside a group
         if wait:
-            self.__run_reboot_group(reboot)
+            self.log_reboot(reboot)
         else:
             reboot()
 
@@ -731,24 +669,6 @@ class SSHHost(serial.SerialHost):
         print 'Host up, continuing'
 
 
-    def get_num_cpu(self):
-        """
-        Get the number of CPUs in the host according to
-        /proc/cpuinfo.
-
-        Returns:
-                The number of CPUs
-        """
-
-        proc_cpuinfo = self.run("cat /proc/cpuinfo",
-                        stdout_tee=open('/dev/null', 'w')).stdout
-        cpus = 0
-        for line in proc_cpuinfo.splitlines():
-            if line.startswith('processor'):
-                cpus += 1
-        return cpus
-
-
     def check_uptime(self):
         """
         Check that uptime is available and monotonically increasing.
@@ -757,30 +677,6 @@ class SSHHost(serial.SerialHost):
             raise error.AutoservHostError('Client is not pingable')
         result = self.run("/bin/cat /proc/uptime", 30)
         return result.stdout.strip().split()[0]
-
-
-    def get_arch(self):
-        """
-        Get the hardware architecture of the remote machine
-        """
-        arch = self.run('/bin/uname -m').stdout.rstrip()
-        if re.match(r'i\d86$', arch):
-            arch = 'i386'
-        return arch
-
-
-    def get_kernel_ver(self):
-        """
-        Get the kernel version of the remote machine
-        """
-        return self.run('/bin/uname -r').stdout.rstrip()
-
-
-    def get_cmdline(self):
-        """
-        Get the kernel command line of the remote machine
-        """
-        return self.run('cat /proc/cmdline').stdout.rstrip()
 
 
     def ping(self):

@@ -22,3 +22,7 @@ class RemoteHost(base_classes.Host):
         super(RemoteHost, self).__init__(*args, **dargs)
 
         self.hostname = hostname
+
+
+    def __del__(self):
+        pass
