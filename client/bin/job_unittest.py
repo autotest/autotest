@@ -394,7 +394,7 @@ class TestBaseJob(unittest.TestCase):
 
         container = cpuset.cpuset.expect_new(name, job_size=None, job_pid=pid,
                                              cpus=None, root=None, disk=None,
-                                             network=None)
+                                             network=None, kswapd_merge=False)
 
         # run test
         self.job.new_container()
