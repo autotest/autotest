@@ -506,15 +506,16 @@ class base_job(object):
 
 
     def new_container(self, mbytes=None, cpus=None, root=None, name=None,
-                      network=None, disk=None):
+                      network=None, disk=None, kswapd_merge=False):
         if not autotest_utils.grep('cpuset', '/proc/filesystems'):
             print "Containers not enabled by latest reboot"
             return  # containers weren't enabled in this kernel boot
         pid = os.getpid()
         if not name:
             name = 'test%d' % pid  # make arbitrary unique name
-        self.container = cpuset.cpuset(name, job_size=mbytes, job_pid=pid, cpus=cpus,
-                                       root=root, network=network, disk=disk)
+        self.container = cpuset.cpuset(name, job_size=mbytes, job_pid=pid, 
+                                       cpus=cpus, root=root, network=network, 
+                                       disk=disk, kswapd_merge=kswapd_merge)
         # This job's python shell is now running in the new container
         # and all forked test processes will inherit that container
 
