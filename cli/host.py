@@ -130,7 +130,7 @@ class host_list(action_common.atest_list, host):
             check_results['labels__name'] = None
         if self.status:
             filters['status__in'] = self.status.split(',')
-            check_results['status__in'] = 'status'
+            check_results['status__in'] = None
         return super(host_list, self).execute(op='get_hosts',
                                               filters=filters,
                                               check_results=check_results)

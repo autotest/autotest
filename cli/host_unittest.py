@@ -307,6 +307,83 @@ class host_list_unittest(cli_mock.cli_unittest):
                      err_words_ok=['Unknown', 'host1', 'host2'])
 
 
+    def test_execute_list_filter_status(self):
+        self.run_cmd(argv=['atest', 'host', 'list',
+                           '-s', 'Ready', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'status__in': ['Ready']},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host1',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label2', u'label3', u'plat1'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 2},
+                             {u'status': u'Ready',
+                              u'hostname': u'host2',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label4', u'plat1'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 3}])],
+                     out_words_ok=['host1', 'Ready', 'plat1',
+                                   'label2', 'label3', 'True',
+                                   'host2', 'label4'],
+                     out_words_no=['host0', 'label1', 'False'])
+
+
+
+    def test_execute_list_filter_status_and_hosts(self):
+        self.run_cmd(argv=['atest', 'host', 'list', 'host1',
+                           '-s', 'Ready', 'host2', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'status__in': ['Ready'],
+                                          'hostname__in': ['host2', 'host1']},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host1',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label2', u'label3', u'plat1'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 2},
+                             {u'status': u'Ready',
+                              u'hostname': u'host2',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label4', u'plat1'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 3}])],
+                     out_words_ok=['host1', 'Ready', 'plat1',
+                                   'label2', 'label3', 'True',
+                                   'host2', 'label4'],
+                     out_words_no=['host0', 'label1', 'False'])
+
+
+    def test_execute_list_filter_status_and_hosts_none(self):
+        self.run_cmd(argv=['atest', 'host', 'list', 'host1',
+                           '--status', 'Repair',
+                           'host2', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'status__in': ['Repair'],
+                                          'hostname__in': ['host2', 'host1']},
+                            True,
+                            [])],
+                     out_words_ok=['No', 'results'],
+                     out_words_no=['Hostname', 'Status'],
+                     err_words_ok=['Unknown', 'host2'])
+
+
 class host_stat_unittest(cli_mock.cli_unittest):
     def test_execute_stat_two_hosts(self):
         # The order of RPCs between host1 and host0 could change...
