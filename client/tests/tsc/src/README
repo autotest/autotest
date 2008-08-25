@@ -1,0 +1,19 @@
+checktsc is a user space program that checks TSC synchronization
+between pairs of CPUs on an SMP system using a technique borrowed
+from the Linux 2.6.18 kernel.
+
+The test passes if all TSCs are within +/- "threshold" clock cycles
+of each other. The default value of "threshold" is 500 clock cycles
+and can be changed using the --threshold option.
+
+Default behaviour is to check all of the CPUs on a system and to
+report the observed difference in TSC values between each pair of CPUs.
+The --cpus option can be used to specify a subset of the CPUs to test.
+
+When run with the --silent option the test produces no output (other
+than for catastrophic errors) and success or failure is indicated by
+a 0 or 1 exit status from the program.
+
+Author: md@google.com
+License: GPL
+
