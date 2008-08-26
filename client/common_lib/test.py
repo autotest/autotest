@@ -343,5 +343,6 @@ def runtest(job, url, tag, args, dargs,
         mytest = global_namespace['mytest']
         mytest._exec(args, dargs)
     finally:
+        os.chdir(pwd)
         if after_test_hook:
             after_test_hook(mytest)
