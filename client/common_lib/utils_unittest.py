@@ -17,6 +17,37 @@ class test_read_one_line(unittest.TestCase):
         self.god.unstub_all()
 
 
+    def test_ip_to_long(self):
+        self.assertEqual(utils.ip_to_long('0.0.0.0'), 0)
+        self.assertEqual(utils.ip_to_long('255.255.255.255'), 4294967295)
+        self.assertEqual(utils.ip_to_long('192.168.0.1'), 3232235521)
+        self.assertEqual(utils.ip_to_long('1.2.4.8'), 16909320)
+
+
+    def test_long_to_ip(self):
+        self.assertEqual(utils.long_to_ip(0), '0.0.0.0')
+        self.assertEqual(utils.long_to_ip(4294967295), '255.255.255.255')
+        self.assertEqual(utils.long_to_ip(3232235521), '192.168.0.1')
+        self.assertEqual(utils.long_to_ip(16909320), '1.2.4.8')
+
+
+    def test_create_subnet_mask(self):
+        self.assertEqual(utils.create_subnet_mask(0), 0)
+        self.assertEqual(utils.create_subnet_mask(32), 4294967295)
+        self.assertEqual(utils.create_subnet_mask(25), 4294967168)
+
+
+    def test_format_ip_with_mask(self):
+        self.assertEqual(utils.format_ip_with_mask('192.168.0.1', 0),
+                         '0.0.0.0/0')
+        self.assertEqual(utils.format_ip_with_mask('192.168.0.1', 32),
+                         '192.168.0.1/32')
+        self.assertEqual(utils.format_ip_with_mask('192.168.0.1', 26),
+                         '192.168.0.0/26')
+        self.assertEqual(utils.format_ip_with_mask('192.168.0.255', 26),
+                         '192.168.0.192/26')
+
+
     def create_test_file(self, contents):
         test_file = StringIO.StringIO(contents)
         utils.open.expect_call("filename", "r").and_return(test_file)

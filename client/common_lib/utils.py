@@ -3,8 +3,28 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import socket, sys, time, textwrap, urllib, urlparse
-import error, barrier
+import socket, sys, time, textwrap, urllib, urlparse, struct
+from autotest_lib.client.common_lib import error, barrier
+
+
+def ip_to_long(ip):
+    # !L is a long in network byte order
+    return struct.unpack('!L', socket.inet_aton(ip))[0]
+
+
+def long_to_ip(number):
+    # See above comment.
+    return socket.inet_ntoa(struct.pack('!L', number))
+
+
+def create_subnet_mask(bits):
+    # ~ does weird things in python...but this does work
+    return (1 << 32) - (1 << 32-bits)
+
+
+def format_ip_with_mask(ip, mask_bits):
+    masked_ip = ip_to_long(ip) & create_subnet_mask(mask_bits)
+    return "%s/%s" % (long_to_ip(masked_ip), mask_bits)
 
 
 def read_one_line(filename):
