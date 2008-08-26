@@ -177,9 +177,11 @@ class base_test:
                     raise error.UnhandledTestFail(e)
 
             finally:
-                self.cleanup()
-                self.job.stderr.restore()
-                self.job.stdout.restore()
+                try:
+                    self.cleanup()
+                finally:
+                    self.job.stderr.restore()
+                    self.job.stdout.restore()
         except error.AutotestError:
             raise
         except Exception, e:
