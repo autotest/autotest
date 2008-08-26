@@ -394,12 +394,11 @@ class base_server_job(object):
         """
 
         (group, testname) = self.pkgmgr.get_package_name(url, 'test')
-        tag = None
-        subdir = testname
 
         tag = dargs.pop('tag', None)
         if tag:
-            subdir += '.' + tag
+            testname += '.' + tag
+        subdir = testname
 
         outputdir = os.path.join(self.resultdir, subdir)
         if os.path.exists(outputdir):
@@ -422,14 +421,21 @@ class base_server_job(object):
             else:
                 self.record('GOOD', subdir, testname,
                             'completed successfully')
-        self._run_group(testname, subdir, group_func)
+
+        result, exc_info = self._run_group(testname, subdir, group_func)
+        if exc_info and isinstance(exc_info[1], error.TestBaseException):
+            return False
+        elif exc_info:
+            raise exc_info[0], exc_info[1], exc_info[2]
+        else:
+            return True
 
 
     def _run_group(self, name, subdir, function, *args, **dargs):
         """\
         Underlying method for running something inside of a group.
         """
-        result = None
+        result, exc_info = None, None
         old_record_prefix = self.record_prefix
         try:
             self.record('START', subdir, name)
@@ -440,6 +446,7 @@ class base_server_job(object):
                 self.record_prefix = old_record_prefix
         except error.TestBaseException, e:
             self.record("END %s" % e.exit_status, subdir, name, str(e))
+            exc_info = sys.exc_info()
         except Exception, e:
             err_msg = str(e) + '\n'
             err_msg += traceback.format_exc()
@@ -448,7 +455,7 @@ class base_server_job(object):
         else:
             self.record('END GOOD', subdir, name)
 
-        return result
+        return result, exc_info
 
 
     def run_group(self, function, *args, **dargs):
@@ -466,7 +473,7 @@ class base_server_job(object):
         if tag:
             name = tag
 
-        return self._run_group(name, None, function, *args, **dargs)
+        return self._run_group(name, None, function, *args, **dargs)[0]
 
 
     def run_reboot(self, reboot_func, get_kernel_func):
