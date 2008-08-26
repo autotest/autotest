@@ -323,6 +323,7 @@ class base_server_job(object):
                 self.machines = [machine]
                 self.resultdir = os.path.join(self.resultdir,
                                               machine)
+                os.chdir(self.resultdir)
                 self.init_parser(self.resultdir)
                 result = function(machine)
                 self.cleanup_parser()
@@ -330,6 +331,7 @@ class base_server_job(object):
         elif len(machines) > 1:
             def wrapper(machine):
                 self.resultdir = os.path.join(self.resultdir, machine)
+                os.chdir(self.resultdir)
                 result = function(machine)
                 return result
         else:
