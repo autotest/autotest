@@ -5,24 +5,8 @@ from autotest_lib.client.common_lib import utils, error
 class libhugetlbfs(test.test):
     version = 4
 
-    def initialize(self):
+    def initialize(self, dir = None, pages_requested = 20):
         self.job.require_gcc()
-
-    # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
-    def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
-        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
-        os.chdir(self.srcdir)
-
-        # make might fail if there are no proper headers for the 32 bit
-        # version, in that case try only for the 64 bit version
-        try:
-            utils.system('make')
-        except:
-            utils.system('make OBJDIRS=obj64')
-
-
-    def execute(self, dir = None, pages_requested = 20):
         autotest_utils.check_kernel_ver("2.6.16")
 
         # Check huge page number
@@ -44,21 +28,32 @@ class libhugetlbfs(test.test):
                 dir = os.path.join(self.tmpdir, 'hugetlbfs')
                 os.makedirs(dir)
             utils.system('mount -t hugetlbfs none %s' % dir)
+            self.dir = dir
 
+
+    # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
+    def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
+        tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        profilers = self.job.profilers
-        if profilers.present():
-            profilers.start(self)
-            os.chdir(self.srcdir)
+        # make might fail if there are no proper headers for the 32 bit
+        # version, in that case try only for the 64 bit version
+        try:
+            utils.system('make')
+        except:
+            utils.system('make OBJDIRS=obj64')
+
+
+    def run_once(self):
+        os.chdir(self.srcdir)
         # make check might fail for 32 bit if the 32 bit compile earlier
         # had failed. See if it passes for 64 bit in that case.
         try:
             utils.system('make check')
         except:
             utils.system('make check OBJDIRS=obj64')
-        if profilers.present():
-            profilers.stop(self)
-            profilers.report(self)
 
-        utils.system('umount %s' % dir)
+
+    def cleanup(self):
+        utils.system('umount %s' % self.dir)
