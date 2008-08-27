@@ -19,16 +19,6 @@ class fsfuzzer(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, fstype = 'iso9660'):
-        profilers = self.job.profilers
+    def run_once(self, fstype = 'iso9660'):
         args = fstype + ' 1'
-        if not profilers.only():
-            for i in range(iterations):
-                utils.system(self.srcdir + '/run_test ' + args)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(self.srcdir + '/run_test ' + args)
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system(self.srcdir + '/run_test ' + args)
