@@ -107,6 +107,14 @@ class parser(base.parser):
         return msg % (subdir, testname, reason)
 
 
+    @staticmethod
+    def put_back_line_and_abort(line_buffer, line, indent, subdir, reason):
+        tko_utils.dprint("Unexpected indent regression, aborting")
+        line_buffer.put_back(line)
+        abort = parser.make_dummy_abort(indent, subdir, subdir, reason)
+        line_buffer.put_back(abort)
+
+
     def state_iterator(self, buffer):
         line = None
         new_tests = []
@@ -155,6 +163,13 @@ class parser(base.parser):
 
             # initial line processing
             if line.type == "START":
+                # ABORT if indentation was unexpectedly low
+                if line.indent < stack.size():
+                    self.put_back_line_and_abort(buffer, raw_line,
+                                                 stack.size() - 1,
+                                                 subdir_stack[-1],
+                                                 line.reason)
+                    continue
                 stack.start()
                 started_time = line.get_timestamp()
                 if (line.testname, line.subdir) == (None, None):
@@ -180,16 +195,13 @@ class parser(base.parser):
             elif line.type == "STATUS":
                 # ABORT if indentation was unexpectedly low
                 if line.indent < stack.size():
-                    buffer.put_back(raw_line)
-                    tko_utils.dprint("Unexpected indent regression, aborting")
-                    abort = self.make_dummy_abort(stack.size() - 1,
-                                                  subdir_stack[-1],
-                                                  subdir_stack[-1],
-                                                  line.reason)
-                    buffer.put_back(abort)
+                    self.put_back_line_and_abort(buffer, raw_line,
+                                                 stack.size() - 1,
+                                                 subdir_stack[-1],
+                                                 line.reason)
                     continue
-                # update the subdir stack
-                if line.subdir:
+                # update the stacks
+                if line.subdir and stack.size() > min_stack_size:
                     subdir_stack[-1] = line.subdir
                 # update the status, start and finished times
                 stack.update(line.status)
@@ -199,13 +211,10 @@ class parser(base.parser):
             elif line.type == "END":
                 # ABORT if indentation was unexpectedly low
                 if line.indent + 1 < stack.size():
-                    buffer.put_back(raw_line)
-                    tko_utils.dprint("Unexpected indent regression, aborting")
-                    abort = self.make_dummy_abort(stack.size() - 1,
-                                                  subdir_stack[-1],
-                                                  subdir_stack[-1],
-                                                  line.reason)
-                    buffer.put_back(abort)
+                    self.put_back_line_and_abort(buffer, raw_line,
+                                                 stack.size() - 1,
+                                                 subdir_stack[-1],
+                                                 line.reason)
                     continue
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
