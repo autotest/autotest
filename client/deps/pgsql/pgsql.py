@@ -14,7 +14,7 @@ def setup(tarball, topdir):
     autotest_utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     utils.system ('./configure --without-readline --without-zlib --enable-debug --prefix=%s/pgsql' % topdir)
-    utils.system('make -j %d' % count_cpus())
+    utils.system('make -j %d' % autotest_utils.count_cpus())
     utils.system('make install')
 
     os.chdir(topdir)

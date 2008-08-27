@@ -19,7 +19,7 @@ def setup(tarball, topdir):
     # os.environ['AUTODIR']
     utils.system('./configure --prefix=%s/pgpool --with-pgsql=%s/deps/pgsql/pgsql' \
                     % (topdir, os.environ['AUTODIR']))
-    utils.system('make -j %d' % count_cpus())
+    utils.system('make -j %d' % autotest_utils.count_cpus())
     utils.system('make install')
 
     os.chdir(topdir)
