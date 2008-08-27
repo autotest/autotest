@@ -14,9 +14,9 @@
 #       debugdir        eg. results/<job>/<testname.tag>/debug
 #       bindir          eg. tests/<test>
 #       src             eg. tests/<test>/src
-#       tmpdir          eg. tmp/<testname.tag>
+#       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import os, sys, re, fcntl, shutil, tarfile, warnings
+import os, sys, re, fcntl, shutil, tarfile, warnings, tempfile
 
 from autotest_lib.client.common_lib import error, utils, packages
 from autotest_lib.client.bin import autotest_utils
@@ -41,12 +41,7 @@ class base_test:
         if hasattr(job, 'libdir'):
             self.libdir = job.libdir
         self.srcdir = os.path.join(self.bindir, 'src')
-
-        self.tmpdir = os.path.join(job.tmpdir, tagged_testname)
-
-        if os.path.exists(self.tmpdir):
-            shutil.rmtree(self.tmpdir)
-        os.mkdir(self.tmpdir)
+        self.tmpdir = tempfile.mkdtemp("_" + tagged_testname, dir=job.tmpdir)
 
 
     def assert_(self, expr, msg='Assertion failed.'):
@@ -369,3 +364,4 @@ def runtest(job, url, tag, args, dargs,
         os.chdir(pwd)
         if after_test_hook:
             after_test_hook(mytest)
+        shutil.rmtree(mytest.tmpdir, ignore_errors=True)
