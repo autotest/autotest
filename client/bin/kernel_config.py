@@ -95,7 +95,7 @@ class kernel_config:
         if (orig_file == '' or defconfig):      # use defconfig
             print "kernel_config: using defconfig to configure kernel"
             os.chdir(build_dir)
-            utils.system('make defconfig')
+            utils.system('make defconfig > /dev/null')
         else:
             print "kernel_config: using " + orig_file + \
                                             " to configure kernel"
