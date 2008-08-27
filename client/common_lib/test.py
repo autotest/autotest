@@ -175,13 +175,34 @@ class base_test:
                     raise
                 except Exception, e:
                     raise error.UnhandledTestFail(e)
+            except:
+                exc_info = sys.exc_info()
+            else:
+                exc_info = None
 
-            finally:
-                try:
+            # run the cleanup, and then restore the job.std* streams
+            try:
+                # if an exception occurs during the cleanup() call, we
+                # don't want it to override an existing exception
+                # (i.e. exc_info) that was thrown by the test execution
+                if exc_info:
+                    try:
+                        self.cleanup()
+                    finally:
+                        try:
+                            raise exc_info[0], exc_info[1], exc_info[2]
+                        finally:
+                            # necessary to prevent a circular reference
+                            # between exc_info[2] (the traceback, which
+                            # references all the exception stack frames)
+                            # and this stack frame (which refs exc_info[2])
+                            del exc_info
+                else:
                     self.cleanup()
-                finally:
-                    self.job.stderr.restore()
-                    self.job.stdout.restore()
+            finally:
+                self.job.stderr.restore()
+                self.job.stdout.restore()
+
         except error.AutotestError:
             raise
         except Exception, e:
