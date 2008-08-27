@@ -26,18 +26,10 @@ class fio(test.test):
         utils.system('%s %s make' % (var_ldflags, var_cflags))
 
 
-    def execute(self, args = '', user = 'root'):
+    def run_once(self, args = '', user = 'root'):
         os.chdir(self.srcdir)
         ##vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
         vars = 'LD_LIBRARY_PATH="' + self.autodir + '/deps/libaio/lib"'
-        ##args = '-m -o ' + self.resultsdir + '/fio-tio.log ' + self.srcdir + '/examples/tiobench-example';
-        args = '--output ' + self.resultsdir + '/fio-mixed.log ' + self.bindir + '/fio-mixed.job';
+        ##args = '-m -o ' + self.resultsdir + '/fio-tio.log ' + self.srcdir + '/examples/tiobench-example'
+        args = '--output ' + self.resultsdir + '/fio-mixed.log ' + self.bindir + '/fio-mixed.job'
         utils.system(vars + ' ./fio ' + args)
-
-        # Do a profiling run if necessary
-        profilers = self.job.profilers
-        if profilers.present():
-            profilers.start(self)
-            utils.system(vars + ' ./fio ' + args)
-            profilers.stop(self)
-            profilers.report(self)
