@@ -10,7 +10,8 @@ class cpu_hotplug(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
 
-    def execute(self):
+
+    def initialize(self):
         # Check if the kernel supports cpu hotplug
         if autotest_utils.running_config():
             autotest_utils.check_for_kernel_feature('HOTPLUG_CPU')
@@ -31,15 +32,8 @@ class cpu_hotplug(test.test):
                 utils.system('dmesg -c')
                 time.sleep(3)
 
+
+    def run_once(self):
         # Begin this cpu hotplug test big guru.
         os.chdir(self.srcdir)
-        profilers = self.job.profilers
-        if not profilers.only():
-            utils.system('./runtests.sh')
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system('./runtests.sh')
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system('./runtests.sh')
