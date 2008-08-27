@@ -15,7 +15,7 @@ def setup(tarball, topdir):
     os.chdir(srcdir)
     utils.system ('./configure --prefix=%s/mysql --enable-thread-safe-client' \
                     % topdir)
-    utils.system('make -j %d' % count_cpus())
+    utils.system('make -j %d' % autotest_utils.count_cpus())
     utils.system('make install')
 
     #
