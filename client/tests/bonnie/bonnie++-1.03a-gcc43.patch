@@ -1,0 +1,20 @@
+diff -up bonnie++-1.03a/zcav.cpp.gcc43 bonnie++-1.03a/zcav.cpp
+--- bonnie++-1.03a/zcav.cpp.gcc43	2008-02-08 20:19:25.000000000 -0500
++++ bonnie++-1.03a/zcav.cpp	2008-02-08 20:19:37.000000000 -0500
+@@ -9,6 +9,7 @@ using namespace std;
+ #include <sys/stat.h>
+ #include <fcntl.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include "bonnie.h"
+ #ifdef HAVE_VECTOR
+ #include <vector>
+@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
+           usage();
+         userName = strdup(optarg);
+         int i;
+-        for(i = 0; userName[i] && userName[i] != ':'; i++);
++        for(i = 0; userName[i] && userName[i] != ':'; i++) ;
+         if(userName[i] == ':')
+         {
+           if(groupName)
