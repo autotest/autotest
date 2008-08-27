@@ -21,19 +21,10 @@ class fsstress(test.test):
         utils.system('make fsstress')
 
 
-    def execute(self, testdir = None, extra_args = '', nproc = '1000', nops = '1000'):
+    def run_once(self, testdir = None, extra_args = '', nproc = '1000', nops = '1000'):
         if not testdir:
             testdir = self.tmpdir
 
         args = '-d %s -p %s -n %s %s' % (testdir, nproc, nops, extra_args)
         cmd = self.srcdir + '/fsstress ' + args
-        profilers = self.job.profilers
-        if not profilers.only():
-            utils.system(cmd)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(cmd)
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system(cmd)
