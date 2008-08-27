@@ -32,7 +32,7 @@ class fsx(test.test):
         utils.system(self.make_flags + ' make fsx-linux')
 
 
-    def execute(self, testdir = None, repeat = '100000'):
+    def run_once(self, testdir = None, repeat = '100000'):
         args = '-N ' + repeat
         if not testdir:
             testdir = self.tmpdir
@@ -42,13 +42,4 @@ class fsx(test.test):
                            autotest_utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         cmd = self.srcdir + '/fsx-linux ' + args + ' poo'
-        profilers = self.job.profilers
-        if not profilers.only():
-            utils.system(var_ld_path + ' ' + cmd)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(var_ld_path + ' ' + cmd)
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system(var_ld_path + ' ' + cmd)
