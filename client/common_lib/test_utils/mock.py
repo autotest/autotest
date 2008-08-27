@@ -441,6 +441,9 @@ class mock_god:
 
     def mock_io(self):
         """Mocks and saves the stdout & stderr output"""
+        self.orig_stdout = sys.stdout
+        self.orig_stderr = sys.stderr
+
         self.mock_streams_stdout = StringIO.StringIO('')
         self.mock_streams_stderr = StringIO.StringIO('')
 
@@ -451,8 +454,8 @@ class mock_god:
     def unmock_io(self):
         """Restores the stdout & stderr, and returns both
         output strings"""
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
+        sys.stdout = self.orig_stdout
+        sys.stderr = self.orig_stderr
         values = (self.mock_streams_stdout.getvalue(),
                   self.mock_streams_stderr.getvalue())
 
