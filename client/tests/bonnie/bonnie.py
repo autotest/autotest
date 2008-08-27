@@ -38,6 +38,7 @@ class bonnie(test.test):
         os.chdir(self.srcdir)
 
         os_dep.command('g++')
+        utils.system('patch -p1 < ../bonnie++-1.03a-gcc43.patch')
         utils.system('./configure')
         utils.system('make')
 
