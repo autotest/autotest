@@ -28,29 +28,16 @@ class iozone(test.test):
             utils.system('make linux')
 
 
-    def execute(self, dir = None, iterations=1, args = None):
+    def run_once(self, dir = None, args = None):
         self.keyval = open(os.path.join(self.resultsdir, 'keyval'), 'w')
         if not dir:
             dir = self.tmpdir
         os.chdir(dir)
         if not args:
             args = '-a'
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                output = utils.system_output('%s/src/current/iozone %s' %
-                                       (self.srcdir, args))
-                self.__format_results(output)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            output = utils.system_output('%s/src/current/iozone %s' %
-                                   (self.srcdir, args))
-            self.__format_results(output)
-            profilers.stop(self)
-            profilers.report(self)
-
+        output = utils.system_output('%s/src/current/iozone %s' %
+                                (self.srcdir, args))
+        self.__format_results(output)
         self.keyval.close()
 
 
