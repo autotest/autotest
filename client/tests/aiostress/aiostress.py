@@ -31,32 +31,18 @@ class aiostress(test.test):
         utils.system(cmd)
 
 
-    def execute(self, args = ''):
+    def run_once(self, args = ''):
         os.chdir(self.tmpdir)
         libs = self.autodir+'/deps/libaio/lib/'
         ld_path = autotest_utils.prepend_path(libs,
                                       autotest_utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         cmd = self.srcdir + '/aio-stress ' + args + ' poo'
-        profilers = self.job.profilers
 
-        if not profilers.only():
-            utils.system(var_ld_path + ' ' + cmd)
-            report = open(self.debugdir + '/stderr')
-            keyval = open(self.resultsdir + '/keyval', 'w')
-            _format_results(report, keyval)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(var_ld_path + ' ' + cmd)
-            profilers.stop(self)
-            profilers.report(self)
-            if profilers.only():
-                report = open(self.debugdir + '/stderr')
-                keyval = open(self.resultsdir + '/keyval', 'w')
-                _format_results(report, keyval)
-
+        utils.system(var_ld_path + ' ' + cmd)
+        report = open(self.debugdir + '/stderr')
+        keyval = open(self.resultsdir + '/keyval', 'w')
+        _format_results(report, keyval)
 
 
 def _format_results(report, keyval):
