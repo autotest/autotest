@@ -31,5 +31,7 @@ class fio(test.test):
         ##vars = 'TMPDIR=\"%s\" RESULTDIR=\"%s\"' % (self.tmpdir, self.resultsdir)
         vars = 'LD_LIBRARY_PATH="' + self.autodir + '/deps/libaio/lib"'
         ##args = '-m -o ' + self.resultsdir + '/fio-tio.log ' + self.srcdir + '/examples/tiobench-example'
-        args = '--output ' + self.resultsdir + '/fio-mixed.log ' + self.bindir + '/fio-mixed.job'
+        log = os.path.join(self.resultsdir, 'fio-mixed.log')
+        job = os.path.join(self.bindir, 'fio-mixed.job')
+        args = '--output %s %s' % (log, job)
         utils.system(vars + ' ./fio ' + args)
