@@ -8,6 +8,7 @@ class tbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
+        self.results = []
 
 
     # http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
@@ -20,26 +21,18 @@ class tbench(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, nprocs = None, args = ''):
+    def run_once(self, nprocs = None, args = ''):
         # only supports combined server+client model at the moment
         # should support separate I suppose, but nobody uses it
         if not nprocs:
             nprocs = self.job.cpu_count()
-        args += ' %s' % nprocs
-        results = []
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                results.append(self.run_tbench(args))
+        args = args + ' %s' % nprocs
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            results.append(self.run_tbench(args))
-            profilers.stop(self)
-            profilers.report(self)
+        self.results.append(self.run_tbench(args))
 
-        self.__format_results("\n".join(results))
+
+    def postprocess(self):
+        self.__format_results("\n".join(self.results))
 
 
     def run_tbench(self, args):
