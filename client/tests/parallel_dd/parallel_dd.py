@@ -6,6 +6,17 @@ from autotest_lib.client.common_lib import utils
 class parallel_dd(test.test):
     version = 1
 
+    def initialize(self, fs, fstype = 'ext2', megabytes = 1000, streams = 2):
+        self.megabytes = megabytes
+        self.blocks = megabytes * 256
+        self.blocks_per_file = self.blocks / streams
+        self.fs = fs
+        self.fstype = fstype
+        self.streams = streams
+        self.keyval = open(os.path.join(self.resultsdir, 'keyval'), 'w')
+
+        print 'Dumping %d megabytes across %d streams' % (megabytes, streams)
+
 
     def raw_write(self):
         print "Timing raw write of %d megabytes" % self.megabytes
@@ -53,7 +64,7 @@ class parallel_dd(test.test):
             utils.system(dd + ' > /dev/null')
 
 
-    def test(self, tag):
+    def test(self):
         start = time.time()
         self.raw_write()
         self.raw_write_rate = self.megabytes / (time.time() - start)
@@ -84,39 +95,20 @@ class parallel_dd(test.test):
                 self.fs.unmount()
             finally:
                 raise
-            read_in()
         self.fs_read_rate = self.megabytes / (time.time() - start)
         self.fs.unmount()
 
 
-    def execute(self, fs, fstype = 'ext2', iterations = 2, megabytes = 1000,
-                                                                   streams = 2):
-        self.megabytes = megabytes
-        self.blocks = megabytes * 256
-        self.blocks_per_file = self.blocks / streams
-        self.fs = fs
-        self.fstype = fstype
-        self.streams = streams
-
-        print "Dumping %d megabytes across %d streams, %d times" % \
-                                        (megabytes, streams, iterations)
-
-        keyval = open(os.path.join(self.resultsdir, 'keyval'), 'w')
-        for i in range(iterations):
-            self.test('%d' % i)
-            t = "raw_write=%d\n" % self.raw_write_rate
-            t += "raw_read=%d\n" % self.raw_read_rate
-            t += "fs_write=%d\n" % self.fs_write_rate
-            t += "fs_read=%d\n" % self.fs_read_rate
-            t += "\n"
-            print t
-            keyval.write(t)
-        keyval.close()
+    def run_once(self):
+        self.test()
+        t = "raw_write=%d\n" % self.raw_write_rate
+        t += "raw_read=%d\n" % self.raw_read_rate
+        t += "fs_write=%d\n" % self.fs_write_rate
+        t += "fs_read=%d\n" % self.fs_read_rate
+        t += "\n"
+        print t
+        self.keyval.write(t)
 
 
-        profilers = self.job.profilers
-        if profilers.present():
-            profilers.start(self)
-            self.test('profile')
-            profilers.stop(self)
-            profilers.report(self)
+    def postprocess(self):
+        self.keyval.close()
