@@ -13,7 +13,6 @@ class parallel_dd(test.test):
         self.fs = fs
         self.fstype = fstype
         self.streams = streams
-        self.keyval = open(os.path.join(self.resultsdir, 'keyval'), 'w')
 
         print 'Dumping %d megabytes across %d streams' % (megabytes, streams)
 
@@ -64,7 +63,7 @@ class parallel_dd(test.test):
             utils.system(dd + ' > /dev/null')
 
 
-    def test(self):
+    def run_once(self):
         start = time.time()
         self.raw_write()
         self.raw_write_rate = self.megabytes / (time.time() - start)
@@ -97,18 +96,9 @@ class parallel_dd(test.test):
                 raise
         self.fs_read_rate = self.megabytes / (time.time() - start)
         self.fs.unmount()
-
-
-    def run_once(self):
-        self.test()
-        t = "raw_write=%d\n" % self.raw_write_rate
-        t += "raw_read=%d\n" % self.raw_read_rate
-        t += "fs_write=%d\n" % self.fs_write_rate
-        t += "fs_read=%d\n" % self.fs_read_rate
-        t += "\n"
-        print t
-        self.keyval.write(t)
-
-
-    def postprocess(self):
-        self.keyval.close()
+        
+        self.write_perf_keyval({
+            'raw_write' : self.raw_write_rate,
+            'raw_read'  : self.raw_read_rate,
+            'fs_write'  : self.fs_write_rate,
+       	    'fs_read'   : self.fs_read_rate })
