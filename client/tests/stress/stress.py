@@ -20,23 +20,13 @@ class stress(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, args = ''):
+    def run_once(self, args = ''):
         if not args:
             threads = 2*autotest_utils.count_cpus()
             args = '-c %d -i %d -m %d -d %d -t 60 -v' % \
                     (threads, threads, threads, threads)
 
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                utils.system(self.srcdir + '/src/stress ' + args)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(self.srcdir + '/src/stress ' + args)
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system(self.srcdir + '/src/stress ' + args)
 
 # -v                    Turn up verbosity.
 # -q                    Turn down verbosity.
