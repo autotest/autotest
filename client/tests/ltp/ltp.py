@@ -31,7 +31,7 @@ class ltp(test.test):
     # Note: to run a specific test, try '-f cmdfile -s test' in the
     # in the args (-f for test file and -s for the test case)
     # eg, job.run_test('ltp', '-f math -s float_bessel')
-    def execute(self, args = '', script = 'runltp'):
+    def run_once(self, args = '', script = 'runltp'):
 
         # In case the user wants to run another test script
         if script == 'runltp':
@@ -41,11 +41,4 @@ class ltp(test.test):
             args = args + ' ' + args2
 
         cmd = os.path.join(self.srcdir, script) + ' ' + args
-
-        profilers = self.job.profilers
-        if profilers.present():
-            profilers.start(self)
         utils.system(cmd)
-        if profilers.present():
-            profilers.stop(self)
-            profilers.report(self)
