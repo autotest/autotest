@@ -8,6 +8,8 @@ class unixbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
+        self.keyval = open(self.resultsdir + '/keyval', 'w')
+        self.err = None
 
 
     # http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
@@ -20,32 +22,25 @@ class unixbench(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, args = '', stepsecs=0):
+    def run_once(self, args = '', stepsecs=0):
         vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' %
                (self.tmpdir, self.resultsdir))
-        profilers = self.job.profilers
-        keyval = open(self.resultsdir + '/keyval', 'w')
-        self.err = None
         if stepsecs:
             # change time per subtest from unixbench's defaults of
             #   10 secs for small tests, 30 secs for bigger tests
             vars += ' systime=%i looper=%i seconds=%i'\
                     ' dhrytime=%i arithtime=%i' \
                     % ((stepsecs,)*5)
-        if not profilers.only():
-            for i in range(iterations):
-                os.chdir(self.srcdir)
-                utils.system(vars + ' ./Run ' + args)
-                report = open(self.resultsdir + '/report')
-                self.format_results(report, keyval)
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(vars + ' ./Run ' + args)
-            profilers.stop(self)
-            profilers.report(self)
+        os.chdir(self.srcdir)
+        utils.system(vars + ' ./Run ' + args)
 
+        report_path = os.path.join(self.resultsdir + '/report')
+        report = open(report_path, 'a')
+        self.format_results(report, self.keyval)
+
+
+    def cleanup(self):
         # check err string and possible throw
         if self.err != None:
             raise error.TestError(self.err)
