@@ -2,9 +2,74 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import socket, sys, time, textwrap, urllib, urlparse, struct
+import os, pickle, random, re, resource, select, shutil, signal, StringIO
+import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
+import warnings
 from autotest_lib.client.common_lib import error, barrier
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions as deprecated.
+    It will result in a warning being emmitted when the function is used."""
+    def new_func(*args, **dargs):
+        warnings.warn("Call to deprecated function %s." % func.__name__,
+                      category=DeprecationWarning)
+        return func(*args, **dargs)
+    new_func.__name__ = func.__name__
+    new_func.__doc__ = func.__doc__
+    new_func.__dict__.update(func.__dict__)
+    return new_func
+
+
+class BgJob(object):
+    def __init__(self, command, stdout_tee=None, stderr_tee=None):
+        self.command = command
+        self.stdout_tee = stdout_tee
+        self.stderr_tee = stderr_tee
+        self.result = CmdResult(command)
+        print "running: %s" % command
+        self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   preexec_fn=self._reset_sigpipe, shell=True,
+                                   executable="/bin/bash")
+
+
+    def output_prepare(self, stdout_file=None, stderr_file=None):
+        self.stdout_file = stdout_file
+        self.stderr_file = stderr_file
+
+    def process_output(self, stdout=True, final_read=False):
+        """output_prepare must be called prior to calling this"""
+        if stdout:
+            pipe, buf, tee = self.sp.stdout, self.stdout_file, self.stdout_tee
+        else:
+            pipe, buf, tee = self.sp.stderr, self.stderr_file, self.stderr_tee
+
+        if final_read:
+            # read in all the data we can from pipe and then stop
+            data = []
+            while select.select([pipe], [], [], 0)[0]:
+                data.append(os.read(pipe.fileno(), 1024))
+                if len(data[-1]) == 0:
+                    break
+            data = "".join(data)
+        else:
+            # perform a single read
+            data = os.read(pipe.fileno(), 1024)
+        buf.write(data)
+        if tee:
+            tee.write(data)
+            tee.flush()
+
+
+    def cleanup(self):
+        self.sp.stdout.close()
+        self.sp.stderr.close()
+        self.result.stdout = self.stdout_file.getvalue()
+        self.result.stderr = self.stderr_file.getvalue()
+
+
+    def _reset_sigpipe(self):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
 def ip_to_long(ip):
@@ -208,64 +273,65 @@ def run(command, timeout=None, ignore_status=False,
             CmdError: the exit code of the command
                     execution was not 0
     """
-    return join_bg_job(run_bg(command), command, timeout, ignore_status,
-                       stdout_tee, stderr_tee)
+    bg_job = join_bg_jobs((BgJob(command, stdout_tee, stderr_tee),),
+                          timeout)[0]
+    if not ignore_status and bg_job.result.exit_status:
+        raise error.CmdError(command, bg_jobg.result,
+                             "Command returned non-zero exit status")
 
+    return bg_job.result
 
+@deprecated
 def run_bg(command):
-    """Run the command in a subprocess and return the subprocess."""
-    result = CmdResult(command)
-    def reset_sigpipe():
-        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
-    print "running: %s" % command
-    sp = subprocess.Popen(command, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, preexec_fn=reset_sigpipe,
-                          shell=True, executable="/bin/bash")
-    return sp, result
+    """Function deprecated. Please use BgJob class instead."""
+    bg_job = BgJob(command)
+    return bg_job.sp, bg_job.result
 
 
-def join_bg_job(bg_job, command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None):
+def join_bg_jobs(bg_jobs, timeout=None):
     """Join the subprocess with the current thread. See run description."""
-    sp, result = bg_job
-    stdout_file = StringIO.StringIO()
-    stderr_file = StringIO.StringIO()
-    (ret, timeouterr) = (0, False)
+    ret, timeouterr = 0, False
+    for bg_job in bg_jobs:
+        bg_job.output_prepare(StringIO.StringIO(), StringIO.StringIO())
 
     try:
         # We are holding ends to stdin, stdout pipes
         # hence we need to be sure to close those fds no mater what
         start_time = time.time()
-        (ret, timeouterr) = _wait_for_command(sp, start_time,
-                                timeout, stdout_file, stderr_file,
-                                stdout_tee, stderr_tee)
-        result.exit_status = ret
-        result.duration = time.time() - start_time
-        # don't use os.read now, so we get all the rest of the output
-        _process_output(sp.stdout, stdout_file, stdout_tee, final_read=True)
-        _process_output(sp.stderr, stderr_file, stderr_tee, final_read=True)
+        timeout_error = _wait_for_commands(bg_jobs, start_time, timeout)
+
+        for bg_job in bg_jobs:
+            # Process stdout and stderr
+            bg_job.process_output(stdout=True,final_read=True)
+            bg_job.process_output(stdout=False,final_read=True)
     finally:
         # close our ends of the pipes to the sp no matter what
-        sp.stdout.close()
-        sp.stderr.close()
+        for bg_job in bg_jobs:
+            bg_job.cleanup()
 
-    result.stdout = stdout_file.getvalue()
-    result.stderr = stderr_file.getvalue()
+    if timeout_error:
+        # TODO: This needs to be fixed to better represent what happens when
+        # running in parallel. However this is backwards compatable, so it will
+        # do for the time being.
+        raise error.CmdError(bg_jobs[0].command, bg_jobs[0].result,
+                             "Command(s) did not complete within %d seconds"
+                             % timeout)
 
-    if result.exit_status != 0:
-        if timeouterr:
-            raise error.CmdError(command, result, "Command did not "
-                                 "complete within %d seconds" % timeout)
-        elif not ignore_status:
-            raise error.CmdError(command, result,
-                                 "Command returned non-zero exit status")
 
-    return result
+    return bg_jobs
 
-# this returns a tuple with the return code and a flag to specify if the error
-# is due to the process not terminating within timeout
-def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
-                      stdout_tee, stderr_tee):
+
+def _wait_for_commands(bg_jobs, start_time, timeout):
+    # This returns True if it must return due to a timeout, otherwise False.
+
+    select_list = []
+    reverse_dict = {}
+    for bg_job in bg_jobs:
+        select_list.append(bg_job.sp.stdout)
+        select_list.append(bg_job.sp.stderr)
+        reverse_dict[bg_job.sp.stdout] = (bg_job,True)
+        reverse_dict[bg_job.sp.stderr] = (bg_job,False)
+
     if timeout:
         stop_time = start_time + timeout
         time_left = stop_time - time.time()
@@ -274,29 +340,28 @@ def _wait_for_command(subproc, start_time, timeout, stdout_file, stderr_file,
     while not timeout or time_left > 0:
         # select will return when stdout is ready (including when it is
         # EOF, that is the process has terminated).
-        ready, _, _ = select.select([subproc.stdout, subproc.stderr],
-                                     [], [], time_left)
+        ready, _, _ = select.select(select_list, [], [], time_left)
+
         # os.read() has to be used instead of
         # subproc.stdout.read() which will otherwise block
-        if subproc.stdout in ready:
-            _process_output(subproc.stdout, stdout_file, stdout_tee)
-        if subproc.stderr in ready:
-            _process_output(subproc.stderr, stderr_file, stderr_tee)
+        for fileno in ready:
+            bg_job,stdout = reverse_dict[fileno]
+            bg_job.process_output(stdout)
 
-        exit_status_indication = subproc.poll()
-
-        if exit_status_indication is not None:
-            return (exit_status_indication, False)
+        remaining_jobs = [x for x in bg_jobs if x.result.exit_status is None]
+        if len(remaining_jobs) == 0:
+            return False
+        for bg_job in remaining_jobs:
+            bg_job.result.exit_status = bg_job.sp.poll()
 
         if timeout:
             time_left = stop_time - time.time()
 
-    # the process has not terminated within timeout,
-    # kill it via an escalating series of signals.
-    if exit_status_indication is None:
-        exit_status_indication = nuke_subprocess(subproc)
+    # Kill all processes which did not complete prior to timeout
+    for bg_job in [x for x in bg_jobs if x.result.exit_status is None]:
+        nuke_subprocess(bg_job.sp)
 
-    return (exit_status_indication, True)
+    return True
 
 
 def nuke_subprocess(subproc):
@@ -345,27 +410,19 @@ def nuke_pid(pid):
             pass
 
 
-def _process_output(pipe, fbuffer, teefile=None, final_read=False):
-    if final_read:
-        # read in all the data we can from pipe and then stop
-        data = []
-        while select.select([pipe], [], [], 0)[0]:
-            data.append(os.read(pipe.fileno(), 1024))
-            if len(data[-1]) == 0:
-                break
-        data = "".join(data)
-    else:
-        # perform a single read
-        data = os.read(pipe.fileno(), 1024)
-    fbuffer.write(data)
-    if teefile:
-        teefile.write(data)
-        teefile.flush()
-
 
 def system(command, timeout=None, ignore_status=False):
     return run(command, timeout, ignore_status,
             stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
+
+
+def system_parallel(commands, timeout=None):
+    bg_jobs = []
+    for command in commands:
+        bg_jobs.append(BgJob(command, sys.stdout, sys.stderr))
+
+    return [bg_job.result.stdout for bg_job in join_bg_jobs(bg_jobs,
+                                                    timeout)]
 
 
 def system_output(command, timeout=None, ignore_status=False,
@@ -377,6 +434,7 @@ def system_output(command, timeout=None, ignore_status=False,
         out = run(command, timeout, ignore_status).stdout
     if out[-1:] == '\n': out = out[:-1]
     return out
+
 
 """
 This function is used when there is a need to run more than one

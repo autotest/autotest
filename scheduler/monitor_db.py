@@ -304,6 +304,8 @@ class HostScheduler(object):
 
     @classmethod
     def _get_many2many_dict(cls, query, id_list):
+        if not id_list:
+            return {}
         query %= cls._get_sql_id_list(id_list)
         rows = _db.execute(query)
         result = {}
