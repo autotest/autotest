@@ -18,20 +18,10 @@ class scrashme(test.test):
         utils.system('make')
 
 
-    def execute(self, iterations = 1, args_list = ''):
+    def run_once(self, args_list = ''):
         if len(args_list) != 0:
             args = '' + args_list
         else:
             args = '-c100 -z'
 
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                utils.system(self.srcdir + '/scrashme ' + args)
-
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(self.srcdir + '/scrashme ' + args)
-            profilers.stop(self)
-            profilers.report(self)
+        utils.system(self.srcdir + '/scrashme ' + args)
