@@ -101,7 +101,7 @@ class base_test:
 
         profilers = self.job.profilers
         # Dropped profilers.only() - if you want that, use iterations=0
-        for self.iterations in range(1, iterations+1):
+        for self.iteration in range(1, iterations+1):
             self.run_once(*args, **dargs)
 
         # Do a profiling run if necessary
