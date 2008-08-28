@@ -19,32 +19,23 @@ class lmbench(test.test):
         #       default mail to no, fix job placement defaults (masouds)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-
         utils.system('make')
 
 
-    def execute(self, iterations = 1, mem = '', fastmem = 'NO', slowfs = 'NO',
-                disks = '', disks_desc = '', mhz = '', remote = '',
-                enough = '5000', sync_max = '1', fsdir = None, file = None):
+    def run_once(self, mem='', fastmem='NO', slowfs='NO', disks='', 
+                disks_desc='', mhz='', remote='', enough='5000',
+                sync_max='1', fsdir=None, file=None):
         if not fsdir:
             fsdir = self.tmpdir
         if not file:
-            file = self.tmpdir+'XXX'
+            file = self.tmpdir + 'XXX'
 
         os.chdir(self.srcdir)
         cmd = "yes '' | make rerun"
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                utils.system(cmd)
+        utils.system(cmd)
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            utils.system(cmd)
-            profilers.stop(self)
-            profilers.report(self)
 
+    def postprocess(self):
         # Get the results:
         outputdir = self.srcdir + "/results"
         results = self.resultsdir + "/summary.txt"
