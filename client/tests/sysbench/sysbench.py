@@ -8,7 +8,7 @@ class sysbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-
+        self.results = []
 
     # http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
     def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
@@ -28,7 +28,7 @@ class sysbench(test.test):
         utils.system('make -j %d' % autotest_utils.count_cpus())
 
 
-    def execute(self, db_type = 'pgsql', build = 1, \
+    def run_once(self, db_type = 'pgsql', build = 1, \
                     num_threads = autotest_utils.count_cpus(), max_time = 60, \
                     read_only = 0, args = ''):
         plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
@@ -90,28 +90,14 @@ class sysbench(test.test):
             if read_only:
                 cmd = cmd + ' --oltp-read-only=on'
 
-            results = []
+            self.results.append(utils.system_output(cmd + ' run',
+                                                    retain_output=True))
 
-            profilers = self.job.profilers
-            if not profilers.only():
-                results.append(utils.system_output(cmd + ' run',
-                                        retain_output=True))
-
-            # Do a profiling run if necessary
-            if profilers.present():
-                profilers.start(self)
-                results.append("Profiling run ...")
-                results.append(utils.system_output(cmd + ' run',
-                                        retain_output=True))
-                profilers.stop(self)
-                profilers.report(self)
         except:
             utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
             raise
 
         utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
-
-        self.__format_results("\n".join(results))
 
 
     def execute_mysql(self, build, num_threads, max_time, read_only, args):
@@ -149,29 +135,18 @@ class sysbench(test.test):
             if read_only:
                 cmd = cmd + ' --oltp-read-only=on'
 
-            results = []
+            self.results.append(utils.system_output(cmd + ' run',
+                                                    retain_output=True))
 
-            profilers = self.job.profilers
-            if not profilers.only():
-                results.append(utils.system_output(cmd + ' run',
-                                         retain_output=True))
-
-            # Do a profiling run if necessary
-            if profilers.present():
-                profilers.start(self)
-                results.append("Profiling run ...")
-                results.append(utils.system_output(cmd + ' run',
-                                        retain_output=True))
-                profilers.stop(self)
-                profilers.report(self)
         except:
             utils.system(bin + '/mysqladmin shutdown')
             raise
 
         utils.system(bin + '/mysqladmin shutdown')
 
-        self.__format_results("\n".join(results))
 
+    def postprocess(self):
+        self.__format_results("\n".join(self.results))
 
     def __format_results(self, results):
         threads = 0
