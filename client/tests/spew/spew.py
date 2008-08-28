@@ -20,21 +20,16 @@ class spew(test.test):
         utils.system('make')
 
 
-    def execute(self, testdir = None, iterations = 1, filesize='100M',
-                                               type='write', pattern='random'):
+    def run_once(self, testdir = None, filesize='100M', type='write',
+                 pattern='random'):
         cmd = os.path.join(self.srcdir, 'src/spew')
         if not testdir:
             testdir = self.tmpdir
         tmpfile = os.path.join(testdir, 'spew-test.%d' % os.getpid())
-        results = os.path.join(self.resultsdir, 'stdout')
-        args = '--%s -i %d -p %s -b 2k -B 2M %s %s' % \
-                        (type, iterations, pattern, filesize, tmpfile)
+        results = os.path.join(self.resultsdir, 'stdout.%d' % self.iteration)
+        args = '--%s -p %s -b 2k -B 2M %s %s' % \
+                        (type, pattern, filesize, tmpfile)
         cmd += ' ' + args
-
-        # Do a profiling run if necessary
-        profilers = self.job.profilers
-        if profilers.present():
-            profilers.start(self)
 
         open(self.resultsdir + '/command', 'w').write(cmd + '\n')
         self.job.stdout.redirect(results)
@@ -42,7 +37,3 @@ class spew(test.test):
             utils.system(cmd)
         finally:
             self.job.stdout.restore()
-
-        if profilers.present():
-            profilers.stop(self)
-            profilers.report(self)
