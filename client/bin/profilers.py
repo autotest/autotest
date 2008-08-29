@@ -10,6 +10,7 @@ class profilers:
         self.profdir = job.autodir + '/profilers'
         self.tmpdir = job.tmpdir
         self.profile_run_only = False
+        self.active_flag = False
 
     # add a profiler
     def add(self, profiler, *args, **dargs):
@@ -52,9 +53,9 @@ class profilers:
     # are any profilers enabled ?
     def present(self):
         if self.list:
-            return 1
+            return True
         else:
-            return 0
+            return False
 
     # Returns True if job is supposed to be run only with profiling turned
     # on, False otherwise
@@ -70,12 +71,21 @@ class profilers:
     def start(self, test):
         for p in self.list:
             p.start(test)
+        self.active_flag = True
 
 
     # Stop all enabled profilers
     def stop(self, test):
         for p in self.list:
             p.stop(test)
+        self.active_flag = False
+
+
+    def active(self):
+        if self.present() and self.active_flag:
+            return True
+        else:
+            return False
 
 
     # Report on all enabled profilers
