@@ -374,7 +374,7 @@ class SSHHost(site_host.SiteHost):
 
 
     def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,
-               kernel_args=None, wait=True):
+               kernel_args=None, wait=True, **dargs):
         """
         Reboot the remote host.
 
@@ -414,7 +414,7 @@ class SSHHost(site_host.SiteHost):
                 raise
             if wait:
                 self.wait_for_restart(timeout)
-                self.reboot_followup()
+                self.reboot_followup(**dargs)
 
         # if this is a full reboot-and-wait, run the reboot inside a group
         if wait:
@@ -423,8 +423,8 @@ class SSHHost(site_host.SiteHost):
             reboot()
 
 
-    def reboot_followup(self):
-        super(SSHHost, self).reboot_followup()
+    def reboot_followup(self, **dargs):
+        super(SSHHost, self).reboot_followup(**dargs)
         self.__load_netconsole_module() # if the builtin fails
 
 
