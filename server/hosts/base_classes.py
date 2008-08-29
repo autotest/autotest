@@ -86,7 +86,7 @@ class Host(object):
         pass
 
 
-    def reboot_followup(self):
+    def reboot_followup(self, **dargs):
         pass
 
 
