@@ -35,7 +35,7 @@ class harness_standalone(harness.harness):
         # see if system supports event.d versus inittab
         if os.path.exists('/etc/event.d'):
             # NB: assuming current runlevel is default
-            initdefault = utils.system_output('runlevel').split()[1]
+            initdefault = utils.system_output('/sbin/runlevel').split()[1]
         else:
             initdefault = utils.system_output('grep :initdefault: /etc/inittab')
             initdefault = initdefault.split(':')[1]
