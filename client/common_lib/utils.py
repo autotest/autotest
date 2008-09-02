@@ -276,7 +276,7 @@ def run(command, timeout=None, ignore_status=False,
     bg_job = join_bg_jobs((BgJob(command, stdout_tee, stderr_tee),),
                           timeout)[0]
     if not ignore_status and bg_job.result.exit_status:
-        raise error.CmdError(command, bg_jobg.result,
+        raise error.CmdError(command, bg_job.result,
                              "Command returned non-zero exit status")
 
     return bg_job.result
