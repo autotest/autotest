@@ -1,12 +1,5 @@
 # Dacapo test suite wrapper
 #
-# This benchmark suite is intended as a tool for Java benchmarking by the
-# programming language, memory management and computer architecture communities.
-# It consists of a set of open source, real world applications with non-trivial
-# memory loads. The suite is the culmination of over five years work at eight
-# institutions, as part of the DaCapo research project, which was funded by a
-# National Science Foundation ITR Grant, CCR-0085792.
-#
 import os
 from autotest_lib.client.bin import autotest_utils, package, test
 from autotest_lib.client.bin.test_config import config_loader
