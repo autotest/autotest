@@ -9,6 +9,7 @@ import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
 import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
 import common
 from autotest_lib.client.common_lib import global_config, host_protections
+from autotest_lib.client.common_lib import utils
 
 
 RESULTS_DIR = '.'
@@ -214,10 +215,11 @@ def generate_parse_command(results_dir, flags=""):
     return cmd % (parse, flags, results_dir, output)
 
 
+_parse_command_queue = []
 def parse_results(results_dir, flags=""):
     if _testing_mode:
         return
-    os.system(generate_parse_command(results_dir, flags))
+    _parse_command_queue.append(generate_parse_command(results_dir, flags))
 
 
 
@@ -430,6 +432,9 @@ class Dispatcher:
     clean_interval = (
         global_config.global_config.get_config_value(
             _global_config_section, 'clean_interval_minutes', type=int))
+    max_parse_processes = (
+        global_config.global_config.get_config_value(
+            _global_config_section, 'max_parse_processes', type=int))
 
     def __init__(self):
         self._agents = []
@@ -454,7 +459,34 @@ class Dispatcher:
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
+        self._run_final_parses()
         email_manager.send_queued_emails()
+
+
+    def _run_final_parses(self):
+        process_count = 0
+        try:
+            for line in utils.system_output('ps -e').splitlines():
+                if 'parse.py' in line:
+                    process_count += 1
+        except Exception:
+            # We'll try again in a bit.  This is a work-around for one time
+            # when the scheduler crashed due to a "Interrupted system call"
+            return
+
+        if process_count:
+            print "%d parses currently running" % process_count
+
+        while (process_count < self.max_parse_processes and
+               _parse_command_queue):
+            cmd = _parse_command_queue.pop(0)
+            print "Starting another final parse with cmd %s" % cmd
+            os.system(cmd)
+            process_count += 1
+
+        if _parse_command_queue:
+            print ("%d cmds still in final parse queue" %
+                   len(_parse_command_queue))
 
 
     def add_agent(self, agent):
