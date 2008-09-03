@@ -1,5 +1,7 @@
 package autotest.tko;
 
+import com.google.gwt.user.client.Event;
+
 import autotest.common.ui.TabView;
 
 import java.util.Map;
@@ -50,4 +52,9 @@ abstract class ConditionTabView extends TabView {
     }
 
     protected abstract void fillDefaultHistoryValues(Map<String, String> arguments);
+
+    static boolean isSelectEvent(Event event) {
+        // handle ctrl-click for windows or command-click for macs
+        return event.getCtrlKey() || event.getMetaKey();
+    }
 }

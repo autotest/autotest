@@ -289,7 +289,7 @@ public class SpreadsheetView extends ConditionTabView
             return;
         }
         
-        if (event.getCtrlKey()) {
+        if (isSelectEvent(event)) {
             selectionManager.toggleSelected(cellInfo);
             return;
         }
