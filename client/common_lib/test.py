@@ -16,7 +16,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import os, sys, re, fcntl, shutil, tarfile, warnings, tempfile
+import os, sys, re, fcntl, shutil, tarfile, time, warnings, tempfile
 
 from autotest_lib.client.common_lib import error, utils, packages
 from autotest_lib.client.bin import autotest_utils
@@ -96,17 +96,66 @@ class base_test:
         pass
 
 
-    def execute(self, iterations=1, *args, **dargs):
+    def execute(self, iterations = None, test_length = None, *args, **dargs):
         self.warmup(*args, **dargs)
+        """
+        This is the basic execute method for the tests inherited from base_test.
+        If you want to implement a benchmark test, it's better to implement
+        the run_once function, to cope with the profiling infrastructure. For
+        other tests, you can just override the default implementation.
 
+        @param test_length: The minimum test length in seconds. We'll run the
+        run_once function for a number of times large enough to cover the
+        minimum test length.
+
+        @param iterations: A number of iterations that we'll run the run_once
+        function. This parameter is incompatible with test_length and will
+        be silently ignored if you specify both.
+        """
+
+        # For our special class of tests, the benchmarks, we don't want
+        # profilers to run during the test iterations. Let's reserve only
+        # the last iteration for profiling, if needed. So let's stop
+        # all profilers if they are present and active.
         profilers = self.job.profilers
-        # Dropped profilers.only() - if you want that, use iterations=0
-        for self.iteration in range(1, iterations+1):
-            self.run_once(*args, **dargs)
+        if profilers.active():
+            profilers.stop(self)
+        # If the user called this test in an odd way (specified both iterations
+        # and test_length), let's warn him
+        if iterations and test_length:
+            print 'Iterations parameter silently ignored (timed execution)'
+        if test_length:
+            test_start = time.time()
+            time_elapsed = 0
+            timed_counter = 0
+            print 'Benchmark started. Minimum test length: %d s' % (test_length)
+            while time_elapsed < test_length:
+                timed_counter = timed_counter + 1
+                if time_elapsed == 0:
+                    print 'Executing iteration %d' % (timed_counter)
+                elif time_elapsed > 0:
+                    print 'Executing iteration %d, time_elapsed %d s' % \
+                           (timed_counter, time_elapsed)
+                self.run_once(*args, **dargs)
+                test_iteration_finish = time.time()
+                time_elapsed = test_iteration_finish - test_start
+            print 'Benchmark finished after %d iterations' % (timed_counter)
+            print 'Time elapsed: %d s' % (time_elapsed)
+        else:
+            if not iterations:
+                iterations = 1
+            # Dropped profilers.only() - if you want that, use iterations=0
+            print 'Benchmark started. Number of iterations: %d' % (iterations)
+            for self.iteration in range(1, iterations+1):
+                print 'Executing iteration %d of %d' % (self.iteration,
+                                                                    iterations)
+                self.run_once(*args, **dargs)
+            print 'Benchmark finished after %d iterations' % (iterations)
 
         # Do a profiling run if necessary
         if profilers.present():
             profilers.start(self)
+            print 'Profilers present. Profiling run started'
             self.run_once(*args, **dargs)
             profilers.stop(self)
             profilers.report(self)
@@ -161,6 +210,8 @@ class base_test:
                                                         args, dargs)
                     if 'iterations' in dargs:
                         p_dargs['iterations'] = dargs['iterations']
+                    if 'test_length' in dargs:
+                        p_dargs['test_length'] = dargs['test_length']
                 else:
                     p_args, p_dargs = _cherry_pick_args(self.execute,
                                                         args, dargs)
