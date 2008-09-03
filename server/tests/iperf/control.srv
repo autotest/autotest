@@ -6,7 +6,7 @@ TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
 Iperf is a 2 machine test (server/client) that measures maximum TCP and UDP
-bandwidth performace.
+bandwidth performance.
 
 Arguments to run_test:
 

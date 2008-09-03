@@ -281,6 +281,31 @@ def run(command, timeout=None, ignore_status=False,
 
     return bg_job.result
 
+def run_parallel(commands, timeout=None, ignore_status=False,
+                 stdout_tee=None, stderr_tee=None):
+    """Beahves the same as run with the following exceptions:
+
+    - commands is a list of commands to run in parallel.
+    - ignore_status toggles whether or not an exception should be raised
+      on any error.
+
+    returns a list of CmdResult objects
+    """
+    bg_jobs = []
+    for command in commands:
+        bg_jobs.append(BgJob(command, stdout_tee, stderr_tee))
+
+    # Updates objects in bg_jobs list with their process information
+    join_bg_jobs(bg_jobs, timeout)
+
+    for bg_job in bg_jobs:
+        if not ignore_status and bg_job.result.exit_status:
+            raise error.CmdError(command, bg_job.result,
+                                 "Command returned non-zero exit status")
+
+    return [bg_job.result for bg_job in bg_jobs]
+
+
 @deprecated
 def run_bg(command):
     """Function deprecated. Please use BgJob class instead."""
@@ -289,7 +314,10 @@ def run_bg(command):
 
 
 def join_bg_jobs(bg_jobs, timeout=None):
-    """Join the subprocess with the current thread. See run description."""
+    """Joins the bg_jobs with the current thread.
+
+    Returns the same list of bg_jobs objects that was passed in.
+    """
     ret, timeouterr = 0, False
     for bg_job in bg_jobs:
         bg_job.output_prepare(StringIO.StringIO(), StringIO.StringIO())
@@ -416,17 +444,17 @@ def nuke_pid(pid):
 
 
 def system(command, timeout=None, ignore_status=False):
+    """This function returns the exit status of command."""
     return run(command, timeout, ignore_status,
-            stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
+               stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
 
 
-def system_parallel(commands, timeout=None):
-    bg_jobs = []
-    for command in commands:
-        bg_jobs.append(BgJob(command, sys.stdout, sys.stderr))
-
-    return [bg_job.result.stdout for bg_job in join_bg_jobs(bg_jobs,
-                                                    timeout)]
+def system_parallel(commands, timeout=None, ignore_status=False):
+    """This function returns a list of exit statuses for the respective
+    list of commands."""
+    return [bg_jobs.exit_status for bg_jobs in
+            run_parallel(commands, timeout, ignore_status,
+                         stdout_tee=sys.stdout, stderr_tee=sys.stderr)]
 
 
 def system_output(command, timeout=None, ignore_status=False,
@@ -438,6 +466,43 @@ def system_output(command, timeout=None, ignore_status=False,
         out = run(command, timeout, ignore_status).stdout
     if out[-1:] == '\n': out = out[:-1]
     return out
+
+
+def system_output_parallel(commands, timeout=None, ignore_status=False,
+                           retain_output=False):
+    if retain_output:
+        out = [bg_job.stdout for bg_job in run_parallel(commands, timeout,
+                                                        ignore_status,
+                                                        stdout_tee=sys.stdout,
+                                                        stderr_tee=sys.stderr)]
+    else:
+        out = [bg_job.stdout for bg_job in run_parallel(commands, timeout,
+                                                        ignore_status)]
+    for x in out:
+        if out[-1:] == '\n': out = out[:-1]
+    return out
+
+
+def get_cpu_percentage(function, *args, **dargs):
+    """Returns a tuple containing the CPU% and return value from function call.
+
+    This function calculates the usage time by taking the difference of
+    the user and system times both before and after the function call.
+    """
+    child_pre = resource.getrusage(resource.RUSAGE_CHILDREN)
+    self_pre = resource.getrusage(resource.RUSAGE_SELF)
+    start = time.time()
+    to_return = function(*args, **dargs)
+    elapsed = time.time() - start
+    self_post = resource.getrusage(resource.RUSAGE_SELF)
+    child_post = resource.getrusage(resource.RUSAGE_CHILDREN)
+
+    # Calculate CPU Percentage
+    s_user, s_system = [a - b for a, b in zip(self_post, self_pre)[:2]]
+    c_user, c_system = [a - b for a, b in zip(child_post, child_pre)[:2]]
+    cpu_percent = (s_user + c_user + s_system + c_system) / elapsed
+
+    return cpu_percent, to_return
 
 
 """
