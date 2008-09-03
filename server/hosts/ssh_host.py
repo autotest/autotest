@@ -537,8 +537,8 @@ class SSHHost(site_host.SiteHost):
                     utils.scp_remote_escape(dest))
 
         self.__copy_files(processed_source, remote_dest)
-        self.run('find "%s" -type d | xargs -i -r chmod o+rx "{}"' % dest)
-        self.run('find "%s" -type f | xargs -i -r chmod o+r "{}"' % dest)
+        self.run('find "%s" -type d -print0 | xargs -0r chmod o+rx' % dest)
+        self.run('find "%s" -type f -print0 | xargs -0r chmod o+r' % dest)
         if self.target_file_owner:
             self.run('chown -R %s %s' % (self.target_file_owner, dest))
 
@@ -583,7 +583,7 @@ class SSHHost(site_host.SiteHost):
         if len(processes) == 0:
             return True # wait up processes aren't being used
         for procname in processes:
-            exit_status = self.run("ps -e | grep '%s'" % procname,
+            exit_status = self.run("{ ps -e || ps; } | grep '%s'" % procname,
                                    ignore_status=True).exit_status
             if exit_status == 0:
                 return True
