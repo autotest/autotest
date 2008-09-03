@@ -9,20 +9,14 @@ class SerialHost(site_host.SiteHost):
     DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
 
     def __init__(self, conmux_server=None, conmux_attach=None,
-                 conmux_log="console.log", *args, **dargs):
+                 console_log="console.log", *args, **dargs):
         super(SerialHost, self).__init__(*args, **dargs)
+
+        self.__logger = None
+        self.__console_log = console_log
 
         self.conmux_server = conmux_server
         self.conmux_attach = self._get_conmux_attach(conmux_attach)
-
-        self.logger_popen = None
-        self.warning_stream = None
-        self.__start_console_log(conmux_log)
-
-
-    def __del__(self):
-        super(SerialHost, self).__del__()
-        self.__stop_console_log()
 
 
     @classmethod
@@ -61,12 +55,12 @@ class SerialHost(site_host.SiteHost):
         return result.exit_status == 0
 
 
-    def __start_console_log(self, logfilename):
-        """
-        Log the output of the console session to a specified file
-        """
-        if logfilename == None:
+    def start_loggers(self):
+        super(SerialHost, self).start_loggers()
+
+        if self.__console_log == None:
             return
+
         if not self.conmux_attach or not os.path.exists(self.conmux_attach):
             return
 
@@ -75,22 +69,26 @@ class SerialHost(site_host.SiteHost):
                                    'warning_monitor.py')
         cmd = [self.conmux_attach, self.get_conmux_hostname(),
                '%s %s %s %d' % (sys.executable, script_path,
-                                logfilename, w)]
-        dev_null = open(os.devnull, 'w')
+                                self.__console_log, w)]
 
-        self.warning_stream = os.fdopen(r, 'r', 0)
+        self.__warning_stream = os.fdopen(r, 'r', 0)
         if self.job:
-            self.job.warning_loggers.add(self.warning_stream)
-        self.logger_popen = subprocess.Popen(cmd, stderr=dev_null)
+            self.job.warning_loggers.add(self.__warning_stream)
+
+        stdout = stderr = open(os.devnull, 'w')
+        self.__logger = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
         os.close(w)
 
 
-    def __stop_console_log(self):
-        if getattr(self, 'logger_popen', None):
-            utils.nuke_subprocess(self.logger_popen)
+    def stop_loggers(self):
+        super(SerialHost, self).stop_loggers()
+
+        if self.__logger:
+            utils.nuke_subprocess(self.__logger)
+            self.__logger = None
             if self.job:
-                self.job.warning_loggers.discard(self.warning_stream)
-            self.warning_stream.close()
+                self.job.warning_loggers.discard(self.__warning_stream)
+            self.__warning_stream.close()
 
 
     def run_conmux(self, cmd):

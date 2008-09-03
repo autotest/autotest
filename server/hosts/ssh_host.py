@@ -53,8 +53,7 @@ class SSHHost(site_host.SiteHost):
 
     DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
 
-    def __init__(self, hostname, user="root", port=22,
-                 netconsole_log=None, netconsole_port=6666, autodir=None,
+    def __init__(self, hostname, user="root", port=22, autodir=None,
                  password='', target_file_owner=None, *args, **dargs):
         """
         Construct a SSHHost object
@@ -75,24 +74,7 @@ class SSHHost(site_host.SiteHost):
         self.autodir = autodir
         self.password = password
 
-        self.bootloader = bootloader.Bootloader(self)
-
-        self.__netconsole_param = ""
-        self.netlogger_popen = None
-        if netconsole_log:
-            self.__init_netconsole_params(netconsole_port)
-            self.__start_netconsole_log(netconsole_log, netconsole_port)
-            self.__load_netconsole_module()
-
-
-    @staticmethod
-    def __kill(popen):
-        return_code = popen.poll()
-        if return_code is None:
-            try:
-                os.kill(popen.pid, signal.SIGTERM)
-            except OSError:
-                pass
+        self.start_loggers()
 
 
     def __del__(self):
@@ -107,82 +89,8 @@ class SSHHost(site_host.SiteHost):
                     self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
                 except error.AutoservRunError:
                     pass
-        # kill the netconsole logger
-        if getattr(self, 'netlogger_popen', None):
-            self.__unload_netconsole_module()
-            self.__kill(self.netlogger_popen)
 
-
-    def __init_netconsole_params(self, port):
-        """
-        Connect to the remote machine and determine the values to use for the
-        required netconsole parameters.
-        """
-        # PROBLEM: on machines with multiple IPs this may not make any sense
-        # It also doesn't work with IPv6
-        remote_ip = socket.gethostbyname(self.hostname)
-        local_ip = socket.gethostbyname(socket.gethostname())
-        # Get the gateway of the remote machine
-        try:
-            traceroute = self.run('traceroute -n %s' % local_ip)
-        except error.AutoservRunError:
-            return
-        first_node = traceroute.stdout.split("\n")[0]
-        match = re.search(r'\s+((\d+\.){3}\d+)\s+', first_node)
-        if match:
-            router_ip = match.group(1)
-        else:
-            return
-        # Look up the MAC address of the gateway
-        try:
-            self.run('ping -c 1 %s' % router_ip)
-            arp = self.run('arp -n -a %s' % router_ip)
-        except error.AutoservRunError:
-            return
-        match = re.search(r'\s+(([0-9A-F]{2}:){5}[0-9A-F]{2})\s+', arp.stdout)
-        if match:
-            gateway_mac = match.group(1)
-        else:
-            return
-        self.__netconsole_param = 'netconsole=@%s/,%s@%s/%s' % (remote_ip,
-                                                                port,
-                                                                local_ip,
-                                                                gateway_mac)
-
-
-    def __start_netconsole_log(self, logfilename, port):
-        """
-        Log the output of netconsole to a specified file
-        """
-        if logfilename == None:
-            return
-        cmd = ['nc', '-u', '-l', '-p', str(port)]
-        logfile = open(logfilename, 'a', 0)
-        self.netlogger_popen = subprocess.Popen(cmd, stdout=logfile)
-
-
-    def __load_netconsole_module(self):
-        """
-        Make a best effort to load the netconsole module.
-
-        Note that loading the module can fail even when the remote machine is
-        working correctly if netconsole is already compiled into the kernel
-        and started.
-        """
-        if not self.__netconsole_param:
-            return
-        try:
-            self.run('modprobe netconsole %s' % self.__netconsole_param)
-        except error.AutoservRunError:
-            # if it fails there isn't much we can do, just keep going
-            pass
-
-
-    def __unload_netconsole_module(self):
-        try:
-            self.run('modprobe -r netconsole')
-        except error.AutoservRunError:
-            pass
+        self.stop_loggers()
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
@@ -193,7 +101,8 @@ class SSHHost(site_host.SiteHost):
         self.log_reboot(reboot_func)
 
 
-    def ssh_base_command(self, connect_timeout=30):
+    @staticmethod
+    def ssh_base_command(connect_timeout=30):
         SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
                            'BatchMode=yes -o ConnectTimeout=%d ' + \
                            '-o ServerAliveInterval=300'
@@ -381,16 +290,8 @@ class SSHHost(site_host.SiteHost):
         Args:
                 timeout
         """
-        self.reboot_setup()
+        self.reboot_setup(label=label, kernel_args=kernel_args, **dargs)
 
-        # forcibly include the "netconsole" kernel arg
-        if self.__netconsole_param:
-            if kernel_args is None:
-                kernel_args = self.__netconsole_param
-            else:
-                kernel_args += " " + self.__netconsole_param
-            # unload the (possibly loaded) module to avoid shutdown issues
-            self.__unload_netconsole_module()
         if label or kernel_args:
             self.bootloader.install_boottool()
         if label:
@@ -421,11 +322,6 @@ class SSHHost(site_host.SiteHost):
             self.log_reboot(reboot)
         else:
             reboot()
-
-
-    def reboot_followup(self, **dargs):
-        super(SSHHost, self).reboot_followup(**dargs)
-        self.__load_netconsole_module() # if the builtin fails
 
 
     def __copy_files(self, sources, dest):

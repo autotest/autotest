@@ -613,6 +613,11 @@ class base_job(object):
             self.bootloader.set_default(tag)
         else:
             self.bootloader.boot_once(tag)
+
+        # HACK: using this as a module sometimes hangs shutdown, so if it's
+        # installed unload it first
+        utils.system("modprobe -r netconsole", ignore_status=True)
+
         cmd = "(sleep 5; reboot) </dev/null >/dev/null 2>&1 &"
         utils.system(cmd)
         self.quit()

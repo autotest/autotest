@@ -60,7 +60,7 @@ class Host(object):
                  *args, **dargs):
         super(Host, self).__init__(*args, **dargs)
         self.serverdir = utils.get_server_dir()
-        self.bootloader= bootloader.Bootloader(self)
+        self.bootloader = bootloader.Bootloader(self)
         self.env = {}
         self.initialize = initialize
         self.target_file_owner = target_file_owner
@@ -82,11 +82,11 @@ class Host(object):
         raise NotImplementedError('Reboot not implemented!')
 
 
-    def reboot_setup(self):
+    def reboot_setup(self, *args, **dargs):
         pass
 
 
-    def reboot_followup(self, **dargs):
+    def reboot_followup(self, *args, **dargs):
         pass
 
 
@@ -159,6 +159,16 @@ class Host(object):
 
     def set_autodir(self):
         raise NotImplementedError('Set autodir not implemented!')
+
+
+    def start_loggers(self):
+        """ Called to start continuous host logging. """
+        pass
+
+
+    def stop_loggers(self):
+        """ Called to stop continuous host logging. """
+        pass
 
 
     # some extra methods simplify the retrieval of information about the
