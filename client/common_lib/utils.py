@@ -324,6 +324,10 @@ def join_bg_jobs(bg_jobs, timeout=None):
 def _wait_for_commands(bg_jobs, start_time, timeout):
     # This returns True if it must return due to a timeout, otherwise False.
 
+    # To check for processes which terminate without producing any output
+    # a 1 second timeout is used in select.
+    SELECT_TIMEOUT = 1
+
     select_list = []
     reverse_dict = {}
     for bg_job in bg_jobs:
@@ -340,7 +344,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
     while not timeout or time_left > 0:
         # select will return when stdout is ready (including when it is
         # EOF, that is the process has terminated).
-        ready, _, _ = select.select(select_list, [], [], time_left)
+        ready, _, _ = select.select(select_list, [], [], SELECT_TIMEOUT)
 
         # os.read() has to be used instead of
         # subproc.stdout.read() which will otherwise block
