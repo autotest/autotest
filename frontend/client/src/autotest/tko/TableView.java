@@ -267,7 +267,7 @@ public class TableView extends ConditionTabView
             return;
         }
         
-        if (event.getCtrlKey()) {
+        if (isSelectEvent(event)) {
             selectionManager.toggleSelected(row);
             return;
         }
