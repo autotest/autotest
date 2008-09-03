@@ -21,17 +21,14 @@ class iperf(test.test):
 
         self.SERVER_PORT = '5001'
 
-        wrapper_path = os.path.join(self.job.toolsdir, 'proc_wrapper.py')
-
         # The %%s is to add extra args later
         # We cannot use daemon mode because it is unreliable with
         # UDP transfers.
         self.server_path = "%s %%s&" % os.path.join(self.srcdir,
                                                     'src/iperf -s')
         # Add the servername and arguments later
-        client_path = "%s %%s %%s" % os.path.join(self.srcdir,
+        self.client_path = "%s %%s %%s" % os.path.join(self.srcdir,
                                                        'src/iperf -y c -c')
-        self.client_path = "%s %s" % (wrapper_path, client_path)
 
         self.results = []
 
@@ -48,7 +45,6 @@ class iperf(test.test):
         all = [server_tag, client_tag]
 
         for num_streams in stream_list:
-            print "Run: #%d" % num_streams
             if self.role == 'server':
                 self.ip = socket.gethostbyname(server_ip)
                 # Start server and synchronize on server-up
@@ -56,12 +52,10 @@ class iperf(test.test):
                 try:
                     # Wait up to two minutes for the server and client
                     # to reach this point
-                    print "server start"
                     self.job.barrier(server_tag, 'start', 120).rendevous(*all)
 
                     # Stop the server when the client finishes
                     # Wait up to test_time + 5 seconds for the task to complete
-                    print "servre finish"
                     self.job.barrier(server_tag, 'finish',
                                      test_time + 500).rendevous(*all)
                 finally:
@@ -71,22 +65,16 @@ class iperf(test.test):
                 self.ip = socket.gethostbyname(client_ip)
                 # Wait up to two minutes for the server and client
                 # to reach this point
-                print "client stazrt"
                 self.job.barrier(client_tag, 'start', 120).rendevous(*all)
                 self.client(server_ip, test_time, num_streams)
 
                 # Wait up to 5 seconds for the server to also reach this point
-                print "client fnish"
                 self.job.barrier(client_tag, 'finish', 5).rendevous(*all)
             else:
                 raise error.TestError('invalid role specified')
 
 
     def server_start(self):
-        # we should really record the pid we forked off, but there
-        # was no obvious way to run the daemon in the foreground.
-        # Hacked it for now
-
         args = ''
         if self.udp:
             args += '-u '
@@ -97,7 +85,6 @@ class iperf(test.test):
 
 
     def server_stop(self):
-        # this should really just kill the pid I forked, but ...
         utils.system('killall -9 iperf', ignore_status=True)
 
 
@@ -110,8 +97,9 @@ class iperf(test.test):
 
         cmd = self.client_path % (server_ip, args)
         try:
-            self.results.append(utils.system_output(cmd, timeout=test_time+5,
-                                                    retain_output=True))
+            self.results.append(utils.get_cpu_percentage(
+                utils.system_output, cmd, timeout=test_time+num_streams+5,
+                retain_output=True))
         except error.CmdError, e:
             """ Catch errors due to timeout, but raise others
             The actual error string is:
@@ -122,8 +110,7 @@ class iperf(test.test):
             works for now"""
 
             if 'within' in e.additional_text:
-                print e.additional_text
-                self.results.append(None)
+                self.results.append((None,None))
             else:
                 raise
 
@@ -139,7 +126,6 @@ class iperf(test.test):
         20080807094252,10.75.222.14,32807,10.75.222.13,5001,4,0.0-3.0,395430,1048592
         20080807094252,10.75.222.14,5001,10.75.222.13,32809,3,0.0-3.0,395430,1048656,0.004,0,269,0.000,0
         20080807094252,10.75.222.13,5001,10.75.222.14,32807,4,0.0-3.0,395430,1048711,0.007,0,269,0.000,0
-        CPU: 227.23% -- 90 samples
 
         The second two lines of the UDP pattern are the same as the TCP pattern
         with the exception that they add fields for jitter and datagram stats.
@@ -165,28 +151,29 @@ class iperf(test.test):
                 raise error.TestError('Mismatched number of results')
 
             keyval = {}
+
             runs = {'Bandwidth_S2C':[], 'Bandwidth_C2S':[],
                     'Jitter_S2C':[], 'Jitter_C2S':[]}
 
             # Iterate over each stream and add values to the keyval
             for i, streams in enumerate(self.stream_list):
+                keyval['CPU_C_%d' % streams], output  = self.results[i]
+
                 # Handle Errors due to client timeouts
-                if self.results[i] == None:
+                if output == None:
                     for key in runs:
                         keyval['%s_%d' % (key, streams)] = 0
-                        keyval['CPU_C_%d' % streams] = (
-                            cpu_line.split(' ',2)[1][:-1])
                     continue
 
                 if self.udp:
                     regex = udp_regex
                     keys = udp_keys
                     # Ignore the first line
-                    stdout = self.results[i].split('\n',1)[1]
+                    stdout = output.split('\n',1)[1]
                 else:
                     regex = tcp_regex
                     keys = tcp_keys
-                    stdout = self.results[i]
+                    stdout = output
 
                 # This will not find the average lines because the 'id' field
                 # is negative and doesn't match the patterns -- this is good
@@ -213,11 +200,9 @@ class iperf(test.test):
                     keyval['%s_%d' % (key, streams)] = (sum(runs[key]) /
                                                         len(runs[key]))
 
-                # Grab the CPU value from a line like:
-                # CPU: 17.26% -- 27 samples
-                cpu_line = stdout.split('\n')[-1]
-                keyval['CPU_C_%d' % streams] = cpu_line.split(' ',2)[1][:-1]
-
+            print utils.get_cpu_percentage(list)
             self.write_perf_keyval(keyval)
         else:
+            # This test currently does not produce a keyval file on the
+            # server side. This should be implemented eventually.
             print self.results
