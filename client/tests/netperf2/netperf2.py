@@ -4,14 +4,10 @@ from autotest_lib.client.common_lib import utils, error
 
 
 class netperf2(test.test):
-    version = 1
+    version = 2
 
-    def initialize(self):
-        self.job.require_gcc()
-
-
-    # ftp://ftp.netperf.org/netperf/netperf-2.4.1.tar.gz
-    def setup(self, tarball = 'netperf-2.4.1.tar.gz'):
+    # ftp://ftp.netperf.org/netperf/netperf-2.4.4.tar.gz
+    def setup(self, tarball = 'netperf-2.4.4.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
@@ -21,59 +17,84 @@ class netperf2(test.test):
 
 
     def initialize(self):
-        # netserver doesn't detach properly from the console. When
-        # it is run from ssh, this causes the ssh command not to
-        # return even though netserver meant to be backgrounded.
-        # This behavior is remedied by redirecting fd 0, 1 & 2
-        self.server_path = ('%s &>/dev/null </dev/null'
-                % os.path.join(self.srcdir, 'src/netserver'))
-        self.client_path = os.path.join(self.srcdir, 'src/netperf')
+        self.job.require_gcc()
+
+        self.server_path = '%s&' % os.path.join(self.srcdir,
+                                                'src/netserver')
+        # Add server_ip and arguments later
+        self.client_path = '%s %%s %%s' % os.path.join(self.srcdir,
+                                                       'src/netperf -H')
+
+        self.valid_tests = ['TCP_STREAM', 'TCP_RR', 'TCP_CRR',
+                            'UDP_STREAM', 'UDP_RR', 'UDP_CRR']
+        self.results = []
 
 
-    def execute(self, server_ip, client_ip, role, script='snapshot_script',
-                                                                    args=''):
+    def run_once(self, server_ip, client_ip, role, test='TCP_STREAM',
+                 test_time=10, stream_list=[1]):
+        if test not in self.valid_tests:
+            raise error.TestError('invalid test specified')
+        self.role = role
+
         server_tag = server_ip + '#netperf-server'
         client_tag = client_ip + '#netperf-client'
         all = [server_tag, client_tag]
-        job = self.job
-        if (role == 'server'):
-            self.server_start()
-            try:
-                job.barrier(server_tag, 'start', 600).rendevous(*all)
-                job.barrier(server_tag, 'stop', 3600).rendevous(*all)
-            finally:
-                self.server_stop()
-        elif (role == 'client'):
-            os.environ['NETPERF_CMD'] = self.client_path
-            job.barrier(client_tag, 'start', 600).rendevous(*all)
-            self.client(script, server_ip, args)
-            job.barrier(client_tag, 'stop',  30).rendevous(*all)
-        else:
-            raise error.TestError('invalid role specified')
+
+
+        for num_streams in stream_list:
+            if role == 'server':
+                self.server_start()
+                try:
+                    self.job.barrier(server_tag, 'start', 120).rendevous(*all)
+                    self.job.barrier(server_tag, 'stop', 5400).rendevous(*all)
+                finally:
+                    self.server_stop()
+
+            elif role == 'client':
+                self.job.barrier(client_tag, 'start', 120).rendevous(*all)
+                self.client(server_ip, test, test_time, num_streams)
+                self.job.barrier(client_tag, 'stop',  30).rendevous(*all)
+            else:
+                raise error.TestError('invalid role specified')
 
 
     def server_start(self):
-        # we should really record the pid we forked off, but there
-        # was no obvious way to run the daemon in the foreground.
-        # Hacked it for now
         utils.system('killall netserver', ignore_status=True)
-        utils.system(self.server_path)
+        self.results.append(utils.system_output(self.server_path,
+                                                retain_output=True))
 
 
     def server_stop(self):
-        # this should really just kill the pid I forked, but ...
-        utils.system('killall netserver')
+        utils.system('killall netserver', ignore_status=True)
 
 
-    def client(self, script, server_ip, args = 'CPU'):
-        # run some client stuff
-        stdout_path = os.path.join(self.resultsdir, script + '.stdout')
-        stderr_path = os.path.join(self.resultsdir, script + '.stderr')
-        self.job.stdout.tee_redirect(stdout_path)
-        self.job.stderr.tee_redirect(stderr_path)
+    def client(self, server_ip, test, test_time, num_streams):
+        args = '-t %s -l %d' % (test, test_time)
+        cmd = self.client_path % (server_ip, args)
 
-        script_path = os.path.join(self.srcdir, 'doc/examples', script)
-        utils.system('%s %s %s' % (script_path, server_ip, args))
+        try:
+            self.results.append(utils.get_cpu_percentage(
+                utils.system_output_parallel,
+                [cmd]*num_streams,
+                retain_output=True))
+        except error.CmdError, e:
+            """ Catch errors due to timeout, but raise others
+            The actual error string is:
+              "Command did not complete within %d seconds"
+            called in function join_bg_job in the file common_lib/utils.py
 
-        self.job.stdout.restore()
-        self.job.stderr.restore()
+            Looking for 'within' is probably not the best way to do this but
+            works for now"""
+
+            if 'within' in e.additional_text:
+                print e.additional_text
+                self.results.append(None)
+            else:
+                raise
+
+
+    def postprocess(self):
+        print "Post Processing"
+        print self.role
+        print self.results
+        print "End Post Processing"

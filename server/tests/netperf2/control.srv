@@ -6,7 +6,7 @@ TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
 netperf_test is a 2 machine test (server/client) that analyzes qos and returns
-the results. 
+the results.
 
 The default test takes roughly 10 minutes to run.  The arguments that can be
 passed into the job.run_test are:
@@ -21,36 +21,25 @@ container_name   default "/"
 from autotest_lib.server import utils
 
 
-def run(pair, time_limit=600, bandwidth_min=1000, bandwidth_max=1000,
-        priority=2, container_name=""):
-
+def run(pair):
     print "running on %s and %s\n" % (pair[0], pair[1])
-    tagname = "%s_%s" % (pair[0], pair[1])
     server = hosts.create_host(pair[0])
     client = hosts.create_host(pair[1])
 
     server_at = autotest.Autotest(server)
     client_at = autotest.Autotest(client)
 
-    args = ('time_limit=%s, bandwidth_min=%s, bandwidth_max=%s, '
-            'priority=%s, container_name="%s"')
-    args %= (time_limit, bandwidth_min, bandwidth_max, priority, 
-             container_name)
+    template = ''.join(["job.run_test('netperf2', server_ip='%s', client_ip=",
+                        "'%s', role='%s', test_time=10,",
+                        "stream_list=range(1,6,2))"])
 
-    control_file_template = "job.run_test('netperf2', server_ip='%s', client_ip='%s', role='%s')"
-
-    server_control_file = control_file_template % (server.ip, client.ip, 'server')
-    client_control_file = control_file_template % (server.ip, client.ip, 'client')
-
-    print 'SERVER CONTROL FILE'
-    print server_control_file
-    print 'CLIENT CONTROL FILE'
-    print client_control_file
+    server_control_file = template % (server.ip, client.ip, 'server')
+    client_control_file = template % (server.ip, client.ip, 'client')
 
     server_command = subcommand(server_at.run,
-                               [server_control_file, server.hostname])
+                                [server_control_file, server.hostname])
     client_command = subcommand(client_at.run,
-                               [client_control_file, client.hostname])
+                                [client_control_file, client.hostname])
 
     parallel([server_command, client_command])
 
