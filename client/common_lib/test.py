@@ -96,8 +96,7 @@ class base_test:
         pass
 
 
-    def execute(self, iterations = None, test_length = None, *args, **dargs):
-        self.warmup(*args, **dargs)
+    def execute(self, iterations=None, test_length=None, *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
         If you want to implement a benchmark test, it's better to implement
@@ -113,6 +112,7 @@ class base_test:
         be silently ignored if you specify both.
         """
 
+        self.warmup(*args, **dargs)
         # For our special class of tests, the benchmarks, we don't want
         # profilers to run during the test iterations. Let's reserve only
         # the last iteration for profiling, if needed. So let's stop
