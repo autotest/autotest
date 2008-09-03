@@ -180,10 +180,14 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     }
     
     public void cloneJob(JSONValue cloneInfo) {
+        // reset() fires the TestSelectorListener, which will generate a new control file. We do
+        // no want this, so we'll stop listening to it for a bit.
+        testSelector.setListener(null);
         reset();
+        testSelector.setListener(this);
+        
         disableInputs();
         openControlFileEditor();
-        
         JSONObject cloneObject = cloneInfo.isObject();
         JSONObject jobObject = cloneObject.get("job").isObject();
         
@@ -393,7 +397,6 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         populatePriorities();
         
         testSelector = new TestSelector();
-        testSelector.setListener(this);
         
         RootPanel.get("create_skip_verify").add(skipVerify);
         
@@ -492,6 +495,8 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         RootPanel.get("create_edit_control").add(controlFilePanel);
         RootPanel.get("create_submit").add(submitJobButton);
         RootPanel.get("create_reset").add(resetButton);
+        
+        testSelector.setListener(this);
     }
     
     public void reset() {
