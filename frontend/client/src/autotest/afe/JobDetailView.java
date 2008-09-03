@@ -11,6 +11,7 @@ import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 
@@ -20,9 +21,11 @@ import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
@@ -204,8 +207,25 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
     }
     
     protected void cloneJob() {
+        ContextMenu menu = new ContextMenu();
+        menu.addItem("Reuse any similar hosts  (default)", new Command() {
+            public void execute() {
+                cloneJob(false);
+            }
+        });
+        menu.addItem("Reuse same specific hosts", new Command() {
+            public void execute() {
+                cloneJob(true);
+            }
+        });
+        menu.showAt(cloneButton.getAbsoluteLeft(), 
+                cloneButton.getAbsoluteTop() + cloneButton.getOffsetHeight());
+    }
+    
+    private void cloneJob(boolean preserveMetahosts) {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
+        params.put("preserve_metahosts", JSONBoolean.getInstance(preserveMetahosts));
         rpcProxy.rpcCall("get_info_for_clone", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
