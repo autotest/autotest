@@ -54,6 +54,11 @@ class Bootloader(object):
                 'cut -d " " -f2-').stdout.strip().split('\n')
 
 
+    def get_default_title(self):
+        default = int(self.get_default())
+        return self.get_titles()[default]
+
+
     def get_default(self):
         return self._run_boottool('--default').stdout.strip()
 
