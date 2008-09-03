@@ -21,12 +21,13 @@ def deprecated(func):
 
 
 class BgJob(object):
-    def __init__(self, command, stdout_tee=None, stderr_tee=None):
+    def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True):
         self.command = command
         self.stdout_tee = stdout_tee
         self.stderr_tee = stderr_tee
         self.result = CmdResult(command)
-        print "running: %s" % command
+        if verbose:
+            print "running: %s" % command
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    preexec_fn=self._reset_sigpipe, shell=True,
@@ -249,7 +250,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
 
 
 def run(command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None):
+        stdout_tee=None, stderr_tee=None, verbose=True):
     """
     Run a command on the host.
 
@@ -273,7 +274,7 @@ def run(command, timeout=None, ignore_status=False,
             CmdError: the exit code of the command
                     execution was not 0
     """
-    bg_job = join_bg_jobs((BgJob(command, stdout_tee, stderr_tee),),
+    bg_job = join_bg_jobs((BgJob(command, stdout_tee, stderr_tee, verbose),),
                           timeout)[0]
     if not ignore_status and bg_job.result.exit_status:
         raise error.CmdError(command, bg_job.result,
