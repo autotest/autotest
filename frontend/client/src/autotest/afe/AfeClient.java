@@ -54,8 +54,8 @@ public class AfeClient implements EntryPoint {
             
             public void onCloneJob(JSONValue cloneInfo) {
                 createJob.ensureInitialized();
-                mainTabPanel.selectTabView(createJob);
                 createJob.cloneJob(cloneInfo);
+                mainTabPanel.selectTabView(createJob);
             }
         });
         createJob = AfeUtils.factory.getCreateJobView(new JobCreateListener() {
