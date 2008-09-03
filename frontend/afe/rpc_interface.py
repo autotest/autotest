@@ -409,17 +409,30 @@ def get_jobs_summary(**filter_data):
     return rpc_utils.prepare_for_serialization(jobs)
 
 
-def get_info_for_clone(id):
+def get_info_for_clone(id, preserve_metahosts):
     """\
     Retrieves all the information needed to clone a job.
     """
     info = {}
     job = models.Job.objects.get(id=id)
     query = job.hostqueueentry_set.filter(deleted=False)
-    hosts = [queue_entry.host for queue_entry
-             in query if queue_entry.host and not queue_entry.meta_host]
-    meta_hosts = [queue_entry.meta_host.name for queue_entry
-                  in query if queue_entry.meta_host]
+
+    hosts = []
+    meta_hosts = []
+
+    # For each queue entry, if the entry contains a host, add the entry into the
+    # hosts list if either:
+    #     It is not a metahost.
+    #     It was an assigned metahost, and the user wants to keep the specific
+    #         assignments.
+    # Otherwise, add the metahost to the metahosts list.
+    for queue_entry in query:
+        if (queue_entry.host and (preserve_metahosts
+                                  or not queue_entry.meta_host)):
+            hosts.append(queue_entry.host)
+        else:
+            meta_hosts.append(queue_entry.meta_host.name)
+
     host_dicts = []
 
     for host in hosts:
