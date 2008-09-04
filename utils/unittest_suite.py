@@ -5,7 +5,6 @@ import common
 from autotest_lib.utils import parallel
 
 
-debug = False
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 parser = optparse.OptionParser()
@@ -14,6 +13,8 @@ parser.add_option("-r", action="store", type="string", dest="start",
                   help="root directory to start running unittests")
 parser.add_option("--full", action="store_true", dest="full", default=False,
                   help="whether to run the shortened version of the test")
+parser.add_option("--debug", action="store_true", dest="debug", default=False,
+                  help="run in debug mode")
 
 
 LONG_TESTS = set((
@@ -58,7 +59,7 @@ def lister(full, dirname, files):
 
 
 def run_test(mod_name):
-    if not debug:
+    if not options.debug:
         parallel.redirect_io()
 
     print "Running %s" % '.'.join(mod_name)
@@ -94,7 +95,7 @@ def run_tests(start, full=False):
 
     try:
         dargs = {}
-        if debug:
+        if options.debug:
             dargs['max_simultaneous_procs'] = 1
         pe = parallel.ParallelExecute(functions, **dargs)
         pe.run_until_completion()
@@ -104,6 +105,7 @@ def run_tests(start, full=False):
 
 
 def main():
+    global options, args
     options, args = parser.parse_args()
     if args:
         parser.error('Unexpected argument(s): %s' % args)
