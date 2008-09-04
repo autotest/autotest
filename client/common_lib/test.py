@@ -181,6 +181,10 @@ class base_test:
             dargs   = dargs.copy()
             keyvals = dargs.pop('test_attributes', dict()).copy()
             keyvals['version'] = self.version
+            for i, arg in enumerate(args):
+                keyvals['param-%d' % i] = repr(arg)
+            for name, arg in dargs.iteritems():
+                keyvals['param-%s' % name] = repr(arg)
             self.write_test_keyval(keyvals)
 
             _validate_args(args, dargs, self.initialize, self.setup,
