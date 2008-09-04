@@ -28,14 +28,20 @@ public class TestContextMenu extends ContextMenu {
     }
     
     public void addLabelItems() {
+        final String condition = tests.getCondition();
+        addItem("Invalidate tests", new Command() {
+            public void execute() {
+                labelManager.handleInvalidate(condition);
+            }
+        });
         addItem("Add label", new Command() {
             public void execute() {
-                labelManager.handleAddLabels(tests.getCondition());
+                labelManager.handleAddLabels(condition);
             }
         });
         addItem("Remove label", new Command() {
             public void execute() {
-                labelManager.handleRemoveLabels(tests.getCondition());
+                labelManager.handleRemoveLabels(condition);
             }
         });
     }

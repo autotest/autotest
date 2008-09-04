@@ -20,6 +20,7 @@ import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
@@ -30,9 +31,7 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.MenuBar;
-import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
-import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Arrays;
@@ -57,7 +56,7 @@ public class SpreadsheetView extends ConditionTabView
     
     private HeaderSelect rowSelect = new HeaderSelect();
     private HeaderSelect columnSelect = new HeaderSelect();
-    private CheckBox showIncomplete = new CheckBox("Show incomplete tests"); 
+    private CheckBox showIncomplete = new CheckBox("Show incomplete tests");
     private Button queryButton = new Button("Query");
     private TestGroupDataSource dataSource = TestGroupDataSource.getStatusCountDataSource();
     private Spreadsheet spreadsheet = new Spreadsheet();
@@ -118,14 +117,11 @@ public class SpreadsheetView extends ConditionTabView
             } 
         });
         
-        Panel queryControlPanel = new VerticalPanel();
-        queryControlPanel.add(showIncomplete);
-        queryControlPanel.add(queryButton);
-        
+        RootPanel.get("ss_filter_options").add(showIncomplete);
         RootPanel.get("ss_row_select").add(rowSelect);
         RootPanel.get("ss_column_select").add(columnSelect);
         RootPanel.get("ss_swap").add(swapLink);
-        RootPanel.get("ss_query_controls").add(queryControlPanel);
+        RootPanel.get("ss_query_controls").add(queryButton);
         RootPanel.get("ss_actions").add(actionsPanel);
         RootPanel.get("ss_spreadsheet").add(spreadsheet);
         jobCompletionPanel = RootPanel.get("ss_job_completion");
@@ -142,7 +138,7 @@ public class SpreadsheetView extends ConditionTabView
     
     protected TestSet getWholeTableTestSet() {
         boolean isSingleTest = spreadsheetProcessor.getNumTotalTests() == 1;
-        return new ConditionTestSet(isSingleTest, getFullCondition());
+        return new ConditionTestSet(isSingleTest, getFullConditionArgs());
     }
 
     protected void setupDrilldownMap() {
@@ -184,7 +180,7 @@ public class SpreadsheetView extends ConditionTabView
         spreadsheet.clear();
         setJobCompletionHtml("&nbsp");
         
-        final String condition = getFullCondition();
+        final JSONObject condition = getFullConditionArgs();
         
         setLoading(true);
         spreadsheetProcessor.refresh(currentRowFields, currentColumnFields, condition,
@@ -199,8 +195,9 @@ public class SpreadsheetView extends ConditionTabView
         });
     }
 
-    private String getFullCondition() {
-        String condition = commonPanel.getSavedCondition();
+    private JSONObject getFullConditionArgs() {
+        JSONObject args = commonPanel.getSavedConditionArgs();
+        String condition = TkoUtils.getSqlCondition(args);
         if (!condition.equals("")) {
             condition = "(" + condition + ") AND ";
         }
@@ -208,7 +205,8 @@ public class SpreadsheetView extends ConditionTabView
         if (!currentShowIncomplete) {
             condition += " AND status != 'RUNNING'";
         }
-        return condition;
+        args.put("extra_where", new JSONString(condition));
+        return args;
     }
 
     public void doQuery() {
@@ -220,13 +218,12 @@ public class SpreadsheetView extends ConditionTabView
         currentRowFields = getSelectedHeader(rowSelect);
         currentColumnFields = getSelectedHeader(columnSelect);
         currentShowIncomplete = showIncomplete.isChecked();
-        saveCondition();
+        commonPanel.saveSqlCondition();
         refresh();
     }
 
-    private void showCompletionPercentage(String condition) {
-        rpcProxy.rpcCall("get_job_ids", TkoUtils.getConditionParams(condition), 
-                         new JsonRpcCallback() {
+    private void showCompletionPercentage(JSONObject condition) {
+        rpcProxy.rpcCall("get_job_ids", condition, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 finishShowCompletionPercentage(result.isArray());
@@ -271,8 +268,8 @@ public class SpreadsheetView extends ConditionTabView
         jobCompletionPanel.add(new HTML(html));
     }
 
-    private boolean isJobFilteringCondition(String condition) {
-        return condition.indexOf("job_tag") != -1;
+    private boolean isJobFilteringCondition(JSONObject condition) {
+        return TkoUtils.getSqlCondition(condition).indexOf("job_tag") != -1;
     }
 
     public void onCellClicked(CellInfo cellInfo) {
@@ -318,7 +315,7 @@ public class SpreadsheetView extends ConditionTabView
 
     private TestSet getTestSet(CellInfo cellInfo) {
         boolean isSingleTest = cellInfo.testCount == 1;
-        ConditionTestSet testSet = new ConditionTestSet(isSingleTest, getFullCondition());
+        ConditionTestSet testSet = new ConditionTestSet(isSingleTest, getFullConditionArgs());
         
         if (cellInfo.row != null) {
             setSomeFields(testSet, currentRowFields, cellInfo.row);
@@ -343,7 +340,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
-        commonPanel.refineCondition(tests);
+        commonPanel.setCondition(tests);
         currentRowFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newRowField));
         currentColumnFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newColumnField));
         updateWidgets();
@@ -458,7 +455,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private void switchToTable(final TestSet tests, boolean isTriageView) {
-        commonPanel.refineCondition(tests);
+        commonPanel.setCondition(tests);
         listener.onSwitchToTable(isTriageView);
     }
 

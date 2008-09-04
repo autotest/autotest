@@ -135,7 +135,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
         cellInfo.testCount = statusSummary.getTotal();
     }
     
-    public void refresh(Header rowFields, Header columnFields, String condition, 
+    public void refresh(Header rowFields, Header columnFields, JSONObject condition, 
                         Command onFinished) {
         timer = new Duration();
         this.onFinished = onFinished;
@@ -145,8 +145,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
         headerGroups.add(rowFields);
         headerGroups.add(columnFields);
         dataSource.setHeaderGroups(headerGroups);
-        JSONObject params = TkoUtils.getConditionParams(condition);
-        dataSource.updateData(params, this);
+        dataSource.updateData(condition, this);
     }
     
     public void onGotData(int totalCount) {

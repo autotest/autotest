@@ -23,7 +23,6 @@ import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.Button;
@@ -188,7 +187,7 @@ public class TableView extends ConditionTabView
 
     private void saveOptions(boolean doSaveCondition) {
         if (doSaveCondition) {
-            saveCondition();
+            commonPanel.saveSqlCondition();
         }
         
         fields.clear();
@@ -241,8 +240,8 @@ public class TableView extends ConditionTabView
     @Override
     public void refresh() {
         createTable();
-        String sqlCondition = commonPanel.getSavedCondition();
-        sqlConditionFilter.setParameter("extra_where", new JSONString(sqlCondition));
+        JSONObject condition = commonPanel.getSavedConditionArgs();
+        sqlConditionFilter.setAllParameters(condition);
         table.refresh();
     }
 
@@ -295,7 +294,7 @@ public class TableView extends ConditionTabView
     }
 
     private void doDrilldown(TestSet testSet) {
-        commonPanel.refineCondition(testSet);
+        commonPanel.setCondition(testSet);
         uncheckBothCheckboxes();
         updateCheckboxes();
         selectColumns(DEFAULT_COLUMNS);
@@ -311,7 +310,7 @@ public class TableView extends ConditionTabView
     private TestSet getTestSet(JSONObject row) {
         ConditionTestSet testSet;
         if (isAnyGroupingEnabled()) {
-            testSet = new ConditionTestSet(false, commonPanel.getSavedCondition());
+            testSet = new ConditionTestSet(false, commonPanel.getSavedConditionArgs());
             for (String field : fields) {
                 if (field.equals(TestGroupDataSource.GROUP_COUNT_FIELD) ||
                     field.equals(DataTable.WIDGET_COLUMN)) {
@@ -374,7 +373,7 @@ public class TableView extends ConditionTabView
     }
 
     private ConditionTestSet getWholeTableSet() {
-        return new ConditionTestSet(false, commonPanel.getSavedCondition());
+        return new ConditionTestSet(false, commonPanel.getSavedConditionArgs());
     }
 
     public void onSelectAll(boolean visibleOnly) {
