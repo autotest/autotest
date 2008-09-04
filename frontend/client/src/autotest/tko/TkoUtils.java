@@ -72,4 +72,12 @@ public class TkoUtils {
     static void setElementVisible(String elementId, boolean visible) {
         DOM.getElementById(elementId).getStyle().setProperty("display", visible ? "" : "none");
     }
+
+    static String getSqlCondition(JSONObject args) {
+        final JSONValue condition = args.get("extra_where");
+        if (condition == null) {
+            return "";
+        }
+        return condition.isString().stringValue();
+    }
 }

@@ -8,7 +8,6 @@ import java.util.Map;
 
 abstract class ConditionTabView extends TabView {
     protected static CommonPanel commonPanel = CommonPanel.getPanel();
-    private String lastCondition = "";
     private boolean needsRefresh;
     
     protected void checkForHistoryChanges(Map<String, String> newParameters) {
@@ -17,27 +16,18 @@ abstract class ConditionTabView extends TabView {
         }
     }
     
-    protected void setNeedsRefresh(boolean needsRefresh) {
-        this.needsRefresh = needsRefresh;
-    }
-    
     protected abstract boolean hasFirstQueryOccurred();
     
     @Override
     public void display() {
         ensureInitialized();
         commonPanel.setConditionVisible(true);
-        if (needsRefresh || !commonPanel.getSavedCondition().equals(lastCondition)) {
-            saveCondition();
+        if (needsRefresh) {
+            commonPanel.saveSqlCondition();
             refresh();
             needsRefresh = false;
         }
         visible = true;
-    }
-
-    protected void saveCondition() {
-        commonPanel.saveSqlCondition();
-        lastCondition = commonPanel.getSavedCondition();
     }
 
     @Override

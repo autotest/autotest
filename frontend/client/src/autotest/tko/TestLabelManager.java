@@ -212,4 +212,9 @@ public class TestLabelManager implements ClickListener {
             } 
         });
     }
+
+    public void handleInvalidate(String condition) {
+        currentTestCondition = condition;
+        addOrRemoveLabel("invalidated", true);
+    }
 }
