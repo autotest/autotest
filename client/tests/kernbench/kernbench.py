@@ -8,32 +8,12 @@ class kernbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-        self.iterations = 0
 
 
     def setup(self, build_dir = None):
         if not build_dir:
             build_dir = self.srcdir
         os.mkdir(build_dir)
-
-
-    def warmup(self, threads = None, dir = None, version = None):
-        if not threads:
-            threads = self.job.cpu_count() * 2
-        self.threads = threads
-
-        if dir:
-            self.build_dir = dir
-        else:
-            self.build_dir = os.path.join(self.tmpdir, "src")
-            if not os.path.exists(self.build_dir):
-                os.makedirs(self.build_dir)
-
-        self.__init_tree(self.build_dir, version)
-
-        logfile = os.path.join(self.debugdir, 'build_log')
-        print "Warmup run ... (in %s to %s)" % (self.build_dir, logfile)
-        self.kernel.build_timed(threads, output = logfile)      # warmup run
 
 
     def __init_tree(self, build_dir, version = None):
@@ -78,18 +58,48 @@ class kernbench(test.test):
             tarball = default_ver
 
         # Do the extraction of the kernel tree
-        self.kernel = self.job.kernel(tarball, self.tmpdir, build_dir)
-        utils.system('ls ' + build_dir)
-        self.kernel.config(defconfig=True, logged=False)
+        kernel = self.job.kernel(tarball, self.tmpdir, build_dir)
+        kernel.config(defconfig=True, logged=False)
 
 
-    def run_once(self, threads = None, dir = None, version = None):
+    def execute(self, iterations = 1, threads = None, dir = None, version = None):
+        if not threads:
+            threads = self.job.cpu_count()*2
+        if dir:
+            build_dir = dir
+        else:
+            build_dir = os.path.join(self.tmpdir, "src")
+            if not os.path.exists(build_dir):
+                os.makedirs(build_dir)
 
-        self.iterations += 1
+        self.__init_tree(build_dir, version)
 
-        timefile = os.path.join(self.resultsdir, 'time.%d' % self.iterations)
-        self.kernel.build_timed(threads, timefile)
-        self.kernel.clean(logged=False)    # Don't leave litter lying around
+        kernel = self.job.kernel(build_dir, self.tmpdir, build_dir,
+                                                        leave = True)
+        print "kernbench x %d: %d threads" % (iterations, threads)
+
+        logfile = os.path.join(self.debugdir, 'build_log')
+
+        print "Warmup run ..."
+        kernel.build_timed(threads, output = logfile)      # warmup run
+
+        profilers = self.job.profilers
+        if not profilers.only():
+            for i in range(iterations):
+                print "Performance run, iteration %d ..." % i
+                timefile = os.path.join(self.resultsdir, 'time.%d' % i)
+                kernel.build_timed(threads, timefile)
+
+        # Do a profiling run if necessary
+        if profilers.present():
+            profilers.start(self)
+            print "Profiling run ..."
+            timefile = os.path.join(self.resultsdir, 'time.profile')
+            kernel.build_timed(threads, timefile)
+            profilers.stop(self)
+            profilers.report(self)
+
+        kernel.clean(logged=False)    # Don't leave litter lying around
         os.chdir(self.resultsdir)
         utils.system("grep -h elapsed time.* > time")
 
