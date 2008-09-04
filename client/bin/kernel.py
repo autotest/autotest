@@ -271,6 +271,8 @@ class kernel(object):
                                                     output = '/dev/null'):
         """time the bulding of the kernel"""
         os.chdir(self.build_dir)
+        print 'build_dir: ' + self.build_dir
+        utils.system('ls -l')
         self.set_cross_cc()
 
         self.clean(logged=False)
