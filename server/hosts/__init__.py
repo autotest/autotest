@@ -22,6 +22,7 @@ from kvm_guest import KVMGuest
 # extra logger classes
 from serial import SerialHost
 from netconsole import NetconsoleHost
+from dmesg import DmesgHost
 
 # bootloader classes
 from bootloader import Bootloader
@@ -55,6 +56,8 @@ def create_host(hostname, **args):
 
         if NetconsoleHost.host_is_supported(run_func):
             hosts.append(NetconsoleHost)
+        else:
+            hosts.append(DmesgHost)  # nothing available, fall back to dmesg
 
     # create a custom host class for this machine and make an instance of it
     host_class = type("%s_host" % hostname, tuple(hosts), {})
