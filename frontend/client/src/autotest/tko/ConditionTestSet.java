@@ -2,6 +2,8 @@ package autotest.tko;
 
 import autotest.common.Utils;
 
+import com.google.gwt.json.client.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,13 +12,13 @@ import java.util.Map;
 class ConditionTestSet implements TestSet {
     private Map<String,String> fields = new HashMap<String,String>();
     private boolean isSingleTest;
-    private String initialCondition = "";
+    private JSONObject initialCondition = new JSONObject();
 
     public ConditionTestSet(boolean isSingleTest) {
         this.isSingleTest = isSingleTest;
     }
     
-    public ConditionTestSet(boolean isSingleTest, String initialCondition) {
+    public ConditionTestSet(boolean isSingleTest, JSONObject initialCondition) {
         this(isSingleTest);
         this.initialCondition = initialCondition;
     }
@@ -34,8 +36,9 @@ class ConditionTestSet implements TestSet {
     
     public String getCondition() {
         ArrayList<String> parts = new ArrayList<String>();
-        if (!initialCondition.trim().equals("")) {
-            parts.add(initialCondition);
+        String sqlCondition = TkoUtils.getSqlCondition(initialCondition);
+        if (!sqlCondition.trim().equals("")) {
+            parts.add(sqlCondition);
         }
         
         for (Map.Entry<String, String> entry : fields.entrySet()) {
