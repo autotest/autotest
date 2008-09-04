@@ -17,12 +17,12 @@ INSERT INTO acl_groups (name) VALUES ('my_acl');
 INSERT INTO acl_groups_users (user_id, acl_group_id) VALUES (1, 1);
 
 -- create some hosts
-INSERT INTO hosts (hostname) VALUES ('host1'), ('host2');
+INSERT INTO hosts (hostname) VALUES ('host1'), ('host2'), ('host3'), ('host4');
 -- add hosts to the ACL group
 INSERT INTO acl_groups_hosts (host_id, acl_group_id) VALUES
-  (1, 1), (2, 1);
+  (1, 1), (2, 1), (3, 1), (4, 1);
 
--- create a label for each host and one holding both
+-- create a label for each of two hosts
 INSERT INTO labels (name) VALUES ('label1'), ('label2');
 
 -- add hosts to labels
@@ -129,9 +129,12 @@ class BaseDispatcherTest(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def _create_job(self, hosts=[], metahosts=[], priority=0, active=0):
-        self._do_query('INSERT INTO jobs (name, owner, priority) '
-                       'VALUES ("test", "my_user", %d)' % priority)
+    def _create_job(self, hosts=[], metahosts=[], priority=0, active=0,
+                    synchronous=False):
+        synch_type = synchronous and 2 or 1
+        self._do_query('INSERT INTO jobs (name, owner, priority, synch_type) '
+                       'VALUES ("test", "my_user", %d, %d)' %
+                       (priority, synch_type))
         self._job_counter += 1
         job_id = self._job_counter
         queue_entry_sql = (
@@ -365,6 +368,110 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         self._update_hqe(set='active=1, host_id=2')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
+
+
+class DispatcherThrottlingTest(BaseDispatcherTest):
+    """
+    Test that the dispatcher throttles:
+     * total number of running processes
+     * number of processes started per cycle
+    """
+    _MAX_RUNNING = 3
+    _MAX_STARTED = 2
+
+    def setUp(self):
+        super(DispatcherThrottlingTest, self).setUp()
+        self._dispatcher.max_running_processes = self._MAX_RUNNING
+        self._dispatcher.max_processes_started_per_cycle = self._MAX_STARTED
+
+
+    class DummyAgent(object):
+        _is_running = False
+        _is_done = False
+        num_processes = 1
+
+        def is_running(self):
+            return self._is_running
+
+
+        def tick(self):
+            self._is_running = True
+
+
+        def is_done(self):
+            return self._is_done
+
+
+        def set_done(self, done):
+            self._is_done = done
+            self._is_running = not done
+
+
+    def _setup_some_agents(self, num_agents):
+        self._agents = [self.DummyAgent() for i in xrange(num_agents)]
+        self._dispatcher._agents = list(self._agents)
+
+
+    def _run_a_few_cycles(self):
+        for i in xrange(4):
+            self._dispatcher._handle_agents()
+
+
+    def _assert_agents_started(self, indexes, is_started=True):
+        for i in indexes:
+            self.assert_(self._agents[i].is_running() == is_started,
+                         'Agent %d %sstarted' %
+                         (i, is_started and 'not ' or ''))
+
+
+    def _assert_agents_not_started(self, indexes):
+        self._assert_agents_started(indexes, False)
+
+
+    def test_throttle_total(self):
+        self._setup_some_agents(4)
+        self._run_a_few_cycles()
+        self._assert_agents_started([0, 1, 2])
+        self._assert_agents_not_started([3])
+
+
+    def test_throttle_per_cycle(self):
+        self._setup_some_agents(3)
+        self._dispatcher._handle_agents()
+        self._assert_agents_started([0, 1])
+        self._assert_agents_not_started([2])
+
+
+    def test_throttle_with_synchronous(self):
+        self._setup_some_agents(2)
+        self._agents[0].num_processes = 3
+        self._run_a_few_cycles()
+        self._assert_agents_started([0])
+        self._assert_agents_not_started([1])
+
+
+    def test_large_agent_starvation(self):
+        """
+        Ensure large agents don't get starved by lower-priority agents.
+        """
+        self._setup_some_agents(3)
+        self._agents[1].num_processes = 3
+        self._run_a_few_cycles()
+        self._assert_agents_started([0])
+        self._assert_agents_not_started([1, 2])
+
+        self._agents[0].set_done(True)
+        self._run_a_few_cycles()
+        self._assert_agents_started([1])
+        self._assert_agents_not_started([2])
+
+
+    def test_zero_process_agent(self):
+        self._setup_some_agents(5)
+        self._agents[4].num_processes = 0
+        self._run_a_few_cycles()
+        self._assert_agents_started([0, 1, 2, 4])
+        self._assert_agents_not_started([3])
 
 
 class AbortTest(BaseDispatcherTest):
