@@ -257,16 +257,22 @@ class atest(object):
         and from the space separated add_on strings.
         The opt_list can be space or comma separated list.
         Used for host, acls, labels... arguments"""
+        def __get_items(string, split_on='[\s,]\s*'):
+            return [item.strip() for item in re.split(split_on, string)
+                    if item]
+
         # Start with the add_on
         result = set()
-        [result.add(item)
-         for items in add_on
-         for item in items.split(',')]
+        for items in add_on:
+            # Don't split on space here because the add-on
+            # may have some spaces (like the job name)
+            #result.update(item.strip() for item in items.split(',') if item)
+            result.update(__get_items(items, split_on='[,]'))
 
         # Process the opt_list, if any
         try:
-            args = getattr(options, opt_list)
-            [result.add(arg) for arg in re.split(r'[\s,]', args)]
+            items = getattr(options, opt_list)
+            result.update(__get_items(items))
         except (AttributeError, TypeError):
             pass
 
@@ -276,13 +282,10 @@ class atest(object):
             flist = getattr(options, opt_file)
             file_content = []
             for line in open(flist).readlines():
-                if line == '\n':
-                    continue
-                file_content += re.split(r'[\s,]',
-                                          line.rstrip('\n'))
+                file_content += __get_items(line)
             if len(file_content) == 0:
                 self.invalid_syntax("Empty file %s" % flist)
-            result = result.union(file_content)
+            result.update(file_content)
         except (AttributeError, TypeError):
             pass
         except IOError:
