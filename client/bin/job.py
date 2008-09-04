@@ -689,6 +689,7 @@ class base_job(object):
         # are overshadowed by pickling/loading.
         self.state[var] = copy.deepcopy(val)
         pickle.dump(self.state, open(self.state_file, 'w'))
+        print "Persistant state variable %s now set to %r" % (var, val)
 
 
     def _load_state(self):
