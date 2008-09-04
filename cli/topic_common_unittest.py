@@ -91,6 +91,28 @@ class topic_common_unittest(cli_mock.cli_unittest):
         os.unlink(options.filename)
 
 
+    def test_file_list_one_line_comma_space(self):
+        class opt(object):
+            filename = cli_mock.create_file('a, b c\nd,e\nf\ng h,i')
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
+                                 'f', 'g', 'h', 'i'],
+                                self.atest._file_list(options,
+                                                      opt_file='filename'))
+        os.unlink(options.filename)
+
+
+    def test_file_list_line_end_comma_space(self):
+        class opt(object):
+            filename = cli_mock.create_file('a, b c\nd,e, \nf,\ng h,i ,')
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
+                                 'f', 'g', 'h', 'i'],
+                                self.atest._file_list(options,
+                                                      opt_file='filename'))
+        os.unlink(options.filename)
+
+
     def test_file_list_no_eof(self):
         class opt(object):
             filename = cli_mock.create_file('a\nb\nc')
@@ -138,6 +160,24 @@ class topic_common_unittest(cli_mock.cli_unittest):
                                                       opt_list='alist'))
 
 
+    def test_file_list_opt_list_mix_comma_space(self):
+        class opt(object):
+            alist = 'a b,c, d e'
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e'],
+                                self.atest._file_list(options,
+                                                      opt_list='alist'))
+
+
+    def test_file_list_opt_list_end_comma_space(self):
+        class opt(object):
+            alist = 'a b, ,c,, d e, '
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e'],
+                                self.atest._file_list(options,
+                                                      opt_list='alist'))
+
+
     def test_file_list_add_on_space(self):
         class opt(object):
             pass
@@ -155,6 +195,26 @@ class topic_common_unittest(cli_mock.cli_unittest):
                                 self.atest._file_list(options,
                                                       add_on=['a', 'c',
                                                               'b,d']))
+
+
+    def test_file_list_add_on_mix_comma_space(self):
+        class opt(object):
+            pass
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd'],
+                                self.atest._file_list(options,
+                                                      add_on=['a', 'c',
+                                                              'b,', 'd']))
+
+
+    def test_file_list_add_on_end_comma_space(self):
+        class opt(object):
+            pass
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd'],
+                                self.atest._file_list(options,
+                                                      add_on=['a', 'c', 'b,',
+                                                              'd,', ',']))
 
 
     def test_file_list_all_opt(self):
@@ -205,6 +265,19 @@ class topic_common_unittest(cli_mock.cli_unittest):
         class opt(object):
             afile = cli_mock.create_file('a b c\nd,e\nf\ng')
             alist = 'a b,c,d h'
+        options = opt()
+        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
+                                 'f', 'g', 'h', 'i', 'j'],
+                                self.atest._file_list(options,
+                                                      opt_file='afile',
+                                                      opt_list='alist',
+                                                      add_on=['i','j,d']))
+
+
+    def test_file_list_all_opt_in_common_weird(self):
+        class opt(object):
+            afile = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
+            alist = 'a b,c,d h, ,  ,,	'
         options = opt()
         self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
                                  'f', 'g', 'h', 'i', 'j'],
