@@ -17,8 +17,12 @@ parser.add_option('-C', '--columns', action='store', dest='columns',
 kernel hostname test label machine_group reason tag user status
 ''')
 
-parser.add_option('-c', '--condition', action='store', dest='condition',
-            help = 'the SQL condition to restrict your query by')
+parser.add_option('-c', '--condition', action='store', dest='old_condition',
+            help=("The WHERE condition for the query witten in the 'old style' "
+                  "condition syntax for the original tko"))
+parser.add_option('-w', '--where', action='store', dest='new_condition',
+            help=("The WHERE condition for the query witten in the 'new style' "
+                  "condition syntax for the new tko"))
 parser.add_option('-s', '--separator', action='store', default = ' | ',
             dest='separator', help = 'output separator')
 parser.add_option('-n', '--nocount', action='store_true', default=False,
@@ -30,29 +34,37 @@ parser.add_option('-l', '--logpath', action='store_true', default=False,
 
 (options, args) = parser.parse_args()
 
-if not options.condition:
+if options.old_condition and options.new_condition:
+    msg = 'You cannot specify WHERE clauses in both the old and new style.'
+    parser.error(msg)
+elif options.old_condition:
+    where = query_lib.parse_scrub_and_gen_condition(
+                options.old_condition, frontend.test_view_field_dict)
+    view = 'test_view'
+    tag = 'tag'
+elif options.new_condition:
+    where = options.new_condition.replace('%', '%%')
+    view = 'test_view_2'
+    tag = 'job_tag'
+else:
     parser.error('You must specify at least one condition.')
 
 columns = options.columns.split(',')
 
 url_prefix = rpc.get_autotest_server() + '/results/'
 if options.logpath:
-    if 'tag' not in columns:
-        columns.append('tag')
-    tag_index=columns.index('tag')
+    if tag not in columns:
+        columns.append(tag)
+    tag_index=columns.index(tag)
 
-columns = [frontend.test_view_field_dict.get(field, field) for field in columns]
-
-if options.condition:
-    where = query_lib.parse_scrub_and_gen_condition(
-                options.condition, frontend.test_view_field_dict)
-else:
-    where = None
+if options.old_condition:
+    columns = [frontend.test_view_field_dict.get(field, field)
+               for field in columns]
 
 # Grab the data
 db = db.db()
 count = 0
-for row in db.select(','.join(columns), 'test_view', where):
+for row in db.select(','.join(columns), view, where):
     values = [str(x) for x in row]
     if options.logpath:
         values[tag_index] = url_prefix + values[tag_index]
