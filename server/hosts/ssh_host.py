@@ -338,7 +338,7 @@ class SSHHost(site_host.SiteHost):
 
         print '__copy_files: copying %s to %s' % (sources, dest)
         try:
-            utils.run('rsync --rsh="%s -p %d" -az %s %s' % (
+            utils.run('rsync -L --rsh="%s -p %d" -az %s %s' % (
                 self.ssh_base_command(), self.port, ' '.join(sources), dest))
         except Exception, e:
             print "warning: rsync failed with: %s" % e
