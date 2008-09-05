@@ -4,19 +4,13 @@ from autotest_lib.client.common_lib import utils
 
 
 class kernbench(test.test):
-    version = 2
+    version = 3
 
     def initialize(self):
         self.job.require_gcc()
 
 
-    def setup(self, build_dir = None):
-        if not build_dir:
-            build_dir = self.srcdir
-        os.mkdir(build_dir)
-
-
-    def __init_tree(self, build_dir, version = None):
+    def __init_tree(self, version=None):
         #
         # If we have a local copy of the 2.6.14 tarball use that
         # else let the kernel object use the defined mirrors
@@ -32,21 +26,6 @@ class kernbench(test.test):
         else:
             default_ver = '2.6.14'
 
-        kversionfile = os.path.join(build_dir, ".kversion")
-        install_needed = True
-        if os.path.exists(kversionfile):
-            old_version = pickle.load(open(kversionfile, 'r'))
-            if (old_version == default_ver):
-                install_needed = False
-
-        if not install_needed:
-            return
-
-        # Clear out the old version
-        utils.system("echo rm -rf '" + build_dir + "/*'")
-
-        pickle.dump(default_ver, open(kversionfile, 'w'))
-
         tarball = None
         for dir in (self.bindir, '/usr/local/src'):
             tar = 'linux-%s.tar.bz2' % default_ver
@@ -58,30 +37,23 @@ class kernbench(test.test):
             tarball = default_ver
 
         # Do the extraction of the kernel tree
-        kernel = self.job.kernel(tarball, self.tmpdir, build_dir)
+        kernel = self.job.kernel(tarball, self.outputdir, self.tmpdir)
         kernel.config(defconfig=True, logged=False)
+        return kernel
 
 
-    def execute(self, iterations = 1, threads = None, dir = None, version = None):
+    def execute(self, iterations=1, threads=None, version=None):
         if not threads:
             threads = self.job.cpu_count()*2
-        if dir:
-            build_dir = dir
-        else:
-            build_dir = os.path.join(self.tmpdir, "src")
-            if not os.path.exists(build_dir):
-                os.makedirs(build_dir)
 
-        self.__init_tree(build_dir, version)
+        kernel = self.__init_tree(version)
 
-        kernel = self.job.kernel(build_dir, self.tmpdir, build_dir,
-                                                        leave = True)
         print "kernbench x %d: %d threads" % (iterations, threads)
 
         logfile = os.path.join(self.debugdir, 'build_log')
 
         print "Warmup run ..."
-        kernel.build_timed(threads, output = logfile)      # warmup run
+        kernel.build_timed(threads, output=logfile)      # warmup run
 
         profilers = self.job.profilers
         if not profilers.only():
