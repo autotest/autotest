@@ -316,7 +316,7 @@ class base_server_job(object):
         initialized then this should just work."""
         is_forking = not (len(machines) == 1 and
                           self.machines == machines)
-        if self.parse_job and is_forking:
+        if self.parse_job and is_forking and log:
             def wrapper(machine):
                 self.parse_job += "/" + machine
                 self.using_parser = True
@@ -328,7 +328,7 @@ class base_server_job(object):
                 result = function(machine)
                 self.cleanup_parser()
                 return result
-        elif len(machines) > 1:
+        elif len(machines) > 1 and log:
             def wrapper(machine):
                 self.resultdir = os.path.join(self.resultdir, machine)
                 os.chdir(self.resultdir)
