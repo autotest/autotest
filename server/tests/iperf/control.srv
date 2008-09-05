@@ -17,6 +17,11 @@ udp           - [False/True] specifies if a UDP test should be run. Defaults to
                 TCP if unspecified.
 bidirectional - [False/True] specifies if a bidirectional test should be run.
                 Defaults to False
+test_time     - Specifies how long each iteration of the test should run for.
+stream_list   - A list containing the number of streams to run the test for. If
+                the list is [1,10,100] then the test will run 3 times. If
+                bidirectional is set then there will be the specified number of
+                bidirectional streams.
 """
 
 from autotest_lib.server import utils
