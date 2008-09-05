@@ -50,26 +50,26 @@ class iperf(test.test):
                 # Start server and synchronize on server-up
                 self.server_start()
                 try:
-                    # Wait up to two minutes for the server and client
+                    # Wait up to five minutes for the server and client
                     # to reach this point
-                    self.job.barrier(server_tag, 'start', 120).rendevous(*all)
+                    self.job.barrier(server_tag, 'start', 300).rendevous(*all)
 
                     # Stop the server when the client finishes
-                    # Wait up to test_time + 5 seconds for the task to complete
+                    # Wait up to test_time + one minute
                     self.job.barrier(server_tag, 'finish',
-                                     test_time + 500).rendevous(*all)
+                                     test_time+60).rendevous(*all)
                 finally:
                     self.server_stop()
 
             elif role == 'client':
                 self.ip = socket.gethostbyname(client_ip)
-                # Wait up to two minutes for the server and client
+                # Wait up to five minutes for the server and client
                 # to reach this point
-                self.job.barrier(client_tag, 'start', 120).rendevous(*all)
+                self.job.barrier(client_tag, 'start', 300).rendevous(*all)
                 self.client(server_ip, test_time, num_streams)
 
-                # Wait up to 5 seconds for the server to also reach this point
-                self.job.barrier(client_tag, 'finish', 5).rendevous(*all)
+                # Wait up to 1 minute for the server to also reach this point
+                self.job.barrier(client_tag, 'finish', 60).rendevous(*all)
             else:
                 raise error.TestError('invalid role specified')
 
@@ -98,7 +98,7 @@ class iperf(test.test):
         cmd = self.client_path % (server_ip, args)
         try:
             self.results.append(utils.get_cpu_percentage(
-                utils.system_output, cmd, timeout=test_time+num_streams+5,
+                utils.system_output, cmd, timeout=test_time+60,
                 retain_output=True))
         except error.CmdError, e:
             """ Catch errors due to timeout, but raise others
@@ -110,7 +110,8 @@ class iperf(test.test):
             works for now"""
 
             if 'within' in e.additional_text:
-                self.results.append((None,None))
+                # Results are cpu%, output
+                self.results.append((0, None))
             else:
                 raise
 
@@ -150,19 +151,19 @@ class iperf(test.test):
             if len(self.stream_list) != len(self.results):
                 raise error.TestError('Mismatched number of results')
 
-            keyval = {}
-
             runs = {'Bandwidth_S2C':[], 'Bandwidth_C2S':[],
                     'Jitter_S2C':[], 'Jitter_C2S':[]}
 
-            # Iterate over each stream and add values to the keyval
             for i, streams in enumerate(self.stream_list):
-                keyval['CPU_C_%d' % streams], output  = self.results[i]
+                attr = {'stream_count':streams}
+                keyval = {}
+                keyval['CPU_C'], output  = self.results[i]
 
-                # Handle Errors due to client timeouts
+                # Short circuit to handle errors due to client timeouts
                 if output == None:
                     for key in runs:
-                        keyval['%s_%d' % (key, streams)] = 0
+                        keyval[key] = 0
+                    self.write_iteration_keyval(attr, keyval)
                     continue
 
                 if self.udp:
@@ -197,11 +198,9 @@ class iperf(test.test):
 
                 # Calculate Averages assuming there are values
                 for key in [k for k in runs if len(runs[k]) > 0]:
-                    keyval['%s_%d' % (key, streams)] = (sum(runs[key]) /
-                                                        len(runs[key]))
+                    keyval[key] = sum(runs[key]) / len(runs[key])
 
-            print utils.get_cpu_percentage(list)
-            self.write_perf_keyval(keyval)
+                self.write_iteration_keyval(attr, keyval)
         else:
             # This test currently does not produce a keyval file on the
             # server side. This should be implemented eventually.

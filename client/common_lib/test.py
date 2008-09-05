@@ -208,8 +208,9 @@ class base_test:
                     lockfile.close()
 
                 # Execute:
-                print "Dropping caches before running test"
-                autotest_utils.drop_caches()
+                if self.job.drop_caches:
+                    print "Dropping caches before running test"
+                    autotest_utils.drop_caches()
 
                 os.chdir(self.outputdir)
                 if hasattr(self, 'run_once'):
