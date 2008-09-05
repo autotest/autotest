@@ -1,21 +1,26 @@
-AUTHOR = "mbligh@google.com (Martin Bligh)"
+AUTHOR = "mbligh@google.com (Martin Bligh) and bboe@google.com (Bryce Boe)"
 TIME = "SHORT"
 NAME = "Netperf Multi-machine"
 TEST_CATEGORY = "Stress"
 TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
-netperf_test is a 2 machine test (server/client) that analyzes qos and returns
-the results.
+netperf_test is a 2 machine test (server/client) that measures the performance
+of various network attributes.
 
-The default test takes roughly 10 minutes to run.  The arguments that can be
-passed into the job.run_test are:
+Arguments to run_test:
 
-time_limit       default 600 seconds
-bandwidth_min    default 1000 mbit
-bandwidth_max    default 1000 mbit
-priority         default 2
-container_name   default "/"
+server_ip     - the ip of the server (automatically filled in)
+client_ip     - the ip of the client (automatically filled in)
+role          - specifies either client or server (automatically filled in)
+test          - the list of valid netperf tests that can be run
+                This currently is:
+                   TCP_STREAM, TCP_RR, TCP_CRR, UDP_STREAM, UDP_RR
+test_time     - Specifies how long each iteration of the test should run for.
+stream_list   - A list containing the number of streams to run the test for. If
+                the list is [1,10,100] then the test will run 3 times. If
+                bidirectional is set then there will be the specified number of
+                bidirectional streams.
 """
 
 from autotest_lib.server import utils
@@ -30,8 +35,8 @@ def run(pair):
     client_at = autotest.Autotest(client)
 
     template = ''.join(["job.run_test('netperf2', server_ip='%s', client_ip=",
-                        "'%s', role='%s', test_time=10,",
-                        "stream_list=range(1,6,2))"])
+                        "'%s', role='%s', test='TCP_STREAM', test_time=10,",
+                        "stream_list=[1,10])"])
 
     server_control_file = template % (server.ip, client.ip, 'server')
     client_control_file = template % (server.ip, client.ip, 'client')

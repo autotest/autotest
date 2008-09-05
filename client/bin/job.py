@@ -79,6 +79,7 @@ class base_job(object):
                 harness_type
                         An alternative server harness
         """
+        self.drop_caches = True
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
         self.libdir = os.path.join(self.autodir, 'lib')
