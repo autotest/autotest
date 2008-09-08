@@ -282,6 +282,10 @@ class SSHHost(site_host.SiteHost):
                                          result)
 
 
+    def sysrq_reboot(self):
+        self.run('echo b > /proc/sysrq-trigger &')
+
+
     def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,
                kernel_args=None, wait=True, **dargs):
         """
