@@ -225,9 +225,7 @@ def get_cpu_arch():
         return 'power6'
     elif list_grep(cpuinfo, '^cpu.*PPC970'):
         return 'power970'
-    elif list_grep(cpuinfo, 'Opteron'):
-        return 'x86_64'
-    elif list_grep(cpuinfo, 'GenuineIntel') and list_grep(cpuinfo, '48 bits virtual'):
+    elif list_grep(cpuinfo, '^flags.*:.* lm .*'):
         return 'x86_64'
     else:
         return 'i386'
