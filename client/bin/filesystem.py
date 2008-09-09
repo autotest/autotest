@@ -23,12 +23,27 @@ def list_mount_points():
     return mountpoints
 
 
+def get_iosched_path(device_name, component):
+    return '/sys/block/%s/queue/%s' % (device_name, component)
+
+
+def wipe_filesystem(job, mountpoint):
+    wipe_cmd = 'rm -rf %s/*' % mountpoint
+    try:
+        utils.system(wipe_cmd)
+    except:
+        job.record('FAIL', None, wipe_cmd, error.format_error())
+        raise
+    else:
+        job.record('GOOD', None, wipe_cmd)
+
+
 class filesystem:
     """
     Class for handling filesystems
     """
 
-    def __init__(self, job, device, mountpoint, loop_size = 0):
+    def __init__(self, job, device, mountpoint, loop_size=0):
         """
         device should be able to be a file as well
         which we mount as loopback
@@ -61,7 +76,7 @@ class filesystem:
                                             (device, loop_size))
 
 
-    def mkfs(self, fstype = 'ext2', args = ''):
+    def mkfs(self, fstype='ext2', args=''):
         """
         Format a partition to fstype
         """
@@ -71,9 +86,9 @@ class filesystem:
             args += ' -f'
         if self.loop:
             # BAH. Inconsistent mkfs syntax SUCKS.
-            if fstype == 'ext2' or fstype == 'ext3':
+            if fstype.startswith('ext'):
                 args += ' -F'
-            if fstype == 'reiserfs':
+            elif fstype == 'reiserfs':
                 args += ' -f'
         args = args.lstrip()
         mkfs_cmd = "mkfs -t %s %s %s" % (fstype, args, self.device)
@@ -89,7 +104,7 @@ class filesystem:
             self.fstype = fstype
 
 
-    def fsck(self, args = '-n'):
+    def fsck(self, args='-n'):
         # I hate reiserfstools.
         # Requires an explit Yes for some inane reason
         fsck_cmd = 'fsck %s %s' % (self.device, args)
@@ -106,15 +121,20 @@ class filesystem:
             self.job.record('GOOD', None, fsck_cmd)
 
 
-    def mount(self, mountpoint = None, args = ''):
-        if self.fstype:
-            args += ' -t ' + self.fstype
+    def mount(self, mountpoint=None, fstype=None, args=''):
+        if fstype is None:
+            fstype = self.fstype
+        else:
+            assert(self.fstype == None or self.fstype == fstype);
+        if fstype:
+            args += ' -t ' + fstype
         if self.loop:
             args += ' -o loop'
         args = args.lstrip()
 
         if not mountpoint:
             mountpoint = self.mountpoint
+
         mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
 
         if list_mount_devices().count(self.device):
@@ -135,6 +155,8 @@ class filesystem:
             raise
         else:
             self.job.record('GOOD', None, mount_cmd)
+            self.mountpoint = mountpoint
+            self.fstype = fstype
 
 
     def unmount(self, handle=None):
@@ -150,6 +172,10 @@ class filesystem:
             raise
         else:
             self.job.record('GOOD', None, umount_cmd)
+
+
+    def wipe(self):
+        wipe_filesystem(self.job, self.mountpoint)
 
 
     def get_io_scheduler_list(self, device_name):
