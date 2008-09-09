@@ -68,7 +68,7 @@ class DmesgHost(remote.RemoteHost):
                                                     stderr=devnull_w)
 
         r, w = os.pipe()
-        script_path = os.path.join(self.serverdir, "warning_monitor.py")
+        script_path = os.path.join(self.monitordir, "console.py")
         cmd = [sys.executable, script_path, self.__console_log, str(w)]
 
         self.__warning_stream = os.fdopen(r, "r", 0)
