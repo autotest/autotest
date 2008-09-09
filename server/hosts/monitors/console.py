@@ -1,3 +1,13 @@
+# Script for translating console output (from STDIN) into Autotest
+# warning messages.
+#
+# Usage:
+#    python console.py <logfile_name> <warn_fd>
+#
+#    logfile_name - a filename to log all console output to
+#    warn_fd - a file descriptor that warning messages can be written to
+
+
 import sys, re, os, time
 
 
@@ -15,7 +25,7 @@ def make_alert(msg):
     return alert
 
 
-pattern_file = os.path.join(os.path.dirname(__file__), 'warning_patterns')
+pattern_file = os.path.join(os.path.dirname(__file__), 'console_patterns')
 pattern_lines = open(pattern_file).readlines()
 
 # expected pattern format:
