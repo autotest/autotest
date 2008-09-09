@@ -1309,11 +1309,26 @@ class QueueTask(AgentTask):
 
 
     @staticmethod
-    def _write_keyval(results_dir, field, value):
-        key_path = os.path.join(results_dir, 'keyval')
+    def _write_keyval(keyval_dir, field, value, keyval_filename='keyval'):
+        key_path = os.path.join(keyval_dir, keyval_filename)
         keyval_file = open(key_path, 'a')
-        print >> keyval_file, '%s=%d' % (field, value)
+        print >> keyval_file, '%s=%s' % (field, str(value))
         keyval_file.close()
+
+
+    def _host_keyval_dir(self):
+        return os.path.join(self.results_dir(), 'host_keyvals')
+
+
+    def _write_host_keyval(self, host):
+        labels = ','.join(host.labels())
+        self._write_keyval(self._host_keyval_dir(), 'labels', labels,
+                           keyval_filename=host.hostname)
+
+    def _create_host_keyval_dir(self):
+        directory = self._host_keyval_dir()
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
 
     def results_dir(self):
@@ -1334,9 +1349,11 @@ class QueueTask(AgentTask):
         # write some job timestamps into the job keyval file
         queued = time.mktime(self.job.created_on.timetuple())
         started = time.time()
-        self._write_keyval(self.results_dir(), "job_queued", queued)
-        self._write_keyval(self.results_dir(), "job_started", started)
+        self._write_keyval(self.results_dir(), "job_queued", int(queued))
+        self._write_keyval(self.results_dir(), "job_started", int(started))
+        self._create_host_keyval_dir()
         for queue_entry in self.queue_entries:
+            self._write_host_keyval(queue_entry.host)
             print "starting queue_task on %s/%s" % (queue_entry.host.hostname, queue_entry.id)
             queue_entry.set_status('Running')
             queue_entry.host.set_status('Running')
@@ -1350,7 +1367,7 @@ class QueueTask(AgentTask):
         # write out the finished time into the results keyval
         finished = time.time()
         self._write_keyval(self.results_dir(), "job_finished",
-                           finished)
+                           int(finished))
 
         # parse the results of the job
         if self.job.is_synchronous() or self.job.num_machines() == 1:
@@ -1607,6 +1624,21 @@ class Host(DBObject):
     def set_status(self,status):
         print '%s -> %s' % (self.hostname, status)
         self.update_field('status',status)
+
+
+    def labels(self):
+        """
+        Fetch a list of names of all non-platform labels associated with this
+        host.
+        """
+        rows = _db.execute("""
+                SELECT labels.name
+                FROM labels
+                INNER JOIN hosts_labels ON labels.id = hosts_labels.label_id
+                WHERE NOT labels.platform AND hosts_labels.host_id = %s
+                ORDER BY labels.name
+                """, (self.id,))
+        return [row[0] for row in rows]
 
 
 class HostQueueEntry(DBObject):
