@@ -18,7 +18,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import re, time
+import os, re, time
 
 from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.server import utils
@@ -60,6 +60,7 @@ class Host(object):
                  *args, **dargs):
         super(Host, self).__init__(*args, **dargs)
         self.serverdir = utils.get_server_dir()
+        self.monitordir = os.path.join(os.path.dirname(__file__), "monitors")
         self.bootloader = bootloader.Bootloader(self)
         self.env = {}
         self.initialize = initialize

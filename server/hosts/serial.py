@@ -65,8 +65,7 @@ class SerialHost(site_host.SiteHost):
             return
 
         r, w = os.pipe()
-        script_path = os.path.join(self.serverdir,
-                                   'warning_monitor.py')
+        script_path = os.path.join(self.monitordir, 'console.py')
         cmd = [self.conmux_attach, self.get_conmux_hostname(),
                '%s %s %s %d' % (sys.executable, script_path,
                                 self.__console_log, w)]
