@@ -11,6 +11,12 @@ but it's pretty good, and consistency goes a long way in making the project
 maintainable. (Obviously using C or whatever for writing tests is fine).
 
 
+Base coding style
+
+When writing python code, unless otherwise stated, stick to the python style 
+guide (http://www.python.org/dev/peps/pep-0008/).
+
+
 Indentation & whitespace
 
 Format your code for an 80 character wide screen.
