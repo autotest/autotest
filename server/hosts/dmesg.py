@@ -37,6 +37,9 @@ class DmesgHost(remote.RemoteHost):
     def start_loggers(self):
         super(DmesgHost, self).start_loggers()
 
+        devnull_r = open(os.devnull, "r")
+        devnull_w = open(os.devnull, "w")
+
         if os.path.exists(self.__console_log):
             # find the last log line we've processed
             log_file = open(self.__console_log)
@@ -45,7 +48,9 @@ class DmesgHost(remote.RemoteHost):
             # determine what line in kern.log to start processing from
             start_line = 1
             if self.__last_line:
-                existing_log = self.run("cat /var/log/kern.log").stdout
+                existing_log = self.run("cat /var/log/kern.log",
+                                        stdout_tee=devnull_w,
+                                        stderr_tee=devnull_w).stdout
                 log_lines = existing_log.split("\n")
                 for i, line in reversed(list(enumerate(log_lines))):
                     if self.__last_line == line:
@@ -55,11 +60,10 @@ class DmesgHost(remote.RemoteHost):
         else:
             # we haven't started logging yet; start from the END of the
             # current log, anything in it is pre-test anyway
-            self.__last_line = self.run("tail -n -1 /var/log/kern.log").stdout
+            self.__last_line = self.run("tail -n -1 /var/log/kern.log",
+                                        stdout_tee=devnull_w,
+                                        stderr_tee=devnull_w).stdout
             start_line = "-0"
-
-        devnull_r = open(os.devnull, "r")
-        devnull_w = open(os.devnull, "w")
 
         tail_cmd = "tail -n %s --retry --follow=name /var/log/kern.log"
         self.__tail_logger = self.__run_cmd_on_host(tail_cmd % start_line,
