@@ -42,7 +42,7 @@ class DmesgHost(remote.RemoteHost):
         devnull_r = open(os.devnull, "r")
         devnull_w = open(os.devnull, "w")
 
-        if os.path.exists(self.__console_log):
+        if self.__last_line is not None and os.path.exists(self.__console_log):
             # find the last log line we've processed
             log_file = open(self.__console_log)
             for line in log_file:
@@ -65,6 +65,7 @@ class DmesgHost(remote.RemoteHost):
             self.__last_line = self.run("tail -n -1 /var/log/kern.log",
                                         stdout_tee=devnull_w,
                                         stderr_tee=devnull_w).stdout
+            self.__last_line = self.__last_line.rstrip("\n")
             start_line = "-0"
 
         tail_cmd = "tail -n %s --retry --follow=name /var/log/kern.log"
