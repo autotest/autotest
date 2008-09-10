@@ -33,20 +33,23 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
     equivalent to 'cat file | command' but knows to use
     zcat or bzcat if appropriate
     """
+    if not os.path.isfile(file):
+        raise NameError('invalid file %s to cat to command %s'
+                % (file, command))
+
     if return_output:
         run_cmd = utils.system_output
     else:
         run_cmd = utils.system
 
-    if not os.path.isfile(file):
-        raise NameError('invalid file %s to cat to command %s'
-                % (file, command))
     if file.endswith('.bz2'):
-        return run_cmd('bzcat ' + file + ' | ' + command, ignore_status)
+        cat = 'bzcat'
     elif (file.endswith('.gz') or file.endswith('.tgz')):
-        return run_cmd('zcat ' + file + ' | ' + command, ignore_status)
+        cat = 'zcat'
     else:
-        return run_cmd('cat ' + file + ' | ' + command, ignore_status)
+        cat = 'cat'
+    return run_cmd('%s %s | %s' % (cat, file, command),
+                                                    ignore_status=ignore_status)
 
 
 def extract_tarball_to_dir(tarball, dir):
