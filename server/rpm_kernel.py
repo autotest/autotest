@@ -32,7 +32,7 @@ class RPMKernel(kernel.Kernel):
     def __init__(self):
         super(RPMKernel, self).__init__()
 
-    def install(self, host, label='autoserv',
+    def install(self, host, label='autotest',
                 default=False, kernel_args = '', install_vmlinux=False):
         """
         Install a kernel on the remote host.

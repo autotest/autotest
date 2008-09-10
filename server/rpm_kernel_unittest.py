@@ -40,10 +40,10 @@ class TestRpmKernel(unittest.TestCase):
         host.send_file.expect_call(rpm, remote_rpm)
         host.run.expect_call('rpm -e ' + rpm_package, ignore_status = True)
         host.run.expect_call('rpm --force -i ' + remote_rpm)
-        host.bootloader.remove_kernel.expect_call('autoserv')
-        host.bootloader.add_kernel.expect_call("vmlinuz", 'autoserv',
+        host.bootloader.remove_kernel.expect_call('autotest')
+        host.bootloader.add_kernel.expect_call("vmlinuz", 'autotest',
                                                args='', default=False)
-        host.bootloader.boot_once.expect_call('autoserv')
+        host.bootloader.boot_once.expect_call('autotest')
 
         # run and test
         self.kernel.install(host)
