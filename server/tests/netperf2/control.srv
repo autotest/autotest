@@ -15,7 +15,7 @@ client_ip     - the ip of the client (automatically filled in)
 role          - specifies either client or server (automatically filled in)
 test          - the list of valid netperf tests that can be run
                 This currently is:
-                   TCP_STREAM, TCP_RR, TCP_CRR, UDP_STREAM, UDP_RR
+                  TCP_STREAM, TCP_SENDFILE, TCP_RR, TCP_CRR, UDP_STREAM, UDP_RR
 test_time     - Specifies how long each iteration of the test should run for.
 stream_list   - A list containing the number of streams to run the test for. If
                 the list is [1,10,100] then the test will run 3 times. If
