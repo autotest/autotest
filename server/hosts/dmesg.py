@@ -29,14 +29,16 @@ class DmesgHost(remote.RemoteHost):
 
     def reboot_followup(self, *args, **dargs):
         super(DmesgHost, self).reboot_followup(*args, **dargs)
-
-        self.stop_loggers()
-        self.start_loggers()
+        self.__stop_loggers()
+        self.__start_loggers()
 
 
     def start_loggers(self):
         super(DmesgHost, self).start_loggers()
+        self.__start_loggers()
 
+
+    def __start_loggers(self):
         devnull_r = open(os.devnull, "r")
         devnull_w = open(os.devnull, "w")
 
@@ -86,7 +88,10 @@ class DmesgHost(remote.RemoteHost):
 
     def stop_loggers(self):
         super(DmesgHost, self).stop_loggers()
+        self.__stop_loggers()
 
+
+    def __stop_loggers(self):
         if self.__logger:
             utils.nuke_subprocess(self.__logger)
             utils.nuke_subprocess(self.__tail_logger)
