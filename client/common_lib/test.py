@@ -236,12 +236,13 @@ class base_test:
 
             # run the cleanup, and then restore the job.std* streams
             try:
+                p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
                 # if an exception occurs during the cleanup() call, we
                 # don't want it to override an existing exception
                 # (i.e. exc_info) that was thrown by the test execution
                 if exc_info:
                     try:
-                        self.cleanup()
+                        self.cleanup(*p_args, **p_dargs)
                     finally:
                         try:
                             raise exc_info[0], exc_info[1], exc_info[2]
@@ -252,7 +253,7 @@ class base_test:
                             # and this stack frame (which refs exc_info[2])
                             del exc_info
                 else:
-                    self.cleanup()
+                    self.cleanup(*p_args, **p_dargs)
             finally:
                 self.job.stderr.restore()
                 self.job.stdout.restore()
