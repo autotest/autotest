@@ -25,7 +25,7 @@ class netperf2(test.test):
         self.client_path = '%s %%s %%s' % os.path.join(self.srcdir,
                                                        'src/netperf -H')
 
-        self.valid_tests = ['TCP_STREAM', 'TCP_RR', 'TCP_CRR',
+        self.valid_tests = ['TCP_STREAM', 'TCP_RR', 'TCP_CRR', 'TCP_SENDFILE',
                             'UDP_STREAM', 'UDP_RR']
         self.results = []
 
@@ -112,7 +112,7 @@ class netperf2(test.test):
 
             # Each of the functions return tuples in which the keys define
             # what that item in the tuple represents
-            if self.test == 'TCP_STREAM':
+            if self.test in ['TCP_STREAM', 'TCP_SENDFILE']:
                 function = self.process_tcp_stream
                 keys = ('Throughput',)
             elif self.test == 'UDP_STREAM':
@@ -154,7 +154,8 @@ class netperf2(test.test):
 
 
     def process_tcp_stream(self, output):
-        """Parses the following and returns a singleton containing throughput.
+        """Parses the following (works for both TCP_STREAM and TCP_SENDFILE)
+        and returns a singleton containing throughput.
 
         TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to kcqz13.prod.google.com (10.75.222.13) port 0 AF_INET
         Recv   Send    Send
