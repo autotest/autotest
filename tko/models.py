@@ -76,6 +76,9 @@ class test(object):
             iterations = []
             attributes = {}
 
+        # grab test+host attributes from the host keyval
+        attributes.update(cls.parse_host_keyval(job.dir, job.machine))
+
         if existing_instance:
             def constructor(*args, **dargs):
                 existing_instance.__init__(*args, **dargs)
@@ -107,6 +110,23 @@ class test(object):
         if not os.path.exists(keyval_path):
             return {}
         return utils.read_keyval(keyval_path)
+
+
+    @staticmethod
+    def parse_host_keyval(job_dir, hostname):
+        # the "real" job dir may be higher up in the directory tree
+        while not os.path.exists(os.path.join(job_dir, ".autoserv_execute")):
+            if job_dir == "/":
+                return {} # we can't find the "real" job dir
+            job_dir = os.path.normpath(os.path.join(job_dir, ".."))
+
+        # the keyval is <job_dir>/host_keyvals/<hostname> if it exists
+        keyval_path = os.path.join(job_dir, "host_keyvals", hostname)
+        if os.path.isfile(keyval_path):
+            keyval = utils.read_keyval(keyval_path)
+            return dict(("host-%s" % k, v) for k, v in keyval.iteritems())
+        else:
+            return {}
 
 
 class patch(object):

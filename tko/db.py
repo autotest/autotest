@@ -242,7 +242,7 @@ class db_sql(object):
                 self.con.commit()
 
 
-    def insert(self, table, data, commit = None):
+    def insert(self, table, data, commit=None):
         """\
                 'insert into table (keys) values (%s ... %s)', values
 
@@ -339,6 +339,10 @@ class db_sql(object):
         if hasattr(test, "test_idx"):
             test_idx = test.test_idx
             self.update('tests', data, {'test_idx': test_idx}, commit=commit)
+            where = {'test_idx': test_idx}
+            self.delete('iteration_result', where)
+            self.delete('iteration_attributes', where)
+            self.delete('test_attributes', where)
         else:
             self.insert('tests', data, commit=commit)
             test_idx = test.test_idx = self.get_last_autonumber_value()
