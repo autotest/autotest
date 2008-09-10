@@ -286,7 +286,7 @@ class SSHHost(site_host.SiteHost):
         self.run('echo b > /proc/sysrq-trigger &')
 
 
-    def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=None,
+    def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label='autotest',
                kernel_args=None, wait=True, **dargs):
         """
         Reboot the remote host.
