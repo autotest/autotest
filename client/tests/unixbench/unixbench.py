@@ -8,7 +8,8 @@ class unixbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-        self.keyval = open(self.resultsdir + '/keyval', 'w')
+        keyval_path = os.path.join(self.resultsdir, 'keyval')
+        self.keyval = open(keyval_path, 'w')
         self.err = None
 
 
@@ -22,7 +23,7 @@ class unixbench(test.test):
         utils.system('make')
 
 
-    def run_once(self, args = '', stepsecs=0):
+    def run_once(self, args='', stepsecs=0):
         vars = ('TMPDIR=\"%s\" RESULTDIR=\"%s\"' %
                (self.tmpdir, self.resultsdir))
         if stepsecs:
@@ -35,8 +36,8 @@ class unixbench(test.test):
         os.chdir(self.srcdir)
         utils.system(vars + ' ./Run ' + args)
 
-        report_path = os.path.join(self.resultsdir + '/report')
-        report = open(report_path, 'a')
+        report_path = os.path.join(self.resultsdir, 'report')
+        report = open(report_path, 'r')
         self.format_results(report, self.keyval)
 
 
@@ -82,11 +83,6 @@ class unixbench(test.test):
             if 'FINAL SCORE' in line:
                 print >> keyval, 'score=%s\n' % line.split()[-1]
                 break
-
-
-if __name__ == '__main__':
-    import sys
-    unixbench.format_results(sys.stdin, sys.stdout)
 
 
 """ Here is a sample report file:
