@@ -39,6 +39,11 @@ class DmesgHost(remote.RemoteHost):
 
 
     def __start_loggers(self):
+        # check if /var/log/kern.log is available, and don't bother doing
+        # anything if it's not
+        if self.run("ls /var/log/kern.log", ignore_status=True).exit_status:
+            return
+
         devnull_r = open(os.devnull, "r")
         devnull_w = open(os.devnull, "w")
 
