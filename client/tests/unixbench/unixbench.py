@@ -37,7 +37,7 @@ class unixbench(test.test):
         utils.system(vars + ' ./Run ' + args)
 
         report_path = os.path.join(self.resultsdir, 'report')
-        report = open(report_path, 'r')
+        report = open(report_path)
         self.format_results(report, self.keyval)
 
 
