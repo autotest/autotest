@@ -83,14 +83,14 @@ class SSHHost(site_host.SiteHost):
         """
         super(SSHHost, self).__del__()
 
+        self.stop_loggers()
+
         if hasattr(self, 'tmp_dirs'):
             for dir in self.tmp_dirs:
                 try:
                     self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
                 except error.AutoservRunError:
                     pass
-
-        self.stop_loggers()
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
