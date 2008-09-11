@@ -24,17 +24,20 @@ class ReadOnlyConnection(object):
 
     def _save_django_state(self):
         self._old_connection = django_connection.connection
+        self._old_host = settings.DATABASE_HOST
         self._old_username = settings.DATABASE_USER
         self._old_password = settings.DATABASE_PASSWORD
 
 
     def _restore_django_state(self):
         django_connection.connection = self._old_connection
+        settings.DATABASE_HOST = self._old_host
         settings.DATABASE_USER = self._old_username
         settings.DATABASE_PASSWORD = self._old_password
 
 
     def _get_readonly_connection(self):
+        settings.DATABASE_HOST = settings.DATABASE_READONLY_HOST
         settings.DATABASE_USER = settings.DATABASE_READONLY_USER
         settings.DATABASE_PASSWORD = settings.DATABASE_READONLY_PASSWORD
         django_connection.connection = None
