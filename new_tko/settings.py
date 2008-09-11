@@ -26,6 +26,8 @@ DATABASE_NAME = c.get_config_value(_section, "database")
 DATABASE_USER = c.get_config_value(_section, "user")
 DATABASE_PASSWORD = c.get_config_value(_section, "password")
 
+DATABASE_READONLY_HOST = c.get_config_value(_section, "readonly_host",
+                                            default=DATABASE_HOST)
 DATABASE_READONLY_USER = c.get_config_value(_section, "readonly_user",
                                             default=DATABASE_USER)
 DATABASE_READONLY_PASSWORD = c.get_config_value(_section, "readonly_password",
