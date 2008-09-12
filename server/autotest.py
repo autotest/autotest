@@ -341,8 +341,8 @@ class BaseAutotest(installable_object.InstallableObject):
         self.run(control, results_dir, host, timeout=timeout, tag=tag)
 
 
-    def run_test(self, test_name, results_dir='.', host=None,
-                                                      tag=None, *args, **dargs):
+    def run_test(self, test_name, results_dir='.', host=None, tag=None,
+                 *args, **dargs):
         self.run_timed_test(test_name, results_dir, host, timeout=None,
                             tag=tag, *args, **dargs)
 
@@ -452,8 +452,8 @@ class _Run(object):
                 print "Client is rebooting"
                 print "Waiting for client to halt"
                 if not self.host.wait_down(HALT_TIME):
-                    err = "%s failed to shutdown after %d" % \
-                                                (self.host.hostname, HALT_TIME)
+                    err = "%s failed to shutdown after %d"
+                    err %= (self.host.hostname, HALT_TIME)
                     raise error.AutotestRunError(err)
                 print "Client down, waiting for restart"
                 if not self.host.wait_up(BOOT_TIME):
@@ -496,8 +496,8 @@ def _get_autodir(host):
         pass
     for path in ['/usr/local/autotest', '/home/autotest']:
         try:
-            host.run('ls %s > /dev/null 2>&1' % \
-                                             os.path.join(path, 'bin/autotest'))
+            host.run('ls %s > /dev/null 2>&1' %
+                     os.path.join(path, 'bin/autotest'))
             return path
         except error.AutoservRunError:
             pass
