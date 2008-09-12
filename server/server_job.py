@@ -699,6 +699,15 @@ class base_server_job(object):
             print >> sys.stderr, msg
 
 
+
+    def collect_client_job_results(self):
+        """ A method that collects all the current results of a running
+        client job into the results dir. By default does nothing as no
+        client job is running, but when running a client job you can override
+        this with something that will actually do something. """
+        pass
+
+
 # a file-like object for catching stderr from an autotest client and
 # extracting status logs from it
 class client_logger(object):
@@ -707,10 +716,12 @@ class client_logger(object):
     utils.run() actually calls.
     """
     parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
+    test_complete = re.compile(r"^AUTOTEST_TEST_COMPLETE$")
     extract_indent = re.compile(r"^(\t*).*$")
 
-    def __init__(self, job):
-        self.job = job
+    def __init__(self, host):
+        self.host = host
+        self.job = host.job
         self.leftover = ""
         self.last_line = ""
         self.logs = {}
@@ -772,6 +783,10 @@ class client_logger(object):
         if match:
             tag, line = match.groups()
             self._process_quoted_line(tag, line)
+        elif self.test_complete.search(line):
+            self.job.collect_client_job_results()
+            fifo = os.path.join(self.host.get_autodir(), "autoserv.fifo")
+            self.host.run("echo A > %s" % fifo)
         else:
             print line
 

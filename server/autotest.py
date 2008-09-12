@@ -42,8 +42,6 @@ class BaseAutotest(installable_object.InstallableObject):
     This is a leaf class in an abstract class hierarchy, it must
     implement the unimplemented methods in parent classes.
     """
-    job = None
-
 
     def __init__(self, host = None):
         self.host = host
@@ -300,29 +298,36 @@ class BaseAutotest(installable_object.InstallableObject):
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
             os.remove(tmppath)
 
+        collect_func = lambda: self._collect_results(atrun, host, results_dir)
+        host.job.collect_client_job_results = collect_func
         try:
             atrun.execute_control(timeout=timeout)
         finally:
-            # make an effort to wait for the machine to come up
-            try:
-                host.wait_up(timeout=30)
-            except error.AutoservError:
-                # don't worry about any errors, we'll try and
-                # get the results anyway
-                pass
+            del host.job.collect_client_job_results
+            collect_func()
 
-            # get the results
-            if not atrun.tag:
-                results = os.path.join(atrun.autodir, 'results', 'default')
-            else:
-                results = os.path.join(atrun.autodir, 'results', atrun.tag)
 
-            # Copy all dirs in default to results_dir
-            keyval_path = self.prepare_for_copying_logs(results, results_dir,
-                                                        host)
-            host.get_file(results + '/', results_dir)
-            self.process_copied_logs(results_dir, host, keyval_path)
-            self.postprocess_copied_logs(results, host)
+    def _collect_results(self, atrun, host, results_dir):
+        # make an effort to wait for the machine to come up
+        try:
+            host.wait_up(timeout=30)
+        except error.AutoservError:
+            # don't worry about any errors, we'll try and
+            # get the results anyway
+            pass
+
+        # get the results
+        if not atrun.tag:
+            results = os.path.join(atrun.autodir, 'results', 'default')
+        else:
+            results = os.path.join(atrun.autodir, 'results', atrun.tag)
+
+        # Copy all dirs in default to results_dir
+        keyval_path = self.prepare_for_copying_logs(results, results_dir,
+                                                    host)
+        host.get_file(results + '/', results_dir)
+        self.process_copied_logs(results_dir, host, keyval_path)
+        self.postprocess_copied_logs(results, host)
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
@@ -384,7 +389,8 @@ class _Run(object):
 
     def get_full_cmd(self, section):
         # build up the full command we want to run over the host
-        cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
+        cmd = [os.path.join(self.autodir, 'bin/autotest_client'),
+               '-H autoserv']
         if section > 0:
             cmd.append('-c')
         if self.tag:
@@ -408,7 +414,7 @@ class _Run(object):
 
         full_cmd = self.get_full_cmd(section)
         client_log = self.get_client_log(section)
-        redirector = server_job.client_logger(self.host.job)
+        redirector = server_job.client_logger(self.host)
 
         try:
             old_resultdir = self.host.job.resultdir

@@ -4,7 +4,7 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 import unittest, os, tempfile
 import common
-from autotest_lib.server import autotest, utils, hosts
+from autotest_lib.server import autotest, utils, hosts, server_job
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib.test_utils import mock
 
@@ -17,6 +17,8 @@ class TestBaseAutotest(unittest.TestCase):
         # create mock host object
         self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
         self.host.hostname = "hostname"
+        self.host.job = self.god.create_mock_class(server_job.server_job,
+                                                   "job")
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
