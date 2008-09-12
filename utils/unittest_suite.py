@@ -22,6 +22,7 @@ LONG_TESTS = set((
     'barrier_unittest.py',
     'migrate_unittest.py',
     'frontend_unittest.py',
+    'client_compilation_unittest.py'
     ))
 
 DEPENDENCIES = {
