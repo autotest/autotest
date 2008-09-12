@@ -23,9 +23,9 @@ __tmp_dirs = {}
 
 ############# we need pass throughs for the methods in client/common_lib/utils
 def run(command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None):
+        stdout_tee=None, stderr_tee=None, verbose=True):
     return utils.run(command, timeout, ignore_status,
-                     stdout_tee, stderr_tee)
+                     stdout_tee, stderr_tee, verbose)
 
 
 def system(command, timeout=None, ignore_status=False):

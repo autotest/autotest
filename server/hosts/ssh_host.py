@@ -133,7 +133,8 @@ class SSHHost(site_host.SiteHost):
             env = "export %s;" % env
         full_cmd = '%s "%s;%s %s"' % (ssh_cmd, echo_cmd, env,
                                       utils.sh_escape(command))
-        result = utils.run(full_cmd, timeout, True, stdout, stderr)
+        result = utils.run(full_cmd, timeout, True, stdout, stderr,
+                           verbose=False)
 
         # The error messages will show up in band (indistinguishable
         # from stuff sent through the SSH connection), so we have the
