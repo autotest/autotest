@@ -63,4 +63,4 @@ for failure in failures:
     job.record("FAIL", failure[0], "netpipe", failure[1])
 
 # now run through each pair and run
-parallel_simple(run, pairs, log=False)
+job.parallel_simple(run, pairs, log=False)
