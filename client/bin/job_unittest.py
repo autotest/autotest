@@ -337,6 +337,7 @@ class TestBaseJob(unittest.TestCase):
         self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
+        self.job.harness.run_test_complete.expect_call()
 
         # run and check
         self.job.run_test(testname)
@@ -371,6 +372,7 @@ class TestBaseJob(unittest.TestCase):
         self.job.record.expect_call("ERROR", testname, testname, reason)
         self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ERROR", testname, testname, reason)
+        self.job.harness.run_test_complete.expect_call()
 
         # run and check
         self.job.run_test(testname)

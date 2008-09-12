@@ -65,6 +65,13 @@ class harness(object):
         pass
 
 
+    def run_test_complete(self):
+        """A test run by this job is complete. Note that if multiple
+        tests are run in parallel, this will only be called when all
+        of the parallel runs complete."""
+        pass
+
+
     def test_status(self, status, tag):
         """A test within this job is completing"""
         pass

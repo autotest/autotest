@@ -28,6 +28,22 @@ class NotAvailableError(error.AutotestError):
     pass
 
 
+
+def _run_test_complete_on_exit(f):
+    """Decorator for job methods that automatically calls
+    self.harness.run_test_complete when the method exits, if appropriate."""
+    def wrapped(self, *args, **dargs):
+        try:
+            return f(self, *args, **dargs)
+        finally:
+            if self.log_filename == self.DEFAULT_LOG_FILENAME:
+                self.harness.run_test_complete()
+    wrapped.__name__ = f.__name__
+    wrapped.__doc__ = f.__doc__
+    wrapped.__dict__.update(f.__dict__)
+    return wrapped
+
+
 class base_job(object):
     """The actual job against which we do everything.
 
@@ -349,6 +365,7 @@ class base_job(object):
             raise error.UnhandledTestError(e)
 
 
+    @_run_test_complete_on_exit
     def run_test(self, url, *args, **dargs):
         """Summon a test object and run it.
 
@@ -628,6 +645,7 @@ class base_job(object):
         print "job: noop: " + text
 
 
+    @_run_test_complete_on_exit
     def parallel(self, *tasklist):
         """Run tasks in parallel"""
 
