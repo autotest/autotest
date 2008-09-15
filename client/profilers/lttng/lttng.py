@@ -13,7 +13,7 @@ supported by lttng and their output formats.
 
 To view the collected traces, copy results/your-test/profiler/lttng
 to a machine that has Linux Tracing Toolkit Viewer (lttv) installed:
-    test$ scp -r results/your-test/profiler/lttng user@localmachine :/home/tmp/
+    test$ scp -r results/your-test/profiler/lttng user@localmachine:/home/tmp/
 Then you can examine the traces either in text mode or in GUI:
     localmachine$ lttv -m textDump -t /home/tmp/lttng
 or
