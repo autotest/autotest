@@ -6,8 +6,13 @@ TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Benchmark"
 
 DOC = """
-Runs the standard IOzone filesystem benchmark. For more information see
-http://www.iozone.org
+Iozone is useful for performing a broad filesystem analysis of a vendors
+computer platform. The benchmark tests file I/O performance for the following
+operations:
+      Read, write, re-read, re-write, read backwards, read strided, fread,
+      fwrite, random read, pread ,mmap, aio_read, aio_write
+
+For more information see http://www.iozone.org
 """
 
 job.run_test('iozone')

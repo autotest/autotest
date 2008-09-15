@@ -9,6 +9,9 @@ analysis.
 
 More information on dbench can be found here:
 http://samba.org/ftp/tridge/dbench/README
+
+Currently it needs to be updated in its configuration. It is a great test for
+the higher level I/O systems but barely touches the disk right now.
 """
 
 job.run_test('dbench')
