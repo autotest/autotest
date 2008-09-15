@@ -130,7 +130,8 @@ class barrier:
             if getattr(self, 'start'):
                 timeout = self.timeout - (time() - self.start)
                 if (timeout <= 0):
-                    raise error.BarrierError("timeout waiting for barrier")
+                    raise error.BarrierError(
+                        "timeout waiting for barrier: %s" % self.tag)
         except AttributeError, a:
             timeout = self.timeout
 
