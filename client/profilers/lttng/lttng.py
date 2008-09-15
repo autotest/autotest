@@ -28,7 +28,7 @@ class lttng(profiler.profiler):
     version = 1
 
     # http://ltt.polymtl.ca/lttng/ltt-control-0.51-12082008.tar.gz
-    def setup(self, tarball='ltt-control-0.51-12082008.tar.gz'):
+    def setup(self, tarball='ltt-control-0.51-12082008.tar.gz', **dargs):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
@@ -38,7 +38,7 @@ class lttng(profiler.profiler):
 
 
     # tracepoints: list of trace points to enable
-    def initialize(self, tracepoints = None):
+    def initialize(self, tracepoints=None, **dargs):
         self.job.require_gcc()
 
         self.tracepoints = tracepoints
