@@ -53,6 +53,21 @@ class iteration(models.iteration):
 
 
 class status_line(version_0.status_line):
+    def __init__(self, indent, status, subdir, testname, reason,
+                 optional_fields):
+        # handle INFO fields
+        if status == "INFO":
+            self.type = "INFO"
+            self.indent = indent
+            self.status = self.subdir = self.testname = self.reason = None
+            self.optional_fields = optional_fields
+        else:
+            # everything else is backwards compatible
+            super(status_line, self).__init__(indent, status, subdir,
+                                              testname, reason,
+                                              optional_fields)
+
+
     def is_successful_reboot(self, current_status):
         # make sure this is a reboot line
         if self.testname != "reboot":
@@ -191,6 +206,11 @@ class parser(base.parser):
                     new_tests.append(running_test)
                 started_time_stack.append(started_time)
                 subdir_stack.append(line.subdir)
+                continue
+            elif line.type == "INFO":
+                # update the current kernel if one is defined in the info
+                if "kernel" in line.optional_fields:
+                    current_kernel = line.get_kernel()
                 continue
             elif line.type == "STATUS":
                 # ABORT if indentation was unexpectedly low

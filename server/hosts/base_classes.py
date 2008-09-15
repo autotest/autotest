@@ -217,6 +217,17 @@ class Host(object):
             self.job.record(*args, **dargs)
 
 
+    def log_kernel(self):
+        """ Helper method for logging kernel information into the status logs.
+        Intended for cases where the "current" kernel is not really defined
+        and we want to explicitly log it. Does nothing if this host isn't
+        actually associated with a job. """
+        if self.job:
+            kernel = self.get_kernel_ver()
+            self.job.record("INFO", None, None,
+                            optional_fields={"kernel": kernel})
+
+
     def log_reboot(self, reboot_func):
         """ Decorator for wrapping a reboot in a group for status
         logging purposes. The reboot_func parameter should be an actual
