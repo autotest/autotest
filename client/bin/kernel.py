@@ -1,5 +1,3 @@
-__author__ = """Copyright Martin J. Bligh, 2006"""
-
 import os, shutil, copy, pickle, re, glob, time
 from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
@@ -324,7 +322,8 @@ class kernel(object):
         if vendor in ['Red Hat', 'Fedora Core']:
             utils.system('mkinitrd %s %s %s' % (args, initrd, version))
         elif vendor in ['SUSE']:
-            utils.system('mkinitrd %s -k %s -i %s -M %s' % (args, image, initrd, system_map))
+            utils.system('mkinitrd %s -k %s -i %s -M %s' %
+                         (args, image, initrd, system_map))
         elif vendor in ['Debian', 'Ubuntu']:
             if os.path.isfile('/usr/sbin/mkinitrd'):
                 cmd = '/usr/sbin/mkinitrd'
@@ -457,11 +456,11 @@ class kernel(object):
         release = None
         version = None
 
-        for file in [ self.build_dir + "/include/linux/version.h",
-                      self.build_dir + "/include/linux/utsrelease.h",
-                      self.build_dir + "/include/linux/compile.h" ]:
-            if os.path.exists(file):
-                fd = open(file, 'r')
+        for f in [self.build_dir + "/include/linux/version.h",
+                  self.build_dir + "/include/linux/utsrelease.h",
+                  self.build_dir + "/include/linux/compile.h"]:
+            if os.path.exists(f):
+                fd = open(f, 'r')
                 for line in fd.readlines():
                     m = releasem.match(line)
                     if m:
@@ -651,7 +650,8 @@ class rpm_kernel(object):
 
         # get version and release number
         self.version, self.release = utils.system_output(
-                'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q ' + self.rpm_name).splitlines()[0:2]
+                'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
+                + self.rpm_name).splitlines()[0:2]
 
 
     def add_to_bootloader(self, tag='autotest', args=''):
