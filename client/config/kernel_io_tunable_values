@@ -1,0 +1,40 @@
+# 2.6.11 anticipatory tunables
+tune[2.6.11]:     max_sectors_kb=1024
+tune[2.6.11]:        nr_requests=128
+tune[2.6.11]:      read_ahead_kb=128
+tune[2.6.11]:       antic_expire=6
+tune[2.6.11]:  read_batch_expire=500
+tune[2.6.11]:        read_expire=125
+tune[2.6.11]: write_batch_expire=125
+tune[2.6.11]:       write_expire=250
+
+# 2.6.18 anticipatory scheduler tunables
+tune[2.6.18]:     max_sectors_kb=512
+tune[2.6.18]:        nr_requests=128
+tune[2.6.18]:      read_ahead_kb=128
+tune[2.6.18]:       antic_expire=4
+tune[2.6.18]:  read_batch_expire=500
+tune[2.6.18]:        read_expire=124
+tune[2.6.18]: write_batch_expire=124
+tune[2.6.18]:       write_expire=248
+
+# 2.6.24 anticipatory scheduler tunables
+tune[2.6.24]:     max_sectors_kb=512
+tune[2.6.24]:        nr_requests=128
+tune[2.6.24]:      read_ahead_kb=128
+tune[2.6.24]:       antic_expire=4
+tune[2.6.24]:  read_batch_expire=500
+tune[2.6.24]:        read_expire=124
+tune[2.6.24]: write_batch_expire=124
+tune[2.6.24]:       write_expire=248
+
+# 2.6.26 anticipatory scheduler tunables
+tune[2.6.26]:     max_sectors_kb=512
+tune[2.6.26]:        nr_requests=128
+tune[2.6.26]:      read_ahead_kb=128
+tune[2.6.26]:       antic_expire=4
+tune[2.6.26]:  read_batch_expire=500
+tune[2.6.26]:        read_expire=124
+tune[2.6.26]: write_batch_expire=124
+tune[2.6.26]:       write_expire=248
+
