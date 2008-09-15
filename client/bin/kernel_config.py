@@ -55,7 +55,7 @@ def config_by_name(name, set):
     return None
 
 
-class kernel_config:
+class kernel_config(object):
     # Build directory must be ready before init'ing config.
     #
     # Stages:
