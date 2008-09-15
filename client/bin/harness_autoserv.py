@@ -1,4 +1,4 @@
-import os
+import os, tempfile
 
 from autotest_lib.client.bin import harness
 
@@ -20,33 +20,37 @@ class harness_autoserv(harness.harness):
         super(harness_autoserv, self).__init__(job)
         self.status = os.fdopen(3, 'w')
 
-        # initialize a named pipe to use for signaling
-        self.fifo_path = os.path.join(job.autodir, "autoserv.fifo")
-        if not os.path.exists(self.fifo_path):
-            os.mkfifo(self.fifo_path)
-
 
     def run_test_complete(self):
         """A test run by this job is complete, signal it to autoserv and
         wait for it to signal to continue"""
-        # signal test completion to the server
-        if self.status:
-            self.status.write("AUTOTEST_TEST_COMPLETE\n")
-            self.status.flush()
+        # create a named pipe for us to receive a signal on
+        fifo_dir = tempfile.mkdtemp(suffix="-fifo", dir=self.job.tmpdir)
+        fifo_path = os.path.join(fifo_dir, "autoserv.fifo")
+        os.mkfifo(fifo_path)
+
+        # signal test completion to the server as
+        # AUTOTEST_TEST_COMPLETE:path
+        msg = "AUTOTEST_TEST_COMPLETE:%s\n"
+        msg %= fifo_path
+        self.status.write(msg)
+        self.status.flush()
 
         # wait for the server to signal back to us
-        fifo = open(self.fifo_path)
+        fifo = open(fifo_path)
         fifo.read(1)
         fifo.close()
+
+        # clean up the named pipe
+        os.remove(fifo_path)
+        os.rmdir(fifo_dir)
 
 
     def test_status(self, status, tag):
         """A test within this job is completing"""
-        if self.status:
-            for line in status.split('\n'):
-                # prepend status messages with
-                # AUTOTEST_STATUS:tag: so that we can tell
-                # which lines were sent by the autotest client
-                pre = 'AUTOTEST_STATUS:%s:' % (tag,)
-                self.status.write(pre + line + '\n')
-                self.status.flush()
+        for line in status.split('\n'):
+            # sent status messages with AUTOTEST_STATUS:tag:message
+            msg = "AUTOTEST_STATUS:%s:%s\n"
+            msg %= (tag, line)
+            self.status.write(msg)
+            self.status.flush()

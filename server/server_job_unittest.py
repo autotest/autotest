@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import unittest, os, time
+import unittest, os, time, tempfile
 import common
-from autotest_lib.server import server_job, test, subcommand
+from autotest_lib.server import server_job, test, subcommand, hosts
 from autotest_lib.client.common_lib import utils, error, host_protections
 from autotest_lib.client.common_lib import packages
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
@@ -361,6 +361,64 @@ class BaseServerJobTest(unittest.TestCase):
 
         # run and check
         self.job.record(status_code, subdir, operation)
+        self.god.check_playback()
+
+
+class BaseServerJobTest(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+
+        self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
+        self.host.hostname = "testhost"
+
+        self.god.stub_function(os.path, "exists")
+        self.god.stub_function(os, "close")
+        self.god.stub_function(os, "remove")
+        self.god.stub_function(tempfile, "mkstemp")
+        self.god.stub_function(utils, "read_keyval")
+        self.god.stub_function(utils, "write_keyval")
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_prepare_for_copying_logs(self):
+        self.host.get_autodir.expect_call().and_return("/autodir")
+        collector = server_job.log_collector(self.host, None, "/resultsdir")
+        self.god.check_playback()
+
+        os.path.exists.expect_call("/resultsdir/keyval").and_return(True)
+        tempfile.mkstemp.expect_call(".keyval_testhost").and_return(
+            (10, "tmp.keyval_testhost"))
+        os.close.expect_call(10)
+        self.host.get_file.expect_call("/autodir/results/default/keyval",
+                                       "tmp.keyval_testhost")
+        self.host.get_tmp_dir.expect_call().and_return("/autotmp")
+        self.host.run.expect_call(
+            "mv /autodir/results/default/keyval /autotmp/keyval")
+
+        # run and check
+        keyval = collector._prepare_for_copying_logs()
+        self.assertEquals(keyval, "tmp.keyval_testhost")
+        self.god.check_playback()
+
+
+    def test_process_copied_logs(self):
+        self.host.get_autodir.expect_call().and_return("/autodir")
+        collector = server_job.log_collector(self.host, None, "/resultsdir")
+        self.god.check_playback()
+
+        utils.read_keyval.expect_call("tmp.keyval_testhost").and_return(
+            {"field1": "new thing", "field3": "other new thing"})
+        utils.read_keyval.expect_call("/resultsdir").and_return(
+            {"field1": "thing", "field2": "otherthing"})
+        utils.write_keyval.expect_call("/resultsdir",
+                                       {"field3": "other new thing"})
+        os.remove.expect_call("tmp.keyval_testhost")
+
+        # run and check
+        collector._process_copied_logs("tmp.keyval_testhost")
         self.god.check_playback()
 
 

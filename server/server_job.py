@@ -701,12 +701,95 @@ class base_server_job(object):
 
 
 
+class log_collector(object):
+    def __init__(self, host, client_tag, results_dir):
+        self.host = host
+        if not client_tag:
+            client_tag = "default"
+        self.client_results_dir = os.path.join(host.get_autodir(), "results",
+                                               client_tag)
+        self.server_results_dir = results_dir
+
+
     def collect_client_job_results(self):
         """ A method that collects all the current results of a running
         client job into the results dir. By default does nothing as no
         client job is running, but when running a client job you can override
         this with something that will actually do something. """
-        pass
+
+        # make an effort to wait for the machine to come up
+        try:
+            self.host.wait_up(timeout=30)
+        except error.AutoservError:
+            # don't worry about any errors, we'll try and
+            # get the results anyway
+            pass
+
+
+        # Copy all dirs in default to results_dir
+        keyval_path = self._prepare_for_copying_logs()
+        self.host.get_file(self.client_results_dir + '/',
+                           self.server_results_dir)
+        self._process_copied_logs(keyval_path)
+        self._postprocess_copied_logs()
+
+
+    def _prepare_for_copying_logs(self):
+        server_keyval = os.path.join(self.server_results_dir, 'keyval')
+        if not os.path.exists(server_keyval):
+            # Client-side keyval file can be copied directly
+            return
+
+        # Copy client-side keyval to temporary location
+        suffix = '.keyval_%s' % self.host.hostname
+        fd, keyval_path = tempfile.mkstemp(suffix)
+        os.close(fd)
+        try:
+            client_keyval = os.path.join(self.client_results_dir, 'keyval')
+            try:
+                self.host.get_file(client_keyval, keyval_path)
+            finally:
+                # We will squirrel away the client side keyval
+                # away and move it back when we are done
+                remote_temp_dir = self.host.get_tmp_dir()
+                self.temp_keyval_path = os.path.join(remote_temp_dir, "keyval")
+                self.host.run('mv %s %s' % (client_keyval,
+                                            self.temp_keyval_path))
+        except (error.AutoservRunError, error.AutoservSSHTimeout):
+            print "Prepare for copying logs failed"
+        return keyval_path
+
+
+    def _process_copied_logs(self, keyval_path):
+        if not keyval_path:
+            # Client-side keyval file was copied directly
+            return
+
+        # Append contents of keyval_<host> file to keyval file
+        try:
+            # Read in new and old keyval files
+            new_keyval = utils.read_keyval(keyval_path)
+            old_keyval = utils.read_keyval(self.server_results_dir)
+            # 'Delete' from new keyval entries that are in both
+            tmp_keyval = {}
+            for key, val in new_keyval.iteritems():
+                if key not in old_keyval:
+                    tmp_keyval[key] = val
+            # Append new info to keyval file
+            utils.write_keyval(self.server_results_dir, tmp_keyval)
+            # Delete keyval_<host> file
+            os.remove(keyval_path)
+        except IOError:
+            print "Process copied logs failed"
+
+
+    def _postprocess_copied_logs(self):
+        # we can now put our keyval file back
+        client_keyval = os.path.join(self.client_results_dir, 'keyval')
+        try:
+            self.host.run('mv %s %s' % (self.temp_keyval_path, client_keyval))
+        except Exception:
+            pass
 
 
 # a file-like object for catching stderr from an autotest client and
@@ -716,13 +799,14 @@ class client_logger(object):
     the status log file.  We only implement those methods
     utils.run() actually calls.
     """
-    parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
-    test_complete = re.compile(r"^AUTOTEST_TEST_COMPLETE$")
+    status_parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
+    test_complete_parser = re.compile(r"^AUTOTEST_TEST_COMPLETE:(.*)$")
     extract_indent = re.compile(r"^(\t*).*$")
 
-    def __init__(self, host):
+    def __init__(self, host, tag, server_results_dir):
         self.host = host
         self.job = host.job
+        self.log_collector = log_collector(host, tag, server_results_dir)
         self.leftover = ""
         self.last_line = ""
         self.logs = {}
@@ -780,14 +864,15 @@ class client_logger(object):
         lines sent by autotest will be prepended with
         "AUTOTEST_STATUS", and all other lines are ssh error
         messages."""
-        match = self.parser.search(line)
-        if match:
-            tag, line = match.groups()
+        status_match = self.status_parser.search(line)
+        test_complete_match = self.test_complete_parser.search(line)
+        if status_match:
+            tag, line = status_match.groups()
             self._process_quoted_line(tag, line)
-        elif self.test_complete.search(line):
-            self.job.collect_client_job_results()
-            fifo = os.path.join(self.host.get_autodir(), "autoserv.fifo")
-            self.host.run("echo A > %s" % fifo)
+        elif test_complete_match:
+            fifo_path, = test_complete_match.groups()
+            self.log_collector.collect_client_job_results()
+            self.host.run("echo A > %s" % fifo_path)
         else:
             print line
 

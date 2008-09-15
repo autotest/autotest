@@ -198,59 +198,6 @@ class BaseAutotest(installable_object.InstallableObject):
         return host
 
 
-    def prepare_for_copying_logs(self, src, dest, host):
-        keyval_path = ''
-        if not os.path.exists(os.path.join(dest, 'keyval')):
-            # Client-side keyval file can be copied directly
-            return keyval_path
-        # Copy client-side keyval to temporary location
-        try:
-            try:
-                # Create temp file
-                fd, keyval_path = tempfile.mkstemp('.keyval_%s' % host.hostname)
-                host.get_file(os.path.join(src, 'keyval'), keyval_path)
-            finally:
-                # We will squirrel away the client side keyval
-                # away and move it back when we are done
-                self.temp_keyval_path = tempfile.mktemp()
-                host.run('mv %s %s' %
-                         (os.path.join(src, 'keyval'), self.temp_keyval_path))
-        except (error.AutoservRunError, error.AutoservSSHTimeout):
-            print "Prepare for copying logs failed"
-        return keyval_path
-
-
-    def process_copied_logs(self, dest, host, keyval_path):
-        if not os.path.exists(os.path.join(dest, 'keyval')):
-            # Client-side keyval file was copied directly
-            return
-        # Append contents of keyval_<host> file to keyval file
-        try:
-            # Read in new and old keyval files
-            new_keyval = utils.read_keyval(keyval_path)
-            old_keyval = utils.read_keyval(dest)
-            # 'Delete' from new keyval entries that are in both
-            tmp_keyval = {}
-            for key, val in new_keyval.iteritems():
-                if key not in old_keyval:
-                    tmp_keyval[key] = val
-            # Append new info to keyval file
-            utils.write_keyval(dest, tmp_keyval)
-            # Delete keyval_<host> file
-            os.remove(keyval_path)
-        except IOError:
-            print "Process copied logs failed"
-
-
-    def postprocess_copied_logs(self, src, host):
-        # we can now put our keyval file back
-        try:
-            host.run('mv %s %s' % (self.temp_keyval_path,
-                     os.path.join(src, 'keyval')))
-        except:
-            pass
-
-
     def _do_run(self, control_file, results_dir, host, atrun, timeout):
         try:
             atrun.verify_machine()
@@ -298,36 +245,11 @@ class BaseAutotest(installable_object.InstallableObject):
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
             os.remove(tmppath)
 
-        collect_func = lambda: self._collect_results(atrun, host, results_dir)
-        host.job.collect_client_job_results = collect_func
         try:
             atrun.execute_control(timeout=timeout)
         finally:
-            del host.job.collect_client_job_results
-            collect_func()
-
-
-    def _collect_results(self, atrun, host, results_dir):
-        # make an effort to wait for the machine to come up
-        try:
-            host.wait_up(timeout=30)
-        except error.AutoservError:
-            # don't worry about any errors, we'll try and
-            # get the results anyway
-            pass
-
-        # get the results
-        if not atrun.tag:
-            results = os.path.join(atrun.autodir, 'results', 'default')
-        else:
-            results = os.path.join(atrun.autodir, 'results', atrun.tag)
-
-        # Copy all dirs in default to results_dir
-        keyval_path = self.prepare_for_copying_logs(results, results_dir,
-                                                    host)
-        host.get_file(results + '/', results_dir)
-        self.process_copied_logs(results_dir, host, keyval_path)
-        self.postprocess_copied_logs(results, host)
+            collector = server_job.log_collector(host, atrun.tag, results_dir)
+            collector.collect_client_job_results()
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
@@ -414,7 +336,8 @@ class _Run(object):
 
         full_cmd = self.get_full_cmd(section)
         client_log = self.get_client_log(section)
-        redirector = server_job.client_logger(self.host)
+        redirector = server_job.client_logger(self.host, self.tag,
+                                              self.results_dir)
 
         try:
             old_resultdir = self.host.job.resultdir
