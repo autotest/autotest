@@ -20,7 +20,7 @@ or
     localmachine$ lttv-gui -t /home/tmp/lttng &
 """
 
-import os, shutil
+import os, shutil, time
 from autotest_lib.client.bin import autotest_utils, profiler
 from autotest_lib.client.common_lib import utils, error
 
@@ -96,3 +96,4 @@ class lttng(profiler.profiler):
 
     def stop(self, test):
         utils.system(self.lttctl + ' -n test -R')
+        time.sleep(10)
