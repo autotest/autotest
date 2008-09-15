@@ -6,7 +6,13 @@ TEST_TYPE = "client"
 TIME = 'MEDIUM'
 EXPERIMENTAL = "True"
 DOC='''
-Details of fs_mark can be found at: 
+Detect barrier issues in file systems.
+
+If a file system have write barrier not protecting synchronous write,
+the number of synchronous (single threaded) operations/sec will exceed the
+calculated number of synchronous operations/sec of the underlying drive.
+
+Details of fs_mark can be found at:
 http://devresources.linux-foundation.org/dev/doubt/fs_mark/index.html
 '''
 job.run_test('fs_mark', dir='/mnt')
