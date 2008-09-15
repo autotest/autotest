@@ -40,6 +40,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(autotest.global_config.global_config,
                                "get_config_value")
         self.god.stub_class(autotest, "_Run")
+        self.god.stub_class(server_job, "log_collector")
 
 
     def tearDown(self):
@@ -116,9 +117,6 @@ class TestBaseAutotest(unittest.TestCase):
 
         # stub out install
         self.god.stub_function(self.base_autotest, "install")
-        self.god.stub_function(self.base_autotest, "prepare_for_copying_logs")
-        self.god.stub_function(self.base_autotest, "process_copied_logs")
-        self.god.stub_function(self.base_autotest, "postprocess_copied_logs")
 
         # record
         self.base_autotest.install.expect_call(self.host)
@@ -165,67 +163,11 @@ class TestBaseAutotest(unittest.TestCase):
             'autodir/control.None.state')
         os.remove.expect_call("temp")
         run_obj.execute_control.expect_call(timeout=30)
-        self.host.wait_up.expect_call(timeout=30)
-
-        run_obj.autodir = 'autodir'
-        results = os.path.join(run_obj.autodir,
-                               'results', 'default')
-        self.base_autotest.prepare_for_copying_logs.expect_call(
-            'autodir/results/default', '.', self.host).and_return('keyval_path')
-        self.host.get_file.expect_call('autodir/results/default/', '.')
-        self.base_autotest.process_copied_logs.expect_call('.',self.host,
-            'keyval_path')
-        self.base_autotest.postprocess_copied_logs.expect_call(results,
-            self.host)
+        collector = server_job.log_collector.expect_new(self.host, tag, '.')
+        collector.collect_client_job_results.expect_call()
 
         # run and check output
         self.base_autotest.run(control, timeout=30)
-        self.god.check_playback()
-
-
-    def test_prepare_for_copying_logs(self):
-        self.construct()
-
-        # record
-        src = "src"
-        dest = "dest"
-        keyval_path = ''
-        os.path.exists.expect_call(os.path.join(dest,
-                                                'keyval')).and_return(True)
-        tempfile.mkstemp.expect_call(
-            '.keyval_%s' % self.host.hostname).and_return((None, keyval_path))
-        self.host.get_file.expect_call(os.path.join(src, 'keyval'), keyval_path)
-        tempfile.mktemp.expect_call().and_return("temp_keyval")
-        self.host.run.expect_call('mv %s temp_keyval' %
-                                   os.path.join(src, 'keyval'))
-
-        # run and check
-        self.base_autotest.prepare_for_copying_logs(src, dest, self.host)
-        self.god.check_playback()
-
-
-    def test_process_copied_logs(self):
-        self.construct()
-
-        # record
-        dest = "dest"
-        keyval_path = "keyval_path"
-        os.path.exists.expect_call(os.path.join(dest,
-                                                'keyval')).and_return(True)
-        old_keyval = {"version": 1, "author": "me"}
-        new_keyval = {"version": 1, "data": "foo"}
-        utils.read_keyval.expect_call(
-            keyval_path).and_return(new_keyval)
-        utils.read_keyval.expect_call(dest).and_return(old_keyval)
-        tmp_keyval = {}
-        for key, val in new_keyval.iteritems():
-            if key not in old_keyval:
-                tmp_keyval[key] = val
-        utils.write_keyval.expect_call(dest, tmp_keyval)
-        os.remove.expect_call(keyval_path)
-
-        # run check
-        self.base_autotest.process_copied_logs(dest, self.host, keyval_path)
         self.god.check_playback()
 
 
