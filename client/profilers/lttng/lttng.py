@@ -5,7 +5,7 @@ You need to install the lttng patched kernel in order to use the profiler.
 Examples:
     job.profilers.add('lttng') will enable all of the trace points.
     job.profilers.add('lttng', []) will disable all of the trace points.
-    job.profilers.add('lttng', ['kernel_arch_syscall_entry', 
+    job.profilers.add('lttng', ['kernel_arch_syscall_entry',
                                 'kernel_arch_syscall_exit']) 
                                will only trace syscall events.
 Take a look at /proc/ltt for the list of the tracing events currently
@@ -66,15 +66,15 @@ class lttng(profiler.profiler):
             utils.system(self.armall, ignore_status=True)
         else:
             for tracepoint in self.tracepoints:
-                if tracepoint in ('list_process_state', 
-                                  'user_generic_thread_brand', 'fs_exec', 
-                                  'kernel_process_fork', 'kernel_process_free', 
-                                  'kernel_process_exit', 
-                                  'kernel_arch_kthread_create', 
+                if tracepoint in ('list_process_state',
+                                  'user_generic_thread_brand', 'fs_exec',
+                                  'kernel_process_fork', 'kernel_process_free',
+                                  'kernel_process_exit',
+                                  'kernel_arch_kthread_create',
                                   'list_statedump_end', 'list_vm_map'):
                     channel = 'processes'
-                elif tracepoint in ('list_interrupt', 
-                                    'statedump_idt_table', 
+                elif tracepoint in ('list_interrupt',
+                                    'statedump_idt_table',
                                     'statedump_sys_call_table'):
                     channel = 'interrupts'
                 elif tracepoint in ('list_network_ipv4_interface',
@@ -88,10 +88,9 @@ class lttng(profiler.profiler):
                 utils.write_one_line('/proc/ltt', 'connect ' + tracepoint
                                      + ' default dynamic ' + channel)
 
-
     def start(self, test):
         output = os.path.join(test.profdir, 'lttng')
-        utils.system('%s -n test -d -l %s/ltt -t %s' % 
+        utils.system('%s -n test -d -l %s/ltt -t %s' %
                                       (self.lttctl, self.mountpoint, output))
 
 
