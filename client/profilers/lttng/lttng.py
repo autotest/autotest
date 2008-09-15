@@ -6,14 +6,14 @@ Examples:
     job.profilers.add('lttng') will enable all of the trace points.
     job.profilers.add('lttng', []) will disable all of the trace points.
     job.profilers.add('lttng', ['kernel_arch_syscall_entry',
-                                'kernel_arch_syscall_exit']) 
+                                'kernel_arch_syscall_exit'])
                                will only trace syscall events.
 Take a look at /proc/ltt for the list of the tracing events currently
 supported by lttng and their output formats.
 
 To view the collected traces, copy results/your-test/profiler/lttng
 to a machine that has Linux Tracing Toolkit Viewer (lttv) installed:
-    testmachine$ scp -r results/your-test/profiler/lttng user@localmachine :/home/tmp/
+    test$ scp -r results/your-test/profiler/lttng user@localmachine :/home/tmp/
 Then you can examine the traces either in text mode or in GUI:
     localmachine$ lttv -m textDump -t /home/tmp/lttng
 or
@@ -90,7 +90,7 @@ class lttng(profiler.profiler):
 
     def start(self, test):
         output = os.path.join(test.profdir, 'lttng')
-        utils.system('%s -n test -d -l %s/ltt -t %s' %
+        utils.system('%s -n test -d -l %s/ltt -t %s' % 
                                       (self.lttctl, self.mountpoint, output))
 
 
