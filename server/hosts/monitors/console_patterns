@@ -1,8 +1,8 @@
-^.*Kernel panic
-machine panic'd (see console)
+^.*Kernel panic ?(.*)
+machine panic'd (%s)
 
-^.*Oops
-machine Oops'd (see console)
+^.*Oops ?(.*)
+machine Oops'd (%s)
 
 ^.*kdb>
 machine dropped to kdb (see console)
