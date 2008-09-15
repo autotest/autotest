@@ -17,6 +17,12 @@ class test_status_line(unittest.TestCase):
         self.assertEquals(line.status, None)
 
 
+    def test_fails_info(self):
+        self.assertRaises(AssertionError,
+                          version_0.status_line, 0, "INFO", "----", "----",
+                          "", {})
+
+
     def test_handles_status(self):
         for stat in self.statuses:
             line = version_0.status_line(0, stat, "----", "test",
