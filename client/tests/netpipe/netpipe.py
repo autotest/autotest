@@ -50,20 +50,20 @@ class netpipe(test.test):
         all = [server_tag, client_tag]
 
         if role == 'server':
-            # Wait up to five minutes for both to reach this point.
-            self.job.barrier(server_tag, 'start', 300).rendevous(*all)
+            # Wait up to ten minutes for both to reach this point.
+            self.job.barrier(server_tag, 'start', 600).rendevous(*all)
             self.server_start(args)
             # Both the client and server should be closed so just to make
-            # sure they are both at the same point wait at most a minute.
-            self.job.barrier(server_tag, 'stop', 60).rendevous(*all)
+            # sure they are both at the same point wait at most five minutes.
+            self.job.barrier(server_tag, 'stop', 300).rendevous(*all)
         elif role == 'client':
-            # Wait up to five minutes for the server to start
-            self.job.barrier(client_tag, 'start', 300).rendevous(*all)
+            # Wait up to ten minutes for the server to start
+            self.job.barrier(client_tag, 'start', 600).rendevous(*all)
             # Sleep 10 seconds to make sure the server is started
             time.sleep(10)
             self.client(server_ip, args)
-            # Wait up to 1 minute for the server to also reach this point
-            self.job.barrier(client_tag, 'stop', 60).rendevous(*all)
+            # Wait up to five minutes for the server to also reach this point
+            self.job.barrier(client_tag, 'stop', 300).rendevous(*all)
         else:
             raise error.TestError('invalid role specified')
 
