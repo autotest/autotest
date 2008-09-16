@@ -88,6 +88,7 @@ def _redirect_stream_tee(fd, output, tag):
             sys.stderr = os.fdopen(fd, 'w', 1)
         return
     else:                                   # Child
+        signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
         os.close(w)
         log = open(output, 'w')
         f = os.fdopen(r, 'r')
