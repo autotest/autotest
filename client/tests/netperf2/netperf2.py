@@ -46,22 +46,25 @@ class netperf2(test.test):
             if role == 'server':
                 self.server_start()
                 try:
-                    # Wait up to five minutes for the client to reach this
+                    # Wait up to ten minutes for the client to reach this
                     # point.
-                    self.job.barrier(server_tag, 'start', 300).rendevous(*all)
-                    # Wait up to test_time + 1 minute for the test to
+                    self.job.barrier(server_tag, 'start_%d' % num_streams,
+                                     600).rendevous(*all)
+                    # Wait up to test_time + 5 minutes for the test to
                     # complete
-                    self.job.barrier(server_tag, 'stop',
-                                     test_time+60).rendevous(*all)
+                    self.job.barrier(server_tag, 'stop_%d' % num_streams,
+                                     test_time+300).rendevous(*all)
                 finally:
                     self.server_stop()
 
             elif role == 'client':
-                # Wait up to five minutes for the server to start
-                self.job.barrier(client_tag, 'start', 300).rendevous(*all)
+                # Wait up to ten minutes for the server to start
+                self.job.barrier(client_tag, 'start_%d' % num_streams,
+                                 600).rendevous(*all)
                 self.client(server_ip, test, test_time, num_streams)
-                # Wait up to 1 minute for the server to also reach this point
-                self.job.barrier(client_tag, 'stop', 60).rendevous(*all)
+                # Wait up to 5 minutes for the server to also reach this point
+                self.job.barrier(client_tag, 'stop_%d' % num_streams,
+                                 300).rendevous(*all)
             else:
                 raise error.TestError('invalid role specified')
 
