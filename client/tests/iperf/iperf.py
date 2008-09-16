@@ -50,26 +50,29 @@ class iperf(test.test):
                 # Start server and synchronize on server-up
                 self.server_start()
                 try:
-                    # Wait up to five minutes for the server and client
+                    # Wait up to ten minutes for the server and client
                     # to reach this point
-                    self.job.barrier(server_tag, 'start', 300).rendevous(*all)
+                    self.job.barrier(server_tag, 'start_%d' % num_streams,
+                                     600).rendevous(*all)
 
                     # Stop the server when the client finishes
-                    # Wait up to test_time + one minute
-                    self.job.barrier(server_tag, 'finish',
-                                     test_time+60).rendevous(*all)
+                    # Wait up to test_time + five minutes
+                    self.job.barrier(server_tag, 'finish_%d' % num_streams,
+                                     test_time+300).rendevous(*all)
                 finally:
                     self.server_stop()
 
             elif role == 'client':
                 self.ip = socket.gethostbyname(client_ip)
-                # Wait up to five minutes for the server and client
+                # Wait up to ten minutes for the server and client
                 # to reach this point
-                self.job.barrier(client_tag, 'start', 300).rendevous(*all)
+                self.job.barrier(client_tag, 'start_%d' % num_streams,
+                                 600).rendevous(*all)
                 self.client(server_ip, test_time, num_streams)
 
-                # Wait up to 1 minute for the server to also reach this point
-                self.job.barrier(client_tag, 'finish', 60).rendevous(*all)
+                # Wait up to 5 minutes for the server to also reach this point
+                self.job.barrier(client_tag, 'finish_%d' % num_streams,
+                                 300).rendevous(*all)
             else:
                 raise error.TestError('invalid role specified')
 
