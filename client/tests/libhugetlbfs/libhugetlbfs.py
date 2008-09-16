@@ -3,7 +3,7 @@ from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils, error
 
 class libhugetlbfs(test.test):
-    version = 4
+    version = 5
 
     def initialize(self, dir = None, pages_requested = 20):
         self.job.require_gcc()
@@ -31,8 +31,8 @@ class libhugetlbfs(test.test):
             self.dir = dir
 
 
-    # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-1.3-pre1.tar.gz
-    def setup(self, tarball = 'libhugetlbfs-1.3-pre1.tar.gz'):
+    # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-2.0.tar.gz
+    def setup(self, tarball = 'libhugetlbfs-2.0.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
