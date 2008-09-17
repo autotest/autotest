@@ -398,6 +398,10 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
 
 
 def nuke_subprocess(subproc):
+    # check if the subprocess is still alive, first
+    if subproc.poll() is not None:
+        return subproc.poll()
+
     # the process has not terminated within timeout,
     # kill it via an escalating series of signals.
     signal_queue = [signal.SIGTERM, signal.SIGKILL]
