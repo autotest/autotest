@@ -19,6 +19,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.hostname = "hostname"
         self.host.job = self.god.create_mock_class(server_job.server_job,
                                                    "job")
+        self.host.job.run_test_cleanup = True
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
@@ -165,6 +166,11 @@ class TestBaseAutotest(unittest.TestCase):
         run_obj.execute_control.expect_call(timeout=30)
         collector = server_job.log_collector.expect_new(self.host, tag, '.')
         collector.collect_client_job_results.expect_call()
+
+        autotest.open.expect_call('./control.None.autoserv.state').and_raises(
+            Exception("File not found"))
+        os.remove.expect_call('./control.None.autoserv.state').and_raises(
+            Exception("File not found"))
 
         # run and check output
         self.base_autotest.run(control, timeout=30)

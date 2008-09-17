@@ -14,7 +14,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import re, os, sys, traceback, subprocess, tempfile, shutil, time
+import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
 
 from autotest_lib.server import installable_object, utils, server_job
 from autotest_lib.client.common_lib import logging
@@ -220,6 +220,14 @@ class BaseAutotest(installable_object.InstallableObject):
 
         tmppath = utils.get(control_file)
 
+
+        # Prepend the control file with a job.disable_test_cleanup call
+        # if necessary
+        if not host.job.run_test_cleanup:
+            cfile = open(tmppath).read()
+            cfile = "job.disable_test_cleanup()\n" + cfile
+            open(tmppath, "w").write(cfile)
+
         # Insert the job.add_repository() lines in the control file
         # if there are any repos defined in global_config.ini
         try:
@@ -250,6 +258,35 @@ class BaseAutotest(installable_object.InstallableObject):
         finally:
             collector = server_job.log_collector(host, atrun.tag, results_dir)
             collector.collect_client_job_results()
+            self._process_client_state_file(host, atrun, results_dir)
+
+
+    def _process_client_state_file(self, host, atrun, results_dir):
+        state_file = os.path.basename(atrun.remote_control_file) + ".state"
+        state_path = os.path.join(results_dir, state_file)
+        try:
+            state_dict = pickle.load(open(state_path))
+        except Exception:
+            print >> sys.stderr, "Error while loading client job state file"
+            traceback.print_exc()
+            state_dict = {}
+
+        # clear out the state file
+        # TODO: stash the file away somewhere useful instead
+        try:
+            os.remove(state_path)
+        except Exception:
+            pass
+
+        msg = "Persistant state variables pulled back from %s: %s"
+        msg %= (host.hostname, state_dict)
+        print msg
+
+        if "__run_test_cleanup" in state_dict:
+            if state_dict["__run_test_cleanup"]:
+                host.job.enable_test_cleanup()
+            else:
+                host.job.disable_test_cleanup()
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
