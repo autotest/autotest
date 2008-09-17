@@ -172,6 +172,28 @@ class base_test:
         pass
 
 
+    def _run_cleanup(self, exc_info, args, dargs):
+        p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
+
+        # if an exception occurs during the cleanup() call, we
+        # don't want it to override an existing exception
+        # (i.e. exc_info) that was thrown by the test execution
+        if exc_info:
+            try:
+                self.cleanup(*p_args, **p_dargs)
+            finally:
+                try:
+                    raise exc_info[0], exc_info[1], exc_info[2]
+                finally:
+                    # necessary to prevent a circular reference
+                    # between exc_info[2] (the traceback, which
+                    # references all the exception stack frames)
+                    # and this stack frame (which refs exc_info[2])
+                    del exc_info
+        else:
+            self.cleanup(*p_args, **p_dargs)
+
+
     def _exec(self, args, dargs):
         self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
@@ -179,6 +201,7 @@ class base_test:
         try:
             # write out the test attributes into a keyval
             dargs   = dargs.copy()
+            run_cleanup = dargs.pop('run_cleanup', self.job.run_test_cleanup)
             keyvals = dargs.pop('test_attributes', dict()).copy()
             keyvals['version'] = self.version
             for i, arg in enumerate(args):
@@ -236,24 +259,8 @@ class base_test:
 
             # run the cleanup, and then restore the job.std* streams
             try:
-                p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
-                # if an exception occurs during the cleanup() call, we
-                # don't want it to override an existing exception
-                # (i.e. exc_info) that was thrown by the test execution
-                if exc_info:
-                    try:
-                        self.cleanup(*p_args, **p_dargs)
-                    finally:
-                        try:
-                            raise exc_info[0], exc_info[1], exc_info[2]
-                        finally:
-                            # necessary to prevent a circular reference
-                            # between exc_info[2] (the traceback, which
-                            # references all the exception stack frames)
-                            # and this stack frame (which refs exc_info[2])
-                            del exc_info
-                else:
-                    self.cleanup(*p_args, **p_dargs)
+                if run_cleanup:
+                    self._run_cleanup(exc_info, args, dargs)
             finally:
                 self.job.stderr.restore()
                 self.job.stdout.restore()
