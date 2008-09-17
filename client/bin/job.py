@@ -114,6 +114,8 @@ class base_job(object):
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':600})
         self.pkgdir = os.path.join(self.autodir, 'packages')
+        self.run_test_cleanup = self.get_state("__run_test_cleanup",
+                                                default=True)
 
         if not cont:
             """
@@ -616,6 +618,18 @@ class base_job(object):
         pass
 
 
+    def enable_test_cleanup(self):
+        """ By default tests run test.cleanup """
+        self.set_state("__run_test_cleanup", True)
+        self.run_test_cleanup = True
+
+
+    def disable_test_cleanup(self):
+        """ By default tests do not run test.cleanup """
+        self.set_state("__run_test_cleanup", False)
+        self.run_test_cleanup = False
+
+
     def reboot_setup(self):
         pass
 
@@ -692,10 +706,8 @@ class base_job(object):
     def complete(self, status):
         """Clean up and exit"""
         # We are about to exit 'complete' so clean up the control file.
-        try:
-            os.unlink(self.state_file)
-        except:
-            pass
+        dest = os.path.join(self.resultdir, os.path.basename(self.state_file))
+        os.rename(self.state_file, dest)
 
         self.harness.run_complete()
         self.disable_external_logging()

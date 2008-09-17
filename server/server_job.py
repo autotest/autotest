@@ -191,6 +191,7 @@ class base_server_job(object):
         self.ssh_user = ssh_user
         self.ssh_port = ssh_port
         self.ssh_pass = ssh_pass
+        self.run_test_cleanup = True
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -302,6 +303,16 @@ class base_server_job(object):
         """ Pause or stop external logging mechanism.
         """
         pass
+
+
+    def enable_test_cleanup(self):
+        """ By default tests run test.cleanup """
+        self.run_test_cleanup = True
+
+
+    def disable_test_cleanup(self):
+        """ By default tests do not run test.cleanup """
+        self.run_test_cleanup = False
 
 
     def use_external_logging(self):
