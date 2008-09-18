@@ -684,7 +684,7 @@ class base_server_job(object):
         open(status_file, "a").write(msg)
         if subdir:
             test_dir = os.path.join(self.resultdir, subdir)
-            status_file = os.path.join(test_dir, 'status')
+            status_file = os.path.join(test_dir, 'status.log')
             open(status_file, "a").write(msg)
         self.__parse_status(msg.splitlines())
 
