@@ -1,8 +1,24 @@
-import os, sys, subprocess, tempfile
+import os, sys, subprocess, tempfile, traceback
 
 from autotest_lib.client.common_lib import utils
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import remote, ssh_host
+
+
+def _log_and_ignore_exceptions(f):
+    """ Decorator for automatically logging an exception during a method call
+    and then discarding it. """
+    def wrapped(self, *args, **dargs):
+        try:
+            return f(self, *args, **dargs)
+        except Exception, e:
+            print "DmesgHost.%s failed with exception %s" % (f.__name__, e)
+            print "Exception ignored:"
+            traceback.print_exc(file=sys.stdout)
+    wrapped.__name__ = f.__name__
+    wrapped.__doc__ = f.__doc__
+    wrapped.__dict__.update(f.__dict__)
+    return wrapped
 
 
 class DmesgHost(remote.RemoteHost):
@@ -38,6 +54,7 @@ class DmesgHost(remote.RemoteHost):
         self.__start_loggers()
 
 
+    @_log_and_ignore_exceptions
     def __start_loggers(self):
         # check if /var/log/kern.log is available, and don't bother doing
         # anything if it's not
@@ -97,6 +114,7 @@ class DmesgHost(remote.RemoteHost):
         self.__stop_loggers()
 
 
+    @_log_and_ignore_exceptions
     def __stop_loggers(self):
         if self.__logger:
             utils.nuke_subprocess(self.__logger)
