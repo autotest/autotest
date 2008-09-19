@@ -52,9 +52,9 @@ public class TkoClient implements EntryPoint, TableSwitchListener {
         
         final RootPanel tabsRoot = RootPanel.get("tabs");
         tabsRoot.add(mainTabPanel);
+        commonPanel.initialize();
         CustomHistory.processInitialToken();
         mainTabPanel.initialize();
-        commonPanel.initialize();
         tabsRoot.removeStyleName("hidden");
     }
     

@@ -2,6 +2,7 @@ package autotest.tko;
 
 import autotest.common.ui.ContextMenu;
 
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 
 public class TestContextMenu extends ContextMenu {
@@ -28,7 +29,7 @@ public class TestContextMenu extends ContextMenu {
     }
     
     public void addLabelItems() {
-        final String condition = tests.getCondition();
+        final JSONObject condition = tests.getCondition();
         addItem("Invalidate tests", new Command() {
             public void execute() {
                 labelManager.handleInvalidate(condition);

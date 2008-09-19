@@ -119,15 +119,7 @@ public class MachineQualHistogramFrontend extends GraphingFrontend {
     
     @SuppressWarnings("unused")
     private void showDrilldown(final String filterString) {
-        CommonPanel.getPanel().setCondition(new TestSet() {
-            public String getCondition() {
-                return filterString;
-            }
-            
-            public boolean isSingleTest() {
-                return false;
-            }
-        });
+        CommonPanel.getPanel().setSqlCondition(filterString);
         listener.onSwitchToTable(TableViewConfig.PASS_RATE);
     }
     
