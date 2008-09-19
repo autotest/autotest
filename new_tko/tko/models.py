@@ -247,39 +247,62 @@ class TestViewManager(TempManager):
         return query.extra(select=extra_select)
 
 
-    def _add_label_joins(self, query_set, suffix = '', join_condition='',
-                         exclude=False):
+    def _add_join(self, query_set, join_table, join_condition='',
+                  join_key='test_idx', suffix='', exclude=False,
+                  force_left_join=False):
         table_name = self.model._meta.db_table
-        first_join_alias = 'test_labels_tests' + suffix
-        first_join_condition = '%s.test_id = %s.test_idx' % (first_join_alias,
-                                                             table_name)
+        join_alias = join_table + suffix
+        full_join_key = join_alias + '.' + join_key
+        full_join_condition = '%s = %s.test_idx' % (full_join_key, table_name)
         if join_condition:
-            first_join_condition += ' AND ' + join_condition
+            full_join_condition += ' AND (' + join_condition + ')'
+        if exclude or force_left_join:
+            join_type = 'LEFT JOIN'
+        else:
+            join_type = 'INNER JOIN'
+
         filter_object = self._CustomSqlQ()
-        filter_object.add_join('test_labels_tests',
-                               first_join_condition,
-                               'LEFT JOIN',
-                               alias=first_join_alias)
+        filter_object.add_join(join_table,
+                               full_join_condition,
+                               join_type,
+                               alias=join_alias)
+        if exclude:
+            filter_object.add_where(full_join_key + ' IS NULL')
+        return query_set.filter(filter_object).distinct()
+
+
+    def _add_label_joins(self, query_set, suffix=''):
+        query_set = self._add_join(query_set, 'test_labels_tests',
+                                   join_key='test_id', suffix=suffix,
+                                   force_left_join=True)
 
         second_join_alias = 'test_labels' + suffix
         second_join_condition = ('%s.id = %s.testlabel_id' %
-                                 (second_join_alias, first_join_alias))
+                                 (second_join_alias,
+                                  'test_labels_tests' + suffix))
+        filter_object = self._CustomSqlQ()
         filter_object.add_join('test_labels',
                                second_join_condition,
                                'LEFT JOIN',
                                alias=second_join_alias)
+        return query_set.filter(filter_object)
 
-        if exclude:
-            filter_object.add_where(first_join_alias + '.testlabel_id IS NULL')
-        return query_set.filter(filter_object).distinct()
+
+    def _add_attribute_join(self, query_set, suffix='', join_condition='',
+                            exclude=False):
+        return self._add_join(query_set, 'test_attributes',
+                              join_condition=join_condition,
+                              suffix=suffix, exclude=exclude)
 
 
     def _get_label_ids_from_names(self, label_names):
+        if not label_names:
+            return []
         query = TestLabel.objects.filter(name__in=label_names).values('id')
         return [label['id'] for label in query]
 
 
-    def get_query_set_with_labels(self, filter_data):
+    def get_query_set_with_joins(self, filter_data):
         exclude_labels = filter_data.pop('exclude_labels', [])
         query_set = self.get_query_set()
         joined = False
@@ -288,15 +311,33 @@ class TestViewManager(TempManager):
             query_set = self._add_label_joins(query_set)
             joined = True
 
-        if exclude_labels:
-            label_ids = self._get_label_ids_from_names(exclude_labels)
-            if label_ids:
-                condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
-                             ','.join(str(label_id) for label_id in label_ids))
-                query_set = self._add_label_joins(query_set, suffix='_exclude',
-                                                  join_condition=condition,
-                                                  exclude=True)
-                joined = True
+        exclude_label_ids = self._get_label_ids_from_names(exclude_labels)
+        if exclude_label_ids:
+            condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
+                         ','.join(str(label_id)
+                                  for label_id in exclude_label_ids))
+            query_set = self._add_join(query_set, 'test_labels_tests',
+                                       join_key='test_id',
+                                       suffix='_exclude',
+                                       join_condition=condition,
+                                       exclude=True)
+            joined = True
+
+        include_attributes_where = filter_data.pop('include_attributes_where',
+                                                   '')
+        exclude_attributes_where = filter_data.pop('exclude_attributes_where',
+                                                   '')
+        if include_attributes_where:
+            query_set = self._add_attribute_join(
+                query_set, suffix='_include',
+                join_condition=include_attributes_where)
+            joined = True
+        if exclude_attributes_where:
+            query_set = self._add_attribute_join(
+                query_set, suffix='_exclude',
+                join_condition=exclude_attributes_where,
+                exclude=True)
+            joined = True
 
         if not joined:
             filter_data['no_distinct'] = True
@@ -384,7 +425,7 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
     @classmethod
     def query_objects(cls, filter_data, initial_query=None):
         if initial_query is None:
-            initial_query = cls.objects.get_query_set_with_labels(filter_data)
+            initial_query = cls.objects.get_query_set_with_joins(filter_data)
         return super(TestView, cls).query_objects(filter_data,
                                                   initial_query=initial_query)
 

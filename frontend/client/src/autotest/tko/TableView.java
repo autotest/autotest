@@ -318,7 +318,7 @@ public class TableView extends ConditionTabView
     }
 
     private void doDrilldown(TestSet testSet) {
-        commonPanel.setCondition(testSet);
+        commonPanel.refineCondition(testSet);
         uncheckBothCheckboxes();
         updateCheckboxes();
         selectColumns(DEFAULT_COLUMNS);
