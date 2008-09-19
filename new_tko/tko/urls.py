@@ -2,7 +2,8 @@ from django.conf.urls.defaults import *
 from django.conf import settings
 import os
 
-pattern_list = [(r'^(?:|noauth/)rpc/', 'new_tko.tko.views.handle_rpc')]
+pattern_list = [(r'^(?:|noauth/)rpc/', 'new_tko.tko.views.handle_rpc'),
+                (r'^(?:|noauth/)plot/', 'new_tko.tko.views.handle_plot')]
 
 debug_pattern_list = [
     (r'^model_doc/', 'new_tko.tko.views.model_documentation'),
