@@ -16,6 +16,8 @@ import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
 import autotest.tko.Spreadsheet.HeaderImpl;
 import autotest.tko.Spreadsheet.SpreadsheetListener;
+import autotest.tko.TableView.TableSwitchListener;
+import autotest.tko.TableView.TableViewConfig;
 import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.json.client.JSONArray;
@@ -49,7 +51,7 @@ public class SpreadsheetView extends ConditionTabView
     
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_URL);
-    private SpreadsheetViewListener listener;
+    private TableSwitchListener listener;
     protected Header currentRowFields;
     protected Header currentColumnFields;
     protected Map<String,String[]> drilldownMap = new HashMap<String,String[]>();
@@ -69,11 +71,7 @@ public class SpreadsheetView extends ConditionTabView
     private boolean currentShowIncomplete;
     private boolean notYetQueried = true;
     
-    public static interface SpreadsheetViewListener extends TestSelectionListener {
-        public void onSwitchToTable(boolean isTriageView);
-    }
-    
-    public SpreadsheetView(SpreadsheetViewListener listener) {
+    public SpreadsheetView(TableSwitchListener listener) {
         this.listener = listener;
         commonPanel.addListener(this);
     }
@@ -456,7 +454,13 @@ public class SpreadsheetView extends ConditionTabView
 
     private void switchToTable(final TestSet tests, boolean isTriageView) {
         commonPanel.setCondition(tests);
-        listener.onSwitchToTable(isTriageView);
+        TableViewConfig config;
+        if (isTriageView) {
+            config = TableViewConfig.TRIAGE;
+        } else {
+            config = TableViewConfig.DEFAULT;
+        }
+        listener.onSwitchToTable(config);
     }
 
     public ContextMenu getActionMenu() {

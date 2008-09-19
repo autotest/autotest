@@ -5,12 +5,13 @@ import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.ui.CustomTabPanel;
 import autotest.common.ui.NotifyManager;
-import autotest.tko.SpreadsheetView.SpreadsheetViewListener;
+import autotest.tko.TableView.TableSwitchListener;
+import autotest.tko.TableView.TableViewConfig;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.user.client.ui.RootPanel;
 
-public class TkoClient implements EntryPoint, SpreadsheetViewListener {
+public class TkoClient implements EntryPoint, TableSwitchListener {
     private CommonPanel commonPanel;
     private SpreadsheetView spreadsheetView;
     private TableView tableView;
@@ -37,7 +38,7 @@ public class TkoClient implements EntryPoint, SpreadsheetViewListener {
         commonPanel = CommonPanel.getPanel();
         spreadsheetView = new SpreadsheetView(this);
         tableView = new TableView(this);
-        graphingView = new GraphingView();
+        graphingView = new GraphingView(this);
         detailView = new TestDetailView();
         
         mainTabPanel.getCommonAreaPanel().add(commonPanel);
@@ -57,12 +58,18 @@ public class TkoClient implements EntryPoint, SpreadsheetViewListener {
         tabsRoot.removeStyleName("hidden");
     }
     
-    public void onSwitchToTable(boolean isTriageView) {
+    public void onSwitchToTable(TableViewConfig config) {
         tableView.ensureInitialized();
-        if (isTriageView) {
-            tableView.setupJobTriage();
-        } else {
-            tableView.setupDefaultView();
+        switch (config) {
+            case TRIAGE:
+                tableView.setupJobTriage();
+                break;
+            case PASS_RATE:
+                tableView.setupPassRate();
+                break;
+            default:
+                tableView.setupDefaultView();
+                break;
         }
         tableView.doQuery();
         mainTabPanel.selectTabView(tableView);

@@ -52,10 +52,15 @@ public class TableView extends ConditionTabView
         {"test_idx", "test_name", "job_tag", "hostname", "status"};
     private static final String[] TRIAGE_GROUP_COLUMNS =
         {"test_name", "status", "reason"};
+    private static final String[] PASS_RATE_GROUP_COLUMNS =
+        {"hostname"};
     private static final SortSpec[] TRIAGE_SORT_SPECS = {
         new SortSpec("test_name", SortDirection.ASCENDING),
         new SortSpec("status", SortDirection.ASCENDING),
         new SortSpec("reason", SortDirection.ASCENDING),
+    };
+    private static final SortSpec[] PASS_RATE_SORT_SPECS = {
+        new SortSpec("test_name", SortDirection.ASCENDING)
     };
     private static final String COUNT_NAME = "Count in group";
     private static final String STATUS_COUNTS_NAME = "Test pass rate";
@@ -79,6 +84,14 @@ public class TableView extends ConditionTabView
     private List<String> fields = new ArrayList<String>();
     private List<SortSpec> tableSorts = new ArrayList<SortSpec>();
     private Map<String, String> fieldNames = new HashMap<String, String>();
+    
+    public enum TableViewConfig {
+        DEFAULT, PASS_RATE, TRIAGE
+    }
+    
+    public static interface TableSwitchListener extends TestSelectionListener {
+        public void onSwitchToTable(TableViewConfig config);
+    }
     
     public TableView(TestSelectionListener listener) {
         this.listener = listener;
@@ -140,6 +153,17 @@ public class TableView extends ConditionTabView
         
         // need to copy it so we can mutate it
         tableSorts = new ArrayList<SortSpec>(Arrays.asList(TRIAGE_SORT_SPECS));
+    }
+    
+    public void setupPassRate() {
+        // easier if we ensure it's deselected and then select it
+        selectColumns(PASS_RATE_GROUP_COLUMNS);
+        statusGroupCheckbox.setChecked(true);
+        groupCheckbox.setChecked(false);
+        updateCheckboxes();
+        
+        // need to copy it so we can mutate it
+        tableSorts = new ArrayList<SortSpec>(Arrays.asList(PASS_RATE_SORT_SPECS));
     }
 
     private void createTable() {
