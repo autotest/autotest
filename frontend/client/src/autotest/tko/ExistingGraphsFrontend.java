@@ -1,9 +1,9 @@
 package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
-import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
+import autotest.common.ui.TabView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
@@ -13,10 +13,7 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FocusListener;
-import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
 import com.google.gwt.user.client.ui.SuggestBox;
@@ -25,12 +22,14 @@ import com.google.gwt.user.client.ui.SuggestionHandler;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class ExistingGraphsFrontend extends Composite {
-    
-    private JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+public class ExistingGraphsFrontend extends GraphingFrontend {
+
     private CheckBox normalize = new CheckBox("Normalize Performance (allows multiple benchmarks" +
                                               " on one graph)");
     private MultiWordSuggestOracle oracle = new MultiWordSuggestOracle();
@@ -40,16 +39,11 @@ public class ExistingGraphsFrontend extends Composite {
     private TextBox kernel = new TextBox();
     private JSONObject hostsAndTests = null;
     private Button graphButton = new Button("Graph");
-    FlexTable table = new FlexTable();
-    
-    public ExistingGraphsFrontend() {
+
+    public ExistingGraphsFrontend(final TabView parent) {
         normalize.addClickListener(new ClickListener() {
             public void onClick(Widget w) {
-                benchmark.setMultipleSelect(normalize.isChecked());
-                int selectedIndex = benchmark.getSelectedIndex();
-                for (int i = 0; i < benchmark.getItemCount(); i++) {
-                    benchmark.setItemSelected(i, i == selectedIndex);
-                }
+                normalizeClicked();
             }
         });
         
@@ -72,6 +66,7 @@ public class ExistingGraphsFrontend extends Composite {
         
         graphButton.addClickListener(new ClickListener() {
             public void onClick(Widget w) {
+                parent.updateHistory();
                 showGraph();
             }
         });
@@ -89,7 +84,8 @@ public class ExistingGraphsFrontend extends Composite {
         
         initWidget(table);
     }
-    
+
+    @Override
     public void refresh() {
         setEnabled(false);
         rpcProxy.rpcCall("get_hosts_and_tests", new JSONObject(), new JsonRpcCallback() {
@@ -104,15 +100,68 @@ public class ExistingGraphsFrontend extends Composite {
             }
         });
     }
-    
-    private void addControl(String text, Widget widget) {
-        int row = table.getRowCount();
-        table.setText(row, 0, text);
-        table.setWidget(row, 1, widget);
-        table.getFlexCellFormatter().setStylePrimaryName(row, 0, "field-name");
-        table.getFlexCellFormatter().setVerticalAlignment(row, 0, HasVerticalAlignment.ALIGN_TOP);
+
+    @Override
+    protected void addToHistory(Map<String, String> args) {
+        args.put("normalize", String.valueOf(normalize.isChecked()));
+        args.put("hostname", hostname.getText());
+
+        // Add the selected benchmarks
+        StringBuilder benchmarks = new StringBuilder();
+        for (int i = 0; i < benchmark.getItemCount(); i++) {
+            if (benchmark.isItemSelected(i)) {
+                benchmarks.append(benchmark.getValue(i));
+                benchmarks.append(",");
+            }
+        }
+
+        args.put("benchmark", benchmarks.toString());
+        args.put("kernel", kernel.getText());
     }
-    
+
+    @Override
+    protected void handleHistoryArguments(final Map<String, String> args) {
+        setEnabled(false);
+        hostname.setText(args.get("hostname"));
+        normalize.setChecked(Boolean.parseBoolean(args.get("normalize")));
+        normalizeClicked();
+        kernel.setText(args.get("kernel"));
+
+        rpcProxy.rpcCall("get_hosts_and_tests", new JSONObject(), new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                hostsAndTests = result.isObject();
+                refreshTests();
+
+                Set<String> benchmarks =
+                    new HashSet<String>(Arrays.asList(args.get("benchmark").split(",")));
+                for (int i = 0; i < benchmark.getItemCount(); i++) {
+                    benchmark.setItemSelected(i, benchmarks.contains(benchmark.getValue(i)));
+                }
+                setEnabled(true);
+            }
+        });
+    }
+
+    @Override
+    protected void setDrilldownTrigger() {
+        // No drilldowns
+    }
+
+    @Override
+    protected void addAdditionalEmbeddingParams(JSONObject params) {
+        // No embedding
+    }
+
+    // Change the state of the page based on the status of the "normalize" checkbox
+    private void normalizeClicked() {
+        benchmark.setMultipleSelect(normalize.isChecked());
+        int selectedIndex = benchmark.getSelectedIndex();
+        for (int i = 0; i < benchmark.getItemCount(); i++) {
+            benchmark.setItemSelected(i, i == selectedIndex);
+        }
+    }
+
     private void setEnabled(boolean enabled) {
         normalize.setEnabled(enabled);
         hostname.setEnabled(enabled);
@@ -126,7 +175,7 @@ public class ExistingGraphsFrontend extends Composite {
         if (value == null) {
             return;
         }
-        
+
         HashSet<String> selectedTests = new HashSet<String>();
         for (int i = 0; i < benchmark.getItemCount(); i++) {
             if (benchmark.isItemSelected(i)) {
@@ -137,7 +186,7 @@ public class ExistingGraphsFrontend extends Composite {
         JSONArray tests = value.isObject().get("tests").isArray();
         benchmark.clear();
         for (int i = 0; i < tests.size(); i++) {
-            String test = tests.get(i).isString().stringValue();
+            String test = Utils.jsonToString(tests.get(i));
             benchmark.addItem(test);
             if (selectedTests.contains(test)) {
                 benchmark.setItemSelected(i, true);
@@ -170,7 +219,7 @@ public class ExistingGraphsFrontend extends Composite {
 
             StringBuilder arg = new StringBuilder();
             for (int i = 0; i < tests.size(); i++) {
-                String test = tests.get(i).isString().stringValue();
+                String test = Utils.jsonToString(tests.get(i));
                 String key = getKey(test);
                 if (i != 0) {
                     arg.append(",");
@@ -189,10 +238,10 @@ public class ExistingGraphsFrontend extends Composite {
             url = "/tko/machine_test_attribute_graph.cgi?";
             
             JSONObject hostObject = value.isObject();
-            int machine = (int) hostObject.get("id").isNumber().doubleValue();
+            String machine = Utils.jsonToString(hostObject.get("id"));
             String benchmarkStr = benchmark.getValue(benchmarkIndex);
             
-            args.put("machine", String.valueOf(machine));
+            args.put("machine", machine);
             args.put("benchmark", benchmarkStr);
             args.put("key", getKey(benchmarkStr));
         }
@@ -202,6 +251,6 @@ public class ExistingGraphsFrontend extends Composite {
     private String getKey(String benchmark) {
         JSONObject benchmarkKey =
             StaticDataRepository.getRepository().getData("benchmark_key").isObject();
-        return benchmarkKey.get(benchmark.replaceAll("\\..*", "")).isString().stringValue();
+        return Utils.jsonToString(benchmarkKey.get(benchmark.replaceAll("\\..*", "")));
     }
 }

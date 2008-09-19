@@ -1,8 +1,9 @@
-import re, datetime
+import os, pickle, datetime
 from django.db import models as dbmodels
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import rpc_utils, model_logic
-from autotest_lib.new_tko.tko import models, tko_rpc_utils
+from autotest_lib.frontend.afe import readonly_connection
+from new_tko.tko import models, tko_rpc_utils, graphing_utils
 
 # table/spreadsheet view support
 
@@ -143,6 +144,100 @@ def get_hosts_and_tests():
     return rpc_utils.prepare_for_serialization(host_info)
 
 
+def create_metrics_plot(queries, plot, invert, normalize=None):
+    return graphing_utils.create_metrics_plot(queries, plot, invert, normalize)
+
+
+def create_qual_histogram(query, filter_string, interval):
+    return graphing_utils.create_qual_histogram(query, filter_string, interval)
+
+
+def execute_query_with_param(query, param):
+    cursor = readonly_connection.connection.cursor()
+    cursor.execute(query, param)
+    return cursor.fetchall()
+
+
+_preconfigs = {}
+is_init = False
+
+
+def _get_preconfig_path(suffix):
+    """\
+    Get the absolute path to a prefix directory or file.
+
+    suffix: list of suffixes after the 'preconfigs' directory to navigate to.
+            E.g., ['metrics', 'abc'] gives the path to
+            <tko>/preconfigs/metrics/abc
+    """
+
+    rel_path = os.path.join(os.path.dirname(__file__), 'preconfigs', *suffix)
+    return os.path.abspath(rel_path)
+
+
+def _init_preconfigs():
+    """\
+    Read the names of all the preconfigs from disk and store them in the
+    _preconfigs dictionary.
+    """
+
+    global is_init
+    if not is_init:
+        # Read the data
+        _preconfigs['metrics'] = dict.fromkeys(
+            os.listdir(_get_preconfig_path(['metrics'])))
+        _preconfigs['qual'] = dict.fromkeys(
+            os.listdir(_get_preconfig_path(['qual'])))
+        is_init = True
+
+def _read_preconfig(name, type):
+    """\
+    Populate the _preconfigs dictionary entry for the preconfig described by the
+    given parameters.
+
+    name: specific name of the preconfig
+    type: 'metrics' or 'qual'
+    """
+
+    _preconfigs[type][name] = {}
+    path = _get_preconfig_path([type, name])
+    config = open(path)
+    for line in config.readlines():
+        line.rstrip('\n')
+        parts = line.split(':')
+        _preconfigs[type][name][parts[0]] = parts[1].strip()
+    config.close()
+
+
+def get_preconfig(name, type):
+    _init_preconfigs()
+    if _preconfigs[type][name] is None:
+        _read_preconfig(name, type)
+    return _preconfigs[type][name]
+
+
+def get_embedding_id(url_token, graph_type, params):
+    try:
+        model = models.EmbeddedGraphingQuery.objects.get(url_token=url_token)
+    except models.EmbeddedGraphingQuery.DoesNotExist:
+        params_str = pickle.dumps(params)
+        now = datetime.datetime.now()
+        model = models.EmbeddedGraphingQuery(url_token=url_token,
+                                             graph_type=graph_type,
+                                             params=params_str,
+                                             last_updated=now)
+        model.cached_png = graphing_utils.create_embedded_plot(model,
+                                                               now.ctime())
+        model.save()
+
+    return model.id
+
+
+def get_embedded_query_url_token(id):
+    model = models.EmbeddedGraphingQuery.objects.get(id=id)
+    return model.url_token
+
+
 # test label management
 
 def add_test_label(name, description=None):
@@ -219,14 +314,6 @@ def delete_saved_queries(id_list):
 
 # other
 
-_benchmark_key = {
-    'kernbench' : 'elapsed',
-    'dbench' : 'throughput',
-    'tbench' : 'throughput',
-    'unixbench' : 'score',
-    'iozone' : '32768-4096-fwrite'
-}
-
 
 def get_static_data():
     result = {}
@@ -242,10 +329,52 @@ def get_static_data():
     extra_fields = [(field_name.capitalize(), field_sql)
                     for field_sql, field_name
                     in models.TestView.extra_fields.iteritems()]
+    _init_preconfigs()
+
+    benchmark_key = {
+        'kernbench' : 'elapsed',
+        'dbench' : 'throughput',
+        'tbench' : 'throughput',
+        'unixbench' : 'score',
+        'iozone' : '32768-4096-fwrite'
+    }
+
+    perf_view = [
+        ['Test Index', 'test_idx'],
+        ['Job Index', 'job_idx'],
+        ['Test Name', 'test_name'],
+        ['Subdirectory', 'subdir'],
+        ['Kernel Index', 'kernel_idx'],
+        ['Status Index', 'status_idx'],
+        ['Reason', 'reason'],
+        ['Host Index', 'machine_idx'],
+        ['Test Started Time', 'test_started_time'],
+        ['Test Finished Time', 'test_finished_time'],
+        ['Job Tag', 'job_tag'],
+        ['Job Name', 'job_name'],
+        ['Owner', 'job_owner'],
+        ['Job Queued Time', 'job_queued_time'],
+        ['Job Started Time', 'job_started_time'],
+        ['Job Finished Time', 'job_finished_time'],
+        ['Hostname', 'hostname'],
+        ['Platform', 'platform'],
+        ['Machine Owner', 'machine_owner'],
+        ['Kernel Hash', 'kernel_hash'],
+        ['Kernel Base', 'kernel_base'],
+        ['Kernel', 'kernel'],
+        ['Status', 'status'],
+        ['Iteration Number', 'iteration'],
+        ['Performance Keyval (Key)', 'iteration_key'],
+        ['Performance Keyval (Value)', 'iteration_value'],
+    ]
 
     result['group_fields'] = sorted(group_fields)
     result['all_fields'] = sorted(model_fields + extra_fields)
     result['test_labels'] = get_test_labels(sort_by=['name'])
     result['user_login'] = thread_local.get_user()
-    result['benchmark_key'] = _benchmark_key
+    result['benchmark_key'] = benchmark_key
+    result['perf_view'] = perf_view
+    result['test_view'] = model_fields
+    result['preconfigs'] = _preconfigs
+
     return result
