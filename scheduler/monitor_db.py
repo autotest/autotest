@@ -5,11 +5,11 @@ Autotest scheduler
 """
 
 
-import os, sys, tempfile, shutil, MySQLdb, time, traceback, subprocess, Queue
-import optparse, signal, smtplib, socket, datetime, stat, pwd, errno
+import datetime, errno, MySQLdb, optparse, os, pwd, Queue, re, shutil, signal
+import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import common
-from autotest_lib.client.common_lib import global_config, host_protections
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import host_protections, utils
 
 
 RESULTS_DIR = '.'
@@ -35,6 +35,9 @@ _notify_email = None
 _autoserv_path = 'autoserv'
 _testing_mode = False
 _global_config_section = 'SCHEDULER'
+_base_url = None
+# see os.getlogin() online docs
+_email_from = pwd.getpwuid(os.getuid())[0]
 
 
 def main():
@@ -72,6 +75,14 @@ def main():
         _autoserv_path = 'autoserv_dummy'
         global _testing_mode
         _testing_mode = True
+
+    # read in base url
+    global _base_url
+    val = c.get_config_value("AUTOTEST_WEB", "base_url")
+    if val:
+        _base_url = val
+    else:
+        _base_url = "http://your_autotest_server/afe/"
 
     init(options.logfile)
     dispatcher = Dispatcher()
@@ -242,6 +253,22 @@ def get_proc_poll_fn(pid):
     return poll_fn
 
 
+def send_email(from_addr, to_string, subject, body):
+    """Mails out emails to the addresses listed in to_string.
+
+    to_string is split into a list which can be delimited by any of:
+            ';', ',', ':' or any whitespace
+    """
+
+    # Create list from string removing empty strings from the list.
+    to_list = [x for x in re.split('\s|,|;|:', to_string) if x]
+    msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
+        from_addr, ', '.join(to_list), subject, body)
+    mailer = smtplib.SMTP('localhost')
+    mailer.sendmail(from_addr, to_list, msg)
+    mailer.quit()
+
+
 def kill_autoserv(pid, poll_fn=None):
     print 'killing', pid
     if poll_fn is None:
@@ -254,9 +281,6 @@ def kill_autoserv(pid, poll_fn=None):
 class EmailNotificationManager(object):
     def __init__(self):
         self._emails = []
-        # see os.getlogin() online docs
-        self._sender = pwd.getpwuid(os.getuid())[0]
-
 
     def enqueue_notify_email(self, subject, message):
         if not _notify_email:
@@ -275,12 +299,8 @@ class EmailNotificationManager(object):
         subject = 'Scheduler notifications from ' + socket.gethostname()
         separator = '\n' + '-' * 40 + '\n'
         body = separator.join(self._emails)
-        msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
-            self._sender, _notify_email, subject, body)
 
-        mailer = smtplib.SMTP('localhost')
-        mailer.sendmail(self._sender, _notify_email, msg)
-        mailer.quit()
+        send_email(_email_from, _notify_email, subject, body)
         self._emails = []
 
 email_manager = EmailNotificationManager()
@@ -1752,6 +1772,18 @@ class HostQueueEntry(DBObject):
         if status in ['Failed', 'Completed', 'Stopped', 'Aborted']:
             self.update_field('complete', True)
             self.update_field('active', False)
+            self._email_on_job_complete()
+
+
+    def _email_on_job_complete(self):
+        url = "%s#tab_id=view_job&object_id=%s" % (_base_url, self.job.id)
+
+        if self.job.is_finished():
+            subject = "Autotest: Job ID: %s \"%s\" Completed" % (
+                self.job.id, self.job.name)
+            body = "Job ID: %s\nJob Name: %s\n%s\n" % (
+                self.job.id, self.job.name, url)
+            send_email(_email_from, self.job.email_list, subject, body)
 
 
     def run(self,assigned_host=None):
@@ -1819,7 +1851,8 @@ class Job(DBObject):
     def _fields(cls):
         return  ['id', 'owner', 'name', 'priority', 'control_file',
                  'control_type', 'created_on', 'synch_type',
-                 'synch_count', 'synchronizing', 'timeout', 'run_verify']
+                 'synch_count', 'synchronizing', 'timeout',
+                 'run_verify', 'email_list']
 
 
     def is_server_job(self):
