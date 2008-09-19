@@ -13,8 +13,7 @@ mbligh@google.com (Martin J. Bligh)
 import sys, os, re, traceback, signal
 
 import common
-from autotest_lib.server import server_job, utils
-from autotest_lib.server import autoserv_parser
+from autotest_lib.server import server_job, utils, autoserv_parser
 
 
 class PidFileManager(object):
@@ -59,7 +58,12 @@ def run_autoserv(pid_file_manager, results, parser):
     if not realuser:
         realuser = 'anonymous'
 
-    machines = parser.options.machines.replace(',', ' ').strip().split()
+
+
+    if parser.options.machines:
+        machines = parser.options.machines.replace(',', ' ').strip().split()
+    else:
+        machines = []
     machines_file = parser.options.machines_file
     label = parser.options.label
     user = parser.options.user
