@@ -6,6 +6,7 @@ import os, getpass
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.frontend.afe.json_rpc import proxy
 
+DEFAULT_RPC_PATH = "/afe/server/noauth/rpc/"
 
 def get_autotest_server(web_server=None):
     if not web_server:
@@ -24,18 +25,18 @@ def get_autotest_server(web_server=None):
 
 class afe_comm(object):
     """Handles the AFE setup and communication through RPC"""
-    def __init__(self, web_server=None):
+    def __init__(self, web_server=None, rpc_path=DEFAULT_RPC_PATH):
         self.web_server = get_autotest_server(web_server)
-        self.proxy = self._connect()
+        self.proxy = self._connect(rpc_path)
 
-    def _connect(self):
+    def _connect(self, rpc_path):
         # This does not fail even if the address is wrong.
         # We need to wait for an actual RPC to fail
         headers = {'AUTHORIZATION' : getpass.getuser()}
-        rpc_server = self.web_server + "/afe/server/noauth/rpc/"
+        rpc_server = self.web_server + rpc_path
         return rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
 
-    def run(self, op, **data):
+    def run(self, op, *args, **data):
         function = getattr(self.proxy, op)
-        return function(**data)
+        return function(*args, **data)
