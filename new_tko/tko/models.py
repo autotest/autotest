@@ -290,12 +290,13 @@ class TestViewManager(TempManager):
 
         if exclude_labels:
             label_ids = self._get_label_ids_from_names(exclude_labels)
-            condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
-                         ','.join(str(label_id) for label_id in label_ids))
-            query_set = self._add_label_joins(query_set, suffix='_exclude',
-                                              join_condition=condition,
-                                              exclude=True)
-            joined = True
+            if label_ids:
+                condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
+                             ','.join(str(label_id) for label_id in label_ids))
+                query_set = self._add_label_joins(query_set, suffix='_exclude',
+                                                  join_condition=condition,
+                                                  exclude=True)
+                joined = True
 
         if not joined:
             filter_data['no_distinct'] = True
