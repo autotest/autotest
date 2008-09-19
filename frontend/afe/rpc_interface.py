@@ -271,7 +271,7 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
 
 def create_job(name, priority, control_file, control_type, timeout=None,
                is_synchronous=None, hosts=None, meta_hosts=None,
-               run_verify=True, one_time_hosts=None):
+               run_verify=True, one_time_hosts=None, email_list=''):
     """\
     Create and enqueue a job.
 
@@ -284,6 +284,7 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                 one host will be chosen from that label to run the job
                 on.
     timeout: hours until job times out
+    email_list: string containing emails to mail when the job is done
     """
 
     if timeout is None:
@@ -343,7 +344,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                             synch_type=synch_type,
                             hosts=host_objects,
                             timeout=timeout,
-                            run_verify=run_verify)
+                            run_verify=run_verify,
+                            email_list=email_list.strip())
     job.queue(host_objects)
     return job.id
 

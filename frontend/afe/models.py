@@ -487,6 +487,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     run_verify: Whether or not to run the verify phase
     synchronizing: for scheduler use
     timeout: hours until job times out
+    email_list: list of people to email on completion delimited by any of:
+                white space, ',', ':', ';'
     """
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
@@ -509,6 +511,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     synchronizing = dbmodels.BooleanField(default=False)
     run_verify = dbmodels.BooleanField(default=True)
     timeout = dbmodels.IntegerField()
+    email_list = dbmodels.CharField(maxlength=250, blank=True)
 
 
     # custom manager
@@ -521,7 +524,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_type, timeout, run_verify):
+               hosts, synch_type, timeout, run_verify, email_list):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
@@ -531,7 +534,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
             synch_type=synch_type, timeout=timeout,
-            run_verify=run_verify)
+            run_verify=run_verify, email_list=email_list)
 
         if job.synch_type == Test.SynchType.SYNCHRONOUS:
             job.synch_count = len(hosts)
