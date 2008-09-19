@@ -338,7 +338,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
-        commonPanel.setCondition(tests);
+        commonPanel.refineCondition(tests);
         currentRowFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newRowField));
         currentColumnFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newColumnField));
         updateWidgets();
@@ -453,7 +453,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private void switchToTable(final TestSet tests, boolean isTriageView) {
-        commonPanel.setCondition(tests);
+        commonPanel.refineCondition(tests);
         TableViewConfig config;
         if (isTriageView) {
             config = TableViewConfig.TRIAGE;

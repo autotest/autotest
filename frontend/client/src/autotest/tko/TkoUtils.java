@@ -4,6 +4,7 @@ import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
+import autotest.common.Utils;
 
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.json.client.JSONArray;
@@ -13,6 +14,7 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class TkoUtils {
@@ -47,8 +49,7 @@ public class TkoUtils {
     }
 
     protected static void getTestId(TestSet test, final TestSelectionListener listener) {
-        rpcProxy.rpcCall("get_test_views", getConditionParams(test.getCondition()), 
-                         new JsonRpcCallback() {
+        rpcProxy.rpcCall("get_test_views", test.getCondition(), new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 // just take the first result (there could be more than one due to
@@ -79,5 +80,12 @@ public class TkoUtils {
             return "";
         }
         return condition.isString().stringValue();
+    }
+    
+    static String joinWithParens(String joiner, String first, String second) {
+        if (!first.equals("")) {
+            first = "(" + first + ")";
+        }
+        return Utils.joinStrings(" AND ", Arrays.asList(new String[] {first, second}));
     }
 }

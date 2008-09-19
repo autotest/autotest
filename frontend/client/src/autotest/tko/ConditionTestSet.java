@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class ConditionTestSet implements TestSet {
+class ConditionTestSet extends TestSet {
     private Map<String,String> fields = new HashMap<String,String>();
     private boolean isSingleTest;
     private JSONObject initialCondition = new JSONObject();
@@ -34,13 +34,14 @@ class ConditionTestSet implements TestSet {
         }
     }
     
-    public String getCondition() {
+    @Override
+    public JSONObject getInitialCondition() {
+        return Utils.copyJSONObject(initialCondition);
+    }
+
+    @Override
+    public String getPartialSqlCondition() {
         ArrayList<String> parts = new ArrayList<String>();
-        String sqlCondition = TkoUtils.getSqlCondition(initialCondition);
-        if (!sqlCondition.trim().equals("")) {
-            parts.add(sqlCondition);
-        }
-        
         for (Map.Entry<String, String> entry : fields.entrySet()) {
             String query = entry.getKey();  
             String value = entry.getValue();
@@ -60,6 +61,7 @@ class ConditionTestSet implements TestSet {
         return value.replace("'", "\\'");
     }
 
+    @Override
     public boolean isSingleTest() {
         return isSingleTest;
     }

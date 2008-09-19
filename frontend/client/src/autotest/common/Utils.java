@@ -103,14 +103,19 @@ public class Utils {
     }
     
     public static <T> String joinStrings(String joiner, List<T> objects) {
-        if (objects.size() == 0) {
-            return "";
-        }
-        
-        StringBuilder result = new StringBuilder(objects.get(0).toString());
-        for (int i = 1; i < objects.size(); i++) {
-            result.append(joiner);
-            result.append(objects.get(i).toString());
+        StringBuilder result = new StringBuilder();
+        boolean first = true;
+        for (T object : objects) {
+            String piece = object.toString();
+            if (piece.equals("")) {
+                continue;
+            }
+            if (first) {
+                first = false;
+            } else {
+                result.append(joiner);
+            }
+            result.append(piece);
         }
         return result.toString();
     }

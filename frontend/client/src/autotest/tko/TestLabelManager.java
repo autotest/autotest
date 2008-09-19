@@ -24,6 +24,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 public class TestLabelManager implements ClickListener {
+    public static final String INVALIDATED_LABEL = "invalidated";
     private static final String ADD_TEXT = "Add label";
     private static final String REMOVE_TEXT = "Remove label";
     private static final int STACK_SELECT = 0, STACK_CREATE = 1;
@@ -41,7 +42,7 @@ public class TestLabelManager implements ClickListener {
     private StackPanel stack = new StackPanel();
     private Button submitButton = new Button(), cancelButton = new Button("Cancel");
     
-    private String currentTestCondition;
+    private JSONObject currentTestCondition;
     
     
     private TestLabelManager() {
@@ -93,7 +94,7 @@ public class TestLabelManager implements ClickListener {
         cancelCreateLink.setVisible(visible);
     }
     
-    public void handleAddLabels(String testCondition) {
+    public void handleAddLabels(JSONObject testCondition) {
         currentTestCondition = testCondition;
         newLabelName.setText("");
         
@@ -110,12 +111,10 @@ public class TestLabelManager implements ClickListener {
         showDialog(ADD_TEXT);
     }
     
-    public void handleRemoveLabels(String testCondition) {
+    public void handleRemoveLabels(JSONObject testCondition) {
         currentTestCondition = testCondition;
         
-        JSONObject args = new JSONObject();
-        args.put("extra_where", new JSONString(currentTestCondition));
-        rpcProxy.rpcCall("get_test_labels_for_tests", args, new JsonRpcCallback() {
+        rpcProxy.rpcCall("get_test_labels_for_tests", currentTestCondition, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 String[] labels = Utils.JSONObjectsToStrings(result.isArray(), "name");
@@ -193,9 +192,8 @@ public class TestLabelManager implements ClickListener {
             rpcMethod = "test_label_remove_tests";
         }
         
-        JSONObject args = new JSONObject();
+        JSONObject args = Utils.copyJSONObject(currentTestCondition);
         args.put("label_id", new JSONString(label));
-        args.put("extra_where", new JSONString(currentTestCondition));
         rpcProxy.rpcCall(rpcMethod, args, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
@@ -213,8 +211,8 @@ public class TestLabelManager implements ClickListener {
         });
     }
 
-    public void handleInvalidate(String condition) {
+    public void handleInvalidate(JSONObject condition) {
         currentTestCondition = condition;
-        addOrRemoveLabel("invalidated", true);
+        addOrRemoveLabel(INVALIDATED_LABEL, true);
     }
 }
