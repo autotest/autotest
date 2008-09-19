@@ -76,6 +76,20 @@ def crashdumps(machine):
 job.parallel_simple(crashdumps, machines, log=False)
 """
 
+
+crashinfo = """
+def crashinfo(machine):
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
+
+    host = hosts.create_host(hostname, user=user, port=port,
+                             initialize=False, password=passwd)
+    host.get_crashinfo(test_start_time)
+
+job.parallel_simple(crashinfo, machines, log=False)
+"""
+
+
 reboot_segment="""\
 def reboot(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
@@ -258,11 +272,11 @@ class base_server_job(object):
             raise error.AutoservError(
                 'No machines specified to verify')
         try:
-            namespace = {'machines' : self.machines, 'job' : self, \
-                                     'ssh_user' : self.ssh_user, \
-                                     'ssh_port' : self.ssh_port, \
-                                     'ssh_pass' : self.ssh_pass}
-            self._execute_code(preamble + verify, namespace, namespace)
+            namespace = {'machines' : self.machines, 'job' : self,
+                         'ssh_user' : self.ssh_user,
+                         'ssh_port' : self.ssh_port,
+                         'ssh_pass' : self.ssh_pass}
+            self._execute_code(preamble + verify, namespace)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n'
                     + traceback.format_exc())
@@ -279,7 +293,7 @@ class base_server_job(object):
                      'protection_level': host_protection}
         # no matter what happens during repair, go on to try to reverify
         try:
-            self._execute_code(preamble + repair, namespace, namespace)
+            self._execute_code(preamble + repair, namespace)
         except Exception, exc:
             print 'Exception occured during repair'
             traceback.print_exc()
@@ -371,9 +385,10 @@ class base_server_job(object):
 
         self.enable_external_logging()
         status_log = os.path.join(self.resultdir, 'status.log')
+        collect_crashinfo = True
         try:
             if install_before and machines:
-                self._execute_code(preamble + install, namespace, namespace)
+                self._execute_code(preamble + install, namespace)
             if self.client:
                 namespace['control'] = self.control
                 open('control', 'w').write(self.control)
@@ -382,20 +397,23 @@ class base_server_job(object):
             else:
                 open('control.srv', 'w').write(self.control)
                 server_control = self.control
-            self._execute_code(preamble + server_control, namespace,
-                                   namespace)
+            self._execute_code(preamble + server_control, namespace)
 
+            # disable crashinfo collection if we get this far without error
+            collect_crashinfo = False
         finally:
-            if machines and collect_crashdumps:
+            if machines and (collect_crashdumps or collect_crashinfo):
                 namespace['test_start_time'] = test_start_time
-                self._execute_code(preamble + crashdumps, namespace,
-                                       namespace)
+                if collect_crashinfo:
+                    script = crashinfo # includes crashdumps
+                else:
+                    script = crashdumps
+                self._execute_code(preamble + script, namespace)
             self.disable_external_logging()
             if reboot and machines:
-                self._execute_code(preamble + reboot_segment,namespace,
-                                       namespace)
+                self._execute_code(preamble + reboot_segment, namespace)
             if install_after and machines:
-                self._execute_code(preamble + install, namespace, namespace)
+                self._execute_code(preamble + install, namespace)
 
 
     def run_test(self, url, *args, **dargs):
@@ -662,8 +680,8 @@ class base_server_job(object):
         self.__parse_status(lines)
 
 
-    def _execute_code(self, code, global_scope, local_scope):
-        exec(code, global_scope, local_scope)
+    def _execute_code(self, code, scope):
+        exec(code, scope, scope)
 
 
     def _record(self, status_code, subdir, operation, status='',
