@@ -147,11 +147,11 @@ class netperf2(test.test):
                 for result in outputs:
                     temp_vals.append(function(result))
 
-                # Compute the average of elements returned from function which
+                # Compute the sum of elements returned from function which
                 # represent the string contained in keys
                 for j, key in enumerate(keys):
                     vals = [x[j] for x in temp_vals]
-                    keyval[key] = sum(vals) / len(vals)
+                    keyval[key] = sum(vals)
 
                 self.write_iteration_keyval(attr, keyval)
 
