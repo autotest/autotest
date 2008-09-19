@@ -154,6 +154,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
     protected TextBox timeout = new TextBox();
+    protected TextBox emailList = new TextBox();
     protected CheckBox skipVerify = new CheckBox();
     protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
@@ -203,6 +204,8 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         
         timeout.setText(Integer.toString(
                 (int) jobObject.get("timeout").isNumber().doubleValue()));
+        emailList.setText(
+                jobObject.get("email_list").isString().stringValue());
         
         skipVerify.setChecked(
                 jobObject.get("run_verify").isNumber().doubleValue() != 1);
@@ -362,7 +365,6 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         profilersPanel.setEnabled(isClientTypeSelected());
         handleSkipVerify();
         kernel.setEnabled(true);
-        timeout.setEnabled(true);
     }
 
     protected  boolean isClientTypeSelected() {
@@ -489,6 +491,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         RootPanel.get("create_job_name").add(jobName);
         RootPanel.get("create_kernel").add(kernel);
         RootPanel.get("create_timeout").add(timeout);
+        RootPanel.get("create_email_list").add(emailList);
         RootPanel.get("create_priority").add(priorityList);
         RootPanel.get("create_tests").add(testSelector);
         RootPanel.get("create_profilers").add(profilersPanel);
@@ -505,6 +508,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         kernel.setText("");
         timeout.setText(StaticDataRepository.getRepository().
             getData("job_timeout_default").isString().stringValue());
+        emailList.setText("");
         testSelector.reset();
         skipVerify.setChecked(false);
         profilersPanel.reset();
@@ -554,6 +558,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
                 args.put("is_synchronous", 
                          JSONBoolean.getInstance(runSynchronous.isChecked()));
                 args.put("timeout", new JSONNumber(timeoutInt));
+                args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));

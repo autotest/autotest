@@ -412,7 +412,8 @@ True
 ...         'synch_type': 'Asynchronous',
 ...         'synchronizing': 0,
 ...         'timeout': 72,
-...         'run_verify': 1}
+...         'run_verify': 1,
+...         'email_list': ''}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple
