@@ -613,6 +613,39 @@ class SSHHost(site_host.SiteHost):
         self.autodir = autodir
 
 
+    def get_crashinfo(self, test_start_time):
+        super(SSHHost, self).get_crashinfo(test_start_time)
+
+        # wait for four hours, to see if the machine comes back up
+        if not self.wait_up(timeout=4*60*60):
+            print "machine down, unable to collect crash dumps"
+            return
+
+        # find a directory to put the crashinfo into
+        if self.job:
+            infodir = self.job.resultdir
+        else:
+            infodir = os.path.abspath(os.getcwd())
+        infodir = os.path.join(infodir, "crashinfo.%s" % self.hostname)
+        if not os.path.exists(infodir):
+            os.mkdir(infodir)
+
+        # collect various log files
+        log_files = ["/var/log/messages", "/var/log/monitor-ssh-reboots"]
+        for log in log_files:
+            try:
+                self.get_file(log, infodir)
+            except Exception, e:
+                print "crashinfo collection of %s failed with:\n%s" % (log, e)
+
+        # collect dmesg
+        try:
+            result = self.run("dmesg").stdout
+            file(os.path.join(infodir, "dmesg"), "w").write(result)
+        except Exception, e:
+            print "crashinfo collection of dmesg failed with:\n%s" % e
+
+
     def ssh_setup_key(self):
         try:
             print 'Performing ssh key setup on %s:%d as %s' % \
