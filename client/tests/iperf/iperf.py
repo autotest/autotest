@@ -199,9 +199,9 @@ class iperf(test.test):
                         except:
                             pass
 
-                # Calculate Averages assuming there are values
+                # Calculate sums assuming there are values
                 for key in [k for k in runs if len(runs[k]) > 0]:
-                    keyval[key] = sum(runs[key]) / len(runs[key])
+                    keyval[key] = sum(runs[key])
 
                 self.write_iteration_keyval(attr, keyval)
         else:
