@@ -82,10 +82,16 @@ public class TkoUtils {
         return condition.isString().stringValue();
     }
     
-    static String joinWithParens(String joiner, String first, String second) {
-        if (!first.equals("")) {
-            first = "(" + first + ")";
+    static String wrapWithParens(String string) {
+        if (string.equals("")) {
+            return string;
         }
+        return "(" + string + ")";
+    }
+    
+    static String joinWithParens(String joiner, String first, String second) {
+        first = wrapWithParens(first);
+        second = wrapWithParens(second);
         return Utils.joinStrings(" AND ", Arrays.asList(new String[] {first, second}));
     }
 }
