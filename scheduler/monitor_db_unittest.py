@@ -5,6 +5,7 @@ import MySQLdb
 import common
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
+from autotest_lib.migrate import migrate
 
 import monitor_db
 
@@ -48,9 +49,22 @@ class IsRow(mock.argument_comparator):
 
 
 class BaseDispatcherTest(unittest.TestCase):
+    _config_section = 'AUTOTEST_WEB'
+
+
+    def _setup_test_db_name(self):
+        global_config.global_config.reset_config_values()
+        real_db_name = global_config.global_config.get_config_value(
+            self._config_section, 'database')
+        test_db_name = 'test_' + real_db_name
+        global_config.global_config.override_config_value(self._config_section,
+                                                          'database',
+                                                          test_db_name)
+
+
     def _read_db_info(self):
         config = global_config.global_config
-        section = 'AUTOTEST_WEB'
+        section = self._config_section
         self._host = config.get_config_value(section, "host")
         self._db_name = config.get_config_value(section, "database")
         self._user = config.get_config_value(section, "user")
@@ -81,22 +95,19 @@ class BaseDispatcherTest(unittest.TestCase):
                 self._do_query(query)
 
 
-    def _get_db_schema(self):
-        command = 'mysqldump --no-data -u %s -p%s -h %s %s' % (
-            self._user, self._password, self._host, self._db_name)
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                shell=True)
-        return proc.communicate()[0]
-
-
-    def _open_test_db(self, schema):
-        self._db_name = 'test_' + self._db_name
+    def _open_test_db(self):
         self._connect_to_db()
         self._do_query('DROP DATABASE IF EXISTS ' + self._db_name)
         self._do_query('CREATE DATABASE ' + self._db_name)
         self._disconnect_from_db()
+
+        migration_dir = os.path.join(os.path.dirname(__file__),
+                                     '..', 'frontend', 'migrations')
+        manager = migrate.MigrationManager('AUTOTEST_WEB', migration_dir,
+                                           force=True)
+        manager.do_sync_db()
+
         self._connect_to_db(self._db_name)
-        self._do_queries(schema)
 
 
     def _close_test_db(self):
@@ -115,9 +126,9 @@ class BaseDispatcherTest(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god()
+        self._setup_test_db_name()
         self._read_db_info()
-        schema = self._get_db_schema()
-        self._open_test_db(schema)
+        self._open_test_db()
         self._fill_in_test_data()
         self._set_monitor_stubs()
         self._dispatcher = monitor_db.Dispatcher()

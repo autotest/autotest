@@ -12,12 +12,13 @@ def migrate_up(manager):
             db_initialized = False
             break
     if not db_initialized:
-        response = raw_input(
-            'Your tko database does not appear to be initialized.  Do '
-            'you want to recreate it (this will result in loss of any '
-            'existing data) (yes/No)? ')
-        if response != 'yes':
-            raise Exception('User has chosen to abort migration')
+        if not manager.force:
+            response = raw_input(
+                'Your autotest_web database does not appear to be '
+                'initialized.  Do you want to recreate it (this will '
+                'result in loss of any existing data) (yes/No)? ')
+            if response != 'yes':
+                raise Exception('User has chosen to abort migration')
 
         manager.execute_script(CREATE_DB_SQL)
 

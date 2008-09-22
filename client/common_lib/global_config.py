@@ -39,8 +39,7 @@ class global_config(object):
 
 
     def get_config_value(self, section, key, type=str, default=None):
-        if self.config == None:
-            self.parse_config_file()
+        self._ensure_config_parsed()
 
         try:
             val = self.config.get(section, key)
@@ -53,6 +52,27 @@ class global_config(object):
                 return default
 
         return self.convert_value(key, section, val, type, default)
+
+
+    def override_config_value(self, section, key, new_value):
+        """
+        Override a value from the config file with a new value.
+        """
+        self._ensure_config_parsed()
+        self.config.set(section, key, new_value)
+
+
+    def reset_config_values(self):
+        """
+        Reset all values to those found in the config files (undoes all
+        overrides).
+        """
+        self.parse_config_file()
+
+
+    def _ensure_config_parsed(self):
+        if self.config == None:
+            self.parse_config_file()
 
 
     def merge_configs(self, shadow_config):
