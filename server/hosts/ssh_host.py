@@ -614,12 +614,18 @@ class SSHHost(site_host.SiteHost):
 
 
     def get_crashinfo(self, test_start_time):
+        print "Collecting crash information..."
         super(SSHHost, self).get_crashinfo(test_start_time)
 
         # wait for four hours, to see if the machine comes back up
+        current_time = time.strftime("%b %d %H:%M:%S", time.localtime())
+        print "Waiting four hours for %s to come up (%s)" % (self.hostname,
+                                                             current_time)
         if not self.wait_up(timeout=4*60*60):
-            print "machine down, unable to collect crash dumps"
+            print "%s down, unable to collect crash info" % self.hostname
             return
+        else:
+            print "%s is back up, collecting crash info" % self.hostname
 
         # find a directory to put the crashinfo into
         if self.job:
@@ -633,12 +639,14 @@ class SSHHost(site_host.SiteHost):
         # collect various log files
         log_files = ["/var/log/messages", "/var/log/monitor-ssh-reboots"]
         for log in log_files:
+            print "Collecting %s..." % log
             try:
                 self.get_file(log, infodir)
             except Exception, e:
                 print "crashinfo collection of %s failed with:\n%s" % (log, e)
 
         # collect dmesg
+        print "Collecting dmesg..."
         try:
             result = self.run("dmesg").stdout
             file(os.path.join(infodir, "dmesg"), "w").write(result)
