@@ -262,11 +262,19 @@ def send_email(from_addr, to_string, subject, body):
 
     # Create list from string removing empty strings from the list.
     to_list = [x for x in re.split('\s|,|;|:', to_string) if x]
+    if not to_list:
+        return
+
     msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
         from_addr, ', '.join(to_list), subject, body)
-    mailer = smtplib.SMTP('localhost')
-    mailer.sendmail(from_addr, to_list, msg)
-    mailer.quit()
+    try:
+        mailer = smtplib.SMTP('localhost')
+        try:
+            mailer.sendmail(from_addr, to_list, msg)
+        finally:
+            mailer.quit()
+    except Exception, e:
+        print "Sending email failed. Reason: %s" % repr(e)
 
 
 def kill_autoserv(pid, poll_fn=None):
