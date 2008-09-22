@@ -7,7 +7,13 @@ import common
 from autotest_lib.client.common_lib import global_config
 
 MIGRATE_TABLE = 'migrate_info'
-DEFAULT_MIGRATIONS_DIR = 'migrations'
+
+_AUTODIR = os.path.join(os.path.dirname(__file__), '..')
+_MIGRATIONS_DIRS = {
+    'AUTOTEST_WEB' : os.path.join(_AUTODIR, 'frontend', 'migrations'),
+    'TKO' : os.path.join(_AUTODIR, 'tko', 'migrations'),
+}
+_DEFAULT_MIGRATIONS_DIR = 'migrations' # use CWD
 
 class Migration(object):
     def __init__(self, filename):
@@ -31,10 +37,12 @@ class MigrationManager(object):
     cursor = None
     migrations_dir = None
 
-    def __init__(self, database, migrations_dir=None):
+    def __init__(self, database, migrations_dir=None, force=False):
         self.database = database
+        self.force = force
         if migrations_dir is None:
-            migrations_dir = os.path.abspath(DEFAULT_MIGRATIONS_DIR)
+            migrations_dir = os.path.abspath(
+                _MIGRATIONS_DIRS.get(database, _DEFAULT_MIGRATIONS_DIR))
         self.migrations_dir = migrations_dir
         sys.path.append(migrations_dir)
         assert os.path.exists(migrations_dir)
@@ -288,8 +296,10 @@ def main():
                       dest="database")
     parser.add_option("-a", "--action", help="what action to perform",
                       dest="action")
+    parser.add_option("-f", "--force", help="don't ask for confirmation",
+                      action="store_true")
     (options, args) = parser.parse_args()
-    manager = MigrationManager(options.database)
+    manager = MigrationManager(options.database, force=options.force)
 
     if len(args) > 0:
         if len(args) > 1:
