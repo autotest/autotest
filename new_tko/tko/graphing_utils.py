@@ -356,6 +356,10 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
 
     if not cursor.rowcount:
         raise NoDataError('query did not return any data')
+    rows = cursor.fetchall()
+    # "transpose" rows, so columns[0] is all the values from the first column,
+    # etc.
+    columns = zip(*rows)
 
     if plot == 'Line':
         line = True
@@ -366,18 +370,18 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
             'Plot' : 'Plot must be either Line or Bar'
         })
     plots = []
-    labels = [str(row[0]) for row in cursor.fetchall()]
+    labels = [str(label) for label in columns[0]]
     needs_resort = (cursor.description[0][0] == 'kernel')
 
     # Collect all the data for the plot
     col = 1
     while col < len(cursor.description):
-        y = [row[col] for row in cursor.fetchall()]
+        y = columns[col]
         label = cursor.description[col][0]
         col += 1
         if (col < len(cursor.description) and
             'errors-' + label == cursor.description[col][0]):
-            errors = [row[col] for row in cursor.fetchall()]
+            errors = columns[col]
             col += 1
         else:
             errors = None
