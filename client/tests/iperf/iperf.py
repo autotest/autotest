@@ -164,8 +164,6 @@ class iperf(test.test):
 
                 # Short circuit to handle errors due to client timeouts
                 if output == None:
-                    for key in runs:
-                        keyval[key] = 0
                     self.write_iteration_keyval(attr, keyval)
                     continue
 
