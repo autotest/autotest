@@ -341,3 +341,55 @@ class cpuset(object):
         utils.write_one_line(os.path.join(self.cpudir, 'cpus'), cpu_spec)
         utils.write_one_line(os.path.join(self.cpudir, 'tasks'), "%d" % job_pid)
         self.display()
+
+
+def get_boot_numa():
+    # get boot-time numa=fake=xyz option for current boot
+    #   eg  numa=fake=nnn,  numa=fake=nnnM, or nothing
+    label = 'numa=fake='
+    for arg in utils.read_one_line('/proc/cmdline').split():
+        if arg.startswith(label):
+            return arg[len(label):]
+    return ''
+
+
+def set_stale_page_age(working_set_seconds):
+    """
+    For all numa mem nodes of the entire machine, set the rate at which  
+        process kstaled checks for pages unreferenced since its last check.  
+        0 seconds disables kstaled.
+    This should be done only at topmost job level, not within local container.
+    Kernel's boot-time default is now 0 but fleet borglet sets it to 60s.
+    Logical pages that are untouched through two check periods are put onto
+        inactive list and are candidates for having physical page given away.
+    kswapd has its own on-demand method for finding stale pages too.
+    """
+    path = '/sys/devices/system/node'
+    for node_n in os.listdir(path):
+        utils.write_one_line(os.path.join(path, node_n, 'stale_page_age'),
+                             str(working_set_seconds))
+
+
+def set_sched_idle():
+    """
+    Set current python shell's cpu scheduling policy to sched_idle.
+    This shell, and all subsequently processes spawned by it, will run in
+    background with a permanently-low priority.  The processes will execute
+    only when the cpu would otherwise be idle.  The process priority is
+    not dynamically raised while waiting, so its I/O requests will
+    never compete with those of higher priority work.
+    For client-side use only; this command does not work when issued
+    remotely via piecemeal ssh from server.
+    """
+    utils.system('/home/autotest/tools/setidle %d' % os.getpid())
+
+
+def set_vma_max(vma_max_shift):
+    # split vm areas when larger than 1<<vma_max_shift bytes,
+    # else never split if vma_max_shift == 0
+    fname = '/proc/sys/vm/vma_max_shift'
+    if os.path.exists(fname):
+        utils.write_one_line(fname, str(vma_max_shift))
+        return vma_max_shift
+    return 0  # unsupported, so no maximum & no splitting of vm areas
+
