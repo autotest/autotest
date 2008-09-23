@@ -3,7 +3,7 @@ from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils
 
 class dbench(test.test):
-    version = 1
+    version = 2
 
     def initialize(self):
         self.job.require_gcc()
@@ -15,6 +15,7 @@ class dbench(test.test):
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
+        utils.system('patch -p1 < ../dbench_startup.patch')
         utils.system('./configure')
         utils.system('make')
 
