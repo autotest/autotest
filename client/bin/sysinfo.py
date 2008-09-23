@@ -13,7 +13,7 @@ except ImportError:
 
 # stuff to log per reboot
 files = ['/proc/pci', '/proc/meminfo', '/proc/slabinfo', '/proc/version',
-        '/proc/cpuinfo', '/proc/cmdline', '/proc/modules']
+        '/proc/cpuinfo', '/proc/cmdline', '/proc/modules', '/proc/interrupts']
 # commands = ['lshw']        # this causes problems triggering CDROM drives
 commands = ['uname -a', 'lspci -vvn', 'gcc --version', 'ld --version',
             'mount', 'hostname']
