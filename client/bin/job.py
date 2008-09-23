@@ -542,8 +542,7 @@ class base_job(object):
 
     def release_container(self):
         if self.container:
-            self.container.release()
-            self.container = None
+            self.container = self.container.release()
 
 
     def cpu_count(self):
