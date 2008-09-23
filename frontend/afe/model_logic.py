@@ -207,6 +207,8 @@ class ModelExtensions(object):
                 field.attname in data):
                 data[field.name] = data[field.attname]
                 del data[field.attname]
+            if field.name not in data:
+                continue
             value = data[field.name]
             if isinstance(value, dbmodels.Model):
                 data[field.name] = value.id
@@ -258,7 +260,7 @@ class ModelExtensions(object):
         """
         field_dict = cls.get_field_dict()
         for field_name in data:
-            if data[field_name] is None:
+            if field_name not in field_dict or data[field_name] is None:
                 continue
             field_obj = field_dict[field_name]
             # convert enum values
@@ -282,7 +284,7 @@ class ModelExtensions(object):
                         getattr(dest_obj,
                                 dest_obj.name_field))
                 else:
-                    data[field_name] = dest_obj.id
+                    data[field_name] = dest_obj._get_pk_val()
 
 
     @classmethod
@@ -444,20 +446,20 @@ class ModelExtensions(object):
         query.values()) and clean the data to be more suitable for
         returning to the user.
         """
-        for i in range(len(field_dicts)):
-            cls.clean_foreign_keys(field_dicts[i])
-            cls.convert_human_readable_values(
-                field_dicts[i], to_human_readable=True)
+        for field_dict in field_dicts:
+            cls.clean_foreign_keys(field_dict)
+            cls.convert_human_readable_values(field_dict,
+                                              to_human_readable=True)
 
 
     @classmethod
-    def list_objects(cls, filter_data, initial_query=None):
+    def list_objects(cls, filter_data, initial_query=None, fields=None):
         """\
         Like query_objects, but return a list of dictionaries.
         """
         query = cls.query_objects(filter_data, initial_query=initial_query)
-        field_dicts = list(query.values())
-        cls.clean_object_dicts(field_dicts)
+        field_dicts = [model_object.get_object_dict(fields)
+                       for model_object in query]
         return field_dicts
 
 
@@ -473,7 +475,7 @@ class ModelExtensions(object):
             assert len(args) == 1
             arg = args[0]
             if isinstance(arg, int) or isinstance(arg, long):
-                return cls.objects.get(id=arg)
+                return cls.objects.get(pk=arg)
             if isinstance(arg, str) or isinstance(arg, unicode):
                 return cls.objects.get(
                     **{cls.name_field : arg})
@@ -483,13 +485,14 @@ class ModelExtensions(object):
         return cls.objects.get(**kwargs)
 
 
-    def get_object_dict(self):
+    def get_object_dict(self, fields=None):
         """\
         Return a dictionary mapping fields to this object's values.
         """
+        if fields is None:
+            fields = self.get_field_dict().iterkeys()
         object_dict = dict((field_name, getattr(self, field_name))
-                           for field_name
-                           in self.get_field_dict().iterkeys())
+                           for field_name in fields)
         self.clean_object_dicts([object_dict])
         return object_dict
 

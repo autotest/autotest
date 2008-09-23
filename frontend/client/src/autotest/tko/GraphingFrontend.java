@@ -29,7 +29,7 @@ public abstract class GraphingFrontend extends Composite implements CustomHistor
     public static final String HISTORY_TOKEN = "embedded_query";
     
     protected FlexTable table = new FlexTable();
-    protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.TKO_URL);
+    protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected SimpleHyperlink embeddingLink = new SimpleHyperlink("[Link to this graph]");
     protected TableSwitchListener listener;
 
@@ -102,10 +102,8 @@ public abstract class GraphingFrontend extends Composite implements CustomHistor
                         link.append("\"><img border=\"0\" src=\"http://");
                         link.append(Window.Location.getHost());
                         
-                        String url = JsonRpcProxy.TKO_URL;
-                        link.append(url.substring(0, url.lastIndexOf('/', url.length() - 2)));
-
-                        link.append("/plot/?id=");
+                        link.append(JsonRpcProxy.TKO_BASE_URL);
+                        link.append("plot/?id=");
                         link.append(id);
                         
                         link.append("&max_age=10");

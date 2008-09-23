@@ -20,6 +20,7 @@ import java.util.List;
 public class TkoUtils {
     private static StaticDataRepository staticData = StaticDataRepository.getRepository();
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+    public static final ClassFactory factory = new SiteClassFactory();
     
     public static class FieldInfo {
         public String field;
