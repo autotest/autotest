@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re, time, select, subprocess, traceback
+import os, sys, re, time, select, subprocess, traceback, tempfile
 
 from autotest_lib.client.bin import fd_stack
 from autotest_lib.client.common_lib import error, logging
