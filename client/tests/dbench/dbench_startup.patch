@@ -1,0 +1,98 @@
+diff -u old/ new/        
+--- old/Makefile.in	2008-09-18 14:43:55.000000000 -0700
++++ new/Makefile.in	2008-09-18 14:42:53.000000000 -0700
+@@ -22,10 +22,10 @@
+ all: dbench tbench tbench_srv
+ 
+ dbench: $(DB_OBJS)
+-	$(CC) -o $@ $(DB_OBJS) $(LIBS)
++	$(CC) -lpthread -o $@ $(DB_OBJS) $(LIBS)
+ 
+ tbench: $(TB_OBJS)
+-	$(CC) -o $@ $(TB_OBJS) $(LIBS)
++	$(CC) -lpthread -o $@ $(TB_OBJS) $(LIBS)
+ 
+ tbench_srv: $(SRV_OBJS)
+ 	$(CC) -o $@ $(SRV_OBJS) $(LIBS)
+diff -u old/ new/        
+--- old/dbench.c	2008-09-18 14:43:49.000000000 -0700
++++ new/dbench.c	2008-09-18 14:42:46.000000000 -0700
+@@ -130,6 +130,8 @@
+ 	int synccount;
+ 	struct timeval tv;
+ 	FILE *load;
++	int shmid;
++	sem_t *sema;
+ 
+ 	load = open_loadfile();
+ 	if (load == NULL) {
+@@ -162,12 +164,24 @@
+ 		children[i].directory = directory;
+ 	}
+ 
++	shmid = shmget(IPC_PRIVATE, sizeof(*sema), IPC_CREAT | 0666);
++	if (shmid < 0) {
++		perror("could not create shared memory segment");
++		exit(1);
++	}
++	sema = shmat(shmid, NULL, 0);
++
++	if (sem_init(sema, 1, 0) < 0) {
++		perror("semaphore initilization failed");
++		exit(1);
++	}
++
+ 	for (i=0;i<nprocs;i++) {
+ 		if (fork() == 0) {
+ 			setlinebuf(stdout);
+ 			nb_setup(&children[i]);
+ 			children[i].status = getpid();
+-			pause();
++			sem_wait(sema);
+ 			fn(&children[i], loadfile);
+ 			_exit(0);
+ 		}
+@@ -185,12 +199,14 @@
+ 
+ 	if (synccount != nprocs) {
+ 		printf("FAILED TO START %d CLIENTS (started %d)\n", nprocs, synccount);
++		shmdt(sema);
+ 		return;
+ 	}
+ 
+ 	printf("%d clients started\n", nprocs);
+ 
+-	kill(0, SIGCONT);
++	for (i=0;i<nprocs;i++)
++		sem_post(sema);
+ 
+ 	tv_start = timeval_current();
+ 
+@@ -202,6 +218,7 @@
+ 		if (WEXITSTATUS(status) != 0) {
+ 			printf("Child failed with status %d\n",
+ 			       WEXITSTATUS(status));
++			shmdt(sema);
+ 			exit(1);
+ 		}
+ 		i++;
+@@ -210,6 +227,8 @@
+ 	alarm(0);
+ 	sig_alarm(SIGALRM);
+ 
++	shmdt(sema);
++
+ 	printf("\n");
+ }
+ 
+diff -u old/ new/        
+--- old/dbench.h	2008-09-18 14:43:48.000000000 -0700
++++ new/dbench.h	2008-09-18 14:42:48.000000000 -0700
+@@ -35,6 +35,7 @@
+ #include <sys/ipc.h>
+ #include <sys/shm.h>
+ #include <sys/mman.h>
++#include <semaphore.h>
+ 
+ #ifdef HAVE_SYS_VFS_H
+ #include <sys/vfs.h>
