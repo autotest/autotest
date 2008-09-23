@@ -167,6 +167,7 @@ public class Utils {
     public static String jsonToString(JSONValue value) {
         JSONString string;
         JSONNumber number;
+        assert value != null;
         if ((string = value.isString()) != null) {
             return string.stringValue();
         }

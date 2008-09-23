@@ -24,9 +24,10 @@ import java.util.Set;
  * A singleton class to facilitate RPC calls to the server.
  */
 public class JsonRpcProxy {
-    public static final String AFE_URL = "/afe/server/rpc/";
-    public static final String TKO_URL = "/new_tko/server/rpc/";
-    private static String defaultUrl;
+    public static final String AFE_BASE_URL = "/afe/server/";
+    public static final String TKO_BASE_URL = "/new_tko/server/";
+    private static final String RPC_URL_SUFFIX = "rpc/";
+    private static String defaultBaseUrl;
     
     private static final Map<String,JsonRpcProxy> instanceMap = new HashMap<String,JsonRpcProxy>();
     
@@ -34,24 +35,24 @@ public class JsonRpcProxy {
     
     protected RequestBuilder requestBuilder;
     
-    public static void setDefaultUrl(String url) {
-        defaultUrl = url;
+    public static void setDefaultBaseUrl(String baseUrl) {
+        defaultBaseUrl = baseUrl;
     }
     
-    public static JsonRpcProxy getProxy(String url) {
-        if (!instanceMap.containsKey(url)) {
-            instanceMap.put(url, new JsonRpcProxy(url));
+    public static JsonRpcProxy getProxy(String baseUrl) {
+        if (!instanceMap.containsKey(baseUrl)) {
+            instanceMap.put(baseUrl, new JsonRpcProxy(baseUrl));
         }
-        return instanceMap.get(url);
+        return instanceMap.get(baseUrl);
     }
     
     public static JsonRpcProxy getProxy() {
-        assert defaultUrl != null;
-        return getProxy(defaultUrl);
+        assert defaultBaseUrl != null;
+        return getProxy(defaultBaseUrl);
     }
     
     private JsonRpcProxy(String url) {
-        requestBuilder = new RequestBuilder(RequestBuilder.POST, url);
+        requestBuilder = new RequestBuilder(RequestBuilder.POST, url + RPC_URL_SUFFIX);
     }
 
     protected JSONArray processParams(JSONObject params) {
