@@ -29,7 +29,7 @@ public class AfeClient implements EntryPoint {
      * Application entry point.
      */
     public void onModuleLoad() {
-        JsonRpcProxy.setDefaultUrl(JsonRpcProxy.AFE_URL);
+        JsonRpcProxy.setDefaultBaseUrl(JsonRpcProxy.AFE_BASE_URL);
         NotifyManager.getInstance().initialize();
         
         // initialize static data, and don't show main UI until that's done

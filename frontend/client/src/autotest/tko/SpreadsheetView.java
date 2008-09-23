@@ -50,7 +50,7 @@ public class SpreadsheetView extends ConditionTabView
     private static enum DrilldownType {DRILLDOWN_ROW, DRILLDOWN_COLUMN, DRILLDOWN_BOTH}
     
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
-    private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_URL);
+    private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
     private TableSwitchListener listener;
     protected Header currentRowFields;
     protected Header currentColumnFields;

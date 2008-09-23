@@ -129,7 +129,7 @@ class Job(dbmodels.Model):
         db_table = 'jobs'
 
 
-class Test(dbmodels.Model):
+class Test(dbmodels.Model, model_logic.ModelExtensions):
     test_idx = dbmodels.IntegerField(primary_key=True)
     job = dbmodels.ForeignKey(Job, db_column='job_idx')
     test = dbmodels.CharField(maxlength=90)
@@ -145,8 +145,10 @@ class Test(dbmodels.Model):
         db_table = 'tests'
 
 
-class TestAttribute(dbmodels.Model):
-    test = dbmodels.ForeignKey(Test, db_column='test_idx')
+class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
+    # this isn't really a primary key, but it's necessary to appease Django
+    # and is harmless as long as we're careful
+    test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.CharField(blank=True, maxlength=300)
 
@@ -155,7 +157,8 @@ class TestAttribute(dbmodels.Model):
 
 
 class IterationAttribute(dbmodels.Model):
-    test = dbmodels.ForeignKey(Test, db_column='test_idx')
+    # see comment on TestAttribute regarding primary_key=True
+    test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.CharField(blank=True, maxlength=300)
@@ -431,21 +434,12 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @classmethod
-    def list_objects(cls, filter_data, initial_query=None):
-        """
-        Django's ValuesQuerySet (used when you call query.values()) doesn't
-        support custom select fields, so we have to basically reimplement it
-        here.
-        TODO: merge this up to ModelExtensions after some settling time.
-        """
-        query = cls.query_objects(filter_data, initial_query=initial_query)
-        object_dicts = []
-        for model_object in query:
-            object_dict = model_object.get_object_dict()
-            for sql in cls.extra_fields.iterkeys():
-                object_dict[sql] = getattr(model_object, sql)
-            object_dicts.append(object_dict)
-        return object_dicts
+    def list_objects(cls, filter_data, initial_query=None, fields=None):
+        # include extra fields
+        if fields is None:
+            fields = cls.get_field_dict().keys() + cls.extra_fields.keys()
+        return super(TestView, cls).list_objects(filter_data, initial_query,
+                                                 fields)
 
 
     class Meta:

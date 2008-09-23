@@ -22,7 +22,7 @@ public class TkoClient implements EntryPoint, TableSwitchListener {
     private SavedQueriesControl savedQueriesControl;
     
     public void onModuleLoad() {
-        JsonRpcProxy.setDefaultUrl(JsonRpcProxy.TKO_URL);
+        JsonRpcProxy.setDefaultBaseUrl(JsonRpcProxy.TKO_BASE_URL);
         
         NotifyManager.getInstance().initialize();
         
@@ -39,7 +39,7 @@ public class TkoClient implements EntryPoint, TableSwitchListener {
         spreadsheetView = new SpreadsheetView(this);
         tableView = new TableView(this);
         graphingView = new GraphingView(this);
-        detailView = new TestDetailView();
+        detailView = TkoUtils.factory.getTestDetailView();
         
         mainTabPanel.getCommonAreaPanel().add(commonPanel);
         mainTabPanel.addTabView(spreadsheetView);

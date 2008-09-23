@@ -117,6 +117,22 @@ def get_job_ids(**filter_data):
     return list(job_ids)
 
 
+# test detail view
+
+def get_detailed_test_views(**filter_data):
+    test_views = models.TestView.list_objects(filter_data)
+    for test_view in test_views:
+        test_id = test_view['test_idx']
+        attribute_dicts = models.TestAttribute.list_objects(
+            dict(test__test_idx=test_id), fields=('attribute', 'value'))
+        test_view['attributes'] = dict(
+            (attribute_dict['attribute'], attribute_dict['value'])
+            for attribute_dict in attribute_dicts)
+        label_dicts = models.TestLabel.list_objects(
+            dict(tests__test_idx=test_id), fields=('name',))
+        test_view['labels'] = [label_dict['name'] for label_dict in label_dicts]
+    return rpc_utils.prepare_for_serialization(test_views)
+
 # graphing view support
 
 def get_hosts_and_tests():
