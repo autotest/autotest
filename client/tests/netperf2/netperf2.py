@@ -139,8 +139,6 @@ class netperf2(test.test):
 
                 # Short circuit to handle errors due to client timeouts
                 if not outputs:
-                    for key in keys:
-                        keyval[key] = 0
                     self.write_iteration_keyval(attr, keyval)
                     continue
 
