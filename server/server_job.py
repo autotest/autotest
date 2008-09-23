@@ -11,7 +11,7 @@ Martin J. Bligh <mbligh@google.com>
 Andy Whitcroft <apw@shadowen.org>
 """
 
-import os, sys, re, time, select, subprocess, traceback, tempfile
+import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
 
 from autotest_lib.client.bin import fd_stack
 from autotest_lib.client.common_lib import error, logging
@@ -209,6 +209,26 @@ class base_server_job(object):
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
+
+        if not os.access(self.tmpdir, os.W_OK):
+            try:
+                os.makedirs(self.tmpdir, 0700)
+            except os.error, e:
+                # Thrown if the directory already exists, which it may.
+                pass
+
+        if (not os.access(self.tmpdir, os.W_OK) or
+                not os.path.isdir(self.tmpdir)):
+            self.tmpdir = os.path.join(tempfile.gettempdir(),
+                                       'autotest-' + getpass.getuser())
+            try:
+                os.makedirs(self.tmpdir, 0700)
+            except os.error, e:
+                # Thrown if the directory already exists, which it may.
+                # If the problem was something other than the
+                # directory already existing, this chmod should throw as well
+                # exception.
+                os.chmod(self.tmpdir, stat.S_IRWXU)
 
         if os.path.exists(self.status):
             os.unlink(self.status)
