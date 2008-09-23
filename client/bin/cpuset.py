@@ -140,6 +140,24 @@ def print_all_cpusets():
         print_one_cpuset(re.sub(r'.*/', '', cpuset))
 
 
+def release_container(container_full_name):
+    # Destroy a container, which should now have no nested sub-containers
+    # It may have active tasks
+    print "releasing ", container_full_name
+    parent = os.path.dirname(container_full_name)        
+    parent_t = os.path.join(parent, 'tasks')
+    # Transfer any survivor tasks (e.g. self) to parent
+    for task in get_tasks(container_full_name):
+        utils.write_one_line(parent_t, task)
+    # Leave kswapd groupings unchanged as mem nodes are
+    #   returned to parent's pool of undedicated mem.
+    # No significant work is executed at parent level,
+    #   so we don't care whether those kswapd processes
+    #   are fully merged, or totally 1:1, or have
+    #   leftover subgroupings from prior nested containers.
+    os.rmdir(container_full_name)  # fails if nested sub-containers still exist
+
+
 def release_dead_containers(parent=super_root):
     # Delete temp subcontainers nested within parent container
     #   that are now dead (having no tasks and no sub-containers)
@@ -182,21 +200,16 @@ class cpuset(object):
 
 
     def release(self):
-        print "releasing ", self.cpudir
-        parent_t = os.path.join(self.root, 'tasks')
-        # Transfer survivors (and self) to parent
-        for task in get_tasks(self.cpudir):
-            utils.write_one_line(parent_t, task)
-        # Leave kswapd groupings unchanged as mem nodes are
-        #   returned to parent's pool of undedicated mem.
-        # No significant work is executed at parent level,
-        #   so we don't care whether those kswapd processes
-        #   are fully merged, or totally 1:1, or have
-        #   leftover subgroupings from prior nested containers.
-        os.rmdir(self.cpudir)
-        if os.path.exists(self.cpudir):
-            raise error.AutotestError('Could not delete container '
-                                      + self.cpudir)
+        if self.cpudir == super_root:
+            raise error.AutotestError('Too many release_container() calls')
+        release_container(self.cpudir)
+        # pop back to parent container
+        if self.root == super_root:
+            return None
+        else:
+            self.cpudir = self.root 
+            self.root, self.name  = os.path.split(self.cpudir)
+            return self
 
 
     def setup_network_containers(self, min_tx=0, max_tx=0, priority=2):
@@ -290,7 +303,7 @@ class cpuset(object):
 
         self.cpudir = os.path.join(self.root, name)
         if os.path.exists(self.cpudir):
-            self.release()   # destructively replace old
+            release_container(self.cpudir)   # destructively replace old
 
         nodes_needed = int(math.ceil( float(job_size) /
                                 math.ceil(mbytes_per_mem_node()) ))
