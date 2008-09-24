@@ -197,6 +197,8 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         disk["fs_mkfs"] = fs_makeopt
         disk["fs_opts"] = fs_mnt_opt
 
+    # Try to wipe the file system slate clean
+    autotest_utils.drop_caches()
 
 def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
     """

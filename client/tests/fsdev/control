@@ -60,10 +60,13 @@ for fstline in FS_LIST:
                  dir=disks[0]['mountpt'],
                  args='-l8 -u8 -M -s 8m -r16k +p80 -I -T -i0 -i8',
                  tag='small.'+tag)
+    autotest_utils.drop_caches()
+
     job.run_test('iozone',
                  dir=disks[0]['mountpt'],
                  args='-l8 -u8 -M -s 8g -r16k +p80 -I -T -i0 -i8',
                  tag='large.'+tag)
+    autotest_utils.drop_caches()
 
     # Clean up after the test
     if using_one_disk:
