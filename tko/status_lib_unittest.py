@@ -3,7 +3,7 @@
 import unittest
 import common
 from autotest_lib.tko import status_lib
-from autotest_lib.client.common_lib import logging
+from autotest_lib.client.common_lib import log
 
 
 class line_buffer_test(unittest.TestCase):
@@ -84,7 +84,7 @@ class line_buffer_test(unittest.TestCase):
 
 
 class status_stack_test(unittest.TestCase):
-    statuses = logging.job_statuses
+    statuses = log.job_statuses
 
     def test_default_to_nostatus(self):
         stack = status_lib.status_stack()
