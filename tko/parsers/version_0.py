@@ -10,13 +10,11 @@ class job(models.job):
         job_dict = job.load_from_dir(dir)
         super(job, self).__init__(dir, **job_dict)
 
-    @staticmethod
-    def load_from_dir(dir):
-        try:
-            keyval = common_utils.read_keyval(dir)
-            tko_utils.dprint(str(keyval))
-        except Exception:
-            keyval = {}
+
+    @classmethod
+    def load_from_dir(cls, dir):
+        keyval = cls.read_keyval(dir)
+        tko_utils.dprint(str(keyval))
 
         user = keyval.get("user", None)
         label = keyval.get("label", None)
