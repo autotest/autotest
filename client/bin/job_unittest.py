@@ -477,7 +477,23 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_kernel_check_ident_success(self):
+    def test_end_boot(self):
+        self.construct_job(True)
+
+        # set up the job class
+        self.job.group_level = 2
+
+        self.job._decrement_group_level.expect_call()
+        self.job.record.expect_call("END GOOD", "sub", "reboot",
+                                    optional_fields={"kernel": "2.6.15-smp",
+                                                     "patch0": "patchname"})
+
+        # run test
+        self.job.end_reboot("sub", "2.6.15-smp", ["patchname"])
+        self.god.check_playback()
+
+
+    def test_end_boot_and_verify_success(self):
         self.construct_job(True)
 
         # set up the job class
@@ -497,11 +513,11 @@ class TestBaseJob(unittest.TestCase):
                                     optional_fields={"kernel": "2.6.15-smp"})
 
         # run test
-        self.job.kernel_check_ident(81234567, "2.6.15-smp", "sub")
+        self.job.end_reboot_and_verify(81234567, "2.6.15-smp", "sub")
         self.god.check_playback()
 
 
-    def test_kernel_check_ident_failure(self):
+    def test_end_boot_and_verify_failure(self):
         self.construct_job(True)
 
         # set up the job class
@@ -521,7 +537,7 @@ class TestBaseJob(unittest.TestCase):
                                     optional_fields={"kernel": "2.6.15-smp"})
 
         # run test
-        self.assertRaises(error.JobError, self.job.kernel_check_ident,
+        self.assertRaises(error.JobError, self.job.end_reboot_and_verify,
                           91234567, "2.6.16-smp", "sub")
         self.god.check_playback()
 
