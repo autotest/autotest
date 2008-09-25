@@ -18,6 +18,31 @@ class job(object):
         self.machine_owner = machine_owner
 
 
+    @staticmethod
+    def read_keyval(dir):
+        dir = os.path.normpath(dir)
+        top_dir = tko_utils.find_toplevel_job_dir(dir)
+        if not top_dir:
+            top_dir = dir
+        assert(dir.startswith(top_dir))
+
+        # pull in and merge all the keyval files, with higher-level
+        # overriding values in the lower-level ones
+        keyval = {}
+        while True:
+            try:
+                keyval.update(utils.read_keyval(dir))
+            except IOError:
+                pass  # if the keyval can't be read just move on to the next
+            if dir == top_dir:
+                break
+            else:
+                assert(dir != "/")
+                dir = os.path.dirname(dir)
+        return keyval
+
+
+
 class kernel(object):
     def __init__(self, base, patches, kernel_hash):
         self.base = base
@@ -115,10 +140,9 @@ class test(object):
     @staticmethod
     def parse_host_keyval(job_dir, hostname):
         # the "real" job dir may be higher up in the directory tree
-        while not os.path.exists(os.path.join(job_dir, ".autoserv_execute")):
-            if job_dir == "/":
-                return {} # we can't find the "real" job dir
-            job_dir = os.path.normpath(os.path.join(job_dir, ".."))
+        job_dir = tko_utils.find_toplevel_job_dir(job_dir)
+        if not job_dir:
+            return {} # we can't find a top-level job dir with host keyvals
 
         # the keyval is <job_dir>/host_keyvals/<hostname> if it exists
         keyval_path = os.path.join(job_dir, "host_keyvals", hostname)

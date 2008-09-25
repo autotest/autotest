@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
-import unittest, time, datetime, itertools
+import os, unittest, time, datetime, itertools
 
 import common
+from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko import utils
 
 
 class get_timestamp_test(unittest.TestCase):
-    def testZeroTime(self):
+    def test_zero_time(self):
         date = utils.get_timestamp({"key": "0"}, "key")
         timezone = datetime.timedelta(seconds=time.timezone)
         utc_date = date + timezone
@@ -38,6 +39,64 @@ class get_timestamp_test(unittest.TestCase):
             date_int = utils.get_timestamp({"key": int_t}, "key")
             date_str = utils.get_timestamp({"key": str_t}, "key")
             self.assertEquals(date_int, date_str)
+
+
+class find_toplevel_job_dir_test(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(os.path, "exists")
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_start_is_toplevel(self):
+        jobdir = "/results/job1"
+        os.path.exists.expect_call(
+            jobdir + "/.autoserv_execute").and_return(True)
+        self.assertEqual(utils.find_toplevel_job_dir(jobdir), jobdir)
+
+
+    def test_parent_is_toplevel(self):
+        jobdir = "/results/job2"
+        os.path.exists.expect_call(
+            jobdir + "/sub/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call(
+            jobdir + "/.autoserv_execute").and_return(True)
+        self.assertEqual(utils.find_toplevel_job_dir(jobdir + "/sub"), jobdir)
+
+
+    def test_grandparent_is_toplevel(self):
+        jobdir = "/results/job3"
+        os.path.exists.expect_call(
+            jobdir + "/sub/sub/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call(
+            jobdir + "/sub/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call(
+            jobdir + "/.autoserv_execute").and_return(True)
+        self.assertEqual(utils.find_toplevel_job_dir(jobdir + "/sub/sub"),
+                         jobdir)
+
+    def test_root_is_toplevel(self):
+        jobdir = "/results/job4"
+        os.path.exists.expect_call(
+            jobdir + "/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call(
+            "/results/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call("/.autoserv_execute").and_return(True)
+        self.assertEqual(utils.find_toplevel_job_dir(jobdir), "/")
+
+
+    def test_no_toplevel(self):
+        jobdir = "/results/job5"
+        os.path.exists.expect_call(
+            jobdir + "/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call(
+            "/results/.autoserv_execute").and_return(False)
+        os.path.exists.expect_call("/.autoserv_execute").and_return(False)
+        self.assertEqual(utils.find_toplevel_job_dir(jobdir), None)
+
 
 
 if __name__ == "__main__":
