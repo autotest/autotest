@@ -551,10 +551,19 @@ class base_job(object):
         return autotest_utils.count_cpus()  # use total system count
 
 
-    # Check the passed kernel identifier against the command line
-    # and the running kernel, abort the job on missmatch.
-    def kernel_check_ident(self, expected_when, expected_id, subdir,
-                           type = 'src', patches=[]):
+    def end_reboot(self, subdir, kernel, patches):
+        kernel_info = {"kernel": kernel}
+        for i, patch in enumerate(patches):
+            kernel_info["patch%d" % i] = patch
+        self._decrement_group_level()
+        self.record("END GOOD", subdir, "reboot", optional_fields=kernel_info)
+
+
+    def end_reboot_and_verify(self, expected_when, expected_id, subdir,
+                              type='src', patches=[]):
+        """ Check the passed kernel identifier against the command line
+            and the running kernel, abort the job on missmatch. """
+
         print (("POST BOOT: checking booted kernel " +
                 "mark=%d identity='%s' type='%s'") %
                (expected_when, expected_id, type))
@@ -594,13 +603,8 @@ class base_job(object):
             self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
             raise error.JobError("reboot returned with the wrong kernel")
 
-        kernel_info = {'kernel': expected_id}
-        for i, patch in enumerate(patches):
-            kernel_info["patch%d" % i] = patch
         self.record('GOOD', subdir, 'reboot.verify', expected_id)
-        self._decrement_group_level()
-        self.record('END GOOD', subdir, 'reboot',
-                    optional_fields=kernel_info)
+        self.end_reboot(subdir, expected_id, patches)
 
 
     def filesystem(self, device, mountpoint = None, loop_size = 0):

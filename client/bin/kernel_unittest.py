@@ -558,10 +558,10 @@ class TestKernel(unittest.TestCase):
         self.kernel.installed_as = False
 
         # record
-        time.time.expect_call().and_return(when)
         self.kernel.get_kernel_build_ident.expect_call().and_return("ident")
+        time.time.expect_call().and_return(when)
         args += " IDENT=%d" % (when)
-        self.job.next_step_prepend.expect_call(["job.kernel_check_ident",
+        self.job.next_step_prepend.expect_call(["job.end_reboot_and_verify",
             when, "ident", self.subdir, self.kernel.applied_patches])
         self.kernel.install.expect_call()
         self.kernel.add_to_bootloader.expect_call(args=args,
@@ -570,6 +570,30 @@ class TestKernel(unittest.TestCase):
 
         # run and check
         self.kernel.boot()
+        self.god.check_playback()
+
+
+    def test_boot_without_ident(self):
+        self.construct_kernel()
+        self.god.stub_function(self.kernel, "get_kernel_build_ident")
+        self.god.stub_function(self.kernel, "install")
+        self.god.stub_function(self.kernel, "add_to_bootloader")
+        self.kernel.applied_patches = "applied_patches"
+        when = 1
+        args = ''
+        self.kernel.installed_as = False
+
+        # record
+        self.kernel.get_kernel_build_ident.expect_call().and_return("ident")
+        self.job.next_step_prepend.expect_call(["job.end_reboot",
+            self.subdir, "ident", self.kernel.applied_patches])
+        self.kernel.install.expect_call()
+        self.kernel.add_to_bootloader.expect_call(args=args,
+            tag=False)
+        self.job.reboot.expect_call(tag=False)
+
+        # run and check
+        self.kernel.boot(ident=False)
         self.god.check_playback()
 
 
