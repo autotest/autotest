@@ -5,7 +5,7 @@ import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
 from autotest_lib.client.bin import test, xen, kernel, autotest_utils, cpuset
-from autotest_lib.client.common_lib import packages, utils, error, logging
+from autotest_lib.client.common_lib import packages, utils, error, log
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -455,7 +455,7 @@ class TestBaseJob(unittest.TestCase):
 
 
         # record
-        logging.is_valid_status.expect_call(status_code).and_return(True)
+        log.is_valid_status.expect_call(status_code).and_return(True)
         time.time.expect_call().and_return(mytime)
         self.job.harness.test_status_detail.expect_call(status_code, subdir,
                                                         operation, '', msg_tag)

@@ -2,7 +2,7 @@ import os, shutil, copy, pickle, re, glob, time
 from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
 from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import logging, utils, error, packages
+from autotest_lib.client.common_lib import log, utils, error, packages
 
 
 class kernel(object):
@@ -130,7 +130,7 @@ class kernel(object):
         return patches
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def extract(self, base_tree):
         if os.path.exists(base_tree):
@@ -144,7 +144,7 @@ class kernel(object):
                 self.patch(*base_components)
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def patch(self, *patches):
         """Apply a list of patches (in order)"""
@@ -154,7 +154,7 @@ class kernel(object):
         self.apply_patches(self.get_patches(patches))
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def config(self, config_file = '', config_list = None, defconfig = False):
         self.set_cross_cc()
@@ -229,7 +229,7 @@ class kernel(object):
         utils.system('sed "%s" < Makefile.old > Makefile' % p)
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def build(self, make_opts = '', logfile = '', extraversion='autotest'):
         """build the kernel
@@ -283,7 +283,7 @@ class kernel(object):
             raise error.TestError(errmsg)
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def clean(self):
         """make clean in the kernel tree"""
@@ -292,7 +292,7 @@ class kernel(object):
         utils.system('make clean > /dev/null 2> /dev/null')
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def mkinitrd(self, version, image, system_map, initrd):
         """Build kernel initrd image.
@@ -340,7 +340,7 @@ class kernel(object):
         self.build_image = image
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def install(self, tag='autotest', prefix = '/'):
         """make install in the kernel tree"""
@@ -618,7 +618,7 @@ class rpm_kernel(object):
         self.installed_as = None
 
 
-    @logging.record
+    @log.record
     @tee_output_logdir_mark
     def install(self, tag='autotest'):
         self.installed_as = tag
