@@ -356,7 +356,8 @@ def _installtest(job, url):
 
 
 def runtest(job, url, tag, args, dargs,
-            local_namespace={}, global_namespace={}, after_test_hook=None):
+            local_namespace={}, global_namespace={},
+            before_test_hook=None, after_test_hook=None):
     local_namespace = local_namespace.copy()
     global_namespace = global_namespace.copy()
 
@@ -426,6 +427,8 @@ def runtest(job, url, tag, args, dargs,
     os.chdir(outputdir)
     try:
         mytest = global_namespace['mytest']
+        if before_test_hook:
+            before_test_hook(mytest)
         mytest._exec(args, dargs)
     finally:
         os.chdir(pwd)

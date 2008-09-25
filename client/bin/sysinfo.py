@@ -79,7 +79,33 @@ def _log_per_reboot_data():
         site_sysinfo.log_per_reboot_data()
 
 
-def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
+def log_before_each_test(state_dict, job_sysinfo_dir, test_sysinfo_dir):
+    if os.path.exists("/var/log/messages"):
+        stat = os.stat("/var/log/messages")
+        state_dict["messages_size"] = stat.st_size
+        state_dict["messages_inode"] = stat.st_ino
+
+
+def _log_messages(state_dict):
+    """ Log all of the new data in /var/log/messages. """
+    try:
+        # log all of the new data in /var/log/messages
+        bytes_to_skip = 0
+        if "messages_size" in state_dict and "messages_inode" in state_dict:
+            current_inode = os.stat("/var/log/messages").st_ino
+            if current_inode == state_dict["messages_inode"]:
+                bytes_to_skip = state_dict["messages_size"]
+        in_messages = open("/var/log/messages")
+        in_messages.seek(bytes_to_skip)
+        out_messages = open("messages", "w")
+        out_messages.write(in_messages.read())
+        in_messages.close()
+        out_messages.close()
+    except Exception, e:
+        print "/var/log/messages collection failed with %s" % e
+
+
+def log_after_each_test(state_dict, job_sysinfo_dir, test_sysinfo_dir):
     """log things that change after each test (called from test.py)"""
     pwd = os.getcwd()
     try:
@@ -94,6 +120,9 @@ def log_after_each_test(test_sysinfo_dir, job_sysinfo_dir):
 
         utils.system('dmesg -c > dmesg', ignore_status=True)
         utils.system('df -mP > df', ignore_status=True)
+
+        _log_messages(state_dict)
+
         if local:
             site_sysinfo.log_after_each_test()
     finally:

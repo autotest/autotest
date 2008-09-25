@@ -18,7 +18,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<testname.tag>
 
-import os, traceback, sys
+import os, traceback, sys, shutil
 
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.common_lib import test as common_test
@@ -29,18 +29,37 @@ class test(common_test.base_test):
     pass
 
 
-def _grab_sysinfo(mytest):
+def _get_sysinfo_dirs(mytest):
+    """ Returns (job_sysinfo_dir, test_sysinfo_dir) for a given test """
+    job_dir = mytest.job.sysinfodir
+    test_dir = os.path.join(mytest.outputdir, "sysinfo")
+    return job_dir, test_dir
+
+
+def _prepare_sysinfo(state, mytest):
     try:
-        sysinfo_dir = os.path.join(mytest.outputdir, 'sysinfo')
-        sysinfo.log_after_each_test(sysinfo_dir, mytest.job.sysinfodir)
-        sysinfo.log_test_keyvals(mytest, sysinfo_dir)
-        if os.path.exists(mytest.tmpdir):
-            utils.system('rm -rf ' + mytest.tmpdir)
+        job_dir, test_dir = _get_sysinfo_dirs(mytest)
+        sysinfo.log_before_each_test(state, job_dir, test_dir)
     except:
-        print 'after-test error:'
+        print "before-test error:"
+        traceback.print_exc(file=sys.stdout)
+
+
+def _grab_sysinfo(state, mytest):
+    try:
+        job_dir, test_dir = _get_sysinfo_dirs(mytest)
+        sysinfo.log_after_each_test(state, job_dir, test_dir)
+        sysinfo.log_test_keyvals(mytest, test_dir)
+        if os.path.exists(mytest.tmpdir):
+            shutil.rmtree(mytest.tmpdir, ignore_errors=True)
+    except:
+        print "after-test error:"
         traceback.print_exc(file=sys.stdout)
 
 
 def runtest(job, url, tag, args, dargs):
+    state_dict = {}
+    before_hook = lambda t: _prepare_sysinfo(state_dict, t)
+    after_hook = lambda t: _grab_sysinfo(state_dict, t)
     common_test.runtest(job, url, tag, args, dargs,
-                        locals(), globals(), _grab_sysinfo)
+                        locals(), globals(), before_hook, after_hook)
