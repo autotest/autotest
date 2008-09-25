@@ -449,7 +449,7 @@ class TestBaseJob(unittest.TestCase):
         msg = '\t'.join(str(x) for x in fields)
         msg = '\t' * self.job.group_level + msg
 
-        self.god.stub_function(logging, "is_valid_status")
+        self.god.stub_function(log, "is_valid_status")
         self.god.stub_function(time, "time")
         self.god.stub_function(self.job, "open")
 
