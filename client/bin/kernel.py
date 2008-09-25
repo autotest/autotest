@@ -482,19 +482,22 @@ class kernel(object):
         return release + '::' + version
 
 
-    def boot(self, args='', ident=1):
+    def boot(self, args='', ident=True):
         """ install and boot this kernel, do not care how
             just make it happen.
         """
 
         # If we can check the kernel identity do so.
+        expected_ident = self.get_kernel_build_ident()
         if ident:
             when = int(time.time())
-            ident = self.get_kernel_build_ident()
             args += " IDENT=%d" % (when)
-
-            self.job.next_step_prepend(["job.kernel_check_ident", when, ident,
-                                       self.subdir, self.applied_patches])
+            self.job.next_step_prepend(["job.end_reboot_and_verify", when,
+                                        expected_ident, self.subdir,
+                                        self.applied_patches])
+        else:
+            self.job.next_step_prepend(["job.end_reboot", self.subdir,
+                                        expected_ident, self.applied_patches])
 
         # Check if the kernel has been installed, if not install
         # as the default tag and boot that.
@@ -683,7 +686,7 @@ class rpm_kernel(object):
                                        args = args, root = root)
 
 
-    def boot(self, args='', ident=1):
+    def boot(self, args='', ident=True):
         """ install and boot this kernel
         """
 
@@ -693,15 +696,17 @@ class rpm_kernel(object):
             self.install()
 
         # If we can check the kernel identity do so.
+        expected_ident = '-'.join([self.version,
+                                   self.rpm_name.split('-')[1],
+                                   self.release])
         if ident:
             when = int(time.time())
-            ident = '-'.join([self.version,
-                              self.rpm_name.split('-')[1],
-                              self.release])
             args += " IDENT=%d" % (when)
-
-        self.job.next_step_prepend(["job.kernel_check_ident",
-                                    when, ident, None, 'rpm'])
+            self.job.next_step_prepend(["job.end_reboot_and_verify",
+                                        when, expected_ident, None, 'rpm'])
+        else:
+            self.job.next_step_prepend(["job.end_reboot", None,
+                                        expected_ident, []])
 
         # Boot the selected tag.
         self.add_to_bootloader(args=args, tag=self.installed_as)
