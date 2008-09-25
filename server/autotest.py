@@ -17,7 +17,7 @@ stutsman@google.com (Ryan Stutsman)
 import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
 
 from autotest_lib.server import installable_object, utils, server_job
-from autotest_lib.client.common_lib import logging
+from autotest_lib.client.common_lib import log
 from autotest_lib.client.common_lib import error, global_config, packages
 
 
@@ -51,7 +51,7 @@ class BaseAutotest(installable_object.InstallableObject):
         super(BaseAutotest, self).__init__()
 
 
-    @logging.record
+    @log.record
     def install(self, host = None):
         """
         Install autotest.  If get() was not called previously, an

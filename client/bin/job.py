@@ -12,7 +12,7 @@ import os, sys, re, pickle, shutil, time, traceback, types, copy
 from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
-from autotest_lib.client.common_lib import error, barrier, logging, utils
+from autotest_lib.client.common_lib import error, barrier, log, utils
 from autotest_lib.client.common_lib import packages
 
 JOB_PREAMBLE = """
@@ -935,7 +935,7 @@ class base_job(object):
         else:
             substr = '----'
 
-        if not logging.is_valid_status(status_code):
+        if not log.is_valid_status(status_code):
             raise ValueError("Invalid status code supplied: %s" % status_code)
         if not operation:
             operation = '----'

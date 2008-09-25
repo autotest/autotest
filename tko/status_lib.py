@@ -1,9 +1,9 @@
 import collections
 import common
-from autotest_lib.client.common_lib import logging
+from autotest_lib.client.common_lib import log
 
 
-statuses = logging.job_statuses
+statuses = log.job_statuses
 
 
 def is_worse_than(lhs, rhs):

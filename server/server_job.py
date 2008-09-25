@@ -14,7 +14,7 @@ Andy Whitcroft <apw@shadowen.org>
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
 
 from autotest_lib.client.bin import fd_stack
-from autotest_lib.client.common_lib import error, logging
+from autotest_lib.client.common_lib import error, log
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.client.common_lib import utils, packages
@@ -567,7 +567,7 @@ class base_server_job(object):
 
         Format is <status code>\t<subdir>\t<operation>\t<status>
 
-        status code: see common_lib.logging.is_valid_status()
+        status code: see common_lib.log.is_valid_status()
                      for valid status definition
 
         subdir: MUST be a relevant subdirectory in the results,
@@ -643,7 +643,7 @@ class base_server_job(object):
         else:
             substr = '----'
 
-        if not logging.is_valid_status(status_code):
+        if not log.is_valid_status(status_code):
             raise ValueError('Invalid status code supplied: %s' %
                              status_code)
         if not operation:
