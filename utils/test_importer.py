@@ -19,22 +19,11 @@ Most options should be fairly self explanatory use --help to display them.
 """
 
 
-import time, re, os, MySQLdb, sys, optparse
+import time, re, os, MySQLdb, sys, optparse, compiler
 import common
 from autotest_lib.client.common_lib import control_data, test, global_config
 from autotest_lib.client.common_lib import utils
 
-# Defaults
-AUTHOR = 'Autotest Team'
-DEPENDENCIES = ()
-DOC = 'unknown'
-EXPERIMENTAL = 0
-RUN_VERIFY = 1
-SYNC_COUNT = 1
-TEST_TYPE = 1
-TEST_TIME = 1
-TEST_CLASS = 'Canned Test Sets'
-TEST_CATEGORY = 'Functional'
 
 # Global
 DRY_RUN = False
@@ -51,7 +40,11 @@ def main(argv):
     parser.add_option('-d', '--dry-run',
                       dest='dry_run', action='store_true', default=False,
                       help='Dry run for operation')
-    parser.add_option('-A', '--add-experimental',
+    parser.add_option('-A', '--add-all',
+                      dest='add_all', action='store_true',
+                      default=False,
+                      help='Add experimental tests to frontend')
+    parser.add_option('-E', '--add-experimental',
                       dest='add_experimental', action='store_true',
                       default=False,
                       help='Add experimental tests to frontend')
@@ -59,66 +52,102 @@ def main(argv):
                       dest='add_noncompliant', action='store_true',
                       default=False,
                       help='Skip any tests that are not compliant')
+    parser.add_option('-p', '--profile-dir', dest='profile_dir',
+                      help='Directory to recursively check for profiles')
     parser.add_option('-t', '--tests-dir', dest='tests_dir',
                       help='Directory to recursively check for control.*')
-    parser.add_option('-p', '--test-type', dest='test_type', default=TEST_TYPE,
-                      help='Default test type for tests (Client=1, Server=2)')
-    parser.add_option('-a', '--test-author', dest='author', default=AUTHOR,
-                      help='Set a default author for tests')
-    parser.add_option('-n', '--test-dependencies', dest='dependencies',
-                      default=DEPENDENCIES,
-                      help='Set default dependencies for tests')
-    parser.add_option('-v', '--test-run-verify', dest='run_verify',
-                      default=RUN_VERIFY,
-                      help='Set default run_verify (0, 1)')
-    parser.add_option('-e', '--test-experimental', dest='experimental',
-                      default=EXPERIMENTAL,
-                      help='Set default experimental (0, 1)')
-    parser.add_option('-y', '--test-sync-count', dest='sync_count',
-                      default=SYNC_COUNT,
-                      help='Set a default sync_count (1, >1)')
-    parser.add_option('-m', '--test-time', dest='test_time', default=TEST_TIME,
-                      help='Set a default time for tests')
-    parser.add_option('-g', '--test-category', dest='test_category',
-                      default=TEST_CATEGORY,
-                      help='Set a default time for tests')
-    parser.add_option('-l', '--test-class', dest='test_class',
-                      default=TEST_CLASS, help='Set a default test class')
     parser.add_option('-r', '--control-pattern', dest='control_pattern',
                       default='^control.*',
                help='The pattern to look for in directories for control files')
+    parser.add_option('-v', '--verbose',
+                      dest='verbose', action='store_true', default=False,
+                      help='Run in verbose mode')
     parser.add_option('-z', '--autotest_dir', dest='autotest_dir',
-                      default='/usr/local/autotest',
+                      default=os.path.join(os.path.dirname(__file__), '..'),
                       help='Autotest directory root')
     options, args = parser.parse_args()
     DRY_RUN = options.dry_run
-    if len(argv) < 2:
+    # Make sure autotest_dir is the absolute path
+    options.autotest_dir = os.path.abspath(options.autotest_dir)
+
+    if len(args) > 0:
+        print "Invalid option(s) provided: ", args
         parser.print_help()
         return 1
 
+    if len(argv) == 1:
+        update_all(options.autotest_dir, options.add_noncompliant,
+                   options.add_experimental, options.verbose)
+        db_clean_broken(options.autotest_dir, options.verbose)
+        return 0
+
+    if options.add_all:
+        update_all(options.autotest_dir, options.add_noncompliant,
+                   options.add_experimental, options.verbose)
     if options.clear_tests:
-        tests = get_tests_from_db(autotest_dir=options.autotest_dir)
-        test_paths = [tests['missing'][t] for t in tests['missing']]
-        db_remove_tests(test_paths)
+        db_clean_broken(options.autotest_dir, options.verbose)
     if options.tests_dir:
         tests = get_tests_from_fs(options.tests_dir, options.control_pattern,
                                   add_noncompliant=options.add_noncompliant)
-        update_tests_in_db(tests, author=options.author,
-                           dependencies=options.dependencies,
-                           experimental=options.experimental,
-                           run_verify=options.run_verify,
-                           doc=DOC,
-                           sync_count=options.sync_count,
-                           test_type=options.test_type,
-                           test_time=options.test_time,
-                           test_class=options.test_class,
-                           test_category=options.test_category,
-                           add_experimental=options.add_experimental,
+        update_tests_in_db(tests, add_experimental=options.add_experimental,
                            add_noncompliant=options.add_noncompliant,
-                           autotest_dir=options.autotest_dir)
+                           autotest_dir=options.autotest_dir,
+                           verbose=options.verbose)
+    if options.profile_dir:
+        profilers = get_tests_from_fs(options.profile_dir, '.*py$')
+        update_profilers_in_db(profilers, verbose=options.verbose,
+                               add_noncompliant=options.add_noncompliant,
+                               description='NA')
 
 
-def db_remove_tests(tests):
+def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
+    """Function to scan through all tests and add them to the database."""
+    for path in [ 'server/tests', 'server/site_tests', 'client/tests',
+                  'client/site_tests']:
+        test_path = os.path.join(autotest_dir, path)
+        if not os.path.exists(test_path):
+            continue
+        if verbose:
+            print "Scanning " + test_path
+        tests = []
+        tests = get_tests_from_fs(test_path, "^control.*",
+                                 add_noncompliant=add_noncompliant)
+        update_tests_in_db(tests, add_experimental=add_experimental,
+                           add_noncompliant=add_noncompliant,
+                           autotest_dir=autotest_dir,
+                           verbose=verbose)
+    test_suite_path = os.path.join(autotest_dir, 'test_suites')
+    if os.path.exists(test_suite_path):
+        if verbose:
+            print "Scanning " + test_suite_path
+        tests = get_tests_from_fs(test_suite_path, '.*',
+                                 add_noncompliant=add_noncompliant)
+        update_tests_in_db(tests, add_experimental=add_experimental,
+                           add_noncompliant=add_noncompliant,
+                           autotest_dir=autotest_dir,
+                           verbose=verbose)
+    sample_path = os.path.join(autotest_dir, 'server/samples')
+    if os.path.exists(sample_path):
+        if verbose:
+            print "Scanning " + sample_path
+        tests = get_tests_from_fs(sample_path, '.*srv$',
+                                 add_noncompliant=add_noncompliant)
+        update_tests_in_db(tests, add_experimental=add_experimental,
+                           add_noncompliant=add_noncompliant,
+                           autotest_dir=autotest_dir,
+                           verbose=verbose)
+     
+    profilers_path = os.path.join(autotest_dir, "client/profilers")
+    if os.path.exists(profilers_path):
+        if verbose:
+            print "Scanning " + profilers_path
+        profilers = get_tests_from_fs(profilers_path, '.*py$')
+        update_profilers_in_db(profilers, verbose=verbose,
+                               add_noncompliant=add_noncompliant,
+                               description='NA')
+ 
+
+def db_clean_broken(autotest_dir, verbose):
     """Remove tests from autotest_web that do not have valid control files
 
        Arguments:
@@ -126,9 +155,64 @@ def db_remove_tests(tests):
     """
     connection=db_connect()
     cursor = connection.cursor()
-    for test in tests:
-        print "Removing " + test
-        sql = "DELETE FROM autotests WHERE path='%s'" % test
+    # Get tests
+    sql = "SELECT path FROM autotests";
+    cursor.execute(sql)
+    results = cursor.fetchall()
+    for path in results:
+        full_path = os.path.join(autotest_dir, path[0])
+        if not os.path.isfile(full_path):
+            if verbose:
+                print "Removing " + path[0]
+                sql = "DELETE FROM autotests WHERE path='%s'" % path[0]
+                db_execute(cursor, sql)
+
+    # Find profilers that are no longer present
+    profilers = []
+    sql = "SELECT name FROM profilers"
+    cursor.execute(sql)
+    results = cursor.fetchall()
+    for path in results:
+        full_path = os.path.join(autotest_dir, "client/profilers", path[0])
+        if not os.path.exists(full_path):
+            if verbose:
+                print "Removing " + path[0]
+                sql = "DELETE FROM profilers WHERE name='%s'" % path[0]
+                db_execute(cursor, sql)
+
+
+    connection.commit()
+    connection.close()
+
+
+def update_profilers_in_db(profilers, verbose=False, description='NA',
+                           add_noncompliant=False):
+    """Update profilers in autotest_web database"""
+    connection=db_connect()
+    cursor = connection.cursor()
+    for profiler in profilers:
+        name = os.path.basename(profiler).rstrip(".py")
+        if not profilers[profiler]:
+            if add_noncompliant:
+                doc = description
+            else:
+                print "Skipping %s, missing docstring" % profiler
+        else:
+            doc = profilers[profiler]
+        # check if test exists
+        sql = "SELECT name FROM profilers WHERE name='%s'" % name
+        cursor.execute(sql)
+        results = cursor.fetchall()
+        if results:
+            sql = "UPDATE profilers SET name='%s', description='%s' "\
+                  "WHERE name='%s'"
+            sql %= (MySQLdb.escape_string(name), MySQLdb.escape_string(doc),
+                    MySQLdb.escape_string(name))
+        else:
+            # Insert newly into DB
+            sql = "INSERT into profilers (name, description) VALUES('%s', '%s')"
+            sql %= (MySQLdb.escape_string(name), MySQLdb.escape_string(doc))
+
         db_execute(cursor, sql)
 
     connection.commit()
@@ -136,13 +220,16 @@ def db_remove_tests(tests):
 
 
 def update_tests_in_db(tests, dry_run=False, add_experimental=False,
-                       autotest_dir="/usr/local/autotest/", **dargs):
+                       add_noncompliant=False, verbose=False,
+                       autotest_dir=None):
     """Update or add each test to the database"""
     connection=db_connect()
     cursor = connection.cursor()
     for test in tests:
-        new_test = dargs.copy()
+        new_test = {}
         new_test['path'] = test.replace(autotest_dir, '').lstrip('/')
+        if verbose:
+            print "Processing " + new_test['path']
         # Create a name for the test
         for key in dir(tests[test]):
             if not key.startswith('__'):
@@ -181,8 +268,9 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
                     int(new_test['test_type']), new_test['path'],
                     int(new_test['synch_type']), new_test['author'],
                     new_test['dependencies'], int(new_test['experimental']),
-                    int(new_test['run_verify']), new_test['test_time'],
-                    new_test['test_category'], new_test['sync_count'], new_test['path'])
+                    int(new_test['run_verify']), new_test['time'],
+                    new_test['test_category'], new_test['sync_count'],
+                    new_test['path'])
         else:
             # Create a relative path
             path = test.replace(autotest_dir, '')
@@ -196,7 +284,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
                     int(new_test['test_type']), new_test['path'],
                     int(new_test['synch_type']), new_test['author'],
                     new_test['dependencies'], int(new_test['experimental']),
-                    int(new_test['run_verify']), new_test['test_time'],
+                    int(new_test['run_verify']), new_test['time'],
                     new_test['test_category'], new_test['sync_count'])
 
         db_execute(cursor, sql)
@@ -233,45 +321,18 @@ def dict_db_clean(test):
     except ValueError:
         pass
     try:
-        test['test_time'] = int(test['test_time'])
-        if test['test_time'] < 1 or test['test_time'] > 3:
-            raise Exception('Incorrect number %d for test_time' %
-                            test['test_time'])
+        test['time'] = int(test['time'])
+        if test['time'] < 1 or test['time'] > 3:
+            raise Exception('Incorrect number %d for time' %
+                            test['time'])
     except ValueError:
         pass
 
-    if str == type(test['test_time']):
-        test['test_time'] = test_time[test['test_time'].lower()]
+    if str == type(test['time']):
+        test['time'] = test_time[test['time'].lower()]
     if str == type(test['test_type']):
         test['test_type'] = test_type[test['test_type'].lower()]
     return test
-
-
-def get_tests_from_db(autotest_dir='/usr/local/autotest'):
-    """Get the tests from the DB.
-     Returns:
-        dictionary of form: 
-            data['valid'][test_name] = parsed object
-            data['missing'][test_name] = relative_path to test
-    """
-    connection = db_connect()
-    cursor = connection.cursor()
-    tests = {}
-    tests['valid'] = {}
-    tests['missing'] = {}
-    cursor.execute("SELECT name,path from autotests")
-    results = cursor.fetchall()
-    for row in results:
-        name = row[0]
-        relative_path = row[1]
-        control_path = os.path.join(autotest_dir, relative_path)
-        if os.path.exists(control_path):
-            tests['valid'][name] = control_data.parse_control(control_path)
-        else:
-            # test doesn't exist
-            tests['missing'][name] = relative_path
-    connection.close()
-    return tests
 
 
 def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
@@ -282,20 +343,29 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
 
     """
     tests = {}
+    profilers = False
+    if 'client/profilers' in parent_dir:
+        profilers = True
     for dir in [ parent_dir ]:
         files = recursive_walk(dir, control_pattern)
         for file in files:
-            if not add_noncompliant:
-                try:
-                    found_test = control_data.parse_control(file,
+            if '__init__.py' in file:
+                continue
+            if not profilers:
+                if not add_noncompliant:
+                    try:
+                        found_test = control_data.parse_control(file,
                                                             raise_warnings=True)
+                        tests[file] = found_test
+                    except control_data.ControlVariableException, e:
+                        print "Skipping %s\n%s" % (file, e)
+                        pass
+                else:
+                    found_test = control_data.parse_control(file)
                     tests[file] = found_test
-                except control_data.ControlVariableException, e:
-                    print "Skipping %s\n%s" % (file, e)
-                    pass
             else:
-                found_test = control_data.parse_control(file)
-                tests[file] = found_test
+                script = file.rstrip(".py")
+                tests[file] = compiler.parseFile(file).doc
     return tests
 
 
