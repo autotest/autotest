@@ -93,6 +93,16 @@ def format_ip_with_mask(ip, mask_bits):
     return "%s/%s" % (long_to_ip(masked_ip), mask_bits)
 
 
+def get_ip_local_port_range():
+    match = re.match(r'\s*(\d+)\s*(\d+)\s*$',
+                     read_one_line('/proc/sys/net/ipv4/ip_local_port_range'))
+    return (int(match.group(1)), int(match.group(2)))
+
+
+def set_ip_local_port_range(lower, upper):
+    write_one_line('/proc/sys/net/ipv4/ip_local_port_range',
+                   '%d %d\n' % (lower, upper))
+
 def read_one_line(filename):
     return open(filename, 'r').readline().rstrip('\n')
 
