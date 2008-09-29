@@ -559,7 +559,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         if not user.is_superuser() and user.login != self.owner:
             raise AclAccessViolation("You cannot abort other people's jobs!")
         for queue_entry in self.hostqueueentry_set.all():
-            queue_entry.abort()
+            queue_entry.abort(user)
 
 
     def user(self):
@@ -612,13 +612,19 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         'True if this is a entry has a meta_host instead of a host.'
         return self.host is None and self.meta_host is not None
 
-    def abort(self):
+    def log_abort(self, user):
+        abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
+        abort_log.save()
+
+    def abort(self, user):
         if self.active:
             self.status = Job.Status.ABORT
+            self.log_abort(user)
         elif not self.complete:
             self.status = Job.Status.ABORTED
             self.active = False
             self.complete = True
+            self.log_abort(user)
         self.save()
 
     class Meta:
@@ -628,3 +634,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         class Admin:
             list_display = ('id', 'job', 'host', 'status',
                             'meta_host')
+
+
+class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
+    queue_entry = dbmodels.OneToOneField(HostQueueEntry, primary_key=True)
+    aborted_by = dbmodels.ForeignKey(User)
+    aborted_on = dbmodels.DateTimeField(auto_now_add=True)
+
+    objects = model_logic.ExtendedManager()
+
+    class Meta:
+        db_table = 'aborted_host_queue_entries'
