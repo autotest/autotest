@@ -43,7 +43,7 @@ def main(argv):
     parser.add_option('-A', '--add-all',
                       dest='add_all', action='store_true',
                       default=False,
-                      help='Add experimental tests to frontend')
+                      help='Add samples, site_tests, tests, and test_suites')
     parser.add_option('-E', '--add-experimental',
                       dest='add_experimental', action='store_true',
                       default=False,
@@ -87,6 +87,10 @@ def main(argv):
     if options.clear_tests:
         db_clean_broken(options.autotest_dir, options.verbose)
     if options.tests_dir:
+        if ".." in options.tests_dir:
+            path = os.path.join(os.getcwd(), options.tests_dir)
+            print path
+            options.tests_dir = os.path.abspath(path)
         tests = get_tests_from_fs(options.tests_dir, options.control_pattern,
                                   add_noncompliant=options.add_noncompliant)
         update_tests_in_db(tests, add_experimental=options.add_experimental,
