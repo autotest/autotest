@@ -36,7 +36,6 @@ import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +45,10 @@ public class SpreadsheetView extends ConditionTabView
                                         CommonPanelListener {
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
+    
+    private static final String HISTORY_SHOW_INCOMPLETE = "show_incomplete";
+    private static final String HISTORY_COLUMN = "column";
+    private static final String HISTORY_ROW = "row";
     
     private static enum DrilldownType {DRILLDOWN_ROW, DRILLDOWN_COLUMN, DRILLDOWN_BOTH}
     
@@ -181,8 +184,9 @@ public class SpreadsheetView extends ConditionTabView
         final JSONObject condition = getFullConditionArgs();
         
         setLoading(true);
-        spreadsheetProcessor.refresh(currentRowFields, currentColumnFields, condition,
-                                     new Command() {
+        spreadsheetProcessor.setHeaders(currentRowFields, currentColumnFields, 
+                                        getFixedHeaderValues());
+        spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
                 if (isJobFilteringCondition(condition)) {
                     showCompletionPercentage(condition);
@@ -191,6 +195,19 @@ public class SpreadsheetView extends ConditionTabView
                 }
             }
         });
+    }
+
+    private JSONObject getFixedHeaderValues() {
+        JSONObject fixedHeaderValues = new JSONObject();
+        List<String> rowValues = rowSelect.getFixedValues(), 
+                     columnValues = columnSelect.getFixedValues();
+        if (rowValues != null) {
+            fixedHeaderValues.put(currentRowFields.get(0), Utils.stringsToJSON(rowValues));
+        }
+        if (columnValues != null) {
+            fixedHeaderValues.put(currentColumnFields.get(0), Utils.stringsToJSON(columnValues));
+        }
+        return fixedHeaderValues;
     }
 
     private JSONObject getFullConditionArgs() {
@@ -213,11 +230,15 @@ public class SpreadsheetView extends ConditionTabView
             NotifyManager.getInstance().showError("You must select row and column fields");
             return;
         }
-        currentRowFields = getSelectedHeader(rowSelect);
-        currentColumnFields = getSelectedHeader(columnSelect);
+        saveSelectedHeaders();
         currentShowIncomplete = showIncomplete.isChecked();
         commonPanel.saveSqlCondition();
         refresh();
+    }
+
+    private void saveSelectedHeaders() {
+        currentRowFields = getSelectedHeader(rowSelect);
+        currentColumnFields = getSelectedHeader(columnSelect);
     }
 
     private void showCompletionPercentage(JSONObject condition) {
@@ -341,6 +362,8 @@ public class SpreadsheetView extends ConditionTabView
         commonPanel.refineCondition(tests);
         currentRowFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newRowField));
         currentColumnFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newColumnField));
+        rowSelect.resetFixedValues();
+        columnSelect.resetFixedValues();
         updateWidgets();
         doQuery();
         updateHistory();
@@ -420,36 +443,34 @@ public class SpreadsheetView extends ConditionTabView
     protected Map<String, String> getHistoryArguments() {
         Map<String, String> arguments = super.getHistoryArguments();
         if (!notYetQueried) {
-            arguments.put("row", headerToString(currentRowFields));
-            arguments.put("column", headerToString(currentColumnFields));
-            arguments.put("show_incomplete", Boolean.toString(currentShowIncomplete));
+            rowSelect.addHistoryArguments(arguments, HISTORY_ROW);
+            columnSelect.addHistoryArguments(arguments, HISTORY_COLUMN);
+            arguments.put(HISTORY_SHOW_INCOMPLETE, Boolean.toString(currentShowIncomplete));
             commonPanel.addHistoryArguments(arguments);
         }
         return arguments;
-    }
-
-    private String headerToString(Header header) {
-        return Utils.joinStrings(",", header);
     }
     
     @Override
     public void handleHistoryArguments(Map<String, String> arguments) {
         super.handleHistoryArguments(arguments);
         commonPanel.handleHistoryArguments(arguments);
+        rowSelect.handleHistoryArguments(arguments, HISTORY_ROW);
+        columnSelect.handleHistoryArguments(arguments, HISTORY_COLUMN);
+        saveSelectedHeaders();
         
-        String rows = arguments.get("row"), columns = arguments.get("column");
-        currentRowFields = HeaderImpl.fromBaseType(Arrays.asList(rows.split(",")));
-        currentColumnFields = HeaderImpl.fromBaseType(Arrays.asList(columns.split(",")));
-        currentShowIncomplete = Boolean.valueOf(arguments.get("show_incomplete"));
-        
+        currentShowIncomplete = Boolean.valueOf(arguments.get(HISTORY_SHOW_INCOMPLETE));
         updateWidgets();
     }
 
     @Override
     protected void fillDefaultHistoryValues(Map<String, String> arguments) {
-        Utils.setDefaultValue(arguments, "row", DEFAULT_ROW);
-        Utils.setDefaultValue(arguments, "column", DEFAULT_COLUMN);
-        Utils.setDefaultValue(arguments, "show_incomplete", Boolean.toString(currentShowIncomplete));
+        Utils.setDefaultValue(arguments, HISTORY_ROW, DEFAULT_ROW);
+        Utils.setDefaultValue(arguments, HISTORY_COLUMN, DEFAULT_COLUMN);
+        Utils.setDefaultValue(arguments, HISTORY_ROW + HeaderSelect.HISTORY_FIXED_VALUES, "");
+        Utils.setDefaultValue(arguments, HISTORY_COLUMN + HeaderSelect.HISTORY_FIXED_VALUES, "");
+        Utils.setDefaultValue(arguments, HISTORY_SHOW_INCOMPLETE, 
+                              Boolean.toString(currentShowIncomplete));
     }
 
     private void switchToTable(final TestSet tests, boolean isTriageView) {

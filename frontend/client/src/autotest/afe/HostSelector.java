@@ -1,6 +1,7 @@
 package autotest.afe;
 
 import autotest.common.JSONArrayList;
+import autotest.common.Utils;
 import autotest.common.table.ArrayDataSource;
 import autotest.common.table.DataSource;
 import autotest.common.table.SelectionManager;
@@ -169,14 +170,12 @@ public class HostSelector {
         final Button oneTimeHostButton = new Button("Add");
         oneTimeHostButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                String[] hosts = oneTimeHostField.getText().split("[,\\s]+");
+                List<String> hosts = Utils.splitList(oneTimeHostField.getText());
                 for (String hostname : hosts) {
-                    if (!hostname.equals("")) {
-                        JSONObject oneTimeObject = new JSONObject();
-                        oneTimeObject.put("hostname", new JSONString(hostname));
-                        oneTimeObject.put("platform", new JSONString(ONE_TIME));
-                        selectRow(oneTimeObject);
-                    }
+                    JSONObject oneTimeObject = new JSONObject();
+                    oneTimeObject.put("hostname", new JSONString(hostname));
+                    oneTimeObject.put("platform", new JSONString(ONE_TIME));
+                    selectRow(oneTimeObject);
                 }
                 selectionRefresh();
             }

@@ -46,7 +46,7 @@ class KernelString(str):
 
 
 class GroupDataProcessor(object):
-    def __init__(self, group_by, header_groups, extra_fields):
+    def __init__(self, group_by, header_groups, extra_fields, fixed_headers):
         self._group_by = group_by
         self._num_group_fields = len(group_by)
         self._header_value_sets = [set() for i
@@ -54,6 +54,9 @@ class GroupDataProcessor(object):
         self._header_groups = header_groups
         self._sorted_header_values = None
         self._extra_fields = extra_fields
+        self._fixed_headers = dict((field, set(values))
+                                   for field, values
+                                   in fixed_headers.iteritems())
 
 
     @staticmethod
@@ -93,7 +96,23 @@ class GroupDataProcessor(object):
         return group_dict
 
 
+    def _find_header_value_set(self, field):
+        for i, group in enumerate(self._header_groups):
+            if [field] == group:
+                return self._header_value_sets[i]
+        raise RuntimeError('Field %s not found in header groups %s' %
+                           (field, self._header_groups))
+
+
+    def _add_fixed_headers(self):
+        for field, extra_values in self._fixed_headers.iteritems():
+            header_value_set = self._find_header_value_set(field)
+            for value in extra_values:
+                header_value_set.add((value,))
+
+
     def get_sorted_header_values(self):
+        self._add_fixed_headers()
         sorted_header_values = [sorted(value_set)
                                 for value_set in self._header_value_sets]
         # construct dicts mapping headers to their indices, for use in
