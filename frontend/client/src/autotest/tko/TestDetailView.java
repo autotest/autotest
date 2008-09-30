@@ -18,6 +18,7 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
 import com.google.gwt.user.client.ui.DisclosurePanel;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
@@ -26,6 +27,7 @@ import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 class TestDetailView extends DetailView {
@@ -99,6 +101,38 @@ class TestDetailView extends DetailView {
             } else {
                 setLogText(logText);
             }
+        }
+    }
+    
+    private static class AttributeTable extends Composite {
+        private DisclosurePanel container = new DisclosurePanel("Test attributes");
+        private FlexTable table = new FlexTable();
+        
+        public AttributeTable(JSONObject attributes) {
+            processAttributes(attributes);
+            setupTableStyle();
+            container.add(table);
+            initWidget(container);
+        }
+
+        private void processAttributes(JSONObject attributes) {
+            if (attributes.size() == 0) {
+                table.setText(0, 0, "No test attributes");
+                return;
+            }
+            
+            List<String> sortedKeys = new ArrayList<String>(attributes.keySet());
+            Collections.sort(sortedKeys);
+            for (String key : sortedKeys) {
+                String value = Utils.jsonToString(attributes.get(key));
+                int row = table.getRowCount();
+                table.setText(row, 0, key);
+                table.setText(row, 1, value);
+            }
+        }
+        
+        private void setupTableStyle() {
+            container.addStyleName("test-attributes");
         }
     }
     
@@ -226,6 +260,11 @@ class TestDetailView extends DetailView {
             labelList = "none";
         }
         showText(labelList, "td_test_labels");
+        
+        JSONObject attributes = test.get("attributes").isObject();
+        RootPanel attributePanel = RootPanel.get("td_attributes");
+        attributePanel.clear();
+        attributePanel.add(new AttributeTable(attributes));
         
         logLink.setHref(Utils.getLogsURL(jobTag));
         addLogViewers(testName);
