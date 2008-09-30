@@ -185,4 +185,15 @@ public class Utils {
             map.put(key, value);
         }
     }
+    
+    public static List<String> splitList(String list) {
+        String[] parts = list.split("[,\\s]+");
+        List<String> finalParts = new ArrayList<String>();
+        for (String part : parts) {
+            if (!part.equals("")) {
+                finalParts.add(part);
+            }
+        }
+        return finalParts;
+    }
 }

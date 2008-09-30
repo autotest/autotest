@@ -16,8 +16,8 @@ def get_num_test_views(**filter_data):
     return models.TestView.query_count(filter_data)
 
 
-def get_group_counts(group_by, header_groups=[], extra_select_fields=[],
-                     **filter_data):
+def get_group_counts(group_by, header_groups=[], fixed_headers={},
+                     extra_select_fields=[], **filter_data):
     """
     Queries against TestView grouping by the specified fields and computings
     counts for each group.
@@ -41,6 +41,8 @@ def get_group_counts(group_by, header_groups=[], extra_select_fields=[],
     group_by = list(set(group_by)) # eliminate duplicates
 
     query = models.TestView.query_objects(filter_data)
+    for header_field, values in fixed_headers.iteritems():
+        query = query.filter(**{header_field + '__in' : values})
     counts = models.TestView.objects.get_group_counts(query, group_by,
                                                       extra_select_fields)
     if len(counts) > tko_rpc_utils.MAX_GROUP_RESULTS:
@@ -51,7 +53,8 @@ def get_group_counts(group_by, header_groups=[], extra_select_fields=[],
     extra_field_names = [sql.lower().rsplit(' as ', 1)[1]
                          for sql in extra_select_fields]
     group_processor = tko_rpc_utils.GroupDataProcessor(group_by, header_groups,
-                                                       extra_field_names)
+                                                       extra_field_names,
+                                                       fixed_headers)
     group_dicts = [group_processor.get_group_dict(count_row)
                    for count_row in counts]
 
@@ -82,15 +85,17 @@ _COMPLETE_COUNT_SQL = ('SUM(IF(NOT (status="TEST_NA" OR '
 _INCOMPLETE_COUNT_SQL = ('SUM(IF(status="RUNNING", 1, 0)) '
                          'AS incomplete_count')
 
-def get_status_counts(group_by, header_groups=[], **filter_data):
+def get_status_counts(group_by, header_groups=[], fixed_headers={},
+                      **filter_data):
     """
     Like get_group_counts, but also computes counts of passed, complete (and
     valid), and incomplete tests, stored in keys "pass_count', 'complete_count',
     and 'incomplete_count', respectively.
     """
     extra_fields = [_PASS_COUNT_SQL, _COMPLETE_COUNT_SQL, _INCOMPLETE_COUNT_SQL]
-    return get_group_counts(group_by, extra_select_fields=extra_fields,
-                            header_groups=header_groups, **filter_data)
+    return get_group_counts(group_by, header_groups=header_groups,
+                            fixed_headers=fixed_headers,
+                            extra_select_fields=extra_fields,**filter_data)
 
 
 def get_test_logs_urls(**filter_data):
