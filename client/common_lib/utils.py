@@ -171,7 +171,7 @@ def is_url(path):
     return (url_parts[0] in ('http', 'ftp'))
 
 
-def urlopen(url, data=None, proxies=None, timeout=300):
+def urlopen(url, data=None, proxies=None, timeout=5):
     """Wrapper to urllib.urlopen with timeout addition."""
 
     # Save old timeout
