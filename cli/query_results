@@ -13,16 +13,22 @@ from autotest_lib.client.bin import kernel_versions
 # First do all the options parsing
 parser = optparse.OptionParser()
 parser.add_option('-C', '--columns', action='store', dest='columns',
-            default='*', help='''columns to select:
+            default='*', help="""\
+By default or when using the -c flag: 
 kernel hostname test label machine_group reason tag user status
-''')
+
+OR
+
+When using the -w flag:
+test_idx test_name reason test_started_time test_finished_time job_tag job_name job_owner job_queued_time job_started_time job_finished_time hostname platform kernel status""")
 
 parser.add_option('-c', '--condition', action='store', dest='old_condition',
             help=("The WHERE condition for the query witten in the 'old style' "
                   "condition syntax for the original tko"))
 parser.add_option('-w', '--where', action='store', dest='new_condition',
             help=("The WHERE condition for the query witten in the 'new style' "
-                  "condition syntax for the new tko"))
+                  "condition syntax for new tko (see "
+                  "http://autotest.kernel.org/wiki/TkoHowTo  for more info)"))
 parser.add_option('-s', '--separator', action='store', default = ' | ',
             dest='separator', help = 'output separator')
 parser.add_option('-n', '--nocount', action='store_true', default=False,
