@@ -284,10 +284,11 @@ class SSHHost(site_host.SiteHost):
 
 
     def verify(self):
+        super(SSHHost, self).verify()
+
         print 'Pinging host ' + self.hostname
         self.is_up()
 
-        autodir = None
         try:
             autodir = autotest._get_autodir(self)
             if autodir:

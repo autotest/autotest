@@ -143,7 +143,7 @@ class Host(object):
 
 
     def verify(self):
-        raise NotImplementedError('Verify not implemented!')
+	pass
 
 
     def check_diskspace(self, path, gb):

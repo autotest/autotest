@@ -103,8 +103,13 @@ class CmdError(TestError):
 
 
     def __str__(self):
-        msg = "Command <%s> failed, rc=%d" % (self.command,
-                                              self.result_obj.exit_status)
+        if self.result_obj.exit_status is None:
+            msg = "Command <%s> failed and is not responding to signals"
+            msg %= self.command
+        else:
+            msg = "Command <%s> failed, rc=%d"
+            msg %= (self.command, self.result_obj.exit_status)
+
         if self.additional_text:
             msg += ", " + self.additional_text
         msg += '\n' + repr(self.result_obj)
