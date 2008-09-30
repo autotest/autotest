@@ -89,7 +89,6 @@ def main(argv):
     if options.tests_dir:
         if ".." in options.tests_dir:
             path = os.path.join(os.getcwd(), options.tests_dir)
-            print path
             options.tests_dir = os.path.abspath(path)
         tests = get_tests_from_fs(options.tests_dir, options.control_pattern,
                                   add_noncompliant=options.add_noncompliant)
@@ -149,6 +148,8 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
         update_profilers_in_db(profilers, verbose=verbose,
                                add_noncompliant=add_noncompliant,
                                description='NA')
+    # Clean bad db entries
+    db_clean_broken(autotest_dir, verbose)
  
 
 def db_clean_broken(autotest_dir, verbose):
@@ -168,8 +169,8 @@ def db_clean_broken(autotest_dir, verbose):
         if not os.path.isfile(full_path):
             if verbose:
                 print "Removing " + path[0]
-                sql = "DELETE FROM autotests WHERE path='%s'" % path[0]
-                db_execute(cursor, sql)
+            sql = "DELETE FROM autotests WHERE path='%s'" % path[0]
+            db_execute(cursor, sql)
 
     # Find profilers that are no longer present
     profilers = []
@@ -181,8 +182,8 @@ def db_clean_broken(autotest_dir, verbose):
         if not os.path.exists(full_path):
             if verbose:
                 print "Removing " + path[0]
-                sql = "DELETE FROM profilers WHERE name='%s'" % path[0]
-                db_execute(cursor, sql)
+            sql = "DELETE FROM profilers WHERE name='%s'" % path[0]
+            db_execute(cursor, sql)
 
 
     connection.commit()
