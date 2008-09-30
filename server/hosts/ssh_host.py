@@ -283,6 +283,23 @@ class SSHHost(site_host.SiteHost):
                                          result)
 
 
+    def verify(self):
+        print 'Pinging host ' + self.hostname
+        self.is_up()
+
+        autodir = None
+        try:
+            autodir = autotest._get_autodir(self)
+            if autodir:
+                print 'Checking diskspace for %s on %s' % (self.hostname,
+                                                           autodir)
+                self.check_diskspace(autodir, 20)
+        except error.AutoservHostError:
+            raise           # only want to raise if it's a space issue
+        except:
+            pass            # autotest dir may not exist, etc. ignore
+
+
     def sysrq_reboot(self):
         self.run('echo b > /proc/sysrq-trigger &')
 
