@@ -142,6 +142,19 @@ class Host(object):
                 "Host did not return from reboot")
 
 
+    def verify(self):
+        raise NotImplementedError('Verify not implemented!')
+
+
+    def check_diskspace(self, path, gb):
+        df = self.run('df -mP %s | tail -1' % path).stdout.split()
+        free_space_gb = int(df[3])/1000.0
+        if free_space_gb < gb:
+            raise error.AutoservHostError('Not enough free space on ' +
+                                          '%s - %.3fGB free, want %.3fGB' %
+                                          (path, free_space_gb, gb))
+
+
     def machine_install(self):
         raise NotImplementedError('Machine install not implemented!')
 
