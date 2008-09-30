@@ -267,6 +267,9 @@ class mock_god:
                         symbol.endswith("__")):
                         continue
 
+                    if isinstance(getattr(typ, symbol, None), property):
+                        continue
+
                     orig_symbol = getattr(obj, symbol)
                     if callable(orig_symbol):
                         f_name = ("%s.%s" %
