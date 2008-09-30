@@ -229,6 +229,7 @@ class TestViewManager(TempManager):
         def add_join(self, table, condition, join_type, alias=None):
             if alias is None:
                 alias = table
+            condition = condition.replace('%', '%%')
             self._joins[alias] = (table, join_type, condition)
 
 
