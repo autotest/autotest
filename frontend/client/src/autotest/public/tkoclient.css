@@ -51,3 +51,12 @@ div.spreadsheet-cell-nonclickable {
   white-space: pre;
   font-family: monospace;
 }
+
+.test-attributes .content {
+  white-space: pre;
+  font-family: monospace;
+}
+
+.test-attributes .header table {
+  font-weight: bold;
+}
