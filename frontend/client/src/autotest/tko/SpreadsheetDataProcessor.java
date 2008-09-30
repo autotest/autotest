@@ -24,8 +24,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private TestGroupDataSource dataSource;
     private int numTotalTests;
 
-    private Header rowFields;
-    private Header columnFields;
+    private Header rowFields, columnFields;
     private Command onFinished;
     private Duration timer;
     
@@ -135,16 +134,9 @@ public class SpreadsheetDataProcessor implements DataCallback {
         cellInfo.testCount = statusSummary.getTotal();
     }
     
-    public void refresh(Header rowFields, Header columnFields, JSONObject condition, 
-                        Command onFinished) {
+    public void refresh(JSONObject condition, Command onFinished) {
         timer = new Duration();
         this.onFinished = onFinished;
-        this.rowFields = rowFields;
-        this.columnFields = columnFields;
-        List<List<String>> headerGroups = new ArrayList<List<String>>();
-        headerGroups.add(rowFields);
-        headerGroups.add(columnFields);
-        dataSource.setHeaderGroups(headerGroups);
         dataSource.updateData(condition, this);
     }
     
@@ -174,5 +166,16 @@ public class SpreadsheetDataProcessor implements DataCallback {
     
     public void onError(JSONObject errorObject) {
         onFinished.execute();
+    }
+
+    public void setHeaders(Header rowFields, Header columnFields, JSONObject fixedValues) {
+        this.rowFields = rowFields;
+        this.columnFields = columnFields;
+        
+        List<List<String>> headerGroups = new ArrayList<List<String>>();
+        headerGroups.add(rowFields);
+        headerGroups.add(columnFields);
+        dataSource.setHeaderGroups(headerGroups);
+        dataSource.setFixedHeaderValues(fixedValues);
     }
 }
