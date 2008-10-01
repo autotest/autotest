@@ -1,4 +1,4 @@
-import os, re
+import os, re, time
 
 from autotest_lib.tko import models, status_lib, utils as tko_utils
 from autotest_lib.tko.parsers import base, version_0
@@ -112,7 +112,7 @@ class parser(base.parser):
 
 
     @staticmethod
-    def make_dummy_abort(indent, subdir, testname, reason="Unexpected ABORT"):
+    def make_dummy_abort(indent, subdir, testname, reason):
         indent = "\t" * indent
         if not subdir:
             subdir = "----"
@@ -150,12 +150,18 @@ class parser(base.parser):
                 # we need to implicitly abort them first
                 tko_utils.dprint('\nUnexpected end of job, aborting')
                 abort_subdir_stack = list(subdir_stack)
+                if self.job.aborted_by:
+                    reason = "Job aborted by %s" % self.job.aborted_by
+                    reason += self.job.aborted_on.strftime(
+                        " at %b %d %H:%M:%S")
+                else:
+                    reason = "Job aborted unexpectedly"
                 for i in reversed(xrange(stack.size())):
                     if abort_subdir_stack:
                         subdir = abort_subdir_stack.pop()
                     else:
                         subdir = None
-                    abort = self.make_dummy_abort(i, subdir, subdir)
+                    abort = self.make_dummy_abort(i, subdir, subdir, reason)
                     buffer.put(abort)
 
             # stop processing once the buffer is empty

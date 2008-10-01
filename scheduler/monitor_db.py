@@ -1458,20 +1458,36 @@ class QueueTask(AgentTask):
     def _finish_task(self):
         # write out the finished time into the results keyval
         finished = time.time()
-        self._write_keyval(self.results_dir(), "job_finished",
-                           int(finished))
+        self._write_keyval(self.results_dir(), "job_finished", int(finished))
 
         # parse the results of the job
         if self.job.is_synchronous() or self.job.num_machines() == 1:
             parse_results(self.job.results_dir())
         else:
             for queue_entry in self.queue_entries:
-                parse_results(queue_entry.results_dir(),
-                              flags="-l 2")
+                parse_results(queue_entry.results_dir(), flags="-l 2")
+
+
+    def _log_abort(self):
+        # build up sets of all the aborted_by and aborted_on values
+        aborted_by, aborted_on = set(), set()
+        for queue_entry in self.queue_entries:
+            if queue_entry.aborted_by:
+                aborted_by.add(queue_entry.aborted_by)
+                t = int(time.mktime(queue_entry.aborted_on.timetuple()))
+                aborted_on.add(t)
+
+        # extract some actual, unique aborted by value and write it out
+        assert len(aborted_by) <= 1
+        if len(aborted_by) == 1:
+            results_dir = self.results_dir()
+            self._write_keyval(results_dir, "aborted_by", aborted_by.pop())
+            self._write_keyval(results_dir, "aborted_on", max(aborted_on))
 
 
     def abort(self):
         super(QueueTask, self).abort()
+        self._log_abort()
         self._finish_task()
 
 
@@ -1915,6 +1931,35 @@ class HostQueueEntry(DBObject):
                             os.path.join(temp_dir, filename))
             else:
                 remove_file_or_dir(path)
+
+
+    @property
+    def aborted_by(self):
+        self._load_abort_info()
+        return self._aborted_by
+
+
+    @property
+    def aborted_on(self):
+        self._load_abort_info()
+        return self._aborted_on
+
+
+    def _load_abort_info(self):
+        """ Fetch info about who aborted the job. """
+        if hasattr(self, "_aborted_by"):
+            return
+        rows = _db.execute("""
+                SELECT users.login, aborted_host_queue_entries.aborted_on
+                FROM aborted_host_queue_entries
+                INNER JOIN users
+                ON users.id = aborted_host_queue_entries.aborted_by_id
+                WHERE aborted_host_queue_entries.queue_entry_id = %s
+                """, (self.id,))
+        if rows:
+            self._aborted_by, self._aborted_on = rows[0]
+        else:
+            self._aborted_by = self._aborted_on = None
 
 
 class Job(DBObject):
