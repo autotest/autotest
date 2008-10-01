@@ -298,7 +298,7 @@ public class TableView extends ConditionTabView
         if (isAnyGroupingEnabled()) {
             doDrilldown(testSet);
         } else {
-            TkoUtils.getTestId(testSet, listener);
+            listener.onSelectTest(testSet.getTestIndex());
         }
     }
 
@@ -332,20 +332,17 @@ public class TableView extends ConditionTabView
     }
 
     private TestSet getTestSet(JSONObject row) {
-        ConditionTestSet testSet;
-        if (isAnyGroupingEnabled()) {
-            testSet = new ConditionTestSet(false, commonPanel.getSavedConditionArgs());
-            for (String field : fields) {
-                if (field.equals(TestGroupDataSource.GROUP_COUNT_FIELD) ||
-                    field.equals(DataTable.WIDGET_COLUMN)) {
-                    continue;
-                }
-                testSet.setField(field, Utils.jsonToString(row.get(field)));
+        if (!isAnyGroupingEnabled()) {
+            return new SingleTestSet((int) row.get("test_idx").isNumber().doubleValue());
+        }
+
+        ConditionTestSet testSet = new ConditionTestSet(commonPanel.getSavedConditionArgs());
+        for (String field : fields) {
+            if (field.equals(TestGroupDataSource.GROUP_COUNT_FIELD) ||
+                field.equals(DataTable.WIDGET_COLUMN)) {
+                continue;
             }
-        } else {
-            testSet = new ConditionTestSet(true);
-            testSet.setField("test_idx", 
-                             Utils.jsonToString(row.get("test_idx")));
+            testSet.setField(field, Utils.jsonToString(row.get(field)));
         }
         return testSet;
     }
@@ -397,7 +394,7 @@ public class TableView extends ConditionTabView
     }
 
     private ConditionTestSet getWholeTableSet() {
-        return new ConditionTestSet(false, commonPanel.getSavedConditionArgs());
+        return new ConditionTestSet(commonPanel.getSavedConditionArgs());
     }
 
     public void onSelectAll(boolean visibleOnly) {

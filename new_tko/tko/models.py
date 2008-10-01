@@ -15,20 +15,23 @@ class TempManager(model_logic.ExtendedManager):
         return [self._get_key_unless_is_function(field) for field in fields]
 
 
+    @staticmethod
+    def _get_field_alias(field_sql):
+        field_sql = field_sql.lower()
+        if ' as ' in field_sql:
+            return field_sql.rsplit(' as ', 1)[1]
+        return field_sql
+
+
     def _get_group_query_sql(self, query, group_by, extra_select_fields):
         group_fields = self._get_field_names(group_by)
-        if query._distinct:
-            pk_field = self._get_key_on_this_table(self.model._meta.pk.name)
-            count_sql = 'COUNT(DISTINCT %s)' % pk_field
-        else:
-            count_sql = 'COUNT(1)'
-        select_fields = (group_fields +
-                         [count_sql + ' AS ' + self._GROUP_COUNT_NAME] +
-                         extra_select_fields)
+        select_fields = group_fields + extra_select_fields
 
-        # add the count field to the query selects, so they'll be sortable and
+        # add the extra fields to the query selects, so they'll be sortable and
         # Django won't mess with any of them
-        query._select[self._GROUP_COUNT_NAME] = count_sql
+        for field_sql in extra_select_fields:
+            field_name = self._get_field_alias(field_sql)
+            query._select[field_name] = field_sql
 
         _, where, params = query._get_sql_clause()
 
@@ -44,22 +47,39 @@ class TempManager(model_logic.ExtendedManager):
         return ('SELECT ' + ', '.join(select_fields) + where), params
 
 
-    def get_group_counts(self, query, group_by, extra_select_fields=[]):
+    def execute_group_query(self, query, group_by, extra_select_fields=[]):
         """
-        Performs the given query grouped by the fields in group_by.  Returns a
-        list of rows, where each row is a list containing the value of each
-        field in group_by, followed by the group count.
+        Performs the given query grouped by the fields in group_by with the
+        given extra select fields added.  Usually, the extra fields will use
+        group aggregation functions.  Returns a list of dicts, where each dict
+        corresponds to single row and contains a key for each grouped field as
+        well as all of the extra select fields.
         """
         sql, params = self._get_group_query_sql(query, group_by,
                                                 extra_select_fields)
         cursor = readonly_connection.connection.cursor()
-        num_rows = cursor.execute(sql, params)
-        return cursor.fetchall()
+        cursor.execute(sql, params)
+        field_names = [column_info[0] for column_info in cursor.description]
+        row_dicts = [dict(zip(field_names, row)) for row in cursor.fetchall()]
+        return row_dicts
+
+
+    def get_count_sql(self, query):
+        """
+        Get the SQL to properly select a per-group count of unique matches for
+        a grouped query.
+        """
+        if query._distinct:
+            pk_field = self._get_key_on_this_table(self.model._meta.pk.name)
+            count_sql = 'COUNT(DISTINCT %s)' % pk_field
+        else:
+            count_sql = 'COUNT(1)'
+        return count_sql + ' AS ' + self._GROUP_COUNT_NAME
 
 
     def _get_num_groups_sql(self, query, group_by):
         group_fields = self._get_field_names(group_by)
-        query._order_by = None # this can mess up the query is isn't needed
+        query._order_by = None # this can mess up the query and isn't needed
         _, where, params = query._get_sql_clause()
         return ('SELECT COUNT(DISTINCT %s) %s' % (','.join(group_fields),
                                                   where),

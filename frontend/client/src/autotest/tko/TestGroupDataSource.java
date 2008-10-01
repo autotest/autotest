@@ -17,6 +17,7 @@ class TestGroupDataSource extends RpcDataSource {
     private static final String NUM_GROUPS_RPC = "get_num_groups";
     private static final String GROUP_COUNTS_RPC = "get_group_counts";
     private static final String STATUS_COUNTS_RPC = "get_status_counts";
+    private static final String LATEST_TESTS_RPC = "get_latest_tests";
     public static final String GROUP_COUNT_FIELD = "group_count";
     public static final String PASS_COUNT_FIELD = "pass_count";
     public static final String COMPLETE_COUNT_FIELD = "complete_count";
@@ -34,6 +35,10 @@ class TestGroupDataSource extends RpcDataSource {
     
     public static TestGroupDataSource getStatusCountDataSource() {
         return new TestGroupDataSource(STATUS_COUNTS_RPC);
+    }
+    
+    public static TestGroupDataSource getLatestTestsDataSource() {
+        return new TestGroupDataSource(LATEST_TESTS_RPC);
     }
     
     // force construction to go through above factory methods

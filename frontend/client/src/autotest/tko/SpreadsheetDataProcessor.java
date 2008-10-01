@@ -23,6 +23,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private Spreadsheet spreadsheet;
     private TestGroupDataSource dataSource;
     private int numTotalTests;
+    private CellInfo lastCellInfo;
 
     private Header rowFields, columnFields;
     private Command onFinished;
@@ -64,8 +65,8 @@ public class SpreadsheetDataProcessor implements DataCallback {
                     try {
                         processHeaders();
                     } catch (TooManyCellsError exc) {
-                        notifyManager.showError("Resulting spreadsheet contains " + exc.cellCount + " cells, " +
-                                                "exceeding maximum " + MAX_CELL_COUNT);
+                        notifyManager.showError("Resulting spreadsheet contains " + exc.cellCount +
+                                                " cells, " + "exceeding maximum " + MAX_CELL_COUNT);
                         finalizeCommand();
                         return false;
                     }
@@ -101,9 +102,8 @@ public class SpreadsheetDataProcessor implements DataCallback {
         }
     }
     
-    public SpreadsheetDataProcessor(Spreadsheet spreadsheet, TestGroupDataSource dataSource) {
+    public SpreadsheetDataProcessor(Spreadsheet spreadsheet) {
         this.spreadsheet = spreadsheet;
-        this.dataSource = dataSource;
     }
 
     public void processHeaders() throws TooManyCellsError {
@@ -132,6 +132,8 @@ public class SpreadsheetDataProcessor implements DataCallback {
         cellInfo.contents = statusSummary.formatStatusCounts();
         cellInfo.color = statusSummary.getColor();
         cellInfo.testCount = statusSummary.getTotal();
+        cellInfo.testIndex = (int) group.get("test_idx").isNumber().doubleValue();
+        lastCellInfo = cellInfo;
     }
     
     public void refresh(JSONObject condition, Command onFinished) {
@@ -164,6 +166,16 @@ public class SpreadsheetDataProcessor implements DataCallback {
         return numTotalTests;
     }
     
+    /**
+     * This is useful when there turns out to be only a single test return.
+     * @return the last CellInfo created.  Should only really be called when there was only a single
+     *         one.
+     */
+    public CellInfo getLastCellInfo() {
+        assert numTotalTests == 1;
+        return lastCellInfo;
+    }
+    
     public void onError(JSONObject errorObject) {
         onFinished.execute();
     }
@@ -177,5 +189,9 @@ public class SpreadsheetDataProcessor implements DataCallback {
         headerGroups.add(columnFields);
         dataSource.setHeaderGroups(headerGroups);
         dataSource.setFixedHeaderValues(fixedValues);
+    }
+
+    public void setDataSource(TestGroupDataSource dataSource) {
+        this.dataSource = dataSource;
     }
 }
