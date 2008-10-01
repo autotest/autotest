@@ -564,15 +564,19 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     data = {'priority': 'Medium', 'control_file': ctrl_file, 'hosts': ['host0'],
             'name': 'test_job0', 'control_type': 'Client',
-            'meta_hosts': [], 'is_synchronous': False}
+            'meta_hosts': [], 'is_synchronous': False, 'dependencies': []}
 
 
     def test_execute_create_job(self):
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '-m', 'host0'],
-                     rpcs=[('generate_control_file', {'tests': ['sleeptest'],
-                            'use_container': False},
-                            True, (self.ctrl_file, False, False)),
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'], 'use_container': False},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'is_synchronous' : False,
+                             'is_server' : False,
+                             'dependencies' : []}),
                            ('create_job', self.data, True, 180)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
@@ -592,10 +596,14 @@ class job_create_unittest(cli_mock.cli_unittest):
         data['control_file'] = self.kernel_ctrl_file
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            '-k', 'kernel', 'test_job0', '-m', 'host0'],
-                     rpcs=[('generate_control_file', {'tests': ['sleeptest'],
-                            'use_container': False, 'kernel': 'kernel',
-                            'do_push_packages': True},
-                            True, (self.kernel_ctrl_file, False, False)),
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'], 'use_container': False,
+                             'kernel': 'kernel', 'do_push_packages': True},
+                            True,
+                            {'control_file' : self.kernel_ctrl_file,
+                             'is_synchronous' : False,
+                             'is_server' : False,
+                             'dependencies' : []}),
                            ('create_job', data, True, 180)],
                      out_words_ok=['test_job0', 'Created',
                                    'Uploading', 'Done'])
@@ -608,10 +616,14 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            '-k', 'kernel', 'test job	with  spaces',
                            '-m', 'host0'],
-                     rpcs=[('generate_control_file', {'tests': ['sleeptest'],
-                            'use_container': False, 'kernel': 'kernel',
-                            'do_push_packages': True},
-                            True, (self.kernel_ctrl_file, False, False)),
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'], 'use_container': False,
+                             'kernel': 'kernel', 'do_push_packages': True},
+                            True,
+                            {'control_file' : self.kernel_ctrl_file,
+                             'is_synchronous' : False,
+                             'is_server' : False,
+                             'dependencies' : []}),
                            ('create_job', data, True, 180)],
                      # This is actually 8 spaces,
                      # the tab has been converted by print.
@@ -713,9 +725,13 @@ class job_create_unittest(cli_mock.cli_unittest):
         data = self.data.copy()
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            '-c', 'test_job0', '-m', 'host0'],
-                     rpcs=[('generate_control_file', {'tests': ['sleeptest'],
-                            'use_container': True}, True, (self.ctrl_file,
-                            False, False)),
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'], 'use_container': True},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'is_synchronous' : False,
+                             'is_server' : False,
+                             'dependencies' : []}),
                            ('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'])
 

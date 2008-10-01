@@ -321,6 +321,10 @@ class job_create(action_common.atest_create, job):
                 self.ctrl_file_data['do_push_packages'] = True
             self.ctrl_file_data['use_container'] = options.container
 
+        # TODO: add support for manually specifying dependencies, when this is
+        # added to the frontend as well
+        self.data['dependencies'] = []
+
         return (options, leftover)
 
 
@@ -330,20 +334,20 @@ class job_create(action_common.atest_create, job):
                 socket.setdefaulttimeout(topic_common.UPLOAD_SOCKET_TIMEOUT)
                 print 'Uploading Kernel: this may take a while...',
 
-            (ctrl_file, on_server,
-             is_synch) = self.execute_rpc(op='generate_control_file',
-                                          item=self.jobname,
-                                          **self.ctrl_file_data)
+            cf_info = self.execute_rpc(op='generate_control_file',
+                                        item=self.jobname,
+                                        **self.ctrl_file_data)
 
             if self.ctrl_file_data.has_key('kernel'):
                 print 'Done'
                 socket.setdefaulttimeout(topic_common.DEFAULT_SOCKET_TIMEOUT)
-            self.data['control_file'] = ctrl_file
-            self.data['is_synchronous'] = is_synch
-            if on_server:
+            self.data['control_file'] = cf_info['control_file']
+            self.data['is_synchronous'] = cf_info['is_synchronous']
+            if cf_info['is_server']:
                 self.data['control_type'] = 'Server'
             else:
                 self.data['control_type'] = 'Client'
+            self.data['dependencies'] = cf_info['dependencies']
         return super(job_create, self).execute()
 
 

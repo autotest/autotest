@@ -97,6 +97,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
                 showField(jobObject, "email_list", "view_email_list");
                 showField(jobObject, "control_type", "view_control_type");
                 showField(jobObject, "control_file", "view_control_file");
+                showField(jobObject, "dependencies", "view_dependencies");
                 
                 String synchType = jobObject.get("synch_type").isString().stringValue();
                 showText(synchType.toLowerCase(), "view_synch_type");

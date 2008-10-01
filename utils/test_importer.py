@@ -27,7 +27,7 @@ from autotest_lib.client.common_lib import utils
 
 # Global
 DRY_RUN = False
-
+DEPENDENCIES_NOT_FOUND = set()
 
 def main(argv):
     """Main function"""
@@ -161,16 +161,17 @@ def db_clean_broken(autotest_dir, verbose):
     connection=db_connect()
     cursor = connection.cursor()
     # Get tests
-    sql = "SELECT path FROM autotests";
+    sql = "SELECT id, path FROM autotests";
     cursor.execute(sql)
     results = cursor.fetchall()
-    for path in results:
-        full_path = os.path.join(autotest_dir, path[0])
+    for test_id, path in results:
+        full_path = os.path.join(autotest_dir, path)
         if not os.path.isfile(full_path):
             if verbose:
-                print "Removing " + path[0]
-            sql = "DELETE FROM autotests WHERE path='%s'" % path[0]
-            db_execute(cursor, sql)
+                print "Removing " + path
+            db_execute(cursor, "DELETE FROM autotests WHERE id=%s" % test_id)
+            db_execute(cursor, "DELETE FROM autotests_dependency_labels WHERE "
+                               "test_id=%s" % test_id)
 
     # Find profilers that are no longer present
     profilers = []
@@ -230,6 +231,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
     """Update or add each test to the database"""
     connection=db_connect()
     cursor = connection.cursor()
+    new_test_dicts = []
     for test in tests:
         new_test = {}
         new_test['path'] = test.replace(autotest_dir, '').lstrip('/')
@@ -257,6 +259,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
                 continue
         # clean tests for insertion into db
         new_test = dict_db_clean(new_test)
+        new_test_dicts.append(new_test)
         sql = "SELECT name,path FROM autotests WHERE path='%s' LIMIT 1"
         sql %= new_test['path']
         cursor.execute(sql)
@@ -293,6 +296,8 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
                     new_test['test_category'], new_test['sync_count'])
 
         db_execute(cursor, sql)
+
+    add_label_dependencies(new_test_dicts, cursor)
 
     connection.commit()
     connection.close()
@@ -337,7 +342,59 @@ def dict_db_clean(test):
         test['time'] = test_time[test['time'].lower()]
     if str == type(test['test_type']):
         test['test_type'] = test_type[test['test_type'].lower()]
+
     return test
+
+
+def add_label_dependencies(tests, cursor):
+    """
+    Look at the DEPENDENCIES field for each test and add the proper many-to-many
+    relationships.
+    """
+    label_name_to_id = get_id_map(cursor, 'labels', 'name')
+    test_path_to_id = get_id_map(cursor, 'autotests', 'path')
+
+    # clear out old relationships
+    test_ids = ','.join(str(test_path_to_id[test['path']])
+                        for test in tests)
+    db_execute(cursor,
+               'DELETE FROM autotests_dependency_labels WHERE test_id IN (%s)' %
+               test_ids)
+
+    value_pairs = []
+    for test in tests:
+        test_id = test_path_to_id[test['path']]
+        for label_name in test['dependencies'].split(','):
+            label_name = label_name.strip().lower()
+            if not label_name:
+                continue
+            if label_name not in label_name_to_id:
+                log_dependency_not_found(label_name)
+                continue
+            label_id = label_name_to_id[label_name]
+            value_pairs.append('(%s, %s)' % (test_id, label_id))
+
+    if not value_pairs:
+        return
+
+    query = ('INSERT INTO autotests_dependency_labels (test_id, label_id) '
+             'VALUES ' + ','.join(value_pairs))
+    db_execute(cursor, query)
+
+
+def log_dependency_not_found(label_name):
+    if label_name in DEPENDENCIES_NOT_FOUND:
+        return
+    print 'Dependency %s not found' % label_name
+    DEPENDENCIES_NOT_FOUND.add(label_name)
+
+
+def get_id_map(cursor, table_name, name_field):
+    cursor.execute('SELECT id, %s FROM %s' % (name_field, table_name))
+    name_to_id = {}
+    for item_id, item_name in cursor.fetchall():
+        name_to_id[item_name] = item_id
+    return name_to_id
 
 
 def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):

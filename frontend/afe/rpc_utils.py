@@ -142,4 +142,44 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
     if label:
         label = models.Label.smart_get(label)
 
-    return is_server, is_synchronous, test_objects, profiler_objects, label
+    dependencies = set(label.name for label
+                       in models.Label.objects.filter(test__in=test_objects))
+
+    return (dict(is_server=is_server, is_synchronous=is_synchronous,
+                 dependencies=list(dependencies)),
+            test_objects, profiler_objects, label)
+
+
+def check_job_dependencies(host_objects, job_dependencies):
+    """
+    Check that a set of machines satisfies a job's dependencies.
+    host_objects: list of models.Host objects
+    job_dependencies: list of names of labels
+    """
+    # check that hosts satisfy dependencies
+    host_ids = [host.id for host in host_objects]
+    hosts_in_job = models.Host.objects.filter(id__in=host_ids)
+    ok_hosts = hosts_in_job
+    for index, dependency in enumerate(job_dependencies):
+        ok_hosts &= models.Host.objects.filter_custom_join(
+            '_label%d' % index, labels__name=dependency)
+    failing_hosts = (set(host.hostname for host in host_objects) -
+                     set(host.hostname for host in ok_hosts))
+    if failing_hosts:
+        raise model_logic.ValidationError(
+            {'hosts' : 'Host(s) failed to meet job dependencies: ' +
+                       ', '.join(failing_hosts)})
+
+    # check for hosts that have only_if_needed labels that aren't requested
+    labels_not_requested = models.Label.objects.filter(only_if_needed=True,
+                                                       host__id__in=host_ids)
+    labels_not_requested = labels_not_requested.exclude(
+        name__in=job_dependencies)
+    errors = []
+    for label in labels_not_requested:
+        hosts_in_label = hosts_in_job.filter(labels=label)
+        errors.append('Cannot use hosts with label "%s" unless requested: %s' %
+                      (label.name,
+                       ', '.join(host.hostname for host in hosts_in_label)))
+    if errors:
+        raise model_logic.ValidationError({'hosts' : '\n'.join(errors)})
