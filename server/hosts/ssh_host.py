@@ -18,7 +18,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-import types, os, sys, signal, subprocess, time, re, socket, pdb
+import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
 
 from autotest_lib.client.common_lib import error, pxssh, global_config
 from autotest_lib.server import utils
@@ -299,6 +299,20 @@ class SSHHost(site_host.SiteHost):
             raise           # only want to raise if it's a space issue
         except:
             pass            # autotest dir may not exist, etc. ignore
+
+
+    def repair_full(self):
+        try:
+            self.repair_filesystem_only()
+            self.verify()
+        except Exception:
+        # the basic filesystem-only repair failed, try something more drastic
+            print "Filesystem-only repair failed"
+            traceback.print_exc()
+            try:
+                self.machine_install()
+            except NotImplementedError, e:
+                sys.stderr.write(str(e) + "\n\n")
 
 
     def sysrq_reboot(self):

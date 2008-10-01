@@ -20,7 +20,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import os, re, time
 
-from autotest_lib.client.common_lib import global_config, error
+from autotest_lib.client.common_lib import global_config, error, host_protections
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import bootloader
 
@@ -153,6 +153,20 @@ class Host(object):
             raise error.AutoservHostError('Not enough free space on ' +
                                           '%s - %.3fGB free, want %.3fGB' %
                                           (path, free_space_gb, gb))
+
+
+    def _repair_filesystem_only(self):
+        self.wait_up(int(2.5 * 60 * 60)) # wait for 2.5 hours
+        self.repair_filesystem_only()
+        self.reboot()
+
+
+    def repair_filesystem_only(self):
+        pass
+
+
+    def repair_full(self):
+        raise NotImplementedError('Repair full not implemented!')
 
 
     def machine_install(self):
