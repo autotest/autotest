@@ -51,6 +51,7 @@
 ...           'name': 'test_label',
 ...           'platform': 1,
 ...           'kernel_config': '/my/kernel/config',
+...	      'only_if_needed' : False,
 ...           'invalid': 0}]
 True
 
@@ -63,9 +64,9 @@ True
 4L
 >>> data = rpc_interface.get_labels(platform=False)
 >>> data == [{'id': 2L, 'name': 'label1', 'platform': 0, 'kernel_config': '',
-...           'invalid': 0},
+...           'only_if_needed': False, 'invalid': 0},
 ...          {'id': 4L, 'name': 'label3', 'platform': 0, 'kernel_config': '',
-...           'invalid': 0}]
+...           'only_if_needed': False, 'invalid': 0}]
 True
 
 # delete_label takes an ID or a name as well
@@ -340,13 +341,13 @@ True
 >>> rpc_interface.label_add_hosts(id='my_label', hosts=['my_label_host1', 'my_label_host2'])
 
 # generate a control file
->>> control_file, is_server, is_synch = rpc_interface.generate_control_file(
+>>> cf_info = rpc_interface.generate_control_file(
 ...     tests=['sleeptest', 'my_test'],
 ...     kernel='1.2.3.4',
 ...     label='my_label')
->>> control_file
+>>> cf_info['control_file']
 "kernel = '1.2.3.4'\ndef step_init():\n    job.next_step([step_test])\n    testkernel = job.kernel('1.2.3.4')\n    testkernel.config('my_kernel_config')\n    testkernel.install()\n    testkernel.boot(args='')\n\ndef step_test():\n    job.next_step('step0')\n    job.next_step('step1')\n\ndef step0():\n    job.run_test('testname')\n\ndef step1():\n    job.run_test('testname')"
->>> print control_file #doctest: +NORMALIZE_WHITESPACE
+>>> print cf_info['control_file'] #doctest: +NORMALIZE_WHITESPACE
 kernel = '1.2.3.4'
 def step_init():
     job.next_step([step_test])
@@ -362,13 +363,13 @@ def step0():
     job.run_test('testname')
 def step1():
     job.run_test('testname')
->>> is_server, is_synch
-(False, False)
+>>> cf_info['is_server'], cf_info['is_synchronous'], cf_info['dependencies']
+(False, False, [])
 
 # create a job to run on host1, host2, and any two machines in my_label
 >>> rpc_interface.create_job(name='my_job',
 ...                          priority='Low',
-...                          control_file=control_file,
+...                          control_file=cf_info['control_file'],
 ...                          control_type='Client',
 ...                          hosts=['host1', 'host2'],
 ...                          meta_hosts=['my_label', 'my_label'])
@@ -379,7 +380,7 @@ def step1():
 >>> data = data[0]
 >>> data['id'], data['owner'], data['name'], data['priority']
 (1L, 'debug_user', 'my_job', 'Low')
->>> data['control_file'] == control_file
+>>> data['control_file'] == cf_info['control_file']
 True
 >>> data['control_type']
 'Client'
@@ -401,7 +402,7 @@ True
 
 # get_host_queue_entries returns full info about the job within each queue entry
 >>> job = data[0]['job']
->>> job == {'control_file': control_file, # refer to the control file we used
+>>> job == {'control_file': cf_info['control_file'], # the control file we used
 ...         'control_type': 'Client',
 ...         'created_on': None,
 ...         'id': 1L,
@@ -493,7 +494,7 @@ True
 # is_synchronous
 >>> rpc_interface.create_job(name='my_job',
 ...                          priority='Low',
-...                          control_file=control_file,
+...                          control_file=cf_info['control_file'],
 ...                          control_type='Server',
 ...                          is_synchronous=False,
 ...                          hosts=['host1'])

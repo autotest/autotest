@@ -21,10 +21,13 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     kernel_config: url/path to kernel config to use for jobs run on this
                    label
     platform: if True, this is a platform label (defaults to False)
+    only_if_needed: if True, a machine with this label can only be used if that
+                    that label is requested by the job/test.
     """
     name = dbmodels.CharField(maxlength=255, unique=True)
     kernel_config = dbmodels.CharField(maxlength=255, blank=True)
     platform = dbmodels.BooleanField(default=False)
+    only_if_needed = dbmodels.BooleanField(default=False)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
 
@@ -262,6 +265,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
                  machines. 
     Optional:
     dependencies: What the test requires to run. Comma deliminated list
+    dependency_labels: many-to-many relationship with labels corresponding to
+                       test dependencies.
     experimental: If this is set to True production servers will ignore the test
     run_verify: Whether or not the scheduler should run the verify stage
     """
@@ -286,6 +291,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     synch_type = dbmodels.SmallIntegerField(choices=SynchType.choices(),
                                             default=SynchType.ASYNCHRONOUS)
     path = dbmodels.CharField(maxlength=255, unique=True)
+    dependency_labels = dbmodels.ManyToManyField(
+        Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -472,6 +479,24 @@ class JobManager(model_logic.ExtendedManager):
         return all_job_counts
 
 
+    def populate_dependencies(self, jobs):
+        job_ids = ','.join(str(job['id']) for job in jobs)
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT jobs.id, GROUP_CONCAT(labels.name)
+            FROM jobs
+            INNER JOIN jobs_dependency_labels
+              ON jobs.id = jobs_dependency_labels.job_id
+            INNER JOIN labels ON jobs_dependency_labels.label_id = labels.id
+            WHERE jobs.id IN (%s)
+            GROUP BY jobs.id
+            """ % job_ids)
+        id_to_dependencies = dict((job_id, dependencies)
+                                  for job_id, dependencies in cursor.fetchall())
+        for job in jobs:
+            job['dependencies'] = id_to_dependencies.get(job['id'], '')
+
+
 class Job(dbmodels.Model, model_logic.ModelExtensions):
     """\
     owner: username of job owner
@@ -489,6 +514,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     timeout: hours until job times out
     email_list: list of people to email on completion delimited by any of:
                 white space, ',', ':', ';'
+    dependency_labels: many-to-many relationship with labels corresponding to
+                       job dependencies
     """
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
@@ -512,6 +539,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     run_verify = dbmodels.BooleanField(default=True)
     timeout = dbmodels.IntegerField()
     email_list = dbmodels.CharField(maxlength=250, blank=True)
+    dependency_labels = dbmodels.ManyToManyField(
+        Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
 
 
     # custom manager
@@ -524,7 +553,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_type, timeout, run_verify, email_list):
+               hosts, synch_type, timeout, run_verify, email_list,
+               dependencies):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
@@ -545,6 +575,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                           + ' one host to run on'}
                 raise model_logic.ValidationError(errors)
         job.save()
+        job.dependency_labels = dependencies
         return job
 
 

@@ -37,9 +37,10 @@ from autotest_lib.client.common_lib import global_config
 
 # labels
 
-def add_label(name, kernel_config=None, platform=None):
+def add_label(name, kernel_config=None, platform=None, only_if_needed=None):
     return models.Label.add_object(name=name, kernel_config=kernel_config,
-                                   platform=platform).id
+                                   platform=platform,
+                                   only_if_needed=only_if_needed).id
 
 
 def modify_label(id, **data):
@@ -246,10 +247,11 @@ def get_acl_groups(**filter_data):
 def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     """\
     Generates a client-side control file to load a kernel and run a set of
-    tests.  Returns a tuple (control_file, is_server, is_synchronous):
+    tests.  Returns a dict with the following keys:
     control_file - the control file text
     is_server - is the control file a server-side control file?
     is_synchronous - should the control file be run synchronously?
+    dependencies - a list of the names of labels on which the job depends
 
     tests: list of tests to run
     kernel: kernel to install in generated control file
@@ -257,21 +259,22 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     profilers: list of profilers to activate during the job
     """
     if not tests:
-        return '', False, False
+        return dict(control_file='', is_server=False, is_synchronous=False,
+                    dependencies=[])
 
-    is_server, is_synchronous, test_objects, profiler_objects, label = (
+    cf_info, test_objects, profiler_objects, label = (
         rpc_utils.prepare_generate_control_file(tests, kernel, label,
                                                 profilers))
-    cf_text = control_file.generate_control(tests=test_objects, kernel=kernel,
-                                            platform=label,
-                                            profilers=profiler_objects,
-                                            is_server=is_server)
-    return cf_text, is_server, is_synchronous
+    cf_info['control_file'] = control_file.generate_control(
+        tests=test_objects, kernel=kernel, platform=label,
+        profilers=profiler_objects, is_server=cf_info['is_server'])
+    return cf_info
 
 
 def create_job(name, priority, control_file, control_type, timeout=None,
                is_synchronous=None, hosts=None, meta_hosts=None,
-               run_verify=True, one_time_hosts=None, email_list=''):
+               run_verify=True, one_time_hosts=None, email_list='',
+               dependencies=[]):
     """\
     Create and enqueue a job.
 
@@ -285,6 +288,7 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                 on.
     timeout: hours until job times out
     email_list: string containing emails to mail when the job is done
+    dependencies: list of label names on which this job depends
     """
 
     if timeout is None:
@@ -299,33 +303,32 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                           "'meta_hosts', or 'one_time_hosts'"
             })
 
-    requested_host_counts = {}
+    labels_by_name = dict((label.name, label)
+                          for label in models.Label.objects.all())
 
     # convert hostnames & meta hosts to host/label objects
     host_objects = []
+    metahost_objects = []
+    metahost_counts = {}
     for host in hosts or []:
         this_host = models.Host.smart_get(host)
         host_objects.append(this_host)
     for label in meta_hosts or []:
-        this_label = models.Label.smart_get(label)
-        host_objects.append(this_label)
-        requested_host_counts.setdefault(this_label.name, 0)
-        requested_host_counts[this_label.name] += 1
+        this_label = labels_by_name[label]
+        metahost_objects.append(this_label)
+        metahost_counts.setdefault(this_label, 0)
+        metahost_counts[this_label] += 1
     for host in one_time_hosts or []:
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
 
     # check that each metahost request has enough hosts under the label
-    if meta_hosts:
-        labels = models.Label.objects.filter(
-            name__in=requested_host_counts.keys())
-        for label in labels:
-            count = label.host_set.count()
-            if requested_host_counts[label.name] > count:
-                error = ("You have requested %d %s's, but there are only %d."
-                         % (requested_host_counts[label.name],
-                            label.name, count))
-                raise model_logic.ValidationError({'arguments' : error})
+    for label, requested_count in metahost_counts.iteritems():
+        available_count = label.host_set.count()
+        if requested_count > available_count:
+            error = ("You have requested %d %s's, but there are only %d."
+                     % (requested_count, label.name, available_count))
+            raise model_logic.ValidationError({'meta_hosts' : error})
 
     # default is_synchronous to some appropriate value
     ControlType = models.Job.ControlType
@@ -338,15 +341,20 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     else:
         synch_type = models.Test.SynchType.ASYNCHRONOUS
 
+    rpc_utils.check_job_dependencies(host_objects, dependencies)
+    dependency_labels = [labels_by_name[label_name]
+                         for label_name in dependencies]
+
     job = models.Job.create(owner=owner, name=name, priority=priority,
                             control_file=control_file,
                             control_type=control_type,
                             synch_type=synch_type,
-                            hosts=host_objects,
+                            hosts=host_objects + metahost_objects,
                             timeout=timeout,
                             run_verify=run_verify,
-                            email_list=email_list.strip())
-    job.queue(host_objects)
+                            email_list=email_list.strip(),
+                            dependencies=dependency_labels)
+    job.queue(host_objects + metahost_objects)
     return job.id
 
 
@@ -382,8 +390,9 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
     filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
                                                             running,
                                                             finished)
-    return rpc_utils.prepare_for_serialization(
-        models.Job.list_objects(filter_data))
+    jobs = models.Job.list_objects(filter_data)
+    models.Job.objects.populate_dependencies(jobs)
+    return rpc_utils.prepare_for_serialization(jobs)
 
 
 def get_num_jobs(not_yet_run=False, running=False, finished=False,

@@ -170,6 +170,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     
     protected boolean controlEdited = false;
     protected boolean controlReadyForSubmit = false;
+    private JSONArray dependencies = new JSONArray();
     
     public CreateJobView(JobCreateListener listener) {
         this.listener = listener;
@@ -316,10 +317,12 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         rpcProxy.rpcCall("generate_control_file", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                JSONArray results = result.isArray();
-                String controlFileText = results.get(0).isString().stringValue();
-                boolean isServer = results.get(1).isBoolean().booleanValue();
-                boolean isSynchronous = results.get(2).isBoolean().booleanValue();
+                JSONObject controlInfo = result.isObject();
+                String controlFileText = controlInfo.get("control_file").isString().stringValue();
+                boolean isServer = controlInfo.get("is_server").isBoolean().booleanValue();
+                boolean isSynchronous = 
+                    controlInfo.get("is_synchronous").isBoolean().booleanValue();
+                dependencies = controlInfo.get("dependencies").isArray();
                 controlFile.setText(controlFileText);
                 controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE : 
                                                             TestSelector.CLIENT_TYPE);
@@ -523,6 +526,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         controlFilePanel.setOpen(false);
         editControlButton.setText(EDIT_CONTROL_STRING);
         hostSelector.reset();
+        dependencies = new JSONArray();
     }
     
     protected void submitJob() {
@@ -565,6 +569,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 args.put("one_time_hosts",
                     Utils.stringsToJSON(hosts.oneTimeHosts));
+                args.put("dependencies", dependencies);
                 
                 rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
                     @Override

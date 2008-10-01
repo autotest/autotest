@@ -333,14 +333,21 @@ class HostScheduler(object):
 
 
     @classmethod
-    def _get_many2many_dict(cls, query, id_list):
+    def _get_many2many_dict(cls, query, id_list, flip=False):
         if not id_list:
             return {}
         query %= cls._get_sql_id_list(id_list)
         rows = _db.execute(query)
+        return cls._process_many2many_dict(rows, flip)
+
+
+    @staticmethod
+    def _process_many2many_dict(rows, flip=False):
         result = {}
         for row in rows:
             left_id, right_id = long(row[0]), long(row[1])
+            if flip:
+                left_id, right_id = right_id, left_id
             result.setdefault(left_id, set()).add(right_id)
         return result
 
@@ -368,6 +375,16 @@ class HostScheduler(object):
 
 
     @classmethod
+    def _get_job_dependencies(cls, job_ids):
+        query = """
+        SELECT job_id, label_id
+        FROM jobs_dependency_labels
+        WHERE job_id IN (%s)
+        """
+        return cls._get_many2many_dict(query, job_ids)
+
+
+    @classmethod
     def _get_host_acls(cls, host_ids):
         query = """
         SELECT host_id, acl_group_id
@@ -383,8 +400,16 @@ class HostScheduler(object):
         SELECT label_id, host_id
         FROM hosts_labels
         WHERE host_id IN (%s)
-        """
-        return cls._get_many2many_dict(query, host_ids)
+        """ % cls._get_sql_id_list(host_ids)
+        rows = _db.execute(query)
+        labels_to_hosts = cls._process_many2many_dict(rows)
+        hosts_to_labels = cls._process_many2many_dict(rows, flip=True)
+        return labels_to_hosts, hosts_to_labels
+
+
+    @classmethod
+    def _get_labels(cls):
+        return dict((label.id, label) for label in Label.fetch())
 
 
     def refresh(self, pending_queue_entries):
@@ -394,10 +419,13 @@ class HostScheduler(object):
                          for queue_entry in pending_queue_entries]
         self._job_acls = self._get_job_acl_groups(relevant_jobs)
         self._ineligible_hosts = self._get_job_ineligible_hosts(relevant_jobs)
+        self._job_dependencies = self._get_job_dependencies(relevant_jobs)
 
         host_ids = self._hosts_available.keys()
         self._host_acls = self._get_host_acls(host_ids)
-        self._label_hosts = self._get_label_hosts(host_ids)
+        self._label_hosts, self._host_labels = self._get_label_hosts(host_ids)
+
+        self._labels = self._get_labels()
 
 
     def _is_acl_accessible(self, host_id, queue_entry):
@@ -406,8 +434,44 @@ class HostScheduler(object):
         return len(host_acls.intersection(job_acls)) > 0
 
 
+    def _check_job_dependencies(self, job_dependencies, host_labels):
+        missing = job_dependencies - host_labels
+        return len(job_dependencies - host_labels) == 0
+
+
+    def _check_only_if_needed_labels(self, job_dependencies, host_labels,
+                                     queue_entry):
+        for label_id in host_labels:
+            label = self._labels[label_id]
+            if not label.only_if_needed:
+                # we don't care about non-only_if_needed labels
+                continue
+            if queue_entry.meta_host == label_id:
+                # if the label was requested in a metahost it's OK
+                continue
+            if label_id not in job_dependencies:
+                return False
+        return True
+
+
+    def _is_host_eligible_for_job(self, host_id, queue_entry):
+        job_dependencies = self._job_dependencies.get(queue_entry.job_id, set())
+        host_labels = self._host_labels.get(host_id, set())
+        if not self._is_acl_accessible(host_id, queue_entry):
+            print 'no acl access'
+        if not self._check_job_dependencies(job_dependencies, host_labels):
+            print 'didnt meet deps'
+        if not self._check_only_if_needed_labels(job_dependencies, host_labels,
+                                                 queue_entry):
+            print 'didnt request oin label'
+        return (self._is_acl_accessible(host_id, queue_entry) and
+                self._check_job_dependencies(job_dependencies, host_labels) and
+                self._check_only_if_needed_labels(job_dependencies, host_labels,
+                                                  queue_entry))
+
+
     def _schedule_non_metahost(self, queue_entry):
-        if not self._is_acl_accessible(queue_entry.host_id, queue_entry):
+        if not self._is_host_eligible_for_job(queue_entry.host_id, queue_entry):
             return None
         return self._hosts_available.pop(queue_entry.host_id, None)
 
@@ -436,7 +500,7 @@ class HostScheduler(object):
                 continue
             if host_id in ineligible_host_ids:
                 continue
-            if not self._is_acl_accessible(host_id, queue_entry):
+            if not self._is_host_eligible_for_job(host_id, queue_entry):
                 continue
 
             hosts_in_label.remove(host_id)
@@ -1584,7 +1648,7 @@ class DBObject(object):
 
 
     @classmethod
-    def fetch(cls, where, params=(), joins='', order_by=''):
+    def fetch(cls, where='', params=(), joins='', order_by=''):
         table = cls._get_table()
         order_by = cls._prefix_with(order_by, 'ORDER BY ')
         where = cls._prefix_with(where, 'WHERE ')
@@ -1612,6 +1676,18 @@ class IneligibleHostQueue(DBObject):
     @classmethod
     def _fields(cls):
         return ['id', 'job_id', 'host_id']
+
+
+class Label(DBObject):
+    @classmethod
+    def _get_table(cls):
+        return 'labels'
+
+
+    @classmethod
+    def _fields(cls):
+        return ['id', 'name', 'kernel_config', 'platform', 'invalid',
+                'only_if_needed']
 
 
 class Host(DBObject):
