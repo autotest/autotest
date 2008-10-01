@@ -301,6 +301,11 @@ class SSHHost(site_host.SiteHost):
             pass            # autotest dir may not exist, etc. ignore
 
 
+    def repair_filesystem_only(self):
+        self.wait_up(int(2.5 * 60 * 60)) # wait for 2.5 hours
+        host.reboot()
+
+
     def repair_full(self):
         try:
             self.repair_filesystem_only()

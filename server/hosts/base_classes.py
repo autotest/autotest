@@ -155,14 +155,8 @@ class Host(object):
                                           (path, free_space_gb, gb))
 
 
-    def _repair_filesystem_only(self):
-        self.wait_up(int(2.5 * 60 * 60)) # wait for 2.5 hours
-        self.repair_filesystem_only()
-        self.reboot()
-
-
     def repair_filesystem_only(self):
-        pass
+        raise NotImplementedError('Repair full not implemented!')
 
 
     def repair_full(self):
