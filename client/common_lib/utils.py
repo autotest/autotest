@@ -103,6 +103,12 @@ def set_ip_local_port_range(lower, upper):
     write_one_line('/proc/sys/net/ipv4/ip_local_port_range',
                    '%d %d\n' % (lower, upper))
 
+
+def normalize_hostname(alias):
+    ip = socket.gethostbyname(alias)
+    return socket.gethostbyaddr(ip)[0]
+
+
 def read_one_line(filename):
     return open(filename, 'r').readline().rstrip('\n')
 
