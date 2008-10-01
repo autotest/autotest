@@ -302,16 +302,18 @@ class SSHHost(site_host.SiteHost):
 
 
     def repair_filesystem_only(self):
+        super(SSHHost, self).repair_filesystem_only()
         self.wait_up(int(2.5 * 60 * 60)) # wait for 2.5 hours
-        host.reboot()
+        self.reboot()
 
 
     def repair_full(self):
+        super(SSHHost, self).repair_full()
         try:
             self.repair_filesystem_only()
             self.verify()
         except Exception:
-        # the basic filesystem-only repair failed, try something more drastic
+            # the filesystem-only repair failed, try something more drastic
             print "Filesystem-only repair failed"
             traceback.print_exc()
             try:
