@@ -156,11 +156,11 @@ class Host(object):
 
 
     def repair_filesystem_only(self):
-        raise NotImplementedError('Repair full not implemented!')
+        pass
 
 
     def repair_full(self):
-        raise NotImplementedError('Repair full not implemented!')
+        pass
 
 
     def machine_install(self):
