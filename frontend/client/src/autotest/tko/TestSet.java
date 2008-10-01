@@ -13,6 +13,7 @@ abstract class TestSet {
      */
     public abstract String getPartialSqlCondition();
     public abstract boolean isSingleTest();
+    public abstract int getTestIndex();
     
     public JSONObject getCondition() {
         JSONObject condition = getInitialCondition();

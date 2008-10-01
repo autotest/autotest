@@ -38,34 +38,18 @@ def get_group_counts(group_by, header_groups=[], fixed_headers={},
       The keys for the extra_select_fields are determined by the "AS" alias of
       the field.
     """
-    group_by = list(set(group_by)) # eliminate duplicates
-
     query = models.TestView.query_objects(filter_data)
-    for header_field, values in fixed_headers.iteritems():
-        query = query.filter(**{header_field + '__in' : values})
-    counts = models.TestView.objects.get_group_counts(query, group_by,
-                                                      extra_select_fields)
-    if len(counts) > tko_rpc_utils.MAX_GROUP_RESULTS:
-        raise tko_rpc_utils.TooManyRowsError(
-            'Query yielded %d rows, exceeding maximum %d' % (
-            len(counts), tko_rpc_utils.MAX_GROUP_RESULTS))
+    count_sql = models.TestView.objects.get_count_sql(query)
+    extra_select_fields.append(count_sql)
+    if 'test_idx' not in group_by:
+        extra_select_fields.append('test_idx')
 
-    extra_field_names = [sql.lower().rsplit(' as ', 1)[1]
-                         for sql in extra_select_fields]
-    group_processor = tko_rpc_utils.GroupDataProcessor(group_by, header_groups,
-                                                       extra_field_names,
-                                                       fixed_headers)
-    group_dicts = [group_processor.get_group_dict(count_row)
-                   for count_row in counts]
-
-    header_values = group_processor.get_sorted_header_values()
-    if header_groups:
-        for group_dict in group_dicts:
-            group_processor.replace_headers_with_indices(group_dict)
-
-    result = {'header_values' : header_values,
-              'groups' : group_dicts}
-    return rpc_utils.prepare_for_serialization(result)
+    group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
+                                                       header_groups,
+                                                       fixed_headers,
+                                                       extra_select_fields)
+    group_processor.process_group_dicts()
+    return rpc_utils.prepare_for_serialization(group_processor.get_info_dict())
 
 
 def get_num_groups(group_by, **filter_data):
@@ -76,15 +60,6 @@ def get_num_groups(group_by, **filter_data):
     return models.TestView.objects.get_num_groups(query, group_by)
 
 
-# SQL expression to compute passed test count for test groups
-_PASS_COUNT_SQL = 'SUM(IF(status="GOOD", 1, 0)) AS pass_count'
-_COMPLETE_COUNT_SQL = ('SUM(IF(NOT (status="TEST_NA" OR '
-                                   'status="RUNNING" OR '
-                                   'status="NOSTATUS"), 1, 0)) '
-                       'AS complete_count')
-_INCOMPLETE_COUNT_SQL = ('SUM(IF(status="RUNNING", 1, 0)) '
-                         'AS incomplete_count')
-
 def get_status_counts(group_by, header_groups=[], fixed_headers={},
                       **filter_data):
     """
@@ -92,10 +67,44 @@ def get_status_counts(group_by, header_groups=[], fixed_headers={},
     valid), and incomplete tests, stored in keys "pass_count', 'complete_count',
     and 'incomplete_count', respectively.
     """
-    extra_fields = [_PASS_COUNT_SQL, _COMPLETE_COUNT_SQL, _INCOMPLETE_COUNT_SQL]
+    extra_fields = [tko_rpc_utils._PASS_COUNT_SQL,
+                    tko_rpc_utils._COMPLETE_COUNT_SQL,
+                    tko_rpc_utils._INCOMPLETE_COUNT_SQL]
     return get_group_counts(group_by, header_groups=header_groups,
                             fixed_headers=fixed_headers,
                             extra_select_fields=extra_fields,**filter_data)
+
+
+def get_latest_tests(group_by, header_groups=[], fixed_headers={},
+                     **filter_data):
+    """
+    Similar to get_status_counts, but return only the latest test result per
+    group.  It still returns the same information (i.e. with pass count etc.)
+    for compatibility.
+    """
+    # find latest test per group
+    query = models.TestView.query_objects(filter_data)
+    query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
+    extra_fields = ['MAX(test_idx) AS latest_test_idx']
+
+    group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
+                                                       header_groups,
+                                                       fixed_headers,
+                                                       extra_fields)
+    group_processor.process_group_dicts()
+    info = group_processor.get_info_dict()
+
+    # fetch full info for these tests so we can access their statuses
+    all_test_ids = [group['latest_test_idx'] for group in info['groups']]
+    test_views = models.TestView.objects.in_bulk(all_test_ids)
+
+    for group_dict in info['groups']:
+        test_idx = group_dict.pop('latest_test_idx')
+        group_dict['test_idx'] = test_idx
+        tko_rpc_utils.add_status_counts(group_dict,
+                                        test_views[test_idx].status)
+    return info
+
 
 
 def get_test_logs_urls(**filter_data):

@@ -77,6 +77,7 @@ public class Spreadsheet extends Composite implements ScrollListener, TableListe
         public Integer widthPx, heightPx;
         public int rowSpan = 1, colSpan = 1;
         public int testCount = 0;
+        public int testIndex;
         
         public CellInfo(Header row, Header column, String contents) {
             this.row = row;
