@@ -15,10 +15,16 @@ def repair(machine):
         print "Attempting filesystem-only repair"
         host = hosts.create_host(machine, initialize=False)
         host.repair_filesystem_only()
+        # JP: deprecated
+        if "site_repair_filesystem_only" in globals():
+            site_repair_filesystem_only(host)
     elif level == protection.NO_PROTECTION:
         print "Attempting full repair"
         host = hosts.create_host(machine, initialize=False)
         host.repair_full()
+        # JP: deprecated
+        if "site_repair_full" in globals():
+            site_repair_full(host)
 
 
 job.parallel_simple(repair, machines, log=False)
