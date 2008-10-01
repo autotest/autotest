@@ -89,6 +89,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'created_on': 'Created On',
                     'synch_type': 'Synch Type',
                     'control_file': 'Control File',
+                    'only_if_needed': 'Use only if needed',
                     }
 
 # In the failure, tag that will replace the item.
@@ -116,8 +117,12 @@ def __convert_platform(field):
         return field
 
 
-KEYS_CONVERT = {'locked': lambda flag: str(bool(flag)),
+def _int_2_bool_string(value):
+    return str(bool(value))
+
+KEYS_CONVERT = {'locked': _int_2_bool_string,
                 'invalid': lambda flag: str(bool(not flag)),
+                'only_if_needed': _int_2_bool_string,
                 'platform': __convert_platform,
                 'labels': lambda labels: ', '.join(labels)}
 

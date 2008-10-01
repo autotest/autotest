@@ -132,9 +132,9 @@ class label_list(action_common.atest_list, label):
         elif not self.all:
             results = [label for label in results
                        if not label['platform']]
-            keys = ['name', 'invalid']
+            keys = ['name', 'only_if_needed', 'invalid']
         else:
-            keys = ['name', 'platform', 'invalid']
+            keys = ['name', 'platform', 'only_if_needed', 'invalid']
 
         super(label_list, self).output(results, keys)
 
@@ -147,12 +147,17 @@ class label_create(action_common.atest_create, label):
                                help='To create this label as a platform',
                                default=False,
                                action='store_true')
+        self.parser.add_option('-o', '--only_if_needed',
+                               help='To mark the label as "only use if needed',
+                               default=False,
+                               action='store_true')
 
 
     def parse(self):
         (options, leftover) = super(label_create, self).parse()
         self.data_item_key = 'name'
         self.data['platform'] = options.platform
+        self.data['only_if_needed'] = options.only_if_needed
         return (options, leftover)
 
 

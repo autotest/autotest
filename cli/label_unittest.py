@@ -15,27 +15,32 @@ class label_list_unittest(cli_mock.cli_unittest):
                u'platform': 0,
                u'name': u'label0',
                u'invalid': 0,
-               u'kernel_config': u''},
+               u'kernel_config': u'',
+               u'only_if_needed': 0},
               {u'id': 338,          # Valid label
                u'platform': 0,
                u'name': u'label1',
                u'invalid': 0,
-               u'kernel_config': u''},
+               u'kernel_config': u'',
+               u'only_if_needed': 0},
               {u'id': 340,          # Invalid label
                u'platform': 0,
                u'name': u'label2',
                u'invalid': 1,
-               u'kernel_config': u''},
+               u'kernel_config': u'',
+               u'only_if_needed': 0},
               {u'id': 350,          # Valid platform
                u'platform': 1,
                u'name': u'plat0',
                u'invalid': 0,
-               u'kernel_config': u''},
+               u'kernel_config': u'',
+               u'only_if_needed': 0},
               {u'id': 420,          # Invalid platform
                u'platform': 1,
                u'name': u'plat1',
                u'invalid': 1,
-               u'kernel_config': u''}]
+               u'kernel_config': u'',
+               u'only_if_needed': 0}]
 
 
     def test_label_list_labels_only(self):
@@ -82,9 +87,13 @@ class label_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_two_labels(self):
         self.run_cmd(argv=['atest', 'label', 'create', 'label0', 'label1',
                            '--ignore_site_file'],
-                     rpcs=[('add_label', {'name': 'label0', 'platform': False},
+                     rpcs=[('add_label',
+                            {'name': 'label0', 'platform': False,
+                             'only_if_needed': False},
                             True, 42),
-                           ('add_label', {'name': 'label1', 'platform': False},
+                           ('add_label',
+                            {'name': 'label1', 'platform': False,
+                             'only_if_needed': False},
                             True, 43)],
                      out_words_ok=['Created', 'label0', 'label1'])
 
@@ -92,9 +101,13 @@ class label_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_two_labels_bad(self):
         self.run_cmd(argv=['atest', 'label', 'create', 'label0', 'label1',
                            '--ignore_site_file'],
-                     rpcs=[('add_label', {'name': 'label0', 'platform': False},
+                     rpcs=[('add_label',
+                            {'name': 'label0', 'platform': False,
+                             'only_if_needed': False},
                             True, 3),
-                           ('add_label', {'name': 'label1', 'platform': False},
+                           ('add_label',
+                            {'name': 'label1', 'platform': False,
+                             'only_if_needed': False},
                             False,
                             '''ValidationError: {'name': 
                             'This value must be unique (label0)'}''')],

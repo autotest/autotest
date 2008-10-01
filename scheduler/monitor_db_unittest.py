@@ -25,6 +25,7 @@ INSERT INTO acl_groups_hosts (host_id, acl_group_id) VALUES
 
 -- create a label for each of two hosts
 INSERT INTO labels (name) VALUES ('label1'), ('label2');
+INSERT INTO labels (name, only_if_needed) VALUES ('label3', true);
 
 -- add hosts to labels
 INSERT INTO hosts_labels (host_id, label_id) VALUES
@@ -297,6 +298,31 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         self._check_for_extra_schedulings()
 
 
+    def _test_only_if_needed_labels_helper(self, use_metahosts):
+        # apply only_if_needed label3 to host1
+        self._do_query('INSERT INTO hosts_labels (host_id, label_id) '
+                       'VALUES (1, 3)')
+        self._create_job_simple([1], use_metahosts)
+        # if the job doesn't depend on label3, there should be no scheduling
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+        # now make the job depend on label3
+        self._do_query('INSERT INTO jobs_dependency_labels (job_id, label_id) '
+                       'VALUES (1, 3)')
+        self._dispatcher._schedule_new_jobs()
+        self._assert_job_scheduled_on(1, 1)
+        self._check_for_extra_schedulings()
+
+        if use_metahosts:
+            # should also work if the metahost is the only_if_needed label
+            self._do_query('DELETE FROM jobs_dependency_labels')
+            self._create_job(metahosts=[3])
+            self._dispatcher._schedule_new_jobs()
+            self._assert_job_scheduled_on(2, 1)
+            self._check_for_extra_schedulings()
+
+
     def test_basic_scheduling(self):
         self._test_basic_scheduling_helper(False)
 
@@ -315,6 +341,10 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
 
     def test_obey_ACLs(self):
         self._test_obey_ACLs_helper(False)
+
+
+    def test_only_if_needed_labels(self):
+        self._test_only_if_needed_labels_helper(False)
 
 
     def test_non_metahost_on_invalid_host(self):
@@ -347,6 +377,10 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
 
     def test_metahost_obey_ACLs(self):
         self._test_obey_ACLs_helper(True)
+
+
+    def test_metahost_only_if_needed_labels(self):
+        self._test_only_if_needed_labels_helper(True)
 
 
     def test_nonmetahost_over_metahost(self):
