@@ -26,15 +26,17 @@ class job(models.job):
         finished_time = tko_utils.get_timestamp(keyval, "job_finished")
         machine_owner = keyval.get("owner", None)
 
+        aborted_by = keyval.get("aborted_by", None)
+        aborted_at = tko_utils.get_timestamp(keyval, "aborted_on")
+
         if not machine:
             machine = job.find_hostname(dir)
         tko_utils.dprint("MACHINE NAME: %s" % machine)
 
         return {"user": user, "label": label, "machine": machine,
-                "queued_time": queued_time,
-                "started_time": started_time,
-                "finished_time": finished_time,
-                "machine_owner": machine_owner}
+                "queued_time": queued_time, "started_time": started_time,
+                "finished_time": finished_time, "machine_owner": machine_owner,
+                "aborted_by": aborted_by, "aborted_on": aborted_at}
 
 
     @staticmethod
