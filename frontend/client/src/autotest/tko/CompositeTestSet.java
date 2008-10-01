@@ -34,4 +34,12 @@ class CompositeTestSet extends TestSet {
     public boolean isSingleTest() {
         return testSets.size() == 1 && testSets.get(0).isSingleTest();
     }
+
+    @Override
+    public int getTestIndex() {
+        if (!isSingleTest()) {
+            throw new UnsupportedOperationException();
+        }
+        return testSets.get(0).getTestIndex();
+    }
 }

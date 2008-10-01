@@ -22,7 +22,7 @@ public class TestContextMenu extends ContextMenu {
         
         addItem("View test details", new Command() {
             public void execute() {
-                TkoUtils.getTestId(tests, listener);
+                listener.onSelectTest(tests.getTestIndex());
             }
         });
         return true;

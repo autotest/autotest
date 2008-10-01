@@ -33,7 +33,9 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.MenuBar;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.HashMap;
@@ -43,6 +45,7 @@ import java.util.Map;
 public class SpreadsheetView extends ConditionTabView 
                              implements SpreadsheetListener, TableActionsListener, 
                                         CommonPanelListener {
+    private static final String HISTORY_ONLY_LATEST = "show_only_latest";
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
     
@@ -62,11 +65,13 @@ public class SpreadsheetView extends ConditionTabView
     private HeaderSelect rowSelect = new HeaderSelect();
     private HeaderSelect columnSelect = new HeaderSelect();
     private CheckBox showIncomplete = new CheckBox("Show incomplete tests");
+    private CheckBox showOnlyLatest = new CheckBox("Show only latest test per cell");
     private Button queryButton = new Button("Query");
-    private TestGroupDataSource dataSource = TestGroupDataSource.getStatusCountDataSource();
+    private TestGroupDataSource normalDataSource = TestGroupDataSource.getStatusCountDataSource();
+    private TestGroupDataSource latestDataSource = TestGroupDataSource.getLatestTestsDataSource();
     private Spreadsheet spreadsheet = new Spreadsheet();
     private SpreadsheetDataProcessor spreadsheetProcessor = 
-        new SpreadsheetDataProcessor(spreadsheet, dataSource);
+        new SpreadsheetDataProcessor(spreadsheet);
     private SpreadsheetSelectionManager selectionManager = 
         new SpreadsheetSelectionManager(spreadsheet, null);
     private TableActionsPanel actionsPanel = new TableActionsPanel(this, false);
@@ -86,7 +91,8 @@ public class SpreadsheetView extends ConditionTabView
 
     @Override
     public void initialize() {
-        dataSource.setSkipNumResults(true);
+        normalDataSource.setSkipNumResults(true);
+        latestDataSource.setSkipNumResults(true);
         
         currentRowFields = new HeaderImpl();
         currentRowFields.add(DEFAULT_ROW);
@@ -118,7 +124,11 @@ public class SpreadsheetView extends ConditionTabView
             } 
         });
         
-        RootPanel.get("ss_filter_options").add(showIncomplete);
+        Panel filterOptions = new VerticalPanel();
+        filterOptions.add(showIncomplete);
+        filterOptions.add(showOnlyLatest);
+        
+        RootPanel.get("ss_filter_options").add(filterOptions);
         RootPanel.get("ss_row_select").add(rowSelect);
         RootPanel.get("ss_column_select").add(columnSelect);
         RootPanel.get("ss_swap").add(swapLink);
@@ -139,7 +149,10 @@ public class SpreadsheetView extends ConditionTabView
     
     protected TestSet getWholeTableTestSet() {
         boolean isSingleTest = spreadsheetProcessor.getNumTotalTests() == 1;
-        return new ConditionTestSet(isSingleTest, getFullConditionArgs());
+        if (isSingleTest) {
+            return getTestSet(spreadsheetProcessor.getLastCellInfo());
+        }
+        return new ConditionTestSet(getFullConditionArgs());
     }
 
     protected void setupDrilldownMap() {
@@ -184,6 +197,11 @@ public class SpreadsheetView extends ConditionTabView
         final JSONObject condition = getFullConditionArgs();
         
         setLoading(true);
+        if (showOnlyLatest.isChecked()) {
+            spreadsheetProcessor.setDataSource(latestDataSource);
+        } else {
+            spreadsheetProcessor.setDataSource(normalDataSource);
+        }
         spreadsheetProcessor.setHeaders(currentRowFields, currentColumnFields, 
                                         getFixedHeaderValues());
         spreadsheetProcessor.refresh(condition, new Command() {
@@ -311,7 +329,7 @@ public class SpreadsheetView extends ConditionTabView
         }
         
         if (testSet.isSingleTest()) {
-            TkoUtils.getTestId(testSet, listener);
+            listener.onSelectTest(testSet.getTestIndex());
             return;
         }
         
@@ -334,8 +352,11 @@ public class SpreadsheetView extends ConditionTabView
 
     private TestSet getTestSet(CellInfo cellInfo) {
         boolean isSingleTest = cellInfo.testCount == 1;
-        ConditionTestSet testSet = new ConditionTestSet(isSingleTest, getFullConditionArgs());
+        if (isSingleTest) {
+            return new SingleTestSet(cellInfo.testIndex, getFullConditionArgs());
+        }
         
+        ConditionTestSet testSet = new ConditionTestSet(getFullConditionArgs());
         if (cellInfo.row != null) {
             setSomeFields(testSet, currentRowFields, cellInfo.row);
         }
@@ -446,6 +467,7 @@ public class SpreadsheetView extends ConditionTabView
             rowSelect.addHistoryArguments(arguments, HISTORY_ROW);
             columnSelect.addHistoryArguments(arguments, HISTORY_COLUMN);
             arguments.put(HISTORY_SHOW_INCOMPLETE, Boolean.toString(currentShowIncomplete));
+            arguments.put(HISTORY_ONLY_LATEST, Boolean.toString(showOnlyLatest.isChecked()));
             commonPanel.addHistoryArguments(arguments);
         }
         return arguments;
@@ -460,6 +482,7 @@ public class SpreadsheetView extends ConditionTabView
         saveSelectedHeaders();
         
         currentShowIncomplete = Boolean.valueOf(arguments.get(HISTORY_SHOW_INCOMPLETE));
+        showOnlyLatest.setChecked(Boolean.valueOf(arguments.get(HISTORY_ONLY_LATEST)));
         updateWidgets();
     }
 
@@ -469,8 +492,8 @@ public class SpreadsheetView extends ConditionTabView
         Utils.setDefaultValue(arguments, HISTORY_COLUMN, DEFAULT_COLUMN);
         Utils.setDefaultValue(arguments, HISTORY_ROW + HeaderSelect.HISTORY_FIXED_VALUES, "");
         Utils.setDefaultValue(arguments, HISTORY_COLUMN + HeaderSelect.HISTORY_FIXED_VALUES, "");
-        Utils.setDefaultValue(arguments, HISTORY_SHOW_INCOMPLETE, 
-                              Boolean.toString(currentShowIncomplete));
+        Utils.setDefaultValue(arguments, HISTORY_SHOW_INCOMPLETE, Boolean.toString(false));
+        Utils.setDefaultValue(arguments, HISTORY_ONLY_LATEST, Boolean.toString(false));
     }
 
     private void switchToTable(final TestSet tests, boolean isTriageView) {

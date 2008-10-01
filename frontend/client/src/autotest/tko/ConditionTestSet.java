@@ -11,15 +11,9 @@ import java.util.Map;
 
 class ConditionTestSet extends TestSet {
     private Map<String,String> fields = new HashMap<String,String>();
-    private boolean isSingleTest;
     private JSONObject initialCondition = new JSONObject();
-
-    public ConditionTestSet(boolean isSingleTest) {
-        this.isSingleTest = isSingleTest;
-    }
     
-    public ConditionTestSet(boolean isSingleTest, JSONObject initialCondition) {
-        this(isSingleTest);
+    public ConditionTestSet(JSONObject initialCondition) {
         this.initialCondition = initialCondition;
     }
     
@@ -63,6 +57,11 @@ class ConditionTestSet extends TestSet {
 
     @Override
     public boolean isSingleTest() {
-        return isSingleTest;
+        return false;
+    }
+
+    @Override
+    public int getTestIndex() {
+        throw new UnsupportedOperationException();
     }
 }
