@@ -303,6 +303,7 @@ def match_fs(disk, dev_path, fs_type, fs_makeopt):
 FSDEV_JOB = None
 FSDEV_FS_DESC = None
 FSDEV_RESTORE = None
+FSDEV_PREP_CNT = 0
 FSDEV_DISK1_ONLY = None
 FSDEV_DISKLIST = None
 
@@ -314,11 +315,15 @@ def use_fsdev_lib(fs_desc, disk1_only, reinit_disks):
     global FSDEV_FS_DESC
     global FSDEV_RESTORE
     global FSDEV_DISK1_ONLY
+    global FSDEV_PREP_CNT
 
     # This is a bit tacky - we simply save the arguments in global variables
     FSDEV_FS_DESC    = fs_desc
     FSDEV_DISK1_ONLY = disk1_only
     FSDEV_RESTORE    = reinit_disks
+
+    # We need to keep track how many times 'prepare' is called
+    FSDEV_PREP_CNT   = 0
 
 
 def prepare_fsdev(job):
@@ -331,6 +336,12 @@ def prepare_fsdev(job):
 
     global FSDEV_JOB
     global FSDEV_DISKLIST
+    global FSDEV_PREP_CNT
+
+    # Avoid preparing the same thing more than once
+    FSDEV_PREP_CNT += 1
+    if FSDEV_PREP_CNT > 1:
+        return (FSDEV_DISKLIST[0]['mountpt'],FSDEV_DISKLIST)
 
     FSDEV_JOB = job
 
@@ -341,17 +352,19 @@ def prepare_fsdev(job):
     return (path,disks)
 
 
-def finish_fsdev():
+def finish_fsdev(force_cleanup=False):
     """
     This method can be called from the test file to optionally restore
     all the drives used by the test to a standard ext2 format. Note that
     if use_fsdev_lib() was invoked with 'reinit_disks' not set to True,
-    this method does nothing.
+    this method does nothing. Note also that only fsdev "server-side"
+    dynamic control files should ever set force_cleanup to True.
     """
 
-    restore_disks(job       = FSDEV_JOB,
-                  restore   = FSDEV_RESTORE,
-                  disk_list = FSDEV_DISKLIST)
+    if FSDEV_PREP_CNT == 1 or force_cleanup:
+        restore_disks(job       = FSDEV_JOB,
+                      restore   = FSDEV_RESTORE,
+                      disk_list = FSDEV_DISKLIST)
 
 
 ##############################################################################
