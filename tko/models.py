@@ -38,7 +38,7 @@ class job(object):
                 # case where we want lower to override higher
                 if "hostname" in upper_keyval and "hostname" in keyval:
                     del upper_keyval["hostname"]
-                keyval.update(utils.read_keyval(dir))
+                keyval.update(upper_keyval)
             except IOError:
                 pass  # if the keyval can't be read just move on to the next
             if dir == top_dir:
