@@ -347,6 +347,23 @@ class BasePackageManager(object):
                                      % (file_path, upload_path, why))
 
 
+    def upload_pkg_dir(self, dir_path, upload_path):
+        '''
+        Upload a full directory. Depending on the upload path, the appropriate
+        method for that protocol is called. Currently this copies the whole
+        tmp package directory to the target directory.
+        This assumes that the web server is running on the same machine where
+        the method is being called from. The upload_path's files are
+        basically served by that web server.
+        '''
+        try:
+            utils.run("cp %s/* %s " % (dir_path, upload_path))
+            utils.run("chmod 644 %s/*" % upload_path)
+        except (IOError, os.error), why:
+            raise PackageUploadError("Upload of %s to %s failed: %s"
+                                     % (dir_path, upload_path, why))
+
+
     def remove_pkg(self, pkg_name, remove_path=None, remove_checksum=False):
         '''
         Remove the package from the specified remove_path
@@ -514,14 +531,13 @@ class BasePackageManager(object):
     def tar_package(self, pkg_name, src_dir, dest_dir, exclude_string=None):
         '''
         Create a tar.bz2 file with the name 'pkg_name' say test-blah.tar.bz2.
-        Excludes the directories specified in exclude_dirs while tarring
+        Excludes the directories specified in exclude_string while tarring
         the source. Returns the tarball path.
         '''
         tarball_path = os.path.join(dest_dir, pkg_name)
+        cmd = "tar -cvjf %s -C %s %s " % (tarball_path, src_dir, exclude_string)
 
-        utils.system("tar -cvjf %s -C %s %s "
-                     % (tarball_path, src_dir, exclude_string))
-
+        utils.system(cmd)
         return tarball_path
 
 
