@@ -1,0 +1,98 @@
+#!/usr/bin/python -u
+import os, sys, signal, time, subprocess
+from optparse import OptionParser
+
+PAUSE_LENGTH = 60
+STALL_TIMEOUT = 2*60*60
+
+parser = OptionParser()
+parser.add_option("-r", action="store_true", dest="recover")
+(options, args) = parser.parse_args()
+
+autodir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+results_dir = os.path.join(autodir, 'results')
+monitor_db = os.path.join(autodir, 'scheduler/monitor_db.py')
+recover = (options.recover == True)
+
+
+if len(args) != 0:
+    print "Usage: %s [options]" % __file__
+    print "  -r    Run recovery mode.  (Note: recovery is implicit after"
+    print "        any crash!)"
+    print
+    sys.exit(1)
+
+
+def bprint(msg):
+    print "%s> %s" % (time.strftime("%X %x"), msg)
+
+
+def kill_all_monitors():
+    bprint("Killing all monitor_dbs")
+    # try shutdown first
+    status = os.system("killall -2 monitor_db.py")
+    if status == 0: # were any killed?
+        # give them some time to shutdown
+        time.sleep(30)
+        # kill any that are left
+        os.system("killall monitor_db.py")
+
+
+def handle_sigterm(signum, frame):
+    bprint('Caught SIGTERM')
+    kill_all_monitors()
+    sys.exit(1)
+
+signal.signal(signal.SIGTERM, handle_sigterm)
+
+
+class MonitorProc:
+    def __init__(self, do_recovery=False):
+        args = [monitor_db]
+        if do_recovery:
+            args.append("--recover-hosts")
+        args.append(results_dir)
+
+        kill_all_monitors()
+
+        self.log_path = os.path.join(autodir, 'logs/monitor.log.%d'
+                                     % time.time())
+        log = open(self.log_path, "a")
+        devnull = open(os.devnull, "r")
+
+        self.log_size = os.path.getsize(self.log_path)
+        self.last_log_change = time.time()
+
+        bprint("STARTING monitor_db with log file %s" % self.log_path)
+        self.proc = subprocess.Popen(args, stdout=log, stdin=devnull,
+                                     stderr=subprocess.STDOUT)
+        log.close()
+        devnull.close()
+
+
+    def is_running(self):
+        if self.proc.poll() != None:
+            bprint("monitor_db DIED")
+            return False
+
+        old_size = self.log_size
+        new_size = os.path.getsize(self.log_path)
+        if old_size != new_size:
+            bprint("Log was touched")
+            self.log_size = new_size
+            self.last_log_change = time.time()
+        elif self.last_log_change + STALL_TIMEOUT < time.time():
+            bprint("monitor_db STALLED")
+            return False
+
+        return True
+
+
+bprint("initializing")
+while True:
+    proc = MonitorProc(do_recovery=recover)
+    time.sleep(PAUSE_LENGTH)
+    while proc.is_running():
+        bprint("Tick")
+        time.sleep(PAUSE_LENGTH)
+    recover = False
