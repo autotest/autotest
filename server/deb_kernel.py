@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 """
@@ -8,15 +6,7 @@ This module defines the Kernel class
         Kernel: an os kernel
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
-
-
 import os, os.path, time
-
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import kernel, utils
 
@@ -148,6 +138,7 @@ class DEBKernel(kernel.Kernel):
         remote_filename = os.path.join(remote_tmpdir, basename)
         host.send_file(self.source_material, remote_filename)
         content_dir= os.path.join(remote_tmpdir, "contents")
-        host.run('dpkg -x "%s" "%s"' % (utils.sh_escape(remote_filename), utils.sh_escape(content_dir),))
+        host.run('dpkg -x "%s" "%s"' % (utils.sh_escape(remote_filename),
+                                        utils.sh_escape(content_dir),))
 
         return content_dir
