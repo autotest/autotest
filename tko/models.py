@@ -33,6 +33,11 @@ class job(object):
         keyval = {}
         while True:
             try:
+                upper_keyval = utils.read_keyval(dir)
+                # HACK: exclude hostname from the override - this is a special
+                # case where we want lower to override higher
+                if "hostname" in upper_keyval and "hostname" in keyval:
+                    del upper_keyval["hostname"]
                 keyval.update(utils.read_keyval(dir))
             except IOError:
                 pass  # if the keyval can't be read just move on to the next
