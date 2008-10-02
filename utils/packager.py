@@ -102,40 +102,90 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
         print "Done."
 
 
-def process_all_packages(pkgmgr, client_dir, repo_url, remove=False):
+def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
+    """Tar all packages up and return a list of each tar created"""
+    tarballs = []
+    exclude_string = ' .'
+    names = [p.strip() for p in pkg_names.split(',')]
+    for name in names:
+        print "Processing %s ... " % name
+        if pkg_type=='client':
+            pkg_dir = src_dir
+            exclude_string  = get_exclude_string(pkg_dir)
+        elif pkg_type=='test':
+            # if the package is a test then look whether it is in client/tests
+            # or client/site_tests
+            pkg_dir = os.path.join(get_test_dir(name, src_dir), name)
+        else:
+            # for the profilers and deps
+            pkg_dir = os.path.join(src_dir, name)
+
+        pkg_name = pkgmgr.get_tarball_name(name, pkg_type)
+        tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
+                                              temp_dir, exclude_string)
+
+        tarballs.append(tarball_path)
+
+    return tarballs
+
+
+
+def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
+    """Process a full upload of packages as a directory upload."""
     test_dir = os.path.join(client_dir, "tests")
     site_test_dir = os.path.join(client_dir, "site_tests")
     dep_dir = os.path.join(client_dir, "deps")
     prof_dir = os.path.join(client_dir, "profilers")
-
-    # process client
-    process_packages(pkgmgr, 'client', 'autotest', client_dir, repo_url,
-                     remove=remove)
+    # Directory where all are kept
+    temp_dir = tempfile.mkdtemp()
 
     # process tests
     tests_list = get_subdir_list('tests', client_dir)
-
     tests = ','.join(tests_list)
-    process_packages(pkgmgr, 'test', tests, client_dir, repo_url,
-                     remove=remove)
 
     # process site_tests
     site_tests_list = get_subdir_list('site_tests', client_dir)
-
     site_tests = ','.join(site_tests_list)
-    process_packages(pkgmgr, 'test', site_tests, client_dir, repo_url,
-                     remove=remove)
 
     # process deps
     deps_list = get_subdir_list('deps', client_dir)
     deps = ','.join(deps_list)
-    process_packages(pkgmgr, 'dep', deps, dep_dir, repo_url, remove=remove)
 
     # process profilers
     profilers_list = get_subdir_list('profilers', client_dir)
     profilers = ','.join(profilers_list)
-    process_packages(pkgmgr, 'profiler', profilers, prof_dir, repo_url,
-                     remove=remove)
+
+    # Update md5sum
+    if not remove:
+        tar_packages(pkgmgr, 'profiler', profilers, prof_dir, temp_dir)
+        tar_packages(pkgmgr, 'dep', deps, dep_dir, temp_dir)
+        tar_packages(pkgmgr, 'test', site_tests, client_dir, temp_dir)
+        tar_packages(pkgmgr, 'test', tests, client_dir, temp_dir)
+        tar_packages(pkgmgr, 'client', 'autotest', client_dir, temp_dir)
+        cwd = os.getcwd()
+        os.chdir(temp_dir)
+        client_utils.system('md5sum * > packages.checksum')
+        os.chdir(cwd)
+        for path in upload_paths:
+            print "Uploading to: " + path
+            pkgmgr.upload_pkg_dir(temp_dir, path)
+        client_utils.run('rm -rf ' + temp_dir)
+    else:
+        for repo_url in upload_paths:
+            process_packages(pkgmgr, 'test', tests, client_dir, repo_url,
+                             remove=remove)
+            process_packages(pkgmgr, 'test', site_tests, client_dir, repo_url,
+                             remove=remove)
+            process_packages(pkgmgr, 'client', 'autotest', client_dir, repo_url,
+                             remove=remove)
+            process_packages(pkgmgr, 'dep', deps, dep_dir, repo_url,
+                             remove=remove)
+            process_packages(pkgmgr, 'profiler', profilers, prof_dir, repo_url,
+                             remove=remove)
+
+
+
+
 
 
 # Get the list of sub directories present in a directory
@@ -205,7 +255,11 @@ def main():
         assert(False)
 
     if options.all:
-        process_all_packages(pkgmgr, client_dir, options.repo,
+        if options.repo:
+            upload_path_list = [options.repo]
+        else:
+            upload_path_list = upload_paths
+        process_all_packages(pkgmgr, client_dir, upload_path_list,
                              remove=remove_flag)
 
     if options.client:
