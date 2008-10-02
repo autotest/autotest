@@ -2,7 +2,7 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import compiler, textwrap, types
+import compiler, textwrap, types, sys
 
 
 REQUIRED_VARS = set(['author', 'doc', 'name', 'time', 'test_class',
@@ -13,8 +13,9 @@ class ControlVariableException(Exception):
 
 
 class ControlData(object):
-    def __init__(self, vars, raise_warnings=False):
+    def __init__(self, vars, path, raise_warnings=False):
         # Defaults
+        self.path = path
         self.dependencies = set()
         self.experimental = False
         self.run_verify = True
@@ -23,8 +24,8 @@ class ControlData(object):
         diff = REQUIRED_VARS - set(vars)
         if len(diff) > 0:
             warning = ("WARNING: Not all required control "
-                       "variables were specified.  Please define "
-                       "%s.") % ', '.join(diff)
+                       "variables were specified in %s.  Please define "
+                       "%s.") % (self.path, ', '.join(diff))
             if raise_warnings:
                 raise ControlVariableException(warning)
             print textwrap.wrap(warning, 80)
@@ -168,7 +169,11 @@ def _extract_name(n):
 
 
 def parse_control(path, raise_warnings=False):
-    mod = compiler.parseFile(path)
+    try:
+        mod = compiler.parseFile(path)
+    except SyntaxError, e:
+        print "Error parsing %s because %s" % (path, e)
+        sys.exit(1)
 
     assert(mod.__class__ == compiler.ast.Module)
     assert(mod.node.__class__ == compiler.ast.Stmt)
@@ -184,4 +189,4 @@ def parse_control(path, raise_warnings=False):
             except AssertionError, e:
                 pass
 
-    return ControlData(vars, raise_warnings)
+    return ControlData(vars, path, raise_warnings)
