@@ -188,7 +188,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         AclGroup.check_for_acl_violation_hosts([self])
         for queue_entry in self.hostqueueentry_set.all():
             queue_entry.deleted = True
-            queue_entry.abort()
+            queue_entry.abort(thread_local.get_user())
         super(Host, self).delete()
 
 
@@ -480,6 +480,8 @@ class JobManager(model_logic.ExtendedManager):
 
 
     def populate_dependencies(self, jobs):
+        if not jobs:
+            return
         job_ids = ','.join(str(job['id']) for job in jobs)
         cursor = connection.cursor()
         cursor.execute("""
