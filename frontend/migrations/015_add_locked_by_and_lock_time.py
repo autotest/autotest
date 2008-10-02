@@ -8,5 +8,5 @@ def migrate_up(manager):
 
 
 def migrate_down(manager):
-    manager.execute('ALTER TABLE hosts DROP COLUMN locked_by')
+    manager.execute('ALTER TABLE hosts DROP COLUMN locked_by_id')
     manager.execute('ALTER TABLE hosts DROP COLUMN lock_time')
