@@ -21,6 +21,7 @@ TEST_CATEGORY='Stress'
 TEST_TYPE='client'
 """
 
+
 class ParseControlTest(unittest.TestCase):
     def setUp(self):
         fp, self.control_file = tempfile.mkstemp(text=True)
@@ -58,7 +59,7 @@ class SetMethodTests(unittest.TestCase):
 
 
     def test_bool(self):
-        cd = ControlData({})
+        cd = ControlData({}, 'filename')
         cd._set_bool('foo', 'False')
         self.assertEquals(cd.foo, False)
         cd._set_bool('foo', True)
@@ -74,7 +75,7 @@ class SetMethodTests(unittest.TestCase):
 
 
     def test_int(self):
-        cd = ControlData({})
+        cd = ControlData({}, 'filename')
         cd._set_int('foo', 0)
         self.assertEquals(cd.foo, 0)
         cd._set_int('foo', '0')
@@ -89,7 +90,7 @@ class SetMethodTests(unittest.TestCase):
 
 
     def test_set(self):
-        cd = ControlData({})
+        cd = ControlData({}, 'filename')
         cd._set_set('foo', 'a')
         self.assertEquals(cd.foo, set(['a']))
         cd._set_set('foo', 'a,b,c')
@@ -101,7 +102,7 @@ class SetMethodTests(unittest.TestCase):
 
 
     def test_string(self):
-        cd = ControlData({})
+        cd = ControlData({}, 'filename')
         cd._set_string('foo', 'a')
         self.assertEquals(cd.foo, 'a')
         cd._set_string('foo', 'b')
@@ -118,7 +119,7 @@ class SetMethodTests(unittest.TestCase):
 
     def test_option(self):
         options = ['a', 'b']
-        cd = ControlData({})
+        cd = ControlData({}, 'filename')
         cd._set_option('foo', 'a', options)
         self.assertEquals(cd.foo, 'a')
         cd._set_option('foo', 'b', options)
