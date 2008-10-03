@@ -1,20 +1,8 @@
-Include /usr/local/autotest/apache/conf/require-prefork
-
-RedirectMatch ^/$ /afe
-
-Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient"
-<Location "/afe">
-    DirectoryIndex AfeClient.html
-</Location>
-
-<Location "/afe/server">
-    SetHandler python-program
-    PythonHandler django.core.handlers.modpython
-    SetEnv DJANGO_SETTINGS_MODULE frontend.settings
-    PythonDebug On
-    PythonPath "['/usr/local/autotest'] + sys.path"
-    PythonInterpreter afe_interpreter
-</Location>
-
+<IfModule !prefork.c>
+    # Django requires the prefork MPM, so just fail with this bogus directive
+    # if it's not loaded. See
+    # http://test.kernel.org/autotest/AutotestServerInstall for more info.
+    ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
+</IfModule>
 
 Alias /media "/usr/lib/python2.4/site-packages/django/contrib/admin/media"

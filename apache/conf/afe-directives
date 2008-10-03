@@ -1,0 +1,13 @@
+Alias /afe "/usr/local/autotest/frontend/client/www/autotest.AfeClient"
+<Location "/afe">
+    DirectoryIndex AfeClient.html
+</Location>
+
+<Location "/afe/server">
+    SetHandler python-program
+    PythonHandler django.core.handlers.modpython
+    SetEnv DJANGO_SETTINGS_MODULE frontend.settings
+    PythonDebug On
+    PythonPath "['/usr/local/autotest'] + sys.path"
+    PythonInterpreter afe_interpreter
+</Location>
