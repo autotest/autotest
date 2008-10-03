@@ -1,5 +1,4 @@
 NAME='Signal Test'
-EXPERIMENTAL = "True"
 AUTHOR='Michal Piotrowski <michal.k.k.piotrowski@gmail.com>'
 TIME='SHORT'
 TEST_TYPE='client'

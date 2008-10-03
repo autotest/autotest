@@ -10,5 +10,6 @@ It writes 50MB/s of 500KB size ops.
 TIME = 'MEDIUM'
 TEST_CATEGORY = 'Kernel'
 TEST_TYPE = 'client'
+TEST_CLASS = 'Hardware'
 
 job.run_test('disktest')

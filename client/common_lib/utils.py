@@ -93,6 +93,11 @@ def format_ip_with_mask(ip, mask_bits):
     return "%s/%s" % (long_to_ip(masked_ip), mask_bits)
 
 
+def normalize_hostname(alias):
+    ip = socket.gethostbyname(alias)
+    return socket.gethostbyaddr(ip)[0]
+
+
 def get_ip_local_port_range():
     match = re.match(r'\s*(\d+)\s*(\d+)\s*$',
                      read_one_line('/proc/sys/net/ipv4/ip_local_port_range'))
@@ -102,11 +107,6 @@ def get_ip_local_port_range():
 def set_ip_local_port_range(lower, upper):
     write_one_line('/proc/sys/net/ipv4/ip_local_port_range',
                    '%d %d\n' % (lower, upper))
-
-
-def normalize_hostname(alias):
-    ip = socket.gethostbyname(alias)
-    return socket.gethostbyaddr(ip)[0]
 
 
 def read_one_line(filename):
