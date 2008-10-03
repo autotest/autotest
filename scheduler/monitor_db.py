@@ -457,17 +457,12 @@ class HostScheduler(object):
     def _is_host_eligible_for_job(self, host_id, queue_entry):
         job_dependencies = self._job_dependencies.get(queue_entry.job_id, set())
         host_labels = self._host_labels.get(host_id, set())
-        if not self._is_acl_accessible(host_id, queue_entry):
-            print 'no acl access'
-        if not self._check_job_dependencies(job_dependencies, host_labels):
-            print 'didnt meet deps'
-        if not self._check_only_if_needed_labels(job_dependencies, host_labels,
-                                                 queue_entry):
-            print 'didnt request oin label'
-        return (self._is_acl_accessible(host_id, queue_entry) and
-                self._check_job_dependencies(job_dependencies, host_labels) and
-                self._check_only_if_needed_labels(job_dependencies, host_labels,
-                                                  queue_entry))
+
+        acl = self._is_acl_accessible(host_id, queue_entry)
+        deps = self._check_job_dependencies(job_dependencies, host_labels)
+        only_if = self._check_only_if_needed_labels(job_dependencies,
+                                                    host_labels, queue_entry)
+        return acl and deps and only_if
 
 
     def _schedule_non_metahost(self, queue_entry):
