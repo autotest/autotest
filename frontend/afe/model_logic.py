@@ -153,7 +153,7 @@ class ExtendedManager(dbmodels.Manager):
         return (backend.quote_name(table) + '.' + backend.quote_name(field))
 
 
-    def _get_key_on_this_table(self, key_field=None):
+    def get_key_on_this_table(self, key_field=None):
         if key_field is None:
             # default to primary key
             key_field = self.model._meta.pk.column
@@ -378,6 +378,11 @@ class ModelExtensions(object):
         self.save()
 
 
+    @staticmethod
+    def escape_user_sql(sql):
+        return sql.replace('%', '%%')
+
+
     @classmethod
     def query_objects(cls, filter_data, valid_only=True, initial_query=None):
         """\
@@ -402,7 +407,7 @@ class ModelExtensions(object):
         extra_where = filter_data.pop('extra_where', None)
         if extra_where:
             # escape %'s
-            extra_where = extra_where.replace('%', '%%')
+            extra_where = cls.escape_user_sql(extra_where)
             extra_args.setdefault('where', []).append(extra_where)
         use_distinct = not filter_data.pop('no_distinct', False)
 

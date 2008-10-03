@@ -42,7 +42,7 @@ class ConditionTestSet extends TestSet {
             if (value.equals(Utils.JSON_NULL)) {
               query += " is null";
             } else {
-              query += " = '" + escapeQuotes(value) + "'";
+              query += " = '" + escapeSqlValue(value) + "'";
             }
             parts.add(query);
         }
@@ -50,9 +50,8 @@ class ConditionTestSet extends TestSet {
         return Utils.joinStrings(" AND ", parts);
     }
 
-    private String escapeQuotes(String value) {
-        // TODO: make this more sophisticated if it becomes necessary
-        return value.replace("'", "\\'");
+    private String escapeSqlValue(String value) {
+        return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     @Override

@@ -39,10 +39,10 @@ def get_group_counts(group_by, header_groups=[], fixed_headers={},
       the field.
     """
     query = models.TestView.query_objects(filter_data)
-    count_sql = models.TestView.objects.get_count_sql(query)
-    extra_select_fields.append(count_sql)
+    count_alias, count_sql = models.TestView.objects.get_count_sql(query)
+    extra_select_fields[count_alias] = count_sql
     if 'test_idx' not in group_by:
-        extra_select_fields.append('test_idx')
+        extra_select_fields['test_idx'] = 'test_idx'
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
                                                        header_groups,
@@ -67,12 +67,10 @@ def get_status_counts(group_by, header_groups=[], fixed_headers={},
     valid), and incomplete tests, stored in keys "pass_count', 'complete_count',
     and 'incomplete_count', respectively.
     """
-    extra_fields = [tko_rpc_utils._PASS_COUNT_SQL,
-                    tko_rpc_utils._COMPLETE_COUNT_SQL,
-                    tko_rpc_utils._INCOMPLETE_COUNT_SQL]
     return get_group_counts(group_by, header_groups=header_groups,
                             fixed_headers=fixed_headers,
-                            extra_select_fields=extra_fields,**filter_data)
+                            extra_select_fields=tko_rpc_utils.STATUS_FIELDS,
+                            **filter_data)
 
 
 def get_latest_tests(group_by, header_groups=[], fixed_headers={},
@@ -85,7 +83,8 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     # find latest test per group
     query = models.TestView.query_objects(filter_data)
     query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
-    extra_fields = ['MAX(test_idx) AS latest_test_idx']
+    extra_fields = {'latest_test_idx' : 'MAX(%s)' %
+                    models.TestView.objects.get_key_on_this_table('test_idx')}
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
                                                        header_groups,
