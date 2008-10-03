@@ -1,10 +1,11 @@
 #!/usr/bin/python2.4
 
-import unittest
+import unittest, tempfile, os
 import MySQLdb
 import migrate
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.database import database_connection
 
 # Which section of the global config to pull info from.  We won't actually use
 # that DB, we'll use the corresponding test DB (test_<db name>).
@@ -54,18 +55,8 @@ MIGRATIONS = [DummyMigration(n) for n in xrange(1, NUM_MIGRATIONS + 1)]
 
 
 class TestableMigrationManager(migrate.MigrationManager):
-    def __init__(self, database, migrations_dir=None):
-        self.database = database
-        self.migrations_dir = migrations_dir
-        self.db_host = None
-        self.db_name = None
-        self.username = None
-        self.password = None
-
-
-    def read_db_info(self):
-        migrate.MigrationManager.read_db_info(self)
-        self.db_name = 'test_' + self.db_name
+    def _set_migrations_dir(self, migrations_dir=None):
+        pass
 
 
     def get_migrations(self, minimum_version=None, maximum_version=None):
@@ -75,39 +66,16 @@ class TestableMigrationManager(migrate.MigrationManager):
 
 
 class MigrateManagerTest(unittest.TestCase):
-    config = global_config.global_config
-    host = config.get_config_value(CONFIG_DB, 'host')
-    db_name = 'test_' + config.get_config_value(CONFIG_DB, 'database')
-    user = config.get_config_value(CONFIG_DB, 'user')
-    password = config.get_config_value(CONFIG_DB, 'password')
-
-    def do_sql(self, sql):
-        self.con = MySQLdb.connect(host=self.host, user=self.user,
-                                   passwd=self.password)
-        self.con.autocommit(True)
-        self.cur = self.con.cursor()
-        try:
-            self.cur.execute(sql)
-        finally:
-            self.con.close()
-
-
-    def remove_db(self):
-        self.do_sql('DROP DATABASE ' + self.db_name)
-
-
     def setUp(self):
-        self.do_sql('CREATE DATABASE ' + self.db_name)
-        try:
-            self.manager = TestableMigrationManager(CONFIG_DB)
-        except MySQLdb.OperationalError:
-            self.remove_db()
-            raise
+        self._database = (
+            database_connection.DatabaseConnection.get_test_database())
+        self._database.connect()
+        self.manager = TestableMigrationManager(self._database)
         DummyMigration.clear_migrations_done()
 
 
     def tearDown(self):
-        self.remove_db()
+        self._database.disconnect()
 
 
     def test_sync(self):
