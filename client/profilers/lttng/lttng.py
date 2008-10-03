@@ -3,10 +3,10 @@ Trace kernel events with Linux Tracing Toolkit (lttng).
 You need to install the lttng patched kernel in order to use the profiler.
 
 Examples:
-    job.profilers.add('lttng') will enable all of the trace points.
-    job.profilers.add('lttng', []) will disable all of the trace points.
-    job.profilers.add('lttng', ['kernel_arch_syscall_entry',
-                                'kernel_arch_syscall_exit'])
+    job.profilers.add('lttng', tracepoints = None): enable all trace points.
+    job.profilers.add('lttng', tracepoints = []): disable all trace points.
+    job.profilers.add('lttng', tracepoints = ['kernel_arch_syscall_entry',
+                                              'kernel_arch_syscall_exit'])
                                will only trace syscall events.
 Take a look at /proc/ltt for the list of the tracing events currently
 supported by lttng and their output formats.
@@ -38,7 +38,8 @@ class lttng(profiler.profiler):
 
 
     # tracepoints: list of trace points to enable
-    def initialize(self, tracepoints=None, **dargs):
+    # outputsize: size limit for lttng output file. -1: no limit.
+    def initialize(self, outputsize=1048576, tracepoints=None, **dargs):
         self.job.require_gcc()
 
         self.tracepoints = tracepoints
@@ -48,6 +49,7 @@ class lttng(profiler.profiler):
         self.armall = os.path.join(self.ltt_bindir, 'ltt-armall')
         self.disarmall = os.path.join(self.ltt_bindir, 'ltt-disarmall')
         self.mountpoint = '/mnt/debugfs'
+        self.outputsize = outputsize
 
         os.putenv('LTT_DAEMON', self.lttd)
 
@@ -89,11 +91,25 @@ class lttng(profiler.profiler):
                                      + ' default dynamic ' + channel)
 
     def start(self, test):
-        output = os.path.join(test.profdir, 'lttng')
+        self.output = os.path.join(test.profdir, 'lttng')
         utils.system('%s -n test -d -l %s/ltt -t %s' % 
-                                      (self.lttctl, self.mountpoint, output))
+                                  (self.lttctl, self.mountpoint, self.output))
 
 
     def stop(self, test):
         utils.system(self.lttctl + ' -n test -R')
         time.sleep(10)
+        if self.outputsize != -1:
+            # truncate lttng output file to the specified limit
+            for filename in os.listdir(self.output):
+                file_path = os.path.join(self.output, filename)
+                if os.path.isdir(file_path):
+                    continue
+                size = os.stat(file_path)[6] # grab file size
+                if size > self.outputsize:
+                    f = open(file_path, 'r+')
+                    f.truncate(self.outputsize)
+                    f.close()
+        tarball = os.path.join(test.profdir, 'lttng.tar.bz2')
+        utils.system("tar -cvjf %s -C %s %s" % (tarball, test.profdir, 'lttng'))
+        utils.system('rm -rf ' + self.output)
