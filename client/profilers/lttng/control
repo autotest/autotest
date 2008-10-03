@@ -1,11 +1,5 @@
 # trace syscall entry/exit, irq entry/exit, trap entry/exit,
 # and context switches
-job.profilers.add('lttng', ['kernel_arch_syscall_entry',
-                            'kernel_arch_syscall_exit',
-                            'kernel_irq_entry',
-                            'kernel_irq_exit',
-                            'kernel_arch_trap_entry',
-                            'kernel_arch_trap_exit',
-                            'kernel_sched_schedule'])
+job.profilers.add('lttng')
 job.run_test('sleeptest', seconds=1)
 job.profilers.delete('lttng')
