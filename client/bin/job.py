@@ -110,6 +110,7 @@ class base_job(object):
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
         self.next_step_index = 0
+        self.testtag = ''
         self._load_state()
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':600})
@@ -384,8 +385,10 @@ class base_job(object):
         namelen = len(testname)
         dargs = dargs.copy()
         tntag = dargs.pop('tag', None)
-        if tntag:  # testname tag is included in reported test name
+        if tntag:         # per-test tag  is included in reported test name
             testname += '.' + str(tntag)
+        if self.testtag:  # job-level tag is included in reported test name
+            testname += '.' + self.testtag
         subdir = testname
         sdtag = dargs.pop('subdir_tag', None)
         if sdtag:  # subdir-only tag is not included in reports
@@ -523,6 +526,11 @@ class base_job(object):
 
         # pass back the actual return value from the function
         return result
+
+
+    def set_test_tag(self, tag=''):
+        # set tag to be added to test name of all following run_test() steps
+        self.testtag = tag
 
 
     def new_container(self, mbytes=None, cpus=None, root=None, name=None,
