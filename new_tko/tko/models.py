@@ -8,35 +8,28 @@ class TempManager(model_logic.ExtendedManager):
     def _get_key_unless_is_function(self, field):
         if '(' in field:
             return field
-        return self._get_key_on_this_table(field)
+        return self.get_key_on_this_table(field)
 
 
     def _get_field_names(self, fields):
         return [self._get_key_unless_is_function(field) for field in fields]
 
 
-    @staticmethod
-    def _get_field_alias(field_sql):
-        field_sql = field_sql.lower()
-        if ' as ' in field_sql:
-            return field_sql.rsplit(' as ', 1)[1]
-        return field_sql
-
-
     def _get_group_query_sql(self, query, group_by, extra_select_fields):
         group_fields = self._get_field_names(group_by)
-        select_fields = group_fields + extra_select_fields
 
-        # add the extra fields to the query selects, so they'll be sortable and
-        # Django won't mess with any of them
-        for field_sql in extra_select_fields:
-            field_name = self._get_field_alias(field_sql)
+        select_fields = list(group_fields)
+        for field_name, field_sql in extra_select_fields.iteritems():
+            field_sql = self._get_key_unless_is_function(field_sql)
+            select_fields.append(field_sql + ' AS ' + field_name)
+            # add the extra fields to the query selects, so they'll be sortable
+            # and Django won't mess with any of them
             query._select[field_name] = field_sql
 
         _, where, params = query._get_sql_clause()
 
         # insert GROUP BY clause into query
-        group_by_clause = 'GROUP BY ' + ', '.join(group_fields)
+        group_by_clause = ' GROUP BY ' + ', '.join(group_fields)
         group_by_position = where.rfind('ORDER BY')
         if group_by_position == -1:
             group_by_position = len(where)
@@ -50,7 +43,8 @@ class TempManager(model_logic.ExtendedManager):
     def execute_group_query(self, query, group_by, extra_select_fields=[]):
         """
         Performs the given query grouped by the fields in group_by with the
-        given extra select fields added.  Usually, the extra fields will use
+        given extra select fields added.  extra_select_fields should be a dict
+        mapping field alias to field SQL.  Usually, the extra fields will use
         group aggregation functions.  Returns a list of dicts, where each dict
         corresponds to single row and contains a key for each grouped field as
         well as all of the extra select fields.
@@ -67,14 +61,14 @@ class TempManager(model_logic.ExtendedManager):
     def get_count_sql(self, query):
         """
         Get the SQL to properly select a per-group count of unique matches for
-        a grouped query.
+        a grouped query.  Returns a tuple (field alias, field SQL)
         """
         if query._distinct:
-            pk_field = self._get_key_on_this_table(self.model._meta.pk.name)
+            pk_field = self.get_key_on_this_table()
             count_sql = 'COUNT(DISTINCT %s)' % pk_field
         else:
             count_sql = 'COUNT(1)'
-        return count_sql + ' AS ' + self._GROUP_COUNT_NAME
+        return self._GROUP_COUNT_NAME, count_sql
 
 
     def _get_num_groups_sql(self, query, group_by):
@@ -249,7 +243,7 @@ class TestViewManager(TempManager):
         def add_join(self, table, condition, join_type, alias=None):
             if alias is None:
                 alias = table
-            condition = condition.replace('%', '%%')
+            condition = model_logic.ModelExtensions.escape_user_sql(condition)
             self._joins[alias] = (table, join_type, condition)
 
 
