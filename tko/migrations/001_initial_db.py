@@ -4,8 +4,8 @@ required_tables = ('machines', 'jobs', 'patches', 'tests', 'test_attributes',
                    'iteration_result')
 
 def migrate_up(manager):
-    manager.execute("SHOW TABLES")
-    tables = [row[0] for row in manager.cursor.fetchall()]
+    rows = manager.execute("SHOW TABLES")
+    tables = [row[0] for row in rows]
     db_initialized = True
     for table in required_tables:
         if table not in tables:

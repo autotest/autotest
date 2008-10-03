@@ -6,6 +6,7 @@ import common
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.migrate import migrate
+from autotest_lib.database import database_connection
 
 import monitor_db
 
@@ -102,10 +103,9 @@ class BaseDispatcherTest(unittest.TestCase):
         self._do_query('CREATE DATABASE ' + self._db_name)
         self._disconnect_from_db()
 
-        migration_dir = os.path.join(os.path.dirname(__file__),
-                                     '..', 'frontend', 'migrations')
-        manager = migrate.MigrationManager('AUTOTEST_WEB', migration_dir,
-                                           force=True)
+        database = database_connection.DatabaseConnection('AUTOTEST_WEB')
+        database.connect(db_name=self._db_name)
+        manager = migrate.MigrationManager(database, force=True)
         manager.do_sync_db()
 
         self._connect_to_db(self._db_name)
