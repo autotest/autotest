@@ -1,4 +1,4 @@
-import os, re, socket
+import os, re, socket, time
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils, error
 
@@ -31,6 +31,7 @@ class iperf(test.test):
                                                        'src/iperf -y c -c')
 
         self.results = []
+        self.actual_times = []
 
 
     def run_once(self, server_ip, client_ip, role, udp=False,
@@ -38,6 +39,7 @@ class iperf(test.test):
         self.role = role
         self.udp = udp
         self.bidirectional = bidirectional
+        self.test_time = test_time
         self.stream_list = stream_list
 
         server_tag = server_ip + '#iperf-server'
@@ -100,9 +102,14 @@ class iperf(test.test):
 
         cmd = self.client_path % (server_ip, args)
         try:
+            t0 = time.time()
             self.results.append(utils.get_cpu_percentage(
                 utils.system_output, cmd, timeout=test_time+60,
                 retain_output=True))
+            t1 = time.time()
+
+            self.actual_times.append(t1 - t0)
+
         except error.CmdError, e:
             """ Catch errors due to timeout, but raise others
             The actual error string is:
@@ -115,6 +122,7 @@ class iperf(test.test):
             if 'within' in e.additional_text:
                 # Results are cpu%, output
                 self.results.append((0, None))
+                self.actual_times.append(1)
             else:
                 raise
 
@@ -154,13 +162,12 @@ class iperf(test.test):
             if len(self.stream_list) != len(self.results):
                 raise error.TestError('Mismatched number of results')
 
-            runs = {'Bandwidth_S2C':[], 'Bandwidth_C2S':[],
-                    'Jitter_S2C':[], 'Jitter_C2S':[]}
-
             for i, streams in enumerate(self.stream_list):
                 attr = {'stream_count':streams}
                 keyval = {}
                 keyval['CPU_C'], output  = self.results[i]
+                runs = {'Bandwidth_S2C':[], 'Bandwidth_C2S':[],
+                        'Jitter_S2C':[], 'Jitter_C2S':[]}
 
                 # Short circuit to handle errors due to client timeouts
                 if output == None:
@@ -201,6 +208,16 @@ class iperf(test.test):
                 for key in [k for k in runs if len(runs[k]) > 0]:
                     keyval[key] = sum(runs[key])
 
+                # scale the bandwidth based on the actual time taken
+                # by tests to run
+                scale = self.test_time/self.actual_times[i]
+                total_bw = 0
+                for key in ['Bandwidth_S2C', 'Bandwidth_C2S']:
+                    if len(runs[key]) > 0:
+                        keyval[key] = keyval[key] * scale
+                        total_bw = total_bw + keyval[key]
+
+                keyval['Efficiency_C'] = total_bw/keyval['CPU_C']
                 self.write_iteration_keyval(attr, keyval)
         else:
             # This test currently does not produce a keyval file on the
