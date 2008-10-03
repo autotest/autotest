@@ -3,10 +3,11 @@ from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils, error
 
 class libhugetlbfs(test.test):
-    version = 5
+    version = 6
 
     def initialize(self, dir = None, pages_requested = 20):
         self.job.require_gcc()
+
         autotest_utils.check_kernel_ver("2.6.16")
 
         # Check huge page number

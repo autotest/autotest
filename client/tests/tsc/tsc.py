@@ -1,4 +1,4 @@
-import os
+import os, re
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils, error
 

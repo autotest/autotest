@@ -4,7 +4,7 @@ NAME = 'KVM Test with KVM module build'
 TEST_TYPE = 'client'
 TEST_CLASS = 'Kernel'
 TEST_CATEGORY = 'Functional'
-
+EXPERIMENTAL = 'True'
 DOC = '''
 Run kvm-test after first downloading, building and installing the KVM module.
 '''

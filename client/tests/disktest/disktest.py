@@ -15,6 +15,10 @@ class disktest(test.test):
         utils.system('cc disktest.c ' + cflags + ' -o disktest')
 
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def test_one_disk_chunk(self, disk, chunk):
         print "testing %d MB files on %s in %d MB memory" % \
                                 (self.chunk_mb, disk, self.memory_mb)

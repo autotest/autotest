@@ -1,5 +1,5 @@
 AUTHOR = "Randy.Dunlap <rdunlap@xenotime.net>"
-NAME = "fio"
+NAME = "fsx"
 TEST_CATEGORY = "Stress"
 TEST_CLASS = "General"
 TEST_TYPE = "client"

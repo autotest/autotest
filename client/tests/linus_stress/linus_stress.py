@@ -14,6 +14,10 @@ class linus_stress(test.test):
         utils.system('cc linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
 
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def run_the_test(self, iterations):
         utils.write_one_line('/proc/sys/vm/dirty_ratio', '4')
         utils.write_one_line('/proc/sys/vm/dirty_background_ratio', '2')

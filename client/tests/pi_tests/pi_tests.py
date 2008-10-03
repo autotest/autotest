@@ -8,11 +8,10 @@ class pi_tests(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-        self.results = []
 
 
     # http://www.stardust.webpages.pl/files/patches/autotest/pi_tests.tar.bz2
-    def setup(self, tarball = 'pi_tests.tar.bz2', *args, **dargs):
+    def setup(self, tarball = 'pi_tests.tar.bz2'):
         autotest_utils.check_glibc_ver('2.5')
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)

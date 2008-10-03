@@ -14,6 +14,10 @@ class bash_shared_mapping(test.test):
         utils.system('make bash-shared-mapping usemem')
 
 
+    def initialize(self):
+        self.job.require_gcc()
+
+
     def execute(self, testdir = None, iterations = 10000):
         if not testdir:
             testdir = self.tmpdir

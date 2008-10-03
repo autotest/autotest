@@ -1,6 +1,6 @@
 AUTHOR="Vladimir Samarskiy <vsamarsk@google.com>"
 NAME="Uptime Test"
-TIME="MEDUIM"  ## ~3hrs
+TIME="MEDIUM"  ## ~3hrs
 TEST_CLASS="Kernel"
 TEST_CATEGORY="Stress"
 TEST_TYPE="CLIENT"
