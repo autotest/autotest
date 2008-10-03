@@ -5,6 +5,7 @@ import MySQLdb, MySQLdb.constants.ER
 from optparse import OptionParser
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.database import database_connection
 
 MIGRATE_TABLE = 'migrate_info'
 
@@ -37,50 +38,29 @@ class MigrationManager(object):
     cursor = None
     migrations_dir = None
 
-    def __init__(self, database, migrations_dir=None, force=False):
-        self.database = database
+    def __init__(self, database_connection, migrations_dir=None, force=False):
+        self._database = database_connection
         self.force = force
+        self._set_migrations_dir(migrations_dir)
+
+
+    def _set_migrations_dir(self, migrations_dir=None):
+        config_section = self._database.global_config_section
         if migrations_dir is None:
             migrations_dir = os.path.abspath(
-                _MIGRATIONS_DIRS.get(database, _DEFAULT_MIGRATIONS_DIR))
+                _MIGRATIONS_DIRS.get(config_section, _DEFAULT_MIGRATIONS_DIR))
         self.migrations_dir = migrations_dir
         sys.path.append(migrations_dir)
-        assert os.path.exists(migrations_dir)
-
-        self.db_host = None
-        self.db_name = None
-        self.username = None
-        self.password = None
+        assert os.path.exists(migrations_dir), migrations_dir + " doesn't exist"
 
 
-    def read_db_info(self):
-        # grab the config file and parse for info
-        c = global_config.global_config
-        self.db_host = c.get_config_value(self.database, "host")
-        self.db_name = c.get_config_value(self.database, "database")
-        self.username = c.get_config_value(self.database, "user")
-        self.password = c.get_config_value(self.database, "password")
-
-
-    def connect(self, host, db_name, username, password):
-        return MySQLdb.connect(host=host, db=db_name, user=username,
-                               passwd=password)
-
-
-    def open_connection(self):
-        self.connection = self.connect(self.db_host, self.db_name,
-                                       self.username, self.password)
-        self.connection.autocommit(True)
-        self.cursor = self.connection.cursor()
-
-
-    def close_connection(self):
-        self.connection.close()
+    def _get_db_name(self):
+        return self._database.get_database_info()['db_name']
 
 
     def execute(self, query, *parameters):
         #print 'SQL:', query % parameters
-        return self.cursor.execute(query, parameters)
+        return self._database.execute(query, parameters)
 
 
     def execute_script(self, script):
@@ -95,11 +75,10 @@ class MigrationManager(object):
         try:
             self.execute("SELECT * FROM %s" % MIGRATE_TABLE)
             return True
-        except MySQLdb.ProgrammingError, exc:
-            error_code, _ = exc.args
-            if error_code == MySQLdb.constants.ER.NO_SUCH_TABLE:
-                return False
-            raise
+        except self._database.DatabaseError, exc:
+            # we can't check for more specifics due to differences between DB
+            # backends (we can't even check for a subclass of DatabaseError)
+            return False
 
 
     def create_migrate_table(self):
@@ -109,21 +88,20 @@ class MigrationManager(object):
         else:
             self.execute("DELETE FROM %s" % MIGRATE_TABLE)
         self.execute("INSERT INTO %s VALUES (0)" % MIGRATE_TABLE)
-        assert self.cursor.rowcount == 1
+        assert self._database.rowcount == 1
 
 
     def set_db_version(self, version):
         assert isinstance(version, int)
         self.execute("UPDATE %s SET version=%%s" % MIGRATE_TABLE,
                      version)
-        assert self.cursor.rowcount == 1
+        assert self._database.rowcount == 1
 
 
     def get_db_version(self):
         if not self.check_migrate_table_exists():
             return 0
-        self.execute("SELECT * FROM %s" % MIGRATE_TABLE)
-        rows = self.cursor.fetchall()
+        rows = self.execute("SELECT * FROM %s" % MIGRATE_TABLE)
         if len(rows) == 0:
             return 0
         assert len(rows) == 1 and len(rows[0]) == 1
@@ -190,30 +168,28 @@ class MigrationManager(object):
 
 
     def initialize_test_db(self):
-        self.read_db_info()
-        test_db_name = 'test_' + self.db_name
+        db_name = self._get_db_name()
+        test_db_name = 'test_' + db_name
         # first, connect to no DB so we can create a test DB
-        self.db_name = ''
-        self.open_connection()
+        self._database.connect(db_name='')
         print 'Creating test DB', test_db_name
         self.execute('CREATE DATABASE ' + test_db_name)
-        self.close_connection()
+        self._database.disconnect()
         # now connect to the test DB
-        self.db_name = test_db_name
-        self.open_connection()
+        self._database.connect(db_name=test_db_name)
 
 
     def remove_test_db(self):
         print 'Removing test DB'
-        self.execute('DROP DATABASE ' + self.db_name)
+        self.execute('DROP DATABASE ' + self._get_db_name())
+        # reset connection back to real DB
+        self._database.disconnect()
+        self._database.connect()
 
 
     def get_mysql_args(self):
-        return ('-u %(user)s -p%(password)s -h %(host)s %(db)s' % {
-            'user' : self.username,
-            'password' : self.password,
-            'host' : self.db_host,
-            'db' : self.db_name})
+        return ('-u %(username)s -p%(password)s -h %(host)s %(db_name)s' %
+                self._database.get_database_info())
 
 
     def migrate_to_version_or_latest(self, version):
@@ -224,9 +200,7 @@ class MigrationManager(object):
 
 
     def do_sync_db(self, version=None):
-        self.read_db_info()
-        self.open_connection()
-        print 'Migration starting for database', self.db_name
+        print 'Migration starting for database', self._get_db_name()
         self.migrate_to_version_or_latest(version)
         print 'Migration complete'
 
@@ -237,7 +211,7 @@ class MigrationManager(object):
         """
         self.initialize_test_db()
         try:
-            print 'Starting migration test on DB', self.db_name
+            print 'Starting migration test on DB', self._get_db_name()
             self.migrate_to_version_or_latest(version)
             # show schema to the user
             os.system('mysqldump %s --no-data=true '
@@ -253,28 +227,24 @@ class MigrationManager(object):
         Create a fresh DB, copy the existing DB to it, and then
         try to synchronize it.
         """
-        self.read_db_info()
-        self.open_connection()
         db_version = self.get_db_version()
-        self.close_connection()
         # don't do anything if we're already at the latest version
         if db_version == self.get_latest_version():
             print 'Skipping simulation, already at latest version'
             return
         # get existing data
-        self.read_db_info()
         print 'Dumping existing data'
         dump_fd, dump_file = tempfile.mkstemp('.migrate_dump')
-        os.close(dump_fd)
         os.system('mysqldump %s >%s' %
                   (self.get_mysql_args(), dump_file))
         # fill in test DB
         self.initialize_test_db()
         print 'Filling in test DB'
         os.system('mysql %s <%s' % (self.get_mysql_args(), dump_file))
+        os.close(dump_fd)
         os.remove(dump_file)
         try:
-            print 'Starting migration test on DB', self.db_name
+            print 'Starting migration test on DB', self._get_db_name()
             self.migrate_to_version_or_latest(version)
         finally:
             self.remove_test_db()
@@ -299,7 +269,10 @@ def main():
     parser.add_option("-f", "--force", help="don't ask for confirmation",
                       action="store_true")
     (options, args) = parser.parse_args()
-    manager = MigrationManager(options.database, force=options.force)
+    database = database_connection.DatabaseConnection(options.database)
+    database.reconnect_enabled = False
+    database.connect()
+    manager = MigrationManager(database, force=options.force)
 
     if len(args) > 0:
         if len(args) > 1:

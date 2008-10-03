@@ -6,8 +6,8 @@ required_tables = ('acl_groups', 'acl_groups_hosts', 'acl_groups_users',
 
 
 def migrate_up(manager):
-    manager.execute("SHOW TABLES")
-    tables = [row[0] for row in manager.cursor.fetchall()]
+    rows = manager.execute("SHOW TABLES")
+    tables = [row[0] for row in rows]
     db_initialized = True
     for table in required_tables:
         if table not in tables:
