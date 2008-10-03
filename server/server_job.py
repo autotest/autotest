@@ -776,11 +776,16 @@ class log_collector(object):
 
 
         # Copy all dirs in default to results_dir
-        keyval_path = self._prepare_for_copying_logs()
-        self.host.get_file(self.client_results_dir + '/',
-                           self.server_results_dir)
-        self._process_copied_logs(keyval_path)
-        self._postprocess_copied_logs()
+        try:
+            keyval_path = self._prepare_for_copying_logs()
+            self.host.get_file(self.client_results_dir + '/',
+                               self.server_results_dir)
+            self._process_copied_logs(keyval_path)
+            self._postprocess_copied_logs()
+        except Exception:
+            # well, don't stop running just because we couldn't get logs
+            print "Unexpected error copying test result logs, continuing ..."
+            traceback.print_exc(file=sys.stdout)
 
 
     def _prepare_for_copying_logs(self):
