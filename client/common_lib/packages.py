@@ -567,7 +567,7 @@ class BasePackageManager(object):
         assumes that the package to be untarred is of the form
         <name>.tar.bz2
         '''
-        self._run_command('tar xvjf %s -C %s' % (tarball_path, dest_dir))
+        self._run_command('tar xjf %s -C %s' % (tarball_path, dest_dir))
         # Put the .checksum file in the install_dir to note
         # where the package came from
         pkg_checksum = self.compute_checksum(tarball_path)
