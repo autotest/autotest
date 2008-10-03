@@ -4,7 +4,6 @@ TEST_CATEGORY = "Stress"
 TEST_CLASS = "General"
 TEST_TYPE = "client"
 TIME = 'MEDIUM'
-EXPERIMENTAL = "True"
 DOC='''
 A benchmark that tries to capture both transactional DB workloads and
 random web server ones. It writes about 24MB/s but has many small writes a

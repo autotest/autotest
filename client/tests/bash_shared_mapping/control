@@ -1,5 +1,4 @@
 AUTHOR = "Martin Bligh <mbligh@google.com>"
-EXPERIMENTAL = 'True'  # Change if you use this and it works.  :-)
 NAME = "bash shared mapping"
 TIME = "SHORT"
 TEST_CLASS = "Kernel"
