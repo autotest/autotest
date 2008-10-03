@@ -1,4 +1,4 @@
-import os
+import os,time
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils, error
 
@@ -28,6 +28,7 @@ class netperf2(test.test):
         self.valid_tests = ['TCP_STREAM', 'TCP_RR', 'TCP_CRR', 'TCP_SENDFILE',
                             'UDP_STREAM', 'UDP_RR']
         self.results = []
+        self.actual_times = []
 
 
     def run_once(self, server_ip, client_ip, role, test='TCP_STREAM',
@@ -36,6 +37,7 @@ class netperf2(test.test):
             raise error.TestError('invalid test specified')
         self.role = role
         self.test = test
+        self.test_time = test_time
         self.stream_list = stream_list
 
         server_tag = server_ip + '#netperf-server'
@@ -84,9 +86,14 @@ class netperf2(test.test):
         cmd = self.client_path % (server_ip, args)
 
         try:
+            t0 = time.time()
             self.results.append(utils.get_cpu_percentage(
                 utils.system_output_parallel, [cmd]*num_streams,
                 timeout=test_time+60, retain_output=True))
+            t1 = time.time()
+
+            self.actual_times.append(t1 - t0)
+
         except error.CmdError, e:
             """ Catch errors due to timeout, but raise others
             The actual error string is:
@@ -101,6 +108,7 @@ class netperf2(test.test):
                 print e.additional_text
                 # Results are cpu%, outputs
                 self.results.append((0, None))
+                self.actual_times.append(1)
             else:
                 raise
 
@@ -136,6 +144,7 @@ class netperf2(test.test):
                 keyval = {}
                 temp_vals = []
                 keyval['CPU'], outputs  = self.results[i]
+                actual_time  = self.actual_times[i]
 
                 # Short circuit to handle errors due to client timeouts
                 if not outputs:
@@ -149,7 +158,11 @@ class netperf2(test.test):
                 # represent the string contained in keys
                 for j, key in enumerate(keys):
                     vals = [x[j] for x in temp_vals]
-                    keyval[key] = sum(vals)
+                    # scale result by the actual time taken
+                    keyval[key] = sum(vals)*self.test_time/actual_time
+
+                # record 'Efficiency' as perf/CPU
+                keyval['Efficieny'] = keyval[keys[0]]/keyval['CPU']
 
                 self.write_iteration_keyval(attr, keyval)
 
