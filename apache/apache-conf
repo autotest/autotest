@@ -1,0 +1,26 @@
+NameVirtualHost *
+<VirtualHost *>
+    DocumentRoot /usr/local/autotest/apache/www/
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+    <Directory /usr/local/autotest/apache/www/>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        Order allow,deny
+        allow from all
+    </Directory>
+
+
+    ErrorLog /var/log/apache2/error.log
+    LogLevel warn
+
+    CustomLog /var/log/apache2/access.log combined
+    ServerSignature On
+
+    RedirectMatch ^/$ /afe
+
+    Include "/usr/local/autotest/apache/conf/all-directives"
+    
+</VirtualHost>

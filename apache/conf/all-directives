@@ -1,4 +1,9 @@
+# The name is misleading.  These are all the directives for a normal install.
+# This does not include stuff like proxy-directives and some of the files here
+# include other directive files.
+
+Include "/usr/local/autotest/apache/conf/django-directives"
+Include "/usr/local/autotest/apache/conf/afe-directives"
 Include "/usr/local/autotest/apache/conf/tko-directives"
 Include "/usr/local/autotest/apache/conf/new-tko-directives"
-Include "/usr/local/autotest/apache/conf/django-directives"
 Include "/usr/local/autotest/apache/conf/site-directives"
