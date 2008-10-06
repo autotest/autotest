@@ -2,8 +2,9 @@
 
 from django.dispatch import dispatcher
 from django.db.models import signals
-import frontend.afe.models
 from django.contrib import auth
+import common
+from autotest_lib.frontend.afe import models
 
 BASIC_ADMIN = 'Basic admin'
 
@@ -35,5 +36,5 @@ def create_admin_group(app, created_models, verbosity, **kwargs):
         print 'Group "%s" already exists' % BASIC_ADMIN
 
 
-dispatcher.connect(create_admin_group, sender=frontend.afe.models,
+dispatcher.connect(create_admin_group, sender=models,
                    signal=signals.post_syncdb)

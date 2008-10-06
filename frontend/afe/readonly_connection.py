@@ -10,6 +10,24 @@ class ReadOnlyConnection(object):
     django.db.connection which are undocumented as far as I know, but I believe
     it works across many, if not all, of the backends.
     """
+    _the_instance = None
+
+    # support singleton
+    @classmethod
+    def get_connection(cls):
+        if cls._the_instance is None:
+            cls._the_instance = ReadOnlyConnection()
+        return cls._the_instance
+
+
+    @classmethod
+    def set_testing_mode(cls, enabled):
+        if enabled:
+            cls._the_instance = DummyReadOnlyConnection()
+        else:
+            cls._the_instance = None
+
+
     def __init__(self):
         self._connection = None
 
@@ -73,6 +91,36 @@ class ReadOnlyConnection(object):
             self._connection = None
 
 
-connection = ReadOnlyConnection()
+class DummyReadOnlyConnection(object):
+    'A dummy version for testing which does nothing.'
+
+    def __init__(self):
+        self._is_set = False
+
+    def set_django_connection(self):
+        assert not self._is_set
+        self._is_set = True
+
+
+    def unset_django_connection(self):
+        assert self._is_set
+        self._is_set = False
+
+
+    def cursor(self):
+        return django_connection.cursor()
+
+
+    def close(self):
+        pass
+
+
+# convenience
+def connection():
+    return ReadOnlyConnection.get_connection()
+
+
 # close any open connection when request finishes
-dispatcher.connect(connection.close, signal=signals.request_finished)
+def _close_connection():
+    connection().close()
+dispatcher.connect(_close_connection, signal=signals.request_finished)

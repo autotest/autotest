@@ -351,7 +351,7 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
     if normalize is None:
         normalize = ''
     query = queries['__main__']
-    cursor = readonly_connection.connection.cursor()
+    cursor = readonly_connection.connection().cursor()
     cursor.execute(query)
 
     if not cursor.rowcount:
@@ -507,7 +507,7 @@ def _create_qual_histogram_helper(query, filter_string, interval, extra_text=Non
               0-10%, 10%-20%, ...
     extra_text: text to show at the upper-left of the graph
     """
-    cursor = readonly_connection.connection.cursor()
+    cursor = readonly_connection.connection().cursor()
     cursor.execute(query)
 
     if not cursor.rowcount:
