@@ -17,7 +17,7 @@ def get_num_test_views(**filter_data):
 
 
 def get_group_counts(group_by, header_groups=[], fixed_headers={},
-                     extra_select_fields=[], **filter_data):
+                     extra_select_fields={}, **filter_data):
     """
     Queries against TestView grouping by the specified fields and computings
     counts for each group.
