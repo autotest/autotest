@@ -108,41 +108,41 @@ class global_config(object):
     # the values that are pulled from ini
     # are strings.  But we should attempt to
     # convert them to other types if needed.
-    def convert_value(self, key, section, value, type, default):
+    def convert_value(self, key, section, value, value_type, default):
         # strip off leading and trailing white space
         sval = value.strip()
 
         # if length of string is zero then return None
         if len(sval) == 0:
-            if type == str:
+            if value_type == str:
                 return ""
-            elif type == bool:
+            elif value_type == bool:
                 return False
-            elif type == int:
+            elif value_type == int:
                 return 0
-            elif type == float:
+            elif value_type == float:
                 return 0.0
-            elif type == list:
+            elif value_type == list:
                 return []
             else:
                 return None
 
-        if type == bool:
+        if value_type == bool:
             if sval.lower() == "false":
                 return False
             else:
                 return True
 
-        if type == list:
+        if value_type == list:
             # Split the string using ',' and return a list
             return [val.strip() for val in sval.split(',')]
 
         try:
-            conv_val = type(sval)
+            conv_val = value_type(sval)
             return conv_val
         except:
-            msg = ("Could not covert %s in section %s" %
-                    (key, section))
+            msg = ("Could not convert %s value %r in section %s to type %s" %
+                    (key, sval, section, value_type))
             raise ConfigValueError(msg)
 
 
