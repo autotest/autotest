@@ -485,18 +485,19 @@ class JobManager(model_logic.ExtendedManager):
         job_ids = ','.join(str(job['id']) for job in jobs)
         cursor = connection.cursor()
         cursor.execute("""
-            SELECT jobs.id, GROUP_CONCAT(labels.name)
+            SELECT jobs.id, labels.name
             FROM jobs
             INNER JOIN jobs_dependency_labels
               ON jobs.id = jobs_dependency_labels.job_id
             INNER JOIN labels ON jobs_dependency_labels.label_id = labels.id
             WHERE jobs.id IN (%s)
-            GROUP BY jobs.id
             """ % job_ids)
-        id_to_dependencies = dict((job_id, dependencies)
-                                  for job_id, dependencies in cursor.fetchall())
+        job_dependencies = {}
+        for job_id, dependency in cursor.fetchall():
+            job_dependencies.setdefault(job_id, []).append(dependency)
         for job in jobs:
-            job['dependencies'] = id_to_dependencies.get(job['id'], '')
+            dependencies = ','.join(job_dependencies.get(job['id'], []))
+            job['dependencies'] = dependencies
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):

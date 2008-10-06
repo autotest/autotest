@@ -37,7 +37,7 @@
 
 # create a label
 >>> rpc_interface.add_label(name='test_label')
-1L
+1
 
 # we can modify the label by referencing its ID...
 >>> rpc_interface.modify_label(1, kernel_config='/my/kernel/config')
@@ -47,7 +47,7 @@
 
 # we use get_labels to retrieve object data
 >>> data = rpc_interface.get_labels(name='test_label')
->>> data == [{'id': 1L,
+>>> data == [{'id': 1,
 ...           'name': 'test_label',
 ...           'platform': 1,
 ...           'kernel_config': '/my/kernel/config',
@@ -57,15 +57,15 @@ True
 
 # get_labels return multiple matches as lists of dictionaries
 >>> rpc_interface.add_label(name='label1', platform=False)
-2L
+2
 >>> rpc_interface.add_label(name='label2', platform=True)
-3L
+3
 >>> rpc_interface.add_label(name='label3', platform=False)
-4L
+4
 >>> data = rpc_interface.get_labels(platform=False)
->>> data == [{'id': 2L, 'name': 'label1', 'platform': 0, 'kernel_config': '',
+>>> data == [{'id': 2, 'name': 'label1', 'platform': 0, 'kernel_config': '',
 ...           'only_if_needed': False, 'invalid': 0},
-...          {'id': 4L, 'name': 'label3', 'platform': 0, 'kernel_config': '',
+...          {'id': 4, 'name': 'label3', 'platform': 0, 'kernel_config': '',
 ...           'only_if_needed': False, 'invalid': 0}]
 True
 
@@ -82,13 +82,13 @@ True
 # all the add*, modify*, delete*, and get* methods work the same way
 # hosts...
 >>> rpc_interface.add_host(hostname='ipaj1', locked=True)
-1L
+1
 >>> rpc_interface.modify_host('ipaj1', status='Hello')
 >>> data = rpc_interface.get_hosts()
 
 # delete the lock_time field, since that can't be reliably checked
 >>> del data[0]['lock_time']
->>> data == [{'id': 1L,
+>>> data == [{'id': 1,
 ...           'hostname': 'ipaj1',
 ...           'locked': 1,
 ...           'synch_id': None,
@@ -108,16 +108,16 @@ True
 ...                        description='Sleep Test', test_time=1,
 ...                        test_category='Functional',
 ...                        test_class='Kernel', path='sleeptest')
-1L
+1
 >>> rpc_interface.modify_test('sleeptest', path='/my/path')
 >>> data = rpc_interface.get_tests()
->>> data == [{'id': 1L,
+>>> data == [{'id': 1,
 ...           'name': 'sleeptest',
 ...           'author': 'Test',
 ...           'description': 'Sleep Test',
 ...           'dependencies': '',
 ...           'experimental': 1,
-...           'sync_count': 1L,
+...           'sync_count': 1,
 ...           'test_type': 'Client',
 ...           'test_class': 'Kernel',
 ...           'test_time': 'SHORT',
@@ -132,10 +132,10 @@ True
 
 # profilers...
 >>> rpc_interface.add_profiler(name='oprofile')
-1L
+1
 >>> rpc_interface.modify_profiler('oprofile', description='Oh profile!')
 >>> data = rpc_interface.get_profilers()
->>> data == [{'id': 1L,
+>>> data == [{'id': 1,
 ...           'name': 'oprofile',
 ...           'description': 'Oh profile!'}]
 True
@@ -146,10 +146,10 @@ True
 
 # users...
 >>> rpc_interface.add_user(login='showard')
-2L
+2
 >>> rpc_interface.modify_user('showard', access_level=1)
 >>> data = rpc_interface.get_users(login='showard')
->>> data == [{'id': 2L,
+>>> data == [{'id': 2,
 ...           'login': 'showard',
 ...           'access_level': 1}]
 True
@@ -160,10 +160,10 @@ True
 # acl groups...
 # 1 ACL group already exists, named "Everyone" (ID 1)
 >>> rpc_interface.add_acl_group(name='my_group')
-2L
+2
 >>> rpc_interface.modify_acl_group('my_group', description='my new acl group')
 >>> data = rpc_interface.get_acl_groups(name='my_group')
->>> data == [{'id': 2L,
+>>> data == [{'id': 2,
 ...           'name': 'my_group',
 ...           'description': 'my new acl group',
 ...           'users': ['debug_user'],
@@ -171,7 +171,7 @@ True
 True
 >>> rpc_interface.delete_acl_group('my_group')
 >>> data = rpc_interface.get_acl_groups()
->>> data == [{'id': 1L,
+>>> data == [{'id': 1,
 ...           'name': 'Everyone',
 ...           'description': '',
 ...           'users': ['debug_user'],
@@ -184,13 +184,13 @@ True
 
 # first, create some hosts and labels to play around with
 >>> rpc_interface.add_host(hostname='host1')
-2L
+2
 >>> rpc_interface.add_host(hostname='host2')
-3L
+3
 >>> rpc_interface.add_label(name='label1')
-2L
+2
 >>> rpc_interface.add_label(name='label2', platform=True)
-3L
+3
 
 # add hosts to labels
 >>> rpc_interface.host_add_labels('host1', ['label1'])
@@ -280,9 +280,9 @@ True
 ['Everyone']
 
 >>> rpc_interface.add_user(login='showard', access_level=0)
-3L
+2
 >>> rpc_interface.add_acl_group(name='my_group')
-3L
+2
 
 >>> rpc_interface.acl_group_add_users('my_group', ['showard'])
 >>> rpc_interface.acl_group_add_hosts('my_group', ['host1'])
@@ -323,21 +323,21 @@ True
 
 # add some entries to play with
 >>> rpc_interface.add_label(name='my_label', kernel_config='my_kernel_config')
-5L
+5
 >>> test_control_path = os.path.join(test_path, 'test.control')
 >>> rpc_interface.add_test(name='sleeptest', test_type='Client', author='Test',
 ...                        test_category='Test',
 ...                        test_class='Kernel', path=test_control_path)
-2L
+1
 >>> test_control_path = os.path.join(test_path, 'test.control.2')
 >>> rpc_interface.add_test(name='my_test', test_type='Client', author='Test',
 ...                        test_category='Test',
 ...                        test_class='Kernel', path=test_control_path)
-3L
+2
 >>> rpc_interface.add_host(hostname='my_label_host1')
-4L
+4
 >>> rpc_interface.add_host(hostname='my_label_host2')
-5L
+5
 >>> rpc_interface.label_add_hosts(id='my_label', hosts=['my_label_host1', 'my_label_host2'])
 
 # generate a control file
@@ -373,13 +373,13 @@ def step1():
 ...                          control_type='Client',
 ...                          hosts=['host1', 'host2'],
 ...                          meta_hosts=['my_label', 'my_label'])
-1L
+1
 
 # get job info - this does not include status info for particular hosts
 >>> data = rpc_interface.get_jobs()
 >>> data = data[0]
 >>> data['id'], data['owner'], data['name'], data['priority']
-(1L, 'debug_user', 'my_job', 'Low')
+(1, 'debug_user', 'my_job', 'Low')
 >>> data['control_file'] == cf_info['control_file']
 True
 >>> data['control_type']
@@ -390,7 +390,7 @@ True
 
 # get_num_jobs - useful when dealing with large numbers of jobs
 >>> rpc_interface.get_num_jobs(name='my_job')
-1L
+1
 
 # check host queue entries for a job
 >>> data = rpc_interface.get_host_queue_entries(job=1)
@@ -405,7 +405,7 @@ True
 >>> job == {'control_file': cf_info['control_file'], # the control file we used
 ...         'control_type': 'Client',
 ...         'created_on': None,
-...         'id': 1L,
+...         'id': 1,
 ...         'name': 'my_job',
 ...         'owner': 'debug_user',
 ...         'priority': 'Low',
@@ -422,7 +422,7 @@ True
 ... {'active': 0,
 ...  'complete': 0,
 ...  'host': {'hostname': 'host1', # full host info here
-...           'id': 2L,
+...           'id': 2,
 ...           'invalid': 0,
 ...           'locked': 0,
 ...           'status': 'Ready',
@@ -430,7 +430,7 @@ True
 ...           'protection': 'No protection',
 ...           'locked_by': None,
 ...           'lock_time': None},
-...  'id': 1L,
+...  'id': 1,
 ...  'job': job, # full job info here
 ...  'meta_host': None,
 ...  'priority': 0,
@@ -441,7 +441,7 @@ True
 ... {'active': 0,
 ...  'complete': 0,
 ...  'host': None,
-...  'id': 3L,
+...  'id': 3,
 ...  'job': job,
 ...  'meta_host': 'my_label',
 ...  'priority': 0,
@@ -449,7 +449,7 @@ True
 ...  'deleted': 0})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
-4L
+4
 >>> rpc_interface.get_hqe_percentage_complete(job=1)
 0.0
 
@@ -457,13 +457,13 @@ True
 >>> data = rpc_interface.get_jobs_summary()
 >>> counts = data[0]['status_counts']
 >>> counts
-{'Queued': 4L}
+{'Queued': 4}
 
 # abort the job
 >>> rpc_interface.abort_job(1)
 >>> data = rpc_interface.get_jobs_summary(id=1)
 >>> data[0]['status_counts']
-{'Aborted': 4L}
+{'Aborted': 4}
 
 # Remove the two hosts in my_label
 >>> rpc_interface.delete_host('my_label_host1')
@@ -498,7 +498,7 @@ True
 ...                          control_type='Server',
 ...                          is_synchronous=False,
 ...                          hosts=['host1'])
-2L
+2
 
 >>> data = rpc_interface.get_jobs()
 >>> data[0]['synch_type']
@@ -510,7 +510,7 @@ True
 ['host1', 'host2']
 
 >>> rpc_interface.add_acl_group(name='mygroup')
-4L
+3
 >>> rpc_interface.acl_group_add_users('mygroup', ['debug_user'])
 >>> rpc_interface.acl_group_add_hosts('mygroup', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='Everyone')[0]

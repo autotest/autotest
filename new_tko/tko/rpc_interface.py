@@ -182,7 +182,7 @@ def create_qual_histogram(query, filter_string, interval):
 
 
 def execute_query_with_param(query, param):
-    cursor = readonly_connection.connection.cursor()
+    cursor = readonly_connection.connection().cursor()
     cursor.execute(query, param)
     return cursor.fetchall()
 

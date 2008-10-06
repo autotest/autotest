@@ -31,7 +31,6 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 from frontend import thread_local
 from frontend.afe import models, model_logic, control_file, rpc_utils
-from frontend.afe import readonly_connection
 from autotest_lib.client.common_lib import global_config
 
 

@@ -4,7 +4,7 @@ Extensions to Django's model logic.
 
 from django.db import models as dbmodels, backend, connection
 from django.utils import datastructures
-from frontend.afe import readonly_connection
+from autotest_lib.frontend.afe import readonly_connection
 
 class ValidationError(Exception):
     """\
@@ -15,11 +15,11 @@ class ValidationError(Exception):
 
 def _wrap_with_readonly(method):
         def wrapper_method(*args, **kwargs):
-            readonly_connection.connection.set_django_connection()
+            readonly_connection.connection().set_django_connection()
             try:
                 return method(*args, **kwargs)
             finally:
-                readonly_connection.connection.unset_django_connection()
+                readonly_connection.connection().unset_django_connection()
         wrapper_method.__name__ = method.__name__
         return wrapper_method
 
@@ -31,11 +31,11 @@ def _wrap_generator_with_readonly(generator):
     """
     def wrapper_generator(*args, **kwargs):
         generator_obj = generator(*args, **kwargs)
-        readonly_connection.connection.set_django_connection()
+        readonly_connection.connection().set_django_connection()
         try:
             first_value = generator_obj.next()
         finally:
-            readonly_connection.connection.unset_django_connection()
+            readonly_connection.connection().unset_django_connection()
         yield first_value
 
         while True:
