@@ -5,8 +5,7 @@ import MySQLdb
 import common
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.migrate import migrate
-from autotest_lib.database import database_connection
+from autotest_lib.database import database_connection, migrate
 
 import monitor_db
 
