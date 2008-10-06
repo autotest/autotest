@@ -51,7 +51,7 @@ class TempManager(model_logic.ExtendedManager):
         """
         sql, params = self._get_group_query_sql(query, group_by,
                                                 extra_select_fields)
-        cursor = readonly_connection.connection.cursor()
+        cursor = readonly_connection.connection().cursor()
         cursor.execute(sql, params)
         field_names = [column_info[0] for column_info in cursor.description]
         row_dicts = [dict(zip(field_names, row)) for row in cursor.fetchall()]
@@ -86,7 +86,7 @@ class TempManager(model_logic.ExtendedManager):
         fields in group_by.
         """
         sql, params = self._get_num_groups_sql(query, group_by)
-        cursor = readonly_connection.connection.cursor()
+        cursor = readonly_connection.connection().cursor()
         cursor.execute(sql, params)
         return cursor.fetchone()[0]
 
@@ -375,7 +375,7 @@ class TestViewManager(TempManager):
         else:
             distinct = ''
         sql_query = 'SELECT ' + distinct + ','.join(selects) + where
-        cursor = readonly_connection.connection.cursor()
+        cursor = readonly_connection.connection().cursor()
         cursor.execute(sql_query, params)
         return cursor.fetchall()
 

@@ -5,9 +5,9 @@
 >>> from frontend.afe import rpc_interface
 
 >>> rpc_interface.add_profiler(name='oprofile')
-2L
+1
 >>> rpc_interface.add_profiler(name='iostat')
-3L
+2
 
 # profiler support in control file generation
 >>> cf_info = rpc_interface.generate_control_file(
