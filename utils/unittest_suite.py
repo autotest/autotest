@@ -39,11 +39,11 @@ DEPENDENCIES = {
     # hack to keep these three modules from running at the same time, since they
     # all create and destroy a database with the same name.
     'autotest_lib.frontend.frontend_unittest':
-        ['autotest_lib.migrate.migrate_unittest'],
+        ['autotest_lib.database.migrate_unittest'],
 
     'autotest_lib.scheduler.monitor_db_unittest':
         ['autotest_lib.frontend.frontend_unittest',
-         'autotest_lib.migrate.migrate_unittest'],
+         'autotest_lib.database.migrate_unittest'],
 }
 
 modules = []

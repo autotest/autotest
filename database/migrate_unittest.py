@@ -2,10 +2,9 @@
 
 import unittest, tempfile, os
 import MySQLdb
-import migrate
 import common
 from autotest_lib.client.common_lib import global_config
-from autotest_lib.database import database_connection
+from autotest_lib.database import database_connection, migrate
 
 # Which section of the global config to pull info from.  We won't actually use
 # that DB, we'll use the corresponding test DB (test_<db name>).
