@@ -114,7 +114,9 @@ def read_one_line(filename):
 
 
 def write_one_line(filename, str):
-    open(filename, 'w').write(str.rstrip('\n') + '\n')
+    f = open(filename, 'w')
+    f.write(str.rstrip('\n') + '\n')
+    f.flush()
 
 
 def read_keyval(path):
