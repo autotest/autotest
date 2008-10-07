@@ -6,31 +6,13 @@ import common
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.database import database_connection, migrate
+from autotest_lib.scheduler import monitor_db
 
-import monitor_db
+from autotest_lib.frontend import django_test_utils
+django_test_utils.setup_test_environ()
+from autotest_lib.frontend.afe import models
 
 _DEBUG = False
-
-_TEST_DATA = """
--- create a user and an ACL group
-INSERT INTO users (login) VALUES ('my_user');
-INSERT INTO acl_groups (name) VALUES ('my_acl');
-INSERT INTO acl_groups_users (user_id, acl_group_id) VALUES (1, 1);
-
--- create some hosts
-INSERT INTO hosts (hostname) VALUES ('host1'), ('host2'), ('host3'), ('host4');
--- add hosts to the ACL group
-INSERT INTO acl_groups_hosts (host_id, acl_group_id) VALUES
-  (1, 1), (2, 1), (3, 1), (4, 1);
-
--- create a label for each of two hosts
-INSERT INTO labels (name) VALUES ('label1'), ('label2');
-INSERT INTO labels (name, only_if_needed) VALUES ('label3', true);
-
--- add hosts to labels
-INSERT INTO hosts_labels (host_id, label_id) VALUES
-  (1, 1), (2, 2);
-"""
 
 class Dummy(object):
     'Dummy object that can have attribute assigned to it'
@@ -51,88 +33,65 @@ class IsRow(mock.argument_comparator):
 
 class BaseDispatcherTest(unittest.TestCase):
     _config_section = 'AUTOTEST_WEB'
-
-
-    def _setup_test_db_name(self):
-        global_config.global_config.reset_config_values()
-        real_db_name = global_config.global_config.get_config_value(
-            self._config_section, 'database')
-        test_db_name = 'test_' + real_db_name
-        global_config.global_config.override_config_value(self._config_section,
-                                                          'database',
-                                                          test_db_name)
-
-
-    def _read_db_info(self):
-        config = global_config.global_config
-        section = self._config_section
-        self._host = config.get_config_value(section, "host")
-        self._db_name = config.get_config_value(section, "database")
-        self._user = config.get_config_value(section, "user")
-        self._password = config.get_config_value(section, "password")
-
-
-    def _connect_to_db(self, db_name=''):
-        self._con = MySQLdb.connect(host=self._host, user=self._user,
-                                    passwd=self._password, db=db_name)
-        self._con.autocommit(True)
-        self._cur = self._con.cursor()
-
-
-    def _disconnect_from_db(self):
-        self._con.close()
-
+    _test_db_initialized = False
 
     def _do_query(self, sql):
-        if _DEBUG:
-            print 'SQL:', sql
-        self._cur.execute(sql)
+        self._database.execute(sql)
 
 
-    def _do_queries(self, sql_queries):
-        for query in sql_queries.split(';'):
-            query = query.strip()
-            if query:
-                self._do_query(query)
+    @classmethod
+    def _initialize_test_db(cls):
+        if cls._test_db_initialized:
+            return
+        temp_fd, cls._test_db_file = tempfile.mkstemp(suffix='.monitor_test')
+        os.close(temp_fd)
+        django_test_utils.set_test_database(cls._test_db_file)
+        django_test_utils.run_syncdb()
+        cls._test_db_backup = django_test_utils.backup_test_database()
+        cls._test_db_initialized = True
 
 
     def _open_test_db(self):
-        self._connect_to_db()
-        self._do_query('DROP DATABASE IF EXISTS ' + self._db_name)
-        self._do_query('CREATE DATABASE ' + self._db_name)
-        self._disconnect_from_db()
-
-        database = database_connection.DatabaseConnection('AUTOTEST_WEB')
-        database.connect(db_name=self._db_name)
-        manager = migrate.MigrationManager(database, force=True)
-        manager.do_sync_db()
-
-        self._connect_to_db(self._db_name)
+        self._initialize_test_db()
+        django_test_utils.restore_test_database(self._test_db_backup)
+        self._database = (
+            database_connection.DatabaseConnection.get_test_database(
+                self._test_db_file))
+        self._database.connect()
+        self._database.debug = _DEBUG
 
 
     def _close_test_db(self):
-        self._do_query('DROP DATABASE ' + self._db_name)
-        self._disconnect_from_db()
+        self._database.disconnect()
 
 
     def _set_monitor_stubs(self):
-        monitor_db._db = monitor_db.DatabaseConn()
-        monitor_db._db.connect(db_name=self._db_name)
+        monitor_db._db = self._database
 
 
     def _fill_in_test_data(self):
-        self._do_queries(_TEST_DATA)
+        user = models.User.objects.create(login='my_user')
+        acl_group = models.AclGroup.objects.create(name='my_acl')
+        acl_group.users.add(user)
+
+        hosts = [models.Host.objects.create(hostname=hostname) for hostname in
+                 ('host1', 'host2', 'host3', 'host4')]
+        acl_group.hosts = hosts
+
+        labels = [models.Label.objects.create(name=name) for name in
+                  ('label1', 'label2', 'label3')]
+        labels[2].only_if_needed = True
+        labels[2].save()
+        hosts[0].labels.add(labels[0])
+        hosts[1].labels.add(labels[1])
 
 
     def setUp(self):
         self.god = mock.mock_god()
-        self._setup_test_db_name()
-        self._read_db_info()
         self._open_test_db()
         self._fill_in_test_data()
         self._set_monitor_stubs()
         self._dispatcher = monitor_db.Dispatcher()
-        self._job_counter = 0
 
 
     def tearDown(self):
@@ -143,23 +102,18 @@ class BaseDispatcherTest(unittest.TestCase):
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=0,
                     synchronous=False):
         synch_type = synchronous and 2 or 1
-        self._do_query('INSERT INTO jobs (name, owner, priority, synch_type) '
-                       'VALUES ("test", "my_user", %d, %d)' %
-                       (priority, synch_type))
-        self._job_counter += 1
-        job_id = self._job_counter
-        queue_entry_sql = (
-            'INSERT INTO host_queue_entries '
-            '(job_id, priority, host_id, meta_host, active) '
-            'VALUES (%d, %d, %%s, %%s, %d)' %
-            (job_id, priority, active))
+        job = models.Job.objects.create(name='test', owner='my_user',
+                                        priority=priority,
+                                        synch_type=synch_type)
         for host_id in hosts:
-            self._do_query(queue_entry_sql % (host_id, 'NULL'))
-            self._do_query('INSERT INTO ineligible_host_queues '
-                           '(job_id, host_id) VALUES (%d, %d)' %
-                           (job_id, host_id))
+            models.HostQueueEntry.objects.create(job=job, priority=priority,
+                                                 host_id=host_id, active=active)
+            models.IneligibleHostQueue.objects.create(job=job, host_id=host_id)
         for label_id in metahosts:
-            self._do_query(queue_entry_sql % ('NULL', label_id))
+            models.HostQueueEntry.objects.create(job=job, priority=priority,
+                                                 meta_host_id=label_id,
+                                                 active=active)
+        return job
 
 
     def _create_job_simple(self, hosts, use_metahost=False,
@@ -170,7 +124,7 @@ class BaseDispatcherTest(unittest.TestCase):
             args['metahosts'] = hosts
         else:
             args['hosts'] = hosts
-        self._create_job(priority=priority, active=active, **args)
+        return self._create_job(priority=priority, active=active, **args)
 
 
     def _update_hqe(self, set, where=''):
@@ -233,7 +187,6 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
 
     def setUp(self):
         super(DispatcherSchedulingTest, self).setUp()
-        self._fill_in_test_data()
         self._jobs_scheduled = []
 
 
@@ -299,16 +252,16 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
 
     def _test_only_if_needed_labels_helper(self, use_metahosts):
         # apply only_if_needed label3 to host1
-        self._do_query('INSERT INTO hosts_labels (host_id, label_id) '
-                       'VALUES (1, 3)')
-        self._create_job_simple([1], use_metahosts)
+        label3 = models.Label.smart_get('label3')
+        models.Host.smart_get('host1').labels.add(label3)
+
+        job = self._create_job_simple([1], use_metahosts)
         # if the job doesn't depend on label3, there should be no scheduling
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 
         # now make the job depend on label3
-        self._do_query('INSERT INTO jobs_dependency_labels (job_id, label_id) '
-                       'VALUES (1, 3)')
+        job.dependency_labels.add(label3)
         self._dispatcher._schedule_new_jobs()
         self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
