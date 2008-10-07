@@ -723,7 +723,7 @@ try:
 except ImportError:
     # just make the preprocessor a nop
     def preprocess_path(path):
-        return path
+        return path.strip()
 
 
 def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
