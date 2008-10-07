@@ -402,6 +402,7 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
         'platform',
         'reason',
         'job_owner',
+        'test_started_time',
         'test_finished_time',
         'DATE(test_finished_time)',
     ]
