@@ -38,8 +38,8 @@ class _GenericBackend(object):
         self._cursor = None
 
 
-    def execute(self, query, arguments=None):
-        self._cursor.execute(query, arguments)
+    def execute(self, query, parameters=None):
+        self._cursor.execute(query, parameters)
         self.rowcount = self._cursor.rowcount
         return self._cursor.fetchall()
 
@@ -88,11 +88,15 @@ class _SqliteBackend(_GenericBackend):
         self._cursor = self._connection.cursor()
 
 
-    def execute(self, query, arguments=None):
+    def execute(self, query, parameters=None):
         # pysqlite2 uses paramstyle=qmark
         # TODO: make this more sophisticated if necessary
         query = query.replace('%s', '?')
-        return super(_SqliteBackend, self).execute(query, arguments)
+        # pysqlite2 can't handle parameters=None (it throws a nonsense
+        # exception)
+        if parameters is None:
+            parameters = ()
+        return super(_SqliteBackend, self).execute(query, parameters)
 
 
 _BACKEND_MAP = {
@@ -116,6 +120,7 @@ class DatabaseConnection(object):
     * global_config_section - the section in which to find DB information. this
       should be passed to the constructor, not set later, and may be None, in
       which case information must be passed to connect().
+    * debug - if set True, all queries will be printed before being executed
     """
     _DATABASE_ATTRIBUTES = ('db_type', 'host', 'username', 'password',
                             'db_name')
@@ -124,6 +129,7 @@ class DatabaseConnection(object):
         self.global_config_section = global_config_section
         self._backend = None
         self.rowcount = None
+        self.debug = False
 
         # reconnect defaults
         self.reconnect_enabled = True
@@ -217,6 +223,8 @@ class DatabaseConnection(object):
         Execute a query and return cursor.fetchall(). try_reconnecting, if
         passed, will override self.reconnect_enabled.
         """
+        if self.debug:
+            print 'Executing %s, %s' % (query, parameters)
         # _connect_backend() contains a retry loop, so don't loop here
         try:
             results = self._backend.execute(query, parameters)
@@ -239,12 +247,12 @@ class DatabaseConnection(object):
 
 
     @classmethod
-    def get_test_database(cls):
+    def get_test_database(cls, file_path=':memory:'):
         """
         Factory method returning a DatabaseConnection for a temporary in-memory
         database.
         """
         database = cls()
         database.reconnect_enabled = False
-        database.connect(db_type='sqlite', db_name=':memory:')
+        database.connect(db_type='sqlite', db_name=file_path)
         return database

@@ -546,8 +546,7 @@ def get_static_data():
     result['user_login'] = thread_local.get_user().login
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.Job.Status.names)
-    result['job_timeout_default'] = global_config.global_config.get_config_value(
-        'AUTOTEST_WEB', 'job_timeout_default')
+    result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
 
     result['status_dictionary'] = {"Abort": "Abort",
                                    "Aborted": "Aborted",
