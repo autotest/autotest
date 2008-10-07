@@ -2,7 +2,7 @@ from datetime import datetime
 from django.db import models as dbmodels, connection
 from frontend.afe import model_logic
 from frontend import settings, thread_local
-from autotest_lib.client.common_lib import enum, host_protections
+from autotest_lib.client.common_lib import enum, host_protections, global_config
 
 
 class AclAccessViolation(Exception):
@@ -27,9 +27,9 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     name = dbmodels.CharField(maxlength=255, unique=True)
     kernel_config = dbmodels.CharField(maxlength=255, blank=True)
     platform = dbmodels.BooleanField(default=False)
-    only_if_needed = dbmodels.BooleanField(default=False)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
+    only_if_needed = dbmodels.BooleanField(default=False)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -520,6 +520,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     dependency_labels: many-to-many relationship with labels corresponding to
                        job dependencies
     """
+    DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
+        'AUTOTEST_WEB', 'job_timeout_default', default=240)
+
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
     Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
@@ -533,14 +536,15 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                                           default=Priority.MEDIUM)
     control_file = dbmodels.TextField()
     control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
-                                              blank=True) # to allow 0
+                                              blank=True, # to allow 0
+                                              default=ControlType.CLIENT)
     created_on = dbmodels.DateTimeField(auto_now_add=True)
     synch_type = dbmodels.SmallIntegerField(
         blank=True, null=True, choices=Test.SynchType.choices())
     synch_count = dbmodels.IntegerField(blank=True, null=True)
     synchronizing = dbmodels.BooleanField(default=False)
     run_verify = dbmodels.BooleanField(default=True)
-    timeout = dbmodels.IntegerField()
+    timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
     email_list = dbmodels.CharField(maxlength=250, blank=True)
     dependency_labels = dbmodels.ManyToManyField(
         Label, blank=True, filter_interface=dbmodels.HORIZONTAL)

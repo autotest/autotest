@@ -59,16 +59,15 @@ class MigrationManager(object):
 
 
     def execute(self, query, *parameters):
-        #print 'SQL:', query % parameters
         return self._database.execute(query, parameters)
 
 
     def execute_script(self, script):
-        sql_statements = [statement.strip() for statement
-                          in script.split(';')]
+        sql_statements = [statement.strip()
+                          for statement in script.split(';')
+                          if statement.strip()]
         for statement in sql_statements:
-            if statement:
-                self.execute(statement)
+            self.execute(statement)
 
 
     def check_migrate_table_exists(self):

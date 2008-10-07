@@ -10,10 +10,12 @@ import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import host_protections, utils
+from autotest_lib.database import database_connection
 
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
+CONFIG_SECTION = 'AUTOTEST_WEB'
 
 AUTOTEST_PATH = os.path.join(os.path.dirname(__file__), '..')
 
@@ -78,7 +80,7 @@ def main():
 
     # read in base url
     global _base_url
-    val = c.get_config_value("AUTOTEST_WEB", "base_url")
+    val = c.get_config_value(CONFIG_SECTION, "base_url")
     if val:
         _base_url = val
     else:
@@ -111,9 +113,13 @@ def init(logfile):
     print "%s> dispatcher starting" % time.strftime("%X %x")
     print "My PID is %d" % os.getpid()
 
+    if _testing_mode:
+        global_config.global_config.override_config_value(
+            CONFIG_SECTION, 'database', 'stresstest_autotest_web')
+
     os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
     global _db
-    _db = DatabaseConn()
+    _db = database_connection.DatabaseConnection(CONFIG_SECTION)
     _db.connect()
 
     print "Setting signal handler"
@@ -150,73 +156,6 @@ def remove_file_or_dir(path):
     else:
         # file
         os.remove(path)
-
-
-class DatabaseConn:
-    def __init__(self):
-        self.reconnect_wait = 20
-        self.conn = None
-        self.cur = None
-
-        import MySQLdb.converters
-        self.convert_dict = MySQLdb.converters.conversions
-        self.convert_dict.setdefault(bool, self.convert_boolean)
-
-
-    @staticmethod
-    def convert_boolean(boolean, conversion_dict):
-        'Convert booleans to integer strings'
-        return str(int(boolean))
-
-
-    def connect(self, db_name=None):
-        self.disconnect()
-
-        # get global config and parse for info
-        c = global_config.global_config
-        dbase = "AUTOTEST_WEB"
-        db_host = c.get_config_value(dbase, "host")
-        if db_name is None:
-            db_name = c.get_config_value(dbase, "database")
-
-        if _testing_mode:
-            db_name = 'stresstest_autotest_web'
-
-        db_user = c.get_config_value(dbase, "user")
-        db_pass = c.get_config_value(dbase, "password")
-
-        while not self.conn:
-            try:
-                self.conn = MySQLdb.connect(
-                    host=db_host, user=db_user, passwd=db_pass,
-                    db=db_name, conv=self.convert_dict)
-
-                self.conn.autocommit(True)
-                self.cur = self.conn.cursor()
-            except MySQLdb.OperationalError:
-                traceback.print_exc()
-                print "Can't connect to MYSQL; reconnecting"
-                time.sleep(self.reconnect_wait)
-                self.disconnect()
-
-
-    def disconnect(self):
-        if self.conn:
-            self.conn.close()
-        self.conn = None
-        self.cur = None
-
-
-    def execute(self, *args, **dargs):
-        while (True):
-            try:
-                self.cur.execute(*args, **dargs)
-                return self.cur.fetchall()
-            except MySQLdb.OperationalError:
-                traceback.print_exc()
-                print "MYSQL connection died; reconnecting"
-                time.sleep(self.reconnect_wait)
-                self.connect()
 
 
 def generate_parse_command(results_dir, flags=""):
@@ -320,9 +259,9 @@ class HostScheduler(object):
         hosts = Host.fetch(
             joins='LEFT JOIN host_queue_entries AS active_hqe '
                   'ON (hosts.id = active_hqe.host_id AND '
-                      'active_hqe.active = TRUE)',
+                      'active_hqe.active)',
             where="active_hqe.host_id IS NULL "
-                  "AND hosts.locked = FALSE "
+                  "AND NOT hosts.locked "
                   "AND (hosts.status IS NULL OR hosts.status = 'Ready')")
         return dict((host.id, host) for host in hosts)
 
@@ -763,14 +702,14 @@ class Dispatcher:
 
         _db.execute(update + """
             SET host_queue_entries.status = 'Abort'
-            WHERE host_queue_entries.active IS TRUE""" + timed_out)
+            WHERE host_queue_entries.active""" + timed_out)
 
         _db.execute(update + """
             SET host_queue_entries.status = 'Aborted',
-                host_queue_entries.active = FALSE,
-                host_queue_entries.complete = TRUE
-            WHERE host_queue_entries.active IS FALSE
-                AND host_queue_entries.complete IS FALSE""" + timed_out)
+                host_queue_entries.active = 0,
+                host_queue_entries.complete = 1
+            WHERE NOT host_queue_entries.active
+                AND NOT host_queue_entries.complete""" + timed_out)
 
 
     def _clear_inactive_blocks(self):
@@ -1660,7 +1599,6 @@ class DBObject(object):
 
     @classmethod
     def fetch(cls, where='', params=(), joins='', order_by=''):
-        table = cls._get_table()
         order_by = cls._prefix_with(order_by, 'ORDER BY ')
         where = cls._prefix_with(where, 'WHERE ')
         query = ('SELECT %(table)s.* FROM %(table)s %(joins)s '
