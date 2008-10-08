@@ -432,13 +432,14 @@ public class TableView extends ConditionTabView
         for (String column : columns) {
             if (column.equals(TestGroupDataSource.GROUP_COUNT_FIELD)) {
                 groupCheckbox.setChecked(true);
+                updateCheckboxes();
             } else if (column.equals(DataTable.WIDGET_COLUMN)) {
                 statusGroupCheckbox.setChecked(true);
+                updateCheckboxes();
             } else {
                 columnSelect.selectItemByValue(column);
             }
         }
-        updateCheckboxes();
         saveOptions(true);
     }
 
