@@ -29,37 +29,7 @@ class test(common_test.base_test):
     pass
 
 
-def _get_sysinfo_dirs(mytest):
-    """ Returns (job_sysinfo_dir, test_sysinfo_dir) for a given test """
-    job_dir = mytest.job.sysinfodir
-    test_dir = os.path.join(mytest.outputdir, "sysinfo")
-    return job_dir, test_dir
-
-
-def _prepare_sysinfo(state, mytest):
-    try:
-        job_dir, test_dir = _get_sysinfo_dirs(mytest)
-        sysinfo.log_before_each_test(state, job_dir, test_dir)
-    except:
-        print "before-test error:"
-        traceback.print_exc(file=sys.stdout)
-
-
-def _grab_sysinfo(state, mytest):
-    try:
-        job_dir, test_dir = _get_sysinfo_dirs(mytest)
-        sysinfo.log_after_each_test(state, job_dir, test_dir)
-        sysinfo.log_test_keyvals(mytest, test_dir)
-        if os.path.exists(mytest.tmpdir):
-            shutil.rmtree(mytest.tmpdir, ignore_errors=True)
-    except:
-        print "after-test error:"
-        traceback.print_exc(file=sys.stdout)
-
-
 def runtest(job, url, tag, args, dargs):
-    state_dict = {}
-    before_hook = lambda t: _prepare_sysinfo(state_dict, t)
-    after_hook = lambda t: _grab_sysinfo(state_dict, t)
-    common_test.runtest(job, url, tag, args, dargs,
-                        locals(), globals(), before_hook, after_hook)
+    common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
+                        job.sysinfo.log_before_each_test,
+                        job.sysinfo.log_after_each_test)
