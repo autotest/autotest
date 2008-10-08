@@ -193,12 +193,12 @@ class parser(base.parser):
                     continue
                 stack.start()
                 started_time = line.get_timestamp()
-                if (line.testname, line.subdir) == (None, None):
+                if (line.testname is None and line.subdir is None
+                    and not running_test):
                     # we just started a client, all tests are relative to here
                     min_stack_size = stack.size()
-                elif stack.size() == min_stack_size + 1:
+                elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
-                    assert(running_test is None)
                     running_test = test.parse_partial_test(self.job,
                                                            line.subdir,
                                                            line.testname,
@@ -244,7 +244,8 @@ class parser(base.parser):
                     continue
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
-                if (line.testname, line.subdir) == (None, None):
+                if (line.testname is None and line.subdir is None
+                    and not running_test):
                     min_stack_size = stack.size() - 1
                     subdir_stack.pop()
                 else:
