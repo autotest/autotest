@@ -45,6 +45,7 @@ class TestBaseJob(unittest.TestCase):
 
         self.god.stub_class(config, 'config')
         self.god.stub_class(boottool, 'boottool')
+        self.god.stub_class(sysinfo, 'sysinfo')
 
 
     def tearDown(self):
@@ -69,7 +70,7 @@ class TestBaseJob(unittest.TestCase):
         results = os.path.join(self.autodir, 'results')
         download = os.path.join(self.autodir, 'tests', 'download')
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
-        sysinfodir = os.path.join(resultdir, 'sysinfo')
+        job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
         pkgdir = os.path.join(self.autodir, 'packages')
 
         # record
@@ -88,7 +89,6 @@ class TestBaseJob(unittest.TestCase):
             os.path.exists.expect_call(resultdir).and_return(True)
             utils.system.expect_call('rm -rf ' + resultdir)
             os.mkdir.expect_call(resultdir)
-            os.mkdir.expect_call(sysinfodir)
             os.mkdir.expect_call(os.path.join(resultdir, 'debug'))
             os.mkdir.expect_call(os.path.join(resultdir,
                                               'analysis'))
@@ -104,7 +104,7 @@ class TestBaseJob(unittest.TestCase):
         self.job.config_get.expect_call(
                 'boottool.executable').and_return(None)
         bootloader = boottool.boottool.expect_new(None)
-        sysinfo.log_per_reboot_data.expect_call(sysinfodir)
+        job_sysinfo.log_per_reboot_data.expect_call()
         if not cont:
             self.job.record.expect_call('START', None, None)
             self.job._increment_group_level.expect_call()

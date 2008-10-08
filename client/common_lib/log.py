@@ -1,10 +1,4 @@
-"""\
-Logging helper tools.
-"""
-
-import re
-
-__author__ = 'jadmanski@google.com (John Admanski)'
+import sys, re, traceback
 
 
 job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
@@ -53,3 +47,17 @@ def record(fn):
             raise
         return result
     return recorded_func
+
+
+def log_and_ignore_errors(msg):
+    """ A decorator for wrapping functions in a 'log exception and ignore'
+    try-except block. """
+    def decorator(fn):
+        def decorated_func(*args, **dargs):
+            try:
+                fn(*args, **dargs)
+            except Exception:
+                print msg
+                traceback.print_exc(file=sys.stdout)
+        return decorated_func
+    return decorator
