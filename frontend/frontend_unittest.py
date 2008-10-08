@@ -1,26 +1,15 @@
 #!/usr/bin/python
 
-"""
-This file provides a unittest.TestCase wrapper around the Django unit test
-runner.
-"""
-import unittest
+import unittest, os
 from django.core import management
 import common
-
-def setup_test_environ():
-    from autotest_lib.frontend import settings
-    management.setup_environ(settings)
-    from django.conf import settings
-    # django.conf.settings.LazySettings is buggy and requires us to get
-    # something from it before we set stuff on it
-    getattr(settings, 'DATABASE_ENGINE')
-    settings.DATABASE_ENGINE = 'sqlite3'
-    settings.DATABASE_NAME = ':memory:'
+from autotest_lib.frontend import django_test_utils
 
 # must call setup_test_environ() before importing any Django code
-setup_test_environ()
+django_test_utils.setup_test_environ()
 from autotest_lib.frontend.afe import test, readonly_connection
+
+_APP_DIR = os.path.join(os.path.dirname(__file__), 'afe')
 
 class FrontendTest(unittest.TestCase):
     def setUp(self):
@@ -32,8 +21,10 @@ class FrontendTest(unittest.TestCase):
 
 
     def test_all(self):
-        errors = test.run_tests()
+        doctest_runner = test.DoctestRunner(_APP_DIR, 'frontend.afe')
+        errors = doctest_runner.run_tests()
         self.assert_(errors == 0, '%s failures in frontend unit tests' % errors)
+
 
 if __name__ == '__main__':
     unittest.main()

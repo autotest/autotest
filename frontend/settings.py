@@ -109,10 +109,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
 )
 
-# you'll need to grant your database user permissions on database
-# test_<normal database name> to run tests
-TEST_RUNNER = 'frontend.afe.test.run_tests'
-
 AUTHENTICATION_BACKENDS = (
     'frontend.apache_auth.SimpleAuthBackend',
 )
