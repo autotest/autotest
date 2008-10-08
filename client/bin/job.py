@@ -105,7 +105,7 @@ class base_job(object):
         self.tmpdir = os.path.join(self.autodir, 'tmp')
         self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', jobtag)
-        self.sysinfodir = os.path.join(self.resultdir, 'sysinfo')
+        self.sysinfo = sysinfo.sysinfo(self.resultdir)
         self.control = os.path.abspath(control)
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
@@ -143,7 +143,6 @@ class base_job(object):
             if os.path.exists(self.resultdir):
                 utils.system('rm -rf ' + self.resultdir)
             os.mkdir(self.resultdir)
-            os.mkdir(self.sysinfodir)
 
             os.mkdir(os.path.join(self.resultdir, 'debug'))
             os.mkdir(os.path.join(self.resultdir, 'analysis'))
@@ -172,7 +171,7 @@ class base_job(object):
         except:
             pass
 
-        sysinfo.log_per_reboot_data(self.sysinfodir)
+        self.sysinfo.log_per_reboot_data()
 
         if not cont:
             self.record('START', None, None)
