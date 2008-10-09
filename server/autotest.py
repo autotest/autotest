@@ -18,7 +18,7 @@ import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
 
 from autotest_lib.server import installable_object, utils, server_job
 from autotest_lib.client.common_lib import log
-from autotest_lib.client.common_lib import error, global_config, packages, debug
+from autotest_lib.client.common_lib import error, global_config, packages
 
 
 
@@ -49,7 +49,6 @@ class BaseAutotest(installable_object.InstallableObject):
         self.installed = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
-        self.server_log = debug.get_logger(module='server')
 
 
     @log.record

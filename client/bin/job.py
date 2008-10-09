@@ -13,7 +13,7 @@ from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
 from autotest_lib.client.common_lib import error, barrier, log, utils
-from autotest_lib.client.common_lib import packages, debug
+from autotest_lib.client.common_lib import packages
 
 JOB_PREAMBLE = """
 from autotest_lib.client.common_lib.error import *
@@ -117,7 +117,6 @@ class base_job(object):
         self.pkgdir = os.path.join(self.autodir, 'packages')
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
-        self.job_log = debug.get_logger(module='client')
 
         if not cont:
             """
@@ -359,17 +358,13 @@ class base_job(object):
 
     def _runtest(self, url, tag, args, dargs):
         try:
-            try:
-                l = lambda : test.runtest(self, url, tag, args, dargs)
-                pid = parallel.fork_start(self.resultdir, l)
-                parallel.fork_waitfor(self.resultdir, pid)
-            except error.TestBaseException:
-                raise
-            except Exception, e:
-                raise error.UnhandledTestError(e)
-        finally:
-            # Reset the logging level to client level
-            debug.configure(module='client')
+            l = lambda : test.runtest(self, url, tag, args, dargs)
+            pid = parallel.fork_start(self.resultdir, l)
+            parallel.fork_waitfor(self.resultdir, pid)
+        except error.TestBaseException:
+            raise
+        except Exception, e:
+            raise error.UnhandledTestError(e)
 
 
     @_run_test_complete_on_exit
