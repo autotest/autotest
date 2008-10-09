@@ -14,9 +14,6 @@ client = INFO
 test = DEBUG
 """
 
-__author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
-
-
 import ConfigParser, logging, os, sys
 
 
