@@ -538,7 +538,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
                                               blank=True, # to allow 0
                                               default=ControlType.CLIENT)
-    created_on = dbmodels.DateTimeField(auto_now_add=True)
+    created_on = dbmodels.DateTimeField()
     synch_type = dbmodels.SmallIntegerField(
         blank=True, null=True, choices=Test.SynchType.choices())
     synch_count = dbmodels.IntegerField(blank=True, null=True)
@@ -571,7 +571,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
             synch_type=synch_type, timeout=timeout,
-            run_verify=run_verify, email_list=email_list)
+            run_verify=run_verify, email_list=email_list,
+            created_on=datetime.now())
 
         if job.synch_type == Test.SynchType.SYNCHRONOUS:
             job.synch_count = len(hosts)
@@ -677,9 +678,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     queue_entry = dbmodels.OneToOneField(HostQueueEntry, primary_key=True)
     aborted_by = dbmodels.ForeignKey(User)
-    aborted_on = dbmodels.DateTimeField(auto_now_add=True)
+    aborted_on = dbmodels.DateTimeField()
 
     objects = model_logic.ExtendedManager()
+
+
+    def save(self):
+        self.aborted_on = datetime.now()
+        super(AbortedHostQueueEntry, self).save()
 
     class Meta:
         db_table = 'aborted_host_queue_entries'
