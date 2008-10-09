@@ -34,7 +34,6 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "chdir")
         self.god.stub_function(os, "makedirs")
         self.god.stub_function(os, "remove")
-        self.god.stub_function(os.path, "abspath")
         self.god.stub_function(os.path, "exists")
         self.god.stub_function(utils, "sh_escape")
         self.god.stub_function(autotest, "open")
@@ -57,6 +56,9 @@ class TestBaseAutotest(unittest.TestCase):
 
         # create the autotest object
         self.base_autotest = autotest.BaseAutotest(self.host)
+
+        # stub out abspath
+        self.god.stub_function(os.path, "abspath")
 
         # check
         self.god.check_playback()
