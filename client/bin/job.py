@@ -359,13 +359,14 @@ class base_job(object):
 
     def _runtest(self, url, tag, args, dargs):
         try:
-            l = lambda : test.runtest(self, url, tag, args, dargs)
-            pid = parallel.fork_start(self.resultdir, l)
-            parallel.fork_waitfor(self.resultdir, pid)
-        except error.TestBaseException:
-            raise
-        except Exception, e:
-            raise error.UnhandledTestError(e)
+            try:
+                l = lambda : test.runtest(self, url, tag, args, dargs)
+                pid = parallel.fork_start(self.resultdir, l)
+                parallel.fork_waitfor(self.resultdir, pid)
+            except error.TestBaseException:
+                raise
+            except Exception, e:
+                raise error.UnhandledTestError(e)
         finally:
             # Reset the logging level to client level
             debug.configure(module='client')
