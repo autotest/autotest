@@ -20,7 +20,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
 
-from autotest_lib.client.common_lib import error, pxssh, global_config, debug
+from autotest_lib.client.common_lib import error, pxssh, global_config
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host, bootloader
 
@@ -73,7 +73,6 @@ class SSHHost(site_host.SiteHost):
         self.tmp_dirs = []
         self.autodir = autodir
         self.password = password
-        self.ssh_host_log = debug.get_logger()
 
         self.start_loggers()
 
@@ -182,7 +181,7 @@ class SSHHost(site_host.SiteHost):
         """
         stdout = stdout_tee or sys.stdout
         stderr = stderr_tee or sys.stdout
-        self.ssh_host_log.debug("ssh: %s" % command)
+        print "ssh: %s" % command
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             try:
