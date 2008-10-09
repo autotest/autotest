@@ -21,7 +21,7 @@ stutsman@google.com (Ryan Stutsman)
 import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
 
 from autotest_lib.client.common_lib import error, pxssh, global_config, debug
-from autotest_lib.server import utils
+from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host, bootloader
 
 
