@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, time, subprocess, os, StringIO, tempfile
+import unittest, time, subprocess, os, StringIO, tempfile, datetime
 import MySQLdb
 import common
 from autotest_lib.client.common_lib import global_config, host_protections
@@ -102,9 +102,11 @@ class BaseDispatcherTest(unittest.TestCase):
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=0,
                     synchronous=False):
         synch_type = synchronous and 2 or 1
+        created_on = datetime.datetime(2008, 1, 1)
         job = models.Job.objects.create(name='test', owner='my_user',
                                         priority=priority,
-                                        synch_type=synch_type)
+                                        synch_type=synch_type,
+                                        created_on=created_on)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, priority=priority,
                                                  host_id=host_id, active=active)
