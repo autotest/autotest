@@ -18,7 +18,7 @@
 
 import os, sys, re, fcntl, shutil, tarfile, time, warnings, tempfile
 
-from autotest_lib.client.common_lib import error, utils, packages
+from autotest_lib.client.common_lib import error, utils, packages, debug
 from autotest_lib.client.bin import autotest_utils
 
 
@@ -42,6 +42,7 @@ class base_test:
             self.libdir = job.libdir
         self.srcdir = os.path.join(self.bindir, 'src')
         self.tmpdir = tempfile.mkdtemp("_" + tagged_testname, dir=job.tmpdir)
+        self.test_log = debug.get_logger(module='tests')
 
 
     def assert_(self, expr, msg='Assertion failed.'):
