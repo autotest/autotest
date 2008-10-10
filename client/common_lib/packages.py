@@ -339,9 +339,16 @@ class BasePackageManager(object):
         basically served by that web server.
         '''
         try:
-            shutil.copy(file_path, upload_path)
-            os.chmod(os.path.join(upload_path,
-                                  os.path.basename(file_path)), 0755)
+            if upload_path.startswith('ssh://'):
+                # parse ssh://user@host/usr/local/autotest/packages
+                hostline, remote_path = self._parse_ssh_path(upload_path)
+                utils.run('scp %s %s:%s' % (file_path, hostline, remote_path))
+                r_path = os.path.join(remote_path, os.path.basename(file_path))
+                utils.run("ssh %s 'chmod 644 %s'" % (hostline, r_path))
+            else:
+                shutil.copy(file_path, upload_path)
+                os.chmod(os.path.join(upload_path,
+                                      os.path.basename(file_path)), 0644)
         except (IOError, os.error), why:
             raise PackageUploadError("Upload of %s to %s failed: %s"
                                      % (file_path, upload_path, why))
@@ -356,9 +363,18 @@ class BasePackageManager(object):
         the method is being called from. The upload_path's files are
         basically served by that web server.
         '''
+        local_path = os.path.join(dir_path, "*")
         try:
-            utils.run("cp %s/* %s " % (dir_path, upload_path))
-            utils.run("chmod 644 %s/*" % upload_path)
+            if upload_path.startswith('ssh://'):
+                hostline, remote_path = self._parse_ssh_path(upload_path)
+                utils.run('scp %s %s:%s' % (local_path, hostline,
+                                              remote_path))
+                ssh_path = os.path.join(remote_path, "*")
+                utils.run("ssh %s 'chmod 644 %s'" % (hostline, ssh_path))
+            else:
+                utils.run("cp %s %s " % (local_path, upload_path))
+                up_path = os.path.join(upload_path, "*")
+                utils.run("chmod 644 %s" % up_path)
         except (IOError, os.error), why:
             raise PackageUploadError("Upload of %s to %s failed: %s"
                                      % (dir_path, upload_path, why))
@@ -396,7 +412,13 @@ class BasePackageManager(object):
         '''
         try:
             # Remove the file
-            os.remove(os.path.join(pkg_dir, file_name))
+            if pkg_dir.startswith('ssh://'):
+                hostline, remote_path = self._parse_ssh_path(pkg_dir)
+                path = os.path.join(remote_path, file_name)
+                utils.run("ssh %s 'rm -rf %s/%s'" % (hostline, remote_path,
+                          path))
+            else:
+                os.remove(os.path.join(pkg_dir, file_name))
         except (IOError, os.error), why:
             raise PackageRemoveError("Could not remove %s from %s: %s "
                                      % (file_name, pkg_dir, why))
@@ -471,6 +493,19 @@ class BasePackageManager(object):
         # Write the checksum file back to disk
         self._run_command('echo "%s" > %s' % (checksum_contents,
                                               checksum_path))
+
+    def _parse_ssh_path(self, pkg_path):
+        '''
+        Parse ssh://xx@xx/path/to/ and return a tuple with host_line and 
+        remote path
+        '''
+
+        match = re.search('^ssh://(.*?)(/.*)$', pkg_path)
+        if match:
+            return match.groups()
+        else:
+            raise PackageUploadError("Incorrect SSH path in global_config: %s"
+                                     % upload_path)
 
 
     def compute_checksum(self, pkg_path):
