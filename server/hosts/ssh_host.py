@@ -127,7 +127,7 @@ class SSHHost(site_host.SiteHost):
         """Helper function for run()."""
 
         ssh_cmd = self.ssh_command(connect_timeout, options)
-        echo_cmd = 'echo Connected. >&2'
+        echo_cmd = "echo \`date '+%m/%d/%y %H:%M:%S'\` Connected. >&2"
         if not env.strip():
             env = ""
         else:
