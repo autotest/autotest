@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 #
 # Copyright 2008 Google Inc. All Rights Reserved.
 
@@ -591,6 +591,28 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_no=['Uploading', 'Done'])
 
 
+    def test_execute_create_job_with_control_and_email(self):
+        data = self.data.copy()
+        data['email_list'] = 'em'
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-e', 'em'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_with_control_and_dependencies(self):
+        data = self.data.copy()
+        data['dependencies'] = ['dep1', 'dep2']
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-d', 'dep1, dep2 '],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
     def test_execute_create_job_with_kernel(self):
         data = self.data.copy()
         data['control_file'] = self.kernel_ctrl_file
@@ -697,6 +719,16 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.god.mock_io()
         sys.exit.expect_call(1).and_raises(IOError)
         self.assertRaises(IOError, testjob.parse)
+        self.god.unmock_io()
+
+
+    def test_execute_create_job_test_and_dep(self):
+        testjob = job.job_create()
+        sys.argv = ['atest', 'job', 'create', '-t', 'test1, test2 ',
+                    'test_job0', '-m', 'host0', '--dependencies', 'dep1,dep2']
+        self.god.mock_io()
+        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
 
 
