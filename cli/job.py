@@ -230,6 +230,9 @@ class job_create(action_common.atest_create, job):
                                help='List of tests to run')
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
+        self.parser.add_option('-d', '--dependencies', help='Comma separated '
+                               'list of dependencies for this test.',
+                               default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
                                'run on')
         self.parser.add_option('-M', '--mlist',
@@ -288,11 +291,26 @@ class job_create(action_common.atest_create, job):
             if options.container:
                 self.invalid_syntax('Containers (--container) can only be added'
                                     ' with --test, not --control-file.')
+            deps = options.dependencies.split(',')
+            deps = [dep.strip() for dep in deps if dep.strip()]
+            self.data['dependencies'] = deps
             try:
                 self.data['control_file'] = open(options.control_file).read()
             except IOError:
                 self.generic_error('Unable to read from specified '
                                    'control-file: %s' % options.control_file)
+        if options.test:
+            if options.server or options.synchronous or options.dependencies:
+                self.invalid_syntax('If you specify tests, the client/server, '
+                                    'synchronous, and dependency settings are '
+                                    'implicit and  cannot be overriden.')
+            tests = [t.strip() for t in options.test.split(',') if t.strip()]
+            self.ctrl_file_data = {'tests': tests}
+            if options.kernel:
+                self.ctrl_file_data['kernel'] = options.kernel
+                self.ctrl_file_data['do_push_packages'] = True
+            self.ctrl_file_data['use_container'] = options.container
+
 
         if options.priority:
             self.data['priority'] = options.priority.capitalize()
@@ -313,21 +331,6 @@ class job_create(action_common.atest_create, job):
             self.data['control_type'] = 'Server'
         else:
             self.data['control_type'] = 'Client'
-
-        if options.test:
-            if options.server or options.synchronous:
-                self.invalid_syntax('Must specify a control file (--control-'
-                                    'file) for jobs that are synchronous or '
-                                    'server jobs.')
-            self.ctrl_file_data = {'tests': options.test.split(',')}
-            if options.kernel:
-                self.ctrl_file_data['kernel'] = options.kernel
-                self.ctrl_file_data['do_push_packages'] = True
-            self.ctrl_file_data['use_container'] = options.container
-
-        # TODO: add support for manually specifying dependencies, when this is
-        # added to the frontend as well
-        self.data['dependencies'] = []
 
         return (options, leftover)
 
