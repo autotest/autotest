@@ -226,8 +226,8 @@ def main():
     if len(upload_paths) == 0:
         return
 
-    pkgmgr = packages.PackageManager(autotest_dir, repo_urls,
-                                     upload_paths,
+    pkgmgr = packages.PackageManager(autotest_dir, repo_urls=repo_urls,
+                                     upload_paths=upload_paths,
                                      run_function_dargs={'timeout':600})
 
     client_dir = os.path.join(autotest_dir, "client")
