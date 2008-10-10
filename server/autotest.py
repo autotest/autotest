@@ -1,17 +1,9 @@
-#!/usr/bin/python
-#
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 """
 This module defines the Autotest class
 
         Autotest: software to run tests automatically
-"""
-
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
 """
 
 import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
@@ -53,28 +45,31 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     @log.record
-    def install(self, host = None):
+    def install(self, host=None):
+        self._install(host=host)
+
+
+    def install_base(self, host=None, autodir=None):
+        """ Performs a lightweight autotest install. Useful for when you
+        want to run some client-side code but don't want to pay the cost
+        of a full installation. """
+        self._install(host=host, autodir=autodir, lightweight=True)
+
+
+    def _install(self, host=None, autodir=None, lightweight=False):
         """
         Install autotest.  If get() was not called previously, an
         attempt will be made to install from the autotest svn
         repository.
 
         Args:
-                host: a Host instance on which autotest will be
-                        installed
+            host: a Host instance on which autotest will be installed
+            autodir: location on the remote host to install to
+            lightweight: exclude tests, deps and profilers, if possible
 
         Raises:
-                AutoservError: if a tarball was not specified and
-                        the target host does not have svn installed in its path
-
-        TODO(poirier): check dependencies
-        autotest needs:
-        bzcat
-        liboptdev (oprofile)
-        binutils-dev (oprofile)
-        make
-        psutils (netperf)
-        """
+            AutoservError: if a tarball was not specified and
+                the target host does not have svn installed in its path"""
         if not host:
             host = self.host
         if not self.got:
@@ -83,17 +78,13 @@ class BaseAutotest(installable_object.InstallableObject):
         host.setup()
         print "Installing autotest on %s" % host.hostname
 
-        # Let's try to figure out where autotest is installed. If we can't,
-        # (autotest not installed) just assume '/usr/local/autotest' and
-        # proceed.
-        try:
-            autodir = _get_autodir(host)
-        except error.AutotestRunError:
-            autodir = '/usr/local/autotest'
-
-        # Make the host object know as to where autotest is installed
+        # set up the autotest directory on the remote machine
+        if not autodir:
+            try:
+                autodir = _get_autodir(host)
+            except error.AutotestRunError:
+                autodir = '/usr/local/autotest'
         host.set_autodir(autodir)
-
         host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
         # Fetch the autotest client from the nearest repository
@@ -126,7 +117,23 @@ class BaseAutotest(installable_object.InstallableObject):
         if self.source_material:
             if os.path.isdir(self.source_material):
                 # Copy autotest recursively
-                host.send_file(self.source_material, autodir)
+                if lightweight:
+                    dirs_to_exclude = set(["tests", "site_tests", "deps",
+                                           "tools", "profilers"])
+                    light_files = [os.path.join(self.source_material, f)
+                                   for f in os.listdir(self.source_material)
+                                   if f not in dirs_to_exclude]
+                    host.send_file(light_files, autodir)
+
+                    # create empty dirs for all the stuff we excluded
+                    commands = []
+                    for path in dirs_to_exclude:
+                        abs_path = os.path.join(autodir, path)
+                        abs_path = utils.sh_escape(abs_path)
+                        commands.append("mkdir -p '%s'" % abs_path)
+                    host.run(';'.join(commands))
+                else:
+                    host.send_file(self.source_material, autodir)
             else:
                 # Copy autotest via tarball
                 e_msg = 'Installation method not yet implemented!'
