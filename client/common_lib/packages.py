@@ -245,7 +245,7 @@ class BasePackageManager(object):
 
         pkg_path = os.path.join(source_url, file_name)
         try:
-            self._run_command('wget %s -O %s' % (pkg_path, dest_path))
+            self._run_command('wget -nv %s -O %s' % (pkg_path, dest_path))
         except error.CmdError, e:
             raise PackageFetchError("Package - %s not found in %s: %s"
                                     % (file_name, source_url, e))
