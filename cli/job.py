@@ -235,6 +235,9 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-M', '--mlist',
                                help='File listing machines to use',
                                type='string', metavar='MACHINE_FLIST')
+        self.parser.add_option('-e', '--email', help='A comma seperated list '
+                               'of email addresses to notify of job completion',
+                               default='')
 
 
     def parse_hosts(self, args):
@@ -304,6 +307,7 @@ class job_create(action_common.atest_create, job):
          self.data['meta_hosts']) = self.parse_hosts(self.hosts)
 
 
+        self.data['email_list'] = options.email
         self.data['is_synchronous'] = options.synchronous
         if options.server:
             self.data['control_type'] = 'Server'
