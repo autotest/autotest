@@ -159,7 +159,7 @@ class SSHHost(site_host.SiteHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=None, stderr_tee=None, connect_timeout=30):
+            stdout_tee=None, stderr_tee=None, connect_timeout=30, options=''):
         """
         Run a command on the remote host.
 
@@ -189,7 +189,7 @@ class SSHHost(site_host.SiteHost):
                 return self._run(command, timeout,
                                  ignore_status, stdout,
                                  stderr, connect_timeout,
-                                 env, '')
+                                 env, options)
             except PermissionDeniedError:
                 print("Permission denied to ssh; re-running"
                       "with increased logging:")
