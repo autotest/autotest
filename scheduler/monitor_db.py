@@ -1321,11 +1321,10 @@ class VerifySynchronousTask(VerifyTask):
                 # already been marked as stopped
                 return
 
-            self.queue_entry.set_status('Pending')
-            job = self.queue_entry.job
-            if job.is_ready():
-                agent = job.run(self.queue_entry)
+            agent = self.queue_entry.on_pending()
+            if agent:
                 self.agent.dispatcher.add_agent(agent)
+
 
 class QueueTask(AgentTask):
     def __init__(self, job, queue_entries, cmd):
@@ -1895,6 +1894,18 @@ class HostQueueEntry(DBObject):
             self._aborted_by = self._aborted_on = None
 
 
+    def on_pending(self):
+        """
+        Called when an entry in a synchronous job has passed verify.  If the
+        job is ready to run, returns an agent to run the job.  Returns None
+        otherwise.
+        """
+        self.set_status('Pending')
+        if self.job.is_ready():
+            return self.job.run(self)
+        return None
+
+
 class Job(DBObject):
     def __init__(self, id=None, row=None):
         assert id or row
@@ -1950,22 +1961,7 @@ class Job(DBObject):
             return True
         sql = "job_id=%s AND status='Pending'" % self.id
         count = self.count(sql, table='host_queue_entries')
-        return (count == self.synch_count)
-
-
-    def ready_to_synchronize(self):
-        # heuristic
-        queue_entries = self.get_host_queue_entries()
-        count = 0
-        for queue_entry in queue_entries:
-            if queue_entry.status == 'Pending':
-                count += 1
-
-        return (count/self.synch_count >= 0.5)
-
-
-    def start_synchronizing(self):
-        self.update_field('synchronizing', True)
+        return (count == self.num_machines())
 
 
     def results_dir(self):
@@ -1995,10 +1991,6 @@ class Job(DBObject):
         print "%s: %s machines left" % (self.name, left)
         return left==0
 
-    def stop_synchronizing(self):
-        self.update_field('synchronizing', False)
-        self.set_status('Queued', update_queues = False)
-
 
     def stop_all_entries(self):
         for child_entry in self.get_host_queue_entries():
@@ -2027,63 +2019,76 @@ class Job(DBObject):
         return self.job_dir
 
 
-    def run(self, queue_entry):
-        results_dir = self.create_results_dir(queue_entry)
-
-        if self.is_synchronous():
-            if not self.is_ready():
-                return Agent([VerifySynchronousTask(
-                                queue_entry=queue_entry,
-                                run_verify=self.run_verify)],
-                             [queue_entry.id])
-
-        queue_entry.set_status('Starting')
-
-        ctrl = open(os.tmpnam(), 'w')
+    def _write_control_file(self):
+        'Writes control file out to disk, returns a filename'
+        control_fd, control_filename = tempfile.mkstemp(suffix='.control_file')
+        control_file = os.fdopen(control_fd, 'w')
         if self.control_file:
-            ctrl.write(self.control_file)
-        else:
-            ctrl.write("")
-        ctrl.flush()
+            control_file.write(self.control_file)
+        control_file.close()
+        return control_filename
 
-        if self.is_synchronous():
-            queue_entries = self.get_host_queue_entries()
+
+    def _get_job_tag(self, queue_entries):
+        base_job_tag = "%s-%s" % (self.id, self.owner)
+        if self.is_synchronous() or self.num_machines() == 1:
+            return base_job_tag
         else:
-            assert queue_entry
-            queue_entries = [queue_entry]
+            return base_job_tag + '/' + queue_entries[0].get_host().hostname
+
+
+    def _get_autoserv_params(self, queue_entries):
+        results_dir = self.create_results_dir(queue_entries[0])
+        control_filename = self._write_control_file()
         hostnames = ','.join([entry.get_host().hostname
                               for entry in queue_entries])
+        job_tag = self._get_job_tag(queue_entries)
 
-        # determine the job tag
-        if self.is_synchronous() or self.num_machines() == 1:
-            job_name = "%s-%s" % (self.id, self.owner)
-        else:
-            job_name = "%s-%s/%s" % (self.id, self.owner,
-                                     hostnames)
-
-        params = [_autoserv_path, '-P', job_name, '-p', '-n',
+        params = [_autoserv_path, '-P', job_tag, '-p', '-n',
                   '-r', os.path.abspath(results_dir),
                   '-b', '-u', self.owner, '-l', self.name,
-                  '-m', hostnames, ctrl.name]
+                  '-m', hostnames, control_filename]
 
         if not self.is_server_job():
             params.append('-c')
 
-        tasks = []
-        if not self.is_synchronous():
-            tasks.append(VerifyTask(queue_entry, run_verify=self.run_verify))
+        return params
 
-        tasks.append(QueueTask(job=self,
-                               queue_entries=queue_entries,
-                               cmd=params))
 
-        ids = []
-        for entry in queue_entries:
-            ids.append(entry.id)
+    def _run_synchronous(self, queue_entry):
+        if not self.is_ready():
+            return Agent([VerifySynchronousTask(queue_entry=queue_entry,
+                                                run_verify=self.run_verify)],
+                         [queue_entry.id])
 
-        agent = Agent(tasks, ids, num_processes=len(queue_entries))
+        queue_entry.set_status('Starting')
 
-        return agent
+        return self._finish_run(self.get_host_queue_entries())
+
+
+    def _run_asynchronous(self, queue_entry):
+        # TODO(showard): this is of questionable necessity, but in the interest
+        # of lowering risk, I'm leaving it in for now
+        assert queue_entry
+
+        initial_tasks = [VerifyTask(queue_entry, run_verify=self.run_verify)]
+        return self._finish_run([queue_entry], initial_tasks)
+
+
+    def _finish_run(self, queue_entries, initial_tasks=[]):
+        params = self._get_autoserv_params(queue_entries)
+        queue_task = QueueTask(job=self, queue_entries=queue_entries,
+                               cmd=params)
+        tasks = initial_tasks + [queue_task]
+        entry_ids = [entry.id for entry in queue_entries]
+
+        return Agent(tasks, entry_ids, num_processes=len(queue_entries))
+
+
+    def run(self, queue_entry):
+        if self.is_synchronous():
+            return self._run_synchronous(queue_entry)
+        return self._run_asynchronous(queue_entry)
 
 
 if __name__ == '__main__':
