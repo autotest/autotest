@@ -11,6 +11,7 @@ import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.DoubleListSelector.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
@@ -44,7 +45,7 @@ import java.util.Map;
 
 public class SpreadsheetView extends ConditionTabView 
                              implements SpreadsheetListener, TableActionsListener, 
-                                        CommonPanelListener {
+                                        CommonPanelListener, SelectionPanelListener {
     private static final String HISTORY_ONLY_LATEST = "show_only_latest";
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
@@ -74,7 +75,7 @@ public class SpreadsheetView extends ConditionTabView
         new SpreadsheetDataProcessor(spreadsheet);
     private SpreadsheetSelectionManager selectionManager = 
         new SpreadsheetSelectionManager(spreadsheet, null);
-    private TableActionsPanel actionsPanel = new TableActionsPanel(this, false);
+    private TableActionsPanel actionsPanel = new TableActionsPanel(false);
     private RootPanel jobCompletionPanel;
     private boolean currentShowIncomplete;
     private boolean notYetQueried = true;
@@ -93,6 +94,9 @@ public class SpreadsheetView extends ConditionTabView
     public void initialize() {
         normalDataSource.setSkipNumResults(true);
         latestDataSource.setSkipNumResults(true);
+        
+        actionsPanel.setActionsListener(this);
+        actionsPanel.setSelectionListener(this);
         
         currentRowFields = new HeaderImpl();
         currentRowFields.add(DEFAULT_ROW);

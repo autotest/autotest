@@ -1,26 +1,32 @@
 package autotest.afe;
 
+import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
+import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.RpcDataSource;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DataCallback;
 import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.RootPanel;
 
-public class HostDetailView extends DetailView implements DataCallback {
+public class HostDetailView extends DetailView implements DataCallback, TableActionsListener {
     private static final String[][] HOST_JOBS_COLUMNS = {
-            {"job_id", "Job ID"}, {"job_owner", "Job Owner"}, 
+            {DataTable.WIDGET_COLUMN, ""}, {"job_id", "Job ID"}, {"job_owner", "Job Owner"}, 
             {"job_name", "Job Name"}, {"status", "Status"}
     };
     public static final int JOBS_PER_PAGE = 20;
@@ -53,6 +59,7 @@ public class HostDetailView extends DetailView implements DataCallback {
     protected TableDecorator tableDecorator = new TableDecorator(jobsTable);
     protected SimpleFilter hostFilter = new SimpleFilter();
     protected HostDetailListener listener = null;
+    private SelectionManager selectionManager;
 
     public HostDetailView(HostDetailListener listener) {
         this.listener = listener;
@@ -153,10 +160,31 @@ public class HostDetailView extends DetailView implements DataCallback {
             public void onTableRefreshed() {}
         });
         tableDecorator.addPaginators();
+        selectionManager = tableDecorator.addSelectionManager(false);
+        jobsTable.setWidgetFactory(selectionManager);
+        tableDecorator.addTableActionsPanel(this, true);
         RootPanel.get("view_host_jobs_table").add(tableDecorator);
     }
 
     public void onError(JSONObject errorObject) {
         // RPC handler will display error
+    }
+
+    public ContextMenu getActionMenu() {
+        ContextMenu menu = new ContextMenu();
+        menu.addItem("Abort job entries", new Command() {
+            public void execute() {
+                abortSelectedQueueEntries();
+            }
+        });
+        return menu;
+    }
+
+    private void abortSelectedQueueEntries() {
+        AfeUtils.abortHostQueueEntries(selectionManager.getSelectedObjects(), new SimpleCallback() {
+            public void doCallback(Object source) {
+                refresh();
+            } 
+        });
     }
 }

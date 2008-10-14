@@ -365,7 +365,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     def check_for_acl_violation_hosts(hosts):
         user = thread_local.get_user()
         if user.is_superuser():
-            return None
+            return
         accessible_host_ids = set(
             host.id for host in Host.objects.filter(acl_group__users=user))
         for host in hosts:
@@ -375,6 +375,19 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                 and int(host.id) not in accessible_host_ids):
                 raise AclAccessViolation("You do not have access to %s"
                                          % str(host))
+
+
+    @staticmethod
+    def check_for_acl_violation_queue_entries(queue_entries):
+        user = thread_local.get_user()
+        if user.is_superuser():
+            return
+        for queue_entry in queue_entries:
+            job = queue_entry.job
+            if user.login != job.owner:
+                raise AclAccessViolation('You cannot abort job %d owned by %s' %
+                                         (job.id, job.owner))
+
 
     def check_for_acl_violation_acl_group(self):
         user = thread_local.get_user()
@@ -591,14 +604,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         'Enqueue a job on the given hosts.'
         for host in hosts:
             host.enqueue_job(self)
-
-
-    def abort(self):
-        user = thread_local.get_user()
-        if not user.is_superuser() and user.login != self.owner:
-            raise AclAccessViolation("You cannot abort other people's jobs!")
-        for queue_entry in self.hostqueueentry_set.all():
-            queue_entry.abort(user)
 
 
     def user(self):

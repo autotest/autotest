@@ -1,25 +1,22 @@
 package autotest.afe;
 
-import autotest.common.JsonRpcCallback;
-import autotest.common.JsonRpcProxy;
 import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.Paginator;
 import autotest.common.ui.TabView;
-import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
@@ -43,9 +40,6 @@ public class JobListView extends TabView implements TableActionsListener {
     private static final String[] filterStrings = {"not_yet_run", "running",
                                                      "finished"};
     
-    private TableActionsPanel actionPanel = new TableActionsPanel(this, true);
-    
-    private static final JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JSONObject jobFilterArgs = new JSONObject();
     protected JobSelectListener selectListener;
 
@@ -55,6 +49,7 @@ public class JobListView extends TabView implements TableActionsListener {
     protected ListFilter ownerFilter;
     protected Paginator paginator;
     protected Hyperlink nextLink, prevLink;
+    private SelectionManager selectionManager;
     
     interface JobSelectListener {
         public void onJobSelected(int jobId);
@@ -74,8 +69,7 @@ public class JobListView extends TabView implements TableActionsListener {
     }
     
     public void abortSelectedJobs() {
-        Set<JSONObject> selectedSet = 
-            jobTable.getSelectionManager().getSelectedObjects();
+        Set<JSONObject> selectedSet = selectionManager.getSelectedObjects();
         if (selectedSet.isEmpty()) {
             NotifyManager.getInstance().showError("No jobs selected");
             return;
@@ -83,14 +77,13 @@ public class JobListView extends TabView implements TableActionsListener {
         
         JSONArray ids = new JSONArray();
         for(JSONObject jsonObj : selectedSet) {
-            ids.set(ids.size(), jsonObj.get("id").isNumber());
+            ids.set(ids.size(), jsonObj.get("id"));
         }
         
         JSONObject params = new JSONObject();
-        params.put("job_ids", ids);
-        rpcProxy.rpcCall("abort_jobs", params, new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
+        params.put("job__id__in", ids);
+        AfeUtils.callAbort(params, new SimpleCallback() {
+            public void doCallback(Object source) {
                refresh();
             }
         });
@@ -131,16 +124,14 @@ public class JobListView extends TabView implements TableActionsListener {
                 selectListener.onJobSelected(jobId);
             }
             
-            public void onTableRefreshed() {
-                jobTable.getSelectionManager().refreshSelection();
-            }
+            public void onTableRefreshed() {}
         });
-        
-        
-        RootPanel.get("job_table_actions").add(actionPanel);
         
         tableDecorator = new TableDecorator(jobTable);
         tableDecorator.addPaginators();
+        selectionManager = tableDecorator.addSelectionManager(false);
+        jobTable.setWidgetFactory(selectionManager);
+        tableDecorator.addTableActionsPanel(this, true);
         RootPanel.get("job_table").add(tableDecorator);
         
         ownerFilter = new ListFilter("owner");
@@ -197,19 +188,5 @@ public class JobListView extends TabView implements TableActionsListener {
             }
         });
         return menu;
-    }
-
-    public void onSelectAll(boolean visibleOnly) {
-        if (visibleOnly) {
-            jobTable.getSelectionManager().selectVisible();
-        } else {
-            jobTable.getSelectionManager().selectAll();
-        }
-        jobTable.refreshWidgets();
-    }
-    
-    public void onSelectNone() {
-        jobTable.getSelectionManager().deselectAll();
-        jobTable.refreshWidgets();
     }
 }

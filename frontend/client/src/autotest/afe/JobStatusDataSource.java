@@ -1,6 +1,7 @@
 package autotest.afe;
 
 import autotest.common.StaticDataRepository;
+import autotest.common.Utils;
 import autotest.common.table.RpcDataSource;
 import autotest.common.ui.NotifyManager;
 
@@ -43,7 +44,7 @@ class JobStatusDataSource extends RpcDataSource {
     @Override
     protected JSONArray handleJsonResult(JSONValue result) {
         JSONArray rows = new JSONArray();
-        Map<List<String>, Integer> metaHostCounts = new HashMap<List<String>, Integer>();
+        Map<List<String>, JSONObject> metaHostEntries= new HashMap<List<String>, JSONObject>();
         JSONArray queueEntries = result.isArray();
         for(int i = 0; i < queueEntries.size(); i++) {
             JSONObject queueEntry = queueEntries.get(i).isObject();
@@ -56,7 +57,7 @@ class JobStatusDataSource extends RpcDataSource {
             JSONValue host = queueEntry.get("host");
             if (host.isNull() != null) {
                 // metahost
-                incrementMetaHostCount(metaHostCounts, queueEntry);
+                incrementMetaHostCount(metaHostEntries, queueEntry);
                 continue;
             }
             
@@ -65,7 +66,7 @@ class JobStatusDataSource extends RpcDataSource {
             rows.set(rows.size(), queueEntry);
         }
         
-        addMetaHostRows(metaHostCounts, rows);
+        addMetaHostRows(metaHostEntries, rows);
         
         return rows;
     }
@@ -82,17 +83,23 @@ class JobStatusDataSource extends RpcDataSource {
         }
     }
 
-    protected void incrementMetaHostCount(Map<List<String>, Integer> metaHostCounts, JSONObject queueEntry) {
+    private void incrementMetaHostCount(Map<List<String>, JSONObject> metaHostEntries, 
+                                        JSONObject queueEntry) {
         String label = queueEntry.get("meta_host").isString().stringValue();
         String status = queueEntry.get("status").isString().stringValue();
-        if (status.equals("Queued"))
+        if (status.equals("Queued")) {
             status = "Unassigned";
+        }
         List<String> key = getMetaHostKey(label, status);
-        
-        int count = 0;
-        if (metaHostCounts.containsKey(key))
-            count = metaHostCounts.get(key).intValue();
-        metaHostCounts.put(key, Integer.valueOf(count + 1)); 
+
+        if (!metaHostEntries.containsKey(key)) {
+            queueEntry.put("id_list", new JSONArray());
+            metaHostEntries.put(key, queueEntry);
+        }
+
+        JSONObject metaHostEntry = metaHostEntries.get(key).isObject();
+        JSONArray idList = metaHostEntry.get("id_list").isArray();
+        idList.set(idList.size(), queueEntry.get("id"));
     }
 
     private List<String> getMetaHostKey(String label, String status) {
@@ -100,15 +107,15 @@ class JobStatusDataSource extends RpcDataSource {
         return Arrays.asList(new String[] {label, status});
     }
     
-    protected void addMetaHostRows(Map<List<String>, Integer> metaHostCounts, JSONArray rows) {
-        for (Map.Entry<List<String>, Integer> entry : metaHostCounts.entrySet()) {
-            String label = entry.getKey().get(0), status = entry.getKey().get(1);
-            int count = entry.getValue();
-            JSONObject row = new JSONObject();
-            row.put("hostname", new JSONString(label + " (label)"));
-            row.put("status", new JSONString(Integer.toString(count) + 
-                                             " " + status));
-            rows.set(rows.size(), row);
+    private void addMetaHostRows(Map<List<String>, JSONObject> metaHostEntries, JSONArray rows) {
+        for (JSONObject entry : metaHostEntries.values()) {
+            String label = Utils.jsonToString(entry.get("meta_host"));
+            String status = Utils.jsonToString(entry.get("status"));
+            int count = entry.get("id_list").isArray().size();
+            
+            entry.put("hostname", new JSONString(label + " (label)"));
+            entry.put("status", new JSONString(Integer.toString(count) + " " + status));
+            rows.set(rows.size(), entry);
         }
     }
 }

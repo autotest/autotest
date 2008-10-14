@@ -11,12 +11,10 @@ import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataSource.SortSpec;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.DynamicTable.DynamicTableListener;
-import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DoubleListSelector;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
-import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.DoubleListSelector.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
@@ -45,8 +43,8 @@ import java.util.ListIterator;
 import java.util.Map;
 
 public class TableView extends ConditionTabView 
-                       implements DynamicTableListener, TableActionsListener, SelectionListener,
-                                  ClickListener, TableWidgetFactory, CommonPanelListener {
+                       implements DynamicTableListener, TableActionsListener, ClickListener,
+                                  TableWidgetFactory, CommonPanelListener {
     private static final int ROWS_PER_PAGE = 30;
     private static final String[] DEFAULT_COLUMNS = 
         {"test_idx", "test_name", "job_tag", "hostname", "status"};
@@ -77,7 +75,6 @@ public class TableView extends ConditionTabView
     private CheckBox groupCheckbox = new CheckBox("Group by these columns and show counts");
     private CheckBox statusGroupCheckbox = 
         new CheckBox("Group by these columns and show pass rates");
-    private TableActionsPanel actionsPanel = new TableActionsPanel(this, true);
     private Button queryButton = new Button("Query");
     
     private boolean isTestGroupingEnabled = false, isStatusCountEnabled = false;
@@ -125,7 +122,6 @@ public class TableView extends ConditionTabView
         columnPanel.add(statusGroupCheckbox);
         
         RootPanel.get("table_column_select").add(columnPanel);
-        RootPanel.get("table_actions").add(actionsPanel);
         RootPanel.get("table_query_controls").add(queryButton);
     }
 
@@ -201,12 +197,13 @@ public class TableView extends ConditionTabView
         
         tableDecorator = new TableDecorator(table);
         tableDecorator.addPaginators();
+        selectionManager = tableDecorator.addSelectionManager(false);
+        tableDecorator.addTableActionsPanel(this, true);
         Panel tablePanel = RootPanel.get("table_table");
         tablePanel.clear();
         tablePanel.add(tableDecorator);
         
         selectionManager = new SelectionManager(table, false);
-        selectionManager.addListener(this);
     }
 
     private void saveOptions(boolean doSaveCondition) {
@@ -397,18 +394,6 @@ public class TableView extends ConditionTabView
         return new ConditionTestSet(commonPanel.getSavedConditionArgs());
     }
 
-    public void onSelectAll(boolean visibleOnly) {
-        if (visibleOnly) {
-            selectionManager.selectVisible();
-        } else {
-            selectionManager.selectAll();
-        }
-    }
-
-    public void onSelectNone() {
-        selectionManager.deselectAll();
-    }
-
     @Override
     protected Map<String, String> getHistoryArguments() {
         Map<String, String> arguments = super.getHistoryArguments();
@@ -448,7 +433,6 @@ public class TableView extends ConditionTabView
         Utils.setDefaultValue(arguments, "sort", DEFAULT_COLUMNS[0]);
         Utils.setDefaultValue(arguments, "columns", 
                         Utils.joinStrings(",", Arrays.asList(DEFAULT_COLUMNS)));
-        
     }
 
     private void handleSortString(String sortString) {
@@ -457,14 +441,6 @@ public class TableView extends ConditionTabView
         for (String component : components) {
             tableSorts.add(SortSpec.fromString(component));
         }
-    }
-
-    public void onAdd(Collection<JSONObject> objects) {
-        selectionManager.refreshSelection();
-    }
-
-    public void onRemove(Collection<JSONObject> objects) {
-        selectionManager.refreshSelection();
     }
 
     public void onClick(Widget sender) {
