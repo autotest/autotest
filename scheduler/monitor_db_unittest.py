@@ -31,7 +31,7 @@ class IsRow(mock.argument_comparator):
         return 'row with id %s' % self.row_id
 
 
-class BaseDispatcherTest(unittest.TestCase):
+class BaseSchedulerTest(unittest.TestCase):
     _config_section = 'AUTOTEST_WEB'
     _test_db_initialized = False
 
@@ -136,7 +136,7 @@ class BaseDispatcherTest(unittest.TestCase):
         self._do_query(query)
 
 
-class DispatcherSchedulingTest(BaseDispatcherTest):
+class DispatcherSchedulingTest(BaseSchedulerTest):
     _jobs_scheduled = []
 
     def _set_monitor_stubs(self):
@@ -369,7 +369,7 @@ class DispatcherSchedulingTest(BaseDispatcherTest):
         self._check_for_extra_schedulings()
 
 
-class DispatcherThrottlingTest(BaseDispatcherTest):
+class DispatcherThrottlingTest(BaseSchedulerTest):
     """
     Test that the dispatcher throttles:
      * total number of running processes
@@ -473,7 +473,7 @@ class DispatcherThrottlingTest(BaseDispatcherTest):
         self._assert_agents_not_started([3])
 
 
-class AbortTest(BaseDispatcherTest):
+class AbortTest(BaseSchedulerTest):
     """
     Test both the dispatcher abort functionality and AbortTask.
     """
@@ -892,9 +892,7 @@ class AgentTasksTest(unittest.TestCase):
 
         self.setup_verify_expects(True, True)
         job.num_complete.expect_call().and_return(0)
-        self.queue_entry.set_status.expect_call('Pending')
-        job.is_ready.expect_call().and_return(True)
-        job.run.expect_call(self.queue_entry)
+        self.queue_entry.on_pending.expect_call()
         self.queue_entry.job = job
 
         task = monitor_db.VerifySynchronousTask(self.queue_entry)
@@ -904,6 +902,57 @@ class AgentTasksTest(unittest.TestCase):
                            mock.mock_function('add_agent'))
         self.run_task(task, True)
         self.god.check_playback()
+
+
+class JobTest(BaseSchedulerTest):
+    def _test_run_helper(self):
+        job = monitor_db.Job.fetch('id = 1').next()
+        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
+        agent = job.run(queue_entry)
+
+        self.assert_(isinstance(agent, monitor_db.Agent))
+        tasks = list(agent.queue.queue)
+        return tasks
+
+
+    def test_run_asynchronous(self):
+        self._create_job(hosts=[1, 2])
+
+        tasks = self._test_run_helper()
+
+        self.assertEquals(len(tasks), 2)
+        verify_task, queue_task = tasks
+
+        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
+        self.assertEquals(verify_task.queue_entry.id, 1)
+
+        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
+        self.assertEquals(queue_task.job.id, 1)
+
+
+    def test_run_synchronous_verify(self):
+        self._create_job(hosts=[1, 2], synchronous=True)
+
+        tasks = self._test_run_helper()
+        self.assertEquals(len(tasks), 1)
+        verify_task = tasks[0]
+
+        self.assert_(isinstance(verify_task, monitor_db.VerifySynchronousTask))
+        self.assertEquals(verify_task.queue_entry.id, 1)
+
+
+    def test_run_synchronous_ready(self):
+        self._create_job(hosts=[1, 2], synchronous=True)
+        self._update_hqe("status='Pending'")
+
+        tasks = self._test_run_helper()
+        self.assertEquals(len(tasks), 1)
+        queue_task = tasks[0]
+
+        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
+        self.assertEquals(queue_task.job.id, 1)
+        hqe_ids = [hqe.id for hqe in queue_task.queue_entries]
+        self.assertEquals(hqe_ids, [1, 2])
 
 
 if __name__ == '__main__':
