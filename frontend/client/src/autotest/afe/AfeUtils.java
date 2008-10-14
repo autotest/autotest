@@ -1,12 +1,21 @@
 package autotest.afe;
 
+import autotest.common.JSONArrayList;
+import autotest.common.JsonRpcCallback;
+import autotest.common.JsonRpcProxy;
+import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
+import autotest.common.Utils;
+import autotest.common.table.JSONObjectSet;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -79,5 +88,71 @@ public class AfeUtils {
     public static JSONString getLockedText(JSONObject host) {
         boolean locked = host.get("locked").isNumber().doubleValue() > 0;
         return new JSONString(locked ? "Yes" : "No");
+    }
+    
+    public static void abortHostQueueEntries(Collection<JSONObject> entries, 
+                                             final SimpleCallback onSuccess) {
+        if (entries.isEmpty()) {
+            NotifyManager.getInstance().showError("No entries selected to abort");
+            return;
+        }
+        
+        final JSONArray asynchronousEntryIds = new JSONArray();
+        Set<JSONObject> synchronousJobs = new JSONObjectSet<JSONObject>();
+        for (JSONObject entry : entries) {
+            JSONObject job = entry.get("job").isObject();
+            String synchType = Utils.jsonToString(job.get("synch_type"));
+            if (synchType.equals("Synchronous")) {
+                synchronousJobs.add(job);
+                continue;
+            }
+
+            JSONValue idListValue = entry.get("id_list");
+            if (idListValue != null) {
+                // metahost row
+                extendJsonArray(asynchronousEntryIds, idListValue.isArray());
+            } else {
+                asynchronousEntryIds.set(asynchronousEntryIds.size(), entry.get("id"));
+            }
+        }
+        
+        SimpleCallback abortAsynchronousEntries = new SimpleCallback() {
+            public void doCallback(Object source) {
+                JSONObject params = new JSONObject();
+                params.put("id__in", asynchronousEntryIds);
+                AfeUtils.callAbort(params, onSuccess);
+            }
+        };
+        
+        if (synchronousJobs.size() == 0) {
+            abortAsynchronousEntries.doCallback(null);
+        } else {
+            AbortSynchronousDialog dialog = new AbortSynchronousDialog(
+                abortAsynchronousEntries, synchronousJobs, asynchronousEntryIds.size() != 0);
+            dialog.center();
+        }
+    }
+
+    private static void extendJsonArray(JSONArray array, JSONArray newValues) {
+        for (JSONValue value : new JSONArrayList<JSONValue>(newValues)) {
+            array.set(array.size(), value);
+        }
+    }
+    
+    public static void callAbort(JSONObject params, final SimpleCallback onSuccess) {
+        JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+        rpcProxy.rpcCall("abort_host_queue_entries", params, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                NotifyManager.getInstance().showMessage("Jobs aborted");
+                if (onSuccess != null) {
+                    onSuccess.doCallback(null);
+                }
+            }
+        });
+    }
+    
+    public static String getJobTag(JSONObject job) {
+        return Utils.jsonToString(job.get("id")) + "-" + Utils.jsonToString(job.get("owner"));
     }
 }

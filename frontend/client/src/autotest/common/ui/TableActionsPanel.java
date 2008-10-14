@@ -1,9 +1,10 @@
 package autotest.common.ui;
 
 
+import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
+
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.PopupListener;
@@ -14,53 +15,36 @@ import com.google.gwt.user.client.ui.Widget;
 public class TableActionsPanel extends Composite implements ClickListener, PopupListener {
     public static interface TableActionsListener {
         public ContextMenu getActionMenu();
-        public void onSelectAll(boolean visibleOnly);
-        public void onSelectNone();
     }
 
     private TableActionsListener listener;
     private ToggleButton actionsButton = new ToggleButton("Actions");
-    private SimpleHyperlink selectAll = new SimpleHyperlink("all");
-    private SimpleHyperlink selectVisible;
-    private SimpleHyperlink selectNone = new SimpleHyperlink("none");
+    private TableSelectionPanel selectionPanel;
     
-    public TableActionsPanel(TableActionsListener tableActionsListener, boolean wantSelectVisible) {
-        listener = tableActionsListener;
-        
+    public TableActionsPanel(boolean wantSelectVisible) {
+        selectionPanel = new TableSelectionPanel(wantSelectVisible);
         actionsButton.addClickListener(this);
-        selectAll.addClickListener(this);
-        selectNone.addClickListener(this);
-        
-        Panel selectPanel = new HorizontalPanel();
-        selectPanel.add(new HTML("Select:&nbsp;"));
-        selectPanel.add(selectAll);
-        selectPanel.add(new HTML(",&nbsp;"));
-        if (wantSelectVisible) {
-            selectVisible = new SimpleHyperlink("visible");
-            selectVisible.addClickListener(this);
-            selectPanel.add(selectVisible);
-            selectPanel.add(new HTML(",&nbsp;"));
-        }
-        selectPanel.add(selectNone);
-        selectPanel.add(new HTML("&nbsp;"));
-        selectPanel.add(actionsButton);
-        initWidget(selectPanel);
+
+        Panel mainPanel = new HorizontalPanel();
+        mainPanel.add(selectionPanel);
+        mainPanel.add(actionsButton);
+        initWidget(mainPanel);
+    }
+    
+    public void setActionsListener(TableActionsListener listener) {
+        this.listener = listener;
+    }
+    
+    public void setSelectionListener(SelectionPanelListener listener) {
+        selectionPanel.setListener(listener);
     }
     
     public void onClick(Widget sender) {
-        if (sender == actionsButton) {
-            ContextMenu menu = listener.getActionMenu();
-            menu.addPopupListener(this);
-            menu.showAt(actionsButton.getAbsoluteLeft(), 
-                        actionsButton.getAbsoluteTop() + actionsButton.getOffsetHeight());
-        } else if (sender == selectAll) {
-            listener.onSelectAll(false);
-        } else if (sender == selectVisible) {
-            listener.onSelectAll(true);
-        } else {
-            assert sender == selectNone;
-            listener.onSelectNone();
-        }
+        assert sender == actionsButton;
+        ContextMenu menu = listener.getActionMenu();
+        menu.addPopupListener(this);
+        menu.showAt(actionsButton.getAbsoluteLeft(), 
+                    actionsButton.getAbsoluteTop() + actionsButton.getOffsetHeight());
     }
 
     public void onPopupClosed(PopupPanel sender, boolean autoClosed) {

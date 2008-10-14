@@ -460,7 +460,7 @@ True
 {'Queued': 4}
 
 # abort the job
->>> rpc_interface.abort_job(1)
+>>> rpc_interface.abort_host_queue_entries(job__id=1)
 >>> data = rpc_interface.get_jobs_summary(id=1)
 >>> data[0]['status_counts']
 {'Aborted': 4}
