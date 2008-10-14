@@ -1,20 +1,45 @@
 package autotest.common.table;
 
+import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.Paginator;
+import autotest.common.ui.TableActionsPanel;
+import autotest.common.ui.TableSelectionPanel;
+import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.Widget;
 
-public class TableDecorator extends Composite {
-    protected FlexTable enclosingTable = new FlexTable();
-    protected DynamicTable dataTable;
-    protected int numFilters = 0;
+/**
+ * This class can optionally add any of the following controls around a table (in this order of 
+ * layout): 
+ * Filter controls
+ * Selection/action menu
+ * Top paginator
+ * Actual data table
+ * Bottom paginator
+ */
+public class TableDecorator extends Composite implements DynamicTableListener {
+    private FlexTable enclosingTable = new FlexTable();
+    private FlexTable filterTable = new FlexTable();
+    private DynamicTable dataTable;
+    private SelectionManager selectionManager;
+    private int numFilters = 0;
+    
+    private static class LayoutRows {
+        public static final int FILTERS = 0,
+                                ACTIONS = 1,
+                                TOP_PAGINATOR = 2,
+                                TABLE = 3,
+                                BOTTOM_PAGINATOR = 4;
+    }
     
     public TableDecorator(DynamicTable dataTable) {
         this.dataTable = dataTable;
-        fillDoubleCell(0, 0, dataTable, false);
+        setRow(LayoutRows.TABLE, dataTable, false);
+        setRow(LayoutRows.FILTERS, filterTable, false);
         initWidget(enclosingTable);
     }
     
@@ -23,11 +48,10 @@ public class TableDecorator extends Composite {
             Paginator p = new Paginator();
             dataTable.attachPaginator(p);
             if (i == 0) { // add at top
-                enclosingTable.insertRow(numFilters);
-                fillDoubleCell(numFilters, 0, p, true);
+                setRow(LayoutRows.TOP_PAGINATOR, p, true);
             }
             else { // add at bottom
-                fillDoubleCell(numFilters + 2, 0, p, true);
+                setRow(LayoutRows.BOTTOM_PAGINATOR, p, true);
             }
         }
     }
@@ -38,19 +62,49 @@ public class TableDecorator extends Composite {
     }
     
     protected void addControl(String text, Widget widget) {
-      enclosingTable.insertRow(numFilters);
       int row = numFilters;
       numFilters++;
-      enclosingTable.setText(row, 0, text);
-      enclosingTable.setWidget(row, 1, widget);
+      filterTable.setText(row, 0, text);
+      filterTable.setWidget(row, 1, widget);
     }
     
-    protected void fillDoubleCell(int row, int col, Widget widget, 
-                                  boolean center) {
-        enclosingTable.setWidget(row, col, widget);
-        enclosingTable.getFlexCellFormatter().setColSpan(row, col, 2);
-        if (center)
+    public SelectionManager addSelectionManager(boolean selectOnlyOne) {
+        selectionManager = new SelectionManager(dataTable, selectOnlyOne);
+        dataTable.addListener(this);
+        return selectionManager;
+    }
+    
+    public void addSelectionPanel(boolean wantSelectVisible) {
+        assert selectionManager != null;
+        TableSelectionPanel selectionPanel = new TableSelectionPanel(wantSelectVisible);
+        selectionPanel.setListener(selectionManager);
+        setActionsWidget(selectionPanel);
+    }
+    
+    public void addTableActionsPanel(TableActionsListener listener, boolean wantSelectVisible) {
+        assert selectionManager != null;
+        TableActionsPanel actionsPanel = new TableActionsPanel(wantSelectVisible);
+        actionsPanel.setActionsListener(listener);
+        actionsPanel.setSelectionListener(selectionManager);
+        setActionsWidget(actionsPanel);
+    }
+    
+    public void setActionsWidget(Widget widget) {
+        setRow(LayoutRows.ACTIONS, widget, false);
+    }
+
+    private void setRow(int row, Widget widget, boolean center) {
+        enclosingTable.setWidget(row, 0, widget);
+        if (center) {
             enclosingTable.getCellFormatter().setHorizontalAlignment(
-                                 row, col, HasHorizontalAlignment.ALIGN_CENTER);
+                                 row, 0, HasHorizontalAlignment.ALIGN_CENTER);
+        }
+    }
+
+    public void onRowClicked(int rowIndex, JSONObject row) {}
+
+    public void onTableRefreshed() {
+        assert selectionManager != null;
+        selectionManager.refreshSelection();
     }
 }

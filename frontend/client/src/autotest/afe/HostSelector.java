@@ -1,15 +1,13 @@
 package autotest.afe;
 
-import autotest.common.JSONArrayList;
 import autotest.common.Utils;
 import autotest.common.table.ArrayDataSource;
-import autotest.common.table.DataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
-import autotest.common.table.DataSource.DefaultDataCallback;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.SimpleHyperlink;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -17,9 +15,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
-import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -58,27 +54,33 @@ public class HostSelector {
     protected TableDecorator selectedDecorator = 
         new TableDecorator(selectedTable);
     
-    protected SelectionManager availableSelection = 
-        new SelectionManager(availableTable, false);
+    protected SelectionManager availableSelection;
     
     public HostSelector() {
         selectedTable.setClickable(true);
         selectedTable.setRowsPerPage(TABLE_SIZE);
         selectedDecorator.addPaginators();
-        
+
+        SimpleHyperlink clearSelection = new SimpleHyperlink("Clear selection");
+        clearSelection.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                deselectAll();
+            } 
+        });
+        selectedDecorator.setActionsWidget(clearSelection);
+
         availableTable.setClickable(true);
         availableDecorator.lockedFilter.setSelectedChoice("No");
         availableDecorator.aclFilter.setActive(true);
+        availableSelection = availableDecorator.addSelectionManager(false);
+        availableDecorator.addSelectionPanel(true);
         
         availableTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
                 availableSelection.toggleSelected(row);
-                availableSelection.refreshSelection();
             } 
             
-            public void onTableRefreshed() {
-                availableSelection.refreshSelection();
-            }
+            public void onTableRefreshed() {}
         });
         
         availableSelection.addListener(new SelectionListener() {
@@ -112,31 +114,6 @@ public class HostSelector {
         
         RootPanel.get("create_available_table").add(availableDecorator);
         RootPanel.get("create_selected_table").add(selectedDecorator);
-        
-        Button addVisibleButton = new Button("Select visible");
-        addVisibleButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                addVisible();
-            }
-        });
-        Button addFilteredButton = new Button("Select all");
-        addFilteredButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                addAllFiltered();
-            }
-        });
-        Button removeAllButton = new Button("Select none");
-        removeAllButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                deselectAll();
-            }
-        });
-        
-        Panel availableControls = new HorizontalPanel();
-        availableControls.add(addVisibleButton);
-        availableControls.add(addFilteredButton);
-        availableControls.add(removeAllButton);
-        RootPanel.get("create_available_controls").add(availableControls);
         
         final ListBox metaLabelSelect = new ListBox();
         populateLabels(metaLabelSelect);
@@ -200,22 +177,6 @@ public class HostSelector {
     
     protected void deselectRow(JSONObject row) {
         selectedHostData.removeItem(row);
-    }
-    
-    protected void addVisible() {
-        availableSelection.selectVisible();
-    }
-    
-    protected void addAllFiltered() {
-        DataSource availableDataSource = availableTable.getDataSource();
-        availableDataSource.getPage(null, null, null, 
-                                    new DefaultDataCallback() {
-            @Override
-            public void handlePage(JSONArray data) {
-                availableSelection.selectObjects(
-                    new JSONArrayList<JSONObject>(data));
-            }
-        });
     }
     
     protected void deselectAll() {
@@ -292,7 +253,6 @@ public class HostSelector {
      */
     protected void selectionRefresh() {
         selectedTable.refresh();
-        availableSelection.refreshSelection();
     }
     
     public void refresh() {

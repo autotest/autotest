@@ -357,23 +357,17 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     return job.id
 
 
-def abort_job(id):
+def abort_host_queue_entries(**filter_data):
     """\
-    Abort the job with the given id number.
-
-    TODO: this method is deprecated in favor of abort_jobs().  We need
-    to eventually remove this rpc call entirely.
+    Abort a set of host queue entries.
     """
-    job = models.Job.objects.get(id=id)
-    job.abort()
+    query = models.HostQueueEntry.query_objects(filter_data)
+    host_queue_entries = list(query.select_related())
+    models.AclGroup.check_for_acl_violation_queue_entries(host_queue_entries)
 
-
-def abort_jobs(job_ids):
-    """\
-    Abort a list of jobs.
-    """
-    for job in models.Job.objects.in_bulk(job_ids).values():
-        job.abort()
+    user = thread_local.get_user()
+    for queue_entry in host_queue_entries:
+        queue_entry.abort(user)
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):

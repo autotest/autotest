@@ -1,12 +1,14 @@
 package autotest.afe;
 
 import autotest.common.JsonRpcCallback;
+import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.ListFilter;
 import autotest.common.table.SearchFilter;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataTable.TableWidgetFactory;
@@ -14,6 +16,7 @@ import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
@@ -37,8 +40,9 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Set;
 
 
-public class JobDetailView extends DetailView implements TableWidgetFactory {
+public class JobDetailView extends DetailView implements TableWidgetFactory, TableActionsListener {
     private static final String[][] JOB_HOSTS_COLUMNS = {
+        {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, // selection checkbox 
         {"hostname", "Host"}, {"status", "Status"}, 
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
         // columns for status log and debug log links
@@ -64,6 +68,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
     protected HTML tkoResultsHtml = new HTML();
     protected ScrollPanel tkoResultsScroller = new ScrollPanel(tkoResultsHtml);
     protected JobDetailListener listener;
+    private SelectionManager selectionManager;
     
     public JobDetailView(JobDetailListener listener) {
         this.listener = listener;
@@ -87,10 +92,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
                     return;
                 }
                 String name = jobObject.get("name").isString().stringValue();
-                String owner = jobObject.get("owner").isString().stringValue();
                 
                 showText(name, "view_label");
-                showText(owner, "view_owner");
+                showField(jobObject, "owner", "view_owner");
                 showField(jobObject, "priority", "view_priority");
                 showField(jobObject, "created_on", "view_created");
                 showField(jobObject, "timeout", "view_timeout");
@@ -107,11 +111,11 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
                 showText(countString, "view_status");
                 abortButton.setVisible(!allFinishedCounts(counts));
                 
-                String jobLogsId = jobId + "-" + owner;
-                pointToResults(getResultsURL(jobId), getLogsURL(jobLogsId), 
+                String jobTag = AfeUtils.getJobTag(jobObject);
+                pointToResults(getResultsURL(jobId), getLogsURL(jobTag), 
                                getOldResultsUrl(jobId));
                 
-                String jobTitle = "Job: " + name + " (" + jobLogsId + ")";
+                String jobTitle = "Job: " + name + " (" + jobTag + ")";
                 displayObjectData(jobTitle);
                 
                 jobFilter.setParameter("job", new JSONNumber(jobId));
@@ -159,9 +163,11 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
             public void onTableRefreshed() {}
         });
         hostsTable.setWidgetFactory(this);
-        
+
         tableDecorator.addPaginators();
         addTableFilters();
+        selectionManager = tableDecorator.addSelectionManager(false);
+        tableDecorator.addTableActionsPanel(this, true);
         RootPanel.get("job_hosts_table").add(tableDecorator);
         
         abortButton.addClickListener(new ClickListener() {
@@ -197,17 +203,24 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
         tableDecorator.addFilter("Status", statusFilter);
     }
     
-    protected void abortJob() {
+    private void abortJob() {
         JSONObject params = new JSONObject();
-        params.put("id", new JSONNumber(jobId));
-        rpcProxy.rpcCall("abort_job", params, new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
+        params.put("job__id", new JSONNumber(jobId));
+        AfeUtils.callAbort(params, new SimpleCallback() {
+            public void doCallback(Object source) {
                 refresh();
             }
         });
     }
-    
+
+    private void abortSelectedHosts() {
+        AfeUtils.abortHostQueueEntries(selectionManager.getSelectedObjects(), new SimpleCallback() {
+            public void doCallback(Object source) {
+                refresh();
+            }
+        });
+    }
+
     protected void cloneJob() {
         ContextMenu menu = new ContextMenu();
         menu.addItem("Reuse any similar hosts  (default)", new Command() {
@@ -329,6 +342,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
     }
     
     public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
+        if (cell == 0) {
+            return selectionManager.createWidget(row, cell, hostQueueEntry);
+        }
+
         JSONValue jobValue = hostQueueEntry.get("job");
         if (jobValue == null) {
             return new HTML("");
@@ -351,5 +368,15 @@ public class JobDetailView extends DetailView implements TableWidgetFactory {
     private String getLogsLinkHtml(String url, String text) {
         url = Utils.getLogsURL(url);
         return "<a target=\"_blank\" href=\"" + url + "\">" + text + "</a>";
+    }
+
+    public ContextMenu getActionMenu() {
+        ContextMenu menu = new ContextMenu();
+        menu.addItem("Abort hosts", new Command() {
+            public void execute() {
+                abortSelectedHosts();
+            }
+        });
+        return menu;
     }
 }

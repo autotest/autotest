@@ -3,18 +3,15 @@ package autotest.common.table;
 import autotest.common.Utils;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.TableClickWidget.TableWidgetClickListener;
+import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Widget;
 
-import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -22,11 +19,13 @@ import java.util.Set;
  * takes care of highlighting rows.  It can also be used for a DynamicTable, with support for paging
  * etc., if you use DynamicTableSelectionManager.
  * 
- * It can also act as a TableWidgetFactory to supply checkboxes for selecting rows in a table.
+ * For convenience, it can also act as a TableWidgetFactory to supply checkboxes for selecting rows 
+ * in a table, and as a SelectionPanelListener.
  *
  */
-public class SelectionManager implements TableWidgetFactory, TableWidgetClickListener {
-    protected Set<JSONObject> selectedObjects = new JSONValueSet<JSONObject>();
+public class SelectionManager implements TableWidgetFactory, TableWidgetClickListener,
+                                         SelectionPanelListener {
+    protected Set<JSONObject> selectedObjects = new JSONObjectSet<JSONObject>();
     protected boolean selectOnlyOne = false;
     protected DataTable attachedTable;
     protected List<SelectionListener> listeners =
@@ -35,44 +34,6 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     public interface SelectionListener {
         public void onAdd(Collection<JSONObject> objects);
         public void onRemove(Collection<JSONObject> objects);
-    }
-    
-    
-    /**
-     * Set that hashes JSONObjects by their ID, so that identical objects get 
-     * matched together.
-     */
-    static class JSONValueSet<T extends JSONObject> extends AbstractSet<T> {
-        protected Map<String, T> backingMap = new HashMap<String, T>();
-        
-        protected String getKey(Object obj) {
-            return ((JSONObject) obj).get("id").toString();
-        }
-
-        @Override
-        public boolean add(T arg0) {
-            return backingMap.put(getKey(arg0), arg0) == null;
-        }
-
-        @Override
-        public Iterator<T> iterator() {
-            return backingMap.values().iterator();
-        }
-
-        @Override
-        public boolean remove(Object arg0) {
-            return backingMap.remove(getKey(arg0)) != null;
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            return backingMap.containsKey(getKey(o));
-        }
-
-        @Override
-        public int size() {
-            return backingMap.size();
-        }
     }
     
     public SelectionManager(DataTable table, boolean selectOnlyOne) {
@@ -87,6 +48,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
             else
                 attachedTable.unhighlightRow(i);
         }
+        attachedTable.refreshWidgets();
     }
     
     public void selectObject(JSONObject object) {
@@ -184,6 +146,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     
     protected void notifyListeners(Collection<JSONObject> objects,
                                    boolean add) {
+        refreshSelection();
         for (SelectionListener listener : listeners) {
             if (add)
                 listener.onAdd(objects);
@@ -205,5 +168,17 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     public void onClick(TableClickWidget widget) {
         toggleSelected(attachedTable.getRow(widget.getRow()));
         refreshSelection();
+    }
+
+    public void onSelectAll(boolean visibleOnly) {
+        if (visibleOnly) {
+            selectVisible();
+        } else {
+            selectAll();
+        }
+    }
+
+    public void onSelectNone() {
+        deselectAll();
     }
 }
