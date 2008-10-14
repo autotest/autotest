@@ -97,6 +97,9 @@ class TestBaseAutotest(unittest.TestCase):
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
+        packages.PackageManager.expect_new('autodir',
+            repo_urls='repos', do_locking=False, run_function=self.host.run,
+            run_function_dargs=dict(timeout=600)).get_mirror_list.expect_call(self.host.hostname).and_return('repos')
         pkgmgr = packages.PackageManager.expect_new('autodir',
             repo_urls='repos', do_locking=False, run_function=self.host.run,
             run_function_dargs=dict(timeout=600))
@@ -120,6 +123,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         # stub out install
         self.god.stub_function(self.base_autotest, "install")
+        self.god.stub_class(packages, "PackageManager")
 
         # record
         self.base_autotest.install.expect_call(self.host)
@@ -153,6 +157,8 @@ class TestBaseAutotest(unittest.TestCase):
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
+        pkgmgr = packages.PackageManager.expect_new('autotest', repo_urls='repos')
+        pkgmgr.get_mirror_list.expect_call(self.host.hostname).and_return('repos')
         control_file_new = []
         control_file_new.append('job.add_repository(repos)\n')
         control_file_new.append(cfile_orig)

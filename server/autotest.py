@@ -91,10 +91,14 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
-            pkgmgr = packages.PackageManager(
-                autodir, repo_urls=repos, do_locking=False,
-                run_function=host.run,
-                run_function_dargs=dict(timeout=600))
+            repos = packages.PackageManager('autodir', repo_urls=repos,
+                          do_locking=False,
+                          run_function=host.run,
+                          run_function_dargs=dict(timeout=600)).get_mirror_list(host.hostname)
+            pkgmgr = packages.PackageManager(autodir, repo_urls=repos,
+                          do_locking=False,
+                          run_function=host.run,
+                          run_function_dargs=dict(timeout=600))
             # The packages dir is used to store all the packages that
             # are fetched on that client. (for the tests,deps etc.
             # too apart from the client)
@@ -244,6 +248,8 @@ class BaseAutotest(installable_object.InstallableObject):
             cfile.close()
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+            pkgmgr = packages.PackageManager('autotest', repo_urls=repos)
+            repos = pkgmgr.get_mirror_list(host.hostname)
             control_file_new = []
             control_file_new.append('job.add_repository(%s)\n' % repos)
             control_file_new.append(cfile_orig)
