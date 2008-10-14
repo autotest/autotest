@@ -38,6 +38,9 @@ def _run_test_complete_on_exit(f):
         finally:
             if self.log_filename == self.DEFAULT_LOG_FILENAME:
                 self.harness.run_test_complete()
+                if self.drop_caches:
+                    print "Dropping caches"
+                    autotest_utils.drop_caches()
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__
     wrapped.__dict__.update(f.__dict__)
@@ -84,7 +87,7 @@ class base_job(object):
     DEFAULT_LOG_FILENAME = "status"
 
     def __init__(self, control, jobtag, cont, harness_type=None,
-                    use_external_logging = False):
+                    use_external_logging = False, drop_caches=True):
         """
                 control
                         The control file (pathname of)
@@ -95,7 +98,11 @@ class base_job(object):
                 harness_type
                         An alternative server harness
         """
-        self.drop_caches = True
+        self.drop_caches = drop_caches
+        if self.drop_caches:
+            print "Dropping caches"
+            autotest_utils.drop_caches()
+
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
         self.libdir = os.path.join(self.autodir, 'lib')
