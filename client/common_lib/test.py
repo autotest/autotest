@@ -232,10 +232,6 @@ class base_test:
                     lockfile.close()
 
                 # Execute:
-                if self.job.drop_caches:
-                    print "Dropping caches before running test"
-                    autotest_utils.drop_caches()
-
                 os.chdir(self.outputdir)
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
