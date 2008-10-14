@@ -25,27 +25,6 @@ LONG_TESTS = set((
     'client_compilation_unittest.py'
     ))
 
-DEPENDENCIES = {
-    # Annotate dependencies here. The format is
-    # module: [list of modules on which it is dependent]
-    # (All modules in the list must run before this module can)
-
-    # Note: Do not make a short test dependent on a long one. This will cause
-    # the suite to fail if it is run without the --full flag, since the module
-    # that the short test depends on will not be run.
-
-
-    # The next two dependencies are not really dependencies. This is actually a
-    # hack to keep these three modules from running at the same time, since they
-    # all create and destroy a database with the same name.
-    'autotest_lib.frontend.frontend_unittest':
-        ['autotest_lib.database.migrate_unittest'],
-
-    'autotest_lib.scheduler.monitor_db_unittest':
-        ['autotest_lib.frontend.frontend_unittest',
-         'autotest_lib.database.migrate_unittest'],
-}
-
 modules = []
 
 
@@ -78,7 +57,6 @@ def run_tests(start, full=False):
     os.path.walk(start, lister, full)
 
     functions = {}
-    names_to_functions = {}
     for module in modules:
         # Create a function that'll test a particular module.  module=module
         # is a hack to force python to evaluate the params now.  We then
@@ -86,13 +64,7 @@ def run_tests(start, full=False):
         run_module = lambda module=module: run_test(module)
         name = '.'.join(module)
         run_module.__name__ = name
-        names_to_functions[name] = run_module
         functions[run_module] = set()
-
-    for fn, deps in DEPENDENCIES.iteritems():
-        if fn in names_to_functions:
-            functions[names_to_functions[fn]] = set(
-                names_to_functions[dep] for dep in deps)
 
     try:
         dargs = {}
