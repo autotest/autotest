@@ -342,9 +342,15 @@ class BasePackageManager(object):
             if upload_path.startswith('ssh://'):
                 # parse ssh://user@host/usr/local/autotest/packages
                 hostline, remote_path = self._parse_ssh_path(upload_path)
-                utils.run('scp %s %s:%s' % (file_path, hostline, remote_path))
-                r_path = os.path.join(remote_path, os.path.basename(file_path))
-                utils.run("ssh %s 'chmod 644 %s'" % (hostline, r_path))
+                try:
+                    utils.run('scp %s %s:%s' % (file_path, hostline,
+                                                remote_path))
+                    r_path = os.path.join(remote_path,
+                                          os.path.basename(file_path))
+                    utils.run("ssh %s 'chmod 644 %s'" % (hostline, r_path))
+                except error.CmdError:
+                    print "Error uploading to repository " + upload_path
+                    pass
             else:
                 shutil.copy(file_path, upload_path)
                 os.chmod(os.path.join(upload_path,
@@ -367,10 +373,14 @@ class BasePackageManager(object):
         try:
             if upload_path.startswith('ssh://'):
                 hostline, remote_path = self._parse_ssh_path(upload_path)
-                utils.run('scp %s %s:%s' % (local_path, hostline,
-                                              remote_path))
-                ssh_path = os.path.join(remote_path, "*")
-                utils.run("ssh %s 'chmod 644 %s'" % (hostline, ssh_path))
+                try:
+                    utils.run('scp %s %s:%s' % (local_path, hostline,
+                                                remote_path))
+                    ssh_path = os.path.join(remote_path, "*")
+                    utils.run("ssh %s 'chmod 644 %s'" % (hostline, ssh_path))
+                except error.CmdError:
+                    print "Error uploading to repository: " + upload_path
+                    pass
             else:
                 utils.run("cp %s %s " % (local_path, upload_path))
                 up_path = os.path.join(upload_path, "*")
@@ -422,6 +432,20 @@ class BasePackageManager(object):
         except (IOError, os.error), why:
             raise PackageRemoveError("Could not remove %s from %s: %s "
                                      % (file_name, pkg_dir, why))
+
+
+    def get_mirror_list(self, hostname):
+        '''
+            Stub function for site specific mirror.
+
+            Args:
+                hostname: Host that the mirrors are decided for
+                repos: current fetch_locations 
+
+            Returns:
+                Priority ordered list
+        '''
+        return self.repo_urls
 
 
     def _get_checksum_file_path(self):
