@@ -6,18 +6,11 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-__author__ = """
-Martin J. Bligh <mbligh@google.com>
-Andy Whitcroft <apw@shadowen.org>
-"""
-
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
-
 from autotest_lib.client.bin import fd_stack
-from autotest_lib.client.common_lib import error, log
+from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
-from autotest_lib.client.common_lib import utils, packages
 
 
 # load up a control segment
@@ -206,6 +199,7 @@ class base_server_job(object):
         self.ssh_port = ssh_port
         self.ssh_pass = ssh_pass
         self.run_test_cleanup = True
+        self.last_boot_tag = None
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)

@@ -77,6 +77,8 @@ class TestBaseJob(unittest.TestCase):
         self.job._load_state.expect_call()
         self.job.get_state.expect_call("__run_test_cleanup",
                                        default=True).and_return(True)
+        self.job.get_state.expect_call("__last_boot_tag",
+                                       default=None).and_return(None)
         if not cont:
             os.path.exists.expect_call(tmpdir).and_return(False)
             os.mkdir.expect_call(tmpdir)

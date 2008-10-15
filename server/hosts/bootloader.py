@@ -8,19 +8,9 @@ This module defines the Bootloader class.
         Bootloader: a program to boot Kernels on a Host.
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
-
-import os.path
-import sys
-import weakref
-
+import os, sys, weakref
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils
-
 
 BOOTTOOL_SRC = '../client/tools/boottool'  # Get it from autotest client
 
@@ -95,6 +85,9 @@ class Bootloader(object):
 
 
     def set_default(self, index):
+        assert(index is not None)
+        if self._host().job:
+            self._host().job.last_boot_tag = None
         self._run_boottool('--set-default=%s' % index)
 
 
@@ -171,6 +164,10 @@ class Bootloader(object):
 
 
     def boot_once(self, title):
+        if self._host().job:
+            self._host().job.last_boot_tag = title
+        if not title:
+            title = self.get_default_title()
         self._run_boottool('--boot-once --title=%s' % title)
 
 

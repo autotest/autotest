@@ -1,18 +1,9 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-"""
-This module defines the Autotest class
-
-        Autotest: software to run tests automatically
-"""
-
 import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
-
 from autotest_lib.server import installable_object, utils, server_job
-from autotest_lib.client.common_lib import log
-from autotest_lib.client.common_lib import error, global_config, packages, debug
-
-
+from autotest_lib.client.common_lib import log, error, debug
+from autotest_lib.client.common_lib import global_config, packages
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
@@ -211,54 +202,39 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             atrun.verify_machine()
         except:
-            print "Verify machine failed on %s. Reinstalling" % host.hostname
+            print "Verify failed on %s. Reinstalling autotest" % host.hostname
             self.install(host)
         atrun.verify_machine()
         debug = os.path.join(results_dir, 'debug')
         try:
             os.makedirs(debug)
-        except:
+        except Exception:
             pass
 
-        # Ready .... Aim ....
-        for control in [atrun.remote_control_file,
-                        atrun.remote_control_file + '.state',
-                        atrun.manual_control_file,
-                        atrun.manual_control_file + '.state']:
-            host.run('rm -f ' + control)
+        delete_file_list = [atrun.remote_control_file,
+                            atrun.remote_control_file + '.state',
+                            atrun.manual_control_file,
+                            atrun.manual_control_file + '.state']
+        cmd = ';'.join('rm -f ' + control for control in delete_file_list)
+        host.run(cmd, ignore_status=True)
 
         tmppath = utils.get(control_file)
 
+        cfile = "job.default_boot_tag(%r)\n" % host.job.last_boot_tag
+        cfile += "job.default_test_cleanup(%r)\n" % host.job.run_test_cleanup
 
-        # Prepend the control file with a job.disable_test_cleanup call
-        # if necessary
-        if not host.job.run_test_cleanup:
-            cfile = open(tmppath).read()
-            cfile = "job.disable_test_cleanup()\n" + cfile
-            open(tmppath, "w").write(cfile)
-
-        # Insert the job.add_repository() lines in the control file
-        # if there are any repos defined in global_config.ini
+        # If the packaging system is being used, add the repository list.
         try:
-            cfile = open(tmppath, 'r')
-            cfile_orig = cfile.read()
-            cfile.close()
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
-            control_file_new = []
-            control_file_new.append('job.add_repository(%s)\n' % (
-                                                              pkgmgr.repo_urls))
-            control_file_new.append(cfile_orig)
-
-            # Overwrite the control file with the new one
-            cfile = open(tmppath, 'w')
-            cfile.write('\n'.join(control_file_new))
-            cfile.close()
+            cfile += 'job.add_repository(%s)\n' % pkgmgr.repo_urls
         except global_config.ConfigError, e:
             pass
 
+        cfile += open(tmppath).read()
+        open(tmppath, "w").write(cfile)
 
         # Copy control_file to remote_control_file on the host
         host.send_file(tmppath, atrun.remote_control_file)
@@ -299,6 +275,9 @@ class BaseAutotest(installable_object.InstallableObject):
                 host.job.enable_test_cleanup()
             else:
                 host.job.disable_test_cleanup()
+
+        if "__last_boot_tag" in state_dict:
+            host.job.last_boot_tag = state_dict["__last_boot_tag"]
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
