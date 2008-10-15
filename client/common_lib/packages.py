@@ -31,9 +31,9 @@ class BasePackageManager(object):
     _repo_exception = {}
     REPO_OK = object()
 
-    def __init__(self, pkgmgr_dir, repo_urls=None, upload_paths=None,
-                 do_locking=True, run_function=utils.run, run_function_args=[],
-                 run_function_dargs={}):
+    def __init__(self, pkgmgr_dir, hostname=None, repo_urls=None,
+                 upload_paths=None, do_locking=True, run_function=utils.run,
+                 run_function_args=[], run_function_dargs={}):
         '''
         repo_urls: The list of the repository urls which is consulted
                    whilst fetching the package
@@ -57,12 +57,17 @@ class BasePackageManager(object):
 
         self.pkgmgr_dir = pkgmgr_dir
         self.do_locking = do_locking
+        self.hostname = hostname
 
         # Process the repository URLs and the upload paths if specified
         if not repo_urls:
             self.repo_urls = []
         else:
-            self.repo_urls = list(repo_urls)
+            if hostname:
+                self.repo_urls = repo_urls
+                self.repo_urls = list(self.get_mirror_list())
+            else:
+                self.repo_urls = list(repo_urls)
         if not upload_paths:
             self.upload_paths = []
         else:
@@ -121,7 +126,7 @@ class BasePackageManager(object):
             fetch_path = os.path.join(fetch_dir, pkg_name)
             try:
                 # Fetch the package into fetch_dir
-                self.fetch_pkg(pkg_name, fetch_path)
+                self.fetch_pkg(pkg_name, fetch_path, use_checksum=True)
 
                 # check to see if the install_dir exists and if it does
                 # then check to see if the .checksum file is the latest
@@ -154,7 +159,7 @@ class BasePackageManager(object):
                 lockfile.close()
 
 
-    def fetch_pkg(self, pkg_name, dest_path, repo_url=None, use_checksum=True):
+    def fetch_pkg(self, pkg_name, dest_path, repo_url=None, use_checksum=False):
         '''
         Fetch the package into dest_dir from repo_url. By default repo_url
         is None and the package is looked in all the repostories specified.
@@ -214,41 +219,43 @@ class BasePackageManager(object):
             except (PackageFetchError, error.AutoservRunError), e:
                 # The package could not be found in this repo, continue looking
                 error_msgs[location] = str(e)
-                print >> sys.stderr, ('Package - could not be fetched from '
-                                      '- %s : %s' % (location, e))
+                print '%s could not be fetched from - %s : %s' % (pkg_name,
+                                                                  location, e)
 
         # if we got here then that means the package is not found
         # in any of the repositories.
-        raise PackageFetchError("Package could not be fetched from any of"
-                                " the repos %s : %s " % (repo_url_list,
+        raise PackageFetchError("%s could not be fetched from any of"
+                                " the repos %s : %s " % (pkg_name,
+                                                         repo_url_list,
                                                          error_msgs))
 
 
-    def fetch_pkg_file(self, file_name, dest_path, source_url):
+    def fetch_pkg_file(self, filename, dest_path, source_url):
         """
         Fetch the file from source_url into dest_path. The package repository
         url is parsed and the appropriate retrieval method is determined.
 
         """
         if source_url.startswith('http://'):
-            self.fetch_file_http(file_name, dest_path, source_url)
+            self.fetch_file_http(filename, dest_path, source_url)
         else:
-            raise PackageFetchError("Invalid location specified")
+            raise PackageFetchError("Invalid location %s" % source_url)
 
 
-    def fetch_file_http(self, file_name, dest_path, source_url):
+    def fetch_file_http(self, filename, dest_path, source_url):
         """
         Fetch the package using http protocol. Raises a PackageFetchError.
         """
+        print "Fetching %s from %s to %s" % (filename, source_url, dest_path)
         # check to see if the source_url is reachable or not
         self.run_http_test(source_url, os.path.dirname(dest_path))
 
-        pkg_path = os.path.join(source_url, file_name)
+        pkg_path = os.path.join(source_url, filename)
         try:
             self._run_command('wget -nv %s -O %s' % (pkg_path, dest_path))
         except error.CmdError, e:
-            raise PackageFetchError("Package - %s not found in %s: %s"
-                                    % (file_name, source_url, e))
+            raise PackageFetchError("%s not found in %s: %s"
+                                    % (filename, source_url, e))
 
 
     def run_http_test(self, source_url, dest_dir):
@@ -266,8 +273,7 @@ class BasePackageManager(object):
 
         # Get the http server name from the URL
         server_name = urlparse.urlparse(source_url)[1]
-        http_cmd = 'printf "GET / HTTP/1.0\n\n" | nc %s 80' % server_name
-
+        http_cmd = 'wget -nv %s -O %s' % (server_name, dest_file_path)
         if server_name in BPM._repo_exception:
             if BPM._repo_exception[server_name] == BPM.REPO_OK:
                 # This repository is fine. Simply return
@@ -283,11 +289,10 @@ class BasePackageManager(object):
                 BPM._repo_exception[server_name] = BPM.REPO_OK
             finally:
                 self._run_command('rm -f %s' % dest_file_path)
-        except error.CmdError, e:
+        except Exception, e:
             BPM._repo_exception[server_name] = e
-            raise PackageFetchError("%s - %s: %s " % (error_msg,
-                                                      server_name, e))
-
+            raise PackageFetchError("%s - %s: %s " % (error_msg, server_name,
+                                                      e))
 
 
     # TODO(aganti): Fix the bug with the current checksum logic where
@@ -416,31 +421,27 @@ class BasePackageManager(object):
             self.upload_pkg_file(checksum_path, path)
 
 
-    def remove_pkg_file(self, file_name, pkg_dir):
+    def remove_pkg_file(self, filename, pkg_dir):
         '''
-        Remove the file named file_name from pkg_dir
+        Remove the file named filename from pkg_dir
         '''
         try:
             # Remove the file
             if pkg_dir.startswith('ssh://'):
                 hostline, remote_path = self._parse_ssh_path(pkg_dir)
-                path = os.path.join(remote_path, file_name)
+                path = os.path.join(remote_path, filename)
                 utils.run("ssh %s 'rm -rf %s/%s'" % (hostline, remote_path,
                           path))
             else:
-                os.remove(os.path.join(pkg_dir, file_name))
+                os.remove(os.path.join(pkg_dir, filename))
         except (IOError, os.error), why:
             raise PackageRemoveError("Could not remove %s from %s: %s "
-                                     % (file_name, pkg_dir, why))
+                                     % (filename, pkg_dir, why))
 
 
-    def get_mirror_list(self, hostname):
+    def get_mirror_list(self):
         '''
-            Stub function for site specific mirror.
-
-            Args:
-                hostname: Host that the mirrors are decided for
-                repos: current fetch_locations 
+            Stub function for site specific mirrors.
 
             Returns:
                 Priority ordered list
@@ -474,8 +475,7 @@ class BasePackageManager(object):
                 except (error.CmdError, error.AutoservRunError):
                     # The packages checksum file does not exist locally.
                     # See if it is present in the repositories.
-                    self.fetch_pkg(CHECKSUM_FILE, checksum_path,
-                                   use_checksum=False)
+                    self.fetch_pkg(CHECKSUM_FILE, checksum_path)
             except PackageFetchError, e:
                 # This should not happen whilst fetching a package..if a
                 # package is present in the repository, the corresponding

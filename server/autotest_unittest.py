@@ -12,7 +12,7 @@ from autotest_lib.client.common_lib.test_utils import mock
 class TestBaseAutotest(unittest.TestCase):
     def setUp(self):
         # create god
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(debug=True)
 
         # create mock host object
         self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
@@ -97,12 +97,9 @@ class TestBaseAutotest(unittest.TestCase):
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
-        packages.PackageManager.expect_new('autodir',
-            repo_urls='repos', do_locking=False, run_function=self.host.run,
-            run_function_dargs=dict(timeout=600)).get_mirror_list.expect_call(self.host.hostname).and_return('repos')
         pkgmgr = packages.PackageManager.expect_new('autodir',
-            repo_urls='repos', do_locking=False, run_function=self.host.run,
-            run_function_dargs=dict(timeout=600))
+            repo_urls='repos', hostname='hostname', do_locking=False,
+            run_function=self.host.run, run_function_dargs=dict(timeout=600))
         pkg_dir = os.path.join('autodir', 'packages')
         cmd = ('cd autodir && ls | grep -v "^packages$"'
                ' | xargs rm -rf && rm -rf .[^.]*')
@@ -157,10 +154,12 @@ class TestBaseAutotest(unittest.TestCase):
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
-        pkgmgr = packages.PackageManager.expect_new('autotest', repo_urls='repos')
-        pkgmgr.get_mirror_list.expect_call(self.host.hostname).and_return('repos')
+        pkgmgr = packages.PackageManager.expect_new('autotest',
+                                                     repo_urls='repos',
+                                                     hostname='hostname')
+        pkgmgr.repo_urls = 'repos'
         control_file_new = []
-        control_file_new.append('job.add_repository(repos)\n')
+        control_file_new.append('job.add_repository(%s)\n' % pkgmgr.repo_urls)
         control_file_new.append(cfile_orig)
         autotest.open.expect_call("temp", 'w').and_return(cfile)
         cfile.write.expect_call('\n'.join(control_file_new))
