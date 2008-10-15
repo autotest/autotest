@@ -1889,6 +1889,7 @@ class HostQueueEntry(DBObject):
         otherwise.
         """
         self.set_status('Pending')
+        self.get_host().set_status('Pending')
         if self.job.is_ready():
             return self.job.run(self)
         return None
