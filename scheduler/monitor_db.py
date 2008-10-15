@@ -751,7 +751,9 @@ class Dispatcher:
 
     def _run_queue_entry(self, queue_entry, host):
         agent = queue_entry.run(assigned_host=host)
-        self.add_agent(agent)
+        # in some cases (synchronous jobs with run_verify=False), agent may be None
+        if agent:
+            self.add_agent(agent)
 
 
     def _find_aborting(self):
@@ -1225,7 +1227,7 @@ class RepairTask(AgentTask):
 
 
 class VerifyTask(AgentTask):
-    def __init__(self, queue_entry=None, host=None, run_verify=True):
+    def __init__(self, queue_entry=None, host=None):
         assert bool(queue_entry) != bool(host)
 
         self.host = host or queue_entry.host
@@ -1233,16 +1235,7 @@ class VerifyTask(AgentTask):
 
         self.create_temp_resultsdir('.verify')
 
-        # TODO:
-        # While it is rediculous to instantiate a verify task object
-        # that doesnt actually run the verify task, this is hopefully a
-        # temporary hack and will have a cleaner way to skip this
-        # step later. (while ensuring that the original semantics don't change)
-        if not run_verify:
-            cmd = ["true"]
-        else:
-            cmd = [_autoserv_path,'-v','-m',self.host.hostname,
-                   '-r', self.temp_results_dir]
+        cmd = [_autoserv_path,'-v','-m',self.host.hostname, '-r', self.temp_results_dir]
 
         fail_queue_entry = None
         if queue_entry and not queue_entry.meta_host:
@@ -1308,11 +1301,6 @@ class VerifyTask(AgentTask):
 
 
 class VerifySynchronousTask(VerifyTask):
-    def __init__(self, queue_entry, run_verify=True):
-        super(VerifySynchronousTask, self).__init__(queue_entry=queue_entry,
-                                                    run_verify=run_verify)
-
-
     def epilog(self):
         super(VerifySynchronousTask, self).epilog()
         if self.success:
@@ -2057,9 +2045,10 @@ class Job(DBObject):
 
     def _run_synchronous(self, queue_entry):
         if not self.is_ready():
-            return Agent([VerifySynchronousTask(queue_entry=queue_entry,
-                                                run_verify=self.run_verify)],
-                         [queue_entry.id])
+            if self.run_verify:
+                return Agent([VerifySynchronousTask(queue_entry=queue_entry)], [queue_entry.id])
+            else:
+                return queue_entry.on_pending()
 
         queue_entry.set_status('Starting')
 
@@ -2071,7 +2060,9 @@ class Job(DBObject):
         # of lowering risk, I'm leaving it in for now
         assert queue_entry
 
-        initial_tasks = [VerifyTask(queue_entry, run_verify=self.run_verify)]
+        initial_tasks = []
+        if self.run_verify:
+            initial_tasks = [VerifyTask(queue_entry)]
         return self._finish_run([queue_entry], initial_tasks)
 
 

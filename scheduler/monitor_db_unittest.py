@@ -905,10 +905,14 @@ class AgentTasksTest(unittest.TestCase):
 
 
 class JobTest(BaseSchedulerTest):
-    def _test_run_helper(self):
+    def _test_run_helper(self, expect_agent=True):
         job = monitor_db.Job.fetch('id = 1').next()
         queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
         agent = job.run(queue_entry)
+
+        if not expect_agent:
+            self.assertEquals(agent, None)
+            return
 
         self.assert_(isinstance(agent, monitor_db.Agent))
         tasks = list(agent.queue.queue)
@@ -930,6 +934,20 @@ class JobTest(BaseSchedulerTest):
         self.assertEquals(queue_task.job.id, 1)
 
 
+    def test_run_asynchronous_skip_verify(self):
+        job = self._create_job(hosts=[1, 2])
+        job.run_verify = False
+        job.save()
+
+        tasks = self._test_run_helper()
+
+        self.assertEquals(len(tasks), 1)
+        queue_task = tasks[0]
+
+        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
+        self.assertEquals(queue_task.job.id, 1)
+
+
     def test_run_synchronous_verify(self):
         self._create_job(hosts=[1, 2], synchronous=True)
 
@@ -939,6 +957,17 @@ class JobTest(BaseSchedulerTest):
 
         self.assert_(isinstance(verify_task, monitor_db.VerifySynchronousTask))
         self.assertEquals(verify_task.queue_entry.id, 1)
+
+
+    def test_run_synchronous_skip_verify(self):
+        job = self._create_job(hosts=[1, 2], synchronous=True)
+        job.run_verify = False
+        job.save()
+
+        self._test_run_helper(expect_agent=False)
+
+        queue_entry = models.HostQueueEntry.smart_get(1)
+        self.assertEquals(queue_entry.status, 'Pending')
 
 
     def test_run_synchronous_ready(self):
