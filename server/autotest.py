@@ -91,11 +91,8 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
-            repos = packages.PackageManager('autodir', repo_urls=repos,
-                          do_locking=False,
-                          run_function=host.run,
-                          run_function_dargs=dict(timeout=600)).get_mirror_list(host.hostname)
-            pkgmgr = packages.PackageManager(autodir, repo_urls=repos,
+            pkgmgr = packages.PackageManager(autodir, hostname=host.hostname,
+                          repo_urls=repos,
                           do_locking=False,
                           run_function=host.run,
                           run_function_dargs=dict(timeout=600))
@@ -248,10 +245,11 @@ class BaseAutotest(installable_object.InstallableObject):
             cfile.close()
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
-            pkgmgr = packages.PackageManager('autotest', repo_urls=repos)
-            repos = pkgmgr.get_mirror_list(host.hostname)
+            pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
+                                             repo_urls=repos)
             control_file_new = []
-            control_file_new.append('job.add_repository(%s)\n' % repos)
+            control_file_new.append('job.add_repository(%s)\n' % (
+                                                              pkgmgr.repo_urls))
             control_file_new.append(cfile_orig)
 
             # Overwrite the control file with the new one
