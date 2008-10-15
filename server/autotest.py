@@ -236,6 +236,12 @@ class BaseAutotest(installable_object.InstallableObject):
         cfile += open(tmppath).read()
         open(tmppath, "w").write(cfile)
 
+        # Create and copy state file to remote_control_file + '.state'
+        sysinfo_state = {"__sysinfo": host.job.sysinfo.serialize()}
+        state_file = self._create_state_file(host.job, sysinfo_state)
+        host.send_file(state_file, atrun.remote_control_file + '.state')
+        os.remove(state_file)
+
         # Copy control_file to remote_control_file on the host
         host.send_file(tmppath, atrun.remote_control_file)
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
@@ -247,6 +253,16 @@ class BaseAutotest(installable_object.InstallableObject):
             collector = server_job.log_collector(host, atrun.tag, results_dir)
             collector.collect_client_job_results()
             self._process_client_state_file(host, atrun, results_dir)
+
+
+    def _create_state_file(self, job, state_dict):
+        """ Create a state file from a dictionary. Returns the path of the
+        state file. """
+        fd, path = tempfile.mkstemp(dir=job.tmpdir)
+        state_file = os.fdopen(fd, "w")
+        pickle.dump(state_dict, state_file)
+        state_file.close()
+        return path
 
 
     def _process_client_state_file(self, host, atrun, results_dir):
@@ -278,6 +294,9 @@ class BaseAutotest(installable_object.InstallableObject):
 
         if "__last_boot_tag" in state_dict:
             host.job.last_boot_tag = state_dict["__last_boot_tag"]
+
+        if "__sysinfo" in state_dict:
+            host.job.sysinfo.deserialize(state_dict["__sysinfo"])
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,

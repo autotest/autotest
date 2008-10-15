@@ -3,8 +3,70 @@ import os, shutil, re, glob, subprocess
 from autotest_lib.client.common_lib import utils, log
 
 
-class command(object):
-    def __init__(self, cmd, logfile=None):
+_DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
+_DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
+    "lspci -vvn", "gcc --version", "ld --version", "mount", "hostname",
+    ]
+
+_DEFAULT_FILES_TO_LOG_PER_TEST = []
+_DEFAULT_FILES_TO_LOG_PER_BOOT = [
+    "/proc/pci", "/proc/meminfo", "/proc/slabinfo", "/proc/version",
+    "/proc/cpuinfo", "/proc/modules", "/proc/interrupts",
+    ]
+
+
+class loggable(object):
+    """ Abstract class for representing all things "loggable" by sysinfo. """
+    def __init__(self, log_in_keyval):
+        self.log_in_keyval = log_in_keyval
+
+
+    def readline(self, logdir):
+        path = os.path.join(logdir, self.logfile)
+        if os.path.exists(path):
+            return utils.read_one_line(path)
+        else:
+            return ""
+
+
+class logfile(loggable):
+    def __init__(self, path, log_in_keyval=False):
+        super(logfile, self).__init__(log_in_keyval)
+        self.path = path
+        self.logfile = os.path.basename(self.path)
+
+
+    def __repr__(self):
+        return "sysinfo.logfile(%r, %r)" % (self.path, self.log_in_keyval)
+
+
+    def __eq__(self, other):
+        if isinstance(other, logfile):
+            return self.path == other.path
+        elif isinstance(other, loggable):
+            return False
+        return NotImplemented
+
+
+    def __ne__(self, other):
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result
+        return not result
+
+
+    def __hash__(self):
+        return hash(self.path)
+
+
+    def run(self, logdir):
+        if os.path.exists(self.path):
+            shutil.copy(self.path, logdir)
+
+
+class command(loggable):
+    def __init__(self, cmd, logfile=None, log_in_keyval=False):
+        super(command, self).__init__(log_in_keyval)
         self.cmd = cmd
         if logfile:
             self.logfile = logfile
@@ -12,9 +74,17 @@ class command(object):
             self.logfile = cmd.replace(" ", "_")
 
 
+    def __repr__(self):
+        r = "sysinfo.command(%r, %r, %r)"
+        r %= (self.cmd, self.logfile, self.log_in_keyval)
+        return r
+
+
     def __eq__(self, other):
         if isinstance(other, command):
             return (self.cmd, self.logfile) == (other.cmd, other.logfile)
+        elif isinstance(other, loggable):
+            return False
         return NotImplemented
 
 
@@ -46,26 +116,36 @@ class base_sysinfo(object):
     def __init__(self, job_resultsdir):
         self.sysinfodir = self._get_sysinfodir(job_resultsdir)
 
+        # pull in the post-test logs to collect
+        self.test_loggables = set()
+        for cmd in _DEFAULT_COMMANDS_TO_LOG_PER_TEST:
+            self.test_loggables.add(command(cmd))
+        for filename in _DEFAULT_FILES_TO_LOG_PER_TEST:
+            self.test_loggables.add(logfile(filename))
 
-    @classmethod
-    def get_postboot_log_files(cls):
-        return set(["/proc/pci", "/proc/meminfo", "/proc/slabinfo",
-                    "/proc/version", "/proc/cpuinfo", "/proc/cmdline",
-                    "/proc/modules", "/proc/interrupts"])
+        # pull in the EXTRA post-boot logs to collect
+        self.boot_loggables = set()
+        for cmd in _DEFAULT_COMMANDS_TO_LOG_PER_BOOT:
+            self.boot_loggables.add(command(cmd))
+        for filename in _DEFAULT_FILES_TO_LOG_PER_BOOT:
+            self.boot_loggables.add(logfile(filename))
+
+        # add in a couple of extra files and commands we want to grab
+        self.test_loggables.add(command("df -mP", logfile="df"))
+        self.test_loggables.add(command("dmesg -c", logfile="dmesg"))
+        self.boot_loggables.add(logfile("/proc/cmdline",
+                                             log_in_keyval=True))
+        self.boot_loggables.add(command("uname -a", logfile="uname",
+                                             log_in_keyval=True))
 
 
-    @classmethod
-    def get_posttest_log_commands(cls):
-        return set([command("dmesg -c", "dmesg"), command("df -mP", "df")])
+    def serialize(self):
+        return {"boot": self.boot_loggables, "test": self.test_loggables}
 
 
-    @classmethod
-    def get_postboot_log_commands(cls):
-        commands = cls.get_posttest_log_commands()
-        commands |= set([command("uname -a"), command("lspci -vvn"),
-                         command("gcc --version"), command("ld --version"),
-                         command("mount"), command("hostname")])
-        return commands
+    def deserialize(self, serialized):
+        self.boot_loggables = serialized["boot"]
+        self.test_loggables = serialized["test"]
 
 
     @staticmethod
@@ -96,23 +176,19 @@ class base_sysinfo(object):
 
     @log.log_and_ignore_errors("post-reboot sysinfo error:")
     def log_per_reboot_data(self):
-        """ Log this data when the job starts, and again after any reboot. """
+        """ Logging hook called whenever a job starts, and again after
+        any reboot. """
         logdir = self._get_boot_subdir(next=True)
         if not os.path.exists(logdir):
             os.mkdir(logdir)
 
-        # run all the standard logging commands
-        for cmd in self.get_postboot_log_commands():
-            cmd.run(logdir)
-
-        # grab all the standard logging files
-        for filename in self.get_postboot_log_files():
-            if os.path.exists(filename):
-                shutil.copy(filename, logdir)
+        for log in (self.test_loggables | self.boot_loggables):
+            log.run(logdir)
 
 
     @log.log_and_ignore_errors("pre-test sysinfo error:")
     def log_before_each_test(self, test):
+        """ Logging hook called before a test starts. """
         if os.path.exists("/var/log/messages"):
             stat = os.stat("/var/log/messages")
             self._messages_size = stat.st_size
@@ -121,6 +197,7 @@ class base_sysinfo(object):
 
     @log.log_and_ignore_errors("post-test sysinfo error:")
     def log_after_each_test(self, test):
+        """ Logging hook called after a test finishs. """
         test_sysinfodir = self._get_sysinfodir(test.outputdir)
 
         # create a symlink in the test sysinfo dir to the current boot
@@ -130,14 +207,15 @@ class base_sysinfo(object):
         os.symlink(reboot_dir, symlink_dest)
 
         # run all the standard logging commands
-        for cmd in self.get_posttest_log_commands():
-            cmd.run(test_sysinfodir)
+        for log in self.test_loggables:
+            log.run(test_sysinfodir)
 
         # grab any new data from /var/log/messages
         self._log_messages(test_sysinfodir)
 
         # log some sysinfo data into the test keyval file
-        self._log_test_keyvals(test)
+        keyval = self.log_test_keyvals(test_sysinfodir)
+        test.write_test_keyval(keyval)
 
 
     def _log_messages(self, logdir):
@@ -159,17 +237,26 @@ class base_sysinfo(object):
             print "/var/log/messages collection failed with %s" % e
 
 
-    def _log_test_keyvals(self, test):
+    @staticmethod
+    def _read_sysinfo_keyvals(loggables, logdir):
         keyval = {}
-        test_sysinfodir = self._get_sysinfodir(test.outputdir)
+        for log in loggables:
+            if log.log_in_keyval:
+                keyval["sysinfo-" + log.logfile] = log.readline(logdir)
+        return keyval
 
-        # grab a bunch of single line files and turn them into keyvals
-        files_to_log = ["cmdline", "uname_-a"]
-        keyval_fields = ["cmdline", "uname"]
-        for filename, field in zip(files_to_log, keyval_fields):
-            path = os.path.join(test_sysinfodir, "reboot_current", filename)
-            if os.path.exists(path):
-                keyval["sysinfo-%s" % field] = utils.read_one_line(path)
+
+    def log_test_keyvals(self, test_sysinfodir):
+        """ Logging hook called by log_after_each_test to collect keyval
+        entries to be written in the test keyval. """
+        keyval = {}
+
+        # grab any loggables that should be in the keyval
+        keyval.update(self._read_sysinfo_keyvals(
+            self.test_loggables, test_sysinfodir))
+        keyval.update(self._read_sysinfo_keyvals(
+            self.boot_loggables,
+            os.path.join(test_sysinfodir, "reboot_current")))
 
         # grab the total memory
         path = os.path.join(test_sysinfodir, "reboot_current", "meminfo")
@@ -180,5 +267,5 @@ class base_sysinfo(object):
             if match:
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
 
-        # write out the data to the test keyval file
-        test.write_test_keyval(keyval)
+        # return what we collected
+        return keyval

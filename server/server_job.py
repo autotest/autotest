@@ -7,7 +7,7 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
-from autotest_lib.client.bin import fd_stack
+from autotest_lib.client.bin import fd_stack, sysinfo
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
@@ -203,6 +203,8 @@ class base_server_job(object):
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
+
+        self.sysinfo = sysinfo.sysinfo(self.resultdir)
 
         if not os.access(self.tmpdir, os.W_OK):
             try:
@@ -548,6 +550,22 @@ class base_server_job(object):
             self.record_prefix = old_record_prefix
             self.record('END GOOD', None, 'reboot',
                         optional_fields={"kernel": kernel})
+
+
+    def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
+        self._add_sysinfo_loggable(sysinfo.command(command, logfile),
+                                   on_every_test)
+
+
+    def add_sysinfo_logfile(self, file, on_every_test=False):
+        self._add_sysinfo_loggable(sysinfo.logfile(file), on_every_test)
+
+
+    def _add_sysinfo_loggable(self, loggable, on_every_test):
+        if on_every_test:
+            self.sysinfo.test_loggables.add(loggable)
+        else:
+            self.sysinfo.boot_loggables.add(loggable)
 
 
     def record(self, status_code, subdir, operation, status='',
