@@ -556,8 +556,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         blank=True, null=True, choices=Test.SynchType.choices())
     synch_count = dbmodels.IntegerField(blank=True, null=True)
     synchronizing = dbmodels.BooleanField(default=False)
-    run_verify = dbmodels.BooleanField(default=True)
     timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
+    run_verify = dbmodels.BooleanField(default=True)
     email_list = dbmodels.CharField(maxlength=250, blank=True)
     dependency_labels = dbmodels.ManyToManyField(
         Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
