@@ -11,18 +11,12 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
-
-
 import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
-
 from autotest_lib.client.common_lib import error, pxssh, global_config, debug
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host, bootloader
+
+LAST_BOOT_TAG = object()
 
 
 class PermissionDeniedError(error.AutoservRunError):
@@ -327,25 +321,37 @@ class SSHHost(site_host.SiteHost):
         self.run('echo b > /proc/sysrq-trigger &')
 
 
-    def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label='autotest',
+    def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=LAST_BOOT_TAG,
                kernel_args=None, wait=True, **dargs):
         """
         Reboot the remote host.
 
         Args:
-                timeout
+                timeout - How long to wait for the reboot.
+                label - The label we should boot into.  If None, we will
+                        boot into the default kernel.  If it's LAST_BOOT_TAG,
+                        we'll boot into whichever kernel was .boot'ed last
+                        (or the default kernel if we haven't .boot'ed in this
+                        job).  If it's None, we'll boot into the default kernel.
+                        If it's something else, we'll boot into that.
+                wait - Should we wait to see if the machine comes back up.
         """
+        if self.job:
+            if label == LAST_BOOT_TAG:
+                label = self.job.last_boot_tag
+            else:
+                self.job.last_boot_tag = label
+        
         self.reboot_setup(label=label, kernel_args=kernel_args, **dargs)
 
         if label or kernel_args:
             self.bootloader.install_boottool()
-        if label:
-            self.bootloader.set_default(label)
-        if kernel_args:
             if not label:
                 default = int(self.bootloader.get_default())
                 label = self.bootloader.get_titles()[default]
-            self.bootloader.add_args(label, kernel_args)
+            self.bootloader.boot_once(label)
+            if kernel_args:
+                self.bootloader.add_args(label, kernel_args)
 
         # define a function for the reboot and run it in a group
         print "Reboot: initiating reboot"

@@ -28,8 +28,14 @@ class boottool(object):
         return self.run_boottool('--arch-probe')
 
 
-    def list_titles(self):
-        print self.run_boottool('--info all | grep title')
+    def get_titles(self):
+        return self.run_boottool('--info all | grep title | '
+                'cut -d " " -f2-').strip().split('\n')
+
+
+    def get_default_title(self):
+        default = int(self.get_default())
+        return self.get_titles()[default]
 
 
     def print_entry(self, index):
@@ -37,7 +43,7 @@ class boottool(object):
 
 
     def get_default(self):
-        self.run_boottool('--default')
+        return self.run_boottool('--default').strip()
 
 
     def set_default(self, index):
@@ -115,6 +121,8 @@ class boottool(object):
 
 
     def boot_once(self, title):
+        if not title:
+            title = self.get_default_title()
         print self.run_boottool('--boot-once --title=%s' % title)
 
 
