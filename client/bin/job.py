@@ -1,25 +1,25 @@
 """The main job wrapper
 
 This is the core infrastructure.
+
+Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-__author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
-
-# standard stuff
 import os, sys, re, pickle, shutil, time, traceback, types, copy
-
-# autotest stuff
 from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
 from autotest_lib.client.common_lib import error, barrier, log, utils
 from autotest_lib.client.common_lib import packages, debug
 
+LAST_BOOT_TAG = object()
+NO_DEFAULT = object()
 JOB_PREAMBLE = """
 from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.common_lib.utils import *
 from autotest_lib.client.bin.autotest_utils import *
 """
+
 
 class StepError(error.AutotestError):
     pass
@@ -124,7 +124,9 @@ class base_job(object):
         self.pkgdir = os.path.join(self.autodir, 'packages')
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
+        self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
         self.job_log = debug.get_logger(module='client')
+        self._is_continuation = cont
 
         if not cont:
             """
@@ -652,11 +654,29 @@ class base_job(object):
         self.run_test_cleanup = False
 
 
+    def default_test_cleanup(self, val):
+        if not self._is_continuation:
+            self.set_state("__run_test_cleanup", val)
+            self.run_test_cleanup = val
+
+
+    def default_boot_tag(self, tag):
+        if not self._is_continuation:
+            self.set_state("__last_boot_tag", tag)
+            self.last_boot_tag = tag
+
+
     def reboot_setup(self):
         pass
 
 
-    def reboot(self, tag='autotest'):
+    def reboot(self, tag=LAST_BOOT_TAG):
+        if tag == LAST_BOOT_TAG:
+            tag = self.last_boot_tag
+        else:
+            self.set_state("__last_boot_tag", tag)
+            self.last_boot_tag = tag
+
         self.reboot_setup()
         self.record('START', None, 'reboot')
         self._increment_group_level()
@@ -757,8 +777,8 @@ class base_job(object):
             self.state_existed = False
 
 
-    def get_state(self, var, default=None):
-        if var in self.state or default == None:
+    def get_state(self, var, default=NO_DEFAULT):
+        if var in self.state or default == NO_DEFAULT:
             val = self.state[var]
         else:
             val = default

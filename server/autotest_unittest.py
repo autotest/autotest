@@ -12,7 +12,7 @@ from autotest_lib.client.common_lib.test_utils import mock
 class TestBaseAutotest(unittest.TestCase):
     def setUp(self):
         # create god
-        self.god = mock.mock_god(debug=True)
+        self.god = mock.mock_god()
 
         # create mock host object
         self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
@@ -20,6 +20,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.job = self.god.create_mock_class(server_job.server_job,
                                                    "job")
         self.host.job.run_test_cleanup = True
+        self.host.job.last_boot_tag = 'Autotest'
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
@@ -138,19 +139,15 @@ class TestBaseAutotest(unittest.TestCase):
         run_obj.verify_machine.expect_call()
         debug = os.path.join('.', 'debug')
         os.makedirs.expect_call(debug)
-        for control in [run_obj.remote_control_file,
-                        run_obj.remote_control_file + '.state',
-                        run_obj.manual_control_file,
-                        run_obj.manual_control_file + '.state']:
-            self.host.run.expect_call('rm -f ' + control)
+        delete_file_list = [run_obj.remote_control_file,
+                            run_obj.remote_control_file + '.state',
+                            run_obj.manual_control_file,
+                            run_obj.manual_control_file + '.state']
+        cmd = ';'.join('rm -f ' + control for control in delete_file_list)
+        self.host.run.expect_call(cmd, ignore_status=True)
 
         utils.get.expect_call(control).and_return("temp")
 
-        cfile = self.god.create_mock_class(file, "file")
-        autotest.open.expect_call("temp", 'r').and_return(cfile)
-        cfile_orig = "original control file"
-        cfile.read.expect_call().and_return(cfile_orig)
-        cfile.close.expect_call()
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list).and_return('repos')
@@ -158,17 +155,22 @@ class TestBaseAutotest(unittest.TestCase):
                                                      repo_urls='repos',
                                                      hostname='hostname')
         pkgmgr.repo_urls = 'repos'
-        control_file_new = []
-        control_file_new.append('job.add_repository(%s)\n' % pkgmgr.repo_urls)
-        control_file_new.append(cfile_orig)
+
+        cfile = self.god.create_mock_class(file, "file")
+        cfile_orig = "original control file"
+        cfile_new = "job.default_boot_tag('Autotest')\n"
+        cfile_new += "job.default_test_cleanup(True)\n"
+        cfile_new += "job.add_repository(repos)\n"
+        cfile_new += cfile_orig
+        
+        autotest.open.expect_call("temp").and_return(cfile)
+        cfile.read.expect_call().and_return(cfile_orig)
         autotest.open.expect_call("temp", 'w').and_return(cfile)
-        cfile.write.expect_call('\n'.join(control_file_new))
-        cfile.close.expect_call()
+        cfile.write.expect_call(cfile_new)
 
         self.host.send_file.expect_call("temp", run_obj.remote_control_file)
         os.path.abspath.expect_call('temp').and_return('control_file')
-        os.path.abspath.expect_call('autodir/control.None.state').and_return(
-            'autodir/control.None.state')
+        os.path.abspath.expect_call('control').and_return('control')
         os.remove.expect_call("temp")
         run_obj.execute_control.expect_call(timeout=30)
         collector = server_job.log_collector.expect_new(self.host, tag, '.')
