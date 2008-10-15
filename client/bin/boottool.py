@@ -120,7 +120,7 @@ class boottool(object):
         print self.run_boottool('--remove-kernel=%s' % kernel)
 
 
-    def boot_once(self, title):
+    def boot_once(self, title=None):
         if not title:
             title = self.get_default_title()
         print self.run_boottool('--boot-once --title=%s' % title)
