@@ -118,7 +118,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     status: string describing status of host
     """
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
-                       'Repair Failed', 'Dead', 'Rebooting',
+                       'Repair Failed', 'Dead', 'Rebooting', 'Pending',
                         string_values=True)
 
     hostname = dbmodels.CharField(maxlength=255, unique=True)
