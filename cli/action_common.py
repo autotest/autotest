@@ -144,9 +144,6 @@ class atest_create_or_delete(topic_common.atest):
     self.msg_topic:      'ACL'           The printable version of the topic.
     self.msg_done:       'Deleted'       The printable version of the action.
     """
-    display_ids = False
-
-
     def execute(self):
         handled = []
 
@@ -156,11 +153,7 @@ class atest_create_or_delete(topic_common.atest):
             try:
                 self.data[self.data_item_key] = item
                 new_id = self.execute_rpc(op, item=item, **self.data)
-                if self.display_ids:
-                    # For job create
-                    handled.append('%s (id %s)' % (item, new_id))
-                else:
-                    handled.append(item)
+                handled.append(item)
             except topic_common.CliError:
                 pass
         return handled

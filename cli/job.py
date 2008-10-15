@@ -201,10 +201,13 @@ class job_create(action_common.atest_create, job):
     [--is-synchronous] [--container] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
-    job_name"""
+    job_name
+
+    Creating a job is rather different from the other create operations,
+    so it only uses the __init__() and output() from its superclass.
+    """
     op_action = 'create'
     msg_items = 'job_name'
-    display_ids = True
 
     def __init__(self):
         super(job_create, self).__init__()
@@ -354,8 +357,11 @@ class job_create(action_common.atest_create, job):
                 self.data['control_type'] = 'Server'
             else:
                 self.data['control_type'] = 'Client'
+
             self.data['dependencies'] = cf_info['dependencies']
-        return super(job_create, self).execute()
+
+        job_id = self.execute_rpc(op='create_job', **self.data)
+        return ['%s (id %s)' % (self.jobname, job_id)]
 
 
     def get_items(self):
