@@ -5,6 +5,7 @@ import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
 from autotest_lib.client.bin import test, xen, kernel, autotest_utils, cpuset
+from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import packages, utils, error, log
 from autotest_lib.client.common_lib.test_utils import mock
 
@@ -38,6 +39,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(shutil, 'copyfile')
         self.god.stub_function(job, 'open')
         self.god.stub_function(utils, 'system')
+        self.god.stub_function(autotest_utils, 'drop_caches')
         self.god.stub_function(harness, 'select')
         self.god.stub_function(sysinfo, 'log_per_reboot_data')
         self.god.stub_function(pickle, 'load')
@@ -73,6 +75,7 @@ class TestBaseJob(unittest.TestCase):
         pkgdir = os.path.join(self.autodir, 'packages')
 
         # record
+        autotest_utils.drop_caches.expect_call()
         self.job._load_state.expect_call()
         self.job.get_state.expect_call("__run_test_cleanup",
                                        default=True).and_return(True)
@@ -344,6 +347,7 @@ class TestBaseJob(unittest.TestCase):
         self.job.record.expect_call("END ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
         self.job.harness.run_test_complete.expect_call()
+        autotest_utils.drop_caches.expect_call()
 
         # run and check
         self.job.run_test(testname)
@@ -379,6 +383,7 @@ class TestBaseJob(unittest.TestCase):
         self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ERROR", testname, testname, reason)
         self.job.harness.run_test_complete.expect_call()
+        autotest_utils.drop_caches.expect_call()
 
         # run and check
         self.job.run_test(testname)
