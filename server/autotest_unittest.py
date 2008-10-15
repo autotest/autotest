@@ -5,6 +5,7 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile
 import common
 from autotest_lib.server import autotest, utils, hosts, server_job
+from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib.test_utils import mock
 
@@ -21,6 +22,9 @@ class TestBaseAutotest(unittest.TestCase):
                                                    "job")
         self.host.job.run_test_cleanup = True
         self.host.job.last_boot_tag = 'Autotest'
+        self.host.job.sysinfo = self.god.create_mock_class(
+            sysinfo.sysinfo, "sysinfo")
+        self.host.job.tmpdir = "/job/tmp"
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
@@ -35,6 +39,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "chdir")
         self.god.stub_function(os, "makedirs")
         self.god.stub_function(os, "remove")
+        self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
         self.god.stub_function(utils, "sh_escape")
         self.god.stub_function(autotest, "open")
@@ -162,11 +167,23 @@ class TestBaseAutotest(unittest.TestCase):
         cfile_new += "job.default_test_cleanup(True)\n"
         cfile_new += "job.add_repository(repos)\n"
         cfile_new += cfile_orig
-        
+
         autotest.open.expect_call("temp").and_return(cfile)
         cfile.read.expect_call().and_return(cfile_orig)
         autotest.open.expect_call("temp", 'w').and_return(cfile)
         cfile.write.expect_call(cfile_new)
+
+        self.host.job.sysinfo.serialize.expect_call().and_return(
+            {"key1": 1, "key2": 2})
+        tempfile.mkstemp.expect_call(dir="/job/tmp").and_return(
+            (5, "/job/tmp/file1"))
+        mock_temp = self.god.create_mock_class(file, "file1")
+        mock_temp.write = lambda s: None
+        mock_temp.close = lambda: None
+        os.fdopen.expect_call(5, "w").and_return(mock_temp)
+        self.host.send_file.expect_call("/job/tmp/file1",
+                                        "autodir/control.None.autoserv.state")
+        os.remove.expect_call("/job/tmp/file1")
 
         self.host.send_file.expect_call("temp", run_obj.remote_control_file)
         os.path.abspath.expect_call('temp').and_return('control_file')

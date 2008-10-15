@@ -70,13 +70,15 @@ class TestBaseJob(unittest.TestCase):
         results = os.path.join(self.autodir, 'results')
         download = os.path.join(self.autodir, 'tests', 'download')
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
-        job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
         pkgdir = os.path.join(self.autodir, 'packages')
 
         # record
         self.job._load_state.expect_call()
         self.job.get_state.expect_call("__run_test_cleanup",
                                        default=True).and_return(True)
+        job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
+        self.job.get_state.expect_call("__sysinfo",
+                                       None).and_return(None)
         self.job.get_state.expect_call("__last_boot_tag",
                                        default=None).and_return(None)
         if not cont:

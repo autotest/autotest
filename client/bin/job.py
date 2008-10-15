@@ -112,7 +112,7 @@ class base_job(object):
         self.tmpdir = os.path.join(self.autodir, 'tmp')
         self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', jobtag)
-        self.sysinfo = sysinfo.sysinfo(self.resultdir)
+
         self.control = os.path.abspath(control)
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
@@ -124,6 +124,10 @@ class base_job(object):
         self.pkgdir = os.path.join(self.autodir, 'packages')
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
+
+        self.sysinfo = sysinfo.sysinfo(self.resultdir)
+        self._load_sysinfo_state()
+
         self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
         self.job_log = debug.get_logger(module='client')
         self._is_continuation = cont
@@ -769,12 +773,14 @@ class base_job(object):
         assert not hasattr(self, "state")
         try:
             self.state = pickle.load(open(self.state_file, 'r'))
-            self.state_existed = True
+            initialize = "__steps" not in self.state
         except Exception:
-            print "Initializing the state engine."
             self.state = {}
+            initialize = True
+
+        if initialize:
+            print "Initializing the state engine."
             self.set_state('__steps', []) # writes pickle file
-            self.state_existed = False
 
 
     def get_state(self, var, default=NO_DEFAULT):
@@ -907,7 +913,7 @@ class base_job(object):
 
         # If we loaded in a mid-job state file, then we presumably
         # know what steps we have yet to run.
-        if not self.state_existed:
+        if not self._is_continuation:
             if global_control_vars.has_key('step_init'):
                 self.next_step(global_control_vars['step_init'])
 
@@ -923,6 +929,34 @@ class base_job(object):
             local_vars, self.current_step_ancestry = ret
             local_vars = self._run_step_fn(local_vars, fn_name, args, dargs)
             self._add_step_init(local_vars, fn_name)
+
+
+    def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
+        self._add_sysinfo_loggable(sysinfo.command(command, logfile),
+                                   on_every_test)
+
+
+    def add_sysinfo_logfile(self, file, on_every_test=False):
+        self._add_sysinfo_loggable(sysinfo.logfile(file), on_every_test)
+
+
+    def _add_sysinfo_loggable(self, loggable, on_every_test):
+        if on_every_test:
+            self.sysinfo.test_loggables.add(loggable)
+        else:
+            self.sysinfo.boot_loggables.add(loggable)
+        self._save_sysinfo_state()
+
+
+    def _load_sysinfo_state(self):
+        state = self.get_state("__sysinfo", None)
+        if state:
+            self.sysinfo.deserialize(state)
+
+
+    def _save_sysinfo_state(self):
+        state = self.sysinfo.serialize()
+        self.set_state("__sysinfo", state)
 
 
     def _init_group_level(self):
@@ -1111,8 +1145,6 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
         # state file, ensure we don't try and continue.
         if cont and not os.path.exists(state):
             raise error.JobComplete("all done")
-        if cont == False and os.path.exists(state):
-            os.unlink(state)
 
         myjob = job(control, tag, cont, harness_type, use_external_logging)
 
