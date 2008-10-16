@@ -34,7 +34,8 @@ def create_host(hostname, auto_monitor=True, **args):
                 classes.append(dmesg.DmesgHost)
 
     # do any site-specific processing of the classes list
-    site_factory.postprocess_classes(classes, hostname, auto_monitor, **args)
+    site_factory.postprocess_classes(classes, hostname, 
+                                     auto_monitor=auto_monitor, **args)
 
     # create a custom host class for this machine and return an instance of it
     host_class = type("%s_host" % hostname, tuple(classes), {})
