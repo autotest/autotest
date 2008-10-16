@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-import unittest, os, time, tempfile
+import unittest, os, stat, time, tempfile
 import common
 from autotest_lib.server import server_job, test, subcommand, hosts
+from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils, error, host_protections
 from autotest_lib.client.common_lib import packages
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
@@ -11,7 +12,7 @@ from autotest_lib.tko.parsers import version_1 as parser_mod
 from autotest_lib.tko.parsers import version_0 as parser_mod0
 
 
-class BaseServerJobTest(unittest.TestCase):
+class CopyLogsTest(unittest.TestCase):
     def setUp(self):
         self.control = "control"
         self.args = ""
@@ -26,6 +27,10 @@ class BaseServerJobTest(unittest.TestCase):
         # stub out some common functions
         self.god.stub_function(os.path, 'exists')
         self.god.stub_function(os, 'mkdir')
+        self.god.stub_function(os, 'access')
+        self.god.stub_function(os, 'makedirs')
+        self.god.stub_function(os.path, 'isdir')
+        self.god.stub_function(os, 'chmod')
         self.god.stub_function(os, 'chdir')
         self.god.stub_function(os, 'unlink')
         self.god.stub_function(server_job, 'get_site_job_data')
@@ -33,17 +38,18 @@ class BaseServerJobTest(unittest.TestCase):
         self.god.stub_function(utils, 'write_keyval')
 
 
-
-
     def tearDown(self):
         self.god.unstub_all()
 
 
     def construct_server_job(self):
+        # XXX(gps): These expect_call's must be kept in perfect sync
+        # call for call with what base_server_job does.  This is too
+        # painful to maintain.
+
         # setup recording for constructor
         file_obj = self.god.create_mock_class(file, "file")
-        server_job.open.expect_call(self.control,
-                                         'r').and_return(file_obj)
+        server_job.open.expect_call(self.control, 'r').and_return(file_obj)
         file_obj.read.expect_call().and_return('')
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
@@ -51,13 +57,29 @@ class BaseServerJobTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
+
+        self.god.mock_up(sysinfo, 'sysinfo')
+        sysinfo.sysinfo.expect_call(mock.is_string_comparator())
+
+        os.access.expect_call(mock.is_string_comparator(),
+                              os.W_OK).and_return(False)
+        os.makedirs.expect_call(mock.is_string_comparator(), 0700)
+
+        os.access.expect_call(mock.is_string_comparator(),
+                              os.W_OK).and_return(True)
+        os.path.isdir.expect_call(mock.is_string_comparator()).and_return(False)
+        self.god.stub_function(tempfile, 'gettempdir')
+        tempfile.gettempdir.expect_call().and_return('/tmp/server_job_unittest')
+        os.makedirs.expect_call(mock.is_string_comparator(),
+                                0700).and_raises(os.error)
+        os.chmod.expect_call(mock.is_string_comparator(), stat.S_IRWXU)
+
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(True)
         os.unlink.expect_call(mock.is_string_comparator())
         cls = server_job.base_server_job
         compare = mock.is_instance_comparator(cls)
-        server_job.get_site_job_data.expect_call(
-                compare).and_return({})
+        server_job.get_site_job_data.expect_call(compare).and_return({})
         utils.write_keyval.expect_call(mock.is_string_comparator(),
                                        mock.is_instance_comparator(dict))
 
@@ -121,8 +143,7 @@ class BaseServerJobTest(unittest.TestCase):
                      'ssh_port' : self.job.ssh_port, \
                      'ssh_pass' : self.job.ssh_pass}
         arg = server_job.preamble + server_job.verify
-        self.job._execute_code.expect_call(arg, namespace,
-                                                namespace)
+        self.job._execute_code.expect_call(arg, namespace)
 
         # run and check
         self.job.verify()
@@ -141,11 +162,9 @@ class BaseServerJobTest(unittest.TestCase):
         repair_namespace['protection_level'] = host_protections.default
 
         arg = server_job.preamble + server_job.repair
-        self.job._execute_code.expect_call(arg, repair_namespace,
-                                           repair_namespace)
+        self.job._execute_code.expect_call(arg, repair_namespace)
         arg = server_job.preamble + server_job.verify
-        self.job._execute_code.expect_call(arg, verify_namespace,
-                                           verify_namespace)
+        self.job._execute_code.expect_call(arg, verify_namespace)
 
         # run and check
         self.job.repair(host_protections.default)
@@ -200,11 +219,9 @@ class BaseServerJobTest(unittest.TestCase):
                 'control.srv', 'w').and_return(file_obj)
         file_obj.write.expect_call('')
         arg = server_job.preamble + ''
-        self.job._execute_code.expect_call(arg, namespace,
-                                                namespace)
+        self.job._execute_code.expect_call(arg, namespace)
         arg = server_job.preamble + server_job.crashdumps
-        self.job._execute_code.expect_call(arg, namespace2,
-                                                namespace2)
+        self.job._execute_code.expect_call(arg, namespace2)
         self.job.disable_external_logging.expect_call()
 
         # run and check
@@ -364,7 +381,7 @@ class BaseServerJobTest(unittest.TestCase):
         self.god.check_playback()
 
 
-class BaseServerJobTest(unittest.TestCase):
+class CopyLogsTest(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
 
