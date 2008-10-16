@@ -5,6 +5,12 @@ Internal global error types
 import sys, traceback
 from traceback import format_exception
 
+# Add names you want to be imported by 'from errors import *' to this list.
+# This must be list not a tuple as we modify it to include all of our
+# the Exception classes we define below at the end of this file.
+__all__ = ['format_error']
+
+
 def format_error():
     t, o, tb = sys.exc_info()
     trace = format_exception(t, o, tb)
@@ -197,3 +203,14 @@ class AutoservSubcommandError(AutoservError):
     def __str__(self):
         return ("Subcommand %s failed with exit code %d" %
                 (self.func, self.exit_code))
+
+
+# This MUST remain at the end of the file.
+# Limit 'from error import *' to only import the exception instances.
+for _name, _thing in locals().items():
+    try:
+        if issubclass(_thing, Exception):
+            __all__.append(_name)
+    except TypeError:
+        pass  # _thing not a class
+__all__ = tuple(__all__)
