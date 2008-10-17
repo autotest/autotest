@@ -640,16 +640,10 @@ class Dispatcher:
         queue_entries = [HostQueueEntry(row=i) for i in rows]
         for queue_entry in queue_entries:
             print 'Recovering aborting QE %d' % queue_entry.id
-            queue_host = queue_entry.get_host()
-            reboot_task = RebootTask(queue_host)
-            verify_task = VerifyTask(host = queue_host)
-            self.add_agent(Agent(tasks=[reboot_task,
-                                        verify_task],
-                           queue_entry_ids=[queue_entry.id]))
-            queue_entry.set_status('Aborted')
-            # Secure the host from being picked up
-            queue_host.set_status('Rebooting')
-            rebooting_host_ids.add(queue_host.id)
+            agent = queue_entry.abort()
+            self.add_agent(agent)
+            if queue_entry.get_host():
+                rebooting_host_ids.add(queue_entry.get_host().id)
 
         # reverify hosts that were in the middle of verify, repair or
         # reboot
@@ -761,22 +755,11 @@ class Dispatcher:
         # Find jobs that are aborting
         for entry in queue_entries_to_abort():
             agents_to_abort = self.get_agents(entry)
-            entry_host = entry.get_host()
-            reboot_task = RebootTask(entry_host)
-            verify_task = VerifyTask(host = entry_host)
-            tasks = [reboot_task, verify_task]
-            if agents_to_abort:
-                abort_task = AbortTask(entry, agents_to_abort)
-                for agent in agents_to_abort:
-                    self.remove_agent(agent)
-                tasks.insert(0, abort_task)
-            else:
-                entry.set_status('Aborted')
-                # just to make sure this host does not get
-                # taken away
-                entry_host.set_status('Rebooting')
-            self.add_agent(Agent(tasks=tasks,
-                                 queue_entry_ids = [entry.id]))
+            for agent in agents_to_abort:
+                self.remove_agent(agent)
+
+            agent = entry.abort(agents_to_abort)
+            self.add_agent(agent)
             num_aborted += 1
             if num_aborted >= 50:
                 break
@@ -1474,7 +1457,6 @@ class AbortTask(AgentTask):
     def prolog(self):
         print "starting abort on host %s, job %s" % (
                 self.queue_entry.host_id, self.queue_entry.job_id)
-        self.queue_entry.set_status('Aborting')
 
 
     def epilog(self):
@@ -1893,6 +1875,22 @@ class HostQueueEntry(DBObject):
         if self.job.is_ready():
             return self.job.run(self)
         return None
+
+
+    def abort(self, agents_to_abort=[]):
+        abort_task = AbortTask(self, agents_to_abort)
+        tasks = [abort_task]
+
+        host = self.get_host()
+        if host:
+            reboot_task = RebootTask(host)
+            verify_task = VerifyTask(host=host)
+            # just to make sure this host does not get taken away
+            host.set_status('Rebooting')
+            tasks += [reboot_task, verify_task]
+
+        self.set_status('Aborting')
+        return Agent(tasks=tasks, queue_entry_ids=[self.id])
 
 
 class Job(DBObject):

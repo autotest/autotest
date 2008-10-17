@@ -472,57 +472,39 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self._assert_agents_not_started([3])
 
 
-class AbortTest(BaseSchedulerTest):
+class FindAbortTest(BaseSchedulerTest):
     """
-    Test both the dispatcher abort functionality and AbortTask.
+    Test the dispatcher abort functionality.
     """
-    def setUp(self):
-        super(AbortTest, self).setUp()
-        self.god.stub_class(monitor_db, 'RebootTask')
-        self.god.stub_class(monitor_db, 'VerifyTask')
-        self.god.stub_class(monitor_db, 'AbortTask')
-        self.god.stub_class(monitor_db, 'HostQueueEntry')
-        self.god.stub_class(monitor_db, 'Agent')
+    def _check_agent(self, agent, entry_and_host_id):
+        self.assert_(isinstance(agent, monitor_db.Agent))
+        tasks = list(agent.queue.queue)
+        self.assertEquals(len(tasks), 3)
+        abort, reboot, verify = tasks
+
+        self.assert_(isinstance(abort, monitor_db.AbortTask))
+        self.assertEquals(abort.queue_entry.id, entry_and_host_id)
+
+        self.assert_(isinstance(reboot, monitor_db.RebootTask))
+        self.assertEquals(reboot.host.id, entry_and_host_id)
+
+        self.assert_(isinstance(verify, monitor_db.VerifyTask))
+        self.assertEquals(verify.host.id, entry_and_host_id)
 
 
-    def _setup_queue_entries(self, host_id, hqe_id):
-        host = monitor_db.Host(id=host_id)
-        self.god.stub_function(host, 'set_status')
-        hqe = monitor_db.HostQueueEntry.expect_new(row=IsRow(hqe_id))
-        hqe.id = hqe_id
-        return host, hqe
-
-
-    def _setup_abort_expects(self, host, hqe, abort_agent=None):
-        hqe.get_host.expect_call().and_return(host)
-        reboot_task = monitor_db.RebootTask.expect_new(host)
-        verify_task = monitor_db.VerifyTask.expect_new(host=host)
-        if abort_agent:
-            abort_task = monitor_db.AbortTask.expect_new(hqe, [abort_agent])
-            tasks = [mock.is_instance_comparator(monitor_db.AbortTask)]
-        else:
-            hqe.set_status.expect_call('Aborted')
-            host.set_status.expect_call('Rebooting')
-            tasks = []
-        tasks += [reboot_task, verify_task]
-        agent = monitor_db.Agent.expect_new(tasks=tasks,
-                                            queue_entry_ids=[hqe.id])
-        agent.queue_entry_ids = [hqe.id]
-        return agent
+    def _check_agents(self, agents):
+        self.assertEquals(len(agents), 2)
+        for index, agent in enumerate(agents):
+            self._check_agent(agent, index + 1)
 
 
     def test_find_aborting_inactive(self):
         self._create_job(hosts=[1, 2])
         self._update_hqe(set='status="Abort"')
 
-        host1, hqe1 = self._setup_queue_entries(1, 1)
-        host2, hqe2 = self._setup_queue_entries(2, 2)
-        agent1 = self._setup_abort_expects(host1, hqe1)
-        agent2 = self._setup_abort_expects(host2, hqe2)
-
         self._dispatcher._find_aborting()
 
-        self.assertEquals(self._dispatcher._agents, [agent1, agent2])
+        self._check_agents(self._dispatcher._agents)
         self.god.check_playback()
 
 
@@ -530,20 +512,20 @@ class AbortTest(BaseSchedulerTest):
         self._create_job(hosts=[1, 2])
         self._update_hqe(set='status="Abort", active=1')
         # have to make an Agent for the active HQEs
-        task = self.god.create_mock_class(monitor_db.QueueTask, 'QueueTask')
-        agent = self.god.create_mock_class(monitor_db.Agent, 'OldAgent')
+        agent = self.god.create_mock_class(monitor_db.Agent, 'old_agent')
         agent.queue_entry_ids = [1, 2]
         self._dispatcher.add_agent(agent)
 
-        host1, hqe1 = self._setup_queue_entries(1, 1)
-        host2, hqe2 = self._setup_queue_entries(2, 2)
-        agent1 = self._setup_abort_expects(host1, hqe1, abort_agent=agent)
-        agent2 = self._setup_abort_expects(host2, hqe2)
-
         self._dispatcher._find_aborting()
 
-        self.assertEquals(self._dispatcher._agents, [agent1, agent2])
+        self._check_agents(self._dispatcher._agents)
         self.god.check_playback()
+
+        # ensure agent gets aborted
+        abort1 = self._dispatcher._agents[0].queue.queue[0]
+        self.assertEquals(abort1.agents_to_abort, [agent])
+        abort2 = self._dispatcher._agents[1].queue.queue[0]
+        self.assertEquals(abort2.agents_to_abort, [])
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
@@ -901,6 +883,22 @@ class AgentTasksTest(unittest.TestCase):
                            mock.mock_function('add_agent'))
         self.run_task(task, True)
         self.god.check_playback()
+
+
+    def test_abort_task(self):
+        queue_entry = self.god.create_mock_class(monitor_db.HostQueueEntry,
+                                                 'queue_entry')
+        queue_entry.host_id, queue_entry.job_id = 1, 2
+        task = self.god.create_mock_class(monitor_db.AgentTask, 'task')
+        agent = self.god.create_mock_class(monitor_db.Agent, 'agent')
+        agent.active_task = task
+
+        queue_entry.set_status.expect_call('Aborting')
+        task.abort.expect_call()
+        queue_entry.set_status.expect_call('Aborted')
+
+        abort_task = monitor_db.AbortTask(queue_entry, [agent])
+        self.run_task(abort_task, True)
 
 
 class JobTest(BaseSchedulerTest):
