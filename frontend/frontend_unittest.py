@@ -1,12 +1,9 @@
 #!/usr/bin/python
 
 import unittest, os
-from django.core import management
 import common
-from autotest_lib.frontend import django_test_utils
-
-# must call setup_test_environ() before importing any Django code
-django_test_utils.setup_test_environ()
+from autotest_lib.frontend import setup_django_environment
+from autotest_lib.frontend import setup_test_environment
 from autotest_lib.frontend.afe import test, readonly_connection
 
 _APP_DIR = os.path.join(os.path.dirname(__file__), 'afe')
