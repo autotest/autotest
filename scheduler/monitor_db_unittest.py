@@ -3,14 +3,13 @@
 import unittest, time, subprocess, os, StringIO, tempfile, datetime
 import MySQLdb
 import common
+from autotest_lib.frontend import setup_django_environment
+from autotest_lib.frontend import setup_test_environment
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.database import database_connection, migrate
-from autotest_lib.scheduler import monitor_db
-
-from autotest_lib.frontend import django_test_utils
-django_test_utils.setup_test_environ()
 from autotest_lib.frontend.afe import models
+from autotest_lib.scheduler import monitor_db
 
 _DEBUG = False
 
@@ -45,15 +44,15 @@ class BaseSchedulerTest(unittest.TestCase):
             return
         temp_fd, cls._test_db_file = tempfile.mkstemp(suffix='.monitor_test')
         os.close(temp_fd)
-        django_test_utils.set_test_database(cls._test_db_file)
-        django_test_utils.run_syncdb()
-        cls._test_db_backup = django_test_utils.backup_test_database()
+        setup_test_environment.set_test_database(cls._test_db_file)
+        setup_test_environment.run_syncdb()
+        cls._test_db_backup = setup_test_environment.backup_test_database()
         cls._test_db_initialized = True
 
 
     def _open_test_db(self):
         self._initialize_test_db()
-        django_test_utils.restore_test_database(self._test_db_backup)
+        setup_test_environment.restore_test_database(self._test_db_backup)
         self._database = (
             database_connection.DatabaseConnection.get_test_database(
                 self._test_db_file))
