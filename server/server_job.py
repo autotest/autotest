@@ -7,113 +7,38 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
+import shutil, warnings
 from autotest_lib.client.bin import fd_stack, sysinfo
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.server import test, subcommand
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 
 
-# load up a control segment
-# these are all stored in <server_dir>/control_segments
-def load_control_segment(name):
+def _control_segment_path(name):
+    """Get the pathname of the named control segment file."""
     server_dir = os.path.dirname(os.path.abspath(__file__))
-    script_file = os.path.join(server_dir, "control_segments", name)
-    if os.path.exists(script_file):
-        return file(script_file).read()
-    else:
-        return ""
+    return os.path.join(server_dir, "control_segments", name)
 
 
-preamble = """\
-import os, sys
+CLIENT_CONTROL_FILENAME = 'control'
+SERVER_CONTROL_FILENAME = 'control.srv'
+MACHINES_FILENAME = '.machines'
 
-from autotest_lib.server import hosts, autotest, kvm, git, standalone_profiler
-from autotest_lib.server import source_kernel, rpm_kernel, deb_kernel
-from autotest_lib.server import git_kernel
-from autotest_lib.server.subcommand import *
-from autotest_lib.server.utils import run, get_tmp_dir, sh_escape
-from autotest_lib.server.utils import parse_machine
-from autotest_lib.client.common_lib.error import *
-from autotest_lib.client.common_lib import barrier
+CLIENT_WRAPPER_CONTROL_FILE = _control_segment_path('client_wrapper')
+CRASHDUMPS_CONTROL_FILE = _control_segment_path('crashdumps')
+CRASHINFO_CONTROL_FILE = _control_segment_path('crashinfo')
+REBOOT_SEGMENT_CONTROL_FILE = _control_segment_path('reboot_segment')
+INSTALL_CONTROL_FILE = _control_segment_path('install')
 
-autotest.Autotest.job = job
-hosts.Host.job = job
-barrier = barrier.barrier
-if len(machines) > 1:
-        open('.machines', 'w').write('\\n'.join(machines) + '\\n')
-"""
-
-client_wrapper = """
-at = autotest.Autotest()
-
-def run_client(machine):
-    hostname, user, passwd, port = parse_machine(
-        machine, ssh_user, ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port, password=passwd)
-    host.log_kernel()
-    at.run(control, host=host)
-
-job.parallel_simple(run_client, machines)
-"""
-
-crashdumps = """
-def crashdumps(machine):
-    hostname, user, passwd, port = parse_machine(machine, ssh_user,
-                                                 ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
-    host.get_crashdumps(test_start_time)
-
-job.parallel_simple(crashdumps, machines, log=False)
-"""
-
-
-crashinfo = """
-def crashinfo(machine):
-    hostname, user, passwd, port = parse_machine(machine, ssh_user,
-                                                 ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
-    host.get_crashinfo(test_start_time)
-
-job.parallel_simple(crashinfo, machines, log=False)
-"""
-
-
-reboot_segment="""\
-def reboot(machine):
-    hostname, user, passwd, port = parse_machine(machine, ssh_user,
-                                                 ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
-    host.reboot()
-
-job.parallel_simple(reboot, machines, log=False)
-"""
-
-install="""\
-def install(machine):
-    hostname, user, passwd, port = parse_machine(machine, ssh_user,
-                                                 ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
-    host.machine_install()
-
-job.parallel_simple(install, machines, log=False)
-"""
-
-# load up the verifier control segment, with an optional site-specific hook
-verify = load_control_segment("site_verify")
-verify += load_control_segment("verify")
-
-# load up the repair control segment, with an optional site-specific hook
-repair = load_control_segment("site_repair")
-repair += load_control_segment("repair")
+# XXX(gps): Dealing with the site_* stuff here is annoying.  The
+# control_segments/verify and control_segments/repair code should be
+# changed to load & run their site equivalents as the first thing they do.
+# Doing that would get need of the annoying 'protect=False' mechanism in
+# the _execute_code() machinery below.
+SITE_VERIFY_CONTROL_FILE = _control_segment_path('site_verify')
+VERIFY_CONTROL_FILE = _control_segment_path('verify')
+SITE_REPAIR_CONTROL_FILE = _control_segment_path('site_repair')
+REPAIR_CONTROL_FILE = _control_segment_path('repair')
 
 
 # load up site-specific code for generating site-specific job data
@@ -285,14 +210,19 @@ class base_server_job(object):
 
     def verify(self):
         if not self.machines:
-            raise error.AutoservError(
-                'No machines specified to verify')
+            raise error.AutoservError('No machines specified to verify')
         try:
             namespace = {'machines' : self.machines, 'job' : self,
                          'ssh_user' : self.ssh_user,
                          'ssh_port' : self.ssh_port,
                          'ssh_pass' : self.ssh_pass}
-            self._execute_code(preamble + verify, namespace)
+            # Protection is disabled to allow for site_verify()
+            # to be defined in site_verify but called from its
+            # "JP: deprecated" callsite in control_segments/verify.
+            if os.path.exists(SITE_VERIFY_CONTROL_FILE):
+                self._execute_code(SITE_VERIFY_CONTROL_FILE, namespace,
+                                   protect=False)
+            self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n'
                     + traceback.format_exc())
@@ -309,7 +239,14 @@ class base_server_job(object):
                      'protection_level': host_protection}
         # no matter what happens during repair, go on to try to reverify
         try:
-            self._execute_code(preamble + repair, namespace)
+            # Protection is disabled to allow for site_repair_full() and
+            # site_repair_filesystem_only() to be defined in site_repair but
+            # called from the "JP: deprecated" areas of control_segments/repair.
+            if os.path.exists(SITE_REPAIR_CONTROL_FILE):
+                self._execute_code(SITE_REPAIR_CONTROL_FILE, namespace,
+                                   protect=False)
+            self._execute_code(REPAIR_CONTROL_FILE, namespace,
+                               protect=False)
         except Exception, exc:
             print 'Exception occured during repair'
             traceback.print_exc()
@@ -404,16 +341,15 @@ class base_server_job(object):
         collect_crashinfo = True
         try:
             if install_before and machines:
-                self._execute_code(preamble + install, namespace)
+                self._execute_code(INSTALL_CONTROL_FILE, namespace)
             if self.client:
                 namespace['control'] = self.control
-                open('control', 'w').write(self.control)
-                open('control.srv', 'w').write(client_wrapper)
-                server_control = client_wrapper
+                utils.open_write_close(CLIENT_CONTROL_FILENAME, self.control)
+                shutil.copy(CLIENT_WRAPPER_CONTROL_FILE,
+                            SERVER_CONTROL_FILENAME)
             else:
-                open('control.srv', 'w').write(self.control)
-                server_control = self.control
-            self._execute_code(preamble + server_control, namespace)
+                utils.open_write_close(SERVER_CONTROL_FILENAME, self.control)
+            self._execute_code(SERVER_CONTROL_FILENAME, namespace)
 
             # disable crashinfo collection if we get this far without error
             collect_crashinfo = False
@@ -421,15 +357,15 @@ class base_server_job(object):
             if machines and (collect_crashdumps or collect_crashinfo):
                 namespace['test_start_time'] = test_start_time
                 if collect_crashinfo:
-                    script = crashinfo # includes crashdumps
+                    # includes crashdumps
+                    self._execute_code(CRASHINFO_CONTROL_FILE, namespace)
                 else:
-                    script = crashdumps
-                self._execute_code(preamble + script, namespace)
+                    self._execute_code(CRASHDUMPS_CONTROL_FILE, namespace)
             self.disable_external_logging()
             if reboot and machines:
-                self._execute_code(preamble + reboot_segment, namespace)
+                self._execute_code(REBOOT_SEGMENT_CONTROL_FILE, namespace)
             if install_after and machines:
-                self._execute_code(preamble + install, namespace)
+                self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
 
     def run_test(self, url, *args, **dargs):
@@ -712,8 +648,118 @@ class base_server_job(object):
         self.__parse_status(lines)
 
 
-    def _execute_code(self, code, scope):
-        exec(code, scope, scope)
+    def _fill_server_control_namespace(self, namespace, protect=True):
+        """Prepare a namespace to be used when executing server control files.
+
+        This sets up the control file API by importing modules and making them
+        available under the appropriate names within namespace.
+
+        For use by _execute_code().
+
+        Args:
+          namespace: The namespace dictionary to fill in.
+          protect: Boolean.  If True (the default) any operation that would
+              clobber an existing entry in namespace will cause an error.
+        Raises:
+          error.AutoservError: When a name would be clobbered by import.
+        """
+        def _import_names(module_name, names=()):
+            """Import a module and assign named attributes into namespace.
+
+            Args:
+                module_name: The string module name.
+                names: A limiting list of names to import from module_name.  If
+                    empty (the default), all names are imported from the module
+                    similar to a "from foo.bar import *" statement.
+            Raises:
+                error.AutoservError: When a name being imported would clobber
+                    a name already in namespace.
+            """
+            module = __import__(module_name, {}, {}, names)
+
+            # No names supplied?  Import * from the lowest level module.
+            # (Ugh, why do I have to implement this part myself?)
+            if not names:
+                for submodule_name in module_name.split('.')[1:]:
+                    module = getattr(module, submodule_name)
+                if hasattr(module, '__all__'):
+                    names = getattr(module, '__all__')
+                else:
+                    names = dir(module)
+
+            # Install each name into namespace, checking to make sure it
+            # doesn't override anything that already exists.
+            for name in names:
+                # Check for conflicts to help prevent future problems.
+                if name in namespace and protect:
+                    if namespace[name] is not getattr(module, name):
+                        raise error.AutoservError('importing name '
+                                '%s from %s %r would override %r' %
+                                (name, module_name, getattr(module, name),
+                                 namespace[name]))
+                    else:
+                        # Encourage cleanliness and the use of __all__ for a
+                        # more concrete API with less surprises on '*' imports.
+                        warnings.warn('%s (%r) being imported from %s for use '
+                                      'in server control files is not the '
+                                      'first occurrance of that import.' %
+                                      (name, namespace[name], module_name))
+
+                namespace[name] = getattr(module, name)
+
+
+        # This is the equivalent of prepending a bunch of import statements to
+        # the front of the control script.
+        namespace.update(os=os, sys=sys)
+        _import_names('autotest_lib.server',
+                ('hosts', 'autotest', 'kvm', 'git', 'standalone_profiler',
+                 'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
+        _import_names('autotest_lib.server.subcommand',
+                      ('parallel', 'parallel_simple', 'subcommand'))
+        _import_names('autotest_lib.server.utils',
+                      ('run', 'get_tmp_dir', 'sh_escape', 'parse_machine'))
+        _import_names('autotest_lib.client.common_lib.error')
+        _import_names('autotest_lib.client.common_lib.barrier', ('barrier',))
+
+        # Inject ourself as the job object into other classes within the API.
+        # (Yuck, this injection is a gross thing be part of a public API. -gps)
+        #
+        # XXX Base & SiteAutotest do not appear to use .job.  Who does?
+        namespace['autotest'].Autotest.job = self
+        # server.hosts.base_classes.Host uses .job.
+        namespace['hosts'].Host.job = self
+
+
+    def _execute_code(self, code_file, namespace, protect=True):
+        """Execute code using a copy of namespace as a server control script.
+
+        Unless protect_namespace is explicitly set to False, the dict will not
+        be modified.
+
+        Args:
+          code_file: The filename of the control file to execute.
+          namespace: A dict containing names to make available during execution.
+          protect: Boolean.  If True (the default) a copy of the namespace dict
+              is used during execution to prevent the code from modifying its
+              contents outside of this function.  If False the raw dict is
+              passed in and modifications will be allowed.
+        """
+        if protect:
+            namespace = namespace.copy()
+        self._fill_server_control_namespace(namespace, protect=protect)
+        # TODO: Simplify and get rid of the special cases for only 1 machine.
+        if len(self.machines):
+            machines_text = '\n'.join(self.machines) + '\n'
+            # Only rewrite the file if it does not match our machine list.
+            try:
+                machines_f = open(MACHINES_FILENAME, 'r')
+                existing_machines_text = machines_f.read()
+                machines_f.close()
+            except EnvironmentError:
+                existing_machines_text = None
+            if machines_text != existing_machines_text:
+                utils.open_write_close(MACHINES_FILENAME, machines_text)
+        execfile(code_file, namespace, namespace)
 
 
     def _record(self, status_code, subdir, operation, status='',

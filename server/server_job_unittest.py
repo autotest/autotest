@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import unittest, os, stat, time, tempfile
+import unittest, os, stat, sys, time, tempfile, warnings
 import common
-from autotest_lib.server import server_job, test, subcommand, hosts
+from autotest_lib.server import server_job, test, subcommand, hosts, autotest
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils, error, host_protections
 from autotest_lib.client.common_lib import packages
@@ -134,6 +134,62 @@ class CopyLogsTest(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_fill_server_control_namespace(self):
+        self.construct_server_job()
+
+        class MockAutotest(object):
+            job = None
+        class MockHosts(object):
+            job = None
+
+        # Verify that the job attributes are injected in the expected place.
+        self.god.stub_with(autotest, 'Autotest', MockAutotest)
+        self.god.stub_with(hosts, 'Host', MockHosts)
+        self.job._fill_server_control_namespace({})
+        self.assertEqual(hosts.Host.job, self.job)
+        self.assertEqual(autotest.Autotest.job, self.job)
+
+        test_ns = {}
+        self.job._fill_server_control_namespace(test_ns)
+
+        # Verify that a few of the expected module exports were loaded.
+        self.assertEqual(test_ns['sys'], sys)
+        self.assert_('git' in test_ns)
+        self.assert_('parallel_simple' in test_ns)
+        self.assert_('sh_escape' in test_ns)
+        self.assert_('barrier' in test_ns)
+        self.assert_('format_error' in test_ns)
+        self.assert_('AutoservRebootError' in test_ns)
+        # This should not exist, client.common_lib.errors does not export it.
+        self.assert_('format_exception' not in test_ns)
+
+        # Replacing something that exists with something else is an error.
+        orig_test_ns = {'hosts': 'not the autotest_lib.server.hosts module'}
+        test_ns = orig_test_ns.copy()
+        self.assertRaises(error.AutoservError,
+                          self.job._fill_server_control_namespace, test_ns)
+
+        # Replacing something that exists with something else is an error.
+        test_ns = orig_test_ns.copy()
+        self.assertRaises(error.AutoservError,
+                          self.job._fill_server_control_namespace, test_ns)
+
+        # Replacing something without protection should succeed.
+        test_ns = orig_test_ns.copy()
+        self.job._fill_server_control_namespace(test_ns, protect=False)
+        self.assertEqual(test_ns['hosts'], hosts)
+
+        # Replacing something with itself should issue a warning.
+        test_ns = {'hosts': hosts}
+        self.god.stub_function(warnings, 'showwarning')
+        warnings.showwarning.expect_call(
+                mock.is_instance_comparator(UserWarning), UserWarning,
+                mock.is_string_comparator(), mock.is_instance_comparator(int))
+        self.job._fill_server_control_namespace(test_ns)
+        self.god.check_playback()
+        self.assertEqual(test_ns['hosts'], hosts)
+
+
     def test_verify(self):
         self.construct_server_job()
 
@@ -142,8 +198,12 @@ class CopyLogsTest(unittest.TestCase):
                      'ssh_user' : self.job.ssh_user, \
                      'ssh_port' : self.job.ssh_port, \
                      'ssh_pass' : self.job.ssh_pass}
-        arg = server_job.preamble + server_job.verify
-        self.job._execute_code.expect_call(arg, namespace)
+        os.path.exists.expect_call(
+                server_job.SITE_VERIFY_CONTROL_FILE).and_return(True)
+        self.job._execute_code.expect_call(server_job.SITE_VERIFY_CONTROL_FILE,
+                                           namespace, protect=False)
+        self.job._execute_code.expect_call(server_job.VERIFY_CONTROL_FILE,
+                                           namespace, protect=False)
 
         # run and check
         self.job.verify()
@@ -161,10 +221,19 @@ class CopyLogsTest(unittest.TestCase):
         repair_namespace = verify_namespace.copy()
         repair_namespace['protection_level'] = host_protections.default
 
-        arg = server_job.preamble + server_job.repair
-        self.job._execute_code.expect_call(arg, repair_namespace)
-        arg = server_job.preamble + server_job.verify
-        self.job._execute_code.expect_call(arg, verify_namespace)
+        os.path.exists.expect_call(
+                server_job.SITE_REPAIR_CONTROL_FILE).and_return(True)
+        self.job._execute_code.expect_call(server_job.SITE_REPAIR_CONTROL_FILE,
+                                           repair_namespace, protect=False)
+        self.job._execute_code.expect_call(server_job.REPAIR_CONTROL_FILE,
+                                           repair_namespace, protect=False)
+
+        os.path.exists.expect_call(
+                server_job.SITE_VERIFY_CONTROL_FILE).and_return(True)
+        self.job._execute_code.expect_call(server_job.SITE_VERIFY_CONTROL_FILE,
+                                           verify_namespace, protect=False)
+        self.job._execute_code.expect_call(server_job.VERIFY_CONTROL_FILE,
+                                           verify_namespace, protect=False)
 
         # run and check
         self.job.repair(host_protections.default)
@@ -215,13 +284,13 @@ class CopyLogsTest(unittest.TestCase):
         time.time.expect_call().and_return(my_time)
         os.chdir.expect_call(mock.is_string_comparator())
         self.job.enable_external_logging.expect_call()
-        server_job.open.expect_call(
-                'control.srv', 'w').and_return(file_obj)
-        file_obj.write.expect_call('')
-        arg = server_job.preamble + ''
-        self.job._execute_code.expect_call(arg, namespace)
-        arg = server_job.preamble + server_job.crashdumps
-        self.job._execute_code.expect_call(arg, namespace2)
+        self.god.stub_function(utils, 'open_write_close')
+        utils.open_write_close.expect_call(server_job.SERVER_CONTROL_FILENAME,
+                                           '')
+        self.job._execute_code.expect_call(server_job.SERVER_CONTROL_FILENAME,
+                                           namespace)
+        self.job._execute_code.expect_call(server_job.CRASHDUMPS_CONTROL_FILE,
+                                           namespace2)
         self.job.disable_external_logging.expect_call()
 
         # run and check

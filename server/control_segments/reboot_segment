@@ -1,0 +1,9 @@
+def reboot(machine):
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
+
+    host = hosts.create_host(hostname, user=user, port=port,
+                             initialize=False, password=passwd)
+    host.reboot()
+
+job.parallel_simple(reboot, machines, log=False)

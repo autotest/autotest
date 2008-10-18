@@ -1,0 +1,9 @@
+def crashinfo(machine):
+    hostname, user, passwd, port = parse_machine(machine, ssh_user,
+                                                 ssh_port, ssh_pass)
+
+    host = hosts.create_host(hostname, user=user, port=port,
+                             initialize=False, password=passwd)
+    host.get_crashinfo(test_start_time)
+
+job.parallel_simple(crashinfo, machines, log=False)
