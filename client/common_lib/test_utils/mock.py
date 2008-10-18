@@ -14,6 +14,24 @@ class CheckPlaybackError(Exception):
     pass
 
 
+class SaveDataAfterCloseStringIO(StringIO.StringIO):
+    """Saves the contents in a final_data property when close() is called.
+
+    Useful as a mock output file object to test both that the file was
+    closed and what was written.
+
+    Properties:
+      final_data: Set to the StringIO's getvalue() data when close() is
+          called.  None if close() has not been called.
+    """
+    final_data = None
+
+    def close(self):
+        self.final_data = self.getvalue()
+        StringIO.StringIO.close(self)
+
+
+
 class argument_comparator(object):
     def is_satisfied_by(self, parameter):
         raise NotImplementedError
