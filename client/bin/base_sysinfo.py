@@ -6,6 +6,7 @@ from autotest_lib.client.common_lib import utils, log
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
 _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
     "lspci -vvn", "gcc --version", "ld --version", "mount", "hostname",
+    "uptime",
     ]
 
 _DEFAULT_FILES_TO_LOG_PER_TEST = []
