@@ -188,7 +188,8 @@ class host_stat(host):
             print '-'*5
             self.print_fields(stats,
                               keys=['hostname', 'platform',
-                                    'status', 'locked', 'locked_by'])
+                                    'status', 'locked', 'locked_by',
+                                    'lock_time', 'protection',])
             self.print_by_ids(acls, 'ACLs', line_before=True)
             labels = self._cleanup_labels(labels)
             self.print_by_ids(labels, 'Labels', line_before=True)
@@ -270,13 +271,18 @@ class host_mod(host):
         self.parser.add_option('-d', '--dead',
                                help='Mark this host dead',
                                action='store_true')
-
         self.parser.add_option('-l', '--lock',
                                help='Lock hosts',
                                action='store_true')
         self.parser.add_option('-u', '--unlock',
                                help='Unlock hosts',
                                action='store_true')
+        self.parser.add_option('-p', '--protection', type='choice',
+                               help='Set the protection level on a host.  Must '
+                               'be one of: "Repair filesystem only", '
+                               '"No protection", or "Do not repair"',
+                               choices=('No protection', 'Do not repair',
+                                        'Repair filesystem only'))
 
 
     def parse(self):
@@ -295,6 +301,9 @@ class host_mod(host):
         elif options.dead:
             self.data['status'] = 'Dead'
             self.messages.append('Set status to Dead for host')
+
+        if options.protection:
+            self.data['protection'] = options.protection
 
         if len(self.data) == 0:
             self.invalid_syntax('No modification requested')
