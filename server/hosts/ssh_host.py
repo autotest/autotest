@@ -282,7 +282,7 @@ class SSHHost(site_host.SiteHost):
         super(SSHHost, self).verify()
 
         print 'Pinging host ' + self.hostname
-        self.is_up()
+        self.ssh_ping()
 
         try:
             autodir = autotest._get_autodir(self)
