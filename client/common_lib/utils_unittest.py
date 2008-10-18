@@ -101,11 +101,11 @@ class test_write_one_line(unittest.TestCase):
 
 
     def get_write_one_line_output(self, content):
-        test_file = StringIO.StringIO(content)
+        test_file = mock.SaveDataAfterCloseStringIO()
         utils.open.expect_call("filename", "w").and_return(test_file)
         utils.write_one_line("filename", content)
         self.god.check_playback()
-        return test_file.getvalue()
+        return test_file.final_data
 
 
     def test_writes_one_line_file(self):
@@ -126,6 +126,25 @@ class test_write_one_line(unittest.TestCase):
 
     def test_handles_empty_input(self):
         self.assertEqual("\n", self.get_write_one_line_output(""))
+
+
+class test_open_write_close(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(utils, "open")
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_simple_functionality(self):
+        data = "\n\nwhee\n"
+        test_file = mock.SaveDataAfterCloseStringIO()
+        utils.open.expect_call("filename", "w").and_return(test_file)
+        utils.open_write_close("filename", data)
+        self.god.check_playback()
+        self.assertEqual(data, test_file.final_data)
 
 
 class test_read_keyval(unittest.TestCase):
