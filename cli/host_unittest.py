@@ -396,6 +396,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 1,
                               u'lock_time': u'2008-07-23 12:54:15',
                               u'locked_by': 'user0',
+                              u'protection': 'No protection',
                               u'labels': [u'label3', u'label4', u'plat1'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -408,6 +409,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 0,
                               u'locked_by': 'user0',
                               u'lock_time': u'2008-07-23 12:54:15',
+                              u'protection': u'No protection',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -468,6 +470,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 0,
                               u'locked_by': 'user0',
                               u'lock_time': u'2008-07-23 12:54:15',
+                              u'protection': u'No protection',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -517,6 +520,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 0,
                               u'locked_by': 'user0',
                               u'lock_time': u'2008-07-23 12:54:15',
+                              u'protection': u'No protection',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -564,6 +568,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 1,
                               u'lock_time': u'2008-07-23 12:54:15',
                               u'locked_by': 'user0',
+                              u'protection': 'No protection',
                               u'labels': [u'label3', u'label4', u'plat1'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -574,6 +579,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 0,
                               u'locked_by': 'user0',
                               u'lock_time': u'2008-07-23 12:54:15',
+                              u'protection': u'No protection',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -632,6 +638,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 0,
                               u'locked_by': 'user0',
                               u'lock_time': u'2008-07-23 12:54:15',
+                              u'protection': u'No protection',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -644,6 +651,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'locked': 1,
                               u'lock_time': u'2008-07-23 12:54:15',
                               u'locked_by': 'user0',
+                              u'protection': 'No protection',
                               u'labels': [u'label3', u'label4', u'plat1'],
                               u'invalid': 0,
                               u'synch_id': None,
@@ -723,7 +731,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'kernel_config': u''}])],
                      out_words_ok=['host0', 'host1', 'newhost0',
                                    'plat0', 'plat1',
-                                   'Everyone', 'acl0', 'label0'])
+                                   'Everyone', 'acl10', 'label0'])
 
 
 class host_jobs_unittest(cli_mock.cli_unittest):
