@@ -66,6 +66,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'status': 'Status',
                     'locked': 'Locked',
                     'locked_by': 'Locked by',
+                    'lock_time': 'Locked time',
                     'labels': 'Labels',
                     'description': 'Description',
                     'hosts': 'Hosts',
@@ -90,6 +91,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'synch_type': 'Synch Type',
                     'control_file': 'Control File',
                     'only_if_needed': 'Use only if needed',
+                    'protection': 'Protection',
                     }
 
 # In the failure, tag that will replace the item.
