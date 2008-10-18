@@ -200,36 +200,88 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
     # Try to wipe the file system slate clean
     autotest_utils.drop_caches()
 
+class FsOptions(object):
+    """A class encapsulating a filesystem test's parameters.
+
+    Properties:  (all strings)
+      filesystem: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
+      mkfs_flags: Additional command line options to mkfs or '' if none.
+      mount_options: The options to pass to mount -o or '' if none.
+      short_name: A short name for this filesystem test to use in the results.
+    """
+    # NOTE(gps): This class could grow or be merged with something else in the
+    # future.  For instance the mkfs_all_disks function really should either
+    # take a FsOptions as a parameter or it should be a method of the class
+    # itself.
+
+    __slots__ = ('filesystem', 'mkfs_flags', 'mount_options', 'short_name')
+
+    def __init__(self, filesystem, mkfs_flags, mount_options, short_name):
+        """Fill in our properties."""
+        if not filesystem or not short_name:
+            raise ValueError('A filesystem and short_name are required.')
+        self.filesystem = filesystem
+        self.mkfs_flags = mkfs_flags
+        self.mount_options = mount_options
+        self.short_name = short_name
+
+
+    def __str__(self):
+        val = ('FsOptions(filesystem=%r, mkfs_flags=%r, '
+               'mount_options=%r, short_name=%r)' %
+               (self.filesystem, self.mkfs_flags,
+                self.mount_options, self.short_name))
+        return val
+
+
+# XXX(gps): Remove this code once refactoring is complete to get rid of these
+# nasty test description strings.
+def _legacy_str_to_test_flags(fs_desc_string):
+    """Convert a legacy FS_LIST string into a modern FsOptions instance."""
+    match = re.search('(.*?)/(.*?)/(.*?)/(.*)$', fs_desc_string.strip())
+    if not match:
+        raise ValueError('unrecognized FS list entry %r' % fs_desc_string)
+
+    flags_obj = FsOptions(filesystem=match.group(1).strip(),
+                          mkfs_flags=match.group(2).strip(),
+                          mount_options=match.group(3).strip(),
+                          short_name=match.group(4).strip())
+    return flags_obj
+
+
 def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
     """
     Prepare drive(s) to contain the file system type / options given in the
     description line 'fs_desc'. When 'disk_list' is not None, we prepare all
     the drives in that list; otherwise we pick the first available data drive
     (which is usually hdc3) and prepare just that one drive.
+
+    Args:
+      fs_desc: A FsOptions instance describing the test or a legacy string
+          describing the same: 'fstype / mkfs opts / mount opts / short name'.
+      disk1_only: Boolean, defaults to False.  If True, only test the first
+          disk.
+      disk_list: A list of disks to prepare.  If None is given we default to
+          asking get_disk_list().
+    Returns:
+      (mount path of the first disk, short name of the test, list of disks)
+      OR (None, '', None) if no fs_desc was given.
     """
 
-    # Special case - do nothing if caller passes in an empty string
+    # Special case - do nothing if caller passes no description.
     if not fs_desc:
         return (None, '', None)
 
-    # Extract the FS, (optional) mkfs/mount paremeters, and result tag
-    fst_regexp = re.compile("(.*?)/(.*?)/(.*?)/(.*)$")
-    match = fst_regexp.search(fs_desc.strip())
-    if match == None:
-        raise Exception("unrecognized FS list entry '%s'" % fs_desc)
-
-    fs_type    = match.group(1).strip()
-    fs_makeopt = match.group(2).strip()
-    fs_mnt_opt = match.group(3).strip()
-    fs_ttag    = match.group(4).strip()
+    if not isinstance(fs_desc, TestFlags):
+        fs_desc = _legacy_str_to_test_flags(fs_desc)
 
     # If no disk list was given, we'll get it ourselves
     if not disk_list:
         disk_list = get_disk_list()
 
     # Make sure we have the appropriate 'mkfs' binary for the file system
-    mkfs_bin = 'mkfs.' + fs_type
-    if fs_type == "ext4":
+    mkfs_bin = 'mkfs.' + fs_desc.filesystem
+    if fs_desc.filesystem == 'ext4':
         mkfs_bin = 'mkfs.ext4dev'
 
     try:
@@ -239,21 +291,23 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
             mkfs_bin = os.path.join(job.toolsdir, mkfs_bin)
             utils.system('cp -ufp %s /sbin' % mkfs_bin)
         except Exception:
-            raise error.TestError('No mkfs binary available for ' + fs_type)
+            raise error.TestError('No mkfs binary available for ' +
+                                  fs_desc.filesystem)
 
     # For 'ext4' we need to add '-E test_fs' to the mkfs options
-    if fs_type == "ext4":
-        fs_makeopt += ' -E test_fs'
+    if fs_desc.filesystem == 'ext4':
+        fs_desc.mkfs_flags += ' -E test_fs'
 
     # If the caller only needs one drive, grab the first one only
     if disk1_only:
         disk_list = disk_list[0:1]
 
     # We have all the info we need to format the drives
-    mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt)
+    mkfs_all_disks(job, disk_list, fs_desc.filesystem,
+                   fs_desc.mkfs_flags, fs_desc.mount_options)
 
     # Return(mount path of the first disk, test tag value, disk_list)
-    return (disk_list[0]['mountpt'], fs_ttag, disk_list)
+    return (disk_list[0]['mountpt'], fs_desc.short_name, disk_list)
 
 
 def restore_disks(job, restore=False, disk_list=None):
@@ -531,5 +585,3 @@ class fsdev_disks:
                             + name +": desired " + val + ", but found " + nval)
 
         return
-
-
