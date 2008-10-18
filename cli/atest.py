@@ -16,7 +16,7 @@ execute() and output() methods.
 
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
-import os, sys, optparse, re, base64
+import os, sys, optparse, re, base64, traceback
 
 import common
 from autotest_lib.cli import topic_common
@@ -95,6 +95,9 @@ def main():
         except Exception, err:
             topic_obj.generic_error("Unexpected exception: %s" % err)
         else:
-            topic_obj.output(results)
+            try:
+                topic_obj.output(results)
+            except Exception:
+                traceback.print_exc()
     finally:
         return topic_obj.show_all_failures()
