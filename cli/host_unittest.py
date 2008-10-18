@@ -661,6 +661,7 @@ class host_stat_unittest(cli_mock.cli_unittest):
                               u'hostname': u'host0',
                               u'locked': 0,
                               u'locked_by': 'user0',
+                              u'protection': 'No protection',
                               u'lock_time': u'2008-07-23 12:54:15',
                               u'labels': [u'label0', u'plat0'],
                               u'invalid': 0,

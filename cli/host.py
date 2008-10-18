@@ -100,7 +100,7 @@ class host_help(host):
 
 class host_list(action_common.atest_list, host):
     """atest host list [--mlist <file>|<hosts>] [--label <label>]
-       [--status <status1,status2>]"""
+       [--status <status1,status2>] [--acl <ACL>] [--user <user>]"""
 
     def __init__(self):
         super(host_list, self).__init__()
@@ -109,6 +109,10 @@ class host_list(action_common.atest_list, host):
                                help='Only list hosts with this label')
         self.parser.add_option('-s', '--status',
                                help='Only list hosts with this status')
+        self.parser.add_option('-a', '--acl',
+                               help='Only list hosts within this ACL')
+        self.parser.add_option('-u', '--user',
+                               help='Only list hosts available to this user')
 
 
     def parse(self):
@@ -116,6 +120,8 @@ class host_list(action_common.atest_list, host):
         (options, leftover) = super(host_list, self).parse(req_items=None)
         self.label = options.label
         self.status = options.status
+        self.acl = options.acl
+        self.user = options.user
         return (options, leftover)
 
 
@@ -131,6 +137,12 @@ class host_list(action_common.atest_list, host):
         if self.status:
             filters['status__in'] = self.status.split(',')
             check_results['status__in'] = None
+        if self.acl:
+            filters['acl_group__name'] = self.acl
+            check_results['acl_group__name'] = None
+        if self.user:
+            filters['acl_group__users__login'] = self.user
+            check_results['acl_group__users__login'] = None
         return super(host_list, self).execute(op='get_hosts',
                                               filters=filters,
                                               check_results=check_results)
