@@ -14,14 +14,14 @@ You should import the "hosts" package instead of importing each type of host.
 import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
 from autotest_lib.client.common_lib import error, pxssh, global_config, debug
 from autotest_lib.server import utils, autotest
-from autotest_lib.server.hosts import site_host
+from autotest_lib.server.hosts import abstract_ssh
 
 
 class PermissionDeniedError(error.AutoservRunError):
     pass
 
 
-class SSHHost(site_host.SiteHost):
+class SSHHost(abstract_ssh.AbstractSSHHost):
     """
     This class represents a remote machine controlled through an ssh
     session on which you can run programs.
@@ -43,47 +43,26 @@ class SSHHost(site_host.SiteHost):
     implement the unimplemented methods in parent classes.
     """
 
-    def __init__(self, hostname, user="root", port=22, password='',
-                 target_file_owner=None, *args, **dargs):
+    def __init__(self, hostname, *args, **dargs):
         """
         Construct a SSHHost object
 
         Args:
                 hostname: network hostname or address of remote machine
-                user: user to log in as on the remote machine
-                port: port the ssh daemon is listening on on the remote
-                        machine
         """
-        dargs["hostname"] = hostname
-        super(SSHHost, self).__init__(*args, **dargs)
+        super(SSHHost, self).__init__(hostname=hostname, *args, **dargs)
 
         self.ip = socket.getaddrinfo(self.hostname, None)[0][4][0]
-        self.user = user
-        self.port = port
-        self.password = password
         self.ssh_host_log = debug.get_logger()
 
         self.start_loggers()
 
 
-    @staticmethod
-    def ssh_base_command(connect_timeout=30):
-        SSH_BASE_COMMAND = '/usr/bin/ssh -a -x -o ' + \
-                           'BatchMode=yes -o ConnectTimeout=%d ' + \
-                           '-o ServerAliveInterval=300'
-        assert isinstance(connect_timeout, (int, long))
-        assert connect_timeout > 0 # can't disable the timeout
-        return SSH_BASE_COMMAND % connect_timeout
-
-
     def ssh_command(self, connect_timeout=30, options=''):
         """Construct an ssh command with proper args for this host."""
-        ssh = self.ssh_base_command(connect_timeout)
-        return r'%s %s -l %s -p %d %s' % (ssh,
-                                          options,
-                                          self.user,
-                                          self.port,
-                                          self.hostname)
+        base_cmd = abstract_ssh.make_ssh_command(self.user, self.port,
+                                                 options, connect_timeout)
+        return "%s %s" % (base_cmd, self.hostname)
 
 
     def _run(self, command, timeout, ignore_status, stdout, stderr,
@@ -128,21 +107,21 @@ class SSHHost(site_host.SiteHost):
         Run a command on the remote host.
 
         Args:
-                command: the command line string
-                timeout: time limit in seconds before attempting to
-                        kill the running process. The run() function
-                        will take a few seconds longer than 'timeout'
-                        to complete if it has to kill the process.
-                ignore_status: do not raise an exception, no matter
-                        what the exit code of the command is.
+            command: the command line string
+            timeout: time limit in seconds before attempting to
+                     kill the running process. The run() function
+                     will take a few seconds longer than 'timeout'
+                     to complete if it has to kill the process.
+            ignore_status: do not raise an exception, no matter
+                     what the exit code of the command is.
 
         Returns:
-                a hosts.base_classes.CmdResult object
+            a utils.CmdResult object
 
         Raises:
-                AutoservRunError: the exit code of the command
-                        execution was not 0
-                AutoservSSHTimeout: ssh connection has timed out
+            AutoservRunError: the exit code of the command
+                              execution was not 0
+            AutoservSSHTimeout: ssh connection has timed out
         """
         stdout = stdout_tee or sys.stdout
         stderr = stderr_tee or sys.stdout
@@ -285,225 +264,6 @@ class SSHHost(site_host.SiteHost):
                 self.machine_install()
             except NotImplementedError, e:
                 sys.stderr.write(str(e) + "\n\n")
-
-
-    def __copy_files(self, sources, dest):
-        """
-        Copy files from one machine to another.
-
-        This is for internal use by other methods that intend to move
-        files between machines. It expects a list of source files and
-        a destination (a filename if the source is a single file, a
-        destination otherwise). The names must already be
-        pre-processed into the appropriate rsync/scp friendly
-        format (%s@%s:%s).
-        """
-
-        print '__copy_files: copying %s to %s' % (sources, dest)
-        try:
-            utils.run('rsync -L --rsh="%s -p %d" -az %s %s' % (
-                self.ssh_base_command(), self.port, ' '.join(sources), dest))
-        except Exception, e:
-            print "warning: rsync failed with: %s" % e
-            print "attempting to copy with scp instead"
-            try:
-                utils.run('scp -rpq -P %d %s "%s"' % (
-                    self.port, ' '.join(sources), dest))
-            except error.CmdError, cmderr:
-                raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
-
-
-    def get_file(self, source, dest):
-        """
-        Copy files from the remote host to a local path.
-
-        Directories will be copied recursively.
-        If a source component is a directory with a trailing slash,
-        the content of the directory will be copied, otherwise, the
-        directory itself and its content will be copied. This
-        behavior is similar to that of the program 'rsync'.
-
-        Args:
-                source: either
-                        1) a single file or directory, as a string
-                        2) a list of one or more (possibly mixed)
-                                files or directories
-                dest: a file or a directory (if source contains a
-                        directory or more than one element, you must
-                        supply a directory dest)
-
-        Raises:
-                AutoservRunError: the scp command failed
-        """
-        if isinstance(source, types.StringTypes):
-            source= [source]
-
-        processed_source= []
-        for entry in source:
-            if entry.endswith('/'):
-                format_string= '%s@%s:"%s*"'
-            else:
-                format_string= '%s@%s:"%s"'
-            entry= format_string % (self.user, self.hostname,
-                    utils.scp_remote_escape(entry))
-            processed_source.append(entry)
-
-        processed_dest= os.path.abspath(dest)
-        if os.path.isdir(dest):
-            processed_dest= "%s/" % (utils.sh_escape(processed_dest),)
-        else:
-            processed_dest= utils.sh_escape(processed_dest)
-
-        self.__copy_files(processed_source, processed_dest)
-
-
-    def send_file(self, source, dest):
-        """
-        Copy files from a local path to the remote host.
-
-        Directories will be copied recursively.
-        If a source component is a directory with a trailing slash,
-        the content of the directory will be copied, otherwise, the
-        directory itself and its content will be copied. This
-        behavior is similar to that of the program 'rsync'.
-
-        Args:
-                source: either
-                        1) a single file or directory, as a string
-                        2) a list of one or more (possibly mixed)
-                                files or directories
-                dest: a file or a directory (if source contains a
-                        directory or more than one element, you must
-                        supply a directory dest)
-
-        Raises:
-                AutoservRunError: the scp command failed
-        """
-        if isinstance(source, types.StringTypes):
-            source= [source]
-
-        processed_source= []
-        for entry in source:
-            if entry.endswith('/'):
-                format_string= '"%s/"*'
-            else:
-                format_string= '"%s"'
-            entry= format_string % (utils.sh_escape(os.path.abspath(entry)),)
-            processed_source.append(entry)
-
-        remote_dest = '%s@%s:"%s"' % (
-                    self.user, self.hostname,
-                    utils.scp_remote_escape(dest))
-
-        self.__copy_files(processed_source, remote_dest)
-        self.run('find "%s" -type d -print0 | xargs -0r chmod o+rx' % dest)
-        self.run('find "%s" -type f -print0 | xargs -0r chmod o+r' % dest)
-        if self.target_file_owner:
-            self.run('chown -R %s %s' % (self.target_file_owner, dest))
-
-
-    def is_up(self):
-        """
-        Check if the remote host is up.
-
-        Returns:
-                True if the remote host is up, False otherwise
-        """
-        try:
-            self.ssh_ping()
-        except:
-            return False
-        return True
-
-
-    def wait_up(self, timeout=None):
-        """
-        Wait until the remote host is up or the timeout expires.
-
-        In fact, it will wait until an ssh connection to the remote
-        host can be established, and getty is running.
-
-        Args:
-                timeout: time limit in seconds before returning even
-                        if the host is not up.
-
-        Returns:
-                True if the host was found to be up, False otherwise
-        """
-        if timeout:
-            end_time= time.time() + timeout
-
-        while not timeout or time.time() < end_time:
-            try:
-                self.ssh_ping()
-            except (error.AutoservRunError,
-                    error.AutoservSSHTimeout):
-                pass
-            else:
-                try:
-                    if self.are_wait_up_process_up():
-                        return True
-                except (error.AutoservRunError, error.AutoservSSHTimeout):
-                    pass
-            time.sleep(1)
-
-        return False
-
-
-    def wait_down(self, timeout=None):
-        """
-        Wait until the remote host is down or the timeout expires.
-
-        In fact, it will wait until an ssh connection to the remote
-        host fails.
-
-        Args:
-                timeout: time limit in seconds before returning even
-                        if the host is not up.
-
-        Returns:
-                True if the host was found to be down, False otherwise
-        """
-        if timeout:
-            end_time= time.time() + timeout
-
-        while not timeout or time.time() < end_time:
-            try:
-                self.ssh_ping()
-            except:
-                return True
-            time.sleep(1)
-
-        return False
-
-
-    def ensure_up(self):
-        """
-        Ensure the host is up if it is not then do not proceed;
-        this prevents cacading failures of tests
-        """
-        print 'Ensuring that %s is up before continuing' % self.hostname
-        if hasattr(self, 'hardreset') and not self.wait_up(300):
-            print "Performing a hardreset on %s" % self.hostname
-            try:
-                self.hardreset()
-            except error.AutoservUnsupportedError:
-                print "Hardreset is unsupported on %s" % self.hostname
-        if not self.wait_up(60 * 30):
-            # 30 minutes should be more than enough
-            raise error.AutoservHostError
-        print 'Host up, continuing'
-
-
-    def ssh_ping(self, timeout = 60):
-        try:
-            self.run('true', timeout = timeout, connect_timeout = timeout)
-        except error.AutoservSSHTimeout:
-            msg = "ssh ping timed out. timeout = %s" % timeout
-            raise error.AutoservSSHTimeout(msg)
-        except error.AutoservRunError, exc:
-            msg = "command true failed in ssh ping"
-            raise error.AutoservRunError(msg, exc.args[1])
 
 
     def ssh_setup_key(self):

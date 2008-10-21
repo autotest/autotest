@@ -1,6 +1,6 @@
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import site_factory
+from autotest_lib.server.hosts import site_factory, abstract_ssh
 from autotest_lib.server.hosts import ssh_host, serial, netconsole, dmesg
 
 
@@ -19,7 +19,7 @@ def create_host(hostname, auto_monitor=True, **args):
         else:
             # no serial host available, try netconsole logging if available
             def run_func(cmd):
-                base_cmd = ssh_host.SSHHost.ssh_base_command(connect_timeout=3)
+                base_cmd = abstract_ssh.make_ssh_command(connect_timeout=3)
                 full_cmd = '%s %s "%s"' % (base_cmd, hostname,
                                            server_utils.sh_escape(cmd))
                 try:
