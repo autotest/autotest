@@ -188,7 +188,8 @@ class job_stat(job_list_stat):
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status']
         else:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status',
-                    'owner', 'control_type',  'synch_type', 'created_on']
+                    'owner', 'control_type',  'synch_type', 'created_on',
+                    'run_verify', 'reboot_before', 'reboot_after']
 
         if self.show_control_file:
             keys.append('control_file')
@@ -201,6 +202,8 @@ class job_create(action_common.atest_create, job):
     [--is-synchronous] [--container] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
+    [--dependencies <list of dependency labels]
+    [--reboot_before <option>] [--reboot_after <option>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -244,6 +247,18 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-e', '--email', help='A comma seperated list '
                                'of email addresses to notify of job completion',
                                default='')
+        self.parser.add_option('-b', '--reboot_before',
+                               help='Whether or not to reboot the machine '
+                                    'before the job (never/if dirty/always)',
+                               type='choice',
+                               choices=('never', 'if dirty', 'always'))
+        self.parser.add_option('-a', '--reboot_after',
+                               help='Whether or not to reboot the machine '
+                                    'after the job (never/if all tests passed/'
+                                    'always)',
+                               type='choice',
+                               choices=('never', 'if all tests passed',
+                                        'always'))
 
 
     def parse_hosts(self, args):
@@ -317,6 +332,10 @@ class job_create(action_common.atest_create, job):
 
         if options.priority:
             self.data['priority'] = options.priority.capitalize()
+        if options.reboot_before:
+            self.data['reboot_before'] = options.reboot_before.capitalize()
+        if options.reboot_after:
+            self.data['reboot_after'] = options.reboot_after.capitalize()
 
         if len(self.jobname) > 1:
             self.invalid_syntax('Too many arguments specified, only expected '

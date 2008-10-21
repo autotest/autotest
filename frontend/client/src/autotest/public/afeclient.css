@@ -233,3 +233,8 @@ tr.data-row-clickable:hover {
   cursor: move;
   background: #91c0ef;
 }
+
+.radio-chooser .gwt-RadioButton {
+  white-space: nowrap;
+  margin-right: 1em;
+}
