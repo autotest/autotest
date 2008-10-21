@@ -379,6 +379,9 @@ class job_create(action_common.atest_create, job):
 
             self.data['dependencies'] = cf_info['dependencies']
 
+        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
+        # This RPC takes a while when there are lots of hosts.
+        # We don't set it back to default because it's the last RPC.
         job_id = self.execute_rpc(op='create_job', **self.data)
         return ['%s (id %s)' % (self.jobname, job_id)]
 
