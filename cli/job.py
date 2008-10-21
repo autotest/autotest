@@ -202,7 +202,7 @@ class job_create(action_common.atest_create, job):
     [--is-synchronous] [--container] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
-    [--dependencies <list of dependency labels]
+    [--dependencies <list of dependency labels>]
     [--reboot_before <option>] [--reboot_after <option>]
     job_name
 
@@ -237,8 +237,9 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
         self.parser.add_option('-d', '--dependencies', help='Comma separated '
-                               'list of dependencies for this test.',
-                               default='')
+                               'list of dependencies for this test.  (NOTE: '
+                               'this feature is experimental and may change '
+                               'in the next release!)', default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
                                'run on')
         self.parser.add_option('-M', '--mlist',
