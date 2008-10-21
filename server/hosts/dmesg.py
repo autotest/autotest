@@ -2,7 +2,7 @@ import os, sys, subprocess, tempfile, traceback
 
 from autotest_lib.client.common_lib import utils
 from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import remote, ssh_host
+from autotest_lib.server.hosts import remote, abstract_ssh
 
 
 def _log_and_ignore_exceptions(f):
@@ -35,7 +35,7 @@ class DmesgHost(remote.RemoteHost):
     # it to be a background process and b) needs control over the command
     # std* streams.
     def __run_cmd_on_host(self, cmd, stdin, stdout, stderr):
-        base_cmd = ssh_host.SSHHost.ssh_base_command()
+        base_cmd = abstract_ssh.make_ssh_command()
         full_cmd = "%s %s \"%s\"" % (base_cmd, self.hostname,
                                      server_utils.sh_escape(cmd))
 
