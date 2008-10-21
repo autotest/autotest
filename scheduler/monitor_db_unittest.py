@@ -8,6 +8,7 @@ from autotest_lib.frontend import setup_test_environment
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.database import database_connection, migrate
+from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db
 
@@ -85,12 +86,18 @@ class BaseSchedulerTest(unittest.TestCase):
         hosts[1].labels.add(labels[1])
 
 
+    def _setup_dummy_user(self):
+        user = models.User.objects.create(login='dummy', access_level=100)
+        thread_local.set_user(user)
+
+
     def setUp(self):
         self.god = mock.mock_god()
         self._open_test_db()
         self._fill_in_test_data()
         self._set_monitor_stubs()
         self._dispatcher = monitor_db.Dispatcher()
+        self._setup_dummy_user()
 
 
     def tearDown(self):
@@ -102,10 +109,10 @@ class BaseSchedulerTest(unittest.TestCase):
                     synchronous=False):
         synch_type = synchronous and 2 or 1
         created_on = datetime.datetime(2008, 1, 1)
-        job = models.Job.objects.create(name='test', owner='my_user',
-                                        priority=priority,
-                                        synch_type=synch_type,
-                                        created_on=created_on)
+        job = models.Job.objects.create(
+            name='test', owner='my_user', priority=priority,
+            synch_type=synch_type, created_on=created_on,
+            reboot_before=models.Job.RebootBefore.NEVER)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, priority=priority,
                                                  host_id=host_id, active=active)
@@ -532,6 +539,7 @@ class PidfileRunMonitorTest(unittest.TestCase):
     results_dir = '/test/path'
     pidfile_path = os.path.join(results_dir, monitor_db.AUTOSERV_PID_FILE)
     pid = 12345
+    num_tests_failed = 1
     args = ('nice -n 10 autoserv -P 123-myuser/myhost -p -n '
             '-r ' + results_dir + ' -b -u myuser -l my-job-name '
             '-m myhost /tmp/filejx43Zi -c')
@@ -567,31 +575,43 @@ class PidfileRunMonitorTest(unittest.TestCase):
 
     def set_complete(self, error_code):
         self.setup_pidfile(str(self.pid) + '\n' +
-                           str(error_code) + '\n')
+                           str(error_code) + '\n' +
+                           str(self.num_tests_failed))
 
 
-    def _test_read_pidfile_helper(self, expected_pid, expected_exit_status):
-        pid, exit_status = self.monitor.read_pidfile()
-        self.assertEquals(pid, expected_pid)
-        self.assertEquals(exit_status, expected_exit_status)
+    def _test_read_pidfile_helper(self, expected_pid, expected_exit_status,
+                                  expected_num_tests_failed):
+        self.monitor._read_pidfile()
+        self.assertEquals(self.monitor._state.pid, expected_pid)
+        self.assertEquals(self.monitor._state.exit_status, expected_exit_status)
+        self.assertEquals(self.monitor._state.num_tests_failed,
+                          expected_num_tests_failed)
         self.god.check_playback()
+
+
+    def _get_expected_tests_failed(self, expected_exit_status):
+        if expected_exit_status is None:
+            expected_tests_failed = None
+        else:
+            expected_tests_failed = self.num_tests_failed
+        return expected_tests_failed
 
 
     def test_read_pidfile(self):
         self.set_not_yet_run()
-        self._test_read_pidfile_helper(None, None)
+        self._test_read_pidfile_helper(None, None, None)
 
         self.set_running()
-        self._test_read_pidfile_helper(self.pid, None)
+        self._test_read_pidfile_helper(self.pid, None, None)
 
         self.set_complete(123)
-        self._test_read_pidfile_helper(self.pid, 123)
+        self._test_read_pidfile_helper(self.pid, 123, self.num_tests_failed)
 
 
     def test_read_pidfile_error(self):
         self.setup_pidfile('asdf')
         self.assertRaises(monitor_db.PidfileException,
-                          self.monitor.read_pidfile)
+                          self.monitor._read_pidfile)
         self.god.check_playback()
 
 
@@ -609,35 +629,41 @@ class PidfileRunMonitorTest(unittest.TestCase):
             process_dict)
 
 
-    def _test_get_pidfile_info_helper(self, expected_pid,
-                                      expected_exit_status):
-        pid, exit_status = self.monitor.get_pidfile_info()
-        self.assertEquals(pid, expected_pid)
-        self.assertEquals(exit_status, expected_exit_status)
+    def _test_get_pidfile_info_helper(self, expected_pid, expected_exit_status,
+                                      expected_num_tests_failed):
+        self.monitor._get_pidfile_info()
+        self.assertEquals(self.monitor._state.pid, expected_pid)
+        self.assertEquals(self.monitor._state.exit_status, expected_exit_status)
+        self.assertEquals(self.monitor._state.num_tests_failed,
+                          expected_num_tests_failed)
         self.god.check_playback()
 
 
     def test_get_pidfile_info(self):
-        'normal cases for get_pidfile_info'
+        """
+        normal cases for get_pidfile_info
+        """
         # running
         self.set_running()
         self.setup_proc_cmdline(self.args)
-        self._test_get_pidfile_info_helper(self.pid, None)
+        self._test_get_pidfile_info_helper(self.pid, None, None)
 
         # exited during check
         self.set_running()
         monitor_db.open.expect_call(
             '/proc/%d/cmdline' % self.pid, 'r').and_raises(IOError)
         self.set_complete(123) # pidfile gets read again
-        self._test_get_pidfile_info_helper(self.pid, 123)
+        self._test_get_pidfile_info_helper(self.pid, 123, self.num_tests_failed)
 
         # completed
         self.set_complete(123)
-        self._test_get_pidfile_info_helper(self.pid, 123)
+        self._test_get_pidfile_info_helper(self.pid, 123, self.num_tests_failed)
 
 
     def test_get_pidfile_info_running_no_proc(self):
-        'pidfile shows process running, but no proc exists'
+        """
+        pidfile shows process running, but no proc exists
+        """
         # running but no proc
         self.set_running()
         monitor_db.open.expect_call(
@@ -645,26 +671,28 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.set_running()
         monitor_db.email_manager.enqueue_notify_email.expect_call(
             mock.is_string_comparator(), mock.is_string_comparator())
-        self._test_get_pidfile_info_helper(self.pid, 1)
+        self._test_get_pidfile_info_helper(self.pid, 1, 0)
         self.assertTrue(self.monitor.lost_process)
 
 
     def test_get_pidfile_info_not_yet_run(self):
-        "pidfile hasn't been written yet"
+        """
+        pidfile hasn't been written yet
+        """
         # process not running
         self.set_not_yet_run()
         self.setup_find_autoservs({})
-        self._test_get_pidfile_info_helper(None, None)
+        self._test_get_pidfile_info_helper(None, None, None)
 
         # process running
         self.set_not_yet_run()
         self.setup_find_autoservs({self.pid : self.args})
-        self._test_get_pidfile_info_helper(None, None)
+        self._test_get_pidfile_info_helper(None, None, None)
 
         # another process running under same pid
         self.set_not_yet_run()
         self.setup_find_autoservs({self.pid : self.bad_args})
-        self._test_get_pidfile_info_helper(None, None)
+        self._test_get_pidfile_info_helper(None, None, None)
 
 
 class AgentTest(unittest.TestCase):
@@ -979,6 +1007,41 @@ class JobTest(BaseSchedulerTest):
         self.assertEquals(queue_task.job.id, 1)
         hqe_ids = [hqe.id for hqe in queue_task.queue_entries]
         self.assertEquals(hqe_ids, [1, 2])
+
+
+    def test_reboot_before_always(self):
+        job = self._create_job(hosts=[1])
+        job.reboot_before = models.Job.RebootBefore.ALWAYS
+        job.save()
+
+        tasks = self._test_run_helper()
+        self.assertEquals(len(tasks), 3)
+        reboot_task = tasks[0]
+        self.assert_(isinstance(reboot_task, monitor_db.RebootTask))
+        self.assertEquals(reboot_task.host.id, 1)
+
+
+    def _test_reboot_before_if_dirty_helper(self, expect_reboot):
+        job = self._create_job(hosts=[1])
+        job.reboot_before = models.Job.RebootBefore.IF_DIRTY
+        job.save()
+
+        tasks = self._test_run_helper()
+        self.assertEquals(len(tasks), expect_reboot and 3 or 2)
+        if expect_reboot:
+            reboot_task = tasks[0]
+            self.assert_(isinstance(reboot_task, monitor_db.RebootTask))
+            self.assertEquals(reboot_task.host.id, 1)
+
+    def test_reboot_before_if_dirty(self):
+        models.Host.smart_get(1).update_object(dirty=True)
+        self._test_reboot_before_if_dirty_helper(True)
+
+
+    def test_reboot_before_not_dirty(self):
+        models.Host.smart_get(1).update_object(dirty=False)
+        self._test_reboot_before_if_dirty_helper(False)
+
 
 
 if __name__ == '__main__':

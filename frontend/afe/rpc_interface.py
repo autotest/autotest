@@ -273,7 +273,7 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
 def create_job(name, priority, control_file, control_type, timeout=None,
                is_synchronous=None, hosts=None, meta_hosts=None,
                run_verify=True, one_time_hosts=None, email_list='',
-               dependencies=[]):
+               dependencies=[], reboot_before=None, reboot_after=None):
     """\
     Create and enqueue a job.
 
@@ -352,7 +352,9 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                             timeout=timeout,
                             run_verify=run_verify,
                             email_list=email_list.strip(),
-                            dependencies=dependency_labels)
+                            dependencies=dependency_labels,
+                            reboot_before=reboot_before,
+                            reboot_after=reboot_after)
     job.queue(host_objects + metahost_objects)
     return job.id
 
@@ -528,9 +530,12 @@ def get_static_data():
     host_statuses: sorted list of possible Host statuses
     job_statuses: sorted list of possible HostQueueEntry statuses
     """
+
+    job_fields = models.Job.get_field_dict()
+
     result = {}
     result['priorities'] = models.Job.Priority.choices()
-    default_priority = models.Job.get_field_dict()['priority'].default
+    default_priority = job_fields['priority'].default
     default_string = models.Job.Priority.get_string(default_priority)
     result['default_priority'] = default_string
     result['users'] = get_users(sort_by=['login'])
@@ -541,6 +546,12 @@ def get_static_data():
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.Job.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
+    result['reboot_before_options'] = models.Job.RebootBefore.names
+    result['reboot_before_default'] = models.Job.RebootBefore.get_string(
+        job_fields['reboot_before'].default)
+    result['reboot_after_options'] = models.Job.RebootAfter.names
+    result['reboot_after_default'] = models.Job.RebootBefore.get_string(
+        job_fields['reboot_after'].default)
 
     result['status_dictionary'] = {"Abort": "Abort",
                                    "Aborted": "Aborted",

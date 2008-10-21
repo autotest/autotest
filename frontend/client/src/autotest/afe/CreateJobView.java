@@ -8,6 +8,7 @@ import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.RadioChooser;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 
@@ -156,6 +157,8 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     protected TextBox timeout = new TextBox();
     protected TextBox emailList = new TextBox();
     protected CheckBox skipVerify = new CheckBox();
+    private RadioChooser rebootBefore = new RadioChooser();
+    private RadioChooser rebootAfter = new RadioChooser();
     protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
@@ -207,10 +210,11 @@ public class CreateJobView extends TabView implements TestSelectorListener {
                 (int) jobObject.get("timeout").isNumber().doubleValue()));
         emailList.setText(
                 jobObject.get("email_list").isString().stringValue());
-        
-        skipVerify.setChecked(
-                jobObject.get("run_verify").isNumber().doubleValue() != 1);
-        
+
+        skipVerify.setChecked(!jobObject.get("run_verify").isBoolean().booleanValue());
+        rebootBefore.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_before")));
+        rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
+
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
         runSynchronous.setChecked(
@@ -287,6 +291,20 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         }
     }
     
+    private void populateRebootSelector(String name, RadioChooser chooser) {
+        JSONArray options = staticData.getData(name + "_options").isArray();
+        String defaultOption = Utils.jsonToString(staticData.getData(name + "_default"));
+        for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
+            chooser.addChoice(Utils.jsonToString(jsonOption));
+        }
+        chooser.setDefaultChoice(defaultOption);
+    }
+
+    private void populateRebootChoices() {
+        populateRebootSelector("reboot_before", rebootBefore);
+        populateRebootSelector("reboot_after", rebootAfter);
+    }
+
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
         
@@ -348,8 +366,8 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     public void handleSkipVerify() {
         boolean shouldSkipVerify = false;
         for (JSONObject test : testSelector.getSelectedTests()) {
-            int runVerify = (int) test.get("run_verify").isNumber().doubleValue();
-            if (runVerify == 0) {
+            boolean runVerify = test.get("run_verify").isBoolean().booleanValue();
+            if (!runVerify) {
                 shouldSkipVerify = true;
                 break;
             }
@@ -403,7 +421,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         
         testSelector = new TestSelector();
         
-        RootPanel.get("create_skip_verify").add(skipVerify);
+        populateRebootChoices();
         
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
@@ -496,6 +514,9 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         RootPanel.get("create_timeout").add(timeout);
         RootPanel.get("create_email_list").add(emailList);
         RootPanel.get("create_priority").add(priorityList);
+        RootPanel.get("create_skip_verify").add(skipVerify);
+        RootPanel.get("create_reboot_before").add(rebootBefore);
+        RootPanel.get("create_reboot_after").add(rebootAfter);
         RootPanel.get("create_tests").add(testSelector);
         RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
@@ -504,10 +525,12 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         
         testSelector.setListener(this);
     }
-    
+
     public void reset() {
         jobName.setText("");
         resetPriorityToDefault();
+        rebootBefore.reset();
+        rebootAfter.reset();
         kernel.setText("");
         timeout.setText(StaticDataRepository.getRepository().
             getData("job_timeout_default").isString().stringValue());
@@ -564,6 +587,8 @@ public class CreateJobView extends TabView implements TestSelectorListener {
                 args.put("timeout", new JSONNumber(timeoutInt));
                 args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
+                args.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
+                args.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));

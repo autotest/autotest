@@ -76,7 +76,7 @@ class JobStatusDataSource extends RpcDataSource {
         queueEntry.put("hostname", host.get("hostname"));
         // don't show host details if the job is complete - it'll only confuse
         // the user
-        boolean complete = queueEntry.get("complete").isNumber().doubleValue() > 0;
+        boolean complete = queueEntry.get("complete").isBoolean().booleanValue();
         if (!complete) {
             queueEntry.put("host_status", host.get("status"));
             queueEntry.put("host_locked", AfeUtils.getLockedText(host));
