@@ -5,8 +5,8 @@ from autotest_lib.server.hosts import remote
 
 
 class NetconsoleHost(remote.RemoteHost):
-    def __init__(self, console_log="netconsole.log", *args, **dargs):
-        super(NetconsoleHost, self).__init__(*args, **dargs)
+    def _initialize(self, console_log="netconsole.log", *args, **dargs):
+        super(NetconsoleHost, self)._initialize(*args, **dargs)
 
         self.__logger = None
         self.__console_log = console_log

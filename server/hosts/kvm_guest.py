@@ -30,7 +30,7 @@ class KVMGuest(guest.Guest):
     implement the unimplemented methods in parent classes.
     """
 
-    def __init__(self, controlling_hypervisor, qemu_options):
+    def _init(self, controlling_hypervisor, qemu_options, *args, **dargs):
         """
         Construct a KVMGuest object
 
@@ -43,5 +43,5 @@ class KVMGuest(guest.Guest):
         """
         hostname= controlling_hypervisor.new_guest(qemu_options)
         # bypass Guest's __init__
-        super(guest.Guest, self).__init__(hostname)
+        super(KVMGuest, self)._initialize(hostname, *args, **dargs)
         self.controlling_hypervisor= controlling_hypervisor

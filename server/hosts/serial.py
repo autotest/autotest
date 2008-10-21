@@ -8,9 +8,9 @@ from autotest_lib.server.hosts import site_host
 class SerialHost(site_host.SiteHost):
     DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
 
-    def __init__(self, conmux_server=None, conmux_attach=None,
-                 console_log="console.log", *args, **dargs):
-        super(SerialHost, self).__init__(*args, **dargs)
+    def _initialize(self, conmux_server=None, conmux_attach=None,
+                    console_log="console.log", *args, **dargs):
+        super(SerialHost, self)._initialize(*args, **dargs)
 
         self.__logger = None
         self.__console_log = console_log

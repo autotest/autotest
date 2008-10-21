@@ -24,8 +24,8 @@ class RemoteHost(base_classes.Host):
     DEFAULT_REBOOT_TIMEOUT = base_classes.Host.DEFAULT_REBOOT_TIMEOUT
     LAST_BOOT_TAG = object()
 
-    def __init__(self, hostname, autodir=None, *args, **dargs):
-        super(RemoteHost, self).__init__(*args, **dargs)
+    def _initialize(self, hostname, autodir=None, *args, **dargs):
+        super(RemoteHost, self)._initialize(*args, **dargs)
 
         self.hostname = hostname
         self.autodir = autodir
