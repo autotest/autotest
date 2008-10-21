@@ -10,7 +10,7 @@ __author__ = """\
 mbligh@google.com (Martin J. Bligh)
 """
 
-import sys, os, re, traceback, signal
+import sys, os, re, traceback, signal, time
 
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser
@@ -165,6 +165,9 @@ def main():
         sys.exit(1)
 
     results  = parser.options.results
+    if not results:
+        results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
+        print "Results placed in %s" % results
     results  = os.path.abspath(results)
     write_pidfile = parser.options.write_pidfile
     if write_pidfile:

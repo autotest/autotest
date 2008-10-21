@@ -32,8 +32,7 @@ class base_autoserv_parser(object):
                                dest="server", default=False,
                                help="control file is server side")
         self.parser.add_option("-r", action="store", type="string",
-                               dest="results", default='.',
-                               help="specify results directory")
+                               dest="results", help="specify results directory")
         self.parser.add_option("-l", action="store", type="string",
                                dest="label", default='',
                                help="label for the job")
