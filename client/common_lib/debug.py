@@ -91,7 +91,7 @@ def configure(module, format_string='%(asctime)s %(message)s'):
     http://docs.python.org/lib/module-logging.html.
     """
     _root_logger.debug('Configuring logger for %s level' % module)
-    logging.basicConfig(format=format_string)
+    logging.basicConfig(format=format_string, stream=sys.stdout)
     parser = AutotestDebugParser()
     debug_level = parser.get_module_level(module)
     _root_logger.setLevel(debug_level)
