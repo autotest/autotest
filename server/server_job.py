@@ -169,6 +169,9 @@ class base_server_job(object):
             self.autodir, run_function_dargs={'timeout':600})
         self.pkgdir = os.path.join(self.autodir, 'packages')
 
+        self.num_tests_run = 0
+        self.num_tests_failed = 0
+
 
     def init_parser(self, resultdir):
         """Start the continuous parsing of resultdir. This sets up
@@ -798,6 +801,9 @@ class base_server_job(object):
         database. This method will not raise an exception, even if an
         error occurs during the insert, to avoid failing a test
         simply because of unexpected database issues."""
+        self.num_tests_run += 1
+        if status_lib.is_worse_than_or_equal_to(test.status, 'FAIL'):
+            self.num_tests_failed += 1
         try:
             self.results_db.insert_test(self.job_model, test)
         except Exception:

@@ -54,8 +54,7 @@ public class AfeUtils {
         for (int i = 0; i < labels.size(); i++) {
             JSONObject label = labels.get(i).isObject();
             String name = label.get("name").isString().stringValue();
-            boolean labelIsPlatform =
-                label.get("platform").isNumber().doubleValue() != 0;
+            boolean labelIsPlatform = label.get("platform").isBoolean().booleanValue();
             if ((onlyPlatforms && labelIsPlatform) ||
                 (onlyNonPlatforms && !labelIsPlatform)) {
                     result.add(name);
@@ -86,7 +85,7 @@ public class AfeUtils {
     }
     
     public static JSONString getLockedText(JSONObject host) {
-        boolean locked = host.get("locked").isNumber().doubleValue() > 0;
+        boolean locked = host.get("locked").isBoolean().booleanValue();
         return new JSONString(locked ? "Yes" : "No");
     }
     

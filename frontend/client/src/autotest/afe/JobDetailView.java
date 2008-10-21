@@ -91,7 +91,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                     resetPage();
                     return;
                 }
-                String name = jobObject.get("name").isString().stringValue();
+                String name = Utils.jsonToString(jobObject.get("name"));
+                String runVerify = Utils.jsonToString(jobObject.get("run_verify"));
                 
                 showText(name, "view_label");
                 showField(jobObject, "owner", "view_owner");
@@ -99,6 +100,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showField(jobObject, "created_on", "view_created");
                 showField(jobObject, "timeout", "view_timeout");
                 showField(jobObject, "email_list", "view_email_list");
+                showText(runVerify, "view_run_verify");
+                showField(jobObject, "reboot_before", "view_reboot_before");
+                showField(jobObject, "reboot_after", "view_reboot_after");
                 showField(jobObject, "control_type", "view_control_type");
                 showField(jobObject, "control_file", "view_control_file");
                 showField(jobObject, "dependencies", "view_dependencies");

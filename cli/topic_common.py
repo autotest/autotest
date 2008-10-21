@@ -92,6 +92,9 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'control_file': 'Control File',
                     'only_if_needed': 'Use only if needed',
                     'protection': 'Protection',
+                    'run_verify': 'Run verify',
+                    'reboot_before': 'Pre-job reboot',
+                    'reboot_after': 'Post-job reboot',
                     }
 
 # In the failure, tag that will replace the item.

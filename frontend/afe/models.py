@@ -111,11 +111,16 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     hostname
 
     optional:
-    locked: host is locked and will not be queued
+    locked: if true, host is locked and will not be queued
 
     Internal:
     synch_id: currently unused
     status: string describing status of host
+    invalid: true if the host has been deleted
+    protection: indicates what can be done to this host during repair
+    locked_by: user that locked the host, or null if the host is unlocked
+    lock_time: DateTime at which the host was locked
+    dirty: true if the host has been used without being rebooted
     """
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
                        'Repair Failed', 'Dead', 'Rebooting', 'Pending',
@@ -137,6 +142,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
                                             default=host_protections.default)
     locked_by = dbmodels.ForeignKey(User, null=True, blank=True, editable=False)
     lock_time = dbmodels.DateTimeField(null=True, blank=True, editable=False)
+    dirty = dbmodels.BooleanField(default=True, editable=settings.FULL_ADMIN)
 
     name_field = 'hostname'
     objects = model_logic.ExtendedManager()
@@ -176,6 +182,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         if self.locked and not self.locked_by:
             self.locked_by = thread_local.get_user()
             self.lock_time = datetime.now()
+            self.dirty = True
         elif not self.locked and self.locked_by:
             self.locked_by = None
             self.lock_time = None
@@ -524,7 +531,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     submitted_on: date of job submission
     synch_type: Asynchronous or Synchronous (i.e. job must run on all hosts
                 simultaneously; used for server-side control files)
-    synch_count: ???
+    synch_count: currently unused
     run_verify: Whether or not to run the verify phase
     synchronizing: for scheduler use
     timeout: hours until job times out
@@ -532,6 +539,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                 white space, ',', ':', ';'
     dependency_labels: many-to-many relationship with labels corresponding to
                        job dependencies
+    reboot_before: Never, If dirty, or Always
+    reboot_after: Never, If all tests passed, or Always
     """
     DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default', default=240)
@@ -541,6 +550,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
                        'Completed', 'Abort', 'Aborting', 'Aborted',
                        'Failed', 'Starting', string_values=True)
+    RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
+    RebootAfter = enum.Enum('Never', 'If all tests passed', 'Always')
 
     owner = dbmodels.CharField(maxlength=255)
     name = dbmodels.CharField(maxlength=255)
@@ -561,6 +572,12 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     email_list = dbmodels.CharField(maxlength=250, blank=True)
     dependency_labels = dbmodels.ManyToManyField(
         Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
+    reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
+                                               blank=True,
+                                               default=RebootBefore.IF_DIRTY)
+    reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
+                                              blank=True,
+                                              default=RebootAfter.ALWAYS)
 
 
     # custom manager
@@ -574,7 +591,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
                hosts, synch_type, timeout, run_verify, email_list,
-               dependencies):
+               dependencies, reboot_before, reboot_after):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
@@ -585,16 +602,13 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             control_file=control_file, control_type=control_type,
             synch_type=synch_type, timeout=timeout,
             run_verify=run_verify, email_list=email_list,
+            reboot_before=reboot_before, reboot_after=reboot_after,
             created_on=datetime.now())
 
-        if job.synch_type == Test.SynchType.SYNCHRONOUS:
-            job.synch_count = len(hosts)
-        else:
-            if len(hosts) == 0:
-                errors = {'hosts':
-                          'asynchronous jobs require at least'
-                          + ' one host to run on'}
-                raise model_logic.ValidationError(errors)
+        if job.synch_type == Test.SynchType.ASYNCHRONOUS and len(hosts) == 0:
+            raise model_logic.ValidationError({'hosts':
+                                               'asynchronous jobs require at '
+                                               'least one host to run on'})
         job.save()
         job.dependency_labels = dependencies
         return job

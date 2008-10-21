@@ -97,7 +97,8 @@ True
 ...           'platform': None,
 ...           'invalid': 0,
 ...           'protection': 'No protection',
-...           'locked_by': 'debug_user'}]
+...           'locked_by': 'debug_user',
+...           'dirty': True}]
 True
 >>> rpc_interface.delete_host('ipaj1')
 >>> rpc_interface.get_hosts() == []
@@ -414,7 +415,9 @@ True
 ...         'synchronizing': 0,
 ...         'timeout': 72,
 ...         'run_verify': 1,
-...         'email_list': ''}
+...         'email_list': '',
+...         'reboot_before': 'If dirty',
+...         'reboot_after': 'Always'}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple
@@ -429,7 +432,8 @@ True
 ...           'synch_id': None,
 ...           'protection': 'No protection',
 ...           'locked_by': None,
-...           'lock_time': None},
+...           'lock_time': None,
+...           'dirty': True},
 ...  'id': 1,
 ...  'job': job, # full job info here
 ...  'meta_host': None,

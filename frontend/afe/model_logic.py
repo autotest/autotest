@@ -214,6 +214,18 @@ class ModelExtensions(object):
                 data[field.name] = value.id
 
 
+    @classmethod
+    def _convert_booleans(cls, data):
+        """
+        Ensure BooleanFields actually get bool values.  The Django MySQL
+        backend returns ints for BooleanFields, which is almost always not
+        a problem, but it can be annoying in certain situations.
+        """
+        for field in cls._meta.fields:
+            if type(field) == dbmodels.BooleanField:
+                data[field.name] = bool(data[field.name])
+
+
     # TODO(showard) - is there a way to not have to do this?
     @classmethod
     def provide_default_values(cls, data):
@@ -453,6 +465,7 @@ class ModelExtensions(object):
         """
         for field_dict in field_dicts:
             cls.clean_foreign_keys(field_dict)
+            cls._convert_booleans(field_dict)
             cls.convert_human_readable_values(field_dict,
                                               to_human_readable=True)
 

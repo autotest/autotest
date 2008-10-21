@@ -18,6 +18,7 @@ from autotest_lib.server import server_job, utils, autoserv_parser
 
 class PidFileManager(object):
     pid_file = None
+    num_tests_failed = 0
 
     def open_pid_file(self, results_dir):
         pid_file_path = os.path.join(results_dir, '.autoserv_execute')
@@ -32,6 +33,7 @@ class PidFileManager(object):
             return
         real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
         self.pid_file.write(str(real_exit_code) + '\n')
+        self.pid_file.write(str(self.num_tests_failed) + '\n')
         self.pid_file.close()
         self.pid_file = None
 
@@ -145,6 +147,8 @@ def run_autoserv(pid_file_manager, results, parser):
     except:
         job.aborted = True
         traceback.print_exc()
+
+    pid_file_manager.num_tests_failed = job.num_tests_failed
 
     if getattr(job, 'aborted', False):
         sys.exit(1)
