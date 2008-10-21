@@ -56,9 +56,13 @@ class Host(object):
     job = None
     DEFAULT_REBOOT_TIMEOUT = 1800
 
-    def __init__(self, initialize=True, target_file_owner=None,
-                 *args, **dargs):
-        super(Host, self).__init__(*args, **dargs)
+    def __init__(self, *args, **dargs):
+        self._initialize(*args, **dargs)
+        self.start_loggers()
+
+
+    def _initialize(self, initialize=True, target_file_owner=None,
+                    *args, **dargs):
         self.serverdir = utils.get_server_dir()
         self.monitordir = os.path.join(os.path.dirname(__file__), "monitors")
         self.bootloader = bootloader.Bootloader(self)

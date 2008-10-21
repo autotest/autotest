@@ -39,7 +39,7 @@ class Guest(ssh_host.SSHHost):
     controlling_hypervisor = None
 
 
-    def __init__(self, controlling_hypervisor, *args, **dargs):
+    def _initialize(self, controlling_hypervisor, *args, **dargs):
         """
         Construct a Guest object
 
@@ -49,7 +49,7 @@ class Guest(ssh_host.SSHHost):
                         this guest
         """
         hostname = controlling_hypervisor.new_guest()
-        super(Guest, self).__init__(hostname, *args, **dargs)
+        super(Guest, self)._initialize(hostname, *args, **dargs)
         self.controlling_hypervisor = controlling_hypervisor
 
 
