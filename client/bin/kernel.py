@@ -508,6 +508,7 @@ class kernel(object):
         self.add_to_bootloader(args=args, tag=self.installed_as)
 
         # Boot it.
+        self.job.start_reboot()
         self.job.reboot(tag=self.installed_as)
 
 
@@ -712,6 +713,7 @@ class rpm_kernel(object):
         self.add_to_bootloader(args=args, tag=self.installed_as)
 
         # Boot it.
+        self.job.start_reboot()
         self.job.reboot(tag=self.installed_as)
 
 
