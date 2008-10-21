@@ -576,6 +576,12 @@ class base_job(object):
         return autotest_utils.count_cpus()  # use total system count
 
 
+    def start_reboot(self):
+        self.record('START', None, 'reboot')
+        self._increment_group_level()
+        self.record('GOOD', None, 'reboot.start')
+
+
     def end_reboot(self, subdir, kernel, patches):
         kernel_info = {"kernel": kernel}
         for i, patch in enumerate(patches):
@@ -682,9 +688,6 @@ class base_job(object):
             self.last_boot_tag = tag
 
         self.reboot_setup()
-        self.record('START', None, 'reboot')
-        self._increment_group_level()
-        self.record('GOOD', None, 'reboot.start')
         self.harness.run_reboot()
         default = self.config_get('boot.set_default')
         if default:

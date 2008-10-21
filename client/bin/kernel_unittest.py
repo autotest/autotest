@@ -566,6 +566,7 @@ class TestKernel(unittest.TestCase):
         self.kernel.install.expect_call()
         self.kernel.add_to_bootloader.expect_call(args=args,
             tag=False)
+        self.job.start_reboot.expect_call()
         self.job.reboot.expect_call(tag=False)
 
         # run and check
@@ -590,6 +591,7 @@ class TestKernel(unittest.TestCase):
         self.kernel.install.expect_call()
         self.kernel.add_to_bootloader.expect_call(args=args,
             tag=False)
+        self.job.start_reboot.expect_call()
         self.job.reboot.expect_call(tag=False)
 
         # run and check
