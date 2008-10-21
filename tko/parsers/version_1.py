@@ -263,7 +263,6 @@ class parser(base.parser):
                 # adjust the testname if this is a reboot
                 if line.testname == "reboot" and line.subdir is None:
                     line.testname = "boot.%d" % boot_count
-                    boot_count += 1
             else:
                 assert False
 
@@ -292,6 +291,8 @@ class parser(base.parser):
                                            finished_time,
                                            running_test)
                 running_test = None
+                if new_test.testname == ("boot.%d" % boot_count):
+                    boot_count += 1
                 msg = "ADD: %s\nSubdir: %s\nTestname: %s\n%s"
                 msg %= (new_test.status, new_test.subdir,
                         new_test.testname, new_test.reason)
