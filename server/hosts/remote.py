@@ -196,7 +196,7 @@ class RemoteHost(base_classes.Host):
             print "crashinfo collection of dmesg failed with:\n%s" % e
 
 
-    def are_wait_up_process_up(self):
+    def are_wait_up_processes_up(self):
         """
         Checks if any HOSTS waitup processes are running yet on the
         remote host.
