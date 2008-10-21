@@ -6,8 +6,10 @@ from autotest_lib.server.hosts import abstract_ssh
 
 
 class ParamikoHost(abstract_ssh.AbstractSSHHost):
-    def __init__(self, hostname, *args, **dargs):
-        super(ParamikoHost, self).__init__(hostname=hostname, *args, **dargs)
+    KEEPALIVE_TIMEOUT_SECONDS = 30
+
+    def _initialize(self, hostname, *args, **dargs):
+        super(ParamikoHost, self)._initialize(hostname=hostname, *args, **dargs)
 
         # paramiko is very noisy, tone down the logging
         paramiko.util.log_to_file("/dev/null", paramiko.util.ERROR)
@@ -17,8 +19,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         self.pid = None
 
         self.host_log = debug.get_logger()
-
-        self.start_loggers()
 
 
     def _get_user_key(self):
@@ -38,20 +38,29 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
     def _init_transport(self):
         transport = paramiko.Transport((self.hostname, self.port))
         transport.connect(username=self.user, pkey=self.key)
+        transport.set_keepalive(self.KEEPALIVE_TIMEOUT_SECONDS)
         self.transport = transport
         self.pid = os.getpid()
 
 
     def _open_channel(self):
         if os.getpid() != self.pid:
-            # initialize the transport for the first time, or after a fork
+            if self.pid is not None:
+                self.transport.atfork()
             self._init_transport()
+
+        channel = None
         try:
-            return self.transport.open_session()
+            channel = self.transport.open_session()
         except (socket.error, paramiko.SSHException):
-            # we couldn't open a channel, try re-initializing the transport
+            pass
+
+        if not channel:
+            # we couldn't get a channel; re-initing transport should fix that
             self._init_transport()
             return self.transport.open_session()
+        else:
+            return channel
 
 
     @staticmethod

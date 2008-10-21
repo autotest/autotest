@@ -11,9 +11,9 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-import types, os, sys, signal, subprocess, time, re, socket, pdb, traceback
-from autotest_lib.client.common_lib import error, pxssh, global_config, debug
-from autotest_lib.server import utils, autotest
+import sys, re, socket, traceback
+from autotest_lib.client.common_lib import error, pxssh, debug
+from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
 
 
@@ -43,19 +43,17 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
     implement the unimplemented methods in parent classes.
     """
 
-    def __init__(self, hostname, *args, **dargs):
+    def _initialize(self, hostname, *args, **dargs):
         """
         Construct a SSHHost object
 
         Args:
                 hostname: network hostname or address of remote machine
         """
-        super(SSHHost, self).__init__(hostname=hostname, *args, **dargs)
+        super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
 
         self.ip = socket.getaddrinfo(self.hostname, None)[0][4][0]
         self.ssh_host_log = debug.get_logger()
-
-        self.start_loggers()
 
 
     def ssh_command(self, connect_timeout=30, options=''):
@@ -225,45 +223,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         if not ignore_status and result.exit_status > 0:
             raise error.AutoservRunError("command execution error",
                                          result)
-
-
-    def verify(self):
-        super(SSHHost, self).verify()
-
-        print 'Pinging host ' + self.hostname
-        self.ssh_ping()
-
-        try:
-            autodir = autotest._get_autodir(self)
-            if autodir:
-                print 'Checking diskspace for %s on %s' % (self.hostname,
-                                                           autodir)
-                self.check_diskspace(autodir, 20)
-        except error.AutoservHostError:
-            raise           # only want to raise if it's a space issue
-        except:
-            pass            # autotest dir may not exist, etc. ignore
-
-
-    def repair_filesystem_only(self):
-        super(SSHHost, self).repair_filesystem_only()
-        self.wait_up(int(2.5 * 60 * 60)) # wait for 2.5 hours
-        self.reboot()
-
-
-    def repair_full(self):
-        super(SSHHost, self).repair_full()
-        try:
-            self.repair_filesystem_only()
-            self.verify()
-        except Exception:
-            # the filesystem-only repair failed, try something more drastic
-            print "Filesystem-only repair failed"
-            traceback.print_exc()
-            try:
-                self.machine_install()
-            except NotImplementedError, e:
-                sys.stderr.write(str(e) + "\n\n")
 
 
     def ssh_setup_key(self):

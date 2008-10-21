@@ -4,7 +4,6 @@ from autotest_lib.server import utils
 from autotest_lib.server.hosts import site_host
 
 
-
 def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
     base_command = ("/usr/bin/ssh -a -x %s -o BatchMode=yes "
                     "-o ConnectTimeout=%d "
@@ -21,9 +20,10 @@ class AbstractSSHHost(site_host.SiteHost):
     almost all of the abstract Host methods, except for the core
     Host.run method. """
 
-    def __init__(self, hostname, user="root", port=22, password="",
-                 *args, **dargs):
-        super(AbstractSSHHost, self).__init__(hostname=hostname, *args, **dargs)
+    def _initialize(self, hostname, user="root", port=22, password="",
+                    *args, **dargs):
+        super(AbstractSSHHost, self)._initialize(hostname=hostname,
+                                                 *args, **dargs)
 
         self.user = user
         self.port = port
@@ -222,3 +222,46 @@ class AbstractSSHHost(site_host.SiteHost):
             time.sleep(1)
 
         return False
+
+    # tunable constants for the verify & repair code
+    AUTOTEST_GB_DISKSPACE_REQUIRED = 20
+    HOURS_TO_WAIT_FOR_RECOVERY = 2.5
+
+    def verify(self):
+        super(AbstractSSHHost, self).verify()
+
+        print 'Pinging host ' + self.hostname
+        self.ssh_ping()
+
+        try:
+            autodir = autotest._get_autodir(self)
+            if autodir:
+                print 'Checking diskspace for %s on %s' % (self.hostname,
+                                                           autodir)
+                self.check_diskspace(autodir,
+                                     self.AUTOTEST_GB_DISKSPACE_REQUIRED)
+        except error.AutoservHostError:
+            raise           # only want to raise if it's a space issue
+        except Exception:
+            pass            # autotest dir may not exist, etc. ignore
+
+
+    def repair_filesystem_only(self):
+        super(AbstractSSHHost, self).repair_filesystem_only()
+        self.wait_up(int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600))
+        self.reboot()
+
+
+    def repair_full(self):
+        super(AbstractSSHHost, self).repair_full()
+        try:
+            self.repair_filesystem_only()
+            self.verify()
+        except Exception:
+            # the filesystem-only repair failed, try something more drastic
+            print "Filesystem-only repair failed"
+            traceback.print_exc()
+            try:
+                self.machine_install()
+            except NotImplementedError, e:
+                sys.stderr.write(str(e) + "\n\n")

@@ -22,8 +22,8 @@ def _log_and_ignore_exceptions(f):
 
 
 class DmesgHost(remote.RemoteHost):
-    def __init__(self, console_log="dmesg.log", *args, **dargs):
-        super(DmesgHost, self).__init__(*args, **dargs)
+    def _initialize(self, console_log="dmesg.log", *args, **dargs):
+        super(DmesgHost, self)._initialize(*args, **dargs)
 
         self.__last_line = None
         self.__logger = None
