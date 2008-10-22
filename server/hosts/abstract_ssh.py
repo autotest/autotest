@@ -54,6 +54,7 @@ class AbstractSSHHost(site_host.SiteHost):
             try:
                 command = "scp -rpq -P %d %s '%s'"
                 command %= (self.port, ' '.join(sources), dest)
+                utils.run(command)
             except error.CmdError, cmderr:
                 raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
 
