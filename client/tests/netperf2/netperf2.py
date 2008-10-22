@@ -12,6 +12,10 @@ class netperf2(test.test):
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
+        # Fixing up a compile issue under newer systems that have
+        # CPU_SET_S defined on /usr/include/sched.h, backported from
+        # upstream svn trunk
+        utils.system('patch -p1 < ../fix_netperf_build.patch')
         utils.system('./configure')
         utils.system('make')
 
