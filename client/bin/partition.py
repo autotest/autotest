@@ -38,29 +38,31 @@ def wipe_filesystem(job, mountpoint):
         job.record('GOOD', None, wipe_cmd)
 
 
-class filesystem:
+class partition:
     """
-    Class for handling filesystems
+    Class for handling partitions.
     """
 
     def __init__(self, job, device, mountpoint, loop_size=0):
         """
         device should be able to be a file as well
-        which we mount as loopback
+        which we mount as loopback.
 
+        job
+                A client.bin.job instance.
         device
                 The device in question (eg "/dev/hda2")
         mountpoint
                 Default mountpoint for the device.
         loop_size
-                size of loopback device (in MB)
+                Size of loopback device (in MB).  Defaults to 0.
         """
 
         part = re.compile(r'^part(\d+)$')
         m = part.match(device)
         if m:
             number = int(m.groups()[0])
-            partitions = job.config_get('filesystem.partitions')
+            partitions = job.config_get('partition.partitions')
             try:
                 device = partitions[number]
             except:
