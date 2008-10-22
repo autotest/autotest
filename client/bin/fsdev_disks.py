@@ -3,7 +3,7 @@ import sys, os, re, string
 from autotest_lib.client.bin import autotest_utils, fsinfo, fsdev_mgr
 from autotest_lib.client.common_lib import error, utils
 
-import filesystem
+import partition
 
 fd_mgr = fsdev_mgr.FsdevManager()
 
@@ -328,7 +328,7 @@ def wipe_disks(job, disk_list):
     in the filesystem class.
     """
     for disk in disk_list:
-        filesystem.wipe_filesystem(job, disk['mountpt'])
+        partition.wipe_filesystem(job, disk['mountpt'])
 
 
 def match_fs(disk, dev_path, fs_type, fs_makeopt):
@@ -542,7 +542,7 @@ class fsdev_disks:
         has been successfully set.
         """
 
-        fpath = filesystem.get_iosched_path(disk, path)
+        fpath = partition.get_iosched_path(disk, path)
 
         # Things might go wrong so we'll catch exceptions
         try:
