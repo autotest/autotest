@@ -4,6 +4,41 @@ import os, re, string, sys
 from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import error, utils
 
+
+class FsOptions(object):
+    """A class encapsulating a filesystem test's parameters.
+
+    Properties:  (all strings)
+      filesystem: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
+      mkfs_flags: Additional command line options to mkfs or '' if none.
+      mount_options: The options to pass to mount -o or '' if none.
+      short_name: A short name for this filesystem test to use in the results.
+    """
+    # NOTE(gps): This class could grow or be merged with something else in the
+    # future that actually uses the encapsulated data (say to run mkfs) rather
+    # than just being a container.
+    # Ex: fsdev_disks.mkfs_all_disks really should become a method.
+
+    __slots__ = ('filesystem', 'mkfs_flags', 'mount_options', 'short_name')
+
+    def __init__(self, filesystem, mkfs_flags, mount_options, short_name):
+        """Fill in our properties."""
+        if not filesystem or not short_name:
+            raise ValueError('A filesystem and short_name are required.')
+        self.filesystem = filesystem
+        self.mkfs_flags = mkfs_flags
+        self.mount_options = mount_options
+        self.short_name = short_name
+
+
+    def __str__(self):
+        val = ('FsOptions(filesystem=%r, mkfs_flags=%r, '
+               'mount_options=%r, short_name=%r)' %
+               (self.filesystem, self.mkfs_flags,
+                self.mount_options, self.short_name))
+        return val
+
+
 def list_mount_devices():
     devices = []
     # list mounted filesystems
