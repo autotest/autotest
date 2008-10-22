@@ -8,7 +8,7 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 import os, sys, re, pickle, shutil, time, traceback, types, copy
 from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
-from autotest_lib.client.bin import config, sysinfo, cpuset, test, filesystem
+from autotest_lib.client.bin import config, sysinfo, cpuset, test, partition
 from autotest_lib.client.common_lib import error, barrier, log, utils
 from autotest_lib.client.common_lib import packages, debug
 
@@ -641,7 +641,7 @@ class base_job(object):
     def filesystem(self, device, mountpoint = None, loop_size = 0):
         if not mountpoint:
             mountpoint = self.tmpdir
-        return filesystem.filesystem(self, device, mountpoint,loop_size)
+        return partition.partition(self, device, mountpoint, loop_size)
 
 
     def enable_external_logging(self):

@@ -90,7 +90,7 @@ class harness_ABAT(harness.harness):
         # Load up the autobench.conf if it exists.
         conf = autobench_load("/etc/autobench.conf")
         if 'partitions' in conf:
-            self.job.config_set('filesystem.partitions',
+            self.job.config_set('partition.partitions',
                     conf['partitions'])
 
         # Search the boot loader configuration for the autobench entry,
