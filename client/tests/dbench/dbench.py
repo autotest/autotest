@@ -1,16 +1,13 @@
 import os, re
+
 from autotest_lib.client.bin import autotest_utils, test
 from autotest_lib.client.common_lib import utils
 
 class dbench(test.test):
-    version = 2
-
-    def initialize(self):
-        self.job.require_gcc()
-
+    version = 3
 
     # http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
-    def setup(self, tarball = 'dbench-3.04.tar.gz'):
+    def setup(self, tarball='dbench-3.04.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
@@ -21,18 +18,18 @@ class dbench(test.test):
 
 
     def initialize(self):
+        self.job.require_gcc()
         self.results = []
+        self.dbench = os.path.join(self.srcdir, 'dbench')
 
 
-    def run_once(self, dir = None, nprocs = None, args = ''):
+    def run_once(self, dir='.', nprocs=None, seconds=600, args=''):
         if not nprocs:
             nprocs = self.job.cpu_count()
-        profilers = self.job.profilers
-        args = args + ' -c '+self.srcdir+'/client.txt'
-        if dir:
-            args += ' -D ' + dir
-        args += ' %s' % nprocs
-        cmd = self.srcdir + '/dbench ' + args
+        loadfile = os.path.join(self.srcdir, 'client.txt')
+        cmd = '%s %s %s -D %s -c %s -t %d' % (self.dbench, nprocs, args,
+                                              dir, loadfile, seconds)
+        print cmd
         self.results.append(utils.system_output(cmd, retain_output=True))
 
 
