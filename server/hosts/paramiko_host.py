@@ -15,7 +15,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         paramiko.util.log_to_file("/dev/null", paramiko.util.ERROR)
 
         self.key = self._get_user_key()
-        assert self.key is not None
         self.pid = None
 
         self.host_log = debug.get_logger()
@@ -32,7 +31,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         if os.path.exists(keyfile):
             return paramiko.RSAKey.from_private_key_file(keyfile)
 
-        return None
+        msg = ("Unable to find SSH2 keys. We need a dsa key from "
+               "~/.ssh/id_dsa or an rsa key from ~/.ssh/id_rsa")
+        raise error.AutoservHostError(msg)
 
 
     def _init_transport(self):
