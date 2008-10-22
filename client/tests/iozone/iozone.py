@@ -35,8 +35,8 @@ class iozone(test.test):
         if not args:
             args = '-a'
 
-        output = utils.system_output('%s/src/current/iozone %s' %
-                                (self.srcdir, args))
+        cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
+        output = utils.system_output('%s %s' % (cmd, args))
 
         auto_mode = ("-a" in args)
         self.__format_results(output, auto_mode)
