@@ -200,52 +200,18 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
     # Try to wipe the file system slate clean
     autotest_utils.drop_caches()
 
-class FsOptions(object):
-    """A class encapsulating a filesystem test's parameters.
-
-    Properties:  (all strings)
-      filesystem: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
-      mkfs_flags: Additional command line options to mkfs or '' if none.
-      mount_options: The options to pass to mount -o or '' if none.
-      short_name: A short name for this filesystem test to use in the results.
-    """
-    # NOTE(gps): This class could grow or be merged with something else in the
-    # future.  For instance the mkfs_all_disks function really should either
-    # take a FsOptions as a parameter or it should be a method of the class
-    # itself.
-
-    __slots__ = ('filesystem', 'mkfs_flags', 'mount_options', 'short_name')
-
-    def __init__(self, filesystem, mkfs_flags, mount_options, short_name):
-        """Fill in our properties."""
-        if not filesystem or not short_name:
-            raise ValueError('A filesystem and short_name are required.')
-        self.filesystem = filesystem
-        self.mkfs_flags = mkfs_flags
-        self.mount_options = mount_options
-        self.short_name = short_name
-
-
-    def __str__(self):
-        val = ('FsOptions(filesystem=%r, mkfs_flags=%r, '
-               'mount_options=%r, short_name=%r)' %
-               (self.filesystem, self.mkfs_flags,
-                self.mount_options, self.short_name))
-        return val
-
-
 # XXX(gps): Remove this code once refactoring is complete to get rid of these
 # nasty test description strings.
 def _legacy_str_to_test_flags(fs_desc_string):
-    """Convert a legacy FS_LIST string into a modern FsOptions instance."""
+    """Convert a legacy FS_LIST string into a partition.FsOptions instance."""
     match = re.search('(.*?)/(.*?)/(.*?)/(.*)$', fs_desc_string.strip())
     if not match:
         raise ValueError('unrecognized FS list entry %r' % fs_desc_string)
 
-    flags_obj = FsOptions(filesystem=match.group(1).strip(),
-                          mkfs_flags=match.group(2).strip(),
-                          mount_options=match.group(3).strip(),
-                          short_name=match.group(4).strip())
+    flags_obj = partition.FsOptions(filesystem=match.group(1).strip(),
+                                    mkfs_flags=match.group(2).strip(),
+                                    mount_options=match.group(3).strip(),
+                                    short_name=match.group(4).strip())
     return flags_obj
 
 
@@ -257,8 +223,9 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
     (which is usually hdc3) and prepare just that one drive.
 
     Args:
-      fs_desc: A FsOptions instance describing the test or a legacy string
-          describing the same: 'fstype / mkfs opts / mount opts / short name'.
+      fs_desc: A partition.FsOptions instance describing the test -OR- a
+          legacy string describing the same in '/' separated format:
+              'fstype / mkfs opts / mount opts / short name'.
       disk1_only: Boolean, defaults to False.  If True, only test the first
           disk.
       disk_list: A list of disks to prepare.  If None is given we default to
