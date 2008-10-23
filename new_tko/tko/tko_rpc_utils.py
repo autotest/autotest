@@ -74,6 +74,32 @@ def add_status_counts(group_dict, status):
     group_dict[models.TestView.objects._GROUP_COUNT_NAME] = 1
 
 
+def _construct_machine_label_header_sql(machine_labels):
+    """
+    Example result for machine_labels=['Index', 'Diskful']:
+    CONCAT_WS(",",
+              IF(FIND_IN_SET("Diskful", test_attributes_host_labels.value),
+                 "Diskful", NULL),
+              IF(FIND_IN_SET("Index", test_attributes_host_labels.value),
+                 "Index", NULL))
+
+    This would result in field values "Diskful,Index", "Diskful", "Index", NULL.
+    """
+    machine_labels = sorted(machine_labels)
+    if_clauses = []
+    for label in machine_labels:
+        if_clauses.append(
+            'IF(FIND_IN_SET("%s", test_attributes_host_labels.value), '
+               '"%s", NULL)' % (label, label))
+    return 'CONCAT_WS(",", %s)' % ', '.join(if_clauses)
+
+
+def add_machine_label_headers(machine_label_headers, extra_selects):
+    for field_name, machine_labels in machine_label_headers.iteritems():
+        extra_selects[field_name] = (
+            _construct_machine_label_header_sql(machine_labels))
+
+
 class GroupDataProcessor(object):
     _MAX_GROUP_RESULTS = 50000
 

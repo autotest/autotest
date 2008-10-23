@@ -79,4 +79,8 @@ public class TkoUtils {
         second = wrapWithParens(second);
         return Utils.joinStrings(" AND ", Arrays.asList(new String[] {first, second}));
     }
+
+    static String escapeSqlValue(String value) {
+        return value.replace("\\", "\\\\").replace("'", "\\'");
+    }
 }
