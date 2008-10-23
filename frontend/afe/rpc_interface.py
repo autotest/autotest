@@ -542,16 +542,13 @@ def get_static_data():
     result['labels'] = get_labels(sort_by=['-platform', 'name'])
     result['tests'] = get_tests(sort_by=['name'])
     result['profilers'] = get_profilers(sort_by=['name'])
-    result['user_login'] = thread_local.get_user().login
+    result['current_user'] = rpc_utils.prepare_for_serialization(
+        thread_local.get_user().get_object_dict())
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.Job.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
-    result['reboot_before_options'] = models.Job.RebootBefore.names
-    result['reboot_before_default'] = models.Job.RebootBefore.get_string(
-        job_fields['reboot_before'].default)
-    result['reboot_after_options'] = models.Job.RebootAfter.names
-    result['reboot_after_default'] = models.Job.RebootBefore.get_string(
-        job_fields['reboot_after'].default)
+    result['reboot_before_options'] = models.RebootBefore.names
+    result['reboot_after_options'] = models.RebootAfter.names
 
     result['status_dictionary'] = {"Abort": "Abort",
                                    "Aborted": "Aborted",

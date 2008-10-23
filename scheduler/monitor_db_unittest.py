@@ -112,7 +112,7 @@ class BaseSchedulerTest(unittest.TestCase):
         job = models.Job.objects.create(
             name='test', owner='my_user', priority=priority,
             synch_type=synch_type, created_on=created_on,
-            reboot_before=models.Job.RebootBefore.NEVER)
+            reboot_before=models.RebootBefore.NEVER)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, priority=priority,
                                                  host_id=host_id, active=active)
@@ -1011,7 +1011,7 @@ class JobTest(BaseSchedulerTest):
 
     def test_reboot_before_always(self):
         job = self._create_job(hosts=[1])
-        job.reboot_before = models.Job.RebootBefore.ALWAYS
+        job.reboot_before = models.RebootBefore.ALWAYS
         job.save()
 
         tasks = self._test_run_helper()
@@ -1023,7 +1023,7 @@ class JobTest(BaseSchedulerTest):
 
     def _test_reboot_before_if_dirty_helper(self, expect_reboot):
         job = self._create_job(hosts=[1])
-        job.reboot_before = models.Job.RebootBefore.IF_DIRTY
+        job.reboot_before = models.RebootBefore.IF_DIRTY
         job.save()
 
         tasks = self._test_run_helper()

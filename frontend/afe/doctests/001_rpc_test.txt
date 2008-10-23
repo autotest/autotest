@@ -152,7 +152,9 @@ True
 >>> data = rpc_interface.get_users(login='showard')
 >>> data == [{'id': 2,
 ...           'login': 'showard',
-...           'access_level': 1}]
+...           'access_level': 1,
+...           'reboot_before': 'If dirty',
+...           'reboot_after': 'Always'}]
 True
 >>> rpc_interface.delete_user('showard')
 >>> rpc_interface.get_users(login='showard') == []

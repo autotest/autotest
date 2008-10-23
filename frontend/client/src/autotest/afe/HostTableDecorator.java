@@ -9,6 +9,7 @@ import autotest.common.table.SearchFilter;
 import autotest.common.table.TableDecorator;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
@@ -27,7 +28,7 @@ class HostTableDecorator extends TableDecorator {
         
         public AclAccessibleFilter() {
             super("acl_group__users__login");
-            username = StaticDataRepository.getRepository().getData("user_login");
+            username = new JSONString(StaticDataRepository.getRepository().getCurrentUserLogin());
             checkBox.addClickListener(this);
         }
         
