@@ -4,6 +4,11 @@ from frontend.afe import model_logic
 from frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
 
+# job options and user preferences
+RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
+DEFAULT_REBOOT_BEFORE = RebootBefore.IF_DIRTY
+RebootAfter = enum.Enum('Never', 'If all tests passed', 'Always')
+DEFAULT_REBOOT_AFTER = RebootBefore.ALWAYS
 
 class AclAccessViolation(Exception):
     """\
@@ -74,6 +79,14 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     login = dbmodels.CharField(maxlength=255, unique=True)
     access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
+    # user preferences
+    reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
+                                               blank=True,
+                                               default=DEFAULT_REBOOT_BEFORE)
+    reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
+                                              blank=True,
+                                              default=DEFAULT_REBOOT_AFTER)
+
     name_field = 'login'
     objects = model_logic.ExtendedManager()
 
@@ -82,8 +95,8 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
         # is this a new object being saved for the first time?
         first_time = (self.id is None)
         user = thread_local.get_user()
-        if user and not user.is_superuser():
-            raise AclAccessViolation("You cannot modify users!")
+        if user and not user.is_superuser() and user.login != self.login:
+            raise AclAccessViolation("You cannot modify user " + self.login)
         super(User, self).save()
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
@@ -550,8 +563,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
                        'Completed', 'Abort', 'Aborting', 'Aborted',
                        'Failed', 'Starting', string_values=True)
-    RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
-    RebootAfter = enum.Enum('Never', 'If all tests passed', 'Always')
 
     owner = dbmodels.CharField(maxlength=255)
     name = dbmodels.CharField(maxlength=255)
@@ -574,10 +585,10 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
     reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
                                                blank=True,
-                                               default=RebootBefore.IF_DIRTY)
+                                               default=DEFAULT_REBOOT_BEFORE)
     reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
                                               blank=True,
-                                              default=RebootAfter.ALWAYS)
+                                              default=DEFAULT_REBOOT_AFTER)
 
 
     # custom manager

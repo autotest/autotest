@@ -8,6 +8,7 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.JSONObjectSet;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.RadioChooser;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
@@ -27,6 +28,8 @@ public class AfeUtils {
     public static final String PLATFORM_SUFFIX = " (platform)";
     
     public static final ClassFactory factory = new SiteClassFactory();
+
+    private static StaticDataRepository staticData = StaticDataRepository.getRepository();
     
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
         String result = "";
@@ -48,7 +51,6 @@ public class AfeUtils {
     protected static String[] getFilteredLabelStrings(boolean onlyPlatforms,
                                                       boolean onlyNonPlatforms) {
         assert( !(onlyPlatforms && onlyNonPlatforms));
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray labels = staticData.getData("labels").isArray();
         List<String> result = new ArrayList<String>();
         for (int i = 0; i < labels.size(); i++) {
@@ -150,8 +152,15 @@ public class AfeUtils {
             }
         });
     }
-    
+
     public static String getJobTag(JSONObject job) {
         return Utils.jsonToString(job.get("id")) + "-" + Utils.jsonToString(job.get("owner"));
+    }
+
+    public static void populateRadioChooser(RadioChooser chooser, String name) {
+        JSONArray options = staticData.getData(name + "_options").isArray();
+        for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
+            chooser.addChoice(Utils.jsonToString(jsonOption));
+        }
     }
 }

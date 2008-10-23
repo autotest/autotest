@@ -1,6 +1,7 @@
 package autotest.afe;
 
 import autotest.afe.TestSelector.TestSelectorListener;
+import autotest.afe.UserPreferencesView.UserPreferencesListener;
 import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
@@ -45,7 +46,8 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CreateJobView extends TabView implements TestSelectorListener {
+public class CreateJobView extends TabView 
+                           implements TestSelectorListener, UserPreferencesListener {
     public static final int TEST_COLUMNS = 5;
     
     protected static final String EDIT_CONTROL_STRING = "Edit control file";
@@ -291,18 +293,9 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         }
     }
     
-    private void populateRebootSelector(String name, RadioChooser chooser) {
-        JSONArray options = staticData.getData(name + "_options").isArray();
-        String defaultOption = Utils.jsonToString(staticData.getData(name + "_default"));
-        for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
-            chooser.addChoice(Utils.jsonToString(jsonOption));
-        }
-        chooser.setDefaultChoice(defaultOption);
-    }
-
     private void populateRebootChoices() {
-        populateRebootSelector("reboot_before", rebootBefore);
-        populateRebootSelector("reboot_after", rebootAfter);
+        AfeUtils.populateRadioChooser(rebootBefore, "reboot_before");
+        AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
     }
 
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
@@ -422,6 +415,7 @@ public class CreateJobView extends TabView implements TestSelectorListener {
         testSelector = new TestSelector();
         
         populateRebootChoices();
+        onPreferencesChanged();
         
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
@@ -637,5 +631,16 @@ public class CreateJobView extends TabView implements TestSelectorListener {
     public void onTestSelectionChanged() {
         generateControlFile(false);
         setInputsEnabled();
+    }
+    
+    private void setRebootSelectorDefault(RadioChooser chooser, String name) {
+        JSONObject user = staticData.getData("current_user").isObject();
+        String defaultOption = Utils.jsonToString(user.get(name));
+        chooser.setDefaultChoice(defaultOption);
+    }
+
+    public void onPreferencesChanged() {
+        setRebootSelectorDefault(rebootBefore, "reboot_before");
+        setRebootSelectorDefault(rebootAfter, "reboot_after");
     }
 }

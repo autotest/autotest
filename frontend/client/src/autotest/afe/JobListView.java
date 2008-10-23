@@ -105,7 +105,7 @@ public class JobListView extends TabView implements TableActionsListener {
         JSONArray userArray = staticData.getData("users").isArray();
         String[] userStrings = Utils.JSONObjectsToStrings(userArray, "login");
         ownerFilter.setChoices(userStrings);
-        String currentUser = staticData.getData("user_login").isString().stringValue();
+        String currentUser = staticData.getCurrentUserLogin();
         ownerFilter.setSelectedChoice(currentUser);
     }
 

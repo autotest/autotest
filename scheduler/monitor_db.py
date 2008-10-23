@@ -1439,9 +1439,9 @@ class QueueTask(AgentTask):
     def _reboot_hosts(self):
         reboot_after = self.job.reboot_after
         do_reboot = False
-        if reboot_after == models.Job.RebootAfter.ALWAYS:
+        if reboot_after == models.RebootAfter.ALWAYS:
             do_reboot = True
-        elif reboot_after == models.Job.RebootAfter.IF_ALL_TESTS_PASSED:
+        elif reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED:
             num_tests_failed = self.monitor.num_tests_failed()
             do_reboot = (self.success and num_tests_failed == 0)
 
@@ -2107,9 +2107,9 @@ class Job(DBObject):
 
     def _get_pre_job_tasks(self, queue_entry, verify_task_class=VerifyTask):
         do_reboot = False
-        if self.reboot_before == models.Job.RebootBefore.ALWAYS:
+        if self.reboot_before == models.RebootBefore.ALWAYS:
             do_reboot = True
-        elif self.reboot_before == models.Job.RebootBefore.IF_DIRTY:
+        elif self.reboot_before == models.RebootBefore.IF_DIRTY:
             do_reboot = queue_entry.get_host().dirty
 
         tasks = []
