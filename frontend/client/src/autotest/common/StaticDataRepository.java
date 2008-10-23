@@ -53,4 +53,8 @@ public class StaticDataRepository {
     public void setData(String key, JSONValue data) {
         dataObject.put(key, data);
     }
+    
+    public String getCurrentUserLogin() {
+        return Utils.jsonToString(dataObject.get("current_user").isObject().get("login"));
+    }
 }

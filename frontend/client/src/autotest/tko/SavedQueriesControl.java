@@ -99,7 +99,7 @@ class SavedQueriesControl extends Composite
     private void fillQueryList(final ListBox list) {
         StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONObject args = new JSONObject();
-        args.put("owner", staticData.getData("user_login"));
+        args.put("owner", new JSONString(staticData.getCurrentUserLogin()));
         rpcProxy.rpcCall("get_saved_queries", args, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {

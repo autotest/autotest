@@ -5,6 +5,7 @@ import autotest.afe.HostDetailView.HostDetailListener;
 import autotest.afe.HostListView.HostListListener;
 import autotest.afe.JobDetailView.JobDetailListener;
 import autotest.afe.JobListView.JobSelectListener;
+import autotest.afe.UserPreferencesView.UserPreferencesListener;
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
@@ -17,11 +18,12 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class AfeClient implements EntryPoint {
-    protected JobListView jobList;
-    protected JobDetailView jobDetail;
-    protected CreateJobView createJob;
-    protected HostListView hostListView;
-    protected HostDetailView hostDetailView;
+    private JobListView jobList;
+    private JobDetailView jobDetail;
+    private CreateJobView createJob;
+    private HostListView hostListView;
+    private HostDetailView hostDetailView;
+    private UserPreferencesView userPreferencesView;
 
     public CustomTabPanel mainTabPanel = new CustomTabPanel();
 
@@ -73,9 +75,14 @@ public class AfeClient implements EntryPoint {
                 showJob(jobId);
             }
         });
+        userPreferencesView = new UserPreferencesView(new UserPreferencesListener() {
+            public void onPreferencesChanged() {
+                createJob.onPreferencesChanged();
+            }
+        });
         
         TabView[] tabViews = new TabView[] {jobList, jobDetail, createJob, 
-                                            hostListView, hostDetailView};
+                                            hostListView, hostDetailView, userPreferencesView};
         for(int i = 0; i < tabViews.length; i++) {
             mainTabPanel.addTabView(tabViews[i]);
         }
