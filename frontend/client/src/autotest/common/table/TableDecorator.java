@@ -69,7 +69,7 @@ public class TableDecorator extends Composite implements DynamicTableListener {
     }
     
     public SelectionManager addSelectionManager(boolean selectOnlyOne) {
-        selectionManager = new SelectionManager(dataTable, selectOnlyOne);
+        selectionManager = new DynamicTableSelectionManager(dataTable, selectOnlyOne);
         dataTable.addListener(this);
         return selectionManager;
     }

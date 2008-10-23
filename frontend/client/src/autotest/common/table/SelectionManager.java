@@ -90,7 +90,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
      * Select all objects in the table.
      */
     public void selectAll() {
-        selectObjects(attachedTable.getAllRows());
+        selectVisible();
     }
     
     public void deselectAll() {
@@ -100,11 +100,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     }
     
     public void selectVisible() {
-        List<JSONObject> rowsToAdd = new ArrayList<JSONObject>();
-        for (int i = 0; i < attachedTable.getRowCount(); i++) {
-            rowsToAdd.add(attachedTable.getRow(i));
-        }
-        selectObjects(rowsToAdd);
+        selectObjects(attachedTable.getAllRows());
     }
     
     public void toggleSelected(JSONObject object) {
