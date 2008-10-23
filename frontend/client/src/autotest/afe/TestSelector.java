@@ -90,7 +90,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         }
 
         private void writeSkipVerify(JSONObject test) {
-            if (test.get("run_verify").isNumber().doubleValue() == 0) {
+            if (!test.get("run_verify").isBoolean().booleanValue()) {
                 builder.append("Verify is <b>not</b> run<br>");
             }
         }
@@ -100,7 +100,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         }
 
         private String getField(String field) {
-            return Utils.escape(test.get(field).isString().stringValue());
+            return Utils.escape(Utils.jsonToString(test.get(field)));
         }
         
         public String getInfo() {
