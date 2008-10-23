@@ -147,7 +147,7 @@ public class HostSelector {
         final Button oneTimeHostButton = new Button("Add");
         oneTimeHostButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                List<String> hosts = Utils.splitList(oneTimeHostField.getText());
+                List<String> hosts = Utils.splitListWithSpaces(oneTimeHostField.getText());
                 for (String hostname : hosts) {
                     JSONObject oneTimeObject = new JSONObject();
                     oneTimeObject.put("hostname", new JSONString(hostname));

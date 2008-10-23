@@ -11,14 +11,21 @@ class TempManager(model_logic.ExtendedManager):
         return self.get_key_on_this_table(field)
 
 
-    def _get_field_names(self, fields):
-        return [self._get_key_unless_is_function(field) for field in fields]
+    def _get_field_names(self, fields, extra_select_fields={}):
+        field_names = []
+        for field in fields:
+            if field in extra_select_fields:
+                field_names.append(field)
+            else:
+                field_names.append(self._get_key_unless_is_function(field))
+        return field_names
 
 
     def _get_group_query_sql(self, query, group_by, extra_select_fields):
-        group_fields = self._get_field_names(group_by)
+        group_fields = self._get_field_names(group_by, extra_select_fields)
 
-        select_fields = list(group_fields)
+        select_fields = [field for field in group_fields
+                         if field not in extra_select_fields]
         for field_name, field_sql in extra_select_fields.iteritems():
             field_sql = self._get_key_unless_is_function(field_sql)
             select_fields.append(field_sql + ' AS ' + field_name)
@@ -289,6 +296,14 @@ class TestViewManager(TempManager):
         return query_set.filter(filter_object).distinct()
 
 
+    def _get_include_exclude_suffix(self, exclude):
+        if exclude:
+            suffix = '_exclude'
+        else:
+            suffix = '_include'
+        return suffix
+
+
     def _add_label_joins(self, query_set, suffix=''):
         query_set = self._add_join(query_set, 'test_labels_tests',
                                    join_key='test_id', suffix=suffix,
@@ -306,8 +321,10 @@ class TestViewManager(TempManager):
         return query_set.filter(filter_object)
 
 
-    def _add_attribute_join(self, query_set, suffix='', join_condition='',
+    def _add_attribute_join(self, query_set, join_condition='', suffix=None,
                             exclude=False):
+        if suffix is None:
+            suffix = self._get_include_exclude_suffix(exclude)
         return self._add_join(query_set, 'test_attributes',
                               join_condition=join_condition,
                               suffix=suffix, exclude=exclude)
@@ -320,12 +337,13 @@ class TestViewManager(TempManager):
         return [label['id'] for label in query]
 
 
-    def get_query_set_with_joins(self, filter_data):
+    def get_query_set_with_joins(self, filter_data, include_host_labels=False):
         exclude_labels = filter_data.pop('exclude_labels', [])
         query_set = self.get_query_set()
         joined = False
         # TODO: make this check more thorough if necessary
-        if 'test_labels' in filter_data.get('extra_where', ''):
+        extra_where = filter_data.get('extra_where', '')
+        if 'test_labels' in extra_where:
             query_set = self._add_label_joins(query_set)
             joined = True
 
@@ -347,18 +365,22 @@ class TestViewManager(TempManager):
                                                    '')
         if include_attributes_where:
             query_set = self._add_attribute_join(
-                query_set, suffix='_include',
-                join_condition=include_attributes_where)
+                query_set, join_condition=include_attributes_where)
             joined = True
         if exclude_attributes_where:
             query_set = self._add_attribute_join(
-                query_set, suffix='_exclude',
-                join_condition=exclude_attributes_where,
+                query_set, join_condition=exclude_attributes_where,
                 exclude=True)
             joined = True
 
         if not joined:
             filter_data['no_distinct'] = True
+
+        if include_host_labels or 'test_attributes_host_labels' in extra_where:
+            query_set = self._add_attribute_join(
+                query_set, suffix='_host_labels',
+                join_condition='test_attributes_host_labels.attribute = '
+                               '"host-labels"')
 
         return query_set
 

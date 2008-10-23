@@ -11,6 +11,7 @@ import java.util.Map;
 
 class ConditionTestSet extends TestSet {
     private Map<String,String> fields = new HashMap<String,String>();
+    private List<String> conditionParts = new ArrayList<String>(); 
     private JSONObject initialCondition = new JSONObject();
     
     public ConditionTestSet(JSONObject initialCondition) {
@@ -20,12 +21,9 @@ class ConditionTestSet extends TestSet {
     public void setField(String field, String value) {
         fields.put(field, value);
     }
-
-    public void setFields(List<String> fields, List<String> values) {
-        assert fields.size() == values.size();
-        for (int i = 0; i < fields.size(); i++) {
-            setField(fields.get(i), values.get(i));
-        }
+    
+    public void addCondition(String condition) {
+        conditionParts.add(condition);
     }
     
     @Override
@@ -42,16 +40,15 @@ class ConditionTestSet extends TestSet {
             if (value.equals(Utils.JSON_NULL)) {
               query += " is null";
             } else {
-              query += " = '" + escapeSqlValue(value) + "'";
+              query += " = '" + TkoUtils.escapeSqlValue(value) + "'";
             }
             parts.add(query);
         }
+        for (String part : conditionParts) {
+            parts.add(part);
+        }
         
         return Utils.joinStrings(" AND ", parts);
-    }
-
-    private String escapeSqlValue(String value) {
-        return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     @Override
