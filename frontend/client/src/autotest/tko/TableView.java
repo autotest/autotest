@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
+// TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsListener, ClickListener,
                                   TableWidgetFactory, CommonPanelListener {

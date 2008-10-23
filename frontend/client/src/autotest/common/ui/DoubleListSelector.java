@@ -3,6 +3,7 @@ package autotest.common.ui;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -18,6 +19,7 @@ import java.util.List;
 public class DoubleListSelector extends Composite implements ClickListener {
     private static final int VISIBLE_ITEMS = 10;
     
+    private ChangeListener listener;
     private List<Item> availableList = new ArrayList<Item>(), selectedList = new ArrayList<Item>();
     private Panel container = new HorizontalPanel();
     private ListBox availableBox = new ListBox(), selectedBox = new ListBox();
@@ -57,6 +59,11 @@ public class DoubleListSelector extends Composite implements ClickListener {
         @Override
         public int hashCode() {
             return name.hashCode() * value.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "Item<" + name + ", " + value + ">";
         }
     }
     
@@ -136,8 +143,10 @@ public class DoubleListSelector extends Composite implements ClickListener {
         Element target = event.getTarget();
         if (availableBox.getElement().isOrHasChild(target)) {
             doSelect();
+            notifyChangeListeners();
         } else if (selectedBox.getElement().isOrHasChild(target)) {
             doDeselect();
+            notifyChangeListeners();
         } else {
             super.onBrowserEvent(event);
             return;
@@ -160,6 +169,7 @@ public class DoubleListSelector extends Composite implements ClickListener {
         } else if (sender == moveDownButton) {
             reorderItem(getSelectedItem(selectedBox), 1);
         }
+        notifyChangeListeners();
     }
 
     private void reorderItem(String name, int postionDelta) {
@@ -226,6 +236,12 @@ public class DoubleListSelector extends Composite implements ClickListener {
         refresh();
     }
 
+    private void notifyChangeListeners() {
+        if (listener != null) {
+            listener.onChange(this);
+        }
+    }
+
     private Item findItem(String name, List<Item> list) {
         for (Item item : list) {
             if (item.name.equals(name)) {
@@ -265,5 +281,9 @@ public class DoubleListSelector extends Composite implements ClickListener {
     
     public int getSelectedItemCount() {
         return selectedBox.getItemCount();
+    }
+
+    public void setListener(ChangeListener listener) {
+        this.listener = listener;
     }
 }

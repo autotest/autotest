@@ -2,20 +2,17 @@ package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
-import autotest.common.UnmodifiableSublistView;
 import autotest.common.Utils;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
-import autotest.common.ui.DoubleListSelector.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
-import autotest.tko.Spreadsheet.HeaderImpl;
 import autotest.tko.Spreadsheet.SpreadsheetListener;
 import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
@@ -39,6 +36,7 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +57,10 @@ public class SpreadsheetView extends ConditionTabView
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
     private TableSwitchListener listener;
-    protected Header currentRowFields;
-    protected Header currentColumnFields;
+    protected List<HeaderField> currentRowFields;
+    protected List<HeaderField> currentColumnFields;
     protected Map<String,String[]> drilldownMap = new HashMap<String,String[]>();
+    private Map<String, HeaderField> headerFieldMap = new HashMap<String, HeaderField>();
     
     private HeaderSelect rowSelect = new HeaderSelect();
     private HeaderSelect columnSelect = new HeaderSelect();
@@ -97,18 +96,20 @@ public class SpreadsheetView extends ConditionTabView
         
         actionsPanel.setActionsListener(this);
         actionsPanel.setSelectionListener(this);
-        
-        currentRowFields = new HeaderImpl();
-        currentRowFields.add(DEFAULT_ROW);
-        currentColumnFields = new HeaderImpl();
-        currentColumnFields.add(DEFAULT_COLUMN);
-        
+
+        currentRowFields = new ArrayList<HeaderField>();
+        currentColumnFields = new ArrayList<HeaderField>();
+
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("group_fields")) {
-            rowSelect.addItem(fieldInfo.name, fieldInfo.field);
-            columnSelect.addItem(fieldInfo.name, fieldInfo.field);
+            HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
+            headerFieldMap.put(fieldInfo.field, field);
+            rowSelect.addItem(field);
+            columnSelect.addItem(field);
         }
+        currentRowFields.add(headerFieldMap.get(DEFAULT_ROW));
+        currentColumnFields.add(headerFieldMap.get(DEFAULT_COLUMN));
         updateWidgets();
-        
+
         queryButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 doQuery();
@@ -122,8 +123,8 @@ public class SpreadsheetView extends ConditionTabView
         SimpleHyperlink swapLink = new SimpleHyperlink("swap");
         swapLink.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                Header newRows = getSelectedHeader(columnSelect);
-                setSelectedHeader(columnSelect, getSelectedHeader(rowSelect));
+                List<HeaderField> newRows = columnSelect.getSelectedItems();
+                setSelectedHeader(columnSelect, rowSelect.getSelectedItems());
                 setSelectedHeader(rowSelect, newRows);
             } 
         });
@@ -178,16 +179,8 @@ public class SpreadsheetView extends ConditionTabView
                          new String[] {"test_finished_time", "job_tag"});
     }
     
-    private Header getSelectedHeader(HeaderSelect list) {
-        Header selectedFields = new HeaderImpl();
-        for (Item item : list.getSelectedItems()) {
-            selectedFields.add(item.value);
-        }
-        return selectedFields;
-    }
-    
-    protected void setSelectedHeader(HeaderSelect list, Header fields) {
-        list.selectItemsByValue(fields);
+    protected void setSelectedHeader(HeaderSelect list, List<HeaderField> fields) {
+        list.selectItems(fields);
     }
 
     @Override
@@ -199,6 +192,7 @@ public class SpreadsheetView extends ConditionTabView
         setJobCompletionHtml("&nbsp");
         
         final JSONObject condition = getFullConditionArgs();
+        JSONObject queryParameters = getQueryParameters();
         
         setLoading(true);
         if (showOnlyLatest.isChecked()) {
@@ -207,7 +201,7 @@ public class SpreadsheetView extends ConditionTabView
             spreadsheetProcessor.setDataSource(normalDataSource);
         }
         spreadsheetProcessor.setHeaders(currentRowFields, currentColumnFields, 
-                                        getFixedHeaderValues());
+                                        getQueryParameters());
         spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
                 if (isJobFilteringCondition(condition)) {
@@ -219,17 +213,11 @@ public class SpreadsheetView extends ConditionTabView
         });
     }
 
-    private JSONObject getFixedHeaderValues() {
-        JSONObject fixedHeaderValues = new JSONObject();
-        List<String> rowValues = rowSelect.getFixedValues(), 
-                     columnValues = columnSelect.getFixedValues();
-        if (rowValues != null) {
-            fixedHeaderValues.put(currentRowFields.get(0), Utils.stringsToJSON(rowValues));
-        }
-        if (columnValues != null) {
-            fixedHeaderValues.put(currentColumnFields.get(0), Utils.stringsToJSON(columnValues));
-        }
-        return fixedHeaderValues;
+    private JSONObject getQueryParameters() {
+        JSONObject parameters = new JSONObject();
+        rowSelect.addQueryParameters(parameters);
+        columnSelect.addQueryParameters(parameters);
+        return parameters;
     }
 
     private JSONObject getFullConditionArgs() {
@@ -247,9 +235,15 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     public void doQuery() {
-        Header rows = getSelectedHeader(rowSelect), columns = getSelectedHeader(columnSelect);
+        List<HeaderField> rows = rowSelect.getSelectedItems();
+        List<HeaderField> columns = columnSelect.getSelectedItems();
         if (rows.isEmpty() || columns.isEmpty()) {
             NotifyManager.getInstance().showError("You must select row and column fields");
+            return;
+        }
+        if (!checkMachineLabelHeaders(rowSelect) || !checkMachineLabelHeaders(columnSelect)) {
+            NotifyManager.getInstance().showError(
+                      "You must enter labels for all machine label fields");
             return;
         }
         saveSelectedHeaders();
@@ -258,9 +252,18 @@ public class SpreadsheetView extends ConditionTabView
         refresh();
     }
 
+    private boolean checkMachineLabelHeaders(HeaderSelect headerSelect) {
+        for (MachineLabelField field : headerSelect.getMachineLabelHeaders()) {
+            if (field.getLabelList().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void saveSelectedHeaders() {
-        currentRowFields = getSelectedHeader(rowSelect);
-        currentColumnFields = getSelectedHeader(columnSelect);
+        currentRowFields = rowSelect.getSelectedItems();
+        currentColumnFields = columnSelect.getSelectedItems();
     }
 
     private void showCompletionPercentage(JSONObject condition) {
@@ -370,9 +373,13 @@ public class SpreadsheetView extends ConditionTabView
         return testSet;
     }
     
-    private void setSomeFields(ConditionTestSet testSet, Header allFields, Header values) {
-        List<String> usedFields = new UnmodifiableSublistView<String>(allFields, 0, values.size());
-        testSet.setFields(usedFields, values);
+    private void setSomeFields(ConditionTestSet testSet, List<HeaderField> allFields, 
+                               Header values) {
+        for (int i = 0; i < values.size(); i++) {
+            HeaderField field = allFields.get(i);
+            String value = values.get(i);
+            testSet.addCondition(field.getSqlCondition(value));
+        }
     }
     
     private TestSet getTestSet(List<CellInfo> cells) {
@@ -385,8 +392,8 @@ public class SpreadsheetView extends ConditionTabView
 
     private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
         commonPanel.refineCondition(tests);
-        currentRowFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newRowField));
-        currentColumnFields = HeaderImpl.fromBaseType(Utils.wrapObjectWithList(newColumnField));
+        currentRowFields = Utils.wrapObjectWithList(headerFieldMap.get(newRowField));
+        currentColumnFields = Utils.wrapObjectWithList(headerFieldMap.get(newColumnField));
         rowSelect.resetFixedValues();
         columnSelect.resetFixedValues();
         updateWidgets();
@@ -440,13 +447,18 @@ public class SpreadsheetView extends ConditionTabView
         }
     }
 
-    private String[] getDrilldownFields(Header fields, DrilldownType type,
+    private String[] getDrilldownFields(List<HeaderField> fields, DrilldownType type,
                                         DrilldownType otherType) {
-        String lastField = fields.get(fields.size() - 1);
+        HeaderField lastField = fields.get(fields.size() - 1);
+        String lastFieldName = lastField.getSqlName();
         if (type == otherType) {
-            return new String[] {lastField};
+            return new String[] {lastFieldName};
         } else {
-            return drilldownMap.get(lastField);
+            if (lastField instanceof MachineLabelField) {
+                // treat machine label fields like platform, for the purpose of default drilldown
+                lastFieldName = "platform";
+            }
+            return drilldownMap.get(lastFieldName);
         }
     }
 

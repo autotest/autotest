@@ -4,6 +4,7 @@ import autotest.common.table.DataSource.DataCallback;
 import autotest.common.ui.NotifyManager;
 import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
+import autotest.tko.Spreadsheet.HeaderImpl;
 
 import com.google.gwt.core.client.Duration;
 import com.google.gwt.json.client.JSONArray;
@@ -180,15 +181,24 @@ public class SpreadsheetDataProcessor implements DataCallback {
         onFinished.execute();
     }
 
-    public void setHeaders(Header rowFields, Header columnFields, JSONObject fixedValues) {
-        this.rowFields = rowFields;
-        this.columnFields = columnFields;
+    public void setHeaders(List<HeaderField> rowFields, List<HeaderField> columnFields, 
+                           JSONObject queryParameters) {
+        this.rowFields = getHeaderSqlNames(rowFields);
+        this.columnFields = getHeaderSqlNames(columnFields);
         
         List<List<String>> headerGroups = new ArrayList<List<String>>();
-        headerGroups.add(rowFields);
-        headerGroups.add(columnFields);
+        headerGroups.add(this.rowFields);
+        headerGroups.add(this.columnFields);
         dataSource.setHeaderGroups(headerGroups);
-        dataSource.setFixedHeaderValues(fixedValues);
+        dataSource.setQueryParameters(queryParameters);
+    }
+
+    private Header getHeaderSqlNames(List<HeaderField> fields) {
+        Header header = new HeaderImpl();
+        for (HeaderField field : fields) {
+            header.add(field.getSqlName());
+        }
+        return header;
     }
 
     public void setDataSource(TestGroupDataSource dataSource) {

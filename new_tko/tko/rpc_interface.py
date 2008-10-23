@@ -17,7 +17,8 @@ def get_num_test_views(**filter_data):
 
 
 def get_group_counts(group_by, header_groups=[], fixed_headers={},
-                     extra_select_fields={}, **filter_data):
+                     machine_label_headers={}, extra_select_fields={},
+                     **filter_data):
     """
     Queries against TestView grouping by the specified fields and computings
     counts for each group.
@@ -27,6 +28,14 @@ def get_group_counts(group_by, header_groups=[], fixed_headers={},
     * header_groups can be used to get lists of unique combinations of group
       fields.  It should be a list of tuples of fields from group_by.  It's
       primarily for use by the spreadsheet view.
+    * fixed_headers can map header fields to lists of values.  the header will
+      guaranteed to return exactly those value.  this does not work together
+      with header_groups.
+    * machine_label_headers can specify special headers to be constructed from
+      machine labels.  It should map arbitrary names to lists of machine labels.
+      a field will be created with the given name containing a comma-separated
+      list indicating which of the given machine labels are on each test.  this
+      field can then be grouped on.
 
     Returns a dictionary with two keys:
     * header_values contains a list of lists, one for each header group in
@@ -38,11 +47,16 @@ def get_group_counts(group_by, header_groups=[], fixed_headers={},
       The keys for the extra_select_fields are determined by the "AS" alias of
       the field.
     """
-    query = models.TestView.query_objects(filter_data)
+    extra_select_fields = dict(extra_select_fields)
+    query = models.TestView.objects.get_query_set_with_joins(
+        filter_data, include_host_labels=bool(machine_label_headers))
+    query = models.TestView.query_objects(filter_data, initial_query=query)
     count_alias, count_sql = models.TestView.objects.get_count_sql(query)
     extra_select_fields[count_alias] = count_sql
     if 'test_idx' not in group_by:
         extra_select_fields['test_idx'] = 'test_idx'
+    tko_rpc_utils.add_machine_label_headers(machine_label_headers,
+                                            extra_select_fields)
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
                                                        header_groups,
@@ -61,7 +75,7 @@ def get_num_groups(group_by, **filter_data):
 
 
 def get_status_counts(group_by, header_groups=[], fixed_headers={},
-                      **filter_data):
+                      machine_label_headers={}, **filter_data):
     """
     Like get_group_counts, but also computes counts of passed, complete (and
     valid), and incomplete tests, stored in keys "pass_count', 'complete_count',
@@ -69,22 +83,27 @@ def get_status_counts(group_by, header_groups=[], fixed_headers={},
     """
     return get_group_counts(group_by, header_groups=header_groups,
                             fixed_headers=fixed_headers,
+                            machine_label_headers=machine_label_headers,
                             extra_select_fields=tko_rpc_utils.STATUS_FIELDS,
                             **filter_data)
 
 
 def get_latest_tests(group_by, header_groups=[], fixed_headers={},
-                     **filter_data):
+                     machine_label_headers={}, **filter_data):
     """
     Similar to get_status_counts, but return only the latest test result per
     group.  It still returns the same information (i.e. with pass count etc.)
     for compatibility.
     """
     # find latest test per group
-    query = models.TestView.query_objects(filter_data)
+    query = models.TestView.objects.get_query_set_with_joins(
+        filter_data, include_host_labels=bool(machine_label_headers))
+    query = models.TestView.query_objects(filter_data, initial_query=query)
     query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
     extra_fields = {'latest_test_idx' : 'MAX(%s)' %
                     models.TestView.objects.get_key_on_this_table('test_idx')}
+    tko_rpc_utils.add_machine_label_headers(machine_label_headers,
+                                            extra_fields)
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
                                                        header_groups,

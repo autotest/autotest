@@ -180,14 +180,24 @@ public class Utils {
         return value.toString();
     }
 
-    public static void setDefaultValue(Map<String, String> map, String key, String value) {
-        if (map.get(key) == null) {
-            map.put(key, value);
+    public static String setDefaultValue(Map<String, String> map, String key, String defaultValue) {
+        if (map.containsKey(key)) {
+            return map.get(key);
         }
+        map.put(key, defaultValue);
+        return defaultValue;
     }
     
-    public static List<String> splitList(String list) {
-        String[] parts = list.split("[,\\s]+");
+    public static JSONValue setDefaultValue(JSONObject object, String key, JSONValue defaultValue) {
+        if (object.containsKey(key)) {
+            return object.get(key);
+        }
+        object.put(key, defaultValue);
+        return defaultValue;
+    }
+    
+    public static List<String> splitList(String list, String splitRegex) {
+        String[] parts = list.split(splitRegex);
         List<String> finalParts = new ArrayList<String>();
         for (String part : parts) {
             if (!part.equals("")) {
@@ -195,5 +205,19 @@ public class Utils {
             }
         }
         return finalParts;
+    }
+    
+    public static List<String> splitList(String list) {
+        return splitList(list, ",");
+    }
+    
+    public static List<String> splitListWithSpaces(String list) {
+        return splitList(list, "[,\\s]+");
+    }
+
+    public static void updateObject(JSONObject destination, JSONObject source) {
+        for (String key : source.keySet()) {
+            destination.put(key, source.get(key));
+        }
     }
 }
