@@ -11,7 +11,7 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-import sys, re, socket, traceback
+import sys, re, traceback
 from autotest_lib.client.common_lib import error, pxssh, debug
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
@@ -52,7 +52,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         """
         super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
 
-        self.ip = socket.getaddrinfo(self.hostname, None)[0][4][0]
         self.ssh_host_log = debug.get_logger()
 
 
