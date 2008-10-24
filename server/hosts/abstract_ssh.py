@@ -1,4 +1,4 @@
-import os, time, types
+import os, time, types, socket
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import site_host
@@ -24,7 +24,7 @@ class AbstractSSHHost(site_host.SiteHost):
                     *args, **dargs):
         super(AbstractSSHHost, self)._initialize(hostname=hostname,
                                                  *args, **dargs)
-
+        self.ip = socket.getaddrinfo(self.hostname, None)[0][4][0]
         self.user = user
         self.port = port
         self.password = password
