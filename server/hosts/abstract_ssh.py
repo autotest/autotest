@@ -30,7 +30,7 @@ class AbstractSSHHost(site_host.SiteHost):
         self.password = password
 
 
-    def _copy_files(self, sources, dest):
+    def _copy_files(self, sources, dest, delete_dest):
         """
         Copy files from one machine to another.
 
@@ -45,13 +45,25 @@ class AbstractSSHHost(site_host.SiteHost):
         print '_copy_files: copying %s to %s' % (sources, dest)
         try:
             ssh = make_ssh_command(self.user, self.port)
-            command = "rsync -L --rsh='%s' -az %s %s"
-            command %= (ssh, " ".join(sources), dest)
+            if delete_dest:
+                delete_flag = "--delete"
+            else:
+                delete_flag = ""
+            command = "rsync -L %s --rsh='%s' -az %s %s"
+            command %= (delete_flag, ssh, " ".join(sources), dest)
             utils.run(command)
         except Exception, e:
             print "warning: rsync failed with: %s" % e
             print "attempting to copy with scp instead"
             try:
+                if delete_dest:
+                    dest_path = dest.split(":", 1)[1]
+                    is_dir = self.run("ls -d %s/" % dest_path,
+                                      ignore_status=True).exit_status == 0
+                    if is_dir:
+                        cmd = "rm -rf %s && mkdir %s"
+                        cmd %= (dest_path, dest_path)
+                        self.run(cmd)
                 command = "scp -rpq -P %d %s '%s'"
                 command %= (self.port, ' '.join(sources), dest)
                 utils.run(command)
@@ -59,7 +71,7 @@ class AbstractSSHHost(site_host.SiteHost):
                 raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
 
 
-    def get_file(self, source, dest):
+    def get_file(self, source, dest, delete_dest=False):
         """
         Copy files from the remote host to a local path.
 
@@ -77,6 +89,9 @@ class AbstractSSHHost(site_host.SiteHost):
                 dest: a file or a directory (if source contains a
                         directory or more than one element, you must
                         supply a directory dest)
+                delete_dest: if this is true, the command will also clear
+                             out any old files at dest that are not in the
+                             source
 
         Raises:
                 AutoservRunError: the scp command failed
@@ -98,10 +113,10 @@ class AbstractSSHHost(site_host.SiteHost):
         if os.path.isdir(dest):
             processed_dest += "/"
 
-        self._copy_files(processed_source, processed_dest)
+        self._copy_files(processed_source, processed_dest, delete_dest)
 
 
-    def send_file(self, source, dest):
+    def send_file(self, source, dest, delete_dest=False):
         """
         Copy files from a local path to the remote host.
 
@@ -119,6 +134,9 @@ class AbstractSSHHost(site_host.SiteHost):
                 dest: a file or a directory (if source contains a
                         directory or more than one element, you must
                         supply a directory dest)
+                delete_dest: if this is true, the command will also clear
+                             out any old files at dest that are not in the
+                             source
 
         Raises:
                 AutoservRunError: the scp command failed
@@ -138,7 +156,7 @@ class AbstractSSHHost(site_host.SiteHost):
         remote_dest = '%s@%s:"%s"' % (self.user, self.hostname,
                                       utils.scp_remote_escape(dest))
 
-        self._copy_files(processed_source, remote_dest)
+        self._copy_files(processed_source, remote_dest, delete_dest)
         self.run('find "%s" -type d -print0 | xargs -0r chmod o+rx' % dest)
         self.run('find "%s" -type f -print0 | xargs -0r chmod o+r' % dest)
         if self.target_file_owner:
