@@ -95,11 +95,11 @@ class Host(object):
         pass
 
 
-    def get_file(self, source, dest):
+    def get_file(self, source, dest, delete_dest=False):
         raise NotImplementedError('Get file not implemented!')
 
 
-    def send_file(self, source, dest):
+    def send_file(self, source, dest, delete_dest=False):
         raise NotImplementedError('Send file not implemented!')
 
 

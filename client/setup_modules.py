@@ -81,16 +81,6 @@ def setup(base_path, root_module_name=""):
         root_module_name = 'autotest_lib'
         base_path = os.path.abspath(os.path.join(base_path, '..'))
 
-    # Hack out logging.py.
-    os.system('rm -f ' + os.path.join(base_path, 'common_lib', 'logging.py'))
-
-    # clear out any (possibly garbage) .pyc files
-    for root, dirs, files in os.walk(base_path):
-        for name in files:
-            if '.pyc' in name:
-                path = os.path.join(root, name)
-                os.system('rm -f ' + path)
-
     _create_module_and_parents(root_module_name)
     _import_children_into_module(root_module_name, base_path)
 

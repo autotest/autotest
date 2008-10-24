@@ -115,7 +115,7 @@ class BaseAutotest(installable_object.InstallableObject):
                     light_files = [os.path.join(self.source_material, f)
                                    for f in os.listdir(self.source_material)
                                    if f not in dirs_to_exclude]
-                    host.send_file(light_files, autodir)
+                    host.send_file(light_files, autodir, delete_dest=True)
 
                     # create empty dirs for all the stuff we excluded
                     commands = []
@@ -125,7 +125,8 @@ class BaseAutotest(installable_object.InstallableObject):
                         commands.append("mkdir -p '%s'" % abs_path)
                     host.run(';'.join(commands))
                 else:
-                    host.send_file(self.source_material, autodir)
+                    host.send_file(self.source_material, autodir,
+                                   delete_dest=True)
             else:
                 # Copy autotest via tarball
                 e_msg = 'Installation method not yet implemented!'
