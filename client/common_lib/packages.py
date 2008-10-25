@@ -651,7 +651,7 @@ class BasePackageManager(object):
         used only for tests.
         '''
         if pkg_type == 'test':
-            regex = '([^:]+://(.*)/([^/]*))$'
+            regex = '[^:]+://(.*)/([^/]*)$'
             return self._get_package_name(url, regex)
         else:
             return ('', url)
