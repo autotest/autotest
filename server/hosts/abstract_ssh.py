@@ -1,6 +1,6 @@
-import os, time, types, socket
+import os, sys, time, types, socket, traceback
 from autotest_lib.client.common_lib import error
-from autotest_lib.server import utils
+from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host
 
 
@@ -64,7 +64,8 @@ class AbstractSSHHost(site_host.SiteHost):
                         cmd = "rm -rf %s && mkdir %s"
                         cmd %= (dest_path, dest_path)
                         self.run(cmd)
-                command = "scp -rpq -P %d %s '%s'"
+                command = ("scp -o GSSAPIAuthentication=no -o "
+                           "GSSAPIKeyExchange=no -rpq -P %d %s '%s'")
                 command %= (self.port, ' '.join(sources), dest)
                 utils.run(command)
             except error.CmdError, cmderr:
