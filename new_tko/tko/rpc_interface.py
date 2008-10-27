@@ -419,7 +419,7 @@ def get_static_data():
     result['group_fields'] = sorted(group_fields)
     result['all_fields'] = sorted(model_fields + extra_fields)
     result['test_labels'] = get_test_labels(sort_by=['name'])
-    result['user_login'] = thread_local.get_user()
+    result['current_user'] = {'login' : thread_local.get_user()}
     result['benchmark_key'] = benchmark_key
     result['perf_view'] = perf_view
     result['test_view'] = model_fields
