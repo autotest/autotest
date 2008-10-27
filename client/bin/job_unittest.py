@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, pickle, shutil, sys, time
+import os, unittest, shutil, sys, time
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
@@ -41,8 +41,6 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(utils, 'system')
         self.god.stub_function(autotest_utils, 'drop_caches')
         self.god.stub_function(harness, 'select')
-        self.god.stub_function(sysinfo, 'log_per_reboot_data')
-        self.god.stub_function(pickle, 'load')
         self.god.stub_function(sysinfo, 'log_per_reboot_data')
 
         self.god.stub_class(config, 'config')
