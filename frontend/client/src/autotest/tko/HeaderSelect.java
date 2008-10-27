@@ -35,7 +35,7 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     private final static HeaderField MACHINE_LABELS_FIELD = 
         new SimpleHeaderField("Machine labels...", "");
     
-    private static class MachineLabelInput extends Composite {
+    private class MachineLabelInput extends Composite implements ChangeListener {
         public MachineLabelField headerField;
         private TextBox labelInput = new TextBox();
         
@@ -45,8 +45,15 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
             container.add(new Label(headerField.getName() + ": "));
             container.add(labelInput);
             initWidget(container);
+            
+            labelInput.setText(Utils.joinStrings(",", headerField.getLabelList()));
+            labelInput.addChangeListener(this);
         }
         
+        public void onChange(Widget sender) {
+            HeaderSelect.this.onChange(this);
+        }
+
         public String getText() {
             return labelInput.getText();
         }
@@ -163,6 +170,8 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     }
     
     public void selectItems(List<HeaderField> fields) {
+        addNecessaryMachineLabelFields(fields);
+        
         if (fields.size() > 1 && !isDoubleSelectActive()) {
             showDoubleList();
         }
@@ -176,6 +185,15 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         } else {
             listBox.selectByName(fields.get(0).getName());
             onChange(listBox);
+        }
+    }
+
+    private void addNecessaryMachineLabelFields(List<HeaderField> fields) {
+        removeAllMachineLabelHeadersExcept(null);
+        for (HeaderField field : fields) {
+            if (field instanceof MachineLabelField) {
+                addExistingMachineLabelField((MachineLabelField) field);
+            }
         }
     }
 
@@ -291,8 +309,7 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
                 removeAllMachineLabelHeadersExcept(selectedHeader);
             }
             refreshSingleList();
-        } else {
-            assert sender == doubleList;
+        } else if (sender == doubleList) {
             if (isItemSelected(MACHINE_LABELS_FIELD)) {
                 doubleList.deselectItem(MACHINE_LABELS_FIELD.getName());
                 MachineLabelField field = addMachineLabelField();
@@ -304,6 +321,9 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
                     removeMachineLabelField(header);
                 }
             }
+        } else {
+            assert sender instanceof MachineLabelInput;
+            updateMachineLabels();
         }
     }
 
@@ -315,6 +335,10 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
             field = MachineLabelField.newInstance();
         }
 
+        return addExistingMachineLabelField(field);
+    }
+
+    private MachineLabelField addExistingMachineLabelField(MachineLabelField field) {
         addItem(field);
         MachineLabelInput input = new MachineLabelInput(field);
         machineLabelInputMap.put(field, input);
@@ -328,7 +352,8 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
 
     private void removeMachineLabelField(HeaderField field) {
         removeItem(field);
-        machineLabelInputPanel.remove(machineLabelInputMap.get(field));
+        MachineLabelInput input = machineLabelInputMap.remove(field);
+        machineLabelInputPanel.remove(input);
     }
 
     private void removeAllMachineLabelHeadersExcept(HeaderField except) {
