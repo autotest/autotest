@@ -17,7 +17,7 @@ public class MachineLabelField extends HeaderField {
     
     private static int nameCounter = 0;
     
-    private List<String> labels;
+    private List<String> labels = new ArrayList<String>();
 
     public static MachineLabelField newInstance() {
         String numberString = Integer.toString(nameCounter);
