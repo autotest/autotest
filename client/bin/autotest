@@ -11,7 +11,7 @@ from autotest_lib.client.bin import job
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
 # directory and ensure we have $AUTODIR in our environment.
-autodirbin = os.path.abspath(os.path.dirname(sys.argv[0]))
+autodirbin = os.path.dirname(os.path.realpath(sys.argv[0]))
 autodir = os.path.dirname(autodirbin)
 
 ##print 'AUTODIRBIN: ' + autodirbin
@@ -48,5 +48,5 @@ if len(args) != 1:
     usage()
 
 # JOB: run the specified job control file.
-job.runjob(os.path.abspath(args[0]), options.cont, options.tag, options.harness,
+job.runjob(os.path.realpath(args[0]), options.cont, options.tag, options.harness,
            options.log)
