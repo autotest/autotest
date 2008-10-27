@@ -1,6 +1,6 @@
 __author__ = "jadmanski@google.com (John Admanski)"
 
-import os, sys, new
+import os, sys, new, glob
 
 
 def _create_module(name):
@@ -74,6 +74,12 @@ def setup(base_path, root_module_name=""):
     The setup must be different if you are running on an Autotest server
     or on a test manchine that just has the client directories installed.
     """
+    # Hack out logging.py*
+    logging_py = os.path.join(os.path.dirname(__file__), "common_lib",
+                              "logging.py*")
+    if glob.glob(logging_py):
+        os.system("rm -f %s" % logging_py)
+
     # Hack... Any better ideas?
     if (root_module_name == 'autotest_lib.client' and
         os.path.exists(os.path.join(os.path.dirname(__file__),
