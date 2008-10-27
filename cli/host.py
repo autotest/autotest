@@ -106,19 +106,25 @@ class host_list(action_common.atest_list, host):
         super(host_list, self).__init__()
 
         self.parser.add_option('-b', '--label',
-                               help='Only list hosts with this label')
+                               default='',
+                               help='Only list hosts with all these labels '
+                               '(comma separated)')
         self.parser.add_option('-s', '--status',
-                               help='Only list hosts with this status')
+                               default='',
+                               help='Only list hosts with any of these '
+                               'statuses (comma separated)')
         self.parser.add_option('-a', '--acl',
+                               default='',
                                help='Only list hosts within this ACL')
         self.parser.add_option('-u', '--user',
+                               default='',
                                help='Only list hosts available to this user')
 
 
     def parse(self):
         """Consume the specific options"""
         (options, leftover) = super(host_list, self).parse(req_items=None)
-        self.label = options.label
+        self.labels = options.label
         self.status = options.status
         self.acl = options.acl
         self.user = options.user
@@ -131,12 +137,22 @@ class host_list(action_common.atest_list, host):
         if self.hosts:
             filters['hostname__in'] = self.hosts
             check_results['hostname__in'] = 'hostname'
-        if self.label:
-            filters['labels__name'] = self.label
-            check_results['labels__name'] = None
+
+        if self.labels:
+            labels = self.labels.split(',')
+            labels = [label.strip() for label in labels if label.strip()]
+
+            filters['multiple_labels'] = labels
+            check_results['multiple_labels'] = None
+
         if self.status:
-            filters['status__in'] = self.status.split(',')
+            statuses = self.status.split(',')
+            statuses = [status.strip() for status in statuses
+                        if status.strip()]
+
+            filters['status__in'] = statuses
             check_results['status__in'] = None
+
         if self.acl:
             filters['acl_group__name'] = self.acl
             check_results['acl_group__name'] = None
