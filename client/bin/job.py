@@ -113,11 +113,13 @@ class base_job(object):
         self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', jobtag)
 
-        self.control = os.path.abspath(control)
+        self.control = os.path.realpath(control)
+        self._is_continuation = cont
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
         self.next_step_index = 0
         self.testtag = ''
+
         self._load_state()
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':600})
@@ -130,7 +132,6 @@ class base_job(object):
 
         self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
         self.job_log = debug.get_logger(module='client')
-        self._is_continuation = cont
 
         if not cont:
             """
@@ -777,6 +778,7 @@ class base_job(object):
         try:
             self.state = pickle.load(open(self.state_file, 'r'))
             initialize = "__steps" not in self.state
+            assert self._is_continuation or initialize
         except Exception:
             self.state = {}
             initialize = True
