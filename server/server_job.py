@@ -751,7 +751,7 @@ class base_server_job(object):
             namespace = namespace.copy()
         self._fill_server_control_namespace(namespace, protect=protect)
         # TODO: Simplify and get rid of the special cases for only 1 machine.
-        if len(self.machines):
+        if len(self.machines) > 1:
             machines_text = '\n'.join(self.machines) + '\n'
             # Only rewrite the file if it does not match our machine list.
             try:
