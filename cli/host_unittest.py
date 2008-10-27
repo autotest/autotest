@@ -69,7 +69,15 @@ class host_list_unittest(cli_mock.cli_unittest):
         hl = host.host_list()
         sys.argv = ['atest', '--label', 'label0']
         (options, leftover) = hl.parse()
-        self.assertEqual('label0', hl.label)
+        self.assertEqual('label0', hl.labels)
+        self.assertEqual(leftover, [])
+
+
+    def test_parse_with_multi_labels(self):
+        hl = host.host_list()
+        sys.argv = ['atest', '--label', 'label0,label2']
+        (options, leftover) = hl.parse()
+        self.assertEqual('label0,label2', hl.labels)
         self.assertEqual(leftover, [])
 
 
@@ -81,7 +89,7 @@ class host_list_unittest(cli_mock.cli_unittest):
         (options, leftover) = hl.parse()
         self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
                                 hl.hosts)
-        self.assertEqual('label0', hl.label)
+        self.assertEqual('label0', hl.labels)
         self.assertEqual(leftover, [])
 
 
@@ -234,7 +242,7 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_execute_list_filter_label(self):
         self.run_cmd(argv=['atest', 'host', 'list',
                            '-b', 'label3', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'labels__name': 'label3'},
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3']},
                             True,
                             [{u'status': u'Ready',
                               u'hostname': u'host1',
@@ -262,11 +270,77 @@ class host_list_unittest(cli_mock.cli_unittest):
                      out_words_no=['host0', 'label1', 'False'])
 
 
+    def test_execute_list_filter_multi_labels(self):
+        self.run_cmd(argv=['atest', 'host', 'list',
+                           '-b', 'label3,label2', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
+                                                              'label2']},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host1',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label2', u'label3', u'plat0'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat0',
+                              u'id': 2},
+                             {u'status': u'Ready',
+                              u'hostname': u'host3',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label2', u'plat2'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat2',
+                              u'id': 4}])],
+                     out_words_ok=['host1', 'host3', 'Ready', 'plat0',
+                                   'label2', 'label3', 'plat2'],
+                     out_words_no=['host2', 'label4', 'False', 'plat1'])
+
+
+    def test_execute_list_filter_three_labels(self):
+        self.run_cmd(argv=['atest', 'host', 'list',
+                           '-b', 'label3,label2, label4',
+                           '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
+                                                              'label2',
+                                                              'label4']},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host2',
+                              u'locked': 1,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label2', u'label4',
+                                          u'plat1'],
+                              u'invalid': 0,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 3}])],
+                     out_words_ok=['host2', 'plat1',
+                                   'label2', 'label3', 'label4'],
+                     out_words_no=['host1', 'host3'])
+
+
+    def test_execute_list_filter_multi_labels_no_results(self):
+        self.run_cmd(argv=['atest', 'host', 'list',
+                           '-b', 'label3,label2, ', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
+                                                              'label2']},
+                            True,
+                            [])],
+                     out_words_ok=[],
+                     out_words_no=['host1', 'host2', 'host3',
+                                   'label2', 'label3', 'label4'])
+
 
     def test_execute_list_filter_label_and_hosts(self):
         self.run_cmd(argv=['atest', 'host', 'list', 'host1',
                            '-b', 'label3', 'host2', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'labels__name': 'label3',
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3'],
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [{u'status': u'Ready',
@@ -298,7 +372,7 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_execute_list_filter_label_and_hosts_none(self):
         self.run_cmd(argv=['atest', 'host', 'list', 'host1',
                            '-b', 'label3', 'host2', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'labels__name': 'label3',
+                     rpcs=[('get_hosts', {'multiple_labels': ['label3'],
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
@@ -376,6 +450,19 @@ class host_list_unittest(cli_mock.cli_unittest):
                            '--status', 'Repair',
                            'host2', '--ignore_site_file'],
                      rpcs=[('get_hosts', {'status__in': ['Repair'],
+                                          'hostname__in': ['host2', 'host1']},
+                            True,
+                            [])],
+                     out_words_ok=['No', 'results'],
+                     out_words_no=['Hostname', 'Status'],
+                     err_words_ok=['Unknown', 'host2'])
+
+
+    def test_execute_list_filter_statuses_and_hosts_none(self):
+        self.run_cmd(argv=['atest', 'host', 'list', 'host1',
+                           '--status', 'Repair, Dead',
+                           'host2', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'status__in': ['Repair', 'Dead'],
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
