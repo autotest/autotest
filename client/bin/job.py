@@ -5,7 +5,8 @@ This is the core infrastructure.
 Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-import os, sys, re, pickle, shutil, time, traceback, types, copy
+import os, sys, re, shutil, time, traceback, types, copy
+import cPickle as pickle
 from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, partition
@@ -769,23 +770,37 @@ class base_job(object):
         # without it being re-written.  Perf wise, deep copies
         # are overshadowed by pickling/loading.
         self.state[var] = copy.deepcopy(val)
-        pickle.dump(self.state, open(self.state_file, 'w'))
+        outfile = open(self.state_file, 'w')
+        try:
+            pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
+        finally:
+            outfile.close()
         print "Persistant state variable %s now set to %r" % (var, val)
 
 
     def _load_state(self):
-        assert not hasattr(self, "state")
+        if hasattr(self, 'state'):
+            raise RuntimeError('state already exists')
+        infile = None
         try:
-            self.state = pickle.load(open(self.state_file, 'r'))
-            initialize = "__steps" not in self.state
-            assert self._is_continuation or initialize
-        except Exception:
-            self.state = {}
-            initialize = True
+            try:
+                infile = open(self.state_file, 'rb')
+                self.state = pickle.load(infile)
+            except IOError:
+                self.state = {}
+                initialize = True
+        finally:
+            if infile:
+                infile.close()
+
+        initialize = '__steps' not in self.state
+        if not (self._is_continuation or initialize):
+            raise RuntimeError('Loaded state must contain __steps or be a '
+                               'continuation.')
 
         if initialize:
-            print "Initializing the state engine."
-            self.set_state('__steps', []) # writes pickle file
+            print 'Initializing the state engine.'
+            self.set_state('__steps', [])  # writes pickle file
 
 
     def get_state(self, var, default=NO_DEFAULT):
@@ -903,10 +918,10 @@ class base_job(object):
 
 
     def step_engine(self):
-        """the stepping engine -- if the control file defines
-        step_init we will be using this engine to drive multiple runs.
+        """The multi-run engine used when the control file defines step_init.
+        
+        Does the next step.
         """
-        """Do the next step"""
 
         # Set up the environment and then interpret the control file.
         # Some control files will have code outside of functions,
@@ -919,7 +934,7 @@ class base_job(object):
         # If we loaded in a mid-job state file, then we presumably
         # know what steps we have yet to run.
         if not self._is_continuation:
-            if global_control_vars.has_key('step_init'):
+            if 'step_init' in global_control_vars:
                 self.next_step(global_control_vars['step_init'])
 
         # Iterate through the steps.  If we reboot, we'll simply
