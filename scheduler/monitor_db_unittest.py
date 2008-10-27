@@ -569,6 +569,10 @@ class PidfileRunMonitorTest(unittest.TestCase):
             self.pidfile_path, 'r').and_return(pidfile)
 
 
+    def set_empty_pidfile(self):
+        self.setup_pidfile('')
+
+
     def set_running(self):
         self.setup_pidfile(str(self.pid) + '\n')
 
@@ -599,6 +603,9 @@ class PidfileRunMonitorTest(unittest.TestCase):
 
     def test_read_pidfile(self):
         self.set_not_yet_run()
+        self._test_read_pidfile_helper(None, None, None)
+
+        self.set_empty_pidfile()
         self._test_read_pidfile_helper(None, None, None)
 
         self.set_running()

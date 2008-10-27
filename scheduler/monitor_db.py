@@ -726,7 +726,7 @@ class Dispatcher:
         # prioritize by job priority, then non-metahost over metahost, then FIFO
         return list(HostQueueEntry.fetch(
             where='NOT complete AND NOT active',
-            order_by='priority DESC, meta_host, id'))
+            order_by='priority DESC, meta_host, job_id'))
 
 
     def _schedule_new_jobs(self):
@@ -939,7 +939,9 @@ class PidfileRunMonitor(RunMonitor):
         file_obj = open(self.pid_file, 'r')
         lines = file_obj.readlines()
         file_obj.close()
-        if not 1 <= len(lines) <= 3:
+        if not lines:
+            return
+        if len(lines) > 3:
             raise PidfileException('Corrupt pid file (%d lines) at %s:\n%s' %
                                    (len(lines), self.pid_file, lines))
         try:
@@ -952,8 +954,7 @@ class PidfileRunMonitor(RunMonitor):
                     # maintain backwards-compatibility with two-line pidfiles
                     self._state.num_tests_failed = 0
         except ValueError, exc:
-            raise PidfileException('Corrupt pid file: ' +
-                                   str(exc.args))
+            raise PidfileException('Corrupt pid file: ' + str(exc.args))
 
 
     def _find_autoserv_proc(self):
