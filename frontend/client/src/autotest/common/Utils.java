@@ -216,6 +216,9 @@ public class Utils {
     }
 
     public static void updateObject(JSONObject destination, JSONObject source) {
+        if (source == null) {
+            return;
+        }
         for (String key : source.keySet()) {
             destination.put(key, source.get(key));
         }
