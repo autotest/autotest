@@ -2132,8 +2132,6 @@ class Job(DBObject):
             else:
                 return queue_entry.on_pending()
 
-        queue_entry.set_status('Starting')
-
         return self._finish_run(self.get_host_queue_entries())
 
 
@@ -2145,6 +2143,8 @@ class Job(DBObject):
 
 
     def _finish_run(self, queue_entries, initial_tasks=[]):
+        for queue_entry in queue_entries:
+            queue_entry.set_status('Starting')
         params = self._get_autoserv_params(queue_entries)
         queue_task = QueueTask(job=self, queue_entries=queue_entries,
                                cmd=params)
