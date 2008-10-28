@@ -2067,7 +2067,10 @@ class Job(DBObject):
             os.makedirs(self.job_dir)
 
         if queue_entry:
-            return queue_entry.results_dir()
+            results_dir = queue_entry.results_dir()
+            if not os.path.exists(results_dir):
+                os.makedirs(results_dir)
+            return results_dir
         return self.job_dir
 
 
