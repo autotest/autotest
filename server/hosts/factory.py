@@ -4,6 +4,9 @@ from autotest_lib.server.hosts import site_factory, abstract_ssh
 from autotest_lib.server.hosts import ssh_host, serial, netconsole, dmesg
 
 
+# for tracking which hostnames have already had job_start called
+_started_hostnames = set()
+
 def create_host(hostname, auto_monitor=True, **args):
     # by default assume we're using SSH support
     classes = [ssh_host.SSHHost]
@@ -34,9 +37,16 @@ def create_host(hostname, auto_monitor=True, **args):
                 classes.append(dmesg.DmesgHost)
 
     # do any site-specific processing of the classes list
-    site_factory.postprocess_classes(classes, hostname, 
+    site_factory.postprocess_classes(classes, hostname,
                                      auto_monitor=auto_monitor, **args)
 
     # create a custom host class for this machine and return an instance of it
     host_class = type("%s_host" % hostname, tuple(classes), {})
-    return host_class(hostname, **args)
+    host_instance = host_class(hostname, **args)
+
+    # call job_start if this is the first time this host is being used
+    if hostname not in _started_hostnames:
+        host_instance.job_start()
+        _started_hostnames.add(hostname)
+
+    return host_instance

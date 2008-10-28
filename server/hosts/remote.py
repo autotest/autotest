@@ -8,7 +8,8 @@ from autotest_lib.server.hosts import base_classes, bootloader
 
 
 class RemoteHost(base_classes.Host):
-    """This class represents a remote machine on which you can run
+    """
+    This class represents a remote machine on which you can run
     programs.
 
     It may be accessed through a network, a serial line, ...
@@ -19,7 +20,8 @@ class RemoteHost(base_classes.Host):
     listed here and in parent classes which have no implementation. They
     may reimplement methods which already have an implementation. You
     must not instantiate this class but should instantiate one of those
-    leaf subclasses."""
+    leaf subclasses.
+    """
 
     DEFAULT_REBOOT_TIMEOUT = base_classes.Host.DEFAULT_REBOOT_TIMEOUT
     LAST_BOOT_TAG = object()
@@ -43,16 +45,29 @@ class RemoteHost(base_classes.Host):
                     pass
 
 
+    def job_start(self):
+        """
+        Abstract method, called the first time a remote host object
+        is created for a specific host after a job starts.
+
+        This method depends on the create_host factory being used to
+        construct your host object. If you directly construct host objects
+        you will need to call this method yourself (and enforce the
+        single-call rule).
+        """
+        pass
+
+
     def get_autodir(self):
         return self.autodir
 
 
     def set_autodir(self, autodir):
-        '''
+        """
         This method is called to make the host object aware of the
         where autotest is installed. Called in server/autotest.py
         after a successful install
-        '''
+        """
         self.autodir = autodir
 
 
@@ -115,8 +130,10 @@ class RemoteHost(base_classes.Host):
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
-        """ Wait for the host to come back from a reboot. This wraps the
-        generic wait_for_restart implementation in a reboot group. """
+        """
+        Wait for the host to come back from a reboot. This wraps the
+        generic wait_for_restart implementation in a reboot group.
+        """
         def reboot_func():
             super(RemoteHost, self).wait_for_restart(timeout=timeout)
         self.log_reboot(reboot_func)
