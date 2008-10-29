@@ -476,7 +476,7 @@ def nuke_pid(pid):
 
 def system(command, timeout=None, ignore_status=False):
     """This function returns the exit status of command."""
-    return run(command, timeout, ignore_status,
+    return run(command, timeout=timeout, ignore_status=ignore_status,
                stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
 
 
@@ -484,17 +484,17 @@ def system_parallel(commands, timeout=None, ignore_status=False):
     """This function returns a list of exit statuses for the respective
     list of commands."""
     return [bg_jobs.exit_status for bg_jobs in
-            run_parallel(commands, timeout, ignore_status,
+            run_parallel(commands, timeout=timeout, ignore_status=ignore_status,
                          stdout_tee=sys.stdout, stderr_tee=sys.stderr)]
 
 
 def system_output(command, timeout=None, ignore_status=False,
                   retain_output=False):
     if retain_output:
-        out = run(command, timeout, ignore_status,
+        out = run(command, timeout=timeout, ignore_status=ignore_status,
                   stdout_tee=sys.stdout, stderr_tee=sys.stderr).stdout
     else:
-        out = run(command, timeout, ignore_status).stdout
+        out = run(command, timeout=timeout, ignore_status=ignore_status).stdout
     if out[-1:] == '\n': out = out[:-1]
     return out
 
@@ -502,13 +502,12 @@ def system_output(command, timeout=None, ignore_status=False,
 def system_output_parallel(commands, timeout=None, ignore_status=False,
                            retain_output=False):
     if retain_output:
-        out = [bg_job.stdout for bg_job in run_parallel(commands, timeout,
-                                                        ignore_status,
-                                                        stdout_tee=sys.stdout,
-                                                        stderr_tee=sys.stderr)]
+        out = [bg_job.stdout for bg_job in run_parallel(commands,
+                                  timeout=timeout, ignore_status=ignore_status,
+                                  stdout_tee=sys.stdout, stderr_tee=sys.stderr)]
     else:
-        out = [bg_job.stdout for bg_job in run_parallel(commands, timeout,
-                                                        ignore_status)]
+        out = [bg_job.stdout for bg_job in run_parallel(commands,
+                                  timeout=timeout, ignore_status=ignore_status)]
     for x in out:
         if out[-1:] == '\n': out = out[:-1]
     return out
