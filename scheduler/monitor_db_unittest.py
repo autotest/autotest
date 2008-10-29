@@ -77,6 +77,7 @@ class BaseSchedulerTest(unittest.TestCase):
         hosts = [models.Host.objects.create(hostname=hostname) for hostname in
                  ('host1', 'host2', 'host3', 'host4')]
         acl_group.hosts = hosts
+        models.AclGroup.smart_get('Everyone').hosts = []
 
         labels = [models.Label.objects.create(name=name) for name in
                   ('label1', 'label2', 'label3')]
@@ -533,6 +534,51 @@ class FindAbortTest(BaseSchedulerTest):
         self.assertEquals(abort1.agents_to_abort, [agent])
         abort2 = self._dispatcher._agents[1].queue.queue[0]
         self.assertEquals(abort2.agents_to_abort, [])
+
+
+class JobTimeoutTest(BaseSchedulerTest):
+    def _test_synch_start_timeout_helper(self, set_synchronous, set_created_on,
+                                         set_active, set_acl, expect_abort):
+        self._dispatcher.synch_job_start_timeout_minutes = 60
+        job = self._create_job(hosts=[1, 2])
+        if set_synchronous:
+            job.synch_type = models.Test.SynchType.SYNCHRONOUS
+            job.save()
+        if set_active:
+            hqe = job.hostqueueentry_set.filter(host__id=1)[0]
+            hqe.status = 'Pending'
+            hqe.active = 1
+            hqe.save()
+
+        everyone_acl = models.AclGroup.smart_get('Everyone')
+        host1 = models.Host.smart_get(1)
+        if set_acl:
+            everyone_acl.hosts.add(host1)
+        else:
+            everyone_acl.hosts.remove(host1)
+
+        job.created_on = datetime.datetime.now()
+        if set_created_on:
+            job.created_on -= datetime.timedelta(minutes=100)
+        job.save()
+
+        self._dispatcher._abort_jobs_past_synch_start_timeout()
+
+        for hqe in job.hostqueueentry_set.all():
+            if expect_abort:
+                self.assert_(hqe.status in ('Abort', 'Aborted'), hqe.status)
+            else:
+                self.assert_(hqe.status not in ('Abort', 'Aborted'), hqe.status)
+
+
+    def test_synch_start_timeout_helper(self):
+        # no abort if any of the condition aren't met
+        self._test_synch_start_timeout_helper(False, True, True, True, False)
+        self._test_synch_start_timeout_helper(True, False, True, True, False)
+        self._test_synch_start_timeout_helper(True, True, False, True, False)
+        self._test_synch_start_timeout_helper(True, True, True, False, False)
+        # abort if all conditions are met
+        self._test_synch_start_timeout_helper(True, True, True, True, True)
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
