@@ -342,6 +342,7 @@ class _Run(object):
             control += '.' + tag
         self.manual_control_file = control
         self.remote_control_file = control + '.autoserv'
+        self.logger = debug.get_logger(module='server')
 
 
     def verify_machine(self):
@@ -378,14 +379,12 @@ class _Run(object):
         return open(client_log_file, 'w', 0)
 
 
-    def execute_section(self, section, timeout):
+    def execute_section(self, section, timeout, stderr_redirector):
         print "Executing %s/bin/autotest %s/control phase %d" % \
                                 (self.autodir, self.autodir, section)
 
         full_cmd = self.get_full_cmd(section)
         client_log = self.get_client_log(section)
-        redirector = server_job.client_logger(self.host, self.tag,
-                                              self.results_dir)
 
         try:
             old_resultdir = self.host.job.resultdir
@@ -393,9 +392,8 @@ class _Run(object):
             result = self.host.run(full_cmd, ignore_status=True,
                                    timeout=timeout,
                                    stdout_tee=client_log,
-                                   stderr_tee=redirector)
+                                   stderr_tee=stderr_redirector)
         finally:
-            redirector.close()
             self.host.job.resultdir = old_resultdir
 
         if result.exit_status == 1:
@@ -406,53 +404,68 @@ class _Run(object):
                 "execute_section: %s failed to return anything\n"
                 "stdout:%s\n" % (full_cmd, result.stdout))
 
-        return redirector.last_line
+        return stderr_redirector.last_line
+
+
+    def _wait_for_reboot(self):
+        self.logger.info("Client is rebooting")
+        self.logger.info("Waiting for client to halt")
+        if not self.host.wait_down(HALT_TIME):
+            err = "%s failed to shutdown after %d"
+            err %= (self.host.hostname, HALT_TIME)
+            raise error.AutotestRunError(err)
+        self.logger.info("Client down, waiting for restart")
+        if not self.host.wait_up(BOOT_TIME):
+            # since reboot failed
+            # hardreset the machine once if possible
+            # before failing this control file
+            warning = "%s did not come back up, hard resetting"
+            warning %= self.host.hostname
+            self.logger.warning(warning)
+            try:
+                self.host.hardreset(wait=False)
+            except error.AutoservUnsupportedError:
+                warning = "Hard reset unsupported on %s"
+                warning %= self.host.hostname
+                self.logger.warning(warning)
+            raise error.AutotestRunError("%s failed to boot after %ds" %
+                                         (self.host.hostname, BOOT_TIME))
+        self.host.reboot_followup()
 
 
     def execute_control(self, timeout=None):
         section = 0
-        time_left = None
-        if timeout:
-            end_time = time.time() + timeout
-            time_left = end_time - time.time()
-        while not timeout or time_left > 0:
-            last = self.execute_section(section, time_left)
-            if timeout:
-                time_left = end_time - time.time()
-                if time_left <= 0:
-                    break
-            section += 1
-            if re.match(r'^END .*\t----\t----\t.*$', last):
-                print "Client complete"
-                return
-            elif re.match('^\t*GOOD\t----\treboot\.start.*$', last):
-                print "Client is rebooting"
-                print "Waiting for client to halt"
-                if not self.host.wait_down(HALT_TIME):
-                    err = "%s failed to shutdown after %d"
-                    err %= (self.host.hostname, HALT_TIME)
-                    raise error.AutotestRunError(err)
-                print "Client down, waiting for restart"
-                if not self.host.wait_up(BOOT_TIME):
-                    # since reboot failed
-                    # hardreset the machine once if possible
-                    # before failing this control file
-                    print "Hardresetting %s" % self.host.hostname
-                    try:
-                        self.host.hardreset(wait=False)
-                    except error.AutoservUnsupportedError:
-                        print "Hardreset unsupported on %s" % self.host.hostname
-                    raise error.AutotestRunError("%s failed to boot after %ds" %
-                                                (self.host.hostname, BOOT_TIME))
-                self.host.reboot_followup()
-                continue
-            self.host.job.record("END ABORT", None, None,
-                                 "Autotest client terminated unexpectedly")
-            # give the client machine a chance to recover from
-            # possible crash
-            self.host.wait_up(CRASH_RECOVERY_TIME)
-            raise error.AutotestRunError("Aborting - unexpected final status "
-                                         "message from client: %s\n" % last)
+        start_time = time.time()
+
+        client_logger = server_job.client_logger(self.host, self.tag,
+                                                 self.results_dir)
+        try:
+            while not timeout or time.time() < start_time + timeout:
+                if timeout:
+                    section_timeout = start_time + timeout - time.time()
+                else:
+                    section_timeout = None
+                last = self.execute_section(section, section_timeout,
+                                            client_logger)
+                section += 1
+                if re.match(r'^END .*\t----\t----\t.*$', last):
+                    print "Client complete"
+                    return
+                elif re.match('^\t*GOOD\t----\treboot\.start.*$', last):
+                    self._wait_for_reboot()
+                    continue
+
+                # if we reach here, something unexpected happened
+                msg = "Autotest client terminated unexpectedly"
+                self.host.job.record("END ABORT", None, None, msg)
+
+                # give the client machine a chance to recover from a crash
+                self.host.wait_up(CRASH_RECOVERY_TIME)
+                msg = ("Aborting - unexpected final status message from "
+                       "client: %s\n") % last
+                raise error.AutotestRunError(msg)
+        finally:
+            client_logger.close()
 
         # should only get here if we timed out
         assert timeout
