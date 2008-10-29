@@ -638,6 +638,11 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             return None
 
 
+    def abort(self, aborted_by):
+        for queue_entry in self.hostqueueentry_set.all():
+            queue_entry.abort(aborted_by)
+
+
     class Meta:
         db_table = 'jobs'
 
@@ -682,6 +687,9 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         return self.host is None and self.meta_host is not None
 
     def log_abort(self, user):
+        if user is None:
+            # automatic system abort (i.e. job timeout)
+            return
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
 
