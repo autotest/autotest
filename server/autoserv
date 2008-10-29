@@ -14,6 +14,10 @@ import sys, os, re, traceback, signal, time
 
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser
+from autotest_lib.client.common_lib import debug
+
+
+debug.configure(module='server')
 
 
 class PidFileManager(object):
