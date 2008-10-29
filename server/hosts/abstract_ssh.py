@@ -7,7 +7,6 @@ from autotest_lib.server.hosts import site_host
 def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
     base_command = ("/usr/bin/ssh -a -x %s -o BatchMode=yes "
                     "-o ConnectTimeout=%d -o ServerAliveInterval=300 "
-                    "-o GSSAPIAuthentication=no -o GSSAPIKeyExchange=no "
                     "-l %s -p %d")
     assert isinstance(connect_timeout, (int, long))
     assert connect_timeout > 0 # can't disable the timeout
@@ -64,8 +63,7 @@ class AbstractSSHHost(site_host.SiteHost):
                         cmd = "rm -rf %s && mkdir %s"
                         cmd %= (dest_path, dest_path)
                         self.run(cmd)
-                command = ("scp -o GSSAPIAuthentication=no -o "
-                           "GSSAPIKeyExchange=no -rpq -P %d %s '%s'")
+                command = "scp -rpq -P %d %s '%s'"
                 command %= (self.port, ' '.join(sources), dest)
                 utils.run(command)
             except error.CmdError, cmderr:
