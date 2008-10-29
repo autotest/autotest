@@ -158,13 +158,12 @@ def run_autoserv(pid_file_manager, results, parser):
             finally:
                 job.cleanup_parser()
     except:
-        job.aborted = True
+        exit_code = 1
         traceback.print_exc()
 
     pid_file_manager.num_tests_failed = job.num_tests_failed
 
-    if getattr(job, 'aborted', False):
-        sys.exit(1)
+    sys.exit(exit_code)
 
 
 def main():
