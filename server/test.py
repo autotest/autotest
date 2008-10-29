@@ -46,7 +46,8 @@ class _sysinfo_logger(object):
 
     def _install(self):
         from autotest_lib.server import hosts, autotest
-        host = hosts.create_host(self.job.machines[0], auto_monitor=False)
+        host = hosts.create_host(self.job.machines[0], auto_monitor=False,
+                                 initialize=False)
         tmp_dir = host.get_tmp_dir()
         at = autotest.Autotest(host)
         at.install_base(autodir=tmp_dir)
