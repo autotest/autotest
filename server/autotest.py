@@ -32,7 +32,7 @@ class BaseAutotest(installable_object.InstallableObject):
         self.installed = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
-        self.server_log = debug.get_logger(module='server')
+        self.logger = debug.get_logger(module='server')
 
 
     @log.record
@@ -271,9 +271,9 @@ class BaseAutotest(installable_object.InstallableObject):
         state_path = os.path.join(results_dir, state_file)
         try:
             state_dict = pickle.load(open(state_path))
-        except Exception:
-            print >> sys.stderr, "Error while loading client job state file"
-            traceback.print_exc()
+        except Exception, e:
+            msg = "Ignoring error while loading client job state file: %s" % e
+            self.logger.warning(msg)
             state_dict = {}
 
         # clear out the state file
