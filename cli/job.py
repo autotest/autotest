@@ -202,7 +202,7 @@ class job_create(action_common.atest_create, job):
     [--is-synchronous] [--container] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
-    [--dependencies <list of dependency labels>]
+    [--labels <labels this job is dependent on>]
     [--reboot_before <option>] [--reboot_after <option>]
     job_name
 
@@ -236,10 +236,8 @@ class job_create(action_common.atest_create, job):
                                help='List of tests to run')
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
-        self.parser.add_option('-d', '--dependencies', help='Comma separated '
-                               'list of dependencies for this test.  (NOTE: '
-                               'this feature is experimental and may change '
-                               'in the next release!)', default='')
+        self.parser.add_option('-b', '--labels', help='Comma separated list of '
+                               'labels this job is dependent on.', default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
                                'run on')
         self.parser.add_option('-M', '--mlist',
@@ -248,7 +246,7 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-e', '--email', help='A comma seperated list '
                                'of email addresses to notify of job completion',
                                default='')
-        self.parser.add_option('-b', '--reboot_before',
+        self.parser.add_option('-B', '--reboot_before',
                                help='Whether or not to reboot the machine '
                                     'before the job (never/if dirty/always)',
                                type='choice',
@@ -310,19 +308,16 @@ class job_create(action_common.atest_create, job):
             if options.container:
                 self.invalid_syntax('Containers (--container) can only be added'
                                     ' with --test, not --control-file.')
-            deps = options.dependencies.split(',')
-            deps = [dep.strip() for dep in deps if dep.strip()]
-            self.data['dependencies'] = deps
             try:
                 self.data['control_file'] = open(options.control_file).read()
             except IOError:
                 self.generic_error('Unable to read from specified '
                                    'control-file: %s' % options.control_file)
         if options.test:
-            if options.server or options.synchronous or options.dependencies:
-                self.invalid_syntax('If you specify tests, the client/server, '
-                                    'synchronous, and dependency settings are '
-                                    'implicit and  cannot be overriden.')
+            if options.server or options.synchronous:
+                self.invalid_syntax('If you specify tests, then the '
+                                    'client/server and synchronous settings '
+                                    'are implicit and cannot be overriden.')
             tests = [t.strip() for t in options.test.split(',') if t.strip()]
             self.ctrl_file_data = {'tests': tests}
             if options.kernel:
@@ -347,6 +342,9 @@ class job_create(action_common.atest_create, job):
         (self.data['hosts'],
          self.data['meta_hosts']) = self.parse_hosts(self.hosts)
 
+        deps = options.labels.split(',')
+        deps = [dep.strip() for dep in deps if dep.strip()]
+        self.data['dependencies'] = deps
 
         self.data['email_list'] = options.email
         self.data['is_synchronous'] = options.synchronous
@@ -378,7 +376,10 @@ class job_create(action_common.atest_create, job):
             else:
                 self.data['control_type'] = 'Client'
 
-            self.data['dependencies'] = cf_info['dependencies']
+            # Get the union of the 2 sets of dependencies
+            deps = set(self.data['dependencies'])
+            deps.union(cf_info['dependencies'])
+            self.data['dependencies'] = list(deps)
 
         socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         # This RPC takes a while when there are lots of hosts.
