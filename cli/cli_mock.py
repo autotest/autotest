@@ -10,6 +10,7 @@ from autotest_lib.cli import atest, topic_common, rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 from autotest_lib.client.common_lib.test_utils import mock
 
+CLI_USING_PDB = False
 CLI_UT_DEBUG = False
 
 def create_file(content):
@@ -96,7 +97,7 @@ class cli_unittest(unittest.TestCase):
 
         self.mock_rpcs(rpcs)
 
-        if not CLI_UT_DEBUG:
+        if not (CLI_USING_PDB and CLI_UT_DEBUG):
             self.god.mock_io()
         if exit_code != None:
             sys.exit.expect_call(exit_code).and_raises(ExitException)
