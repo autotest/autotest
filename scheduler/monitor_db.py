@@ -463,6 +463,10 @@ class Dispatcher:
     max_parse_processes = (
         global_config.global_config.get_config_value(
             _global_config_section, 'max_parse_processes', type=int))
+    synch_job_start_timeout_minutes = (
+        global_config.global_config.get_config_value(
+            _global_config_section, 'synch_job_start_timeout_minutes',
+            type=int))
 
     def __init__(self):
         self._agents = []
@@ -482,6 +486,7 @@ class Dispatcher:
         Dispatcher.autoserv_procs_cache = None
         if self._last_clean_time + self.clean_interval * 60 < time.time():
             self._abort_timed_out_jobs()
+            self._abort_jobs_past_synch_start_timeout()
             self._clear_inactive_blocks()
             self._last_clean_time = time.time()
         self._find_aborting()
@@ -706,6 +711,24 @@ class Dispatcher:
                 host_queue_entries.complete = 1
             WHERE NOT host_queue_entries.active
                 AND NOT host_queue_entries.complete""" + timed_out)
+
+
+    def _abort_jobs_past_synch_start_timeout(self):
+        """
+        Abort synchronous jobs that are past the start timeout (from global
+        config) and are holding a machine that's in everyone.
+        """
+        timeout_delta = datetime.timedelta(
+            minutes=self.synch_job_start_timeout_minutes)
+        timeout_start = datetime.datetime.now() - timeout_delta
+        query = models.Job.objects.filter(
+            synch_type=models.Test.SynchType.SYNCHRONOUS,
+            created_on__lt=timeout_start,
+            hostqueueentry__status='Pending',
+            hostqueueentry__host__acl_group__name='Everyone')
+        for job in query.distinct():
+            print 'Aborting job %d due to start timeout' % job.id
+            job.abort(None)
 
 
     def _clear_inactive_blocks(self):
