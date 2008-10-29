@@ -30,14 +30,7 @@ CRASHINFO_CONTROL_FILE = _control_segment_path('crashinfo')
 REBOOT_SEGMENT_CONTROL_FILE = _control_segment_path('reboot_segment')
 INSTALL_CONTROL_FILE = _control_segment_path('install')
 
-# XXX(gps): Dealing with the site_* stuff here is annoying.  The
-# control_segments/verify and control_segments/repair code should be
-# changed to load & run their site equivalents as the first thing they do.
-# Doing that would get need of the annoying 'protect=False' mechanism in
-# the _execute_code() machinery below.
-SITE_VERIFY_CONTROL_FILE = _control_segment_path('site_verify')
 VERIFY_CONTROL_FILE = _control_segment_path('verify')
-SITE_REPAIR_CONTROL_FILE = _control_segment_path('site_repair')
 REPAIR_CONTROL_FILE = _control_segment_path('repair')
 
 
@@ -219,12 +212,6 @@ class base_server_job(object):
                          'ssh_user' : self.ssh_user,
                          'ssh_port' : self.ssh_port,
                          'ssh_pass' : self.ssh_pass}
-            # Protection is disabled to allow for site_verify()
-            # to be defined in site_verify but called from its
-            # "JP: deprecated" callsite in control_segments/verify.
-            if os.path.exists(SITE_VERIFY_CONTROL_FILE):
-                self._execute_code(SITE_VERIFY_CONTROL_FILE, namespace,
-                                   protect=False)
             self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n'
@@ -242,12 +229,6 @@ class base_server_job(object):
                      'protection_level': host_protection}
         # no matter what happens during repair, go on to try to reverify
         try:
-            # Protection is disabled to allow for site_repair_full() and
-            # site_repair_filesystem_only() to be defined in site_repair but
-            # called from the "JP: deprecated" areas of control_segments/repair.
-            if os.path.exists(SITE_REPAIR_CONTROL_FILE):
-                self._execute_code(SITE_REPAIR_CONTROL_FILE, namespace,
-                                   protect=False)
             self._execute_code(REPAIR_CONTROL_FILE, namespace,
                                protect=False)
         except Exception, exc:
