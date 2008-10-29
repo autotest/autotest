@@ -54,7 +54,7 @@ class test_help(test):
 
 
 class test_list(action_common.atest_list, test):
-    """atest test list [--description] [<tests>]"""
+    """atest test list [--description] [--experimental|--all] [<tests>]"""
     def __init__(self):
         super(test_list, self).__init__()
 
@@ -62,12 +62,26 @@ class test_list(action_common.atest_list, test):
                                help='Display the test descriptions',
                                action='store_true',
                                default=False)
+        self.parser.add_option('--all',
+                               help='Display all the tests',
+                               action='store_true',
+                               default=False)
+        self.parser.add_option('-e', '--experimental',
+                               help='Display the experimental tests only',
+                               action='store_true',
+                               default=False)
 
 
     def parse(self):
         (options, leftover) = super(test_list, self).parse()
 
+        if self.tests and (options.experimental or options.all):
+            self.invalid_syntax('Do not specify a test name with --all or '
+                                '--experimental')
+
         self.description = options.description
+        self.all = options.all
+        self.experimental = options.experimental
 
         return (options, leftover)
 
@@ -79,16 +93,23 @@ class test_list(action_common.atest_list, test):
             filters['name__in'] = self.tests
             check_results['name__in'] = 'name'
 
+        if not self.all:
+            filters['experimental'] = self.experimental
+            check_results['experimental'] = None
+
         return super(test_list, self).execute(op='get_tests',
                                               filters=filters,
                                               check_results=check_results)
 
 
     def output(self, results):
+        keys = ['name', 'test_type', 'test_class']
+
+        if self.all:
+            keys.append('experimental')
+
         if self.verbose:
-            keys = ['name', 'test_type', 'test_class', 'path']
-        else:
-            keys = ['name', 'test_type', 'test_class']
+            keys.append('path')
 
         if self.description:
             keys.append('description')
