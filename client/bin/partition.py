@@ -1,6 +1,6 @@
-__author__ = """Copyright Martin J. Bligh, Google, 2006"""
+# Copyright Martin J. Bligh, Google, 2006-2008
 
-import os, re, string, sys
+import os, re, string, sys, fcntl
 from autotest_lib.client.bin import autotest_utils
 from autotest_lib.client.common_lib import error, utils
 
@@ -73,12 +73,64 @@ def wipe_filesystem(job, mountpoint):
         job.record('GOOD', None, wipe_cmd)
 
 
+def get_partition_list(job):
+    partitions = []
+    for partline in open('/proc/partitions').readlines():
+        fields = partline.strip().split()
+        if len(fields) != 4 or partline.startswith('major'):
+            continue
+        (major, minor, blocks, partname) = fields
+
+        # The partition name better end with a digit, else it's not a partition
+        if not partname[-1:].isdigit():
+            continue
+
+        device = '/dev/' + partname
+
+        partitions.append(partition(job, device))
+
+    return partitions
+
+
+def parallel(partitions, method_name, *args, **dargs):
+    """\
+    Run a partition method (with appropriate arguments) in parallel,
+    across a list of partition objects
+    """
+    if not partitions:
+        return
+    job = partitions[0].job
+    flist = []
+    if (not hasattr(partition, method_name) or
+                               not callable(getattr(partition, method_name))):
+        err = "partition.parallel got invalid method %s" % method_name
+        raise RuntimeError(err)
+
+    for p in partitions:
+        print_args = list(args)
+        print_args += ['%s=%s' % (key, dargs[key]) for key in dargs.keys()]
+        print '%s.%s(%s)' % (str(p), method_name, ', '.join(print_args))
+        sys.stdout.flush()
+        def func(function, part=p):
+            getattr(part, method_name)(*args, **dargs)
+        flist.append((func, ()))
+    job.parallel(*flist)
+
+
+def filesystems():
+    """\
+    Return a list of all available filesystems
+    """
+    return [re.sub('(nodev)?\s*', '', fs) for fs in open('/proc/filesystems')]
+
+
 class partition:
     """
-    Class for handling partitions.
+    Class for handling partitions and filesystems
     """
 
-    def __init__(self, job, device, mountpoint, loop_size=0):
+    def __init__(self, job, device, mountpoint=None, tunable=None,
+                 fs_type=None, fs_opts=None, loop_size=0):
         """
         device should be able to be a file as well
         which we mount as loopback.
@@ -89,28 +141,70 @@ class partition:
                 The device in question (eg "/dev/hda2")
         mountpoint
                 Default mountpoint for the device.
+        tuneable
+                The underlying block device for tuning
+        fs_type
+                filesystem type (eg. 'ext2')
+        fs_opts
+                filesystem options
+        mounted
+                Boolean - is the partition currently mounted?
         loop_size
-                Size of loopback device (in MB).  Defaults to 0.
+                Size of loopback device (in MB). Defaults to 0.
         """
 
-        part = re.compile(r'^part(\d+)$')
-        m = part.match(device)
-        if m:
-            number = int(m.groups()[0])
-            partitions = job.config_get('partition.partitions')
-            try:
-                device = partitions[number]
-            except:
-                raise NameError("Partition '" + device + "' not available")
-
         self.device = device
-        self.mountpoint = mountpoint
+        self.name = os.path.basename(device)
+        self.tunable = tunable
+        self.fs_type = fs_type
+        self.fs_opts = fs_opts
         self.job = job
         self.fstype = None
         self.loop = loop_size
         if self.loop:
-            utils.system('dd if=/dev/zero of=%s bs=1M count=%d' % \
-                                            (device, loop_size))
+            cmd = 'dd if=/dev/zero of=%s bs=1M count=%d' % (device, loop_size)
+            utils.system(cmd)
+        if mountpoint:
+            self.mountpoint = mountpoint
+        else:
+            self.mountpoint = self.get_mountpoint()
+
+
+    def __repr__(self):
+        return '<Partition: %s>' % self.device
+
+
+    def run_test(self, test, **dargs):
+        self.job.run_test(test, tag=tag, dir=self.mountpoint, **dargs)
+
+
+    def run_test_on_partition(self, fstype, test, **dargs):
+        tag = dargs.pop('tag', None)
+        if tag:
+            tag = '%s.%s' % (self.name, tag)
+        else:
+            tag = self.name
+
+        def func(test_tag, dir, **dargs):
+            self.unmount(ignore_status=True)
+            self.mkfs(fstype)
+            self.mount()
+            try:
+                self.job.run_test(test, tag=test_tag, dir=dir, **dargs)
+            finally:
+                self.unmount()
+                self.fsck()
+
+        self.job.run_group(func, test_tag=tag, tag=tag, dir=self.mountpoint,
+                           **dargs)
+
+
+    def get_mountpoint(self):
+        for line in open('/etc/mtab', 'r').readlines():
+            parts = line.split()
+            if parts[0] == self.device:
+                return parts[1]          # The mountpoint where it's mounted
+        return None
 
 
     def mkfs(self, fstype='ext2', args=''):
@@ -132,8 +226,9 @@ class partition:
         print mkfs_cmd
         sys.stdout.flush()
         try:
-            utils.system("yes | " + mkfs_cmd)
+            output = utils.system_output("yes | %s" % mkfs_cmd)
         except:
+            print output
             self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
         else:
@@ -173,6 +268,7 @@ class partition:
             mountpoint = self.mountpoint
 
         mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
+        print mount_cmd
 
         if list_mount_devices().count(self.device):
             err = 'Attempted to mount mounted device'
@@ -183,11 +279,16 @@ class partition:
             self.job.record('FAIL', None, mount_cmd, err)
             raise NameError(err)
 
+        mtab = open('/etc/mtab')
+        # We have to get an exclusive lock here - mount/umount are racy
+        fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
         print mount_cmd
         sys.stdout.flush()
         try:
             utils.system(mount_cmd)
+            mtab.close()
         except:
+            mtab.close()
             self.job.record('FAIL', None, mount_cmd, error.format_error())
             raise
         else:
@@ -196,15 +297,20 @@ class partition:
             self.fstype = fstype
 
 
-    def unmount(self, handle=None):
+    def unmount(self, handle=None, ignore_status=False):
         if not handle:
             handle = self.device
+        mtab = open('/etc/mtab')
+        # We have to get an exclusive lock here - mount/umount are racy
+        fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
         umount_cmd = "umount " + handle
         print umount_cmd
         sys.stdout.flush()
         try:
-            utils.system(umount_cmd)
+            utils.system(umount_cmd, ignore_status=ignore_status)
+            mtab.close()
         except:
+            mtab.close()
             self.job.record('FAIL', None, umount_cmd, error.format_error())
             raise
         else:
