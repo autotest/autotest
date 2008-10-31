@@ -47,6 +47,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
     def _open_channel(self):
         if os.getpid() != self.pid:
             if self.pid is not None:
+                # HACK: paramiko tries to join() on its worker thread
+                # and this just hangs on linux after a fork()
+                self.transport.join = lambda: None
                 self.transport.atfork()
             self._init_transport()
 
