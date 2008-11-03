@@ -378,7 +378,7 @@ class job_create(action_common.atest_create, job):
 
             # Get the union of the 2 sets of dependencies
             deps = set(self.data['dependencies'])
-            deps.union(cf_info['dependencies'])
+            deps = sorted(deps.union(cf_info['dependencies']))
             self.data['dependencies'] = list(deps)
 
         socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
