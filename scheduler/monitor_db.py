@@ -484,16 +484,20 @@ class Dispatcher:
 
     def tick(self):
         Dispatcher.autoserv_procs_cache = None
-        if self._last_clean_time + self.clean_interval * 60 < time.time():
-            self._abort_timed_out_jobs()
-            self._abort_jobs_past_synch_start_timeout()
-            self._clear_inactive_blocks()
-            self._last_clean_time = time.time()
+        self._run_cleanup_maybe()
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
         self._run_final_parses()
         email_manager.send_queued_emails()
+
+    def _run_cleanup_maybe(self):
+        if self._last_clean_time + self.clean_interval * 60 < time.time():
+            print 'Running cleanup'
+            self._abort_timed_out_jobs()
+            self._abort_jobs_past_synch_start_timeout()
+            self._clear_inactive_blocks()
+            self._last_clean_time = time.time()
 
 
     def _run_final_parses(self):
@@ -696,21 +700,11 @@ class Dispatcher:
         """
         Aborts all jobs that have timed out and not completed
         """
-        update = """
-            UPDATE host_queue_entries INNER JOIN jobs
-                ON host_queue_entries.job_id = jobs.id"""
-        timed_out = ' AND jobs.created_on + INTERVAL jobs.timeout HOUR < NOW()'
-
-        _db.execute(update + """
-            SET host_queue_entries.status = 'Abort'
-            WHERE host_queue_entries.active""" + timed_out)
-
-        _db.execute(update + """
-            SET host_queue_entries.status = 'Aborted',
-                host_queue_entries.active = 0,
-                host_queue_entries.complete = 1
-            WHERE NOT host_queue_entries.active
-                AND NOT host_queue_entries.complete""" + timed_out)
+        query = models.Job.objects.filter(hostqueueentry__complete=False).extra(
+            where=['created_on + INTERVAL timeout HOUR < NOW()'])
+        for job in query.distinct():
+            print 'Aborting job %d due to job timeout' % job.id
+            job.abort(None)
 
 
     def _abort_jobs_past_synch_start_timeout(self):

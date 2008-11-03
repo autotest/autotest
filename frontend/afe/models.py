@@ -669,6 +669,11 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
+    Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
+                       'Abort', 'Aborting', 'Aborted', 'Completed', 'Failed',
+                       'Stopped', string_values=True)
+    ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
+
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
     priority = dbmodels.SmallIntegerField()
@@ -686,6 +691,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         'True if this is a entry has a meta_host instead of a host.'
         return self.host is None and self.meta_host is not None
 
+
     def log_abort(self, user):
         if user is None:
             # automatic system abort (i.e. job timeout)
@@ -693,16 +699,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
 
+
     def abort(self, user):
-        if self.active:
+        # this isn't completely immune to race conditions since it's not atomic,
+        # but it should be safe given the scheduler's behavior.
+        if not self.complete and self.status not in self.ABORT_STATUSES:
             self.status = Job.Status.ABORT
             self.log_abort(user)
-        elif not self.complete:
-            self.status = Job.Status.ABORTED
-            self.active = False
-            self.complete = True
-            self.log_abort(user)
-        self.save()
+            self.save()
 
     class Meta:
         db_table = 'host_queue_entries'

@@ -469,7 +469,7 @@ True
 >>> rpc_interface.abort_host_queue_entries(job__id=1)
 >>> data = rpc_interface.get_jobs_summary(id=1)
 >>> data[0]['status_counts']
-{'Aborted': 4}
+{'Abort': 4}
 
 # Remove the two hosts in my_label
 >>> rpc_interface.delete_host('my_label_host1')
