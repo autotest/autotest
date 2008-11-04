@@ -9,33 +9,33 @@ class FsOptions(object):
     """A class encapsulating a filesystem test's parameters.
 
     Properties:  (all strings)
-      filesystem: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
+      fstype: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
       mkfs_flags: Additional command line options to mkfs or '' if none.
       mount_options: The options to pass to mount -o or '' if none.
-      short_name: A short name for this filesystem test to use in the results.
+      fs_tag: A short name for this filesystem test to use in the results.
     """
     # NOTE(gps): This class could grow or be merged with something else in the
     # future that actually uses the encapsulated data (say to run mkfs) rather
     # than just being a container.
     # Ex: fsdev_disks.mkfs_all_disks really should become a method.
 
-    __slots__ = ('filesystem', 'mkfs_flags', 'mount_options', 'short_name')
+    __slots__ = ('fstype', 'mkfs_flags', 'mount_options', 'fs_tag')
 
-    def __init__(self, filesystem, mkfs_flags, mount_options, short_name):
+    def __init__(self, fstype, mkfs_flags, mount_options, fs_tag):
         """Fill in our properties."""
-        if not filesystem or not short_name:
-            raise ValueError('A filesystem and short_name are required.')
-        self.filesystem = filesystem
+        if not fstype or not fs_tag:
+            raise ValueError('A filesystem and fs_tag are required.')
+        self.fstype = fstype 
         self.mkfs_flags = mkfs_flags
         self.mount_options = mount_options
-        self.short_name = short_name
+        self.fs_tag = fs_tag
 
 
     def __str__(self):
-        val = ('FsOptions(filesystem=%r, mkfs_flags=%r, '
-               'mount_options=%r, short_name=%r)' %
-               (self.filesystem, self.mkfs_flags,
-                self.mount_options, self.short_name))
+        val = ('FsOptions(fstype=%r, mkfs_flags=%r, '
+               'mount_options=%r, fs_tag=%r)' %
+               (self.fstype, self.mkfs_flags,
+                self.mount_options, self.fs_tag))
         return val
 
 
@@ -129,8 +129,7 @@ class partition:
     Class for handling partitions and filesystems
     """
 
-    def __init__(self, job, device, mountpoint=None, tunable=None,
-                 fs_type=None, fs_opts=None, loop_size=0):
+    def __init__(self, job, device, mountpoint=None, loop_size=0):
         """
         device should be able to be a file as well
         which we mount as loopback.
@@ -141,26 +140,18 @@ class partition:
                 The device in question (eg "/dev/hda2")
         mountpoint
                 Default mountpoint for the device.
-        tuneable
-                The underlying block device for tuning
-        fs_type
-                filesystem type (eg. 'ext2')
-        fs_opts
-                filesystem options
-        mounted
-                Boolean - is the partition currently mounted?
         loop_size
                 Size of loopback device (in MB). Defaults to 0.
         """
 
         self.device = device
         self.name = os.path.basename(device)
-        self.tunable = tunable
-        self.fs_type = fs_type
-        self.fs_opts = fs_opts
         self.job = job
-        self.fstype = None
         self.loop = loop_size
+        self.fstype = None
+        self.mkfs_flags = None
+        self.mount_options = None
+        self.fs_tag = None
         if self.loop:
             cmd = 'dd if=/dev/zero of=%s bs=1M count=%d' % (device, loop_size)
             utils.system(cmd)
@@ -174,20 +165,30 @@ class partition:
         return '<Partition: %s>' % self.device
 
 
+    def set_fs_options(self, fs_options):
+        self.fstype = fs_options.fstype
+        self.mkfs_flags = fs_options.mkfs_flags
+        self.mount_options = fs_options.mount_options
+        self.fs_tag = fs_options.fs_tag
+
+
     def run_test(self, test, **dargs):
         self.job.run_test(test, tag=tag, dir=self.mountpoint, **dargs)
 
 
-    def run_test_on_partition(self, fstype, test, **dargs):
+    def run_test_on_partition(self, test, **dargs):
         tag = dargs.pop('tag', None)
         if tag:
             tag = '%s.%s' % (self.name, tag)
         else:
-            tag = self.name
+            if self.fs_tag:
+                tag = '%s.%s' % (self.name, self.fs_tag)
+            else:
+                tag = self.name
 
         def func(test_tag, dir, **dargs):
-            self.unmount(ignore_status=True)
-            self.mkfs(fstype)
+            self.unmount(ignore_status=True, record=False)
+            self.mkfs()
             self.mount()
             try:
                 self.job.run_test(test, tag=test_tag, dir=dir, **dargs)
@@ -195,8 +196,11 @@ class partition:
                 self.unmount()
                 self.fsck()
 
-        self.job.run_group(func, test_tag=tag, tag=tag, dir=self.mountpoint,
-                           **dargs)
+        # The tag is the tag for the group (get stripped off by run_group)
+        # The test_tag is the tag for the test itself
+        print 'TAG: ' + tag
+        self.job.run_group(func, test_tag=tag, tag=tag,
+                           dir=self.mountpoint, **dargs)
 
 
     def get_mountpoint(self):
@@ -207,12 +211,21 @@ class partition:
         return None
 
 
-    def mkfs(self, fstype='ext2', args=''):
+    def mkfs(self, fstype=None, args='', record=True):
         """
         Format a partition to fstype
         """
         if list_mount_devices().count(self.device):
             raise NameError('Attempted to format mounted device')
+
+        if not fstype:
+            if self.fstype:
+                fstype = self.fstype
+            else:
+                fstype = 'ext2'
+
+        if self.mkfs_flags:
+            args += ' ' + self.mkfs_flags
         if fstype == 'xfs':
             args += ' -f'
         if self.loop:
@@ -222,6 +235,7 @@ class partition:
             elif fstype == 'reiserfs':
                 args += ' -f'
         args = args.lstrip()
+
         mkfs_cmd = "mkfs -t %s %s %s" % (fstype, args, self.device)
         print mkfs_cmd
         sys.stdout.flush()
@@ -229,14 +243,16 @@ class partition:
             output = utils.system_output("yes | %s" % mkfs_cmd)
         except:
             print output
-            self.job.record('FAIL', None, mkfs_cmd, error.format_error())
+            if record:
+                self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
         else:
-            self.job.record('GOOD', None, mkfs_cmd)
+            if record:
+                self.job.record('GOOD', None, mkfs_cmd)
             self.fstype = fstype
 
 
-    def fsck(self, args='-n'):
+    def fsck(self, args='-n', record=True):
         # I hate reiserfstools.
         # Requires an explit Yes for some inane reason
         fsck_cmd = 'fsck %s %s' % (self.device, args)
@@ -247,17 +263,22 @@ class partition:
         try:
             utils.system("yes | " + fsck_cmd)
         except:
-            self.job.record('FAIL', None, fsck_cmd, error.format_error())
+            if record:
+                self.job.record('FAIL', None, fsck_cmd, error.format_error())
             raise
         else:
-            self.job.record('GOOD', None, fsck_cmd)
+            if record:
+                self.job.record('GOOD', None, fsck_cmd)
 
 
-    def mount(self, mountpoint=None, fstype=None, args=''):
+    def mount(self, mountpoint=None, fstype=None, args='', record=True):
         if fstype is None:
             fstype = self.fstype
         else:
             assert(self.fstype == None or self.fstype == fstype);
+
+        if self.mount_options:
+            args += ' ' + self.mount_options
         if fstype:
             args += ' -t ' + fstype
         if self.loop:
@@ -289,15 +310,17 @@ class partition:
             mtab.close()
         except:
             mtab.close()
-            self.job.record('FAIL', None, mount_cmd, error.format_error())
+            if record:
+                self.job.record('FAIL', None, mount_cmd, error.format_error())
             raise
         else:
-            self.job.record('GOOD', None, mount_cmd)
+            if record:
+                self.job.record('GOOD', None, mount_cmd)
             self.mountpoint = mountpoint
             self.fstype = fstype
 
 
-    def unmount(self, handle=None, ignore_status=False):
+    def unmount(self, handle=None, ignore_status=False, record=True):
         if not handle:
             handle = self.device
         mtab = open('/etc/mtab')
@@ -311,10 +334,12 @@ class partition:
             mtab.close()
         except:
             mtab.close()
-            self.job.record('FAIL', None, umount_cmd, error.format_error())
+            if record:
+                self.job.record('FAIL', None, umount_cmd, error.format_error())
             raise
         else:
-            self.job.record('GOOD', None, umount_cmd)
+            if record:
+                self.job.record('GOOD', None, umount_cmd)
 
 
     def wipe(self):
