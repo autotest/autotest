@@ -124,6 +124,9 @@ def init(logfile):
     _db = database_connection.DatabaseConnection(CONFIG_SECTION)
     _db.connect()
 
+    # ensure Django connection is in autocommit
+    setup_django_environment.enable_autocommit()
+
     print "Setting signal handler"
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -321,6 +324,8 @@ class HostScheduler(object):
 
     @classmethod
     def _get_label_hosts(cls, host_ids):
+        if not host_ids:
+            return {}, {}
         query = """
         SELECT label_id, host_id
         FROM hosts_labels
@@ -478,6 +483,7 @@ class Dispatcher:
             self._abort_timed_out_jobs()
             self._abort_jobs_past_synch_start_timeout()
             self._clear_inactive_blocks()
+            self._check_for_db_inconsistencies()
             self._last_clean_time = time.time()
 
 
@@ -805,6 +811,20 @@ class Dispatcher:
                 num_started_this_cycle += agent.num_processes
             agent.tick()
         print num_running_processes, 'running processes'
+
+
+    def _check_for_db_inconsistencies(self):
+        query = models.HostQueueEntry.objects.filter(active=True, complete=True)
+        if query.count() != 0:
+            subject = ('%d queue entries found with active=complete=1'
+                       % query.count())
+            message = '\n'.join(str(entry.get_object_dict())
+                                for entry in query[:50])
+            if len(query) > 50:
+                message += '\n(truncated)\n'
+
+            print subject
+            email_manager.enqueue_notify_email(subject, message)
 
 
 class RunMonitor(object):
@@ -1312,8 +1332,9 @@ class VerifyTask(AgentTask):
         if it exists, even if it's a directory.
         """
         if os.path.exists(dest):
-            print ('Warning: removing existing destination file ' +
-                   dest)
+            warning = 'Warning: removing existing destination file ' + dest
+            print warning
+            email_manager.enqueue_notify_email(warning, warning)
             remove_file_or_dir(dest)
         shutil.move(source, dest)
 
@@ -1439,7 +1460,9 @@ class QueueTask(AgentTask):
 
         if do_reboot:
             for queue_entry in self.queue_entries:
-                reboot_task = RebootTask(queue_entry.get_host())
+                # don't pass the queue entry to the RebootTask. if the reboot
+                # fails, the job doesn't care -- it's over.
+                reboot_task = RebootTask(host=queue_entry.get_host())
                 self.agent.dispatcher.add_agent(Agent([reboot_task]))
 
 
@@ -1473,8 +1496,10 @@ class RecoveryQueueTask(QueueTask):
 
 
 class RebootTask(AgentTask):
-    def __init__(self, host):
-        global _autoserv_path
+    def __init__(self, host=None, queue_entry=None):
+        assert bool(host) ^ bool(queue_entry)
+        if queue_entry:
+            host = queue_entry.get_host()
 
         # Current implementation of autoserv requires control file
         # to be passed on reboot action request. TODO: remove when no
@@ -1482,9 +1507,10 @@ class RebootTask(AgentTask):
         self.create_temp_resultsdir('.reboot')
         self.cmd = [_autoserv_path, '-b', '-m', host.hostname,
                     '-r', self.temp_results_dir, '/dev/null']
+        self.queue_entry = queue_entry
         self.host = host
-        super(RebootTask, self).__init__(self.cmd,
-                           failure_tasks=[RepairTask(host)])
+        repair_task = RepairTask(host, fail_queue_entry=queue_entry)
+        super(RebootTask, self).__init__(self.cmd, failure_tasks=[repair_task])
 
 
     def prolog(self):
@@ -1494,9 +1520,11 @@ class RebootTask(AgentTask):
 
     def epilog(self):
         super(RebootTask, self).epilog()
-        self.host.set_status('Ready')
         if self.success:
+            self.host.set_status('Ready')
             self.host.update_field('dirty', 0)
+        elif self.queue_entry:
+            self.queue_entry.requeue()
 
 
 class AbortTask(AgentTask):
@@ -2037,7 +2065,7 @@ class HostQueueEntry(DBObject):
 
         host = self.get_host()
         if host:
-            reboot_task = RebootTask(host)
+            reboot_task = RebootTask(host=host)
             verify_task = VerifyTask(host=host)
             # just to make sure this host does not get taken away
             host.set_status('Rebooting')
@@ -2207,7 +2235,7 @@ class Job(DBObject):
 
         tasks = []
         if do_reboot:
-            tasks.append(RebootTask(queue_entry.get_host()))
+            tasks.append(RebootTask(queue_entry=queue_entry))
         tasks.append(verify_task_class(queue_entry=queue_entry))
         return tasks
 
