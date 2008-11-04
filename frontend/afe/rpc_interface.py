@@ -559,5 +559,7 @@ def get_static_data():
                                    "Failed": "Failed to complete",
                                    "Aborting": "Abort in progress",
                                    "Queued": "Queued",
-                                   "Starting": "Next in host's queue"}
+                                   "Starting": "Next in host's queue",
+                                   "Stopped": "Other host(s) failed verify",
+                                   "Parsing": "Awaiting parse of final results"}
     return result
