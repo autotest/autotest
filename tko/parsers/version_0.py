@@ -52,7 +52,7 @@ class job(models.job):
         uname = os.path.join(path, "sysinfo", "uname_-a")
         try:
             machine = open(uname).readline().split()[1]
-            return
+            return machine
         except Exception:
             tko_utils.dprint("Could not read a hostname from "
                              "sysinfo/uname_-a")
