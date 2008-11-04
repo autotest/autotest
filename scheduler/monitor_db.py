@@ -799,7 +799,6 @@ class Dispatcher:
             if agent.is_done():
                 print "agent finished"
                 self._agents.remove(agent)
-                num_running_processes -= agent.num_processes
                 continue
             if not agent.is_running():
                 if not self._can_start_agent(agent, num_running_processes,
@@ -1458,12 +1457,14 @@ class QueueTask(AgentTask):
             num_tests_failed = self.monitor.num_tests_failed()
             do_reboot = (self.success and num_tests_failed == 0)
 
-        if do_reboot:
-            for queue_entry in self.queue_entries:
+        for queue_entry in self.queue_entries:
+            if do_reboot:
                 # don't pass the queue entry to the RebootTask. if the reboot
                 # fails, the job doesn't care -- it's over.
                 reboot_task = RebootTask(host=queue_entry.get_host())
                 self.agent.dispatcher.add_agent(Agent([reboot_task]))
+            else:
+                queue_entry.host.set_status('Ready')
 
 
     def epilog(self):
@@ -1471,7 +1472,6 @@ class QueueTask(AgentTask):
         for queue_entry in self.queue_entries:
             # set status to PARSING here so queue entry is marked complete
             queue_entry.set_status(models.HostQueueEntry.Status.PARSING)
-            queue_entry.host.set_status('Ready')
 
         self._finish_task(self.success)
         self._reboot_hosts()
