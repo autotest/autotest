@@ -793,6 +793,7 @@ class AgentTest(unittest.TestCase):
 
 class AgentTasksTest(unittest.TestCase):
     TEMP_DIR = '/temp/dir'
+    RESULTS_DIR = '/results/dir'
     HOSTNAME = 'myhost'
     HOST_PROTECTION = host_protections.default
 
@@ -807,6 +808,8 @@ class AgentTasksTest(unittest.TestCase):
         self.host.protection = self.HOST_PROTECTION
         self.queue_entry = self.god.create_mock_class(
             monitor_db.HostQueueEntry, 'queue_entry')
+        self.job = self.god.create_mock_class(monitor_db.Job, 'job')
+        self.queue_entry.job = self.job
         self.queue_entry.host = self.host
         self.queue_entry.meta_host = None
 
@@ -974,12 +977,77 @@ class AgentTasksTest(unittest.TestCase):
         agent = self.god.create_mock_class(monitor_db.Agent, 'agent')
         agent.active_task = task
 
-        queue_entry.set_status.expect_call('Aborting')
         task.abort.expect_call()
         queue_entry.set_status.expect_call('Aborted')
 
         abort_task = monitor_db.AbortTask(queue_entry, [agent])
         self.run_task(abort_task, True)
+        self.god.check_playback()
+
+
+    def _setup_pre_parse_expects(self, is_synch, num_machines):
+        self.job.is_synchronous.expect_call().and_return(is_synch)
+        self.job.num_machines.expect_call().and_return(num_machines)
+        self.queue_entry.results_dir.expect_call().and_return(self.RESULTS_DIR)
+        self.queue_entry.set_status.expect_call('Parsing')
+
+
+    def _setup_post_parse_expects(self, autoserv_success):
+        pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new(
+            self.RESULTS_DIR)
+        if autoserv_success:
+            code, status = 0, 'Completed'
+        else:
+            code, status = 1, 'Failed'
+        pidfile_monitor.exit_code.expect_call().and_return(code)
+        self.queue_entry.set_status.expect_call(status)
+
+
+    def _test_final_reparse_task_helper(self, is_synch=False, num_machines=1,
+                                        autoserv_success=True):
+        tko_dir = '/tko/dir'
+        monitor_db.AUTOTEST_TKO_DIR = tko_dir
+        parse_path = os.path.join(tko_dir, 'parse')
+
+        self._setup_pre_parse_expects(is_synch, num_machines)
+        self.setup_run_monitor(0)
+        self._setup_post_parse_expects(autoserv_success)
+
+        task = monitor_db.FinalReparseTask([self.queue_entry])
+        self.run_task(task, True)
+
+        self.god.check_playback()
+        cmd = [parse_path]
+        if not is_synch and num_machines > 1:
+            cmd += ['-l', '2']
+        cmd += ['-r', '-o', self.RESULTS_DIR]
+        self.assertEquals(task.cmd, cmd)
+
+
+    def test_final_reparse_task(self):
+        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
+        self._test_final_reparse_task_helper()
+        self._test_final_reparse_task_helper(num_machines=2)
+        self._test_final_reparse_task_helper(is_synch=True)
+        self._test_final_reparse_task_helper(autoserv_success=False)
+
+
+    def test_final_reparse_throttling(self):
+        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
+        self.god.stub_function(monitor_db.FinalReparseTask,
+                               '_can_run_new_parse')
+
+        self._setup_pre_parse_expects(False, 1)
+        monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
+            False)
+        monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
+            True)
+        self.setup_run_monitor(0)
+        self._setup_post_parse_expects(True)
+
+        task = monitor_db.FinalReparseTask([self.queue_entry])
+        self.run_task(task, True)
+        self.god.check_playback()
 
 
 class JobTest(BaseSchedulerTest):

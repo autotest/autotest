@@ -670,8 +670,8 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
-                       'Abort', 'Aborting', 'Aborted', 'Completed', 'Failed',
-                       'Stopped', string_values=True)
+                       'Parsing', 'Abort', 'Aborting', 'Aborted', 'Completed',
+                       'Failed', 'Stopped', string_values=True)
     ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
 
     job = dbmodels.ForeignKey(Job)
