@@ -376,6 +376,13 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._check_for_extra_schedulings()
 
 
+    def test_no_ready_hosts(self):
+        self._create_job(hosts=[1])
+        self._do_query('UPDATE hosts SET status="Repair Failed"')
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+
 class DispatcherThrottlingTest(BaseSchedulerTest):
     """
     Test that the dispatcher throttles:
@@ -1048,6 +1055,45 @@ class AgentTasksTest(unittest.TestCase):
         task = monitor_db.FinalReparseTask([self.queue_entry])
         self.run_task(task, True)
         self.god.check_playback()
+
+
+    def _test_reboot_task_helper(self, success, use_queue_entry=False):
+        if use_queue_entry:
+            self.queue_entry.get_host.expect_call().and_return(self.host)
+        self.host.set_status.expect_call('Rebooting')
+        if success:
+            self.setup_run_monitor(0)
+            self.host.set_status.expect_call('Ready')
+            self.host.update_field.expect_call('dirty', 0)
+        else:
+            self.setup_run_monitor(1)
+            if use_queue_entry:
+                self.queue_entry.requeue.expect_call()
+
+        if use_queue_entry:
+            task = monitor_db.RebootTask(queue_entry=self.queue_entry)
+        else:
+            task = monitor_db.RebootTask(host=self.host)
+        self.assertEquals(len(task.failure_tasks), 1)
+        repair_task = task.failure_tasks[0]
+        self.assert_(isinstance(repair_task, monitor_db.RepairTask))
+        if use_queue_entry:
+            self.assertEquals(repair_task.fail_queue_entry, self.queue_entry)
+
+        self.run_task(task, success)
+
+        self.god.check_playback()
+        self.assert_(set(task.monitor.cmd) >=
+                        set(['autoserv', '-b', '-m', self.HOSTNAME,
+                             '-r', self.TEMP_DIR, '/dev/null']))
+
+    def test_reboot_task(self):
+        self._test_reboot_task_helper(True)
+        self._test_reboot_task_helper(False)
+
+
+    def test_reboot_task_with_queue_entry(self):
+        self._test_reboot_task_helper(False, True)
 
 
 class JobTest(BaseSchedulerTest):
