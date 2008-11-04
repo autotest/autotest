@@ -259,6 +259,12 @@ class base_sysinfo(object):
             self.boot_loggables,
             os.path.join(test_sysinfodir, "reboot_current")))
 
+        # remove hostname from uname info
+        #   Linux lpt36 2.6.18-smp-230.1 #1 [4069269] SMP Fri Oct 24 11:30:...
+        if "sysinfo-uname" in keyval:
+            kernel_vers = " ".join(keyval["sysinfo-uname"].split()[2:])
+            keyval["sysinfo-uname"] = kernel_vers
+
         # grab the total memory
         path = os.path.join(test_sysinfodir, "reboot_current", "meminfo")
         if os.path.exists(path):
