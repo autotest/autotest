@@ -160,22 +160,6 @@ def remove_file_or_dir(path):
         os.remove(path)
 
 
-def generate_parse_command(results_dir, flags=""):
-    parse = os.path.abspath(os.path.join(AUTOTEST_TKO_DIR, 'parse'))
-    output = os.path.abspath(os.path.join(results_dir, '.parse.log'))
-    cmd = "%s %s -r -o %s > %s 2>&1 &"
-    return cmd % (parse, flags, results_dir, output)
-
-
-_parse_command_queue = []
-def parse_results(results_dir, flags=""):
-    if _testing_mode:
-        return
-    _parse_command_queue.append(generate_parse_command(results_dir, flags))
-
-
-
-
 def log_stacktrace(reason):
     (type, value, tb) = sys.exc_info()
     str = "EXCEPTION: %s\n" % reason
@@ -460,9 +444,6 @@ class Dispatcher:
     clean_interval = (
         global_config.global_config.get_config_value(
             _global_config_section, 'clean_interval_minutes', type=int))
-    max_parse_processes = (
-        global_config.global_config.get_config_value(
-            _global_config_section, 'max_parse_processes', type=int))
     synch_job_start_timeout_minutes = (
         global_config.global_config.get_config_value(
             _global_config_section, 'synch_job_start_timeout_minutes',
@@ -488,8 +469,8 @@ class Dispatcher:
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
-        self._run_final_parses()
         email_manager.send_queued_emails()
+
 
     def _run_cleanup_maybe(self):
         if self._last_clean_time + self.clean_interval * 60 < time.time():
@@ -498,32 +479,6 @@ class Dispatcher:
             self._abort_jobs_past_synch_start_timeout()
             self._clear_inactive_blocks()
             self._last_clean_time = time.time()
-
-
-    def _run_final_parses(self):
-        process_count = 0
-        try:
-            for line in utils.system_output('ps -e').splitlines():
-                if 'parse.py' in line:
-                    process_count += 1
-        except Exception:
-            # We'll try again in a bit.  This is a work-around for one time
-            # when the scheduler crashed due to a "Interrupted system call"
-            return
-
-        if process_count:
-            print "%d parses currently running" % process_count
-
-        while (process_count < self.max_parse_processes and
-               _parse_command_queue):
-            cmd = _parse_command_queue.pop(0)
-            print "Starting another final parse with cmd %s" % cmd
-            os.system(cmd)
-            process_count += 1
-
-        if _parse_command_queue:
-            print ("%d cmds still in final parse queue" %
-                   len(_parse_command_queue))
 
 
     def add_agent(self, agent):
@@ -656,6 +611,8 @@ class Dispatcher:
             if queue_entry.get_host():
                 rebooting_host_ids.add(queue_entry.get_host().id)
 
+        self._recover_parsing_entries()
+
         # reverify hosts that were in the middle of verify, repair or
         # reboot
         self._reverify_hosts_where("""(status = 'Repairing' OR
@@ -687,6 +644,25 @@ class Dispatcher:
                 print print_message % host.hostname
             verify_task = VerifyTask(host = host)
             self.add_agent(Agent(tasks = [verify_task]))
+
+
+    def _recover_parsing_entries(self):
+        # make sure there are no old parsers running
+        os.system('killall parse')
+
+        recovered_synch_jobs = set()
+        for entry in HostQueueEntry.fetch(where='status = "Parsing"'):
+            job = entry.job
+            if job.is_synchronous():
+                if job.id in recovered_synch_jobs:
+                    continue
+                queue_entries = job.get_host_queue_entries()
+                recovered_synch_jobs.add(job.id)
+            else:
+                queue_entries = [entry]
+
+            reparse_task = FinalReparseTask(queue_entries)
+            self.add_agent(Agent([reparse_task]))
 
 
     def _recover_hosts(self):
@@ -1226,12 +1202,13 @@ class AgentTask(object):
         if self.cmd:
             print "agent starting monitor"
             log_file = None
-            if hasattr(self, 'host'):
+            if hasattr(self, 'log_file'):
+                log_file = self.log_file
+            elif hasattr(self, 'host'):
                 log_file = os.path.join(RESULTS_DIR, 'hosts',
                                         self.host.hostname)
             self.monitor = RunMonitor(
-                self.cmd, nice_level = AUTOSERV_NICE_LEVEL,
-                log_file = log_file)
+                self.cmd, nice_level=AUTOSERV_NICE_LEVEL, log_file=log_file)
             self.monitor.run()
 
 
@@ -1418,17 +1395,14 @@ class QueueTask(AgentTask):
             self.job.write_to_machines_file(self.queue_entries[0])
 
 
-    def _finish_task(self):
+    def _finish_task(self, success):
         # write out the finished time into the results keyval
         finished = time.time()
         self._write_keyval(self.results_dir(), "job_finished", int(finished))
 
         # parse the results of the job
-        if self.job.is_synchronous() or self.job.num_machines() == 1:
-            parse_results(self.job.results_dir())
-        else:
-            for queue_entry in self.queue_entries:
-                parse_results(queue_entry.results_dir(), flags="-l 2")
+        reparse_task = FinalReparseTask(self.queue_entries)
+        self.agent.dispatcher.add_agent(Agent([reparse_task]))
 
 
     def _log_abort(self):
@@ -1451,7 +1425,7 @@ class QueueTask(AgentTask):
     def abort(self):
         super(QueueTask, self).abort()
         self._log_abort()
-        self._finish_task()
+        self._finish_task(False)
 
 
     def _reboot_hosts(self):
@@ -1471,19 +1445,15 @@ class QueueTask(AgentTask):
 
     def epilog(self):
         super(QueueTask, self).epilog()
-        if self.success:
-            status = 'Completed'
-        else:
-            status = 'Failed'
-
         for queue_entry in self.queue_entries:
-            queue_entry.set_status(status)
+            # set status to PARSING here so queue entry is marked complete
+            queue_entry.set_status(models.HostQueueEntry.Status.PARSING)
             queue_entry.host.set_status('Ready')
 
-        self._finish_task()
+        self._finish_task(self.success)
         self._reboot_hosts()
 
-        print "queue_task finished with %s/%s" % (status, self.success)
+        print "queue_task finished with succes=%s" % self.success
 
 
 class RecoveryQueueTask(QueueTask):
@@ -1551,6 +1521,108 @@ class AbortTask(AgentTask):
         for agent in self.agents_to_abort:
             if (agent.active_task):
                 agent.active_task.abort()
+
+
+class FinalReparseTask(AgentTask):
+    MAX_PARSE_PROCESSES = (
+        global_config.global_config.get_config_value(
+            _global_config_section, 'max_parse_processes', type=int))
+    _num_running_parses = 0
+
+    def __init__(self, queue_entries):
+        self._queue_entries = queue_entries
+        self._parse_started = False
+
+        assert len(queue_entries) > 0
+        queue_entry = queue_entries[0]
+        job = queue_entry.job
+
+        flags = []
+        if job.is_synchronous():
+            assert len(queue_entries) == job.num_machines()
+        else:
+            assert len(queue_entries) == 1
+            if job.num_machines() > 1:
+                flags = ['-l', '2']
+
+        if _testing_mode:
+            self.cmd = 'true'
+            return
+
+        self._results_dir = queue_entry.results_dir()
+        self.log_file = os.path.abspath(os.path.join(self._results_dir,
+                                                     '.parse.log'))
+        super(FinalReparseTask, self).__init__(
+            cmd=self.generate_parse_command(flags=flags))
+
+
+    @classmethod
+    def _increment_running_parses(cls):
+        cls._num_running_parses += 1
+
+
+    @classmethod
+    def _decrement_running_parses(cls):
+        cls._num_running_parses -= 1
+
+
+    @classmethod
+    def _can_run_new_parse(cls):
+        return cls._num_running_parses < cls.MAX_PARSE_PROCESSES
+
+
+    def prolog(self):
+        super(FinalReparseTask, self).prolog()
+        for queue_entry in self._queue_entries:
+            queue_entry.set_status(models.HostQueueEntry.Status.PARSING)
+
+
+    def epilog(self):
+        super(FinalReparseTask, self).epilog()
+        final_status = self._determine_final_status()
+        for queue_entry in self._queue_entries:
+            queue_entry.set_status(final_status)
+
+
+    def _determine_final_status(self):
+        # use a PidfileRunMonitor to read the autoserv exit status
+        monitor = PidfileRunMonitor(self._results_dir)
+        if monitor.exit_code() == 0:
+            return models.HostQueueEntry.Status.COMPLETED
+        return models.HostQueueEntry.Status.FAILED
+
+
+    def generate_parse_command(self, flags=[]):
+        parse = os.path.abspath(os.path.join(AUTOTEST_TKO_DIR, 'parse'))
+        return [parse] + flags + ['-r', '-o', self._results_dir]
+
+
+    def poll(self):
+        # override poll to keep trying to start until the parse count goes down
+        # and we can, at which point we revert to default behavior
+        if self._parse_started:
+            super(FinalReparseTask, self).poll()
+        else:
+            self._try_starting_parse()
+
+
+    def run(self):
+        # override run() to not actually run unless we can
+        self._try_starting_parse()
+
+
+    def _try_starting_parse(self):
+        if not self._can_run_new_parse():
+            return
+        # actually run the parse command
+        super(FinalReparseTask, self).run()
+        self._increment_running_parses()
+        self._parse_started = True
+
+
+    def finished(self, success):
+        super(FinalReparseTask, self).finished(success)
+        self._decrement_running_parses()
 
 
 class DBObject(object):
@@ -1853,7 +1925,7 @@ class HostQueueEntry(DBObject):
             self.update_field('complete', False)
             self.update_field('active', True)
 
-        if status in ['Failed', 'Completed', 'Stopped', 'Aborted']:
+        if status in ['Failed', 'Completed', 'Stopped', 'Aborted', 'Parsing']:
             self.update_field('complete', True)
             self.update_field('active', False)
             self._email_on_job_complete()
