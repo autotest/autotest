@@ -455,26 +455,22 @@ class base_job(object):
             try:
                 self._runtest(url, tag, args, dargs)
             except error.TestBaseException, detail:
-                self.record(detail.exit_status, subdir, testname,
-                            str(detail))
+                self.record(detail.exit_status, subdir, testname, str(detail))
                 raise
             except Exception, detail:
-                self.record('FAIL', subdir, testname,
-                            str(detail))
+                self.record('FAIL', subdir, testname, str(detail))
                 raise
             else:
-                self.record('GOOD', subdir, testname,
-                            'completed successfully')
+                self.record('GOOD', subdir, testname, 'completed successfully')
 
-        result, exc_info = self._rungroup(subdir, testname, group_func)
-        if container:
-            self.release_container()
-        if exc_info and isinstance(exc_info[1], error.TestBaseException):
-            return False
-        elif exc_info:
-            raise exc_info[0], exc_info[1], exc_info[2]
-        else:
+        try:
+            self._rungroup(subdir, testname, group_func)
+            if container:
+                self.release_container()
             return True
+        except error.TestBaseException, e:
+            return False
+        # Any other exception here will be given to the caller
 
 
     def _rungroup(self, subdir, testname, function, *args, **dargs):
@@ -488,63 +484,52 @@ class base_job(object):
         *args:
                 arguments for the function
 
-        Returns a 2-tuple (result, exc_info) where result
-        is the return value of function, and exc_info is
-        the sys.exc_info() of the exception thrown by the
-        function (which may be None).
+        Returns the result of the passed in function
         """
 
-        result, exc_info = None, None
         try:
             self.record('START', subdir, testname)
             self._increment_group_level()
             result = function(*args, **dargs)
             self._decrement_group_level()
             self.record('END GOOD', subdir, testname)
+            return result
         except error.TestBaseException, e:
-            exc_info = sys.exc_info()
             self._decrement_group_level()
             self.record('END %s' % e.exit_status, subdir, testname, str(e))
+            raise
         except Exception, e:
-            exc_info = sys.exc_info()
             self._decrement_group_level()
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END FAIL', subdir, testname, err_msg)
+            raise
 
-        return result, exc_info
 
-
-    def run_group(self, function, *args, **dargs):
+    def run_group(self, function, **dargs):
         """\
         function:
                 subroutine to run
-        *args:
+        **dargs:
                 arguments for the function
         """
 
         # Allow the tag for the group to be specified
-        name = function.__name__
         tag = dargs.pop('tag', None)
         if tag:
             name = tag
+        else:
+            name = function.__name__
 
-        outputdir = os.path.join(self.resultdir, name)
-        if os.path.exists(outputdir):
-            msg = ("%s already exists, test <%s> may have"
-                    " already run with tag <%s>"
-                    % (outputdir, name, name) )
-            raise error.TestError(msg)
-        os.mkdir(outputdir)
-
-        result, exc_info = self._rungroup(name, name, function, *args, **dargs)
-
+        try:
+            return self._rungroup(subdir=None, testname=name,
+                                  function=function, **dargs)
+        except error.TestError:
+            pass
         # if there was a non-TestError exception, raise it
-        if exc_info and not isinstance(exc_info[1], error.TestError):
+        except Exception, e:
+            exc_info = sys.exc_info()
             err = ''.join(traceback.format_exception(*exc_info))
             raise error.TestError(name + ' failed\n' + err)
-
-        # pass back the actual return value from the function
-        return result
 
 
     def set_test_tag(self, tag=''):
@@ -717,6 +702,7 @@ class base_job(object):
         pids = []
         old_log_filename = self.log_filename
         for i, task in enumerate(tasklist):
+            assert isinstance(task, (tuple, list))
             self.log_filename = old_log_filename + (".%d" % i)
             task_func = lambda: task[0](*task[1:])
             pids.append(parallel.fork_start(self.resultdir, task_func))
