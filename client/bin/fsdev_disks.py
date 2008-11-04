@@ -208,10 +208,10 @@ def _legacy_str_to_test_flags(fs_desc_string):
     if not match:
         raise ValueError('unrecognized FS list entry %r' % fs_desc_string)
 
-    flags_obj = partition.FsOptions(filesystem=match.group(1).strip(),
+    flags_obj = partition.FsOptions(fstype=match.group(1).strip(),
                                     mkfs_flags=match.group(2).strip(),
                                     mount_options=match.group(3).strip(),
-                                    short_name=match.group(4).strip())
+                                    fs_tag=match.group(4).strip())
     return flags_obj
 
 
@@ -274,7 +274,7 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
                    fs_desc.mkfs_flags, fs_desc.mount_options)
 
     # Return(mount path of the first disk, test tag value, disk_list)
-    return (disk_list[0]['mountpt'], fs_desc.short_name, disk_list)
+    return (disk_list[0]['mountpt'], fs_desc.fs_tag, disk_list)
 
 
 def restore_disks(job, restore=False, disk_list=None):
