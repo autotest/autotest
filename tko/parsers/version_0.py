@@ -69,8 +69,19 @@ class kernel(models.kernel):
     @staticmethod
     def load_from_dir(dir, verify_ident=None):
         # try and load the booted kernel version
-        build_log = os.path.join(dir, "build", "debug", "build_log")
-        attributes = kernel.load_from_build_log(build_log)
+	attributes = False
+	i = 1
+	build_dir = os.path.join(dir, "build")
+	while True:
+	    if not os.path.exists(build_dir):
+		break
+	    build_log = os.path.join(build_dir, "debug", "build_log")
+            attributes = kernel.load_from_build_log(build_log)
+	    if attributes:
+		break
+	    i += 1
+	    build_dir = os.path.join(dir, "build.%d" % (i))
+
         if not attributes:
             if verify_ident:
                 base = verify_ident
