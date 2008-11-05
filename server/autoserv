@@ -43,15 +43,6 @@ class PidFileManager(object):
 
 
 def run_autoserv(pid_file_manager, results, parser):
-    if not results:
-        results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
-    results = os.path.abspath(results)
-    if os.path.exists(os.path.join(results, 'control.srv')):
-        error = "Error: results directory already exists: %s\n" % results
-        sys.stderr.write(error)
-        sys.exit(1)
-    print "Results placed in %s" % results
-
     # send stdin to /dev/null
     dev_null = os.open(os.devnull, os.O_RDONLY)
     os.dup2(dev_null, sys.stdin.fileno())
@@ -176,6 +167,16 @@ def main():
         parser.parser.print_help()
         sys.exit(1)
 
+    results  = parser.options.results
+    if not results:
+        results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
+    results  = os.path.abspath(results)
+    if os.path.exists(os.path.join(results, 'control.srv')):
+        error = "Error: results directory already exists: %s\n" % results
+        sys.stderr.write(error)
+        sys.exit(1)
+    print "Results placed in %s" % results
+
     write_pidfile = parser.options.write_pidfile
     if write_pidfile:
         pid_file_manager.open_pid_file(results)
@@ -183,7 +184,7 @@ def main():
     exit_code = 0
     try:
         try:
-            run_autoserv(pid_file_manager, parser.options.results, parser)
+            run_autoserv(pid_file_manager, results, parser)
         except SystemExit, e:
             exit_code = e.code
         except:
