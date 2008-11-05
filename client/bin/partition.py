@@ -198,8 +198,7 @@ class partition:
 
         # The tag is the tag for the group (get stripped off by run_group)
         # The test_tag is the tag for the test itself
-        print 'TAG: ' + tag
-        self.job.run_group(func, test_tag=tag, tag=tag,
+        self.job.run_group(func, test_tag=tag, tag=test + '.' + tag,
                            dir=self.mountpoint, **dargs)
 
 
