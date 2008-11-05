@@ -50,15 +50,15 @@ class base_autoserv_parser(object):
         self.parser.add_option("-I", action="store_true",
                                dest="install_after", default=False,
                         help="reinstall machines after running the job")
-        self.parser.add_option("-b", action="store_true",
-                               dest="reboot", default=False,
-                               help="reboot all machines after job")
         self.parser.add_option("-v", action="store_true",
                                dest="verify", default=False,
                                help="verify the machines only")
         self.parser.add_option("-R", action="store_true",
                                dest="repair", default=False,
                                help="repair the machines")
+        self.parser.add_option("-C", "--cleanup", action="store_true",
+                               default=False,
+                               help="cleanup all machines after the job")
         self.parser.add_option("-n", action="store_true",
                                dest="no_tee", default=False,
                               help="no teeing the status to stdout/err")
