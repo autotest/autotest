@@ -75,11 +75,11 @@ def run_autoserv(pid_file_manager, results, parser):
     user = parser.options.user
     client = parser.options.client
     server = parser.options.server
-    reboot = parser.options.reboot
     install_before = parser.options.install_before
     install_after = parser.options.install_after
     verify = parser.options.verify
     repair = parser.options.repair
+    cleanup = parser.options.cleanup
     no_tee = parser.options.no_tee
     parse_job = parser.options.parse_job
     host_protection = parser.options.host_protection
@@ -92,11 +92,11 @@ def run_autoserv(pid_file_manager, results, parser):
         print "Can not specify a test as both server and client!"
         sys.exit(1)
 
-    if len(parser.args) < 1 and not verify and not repair:
+    if len(parser.args) < 1 and not (verify or repair or cleanup):
         print parser.parser.print_help()
         sys.exit(1)
 
-    # We have a control file unless it's just a verify/repair job
+    # We have a control file unless it's just a verify/repair/cleanup job
     if len(parser.args) > 0:
         control = parser.args[0]
     else:
@@ -145,7 +145,7 @@ def run_autoserv(pid_file_manager, results, parser):
             job.verify()
         else:
             try:
-                job.run(reboot, install_before, install_after)
+                job.run(cleanup, install_before, install_after)
             finally:
                 job.cleanup_parser()
     except:

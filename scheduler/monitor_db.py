@@ -619,11 +619,10 @@ class Dispatcher:
 
         self._recover_parsing_entries()
 
-        # reverify hosts that were in the middle of verify, repair or
-        # reboot
+        # reverify hosts that were in the middle of verify, repair or cleanup
         self._reverify_hosts_where("""(status = 'Repairing' OR
                                        status = 'Verifying' OR
-                                       status = 'Rebooting')""",
+                                       status = 'Cleaning')""",
                                    exclude_ids=rebooting_host_ids)
 
         # finally, recover "Running" hosts with no active queue entries,
@@ -1459,10 +1458,10 @@ class QueueTask(AgentTask):
 
         for queue_entry in self.queue_entries:
             if do_reboot:
-                # don't pass the queue entry to the RebootTask. if the reboot
+                # don't pass the queue entry to the CleanupTask. if the cleanup
                 # fails, the job doesn't care -- it's over.
-                reboot_task = RebootTask(host=queue_entry.get_host())
-                self.agent.dispatcher.add_agent(Agent([reboot_task]))
+                cleanup_task = CleanupTask(host=queue_entry.get_host())
+                self.agent.dispatcher.add_agent(Agent([cleanup_task]))
             else:
                 queue_entry.host.set_status('Ready')
 
@@ -1495,31 +1494,28 @@ class RecoveryQueueTask(QueueTask):
         pass
 
 
-class RebootTask(AgentTask):
+class CleanupTask(AgentTask):
     def __init__(self, host=None, queue_entry=None):
         assert bool(host) ^ bool(queue_entry)
         if queue_entry:
             host = queue_entry.get_host()
 
-        # Current implementation of autoserv requires control file
-        # to be passed on reboot action request. TODO: remove when no
-        # longer appropriate.
-        self.create_temp_resultsdir('.reboot')
-        self.cmd = [_autoserv_path, '-b', '-m', host.hostname,
-                    '-r', self.temp_results_dir, '/dev/null']
+        self.create_temp_resultsdir('.cleanup')
+        self.cmd = [_autoserv_path, '--cleanup', '-m', host.hostname,
+                    '-r', self.temp_results_dir]
         self.queue_entry = queue_entry
         self.host = host
         repair_task = RepairTask(host, fail_queue_entry=queue_entry)
-        super(RebootTask, self).__init__(self.cmd, failure_tasks=[repair_task])
+        super(CleanupTask, self).__init__(self.cmd, failure_tasks=[repair_task])
 
 
     def prolog(self):
-        print "starting reboot task for host: %s" % self.host.hostname
-        self.host.set_status("Rebooting")
+        print "starting cleanup task for host: %s" % self.host.hostname
+        self.host.set_status("Cleaning")
 
 
     def epilog(self):
-        super(RebootTask, self).epilog()
+        super(CleanupTask, self).epilog()
         if self.success:
             self.host.set_status('Ready')
             self.host.update_field('dirty', 0)
@@ -2065,11 +2061,11 @@ class HostQueueEntry(DBObject):
 
         host = self.get_host()
         if host:
-            reboot_task = RebootTask(host=host)
+            cleanup_task = CleanupTask(host=host)
             verify_task = VerifyTask(host=host)
             # just to make sure this host does not get taken away
-            host.set_status('Rebooting')
-            tasks += [reboot_task, verify_task]
+            host.set_status('Cleaning')
+            tasks += [cleanup_task, verify_task]
 
         self.set_status('Aborting')
         return Agent(tasks=tasks, queue_entry_ids=[self.id])
@@ -2235,7 +2231,7 @@ class Job(DBObject):
 
         tasks = []
         if do_reboot:
-            tasks.append(RebootTask(queue_entry=queue_entry))
+            tasks.append(CleanupTask(queue_entry=queue_entry))
         tasks.append(verify_task_class(queue_entry=queue_entry))
         return tasks
 

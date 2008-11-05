@@ -1,9 +1,9 @@
-def reboot(machine):
+def cleanup(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
 
     host = hosts.create_host(hostname, user=user, port=port,
                              initialize=False, password=passwd)
-    host.reboot()
+    host.cleanup()
 
-job.parallel_simple(reboot, machines, log=False)
+job.parallel_simple(cleanup, machines, log=False)
