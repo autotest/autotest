@@ -139,6 +139,11 @@ class RemoteHost(base_classes.Host):
         self.log_reboot(reboot_func)
 
 
+    def cleanup(self):
+        super(RemoteHost, self).cleanup()
+        self.reboot()
+
+
     def get_tmp_dir(self):
         """
         Return the pathname of a directory on the host suitable

@@ -167,6 +167,10 @@ class Host(object):
         pass
 
 
+    def cleanup(self):
+        pass
+
+
     def machine_install(self):
         raise NotImplementedError('Machine install not implemented!')
 
