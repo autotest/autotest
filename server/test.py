@@ -99,6 +99,10 @@ class _sysinfo_logger(object):
 
 
 def runtest(job, url, tag, args, dargs):
-    logger = _sysinfo_logger(job)
+    if not dargs.pop('disable_sysinfo', False):
+        logger = _sysinfo_logger(job)
+        logging_args = [logger.before_hook, logger.after_hook]
+    else:
+        logging_args = [None, None]
     common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
-                        logger.before_hook, logger.after_hook)
+                        *logging_args)
