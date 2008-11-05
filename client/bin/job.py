@@ -120,6 +120,7 @@ class base_job(object):
         self.current_step_ancestry = []
         self.next_step_index = 0
         self.testtag = ''
+        self._test_tag_prefix = ''
 
         self._load_state()
         self.pkgmgr = packages.PackageManager(
@@ -406,6 +407,8 @@ class base_job(object):
         tntag = dargs.pop('tag', None)
         if tntag:         # per-test tag  is included in reported test name
             testname += '.' + str(tntag)
+        if self._test_tag_prefix:
+            testname += '.' + self._test_tag_prefix
         if self.testtag:  # job-level tag is included in reported test name
             testname += '.' + self.testtag
         subdir = testname
@@ -420,6 +423,8 @@ class base_job(object):
                     " already run with tag <%s>"
                     % (outputdir, testname, tag) )
             raise error.TestError(msg)
+        # NOTE: client/common_lib/test.py runtest() depends directory names
+        # being constructed the same way as in this code.
         os.mkdir(outputdir)
 
         container = dargs.pop('container', None)
@@ -533,8 +538,18 @@ class base_job(object):
 
 
     def set_test_tag(self, tag=''):
-        # set tag to be added to test name of all following run_test() steps
+        """Set tag to be added to test name of all following run_test steps."""
         self.testtag = tag
+
+
+    def set_test_tag_prefix(self, prefix):
+        """Set a prefix string to prepend to all future run_test steps.
+
+        Args:
+          prefix: A string to prepend to any run_test() step tags separated by
+              a '.'; use the empty string '' to clear it.
+        """
+        self._test_tag_prefix = prefix
 
 
     def new_container(self, mbytes=None, cpus=None, root=None, name=None,
@@ -805,7 +820,7 @@ class base_job(object):
             assert(len(dargs) == 0)
             args = fn[1:]
             fn = fn[0]
-        # Pickling actual functions is harry, thus we have to call
+        # Pickling actual functions is hairy, thus we have to call
         # them by name.  Unfortunately, this means only functions
         # defined globally can be used as a next step.
         if callable(fn):
@@ -877,6 +892,7 @@ class base_job(object):
             current_frame = copy.copy(ret)
             frames.append(current_frame)
 
+        # Walk up the stack frames until we find the place fn_name was defined.
         while len(frames) > 2:
             if fn_name not in frames[-2]:
                 break

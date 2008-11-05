@@ -10,17 +10,26 @@ import frontend.settings
 AUTOTEST_DIR = os.path.abspath(os.path.join(
     os.path.dirname(frontend.settings.__file__), '..'))
 
+CLIENT_EMPTY_TEMPLATE = 'def step_init():\n'
 
 CLIENT_KERNEL_TEMPLATE = """\
-kernel = '%(kernel)s'
+kernel_list = %(kernel_list)r
+
 def step_init():
-    job.next_step([step_test])
-    testkernel = job.kernel('%(kernel)s')
+    for kernel_version in kernel_list:
+        job.next_step(boot_kernel, kernel_version)
+        job.next_step(step_test, kernel_version)
+
+def boot_kernel(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
+    testkernel = job.kernel(kernel_version)
     %(kernel_config_line)s
     testkernel.install()
     testkernel.boot(args='%(kernel_args)s')
 
-def step_test():
+def step_test(kernel_version):
+    job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.
 """
 
 SERVER_KERNEL_TEMPLATE = """\
@@ -54,15 +63,18 @@ def read_control_file(test):
     return control_contents
 
 
-def get_kernel_stanza(kernel, platform=None, kernel_args='', is_server=False):
+def get_kernel_stanza(kernel_list, platform=None, kernel_args='',
+                      is_server=False):
     if is_server:
         template = SERVER_KERNEL_TEMPLATE
     else:
         template = CLIENT_KERNEL_TEMPLATE
 
     stanza = template % {
-        'kernel' : kernel,
-        'kernel_config_line' : kernel_config_line(kernel, platform),
+        'kernel_list' : kernel_list,
+        # XXX This always looks up the config line using the first kernel
+        # in the list rather than doing it for each kernel.
+        'kernel_config_line' : kernel_config_line(kernel_list[0], platform),
         'kernel_args' : kernel_args}
     return stanza
 
@@ -84,7 +96,21 @@ def format_step(item, lines):
     return lines
 
 
-def get_tests_stanza(tests, is_server, prepend=[], append=[]):
+def get_tests_stanza(tests, is_server, prepend=None, append=None):
+    """Constructs the control file test step code from a list of tests.
+
+    Args:
+      tests: A sequence of test control files to run.
+      is_server: Boolean - is this a server side test?
+      prepend: A list of steps to prepend to each client test.  Defaults to [].
+      append: A list of steps to append to each client test.  Defaults to [].
+    Returns:
+      The control file test code to be run.
+    """
+    if not prepend:
+        prepend = []
+    if not append:
+        append = []
     raw_control_files = [read_control_file(test) for test in tests]
     return _get_tests_stanza(raw_control_files, is_server, prepend, append)
 
@@ -106,7 +132,6 @@ def indent_text(text, indent):
 
 
 def _get_profiler_commands(profilers, is_server):
-    'Return (prepend, append)'
     prepend, append = [], []
     if is_server:
         return prepend, append
@@ -116,14 +141,36 @@ def _get_profiler_commands(profilers, is_server):
     return prepend, append
 
 
+def split_kernel_list(kernel_string):
+    """Split the kernel(s) string from the user into a list of kernels.
+
+    We allow multiple kernels to be listed separated by a space or comma.
+    """
+    return re.split('[\s,]+', kernel_string.strip())
+
+
 def generate_control(tests, kernel=None, platform=None, is_server=False,
-                     profilers=[]):
+                     profilers=()):
+    """Generate a control file for a sequence of tests.
+
+    Args:
+      tests: A sequence of test control files to run.
+      kernel: A string listing one or more kernel versions to test separated
+          by spaces or commas.
+      platform: A platform object with a kernel_config attribute.
+      is_server: Boolean - is a server control file rather than a client?
+      profilers: A list of profiler objects to enable during the tests.
+
+    Returns:
+      The control file text as a string.
+    """
     control_file_text = ''
     if kernel:
-        control_file_text = get_kernel_stanza(kernel, platform,
+        kernel_list = split_kernel_list(kernel)
+        control_file_text = get_kernel_stanza(kernel_list, platform,
                                               is_server=is_server)
     elif not is_server:
-        control_file_text = 'def step_init():\n'
+        control_file_text = CLIENT_EMPTY_TEMPLATE
 
     prepend, append = _get_profiler_commands(profilers, is_server)
 
