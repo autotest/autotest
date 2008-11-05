@@ -495,13 +495,13 @@ class FindAbortTest(BaseSchedulerTest):
         self.assert_(isinstance(agent, monitor_db.Agent))
         tasks = list(agent.queue.queue)
         self.assertEquals(len(tasks), 3)
-        abort, reboot, verify = tasks
+        abort, cleanup, verify = tasks
 
         self.assert_(isinstance(abort, monitor_db.AbortTask))
         self.assertEquals(abort.queue_entry.id, entry_and_host_id)
 
-        self.assert_(isinstance(reboot, monitor_db.RebootTask))
-        self.assertEquals(reboot.host.id, entry_and_host_id)
+        self.assert_(isinstance(cleanup, monitor_db.CleanupTask))
+        self.assertEquals(cleanup.host.id, entry_and_host_id)
 
         self.assert_(isinstance(verify, monitor_db.VerifyTask))
         self.assertEquals(verify.host.id, entry_and_host_id)
@@ -1057,10 +1057,10 @@ class AgentTasksTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _test_reboot_task_helper(self, success, use_queue_entry=False):
+    def _test_cleanup_task_helper(self, success, use_queue_entry=False):
         if use_queue_entry:
             self.queue_entry.get_host.expect_call().and_return(self.host)
-        self.host.set_status.expect_call('Rebooting')
+        self.host.set_status.expect_call('Cleaning')
         if success:
             self.setup_run_monitor(0)
             self.host.set_status.expect_call('Ready')
@@ -1071,9 +1071,9 @@ class AgentTasksTest(unittest.TestCase):
                 self.queue_entry.requeue.expect_call()
 
         if use_queue_entry:
-            task = monitor_db.RebootTask(queue_entry=self.queue_entry)
+            task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
         else:
-            task = monitor_db.RebootTask(host=self.host)
+            task = monitor_db.CleanupTask(host=self.host)
         self.assertEquals(len(task.failure_tasks), 1)
         repair_task = task.failure_tasks[0]
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
@@ -1084,16 +1084,16 @@ class AgentTasksTest(unittest.TestCase):
 
         self.god.check_playback()
         self.assert_(set(task.monitor.cmd) >=
-                        set(['autoserv', '-b', '-m', self.HOSTNAME,
-                             '-r', self.TEMP_DIR, '/dev/null']))
+                        set(['autoserv', '--cleanup', '-m', self.HOSTNAME,
+                             '-r', self.TEMP_DIR]))
 
-    def test_reboot_task(self):
-        self._test_reboot_task_helper(True)
-        self._test_reboot_task_helper(False)
+    def test_cleanup_task(self):
+        self._test_cleanup_task_helper(True)
+        self._test_cleanup_task_helper(False)
 
 
-    def test_reboot_task_with_queue_entry(self):
-        self._test_reboot_task_helper(False, True)
+    def test_cleanup_task_with_queue_entry(self):
+        self._test_cleanup_task_helper(False, True)
 
 
 class JobTest(BaseSchedulerTest):
@@ -1183,9 +1183,9 @@ class JobTest(BaseSchedulerTest):
 
         tasks = self._test_run_helper()
         self.assertEquals(len(tasks), 3)
-        reboot_task = tasks[0]
-        self.assert_(isinstance(reboot_task, monitor_db.RebootTask))
-        self.assertEquals(reboot_task.host.id, 1)
+        cleanup_task = tasks[0]
+        self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
+        self.assertEquals(cleanup_task.host.id, 1)
 
 
     def _test_reboot_before_if_dirty_helper(self, expect_reboot):
@@ -1196,9 +1196,9 @@ class JobTest(BaseSchedulerTest):
         tasks = self._test_run_helper()
         self.assertEquals(len(tasks), expect_reboot and 3 or 2)
         if expect_reboot:
-            reboot_task = tasks[0]
-            self.assert_(isinstance(reboot_task, monitor_db.RebootTask))
-            self.assertEquals(reboot_task.host.id, 1)
+            cleanup_task = tasks[0]
+            self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
+            self.assertEquals(cleanup_task.host.id, 1)
 
     def test_reboot_before_if_dirty(self):
         models.Host.smart_get(1).update_object(dirty=True)

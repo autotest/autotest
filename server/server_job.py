@@ -27,8 +27,8 @@ MACHINES_FILENAME = '.machines'
 CLIENT_WRAPPER_CONTROL_FILE = _control_segment_path('client_wrapper')
 CRASHDUMPS_CONTROL_FILE = _control_segment_path('crashdumps')
 CRASHINFO_CONTROL_FILE = _control_segment_path('crashinfo')
-REBOOT_SEGMENT_CONTROL_FILE = _control_segment_path('reboot_segment')
 INSTALL_CONTROL_FILE = _control_segment_path('install')
+CLEANUP_CONTROL_FILE = _control_segment_path('cleanup')
 
 VERIFY_CONTROL_FILE = _control_segment_path('verify')
 REPAIR_CONTROL_FILE = _control_segment_path('repair')
@@ -98,7 +98,7 @@ class base_server_job(object):
             self.control = open(control, 'r').read()
             self.control = re.sub('\r', '', self.control)
         else:
-            self.control = None
+            self.control = ''
         self.resultdir = resultdir
         if not os.path.exists(resultdir):
             os.mkdir(resultdir)
@@ -302,7 +302,7 @@ class base_server_job(object):
         subcommand.parallel_simple(wrapper, machines, log, timeout)
 
 
-    def run(self, reboot = False, install_before = False,
+    def run(self, cleanup = False, install_before = False,
             install_after = False, collect_crashdumps = True,
             namespace = {}):
         # use a copy so changes don't affect the original dictionary
@@ -346,8 +346,8 @@ class base_server_job(object):
                 else:
                     self._execute_code(CRASHDUMPS_CONTROL_FILE, namespace)
             self.disable_external_logging()
-            if reboot and machines:
-                self._execute_code(REBOOT_SEGMENT_CONTROL_FILE, namespace)
+            if cleanup and machines:
+                self._execute_code(CLEANUP_CONTROL_FILE, namespace)
             if install_after and machines:
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
