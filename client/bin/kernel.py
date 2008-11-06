@@ -156,11 +156,11 @@ class kernel(object):
 
     @log.record
     @tee_output_logdir_mark
-    def config(self, config_file = '', config_list = None, defconfig = False):
+    def config(self, config_file = '', config_list = None, defconfig = False, make = None):
         self.set_cross_cc()
         config = kernel_config.kernel_config(self.job, self.build_dir,
                  self.config_dir, config_file, config_list,
-                 defconfig, self.base_tree_version)
+                 defconfig, self.base_tree_version, make)
 
 
     def get_patches(self, patches):
