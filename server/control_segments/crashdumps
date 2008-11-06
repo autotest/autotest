@@ -3,7 +3,8 @@ def crashdumps(machine):
                                                  ssh_port, ssh_pass)
 
     host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
+                             initialize=False, password=passwd,
+                             auto_monitor=False)
     host.get_crashdumps(test_start_time)
 
 job.parallel_simple(crashdumps, machines, log=False)
