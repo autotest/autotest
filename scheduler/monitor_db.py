@@ -2160,6 +2160,8 @@ class Job(DBObject):
     def stop_all_entries(self):
         for child_entry in self.get_host_queue_entries():
             if not child_entry.complete:
+                if child_entry.status == 'Pending':
+                    child_entry.host.set_status('Ready')
                 child_entry.set_status('Stopped')
 
 
