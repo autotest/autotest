@@ -3,7 +3,8 @@ def install(machine):
                                                  ssh_port, ssh_pass)
 
     host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
+                             initialize=False, password=passwd,
+                             auto_monitor=False)
     host.machine_install()
 
 job.parallel_simple(install, machines, log=False)

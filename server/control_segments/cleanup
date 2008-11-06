@@ -3,7 +3,8 @@ def cleanup(machine):
                                                  ssh_port, ssh_pass)
 
     host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd)
+                             initialize=False, password=passwd,
+                             auto_monitor=False)
     host.cleanup()
 
 job.parallel_simple(cleanup, machines, log=False)
