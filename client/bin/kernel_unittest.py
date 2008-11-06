@@ -229,7 +229,7 @@ class TestKernel(unittest.TestCase):
         self.kernel.set_cross_cc.expect_call()
         kernel_config.kernel_config.expect_new(self.job, self.build_dir,
                                                self.config_dir, '', None,
-                                               False, self.base_tree)
+                                               False, self.base_tree, None)
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.config')
 
         # run
