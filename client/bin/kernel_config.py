@@ -77,13 +77,13 @@ class kernel_config(object):
 
 
     def __init__(self, job, build_dir, config_dir, orig_file,
-                            overrides, defconfig = False, name = None):
+                            overrides, defconfig = False, name = None, make = None):
         self.build_dir = build_dir
         self.config_dir = config_dir
 
         #       1. Get original config file
         self.build_config = build_dir + '/.config'
-        if (orig_file == '' and not defconfig): # use user default
+        if (orig_file == '' and not defconfig and not make):    # use user default
             set = job.config_get("kernel.default_config_set")
             defconf = None
             if set and name:
@@ -92,10 +92,15 @@ class kernel_config(object):
                 defconf = job.config_get("kernel.default_config")
             if defconf:
                 orig_file = defconf
-        if (orig_file == '' or defconfig):      # use defconfig
-            print "kernel_config: using defconfig to configure kernel"
+        if (orig_file == '' and not make and defconfig):        # use defconfig
+            make = 'defconfig'
+        if (orig_file == '' and make): # use the config command
+            print "kernel_config: using " + make + " to configure kernel"
             os.chdir(build_dir)
-            utils.system('make defconfig > /dev/null')
+            make_return = utils.system('make %s > /dev/null' % make)
+            self.config_record(make)
+            if (make_return):
+                raise error.TestError('make % failed' % make)
         else:
             print "kernel_config: using " + orig_file + \
                                             " to configure kernel"
@@ -125,3 +130,12 @@ class kernel_config(object):
         utils.system('yes "" | make oldconfig > /dev/null')
         if new_config:
             shutil.copyfile(self.build_config, new_config)
+    
+    def config_record(self, name):
+        #Copy the current .config file to the config.<name>[.<n>]
+        i = 1 
+        to = self.config_dir + '/config.%s' % name
+        while os.path.exists(to):
+            i += 1
+            to = self.config_dir + '/config.%s.%d' % (name,i)
+        shutil.copyfile(self.build_dir + '/.config', to) 
