@@ -239,9 +239,15 @@ class partition:
         print mkfs_cmd
         sys.stdout.flush()
         try:
-            output = utils.system_output("yes | %s" % mkfs_cmd)
+            # We throw away the output here - we only need it on error, in
+            # which case it's in the exception
+            utils.system_output("yes | %s" % mkfs_cmd)
+        except error.CmdError, e:
+            print e.result_obj
+            if record:
+                self.job.record('FAIL', None, mkfs_cmd, error.format_error())
+            raise
         except:
-            print output
             if record:
                 self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
