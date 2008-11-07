@@ -96,8 +96,8 @@ class RPMKernel(kernel.Kernel):
             raise error.AutoservError("A kernel must first be \
             specified via get()")
 
-        retval = utils.run('rpm -qpi %s | grep Version | \
-        awk \'{print($3);}\'' % utils.sh_escape(self.source_material))
+        retval = utils.run('rpm -qpi %s | grep Version | awk \'{print($3);}\''
+            % utils.sh_escape(self.source_material))
         return retval.stdout.strip()
 
 
@@ -116,8 +116,8 @@ class RPMKernel(kernel.Kernel):
             raise error.AutoservError("A kernel must first be \
             specified via get()")
 
-        vmlinuz = utils.run('rpm -q -l -p %s \
-        | grep /boot/vmlinuz' % self.source_material).stdout.strip()
+        vmlinuz = utils.run('rpm -q -l -p %s | grep /boot/vmlinuz'
+            % self.source_material).stdout.strip()
         return vmlinuz
 
 
@@ -138,8 +138,8 @@ class RPMKernel(kernel.Kernel):
             raise error.AutoservError("A kernel must first be \
             specified via get()")
 
-        vmlinux = utils.run('rpm -q -l -p %s \
-        | grep /boot/vmlinux' % self.source_material).stdout.strip()
+        vmlinux = utils.run('rpm -q -l -p %s | grep /boot/vmlinux'
+            % self.source_material).stdout.strip()
         return vmlinux
 
 
@@ -159,8 +159,8 @@ class RPMKernel(kernel.Kernel):
             raise error.AutoservError("A kernel must first be \
             specified via get()")
 
-        res = utils.run('rpm -q -l -p %s \
-        | grep /boot/initrd' % self.source_material, ignore_status=True)
+        res = utils.run('rpm -q -l -p %s | grep /boot/initrd'
+            % self.source_material, ignore_status=True)
         if res.exit_status:
             return None
         return res.stdout.strip()

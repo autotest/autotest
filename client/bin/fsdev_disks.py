@@ -200,6 +200,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
     # Try to wipe the file system slate clean
     autotest_utils.drop_caches()
 
+
 # XXX(gps): Remove this code once refactoring is complete to get rid of these
 # nasty test description strings.
 def _legacy_str_to_test_flags(fs_desc_string):
@@ -359,6 +360,9 @@ def prepare_fsdev(job):
     global FSDEV_DISKLIST
     global FSDEV_PREP_CNT
 
+    if not FSDEV_FS_DESC:
+        return (None, None)
+
     # Avoid preparing the same thing more than once
     FSDEV_PREP_CNT += 1
     if FSDEV_PREP_CNT > 1:
@@ -462,7 +466,10 @@ class fsdev_disks:
             if endKV < 0:
                 raise Exception("Config entry missing closing bracket: "
                                                                      + cfgline)
-            if cfgline[5:endKV] != self.kernel_ver[0:em = cfgline[endKV+2:].strip()
+            if cfgline[5:endKV] != self.kernel_ver[0:endKV-5]:
+                continue
+
+            tune_parm = cfgline[endKV+2:].strip()
             equal = tune_parm.find("=")
             if equal < 1 or equal == len(tune_parm) - 1:
                 raise Exception("Config entry doesn't have 'parameter=value' :"
