@@ -1,0 +1,7 @@
+DOC = '''\
+Build libcap (without filesystem setting/getting support for now, which
+introduces another libattr dependency). Source code from:
+http://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2
+'''
+
+job.setup_dep(['libcap'])
