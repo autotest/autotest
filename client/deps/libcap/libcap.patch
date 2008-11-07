@@ -1,0 +1,19 @@
+--- Makefile	2008-10-16 21:31:01.000000000 -0700
++++ Makefile	2008-11-06 09:56:12.000000000 -0800
+@@ -10,14 +10,14 @@
+ STALIBNAME=$(LIBTITLE).a
+ #
+ 
+-FILES=cap_alloc cap_proc cap_extint cap_flag cap_text cap_file
++FILES=cap_alloc cap_proc cap_extint cap_flag cap_text 
+ 
+ INCLS=libcap.h cap_names.h $(INCS)
+ OBJS=$(addsuffix .o, $(FILES))
+ MAJLIBNAME=$(LIBNAME).$(VERSION)
+ MINLIBNAME=$(MAJLIBNAME).$(MINOR)
+ GPERF_OUTPUT = _caps_output.gperf
+-LDFLAGS += -lattr
++#LDFLAGS += -lattr
+ 
+ all: $(MINLIBNAME) $(STALIBNAME)
+ 
