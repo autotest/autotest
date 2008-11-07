@@ -16,7 +16,7 @@ execute() and output() methods.
 
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
-import os, sys, optparse, re, base64, traceback
+import os, sys, optparse, re, traceback
 
 import common
 from autotest_lib.cli import topic_common
