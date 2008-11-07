@@ -10,9 +10,22 @@
 
 import sys, re, os, time
 
-
+log_timestamp_format = '[%Y-%m-%d %H:%M:%S]'
 logfile = open(sys.argv[1], 'a', 0)
 warnfile = os.fdopen(int(sys.argv[2]), 'w', 0)
+
+
+def prepend_timestamp(msg, format=None):
+    if not format:
+        timestamp = str(int(time.time()))
+    else:
+        timestamp = time.strftime(format, time.localtime())
+    return "%s\t%s" % (timestamp, msg)
+
+
+def write_logline(msg):
+    timestamped_msg = prepend_timestamp(msg.rstrip(), log_timestamp_format)
+    logfile.write(timestamped_msg + '\n')
 
 
 # the format for a warning used here is:
@@ -20,7 +33,7 @@ warnfile = os.fdopen(int(sys.argv[2]), 'w', 0)
 def make_alert(msg):
     def alert(*params):
         formatted_msg = msg % params
-        timestamped_msg = "%d\t%s" % (time.time(), formatted_msg)
+        timestamped_msg = prepend_timestamp(formatted_msg)
         print >> warnfile, timestamped_msg
     return alert
 
@@ -49,10 +62,13 @@ while True:
         # this should only happen if the remote console unexpectedly goes away
         # terminate this process so that we don't spin forever doing 0-length
         # reads off of stdin
-        logfile.write("\nConsole connection unexpectedly lost. Terminating"
-                      " monitor.\n")
+        write_logline(
+            'Console connection unexpectedly lost. Terminating monitor.')
+
         break
-    logfile.write(line)
+
+    write_logline(line)
+
     for regex, callback in hooks:
         match = re.match(regex, line.strip())
         if match:
