@@ -491,14 +491,21 @@ class FindAbortTest(BaseSchedulerTest):
     """
     Test the dispatcher abort functionality.
     """
-    def _check_agent(self, agent, entry_and_host_id):
+    def _check_agent(self, agent, entry_and_host_id, include_host_tasks):
         self.assert_(isinstance(agent, monitor_db.Agent))
         tasks = list(agent.queue.queue)
-        self.assertEquals(len(tasks), 3)
-        abort, cleanup, verify = tasks
+        self.assert_(len(tasks) > 0)
 
+        abort = tasks[0]
         self.assert_(isinstance(abort, monitor_db.AbortTask))
         self.assertEquals(abort.queue_entry.id, entry_and_host_id)
+
+        if not include_host_tasks:
+            self.assertEquals(len(tasks), 1)
+            return
+
+        self.assertEquals(len(tasks), 3)
+        cleanup, verify = tasks[1:]
 
         self.assert_(isinstance(cleanup, monitor_db.CleanupTask))
         self.assertEquals(cleanup.host.id, entry_and_host_id)
@@ -507,10 +514,10 @@ class FindAbortTest(BaseSchedulerTest):
         self.assertEquals(verify.host.id, entry_and_host_id)
 
 
-    def _check_agents(self, agents):
+    def _check_agents(self, agents, include_host_tasks):
         self.assertEquals(len(agents), 2)
         for index, agent in enumerate(agents):
-            self._check_agent(agent, index + 1)
+            self._check_agent(agent, index + 1, include_host_tasks)
 
 
     def test_find_aborting_inactive(self):
@@ -519,7 +526,7 @@ class FindAbortTest(BaseSchedulerTest):
 
         self._dispatcher._find_aborting()
 
-        self._check_agents(self._dispatcher._agents)
+        self._check_agents(self._dispatcher._agents, include_host_tasks=False)
         self.god.check_playback()
 
 
@@ -533,7 +540,7 @@ class FindAbortTest(BaseSchedulerTest):
 
         self._dispatcher._find_aborting()
 
-        self._check_agents(self._dispatcher._agents)
+        self._check_agents(self._dispatcher._agents, include_host_tasks=True)
         self.god.check_playback()
 
         # ensure agent gets aborted
