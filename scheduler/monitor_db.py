@@ -2060,7 +2060,7 @@ class HostQueueEntry(DBObject):
         tasks = [abort_task]
 
         host = self.get_host()
-        if host:
+        if self.active and host:
             cleanup_task = CleanupTask(host=host)
             verify_task = VerifyTask(host=host)
             # just to make sure this host does not get taken away
