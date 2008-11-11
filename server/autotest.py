@@ -451,7 +451,12 @@ class _Run(object):
                     print "Client complete"
                     return
                 elif re.match('^\t*GOOD\t----\treboot\.start.*$', last):
-                    self._wait_for_reboot()
+                    try:
+                        self._wait_for_reboot()
+                    except error.AutotestRunError, e:
+                        job.record("ABORT", None, "reboot", str(e))
+                        job.record("END ABORT", None, None, str(e))
+                        raise
                     continue
 
                 # if we reach here, something unexpected happened
