@@ -73,19 +73,75 @@ def wipe_filesystem(job, mountpoint):
         job.record('GOOD', None, wipe_cmd)
 
 
-def get_partition_list(job):
+def filter_non_linux(part_name):
+    """Return false if the supplied partition name is not type 83 linux."""
+    part_device = '/dev/' + part_name
+    disk_device = part_device.rstrip('0123456789')
+    # Parse fdisk output to get partition info.  Ugly but it works.
+    fdisk_fd = os.popen("/sbin/fdisk -l -u '%s'" % disk_device)
+    fdisk_lines = fdisk_fd.readlines()
+    fdisk_fd.close()
+    for line in fdisk_lines:
+        if not line.startswith(part_device):
+            continue
+        info_tuple = line.split()
+        # The Id will be in one of two fields depending on if the boot flag
+        # was set.  Caveat: this assumes no boot partition will be 83 blocks.
+        for fsinfo in info_tuple[4:6]:
+            if fsinfo == '83':  # hex 83 is the linux fs partition type
+                return True
+    return False
+
+
+def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
+                       __open=open):
+    """Get a list of partition objects for all disk partitions on the system.
+
+    Loopback devices and unnumbered (whole disk) devices are always excluded.
+
+    Args:
+      job: The job instance to pass to the partition object constructor.
+      min_blocks: The minimum number of blocks for a partition to be considered.
+      filter_func: A callable that returns True if a partition is desired.
+          It will be passed one parameter: The partition name (hdc3, etc.).
+          Some useful filter functions are already defined in this module.
+      exclude_swap: If True any partition actively in use as a swap device
+          will be excluded.
+      __open: Reserved for unit testing.
+
+    Returns:
+      A list of partition object instances.
+    """
+    active_swap_devices = set()
+    if exclude_swap:
+        for swapline in __open('/proc/swaps'):
+            if swapline.startswith('/'):
+                active_swap_devices.add(swapline.split()[0])
+
     partitions = []
-    for partline in open('/proc/partitions').readlines():
+    for partline in __open('/proc/partitions').readlines():
         fields = partline.strip().split()
         if len(fields) != 4 or partline.startswith('major'):
             continue
         (major, minor, blocks, partname) = fields
+        blocks = int(blocks)
 
         # The partition name better end with a digit, else it's not a partition
-        if not partname[-1:].isdigit():
+        if not partname[-1].isdigit():
             continue
 
         device = '/dev/' + partname
+        if exclude_swap and device in active_swap_devices:
+            print 'get_partition_list() skipping', partname, '- Active swap.'
+            continue
+
+        if min_blocks and blocks < min_blocks:
+            print 'get_partition_list() skipping', partname, '- Too small.'
+            continue
+
+        if filter_func and not filter_func(partname):
+            print 'get_partition_list() skipping', partname, '- filter_func.'
+            continue
 
         partitions.append(partition(job, device))
 
@@ -124,7 +180,7 @@ def filesystems():
     return [re.sub('(nodev)?\s*', '', fs) for fs in open('/proc/filesystems')]
 
 
-class partition:
+class partition(object):
     """
     Class for handling partitions and filesystems
     """
