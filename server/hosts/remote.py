@@ -144,7 +144,7 @@ class RemoteHost(base_classes.Host):
         self.reboot()
 
 
-    def get_tmp_dir(self):
+    def get_tmp_dir(self, parent='/tmp'):
         """
         Return the pathname of a directory on the host suitable
         for temporary file storage.
@@ -153,7 +153,8 @@ class RemoteHost(base_classes.Host):
         on the destruction of the Host object that was used to obtain
         it.
         """
-        dir_name= self.run("mktemp -d /tmp/autoserv-XXXXXX").stdout.rstrip()
+        template = os.path.join(parent, 'autoserv-XXXXXX')
+        dir_name= self.run("mktemp -d %s" % template).stdout.rstrip()
         self.tmp_dirs.append(dir_name)
         return dir_name
 
