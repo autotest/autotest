@@ -22,7 +22,6 @@ from kvm_guest import KVMGuest
 # extra logger classes
 from serial import SerialHost
 from netconsole import NetconsoleHost
-from dmesg import DmesgHost
 
 # bootloader classes
 from bootloader import Bootloader
