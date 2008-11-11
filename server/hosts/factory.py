@@ -1,7 +1,6 @@
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import site_factory, abstract_ssh
-from autotest_lib.server.hosts import ssh_host, serial, netconsole
+from autotest_lib.server.hosts import site_factory, ssh_host, serial
 from autotest_lib.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
@@ -25,34 +24,21 @@ def create_host(
         if serial.SerialHost.host_is_supported(hostname, **conmux_args):
             classes.append(serial.SerialHost)
         else:
-            # no serial host available, try netconsole logging if available
-            def run_func(cmd):
-                base_cmd = abstract_ssh.make_ssh_command(connect_timeout=3)
-                full_cmd = '%s %s "%s"' % (base_cmd, hostname,
-                                           server_utils.sh_escape(cmd))
-                try:
-                    utils.run(full_cmd)
-                except error.CmdError:
-                    pass
-
-            if netconsole.NetconsoleHost.host_is_supported(run_func):
-                classes.append(netconsole.NetconsoleHost)
+            # no serial available, fall back to direct dmesg logging
+            if follow_paths is None:
+                follow_paths = [DEFAULT_FOLLOW_PATH]
             else:
-                # nothing available, fall back to direct dmesg logging
-                if follow_paths is None:
-                    follow_paths = [DEFAULT_FOLLOW_PATH]
-                else:
-                    follow_paths = list(follow_paths) + [DEFAULT_FOLLOW_PATH]
+                follow_paths = list(follow_paths) + [DEFAULT_FOLLOW_PATH]
 
-                if pattern_paths is None:
-                    pattern_paths = [DEFAULT_PATTERNS_PATH]
-                else:
-                    pattern_paths = (
-                        list(pattern_paths) + [DEFAULT_PATTERNS_PATH])
+            if pattern_paths is None:
+                pattern_paths = [DEFAULT_PATTERNS_PATH]
+            else:
+                pattern_paths = (
+                    list(pattern_paths) + [DEFAULT_PATTERNS_PATH])
 
-                logfile_monitor_class = logfile_monitor.NewLogfileMonitorMixin(
-                    follow_paths, pattern_paths)
-                classes.append(logfile_monitor_class)
+            logfile_monitor_class = logfile_monitor.NewLogfileMonitorMixin(
+                follow_paths, pattern_paths)
+            classes.append(logfile_monitor_class)
 
     elif follow_paths:
         logfile_monitor_class = logfile_monitor.NewLogfileMonitorMixin(
