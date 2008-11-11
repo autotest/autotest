@@ -129,23 +129,35 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     db.commit()
 
 
-def parse_path(db, path, level, reparse, mail_on_failure):
+def _get_job_subdirs(path):
+    """
+    Returns a list of job subdirectories at path. Returns None if the test
+    is itself a job directory. Does not recurse into the subdirs.
+    """
+    # if there's a .machines file, use it to get the subdirs
     machine_list = os.path.join(path, ".machines")
     if os.path.exists(machine_list):
+        return set(line.strip() for line in file(machine_list))
+
+    # if this dir contains ONLY subdirectories, return them
+    contents = set(os.listdir(path))
+    contents.discard(".parse.lock")
+    subdirs = set(sub for sub in contents if
+                  os.path.isdir(os.path.join(path, sub)))
+    if len(contents) == len(subdirs) != 0:
+        return subdirs
+
+    # this is a job directory, or something else we don't understand
+    return None
+
+
+def parse_path(db, path, level, reparse, mail_on_failure):
+    job_subdirs = _get_job_subdirs(path)
+    if job_subdirs is not None:
         # multi-machine job
-        for m in file(machine_list):
-            machine = m.rstrip()
-            if not machine:
-                continue
-            jobpath = os.path.join(path, machine)
-            jobname = "%s/%s" % (os.path.basename(path), machine)
-            try:
-                db.run_with_retry(parse_one, db, jobname,
-                                  jobpath, reparse,
-                                  mail_on_failure)
-            except Exception:
-                traceback.print_exc()
-                continue
+        for subdir in job_subdirs:
+            jobpath = os.path.join(path, subdir)
+            parse_path(db, jobpath, level + 1, reparse, mail_on_failure)
     else:
         # single machine job
         job_elements = path.split("/")[-level:]
