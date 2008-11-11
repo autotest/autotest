@@ -1,13 +1,18 @@
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import site_factory, abstract_ssh
-from autotest_lib.server.hosts import ssh_host, serial, netconsole, dmesg
+from autotest_lib.server.hosts import ssh_host, serial, netconsole
+from autotest_lib.server.hosts import logfile_monitor
+
+DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
+DEFAULT_PATTERNS_PATH = 'console_patterns'
 
 
 # for tracking which hostnames have already had job_start called
 _started_hostnames = set()
 
-def create_host(hostname, auto_monitor=True, **args):
+def create_host(
+    hostname, auto_monitor=True, follow_paths=None, pattern_paths=None, **args):
     # by default assume we're using SSH support
     classes = [ssh_host.SSHHost]
 
@@ -34,7 +39,25 @@ def create_host(hostname, auto_monitor=True, **args):
                 classes.append(netconsole.NetconsoleHost)
             else:
                 # nothing available, fall back to direct dmesg logging
-                classes.append(dmesg.DmesgHost)
+                if follow_paths is None:
+                    follow_paths = [DEFAULT_FOLLOW_PATH]
+                else:
+                    follow_paths = list(follow_paths) + [DEFAULT_FOLLOW_PATH]
+
+                if pattern_paths is None:
+                    pattern_paths = [DEFAULT_PATTERNS_PATH]
+                else:
+                    pattern_paths = (
+                        list(pattern_paths) + [DEFAULT_PATTERNS_PATH])
+
+                logfile_monitor_class = logfile_monitor.NewLogfileMonitorMixin(
+                    follow_paths, pattern_paths)
+                classes.append(logfile_monitor_class)
+
+    elif follow_paths:
+        logfile_monitor_class = logfile_monitor.NewLogfileMonitorMixin(
+            follow_paths, pattern_paths)
+        classes.append(logfile_monitor_class)
 
     # do any site-specific processing of the classes list
     site_factory.postprocess_classes(classes, hostname,
