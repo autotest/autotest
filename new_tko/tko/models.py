@@ -334,10 +334,11 @@ class TestViewManager(TempManager):
         if not label_names:
             return []
         query = TestLabel.objects.filter(name__in=label_names).values('id')
-        return [label['id'] for label in query]
+        return [str(label['id']) for label in query]
 
 
     def get_query_set_with_joins(self, filter_data, include_host_labels=False):
+        include_labels = filter_data.pop('include_labels', [])
         exclude_labels = filter_data.pop('exclude_labels', [])
         query_set = self.get_query_set()
         joined = False
@@ -347,11 +348,21 @@ class TestViewManager(TempManager):
             query_set = self._add_label_joins(query_set)
             joined = True
 
+        include_label_ids = self._get_label_ids_from_names(include_labels)
+        if include_label_ids:
+            # TODO: Factor this out like what's done with attributes
+            condition = ('test_labels_tests_include.testlabel_id IN (%s)' %
+                         ','.join(include_label_ids))
+            query_set = self._add_join(query_set, 'test_labels_tests',
+                                       join_key='test_id',
+                                       suffix='_include',
+                                       join_condition=condition)
+            joined = True
+
         exclude_label_ids = self._get_label_ids_from_names(exclude_labels)
         if exclude_label_ids:
             condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
-                         ','.join(str(label_id)
-                                  for label_id in exclude_label_ids))
+                         ','.join(exclude_label_ids))
             query_set = self._add_join(query_set, 'test_labels_tests',
                                        join_key='test_id',
                                        suffix='_exclude',
