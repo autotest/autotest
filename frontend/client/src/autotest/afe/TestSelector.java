@@ -189,6 +189,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+        testTypeSelect.setEnabled(enabled);
         testTable.refreshWidgets();
     }
 
