@@ -352,8 +352,8 @@ def abort_host_queue_entries(**filter_data):
     Abort a set of host queue entries.
     """
     query = models.HostQueueEntry.query_objects(filter_data)
+    models.AclGroup.check_abort_permissions(query)
     host_queue_entries = list(query.select_related())
-    models.AclGroup.check_for_acl_violation_queue_entries(host_queue_entries)
     rpc_utils.check_abort_synchronous_jobs(host_queue_entries)
 
     user = thread_local.get_user()

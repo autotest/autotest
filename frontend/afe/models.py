@@ -410,15 +410,34 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @staticmethod
-    def check_for_acl_violation_queue_entries(queue_entries):
+    def check_abort_permissions(queue_entries):
+        """
+        look for queue entries that aren't abortable, meaning
+         * the job isn't owned by this user, and
+           * the machine isn't ACL-accessible, or
+           * the machine is in the "Everyone" ACL
+        """
         user = thread_local.get_user()
         if user.is_superuser():
             return
-        for queue_entry in queue_entries:
-            job = queue_entry.job
-            if user.login != job.owner:
-                raise AclAccessViolation('You cannot abort job %d owned by %s' %
-                                         (job.id, job.owner))
+        not_owned = queue_entries.exclude(job__owner=user.login)
+        # I do this using ID sets instead of just Django filters because
+        # filtering on M2M fields is broken in Django 0.96.  It's better in 1.0.
+        accessible_ids = set(
+            entry.id for entry
+            in not_owned.filter(host__acl_group__users__login=user.login))
+        public_ids = set(entry.id for entry
+                         in not_owned.filter(host__acl_group__name='Everyone'))
+        cannot_abort = [entry for entry in not_owned.select_related()
+                        if entry.id not in accessible_ids
+                        or entry.id in public_ids]
+        if len(cannot_abort) == 0:
+            return
+        entry_names = ', '.join('%s-%s/%s' % (entry.job.id, entry.job.owner,
+                                              entry.host.hostname)
+                                for entry in cannot_abort)
+        raise AclAccessViolation('You cannot abort the following job entries: '
+                                 + entry_names)
 
 
     def check_for_acl_violation_acl_group(self):
