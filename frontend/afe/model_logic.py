@@ -137,6 +137,53 @@ class ExtendedManager(dbmodels.Manager):
             return new_joins, new_where, params
 
 
+    class _CustomSqlQ(dbmodels.Q):
+        def __init__(self):
+            self._joins = datastructures.SortedDict()
+            self._where, self._params = [], []
+
+
+        def add_join(self, table, condition, join_type, alias=None):
+            if alias is None:
+                alias = table
+            condition = ModelExtensions.escape_user_sql(condition)
+            self._joins[alias] = (table, join_type, condition)
+
+
+        def add_where(self, where, params=[]):
+            self._where.append(where)
+            self._params.extend(params)
+
+
+        def get_sql(self, opts):
+            return self._joins, self._where, self._params
+
+
+    def add_join(self, query_set, join_table, join_key,
+                 local_join_key='id', join_condition='', suffix='',
+                 exclude=False, force_left_join=False):
+        table_name = self.model._meta.db_table
+        join_alias = join_table + suffix
+        full_join_key = join_alias + '.' + join_key
+        full_join_condition = '%s = %s.%s' % (full_join_key, table_name,
+                                              local_join_key)
+        if join_condition:
+            full_join_condition += ' AND (' + join_condition + ')'
+        if exclude or force_left_join:
+            join_type = 'LEFT JOIN'
+        else:
+            join_type = 'INNER JOIN'
+
+        filter_object = self._CustomSqlQ()
+        filter_object.add_join(join_table,
+                               full_join_condition,
+                               join_type,
+                               alias=join_alias)
+        if exclude:
+            filter_object.add_where(full_join_key + ' IS NULL')
+        return query_set.filter(filter_object).distinct()
+
+
     def filter_custom_join(self, join_suffix, **kwargs):
         """
         Just like Django filter(), but allows the user to specify a custom

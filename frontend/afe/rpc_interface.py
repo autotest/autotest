@@ -90,27 +90,33 @@ def delete_host(id):
     models.Host.smart_get(id).delete()
 
 
-def get_hosts(multiple_labels=[], **filter_data):
+def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
+              **filter_data):
     """\
     multiple_labels: match hosts in all of the labels given.  Should be a
     list of label names.
+    exclude_only_if_needed_labels: exclude hosts with at least one
+    "only_if_needed" label applied.
     """
-    filter_data['extra_args'] = (
-        rpc_utils.extra_host_filters(multiple_labels))
-    hosts = models.Host.list_objects(filter_data)
-    for host in hosts:
-        host_obj = models.Host.objects.get(id=host['id'])
-        host['labels'] = [label.name
-                          for label in host_obj.labels.all()]
+    hosts = rpc_utils.get_host_query(multiple_labels,
+                                     exclude_only_if_needed_labels,
+                                     filter_data)
+    host_dicts = []
+    for host_obj in hosts:
+        host_dict = host_obj.get_object_dict()
+        host_dict['labels'] = [label.name for label in host_obj.labels.all()]
         platform = host_obj.platform()
-        host['platform'] = platform and platform.name or None
-    return rpc_utils.prepare_for_serialization(hosts)
+        host_dict['platform'] = platform and platform.name or None
+        host_dicts.append(host_dict)
+    return rpc_utils.prepare_for_serialization(host_dicts)
 
 
-def get_num_hosts(multiple_labels=[], **filter_data):
-    filter_data['extra_args'] = (
-        rpc_utils.extra_host_filters(multiple_labels))
-    return models.Host.query_count(filter_data)
+def get_num_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
+                  **filter_data):
+    hosts = rpc_utils.get_host_query(multiple_labels,
+                                     exclude_only_if_needed_labels,
+                                     filter_data)
+    return hosts.count()
 
 
 # tests

@@ -3,17 +3,15 @@ package autotest.afe;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.BooleanFilter;
-import autotest.common.table.FieldFilter;
+import autotest.common.table.CheckboxFilter;
 import autotest.common.table.ListFilter;
 import autotest.common.table.SearchFilter;
 import autotest.common.table.TableDecorator;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.Widget;
 
 class HostTableDecorator extends TableDecorator {
     SearchFilter hostnameFilter;
@@ -21,38 +19,30 @@ class HostTableDecorator extends TableDecorator {
     ListFilter statusFilter;
     BooleanFilter lockedFilter;
     AclAccessibleFilter aclFilter;
+    OnlyIfNeededFilter excludeOnlyIfNeededFilter;
     
-    static class AclAccessibleFilter extends FieldFilter implements ClickListener {
-        private CheckBox checkBox = new CheckBox("ACL accessible only");
+    static class AclAccessibleFilter extends CheckboxFilter {
         private JSONValue username;
         
         public AclAccessibleFilter() {
             super("acl_group__users__login");
             username = new JSONString(StaticDataRepository.getRepository().getCurrentUserLogin());
-            checkBox.addClickListener(this);
-        }
-        
-        public void onClick(Widget sender) {
-            notifyListeners();
         }
 
         @Override
         public JSONValue getMatchValue() {
             return username;
         }
-
-        @Override
-        public Widget getWidget() {
-            return checkBox;
+    }
+    
+    static class OnlyIfNeededFilter extends CheckboxFilter {
+        public OnlyIfNeededFilter() {
+            super("exclude_only_if_needed_labels");
         }
 
         @Override
-        public boolean isActive() {
-            return checkBox.isChecked();
-        }
-        
-        public void setActive(boolean active) {
-            checkBox.setChecked(active);
+        public JSONValue getMatchValue() {
+            return JSONBoolean.getInstance(true);
         }
     }
     
@@ -73,6 +63,7 @@ class HostTableDecorator extends TableDecorator {
         statusFilter.setChoices(statusStrings);
         lockedFilter = new BooleanFilter("locked");
         aclFilter = new AclAccessibleFilter();
+        excludeOnlyIfNeededFilter = new OnlyIfNeededFilter();
         
         addFilter("Hostname", hostnameFilter);
         addControl("Platform", labelFilter.getPlatformWidget());
@@ -80,5 +71,6 @@ class HostTableDecorator extends TableDecorator {
         addFilter("Status", statusFilter);
         addFilter("Locked", lockedFilter);
         addFilter("ACL accessible only", aclFilter);
+        addFilter("Exclude only_if_needed labels", excludeOnlyIfNeededFilter);
     }
 }

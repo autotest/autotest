@@ -241,28 +241,6 @@ class EmbeddedGraphingQuery(dbmodels.Model, model_logic.ModelExtensions):
 # views
 
 class TestViewManager(TempManager):
-    class _CustomSqlQ(dbmodels.Q):
-        def __init__(self):
-            self._joins = datastructures.SortedDict()
-            self._where, self._params = [], []
-
-
-        def add_join(self, table, condition, join_type, alias=None):
-            if alias is None:
-                alias = table
-            condition = model_logic.ModelExtensions.escape_user_sql(condition)
-            self._joins[alias] = (table, join_type, condition)
-
-
-        def add_where(self, where, params=[]):
-            self._where.append(where)
-            self._params.extend(params)
-
-
-        def get_sql(self, opts):
-            return self._joins, self._where, self._params
-
-
     def get_query_set(self):
         query = super(TestViewManager, self).get_query_set()
 
@@ -272,28 +250,13 @@ class TestViewManager(TempManager):
         return query.extra(select=extra_select)
 
 
-    def _add_join(self, query_set, join_table, join_condition='',
-                  join_key='test_idx', suffix='', exclude=False,
-                  force_left_join=False):
-        table_name = self.model._meta.db_table
-        join_alias = join_table + suffix
-        full_join_key = join_alias + '.' + join_key
-        full_join_condition = '%s = %s.test_idx' % (full_join_key, table_name)
-        if join_condition:
-            full_join_condition += ' AND (' + join_condition + ')'
-        if exclude or force_left_join:
-            join_type = 'LEFT JOIN'
-        else:
-            join_type = 'INNER JOIN'
-
-        filter_object = self._CustomSqlQ()
-        filter_object.add_join(join_table,
-                               full_join_condition,
-                               join_type,
-                               alias=join_alias)
-        if exclude:
-            filter_object.add_where(full_join_key + ' IS NULL')
-        return query_set.filter(filter_object).distinct()
+    def add_join(self, query_set, join_table, join_key,
+                 join_condition='', suffix='', exclude=False,
+                 force_left_join=False):
+        return super(TestViewManager, self).add_join(
+            query_set, join_table, join_key, local_join_key='test_idx',
+            join_condition=join_condition, suffix=suffix, exclude=exclude,
+            force_left_join=force_left_join)
 
 
     def _get_include_exclude_suffix(self, exclude):
@@ -305,7 +268,7 @@ class TestViewManager(TempManager):
 
 
     def _add_label_joins(self, query_set, suffix=''):
-        query_set = self._add_join(query_set, 'test_labels_tests',
+        query_set = self.add_join(query_set, 'test_labels_tests',
                                    join_key='test_id', suffix=suffix,
                                    force_left_join=True)
 
@@ -325,7 +288,8 @@ class TestViewManager(TempManager):
                             exclude=False):
         if suffix is None:
             suffix = self._get_include_exclude_suffix(exclude)
-        return self._add_join(query_set, 'test_attributes',
+        return self.add_join(query_set, 'test_attributes',
+                              join_key='test_idx',
                               join_condition=join_condition,
                               suffix=suffix, exclude=exclude)
 
@@ -353,7 +317,7 @@ class TestViewManager(TempManager):
             # TODO: Factor this out like what's done with attributes
             condition = ('test_labels_tests_include.testlabel_id IN (%s)' %
                          ','.join(include_label_ids))
-            query_set = self._add_join(query_set, 'test_labels_tests',
+            query_set = self.add_join(query_set, 'test_labels_tests',
                                        join_key='test_id',
                                        suffix='_include',
                                        join_condition=condition)
@@ -363,7 +327,7 @@ class TestViewManager(TempManager):
         if exclude_label_ids:
             condition = ('test_labels_tests_exclude.testlabel_id IN (%s)' %
                          ','.join(exclude_label_ids))
-            query_set = self._add_join(query_set, 'test_labels_tests',
+            query_set = self.add_join(query_set, 'test_labels_tests',
                                        join_key='test_id',
                                        suffix='_exclude',
                                        join_condition=condition,
