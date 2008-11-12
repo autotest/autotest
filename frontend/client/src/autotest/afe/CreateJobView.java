@@ -656,5 +656,6 @@ public class CreateJobView extends TabView
     public void onPreferencesChanged() {
         setRebootSelectorDefault(rebootBefore, "reboot_before");
         setRebootSelectorDefault(rebootAfter, "reboot_after");
+        testSelector.reset();
     }
 }
