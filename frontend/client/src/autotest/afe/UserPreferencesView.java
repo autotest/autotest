@@ -8,10 +8,12 @@ import autotest.common.StaticDataRepository.FinishedCallback;
 import autotest.common.ui.RadioChooser;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTMLTable;
@@ -33,6 +35,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
     
     private RadioChooser rebootBefore = new RadioChooser();
     private RadioChooser rebootAfter = new RadioChooser();
+    private CheckBox showExperimental = new CheckBox();
     private Button saveButton = new Button("Save preferences");
     private HTMLTable preferencesTable = new FlexTable();
 
@@ -55,6 +58,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
 
         addOption("Reboot before", rebootBefore);
         addOption("Reboot after", rebootAfter);
+        addOption("Show experimental tests", showExperimental);
         container.add(preferencesTable);
         container.add(saveButton);
         RootPanel.get("user_preferences_table").add(container);
@@ -76,6 +80,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
     private void updateValues() {
         rebootBefore.setSelectedChoice(getValue("reboot_before"));
         rebootAfter.setSelectedChoice(getValue("reboot_after"));
+        showExperimental.setChecked(user.get("show_experimental").isBoolean().booleanValue());
     }
     
     private String getValue(String key) {
@@ -92,6 +97,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
         values.put("id", user.get("id"));
         values.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
         values.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
+        values.put("show_experimental", JSONBoolean.getInstance(showExperimental.isChecked()));
         proxy.rpcCall("modify_user", values, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {

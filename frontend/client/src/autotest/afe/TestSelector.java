@@ -116,6 +116,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
     private HorizontalSplitPanel mainPanel = new HorizontalSplitPanel();
     private boolean enabled = true;
     private TestSelectorListener listener;
+    private StaticDataRepository staticData = StaticDataRepository.getRepository();
     
     public TestSelector() {
         testInfo.setStyleName("test-description");
@@ -156,14 +157,22 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         testSelection.deselectAll();
         testTable.clear();
         
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray tests = staticData.getData("tests").isArray();
         for (JSONObject test : new JSONArrayList<JSONObject>(tests)) {
+            if (!includeExperimentalTests() 
+                    && test.get("experimental").isBoolean().booleanValue()) {
+                continue;
+            }
             String testType = test.get("test_type").isString().stringValue();
             if (testType.equals(getSelectedTestType())) {
                 testTable.addRow(test);
             }
         }
+    }
+
+    private boolean includeExperimentalTests() {
+        JSONObject user = staticData.getData("current_user").isObject();
+        return user.get("show_experimental").isBoolean().booleanValue();
     }
 
     public void onRowClicked(int rowIndex, JSONObject row) {
@@ -204,8 +213,8 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
     }
 
     public void reset() {
-        testSelection.deselectAll();
         testTypeSelect.setSelectedIndex(0);
+        populateTests();
     }
     
     private void notifyListener() {

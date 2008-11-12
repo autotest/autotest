@@ -89,6 +89,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
                                               blank=True,
                                               default=DEFAULT_REBOOT_AFTER)
+    show_experimental = dbmodels.BooleanField(default=False)
 
     name_field = 'login'
     objects = model_logic.ExtendedManager()
