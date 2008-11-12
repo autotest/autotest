@@ -66,7 +66,8 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
             
             writeTitleLine();
             appendTextField("Written by", getField("author"));
-            appendTextField("Type", getField("test_type") + " " + getField("synch_type"));
+            appendTextField("Type", getField("test_type"));
+            appendTextField("Synchroization count", getField("synch_count"));
             writeTime();
             writeSkipVerify(test);
             

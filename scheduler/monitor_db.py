@@ -10,7 +10,7 @@ import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib import host_protections, utils
+from autotest_lib.client.common_lib import host_protections, utils, debug
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 
@@ -127,6 +127,8 @@ def init(logfile):
     # ensure Django connection is in autocommit
     setup_django_environment.enable_autocommit()
 
+    debug.configure('scheduler', format_string='%(message)s')
+
     print "Setting signal handler"
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -151,6 +153,7 @@ def queue_entries_to_abort():
     rows = _db.execute("""
             SELECT * FROM host_queue_entries WHERE status='Abort';
                     """)
+
     qe = [HostQueueEntry(row=i) for i in rows]
     return qe
 
@@ -212,6 +215,11 @@ def kill_autoserv(pid, poll_fn=None):
     if poll_fn() == None:
         os.kill(pid, signal.SIGCONT)
         os.kill(pid, signal.SIGTERM)
+
+
+def ensure_directory_exists(directory_path):
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
 
 
 class EmailNotificationManager(object):
@@ -539,20 +547,14 @@ class Dispatcher:
         return autoserv_procs
 
 
-    def recover_queue_entry(self, queue_entry, run_monitor):
-        job = queue_entry.job
-        if job.is_synchronous():
-            all_queue_entries = job.get_host_queue_entries()
-        else:
-            all_queue_entries = [queue_entry]
-        all_queue_entry_ids = [queue_entry.id for queue_entry
-                               in all_queue_entries]
-        queue_task = RecoveryQueueTask(
-            job=queue_entry.job,
-            queue_entries=all_queue_entries,
-            run_monitor=run_monitor)
+    def _recover_queue_entries(self, queue_entries, run_monitor):
+        assert len(queue_entries) > 0
+        queue_entry_ids = [entry.id for entry in queue_entries]
+        queue_task = RecoveryQueueTask(job=queue_entries[0].job,
+                                       queue_entries=queue_entries,
+                                       run_monitor=run_monitor)
         self.add_agent(Agent(tasks=[queue_task],
-                             queue_entry_ids=all_queue_entry_ids))
+                             queue_entry_ids=queue_entry_ids))
 
 
     def _recover_processes(self):
@@ -565,8 +567,7 @@ class Dispatcher:
         requeue_entries = []
         recovered_entry_ids = set()
         for queue_entry in queue_entries:
-            run_monitor = PidfileRunMonitor(
-                queue_entry.results_dir())
+            run_monitor = PidfileRunMonitor(queue_entry.results_dir())
             if not run_monitor.has_pid():
                 # autoserv apparently never got run, so requeue
                 requeue_entries.append(queue_entry)
@@ -574,16 +575,12 @@ class Dispatcher:
             if queue_entry.id in recovered_entry_ids:
                 # synchronous job we've already recovered
                 continue
+            job_tag = queue_entry.job.get_job_tag([queue_entry])
             pid = run_monitor.get_pid()
-            print 'Recovering queue entry %d (pid %d)' % (
-                queue_entry.id, pid)
-            job = queue_entry.job
-            if job.is_synchronous():
-                for entry in job.get_host_queue_entries():
-                    assert entry.active
-                    recovered_entry_ids.add(entry.id)
-            self.recover_queue_entry(queue_entry,
-                                     run_monitor)
+            print 'Recovering %s (pid %d)' % (queue_entry.id, pid)
+            queue_entries = list(queue_entry.job.get_group_entries(queue_entry))
+            recovered_entry_ids.union(entry.id for entry in queue_entries)
+            self._recover_queue_entries(queue_entries, run_monitor)
             orphans.pop(pid, None)
 
         # and requeue other active queue entries
@@ -655,16 +652,12 @@ class Dispatcher:
         # make sure there are no old parsers running
         os.system('killall parse')
 
-        recovered_synch_jobs = set()
+        recovered_entry_ids = set()
         for entry in HostQueueEntry.fetch(where='status = "Parsing"'):
-            job = entry.job
-            if job.is_synchronous():
-                if job.id in recovered_synch_jobs:
-                    continue
-                queue_entries = job.get_host_queue_entries()
-                recovered_synch_jobs.add(job.id)
-            else:
-                queue_entries = [entry]
+            if entry.id in recovered_entry_ids:
+                continue
+            queue_entries = entry.job.get_group_entries(entry)
+            recovered_entry_ids.union(entry.id for entry in queue_entries)
 
             reparse_task = FinalReparseTask(queue_entries)
             self.add_agent(Agent([reparse_task]))
@@ -697,7 +690,6 @@ class Dispatcher:
             minutes=self.synch_job_start_timeout_minutes)
         timeout_start = datetime.datetime.now() - timeout_delta
         query = models.Job.objects.filter(
-            synch_type=models.Test.SynchType.SYNCHRONOUS,
             created_on__lt=timeout_start,
             hostqueueentry__status='Pending',
             hostqueueentry__host__acl_group__name='Everyone')
@@ -830,6 +822,7 @@ class RunMonitor(object):
         self.nice_level = nice_level
         self.log_file = log_file
         self.cmd = cmd
+        self.proc = None
 
     def run(self):
         if self.nice_level:
@@ -871,12 +864,17 @@ class RunMonitor(object):
         in_devnull.close()
 
 
+    def has_pid(self):
+        return self.proc is not None
+
+
     def get_pid(self):
         return self.proc.pid
 
 
     def kill(self):
-        kill_autoserv(self.get_pid(), self.exit_code)
+        if self.has_pid():
+            kill_autoserv(self.get_pid(), self.exit_code)
 
 
     def exit_code(self):
@@ -1271,31 +1269,33 @@ class VerifyTask(AgentTask):
 
         self.create_temp_resultsdir('.verify')
 
-        cmd = [_autoserv_path,'-v','-m',self.host.hostname, '-r', self.temp_results_dir]
+        cmd = [_autoserv_path, '-v', '-m', self.host.hostname, '-r',
+               self.temp_results_dir]
 
         fail_queue_entry = None
         if queue_entry and not queue_entry.meta_host:
             fail_queue_entry = queue_entry
         failure_tasks = [RepairTask(self.host, fail_queue_entry)]
 
-        super(VerifyTask, self).__init__(cmd,
-                                         failure_tasks=failure_tasks)
+        super(VerifyTask, self).__init__(cmd, failure_tasks=failure_tasks)
 
 
     def prolog(self):
         print "starting verify on %s" % (self.host.hostname)
         if self.queue_entry:
             self.queue_entry.set_status('Verifying')
-            self.queue_entry.clear_results_dir(
-                self.queue_entry.verify_results_dir())
+            # clear any possibly existing results, could be a previously failed
+            # verify or a previous execution that crashed
+            self.queue_entry.clear_results_dir()
         self.host.set_status('Verifying')
 
 
     def cleanup(self):
         if not os.path.exists(self.temp_results_dir):
             return
-        if self.queue_entry and (self.success or
-                                 not self.queue_entry.meta_host):
+        if (self.queue_entry and not self.success
+                and not self.queue_entry.meta_host):
+            self.queue_entry.set_execution_subdir()
             self.move_results()
         super(VerifyTask, self).cleanup()
 
@@ -1305,21 +1305,23 @@ class VerifyTask(AgentTask):
 
         if self.success:
             self.host.set_status('Ready')
+            if self.queue_entry:
+                agent = self.queue_entry.on_pending()
+                if agent:
+                    self.agent.dispatcher.add_agent(agent)
         elif self.queue_entry:
             self.queue_entry.requeue()
 
 
     def move_results(self):
         assert self.queue_entry is not None
-        target_dir = self.queue_entry.verify_results_dir()
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
+        target_dir = self.queue_entry.results_dir()
+        ensure_directory_exists(target_dir)
         files = os.listdir(self.temp_results_dir)
         for filename in files:
             if filename == AUTOSERV_PID_FILE:
                 continue
-            self.force_move(os.path.join(self.temp_results_dir,
-                                         filename),
+            self.force_move(os.path.join(self.temp_results_dir, filename),
                             os.path.join(target_dir, filename))
 
 
@@ -1335,20 +1337,6 @@ class VerifyTask(AgentTask):
             email_manager.enqueue_notify_email(warning, warning)
             remove_file_or_dir(dest)
         shutil.move(source, dest)
-
-
-class VerifySynchronousTask(VerifyTask):
-    def epilog(self):
-        super(VerifySynchronousTask, self).epilog()
-        if self.success:
-            if self.queue_entry.job.num_complete() > 0:
-                # some other entry failed verify, and we've
-                # already been marked as stopped
-                return
-
-            agent = self.queue_entry.on_pending()
-            if agent:
-                self.agent.dispatcher.add_agent(agent)
 
 
 class QueueTask(AgentTask):
@@ -1377,8 +1365,7 @@ class QueueTask(AgentTask):
 
     def _create_host_keyval_dir(self):
         directory = self._host_keyval_dir()
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        ensure_directory_exists(directory)
 
 
     def results_dir(self):
@@ -1404,12 +1391,10 @@ class QueueTask(AgentTask):
         self._create_host_keyval_dir()
         for queue_entry in self.queue_entries:
             self._write_host_keyval(queue_entry.host)
-            print "starting queue_task on %s/%s" % (queue_entry.host.hostname, queue_entry.id)
             queue_entry.set_status('Running')
             queue_entry.host.set_status('Running')
             queue_entry.host.update_field('dirty', 1)
-        if (not self.job.is_synchronous() and
-            self.job.num_machines() > 1):
+        if self.job.synch_count == 1:
             assert len(self.queue_entries) == 1
             self.job.write_to_machines_file(self.queue_entries[0])
 
@@ -1559,15 +1544,6 @@ class FinalReparseTask(AgentTask):
 
         assert len(queue_entries) > 0
         queue_entry = queue_entries[0]
-        job = queue_entry.job
-
-        flags = []
-        if job.is_synchronous():
-            assert len(queue_entries) == job.num_machines()
-        else:
-            assert len(queue_entries) == 1
-            if job.num_machines() > 1:
-                flags = ['-l', '2']
 
         if _testing_mode:
             self.cmd = 'true'
@@ -1577,7 +1553,7 @@ class FinalReparseTask(AgentTask):
         self.log_file = os.path.abspath(os.path.join(self._results_dir,
                                                      '.parse.log'))
         super(FinalReparseTask, self).__init__(
-            cmd=self.generate_parse_command(flags=flags))
+            cmd=self._generate_parse_command())
 
 
     @classmethod
@@ -1616,9 +1592,9 @@ class FinalReparseTask(AgentTask):
         return models.HostQueueEntry.Status.FAILED
 
 
-    def generate_parse_command(self, flags=[]):
+    def _generate_parse_command(self):
         parse = os.path.abspath(os.path.join(AUTOTEST_TKO_DIR, 'parse'))
-        return [parse] + flags + ['-r', '-o', self._results_dir]
+        return [parse, '-l', '2', '-r', '-o', self._results_dir]
 
 
     def poll(self):
@@ -1654,7 +1630,6 @@ class DBObject(object):
         assert (bool(id) != bool(row))
 
         self.__table = self._get_table()
-        fields = self._fields()
 
         self.__new_record = new_record
 
@@ -1666,16 +1641,20 @@ class DBObject(object):
                                         (self.__table, id)
             row = rows[0]
 
+        self._update_fields_from_row(row)
+
+
+    def _update_fields_from_row(self, row):
         assert len(row) == self.num_cols(), (
             "table = %s, row = %s/%d, fields = %s/%d" % (
-            self.__table, row, len(row), fields, self.num_cols()))
+            self.__table, row, len(row), self._fields(), self.num_cols()))
 
-        self.__valid_fields = {}
-        for i,value in enumerate(row):
-            self.__dict__[fields[i]] = value
-            self.__valid_fields[fields[i]] = True
+        self._valid_fields = set()
+        for field, value in zip(self._fields(), row):
+            setattr(self, field, value)
+            self._valid_fields.add(field)
 
-        del self.__valid_fields['id']
+        self._valid_fields.remove('id')
 
 
     @classmethod
@@ -1708,9 +1687,9 @@ class DBObject(object):
 
 
     def update_field(self, field, value, condition=''):
-        assert self.__valid_fields[field]
+        assert field in self._valid_fields
 
-        if self.__dict__[field] == value:
+        if getattr(self, field) == value:
             return
 
         query = "UPDATE %s SET %s = %%s WHERE id = %%s" % (self.__table, field)
@@ -1718,7 +1697,7 @@ class DBObject(object):
             query += ' AND (%s)' % condition
         _db.execute(query, (value, self.id))
 
-        self.__dict__[field] = value
+        setattr(self, field, value)
 
 
     def save(self):
@@ -1863,8 +1842,8 @@ class HostQueueEntry(DBObject):
 
     @classmethod
     def _fields(cls):
-        return ['id', 'job_id', 'host_id', 'priority', 'status',
-                  'meta_host', 'active', 'complete', 'deleted']
+        return ['id', 'job_id', 'host_id', 'priority', 'status', 'meta_host',
+                'active', 'complete', 'deleted', 'execution_subdir']
 
 
     def set_host(self, host):
@@ -1908,21 +1887,14 @@ class HostQueueEntry(DBObject):
 
 
     def results_dir(self):
-        if self.job.is_synchronous() or self.job.num_machines() == 1:
-            return self.job.job_dir
-        else:
-            assert self.host
-            return os.path.join(self.job.job_dir,
-                                self.host.hostname)
+        return os.path.join(self.job.job_dir, self.execution_subdir)
 
 
-    def verify_results_dir(self):
-        if self.job.is_synchronous() or self.job.num_machines() > 1:
-            assert self.host
-            return os.path.join(self.job.job_dir,
-                                self.host.hostname)
-        else:
-            return self.job.job_dir
+    def set_execution_subdir(self, subdir=None):
+        if subdir is None:
+            assert self.get_host()
+            subdir = self.get_host().hostname
+        self.update_field('execution_subdir', subdir)
 
 
     def set_status(self, status):
@@ -1937,8 +1909,8 @@ class HostQueueEntry(DBObject):
         if self.host:
             hostname = self.host.hostname
         else:
-            hostname = 'no host'
-        print "%s/%d status -> %s" % (hostname, self.id, self.status)
+            hostname = 'None'
+        print "%s/%d (%d) -> %s" % (hostname, self.job.id, self.id, self.status)
 
         if status in ['Queued']:
             self.update_field('complete', False)
@@ -1992,25 +1964,25 @@ class HostQueueEntry(DBObject):
         """
         assert not self.meta_host
         self.set_status('Failed')
-        if self.job.is_synchronous():
-            self.job.stop_all_entries()
+        self.job.stop_if_necessary()
 
 
-    def clear_results_dir(self, results_dir=None, dont_delete_files=False):
-        results_dir = results_dir or self.results_dir()
+    def clear_results_dir(self, dont_delete_files=False):
+        if not self.execution_subdir:
+            return
+        results_dir = self.results_dir()
         if not os.path.exists(results_dir):
             return
         if dont_delete_files:
             temp_dir = tempfile.mkdtemp(suffix='.clear_results')
-            print 'Moving results from %s to %s' % (results_dir,
-                                                    temp_dir)
+            print 'Moving results from %s to %s' % (results_dir, temp_dir)
         for filename in os.listdir(results_dir):
             path = os.path.join(results_dir, filename)
             if dont_delete_files:
-                shutil.move(path,
-                            os.path.join(temp_dir, filename))
+                shutil.move(path, os.path.join(temp_dir, filename))
             else:
                 remove_file_or_dir(path)
+        remove_file_or_dir(results_dir)
 
 
     @property
@@ -2052,6 +2024,7 @@ class HostQueueEntry(DBObject):
         self.get_host().set_status('Pending')
         if self.job.is_ready():
             return self.job.run(self)
+        self.job.stop_if_necessary()
         return None
 
 
@@ -2088,8 +2061,7 @@ class Job(DBObject):
     @classmethod
     def _fields(cls):
         return  ['id', 'owner', 'name', 'priority', 'control_file',
-                 'control_type', 'created_on', 'synch_type',
-                 'synch_count', 'synchronizing', 'timeout',
+                 'control_type', 'created_on', 'synch_count', 'timeout',
                  'run_verify', 'email_list', 'reboot_before', 'reboot_after']
 
 
@@ -2117,16 +2089,10 @@ class Job(DBObject):
                 queue_entry.set_status(status)
 
 
-    def is_synchronous(self):
-        return self.synch_type == 2
-
-
     def is_ready(self):
-        if not self.is_synchronous():
-            return True
-        sql = "job_id=%s AND status='Pending'" % self.id
-        count = self.count(sql, table='host_queue_entries')
-        return (count == self.num_machines())
+        pending_entries = models.HostQueueEntry.objects.filter(job=self.id,
+                                                               status='Pending')
+        return (pending_entries.count() >= self.synch_count)
 
 
     def results_dir(self):
@@ -2157,12 +2123,26 @@ class Job(DBObject):
         return left==0
 
 
-    def stop_all_entries(self):
-        for child_entry in self.get_host_queue_entries():
-            if not child_entry.complete:
-                if child_entry.status == 'Pending':
-                    child_entry.host.set_status('Ready')
-                child_entry.set_status('Stopped')
+    def _stop_all_entries(self, entries_to_abort):
+        """
+        queue_entries: sequence of models.HostQueueEntry objects
+        """
+        for child_entry in entries_to_abort:
+            assert not child_entry.complete
+            if child_entry.status == models.HostQueueEntry.Status.PENDING:
+                child_entry.host.status = models.Host.Status.READY
+                child_entry.host.save()
+            child_entry.status = models.HostQueueEntry.Status.STOPPED
+            child_entry.save()
+
+
+    def stop_if_necessary(self):
+        not_yet_run = models.HostQueueEntry.objects.filter(
+            job=self.id, status__in=(models.HostQueueEntry.Status.QUEUED,
+                                     models.HostQueueEntry.Status.VERIFYING,
+                                     models.HostQueueEntry.Status.PENDING))
+        if not_yet_run.count() < self.synch_count:
+            self._stop_all_entries(not_yet_run)
 
 
     def write_to_machines_file(self, queue_entry):
@@ -2170,23 +2150,32 @@ class Job(DBObject):
         print "writing %s to job %s machines file" % (hostname, self.id)
         file_path = os.path.join(self.job_dir, '.machines')
         mf = open(file_path, 'a')
-        mf.write("%s\n" % queue_entry.get_host().hostname)
+        mf.write(hostname + '\n')
         mf.close()
 
 
     def create_results_dir(self, queue_entry=None):
-        print "create: active: %s complete %s" % (self.num_active(),
-                                                  self.num_complete())
-
-        if not os.path.exists(self.job_dir):
-            os.makedirs(self.job_dir)
+        ensure_directory_exists(self.job_dir)
 
         if queue_entry:
             results_dir = queue_entry.results_dir()
-            if not os.path.exists(results_dir):
-                os.makedirs(results_dir)
+            assert not os.path.exists(results_dir)
+            ensure_directory_exists(results_dir)
             return results_dir
         return self.job_dir
+
+
+    def _next_group_name(self):
+        query = models.HostQueueEntry.objects.filter(
+            job=self.id).values('execution_subdir').distinct()
+        subdirs = (entry['execution_subdir'] for entry in query)
+        groups = (re.match(r'group(\d+)', subdir) for subdir in subdirs)
+        ids = [int(match.group(1)) for match in groups if match]
+        if ids:
+            next_id = max(ids) + 1
+        else:
+            next_id = 0
+        return "group%d" % next_id
 
 
     def _write_control_file(self):
@@ -2199,12 +2188,17 @@ class Job(DBObject):
         return control_filename
 
 
-    def _get_job_tag(self, queue_entries):
-        base_job_tag = "%s-%s" % (self.id, self.owner)
-        if self.is_synchronous() or self.num_machines() == 1:
-            return base_job_tag
-        else:
-            return base_job_tag + '/' + queue_entries[0].get_host().hostname
+    def get_group_entries(self, queue_entry_from_group):
+        execution_subdir = queue_entry_from_group.execution_subdir
+        return HostQueueEntry.fetch(where='job_id=%s AND execution_subdir=%s',
+                                    params=(self.id, execution_subdir))
+
+
+    def get_job_tag(self, queue_entries):
+        assert len(queue_entries) > 0
+        execution_subdir = queue_entries[0].execution_subdir
+        assert execution_subdir
+        return "%s-%s/%s" % (self.id, self.owner, execution_subdir)
 
 
     def _get_autoserv_params(self, queue_entries):
@@ -2212,7 +2206,7 @@ class Job(DBObject):
         control_filename = self._write_control_file()
         hostnames = ','.join([entry.get_host().hostname
                               for entry in queue_entries])
-        job_tag = self._get_job_tag(queue_entries)
+        job_tag = self.get_job_tag(queue_entries)
 
         params = [_autoserv_path, '-P', job_tag, '-p', '-n',
                   '-r', os.path.abspath(results_dir), '-u', self.owner,
@@ -2224,7 +2218,7 @@ class Job(DBObject):
         return params
 
 
-    def _get_pre_job_tasks(self, queue_entry, verify_task_class=VerifyTask):
+    def _get_pre_job_tasks(self, queue_entry):
         do_reboot = False
         if self.reboot_before == models.RebootBefore.ALWAYS:
             do_reboot = True
@@ -2234,27 +2228,47 @@ class Job(DBObject):
         tasks = []
         if do_reboot:
             tasks.append(CleanupTask(queue_entry=queue_entry))
-        tasks.append(verify_task_class(queue_entry=queue_entry))
+        tasks.append(VerifyTask(queue_entry=queue_entry))
         return tasks
 
 
-    def _run_synchronous(self, queue_entry):
+    def _assign_new_group(self, queue_entries):
+        if len(queue_entries) == 1:
+            group_name = queue_entries[0].get_host().hostname
+        else:
+            group_name = self._next_group_name()
+            print 'Running synchronous job %d hosts %s as %s' % (
+                self.id, [entry.host.hostname for entry in queue_entries],
+                group_name)
+
+        for queue_entry in queue_entries:
+            queue_entry.set_execution_subdir(group_name)
+
+
+    def _choose_group_to_run(self, include_queue_entry):
+        chosen_entries = [include_queue_entry]
+
+        num_entries_needed = self.synch_count - 1
+        if num_entries_needed > 0:
+            pending_entries = HostQueueEntry.fetch(
+                where='job_id = %s AND status = "Pending" AND id != %s',
+                params=(self.id, include_queue_entry.id))
+            chosen_entries += list(pending_entries)[:num_entries_needed]
+
+        self._assign_new_group(chosen_entries)
+        return chosen_entries
+
+
+    def run(self, queue_entry):
         if not self.is_ready():
             if self.run_verify:
-                return Agent(self._get_pre_job_tasks(queue_entry,
-                                                     VerifySynchronousTask),
+                return Agent(self._get_pre_job_tasks(queue_entry),
                              [queue_entry.id])
             else:
                 return queue_entry.on_pending()
 
-        return self._finish_run(self.get_host_queue_entries())
-
-
-    def _run_asynchronous(self, queue_entry):
-        initial_tasks = []
-        if self.run_verify:
-            initial_tasks = self._get_pre_job_tasks(queue_entry)
-        return self._finish_run([queue_entry], initial_tasks)
+        queue_entries = self._choose_group_to_run(queue_entry)
+        return self._finish_run(queue_entries)
 
 
     def _finish_run(self, queue_entries, initial_tasks=[]):
@@ -2267,12 +2281,6 @@ class Job(DBObject):
         entry_ids = [entry.id for entry in queue_entries]
 
         return Agent(tasks, entry_ids, num_processes=len(queue_entries))
-
-
-    def run(self, queue_entry):
-        if self.is_synchronous():
-            return self._run_synchronous(queue_entry)
-        return self._run_asynchronous(queue_entry)
 
 
 if __name__ == '__main__':

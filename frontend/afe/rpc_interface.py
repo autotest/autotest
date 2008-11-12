@@ -249,7 +249,8 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     tests.  Returns a dict with the following keys:
     control_file - the control file text
     is_server - is the control file a server-side control file?
-    is_synchronous - should the control file be run synchronously?
+    synch_count - how many machines the job uses per autoserv execution.
+                  synch_count == 1 means the job is asynchronous.
     dependencies - a list of the names of labels on which the job depends
 
     tests: list of tests to run
@@ -258,7 +259,7 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
     profilers: list of profilers to activate during the job
     """
     if not tests:
-        return dict(control_file='', is_server=False, is_synchronous=False,
+        return dict(control_file='', is_server=False, synch_count=1,
                     dependencies=[])
 
     cf_info, test_objects, profiler_objects, label = (
@@ -271,7 +272,7 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
 
 
 def create_job(name, priority, control_file, control_type, timeout=None,
-               is_synchronous=None, hosts=None, meta_hosts=None,
+               synch_count=None, hosts=None, meta_hosts=None,
                run_verify=True, one_time_hosts=None, email_list='',
                dependencies=[], reboot_before=None, reboot_after=None):
     """\
@@ -280,7 +281,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     priority: Low, Medium, High, Urgent
     control_file: contents of control file
     control_type: type of control file, Client or Server
-    is_synchronous: boolean indicating if a job is synchronous
+    synch_count: how many machines the job uses per autoserv execution.
+                 synch_count == 1 means the job is asynchronous.
     hosts: list of hosts to run job on
     meta_hosts: list where each entry is a label name, and for each entry
                 one host will be chosen from that label to run the job
@@ -329,17 +331,6 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                      % (requested_count, label.name, available_count))
             raise model_logic.ValidationError({'meta_hosts' : error})
 
-    # default is_synchronous to some appropriate value
-    ControlType = models.Job.ControlType
-    control_type = ControlType.get_value(control_type)
-    if is_synchronous is None:
-        is_synchronous = (control_type == ControlType.SERVER)
-    # convert the synch flag to an actual type
-    if is_synchronous:
-        synch_type = models.Test.SynchType.SYNCHRONOUS
-    else:
-        synch_type = models.Test.SynchType.ASYNCHRONOUS
-
     rpc_utils.check_job_dependencies(host_objects, dependencies)
     dependency_labels = [labels_by_name[label_name]
                          for label_name in dependencies]
@@ -347,7 +338,7 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     job = models.Job.create(owner=owner, name=name, priority=priority,
                             control_file=control_file,
                             control_type=control_type,
-                            synch_type=synch_type,
+                            synch_count=synch_count,
                             hosts=host_objects + metahost_objects,
                             timeout=timeout,
                             run_verify=run_verify,
@@ -366,6 +357,7 @@ def abort_host_queue_entries(**filter_data):
     query = models.HostQueueEntry.query_objects(filter_data)
     host_queue_entries = list(query.select_related())
     models.AclGroup.check_for_acl_violation_queue_entries(host_queue_entries)
+    rpc_utils.check_abort_synchronous_jobs(host_queue_entries)
 
     user = thread_local.get_user()
     for queue_entry in host_queue_entries:
