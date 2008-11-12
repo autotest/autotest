@@ -14,13 +14,14 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         # paramiko is very noisy, tone down the logging
         paramiko.util.log_to_file("/dev/null", paramiko.util.ERROR)
 
-        self.key = self._get_user_key()
+        self.key = self.get_user_key()
         self.pid = None
 
         self.host_log = debug.get_logger()
 
 
-    def _get_user_key(self):
+    @staticmethod
+    def get_user_key():
         # try the dsa key first
         keyfile = os.path.expanduser("~/.ssh/id_dsa")
         if os.path.exists(keyfile):
