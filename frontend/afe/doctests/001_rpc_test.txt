@@ -25,6 +25,10 @@
 ...                                          'doctests')
 >>> test_path = os.path.abspath(test_path)
 
+# disable logging
+>>> from autotest_lib.client.common_lib import debug
+>>> debug.get_logger().setLevel(100)
+
 # basic interface test
 ######################
 
@@ -124,7 +128,6 @@ True
 ...           'test_time': 'SHORT',
 ...           'run_verify': 1,
 ...           'test_category': 'Functional',
-...           'synch_type': 'Asynchronous',
 ...           'path': '/my/path'}]
 True
 >>> rpc_interface.delete_test('sleeptest')
@@ -371,8 +374,8 @@ def step0():
     job.run_test('testname')
 def step1():
     job.run_test('testname')
->>> cf_info['is_server'], cf_info['is_synchronous'], cf_info['dependencies']
-(False, False, [])
+>>> cf_info['is_server'], cf_info['synch_count'], cf_info['dependencies']
+(False, 1, [])
 
 # create a job to run on host1, host2, and any two machines in my_label
 >>> rpc_interface.create_job(name='my_job',
@@ -417,9 +420,7 @@ True
 ...         'name': 'my_job',
 ...         'owner': 'debug_user',
 ...         'priority': 'Low',
-...         'synch_count': None,
-...         'synch_type': 'Asynchronous',
-...         'synchronizing': 0,
+...         'synch_count': 1,
 ...         'timeout': 72,
 ...         'run_verify': 1,
 ...         'email_list': '',
@@ -446,7 +447,8 @@ True
 ...  'meta_host': None,
 ...  'priority': 0,
 ...  'status': 'Queued',
-...  'deleted': 0})
+...  'deleted': 0,
+...  'execution_subdir': ''})
 True
 >>> data[2] == (
 ... {'active': 0,
@@ -457,7 +459,8 @@ True
 ...  'meta_host': 'my_label',
 ...  'priority': 0,
 ...  'status': 'Queued',
-...  'deleted': 0})
+...  'deleted': 0,
+...  'execution_subdir': ''})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4
@@ -502,18 +505,18 @@ True
 # advanced usage
 # ##############
 
-# is_synchronous
+# synch_count
 >>> rpc_interface.create_job(name='my_job',
 ...                          priority='Low',
 ...                          control_file=cf_info['control_file'],
 ...                          control_type='Server',
-...                          is_synchronous=False,
-...                          hosts=['host1'])
+...                          synch_count=2,
+...                          hosts=['host1', 'host2'])
 2
 
->>> data = rpc_interface.get_jobs()
->>> data[0]['synch_type']
-'Asynchronous'
+>>> data = rpc_interface.get_jobs(id=2)
+>>> data[0]['synch_count']
+2
 
 # get hosts ACL'd to a user
 >>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')

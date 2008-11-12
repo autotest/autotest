@@ -520,6 +520,39 @@ class ModelExtensions(object):
         return cls.objects
 
 
+    def _record_attributes(self, attributes):
+        """
+        See on_attribute_changed.
+        """
+        assert not isinstance(attributes, basestring)
+        self._recorded_attributes = dict((attribute, getattr(self, attribute))
+                                         for attribute in attributes)
+
+
+    def _check_for_updated_attributes(self):
+        """
+        See on_attribute_changed.
+        """
+        for attribute, original_value in self._recorded_attributes.iteritems():
+            new_value = getattr(self, attribute)
+            if original_value != new_value:
+                self.on_attribute_changed(attribute, original_value)
+        self._record_attributes(self._recorded_attributes.keys())
+
+
+    def on_attribute_changed(self, attribute, old_value):
+        """
+        Called whenever an attribute is updated.  To be overridden.
+
+        To use this method, you must:
+        * call _record_attributes() from __init__() (after making the super
+        call) with a list of attributes for which you want to be notified upon
+        change.
+        * call _check_for_updated_attributes() from save().
+        """
+        pass
+
+
 class ModelWithInvalid(ModelExtensions):
     """
     Overrides model methods save() and delete() to support invalidation in

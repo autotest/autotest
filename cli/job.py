@@ -188,7 +188,7 @@ class job_stat(job_list_stat):
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status']
         else:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status',
-                    'owner', 'control_type',  'synch_type', 'created_on',
+                    'owner', 'control_type',  'synch_count', 'created_on',
                     'run_verify', 'reboot_before', 'reboot_after']
 
         if self.show_control_file:
@@ -199,7 +199,7 @@ class job_stat(job_list_stat):
 
 class job_create(action_common.atest_create, job):
     """atest job create [--priority <Low|Medium|High|Urgent>]
-    [--is-synchronous] [--container] [--control-file </path/to/cfile>]
+    [--synch_count] [--container] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <labels this job is dependent on>]
@@ -221,9 +221,10 @@ class job_create(action_common.atest_create, job):
                                'medium, high, urgent), default=medium',
                                type='choice', choices=('low', 'medium', 'high',
                                'urgent'), default='medium')
-        self.parser.add_option('-y', '--synchronous', action='store_true',
-                               help='Make the job synchronous',
-                               default=False)
+        self.parser.add_option('-y', '--synch_count',
+                               help='Number of machines to use per autoserv '
+                                    'execution',
+                               default=1)
         self.parser.add_option('-c', '--container', help='Run this client job '
                                'in a container', action='store_true',
                                default=False)
@@ -314,10 +315,10 @@ class job_create(action_common.atest_create, job):
                 self.generic_error('Unable to read from specified '
                                    'control-file: %s' % options.control_file)
         if options.test:
-            if options.server or options.synchronous:
+            if options.server:
                 self.invalid_syntax('If you specify tests, then the '
-                                    'client/server and synchronous settings '
-                                    'are implicit and cannot be overriden.')
+                                    'client/server setting is implicit and '
+                                    'cannot be overriden.')
             tests = [t.strip() for t in options.test.split(',') if t.strip()]
             self.ctrl_file_data = {'tests': tests}
             if options.kernel:
@@ -347,7 +348,7 @@ class job_create(action_common.atest_create, job):
         self.data['dependencies'] = deps
 
         self.data['email_list'] = options.email
-        self.data['is_synchronous'] = options.synchronous
+        self.data['synch_count'] = options.synch_count
         if options.server:
             self.data['control_type'] = 'Server'
         else:
@@ -370,7 +371,7 @@ class job_create(action_common.atest_create, job):
                 print 'Done'
                 socket.setdefaulttimeout(topic_common.DEFAULT_SOCKET_TIMEOUT)
             self.data['control_file'] = cf_info['control_file']
-            self.data['is_synchronous'] = cf_info['is_synchronous']
+            self.data['synch_count'] = cf_info['synch_count']
             if cf_info['is_server']:
                 self.data['control_type'] = 'Server'
             else:

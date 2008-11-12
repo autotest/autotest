@@ -106,27 +106,30 @@ class BaseSchedulerTest(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def _create_job(self, hosts=[], metahosts=[], priority=0, active=0,
+    def _create_job(self, hosts=[], metahosts=[], priority=0, active=False,
                     synchronous=False):
-        synch_type = synchronous and 2 or 1
+        synch_count = synchronous and 2 or 1
         created_on = datetime.datetime(2008, 1, 1)
+        status = models.HostQueueEntry.Status.QUEUED
+        if active:
+            status = models.HostQueueEntry.Status.RUNNING
         job = models.Job.objects.create(
             name='test', owner='my_user', priority=priority,
-            synch_type=synch_type, created_on=created_on,
+            synch_count=synch_count, created_on=created_on,
             reboot_before=models.RebootBefore.NEVER)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, priority=priority,
-                                                 host_id=host_id, active=active)
+                                                 host_id=host_id, status=status)
             models.IneligibleHostQueue.objects.create(job=job, host_id=host_id)
         for label_id in metahosts:
             models.HostQueueEntry.objects.create(job=job, priority=priority,
                                                  meta_host_id=label_id,
-                                                 active=active)
+                                                 status=status)
         return job
 
 
     def _create_job_simple(self, hosts, use_metahost=False,
-                          priority=0, active=0):
+                          priority=0, active=False):
         'An alternative interface to _create_job'
         args = {'hosts' : [], 'metahosts' : []}
         if use_metahost:
@@ -246,7 +249,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def _test_hosts_idle_helper(self, use_metahosts):
         'Only idle hosts get scheduled'
-        self._create_job(hosts=[1], active=1)
+        self._create_job(hosts=[1], active=True)
         self._create_job_simple([1], use_metahosts)
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
@@ -551,13 +554,11 @@ class FindAbortTest(BaseSchedulerTest):
 
 
 class JobTimeoutTest(BaseSchedulerTest):
-    def _test_synch_start_timeout_helper(self, set_synchronous, set_created_on,
-                                         set_active, set_acl, expect_abort):
+    def _test_synch_start_timeout_helper(self, expect_abort,
+                                         set_created_on=True, set_active=True,
+                                         set_acl=True):
         self._dispatcher.synch_job_start_timeout_minutes = 60
         job = self._create_job(hosts=[1, 2])
-        if set_synchronous:
-            job.synch_type = models.Test.SynchType.SYNCHRONOUS
-            job.save()
         if set_active:
             hqe = job.hostqueueentry_set.filter(host__id=1)[0]
             hqe.status = 'Pending'
@@ -587,12 +588,11 @@ class JobTimeoutTest(BaseSchedulerTest):
 
     def test_synch_start_timeout_helper(self):
         # no abort if any of the condition aren't met
-        self._test_synch_start_timeout_helper(False, True, True, True, False)
-        self._test_synch_start_timeout_helper(True, False, True, True, False)
-        self._test_synch_start_timeout_helper(True, True, False, True, False)
-        self._test_synch_start_timeout_helper(True, True, True, False, False)
+        self._test_synch_start_timeout_helper(False, set_created_on=False)
+        self._test_synch_start_timeout_helper(False, set_active=False)
+        self._test_synch_start_timeout_helper(False, set_acl=False)
         # abort if all conditions are met
-        self._test_synch_start_timeout_helper(True, True, True, True, True)
+        self._test_synch_start_timeout_helper(True)
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
@@ -906,14 +906,13 @@ class AgentTasksTest(unittest.TestCase):
     def setup_verify_expects(self, success, use_queue_entry):
         if use_queue_entry:
             self.queue_entry.set_status.expect_call('Verifying')
-            self.queue_entry.verify_results_dir.expect_call(
-                ).and_return('/verify/results/dir')
-            self.queue_entry.clear_results_dir.expect_call(
-                '/verify/results/dir')
+            self.queue_entry.clear_results_dir.expect_call()
         self.host.set_status.expect_call('Verifying')
         if success:
             self.setup_run_monitor(0)
             self.host.set_status.expect_call('Ready')
+            if use_queue_entry:
+                self.queue_entry.on_pending.expect_call()
         else:
             self.setup_run_monitor(1)
             if use_queue_entry:
@@ -966,23 +965,6 @@ class AgentTasksTest(unittest.TestCase):
                                       use_meta_host=True)
 
 
-    def test_verify_synchronous_task(self):
-        job = self.god.create_mock_class(monitor_db.Job, 'job')
-
-        self.setup_verify_expects(True, True)
-        job.num_complete.expect_call().and_return(0)
-        self.queue_entry.on_pending.expect_call()
-        self.queue_entry.job = job
-
-        task = monitor_db.VerifySynchronousTask(self.queue_entry)
-        task.agent = Dummy()
-        task.agent.dispatcher = Dummy()
-        self.god.stub_with(task.agent.dispatcher, 'add_agent',
-                           mock.mock_function('add_agent'))
-        self.run_task(task, True)
-        self.god.check_playback()
-
-
     def test_abort_task(self):
         queue_entry = self.god.create_mock_class(monitor_db.HostQueueEntry,
                                                  'queue_entry')
@@ -1000,8 +982,6 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def _setup_pre_parse_expects(self, is_synch, num_machines):
-        self.job.is_synchronous.expect_call().and_return(is_synch)
-        self.job.num_machines.expect_call().and_return(num_machines)
         self.queue_entry.results_dir.expect_call().and_return(self.RESULTS_DIR)
         self.queue_entry.set_status.expect_call('Parsing')
 
@@ -1031,10 +1011,7 @@ class AgentTasksTest(unittest.TestCase):
         self.run_task(task, True)
 
         self.god.check_playback()
-        cmd = [parse_path]
-        if not is_synch and num_machines > 1:
-            cmd += ['-l', '2']
-        cmd += ['-r', '-o', self.RESULTS_DIR]
+        cmd = [parse_path, '-l', '2', '-r', '-o', self.RESULTS_DIR]
         self.assertEquals(task.cmd, cmd)
 
 
@@ -1104,10 +1081,26 @@ class AgentTasksTest(unittest.TestCase):
 
 
 class JobTest(BaseSchedulerTest):
+    def setUp(self):
+        super(JobTest, self).setUp()
+        self.god.stub_function(os.path, 'exists')
+        self.god.stub_function(monitor_db, 'ensure_directory_exists')
+
+
+    def _setup_directory_expects(self, execution_subdir):
+        job_path = os.path.join('.', '1-my_user')
+        results_dir = os.path.join(job_path, execution_subdir)
+        monitor_db.ensure_directory_exists.expect_call(job_path)
+        os.path.exists.expect_call(results_dir)
+        monitor_db.ensure_directory_exists.expect_call(results_dir)
+
+
     def _test_run_helper(self, expect_agent=True):
         job = monitor_db.Job.fetch('id = 1').next()
         queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
         agent = job.run(queue_entry)
+
+        self.god.check_playback()
 
         if not expect_agent:
             self.assertEquals(agent, None)
@@ -1123,20 +1116,18 @@ class JobTest(BaseSchedulerTest):
 
         tasks = self._test_run_helper()
 
-        self.assertEquals(len(tasks), 2)
-        verify_task, queue_task = tasks
+        self.assertEquals(len(tasks), 1)
+        verify_task = tasks[0]
 
         self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
         self.assertEquals(verify_task.queue_entry.id, 1)
-
-        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
-        self.assertEquals(queue_task.job.id, 1)
 
 
     def test_run_asynchronous_skip_verify(self):
         job = self._create_job(hosts=[1, 2])
         job.run_verify = False
         job.save()
+        self._setup_directory_expects('host1')
 
         tasks = self._test_run_helper()
 
@@ -1154,7 +1145,7 @@ class JobTest(BaseSchedulerTest):
         self.assertEquals(len(tasks), 1)
         verify_task = tasks[0]
 
-        self.assert_(isinstance(verify_task, monitor_db.VerifySynchronousTask))
+        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
         self.assertEquals(verify_task.queue_entry.id, 1)
 
 
@@ -1171,7 +1162,8 @@ class JobTest(BaseSchedulerTest):
 
     def test_run_synchronous_ready(self):
         self._create_job(hosts=[1, 2], synchronous=True)
-        self._update_hqe("status='Pending'")
+        self._update_hqe("status='Pending', execution_subdir='")
+        self._setup_directory_expects('group0')
 
         tasks = self._test_run_helper()
         self.assertEquals(len(tasks), 1)
@@ -1189,7 +1181,7 @@ class JobTest(BaseSchedulerTest):
         job.save()
 
         tasks = self._test_run_helper()
-        self.assertEquals(len(tasks), 3)
+        self.assertEquals(len(tasks), 2)
         cleanup_task = tasks[0]
         self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
         self.assertEquals(cleanup_task.host.id, 1)
@@ -1201,7 +1193,7 @@ class JobTest(BaseSchedulerTest):
         job.save()
 
         tasks = self._test_run_helper()
-        self.assertEquals(len(tasks), expect_reboot and 3 or 2)
+        self.assertEquals(len(tasks), expect_reboot and 2 or 1)
         if expect_reboot:
             cleanup_task = tasks[0]
             self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))

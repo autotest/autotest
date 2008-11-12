@@ -103,12 +103,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showText(runVerify, "view_run_verify");
                 showField(jobObject, "reboot_before", "view_reboot_before");
                 showField(jobObject, "reboot_after", "view_reboot_after");
+                showField(jobObject, "synch_count", "view_synch_count");
                 showField(jobObject, "control_type", "view_control_type");
                 showField(jobObject, "control_file", "view_control_file");
                 showField(jobObject, "dependencies", "view_dependencies");
-                
-                String synchType = jobObject.get("synch_type").isString().stringValue();
-                showText(synchType.toLowerCase(), "view_synch_type");
                 
                 JSONObject counts = jobObject.get("status_counts").isObject();
                 String countString = AfeUtils.formatStatusCounts(counts, ", ");
@@ -359,7 +357,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         String basePath = jobId + "-" + jobObject.get("owner").isString().stringValue() + 
                           "/";
         if (jobStatusDataSource.getNumResults() > 1) {
-            basePath += hostQueueEntry.get("hostname").isString().stringValue() + "/";
+            basePath += hostQueueEntry.get("execution_subdir").isString().stringValue() + "/";
         }
         
         if (cell == JOB_HOSTS_COLUMNS.length - 1) {

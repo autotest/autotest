@@ -3,6 +3,9 @@ from django.db import models as dbmodels, connection
 from frontend.afe import model_logic
 from frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
+from autotest_lib.client.common_lib import debug
+
+logger = debug.get_logger()
 
 # job options and user preferences
 RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
@@ -161,6 +164,12 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     objects = model_logic.ExtendedManager()
     valid_objects = model_logic.ValidObjectsManager()
 
+
+    def __init__(self, *args, **kwargs):
+        super(Host, self).__init__(*args, **kwargs)
+        self._record_attributes(['status'])
+
+
     @staticmethod
     def create_one_time_host(hostname):
         query = Host.objects.filter(hostname=hostname)
@@ -203,6 +212,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.hosts.add(self)
+        self._check_for_updated_attributes()
+
 
     def delete(self):
         AclGroup.check_for_acl_violation_hosts([self])
@@ -210,6 +221,11 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
             queue_entry.deleted = True
             queue_entry.abort(thread_local.get_user())
         super(Host, self).delete()
+
+
+    def on_attribute_changed(self, attribute, old_value):
+        assert attribute == 'status'
+        logger.debug(self.hostname + ' -> ' + self.status)
 
 
     def enqueue_job(self, job):
@@ -278,11 +294,10 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     test_category: This describes the category for your tests
     test_type: Client or Server
     path: path to pass to run_test()
-    synch_type: whether the test should run synchronously or asynchronously
     sync_count:  is a number >=1 (1 being the default). If it's 1, then it's an
                  async job. If it's >1 it's sync job for that number of machines
-                 i.e. if sync_count = 2 it is a sync job that requires two 
-                 machines. 
+                 i.e. if sync_count = 2 it is a sync job that requires two
+                 machines.
     Optional:
     dependencies: What the test requires to run. Comma deliminated list
     dependency_labels: many-to-many relationship with labels corresponding to
@@ -291,7 +306,6 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     run_verify: Whether or not the scheduler should run the verify stage
     """
     TestTime = enum.Enum('SHORT', 'MEDIUM', 'LONG', start_value=1)
-    SynchType = enum.Enum('Asynchronous', 'Synchronous', start_value=1)
     # TODO(showard) - this should be merged with Job.ControlType (but right
     # now they use opposite values)
     Types = enum.Enum('Client', 'Server', start_value=1)
@@ -308,8 +322,6 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
                                            default=TestTime.MEDIUM)
     test_type = dbmodels.SmallIntegerField(choices=Types.choices())
     sync_count = dbmodels.IntegerField(default=1)
-    synch_type = dbmodels.SmallIntegerField(choices=SynchType.choices(),
-                                            default=SynchType.ASYNCHRONOUS)
     path = dbmodels.CharField(maxlength=255, unique=True)
     dependency_labels = dbmodels.ManyToManyField(
         Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
@@ -325,11 +337,11 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         fields = (
             (None, {'fields' :
                     ('name', 'author', 'test_category', 'test_class',
-                     'test_time', 'synch_type', 'test_type', 'sync_count',
+                     'test_time', 'sync_count', 'test_type', 'sync_count',
                      'path', 'dependencies', 'experimental', 'run_verify',
                      'description')}),
             )
-        list_display = ('name', 'test_type', 'description', 'synch_type')
+        list_display = ('name', 'test_type', 'description', 'sync_count')
         search_fields = ('name',)
 
     def __str__(self):
@@ -542,11 +554,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     control_type: Client or Server
     created_on: date of job creation
     submitted_on: date of job submission
-    synch_type: Asynchronous or Synchronous (i.e. job must run on all hosts
-                simultaneously; used for server-side control files)
-    synch_count: currently unused
+    synch_count: how many hosts should be used per autoserv execution
     run_verify: Whether or not to run the verify phase
-    synchronizing: for scheduler use
     timeout: hours until job times out
     email_list: list of people to email on completion delimited by any of:
                 white space, ',', ':', ';'
@@ -574,10 +583,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                                               blank=True, # to allow 0
                                               default=ControlType.CLIENT)
     created_on = dbmodels.DateTimeField()
-    synch_type = dbmodels.SmallIntegerField(
-        blank=True, null=True, choices=Test.SynchType.choices())
-    synch_count = dbmodels.IntegerField(blank=True, null=True)
-    synchronizing = dbmodels.BooleanField(default=False)
+    synch_count = dbmodels.IntegerField(null=True, default=1)
     timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
     run_verify = dbmodels.BooleanField(default=True)
     email_list = dbmodels.CharField(maxlength=250, blank=True)
@@ -601,7 +607,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_type, timeout, run_verify, email_list,
+               hosts, synch_count, timeout, run_verify, email_list,
                dependencies, reboot_before, reboot_after):
         """\
         Creates a job by taking some information (the listed args)
@@ -611,15 +617,15 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         job = cls.add_object(
             owner=owner, name=name, priority=priority,
             control_file=control_file, control_type=control_type,
-            synch_type=synch_type, timeout=timeout,
+            synch_count=synch_count, timeout=timeout,
             run_verify=run_verify, email_list=email_list,
             reboot_before=reboot_before, reboot_after=reboot_after,
             created_on=datetime.now())
 
-        if job.synch_type == Test.SynchType.ASYNCHRONOUS and len(hosts) == 0:
-            raise model_logic.ValidationError({'hosts':
-                                               'asynchronous jobs require at '
-                                               'least one host to run on'})
+        if job.synch_count > len(hosts):
+            raise model_logic.ValidationError(
+                {'hosts': 'only %d hosts provided for job with synch_count = %d'
+                          % (len(hosts), job.synch_count)})
         job.save()
         job.dependency_labels = dependencies
         return job
@@ -673,6 +679,10 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
                        'Parsing', 'Abort', 'Aborting', 'Aborted', 'Completed',
                        'Failed', 'Stopped', string_values=True)
     ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
+    ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
+                       Status.RUNNING, Status.ABORT, Status.ABORTING)
+    COMPLETE_STATUSES = (Status.PARSING, Status.ABORTED, Status.COMPLETED,
+                         Status.FAILED, Status.STOPPED)
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
@@ -683,8 +693,35 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     active = dbmodels.BooleanField(default=False)
     complete = dbmodels.BooleanField(default=False)
     deleted = dbmodels.BooleanField(default=False)
+    execution_subdir = dbmodels.CharField(maxlength=255, blank=True, default='')
 
     objects = model_logic.ExtendedManager()
+
+
+    def __init__(self, *args, **kwargs):
+        super(HostQueueEntry, self).__init__(*args, **kwargs)
+        self._record_attributes(['status'])
+
+
+    def save(self):
+        self._set_active_and_complete()
+        super(HostQueueEntry, self).save()
+        self._check_for_updated_attributes()
+
+
+    def _set_active_and_complete(self):
+        if self.status in self.ACTIVE_STATUSES:
+            self.active, self.complete = True, False
+        elif self.status in self.COMPLETE_STATUSES:
+            self.active, self.complete = False, True
+        else:
+            self.active, self.complete = False, False
+
+
+    def on_attribute_changed(self, attribute, old_value):
+        assert attribute == 'status'
+        logger.debug('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
+                                           self.status))
 
 
     def is_meta_host_entry(self):

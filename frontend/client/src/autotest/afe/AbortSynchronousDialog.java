@@ -1,10 +1,12 @@
 package autotest.afe;
 
+import autotest.common.JSONArrayList;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DialogBox;
@@ -17,20 +19,22 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 class AbortSynchronousDialog extends DialogBox implements ClickListener {
     private SimpleCallback abortAsynchronousEntries;
-    private JSONArray synchronousJobIds;
+    private JSONArray synchronousJobArgs;
     private Button abortAll, abortAsynchronous, cancel;
 
     public AbortSynchronousDialog(SimpleCallback abortAsynchronousEntries, 
-                                  Collection<JSONObject> synchronousJobs,
+                                  Collection<JSONObject> synchronousEntries,
                                   boolean showAbortAsynchronous) {
         super(false, true);
         setText("Aborting synchronous jobs");
         this.abortAsynchronousEntries = abortAsynchronousEntries;
-        String jobList = processJobs(synchronousJobs);
+        String jobList = processJobs(synchronousEntries);
 
         String message = "The following jobs are synchronous. To abort part of the job, you must " +
                          "abort the entire job.";
@@ -59,25 +63,40 @@ class AbortSynchronousDialog extends DialogBox implements ClickListener {
         add(contents);
     }
     
+    private static String getGroupTag(JSONObject queueEntry) {
+        JSONObject job = queueEntry.get("job").isObject();
+        return AfeUtils.getJobTag(job) + "/" + Utils.jsonToString(queueEntry.get("execution_subdir"));
+    }
+    
     /**
      * Compute a list of job IDs and a comma-separated list of job tags, returning the latter.
      */
-    private String processJobs(Collection<JSONObject> synchronousJobs) {
-        List<String> jobTags = new ArrayList<String>();
-        synchronousJobIds = new JSONArray();
-        for (JSONObject job : synchronousJobs) {
-            jobTags.add(AfeUtils.getJobTag(job));
-            synchronousJobIds.set(synchronousJobIds.size(), job.get("id"));
+    private String processJobs(Collection<JSONObject> synchronousEntries) {
+        Set<String> groupTags = new HashSet<String>();
+        synchronousJobArgs = new JSONArray();
+        for (JSONObject entry : synchronousEntries) {
+            String groupTag = getGroupTag(entry);
+            if (groupTags.contains(groupTag)) {
+                continue;
+            }
+            groupTags.add(groupTag);
+            JSONValue jobId = entry.get("job").isObject().get("id");
+            JSONObject groupArgs = new JSONObject();
+            groupArgs.put("job__id", jobId);
+            groupArgs.put("execution_subdir", entry.get("execution_subdir"));
+            synchronousJobArgs.set(synchronousJobArgs.size(), groupArgs);
         }
-        Collections.sort(jobTags);
-        return Utils.joinStrings(", ", jobTags);
+        List<String> groupTagList = new ArrayList<String>(groupTags);
+        Collections.sort(groupTagList);
+        return Utils.joinStrings(", ", groupTagList);
     }
 
     public void onClick(Widget sender) {
         if (sender == abortAll) {
-            JSONObject params = new JSONObject();
-            params.put("job__id__in", synchronousJobIds);
-            AfeUtils.callAbort(params, abortAsynchronousEntries);
+            for (JSONObject groupParams : new JSONArrayList<JSONObject>(synchronousJobArgs)) {
+                AfeUtils.callAbort(groupParams, null, false);
+            }
+            abortAsynchronousEntries.doCallback(this);
         } else if (sender == abortAsynchronous) {
             abortAsynchronousEntries.doCallback(this);
         }

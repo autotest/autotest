@@ -139,10 +139,6 @@ tr.data-row-clickable:hover {
   text-decoration: none;
 }
 
-.gwt-DisclosurePanel .gwt-Label {
-  text-decoration: underline;
-}
-
 .filter-box {
   margin-left: 1em;
 }
@@ -210,10 +206,6 @@ tr.data-row-clickable:hover {
   border: 2px solid #AACCFF;
   background: #CCDDFF;
   padding: 0.2em;
-}
-
-.extra-space-left {
-  margin-left: 1em;
 }
 
 .SimpleHyperlink {

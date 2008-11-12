@@ -34,6 +34,7 @@ import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.KeyboardListener;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
@@ -167,7 +168,7 @@ public class CreateJobView extends TabView
     protected TextArea controlFile = new TextArea();
     protected DisclosurePanel controlFilePanel = new DisclosurePanel();
     protected ControlTypeSelect controlTypeSelect;
-    protected CheckBox runSynchronous = new CheckBox("Synchronous");
+    protected TextBox synchCountInput = new TextBox();
     protected Button editControlButton = new Button(EDIT_CONTROL_STRING);
     protected HostSelector hostSelector;
     protected Button submitJobButton = new Button("Submit Job");
@@ -219,8 +220,7 @@ public class CreateJobView extends TabView
 
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
-        runSynchronous.setChecked(
-                jobObject.get("synch_type").isString().stringValue().equals("Synchronous"));
+        synchCountInput.setText(Utils.jsonToString(jobObject.get("synch_count")));
         controlFile.setText(
                 jobObject.get("control_file").isString().stringValue());
         controlReadyForSubmit = true;
@@ -254,7 +254,7 @@ public class CreateJobView extends TabView
         editControlButton.setText(UNEDIT_CONTROL_STRING);
         controlFilePanel.setOpen(true);
         controlTypeSelect.setEnabled(true);
-        runSynchronous.setEnabled(true);
+        synchCountInput.setEnabled(true);
         editControlButton.setEnabled(true);
     }
     
@@ -331,13 +331,12 @@ public class CreateJobView extends TabView
                 JSONObject controlInfo = result.isObject();
                 String controlFileText = controlInfo.get("control_file").isString().stringValue();
                 boolean isServer = controlInfo.get("is_server").isBoolean().booleanValue();
-                boolean isSynchronous = 
-                    controlInfo.get("is_synchronous").isBoolean().booleanValue();
+                String synchCount = Utils.jsonToString(controlInfo.get("synch_count"));
                 dependencies = controlInfo.get("dependencies").isArray();
                 controlFile.setText(controlFileText);
                 controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE : 
                                                             TestSelector.CLIENT_TYPE);
-                runSynchronous.setChecked(isSynchronous);
+                synchCountInput.setText(synchCount);
                 controlReadyForSubmit = readyForSubmit;
                 if (finishedCallback != null)
                     finishedCallback.doCallback(this);
@@ -419,10 +418,16 @@ public class CreateJobView extends TabView
         
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
-        Panel controlOptionsPanel = new HorizontalPanel();
+        HorizontalPanel controlOptionsPanel = new HorizontalPanel();
+        controlOptionsPanel.setVerticalAlignment(HorizontalPanel.ALIGN_BOTTOM);
         controlOptionsPanel.add(controlTypeSelect);
-        controlOptionsPanel.add(runSynchronous);
-        runSynchronous.addStyleName("extra-space-left");
+        Label useLabel = new Label("Use");
+        useLabel.getElement().getStyle().setProperty("marginLeft", "1em");
+        synchCountInput.setSize("3em", ""); // set width only
+        synchCountInput.getElement().getStyle().setProperty("margin", "0 0.5em 0 0.5em");
+        controlOptionsPanel.add(useLabel);
+        controlOptionsPanel.add(synchCountInput);
+        controlOptionsPanel.add(new Label("host(s) per execution"));
         Panel controlEditPanel = new VerticalPanel();
         controlEditPanel.add(controlOptionsPanel);
         controlEditPanel.add(controlFile);
@@ -465,7 +470,7 @@ public class CreateJobView extends TabView
                     setInputsEnabled();
                     editControlButton.setText(EDIT_CONTROL_STRING);
                     controlTypeSelect.setEnabled(false);
-                    runSynchronous.setEnabled(false);
+                    synchCountInput.setEnabled(false);
                     controlEdited = false;
                 }
             }
@@ -535,8 +540,8 @@ public class CreateJobView extends TabView
         setInputsEnabled();
         controlTypeSelect.setControlType(TestSelector.CLIENT_TYPE);
         controlTypeSelect.setEnabled(false);
-        runSynchronous.setEnabled(false);
-        runSynchronous.setChecked(false);
+        synchCountInput.setEnabled(false);
+        synchCountInput.setText("1");
         controlFile.setText("");
         controlFile.setReadOnly(true);
         controlEdited = false;
@@ -547,19 +552,12 @@ public class CreateJobView extends TabView
     }
     
     protected void submitJob() {
-        // Read and validate the timeout
-        String timeoutString = timeout.getText();
-        final int timeoutInt;
+        final int timeoutValue, synchCount;
         try {
-            if (timeoutString.equals("") ||
-                (timeoutInt = Integer.parseInt(timeoutString)) <= 0) {
-                    String error = "Please enter a positive timeout";
-                    NotifyManager.getInstance().showError(error);
-                    return;
-            }
-        } catch (NumberFormatException e) {
-            String error = "Invalid timeout " + timeoutString;
-            NotifyManager.getInstance().showError(error);
+            timeoutValue = parsePositiveIntegerInput(timeout.getText(), "timeout");
+            synchCount = parsePositiveIntegerInput(synchCountInput.getText(), 
+                                                   "number of machines used per execution");
+        } catch (IllegalArgumentException exc) {
             return;
         }
       
@@ -576,9 +574,8 @@ public class CreateJobView extends TabView
                 args.put("control_file", new JSONString(controlFile.getText()));
                 args.put("control_type", 
                          new JSONString(controlTypeSelect.getControlType()));
-                args.put("is_synchronous", 
-                         JSONBoolean.getInstance(runSynchronous.isChecked()));
-                args.put("timeout", new JSONNumber(timeoutInt));
+                args.put("synch_count", new JSONNumber(synchCount));
+                args.put("timeout", new JSONNumber(timeoutValue));
                 args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
                 args.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
@@ -620,6 +617,23 @@ public class CreateJobView extends TabView
             });
         else
             doSubmit.doCallback(this);
+    }
+
+    private int parsePositiveIntegerInput(String input, String fieldName) {
+        final int parsedInt;
+        try {
+            if (input.equals("") ||
+                (parsedInt = Integer.parseInt(input)) <= 0) {
+                    String error = "Please enter a positive " + fieldName;
+                    NotifyManager.getInstance().showError(error);
+                    throw new IllegalArgumentException();
+            }
+        } catch (NumberFormatException e) {
+            String error = "Invalid " + fieldName + ": \"" + input + "\"";
+            NotifyManager.getInstance().showError(error);
+            throw new IllegalArgumentException();
+        }
+        return parsedInt;
     }
     
     @Override
