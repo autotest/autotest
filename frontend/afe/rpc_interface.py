@@ -51,12 +51,12 @@ def delete_label(id):
 
 
 def label_add_hosts(id, hosts):
-    host_objs = [models.Host.smart_get(host) for host in hosts]
+    host_objs = models.Host.smart_get_bulk(hosts)
     models.Label.smart_get(id).host_set.add(*host_objs)
 
 
 def label_remove_hosts(id, hosts):
-    host_objs = [models.Host.smart_get(host) for host in hosts]
+    host_objs = models.Host.smart_get_bulk(hosts)
     models.Label.smart_get(id).host_set.remove(*host_objs)
 
 
@@ -77,12 +77,12 @@ def modify_host(id, **data):
 
 
 def host_add_labels(id, labels):
-    labels = [models.Label.smart_get(label) for label in labels]
+    labels = models.Label.smart_get_bulk(labels)
     models.Host.smart_get(id).labels.add(*labels)
 
 
 def host_remove_labels(id, labels):
-    labels = [models.Label.smart_get(label) for label in labels]
+    labels = models.Label.smart_get_bulk(labels)
     models.Host.smart_get(id).labels.remove(*labels)
 
 
@@ -198,14 +198,14 @@ def modify_acl_group(id, **data):
 def acl_group_add_users(id, users):
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
-    users = [models.User.smart_get(user) for user in users]
+    users = models.User.smart_get_bulk(users)
     group.users.add(*users)
 
 
 def acl_group_remove_users(id, users):
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
-    users = [models.User.smart_get(user) for user in users]
+    users = models.User.smart_get_bulk(users)
     group.users.remove(*users)
     group.add_current_user_if_empty()
 
@@ -213,7 +213,7 @@ def acl_group_remove_users(id, users):
 def acl_group_add_hosts(id, hosts):
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
-    hosts = [models.Host.smart_get(host) for host in hosts]
+    hosts = models.Host.smart_get_bulk(hosts)
     group.hosts.add(*hosts)
     group.on_host_membership_change()
 
@@ -221,7 +221,7 @@ def acl_group_add_hosts(id, hosts):
 def acl_group_remove_hosts(id, hosts):
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
-    hosts = [models.Host.smart_get(host) for host in hosts]
+    hosts = models.Host.smart_get_bulk(hosts)
     group.hosts.remove(*hosts)
     group.on_host_membership_change()
 
@@ -308,12 +308,9 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                           for label in models.Label.objects.all())
 
     # convert hostnames & meta hosts to host/label objects
-    host_objects = []
+    host_objects = models.Host.smart_get_bulk(hosts or [])
     metahost_objects = []
     metahost_counts = {}
-    for host in hosts or []:
-        this_host = models.Host.smart_get(host)
-        host_objects.append(this_host)
     for label in meta_hosts or []:
         this_label = labels_by_name[label]
         metahost_objects.append(this_label)

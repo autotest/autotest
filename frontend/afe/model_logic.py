@@ -503,6 +503,21 @@ class ModelExtensions(object):
         return cls.objects.get(**kwargs)
 
 
+    @classmethod
+    def smart_get_bulk(cls, id_or_name_list):
+        invalid_inputs = []
+        result_objects = []
+        for id_or_name in id_or_name_list:
+            try:
+                result_objects.append(cls.smart_get(id_or_name))
+            except cls.DoesNotExist:
+                invalid_inputs.append(id_or_name)
+        if invalid_inputs:
+            raise cls.DoesNotExist('The following %s objects do not exist: %s'
+                                   % (cls.__name__, ', '.join(invalid_inputs)))
+        return result_objects
+
+
     def get_object_dict(self, fields=None):
         """\
         Return a dictionary mapping fields to this object's values.
