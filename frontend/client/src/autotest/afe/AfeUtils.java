@@ -99,12 +99,14 @@ public class AfeUtils {
         }
         
         final JSONArray asynchronousEntryIds = new JSONArray();
-        Set<JSONObject> synchronousJobs = new JSONObjectSet<JSONObject>();
+        Set<JSONObject> synchronousEntries = new JSONObjectSet<JSONObject>();
         for (JSONObject entry : entries) {
             JSONObject job = entry.get("job").isObject();
-            String synchType = Utils.jsonToString(job.get("synch_type"));
-            if (synchType.equals("Synchronous")) {
-                synchronousJobs.add(job);
+            int synchCount = (int) job.get("synch_count").isNumber().doubleValue();
+            boolean hasExecutionSubdir = 
+                !Utils.jsonToString(entry.get("execution_subdir")).equals("");
+            if (synchCount > 1 && hasExecutionSubdir) {
+                synchronousEntries.add(entry);
                 continue;
             }
 
@@ -125,11 +127,11 @@ public class AfeUtils {
             }
         };
         
-        if (synchronousJobs.size() == 0) {
+        if (synchronousEntries.size() == 0) {
             abortAsynchronousEntries.doCallback(null);
         } else {
             AbortSynchronousDialog dialog = new AbortSynchronousDialog(
-                abortAsynchronousEntries, synchronousJobs, asynchronousEntryIds.size() != 0);
+                abortAsynchronousEntries, synchronousEntries, asynchronousEntryIds.size() != 0);
             dialog.center();
         }
     }
@@ -140,17 +142,24 @@ public class AfeUtils {
         }
     }
     
-    public static void callAbort(JSONObject params, final SimpleCallback onSuccess) {
+    public static void callAbort(JSONObject params, final SimpleCallback onSuccess,
+                                 final boolean showMessage) {
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("abort_host_queue_entries", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                NotifyManager.getInstance().showMessage("Jobs aborted");
+                if (showMessage) {
+                    NotifyManager.getInstance().showMessage("Jobs aborted");
+                }
                 if (onSuccess != null) {
                     onSuccess.doCallback(null);
                 }
             }
         });
+    }
+    
+    public static void callAbort(JSONObject params, final SimpleCallback onSuccess) {
+        callAbort(params, onSuccess, true);
     }
 
     public static String getJobTag(JSONObject job) {

@@ -1,7 +1,14 @@
 import threading
 
+# when using the models from a script, use this object to avoid null checks all
+# over the place
+class NullUser(object):
+    def is_superuser(self):
+        return True
+
+
 _store = threading.local()
-_store.user = None
+_store.user = NullUser()
 
 def set_user(user):
     """\

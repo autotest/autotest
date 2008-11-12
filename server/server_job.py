@@ -287,6 +287,7 @@ class base_server_job(object):
                 self.resultdir = os.path.join(self.resultdir,
                                               machine)
                 os.chdir(self.resultdir)
+                utils.write_keyval(self.resultdir, {"hostname": machine})
                 self.init_parser(self.resultdir)
                 result = function(machine)
                 self.cleanup_parser()

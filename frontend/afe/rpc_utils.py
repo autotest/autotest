@@ -128,26 +128,17 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
              'tests together (tests %s and %s differ' % (
             test1.name, test2.name)})
 
-    try:
-        synch_type = get_consistent_value(test_objects, 'synch_type')
-    except InconsistencyException, exc:
-        test1, test2 = exc.args
-        raise model_logic.ValidationError(
-            {'tests' : 'You cannot run both synchronous and '
-             'asynchronous tests together (tests %s and %s differ)' % (
-            test1.name, test2.name)})
-
     is_server = (test_type == models.Test.Types.SERVER)
-    is_synchronous = (synch_type == models.Test.SynchType.SYNCHRONOUS)
+    synch_count = max(test.sync_count for test in test_objects)
     if label:
         label = models.Label.smart_get(label)
 
     dependencies = set(label.name for label
                        in models.Label.objects.filter(test__in=test_objects))
 
-    return (dict(is_server=is_server, is_synchronous=is_synchronous,
-                 dependencies=list(dependencies)),
-            test_objects, profiler_objects, label)
+    cf_info = dict(is_server=is_server, synch_count=synch_count,
+                   dependencies=list(dependencies))
+    return cf_info, test_objects, profiler_objects, label
 
 
 def check_job_dependencies(host_objects, job_dependencies):
@@ -183,3 +174,27 @@ def check_job_dependencies(host_objects, job_dependencies):
                        ', '.join(host.hostname for host in hosts_in_label)))
     if errors:
         raise model_logic.ValidationError({'hosts' : '\n'.join(errors)})
+
+
+def _execution_key_for(host_queue_entry):
+    return (host_queue_entry.job.id, host_queue_entry.execution_subdir)
+
+
+def check_abort_synchronous_jobs(host_queue_entries):
+    # ensure user isn't aborting part of a synchronous autoserv execution
+    count_per_execution = {}
+    for queue_entry in host_queue_entries:
+        key = _execution_key_for(queue_entry)
+        count_per_execution.setdefault(key, 0)
+        count_per_execution[key] += 1
+
+    for queue_entry in host_queue_entries:
+        if not queue_entry.execution_subdir:
+            continue
+        execution_count = count_per_execution[_execution_key_for(queue_entry)]
+        if execution_count < queue_entry.job.synch_count:
+          raise model_logic.ValidationError(
+              {'' : 'You cannot abort part of a synchronous job execution '
+                    '(%d/%s, %d included, %d expected'
+                    % (queue_entry.job.id, queue_entry.execution_subdir,
+                       execution_subdir, queue_entry.job.synch_count)})
