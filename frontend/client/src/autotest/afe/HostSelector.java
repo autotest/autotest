@@ -72,6 +72,7 @@ public class HostSelector {
         availableTable.setClickable(true);
         availableDecorator.lockedFilter.setSelectedChoice("No");
         availableDecorator.aclFilter.setActive(true);
+        availableDecorator.excludeOnlyIfNeededFilter.setActive(true);
         availableSelection = availableDecorator.addSelectionManager(false);
         availableDecorator.addSelectionPanel(true);
         
