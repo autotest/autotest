@@ -2,6 +2,8 @@
 #
 # Copyright 2008 Google Inc. All Rights Reserved.
 
+#TODO(rkubiak): Add unittest for job cloning
+
 """Tests for job."""
 
 import copy, getpass, unittest, sys, os
