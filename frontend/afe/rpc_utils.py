@@ -102,13 +102,14 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels, filter_data):
     if exclude_only_if_needed_labels:
         only_if_needed_labels = models.Label.valid_objects.filter(
             only_if_needed=True)
-        only_if_needed_ids = ','.join(
-            str(label['id']) for label in only_if_needed_labels.values('id'))
-        query = models.Host.objects.add_join(
-            query, 'hosts_labels', join_key='host_id',
-            join_condition='hosts_labels_exclude.label_id IN (%s)'
-                           % only_if_needed_ids,
-            suffix='_exclude', exclude=True)
+        if only_if_needed_labels.count() > 0:
+            only_if_needed_ids = ','.join(str(label['id']) for label
+                                          in only_if_needed_labels.values('id'))
+            query = models.Host.objects.add_join(
+                query, 'hosts_labels', join_key='host_id',
+                join_condition='hosts_labels_exclude.label_id IN (%s)'
+                               % only_if_needed_ids,
+                suffix='_exclude', exclude=True)
     filter_data['extra_args'] = (extra_host_filters(multiple_labels))
     return models.Host.query_objects(filter_data, initial_query=query)
 
