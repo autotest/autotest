@@ -44,10 +44,6 @@ class _GenericBackend(object):
         return self._cursor.fetchall()
 
 
-    def get_exception_details(exception):
-        return ExceptionDetails.UNKNOWN
-
-
 class _MySqlBackend(_GenericBackend):
     def __init__(self):
         import MySQLdb
@@ -70,10 +66,6 @@ class _MySqlBackend(_GenericBackend):
             conv=convert_dict)
         self._connection.autocommit(True)
         self._cursor = self._connection.cursor()
-
-
-    def get_exception_details(exception):
-        pass
 
 
 class _SqliteBackend(_GenericBackend):
