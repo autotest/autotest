@@ -259,29 +259,13 @@ class job_create(action_common.atest_create, job):
                                type='choice',
                                choices=('never', 'if all tests passed',
                                         'always'))
-
-
-    def parse_hosts(self, args):
-        """ Parses the arguments to generate a list of hosts and meta_hosts
-        A host is a regular name, a meta_host is n*label or *label.
-        These can be mixed on the CLI, and separated by either commas or
-        spaces, e.g.: 5*Machine_Label host0 5*Machine_Label2,host2 """
-
-        hosts = []
-        meta_hosts = []
-
-        for arg in args:
-            for host in arg.split(','):
-                if re.match('^[0-9]+[*]', host):
-                    num, host = host.split('*', 1)
-                    meta_hosts += int(num) * [host]
-                elif re.match('^[*](\w*)', host):
-                    meta_hosts += [re.match('^[*](\w*)', host).group(1)]
-                elif host != '':
-                    # Real hostname
-                    hosts.append(host)
-
-        return (hosts, meta_hosts)
+        self.parser.add_option('-l', '--clone', help='Clone an existing job.  '
+                               'This will discard all other options except '
+                               '--reuse-hosts.', default=False,
+                               metavar='JOB_ID')
+        self.parser.add_option('-r', '--reuse-hosts', help='Use the exact same '
+                               'hosts as cloned job.  Only for use with '
+                               '--clone.', action='store_true', default=False)
 
 
     def parse(self):
@@ -290,6 +274,20 @@ class job_create(action_common.atest_create, job):
         (options, leftover) = self.parse_with_flist(flists,
                                                     req_items='jobname')
         self.data = {}
+        if len(self.jobname) > 1:
+            self.invalid_syntax('Too many arguments specified, only expected '
+                                'to receive job name: %s' % self.jobname)
+        self.jobname = self.jobname[0]
+
+        if options.reuse_hosts and not options.clone:
+            self.invalid_syntax('--reuse-hosts only to be used with --clone.')
+        # If cloning skip parse, parsing is done in execute
+        self.clone_id = options.clone
+        if options.clone:
+            self.op_action = 'clone'
+            self.msg_items = 'jobid'
+            self.reuse_hosts = options.reuse_hosts
+            return (options, leftover)
 
         if len(self.hosts) == 0:
             self.invalid_syntax('Must specify at least one host')
@@ -334,10 +332,6 @@ class job_create(action_common.atest_create, job):
         if options.reboot_after:
             self.data['reboot_after'] = options.reboot_after.capitalize()
 
-        if len(self.jobname) > 1:
-            self.invalid_syntax('Too many arguments specified, only expected '
-                                'to receive job name: %s' % self.jobname)
-        self.jobname = self.jobname[0]
         self.data['name'] = self.jobname
 
         (self.data['hosts'],
@@ -382,9 +376,46 @@ class job_create(action_common.atest_create, job):
             deps = sorted(deps.union(cf_info['dependencies']))
             self.data['dependencies'] = list(deps)
 
+        if self.clone_id:
+            clone_info = self.execute_rpc(op='get_info_for_clone',
+                                          id=self.clone_id,
+                                          preserve_metahosts=self.reuse_hosts)
+            self.data = clone_info['job']
+
+            # Remove fields from clone data that cannot be reused
+            unused_fields = ('name', 'created_on', 'id', 'owner')
+            for field in unused_fields:
+                del self.data[field]
+
+            # Keyword args cannot be unicode strings
+            for key, val in self.data.iteritems():
+                del self.data[key]
+                self.data[str(key)] = val
+
+            # Convert host list from clone info that can be used for job_create
+            host_list = []
+            if clone_info['meta_host_counts']:
+                # Creates a dictionary of meta_hosts, e.g.
+                # {u'label1': 3, u'label2': 2, u'label3': 5}
+                meta_hosts = clone_info['meta_host_counts']
+                # Create a list of formatted metahosts, e.g.
+                # [u'3*label1', u'2*label2', u'5*label3']
+                meta_host_list = ['%s*%s' % (str(val), key) for key,val in
+                                  meta_hosts.items()]
+                host_list.extend(meta_host_list)
+            if clone_info['hosts']:
+                # Creates a list of hosts, e.g. [u'host1', u'host2']
+                hosts = [host['hostname'] for host in clone_info['hosts']]
+                host_list.extend(hosts)
+
+            (self.data['hosts'],
+             self.data['meta_hosts']) = self.parse_hosts(host_list)
+            self.data['name'] = self.jobname
+
         socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         # This RPC takes a while when there are lots of hosts.
         # We don't set it back to default because it's the last RPC.
+
         job_id = self.execute_rpc(op='create_job', **self.data)
         return ['%s (id %s)' % (self.jobname, job_id)]
 
