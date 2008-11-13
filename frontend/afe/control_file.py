@@ -21,14 +21,14 @@ def step_init():
         job.next_step(step_test, kernel_version)
 
 def boot_kernel(kernel_version):
-    global kernel
-    kernel = kernel_version  # Set the global in case anyone is using it.
     testkernel = job.kernel(kernel_version)
     %(kernel_config_line)s
     testkernel.install()
     testkernel.boot(args='%(kernel_args)s')
 
 def step_test(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
     job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.
 """
 
