@@ -434,5 +434,11 @@ class job_abort(job, action_common.atest_delete):
                                                     req_items='jobids')
 
 
+    def execute(self):
+        data = {'job__id__in': self.jobids}
+        self.execute_rpc(op='abort_host_queue_entries', **data)
+        print 'Aborting jobs: %s' % ', '.join(self.jobids)
+
+
     def get_items(self):
         return self.jobids
