@@ -170,6 +170,28 @@ class atest_create(atest_create_or_delete):
     op_action = 'add'
     msg_done = 'Created'
 
+    def parse_hosts(self, args):
+        """ Parses the arguments to generate a list of hosts and meta_hosts
+        A host is a regular name, a meta_host is n*label or *label.
+        These can be mixed on the CLI, and separated by either commas or
+        spaces, e.g.: 5*Machine_Label host0 5*Machine_Label2,host2 """
+
+        hosts = []
+        meta_hosts = []
+
+        for arg in args:
+            for host in arg.split(','):
+                if re.match('^[0-9]+[*]', host):
+                    num, host = host.split('*', 1)
+                    meta_hosts += int(num) * [host]
+                elif re.match('^[*](\w*)', host):
+                    meta_hosts += [re.match('^[*](\w*)', host).group(1)]
+                elif host != '':
+                    # Real hostname
+                    hosts.append(host)
+
+        return (hosts, meta_hosts)
+
 
 class atest_delete(atest_create_or_delete):
     data_item_key = 'id'
