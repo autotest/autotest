@@ -781,16 +781,9 @@ class job_abort_unittest(cli_mock.cli_unittest):
 
     def test_execute_job_abort(self):
         self.run_cmd(argv=['atest', 'job', 'abort', '180'],
-                     rpcs=[('abort_job', {'id': '180'}, True, None)],
-                     out_words_ok=['Aborted', '180'])
-
-
-    def test_execute_job_abort_bad_id(self):
-        self.run_cmd(argv=['atest', 'job', 'abort', '777'],
-                     rpcs=[('abort_job', {'id': '777'}, False,
-                            'ValidationError:{DoesNotExist: Job matching query'
-                            'does not exist}')],
-                     err_words_ok=['Operation', 'abort_job', 'failed'])
+                     rpcs=[('abort_host_queue_entries',
+                            {'job__id__in': ['180']}, True, None)],
+                     out_words_ok=['Aborting', '180'])
 
 
 if __name__ == '__main__':
