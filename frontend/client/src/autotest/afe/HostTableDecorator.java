@@ -71,6 +71,6 @@ class HostTableDecorator extends TableDecorator {
         addFilter("Status", statusFilter);
         addFilter("Locked", lockedFilter);
         addFilter("ACL accessible only", aclFilter);
-        addFilter("Exclude only_if_needed labels", excludeOnlyIfNeededFilter);
+        addFilter("Exclude \"only if needed\" labels", excludeOnlyIfNeededFilter);
     }
 }
