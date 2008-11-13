@@ -214,4 +214,4 @@ def check_abort_synchronous_jobs(host_queue_entries):
               {'' : 'You cannot abort part of a synchronous job execution '
                     '(%d/%s, %d included, %d expected'
                     % (queue_entry.job.id, queue_entry.execution_subdir,
-                       execution_subdir, queue_entry.job.synch_count)})
+                       execution_count, queue_entry.job.synch_count)})
