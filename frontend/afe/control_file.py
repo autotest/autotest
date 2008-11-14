@@ -29,7 +29,8 @@ def boot_kernel(kernel_version):
 def step_test(kernel_version):
     global kernel
     kernel = kernel_version  # Set the global in case anyone is using it.
-    job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.
+    if len(kernel_list) > 1:
+        job.set_test_tag_prefix(kernel_version)  # Separate output by kernel.
 """
 
 SERVER_KERNEL_TEMPLATE = """\
