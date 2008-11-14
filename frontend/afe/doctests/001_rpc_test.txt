@@ -353,7 +353,7 @@ True
 ...     kernel=' 2.6.18, 2.6.22 \t2.6.26,2.6.27  \t',
 ...     label='my_label')
 >>> cf_info['control_file']
-"kernel_list = ['2.6.18', '2.6.22', '2.6.26', '2.6.27']\n\ndef step_init():\n    for kernel_version in kernel_list:\n        job.next_step(boot_kernel, kernel_version)\n        job.next_step(step_test, kernel_version)\n\ndef boot_kernel(kernel_version):\n    global kernel\n    kernel = kernel_version  # Set the global in case anyone is using it.\n    testkernel = job.kernel(kernel_version)\n    testkernel.config('my_kernel_config')\n    testkernel.install()\n    testkernel.boot(args='')\n\ndef step_test(kernel_version):\n    job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.\n    job.next_step('step0')\n    job.next_step('step1')\n\ndef step0():\n    job.run_test('testname')\n\ndef step1():\n    job.run_test('testname')"
+"kernel_list = ['2.6.18', '2.6.22', '2.6.26', '2.6.27']\n\ndef step_init():\n    for kernel_version in kernel_list:\n        job.next_step(boot_kernel, kernel_version)\n        job.next_step(step_test, kernel_version)\n\ndef boot_kernel(kernel_version):\n    testkernel = job.kernel(kernel_version)\n    testkernel.config('my_kernel_config')\n    testkernel.install()\n    testkernel.boot(args='')\n\ndef step_test(kernel_version):\n    global kernel\n    kernel = kernel_version  # Set the global in case anyone is using it.\n    job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.\n    job.next_step('step0')\n    job.next_step('step1')\n\ndef step0():\n    job.run_test('testname')\n\ndef step1():\n    job.run_test('testname')"
 >>> print cf_info['control_file'] #doctest: +NORMALIZE_WHITESPACE
 kernel_list = ['2.6.18', '2.6.22', '2.6.26', '2.6.27']
 def step_init():
@@ -361,13 +361,13 @@ def step_init():
         job.next_step(boot_kernel, kernel_version)
         job.next_step(step_test, kernel_version)
 def boot_kernel(kernel_version):
-    global kernel
-    kernel = kernel_version  # Set the global in case anyone is using it.
     testkernel = job.kernel(kernel_version)
     testkernel.config('my_kernel_config')
     testkernel.install()
     testkernel.boot(args='')
 def step_test(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
     job.set_test_tag_prefix(kernel_version)  # Separate run output by kernel.
     job.next_step('step0')
     job.next_step('step1')
