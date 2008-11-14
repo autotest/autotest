@@ -576,6 +576,17 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_no=['Uploading', 'Done'])
 
 
+    def test_execute_create_job_with_synch_count(self):
+        data = self.data.copy()
+        data['synch_count'] = 2
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-y', '2'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
     def test_execute_create_job_with_test_and_label(self):
         data = self.data.copy()
         data['dependencies'] = ['dep1', 'dep2', 'dep3']
