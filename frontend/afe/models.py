@@ -435,7 +435,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         if len(cannot_abort) == 0:
             return
         entry_names = ', '.join('%s-%s/%s' % (entry.job.id, entry.job.owner,
-                                              entry.host.hostname)
+                                              entry.host_or_metahost_name())
                                 for entry in cannot_abort)
         raise AclAccessViolation('You cannot abort the following job entries: '
                                  + entry_names)
@@ -727,6 +727,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         self._set_active_and_complete()
         super(HostQueueEntry, self).save()
         self._check_for_updated_attributes()
+
+
+    def host_or_metahost_name(self):
+        if self.host:
+            return self.host.hostname
+        else:
+            assert self.meta_host
+            return self.meta_host.name
 
 
     def _set_active_and_complete(self):
