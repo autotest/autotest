@@ -221,7 +221,7 @@ class job_create(action_common.atest_create, job):
                                'medium, high, urgent), default=medium',
                                type='choice', choices=('low', 'medium', 'high',
                                'urgent'), default='medium')
-        self.parser.add_option('-y', '--synch_count',
+        self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
                                     'execution',
                                default=1)
