@@ -14,6 +14,16 @@ class InvalidTimestampFormat(Error):
 
 
 def prepend_timestamp(msg, format):
+    """Prepend timestamp to a message in a standard way.
+
+    Args:
+      msg: str; Message to prepend timestamp to.
+      format: str or callable; Either format string that
+          can be passed to time.strftime or a callable
+          that will generate the timestamp string.
+
+    Returns: str; 'timestamp\tmsg'
+    """
     if type(format) is str:
         timestamp = time.strftime(format, time.localtime())
     elif callable(format):
@@ -25,15 +35,34 @@ def prepend_timestamp(msg, format):
 
 
 def write_logline(logfile, msg, timestamp_format=None):
+    """Write msg, possibly prepended with a timestamp, as a terminated line.
+
+    Args:
+      logfile: file; File object to .write() msg to.
+      msg: str; Message to write.
+      timestamp_format: str or callable; If specified will
+          be passed into prepend_timestamp along with msg.
+    """
     msg = msg.rstrip()
     if timestamp_format:
-      msg = prepend_timestamp(msg, timestamp_format)
+        msg = prepend_timestamp(msg, timestamp_format)
     logfile.write(msg + '\n')
 
 
-# the format for a warning used here is:
-#   <timestamp (integer)> <tab> <status (string)> <newline>
 def make_alert(warnfile, msg_template, timestamp_format=None):
+    """Create an alert generation function that writes to warnfile.
+
+    Args:
+      warnfile: file; File object to write msg's to.
+      msg_template: str; String template that function params
+          are passed through.
+      timestamp_format: str or callable; If specified will
+          be passed into prepend_timestamp along with msg.
+
+    Returns: function with a signature of (*params);
+        The format for a warning used here is:
+            <timestamp (integer)> <tab> <status (string)> <newline>
+    """
     if timestamp_format is None:
         timestamp_format = lambda: int(time.time())
 
@@ -45,6 +74,16 @@ def make_alert(warnfile, msg_template, timestamp_format=None):
 
 
 def build_alert_hooks(patterns_file, warnfile):
+    """Parse data in patterns file and transform into alert_hook list.
+
+    Args:
+      patterns_file: file; File to read alert pattern definitions from.
+      warnfile: file; File to configure alert function to write warning to.
+
+    Returns:
+      list; Regex to alert function mapping.
+          [(regex, alert_function), ...]
+    """
     pattern_lines = patterns_file.readlines()
     # expected pattern format:
     # <regex> <newline> <alert> <newline> <newline>
@@ -67,6 +106,19 @@ def build_alert_hooks(patterns_file, warnfile):
 
 def process_input(
     input, logfile, log_timestamp_format=None, alert_hooks=()):
+    """Continuously read lines from input stream and:
+
+    - Write them to log, possibly prefixed by timestamp.
+    - Watch for alert patterns.
+
+    Args:
+      input: file; Stream to read from.
+      logfile: file; Log file to write to
+      log_timestamp_format: str; Format to use for timestamping entries.
+          No timestamp is added if None.
+      alert_hooks: list; Generated from build_alert_hooks.
+          [(regex, alert_function), ...]
+    """
     while True:
         line = input.readline()
         if len(line) == 0:
@@ -89,8 +141,20 @@ def process_input(
 
 
 def lookup_lastlines(lastlines_dirpath, path):
-    # Open corresponding lastline file for path
-    # If there isn't one or isn't a match return None
+    """Retrieve last lines seen for path.
+
+    Open corresponding lastline file for path
+    If there isn't one or isn't a match return None
+
+    Args:
+      lastlines_dirpath: str; Dirpath to store lastlines files to.
+      path: str; Filepath to source file that lastlines came from.
+
+    Returns:
+      str; Last lines seen if they exist
+      - Or -
+      None; Otherwise
+    """
     underscored = path.replace('/', '_')
     try:
         lastlines_file = open(os.path.join(lastlines_dirpath, underscored))
@@ -123,6 +187,16 @@ def lookup_lastlines(lastlines_dirpath, path):
 
 
 def write_lastlines_file(lastlines_dirpath, path, data):
+    """Write data to lastlines file for path.
+
+    Args:
+      lastlines_dirpath: str; Dirpath to store lastlines files to.
+      path: str; Filepath to source file that data comes from.
+      data: str;
+
+    Returns:
+      str; Filepath that lastline data was written to.
+    """
     underscored = path.replace('/', '_')
     dest_path = os.path.join(lastlines_dirpath, underscored)
     open(dest_path, 'w').write(data)
@@ -130,20 +204,37 @@ def write_lastlines_file(lastlines_dirpath, path, data):
 
 
 def nonblocking(pipe):
-    # This allows us to take advantage of pipe.read()
-    # where we don't have to specify a buflen.
-    # Cuts down on a few lines we'd have to maintain.
+    """Set python file object to nonblocking mode.
+
+    This allows us to take advantage of pipe.read()
+    where we don't have to specify a buflen.
+    Cuts down on a few lines we'd have to maintain.
+
+    Args:
+      pipe: file; File object to modify
+
+    Returns: pipe
+    """
     flags = fcntl.fcntl(pipe, fcntl.F_GETFL)
     fcntl.fcntl(pipe, fcntl.F_SETFL, flags| os.O_NONBLOCK)
     return pipe
 
 
 def launch_tails(follow_paths, lastlines_dirpath=None):
+    """Launch a tail process for each follow_path.
+
+    Args:
+      follow_paths: list;
+      lastlines_dirpath: str;
+
+    Returns:
+      tuple; (procs, pipes) or
+          ({path: subprocess.Popen, ...}, {file: path, ...})
+    """
     if lastlines_dirpath and not os.path.exists(lastlines_dirpath):
         os.makedirs(lastlines_dirpath)
 
     tail_cmd = ('/usr/bin/tail', '--retry', '--follow=name')
-    # Launch a tail process for each
     procs = {}  # path -> tail_proc
     pipes = {}  # tail_proc.stdout -> path
     for path in follow_paths:
@@ -163,6 +254,16 @@ def launch_tails(follow_paths, lastlines_dirpath=None):
 
 
 def poll_tail_pipes(pipes, lastlines_dirpath=None, waitsecs=5):
+    """Wait on tail pipes for new data for waitsecs, return any new lines.
+
+    Args:
+      pipes: dict; {subprocess.Popen: follow_path, ...}
+      lastlines_dirpath: str; Path to write lastlines to.
+      waitsecs: int; Timeout to pass to select
+
+    Returns:
+      tuple; (lines, bad_pipes) or ([line, ...], [subprocess.Popen, ...])
+    """
     lines = []
     bad_pipes = []
     # Block until at least one is ready to read or waitsecs elapses
@@ -187,6 +288,11 @@ def poll_tail_pipes(pipes, lastlines_dirpath=None, waitsecs=5):
 
 
 def snuff(subprocs):
+    """Helper for killing off remaining live subprocesses.
+
+    Args:
+      subprocs: list; [subprocess.Popen, ...]
+    """
     for proc in subprocs:
         if proc.poll() is None:
             os.kill(proc.pid, signal.SIGKILL)
@@ -194,6 +300,14 @@ def snuff(subprocs):
 
 
 def follow_files(follow_paths, outstream, lastlines_dirpath=None, waitsecs=5):
+    """Launch tail on a set of files and merge their output into outstream.
+
+    Args:
+      follow_paths: list; Local paths to launch tail on.
+      outstream: file; Output stream to write aggregated lines to.
+      lastlines_dirpath: Local dirpath to record last lines seen in.
+      waitsecs: int; Timeout for poll_tail_pipes.
+    """
     procs, pipes = launch_tails(follow_paths, lastlines_dirpath)
     while pipes:
         lines, bad_pipes = poll_tail_pipes(pipes, lastlines_dirpath, waitsecs)
