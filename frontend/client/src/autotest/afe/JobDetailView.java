@@ -354,12 +354,12 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         }
         
         JSONObject jobObject = jobValue.isObject();
-        String basePath = jobId + "-" + jobObject.get("owner").isString().stringValue() + 
-                          "/";
-        if (jobStatusDataSource.getNumResults() > 1) {
-            basePath += hostQueueEntry.get("execution_subdir").isString().stringValue() + "/";
+        String basePath = jobId + "-" + jobObject.get("owner").isString().stringValue() + "/";
+        String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
+        if (!executionSubdir.equals("")) {
+            basePath += executionSubdir + "/";
         }
-        
+
         if (cell == JOB_HOSTS_COLUMNS.length - 1) {
             return new HTML(getLogsLinkHtml(basePath + "debug", "Debug logs"));
         } else {
