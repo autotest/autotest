@@ -2262,6 +2262,7 @@ class Job(DBObject):
     def run(self, queue_entry):
         if not self.is_ready():
             if self.run_verify:
+                queue_entry.set_status('Starting')
                 return Agent(self._get_pre_job_tasks(queue_entry),
                              [queue_entry.id])
             else:
