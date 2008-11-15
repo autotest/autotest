@@ -34,7 +34,7 @@ def step_test(kernel_version):
 """
 
 SERVER_KERNEL_TEMPLATE = """\
-kernel = '%%(kernel)s'
+kernel_list = %%(kernel_list)r
 kernel_install_control = \"""
 %s    pass
 \"""
