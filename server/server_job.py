@@ -118,6 +118,7 @@ class base_server_job(object):
         self.ssh_pass = ssh_pass
         self.run_test_cleanup = True
         self.last_boot_tag = None
+        self.hosts = set()
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
