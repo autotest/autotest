@@ -154,8 +154,9 @@ class RemoteHost(base_classes.Host):
         on the destruction of the Host object that was used to obtain
         it.
         """
+        self.run("mkdir -p %s" % parent)
         template = os.path.join(parent, 'autoserv-XXXXXX')
-        dir_name= self.run("mktemp -d %s" % template).stdout.rstrip()
+        dir_name = self.run("mktemp -d %s" % template).stdout.rstrip()
         self.tmp_dirs.append(dir_name)
         return dir_name
 
