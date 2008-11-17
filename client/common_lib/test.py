@@ -118,8 +118,8 @@ class base_test:
         # profilers to run during the test iterations. Let's reserve only
         # the last iteration for profiling, if needed. So let's stop
         # all profilers if they are present and active.
-        profilers = self.job.profilers
-        if profilers.active():
+        profilers = getattr(self.job, "profilers", None)
+        if profilers and profilers.active():
             profilers.stop(self)
         # If the user called this test in an odd way (specified both iterations
         # and test_length), let's warn him
@@ -154,7 +154,7 @@ class base_test:
             print 'Benchmark finished after %d iterations' % (iterations)
 
         # Do a profiling run if necessary
-        if profilers.present():
+        if profilers and profilers.present():
             profilers.start(self)
             print 'Profilers present. Profiling run started'
             self.run_once(*args, **dargs)
