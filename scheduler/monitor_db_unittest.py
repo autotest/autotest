@@ -891,14 +891,13 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def test_repair_task_with_queue_entry(self):
-        queue_entry = self.god.create_mock_class(
-            monitor_db.HostQueueEntry, 'queue_entry')
         self.host.set_status.expect_call('Repairing')
+        self.queue_entry.requeue.expect_call()
         self.setup_run_monitor(1)
         self.host.set_status.expect_call('Repair Failed')
-        queue_entry.handle_host_failure.expect_call()
+        self.queue_entry.handle_host_failure.expect_call()
 
-        task = monitor_db.RepairTask(self.host, queue_entry)
+        task = monitor_db.RepairTask(self.host, self.queue_entry)
         self.run_task(task, False)
         self.god.check_playback()
 
@@ -915,8 +914,6 @@ class AgentTasksTest(unittest.TestCase):
                 self.queue_entry.on_pending.expect_call()
         else:
             self.setup_run_monitor(1)
-            if use_queue_entry:
-                self.queue_entry.requeue.expect_call()
 
 
     def _check_verify_failure_tasks(self, verify_task):
@@ -925,10 +922,10 @@ class AgentTasksTest(unittest.TestCase):
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         self.assertEquals(verify_task.host, repair_task.host)
         if verify_task.queue_entry and not verify_task.queue_entry.meta_host:
-            self.assertEquals(repair_task.fail_queue_entry,
+            self.assertEquals(repair_task.queue_entry,
                               verify_task.queue_entry)
         else:
-            self.assertEquals(repair_task.fail_queue_entry, None)
+            self.assertEquals(repair_task.queue_entry, None)
 
 
     def _test_verify_task_helper(self, success, use_queue_entry=False,
@@ -1051,8 +1048,6 @@ class AgentTasksTest(unittest.TestCase):
             self.host.update_field.expect_call('dirty', 0)
         else:
             self.setup_run_monitor(1)
-            if use_queue_entry:
-                self.queue_entry.requeue.expect_call()
 
         if use_queue_entry:
             task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
@@ -1062,7 +1057,7 @@ class AgentTasksTest(unittest.TestCase):
         repair_task = task.failure_tasks[0]
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         if use_queue_entry:
-            self.assertEquals(repair_task.fail_queue_entry, self.queue_entry)
+            self.assertEquals(repair_task.queue_entry, self.queue_entry)
 
         self.run_task(task, success)
 
