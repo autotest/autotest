@@ -578,7 +578,7 @@ class Dispatcher:
             job_tag = queue_entry.job.get_job_tag([queue_entry])
             pid = run_monitor.get_pid()
             print 'Recovering %s (pid %d)' % (queue_entry.id, pid)
-            queue_entries = list(queue_entry.job.get_group_entries(queue_entry))
+            queue_entries = queue_entry.job.get_group_entries(queue_entry)
             recovered_entry_ids.union(entry.id for entry in queue_entries)
             self._recover_queue_entries(queue_entries, run_monitor)
             orphans.pop(pid, None)
@@ -1229,7 +1229,7 @@ class AgentTask(object):
 
 
 class RepairTask(AgentTask):
-    def __init__(self, host, fail_queue_entry=None):
+    def __init__(self, host, queue_entry=None):
         """\
         fail_queue_entry: queue entry to mark failed if this repair
         fails.
@@ -1241,13 +1241,15 @@ class RepairTask(AgentTask):
         cmd = [_autoserv_path , '-R', '-m', host.hostname,
                '-r', self.temp_results_dir, '--host-protection', protection]
         self.host = host
-        self.fail_queue_entry = fail_queue_entry
+        self.queue_entry = queue_entry
         super(RepairTask, self).__init__(cmd)
 
 
     def prolog(self):
         print "repair_task starting"
         self.host.set_status('Repairing')
+        if self.queue_entry:
+            self.queue_entry.requeue()
 
 
     def epilog(self):
@@ -1256,8 +1258,8 @@ class RepairTask(AgentTask):
             self.host.set_status('Ready')
         else:
             self.host.set_status('Repair Failed')
-            if self.fail_queue_entry:
-                self.fail_queue_entry.handle_host_failure()
+            if self.queue_entry and not self.queue_entry.meta_host:
+                self.queue_entry.handle_host_failure()
 
 
 class VerifyTask(AgentTask):
@@ -1272,10 +1274,7 @@ class VerifyTask(AgentTask):
         cmd = [_autoserv_path, '-v', '-m', self.host.hostname, '-r',
                self.temp_results_dir]
 
-        fail_queue_entry = None
-        if queue_entry and not queue_entry.meta_host:
-            fail_queue_entry = queue_entry
-        failure_tasks = [RepairTask(self.host, fail_queue_entry)]
+        failure_tasks = [RepairTask(self.host, queue_entry=queue_entry)]
 
         super(VerifyTask, self).__init__(cmd, failure_tasks=failure_tasks)
 
@@ -1309,8 +1308,6 @@ class VerifyTask(AgentTask):
                 agent = self.queue_entry.on_pending()
                 if agent:
                     self.agent.dispatcher.add_agent(agent)
-        elif self.queue_entry:
-            self.queue_entry.requeue()
 
 
     def move_results(self):
@@ -1490,7 +1487,7 @@ class CleanupTask(AgentTask):
                     '-r', self.temp_results_dir]
         self.queue_entry = queue_entry
         self.host = host
-        repair_task = RepairTask(host, fail_queue_entry=queue_entry)
+        repair_task = RepairTask(host, queue_entry=queue_entry)
         super(CleanupTask, self).__init__(self.cmd, failure_tasks=[repair_task])
 
 
@@ -1504,8 +1501,6 @@ class CleanupTask(AgentTask):
         if self.success:
             self.host.set_status('Ready')
             self.host.update_field('dirty', 0)
-        elif self.queue_entry:
-            self.queue_entry.requeue()
 
 
 class AbortTask(AgentTask):
@@ -2159,7 +2154,10 @@ class Job(DBObject):
 
         if queue_entry:
             results_dir = queue_entry.results_dir()
-            assert not os.path.exists(results_dir)
+            if os.path.exists(results_dir):
+                warning = 'QE results dir ' + results_dir + ' already exists'
+                print warning
+                email_manager.enqueue_notify_email(warning, warning)
             ensure_directory_exists(results_dir)
             return results_dir
         return self.job_dir
@@ -2190,8 +2188,9 @@ class Job(DBObject):
 
     def get_group_entries(self, queue_entry_from_group):
         execution_subdir = queue_entry_from_group.execution_subdir
-        return HostQueueEntry.fetch(where='job_id=%s AND execution_subdir=%s',
-                                    params=(self.id, execution_subdir))
+        return list(HostQueueEntry.fetch(
+            where='job_id=%s AND execution_subdir=%s',
+            params=(self.id, execution_subdir)))
 
 
     def get_job_tag(self, queue_entries):
