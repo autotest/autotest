@@ -20,7 +20,8 @@ stutsman@google.com (Ryan Stutsman)
 
 import os, re, time
 
-from autotest_lib.client.common_lib import global_config, error, host_protections
+from autotest_lib.client.common_lib import global_config, error
+from autotest_lib.client.common_lib import host_protections
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import bootloader
 
@@ -59,6 +60,8 @@ class Host(object):
     def __init__(self, *args, **dargs):
         self._initialize(*args, **dargs)
         self.start_loggers()
+        if self.job:
+            self.job.hosts.add(self)
 
 
     def _initialize(self, initialize=True, target_file_owner=None,
@@ -69,6 +72,11 @@ class Host(object):
         self.env = {}
         self.initialize = initialize
         self.target_file_owner = target_file_owner
+
+
+    def close(self):
+        if self.job:
+            self.job.hosts.discard(self)
 
 
     def setup(self):

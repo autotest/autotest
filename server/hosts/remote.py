@@ -34,7 +34,8 @@ class RemoteHost(base_classes.Host):
         self.tmp_dirs = []
 
 
-    def __del__(self):
+    def close(self):
+        super(RemoteHost, self).close()
         self.stop_loggers()
 
         if hasattr(self, 'tmp_dirs'):
