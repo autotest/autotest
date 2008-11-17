@@ -19,8 +19,8 @@ class job(models.job):
         user = keyval.get("user", None)
         label = keyval.get("label", None)
         machine = keyval.get("hostname", None)
-        if machine:
-            assert "," not in machine
+        if machine and "," in machine:
+            machine = job.find_hostname(dir) # find a unique hostname
         queued_time = tko_utils.get_timestamp(keyval, "job_queued")
         started_time = tko_utils.get_timestamp(keyval, "job_started")
         finished_time = tko_utils.get_timestamp(keyval, "job_finished")
@@ -29,8 +29,6 @@ class job(models.job):
         aborted_by = keyval.get("aborted_by", None)
         aborted_at = tko_utils.get_timestamp(keyval, "aborted_on")
 
-        if not machine:
-            machine = job.find_hostname(dir)
         tko_utils.dprint("MACHINE NAME: %s" % machine)
 
         return {"user": user, "label": label, "machine": machine,
