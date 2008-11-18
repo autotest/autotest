@@ -119,6 +119,9 @@ class host_list(action_common.atest_list, host):
         self.parser.add_option('-u', '--user',
                                default='',
                                help='Only list hosts available to this user')
+        self.parser.add_option('-N', '--hostnames-only', help='Only return '
+                               'hostnames for the machines queried.',
+                               action='store_true')
 
 
     def parse(self):
@@ -128,6 +131,7 @@ class host_list(action_common.atest_list, host):
         self.status = options.status
         self.acl = options.acl
         self.user = options.user
+        self.hostnames_only = options.hostnames_only
         return (options, leftover)
 
 
@@ -170,10 +174,11 @@ class host_list(action_common.atest_list, host):
             for result in results:
                 result['labels'] = self._cleanup_labels(result['labels'],
                                                         result['platform'])
-        super(host_list, self).output(results,
-                                      keys=['hostname', 'status',
-                                            'locked', 'platform',
-                                            'labels'])
+        if self.hostnames_only:
+            print ' '.join(host['hostname'] for host in results)
+        else:
+            super(host_list, self).output(results, keys=['hostname', 'status',
+                                          'locked', 'platform', 'labels'])
 
 
 class host_stat(host):
