@@ -1262,7 +1262,53 @@ class RepairTask(AgentTask):
                 self.queue_entry.handle_host_failure()
 
 
-class VerifyTask(AgentTask):
+class PreJobTask(AgentTask):
+    def prolog(self):
+        super(PreJobTask, self).prolog()
+        if self.queue_entry:
+            # clear any possibly existing results, could be a previously failed
+            # verify or a previous execution that crashed
+            self.queue_entry.clear_results_dir()
+
+
+    def cleanup(self):
+        if not os.path.exists(self.temp_results_dir):
+            return
+        should_copy_results = (self.queue_entry and not self.success
+                               and not self.queue_entry.meta_host)
+        if should_copy_results:
+            self.queue_entry.set_execution_subdir()
+            self._move_results()
+        super(PreJobTask, self).cleanup()
+
+
+    def _move_results(self):
+        assert self.queue_entry is not None
+        target_dir = self.queue_entry.results_dir()
+        ensure_directory_exists(target_dir)
+        files = os.listdir(self.temp_results_dir)
+        for filename in files:
+            if filename == AUTOSERV_PID_FILE:
+                continue
+            self._force_move(os.path.join(self.temp_results_dir, filename),
+                            os.path.join(target_dir, filename))
+
+
+    @staticmethod
+    def _force_move(source, dest):
+        """\
+        Replacement for shutil.move() that will delete the destination
+        if it exists, even if it's a directory.
+        """
+        if os.path.exists(dest):
+            warning = 'Warning: removing existing destination file ' + dest
+            print warning
+            email_manager.enqueue_notify_email(warning, warning)
+            remove_file_or_dir(dest)
+        shutil.move(source, dest)
+
+
+class VerifyTask(PreJobTask):
     def __init__(self, queue_entry=None, host=None):
         assert bool(queue_entry) != bool(host)
 
@@ -1280,23 +1326,11 @@ class VerifyTask(AgentTask):
 
 
     def prolog(self):
+        super(VerifyTask, self).prolog()
         print "starting verify on %s" % (self.host.hostname)
         if self.queue_entry:
             self.queue_entry.set_status('Verifying')
-            # clear any possibly existing results, could be a previously failed
-            # verify or a previous execution that crashed
-            self.queue_entry.clear_results_dir()
         self.host.set_status('Verifying')
-
-
-    def cleanup(self):
-        if not os.path.exists(self.temp_results_dir):
-            return
-        if (self.queue_entry and not self.success
-                and not self.queue_entry.meta_host):
-            self.queue_entry.set_execution_subdir()
-            self.move_results()
-        super(VerifyTask, self).cleanup()
 
 
     def epilog(self):
@@ -1308,32 +1342,6 @@ class VerifyTask(AgentTask):
                 agent = self.queue_entry.on_pending()
                 if agent:
                     self.agent.dispatcher.add_agent(agent)
-
-
-    def move_results(self):
-        assert self.queue_entry is not None
-        target_dir = self.queue_entry.results_dir()
-        ensure_directory_exists(target_dir)
-        files = os.listdir(self.temp_results_dir)
-        for filename in files:
-            if filename == AUTOSERV_PID_FILE:
-                continue
-            self.force_move(os.path.join(self.temp_results_dir, filename),
-                            os.path.join(target_dir, filename))
-
-
-    @staticmethod
-    def force_move(source, dest):
-        """\
-        Replacement for shutil.move() that will delete the destination
-        if it exists, even if it's a directory.
-        """
-        if os.path.exists(dest):
-            warning = 'Warning: removing existing destination file ' + dest
-            print warning
-            email_manager.enqueue_notify_email(warning, warning)
-            remove_file_or_dir(dest)
-        shutil.move(source, dest)
 
 
 class QueueTask(AgentTask):
@@ -1476,7 +1484,7 @@ class RecoveryQueueTask(QueueTask):
         pass
 
 
-class CleanupTask(AgentTask):
+class CleanupTask(PreJobTask):
     def __init__(self, host=None, queue_entry=None):
         assert bool(host) ^ bool(queue_entry)
         if queue_entry:
@@ -1492,6 +1500,7 @@ class CleanupTask(AgentTask):
 
 
     def prolog(self):
+        super(CleanupTask, self).prolog()
         print "starting cleanup task for host: %s" % self.host.hostname
         self.host.set_status("Cleaning")
 
