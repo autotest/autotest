@@ -700,7 +700,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
                        'Failed', 'Stopped', string_values=True)
     ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
     ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
-                       Status.RUNNING, Status.ABORT, Status.ABORTING)
+                       Status.RUNNING, Status.ABORTING)
     COMPLETE_STATUSES = (Status.PARSING, Status.ABORTED, Status.COMPLETED,
                          Status.FAILED, Status.STOPPED)
 
@@ -738,7 +738,11 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def _set_active_and_complete(self):
-        if self.status in self.ACTIVE_STATUSES:
+        if self.status == self.Status.ABORT:
+            # must leave active flag unchanged so scheduler knows if entry was
+            # active before abort.
+            return
+        elif self.status in self.ACTIVE_STATUSES:
             self.active, self.complete = True, False
         elif self.status in self.COMPLETE_STATUSES:
             self.active, self.complete = False, True
