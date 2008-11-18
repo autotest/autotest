@@ -26,14 +26,19 @@ def get_autotest_server(web_server=None):
 
 class rpc_comm(object):
     """Shared AFE/TKO RPC class stuff"""
-    def __init__(self, web_server, rpc_path):
+    def __init__(self, web_server, rpc_path, username):
+        self.username = username
         self.web_server = get_autotest_server(web_server)
         self.proxy = self._connect(rpc_path)
 
     def _connect(self, rpc_path):
         # This does not fail even if the address is wrong.
         # We need to wait for an actual RPC to fail
-        headers = {'AUTHORIZATION' : getpass.getuser()}
+        if self.username:
+            username = self.username
+        else:
+            username = getpass.getuser()
+        headers = {'AUTHORIZATION' : username}
         rpc_server = self.web_server + rpc_path
         return rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
@@ -45,11 +50,11 @@ class rpc_comm(object):
 
 class afe_comm(rpc_comm):
     """Handles the AFE setup and communication through RPC"""
-    def __init__(self, web_server=None, rpc_path=AFE_RPC_PATH):
-        super(afe_comm, self).__init__(web_server, rpc_path)
+    def __init__(self, web_server=None, rpc_path=AFE_RPC_PATH, username=None):
+        super(afe_comm, self).__init__(web_server, rpc_path, username)
 
 
 class tko_comm(rpc_comm):
     """Handles the TKO setup and communication through RPC"""
-    def __init__(self, web_server=None, rpc_path=TKO_RPC_PATH):
-        super(tko_comm, self).__init__(web_server, rpc_path)
+    def __init__(self, web_server=None, rpc_path=TKO_RPC_PATH, username=None):
+        super(tko_comm, self).__init__(web_server, rpc_path, username)
