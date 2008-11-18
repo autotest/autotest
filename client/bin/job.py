@@ -5,7 +5,7 @@ This is the core infrastructure.
 Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-import os, sys, re, shutil, time, traceback, types, copy
+import copy, os, platform, re, shutil, sys, time, traceback, types
 import cPickle as pickle
 from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
@@ -407,6 +407,12 @@ class base_job(object):
         tntag = dargs.pop('tag', None)
         if tntag:         # per-test tag  is included in reported test name
             testname += '.' + str(tntag)
+        run_number = self.get_run_number()
+        if run_number:
+            testname += '._%02d_' % run_number
+            self.set_run_number(run_number + 1)
+        if self._is_kernel_in_test_tag():
+            testname += '.' + platform.release()
         if self._test_tag_prefix:
             testname += '.' + self._test_tag_prefix
         if self.testtag:  # job-level tag is included in reported test name
@@ -535,6 +541,28 @@ class base_job(object):
             exc_info = sys.exc_info()
             err = ''.join(traceback.format_exception(*exc_info))
             raise error.TestError(name + ' failed\n' + err)
+
+
+    _RUN_NUMBER_STATE = '__run_number'
+    def get_run_number(self):
+        """Get the run number or 0 if no run number has been set."""
+        return self.get_state(self._RUN_NUMBER_STATE, default=0)
+
+
+    def set_run_number(self, number):
+        """If the run number is non-zero it will be in the output dir name."""
+        self.set_state(self._RUN_NUMBER_STATE, number)
+
+
+    _KERNEL_IN_TAG_STATE = '__kernel_version_in_test_tag'
+    def _is_kernel_in_test_tag(self):
+        """Boolean: should the kernel version be included in the test tag."""
+        return self.get_state(self._KERNEL_IN_TAG_STATE, default=False)
+
+
+    def show_kernel_in_test_tag(self, value=True):
+        """If True, the kernel version at test time will prefix test tags."""
+        self.set_state(self._KERNEL_IN_TAG_STATE, value)
 
 
     def set_test_tag(self, tag=''):
