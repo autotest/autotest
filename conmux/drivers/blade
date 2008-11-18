@@ -166,12 +166,29 @@ if {$found == 0} {
 
 # CONSOLE: open a console channel
 if {[string compare $cmd "console"] == 0} {
+	set ts_start 1
+	set ts_cur 1
+	set retry 0;
 	note "connecting to console ..."
-	send "console -o\r"
-	interact {
-		-o -ex $prompt {
-			return
+
+	# Unless console session lasts for more than two seconds, retry every
+	# thirty seconds for up to a day.  This prevents repeated login events
+	# which fill logs and cause loss of useful event log information.
+	while {($ts_cur - $ts_start < 2) && ($retry < 2880)} {
+		# 30 second delay between attempts, except for the first one
+		if {$ts_start != 1} {
+			note "connection failed, retrying after 30 second delay"
+			after 30000
 		}
+		set ts_start [timestamp];
+		send "console -o\r"
+		interact {
+			-o -ex $prompt {
+				return
+			}
+		}
+		set ts_cur [timestamp];
+		incr retry
 	}
 	winge "console lost"
 	exit 0
