@@ -368,7 +368,7 @@ class atest(object):
         else:
             suffix = '_std'
         for func in ['print_fields', 'print_table',
-                     'print_by_ids']:
+                     'print_by_ids', 'print_list']:
             setattr(self, func, getattr(self, func + suffix))
 
         self.verbose = options.verbose
@@ -564,3 +564,20 @@ class atest(object):
                        if self.__conv_value(key,
                                             item[key]) != '']
         print ':'.join(values)
+
+
+    def print_list_std(self, items, key):
+        """Print a wrapped list of results"""
+        if not items:
+            print "No results"
+            return
+        print ' '.join(item[key] for item in items)
+
+
+    def print_list_parse(self, items, key):
+        """Print a wrapped list of results"""
+        if not items:
+            print "No results"
+            return
+        print '%s=%s' % (KEYS_TO_NAMES_EN[key],
+                         ','.join(item[key] for item in items))
