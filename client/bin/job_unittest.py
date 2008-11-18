@@ -333,6 +333,10 @@ class TestBaseJob(unittest.TestCase):
         outputdir = os.path.join(self.job.resultdir, testname)
         self.job.pkgmgr.get_package_name.expect_call(
             testname, 'test').and_return(("", testname))
+        self.job.get_state.expect_call(
+                self.job._RUN_NUMBER_STATE, default=0).and_return(0)
+        self.job.get_state.expect_call(
+                self.job._KERNEL_IN_TAG_STATE, default=False).and_return(False)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
         self.job.record.expect_call("START", testname, testname)
@@ -371,6 +375,10 @@ class TestBaseJob(unittest.TestCase):
         outputdir = os.path.join(self.job.resultdir, testname)
         self.job.pkgmgr.get_package_name.expect_call(
             testname, 'test').and_return(("", testname))
+        self.job.get_state.expect_call(
+                self.job._RUN_NUMBER_STATE, default=0).and_return(0)
+        self.job.get_state.expect_call(
+                self.job._KERNEL_IN_TAG_STATE, default=False).and_return(False)
         os.path.exists.expect_call(outputdir).and_return(False)
         os.mkdir.expect_call(outputdir)
         self.job.record.expect_call("START", testname, testname)
