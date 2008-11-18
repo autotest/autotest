@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, time, subprocess, os, StringIO, tempfile, datetime
+import unittest, time, subprocess, os, StringIO, tempfile, datetime, shutil
 import MySQLdb
 import common
 from autotest_lib.frontend import setup_django_environment
@@ -815,8 +815,12 @@ class AgentTasksTest(unittest.TestCase):
         self.god = mock.mock_god()
         self.god.stub_with(tempfile, 'mkdtemp',
                            mock.mock_function('mkdtemp', self.TEMP_DIR))
+        self.god.stub_with(os.path, 'exists',
+                           mock.mock_function('exists', True))
+        self.god.stub_with(shutil, 'rmtree', mock.mock_function('rmtree', None))
         self.god.stub_class_method(monitor_db.RunMonitor, 'run')
         self.god.stub_class_method(monitor_db.RunMonitor, 'exit_code')
+        self.god.stub_class_method(monitor_db.PreJobTask, '_move_results')
         self.host = self.god.create_mock_class(monitor_db.Host, 'host')
         self.host.hostname = self.HOSTNAME
         self.host.protection = self.HOST_PROTECTION
@@ -904,8 +908,8 @@ class AgentTasksTest(unittest.TestCase):
 
     def setup_verify_expects(self, success, use_queue_entry):
         if use_queue_entry:
-            self.queue_entry.set_status.expect_call('Verifying')
             self.queue_entry.clear_results_dir.expect_call()
+            self.queue_entry.set_status.expect_call('Verifying')
         self.host.set_status.expect_call('Verifying')
         if success:
             self.setup_run_monitor(0)
@@ -914,6 +918,9 @@ class AgentTasksTest(unittest.TestCase):
                 self.queue_entry.on_pending.expect_call()
         else:
             self.setup_run_monitor(1)
+            if use_queue_entry and not self.queue_entry.meta_host:
+                self.queue_entry.set_execution_subdir.expect_call()
+                monitor_db.VerifyTask._move_results.expect_call()
 
 
     def _check_verify_failure_tasks(self, verify_task):
@@ -921,9 +928,8 @@ class AgentTasksTest(unittest.TestCase):
         repair_task = verify_task.failure_tasks[0]
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         self.assertEquals(verify_task.host, repair_task.host)
-        if verify_task.queue_entry and not verify_task.queue_entry.meta_host:
-            self.assertEquals(repair_task.queue_entry,
-                              verify_task.queue_entry)
+        if verify_task.queue_entry:
+            self.assertEquals(repair_task.queue_entry, verify_task.queue_entry)
         else:
             self.assertEquals(repair_task.queue_entry, None)
 
@@ -956,10 +962,8 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def test_verify_task_with_metahost(self):
-        self._test_verify_task_helper(True, use_queue_entry=True,
-                                      use_meta_host=True)
-        self._test_verify_task_helper(False, use_queue_entry=True,
-                                      use_meta_host=True)
+        self.queue_entry.meta_host = 1
+        self.test_verify_task_with_queue_entry()
 
 
     def test_abort_task(self):
@@ -1041,6 +1045,7 @@ class AgentTasksTest(unittest.TestCase):
     def _test_cleanup_task_helper(self, success, use_queue_entry=False):
         if use_queue_entry:
             self.queue_entry.get_host.expect_call().and_return(self.host)
+            self.queue_entry.clear_results_dir.expect_call()
         self.host.set_status.expect_call('Cleaning')
         if success:
             self.setup_run_monitor(0)
@@ -1048,6 +1053,9 @@ class AgentTasksTest(unittest.TestCase):
             self.host.update_field.expect_call('dirty', 0)
         else:
             self.setup_run_monitor(1)
+            if use_queue_entry and not self.queue_entry.meta_host:
+                self.queue_entry.set_execution_subdir.expect_call()
+                monitor_db.VerifyTask._move_results.expect_call()
 
         if use_queue_entry:
             task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
