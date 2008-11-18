@@ -175,7 +175,7 @@ class host_list(action_common.atest_list, host):
                 result['labels'] = self._cleanup_labels(result['labels'],
                                                         result['platform'])
         if self.hostnames_only:
-            print ' '.join(host['hostname'] for host in results)
+            self.print_list(results, key='hostname')
         else:
             super(host_list, self).output(results, keys=['hostname', 'status',
                                           'locked', 'platform', 'labels'])
