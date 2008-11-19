@@ -130,6 +130,10 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
         if not partname[-1].isdigit():
             continue
 
+        # We don't want the loopback device in the partition list
+        if 'loop' in partname:
+            continue
+
         device = '/dev/' + partname
         if exclude_swap and device in active_swap_devices:
             print 'get_partition_list() skipping', partname, '- Active swap.'
@@ -259,11 +263,30 @@ class partition(object):
 
 
     def get_mountpoint(self):
-        for line in open('/etc/mtab', 'r').readlines():
+        for line in open('/proc/mounts', 'r').readlines():
             parts = line.split()
             if parts[0] == self.device:
                 return parts[1]          # The mountpoint where it's mounted
         return None
+
+
+    def mkfs_exec(self, fstype):
+        """
+        Return the proper mkfs executable based on fs
+        """
+        if fstype == 'ext4':
+            if os.path.exists('/sbin/mkfs.ext4'):
+                return 'mkfs'
+            # If ext4 supported e2fsprogs is not installed we use the
+            # autotest supplied one in tools dir which is statically linked"""
+            auto_mkfs = os.path.join(self.job.toolsdir, 'mkfs.ext4dev')
+            if os.path.exists(auto_mkfs):
+                return auto_mkfs
+        else:
+            return 'mkfs'
+
+        raise NameError('Error creating partition for filesystem type %s' %
+                        fstype)
 
 
     def mkfs(self, fstype=None, args='', record=True):
@@ -271,7 +294,8 @@ class partition(object):
         Format a partition to fstype
         """
         if list_mount_devices().count(self.device):
-            raise NameError('Attempted to format mounted device')
+            raise NameError('Attempted to format mounted device %s' %
+                             self.device)
 
         if not fstype:
             if self.fstype:
@@ -283,15 +307,17 @@ class partition(object):
             args += ' ' + self.mkfs_flags
         if fstype == 'xfs':
             args += ' -f'
+
         if self.loop:
             # BAH. Inconsistent mkfs syntax SUCKS.
             if fstype.startswith('ext'):
                 args += ' -F'
             elif fstype == 'reiserfs':
                 args += ' -f'
-        args = args.lstrip()
+        args = args.strip()
 
-        mkfs_cmd = "mkfs -t %s %s %s" % (fstype, args, self.device)
+        mkfs_cmd = "%s -t %s %s %s" % (self.mkfs_exec(fstype), fstype, args,
+                                       self.device)
         print mkfs_cmd
         sys.stdout.flush()
         try:
@@ -313,10 +339,29 @@ class partition(object):
             self.fstype = fstype
 
 
+    def get_fsck_exec(self):
+        """
+        Return the proper mkfs executable based on self.fstype
+        """
+        if self.fstype == 'ext4':
+            if os.path.exists('/sbin/fsck.ext4'):
+                return 'fsck'
+            # If ext4 supported e2fsprogs is not installed we use the
+            # autotest supplied one in tools dir which is statically linked"""
+            auto_fsck = os.path.join(self.job.toolsdir, 'fsck.ext4dev')
+            if os.path.exists(auto_fsck):
+                return auto_fsck
+        else:
+            return 'fsck'
+
+        raise NameError('Error creating partition for filesystem type %s' %
+                        fstype)
+
+
     def fsck(self, args='-n', record=True):
         # I hate reiserfstools.
         # Requires an explit Yes for some inane reason
-        fsck_cmd = 'fsck %s %s' % (self.device, args)
+        fsck_cmd = '%s %s %s' % (self.get_fsck_exec(), self.device, args)
         if self.fstype == 'reiserfs':
             fsck_cmd = 'yes "Yes" | ' + fsck_cmd
         print fsck_cmd
@@ -339,7 +384,7 @@ class partition(object):
             assert(self.fstype == None or self.fstype == fstype);
 
         if self.mount_options:
-            args += ' ' + self.mount_options
+            args += ' -o  ' + self.mount_options
         if fstype:
             args += ' -t ' + fstype
         if self.loop:
@@ -384,6 +429,11 @@ class partition(object):
     def unmount(self, handle=None, ignore_status=False, record=True):
         if not handle:
             handle = self.device
+        if not self.get_mountpoint():
+            # It's not even mounted to start with
+            if record and not ignore_status:
+                self.job.record('FAIL', None, umount_cmd, 'Not mounted')
+            return
         mtab = open('/etc/mtab')
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
