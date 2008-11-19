@@ -157,9 +157,11 @@ class base_test:
         if profilers and profilers.present():
             profilers.start(self)
             print 'Profilers present. Profiling run started'
-            self.run_once(*args, **dargs)
-            profilers.stop(self)
-            profilers.report(self)
+            try:
+                self.run_once(*args, **dargs)
+            finally:
+                profilers.stop(self)
+                profilers.report(self)
 
         # Do any postprocessing, normally extracting performance keyvals, etc
         self.postprocess()
