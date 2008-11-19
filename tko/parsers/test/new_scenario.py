@@ -21,12 +21,9 @@ import optparse, os, shutil, sys, tempfile
 from os import path
 
 import common
-from autotest_lib.tko.parsers.test import scenarios
 from autotest_lib.tko.parsers.test import scenario_base
 
-TEST_SCENARIOS_DIRPATH = scenarios.__path__[0]
-
-usage = 'usage: %prog [options] results_dirpath'
+usage = 'usage: %prog [options] results_dirpath scenerios_dirpath'
 parser = optparse.OptionParser(usage=usage)
 parser.add_option(
     '-n', '--name',
@@ -43,7 +40,7 @@ parser.add_option(
 
 def main():
     (options, args) = parser.parse_args()
-    if len(args) < 1:
+    if len(args) < 2:
         parser.print_help()
         sys.exit(1)
 
@@ -53,13 +50,19 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    scenarios_dirpath = path.normpath(args[1])
+    if not path.exists(scenarios_dirpath) or not path.isdir(scenarios_dirpath):
+        print 'Invalid scenarios_dirpath:', scenarios_dirpath
+        parser.print_help()
+        sys.exit(1)
+
     results_dirname = path.basename(results_dirpath)
     # Not everything is a valid python package name, fix if necessary
     package_dirname = scenario_base.fix_package_dirname(
         options.name or results_dirname)
 
     scenario_package_dirpath = path.join(
-        TEST_SCENARIOS_DIRPATH, package_dirname)
+        scenarios_dirpath, package_dirname)
     if path.exists(scenario_package_dirpath):
         print (
             'Scenario package already exists at path: %s' %
