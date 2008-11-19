@@ -513,6 +513,20 @@ def system_output_parallel(commands, timeout=None, ignore_status=False,
     return out
 
 
+def strip_unicode(input):
+    if type(input) == list:
+        return [strip_unicode(i) for i in input]
+    elif type(input) == dict:
+        output = {}
+        for key in input.keys():
+            output[str(key)] = strip_unicode(input[key])
+        return output
+    elif type(input) == unicode:
+        return str(input)
+    else:
+        return input
+
+
 def get_cpu_percentage(function, *args, **dargs):
     """Returns a tuple containing the CPU% and return value from function call.
 
