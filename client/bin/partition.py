@@ -391,16 +391,38 @@ class partition(object):
         print umount_cmd
         sys.stdout.flush()
         try:
-            utils.system(umount_cmd, ignore_status=ignore_status)
+            utils.system(umount_cmd)
             mtab.close()
-        except:
-            mtab.close()
-            if record:
-                self.job.record('FAIL', None, umount_cmd, error.format_error())
-            raise
-        else:
-            if record:
-                self.job.record('GOOD', None, umount_cmd)
+        except Exception:
+            print "Standard umount failed, will try forcing. Users:"
+            try:
+                cmd = 'fuser ' + self.get_mountpoint()
+                print cmd
+                fuser = utils.system_output(cmd)
+                print fuser
+                users = re.sub('.*:', '', fuser).split()
+                for user in users:
+                    m = re.match('(\d+)(.*)', user)
+                    (pid, usage) = (m.group(1), m.group(2))
+                    try:
+                        ps = utils.system_output('ps -p %s | tail +2' % pid)
+                        print '%s %s %s' % (usage, pid, ps)
+                    except Exception:
+                        pass
+                utils.system('ls -l ' + handle)
+                umount_cmd = "umount -f " + handle
+                print umount_cmd
+                utils.system(umount_cmd)
+                mtab.close()
+            except Exception:
+                mtab.close()
+                if record and not ignore_status:
+                    self.job.record('FAIL', None, umount_cmd,
+                                                           error.format_error())
+                    raise
+        
+        if record:
+            self.job.record('GOOD', None, umount_cmd)
 
 
     def wipe(self):
