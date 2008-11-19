@@ -4,11 +4,11 @@ class profiler:
     def __init__(self, job):
         self.job = job
 
-    def setup(self, *args):
+    def setup(self, *args, **dargs):
         return
 
 
-    def initialize(self, *args):
+    def initialize(self, *args, **dargs):
         return
 
 
