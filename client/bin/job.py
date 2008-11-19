@@ -804,7 +804,7 @@ class base_job(object):
             pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
         finally:
             outfile.close()
-        print "Persistant state variable %s now set to %r" % (var, val)
+        print "Persistent state variable %s now set to %r" % (var, val)
 
 
     def _load_state(self):

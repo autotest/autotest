@@ -283,7 +283,7 @@ class BaseAutotest(installable_object.InstallableObject):
         except Exception:
             pass
 
-        msg = "Persistant state variables pulled back from %s: %s"
+        msg = "Persistent state variables pulled back from %s: %s"
         msg %= (host.hostname, state_dict)
         print msg
 
