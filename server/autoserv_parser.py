@@ -32,7 +32,8 @@ class base_autoserv_parser(object):
                                dest="server", default=False,
                                help="control file is server side")
         self.parser.add_option("-r", action="store", type="string",
-                               dest="results", help="specify results directory")
+                               dest="results", default=None,
+                               help="specify results directory")
         self.parser.add_option("-l", action="store", type="string",
                                dest="label", default='',
                                help="label for the job")
@@ -62,6 +63,9 @@ class base_autoserv_parser(object):
         self.parser.add_option("-n", action="store_true",
                                dest="no_tee", default=False,
                               help="no teeing the status to stdout/err")
+        self.parser.add_option("-N", action="store_true",
+                               dest="no_logging", default=False,
+                              help="no logging")
         self.parser.add_option("-p", action="store_true",
                                dest="write_pidfile", default=False,
                               help="write pidfile (.autoserv_execute)")
