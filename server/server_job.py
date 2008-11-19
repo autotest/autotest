@@ -100,12 +100,15 @@ class base_server_job(object):
         else:
             self.control = ''
         self.resultdir = resultdir
-        if not os.path.exists(resultdir):
-            os.mkdir(resultdir)
-        self.debugdir = os.path.join(resultdir, 'debug')
-        if not os.path.exists(self.debugdir):
-            os.mkdir(self.debugdir)
-        self.status = os.path.join(resultdir, 'status')
+        if resultdir:
+            if not os.path.exists(resultdir):
+                os.mkdir(resultdir)
+            self.debugdir = os.path.join(resultdir, 'debug')
+            if not os.path.exists(self.debugdir):
+                os.mkdir(self.debugdir)
+            self.status = os.path.join(resultdir, 'status')
+        else:
+            self.status = None
         self.label = label
         self.user = user
         self.args = args
@@ -123,7 +126,8 @@ class base_server_job(object):
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
 
-        self.sysinfo = sysinfo.sysinfo(self.resultdir)
+        if resultdir:
+            self.sysinfo = sysinfo.sysinfo(self.resultdir)
 
         if not os.access(self.tmpdir, os.W_OK):
             try:
@@ -145,13 +149,14 @@ class base_server_job(object):
                 # exception.
                 os.chmod(self.tmpdir, stat.S_IRWXU)
 
-        if os.path.exists(self.status):
+        if self.status and os.path.exists(self.status):
             os.unlink(self.status)
         job_data = {'label' : label, 'user' : user,
                     'hostname' : ','.join(machines),
                     'status_version' : str(self.STATUS_VERSION)}
-        job_data.update(get_site_job_data(self))
-        utils.write_keyval(self.resultdir, job_data)
+        if self.resultdir:
+            job_data.update(get_site_job_data(self))
+            utils.write_keyval(self.resultdir, job_data)
 
         self.parse_job = parse_job
         if self.parse_job and len(machines) == 1:
@@ -320,10 +325,11 @@ class base_server_job(object):
         namespace['ssh_pass'] = self.ssh_pass
         test_start_time = int(time.time())
 
-        os.chdir(self.resultdir)
+        if self.resultdir:
+            os.chdir(self.resultdir)
 
-        self.enable_external_logging()
-        status_log = os.path.join(self.resultdir, 'status.log')
+            self.enable_external_logging()
+            status_log = os.path.join(self.resultdir, 'status.log')
         collect_crashinfo = True
         try:
             if install_before and machines:

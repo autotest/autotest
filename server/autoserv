@@ -64,8 +64,6 @@ def run_autoserv(pid_file_manager, results, parser):
     if not realuser:
         realuser = 'anonymous'
 
-
-
     if parser.options.machines:
         machines = parser.options.machines.replace(',', ' ').strip().split()
     else:
@@ -123,15 +121,16 @@ def run_autoserv(pid_file_manager, results, parser):
     job = server_job.server_job(control, parser.args[1:], results, label,
                                 user, machines, client, parse_job,
                                 ssh_user, ssh_port, ssh_pass)
-    debug_dir = os.path.join(results, 'debug')
-    stdout = os.path.join(debug_dir, 'autoserv.stdout')
-    stderr = os.path.join(debug_dir, 'autoserv.stderr')
-    if no_tee:
-        job.stdout.redirect(stdout)
-        job.stderr.redirect(stderr)
-    else:
-        job.stdout.tee_redirect(stdout)
-        job.stderr.tee_redirect(stderr)
+    if results:
+        debug_dir = os.path.join(results, 'debug')
+        stdout = os.path.join(debug_dir, 'autoserv.stdout')
+        stderr = os.path.join(debug_dir, 'autoserv.stderr')
+        if no_tee:
+            job.stdout.redirect(stdout)
+            job.stderr.redirect(stderr)
+        else:
+            job.stdout.tee_redirect(stdout)
+            job.stderr.tee_redirect(stderr)
 
     # perform checks
     job.precheck()
@@ -176,18 +175,18 @@ def main():
         sys.exit(1)
     print "Results placed in %s" % results
 
-    results  = parser.options.results
-    if not results:
-        results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
-    results  = os.path.abspath(results)
-    if os.path.exists(os.path.join(results, 'control.srv')):
-        error = "Error: results directory already exists: %s\n" % results
-        sys.stderr.write(error)
-        sys.exit(1)
-    print "Results placed in %s" % results
+    results = parser.options.results
+    if not parser.options.no_logging:
+        if not results:
+            results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
+        results  = os.path.abspath(results)
+        if os.path.exists(os.path.join(results, 'control.srv')):
+            error = "Error: results directory already exists: %s\n" % results
+            sys.stderr.write(error)
+            sys.exit(1)
+        print "Results placed in %s" % results
 
-    write_pidfile = parser.options.write_pidfile
-    if write_pidfile:
+    if parser.options.write_pidfile:
         pid_file_manager.open_pid_file(results)
 
     exit_code = 0
