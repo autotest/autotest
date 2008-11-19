@@ -184,7 +184,7 @@ def check_job_dependencies(host_objects, job_dependencies):
     labels_not_requested = labels_not_requested.exclude(
         name__in=job_dependencies)
     errors = []
-    for label in labels_not_requested:
+    for label in labels_not_requested.distinct():
         hosts_in_label = hosts_in_job.filter(labels=label)
         errors.append('Cannot use hosts with label "%s" unless requested: %s' %
                       (label.name,
