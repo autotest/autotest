@@ -51,15 +51,17 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         }
         
         public void onChange(Widget sender) {
-            HeaderSelect.this.onChange(this);
+            updateFieldFromInput();
         }
 
-        public String getText() {
-            return labelInput.getText();
+        public void updateFieldFromInput() {
+            List<String> labelList = Utils.splitListWithSpaces(labelInput.getText());
+            headerField.setLabels(labelList);
         }
 
         public void setText(String text) {
             labelInput.setText(text);
+            updateFieldFromInput();
         }
     }
 
@@ -309,7 +311,8 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
                 removeAllMachineLabelHeadersExcept(selectedHeader);
             }
             refreshSingleList();
-        } else if (sender == doubleList) {
+        } else {
+            assert sender == doubleList;
             if (isItemSelected(MACHINE_LABELS_FIELD)) {
                 doubleList.deselectItem(MACHINE_LABELS_FIELD.getName());
                 MachineLabelField field = addMachineLabelField();
@@ -321,9 +324,6 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
                     removeMachineLabelField(header);
                 }
             }
-        } else {
-            assert sender instanceof MachineLabelInput;
-            updateMachineLabels();
         }
     }
 
@@ -365,9 +365,8 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     }
     
     private void updateMachineLabels() {
-        for (MachineLabelField field : machineLabelInputMap.keySet()) {
-            String labelList = machineLabelInputMap.get(field).getText();
-            field.setLabels(Utils.splitListWithSpaces(labelList));
+        for (MachineLabelInput input : machineLabelInputMap.values()) {
+            input.updateFieldFromInput();
         }
     }
     
