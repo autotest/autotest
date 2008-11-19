@@ -1414,6 +1414,12 @@ class QueueTask(AgentTask):
         self.agent.dispatcher.add_agent(Agent([reparse_task]))
 
 
+    def _write_status_comment(self, comment):
+        status_log = open(os.path.join(self.results_dir(), 'status.log'), 'a')
+        status_log.write('INFO\t----\t----\t' + comment)
+        status_log.close()
+
+
     def _log_abort(self):
         # build up sets of all the aborted_by and aborted_on values
         aborted_by, aborted_on = set(), set()
@@ -1426,9 +1432,18 @@ class QueueTask(AgentTask):
         # extract some actual, unique aborted by value and write it out
         assert len(aborted_by) <= 1
         if len(aborted_by) == 1:
-            results_dir = self.results_dir()
-            self._write_keyval(results_dir, "aborted_by", aborted_by.pop())
-            self._write_keyval(results_dir, "aborted_on", max(aborted_on))
+            aborted_by_value = aborted_by.pop()
+            aborted_on_value = max(aborted_on)
+        else:
+            aborted_by_value = 'autotest_system'
+            aborted_on_value = int(time.time())
+        results_dir = self.results_dir()
+        self._write_keyval(results_dir, "aborted_by", aborted_by_value)
+        self._write_keyval(results_dir, "aborted_on", aborted_on_value)
+        aborted_on_string = str(datetime.datetime.fromtimestamp(
+            aborted_on_value))
+        self._write_status_comment('Job aborted by %s on %s' %
+                                   (aborted_by_value, aborted_on_string))
 
 
     def abort(self):
