@@ -143,7 +143,7 @@ class base_test:
             print 'Benchmark finished after %d iterations' % (timed_counter)
             print 'Time elapsed: %d s' % (time_elapsed)
         else:
-            if not iterations:
+            if iterations is None:
                 iterations = 1
             # Dropped profilers.only() - if you want that, use iterations=0
             print 'Benchmark started. Number of iterations: %d' % (iterations)
