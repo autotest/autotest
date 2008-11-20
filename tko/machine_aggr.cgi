@@ -17,8 +17,28 @@ db = db.db()
 def main():
 	form = cgi.FieldStorage()
 
-	benchmarks = form["benchmark"].value
-	keys = form["key"].value
+	if form.has_key("benchmark_key"):
+		benchmark_key = form["benchmark_key"].value
+		# input is a list of benchmark:key values -- benchmark1:key1,...
+		# this loop separates this out into two lists
+		benchmark_idx = []
+		key_idx = []
+		for benchmark_key_pair in benchmark_key.split(','):
+			(benchmark, key) = benchmark_key_pair.split(':')
+			benchmark_idx.append(benchmark)
+			key_idx.append(key)
+	elif form.has_key("benchmark") and form.has_key("key"):
+		benchmarks = form["benchmark"].value
+		keys = form["key"].value
+
+		benchmark_idx = benchmarks.split(',')
+		key_idx = keys.split(',')
+	else:
+		# Ignore this for by setting benchmark_idx and key_idx to be
+		# empty lists.
+		benchmark_idx = []
+		key_idx = []
+
 	machine_idx = form["machine"].value
 	kernel = form["kernel"].value
 	if kernel == "released":
@@ -26,8 +46,6 @@ def main():
 	if kernel == "rc":
 		kernel = rc_kernel
 
-	benchmark_idx = benchmarks.split(',')
-	key_idx = keys.split(',')
 	machine = frontend.machine.select(db, {'hostname' : machine_idx})[0]
 
 	#get the machine type from machinename
