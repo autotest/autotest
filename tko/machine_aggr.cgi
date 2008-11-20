@@ -76,10 +76,17 @@ def main():
 		for test in frontend.test.select(db, where, wherein):
 			iterations = test.iterations()
 			if iterations.has_key(key):
+				# Maintain a list of every test result in data.
+				# Initialize this list, if it does not exist.
+				if not data.has_key(test.kernel().printable):
+					data[test.kernel().printable] = list()
+
 				if benchmark == "kernbench":
-					data[test.kernel().printable] = [((reference_value / i - 1)*100) for i in iterations[key]]
+					results = [((reference_value / i - 1)*100) for i in iterations[key]]
 				else:
-					data[test.kernel().printable] = [((i / reference_value - 1)*100) for i in iterations[key]]
+					results = [((i / reference_value - 1)*100) for i in iterations[key]]
+				data[test.kernel().printable].extend(results)
+
 		graph.add_dataset(benchmark+' ( '+key+' ) ',data)
 
 	graph.plot(cgi_header = True)
