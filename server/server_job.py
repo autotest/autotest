@@ -172,6 +172,21 @@ class base_server_job(object):
         self.num_tests_run = 0
         self.num_tests_failed = 0
 
+        self._register_subcommand_hooks()
+
+
+    def _register_subcommand_hooks(self):
+        """ Register some hooks into the subcommand modules that allow us
+        to properly clean up self.hosts created in forked subprocesses. """
+        def on_fork(cmd):
+            self._existing_hosts_on_fork = set(self.hosts)
+        def on_join(cmd):
+            new_hosts = self.hosts - self._existing_hosts_on_fork
+            for host in new_hosts:
+                host.close()
+        subcommand.subcommand.register_fork_hook(on_fork)
+        subcommand.subcommand.register_join_hook(on_join)
+
 
     def init_parser(self, resultdir):
         """Start the continuous parsing of resultdir. This sets up
