@@ -58,10 +58,6 @@ class thread_unittest(cli_mock.cli_unittest):
         self._threading(100, 100)
 
 
-    def test_threading_huge(self):
-        self._threading(500, 10000)
-
-
     def test_threading_multi_queueing(self):
         th = threads.ThreadPool(self._workload, numthreads=5)
         th.queue_work(range(5))
