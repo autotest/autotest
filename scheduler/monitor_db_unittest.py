@@ -1098,8 +1098,14 @@ class JobTest(BaseSchedulerTest):
         monitor_db.ensure_directory_exists.expect_call(results_dir)
 
 
-    def _test_run_helper(self, expect_agent=True,
-                         expected_status=models.HostQueueEntry.Status.STARTING):
+    def _test_run_helper(self, expect_agent=True, expect_starting=False,
+                         expect_pending=False):
+        if expect_starting:
+            expected_status = models.HostQueueEntry.Status.STARTING
+        elif expect_pending:
+            expected_status = models.HostQueueEntry.Status.PENDING
+        else:
+            expected_status = models.HostQueueEntry.Status.VERIFYING
         job = monitor_db.Job.fetch('id = 1').next()
         queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
         agent = job.run(queue_entry)
@@ -1135,7 +1141,7 @@ class JobTest(BaseSchedulerTest):
         job.save()
         self._setup_directory_expects('host1')
 
-        tasks = self._test_run_helper()
+        tasks = self._test_run_helper(expect_starting=True)
 
         self.assertEquals(len(tasks), 1)
         queue_task = tasks[0]
@@ -1160,9 +1166,7 @@ class JobTest(BaseSchedulerTest):
         job.run_verify = False
         job.save()
 
-        self._test_run_helper(
-            expect_agent=False,
-            expected_status=models.HostQueueEntry.Status.PENDING)
+        self._test_run_helper(expect_agent=False, expect_pending=True)
 
         queue_entry = models.HostQueueEntry.smart_get(1)
         self.assertEquals(queue_entry.status, 'Pending')
@@ -1173,7 +1177,7 @@ class JobTest(BaseSchedulerTest):
         self._update_hqe("status='Pending', execution_subdir='")
         self._setup_directory_expects('group0')
 
-        tasks = self._test_run_helper()
+        tasks = self._test_run_helper(expect_starting=True)
         self.assertEquals(len(tasks), 1)
         queue_task = tasks[0]
 

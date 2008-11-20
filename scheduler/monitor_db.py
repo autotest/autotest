@@ -1936,7 +1936,7 @@ class HostQueueEntry(DBObject):
             self.update_field('active', False)
 
         if status in ['Pending', 'Running', 'Verifying', 'Starting',
-                      'Abort', 'Aborting']:
+                      'Aborting']:
             self.update_field('complete', False)
             self.update_field('active', True)
 
@@ -2285,7 +2285,7 @@ class Job(DBObject):
     def run(self, queue_entry):
         if not self.is_ready():
             if self.run_verify:
-                queue_entry.set_status('Starting')
+                queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
                 return Agent(self._get_pre_job_tasks(queue_entry),
                              [queue_entry.id])
             else:
