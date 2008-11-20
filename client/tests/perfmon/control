@@ -1,0 +1,16 @@
+TIME="SHORT"
+AUTHOR = "Stephane Eranian <eranian@google.com>"
+DOC = """
+This is a simple series of test for the perfmon2 API which
+provides access to the hardware performance counters of modern
+processors.
+
+Information about perfmon2 at:
+http://perfmon2.sf.net
+"""
+NAME = 'perfmon'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+job.run_test('perfmon')
