@@ -1,6 +1,7 @@
 import os, shutil, re, glob, subprocess
 
 from autotest_lib.client.common_lib import utils, log
+from autotest_lib.client.bin import autotest_utils
 
 
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
@@ -265,7 +266,7 @@ class base_sysinfo(object):
             kernel_vers = " ".join(keyval["sysinfo-uname"].split()[2:])
             keyval["sysinfo-uname"] = kernel_vers
 
-        # grab the total memory
+        # grab the total avail memory, not used by sys tables
         path = os.path.join(test_sysinfodir, "reboot_current", "meminfo")
         if os.path.exists(path):
             mem_data = open(path).read()
@@ -273,6 +274,9 @@ class base_sysinfo(object):
                               re.MULTILINE)
             if match:
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
+
+        # guess the system's total physical memory, including sys tables
+        keyval["sysinfo-phys-mbytes"] = autotest_utils.rounded_memtotal()//1024
 
         # return what we collected
         return keyval
