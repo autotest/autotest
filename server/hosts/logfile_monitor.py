@@ -1,10 +1,13 @@
 import os, sys, subprocess, tempfile, traceback
+import time
 
 from autotest_lib.client.common_lib import debug, utils
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import abstract_ssh, monitors
 
 MONITORDIR = monitors.__path__[0]
+SUPPORTED_PYTHON_VERS = ('2.4', '2.5', '2.6')
+DEFAULT_PYTHON = '/usr/bin/python'
 
 
 class Error(Exception):
@@ -19,6 +22,10 @@ class InvalidConfigurationError(Error):
     """An invalid configuration was specified."""
 
 
+class FollowFilesLaunchError(Error):
+    """Error occurred launching followfiles remotely."""
+
+
 def run_cmd_on_host(hostname, cmd, stdin, stdout, stderr):
     base_cmd = abstract_ssh.make_ssh_command()
     full_cmd = "%s %s \"%s\"" % (base_cmd, hostname,
@@ -26,6 +33,19 @@ def run_cmd_on_host(hostname, cmd, stdin, stdout, stderr):
 
     return subprocess.Popen(full_cmd, stdin=stdin, stdout=stdout,
                             stderr=stderr, shell=True)
+
+
+def list_remote_pythons(host):
+    """List out installed pythons on host."""
+    result = host.run('ls /usr/bin/python*')
+    return result.stdout.splitlines()
+
+
+def select_supported_python(installed_pythons):
+    """Select a supported python from a list"""
+    for python in installed_pythons:
+        if python[-3:] in SUPPORTED_PYTHON_VERS:
+            return python
 
 
 def copy_monitordir(host):
@@ -37,12 +57,29 @@ def copy_monitordir(host):
 
 def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     """Launch followfiles.py remotely on follow_paths."""
+    logfile_monitor_log = debug.get_logger()
+    logfile_monitor_log.info(
+        'logfile_monitor: Launching followfiles on target: %s, %s, %s',
+        host.hostname, lastlines_dirpath, str(follow_paths))
+
+    # First make sure a supported Python is on host
+    installed_pythons = list_remote_pythons(host)
+    supported_python = select_supported_python(installed_pythons)
+    if not supported_python:
+        if DEFAULT_PYTHON in installed_pythons:
+            logfile_monitor_log.info(
+                'logfile_monitor: No versioned Python binary found,'
+                ' defaulting to: %s', DEFAULT_PYTHON)
+            supported_python = DEFAULT_PYTHON
+        else:
+            raise FollowFilesLaunchError('No supported Python on host.')
+
     remote_monitordir = copy_monitordir(host)
     remote_script_path = os.path.join(
         remote_monitordir, 'followfiles.py')
 
     followfiles_cmd = '%s %s --lastlines_dirpath=%s %s' % (
-        sys.executable, remote_script_path,
+        supported_python, remote_script_path,
         lastlines_dirpath, ' '.join(follow_paths))
 
     devnull_r = open(os.devnull, 'r')
@@ -50,6 +87,12 @@ def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     remote_followfiles_proc = run_cmd_on_host(
         host.hostname, followfiles_cmd, stdout=subprocess.PIPE,
         stdin=devnull_r, stderr=devnull_w)
+    # Give it enough time to crash if it's going to (it shouldn't).
+    time.sleep(5)
+    doa = remote_followfiles_proc.poll()
+    if doa:
+        raise FollowFilesLaunchError('SSH command crashed.')
+
     return remote_followfiles_proc
 
 
@@ -195,8 +238,20 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
             self._lastlines_dirpath = self.get_tmp_dir(parent='/var/log')
 
         # Launch followfiles on target
-        self._followfiles_proc = launch_remote_followfiles(
-            self, self._lastlines_dirpath, existing)
+        try:
+            self._followfiles_proc = launch_remote_followfiles(
+                self, self._lastlines_dirpath, existing)
+        except FollowFilesLaunchError:
+            # We're hosed, there is no point in proceeding.
+            self.logfile_monitor_log.fatal(
+                'Failed to launch followfiles on target,'
+                ' aborting logfile monitoring: %s', self.hostname)
+            if self.job:
+                # Put a warning in the status.log
+                self.job.record(
+                    'WARN', None, 'logfile.monitor',
+                    'followfiles launch failed')
+            return
 
         # Ensure we have sane pattern_paths before launching console.py
         sane_pattern_paths = []
