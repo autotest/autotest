@@ -2,6 +2,7 @@ AUTHOR = "Bryce Boe <bboe@google.com>"
 TIME = "SHORT"
 NAME = "Iperf Multi-machine"
 TEST_CATEGORY = "Stress"
+TEST_CLASS = "Hardware"
 TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
