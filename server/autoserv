@@ -20,6 +20,13 @@ from autotest_lib.client.common_lib import debug
 debug.configure(module='server')
 
 
+
+# send stdin to /dev/null
+dev_null = os.open(os.devnull, sys.stdin.fileno())
+os.dup2(dev_null, sys.stdin.fileno())
+os.close(dev_null)
+
+
 class PidFileManager(object):
     pid_file = None
     num_tests_failed = 0
