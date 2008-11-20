@@ -103,7 +103,9 @@ def _redirect_stream_tee(fd, output, tag):
         os._exit(0)
 
 
-class subcommand:
+class subcommand(object):
+    fork_hooks, join_hooks = [], []
+
     def __init__(self, func, args, subdir = None, stdprint = True):
         # func(args) - the subcommand to run
         # subdir     - the subdirectory to log results in
@@ -128,6 +130,20 @@ class subcommand:
         self.lambda_function = lambda: func(*args)
         self.pid = None
         self.stdprint = stdprint
+
+
+    @classmethod
+    def register_fork_hook(cls, hook):
+        """ Register a function to be called from the child process after
+        forking. """
+        cls.fork_hooks.append(hook)
+
+
+    @classmethod
+    def register_join_hook(cls, hook):
+        """ Register a function to be called when from the child process
+        just before the child process terminates (joins to the parent). """
+        cls.join_hooks.append(hook)
 
 
     def redirect_output(self):
@@ -156,17 +172,22 @@ class subcommand:
         self.redirect_output()
 
         try:
+            for hook in self.fork_hooks:
+                hook(self)
             self.lambda_function()
-
         except:
             traceback.print_exc()
+            exit_code = 1
+        else:
+            exit_code = 0
+
+        try:
+            for hook in self.join_hooks:
+                hook(self)
+        finally:
             sys.stdout.flush()
             sys.stderr.flush()
-            os._exit(1)
-
-        sys.stdout.flush()
-        sys.stderr.flush()
-        os._exit(0)
+            os._exit(exit_code)
 
 
     def fork_waitfor(self, timeout=None):
