@@ -27,37 +27,6 @@ def rangelist_to_list(rangelist):
     return result
 
 
-def rounded_memtotal():
-    # Get total of all physical mem, in Kbytes
-    usable_Kbytes = autotest_utils.memtotal()
-    # usable_Kbytes is system's usable DRAM in Kbytes,
-    #   as reported by memtotal() from device /proc/meminfo memtotal
-    #   after Linux deducts 1.5% to 5.1% for system table overhead
-    # Undo the unknown actual deduction by rounding up
-    #   to next small multiple of a big power-of-two
-    #   eg  12GB - 5.1% gets rounded back up to 12GB
-    mindeduct = 0.015  # 1.5 percent
-    maxdeduct = 0.055  # 5.5 percent
-    # deduction range 1.5% .. 5.5% supports physical mem sizes
-    #    6GB .. 12GB in steps of .5GB
-    #   12GB .. 24GB in steps of 1 GB
-    #   24GB .. 48GB in steps of 2 GB ...
-    # Finer granularity in physical mem sizes would require
-    #   tighter spread between min and max possible deductions
-
-    # increase mem size by at least min deduction, without rounding
-    min_Kbytes   = int(usable_Kbytes / (1.0 - mindeduct))
-    # increase mem size further by 2**n rounding, by 0..roundKb or more
-    round_Kbytes = int(usable_Kbytes / (1.0 - maxdeduct)) - min_Kbytes
-    # find least binary roundup 2**n that covers worst-cast roundKb
-    mod2n = 1 << int(math.ceil(math.log(round_Kbytes, 2)))
-    # have round_Kbytes <= mod2n < round_Kbytes*2
-    # round min_Kbytes up to next multiple of mod2n
-    phys_Kbytes = min_Kbytes + mod2n - 1
-    phys_Kbytes = phys_Kbytes - (phys_Kbytes % mod2n)  # clear low bits
-    return phys_Kbytes
-
-
 def my_container_name():
     # Get current process's inherited or self-built container name
     #   within /dev/cpuset.  Is '/' for root container, '/sys', etc.
@@ -104,7 +73,8 @@ def mbytes_per_mem_node():
     # Based on guessed total physical mem size, not on kernel's
     #   lesser 'available memory' after various system tables.
     # Can be non-integer when kernel sets up 15 nodes instead of 16.
-    return rounded_memtotal() / (len(autotest_utils.numa_nodes()) * 1024.0)
+    nodecnt = len(autotest_utils.numa_nodes())
+    return autotest_utils.rounded_memtotal() / (nodecnt * 1024.0)
 
 
 def get_cpus(container_full_name):

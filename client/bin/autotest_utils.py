@@ -2,7 +2,7 @@
 """
 
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
-import re, string, fnmatch
+import math, re, string, fnmatch
 from autotest_lib.client.common_lib import error, utils
 
 
@@ -269,6 +269,37 @@ def memtotal():
 
 def freememtotal():
     return read_from_meminfo('MemFree')
+
+
+def rounded_memtotal():
+    # Get total of all physical mem, in Kbytes
+    usable_Kbytes = memtotal()
+    # usable_Kbytes is system's usable DRAM in Kbytes,
+    #   as reported by memtotal() from device /proc/meminfo memtotal
+    #   after Linux deducts 1.5% to 5.1% for system table overhead
+    # Undo the unknown actual deduction by rounding up
+    #   to next small multiple of a big power-of-two
+    #   eg  12GB - 5.1% gets rounded back up to 12GB
+    mindeduct = 0.015  # 1.5 percent
+    maxdeduct = 0.055  # 5.5 percent
+    # deduction range 1.5% .. 5.5% supports physical mem sizes
+    #    6GB .. 12GB in steps of .5GB
+    #   12GB .. 24GB in steps of 1 GB
+    #   24GB .. 48GB in steps of 2 GB ...
+    # Finer granularity in physical mem sizes would require
+    #   tighter spread between min and max possible deductions
+
+    # increase mem size by at least min deduction, without rounding
+    min_Kbytes   = int(usable_Kbytes / (1.0 - mindeduct))
+    # increase mem size further by 2**n rounding, by 0..roundKb or more
+    round_Kbytes = int(usable_Kbytes / (1.0 - maxdeduct)) - min_Kbytes
+    # find least binary roundup 2**n that covers worst-cast roundKb
+    mod2n = 1 << int(math.ceil(math.log(round_Kbytes, 2)))
+    # have round_Kbytes <= mod2n < round_Kbytes*2
+    # round min_Kbytes up to next multiple of mod2n
+    phys_Kbytes = min_Kbytes + mod2n - 1
+    phys_Kbytes = phys_Kbytes - (phys_Kbytes % mod2n)  # clear low bits
+    return phys_Kbytes
 
 
 def sysctl_kernel(key, value=None):
