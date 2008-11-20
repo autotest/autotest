@@ -16,7 +16,8 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import os, sys, re, fcntl, shutil, tarfile, time, warnings, tempfile
+import fcntl, os, re, sys, shutil, tarfile, tempfile, time, traceback
+import warnings
 
 from autotest_lib.client.common_lib import error, utils, packages, debug
 from autotest_lib.client.bin import autotest_utils
@@ -175,26 +176,22 @@ class base_test:
         pass
 
 
-    def _run_cleanup(self, exc_info, args, dargs):
-        p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
+    def _run_cleanup(self, args, dargs):
+        """Call self.cleanup and convert exceptions as appropriate.
 
-        # if an exception occurs during the cleanup() call, we
-        # don't want it to override an existing exception
-        # (i.e. exc_info) that was thrown by the test execution
-        if exc_info:
-            try:
-                self.cleanup(*p_args, **p_dargs)
-            finally:
-                try:
-                    raise exc_info[0], exc_info[1], exc_info[2]
-                finally:
-                    # necessary to prevent a circular reference
-                    # between exc_info[2] (the traceback, which
-                    # references all the exception stack frames)
-                    # and this stack frame (which refs exc_info[2])
-                    del exc_info
-        else:
+        Args:
+          args: An argument tuple to pass to cleanup.
+          dargs: A dictionary of with potential keyword arguments for cleanup.
+        """
+        p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
+        try:
             self.cleanup(*p_args, **p_dargs)
+        except error.AutotestError:
+            raise
+        except Exception, e:
+            # Other exceptions must be treated as a ERROR when
+            # raised during the cleanup() phase.
+            raise error.UnhandledTestError(e)
 
 
     def _exec(self, args, dargs):
@@ -205,7 +202,7 @@ class base_test:
             # write out the test attributes into a keyval
             dargs   = dargs.copy()
             run_cleanup = dargs.pop('run_cleanup', self.job.run_test_cleanup)
-            keyvals = dargs.pop('test_attributes', dict()).copy()
+            keyvals = dargs.pop('test_attributes', {}).copy()
             keyvals['version'] = self.version
             for i, arg in enumerate(args):
                 keyvals['param-%d' % i] = repr(arg)
@@ -238,6 +235,7 @@ class base_test:
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
                                                         args, dargs)
+                    # self.execute() below consumes these arguments.
                     if 'iterations' in dargs:
                         p_dargs['iterations'] = dargs['iterations']
                     if 'test_length' in dargs:
@@ -248,29 +246,62 @@ class base_test:
                 try:
                     self.execute(*p_args, **p_dargs)
                 except error.AutotestError:
+                    # Pass already-categorized errors on up as is.
                     raise
                 except Exception, e:
+                    # Other exceptions must be treated as a FAIL when
+                    # raised during the execute() phase.
                     raise error.UnhandledTestFail(e)
-            except:
+            except Exception:
+                # Save the exception while we run our cleanup() before
+                # reraising it.
                 exc_info = sys.exc_info()
+                try:
+                    try:
+                        if run_cleanup:
+                            self._run_cleanup(args, dargs)
+                    except Exception:
+                        print 'Ignoring exception during cleanup() phase:'
+                        traceback.print_exc()
+                        print 'Now raising the earlier %s error' % exc_info[0]
+                finally:
+                    self.job.stderr.restore()
+                    self.job.stdout.restore()
+                    try:
+                        raise exc_info[0], exc_info[1], exc_info[2]
+                    finally:
+                        # http://docs.python.org/library/sys.html#sys.exc_info
+                        # Be nice and prevent a circular reference.
+                        del exc_info
             else:
-                exc_info = None
-
-            # run the cleanup, and then restore the job.std* streams
-            try:
-                if run_cleanup:
-                    self._run_cleanup(exc_info, args, dargs)
-            finally:
-                self.job.stderr.restore()
-                self.job.stdout.restore()
-
+                try:
+                    if run_cleanup:
+                        self._run_cleanup(args, dargs)
+                finally:
+                    self.job.stderr.restore()
+                    self.job.stdout.restore()
         except error.AutotestError:
+            # Pass already-categorized errors on up.
             raise
         except Exception, e:
+            # Anything else is an ERROR in our own code, not execute().
             raise error.UnhandledTestError(e)
 
 
 def _cherry_pick_args(func, args, dargs):
+    """Sanitize positional and keyword arguments before calling a function.
+
+    Given a callable (func), an argument tuple and a dictionary of keyword
+    arguments, pick only those arguments which the function is prepared to
+    accept and return a new argument tuple and keyword argument dictionary.
+
+    Args:
+      func: A callable that we want to choose arguments for.
+      args: A tuple of positional arguments to consider passing to func.
+      dargs: A dictionary of keyword arguments to consider passing to func.
+    Returns:
+      A tuple of: (args tuple, keyword arguments dictionary)
+    """
     # Cherry pick args:
     if func.func_code.co_flags & 0x04:
         # func accepts *args, so return the entire args.
@@ -283,6 +314,7 @@ def _cherry_pick_args(func, args, dargs):
         # func accepts **dargs, so return the entire dargs.
         p_dargs = dargs
     else:
+        # Only return the keyword arguments that func accepts.
         p_dargs = {}
         for param in func.func_code.co_varnames[:func.func_code.co_argcount]:
             if param in dargs:
@@ -292,6 +324,21 @@ def _cherry_pick_args(func, args, dargs):
 
 
 def _validate_args(args, dargs, *funcs):
+    """Verify that arguments are appropriate for at least one callable.
+
+    Given a list of callables as additional parameters, verify that
+    the proposed keyword arguments in dargs will each be accepted by at least
+    one of the callables.
+
+    NOTE: args is currently not supported and must be empty.
+
+    Args:
+      args: A tuple of proposed positional arguments.
+      dargs: A dictionary of proposed keyword arguments.
+      *funcs: Callables to be searched for acceptance of args and dargs.
+    Raises:
+      error.AutotestError: if an arg won't be accepted by any of *funcs.
+    """
     all_co_flags = 0
     all_varnames = ()
     for func in funcs:
@@ -301,8 +348,8 @@ def _validate_args(args, dargs, *funcs):
     # Check if given args belongs to at least one of the methods below.
     if len(args) > 0:
         # Current implementation doesn't allow the use of args.
-        raise error.AutotestError('Unnamed arguments not accepted. Please, ' \
-                        'call job.run_test with named args only')
+        raise error.TestError('Unnamed arguments not accepted. Please '
+                              'call job.run_test with named args only')
 
     # Check if given dargs belongs to at least one of the methods below.
     if len(dargs) > 0:
