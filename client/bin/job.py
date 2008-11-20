@@ -61,6 +61,8 @@ class base_job(object):
                     <autodir>/lib/
             testdir
                     <autodir>/tests/
+            configdir
+                    <autodir>/config/
             site_testdir
                     <autodir>/site_tests/
             profdir
@@ -108,6 +110,7 @@ class base_job(object):
         self.bindir = os.path.join(self.autodir, 'bin')
         self.libdir = os.path.join(self.autodir, 'lib')
         self.testdir = os.path.join(self.autodir, 'tests')
+        self.configdir = os.path.join(self.autodir, 'config')
         self.site_testdir = os.path.join(self.autodir, 'site_tests')
         self.profdir = os.path.join(self.autodir, 'profilers')
         self.tmpdir = os.path.join(self.autodir, 'tmp')
@@ -1075,7 +1078,6 @@ class base_job(object):
             optional_fields = {}
 
         status = status.rstrip()
-        status = re.sub(r"\r", "", status)
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
