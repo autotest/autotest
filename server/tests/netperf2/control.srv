@@ -2,6 +2,7 @@ AUTHOR = "mbligh@google.com (Martin Bligh) and bboe@google.com (Bryce Boe)"
 TIME = "SHORT"
 NAME = "Netperf Multi-machine"
 TEST_CATEGORY = "Stress"
+TEST_CLASS = 'Hardware'
 TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
