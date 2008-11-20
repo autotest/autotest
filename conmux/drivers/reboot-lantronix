@@ -1,0 +1,52 @@
+#!/usr/bin/expect
+#
+# Reboot a machine connected to a Lantronix SLC8
+#
+# Copyright 2008 Google Inc., Scott Zawalski <scottz@google.com>
+# Released under the GPL v2
+
+set P "reboot-lantronix"
+
+if {[llength $argv] < 3} {
+    puts stderr "Usage: $P <ts host> <ts port> <outlet>"
+    exit 1
+}
+
+#Max number of attempts before stopping
+set max_attempts {5}
+set tshost [lindex $argv 0]
+set tsport [lindex $argv 1]
+set outlet [lindex $argv 2]
+set connected {0}
+set attempts {0}
+
+while {$connected == 0 && $attempts < $max_attempts} {
+	spawn telnet $tshost $tsport
+	sleep 5
+	send "\r"
+	set timeout 15
+	set attempts [expr $attempts +1 ]
+	expect {
+		#Connection closed
+		"Connection closed by foreign host." {
+		    puts "Retrying attempt $attempts"
+		  }
+		#Already logged in
+		"RPC-22>" {
+		    send "Reboot $outlet\r"
+		    expect "Reboot Outlet $outlet"
+		    send "Y\r"
+		    expect "Rebooting"
+		    expect "RPC-22"
+		    send "quit\r"
+		    puts "Machine successfully rebooted."
+		    exit 0
+		    }
+		timeout {
+		    puts "Timed out connecting."
+		    }
+		}
+	}
+
+puts "Unable to connect after $attempts connection attempts."
+exit 1
