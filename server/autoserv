@@ -1,31 +1,21 @@
 #!/usr/bin/python -u
-#
-# Copyright 2007 Google Inc. Released under the GPL v2
+# Copyright 2007-2008 Martin J. Bligh, Google Inc.
+# Released under the GPL v2
 
 """
 Run an control file through the server side engine
 """
-
-__author__ = """\
-mbligh@google.com (Martin J. Bligh)
-"""
-
 import sys, os, re, traceback, signal, time
-
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser
 from autotest_lib.client.common_lib import debug
 
-
 debug.configure(module='server')
-
-
 
 # send stdin to /dev/null
 dev_null = os.open(os.devnull, sys.stdin.fileno())
 os.dup2(dev_null, sys.stdin.fileno())
 os.close(dev_null)
-
 
 class PidFileManager(object):
     pid_file = None
