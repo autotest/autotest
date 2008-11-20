@@ -1,0 +1,18 @@
+NAME = "shrink_slab"
+AUTHOR = "Divyesh Shah (dpshah@google.com)"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TIME = "SHORT"
+DOC = """\
+This is a functional test that ensures that shrink_slab only operates on the
+nodes allowed to the current cpuset. Should take ~5 minutes to run.
+"""
+
+cont_args = {'cpus': [0, 1, 2, 3],
+             'mbytes': 100,
+             'root': '',
+             'name': 'autotest_container'}
+job.new_container(**cont_args)
+job.run_test('shrink_slab')
+job.release_container()
