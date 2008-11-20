@@ -46,7 +46,7 @@ def main(argv):
                       help='Add samples, site_tests, tests, and test_suites')
     parser.add_option('-E', '--add-experimental',
                       dest='add_experimental', action='store_true',
-                      default=False,
+                      default=True,
                       help='Add experimental tests to frontend')
     parser.add_option('-N', '--add-noncompliant',
                       dest='add_noncompliant', action='store_true',
