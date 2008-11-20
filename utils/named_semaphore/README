@@ -1,0 +1,11 @@
+A simple module to expose the standard sem_* functions in Linux needed for
+using named semaphores. To compile, run:
+
+python setup.py build
+
+This will produce a namedsem.so file; put this file somewhere on your python
+import path and you should be able to import it as a module called namedsem.
+
+Before actually using this in python code, it really should be wrapped in
+something like the threading.Semaphore class. The module simply exposes the raw
+C functions with very little error checking.
