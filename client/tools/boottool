@@ -2486,7 +2486,11 @@ if (defined $params{'debug'}) {
   $bootloader->debug($params{'debug'});
 }
 
-if (defined $params{'add-kernel'}) {
+if (defined $params{'install'}) {
+  $bootloader->read();
+  $bootloader->install() unless $detected_bootloader eq 'grub' 
+                             or $detected_bootloader eq 'pxe' ;
+} elsif (defined $params{'add-kernel'}) {
   $bootloader->read();
   $bootloader->add(%params);
   $bootloader->write();
