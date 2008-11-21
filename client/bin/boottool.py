@@ -41,6 +41,15 @@ class boottool(object):
     def print_entry(self, index):
         print self.run_boottool('--info=%s' % index)
 
+    def get_entry(self, index):
+        """ Return entries as a dictionary """
+        entries_str = self.run_boottool('--info=%s' % index)
+        entries = {}
+        for line in entries_str.split("\n"):
+            name, value = line.split(":")
+            entries[name.strip()] = value.strip()
+        
+        return entries 
 
     def get_default(self):
         return self.run_boottool('--default').strip()
@@ -93,8 +102,13 @@ class boottool(object):
 
 
     def add_kernel(self, path, title='autotest', initrd='', xen_hypervisor='',
-                   args=None, root=None, position='end'):
-        parameters = '--add-kernel=%s --title=%s' % (path, title)
+                   args=None, root=None, position='end', force=False):
+        
+        parameters = ""
+        if force:
+            parameters += " --force "
+
+        parameters += '--add-kernel=%s --title=%s' % (path, title)
 
         # add an initrd now or forever hold your peace
         if initrd:
@@ -128,6 +142,10 @@ class boottool(object):
 
     def info(self, index):
         return self.run_boottool('--info=%s' % index)
+
+
+    def install(self):
+        return self.run_boottool('--install')
 
 
 # TODO:  backup()
