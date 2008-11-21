@@ -1879,17 +1879,21 @@ sub _set_config_file {
 # Run command to install bootloader
 
 sub install {
-    my $self=shift;
-
-    if (-f "/usr/sbin/ybin") {
-	system("/usr/sbin/ybin");
-	if ( $? != 0 ) {
-	    warn("ERROR:  Failed to run ybin.\n") && return undef;
+	my $self=shift;
+	my $cmd="";
+	if (-f "/usr/sbin/ybin") {
+		$cmd="/usr/sbin/ybin";
+	} elsif (-f "/sbin/ybin") {
+		$cmd="/sbin/ybin";
+	} else {
+		print("Not installing bootloader.\n");
 	}
-    } else {
-	print("Not installing bootloader.\n");
-    }
-    return 1;
+
+	system($cmd);
+	if ( $? != 0 ) {
+		warn("ERROR:  Failed to run ybin.\n") && return undef;
+	}
+	return 1;
 }
 
 
