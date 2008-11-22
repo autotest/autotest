@@ -46,7 +46,8 @@ except ImportError:
 
 
 class base_server_job(object):
-    """The actual job against which we do everything.
+    """
+    The actual job against which we do everything.
 
     Properties:
             autodir
@@ -137,8 +138,7 @@ class base_server_job(object):
                 # Thrown if the directory already exists, which it may.
                 pass
 
-        if (not os.access(self.tmpdir, os.W_OK) or
-                not os.path.isdir(self.tmpdir)):
+        if not (os.access(self.tmpdir, os.W_OK) and os.path.isdir(self.tmpdir)):
             self.tmpdir = os.path.join(tempfile.gettempdir(),
                                        'autotest-' + getpass.getuser())
             try:
@@ -165,8 +165,8 @@ class base_server_job(object):
             self.init_parser(resultdir)
         else:
             self.using_parser = False
-        self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':600})
+        self.pkgmgr = packages.PackageManager(self.autodir,
+                                             run_function_dargs={'timeout':600})
         self.pkgdir = os.path.join(self.autodir, 'packages')
 
         self.num_tests_run = 0
@@ -176,8 +176,10 @@ class base_server_job(object):
 
 
     def _register_subcommand_hooks(self):
-        """ Register some hooks into the subcommand modules that allow us
-        to properly clean up self.hosts created in forked subprocesses. """
+        """
+        Register some hooks into the subcommand modules that allow us
+        to properly clean up self.hosts created in forked subprocesses.
+        """
         def on_fork(cmd):
             self._existing_hosts_on_fork = set(self.hosts)
         def on_join(cmd):
@@ -189,9 +191,11 @@ class base_server_job(object):
 
 
     def init_parser(self, resultdir):
-        """Start the continuous parsing of resultdir. This sets up
+        """
+        Start the continuous parsing of resultdir. This sets up
         the database connection and inserts the basic job object into
-        the database if necessary."""
+        the database if necessary.
+        """
         # redirect parser debugging to .parse.log
         parse_log = os.path.join(resultdir, '.parse.log')
         parse_log = open(parse_log, 'w', 0)
@@ -205,19 +209,19 @@ class base_server_job(object):
         # it does not
         job_idx = self.results_db.find_job(self.parse_job)
         if job_idx is None:
-            self.results_db.insert_job(self.parse_job,
-                                       self.job_model)
+            self.results_db.insert_job(self.parse_job, self.job_model)
         else:
-            machine_idx = self.results_db.lookup_machine(
-                self.job_model.machine)
+            machine_idx = self.results_db.lookup_machine(self.job_model.machine)
             self.job_model.index = job_idx
             self.job_model.machine_idx = machine_idx
 
 
     def cleanup_parser(self):
-        """This should be called after the server job is finished
+        """
+        This should be called after the server job is finished
         to carry out any remaining cleanup (e.g. flushing any
-        remaining test results to the results db)"""
+        remaining test results to the results db)
+        """
         if not self.using_parser:
             return
         final_tests = self.parser.end()
@@ -236,8 +240,7 @@ class base_server_job(object):
                          'ssh_pass' : self.ssh_pass}
             self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
         except Exception, e:
-            msg = ('Verify failed\n' + str(e) + '\n'
-                    + traceback.format_exc())
+            msg = ('Verify failed\n' + str(e) + '\n' + traceback.format_exc())
             self.record('ABORT', None, None, msg)
             raise
 
@@ -251,8 +254,7 @@ class base_server_job(object):
                      'protection_level': host_protection}
         # no matter what happens during repair, go on to try to reverify
         try:
-            self._execute_code(REPAIR_CONTROL_FILE, namespace,
-                               protect=False)
+            self._execute_code(REPAIR_CONTROL_FILE, namespace, protect=False)
         except Exception, exc:
             print 'Exception occured during repair'
             traceback.print_exc()
@@ -267,47 +269,53 @@ class base_server_job(object):
 
 
     def enable_external_logging(self):
-        """Start or restart external logging mechanism.
+        """
+        Start or restart external logging mechanism.
         """
         pass
 
 
     def disable_external_logging(self):
-        """ Pause or stop external logging mechanism.
+        """
+        Pause or stop external logging mechanism.
         """
         pass
 
 
     def enable_test_cleanup(self):
-        """ By default tests run test.cleanup """
+        """
+        By default tests run test.cleanup
+        """
         self.run_test_cleanup = True
 
 
     def disable_test_cleanup(self):
-        """ By default tests do not run test.cleanup """
+        """
+        By default tests do not run test.cleanup
+        """
         self.run_test_cleanup = False
 
 
     def use_external_logging(self):
-        """Return True if external logging should be used.
+        """
+        Return True if external logging should be used.
         """
         return False
 
 
     def parallel_simple(self, function, machines, log=True, timeout=None):
-        """Run 'function' using parallel_simple, with an extra
-        wrapper to handle the necessary setup for continuous parsing,
-        if possible. If continuous parsing is already properly
-        initialized then this should just work."""
-        is_forking = not (len(machines) == 1 and
-                          self.machines == machines)
+        """
+        Run 'function' using parallel_simple, with an extra wrapper to handle
+        the necessary setup for continuous parsing, if possible. If continuous
+        parsing is already properly initialized then this should just work.
+        """
+        is_forking = not (len(machines) == 1 and self.machines == machines)
         if self.parse_job and is_forking and log:
             def wrapper(machine):
                 self.parse_job += "/" + machine
                 self.using_parser = True
                 self.machines = [machine]
-                self.resultdir = os.path.join(self.resultdir,
-                                              machine)
+                self.resultdir = os.path.join(self.resultdir, machine)
                 os.chdir(self.resultdir)
                 utils.write_keyval(self.resultdir, {"hostname": machine})
                 self.init_parser(self.resultdir)
@@ -325,9 +333,8 @@ class base_server_job(object):
         subcommand.parallel_simple(wrapper, machines, log, timeout)
 
 
-    def run(self, cleanup = False, install_before = False,
-            install_after = False, collect_crashdumps = True,
-            namespace = {}):
+    def run(self, cleanup=False, install_before=False, install_after=False,
+            collect_crashdumps=True, namespace={}):
         # use a copy so changes don't affect the original dictionary
         namespace = namespace.copy()
         machines = self.machines
@@ -377,7 +384,8 @@ class base_server_job(object):
 
 
     def run_test(self, url, *args, **dargs):
-        """Summon a test object and run it.
+        """
+        Summon a test object and run it.
 
         tag
                 tag to add to testname
@@ -395,8 +403,7 @@ class base_server_job(object):
         outputdir = os.path.join(self.resultdir, subdir)
         if os.path.exists(outputdir):
             msg = ("%s already exists, test <%s> may have"
-                   " already run with tag <%s>"
-                   % (outputdir, testname, tag) )
+                   " already run with tag <%s>" % (outputdir, testname, tag))
             raise error.TestError(msg)
         os.mkdir(outputdir)
 
@@ -411,8 +418,7 @@ class base_server_job(object):
                 self.record('FAIL', subdir, testname, info)
                 raise
             else:
-                self.record('GOOD', subdir, testname,
-                            'completed successfully')
+                self.record('GOOD', subdir, testname, 'completed successfully')
 
         result, exc_info = self._run_group(testname, subdir, group_func)
         if exc_info and isinstance(exc_info[1], error.TestBaseException):
@@ -560,8 +566,7 @@ class base_server_job(object):
         while True:
             # pull in a line of output from every logger that has
             # output ready to be read
-            loggers, _, _ = select.select(self.warning_loggers,
-                                          [], [], 0)
+            loggers, _, _ = select.select(self.warning_loggers, [], [], 0)
             closed_loggers = set()
             for logger in loggers:
                 line = logger.readline()
@@ -593,20 +598,17 @@ class base_server_job(object):
         """
         if subdir:
             if re.match(r'[\n\t]', subdir):
-                raise ValueError(
-                    'Invalid character in subdir string')
+                raise ValueError('Invalid character in subdir string')
             substr = subdir
         else:
             substr = '----'
 
         if not log.is_valid_status(status_code):
-            raise ValueError('Invalid status code supplied: %s' %
-                             status_code)
+            raise ValueError('Invalid status code supplied: %s' % status_code)
         if not operation:
             operation = '----'
         if re.match(r'[\n\t]', operation):
-            raise ValueError(
-                'Invalid character in operation string')
+            raise ValueError('Invalid character in operation string')
         operation = operation.rstrip()
         status = status.rstrip()
         status = re.sub(r"\t", "  ", status)
@@ -633,7 +635,6 @@ class base_server_job(object):
             record_prefix = self.record_prefix
 
         msg = '\t'.join(str(x) for x in fields)
-
         return record_prefix + msg + '\n'
 
 
@@ -657,7 +658,8 @@ class base_server_job(object):
 
 
     def _fill_server_control_namespace(self, namespace, protect=True):
-        """Prepare a namespace to be used when executing server control files.
+        """
+        Prepare a namespace to be used when executing server control files.
 
         This sets up the control file API by importing modules and making them
         available under the appropriate names within namespace.
@@ -672,7 +674,8 @@ class base_server_job(object):
           error.AutoservError: When a name would be clobbered by import.
         """
         def _import_names(module_name, names=()):
-            """Import a module and assign named attributes into namespace.
+            """
+            Import a module and assign named attributes into namespace.
 
             Args:
                 module_name: The string module name.
@@ -739,7 +742,8 @@ class base_server_job(object):
 
 
     def _execute_code(self, code_file, namespace, protect=True):
-        """Execute code using a copy of namespace as a server control script.
+        """
+        Execute code using a copy of namespace as a server control script.
 
         Unless protect_namespace is explicitly set to False, the dict will not
         be modified.
@@ -778,9 +782,8 @@ class base_server_job(object):
         this would bypass the console monitor logging.
         """
 
-        msg = self._render_record(status_code, subdir, operation,
-                                  status, epoch_time,
-                                  optional_fields=optional_fields)
+        msg = self._render_record(status_code, subdir, operation, status,
+                                  epoch_time, optional_fields=optional_fields)
 
 
         status_file = os.path.join(self.resultdir, 'status.log')
@@ -802,7 +805,8 @@ class base_server_job(object):
 
 
     def __insert_test(self, test):
-        """ An internal method to insert a new test result into the
+        """
+        An internal method to insert a new test result into the
         database. This method will not raise an exception, even if an
         error occurs during the insert, to avoid failing a test
         simply because of unexpected database issues."""
