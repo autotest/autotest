@@ -363,6 +363,7 @@ class base_server_job(object):
                 shutil.copy(CLIENT_WRAPPER_CONTROL_FILE,
                             SERVER_CONTROL_FILENAME)
             else:
+                namespace['utils'] = utils
                 utils.open_write_close(SERVER_CONTROL_FILENAME, self.control)
             self._execute_code(SERVER_CONTROL_FILENAME, namespace)
 
