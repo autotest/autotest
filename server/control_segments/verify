@@ -1,7 +1,19 @@
+import traceback
+
+
 def verify(machine):
     print 'Initializing host ' + machine
     host = hosts.create_host(machine, initialize=False, auto_monitor=False)
-    host.verify()
+    try:
+        host.verify()
+        job.record('GOOD', None, 'verify', '%s verified successfully' % machine)
+    except Exception, e:
+        if len(machines) > 1:
+            subdir = machine
+        else:
+            subdir = None
+        msg = 'verify failed on %s: %s\n' % (machine, str(e))
+        job.record('FAIL', subdir, 'verify', msg)
 
 
-job.parallel_simple(verify, machines, log=False)
+job.parallel_simple(verify, machines)
