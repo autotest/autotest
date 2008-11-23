@@ -2,9 +2,6 @@ def verify(machine):
     print 'Initializing host ' + machine
     host = hosts.create_host(machine, initialize=False, auto_monitor=False)
     host.verify()
-    # JP: deprecated
-    if "site_verify" in globals():
-        site_verify(host)
 
 
 job.parallel_simple(verify, machines, log=False)
