@@ -1,10 +1,9 @@
 def cleanup(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd,
-                             auto_monitor=False)
+    host = hosts.create_host(hostname, user=user, port=port, initialize=False,
+                             password=passwd, auto_monitor=False)
     host.cleanup()
+
 
 job.parallel_simple(cleanup, machines, log=False)

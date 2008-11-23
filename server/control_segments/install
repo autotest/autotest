@@ -1,10 +1,9 @@
 def install(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
-
-    host = hosts.create_host(hostname, user=user, port=port,
-                             initialize=False, password=passwd,
-                             auto_monitor=False)
+    host = hosts.create_host(hostname, user=user, port=port, initialize=False,
+                             password=passwd, auto_monitor=False)
     host.machine_install()
+
 
 job.parallel_simple(install, machines, log=False)
