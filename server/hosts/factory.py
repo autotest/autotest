@@ -11,9 +11,14 @@ DEFAULT_PATTERNS_PATH = 'console_patterns'
 _started_hostnames = set()
 
 def create_host(
-    hostname, auto_monitor=True, follow_paths=None, pattern_paths=None, **args):
+    hostname, auto_monitor=True, follow_paths=None, pattern_paths=None,
+    netconsole=False, **args):
     # by default assume we're using SSH support
     classes = [ssh_host.SSHHost]
+
+    # if the user really wants to use netconsole, let them
+    if netconsole:
+        classes.append(netconsole.NetconsoleHost)
 
     if auto_monitor:
         # use serial console support if it's available
