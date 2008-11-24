@@ -190,44 +190,6 @@ class CopyLogsTest(unittest.TestCase):
         self.assertEqual(test_ns['hosts'], hosts)
 
 
-    def test_verify(self):
-        self.construct_server_job()
-
-        # record
-        namespace = {'machines' : self.machines, 'job' : self.job, \
-                     'ssh_user' : self.job.ssh_user, \
-                     'ssh_port' : self.job.ssh_port, \
-                     'ssh_pass' : self.job.ssh_pass}
-        self.job._execute_code.expect_call(server_job.VERIFY_CONTROL_FILE,
-                                           namespace, protect=False)
-
-        # run and check
-        self.job.verify()
-        self.god.check_playback()
-
-
-    def test_repair(self):
-        self.construct_server_job()
-
-        # record
-        verify_namespace = {'machines' : self.machines, 'job' : self.job,
-                            'ssh_user' : self.job.ssh_user,
-                            'ssh_port' : self.job.ssh_port,
-                            'ssh_pass' : self.job.ssh_pass}
-        repair_namespace = verify_namespace.copy()
-        repair_namespace['protection_level'] = host_protections.default
-
-        self.job._execute_code.expect_call(server_job.REPAIR_CONTROL_FILE,
-                                           repair_namespace, protect=False)
-
-        self.job._execute_code.expect_call(server_job.VERIFY_CONTROL_FILE,
-                                           verify_namespace, protect=False)
-
-        # run and check
-        self.job.repair(host_protections.default)
-        self.god.check_playback()
-
-
     def test_parallel_simple_with_one_machine(self):
         self.construct_server_job()
         self.job.machines = ["hostname"]
@@ -240,49 +202,6 @@ class CopyLogsTest(unittest.TestCase):
 
         # run and check
         self.job.parallel_simple(func, self.job.machines)
-        self.god.check_playback()
-
-
-    def test_run(self):
-        self.construct_server_job()
-
-        # setup
-        self.god.stub_function(time, 'time')
-        self.god.stub_function(self.job, 'enable_external_logging')
-        self.god.stub_function(self.job, 'disable_external_logging')
-        file_obj = self.god.create_mock_class(file, "file")
-        namespace = {}
-        my_time = 0.0
-        namespace['machines'] = self.machines
-        namespace['args'] = self.args
-        namespace['job'] = self.job
-        namespace['ssh_user'] = self.job.ssh_user
-        namespace['ssh_port'] = self.job.ssh_port
-        namespace['ssh_pass'] = self.job.ssh_pass
-        namespace2 = {}
-        namespace2['machines'] = self.machines
-        namespace2['args'] = self.args
-        namespace2['job'] = self.job
-        namespace2['ssh_user'] = self.job.ssh_user
-        namespace2['ssh_port'] = self.job.ssh_port
-        namespace2['ssh_pass'] = self.job.ssh_pass
-        namespace2['test_start_time'] = int(my_time)
-
-        # record
-        time.time.expect_call().and_return(my_time)
-        os.chdir.expect_call(mock.is_string_comparator())
-        self.job.enable_external_logging.expect_call()
-        self.god.stub_function(utils, 'open_write_close')
-        utils.open_write_close.expect_call(server_job.SERVER_CONTROL_FILENAME,
-                                           '')
-        self.job._execute_code.expect_call(server_job.SERVER_CONTROL_FILENAME,
-                                           namespace)
-        self.job._execute_code.expect_call(server_job.CRASHDUMPS_CONTROL_FILE,
-                                           namespace2)
-        self.job.disable_external_logging.expect_call()
-
-        # run and check
-        self.job.run()
         self.god.check_playback()
 
 
