@@ -701,8 +701,8 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
     ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
                        Status.RUNNING, Status.ABORTING)
-    COMPLETE_STATUSES = (Status.PARSING, Status.ABORTED, Status.COMPLETED,
-                         Status.FAILED, Status.STOPPED)
+    COMPLETE_STATUSES = (Status.ABORTED, Status.COMPLETED, Status.FAILED,
+                         Status.STOPPED)
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
