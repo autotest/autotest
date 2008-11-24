@@ -1,4 +1,4 @@
-import collections
+import collections, re
 import common
 from autotest_lib.client.common_lib import log
 
@@ -18,6 +18,12 @@ def is_worse_than_or_equal_to(lhs, rhs):
     if lhs == rhs:
         return True
     return is_worse_than(lhs, rhs)
+
+
+DEFAULT_BLACKLIST = ('\r\x00',)
+def clean_raw_line(raw_line, blacklist=DEFAULT_BLACKLIST):
+    """Strip blacklisted characters from raw_line."""
+    return re.sub('|'.join(blacklist), '', raw_line)
 
 
 class status_stack(object):
