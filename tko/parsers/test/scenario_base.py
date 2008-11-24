@@ -178,14 +178,17 @@ class BaseScenarioTestCase(unittest_hotfix.TestCase):
             TEST, PARSER_RESULT_TAG)
         self.expected_status_version = self.config.getint(
             TEST, STATUS_VERSION)
+        self.harness = None
 
 
     def setUp(self):
-        self.harness = new_parser_harness(self.results_dirpath)
+        if self.results_dirpath:
+            self.harness = new_parser_harness(self.results_dirpath)
 
 
     def test_status_version(self):
         """Ensure basic sanity."""
+        self.skipIf(not self.harness)
         self.assertEquals(
             self.harness.status_version, self.expected_status_version)
 
@@ -268,8 +271,13 @@ def load_results_dir(package_dirpath):
 
     Returns:
       str; New temp path for extracted results directory.
+      - Or -
+      None; If tarball does not exist
     """
     tgz_filepath = path.join(package_dirpath, RESULTS_DIR_TARBALL)
+    if not path.exists(tgz_filepath):
+        return None
+
     tgz = tarfile.open(tgz_filepath, 'r:gz')
     tmp_dirpath = tempfile.mkdtemp()
     results_dirname = tgz.next().name

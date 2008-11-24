@@ -175,7 +175,7 @@ class parser(base.parser):
             finished_time = None
 
             # get the next line
-            raw_line = buffer.get()
+            raw_line = status_lib.clean_raw_line(buffer.get())
             tko_utils.dprint('\nSTATUS: ' + raw_line.strip())
             line = status_line.parse_line(raw_line)
             if line is None:
