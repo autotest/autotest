@@ -318,6 +318,9 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     metahost_objects = []
     metahost_counts = {}
     for label in meta_hosts or []:
+        if label not in labels_by_name:
+            raise model_logic.ValidationError(
+                {'meta_hosts' : 'Label "%s" not found' % label})
         this_label = labels_by_name[label]
         metahost_objects.append(this_label)
         metahost_counts.setdefault(this_label, 0)
