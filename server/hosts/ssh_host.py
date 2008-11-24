@@ -126,23 +126,21 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             try:
-                return self._run(command, timeout,
-                                 ignore_status, stdout,
-                                 stderr, connect_timeout,
-                                 env, options)
+                return self._run(command, timeout, ignore_status, stdout,
+                                 stderr, connect_timeout, env, options)
             except PermissionDeniedError:
                 print("Permission denied to ssh; re-running"
                       "with increased logging:")
-                return self._run(command, timeout,
-                                 ignore_status, stdout,
-                                 stderr, connect_timeout,
-                                 env, '-v -v -v')
+                try:
+                    self._run(command, timeout, ignore_status, stdout,
+                                 stderr, connect_timeout, env, '-v -v -v')
+                except Exception:
+                    pass
+                raise
         except error.CmdError, cmderr:
-            # We get a CmdError here only if there is timeout of
-            # that command.  Catch that and stuff it into
-            # AutoservRunError and raise it.
-            raise error.AutoservRunError(cmderr.args[0],
-                                         cmderr.args[1])
+            # We get a CmdError here only if there is timeout of that command.
+            # Catch that and stuff it into AutoservRunError and raise it.
+            raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
 
 
     def run_short(self, command, **kwargs):
