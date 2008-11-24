@@ -42,6 +42,7 @@ _global_config_section = 'SCHEDULER'
 _base_url = None
 # see os.getlogin() online docs
 _email_from = pwd.getpwuid(os.getuid())[0]
+_notify_email_statuses = []
 
 
 def main():
@@ -70,6 +71,17 @@ def main():
     val = c.get_config_value(_global_config_section, "notify_email")
     if val != "":
         _notify_email = val
+
+    global _email_from
+    val = c.get_config_value(_global_config_section, "notify_email_from")
+    if val != "":
+        _email_from = val
+
+    global _notify_email_statuses
+    val = c.get_config_value(_global_config_section, "notify_email_statuses")
+    if val != "":
+        _notify_email_statuses = [status for status in
+                                 re.split(r'[\s,;:]', val.lower()) if status]
 
     tick_pause = c.get_config_value(
         _global_config_section, 'tick_pause_sec', type=int)
@@ -184,7 +196,7 @@ def get_proc_poll_fn(pid):
     return poll_fn
 
 
-def send_email(from_addr, to_string, subject, body):
+def send_email(to_string, subject, body):
     """Mails out emails to the addresses listed in to_string.
 
     to_string is split into a list which can be delimited by any of:
@@ -197,11 +209,11 @@ def send_email(from_addr, to_string, subject, body):
         return
 
     msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
-        from_addr, ', '.join(to_list), subject, body)
+        _email_from, ', '.join(to_list), subject, body)
     try:
         mailer = smtplib.SMTP('localhost')
         try:
-            mailer.sendmail(from_addr, to_list, msg)
+            mailer.sendmail(_email_from, to_list, msg)
         finally:
             mailer.quit()
     except Exception, e:
@@ -244,7 +256,7 @@ class EmailNotificationManager(object):
         separator = '\n' + '-' * 40 + '\n'
         body = separator.join(self._emails)
 
-        send_email(_email_from, _notify_email, subject, body)
+        send_email(_notify_email, subject, body)
         self._emails = []
 
 email_manager = EmailNotificationManager()
@@ -1865,6 +1877,10 @@ class HostQueueEntry(DBObject):
                 'active', 'complete', 'deleted', 'execution_subdir']
 
 
+    def _view_job_url(self):
+        return "%s#tab_id=view_job&object_id=%s" % (_base_url, self.job.id)
+
+
     def set_host(self, host):
         if host:
             self.queue_log_record('Assigning host ' + host.hostname)
@@ -1931,7 +1947,7 @@ class HostQueueEntry(DBObject):
             hostname = 'None'
         print "%s/%d (%d) -> %s" % (hostname, self.job.id, self.id, self.status)
 
-        if status in ['Queued']:
+        if status in ['Queued', 'Parsing']:
             self.update_field('complete', False)
             self.update_field('active', False)
 
@@ -1940,21 +1956,55 @@ class HostQueueEntry(DBObject):
             self.update_field('complete', False)
             self.update_field('active', True)
 
-        if status in ['Failed', 'Completed', 'Stopped', 'Aborted', 'Parsing']:
+        if status in ['Failed', 'Completed', 'Stopped', 'Aborted']:
             self.update_field('complete', True)
             self.update_field('active', False)
-            self._email_on_job_complete()
+
+        should_email_status = (status.lower() in _notify_email_statuses or
+                               'all' in _notify_email_statuses)
+        if should_email_status:
+            self._email_on_status(status)
+
+        self._email_on_job_complete()
+
+
+    def _email_on_status(self, status):
+        hostname = 'no host'
+        if self.host:
+            hostname = self.host.hostname
+
+        subject = 'Autotest: Job ID: %s "%s" Host: %s %s' % (
+                self.job.id, self.job.name, hostname, status)
+        body = "Job ID: %s\nJob Name: %s\nHost: %s\nStatus: %s\n%s\n" % (
+                self.job.id, self.job.name, hostname, status,
+                self._view_job_url())
+        send_email(self.job.email_list, subject, body)
 
 
     def _email_on_job_complete(self):
-        url = "%s#tab_id=view_job&object_id=%s" % (_base_url, self.job.id)
+        if not self.job.is_finished():
+            return
 
-        if self.job.is_finished():
-            subject = "Autotest: Job ID: %s \"%s\" Completed" % (
-                self.job.id, self.job.name)
-            body = "Job ID: %s\nJob Name: %s\n%s\n" % (
-                self.job.id, self.job.name, url)
-            send_email(_email_from, self.job.email_list, subject, body)
+        summary_text = []
+        hosts_queue = models.Job.objects.get(
+            id=self.job.id).hostqueueentry_set.all()
+        for queue_entry in hosts_queue:
+            summary_text.append("Host: %s Status: %s" %
+                                (queue_entry.host.hostname,
+                                 queue_entry.status))
+
+        summary_text = "\n".join(summary_text)
+        status_counts = models.Job.objects.get_status_counts(
+                [self.job.id])[self.job.id]
+        status = ', '.join('%d %s' % (count, status) for status, count
+                    in status_counts.iteritems())
+
+        subject = 'Autotest: Job ID: %s "%s" %s' % (
+                self.job.id, self.job.name, status)
+        body = "Job ID: %s\nJob Name: %s\nStatus: %s\n%s\nSummary:\n%s" % (
+                self.job.id, self.job.name, status,  self._view_job_url(),
+                summary_text)
+        send_email(self.job.email_list, subject, body)
 
 
     def run(self,assigned_host=None):
@@ -2137,9 +2187,7 @@ class Job(DBObject):
 
 
     def is_finished(self):
-        left = self.num_queued()
-        print "%s: %s machines left" % (self.name, left)
-        return left==0
+        return self.num_complete() == self.num_machines()
 
 
     def _stop_all_entries(self, entries_to_abort):
