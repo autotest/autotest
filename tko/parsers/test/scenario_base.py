@@ -236,7 +236,7 @@ def store_parser_result(package_dirpath, parser_result, tag):
     sto.close()
 
 
-def load_parser_result_store(package_dirpath):
+def load_parser_result_store(package_dirpath, open_flag='r'):
     """Load parser result store from specified scenario package.
 
     Args:
@@ -246,7 +246,7 @@ def load_parser_result_store(package_dirpath):
       shelve.DbfilenameShelf; Looks and acts like a dict
     """
     sto_filepath = path.join(package_dirpath, PARSER_RESULT_STORE)
-    return shelve.open(sto_filepath)
+    return shelve.open(sto_filepath, flag=open_flag)
 
 
 def store_results_dir(package_dirpath, results_dirpath):
