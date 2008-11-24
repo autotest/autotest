@@ -232,7 +232,7 @@ def store_parser_result(package_dirpath, parser_result, tag):
     copy = copy_parser_result(parser_result)
     sto_filepath = path.join(package_dirpath, PARSER_RESULT_STORE)
     sto = shelve.open(sto_filepath)
-    sto[tag] = list(copy)
+    sto[tag] = copy
     sto.close()
 
 
