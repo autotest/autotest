@@ -159,12 +159,17 @@ class Host(object):
 
 
     def check_diskspace(self, path, gb):
+        print 'Checking for >= %s GB of space under %s on machine %s' % \
+                                             (gb, path, self.hostname)
         df = self.run('df -mP %s | tail -1' % path).stdout.split()
         free_space_gb = int(df[3])/1000.0
         if free_space_gb < gb:
             raise error.AutoservHostError('Not enough free space on ' +
                                           '%s - %.3fGB free, want %.3fGB' %
                                           (path, free_space_gb, gb))
+        else:
+            print 'Found %s GB >= %s GB of space under %s on machine %s' % \
+                                       (free_space_gb, gb, path, self.hostname)
 
 
     def repair_filesystem_only(self):

@@ -165,6 +165,7 @@ class AbstractSSHHost(site_host.SiteHost):
     def ssh_ping(self, timeout=60):
         try:
             self.run("true", timeout=timeout, connect_timeout=timeout)
+            print "ssh_ping of %s completed sucessfully" % self.hostname
         except error.AutoservSSHTimeout:
             msg = "ssh ping timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
@@ -254,8 +255,6 @@ class AbstractSSHHost(site_host.SiteHost):
         try:
             autodir = autotest._get_autodir(self)
             if autodir:
-                print 'Checking diskspace for %s on %s' % (self.hostname,
-                                                           autodir)
                 self.check_diskspace(autodir,
                                      self.AUTOTEST_GB_DISKSPACE_REQUIRED)
         except error.AutoservHostError:
