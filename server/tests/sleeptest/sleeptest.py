@@ -4,5 +4,5 @@ from autotest_lib.server import test
 class sleeptest(test.test):
     version = 1
 
-    def execute(self, seconds=1):
+    def run_once(self, seconds=1):
         time.sleep(seconds)
