@@ -1,21 +1,20 @@
 #!/usr/bin/python -u
-# Copyright 2007-2008 Martin J. Bligh, Google Inc.
+# Copyright 2007-2008 Martin J. Bligh <mbligh@google.com>, Google Inc.
 # Released under the GPL v2
 
 """
 Run an control file through the server side engine
 """
+
 import sys, os, re, traceback, signal, time
+
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser
 from autotest_lib.client.common_lib import debug
 
+
 debug.configure(module='server')
 
-# send stdin to /dev/null
-dev_null = os.open(os.devnull, sys.stdin.fileno())
-os.dup2(dev_null, sys.stdin.fileno())
-os.close(dev_null)
 
 class PidFileManager(object):
     pid_file = None
@@ -165,12 +164,6 @@ def main():
     if len(sys.argv) == 1:
         parser.parser.print_help()
         sys.exit(1)
-
-    if os.path.exists(os.path.join(results, 'control.srv')):
-        error = "Error: results directory already exists: %s\n" % results
-        sys.stderr.write(error)
-        sys.exit(1)
-    print "Results placed in %s" % results
 
     results = parser.options.results
     if not parser.options.no_logging:
