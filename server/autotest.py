@@ -35,6 +35,28 @@ class BaseAutotest(installable_object.InstallableObject):
         self.logger = debug.get_logger(module='server')
 
 
+    install_in_tmpdir = False
+    @classmethod
+    def set_install_in_tmpdir(cls, flag):
+        """ Sets a flag that controls whether or not Autotest should by
+        default be installed in a "standard" directory (e.g.
+        /home/autotest, /usr/local/autotest) or a temporary directory. """
+        cls.install_in_tmpdir = flag
+
+
+    def _get_install_dir(self, host):
+        """ Determines the location where autotest should be installed on
+        host. If self.install_in_tmpdir is set, it will return a unique
+        temporary directory that autotest can be installed in. """
+        try:
+            autodir = _get_autodir(host)
+        except error.AutotestRunError:
+            autodir = '/usr/local/autotest'
+        if self.install_in_tmpdir:
+            autodir = host.get_tmp_dir(parent=autodir)
+        return autodir
+
+
     @log.record
     def install(self, host=None):
         self._install(host=host)
@@ -71,10 +93,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # set up the autotest directory on the remote machine
         if not autodir:
-            try:
-                autodir = _get_autodir(host)
-            except error.AutotestRunError:
-                autodir = '/usr/local/autotest'
+            autodir = self._get_install_dir(host)
         host.set_autodir(autodir)
         host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
