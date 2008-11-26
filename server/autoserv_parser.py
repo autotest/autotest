@@ -91,6 +91,10 @@ class base_autoserv_parser(object):
                                default="",
                                help=("specify the password to use "
                                      "for ssh connections"))
+        self.parser.add_option("--install-in-tmpdir", action="store_true",
+                               dest="install_in_tmpdir", default=False,
+                               help=("by default install autotest clients in "
+                                     "a temporary directory"))
 
 
     def parse_args(self):

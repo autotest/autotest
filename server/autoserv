@@ -9,7 +9,7 @@ Run an control file through the server side engine
 import sys, os, re, traceback, signal, time
 
 import common
-from autotest_lib.server import server_job, utils, autoserv_parser
+from autotest_lib.server import server_job, utils, autoserv_parser, autotest
 from autotest_lib.client.common_lib import debug
 
 
@@ -178,6 +178,9 @@ def main():
 
     if parser.options.write_pidfile:
         pid_file_manager.open_pid_file(results)
+
+    autotest.BaseAutotest.set_install_in_tmpdir(
+        parser.options.install_in_tmpdir)
 
     exit_code = 0
     try:
