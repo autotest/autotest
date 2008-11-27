@@ -13,6 +13,8 @@ from autotest_lib.tko.parsers.test import scenario_base
 
 usage = 'usage: %prog [options] scenario_dirpath'
 parser = optparse.OptionParser(usage=usage)
+parser.add_option("-w", action="store_true", dest="open_for_write")
+
 (options, args) = parser.parse_args()
 if len(args) < 1:
     parser.print_help()
@@ -24,4 +26,5 @@ if not path.exists(scenario_dirpath) or not path.isdir(scenario_dirpath):
     parser.print_help()
     sys.exit(1)
 
-sto = scenario_base.load_parser_result_store(scenario_dirpath, 'c')
+sto = scenario_base.load_parser_result_store(
+    scenario_dirpath, options.open_for_write)
