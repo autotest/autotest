@@ -8,12 +8,8 @@ def verify(machine):
         host.verify()
         job.record('GOOD', None, 'verify', '%s verified successfully' % machine)
     except Exception, e:
-        if len(machines) > 1:
-            subdir = machine
-        else:
-            subdir = None
         msg = 'verify failed on %s: %s\n' % (machine, str(e))
-        job.record('FAIL', subdir, 'verify', msg)
+        job.record('FAIL', None, 'verify', msg)
 
 
 job.parallel_simple(verify, machines)
