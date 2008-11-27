@@ -64,6 +64,8 @@ class base_server_job(object):
                     <autodir>/server/site_tests/
             control
                     the control file for this job
+            drop_caches_between_iterations
+                    drop the pagecache between each iteration
     """
 
     STATUS_VERSION = 1
@@ -73,18 +75,15 @@ class base_server_job(object):
                  client=False, parse_job='',
                  ssh_user='root', ssh_port=22, ssh_pass=''):
         """
-                control
-                        The control file (pathname of)
-                args
-                        args to pass to the control file
-                resultdir
-                        where to throw the results
-                label
-                        label for the job
-                user
-                        Username for the job (email address)
-                client
-                        True if a client-side control file
+            Server side job object.
+
+            Parameters:
+                control:        The control file (pathname of)
+                args:           args to pass to the control file
+                resultdir:      where to throw the results
+                label:          label for the job
+                user:           Username for the job (email address)
+                client:         True if a client-side control file
         """
         path = os.path.dirname(__file__)
         self.autodir = os.path.abspath(os.path.join(path, '..'))
@@ -123,6 +122,7 @@ class base_server_job(object):
         self.run_test_cleanup = True
         self.last_boot_tag = None
         self.hosts = set()
+        self.drop_caches_between_iterations = False
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)

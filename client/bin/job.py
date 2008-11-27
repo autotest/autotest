@@ -85,6 +85,8 @@ class base_job(object):
                     the server harness object for this job
             config
                     the job configuration for this job
+            drop_caches_between_iterations
+                    drop the pagecache between each iteration
     """
 
     DEFAULT_LOG_FILENAME = "status"
@@ -92,20 +94,19 @@ class base_job(object):
     def __init__(self, control, jobtag, cont, harness_type=None,
                     use_external_logging = False, drop_caches=True):
         """
-                control
-                        The control file (pathname of)
-                jobtag
-                        The job tag string (eg "default")
-                cont
-                        If this is the continuation of this job
-                harness_type
-                        An alternative server harness
+            Client side job object
+
+            Parameters
+                control:        The control file (pathname of)
+                jobtag:         The job tag string (eg "default")
+                cont:           If this is the continuation of this job
+                harness_type:   An alternative server harness
         """
         self.drop_caches = drop_caches
         if self.drop_caches:
             print "Dropping caches"
             autotest_utils.drop_caches()
-
+        self.drop_caches_between_iterations = False
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
         self.libdir = os.path.join(self.autodir, 'lib')
