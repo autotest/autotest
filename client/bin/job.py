@@ -127,7 +127,7 @@ class base_job(object):
 
         self._load_state()
         self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':600})
+            self.autodir, run_function_dargs={'timeout':1800})
         self.pkgdir = os.path.join(self.autodir, 'packages')
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
@@ -323,7 +323,7 @@ class base_job(object):
         repositories = repo_urls + self.pkgmgr.repo_urls
         self.pkgmgr = packages.PackageManager(
             self.autodir, repo_urls=repositories,
-            run_function_dargs={'timeout':600})
+            run_function_dargs={'timeout':1800})
         # Fetch the packages' checksum file that contains the checksums
         # of all the packages if it is not already fetched. The checksum
         # is always fetched whenever a job is first started. This
