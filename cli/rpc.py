@@ -31,11 +31,14 @@ class rpc_comm(object):
         self.web_server = get_autotest_server(web_server)
         self.proxy = self._connect(rpc_path)
 
+
     def _connect(self, rpc_path):
         # This does not fail even if the address is wrong.
         # We need to wait for an actual RPC to fail
         if self.username:
             username = self.username
+        elif 'AUTOTEST_USER' in os.environ:
+            username = os.environ['AUTOTEST_USER']
         else:
             username = getpass.getuser()
         headers = {'AUTHORIZATION' : username}

@@ -398,9 +398,14 @@ class atest(object):
             try:
                 return self.afe.run(op, **data)
             except urllib2.URLError, err:
-                if 'timed out' not in err.reason:
-                    self.invalid_syntax('Invalid server name %s: %s' %
-                                        (self.afe.web_server, err))
+                if hasattr(err, 'reason'):
+                    if 'timed out' not in err.reason:
+                        self.invalid_syntax('Invalid server name %s: %s' %
+                                            (self.afe.web_server, err))
+                if hasattr(err, 'code'):
+                    self.failure(str(err), item=item,
+                                 what_failed=("Error received from web server"))
+                    raise CliError("Error from web server")
                 if self.debug:
                     print 'retrying: %r %d' % (data, retry)
                 retry -= 1
