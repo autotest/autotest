@@ -42,33 +42,30 @@ class JobError(AutotestError):
 
 class TestBaseException(AutotestError):
     """The parent of all test exceptions."""
-    pass
+    # Children are required to override this.  Never instantiate directly.
+    exit_status="NEVER_RAISE_THIS"
 
 
 class TestError(TestBaseException):
     """Indicates that something went wrong with the test harness itself."""
     exit_status="ERROR"
-    pass
 
 
 class TestNAError(TestBaseException):
     """Indictates that the test is Not Applicable.  Should be thrown
     when various conditions are such that the test is inappropriate."""
     exit_status="TEST_NA"
-    pass
 
 
 class TestFail(TestBaseException):
     """Indicates that the test failed, but the job will not continue."""
     exit_status="FAIL"
-    pass
 
 
 class TestWarn(TestBaseException):
     """Indicates that bad things (may) have happened, but not an explicit
     failure."""
     exit_status="WARN"
-    pass
 
 
 class UnhandledTestError(TestError):
@@ -138,6 +135,7 @@ class InstallError(JobError):
 
 
 class AutotestRunError(AutotestError):
+    """Indicates a problem running server side control files."""
     pass
 
 
