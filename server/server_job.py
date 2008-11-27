@@ -233,6 +233,8 @@ class base_server_job(object):
     def verify(self):
         if not self.machines:
             raise error.AutoservError('No machines specified to verify')
+        if self.resultdir:
+            os.chdir(self.resultdir)
         try:
             namespace = {'machines' : self.machines, 'job' : self,
                          'ssh_user' : self.ssh_user,
@@ -248,6 +250,8 @@ class base_server_job(object):
     def repair(self, host_protection):
         if not self.machines:
             raise error.AutoservError('No machines specified to repair')
+        if self.resultdir:
+            os.chdir(self.resultdir)
         namespace = {'machines': self.machines, 'job': self,
                      'ssh_user': self.ssh_user, 'ssh_port': self.ssh_port,
                      'ssh_pass': self.ssh_pass,
