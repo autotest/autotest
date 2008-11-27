@@ -98,6 +98,12 @@ class base_test:
         pass
 
 
+    def drop_caches_between_iterations(self):
+        if self.job.drop_caches_between_iterations:
+            print "Dropping caches between iterations"
+            autotest_utils.drop_caches()
+
+
     def execute(self, iterations=None, test_length=None, *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
@@ -138,6 +144,7 @@ class base_test:
                 elif time_elapsed > 0:
                     print 'Executing iteration %d, time_elapsed %d s' % \
                            (timed_counter, time_elapsed)
+                self.drop_caches_between_iterations()
                 self.run_once(*args, **dargs)
                 test_iteration_finish = time.time()
                 time_elapsed = test_iteration_finish - test_start
@@ -151,6 +158,7 @@ class base_test:
             for self.iteration in range(1, iterations+1):
                 print 'Executing iteration %d of %d' % (self.iteration,
                                                                     iterations)
+                self.drop_caches_between_iterations()
                 self.run_once(*args, **dargs)
             print 'Benchmark finished after %d iterations' % (iterations)
 
