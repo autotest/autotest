@@ -113,7 +113,7 @@ class atest_list(topic_common.atest):
                 # for this key
                 continue
 
-            if len(results) == len(filters[dbkey]):
+            if len(results) >= len(filters[dbkey]):
                 continue
 
             # Some bad items
