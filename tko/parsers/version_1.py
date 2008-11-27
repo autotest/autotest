@@ -112,21 +112,29 @@ class parser(base.parser):
 
 
     @staticmethod
-    def make_dummy_abort(indent, subdir, testname, reason):
+    def make_dummy_abort(indent, subdir, testname, timestamp, reason):
         indent = "\t" * indent
         if not subdir:
             subdir = "----"
         if not testname:
             testname = "----"
-        msg = indent + "END ABORT\t%s\t%s\t%s"
-        return msg % (subdir, testname, reason)
+
+        # There is no guarantee that this will be set.
+        timestamp_field = ''
+        if timestamp:
+            timestamp_field = '\ttimestamp=%s' % timestamp
+
+        msg = indent + "END ABORT\t%s\t%s%s\t%s"
+        return msg % (subdir, testname, timestamp_field, reason)
 
 
     @staticmethod
-    def put_back_line_and_abort(line_buffer, line, indent, subdir, reason):
+    def put_back_line_and_abort(
+        line_buffer, line, indent, subdir, timestamp, reason):
         tko_utils.dprint("Unexpected indent regression, aborting")
         line_buffer.put_back(line)
-        abort = parser.make_dummy_abort(indent, subdir, subdir, reason)
+        abort = parser.make_dummy_abort(
+            indent, subdir, subdir, timestamp, reason)
         line_buffer.put_back(abort)
 
 
@@ -156,12 +164,15 @@ class parser(base.parser):
                         " at %b %d %H:%M:%S")
                 else:
                     reason = "Job aborted unexpectedly"
+
+                timestamp = line.optional_fields.get('timestamp')
                 for i in reversed(xrange(stack.size())):
                     if abort_subdir_stack:
                         subdir = abort_subdir_stack.pop()
                     else:
                         subdir = None
-                    abort = self.make_dummy_abort(i, subdir, subdir, reason)
+                    abort = self.make_dummy_abort(
+                        i, subdir, subdir, timestamp, reason)
                     buffer.put(abort)
 
             # stop processing once the buffer is empty
@@ -186,10 +197,12 @@ class parser(base.parser):
             if line.type == "START":
                 # ABORT if indentation was unexpectedly low
                 if line.indent < stack.size():
-                    self.put_back_line_and_abort(buffer, raw_line,
-                                                 stack.size() - 1,
-                                                 subdir_stack[-1],
-                                                 line.reason)
+                    self.put_back_line_and_abort(
+                        buffer, raw_line,
+                        stack.size() - 1,
+                        subdir_stack[-1],
+                        line.optional_fields.get('timestamp'),
+                        line.reason)
                     continue
                 stack.start()
                 started_time = line.get_timestamp()
@@ -221,10 +234,12 @@ class parser(base.parser):
             elif line.type == "STATUS":
                 # ABORT if indentation was unexpectedly low
                 if line.indent < stack.size():
-                    self.put_back_line_and_abort(buffer, raw_line,
-                                                 stack.size() - 1,
-                                                 subdir_stack[-1],
-                                                 line.reason)
+                    self.put_back_line_and_abort(
+                        buffer, raw_line,
+                        stack.size() - 1,
+                        subdir_stack[-1],
+                        line.optional_fields.get('timestamp'),
+                        line.reason)
                     continue
                 # update the stacks
                 if line.subdir and stack.size() > min_stack_size:
@@ -237,10 +252,12 @@ class parser(base.parser):
             elif line.type == "END":
                 # ABORT if indentation was unexpectedly low
                 if line.indent + 1 < stack.size():
-                    self.put_back_line_and_abort(buffer, raw_line,
-                                                 stack.size() - 1,
-                                                 subdir_stack[-1],
-                                                 line.reason)
+                    self.put_back_line_and_abort(
+                        buffer, raw_line,
+                        stack.size() - 1,
+                        subdir_stack[-1],
+                        line.optional_fields.get('timestamp'),
+                        line.reason)
                     continue
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
