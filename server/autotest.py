@@ -58,8 +58,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     @log.record
-    def install(self, host=None):
-        self._install(host=host)
+    def install(self, host=None, autodir=None):
+        self._install(host=host, autodir=autodir)
 
 
     def install_base(self, host=None, autodir=None):
@@ -181,7 +181,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def run(self, control_file, results_dir = '.', host = None,
-            timeout=None, tag=None, parallel_flag=False):
+            timeout=None, tag=None, parallel_flag=False, background=False):
         """
         Run an autotest job on the remote machine.
 
@@ -194,6 +194,10 @@ class BaseAutotest(installable_object.InstallableObject):
                 tag: tag name for the client side instance of autotest
                 parallel_flag: flag set when multiple jobs are run at the
                           same time
+                background: indicates that the client should be launched as
+                            a background job; the code calling run will be
+                            responsible for monitoring the client and
+                            collecting the results
         Raises:
                 AutotestRunError: if there is a problem executing
                         the control file
@@ -204,7 +208,7 @@ class BaseAutotest(installable_object.InstallableObject):
         if tag:
             results_dir = os.path.join(results_dir, tag)
 
-        atrun = _Run(host, results_dir, tag, parallel_flag)
+        atrun = _Run(host, results_dir, tag, parallel_flag, background)
         self._do_run(control_file, results_dir, host, atrun, timeout)
 
 
@@ -270,9 +274,10 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             atrun.execute_control(timeout=timeout)
         finally:
-            collector = log_collector(host, atrun.tag, results_dir)
-            collector.collect_client_job_results()
-            self._process_client_state_file(host, atrun, results_dir)
+            if not atrun.background:
+                collector = log_collector(host, atrun.tag, results_dir)
+                collector.collect_client_job_results()
+                self._process_client_state_file(host, atrun, results_dir)
 
 
     def _create_state_file(self, job, state_dict):
@@ -349,12 +354,13 @@ class _Run(object):
     It is not intended to be used directly, rather control files
     should be run using the run method in Autotest.
     """
-    def __init__(self, host, results_dir, tag, parallel_flag):
+    def __init__(self, host, results_dir, tag, parallel_flag, background):
         self.host = host
         self.results_dir = results_dir
         self.env = host.env
         self.tag = tag
         self.parallel_flag = parallel_flag
+        self.background = background
         self.autodir = _get_autodir(self.host)
         control = os.path.join(self.autodir, 'control')
         if tag:
@@ -379,8 +385,9 @@ class _Run(object):
 
     def get_full_cmd(self, section):
         # build up the full command we want to run over the host
-        cmd = [os.path.join(self.autodir, 'bin/autotest_client'),
-               '-H autoserv']
+        cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
+        if not self.background:
+            cmd.append('-H autoserv')
         if section > 0:
             cmd.append('-c')
         if self.tag:
@@ -388,6 +395,8 @@ class _Run(object):
         if self.host.job.use_external_logging():
             cmd.append('-l')
         cmd.append(self.remote_control_file)
+        if self.background:
+            cmd = ['nohup'] + cmd + ['>/dev/null 2>/dev/null &']
         return ' '.join(cmd)
 
 
@@ -417,7 +426,7 @@ class _Run(object):
 
         if result.exit_status == 1:
             raise error.AutotestRunError("client job was aborted")
-        if not result.stderr:
+        if not self.background and not result.stderr:
             raise error.AutotestRunError(
                 "execute_section: %s failed to return anything\n"
                 "stdout:%s\n" % (full_cmd, result.stdout))
@@ -464,6 +473,8 @@ class _Run(object):
                     section_timeout = None
                 last = self.execute_section(section, section_timeout,
                                             logger)
+                if self.background:
+                    return
                 section += 1
                 if re.match(r'^END .*\t----\t----\t.*$', last):
                     print "Client complete"
