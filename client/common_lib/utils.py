@@ -417,6 +417,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
 
     # Kill all processes which did not complete prior to timeout
     for bg_job in [x for x in bg_jobs if x.result.exit_status is None]:
+        print '* Warning: run process timeout (%s) fired' % timeout
         nuke_subprocess(bg_job.sp)
         bg_job.result.exit_status = bg_job.sp.poll()
 
