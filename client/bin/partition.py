@@ -152,6 +152,31 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
     return partitions
 
 
+def filter_partition_list(partitions, devnames):
+    """Pick and choose which partition to keep.
+
+    filter_partition_list accepts a list of partition objects and a list
+    of strings.  If a partition has the device name of the strings it
+    is returned in a list.
+
+    Args:
+         partitions: A list of partition objects
+         devnames: A list of devnames of the form '/dev/hdc3' that
+                  specifies which partitions to include in the returned list.
+
+    Returns: A list of partition objects specified by devnames, in the
+             order devnames specified
+    """ 
+
+    filtered_list = []
+    for p in partitions:
+       for d in devnames:
+           if p.device == d and p not in filtered_list:
+              filtered_list.append(p)
+
+    return filtered_list
+
+
 def parallel(partitions, method_name, *args, **dargs):
     """\
     Run a partition method (with appropriate arguments) in parallel,
@@ -233,7 +258,7 @@ class partition(object):
 
 
     def run_test(self, test, **dargs):
-        self.job.run_test(test, tag=tag, dir=self.mountpoint, **dargs)
+        self.job.run_test(test, dir=self.mountpoint, **dargs)
 
 
     def run_test_on_partition(self, test, **dargs):
@@ -355,7 +380,7 @@ class partition(object):
             return 'fsck'
 
         raise NameError('Error creating partition for filesystem type %s' %
-                        fstype)
+                        self.fstype)
 
 
     def fsck(self, args='-n', record=True):
@@ -429,6 +454,7 @@ class partition(object):
     def unmount(self, handle=None, ignore_status=False, record=True):
         if not handle:
             handle = self.device
+        umount_cmd = "umount " + handle
         if not self.get_mountpoint():
             # It's not even mounted to start with
             if record and not ignore_status:
@@ -437,7 +463,6 @@ class partition(object):
         mtab = open('/etc/mtab')
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
-        umount_cmd = "umount " + handle
         print umount_cmd
         sys.stdout.flush()
         try:
