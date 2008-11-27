@@ -468,7 +468,6 @@ class atest(object):
         """Print the keys in each item as comma
         separated name=value"""
         if not items:
-            print "No results"
             return
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
@@ -524,7 +523,6 @@ class atest(object):
         """Print a mix of header and lists in a user readable
         format"""
         if not items:
-            print "No results"
             return
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
@@ -556,7 +554,6 @@ class atest(object):
     def print_by_ids_parse(self, items, title=None, line_before=False):
         """Prints ID & names of items in a parseable format"""
         if not items:
-            print "No results"
             return
         if title:
             print title + '=',
