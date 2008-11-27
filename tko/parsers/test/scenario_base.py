@@ -2,7 +2,7 @@
 """
 
 from os import path
-import ConfigParser, os, shelve, shutil, sys, tarfile, tempfile
+import ConfigParser, os, shelve, shutil, sys, tarfile, tempfile, time
 import common
 from autotest_lib.client.common_lib import utils
 from autotest_lib.tko import status_lib
@@ -10,6 +10,9 @@ from autotest_lib.tko.parsers.test import templates
 from autotest_lib.tko.parsers.test import unittest_hotfix
 
 TEMPLATES_DIRPATH = templates.__path__[0]
+# Set TZ used to UTC
+os.environ['TZ'] = 'UTC'
+time.tzset()
 
 KEYVAL = 'keyval'
 STATUS_VERSION = 'status_version'
@@ -51,6 +54,7 @@ class ParserException(object):
           orig: Exception; To copy
         """
         self.classname = orig.__class__.__name__
+        print "Copying exception:", self.classname
         for key, val in orig.__dict__.iteritems():
             setattr(self, key, val)
 
@@ -236,15 +240,17 @@ def store_parser_result(package_dirpath, parser_result, tag):
     sto.close()
 
 
-def load_parser_result_store(package_dirpath, open_flag='r'):
+def load_parser_result_store(package_dirpath, open_for_write=False):
     """Load parser result store from specified scenario package.
 
     Args:
       package_dirpath: str; Path to scenario package directory.
+      open_for_write: bool; Open store for writing.
 
     Returns:
       shelve.DbfilenameShelf; Looks and acts like a dict
     """
+    open_flag = open_for_write and 'c' or 'r'
     sto_filepath = path.join(package_dirpath, PARSER_RESULT_STORE)
     return shelve.open(sto_filepath, flag=open_flag)
 
