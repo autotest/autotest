@@ -384,8 +384,14 @@ class base_job(object):
                 pid = parallel.fork_start(self.resultdir, l)
                 parallel.fork_waitfor(self.resultdir, pid)
             except error.TestBaseException:
+                # These are already classified with an error type (exit_status)
                 raise
+            except error.JobError:
+                raise  # Caught further up and turned into an ABORT.
             except Exception, e:
+                # Converts all other exceptions thrown by the test regardless
+                # of phase into a TestError(TestBaseException) subclass that
+                # reports them with their full stack trace.
                 raise error.UnhandledTestError(e)
         finally:
             # Reset the logging level to client level
@@ -470,10 +476,8 @@ class base_job(object):
             try:
                 self._runtest(url, tag, args, dargs)
             except error.TestBaseException, detail:
+                # The error is already classified, record it properly.
                 self.record(detail.exit_status, subdir, testname, str(detail))
-                raise
-            except Exception, detail:
-                self.record('FAIL', subdir, testname, str(detail))
                 raise
             else:
                 self.record('GOOD', subdir, testname, 'completed successfully')
@@ -483,9 +487,13 @@ class base_job(object):
             if container:
                 self.release_container()
             return True
-        except error.TestBaseException, e:
+        except error.TestBaseException:
             return False
         # Any other exception here will be given to the caller
+        #
+        # NOTE: The only exception possible from the control file here
+        # is error.JobError as _runtest() turns all others into an
+        # UnhandledTestError that is caught above.
 
 
     def _rungroup(self, subdir, testname, function, *args, **dargs):
@@ -513,10 +521,19 @@ class base_job(object):
             self._decrement_group_level()
             self.record('END %s' % e.exit_status, subdir, testname, str(e))
             raise
+        except error.JobError, e:
+            self._decrement_group_level()
+            self.record('END ABORT', subdir, testname, str(e))
+            raise
         except Exception, e:
+            # This should only ever happen due to a bug in the given
+            # function's code.  The common case of being called by
+            # run_test() will never reach this.  If a control file called
+            # run_group() itself, bugs in its function will be caught
+            # here.
             self._decrement_group_level()
             err_msg = str(e) + '\n' + traceback.format_exc()
-            self.record('END FAIL', subdir, testname, err_msg)
+            self.record('END ERROR', subdir, testname, err_msg)
             raise
 
 
@@ -540,11 +557,12 @@ class base_job(object):
                                   function=function, **dargs)
         except error.TestError:
             pass
-        # if there was a non-TestError exception, raise it
+        # if there was a non-TestError exception, re-raise it as a TestError
         except Exception, e:
             exc_info = sys.exc_info()
             err = ''.join(traceback.format_exception(*exc_info))
-            raise error.TestError(name + ' failed\n' + err)
+            del exc_info
+            raise error.TestError('%s failed:\n%s' % (name, err))
 
 
     _RUN_NUMBER_STATE = '__run_number'
@@ -1221,7 +1239,8 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
                 myjob.record('ABORT', None, command, instance.args[0])
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, instance.args[0])
-            assert(myjob.group_level == 0)
+            assert (myjob.group_level == 0), ('myjob.group_level must be 0,'
+                                              ' not %d' % myjob.group_level)
             myjob.complete(1)
         else:
             sys.exit(1)
