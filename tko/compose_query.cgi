@@ -24,7 +24,7 @@ html_header = """\
   <td>Row: </td>
   <td>Condition: </td>
   <td align="center">
-  <a href="http://test.kernel.org/autotest/AutotestTKOCondition">Help</a>
+  <a href="http://autotest.kernel.org/wiki/AutotestTKOCondition">Help</a>
   </td>
 </tr>
 <tr>
