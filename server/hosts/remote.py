@@ -130,6 +130,12 @@ class RemoteHost(base_classes.Host):
             reboot()
 
 
+    def reboot_followup(self, *args, **dargs):
+        super(RemoteHost, self).reboot_followup(*args, **dargs)
+        if self.job:
+            self.job.profilers.handle_reboot(self)
+
+
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
         """
         Wait for the host to come back from a reboot. This wraps the
