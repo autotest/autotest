@@ -1,4 +1,5 @@
-import os, itertools
+import os, itertools, shutil, tempfile
+from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import autotest
 
 
@@ -61,6 +62,7 @@ class profiler_proxy(object):
         self.job = job
         self.name = profiler_name
         self.installed_hosts = {}
+        self.current_test = None
 
 
     def _install(self):
@@ -91,39 +93,88 @@ class profiler_proxy(object):
         # the actual setup happens lazily at start()
 
 
-    def _signal_clients(self, command):
-        """ Signal to each client that it should execute profilers.command
+    def _signal_client(self, host, command):
+        """ Signal to a client that it should execute profilers.command
         by writing a byte into AUTODIR/profilers.command. """
-        for host in self.installed_hosts.iterkeys():
-            autodir = host.get_autodir()
-            path = os.path.join(autodir, "profiler.%s" % command)
-            host.run("echo A > %s" % path)
+        autodir = host.get_autodir()
+        path = os.path.join(autodir, "profiler.%s" % command)
+        host.run("echo A > %s" % path)
 
 
-    def start(self, test):
+    def _wait_on_client(self, host, command):
+        """ Wait for the client to signal that it's finished by writing
+        a byte into AUTODIR/profilers.command. Only waits for 30 seconds
+        before giving up. """
+        autodir = host.get_autodir()
+        path = os.path.join(autodir, "profiler.%s" % command)
+        try:
+            host.run("cat %s" % path, ignore_status=True, timeout=30)
+        except error.AutoservSSHTimeout:
+            pass  # even if it times out, just give up and go ahead anyway
+
+
+    def _get_hosts(self, host=None):
+        """ Returns a dictionary of Host->Autotest mappings currently
+        supported by this profiler. If 'host' is not None, all entries
+        not matching that host object are filtered out of the dictionary."""
+        if host is None:
+            return self.installed_hosts
+        elif host in self.installed_hosts:
+            return {host: self.installed_hosts[host]}
+        else:
+            return {}
+
+
+    def start(self, test, host=None):
         self._install()
         encoded_args = encode_args(self.name, self.args, self.dargs)
         control_script = run_profiler_control % (encoded_args, self.name)
-        for at in self.installed_hosts.itervalues():
+        for host, at in self._get_hosts(host).iteritems():
+            fifo_pattern = os.path.join(host.get_autodir(), "profiler.*")
+            host.run("rm -f %s" % fifo_pattern)
             at.run(control_script, background=True)
-        self._signal_clients("start")
+            self._signal_client(host, "start")
+        self.current_test = test
 
 
-    def stop(self, test):
-        self._signal_clients("stop")
+    def stop(self, test, host=None):
+        assert self.current_test == test
+        for host in self._get_hosts(host).iterkeys():
+            self._signal_client(host, "stop")
 
 
-    def report(self, test):
-        self._signal_clients("report")
+    def report(self, test, host=None, wait_on_client=True):
+        assert self.current_test == test
+        self.current_test = None
+        hosts = self._get_hosts(host)
+
+        # signal to all the clients that they should report
+        if wait_on_client:
+            for host in self._get_hosts(host).iterkeys():
+                self._signal_client(host, "report")
+
         # pull back all the results
-        for host in self.installed_hosts.iterkeys():
+        for host in self._get_hosts(host).iterkeys():
+            if wait_on_client:
+                self._wait_on_client(host, "finished")
             results_dir = os.path.join(host.get_autodir(), "results",
                                        "default", "profiler_test",
                                        "profiling") + "/"
             local_dir = os.path.join(test.profdir, host.hostname)
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir)
+
+            tempdir = tempfile.mkdtemp(dir=self.job.tmpdir)
             try:
-                host.get_file(results_dir, local_dir)
+                host.get_file(results_dir, tempdir)
             except error.AutoservRunError:
                 pass # no files to pull back, nothing we can do
+            utils.merge_trees(tempdir, local_dir)
+            shutil.rmtree(tempdir, ignore_errors=True)
+
+
+    def handle_reboot(self, host):
+        if self.current_test:
+            test = self.current_test
+            self.report(test, host, wait_on_client=False)
+            self.start(test, host)

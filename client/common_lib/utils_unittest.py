@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, StringIO, socket, urllib
+import os, unittest, StringIO, socket, urllib, tempfile, shutil
 
 import common
 from autotest_lib.client.common_lib import utils
@@ -465,6 +465,102 @@ class test_urlretrieve(unittest.TestCase):
                                                  "More POST data")
         utils.urlretrieve("http://url", timeout=30, reporthook=reporthook,
                           data="More POST data", filename="destination_file")
+
+
+class test_merge_trees(unittest.TestCase):
+    # a some path-handling helper functions
+    def src(self, *path_segments):
+        return os.path.join(self.src_tree, *path_segments)
+
+
+    def dest(self, *path_segments):
+        return os.path.join(self.dest_tree, *path_segments)
+
+
+    def paths(self, *path_segments):
+        return self.src(*path_segments), self.dest(*path_segments)
+
+
+    def assertFileEqual(self, *path_segments):
+        src, dest = self.paths(*path_segments)
+        self.assertEqual(True, os.path.isfile(src))
+        self.assertEqual(True, os.path.isfile(dest))
+        self.assertEqual(os.path.getsize(src), os.path.getsize(dest))
+        self.assertEqual(open(src).read(), open(dest).read())
+
+
+    def assertFileContents(self, contents, *path_segments):
+        dest = self.dest(*path_segments)
+        self.assertEqual(True, os.path.isfile(dest))
+        self.assertEqual(os.path.getsize(dest), len(contents))
+        self.assertEqual(contents, open(dest).read())
+
+
+    def setUp(self):
+        self.src_tree = tempfile.mkdtemp()
+        self.dest_tree = tempfile.mkdtemp()
+
+        # empty subdirs
+        os.mkdir(self.src("empty"))
+        os.mkdir(self.dest("empty"))
+
+
+    def tearDown(self):
+        shutil.rmtree(self.src_tree)
+        shutil.rmtree(self.dest_tree)
+
+
+    def test_both_dont_exist(self):
+        utils.merge_trees(*self.paths("empty"))
+
+
+    def test_file_only_at_src(self):
+        print >> open(self.src("src_only"), "w"), "line 1"
+        utils.merge_trees(*self.paths("src_only"))
+        self.assertFileEqual("src_only")
+
+
+    def test_file_only_at_dest(self):
+        print >> open(self.dest("dest_only"), "w"), "line 1"
+        utils.merge_trees(*self.paths("dest_only"))
+        self.assertEqual(False, os.path.exists(self.src("dest_only")))
+        self.assertFileContents("line 1\n", "dest_only")
+
+
+    def test_file_at_both(self):
+        print >> open(self.dest("in_both"), "w"), "line 1"
+        print >> open(self.src("in_both"), "w"), "line 2"
+        utils.merge_trees(*self.paths("in_both"))
+        self.assertFileContents("line 1\nline 2\n", "in_both")
+
+
+    def test_directory_with_files_in_both(self):
+        print >> open(self.dest("in_both"), "w"), "line 1"
+        print >> open(self.src("in_both"), "w"), "line 3"
+        utils.merge_trees(*self.paths())
+        self.assertFileContents("line 1\nline 3\n", "in_both")
+
+
+    def test_directory_with_mix_of_files(self):
+        print >> open(self.dest("in_dest"), "w"), "dest line"
+        print >> open(self.src("in_src"), "w"), "src line"
+        utils.merge_trees(*self.paths())
+        self.assertFileContents("dest line\n", "in_dest")
+        self.assertFileContents("src line\n", "in_src")
+
+
+    def test_directory_with_subdirectories(self):
+        os.mkdir(self.src("src_subdir"))
+        print >> open(self.src("src_subdir", "subfile"), "w"), "subdir line"
+        os.mkdir(self.src("both_subdir"))
+        os.mkdir(self.dest("both_subdir"))
+        print >> open(self.src("both_subdir", "subfile"), "w"), "src line"
+        print >> open(self.dest("both_subdir", "subfile"), "w"), "dest line"
+        utils.merge_trees(*self.paths())
+        self.assertFileContents("subdir line\n", "src_subdir", "subfile")
+        self.assertFileContents("dest line\nsrc line\n", "both_subdir",
+                                "subfile")
+
 
 
 if __name__ == "__main__":

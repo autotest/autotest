@@ -30,6 +30,12 @@ class profiler_test(test.test):
 
 
     def execute(self):
+        # set up a pipe for signalling we are finished
+        finished_path = self.make_path_from_command("finished")
+        if os.path.exists(finished_path):
+            os.remove(finished_path)
+        os.mkfifo(finished_path)
+
         try:
             # wait until each command is signalled, and then execute the
             # equivalent job.profilers command
@@ -39,6 +45,15 @@ class profiler_test(test.test):
             self.job.profilers.stop(self)
             self.wait_for_command("report")
             self.job.profilers.report(self)
+
+            # signal that the profiling run is finished
+            try:
+                finished_fifo = open(finished_path, "w")
+                finished_fifo.write("A")
+                finished_fifo.close()
+            except IOError, e:
+                if e.errno != errno.EPIPE:
+                    raise   # the server may have already given up waiting
         finally:
             for command in ("start", "stop", "report"):
                 try:

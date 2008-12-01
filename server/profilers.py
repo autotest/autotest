@@ -11,3 +11,8 @@ class profilers(profiler_manager.profiler_manager):
         newprofiler.initialize(*args, **dargs)
         newprofiler.setup(*args, **dargs) # lazy setup is done client-side
         return newprofiler
+
+
+    def handle_reboot(self, host):
+        for p in self.list:
+            p.handle_reboot(host)
