@@ -560,8 +560,9 @@ class ModelExtensions(object):
             except cls.DoesNotExist:
                 invalid_inputs.append(id_or_name)
         if invalid_inputs:
-            raise cls.DoesNotExist('The following %s objects do not exist: %s'
-                                   % (cls.__name__, ', '.join(invalid_inputs)))
+            raise cls.DoesNotExist('The following %ss do not exist: %s'
+                                   % (cls.__name__.lower(),
+                                      ', '.join(invalid_inputs)))
         return result_objects
 
 

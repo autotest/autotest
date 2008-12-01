@@ -217,9 +217,19 @@ class atest_add_or_remove(topic_common.atest):
             # To skip the try/else
             raise AttributeError
         op = '%s_%s_%s' % (self.topic, self.op_action, what)
-        self.execute_rpc(op=op,                                 # The opcode
-                         item='%s (%s)' %(item, ','.join(uhs)), # The error
-                         **{'id': item, what: uhs})             # The data
+        try:
+            self.execute_rpc(op=op,                       # The opcode
+                             **{'id': item, what: uhs})   # The data
+            setattr(self, 'good_%s' % what, uhs)
+        except topic_common.CliError, full_error:
+            bad_uhs = self.parse_json_exception(full_error)
+            good_uhs = list(set(uhs) - set(bad_uhs))
+            if bad_uhs and good_uhs:
+                self.execute_rpc(op=op,
+                                 **{'id': item, what: good_uhs})
+                setattr(self, 'good_%s' % what, good_uhs)
+            else:
+                raise
 
 
     def execute(self):
@@ -227,7 +237,7 @@ class atest_add_or_remove(topic_common.atest):
         add hosts to labels:
           self.topic = 'label'
           self.op_action = 'add'
-          self.get_items() = the labels that the hosts
+          self.get_items() = the labels/ACLs that the hosts
                              should be added to"""
         oks = {}
         for item in self.get_items():
@@ -256,14 +266,14 @@ class atest_add_or_remove(topic_common.atest):
                                (self.msg_done,
                                 self.msg_topic,
                                 ', '.join(users_ok)),
-                               self.users)
+                               self.good_users)
 
         if hosts_ok:
             self.print_wrapped("%s %s %s host" %
                                (self.msg_done,
                                 self.msg_topic,
                                 ', '.join(hosts_ok)),
-                               self.hosts)
+                               self.good_hosts)
 
 
 class atest_add(atest_add_or_remove):

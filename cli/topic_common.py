@@ -171,6 +171,21 @@ class atest(object):
         sys.exit(1)
 
 
+    def parse_json_exception(self, full_error):
+        """Parses the JSON exception to extract the bad
+        items and returns them
+        This is very kludgy for the moment, but we would need
+        to refactor the exceptions sent from the front end
+        to make this better"""
+        errmsg = str(full_error).split('Traceback')[0].rstrip('\n')
+        parts = errmsg.split(':')
+        # Kludge: If there are 2 colons the last parts contains
+        # the items that failed.
+        if len(parts) != 3:
+            return []
+        return [item.strip() for item in parts[2].split(',') if item.strip()]
+
+
     def failure(self, full_error, item=None, what_failed=''):
         """If kill_on_failure, print this error and die,
         otherwise, queue the error and accumulate all the items
