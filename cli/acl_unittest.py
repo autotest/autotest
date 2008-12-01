@@ -292,9 +292,40 @@ class acl_add_unittest(cli_mock.cli_unittest):
                            {'id': 'acl0',
                             'users': ['user0', 'user1']},
                             False,
-                            'DoesNotExist: User matching query '
-                            'does not exist.')],
-                     err_words_ok=['acl0', 'user0', 'user1'])
+                            'DoesNotExist: The following Users do not exist: '
+                            'user0, user1')],
+                     err_words_ok=['user0', 'user1'])
+
+
+    def test_acl_add_bad_users_hosts(self):
+        self.run_cmd(argv=['atest', 'acl', 'add', 'acl0',
+                           '-u', 'user0,user1', '-m', 'host0'],
+                     rpcs=[('acl_group_add_users',
+                           {'id': 'acl0',
+                            'users': ['user0', 'user1']},
+                            False,
+                            'DoesNotExist: The following Users do not exist: '
+                            'user0'),
+                           ('acl_group_add_users',
+                           {'id': 'acl0',
+                            'users': ['user1']},
+                            True,
+                            None),
+                           ('acl_group_add_hosts',
+                            {'id': 'acl0',
+                             'hosts': ['host0', 'host1']},
+                            False,
+                            'DoesNotExist: The following Hosts do not exist: '
+                            'host1'),
+                           ('acl_group_add_hosts',
+                            {'id': 'acl0',
+                             'hosts': ['host0']},
+                            True,
+                            None)],
+                     out_words_ok=['acl0', 'user1', 'host0'],
+                     out_words_no=['user0', 'host1'],
+                     err_words_ok=['user0', 'host1'],
+                     err_words_no=['user1', 'host0'])
 
 
 class acl_remove_unittest(cli_mock.cli_unittest):
