@@ -62,10 +62,11 @@ class cli_unittest(unittest.TestCase):
             self.assertEqual('', err)
 
 
-    def assertOutput(self, obj,
+    def assertOutput(self, obj, results,
                      out_words_ok=[], out_words_no=[],
                      err_words_ok=[], err_words_no=[]):
         self.god.mock_io()
+        obj.output(results)
         obj.show_all_failures()
         (out, err) = self.god.unmock_io()
         self._check_output(out, out_words_ok, out_words_no,
