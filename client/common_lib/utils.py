@@ -670,6 +670,43 @@ def get_arch(run_function=run):
     return arch
 
 
+def merge_trees(src, dest):
+    """
+    Merges a source directory tree at 'src' into a destination tree at
+    'dest'. If a path is a file in both trees than the file in the source
+    tree is APPENDED to the one in the destination tree. If a path is
+    a directory in both trees then the directories are recursively merged
+    with this function. In any other case, the function will skip the
+    paths that cannot be merged (instead of failing).
+    """
+    if not os.path.exists(src):
+        return # exists only in dest
+    elif not os.path.exists(dest):
+        if os.path.isfile(src):
+            shutil.copy2(src, dest) # file only in src
+        else:
+            shutil.copytree(src, dest, symlinks=True) # dir only in src
+        return
+    elif os.path.isfile(src) and os.path.isfile(dest):
+        # src & dest are files in both trees, append src to dest
+        destfile = open(dest, "a")
+        try:
+            srcfile = open(src)
+            try:
+                destfile.write(srcfile.read())
+            finally:
+                srcfile.close()
+        finally:
+            destfile.close()
+    elif os.path.isdir(src) and os.path.isdir(dest):
+        # src & dest are directories in both trees, so recursively merge
+        for name in os.listdir(src):
+            merge_trees(os.path.join(src, name), os.path.join(dest, name))
+    else:
+        # src & dest both exist, but are incompatible
+        return
+
+
 class CmdResult(object):
     """
     Command execution result.
