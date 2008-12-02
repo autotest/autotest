@@ -1,4 +1,6 @@
 import os, itertools, shutil, tempfile
+import common
+
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import autotest
 
@@ -63,6 +65,12 @@ class profiler_proxy(object):
         self.name = profiler_name
         self.installed_hosts = {}
         self.current_test = None
+
+        # does the profiler support rebooting?
+        profiler_module = common.setup_modules.import_module(
+            profiler_name, "autotest_lib.client.profilers.%s" % profiler_name)
+        profiler_class = getattr(profiler_module, profiler_name)
+        self.supports_reboot = profiler_class.supports_reboot
 
 
     def _install(self):
@@ -176,5 +184,10 @@ class profiler_proxy(object):
     def handle_reboot(self, host):
         if self.current_test:
             test = self.current_test
+            if not self.supports_reboot:
+                msg = "profiler '%s' does not support rebooting during tests"
+                msg %= self.name
+                self.job.record("WARN", os.path.basename(test.outputdir),
+                                None, msg)
             self.report(test, host, wait_on_client=False)
             self.start(test, host)
