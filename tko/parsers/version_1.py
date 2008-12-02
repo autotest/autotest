@@ -4,6 +4,31 @@ from autotest_lib.tko import models, status_lib, utils as tko_utils
 from autotest_lib.tko.parsers import base, version_0
 
 
+class job(version_0.job):
+    def exit_status(self):
+        # if for some reason we can't read the status code, assume disaster
+        execute_path = os.path.join(self.dir, ".autoserv_execute")
+        if not os.path.exists(execute_path):
+            return "ABORT"
+        lines = open(execute_path).readlines()
+        if len(lines) < 2:
+            return "ABORT"
+        try:
+            status_code = int(lines[1])
+        except ValueError:
+            return "ABORT"
+
+        if not os.WIFEXITED(status_code):
+            # looks like a signal - an ABORT
+            return "ABORT"
+        elif os.WEXITSTATUS(status_code) != 0:
+            # looks like a non-zero exit - a failure
+            return "FAIL"
+        else:
+            # looks like exit code == 0
+            return "GOOD"
+
+
 class kernel(models.kernel):
     def __init__(self, base, patches):
         if base:
@@ -101,7 +126,6 @@ class status_line(version_0.status_line):
 
 
 # the default implementations from version 0 will do for now
-job = version_0.job
 patch = version_0.patch
 
 
@@ -148,6 +172,13 @@ class parser(base.parser):
         started_time_stack = [None]
         subdir_stack = [None]
         running_test = None
+        yield []   # we're ready to start running
+
+        # create a RUNNING SERVER_JOB entry to represent the entire test
+        running_job = test.parse_partial_test(self.job, "----", "SERVER_JOB",
+                                              "", current_kernel,
+                                              self.job.started_time)
+        new_tests.append(running_job)
 
         while True:
             # are we finished with parsing?
@@ -316,5 +347,12 @@ class parser(base.parser):
                 tko_utils.dprint(msg)
                 new_tests.append(new_test)
 
-        # the job is finished, nothing to do here but exit
+        # the job is finished, produce the final SERVER_JOB entry and exit
+        final_job = test.parse_test(self.job, "----", "SERVER_JOB",
+                                    self.job.exit_status(), "",
+                                    current_kernel,
+                                    self.job.started_time,
+                                    self.job.finished_time,
+                                    running_job)
+        new_tests.append(final_job)
         yield new_tests
