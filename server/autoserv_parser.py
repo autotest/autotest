@@ -66,9 +66,9 @@ class base_autoserv_parser(object):
         self.parser.add_option("-N", action="store_true",
                                dest="no_logging", default=False,
                               help="no logging")
-        self.parser.add_option("-p", action="store_true",
+        self.parser.add_option("-p", "--write-pidfile", action="store_true",
                                dest="write_pidfile", default=False,
-                              help="write pidfile (.autoserv_execute)")
+                               help="write pidfile (.autoserv_execute)")
         protection_levels = [host_protections.Protection.get_attr_name(s)
                              for i, s in host_protections.choices]
         self.parser.add_option("--host-protection", action="store",
