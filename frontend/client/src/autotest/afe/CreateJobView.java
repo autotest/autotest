@@ -375,7 +375,7 @@ public class CreateJobView extends TabView
     
     protected void setInputsEnabled() {
         testSelector.setEnabled(true);
-        profilersPanel.setEnabled(isClientTypeSelected());
+        profilersPanel.setEnabled(true);
         handleSkipVerify();
         kernel.setEnabled(true);
     }
