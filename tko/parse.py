@@ -3,8 +3,8 @@
 import os, sys, optparse, fcntl, errno, traceback, socket
 
 import common
-from autotest_lib.client.common_lib import mail, utils, pidfile
-from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib
+from autotest_lib.client.common_lib import mail, pidfile
+from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib, models
 
 
 def parse_args():
@@ -82,15 +82,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
         return
 
     # look up the status version
-    try:
-        job_keyval = utils.read_keyval(path)
-    except IOError, e:
-        if e.errno == errno.ENOENT:
-            status_version = 0
-        else:
-            raise
-    else:
-        status_version = job_keyval.get("status_version", 0)
+    job_keyval = models.job.read_keyval(path)
+    status_version = job_keyval.get("status_version", 0)
 
     # parse out the job
     parser = status_lib.parser(status_version)
