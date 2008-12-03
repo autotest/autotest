@@ -20,6 +20,7 @@ def format_error():
 
     return ''.join(trace)
 
+
 class JobContinue(SystemExit):
     """Allow us to bail out requesting continuance."""
     pass
@@ -36,8 +37,27 @@ class AutotestError(Exception):
 
 
 class JobError(AutotestError):
-    """Indicates an error which terminates and fails the whole job."""
+    """Indicates an error which terminates and fails the whole job (ABORT)."""
     pass
+
+
+class JobNAError(JobError):
+    """Indicates an error to skip this part of the whole job or fail it if
+    this was not a multi-step job."""
+    pass
+
+
+class UnhandledJobError(JobError):
+    """Indicates an unhandled error in a job."""
+    def __init__(self, unhandled_exception):
+        if isinstance(unhandled_exception, JobError):
+            TestError.__init__(self, *unhandled_exception.args)
+        else:
+            msg = "Unhandled %s: %s"
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            JobError.__init__(self, msg)
 
 
 class TestBaseException(AutotestError):
