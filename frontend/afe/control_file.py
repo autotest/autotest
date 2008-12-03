@@ -119,7 +119,7 @@ def get_tests_stanza(tests, is_server, prepend=None, append=None):
 
 def _get_tests_stanza(raw_control_files, is_server, prepend, append):
     if is_server:
-        return '\n'.join(raw_control_files)
+        return '\n'.join(prepend + raw_control_files + append)
     raw_steps = prepend + [add_boilerplate_to_nested_steps(step)
                            for step in raw_control_files] + append
     steps = [format_step(index, step)
@@ -135,8 +135,6 @@ def indent_text(text, indent):
 
 def _get_profiler_commands(profilers, is_server):
     prepend, append = [], []
-    if is_server:
-        return prepend, append
     for profiler in profilers:
         prepend.append("job.profilers.add('%s')" % profiler.name)
         append.append("job.profilers.delete('%s')" % profiler.name)
