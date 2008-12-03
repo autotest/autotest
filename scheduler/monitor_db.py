@@ -730,7 +730,7 @@ class Dispatcher:
     def _get_pending_queue_entries(self):
         # prioritize by job priority, then non-metahost over metahost, then FIFO
         return list(HostQueueEntry.fetch(
-            where='NOT complete AND NOT active',
+            where='NOT complete AND NOT active AND status="Queued"',
             order_by='priority DESC, meta_host, job_id'))
 
 
