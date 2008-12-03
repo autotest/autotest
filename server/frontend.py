@@ -12,7 +12,7 @@ For docs, see http://autotest//afe/server/noauth/rpc/
 http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import os, time
+import os, time, traceback
 import common
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import utils
@@ -150,6 +150,138 @@ class afe(object):
         return self.get_jobs(id=id)[0]
 
 
+    def run_test_suites(self, pairings, kernel, kernel_label, wait=True,
+                        poll_interval=5):
+        """
+        Run a list of test suites on a particular kernel.
+    
+        Poll for them to complete, and return whether they worked or not.
+    
+            pairings: list of MachineTestPairing objects to invoke
+            kernel: name of the kernel to run
+            kernel_label: label of the kernel to run
+                                        (<kernel-version> : <config> : <date>)
+            wait: boolean - wait for the results to come back?
+            poll_interval: interval between polling for job results (in minutes)
+        """
+        jobs = []
+        for pairing in pairings:
+            jobs.append(self.invoke_test(pairing, kernel, kernel_label))
+        if not wait:
+            return
+        while True:
+            time.sleep(60 * poll_interval)
+            result = self.poll_all_jobs(jobs)
+            if result is not None:
+                return result
+
+
+    def poll_all_jobs(self, jobs):
+        """
+        Poll all jobs in a list. See whether they are:
+            a) All complete successfully (return True)
+            b) One or more has failed (return False)
+            c) Cannot tell yet (return None)
+        """
+        for job in jobs:
+            result = self.poll_job_results(job.id, debug=False)
+            if result == True:
+                print 'PASSED %s : %s' % (job.id, job.name)
+            elif result == False:
+                print 'FAILED %s : %s' % (job.id, job.name)
+                return False
+            elif result is None:
+                print 'PENDING %s : %s' % (job.id, job.name)
+                return None
+        return True
+
+
+    def invoke_test(self, pairing, kernel, kernel_label, priority='Medium'):
+        """
+        Given a pairing of a control file to a machine label, find all machines
+        with that label, and submit that control file to them.
+    
+        Returns a job object
+        """
+        job_name = '%s : %s' % (pairing.machine_label, kernel_label)
+        hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
+        host_list = [host.hostname for host in hosts]
+        new_job = self.create_job_by_test(name=job_name,
+                                     dependencies=[pairing.machine_label],
+                                     tests=[pairing.control_file],
+                                     priority=priority,
+                                     hosts=host_list,
+                                     kernel=kernel)
+        print 'Invoked test %s : %s' % (new_job.id, job_name)
+        return new_job
+
+
+    def poll_job_results(self, job_id, debug=False):
+        """
+        Analyse all job results by platform, return:
+    
+            False: if any platform has more than one failure
+            None:  if any platform has more than one machine not yet Good.
+            True:  if all platforms have at least all-but-one machines Good.
+        """
+        try:
+            job_statuses = self.get_host_queue_entries(job=job_id)
+        except Exception:
+            print "Ignoring exception on poll job; RPC interface is flaky"
+            traceback.print_exc()
+            return None
+    
+        platform_map = {}
+        for job_status in job_statuses:
+            hostname = job_status.host.hostname
+            status = job_status.status
+            platform = job_status.host.platform
+            if platform not in platform_map:
+                platform_map[platform] = {'Total' : [hostname]}
+            else:
+                platform_map[platform]['Total'].append(hostname)
+            new_host_list = platform_map[platform].get(status, []) + [hostname]
+            platform_map[platform][status] = new_host_list
+    
+        good_platforms = []
+        bad_platforms = []
+        unknown_platforms = []
+        for platform in platform_map:
+            total = len(platform_map[platform]['Total'])
+            completed = len(platform_map[platform].get('Completed', []))
+            failed = len(platform_map[platform].get('Failed', []))
+            if failed > 1:
+                bad_platforms.append(platform)
+            elif completed + 1 >= total:
+                # if all or all but one are good, call the job good.
+                good_platforms.append(platform)
+            else:
+                unknown_platforms.append(platform)
+            detail = []
+            for status in platform_map[platform]:
+                if status == 'Total':
+                    continue
+                detail.append('%s=%s' % (status,platform_map[platform][status]))
+            if debug:
+                print '%20s %d/%d %s' % (platform, completed, total, 
+                                         ' '.join(detail))
+                print
+    
+        if len(bad_platforms) > 0:
+            if debug:
+                print 'Result bad - platforms: ' + ' '.join(bad_platforms)
+            return False
+        if len(unknown_platforms) > 0:
+            if debug:
+                platform_list = ' '.join(unknown_platforms)
+                print 'Result unknown - platforms: ', platform_list
+            return None
+        if debug:
+            platform_list = ' '.join(good_platforms)
+            print 'Result good - all platforms passed: ', platform_list
+        return True
+
+
 class rpc_object(object):
     """
     Generic object used to construct python objects from rpc calls
@@ -285,3 +417,12 @@ class host(rpc_object):
     def remove_labels(self, labels):
         self.afe.log('Removing labels %s from host %s' % (labels,self.hostname))
         return self.afe.run('host_remove_labels', id=self.id, labels=labels)
+
+
+class MachineTestPairing(object):
+    """
+    Object representing the pairing of a machine label with a control file
+    """
+    def __init__(self, machine_label, control_file):
+        self.machine_label = machine_label
+        self.control_file = control_file
