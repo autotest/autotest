@@ -32,11 +32,11 @@ class fsx(test.test):
         utils.system(self.make_flags + ' make fsx-linux')
 
 
-    def run_once(self, testdir = None, repeat = '100000'):
-        args = '-N ' + repeat
-        if not testdir:
-            testdir = self.tmpdir
-        os.chdir(testdir)
+    def run_once(self, dir=None, repeat=100000):
+        args = '-N %s' % repeat
+        if not dir:
+            dir = self.tmpdir
+        os.chdir(dir)
         libs = self.autodir+'/deps/libaio/lib/'
         ld_path = autotest_utils.prepend_path(libs,
                            autotest_utils.environ('LD_LIBRARY_PATH'))

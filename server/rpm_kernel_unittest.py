@@ -25,6 +25,7 @@ class TestRpmKernel(unittest.TestCase):
         host.bootloader = self.god.create_mock_class(bootloader.Bootloader,
                                                      "bootloader")
         self.god.stub_function(self.kernel, "get_image_name")
+        self.god.stub_function(self.kernel, "get_vmlinux_name")
         rpm = self.kernel.source_material
         rpm_package = "package.rpm"
 
@@ -40,6 +41,10 @@ class TestRpmKernel(unittest.TestCase):
         host.send_file.expect_call(rpm, remote_rpm)
         host.run.expect_call('rpm -e ' + rpm_package, ignore_status = True)
         host.run.expect_call('rpm --force -i ' + remote_rpm)
+        self.kernel.get_vmlinux_name.expect_call().and_return("/boot/vmlinux")
+        host.run.expect_call('cd /;rpm2cpio %s | cpio -imuv ./boot/vmlinux' %
+                             remote_rpm)
+        host.run.expect_call('ls /boot/vmlinux')
         host.bootloader.remove_kernel.expect_call('autotest')
         host.bootloader.add_kernel.expect_call("vmlinuz", 'autotest',
                                                args='', default=False)

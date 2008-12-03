@@ -95,6 +95,10 @@ class Host(object):
         raise NotImplementedError('Reboot not implemented!')
 
 
+    def sysrq_reboot(self):
+        raise NotImplementedError('Sysrq reboot not implemented!')
+
+
     def reboot_setup(self, *args, **dargs):
         pass
 
@@ -155,7 +159,7 @@ class Host(object):
 
 
     def verify(self):
-	pass
+        pass
 
 
     def check_diskspace(self, path, gb):
