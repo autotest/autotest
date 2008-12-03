@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 """
@@ -8,14 +6,8 @@ This module defines the Kernel class
         Kernel: an os kernel
 """
 
-__author__ = """
-mbligh@google.com (Martin J. Bligh),
-poirier@google.com (Benjamin Poirier),
-stutsman@google.com (Ryan Stutsman)
-"""
 
-
-import installable_object
+from autotest_lib.server import installable_object
 
 
 class Kernel(installable_object.InstallableObject):
