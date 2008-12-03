@@ -214,7 +214,7 @@ class partition(object):
     Class for handling partitions and filesystems
     """
 
-    def __init__(self, job, device, mountpoint=None, loop_size=0):
+    def __init__(self, job, device, loop_size=0):
         """
         device should be able to be a file as well
         which we mount as loopback.
@@ -223,8 +223,6 @@ class partition(object):
                 A client.bin.job instance.
         device
                 The device in question (eg "/dev/hda2")
-        mountpoint
-                Default mountpoint for the device.
         loop_size
                 Size of loopback device (in MB). Defaults to 0.
         """
@@ -240,10 +238,6 @@ class partition(object):
         if self.loop:
             cmd = 'dd if=/dev/zero of=%s bs=1M count=%d' % (device, loop_size)
             utils.system(cmd)
-        if mountpoint:
-            self.mountpoint = mountpoint
-        else:
-            self.mountpoint = self.get_mountpoint()
 
 
     def __repr__(self):
@@ -258,33 +252,43 @@ class partition(object):
 
 
     def run_test(self, test, **dargs):
-        self.job.run_test(test, dir=self.mountpoint, **dargs)
+        self.job.run_test(test, dir=self.get_mountpoint(), **dargs)
 
 
-    def run_test_on_partition(self, test, **dargs):
-        tag = dargs.pop('tag', None)
+    def run_test_on_partition(self, test, mountpoint, **dargs):
+        """ executes a test fs-style (umount,mkfs,mount,test)
+        Here we unmarshal the args to set up tags before running the test.
+        Tests are also run by first umounting, mkfsing and then mounting
+        before executing the test.
+
+        Args:
+              test - name of test to run
+              mountpoint - directory to mount partition onto
+              dargs - dictionary of args
+        """
+        tag = dargs.get('tag')
         if tag:
             tag = '%s.%s' % (self.name, tag)
+        elif self.fs_tag:
+            tag = '%s.%s' % (self.name, self.fs_tag)
         else:
-            if self.fs_tag:
-                tag = '%s.%s' % (self.name, self.fs_tag)
-            else:
-                tag = self.name
+            tag = self.name
 
-        def func(test_tag, dir, **dargs):
+        dargs['tag'] = test + '.' + tag
+
+        def func(test_tag, dir=None, **dargs):
             self.unmount(ignore_status=True, record=False)
             self.mkfs()
-            self.mount()
+            self.mount(dir)
             try:
-                self.job.run_test(test, tag=test_tag, dir=dir, **dargs)
+                self.job.run_test(test, tag=test_tag, dir=mountpoint, **dargs)
             finally:
                 self.unmount()
                 self.fsck()
 
         # The tag is the tag for the group (get stripped off by run_group)
         # The test_tag is the tag for the test itself
-        self.job.run_group(func, test_tag=tag, tag=test + '.' + tag,
-                           dir=self.mountpoint, **dargs)
+        self.job.run_group(func, test_tag=tag, dir=mountpoint, **dargs)
 
 
     def get_mountpoint(self):
@@ -402,7 +406,7 @@ class partition(object):
                 self.job.record('GOOD', None, fsck_cmd)
 
 
-    def mount(self, mountpoint=None, fstype=None, args='', record=True):
+    def mount(self, mountpoint, fstype=None, args='', record=True):
         if fstype is None:
             fstype = self.fstype
         else:
@@ -417,8 +421,8 @@ class partition(object):
         args = args.lstrip()
 
         if not mountpoint:
-            mountpoint = self.mountpoint
-
+           raise ValueError('No mount point specified')
+ 
         mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
         print mount_cmd
 
@@ -447,20 +451,69 @@ class partition(object):
         else:
             if record:
                 self.job.record('GOOD', None, mount_cmd)
-            self.mountpoint = mountpoint
             self.fstype = fstype
 
 
-    def unmount(self, handle=None, ignore_status=False, record=True):
-        if not handle:
-            handle = self.device
-        umount_cmd = "umount " + handle
-        if not self.get_mountpoint():
+    def unmount_force(self):
+       """Kill all other jobs accessing this partition
+
+       Use fuser and ps to find all mounts on this mountpoint and unmount them.
+
+       Returns: true for success or false for any errors
+       """
+
+       print "Standard umount failed, will try forcing. Users:"
+       try:
+           cmd = 'fuser ' + self.get_mountpoint()
+           print cmd
+           fuser = utils.system_output(cmd)
+           print fuser
+           users = re.sub('.*:', '', fuser).split()
+           for user in users:
+               m = re.match('(\d+)(.*)', user)
+               (pid, usage) = (m.group(1), m.group(2))
+               try:
+                  ps = utils.system_output('ps -p %s | tail +2' % pid)
+                  print '%s %s %s' % (usage, pid, ps)
+               except Exception:
+                  pass
+               utils.system('ls -l ' + self.device)
+               umount_cmd = "umount -f " + self.device
+               print umount_cmd
+               utils.system(umount_cmd)
+               return True
+       except error.CmdError:
+           print 'umount_force failed for %s' % self.device
+           return False
+
+
+
+    def unmount(self, ignore_status=False, record=True):
+        """Umount this partition.
+
+        It's easier said than done to umount a partition. 
+        We need to lock the mtab file to make sure we don't have any
+        locking problems if we are umounting in paralllel.
+
+        If there turns out to be a problem with the simple umount we
+        end up calling umount_force to get more  agressive.
+
+        Args: 
+              ignore_status - should we notice the umount status
+              record - should we record the success or failure
+        """
+
+        mountpoint = self.get_mountpoint()
+        if not mountpoint:
             # It's not even mounted to start with
             if record and not ignore_status:
-                self.job.record('FAIL', None, umount_cmd, 'Not mounted')
+                msg = 'umount for dev %s has no mountpoint' % self.device
+                self.job.record('FAIL', None, msg, 'Not mounted')
             return
+
+        umount_cmd = "umount " + mountpoint
         mtab = open('/etc/mtab')
+
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
         print umount_cmd
@@ -468,40 +521,23 @@ class partition(object):
         try:
             utils.system(umount_cmd)
             mtab.close()
-        except Exception:
-            print "Standard umount failed, will try forcing. Users:"
-            try:
-                cmd = 'fuser ' + self.get_mountpoint()
-                print cmd
-                fuser = utils.system_output(cmd)
-                print fuser
-                users = re.sub('.*:', '', fuser).split()
-                for user in users:
-                    m = re.match('(\d+)(.*)', user)
-                    (pid, usage) = (m.group(1), m.group(2))
-                    try:
-                        ps = utils.system_output('ps -p %s | tail +2' % pid)
-                        print '%s %s %s' % (usage, pid, ps)
-                    except Exception:
-                        pass
-                utils.system('ls -l ' + handle)
-                umount_cmd = "umount -f " + handle
-                print umount_cmd
-                utils.system(umount_cmd)
-                mtab.close()
-            except Exception:
-                mtab.close()
-                if record and not ignore_status:
-                    self.job.record('FAIL', None, umount_cmd,
-                                                           error.format_error())
-                    raise
-        
-        if record:
-            self.job.record('GOOD', None, umount_cmd)
+            if record:
+                self.job.record('GOOD', None, umount_cmd)
+        except (error.CmdError, IOError):
+            mtab.close()
 
+            # Try the forceful umount
+            if self.unmount_force():
+                return
+
+            # If we are here we cannot umount this partition 
+            if record and not ignore_status:
+               self.job.record('FAIL', None, umount_cmd, error.format_error())
+            raise
+        
 
     def wipe(self):
-        wipe_filesystem(self.job, self.mountpoint)
+        wipe_filesystem(self.job, self.get_mountpoint())
 
 
     def get_io_scheduler_list(self, device_name):
