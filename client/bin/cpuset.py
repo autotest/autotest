@@ -163,10 +163,14 @@ class cpuset(object):
         # pick one kswapd process and one kstaled process of container to
         #   service all mem nodes of that container, to reduce cpu overheads
         nodes = get_mem_nodes(self.cpudir)
+        file = '/sys/devices/system/node/node%d/kswapd' % nodes[0]
+        if not os.path.exists(file):
+            return False  # this kernel doesn't support merging
         active_node_mgr = str(nodes[0])
         for node in nodes:
             file = '/sys/devices/system/node/node%d/kswapd' % node
             utils.write_one_line(file, active_node_mgr)
+        return True
 
 
     def release(self):
