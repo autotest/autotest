@@ -3,7 +3,7 @@
 import os, sys, optparse, fcntl, errno, traceback, socket
 
 import common
-from autotest_lib.client.common_lib import mail, utils
+from autotest_lib.client.common_lib import mail, utils, pidfile
 from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib
 
 
@@ -29,6 +29,10 @@ def parse_args():
                       action="store")
     parser.add_option("-d", help="Database name", dest="db_name",
                       action="store")
+    parser.add_option("--write-pidfile",
+                      help="write pidfile (.parser_execute)",
+                      dest="write_pidfile", action="store_true",
+                      default=False)
     options, args = parser.parse_args()
 
     # we need a results directory
@@ -174,39 +178,50 @@ def main():
     results_dir = os.path.abspath(args[0])
     assert os.path.exists(results_dir)
 
-    # build up the list of job dirs to parse
-    if options.singledir:
-        jobs_list = [results_dir]
-    else:
-        jobs_list = [os.path.join(results_dir, subdir)
-                     for subdir in os.listdir(results_dir)]
+    pid_file_manager = pidfile.PidFileManager("parser", results_dir)
 
-    # build up the database
-    db = tko_db.db(autocommit=False, host=options.db_host,
-                   user=options.db_user, password=options.db_pass,
-                   database=options.db_name)
+    if options.write_pidfile:
+        pid_file_manager.open_file()
 
-    # parse all the jobs
-    for path in jobs_list:
-        lockfile = open(os.path.join(path, ".parse.lock"), "w")
-        flags = fcntl.LOCK_EX
-        if options.noblock:
-            flags != fcntl.LOCK_NB
-        try:
-            fcntl.flock(lockfile, flags)
-        except IOError, e:
-            # was this because the lock is unavailable?
-            if e.errno == errno.EWOULDBLOCK:
+    try:
+        # build up the list of job dirs to parse
+        if options.singledir:
+            jobs_list = [results_dir]
+        else:
+            jobs_list = [os.path.join(results_dir, subdir)
+                         for subdir in os.listdir(results_dir)]
+
+        # build up the database
+        db = tko_db.db(autocommit=False, host=options.db_host,
+                       user=options.db_user, password=options.db_pass,
+                       database=options.db_name)
+
+        # parse all the jobs
+        for path in jobs_list:
+            lockfile = open(os.path.join(path, ".parse.lock"), "w")
+            flags = fcntl.LOCK_EX
+            if options.noblock:
+                flags != fcntl.LOCK_NB
+            try:
+                fcntl.flock(lockfile, flags)
+            except IOError, e:
+                # was this because the lock is unavailable?
+                if e.errno == errno.EWOULDBLOCK:
+                    lockfile.close()
+                    continue
+                else:
+                    raise # something unexpected happened
+            try:
+                parse_path(db, path, options.level, options.reparse,
+                           options.mailit)
+            finally:
+                fcntl.flock(lockfile, fcntl.LOCK_UN)
                 lockfile.close()
-                continue
-            else:
-                raise # something unexpected happened
-        try:
-            parse_path(db, path, options.level, options.reparse,
-                       options.mailit)
-        finally:
-            fcntl.flock(lockfile, fcntl.LOCK_UN)
-            lockfile.close()
+    except:
+        pid_file_manager.close_file(1)
+        raise
+    else:
+        pid_file_manager.close_file(0)
 
 
 if __name__ == "__main__":
