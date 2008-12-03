@@ -65,7 +65,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
     def _run(self, command, timeout, ignore_status, stdout, stderr,
              connect_timeout, env, options):
         """Helper function for run()."""
-
         ssh_cmd = self.ssh_command(connect_timeout, options)
         echo_cmd = "echo \`date '+%m/%d/%y %H:%M:%S'\` Connected. >&2"
         if not env.strip():
@@ -85,15 +84,13 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         if result.exit_status == 255:
             if re.search(r'^ssh: connect to host .* port .*: '
                          r'Connection timed out\r$', result.stderr):
-                raise error.AutoservSSHTimeout("ssh timed out",
-                                               result)
+                raise error.AutoservSSHTimeout("ssh timed out", result)
             if result.stderr == "Permission denied.\r\n":
                 msg = "ssh permission denied"
                 raise PermissionDeniedError(msg, result)
 
         if not ignore_status and result.exit_status > 0:
-            raise error.AutoservRunError("command execution error",
-                                         result)
+            raise error.AutoservRunError("command execution error", result)
 
         return result
 
@@ -206,8 +203,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 err_re = re.compile (regexp)
                 if err_re.search(stream):
                     raise error.AutoservRunError(
-                        '%s failed, found error pattern: '
-                        '"%s"' % (command, regexp), result)
+                        '%s failed, found error pattern: "%s"' % (command,
+                                                                regexp), result)
 
         for (regexp, stream) in ((stderr_ok_regexp, result.stderr),
                                  (stdout_ok_regexp, result.stdout)):
@@ -218,14 +215,13 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                         return
 
         if not ignore_status and result.exit_status > 0:
-            raise error.AutoservRunError("command execution error",
-                                         result)
+            raise error.AutoservRunError("command execution error", result)
 
 
     def ssh_setup_key(self):
         try:
-            print 'Performing ssh key setup on %s:%d as %s' % \
-                (self.hostname, self.port, self.user)
+            print ('Performing ssh key setup on %s:%d as %s' %
+                   (self.hostname, self.port, self.user))
 
             host = pxssh.pxssh()
             host.login(self.hostname, self.user, self.password, port=self.port)
@@ -238,7 +234,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 host.sendline('chmod 700 ~/.ssh')
                 host.prompt()
                 host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
-                        (public_key))
+                              public_key)
                 host.prompt()
                 host.sendline('chmod 600 ~/.ssh/authorized_keys')
                 host.prompt()
