@@ -482,8 +482,6 @@ class atest(object):
     def print_fields_parse(self, items, keys, title=None):
         """Print the keys in each item as comma
         separated name=value"""
-        if not items:
-            return
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
                                   self.__conv_value(key,
@@ -537,8 +535,6 @@ class atest(object):
     def print_table_parse(self, items, keys_header, sublist_keys=[]):
         """Print a mix of header and lists in a user readable
         format"""
-        if not items:
-            return
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
                                  self.__conv_value(key, item[key]))
@@ -594,7 +590,6 @@ class atest(object):
     def print_list_parse(self, items, key):
         """Print a wrapped list of results"""
         if not items:
-            print "No results"
             return
         print '%s=%s' % (KEYS_TO_NAMES_EN[key],
                          ','.join(item[key] for item in items))
