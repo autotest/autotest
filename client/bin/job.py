@@ -913,8 +913,15 @@ class base_job(object):
 
         local_vars['__args'] = args
         local_vars['__dargs'] = dargs
-        exec('__ret = %s(*__args, **__dargs)' % fn, local_vars, local_vars)
-        return local_vars['__ret']
+        try:
+            exec('__ret = %s(*__args, **__dargs)' % fn, local_vars, local_vars)
+            return local_vars['__ret']
+        except SystemExit:
+            raise  # Send error.JobContinue and JobComplete on up to runjob.
+        except error.JobNAError, detail:
+            self.record('TEST_NA', None, fn, str(detail))
+        except Exception, detail:
+            raise error.UnhandledJobError(detail)
 
 
     def _create_frame(self, global_vars, ancestry, fn_name):
@@ -1246,6 +1253,8 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
             sys.exit(1)
 
     except Exception, e:
+        # NOTE: job._run_step_fn will turn things into a JobError for us.
+        # If we get here, its likely a bug in autotest itself.
         msg = str(e) + '\n' + traceback.format_exc()
         print "JOB ERROR: " + msg
         if myjob:
