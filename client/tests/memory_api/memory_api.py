@@ -34,7 +34,7 @@ class memory_api(test.test):
       p1 = subprocess.Popen('%s/memory_api ' % self.tmpdir  + memsize,
                             shell=True, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE)
-      while p1.poll() == None:
+      while p1.poll() is None:
          output = p1.stdout.readline().rstrip()
          m = memory_re.search(output)
          mem_start = 0
@@ -66,7 +66,7 @@ class memory_api(test.test):
             raise error.TestFail("VmaCountMismatch")
          print "%s %s %d %d" % (hex(mem_start), hex(mem_len),
                                 vma_count, expected_vma_count)
-         if p1.poll() == None:
+         if p1.poll() is None:
             p1.stdin.write("\n")
             p1.stdin.flush()
 

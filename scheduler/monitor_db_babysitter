@@ -71,7 +71,7 @@ class MonitorProc:
 
 
     def is_running(self):
-        if self.proc.poll() != None:
+        if self.proc.poll() is not None:
             bprint("monitor_db DIED")
             return False
 

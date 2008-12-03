@@ -450,7 +450,7 @@ class raw_socket(object):
         self._socket = None
         self._socket_timeout = raw_socket.SOCKET_TIMEOUT
         socket.setdefaulttimeout(self._socket_timeout)
-        if self._name == None:
+        if self._name is None:
             raise error.TestError('Invalid interface name')
 
 
@@ -477,10 +477,10 @@ class raw_socket(object):
         Args:
           protocol : short in host byte order. None if ALL
         """
-        if self._socket != None:
+        if self._socket is not None:
             raise error.TestError('Raw socket already open')
 
-        if protocol == None:
+        if protocol is None:
             self._socket = socket.socket(socket.PF_PACKET,
                                          socket.SOCK_RAW)
 
@@ -495,7 +495,7 @@ class raw_socket(object):
 
     def close(self):
         """ Close the raw socket"""
-        if self._socket != None:
+        if self._socket is not None:
             self._socket.close()
             self._socket = None
         else:
@@ -519,7 +519,7 @@ class raw_socket(object):
                      a binary string containing the received packet.
           time_left: amount of time left in timeout
         """
-        if self._socket == None:
+        if self._socket is None:
             raise error.TestError('Raw socket not open')
 
         time_left = timeout
@@ -542,7 +542,7 @@ class raw_socket(object):
 
     def send(self, packet):
         """Send an ethernet packet."""
-        if self._socket == None:
+        if self._socket is None:
             raise error.TestError('Raw socket not open')
 
         self._socket.send(packet)
@@ -559,7 +559,7 @@ class raw_socket(object):
           protocol: short in host byte order
           payload: 'byte string'
         """
-        if self._socket == None:
+        if self._socket is None:
             raise error.TestError('Raw socket not open')
         try:
             packet = ethernet.pack(dst_mac, src_mac, protocol, payload)
@@ -594,11 +594,11 @@ class raw_socket(object):
         while 1:
             frame = None
             packet, timeout = self.recv(timeout)
-            if packet != None:
+            if packet is not None:
                 frame = ethernet.unpack(packet)
-                if ((src_mac == None or frame['src'] == src_mac) and
-                    (dst_mac == None or frame['dst'] == dst_mac) and
-                    (protocol == None or frame['proto'] == protocol)):
+                if ((src_mac is None or frame['src'] == src_mac) and
+                    (dst_mac is None or frame['dst'] == dst_mac) and
+                    (protocol is None or frame['proto'] == protocol)):
                     break;
                 elif (timeout == 0 or
                       time.clock() - start_time > float(self._socket_timeout)):

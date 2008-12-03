@@ -244,7 +244,7 @@ class cpuset(object):
 
         self.name = name
 
-        if root == None:
+        if root is None:
             # default to nested in process's current container
             root = my_container_name()[1:]
         self.root = os.path.join(super_root, root)
@@ -252,7 +252,7 @@ class cpuset(object):
             raise error.AutotestError(('Parent container %s does not exist')
                                        % self.root)
 
-        if job_size == None:
+        if job_size is None:
             # default to biggest container we can make under root
             job_size = int( mbytes_per_mem_node() *
                 len(available_exclusive_mem_nodes(self.root)) )
@@ -260,7 +260,7 @@ class cpuset(object):
             raise error.AutotestError('Creating container with no mem')
         self.memory = job_size
 
-        if cpus == None:
+        if cpus is None:
             # default to biggest container we can make under root
             cpus = get_cpus(self.root)
         if not cpus:

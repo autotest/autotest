@@ -58,7 +58,7 @@ class SerialHost(site_host.SiteHost):
     def start_loggers(self):
         super(SerialHost, self).start_loggers()
 
-        if self.__console_log == None:
+        if self.__console_log is None:
             return
 
         if not self.conmux_attach or not os.path.exists(self.conmux_attach):

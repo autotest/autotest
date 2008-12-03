@@ -197,7 +197,7 @@ class db_sql(object):
         def exec_sql():
             sql = ' '.join(cmd)
             numRec = self.cur.execute(sql, values)
-            if max_rows != None and numRec > max_rows:
+            if max_rows is not None and numRec > max_rows:
                 msg = 'Exceeded allowed number of records'
                 raise MySQLTooManyRows(msg)
             return self.cur.fetchall()
@@ -261,7 +261,7 @@ class db_sql(object):
 
     def delete(self, table, where, commit = None):
         cmd = ['delete from', table]
-        if commit == None:
+        if commit is None:
             commit = self.autocommit
         if where and isinstance(where, types.DictionaryType):
             keys = [field + '=%s' for field in where.keys()]
@@ -280,7 +280,7 @@ class db_sql(object):
                 data:
                         dictionary of fields and data
         """
-        if commit == None:
+        if commit is None:
             commit = self.autocommit
         cmd = 'update %s ' % table
         fields = data.keys()

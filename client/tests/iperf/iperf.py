@@ -170,7 +170,7 @@ class iperf(test.test):
                         'Jitter_S2C':[], 'Jitter_C2S':[]}
 
                 # Short circuit to handle errors due to client timeouts
-                if output == None:
+                if output is None:
                     self.write_iteration_keyval(attr, keyval)
                     continue
 

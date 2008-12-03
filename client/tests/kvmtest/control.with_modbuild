@@ -36,7 +36,7 @@ def install_kvm_external_modules(tarball=None, base=SNAPBASE, daysold=DAYSOLD):
     print "kvm srcdir->%s"%(srcdir)
 
     # ex: http://people.qumranet.com/avi/snapshots/kvm-snapshot-20071021.tar.gz
-    if tarball == None:
+    if tarball is None:
         d = (date.today() - timedelta(days=daysold)).strftime('%Y%m%d')
         tarball = base+'kvm-snapshot-%s.tar.gz' %(d)
         sys.stderr.write("tarball url: %s\n" %(tarball))

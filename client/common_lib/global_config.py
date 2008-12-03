@@ -44,7 +44,7 @@ class global_config(object):
         try:
             val = self.config.get(section, key)
         except:
-            if default == None:
+            if default is None:
                 msg = ("Value '%s' not found in section '%s'" %
                       (key, section))
                 raise ConfigError(msg)
@@ -71,7 +71,7 @@ class global_config(object):
 
 
     def _ensure_config_parsed(self):
-        if self.config == None:
+        if self.config is None:
             self.parse_config_file()
 
 

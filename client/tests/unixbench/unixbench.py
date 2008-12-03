@@ -43,7 +43,7 @@ class unixbench(test.test):
 
     def cleanup(self):
         # check err string and possible throw
-        if self.err != None:
+        if self.err is not None:
             raise error.TestError(self.err)
 
 
@@ -52,7 +52,7 @@ class unixbench(test.test):
         if l >= 3 and words[-3:l] == ['no', 'measured', 'results']:
             # found a problem so record it in err string
             key = '_'.join(words[:-3])
-            if self.err == None:
+            if self.err is None:
                 self.err = key
             else:
                 self.err = self.err + " " + key

@@ -100,7 +100,7 @@ class cli_unittest(unittest.TestCase):
 
         if not (CLI_USING_PDB and CLI_UT_DEBUG):
             self.god.mock_io()
-        if exit_code != None:
+        if exit_code is not None:
             sys.exit.expect_call(exit_code).and_raises(ExitException)
             self.assertRaises(ExitException, atest.main)
         else:
