@@ -10,32 +10,10 @@ import sys, os, re, traceback, signal, time
 
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
-from autotest_lib.client.common_lib import debug
+from autotest_lib.client.common_lib import debug, pidfile
 
 
 debug.configure(module='server')
-
-
-class PidFileManager(object):
-    pid_file = None
-    num_tests_failed = 0
-
-    def open_pid_file(self, results_dir):
-        pid_file_path = os.path.join(results_dir, '.autoserv_execute')
-        assert not os.path.exists(pid_file_path)
-        self.pid_file = open(pid_file_path, 'w')
-        self.pid_file.write(str(os.getpid()) + '\n')
-        self.pid_file.flush()
-
-
-    def close_pid_file(self, exit_code, signal_code=0):
-        if not self.pid_file:
-            return
-        real_exit_code = (exit_code << 8) | (signal_code & 0xFF)
-        self.pid_file.write(str(real_exit_code) + '\n')
-        self.pid_file.write(str(self.num_tests_failed) + '\n')
-        self.pid_file.close()
-        self.pid_file = None
 
 
 def run_autoserv(pid_file_manager, results, parser):
@@ -49,7 +27,7 @@ def run_autoserv(pid_file_manager, results, parser):
 
     # Implement SIGTERM handler
     def handle_sigint(signum, frame):
-        pid_file_manager.close_pid_file(1, signal.SIGTERM)
+        pid_file_manager.close_file(1, signal.SIGTERM)
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Set signal handler
@@ -156,8 +134,6 @@ def run_autoserv(pid_file_manager, results, parser):
 
 
 def main():
-    pid_file_manager = PidFileManager()
-
     # grab the parser
     parser = autoserv_parser.autoserv_parser
 
@@ -176,8 +152,10 @@ def main():
             sys.exit(1)
         print "Results placed in %s" % results
 
+    pid_file_manager = pidfile.PidFileManager("autoserv", results)
+
     if parser.options.write_pidfile:
-        pid_file_manager.open_pid_file(results)
+        pid_file_manager.open_file()
 
     autotest.BaseAutotest.set_install_in_tmpdir(
         parser.options.install_in_tmpdir)
@@ -194,7 +172,7 @@ def main():
             # an 'abort' and return 1.
             exit_code = 1
     finally:
-        pid_file_manager.close_pid_file(exit_code)
+        pid_file_manager.close_file(exit_code)
     sys.exit(exit_code)
 
 
