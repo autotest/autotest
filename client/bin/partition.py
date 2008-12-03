@@ -255,7 +255,7 @@ class partition(object):
         self.job.run_test(test, dir=self.get_mountpoint(), **dargs)
 
 
-    def run_test_on_partition(self, test, mountpoint, **dargs):
+    def run_test_on_partition(self, test, mountpoint_func, **dargs):
         """ executes a test fs-style (umount,mkfs,mount,test)
         Here we unmarshal the args to set up tags before running the test.
         Tests are also run by first umounting, mkfsing and then mounting
@@ -263,7 +263,7 @@ class partition(object):
 
         Args:
               test - name of test to run
-              mountpoint - directory to mount partition onto
+              mountpoint_func - function to return mount point string
               dargs - dictionary of args
         """
         tag = dargs.get('tag')
@@ -285,6 +285,8 @@ class partition(object):
             finally:
                 self.unmount()
                 self.fsck()
+
+        mountpoint = mountpoint_func(self)
 
         # The tag is the tag for the group (get stripped off by run_group)
         # The test_tag is the tag for the test itself
