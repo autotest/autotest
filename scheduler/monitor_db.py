@@ -707,7 +707,10 @@ class Dispatcher:
             hostqueueentry__host__acl_group__name='Everyone')
         for job in query.distinct():
             print 'Aborting job %d due to start timeout' % job.id
-            job.abort(None)
+            entries_to_abort = job.hostqueueentry_set.exclude(
+                status=models.HostQueueEntry.Status.RUNNING)
+            for queue_entry in entries_to_abort:
+                queue_entry.abort(None)
 
 
     def _clear_inactive_blocks(self):
