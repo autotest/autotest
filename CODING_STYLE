@@ -38,6 +38,7 @@ Don't use CamelCaps style in most places - use underscores to separate parts
 of your variable_names please. I shall make a bedgrudging exception for class
 names I suppose, but I'll still whine about it a lot.
 
+
 Importing modules
 
 The order of imports should be as follows:
@@ -61,6 +62,12 @@ import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
 import sys, time, urllib, urlparse
 import MySQLdb
 from common_lib import error
+
+Testing None
+
+Use "is None" rather than "== None" and "is not None" rather than "!= None".
+This way you'll never run into a case where someone's __eq__ or __ne__ 
+method do the wrong thing
 
 
 Comments

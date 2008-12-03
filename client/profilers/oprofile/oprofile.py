@@ -80,7 +80,7 @@ class oprofile(profiler.profiler):
 
         src_opreport  = os.path.join(self.srcdir, '/bin/opreport')
         src_opcontrol = os.path.join(self.srcdir, '/bin/opcontrol')
-        if local == False or (local == None and
+        if local == False or (local is None and
                                 os.path.exists(src_opreport) and
                                 os.path.exists(src_opcontrol)):
             print "Using source-built copy of oprofile"

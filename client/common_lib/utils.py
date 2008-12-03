@@ -441,7 +441,7 @@ def nuke_subprocess(subproc):
 
         for i in range(5):
             rc = subproc.poll()
-            if rc != None:
+            if rc is not None:
                 return rc
             time.sleep(1)
 

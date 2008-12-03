@@ -556,7 +556,7 @@ class kernel(object):
             self.set_build_target(build_target)
 
         # If no 'target_arch' given assume native compilation
-        if target_arch == None:
+        if target_arch is None:
             target_arch = autotest_utils.get_current_kernel_arch()
             if target_arch == 'ppc64':
                 if self.build_target == 'bzImage':

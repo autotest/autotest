@@ -16,7 +16,7 @@ for key in form.keys():
 tm = time.asctime()
 uid = unique_cookie.unique_id('tko_history')
 HTTP_REFERER = os.environ.get('HTTP_REFERER')
-if HTTP_REFERER == None:
+if HTTP_REFERER is None:
 	## fall back strategy for proxy connection
 	## substitute relative url
 	HTTP_REFERER = 'compose_query.cgi?' + urllib.urlencode(dict_url)	

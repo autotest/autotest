@@ -224,7 +224,7 @@ def kill_autoserv(pid, poll_fn=None):
     print 'killing', pid
     if poll_fn is None:
         poll_fn = get_proc_poll_fn(pid)
-    if poll_fn() == None:
+    if poll_fn() is None:
         os.kill(pid, signal.SIGCONT)
         os.kill(pid, signal.SIGTERM)
 
@@ -1140,7 +1140,7 @@ class Agent(object):
 
 
     def is_done(self):
-        return self.active_task == None and self.queue.empty()
+        return self.active_task is None and self.queue.empty()
 
 
     def start(self):

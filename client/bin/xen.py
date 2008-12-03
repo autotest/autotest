@@ -52,7 +52,7 @@ class xen(kernel.kernel):
             utils.system(build_string)
 
         # make a kernel job out of the kernel from the xen src if one isn't provided
-        if self.kjob == None:
+        if self.kjob is None:
             # get xen kernel tree ready
             self.log("prep-ing xen'ified kernel source tree")
             utils.system('make prep-kernels')

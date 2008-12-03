@@ -31,7 +31,7 @@ def main():
         elif flag == '-l':
             logdir = value
 
-    if test == None or logdir == None:
+    if test is None or logdir is None:
         usage()
         sys.exit(1)
 
