@@ -92,7 +92,7 @@ class ServiceHandler(object):
             except:
                 err = BadServiceRequest(json)
 
-        if err == None:
+        if err is None:
             try:
                 meth = self.findServiceEndpoint(methName)
             except Exception, e:
@@ -100,7 +100,7 @@ class ServiceHandler(object):
                 print err_traceback
                 err = e
 
-        if err == None:
+        if err is None:
             try:
                 result = self.invokeServiceEndpoint(meth, args)
             except Exception, e:
@@ -134,7 +134,7 @@ class ServiceHandler(object):
         return meth(*args)
 
     def translateResult(self, rslt, err, err_traceback, id_):
-        if err != None:
+        if err is not None:
             err = {"name": err.__class__.__name__, "message":str(err),
                    "traceback": err_traceback}
             rslt = None

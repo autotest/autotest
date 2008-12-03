@@ -406,7 +406,7 @@ class partition(object):
         if fstype is None:
             fstype = self.fstype
         else:
-            assert(self.fstype == None or self.fstype == fstype);
+            assert(self.fstype is None or self.fstype == fstype);
 
         if self.mount_options:
             args += ' -o  ' + self.mount_options

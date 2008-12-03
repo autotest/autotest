@@ -338,7 +338,7 @@ class atest(object):
         True in the list.
         Also check if the req_items is not empty after parsing."""
         (options, leftover) = atest.parse(self)
-        if leftover == None:
+        if leftover is None:
             leftover = []
 
         for (attribute, opt_fname, opt_list, use_leftover) in flists:

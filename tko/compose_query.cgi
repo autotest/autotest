@@ -239,7 +239,7 @@ def map_kernel_init():
 
 def map_kernel(name):
 	global map_kernel_map
-	if map_kernel_map == None:
+	if map_kernel_map is None:
 		map_kernel_map = map_kernel_init()
 
 	if map_kernel_map.has_key(name):

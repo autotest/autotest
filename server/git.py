@@ -29,14 +29,14 @@ class GitRepo(installable_object.InstallableObject):
 
     def __init__(self, repodir, giturl, weburl):
         super(installable_object.InstallableObject, self).__init__()
-        if repodir == None:
+        if repodir is None:
             e_msg = 'You must provide a directory to hold the git repository'
             raise ValueError(e_msg)
         self.repodir = utils.sh_escape(repodir)
-        if giturl == None:
+        if giturl is None:
             raise ValueError('You must provide a git URL to the repository')
         self.giturl = giturl
-        if weburl == None:
+        if weburl is None:
             raise ValueError('You must provide a http URL to the repository')
         self.weburl = weburl
 
