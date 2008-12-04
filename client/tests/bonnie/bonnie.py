@@ -43,11 +43,11 @@ class bonnie(test.test):
         utils.system('make')
 
 
-    def run_once(self, testdir=None, extra_args='', user='root'):
-        if not testdir:
-            testdir = self.tmpdir
+    def run_once(self, dir=None, extra_args='', user='root'):
+        if not dir:
+            dir = self.tmpdir
 
-        args = '-d ' + testdir + ' -u ' + user + ' ' + extra_args
+        args = '-d ' + dir + ' -u ' + user + ' ' + extra_args
         cmd = self.srcdir + '/bonnie++ ' + args
 
         self.results.append(utils.system_output(cmd, retain_output=True))
