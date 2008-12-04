@@ -1198,5 +1198,44 @@ class host_create_unittest(cli_mock.cli_unittest):
                      out_words_ok=['host0', 'host1'])
 
 
+    def test_execute_create_muliple_hosts_unlocked(self):
+        self.run_cmd(argv=['atest', 'host', 'create',
+                           '-b', 'label0', '--acls', 'acl0', 'host0', 'host1',
+                           '--ignore_site_file'],
+                     rpcs=[('get_labels', {'name': 'label0'},
+                            True,
+                            [{u'id': 4,
+                              u'platform': 0,
+                              u'name': u'label0',
+                              u'invalid': 0,
+                              u'kernel_config': u''}]),
+                           ('get_acl_groups', {'name': 'acl0'},
+                            True, []),
+                           ('add_acl_group', {'name': 'acl0'},
+                            True, 5),
+                           ('add_host', {'hostname': 'host1',
+                                         'status': 'Ready',
+                                         'locked': True},
+                            True, 42),
+                           ('host_add_labels', {'id': 'host1',
+                                                'labels': ['label0']},
+                            True, None),
+                           ('add_host', {'hostname': 'host0',
+                                         'status': 'Ready',
+                                         'locked': True},
+                            True, 42),
+                           ('host_add_labels', {'id': 'host0',
+                                                'labels': ['label0']},
+                            True, None),
+                           ('acl_group_add_hosts',
+                            {'id': 'acl0', 'hosts': ['host1', 'host0']},
+                            True, None),
+                           ('modify_host', {'id': 'host1', 'locked': False},
+                            True, None),
+                           ('modify_host', {'id': 'host0', 'locked': False},
+                            True, None)],
+                     out_words_ok=['host0', 'host1'])
+
+
 if __name__ == '__main__':
     unittest.main()
