@@ -374,7 +374,7 @@ class host_create(host):
         super(host_create, self).__init__()
         self.parser.add_option('-l', '--lock',
                                help='Create the hosts as locked',
-                               action='store_true')
+                               action='store_true', default=False)
         self.parser.add_option('-u', '--unlock',
                                help='Create the hosts as '
                                'unlocked (default)',
@@ -401,11 +401,15 @@ class host_create(host):
         (options, leftover) = super(host_create, self).parse(flists)
 
         self._parse_lock_options(options)
+        self.locked = options.lock
         self.platform = getattr(options, 'platform', None)
         return (options, leftover)
 
 
     def _execute_add_one_host(self, host):
+        # Always add the hosts as locked to avoid the host
+        # being picked up by the scheduler before it's ACL'ed 
+        self.data['locked'] = True
         self.execute_rpc('add_host', hostname=host,
                          status="Ready", **self.data)
 
@@ -440,6 +444,10 @@ class host_create(host):
         if len(success):
             for acl in self.acls:
                 self.execute_rpc('acl_group_add_hosts', id=acl, hosts=success)
+
+            if not self.locked:
+                for host in success:
+                    self.execute_rpc('modify_host', id=host, locked=False)
         return success
 
 
