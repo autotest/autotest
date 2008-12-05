@@ -1935,6 +1935,12 @@ class HostQueueEntry(DBObject):
         self.update_field('execution_subdir', subdir)
 
 
+    def _get_hostname(self):
+        if self.host:
+            return self.host.hostname
+        return 'no host'
+
+
     def set_status(self, status):
         abort_statuses = ['Abort', 'Aborting', 'Aborted']
         if status not in abort_statuses:
@@ -1944,11 +1950,8 @@ class HostQueueEntry(DBObject):
             condition = ''
         self.update_field('status', status, condition=condition)
 
-        if self.host:
-            hostname = self.host.hostname
-        else:
-            hostname = 'None'
-        print "%s/%d (%d) -> %s" % (hostname, self.job.id, self.id, self.status)
+        print "%s/%d (%d) -> %s" % (self._get_hostname(), self.job.id, self.id,
+                                    self.status)
 
         if status in ['Queued', 'Parsing']:
             self.update_field('complete', False)
@@ -1972,9 +1975,7 @@ class HostQueueEntry(DBObject):
 
 
     def _email_on_status(self, status):
-        hostname = 'no host'
-        if self.host:
-            hostname = self.host.hostname
+        hostname = self._get_hostname()
 
         subject = 'Autotest: Job ID: %s "%s" Host: %s %s' % (
                 self.job.id, self.job.name, hostname, status)
@@ -1989,11 +1990,10 @@ class HostQueueEntry(DBObject):
             return
 
         summary_text = []
-        hosts_queue = models.Job.objects.get(
-            id=self.job.id).hostqueueentry_set.all()
+        hosts_queue = HostQueueEntry.fetch('job_id = %s' % self.job.id)
         for queue_entry in hosts_queue:
             summary_text.append("Host: %s Status: %s" %
-                                (queue_entry.host.hostname,
+                                (queue_entry._get_hostname(),
                                  queue_entry.status))
 
         summary_text = "\n".join(summary_text)
