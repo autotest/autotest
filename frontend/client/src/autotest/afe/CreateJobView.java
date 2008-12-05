@@ -221,6 +221,7 @@ public class CreateJobView extends TabView
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
         synchCountInput.setText(Utils.jsonToString(jobObject.get("synch_count")));
+        setSelectedDependencies(jobObject.get("dependencies").isArray());
         controlFile.setText(
                 jobObject.get("control_file").isString().stringValue());
         controlReadyForSubmit = true;
@@ -332,7 +333,7 @@ public class CreateJobView extends TabView
                 String controlFileText = controlInfo.get("control_file").isString().stringValue();
                 boolean isServer = controlInfo.get("is_server").isBoolean().booleanValue();
                 String synchCount = Utils.jsonToString(controlInfo.get("synch_count"));
-                dependencies = controlInfo.get("dependencies").isArray();
+                setSelectedDependencies(controlInfo.get("dependencies").isArray());
                 controlFile.setText(controlFileText);
                 controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE : 
                                                             TestSelector.CLIENT_TYPE);
@@ -350,7 +351,7 @@ public class CreateJobView extends TabView
             }
         });
     }
-    
+
     protected void generateControlFile(boolean readyForSubmit) {
         generateControlFile(readyForSubmit, null, null);
     }
@@ -585,7 +586,7 @@ public class CreateJobView extends TabView
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 args.put("one_time_hosts",
                     Utils.stringsToJSON(hosts.oneTimeHosts));
-                args.put("dependencies", dependencies);
+                args.put("dependencies", getSelectedDependencies());
                 
                 rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
                     @Override
@@ -617,6 +618,14 @@ public class CreateJobView extends TabView
             });
         else
             doSubmit.doCallback(this);
+    }
+
+    private JSONArray getSelectedDependencies() {
+        return dependencies;
+    }
+
+    private void setSelectedDependencies(JSONArray dependencies) {
+        this.dependencies = dependencies;
     }
 
     private int parsePositiveIntegerInput(String input, String fieldName) {
