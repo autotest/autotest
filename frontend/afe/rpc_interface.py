@@ -461,6 +461,8 @@ def get_info_for_clone(id, preserve_metahosts):
         meta_host_counts[meta_host] += 1
 
     info['job'] = job.get_object_dict()
+    info['job']['dependencies'] = [label.name for label
+                                   in job.dependency_labels.all()]
     info['meta_host_counts'] = meta_host_counts
     info['hosts'] = host_dicts
 

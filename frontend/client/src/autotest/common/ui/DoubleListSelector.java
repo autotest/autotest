@@ -6,6 +6,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FocusWidget;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
@@ -27,6 +28,9 @@ public class DoubleListSelector extends Composite implements ClickListener {
     private Button removeButton = new Button("< Remove"), 
                    removeAllButton = new Button("< Remove all");
     private Button moveUpButton = new Button("Move up"), moveDownButton = new Button("Move down");
+    
+    private final FocusWidget[] allWidgets = new FocusWidget[] {availableBox, selectedBox, 
+            addButton, addAllButton, removeButton, removeAllButton, moveUpButton, moveDownButton};
     
     public static class Item implements Comparable<Item> {
         public String name;
@@ -285,5 +289,16 @@ public class DoubleListSelector extends Composite implements ClickListener {
 
     public void setListener(ChangeListener listener) {
         this.listener = listener;
+    }
+    
+    public void setEnabled(boolean enabled) {
+        for (FocusWidget widget : allWidgets) {
+            widget.setEnabled(enabled);
+        }
+    }
+    
+    public void setMoveUpDownVisisble(boolean visible) {
+        moveUpButton.setVisible(visible);
+        moveDownButton.setVisible(visible);
     }
 }
