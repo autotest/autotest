@@ -92,15 +92,19 @@ class base_job(object):
     DEFAULT_LOG_FILENAME = "status"
 
     def __init__(self, control, jobtag, cont, harness_type=None,
-                    use_external_logging = False, drop_caches=True):
+                 use_external_logging=False, drop_caches=True):
         """
-            Client side job object
+        Prepare a client side job object.
 
-            Parameters
-                control:        The control file (pathname of)
-                jobtag:         The job tag string (eg "default")
-                cont:           If this is the continuation of this job
-                harness_type:   An alternative server harness
+        Args:
+          control: The control file (pathname of).
+          jobtag: The job tag string (eg "default").
+          cont: If this is the continuation of this job.
+          harness_type: An alternative server harness.  [None]
+          use_external_logging: If true, the enable_external_logging
+                  method will be called during construction.  [False]
+          drop_caches: If true, autotest_utils.drop_caches() is
+                  called before and between all tests.  [True]
         """
         self.drop_caches = drop_caches
         if self.drop_caches:
@@ -537,16 +541,18 @@ class base_job(object):
             raise
 
 
-    def run_group(self, function, **dargs):
-        """\
-        function:
-                subroutine to run
-        **dargs:
-                arguments for the function
+    def run_group(self, function, tag=None, **dargs):
         """
+        Run a function nested within a group level.
 
-        # Allow the tag for the group to be specified
-        tag = dargs.pop('tag', None)
+        function:
+                Callable to run.
+        tag:
+                An optional tag name for the group.  If None (default)
+                function.__name__ will be used.
+        **dargs:
+                Named arguments for the function.
+        """
         if tag:
             name = tag
         else:
@@ -1200,14 +1206,19 @@ class disk_usage_monitor:
         return decorator
 
 
-def runjob(control, cont = False, tag = "default", harness_type = '',
-           use_external_logging = False):
-    """The main interface to this module
+def runjob(control, cont=False, tag="default", harness_type='',
+           use_external_logging=False):
+    """
+    Run a job using the given control file.
 
-    control
-            The control file to use for this job.
-    cont
-            Whether this is the continuation of a previously started job
+    This is the main interface to this module.
+
+    Args:
+        control: The control file to use for this job.
+        cont: Whether this is the continuation of a previously started job.
+        tag: The job tag string.  ['default']
+        harness_type: An alternative server harness.  [None]
+        use_external_logging: Should external logging be enabled?  [False]
     """
     control = os.path.abspath(control)
     state = control + '.state'
@@ -1224,7 +1235,8 @@ def runjob(control, cont = False, tag = "default", harness_type = '',
         if cont and not os.path.exists(state):
             raise error.JobComplete("all done")
 
-        myjob = job(control, tag, cont, harness_type, use_external_logging)
+        myjob = job(control, tag, cont, harness_type=harness_type,
+                    use_external_logging=use_external_logging)
 
         # Load in the users control file, may do any one of:
         #  1) execute in toto
