@@ -561,14 +561,12 @@ class base_job(object):
         try:
             return self._rungroup(subdir=None, testname=name,
                                   function=function, **dargs)
-        except error.TestError:
-            pass
-        # if there was a non-TestError exception, re-raise it as a TestError
+        except (SystemExit, error.TestBaseException):
+            raise
+        # If there was a different exception, turn it into a TestError.
+        # It will be caught by step_engine or _run_step_fn.
         except Exception, e:
-            exc_info = sys.exc_info()
-            err = ''.join(traceback.format_exception(*exc_info))
-            del exc_info
-            raise error.TestError('%s failed:\n%s' % (name, err))
+            raise error.UnhandledTestError(e)
 
 
     _RUN_NUMBER_STATE = '__run_number'
@@ -924,8 +922,8 @@ class base_job(object):
             return local_vars['__ret']
         except SystemExit:
             raise  # Send error.JobContinue and JobComplete on up to runjob.
-        except error.JobNAError, detail:
-            self.record('TEST_NA', None, fn, str(detail))
+        except error.TestNAError, detail:
+            self.record(detail.exit_status, None, fn, str(detail))
         except Exception, detail:
             raise error.UnhandledJobError(detail)
 
@@ -994,7 +992,16 @@ class base_job(object):
         # before reading in the file.
         global_control_vars = {'job': self}
         exec(JOB_PREAMBLE, global_control_vars, global_control_vars)
-        execfile(self.control, global_control_vars, global_control_vars)
+        try:
+            execfile(self.control, global_control_vars, global_control_vars)
+        except error.TestNAError, detail:
+            self.record(detail.exit_status, None, self.control, str(detail))
+        except SystemExit:
+            raise  # Send error.JobContinue and JobComplete on up to runjob.
+        except Exception, detail:
+            # Syntax errors or other general Python exceptions coming out of
+            # the top level of the control file itself go through here.
+            raise error.UnhandledJobError(detail)
 
         # If we loaded in a mid-job state file, then we presumably
         # know what steps we have yet to run.
@@ -1265,10 +1272,10 @@ def runjob(control, cont=False, tag="default", harness_type='',
             sys.exit(1)
 
     except Exception, e:
-        # NOTE: job._run_step_fn will turn things into a JobError for us.
-        # If we get here, its likely a bug in autotest itself.
+        # NOTE: job._run_step_fn and job.step_engine will turn things into
+        # a JobError for us.  If we get here, its likely an autotest bug.
         msg = str(e) + '\n' + traceback.format_exc()
-        print "JOB ERROR: " + msg
+        print "JOB ERROR (autotest bug?): " + msg
         if myjob:
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, msg)
