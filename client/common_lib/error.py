@@ -41,12 +41,6 @@ class JobError(AutotestError):
     pass
 
 
-class JobNAError(JobError):
-    """Indicates an error to skip this part of the whole job or fail it if
-    this was not a multi-step job."""
-    pass
-
-
 class UnhandledJobError(JobError):
     """Indicates an unhandled error in a job."""
     def __init__(self, unhandled_exception):
