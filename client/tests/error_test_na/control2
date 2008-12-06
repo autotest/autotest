@@ -1,0 +1,12 @@
+AUTHOR = "Gregory Smith <gps@google.com>"
+EXPERIMENTAL = 'True'  # Not really, but this is only for testing autotest...
+                       # not testing _with_ autotest.
+NAME = "error test for top level TestNAError == TEST_NA"
+TEST_TYPE = "client"
+TEST_CLASS = "General"
+TEST_CATEGORY = "Functional"
+TIME = "SHORT"
+DOC = """Raise a TestNAError directly; for testing Autotest itself."""
+
+
+raise error.TestNAError('top level of this control file says N/A')
