@@ -1,4 +1,4 @@
-import os, sys, time, types, socket, traceback
+import os, sys, time, types, socket, traceback, shutil
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host
@@ -36,7 +36,7 @@ class AbstractSSHHost(site_host.SiteHost):
         This is for internal use by other methods that intend to move
         files between machines. It expects a list of source files and
         a destination (a filename if the source is a single file, a
-        destination otherwise). The names must already be
+        destination otherwise). The remote paths must already be
         pre-processed into the appropriate rsync/scp friendly
         format (%s@%s:%s).
         """
@@ -56,13 +56,20 @@ class AbstractSSHHost(site_host.SiteHost):
             print "attempting to copy with scp instead"
             try:
                 if delete_dest:
-                    dest_path = dest.split(":", 1)[1]
-                    is_dir = self.run("ls -d %s/" % dest_path,
-                                      ignore_status=True).exit_status == 0
-                    if is_dir:
-                        cmd = "rm -rf %s && mkdir %s"
-                        cmd %= (dest_path, dest_path)
-                        self.run(cmd)
+                    if ":" in dest:
+                        # dest is remote
+                        dest_path = dest.split(":", 1)[1]
+                        is_dir = self.run("ls -d %s/" % dest_path,
+                                          ignore_status=True).exit_status == 0
+                        if is_dir:
+                            cmd = "rm -rf %s && mkdir %s"
+                            cmd %= (dest_path, dest_path)
+                            self.run(cmd)
+                    else:
+                        # dest is local
+                        if os.path.isdir(dest):
+                            shutil.rmtree(dest)
+                            os.mkdir(dest)
                 command = "scp -rpq -P %d %s '%s'"
                 command %= (self.port, ' '.join(sources), dest)
                 utils.run(command)
