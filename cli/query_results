@@ -23,7 +23,7 @@ When using the -w flag:
 test_idx test_name reason test_started_time test_finished_time job_tag job_name job_owner job_queued_time job_started_time job_finished_time hostname platform kernel status""")
 
 parser.add_option('-c', '--condition', action='store', dest='old_condition',
-            help=("The WHERE condition for the query witten in the 'old style' "
+            help=("The WHERE condition for the query written in the 'old style' "
                   "condition syntax for the original tko"))
 parser.add_option('-w', '--where', action='store', dest='new_condition',
             help=("The WHERE condition for the query witten in the 'new style' "
