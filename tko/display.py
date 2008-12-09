@@ -81,7 +81,7 @@ def calculate_html(link, data, tooltip=None, row_label=None, column_label=None):
         return html
     # no hover if embedded into AFE but links shall redirect to new window
     if data: ## cell is non empty
-        html =  '<a href="%s" target=NEW>%s</a>' % (link, data)
+        html =  '<a href="%s" target="_blank">%s</a>' % (link, data)
         return html
     else: ## cell is empty
         return '&nbsp;'
