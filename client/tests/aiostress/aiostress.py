@@ -1,15 +1,12 @@
 # This requires aio headers to build.
 # Should work automagically out of deps now.
-
-# NOTE - this should also have the ability to mount a filesystem,
-# run the tests, unmount it, then fsck the filesystem
 import os
 from autotest_lib.client.bin import test, autotest_utils
 from autotest_lib.client.common_lib import utils
 
 
 class aiostress(test.test):
-    version = 2
+    version = 3
 
     def initialize(self):
         self.job.require_gcc()
@@ -39,26 +36,28 @@ class aiostress(test.test):
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         cmd = self.srcdir + '/aio-stress ' + args + ' poo'
 
-        utils.system(var_ld_path + ' ' + cmd)
-        report = open(self.debugdir + '/stderr')
-        keyval = open(self.resultsdir + '/keyval', 'w')
-        _format_results(report, keyval)
+        stderr = os.path.join(self.debugdir, 'stderr')
+        utils.system('%s %s 2> %s' % (var_ld_path, cmd, stderr))
+        report = open(stderr)
+        self.format_results(report)
 
 
-def _format_results(report, keyval):
-    for line in report:
-        if 'threads' in line:
-            if 'files' in line:
-                if 'contexts' in line:
-                    break
+    def format_results(self, report):
+        for line in report:
+            if 'threads' in line:
+                if 'files' in line:
+                    if 'contexts' in line:
+                        break
 
-    for line in report:
-        line = line.split(')')[0]
-        key, value = line.split('(')
-        key = key.strip().replace(' ', '_')
-        value = value.split()[0]
-        print >> keyval, '%s=%s' % (key, value)
+        keyval = {}
+        for line in report:
+            line = line.split(')')[0]
+            key, value = line.split('(')
+            key = key.strip().replace(' ', '_')
+            value = value.split()[0]
+            keyval[key] = value
 
+        self.write_perf_keyval(keyval)
 
 """
 file size 1024MB, record size 64KB, depth 64, ios per iteration 8
