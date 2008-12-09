@@ -298,9 +298,14 @@ class cpuset(object):
             os.mkdir(self.cpudir)
             utils.write_one_line(os.path.join(self.cpudir, 'mem_exclusive'),
                                  '1')
-            utils.write_one_line(os.path.join(self.cpudir, 'mems'), mems_spec)
-            # Above sends err msg to client.log.0, but no exception,
-            #   if mems_spec contained any now-taken nodes
+            try:
+                utils.write_one_line(os.path.join(self.cpudir, 'mems'), 
+                                     mems_spec)
+                # if mems_spec contains any now-taken nodes, 
+                #   2.6.18 kernels writes error to client.log.0 but no exception
+                #   2.6.26 kernels raise exception to us              
+            except IOError:
+                pass
             # Confirm that siblings didn't grab our chosen mems:
             nodes_gotten = len(get_mem_nodes(self.cpudir))
             if nodes_gotten >= nodes_needed:
@@ -345,16 +350,18 @@ def set_stale_page_age(working_set_seconds):
     For all numa mem nodes of the entire machine, set the rate at which  
         process kstaled checks for pages unreferenced since its last check.  
         0 seconds disables kstaled.
+    Returns working_set_seconds if this kernel supports stale_page_age, else 0.
     This should be done only at topmost job level, not within local container.
     Kernel's boot-time default is now 0 but fleet borglet sets it to 60s.
     Logical pages that are untouched through two check periods are put onto
         inactive list and are candidates for having physical page given away.
     kswapd has its own on-demand method for finding stale pages too.
     """
-    path = '/sys/devices/system/node'
-    for node_n in os.listdir(path):
-        utils.write_one_line(os.path.join(path, node_n, 'stale_page_age'),
-                             str(working_set_seconds))
+    supported = 0
+    for file in glob.glob('/sys/devices/system/node*/stale_page_age'):
+        utils.write_one_line(file, str(working_set_seconds))
+        supported = working_set_seconds
+    return supported
 
 
 def set_sched_idle():
