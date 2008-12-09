@@ -56,6 +56,7 @@ class Host(object):
     bootloader = None
     job = None
     DEFAULT_REBOOT_TIMEOUT = 1800
+    WAIT_DOWN_REBOOT_TIMEOUT = 600
 
     def __init__(self, *args, **dargs):
         self._initialize(*args, **dargs)
@@ -144,7 +145,7 @@ class Host(object):
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
-        if not self.wait_down(300):    # make sure the machine is down, first
+        if not self.wait_down(self.WAIT_DOWN_REBOOT_TIMEOUT):
             self.record("ABORT", None, "reboot.verify", "shut down failed")
             raise error.AutoservRebootError("Host did not shut down")
         self.wait_up(timeout)
