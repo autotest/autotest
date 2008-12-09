@@ -274,7 +274,13 @@ class BasePackageManager(object):
         # Get the http server name from the URL
         server_name = urlparse.urlparse(source_url)[1]
         http_cmd = 'wget -nv %s -O %s' % (server_name, dest_file_path)
-        if server_name in BPM._repo_exception:
+
+        # Following repo_exception optimization is disabled for now.
+        # Checksum files are optional.  The attempted download of a 
+        # missing checksum file erroneously causes the repos to be marked 
+        # dead, causing download of its custom kernels to fail.  
+        # It also stays dead until Autotest is restarted.
+        if server_name in BPM._repo_exception and False:  #  <--- TEMP 
             if BPM._repo_exception[server_name] == BPM.REPO_OK:
                 # This repository is fine. Simply return
                 return
