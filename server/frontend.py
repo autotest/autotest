@@ -151,7 +151,7 @@ class afe(object):
 
 
     def run_test_suites(self, pairings, kernel, kernel_label, wait=True,
-                        poll_interval=5):
+                        poll_interval=5, email_from=None, email_to=None):
         """
         Run a list of test suites on a particular kernel.
     
@@ -163,37 +163,93 @@ class afe(object):
                                         (<kernel-version> : <config> : <date>)
             wait: boolean - wait for the results to come back?
             poll_interval: interval between polling for job results (in minutes)
+            email_from: send notification email upon completion from here
+            email_from: send notification email upon completion to here
         """
         jobs = []
         for pairing in pairings:
-            jobs.append(self.invoke_test(pairing, kernel, kernel_label))
+            job = self.invoke_test(pairing, kernel, kernel_label)
+            job.notified = False
+            jobs.append(job)
+            if email_from and email_to:
+                subject = 'Testing started: %s : %s' % (job.name, job.id)
+                utils.send_email(email_from, email_to, subject, subject)
         if not wait:
             return
         while True:
             time.sleep(60 * poll_interval)
-            result = self.poll_all_jobs(jobs)
+            result = self.poll_all_jobs(jobs, email_from, email_to)
             if result is not None:
                 return result
 
 
-    def poll_all_jobs(self, jobs):
+    def result_notify(self, job, email_from, email_to):
         """
-        Poll all jobs in a list. See whether they are:
+        Notify about the result of a job. Will always print, if email data
+        is provided, will send email for it as well.
+
+            job: job object to notify about
+            email_from: send notification email upon completion from here
+            email_from: send notification email upon completion to here
+        """
+        if job.result == True:
+            subject = 'Testing PASSED: '
+        else:
+            subject = 'Testing FAILED: '
+        subject += '%s : %s\n' % (job.name, job.id)
+        text = []
+        for platform in job.results_platform_map:
+            for status in job.results_platform_map[platform]:
+                if status == 'Total':
+                    continue
+                hosts = ','.join(job.results_platform_map[platform][status])
+                text.append('%20s %10s %s' % (platform, status, hosts))
+        text.append("\nhttp://autotest/tko/compose_query.cgi?columns=test&rows=machine_group&condition=tag~'%s-%%25'&title=Report" % job.id)
+        body = "\n".join(text)
+        print "---------------------------------------------------"
+        print "Subject: ", subject
+        print body
+        print "---------------------------------------------------"
+        if email_from and email_to:
+            print "Sending email ..."
+            utils.send_email(email_from, email_to, subject, body)
+        print
+        
+
+    def poll_all_jobs(self, jobs, email_from, email_to):
+        """
+        Poll all jobs in a list.
+            jobs: list of job objects to poll
+            email_from: send notification email upon completion from here
+            email_from: send notification email upon completion to here
+
+        Returns:
             a) All complete successfully (return True)
             b) One or more has failed (return False)
             c) Cannot tell yet (return None)
         """
+        results = []
         for job in jobs:
-            result = self.poll_job_results(job.id, debug=False)
-            if result == True:
-                print 'PASSED %s : %s' % (job.id, job.name)
-            elif result == False:
-                print 'FAILED %s : %s' % (job.id, job.name)
-                return False
-            elif result is None:
-                print 'PENDING %s : %s' % (job.id, job.name)
-                return None
-        return True
+            job.result = self.poll_job_results(job, debug=False)
+            results.append(job.result)
+            if job.result is not None and not job.notified:
+                self.result_notify(job, email_from, email_to)
+                job.notified = True
+
+            if job.result is None:
+                print 'PENDING',
+            elif job.result == True:
+                print 'PASSED',
+            elif job.result == False:
+                print 'FAILED',
+            print ' %s : %s' % (job.id, job.name)
+
+        if None in results:
+            return None
+        elif False in results:
+            return False
+        else:
+            return True
 
 
     def invoke_test(self, pairing, kernel, kernel_label, priority='Medium'):
@@ -205,7 +261,7 @@ class afe(object):
         """
         job_name = '%s : %s' % (pairing.machine_label, kernel_label)
         hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
-        host_list = [host.hostname for host in hosts]
+        host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
         new_job = self.create_job_by_test(name=job_name,
                                      dependencies=[pairing.machine_label],
                                      tests=[pairing.control_file],
@@ -216,7 +272,7 @@ class afe(object):
         return new_job
 
 
-    def poll_job_results(self, job_id, debug=False):
+    def poll_job_results(self, job, debug=False):
         """
         Analyse all job results by platform, return:
     
@@ -225,7 +281,7 @@ class afe(object):
             True:  if all platforms have at least all-but-one machines Good.
         """
         try:
-            job_statuses = self.get_host_queue_entries(job=job_id)
+            job_statuses = self.get_host_queue_entries(job=job.id)
         except Exception:
             print "Ignoring exception on poll job; RPC interface is flaky"
             traceback.print_exc()
@@ -242,6 +298,7 @@ class afe(object):
                 platform_map[platform]['Total'].append(hostname)
             new_host_list = platform_map[platform].get(status, []) + [hostname]
             platform_map[platform][status] = new_host_list
+        job.results_platform_map = platform_map
     
         good_platforms = []
         bad_platforms = []

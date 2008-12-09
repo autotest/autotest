@@ -4,7 +4,7 @@
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
-import warnings
+import warnings, smtplib
 from autotest_lib.client.common_lib import error, barrier, debug
 
 def deprecated(func):
@@ -38,6 +38,7 @@ class BgJob(object):
     def output_prepare(self, stdout_file=None, stderr_file=None):
         self.stdout_file = stdout_file
         self.stderr_file = stderr_file
+
 
     def process_output(self, stdout=True, final_read=False):
         """output_prepare must be called prior to calling this"""
@@ -85,7 +86,6 @@ def long_to_ip(number):
 
 
 def create_subnet_mask(bits):
-    # ~ does weird things in python...but this does work
     return (1 << 32) - (1 << 32-bits)
 
 
@@ -108,6 +108,31 @@ def get_ip_local_port_range():
 def set_ip_local_port_range(lower, upper):
     write_one_line('/proc/sys/net/ipv4/ip_local_port_range',
                    '%d %d\n' % (lower, upper))
+
+
+
+def send_email(mail_from, mail_to, subject, body):
+    """
+    Sends an email via smtp
+
+    mail_from: string with email address of sender
+    mail_to: string or list with email address(es) of recipients
+    subject: string with subject of email
+    body: (multi-line) string with body of email
+    """
+    if isinstance(mail_to, str):
+        mail_to = [mail_to]
+    msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (mail_from, ','.join(mail_to),
+                                                   subject, body)
+    try:
+        mailer = smtplib.SMTP('localhost')
+        try:
+            mailer.sendmail(mail_from, mail_to, msg)
+        finally:
+            mailer.quit()
+    except Exception, e:
+        # Emails are non-critical, not errors, but don't raise them
+        print "Sending email failed. Reason: %s" % repr(e)
 
 
 def read_one_line(filename):
@@ -307,6 +332,7 @@ def run(command, timeout=None, ignore_status=False,
 
     return bg_job.result
 
+
 def run_parallel(commands, timeout=None, ignore_status=False,
                  stdout_tee=None, stderr_tee=None):
     """Beahves the same as run with the following exceptions:
@@ -472,7 +498,6 @@ def nuke_pid(pid):
         # the process died before we join it.
         except OSError:
             pass
-
 
 
 def system(command, timeout=None, ignore_status=False):
