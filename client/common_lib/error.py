@@ -45,7 +45,7 @@ class UnhandledJobError(JobError):
     """Indicates an unhandled error in a job."""
     def __init__(self, unhandled_exception):
         if isinstance(unhandled_exception, JobError):
-            TestError.__init__(self, *unhandled_exception.args)
+            JobError.__init__(self, *unhandled_exception.args)
         else:
             msg = "Unhandled %s: %s"
             msg %= (unhandled_exception.__class__.__name__,
