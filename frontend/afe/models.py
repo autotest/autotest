@@ -50,7 +50,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     def enqueue_job(self, job):
         'Enqueue a job on any host of this label.'
         queue_entry = HostQueueEntry(meta_host=self, job=job,
-                                     status=Job.Status.QUEUED,
+                                     status=HostQueueEntry.Status.QUEUED,
                                      priority=job.priority)
         queue_entry.save()
 
@@ -232,7 +232,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     def enqueue_job(self, job):
         ' Enqueue a job on this host.'
         queue_entry = HostQueueEntry(host=self, job=job,
-                                     status=Job.Status.QUEUED,
+                                     status=HostQueueEntry.Status.QUEUED,
                                      priority=job.priority)
         # allow recovery of dead hosts from the frontend
         if not self.active_queue_entry() and self.is_dead():
@@ -589,9 +589,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
-    Status = enum.Enum('Created', 'Queued', 'Pending', 'Running',
-                       'Completed', 'Abort', 'Aborting', 'Aborted',
-                       'Failed', 'Starting', string_values=True)
 
     owner = dbmodels.CharField(maxlength=255)
     name = dbmodels.CharField(maxlength=255)
@@ -773,7 +770,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         # this isn't completely immune to race conditions since it's not atomic,
         # but it should be safe given the scheduler's behavior.
         if not self.complete and self.status not in self.ABORT_STATUSES:
-            self.status = Job.Status.ABORT
+            self.status = HostQueueEntry.Status.ABORT
             self.log_abort(user)
             self.save()
 
