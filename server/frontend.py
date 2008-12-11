@@ -8,8 +8,10 @@ can recursively add and manage other jobs.
 
 We turn the JSON dictionaries into real objects that are more idiomatic
 
-For docs, see http://autotest//afe/server/noauth/rpc/
-http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
+For docs, see:
+    http://autotest/afe/server/noauth/rpc/
+    http://autotest/new_tko/server/noauth/rpc/
+    http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
 import os, time, traceback
@@ -31,15 +33,14 @@ def dump_object(header, obj):
     return result
 
 
-class afe(object):
+class rpc_client(object):
     """
     AFE class for communicating with the autotest frontend
 
     All the constructors go in the afe class. 
     Manipulating methods go in the classes themselves
     """
-    def __init__(self, user=os.environ.get('LOGNAME'),
-                 web_server='http://autotest', print_log=True, debug=False):
+    def __init__(self, path, user, web_server, print_log, debug):
         """
         Create a cached instance of a connection to the AFE
 
@@ -48,11 +49,15 @@ class afe(object):
             print_log: pring a logging message to stdout on every operation
             debug: print out all RPC traffic
         """
+        if not user:
+            user = os.environ.get('LOGNAME')
+        if not web_server:
+            web_server = 'http://autotest'
         self.user = user
         self.print_log = print_log
         self.debug = debug
         headers = {'AUTHORIZATION' : self.user}
-        rpc_server = web_server + '/afe/server/noauth/rpc/'
+        rpc_server = web_server + path
         self.proxy = rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
 
@@ -71,6 +76,25 @@ class afe(object):
             print message
 
 
+class tko(rpc_client):
+    def __init__(self, user=None, web_server=None, print_log=True, debug=False):
+        super(tko, self).__init__('/new_tko/server/noauth/rpc/', user,
+                                  web_server, print_log, debug)
+
+
+    def get_status_counts(self, job, **data):
+        entries = self.run('get_status_counts',
+                           group_by=['hostname', 'test_name'], 
+                           job_tag__startswith='%s-' % job, **data)
+        return [test_status(self, e) for e in entries['groups']]
+
+
+class afe(rpc_client):
+    def __init__(self, user=None, web_server=None, print_log=True, debug=False):
+        super(afe, self).__init__('/afe/server/noauth/rpc/', user, web_server,
+                                  print_log, debug)
+
+    
     def host_statuses(self, live=None):
         dead_statuses = ['Dead', 'Repair Failed']
         statuses = self.run('get_static_data')['host_statuses']
@@ -474,6 +498,18 @@ class host(rpc_object):
     def remove_labels(self, labels):
         self.afe.log('Removing labels %s from host %s' % (labels,self.hostname))
         return self.afe.run('host_remove_labels', id=self.id, labels=labels)
+
+
+class test_status(rpc_object):
+    """
+    TKO test status object
+
+    Fields:
+        test_idx, hostname, testname, id
+        complete_count, incomplete_count, group_count, pass_count
+    """
+    def __repr__(self):
+        return 'TEST STATUS: %s' % self.id
 
 
 class MachineTestPairing(object):
