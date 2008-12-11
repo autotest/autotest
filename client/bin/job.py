@@ -694,10 +694,10 @@ class base_job(object):
         self.end_reboot(subdir, expected_id, patches)
 
 
-    def filesystem(self, device, mountpoint = None, loop_size = 0):
+    def filesystem(self, device, mountpoint=None, loop_size=0):
         if not mountpoint:
             mountpoint = self.tmpdir
-        return partition.partition(self, device, mountpoint, loop_size)
+        return partition.partition(self, device, loop_size)
 
 
     def enable_external_logging(self):
