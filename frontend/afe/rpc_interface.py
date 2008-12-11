@@ -545,7 +545,7 @@ def get_static_data():
     result['current_user'] = rpc_utils.prepare_for_serialization(
         thread_local.get_user().get_object_dict())
     result['host_statuses'] = sorted(models.Host.Status.names)
-    result['job_statuses'] = sorted(models.Job.Status.names)
+    result['job_statuses'] = sorted(models.HostQueueEntry.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
     result['reboot_before_options'] = models.RebootBefore.names
     result['reboot_after_options'] = models.RebootAfter.names
