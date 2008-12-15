@@ -120,7 +120,6 @@ def run_autoserv(pid_file_manager, results, parser):
             try:
                 job.run(cleanup, install_before, install_after)
             finally:
-                job.cleanup_parser()
                 while job.hosts:
                     host = job.hosts.pop()
                     host.close()
@@ -129,6 +128,8 @@ def run_autoserv(pid_file_manager, results, parser):
         traceback.print_exc()
 
     pid_file_manager.num_tests_failed = job.num_tests_failed
+    pid_file_manager.close_file(exit_code)
+    job.cleanup_parser()
 
     sys.exit(exit_code)
 
