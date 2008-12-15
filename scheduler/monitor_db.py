@@ -92,13 +92,20 @@ def main():
         global _testing_mode
         _testing_mode = True
 
-    # read in base url
+    # AUTOTEST_WEB.base_url is still a supported config option as some people
+    # may wish to override the entire url.
     global _base_url
-    val = c.get_config_value(CONFIG_SECTION, "base_url")
-    if val:
-        _base_url = val
+    config_base_url = c.get_config_value(CONFIG_SECTION, 'base_url')
+    if config_base_url:
+        _base_url = config_base_url
     else:
-        _base_url = "http://your_autotest_server/afe/"
+        # For the common case of everything running on a single server you
+        # can just set the hostname in a single place in the config file.
+        server_name = c.get_config_value('SERVER', 'hostname')
+        if not server_name:
+            print 'Error: [SERVER] hostname missing from the config file.'
+            sys.exit(1)
+        _base_url = 'http://%s/afe/' % server_name
 
     init(options.logfile)
     dispatcher = Dispatcher()

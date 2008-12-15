@@ -17,7 +17,11 @@ For docs, see:
 import os, time, traceback
 import common
 from autotest_lib.frontend.afe import rpc_client_lib
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import utils
+
+GLOBAL_CONFIG = global_config.global_config
+DEFAULT_SERVER = 'autotest'
 
 
 def dump_object(header, obj):
@@ -52,7 +56,8 @@ class rpc_client(object):
         if not user:
             user = os.environ.get('LOGNAME')
         if not web_server:
-            web_server = 'http://autotest'
+            web_server = 'http://' + GLOBAL_CONFIG.get_config_value(
+                    'SERVER', 'hostname', default=DEFAULT_SERVER)
         self.user = user
         self.print_log = print_log
         self.debug = debug
@@ -227,18 +232,30 @@ class afe(rpc_client):
                 if status == 'Total':
                     continue
                 hosts = ','.join(job.results_platform_map[platform][status])
-                text.append('%20s %10s %s' % (platform, status, hosts))
-        text.append("\nhttp://autotest/tko/compose_query.cgi?columns=test&rows=machine_group&condition=tag~'%s-%%25'&title=Report" % job.id)
-        body = "\n".join(text)
-        print "---------------------------------------------------"
-        print "Subject: ", subject
+                text.append('%20s %10s %s\n' % (platform, status, hosts))
+
+        tko_base_url = 'http://%s/tko' % GLOBAL_CONFIG.get_config_value(
+                'SERVER', 'hostname', default=DEFAULT_SERVER)
+
+        params = ('columns=test',
+                  'rows=machine_group',
+                  "condition=tag~'%s-%%25'" % job.id,
+                  'title=Report')
+        query_string = '&'.join(params)
+        url = '%s/compose_query.cgi?%s' % (tko_base_url, query_string)
+        text.append('\n')
+        text.append(url)
+
+        body = '\n'.join(text)
+        print '---------------------------------------------------'
+        print 'Subject: ', subject
         print body
-        print "---------------------------------------------------"
+        print '---------------------------------------------------'
         if email_from and email_to:
-            print "Sending email ..."
+            print 'Sending email ...'
             utils.send_email(email_from, email_to, subject, body)
         print
-        
+
 
     def poll_all_jobs(self, jobs, email_from, email_to):
         """
