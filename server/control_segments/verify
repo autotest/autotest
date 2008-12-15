@@ -10,6 +10,7 @@ def verify(machine):
     except Exception, e:
         msg = 'verify failed on %s: %s\n' % (machine, str(e))
         job.record('FAIL', None, 'verify', msg)
+        raise
 
 
 job.parallel_simple(verify, machines)
