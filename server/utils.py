@@ -15,6 +15,7 @@ stutsman@google.com (Ryan Stutsman)
 import atexit, os, re, shutil, textwrap, sys, tempfile, types
 
 from autotest_lib.client.common_lib import utils
+from autotest_lib.server import subcommand
 
 
 # A dictionary of pid and a list of tmpdirs for that pid
@@ -170,9 +171,7 @@ def get_tmp_dir():
     The directory and its content will be deleted automatically
     at the end of the program execution if they are still present.
     """
-    global __tmp_dirs
-
-    dir_name= tempfile.mkdtemp(prefix="autoserv-")
+    dir_name = tempfile.mkdtemp(prefix="autoserv-")
     pid = os.getpid()
     if not pid in __tmp_dirs:
         __tmp_dirs[pid] = []
@@ -180,13 +179,10 @@ def get_tmp_dir():
     return dir_name
 
 
-@atexit.register
 def __clean_tmp_dirs():
     """Erase temporary directories that were created by the get_tmp_dir()
     function and that are still present.
     """
-    global __tmp_dirs
-
     pid = os.getpid()
     if pid not in __tmp_dirs:
         return
@@ -197,6 +193,8 @@ def __clean_tmp_dirs():
             if e.errno == 2:
                 pass
     __tmp_dirs[pid] = []
+atexit.register(__clean_tmp_dirs)
+subcommand.subcommand.register_join_hook(lambda _: __clean_tmp_dirs())
 
 
 def unarchive(host, source_material):
