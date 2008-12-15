@@ -1,3 +1,4 @@
+# This file must use Python 1.5 syntax.
 import sys, string, os, glob, re
 
 
@@ -9,24 +10,32 @@ def extract_version(path):
         return None
 
 
-def find_newest_python():
+def find_desired_python():
+    """Returns the path of the desired python interpreter."""
     pythons = []
-    pythons.extend(glob.glob('/usr/bin/python*'))
-    pythons.extend(glob.glob('/usr/local/bin/python*'))
+    pythons.extend(glob.glob('/usr/bin/python2*'))
+    pythons.extend(glob.glob('/usr/local/bin/python2*'))
 
+    possible_versions = []
     best_python = (0, 0), ''
     for python in pythons:
         version = extract_version(python)
-        if version > best_python[0] and version >= (2, 4):
-            best_python = version, python
+        if version >= (2, 4):
+            possible_versions.append((version, python))
 
-    if best_python[0] == (0, 0):
-        raise ValueError('Python 2.4 or newer is needed')
-    return best_python[1]
+    possible_versions.sort()
+
+    if not possible_versions:
+        raise ValueError('Python 2.x version 2.4 or better is required')
+    # Return the lowest possible version so that we use 2.4 if available
+    # rather than more recent versions.  This helps make sure all code is
+    # compatible with 2.4 when developed on more recent systems with 2.5 or
+    # 2.6 installed.
+    return possible_versions[0][1]
 
 
 def restart():
-    python = find_newest_python()
+    python = find_desired_python()
     sys.argv.insert(0, '-u')
     sys.argv.insert(0, python)
     os.execv(sys.argv[0], sys.argv)
@@ -38,5 +47,5 @@ def check_python_version():
         version = sys.version_info[0:2]
     except AttributeError:
         pass # pre 2.0, no neat way to get the exact number
-    if not version or version < (2, 4):
+    if not version or version != (2, 4):
         restart()
