@@ -10,4 +10,8 @@ DOC = """
 runs sleep for one second on the list of machines.
 """
 
-job.run_test('sleeptest')
+def run(machine):
+    host = hosts.create_host(machine)
+    job.run_test('sleeptest')
+
+job.parallel_simple(run, machines)
