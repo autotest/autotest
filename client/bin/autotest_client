@@ -21,7 +21,11 @@ if os.path.exists("/dev/cpuset/tasks") and getpass.getuser() == "root":
 
 autodir = os.path.dirname(sys.argv[0])
 autotest = os.path.join(autodir, 'autotest')
-cmd = ' '.join([autotest, '-H simple'] + sys.argv[1:])
+
+args = [autotest] + sys.argv[1:]
+if '-H' not in args:
+    args.insert(1, '-H simple')
+cmd = ' '.join(args)
 exit_code = subprocess.call(cmd, shell=True, stderr=subprocess.STDOUT,
                             close_fds=False)
 sys.exit(exit_code) # pass on the exit status from autotest
