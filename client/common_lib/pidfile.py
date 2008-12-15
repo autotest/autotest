@@ -21,3 +21,4 @@ class PidFileManager(object):
         self.pid_file.write("%s\n" % encoded_exit_code)
         self.pid_file.write("%s\n" % self.num_tests_failed)
         self.pid_file.close()
+        self.pid_file = None
