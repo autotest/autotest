@@ -169,6 +169,12 @@ class function_mapping(base_mapping):
         self.error = error
 
 
+class function_any_args_mapping(function_mapping):
+    """A mock function mapping that doesn't verify its arguments."""
+    def match(self, *args, **dargs):
+        return True
+
+
 class mock_function(object):
     def __init__(self, symbol, default_return_val=None,
                  record=None, playback=None):
@@ -194,6 +200,15 @@ class mock_function(object):
 
     def expect_call(self, *args, **dargs):
         mapping = function_mapping(self.symbol, None, *args, **dargs)
+        if self.record:
+            self.record(mapping)
+
+        return mapping
+
+
+    def expect_any_call(self):
+        """Like expect_call but don't give a hoot what arguments are passed."""
+        mapping = function_any_args_mapping(self.symbol, None)
         if self.record:
             self.record(mapping)
 
