@@ -1,6 +1,6 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, tempfile, shutil, time, pickle
+import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob
 from autotest_lib.server import installable_object, utils
 from autotest_lib.client.common_lib import log, error, debug
 from autotest_lib.client.common_lib import global_config, packages
@@ -401,10 +401,11 @@ class _Run(object):
 
 
     def get_client_log(self, section):
-        # open up the files we need for our logging
-        client_log_file = os.path.join(self.results_dir, 'debug',
-                                       'client.log.%d' % section)
-        return open(client_log_file, 'w', 0)
+        """ Find what the "next" client.log.* file should be and open it. """
+        debug_dir = os.path.join(self.results_dir, "debug")
+        client_logs = glob.glob(os.path.join(debug_dir, "client.log.*"))
+        next_log = os.path.join(debug_dir, "client.log.%d" % len(client_logs))
+        return open(next_log, "w", 0)
 
 
     def execute_section(self, section, timeout, stderr_redirector):
