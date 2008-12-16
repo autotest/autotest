@@ -1,4 +1,4 @@
-import os, pickle, datetime
+import os, pickle, datetime, itertools, operator
 from django.db import models as dbmodels
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import rpc_utils, model_logic
@@ -151,15 +151,55 @@ def get_job_ids(**filter_data):
 
 # test detail view
 
+def _itermodel_to_list(test_id, iteration_model):
+    return iteration_model.list_objects(
+        dict(test__test_idx=test_id),
+        fields=('iteration', 'attribute', 'value'))
+
+
+def _attributes_to_dict(attribute_list):
+    return dict((attribute_dict['attribute'], attribute_dict['value'])
+                for attribute_dict in attribute_list)
+
+
+def _iteration_attributes_to_dict(attribute_list):
+    iter_keyfunc = operator.itemgetter('iteration')
+    attribute_list.sort(key=iter_keyfunc)
+    iterations = {}
+    for key, group in itertools.groupby(attribute_list, iter_keyfunc):
+        iterations[key] = _attributes_to_dict(group)
+    return iterations
+
+
 def get_detailed_test_views(**filter_data):
     test_views = models.TestView.list_objects(filter_data)
     for test_view in test_views:
         test_id = test_view['test_idx']
+
+        # load in the test keyvals
         attribute_dicts = models.TestAttribute.list_objects(
             dict(test__test_idx=test_id), fields=('attribute', 'value'))
-        test_view['attributes'] = dict(
-            (attribute_dict['attribute'], attribute_dict['value'])
-            for attribute_dict in attribute_dicts)
+        test_view['attributes'] = _attributes_to_dict(attribute_dicts)
+
+        # load in the iteration keyvals
+        attr_dicts = _itermodel_to_list(test_id, models.IterationAttribute)
+        perf_dicts = _itermodel_to_list(test_id, models.IterationResult)
+
+        # convert the iterations into dictionarys and count total iterations
+        iteration_attr = _iteration_attributes_to_dict(attr_dicts)
+        iteration_perf = _iteration_attributes_to_dict(perf_dicts)
+        all_dicts = attr_dicts + perf_dicts
+        if all_dicts:
+            max_iterations = max(row['iteration'] for row in all_dicts)
+        else:
+            max_iterations = 0
+
+        # merge the iterations into a single list of attr & perf dicts
+        test_view['iterations'] = [{'attr': iteration_attr.get(index, {}),
+                                    'perf': iteration_perf.get(index, {})}
+                                   for index in xrange(1, max_iterations + 1)]
+
+        # load in the test labels
         label_dicts = models.TestLabel.list_objects(
             dict(tests__test_idx=test_id), fields=('name',))
         test_view['labels'] = [label_dict['name'] for label_dict in label_dicts]
