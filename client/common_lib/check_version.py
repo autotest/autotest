@@ -31,11 +31,16 @@ def find_desired_python():
     # rather than more recent versions.  This helps make sure all code is
     # compatible with 2.4 when developed on more recent systems with 2.5 or
     # 2.6 installed.
+    # If you want to use a more recent python for your own site_* files
+    # you'll need to edit this file (or better: add support for
+    # a site_check_version.py file to override this logic).
     return possible_versions[0][1]
 
 
 def restart():
     python = find_desired_python()
+    sys.stderr.write('NOTE: %s switching to %s\n' %
+                     (os.path.basename(sys.argv[0]), python))
     sys.argv.insert(0, '-u')
     sys.argv.insert(0, python)
     os.execv(sys.argv[0], sys.argv)
@@ -48,4 +53,8 @@ def check_python_version():
     except AttributeError:
         pass # pre 2.0, no neat way to get the exact number
     if not version or version != (2, 4):
-        restart()
+        try:
+            # We can't restart when running under mod_python.
+            from mod_python import apache
+        except ImportError:
+            restart()
