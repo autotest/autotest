@@ -177,7 +177,7 @@ class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'test_attributes'
 
 
-class IterationAttribute(dbmodels.Model):
+class IterationAttribute(dbmodels.Model, model_logic.ModelExtensions):
     # see comment on TestAttribute regarding primary_key=True
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
@@ -188,8 +188,9 @@ class IterationAttribute(dbmodels.Model):
         db_table = 'iteration_attributes'
 
 
-class IterationResult(dbmodels.Model):
-    test = dbmodels.ForeignKey(Test, db_column='test_idx')
+class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
+    # see comment on TestAttribute regarding primary_key=True
+    test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.FloatField(null=True, max_digits=12, decimal_places=31,
