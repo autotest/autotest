@@ -84,7 +84,7 @@ class profiler_proxy(object):
             tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
             at = autotest.Autotest(host)
             at.install(autodir=tmp_dir)
-            self.installed_hosts[host] = at
+            self.installed_hosts[host] = (at, tmp_dir)
         # drop any installs from hosts no longer in job.hosts
         for host in current_profiler_hosts - current_job_hosts:
             del self.installed_hosts[host]
@@ -101,19 +101,17 @@ class profiler_proxy(object):
         # the actual setup happens lazily at start()
 
 
-    def _signal_client(self, host, command):
+    def _signal_client(self, host, autodir, command):
         """ Signal to a client that it should execute profilers.command
         by writing a byte into AUTODIR/profilers.command. """
-        autodir = host.get_autodir()
         path = os.path.join(autodir, "profiler.%s" % command)
         host.run("echo A > %s" % path)
 
 
-    def _wait_on_client(self, host, command):
+    def _wait_on_client(self, host, autodir, command):
         """ Wait for the client to signal that it's finished by writing
         a byte into AUTODIR/profilers.command. Only waits for 30 seconds
         before giving up. """
-        autodir = host.get_autodir()
         path = os.path.join(autodir, "profiler.%s" % command)
         try:
             host.run("cat %s" % path, ignore_status=True, timeout=30)
@@ -137,37 +135,35 @@ class profiler_proxy(object):
         self._install()
         encoded_args = encode_args(self.name, self.args, self.dargs)
         control_script = run_profiler_control % (encoded_args, self.name)
-        for host, at in self._get_hosts(host).iteritems():
-            fifo_pattern = os.path.join(host.get_autodir(), "profiler.*")
+        for host, (at, autodir) in self._get_hosts(host).iteritems():
+            fifo_pattern = os.path.join(autodir, "profiler.*")
             host.run("rm -f %s" % fifo_pattern)
             at.run(control_script, background=True)
-            self._signal_client(host, "start")
+            self._signal_client(host, autodir, "start")
         self.current_test = test
 
 
     def stop(self, test, host=None):
         assert self.current_test == test
-        for host in self._get_hosts(host).iterkeys():
-            self._signal_client(host, "stop")
+        for host, (at, autodir) in self._get_hosts(host).iteritems():
+            self._signal_client(host, autodir, "stop")
 
 
     def report(self, test, host=None, wait_on_client=True):
         assert self.current_test == test
         self.current_test = None
-        hosts = self._get_hosts(host)
 
         # signal to all the clients that they should report
         if wait_on_client:
-            for host in self._get_hosts(host).iterkeys():
-                self._signal_client(host, "report")
+            for host, (at, autodir) in self._get_hosts(host).iteritems():
+                self._signal_client(host, autodir, "report")
 
         # pull back all the results
-        for host in self._get_hosts(host).iterkeys():
+        for host, (at, autodir) in self._get_hosts(host).iteritems():
             if wait_on_client:
-                self._wait_on_client(host, "finished")
-            results_dir = os.path.join(host.get_autodir(), "results",
-                                       "default", "profiler_test",
-                                       "profiling") + "/"
+                self._wait_on_client(host, autodir, "finished")
+            results_dir = os.path.join(autodir, "results", "default",
+                                       "profiler_test", "profiling") + "/"
             local_dir = os.path.join(test.profdir, host.hostname)
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir)
