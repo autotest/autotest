@@ -169,6 +169,8 @@ class parser(base.parser):
         min_stack_size = 0
         stack = status_lib.status_stack()
         current_kernel = kernel("", [])  # UNKNOWN
+        current_status = status_lib.statuses[-1]
+        current_reason = None
         started_time_stack = [None]
         subdir_stack = [None]
         running_test = None
@@ -277,7 +279,11 @@ class parser(base.parser):
                     subdir_stack[-1] = line.subdir
                 # update the status, start and finished times
                 stack.update(line.status)
-                current_status = stack.current_status()
+                if status_lib.is_worse_than(stack.current_status(),
+                                            current_status):
+                    if line.reason:
+                        current_reason = line.reason
+                    current_status = stack.current_status()
                 started_time = None
                 finished_time = line.get_timestamp()
             elif line.type == "END":
@@ -303,6 +309,7 @@ class parser(base.parser):
                 current_status = stack.end()
                 if stack.size() > min_stack_size:
                     stack.update(current_status)
+                    current_status = stack.current_status()
                 started_time = started_time_stack.pop()
                 finished_time = line.get_timestamp()
                 # update the current kernel
@@ -329,16 +336,19 @@ class parser(base.parser):
                         # tests it ran have
                         current_status = "GOOD"
 
+                if not current_reason:
+                    current_reason = line.reason
                 new_test = test.parse_test(self.job,
                                            line.subdir,
                                            line.testname,
                                            current_status,
-                                           line.reason,
+                                           current_reason,
                                            current_kernel,
                                            started_time,
                                            finished_time,
                                            running_test)
                 running_test = None
+                current_reason = None
                 if new_test.testname == ("boot.%d" % boot_count):
                     boot_count += 1
                 msg = "ADD: %s\nSubdir: %s\nTestname: %s\n%s"
