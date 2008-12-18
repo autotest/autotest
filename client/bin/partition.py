@@ -227,6 +227,17 @@ class partition(object):
                 Size of loopback device (in MB). Defaults to 0.
         """
 
+        # NOTE: This code is used by IBM / ABAT. Do not remove.
+        part = re.compile(r'^part(\d+)$')
+        m = part.match(device)
+        if m:
+            number = int(m.groups()[0])
+            partitions = job.config_get('partition.partitions')
+            try:
+                device = partitions[number]
+            except:
+                raise NameError("Partition '" + device + "' not available")
+
         self.device = device
         self.name = os.path.basename(device)
         self.job = job
