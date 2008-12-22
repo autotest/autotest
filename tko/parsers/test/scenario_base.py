@@ -3,6 +3,7 @@
 
 from os import path
 import ConfigParser, os, shelve, shutil, sys, tarfile, tempfile, time
+import difflib, itertools
 import common
 from autotest_lib.client.common_lib import utils
 from autotest_lib.tko import status_lib
@@ -69,6 +70,12 @@ class ParserException(object):
         return self.__dict__ != other.__dict__
 
 
+    def __str__(self):
+        sd = self.__dict__
+        pairs = ['%s="%s"' % (k, sd[k]) for k in sorted(sd.keys())]
+        return "<%s: %s>" % (self.classname, ', '.join(pairs))
+
+
 class ParserTestResult(object):
     """Abstract representation of test result parser state.
 
@@ -105,6 +112,12 @@ class ParserTestResult(object):
         return self.__dict__ != other.__dict__
 
 
+    def __str__(self):
+        sd = self.__dict__
+        pairs = ['%s="%s"' % (k, sd[k]) for k in sorted(sd.keys())]
+        return "<%s: %s>" % (self.__class__.__name__, ', '.join(pairs))
+
+
 def copy_parser_result(parser_result):
     """Copy parser_result into ParserTestResult instances.
 
@@ -128,6 +141,27 @@ def copy_parser_result(parser_result):
         return ParserException(parser_result)
     else:
         raise UnsupportedParserResultError
+
+
+def compare_parser_results(left, right):
+    """Generates a textual report (for now) on the differences between.
+
+    Args:
+      left: list of ParserTestResults or a single ParserException
+      right: list of ParserTestResults or a single ParserException
+
+    Returns: Generator returned from difflib.Differ().compare()
+    """
+    def to_los(obj):
+        """Generate a list of strings representation of object."""
+        if type(obj) is list:
+            return [
+                '%d) %s' % pair
+                for pair in itertools.izip(itertools.count(), obj)]
+        else:
+            return ['i) %s' % obj]
+
+    return difflib.Differ().compare(to_los(left), to_los(right))
 
 
 class ParserHarness(object):
