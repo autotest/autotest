@@ -19,6 +19,11 @@ import common
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import utils
+try:
+    from autotest_lib.server.site_common import site_utils as server_utils
+except:
+    from autotest_lib.server import utils as server_utils
+form_ntuples_from_machines = server_utils.form_ntuples_from_machines
 
 GLOBAL_CONFIG = global_config.global_config
 DEFAULT_SERVER = 'autotest'
@@ -162,11 +167,13 @@ class AFE(RpcClient):
         return [JobStatus(self, e) for e in entries]
 
 
-    def create_job_by_test(self, tests, kernel=None, use_container=False,
+    def create_job_by_test(self, tests, hosts, kernel=None, use_container=False,
                            **dargs):
         """
         Given a test name, fetch the appropriate control file from the server
-        and submit it
+        and submit it.
+
+        Returns a list of job objects
         """
         control_file = self.generate_control_file(tests=tests, kernel=kernel,
                                                   use_container=use_container,
@@ -179,7 +186,16 @@ class AFE(RpcClient):
                                 control_file.dependencies
         dargs['control_file'] = control_file.control_file
         dargs['synch_count'] = control_file.synch_count
-        return self.create_job(**dargs)
+        jobs = []
+        if control_file.synch_count > 1:
+            # We don't trust the scheduler to do the groupings for us.
+            synch_count = control_file.synch_count
+            (pairs, failures) = form_ntuples_from_machines(hosts, synch_count)
+            for machines in pairs:
+                jobs.append(self.create_job(hosts=machines, **dargs))
+        else:
+            jobs.append(self.create_job(hosts=hosts, **dargs))
+        return jobs
 
 
     def create_job(self, control_file, name=' ', priority='Medium',
@@ -208,9 +224,10 @@ class AFE(RpcClient):
         """
         jobs = []
         for pairing in pairings:
-            job = self.invoke_test(pairing, kernel, kernel_label, priority)
-            job.notified = False
-            jobs.append(job)
+            new_jobs = self.invoke_test(pairing, kernel, kernel_label, priority)
+            for job in new_jobs:
+                job.notified = False
+            jobs += new_jobs
             # disabled - this is just for debugging: mbligh
             # if email_from and email_to:
             #     subject = 'Testing started: %s : %s' % (job.name, job.id)
@@ -332,7 +349,7 @@ class AFE(RpcClient):
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
     
-        Returns a job object
+        Returns a list of job objects
         """
         job_name = '%s : %s' % (pairing.machine_label, kernel_label)
         hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
@@ -340,15 +357,16 @@ class AFE(RpcClient):
         hosts = [h for h in hosts if self._included_platform(h, platforms)]
         host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
         print 'HOSTS: %s' % host_list
-        new_job = self.create_job_by_test(name=job_name,
+        new_jobs = self.create_job_by_test(name=job_name,
                                      dependencies=[pairing.machine_label],
                                      tests=[pairing.control_file],
                                      priority=priority,
                                      hosts=host_list,
                                      kernel=kernel,
                                      use_container=pairing.container)
-        print 'Invoked test %s : %s' % (new_job.id, job_name)
-        return new_job
+        for new_job in new_jobs:
+            print 'Invoked test %s : %s' % (new_job.id, job_name)
+        return new_jobs
 
 
     def _job_test_results(self, tko, job):
