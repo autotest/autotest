@@ -317,7 +317,7 @@ class CopyLogsTest(unittest.TestCase):
 
     def test_run(self):
         self.god.stub_function(os, 'chdir')
-        self.god.stub_function(tempfile, 'mkdtmp')
+        self.god.stub_function(tempfile, 'mkdtemp')
         self.god.stub_function(utils, 'open_write_close')
         self.god.stub_function(shutil, 'copy')
         self.god.stub_function(shutil, 'rmtree')
@@ -355,7 +355,7 @@ class CopyLogsTest(unittest.TestCase):
                                 server_job.SERVER_CONTROL_FILENAME)
         run_and_verify(server_job.SERVER_CONTROL_FILENAME)
 
-        # Now test it without self.resultdir set.  It should try a mkdtmp dir.
+        # Now test it without self.resultdir set.  It should try a mkdtemp dir.
         fake_tmp = '/tmp/fake'
         fake_server_control = os.path.join(fake_tmp,
                                            server_job.SERVER_CONTROL_FILENAME)
@@ -365,7 +365,7 @@ class CopyLogsTest(unittest.TestCase):
 
         # client without resultdir
         self.job.client = True
-        tempfile.mkdtmp.expect_call().and_return(fake_tmp)
+        tempfile.mkdtemp.expect_call().and_return(fake_tmp)
         utils.open_write_close.expect_call(fake_client_control, 'fakecontrol')
         shutil.copy.expect_any_call()
         shutil.rmtree.expect_call(fake_tmp)
@@ -373,7 +373,7 @@ class CopyLogsTest(unittest.TestCase):
 
         # server without resultdir
         self.job.client = False
-        tempfile.mkdtmp.expect_call().and_return(fake_tmp)
+        tempfile.mkdtemp.expect_call().and_return(fake_tmp)
         utils.open_write_close.expect_call(fake_server_control, 'fakecontrol')
         shutil.rmtree.expect_call(fake_tmp)
         run_and_verify(fake_server_control)
