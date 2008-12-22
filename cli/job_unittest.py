@@ -749,6 +749,26 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test_job0', 'Created'])
 
 
+    def test_execute_create_job_with_timeout(self):
+        data = self.data.copy()
+        data['timeout'] = '222'
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-o', '222'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],)
+
+
+    def test_execute_create_job_with_noverify(self):
+        data = self.data.copy()
+        data['run_verify'] = False
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-n'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],)
+
+
     def _test_parse_hosts(self, args, exp_hosts=[], exp_meta_hosts=[]):
         testjob = job.job_create()
         (hosts, meta_hosts) = testjob.parse_hosts(args)
