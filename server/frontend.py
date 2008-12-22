@@ -14,7 +14,7 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import os, time, traceback
+import os, time, traceback, re
 import common
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import global_config
@@ -179,8 +179,9 @@ class AFE(RpcClient):
         return self.get_jobs(id=id)[0]
 
 
-    def run_test_suites(self, pairings, kernel, kernel_label, wait=True,
-                        poll_interval=5, email_from=None, email_to=None):
+    def run_test_suites(self, pairings, kernel, kernel_label, priority='Medium',
+                        wait=True, poll_interval=5, email_from=None,
+                        email_to=None):
         """
         Run a list of test suites on a particular kernel.
     
@@ -197,7 +198,7 @@ class AFE(RpcClient):
         """
         jobs = []
         for pairing in pairings:
-            job = self.invoke_test(pairing, kernel, kernel_label)
+            job = self.invoke_test(pairing, kernel, kernel_label, priority)
             job.notified = False
             jobs.append(job)
             # disabled - this is just for debugging: mbligh
@@ -295,6 +296,19 @@ class AFE(RpcClient):
             return True
 
 
+    def _included_platform(self, host, platforms):
+        """
+        See if host's platforms matches any of the patterns in the included
+        platforms list.
+        """
+        if not platforms:
+            return True        # No filtering of platforms
+        for platform in platforms:
+            if re.search(platform, host.platform):
+                return True
+        return False
+
+
     def invoke_test(self, pairing, kernel, kernel_label, priority='Medium'):
         """
         Given a pairing of a control file to a machine label, find all machines
@@ -304,7 +318,10 @@ class AFE(RpcClient):
         """
         job_name = '%s : %s' % (pairing.machine_label, kernel_label)
         hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
+        platforms = pairing.platforms
+        hosts = [h for h in hosts if self._included_platform(h, platforms)]
         host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
+        print 'HOSTS: %s' % host_list
         new_job = self.create_job_by_test(name=job_name,
                                      dependencies=[pairing.machine_label],
                                      tests=[pairing.control_file],
@@ -581,7 +598,12 @@ class TestStatus(RpcObject):
 class MachineTestPairing(object):
     """
     Object representing the pairing of a machine label with a control file
+
+    machine_label: use machines from this label
+    control_file: use this control file (by name in the frontend)
+    platforms: list of rexeps to filter platforms by. [] => no filtering
     """
-    def __init__(self, machine_label, control_file):
+    def __init__(self, machine_label, control_file, platforms=[]):
         self.machine_label = machine_label
         self.control_file = control_file
+        self.platforms = platforms
