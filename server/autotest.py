@@ -452,7 +452,7 @@ class _Run(object):
             self.logger.warning(warning)
             try:
                 self.host.hardreset(wait=False)
-            except error.AutoservUnsupportedError:
+            except (AttributeError, error.AutoservUnsupportedError):
                 warning = "Hard reset unsupported on %s"
                 warning %= self.host.hostname
                 self.logger.warning(warning)
