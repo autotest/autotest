@@ -27,7 +27,8 @@ def run_autoserv(pid_file_manager, results, parser):
 
     # Implement SIGTERM handler
     def handle_sigint(signum, frame):
-        pid_file_manager.close_file(1, signal.SIGTERM)
+        if pid_file_manager:
+            pid_file_manager.close_file(1, signal.SIGTERM)
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Set signal handler
@@ -127,8 +128,9 @@ def run_autoserv(pid_file_manager, results, parser):
         exit_code = 1
         traceback.print_exc()
 
-    pid_file_manager.num_tests_failed = job.num_tests_failed
-    pid_file_manager.close_file(exit_code)
+    if pid_file_manager:
+        pid_file_manager.num_tests_failed = job.num_tests_failed
+        pid_file_manager.close_file(exit_code)
     job.cleanup_parser()
 
     sys.exit(exit_code)
@@ -153,10 +155,11 @@ def main():
             sys.exit(1)
         print "Results placed in %s" % results
 
-    pid_file_manager = pidfile.PidFileManager("autoserv", results)
-
     if parser.options.write_pidfile:
+        pid_file_manager = pidfile.PidFileManager("autoserv", results)
         pid_file_manager.open_file()
+    else:
+        pid_file_manager = None
 
     autotest.BaseAutotest.set_install_in_tmpdir(
         parser.options.install_in_tmpdir)
@@ -173,7 +176,8 @@ def main():
             # an 'abort' and return 1.
             exit_code = 1
     finally:
-        pid_file_manager.close_file(exit_code)
+        if pid_file_manager:
+            pid_file_manager.close_file(exit_code)
     sys.exit(exit_code)
 
 
