@@ -366,7 +366,7 @@ class base_server_job(object):
                 server_control_file = SERVER_CONTROL_FILENAME
                 client_control_file = CLIENT_CONTROL_FILENAME
             else:
-                temp_control_file_dir = tempfile.mkdtmp()
+                temp_control_file_dir = tempfile.mkdtemp()
                 server_control_file = os.path.join(temp_control_file_dir,
                                                    SERVER_CONTROL_FILENAME)
                 client_control_file = os.path.join(temp_control_file_dir,
