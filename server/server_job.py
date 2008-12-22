@@ -358,22 +358,37 @@ class base_server_job(object):
             self.enable_external_logging()
             status_log = os.path.join(self.resultdir, 'status.log')
         collect_crashinfo = True
+        temp_control_file_dir = None
         try:
             if install_before and machines:
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
+            if self.resultdir:
+                server_control_file = SERVER_CONTROL_FILENAME
+                client_control_file = CLIENT_CONTROL_FILENAME
+            else:
+                temp_control_file_dir = tempfile.mkdtmp()
+                server_control_file = os.path.join(temp_control_file_dir,
+                                                   SERVER_CONTROL_FILENAME)
+                client_control_file = os.path.join(temp_control_file_dir,
+                                                   CLIENT_CONTROL_FILENAME)
             if self.client:
                 namespace['control'] = self.control
-                utils.open_write_close(CLIENT_CONTROL_FILENAME, self.control)
-                shutil.copy(CLIENT_WRAPPER_CONTROL_FILE,
-                            SERVER_CONTROL_FILENAME)
+                utils.open_write_close(client_control_file, self.control)
+                shutil.copy(CLIENT_WRAPPER_CONTROL_FILE, server_control_file)
             else:
                 namespace['utils'] = utils
-                utils.open_write_close(SERVER_CONTROL_FILENAME, self.control)
-            self._execute_code(SERVER_CONTROL_FILENAME, namespace)
+                utils.open_write_close(server_control_file, self.control)
+            self._execute_code(server_control_file, namespace)
 
             # disable crashinfo collection if we get this far without error
             collect_crashinfo = False
         finally:
+            if temp_control_file_dir:
+                # Clean up temp. directory used for copies of the control files.
+                try:
+                    shutil.rmtree(temp_control_file_dir)
+                except Exception, e:
+                    print 'Error', e, 'removing dir', temp_control_file_dir
             if machines and (collect_crashdumps or collect_crashinfo):
                 namespace['test_start_time'] = test_start_time
                 if collect_crashinfo:

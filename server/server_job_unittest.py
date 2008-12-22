@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, os, stat, sys, time, tempfile, warnings
+import unittest, os, shutil, stat, sys, time, tempfile, warnings
 import common
 from autotest_lib.server import server_job, test, subcommand, hosts, autotest
 from autotest_lib.client.bin import sysinfo
@@ -36,6 +36,8 @@ class CopyLogsTest(unittest.TestCase):
         self.god.stub_function(server_job, 'get_site_job_data')
         self.god.stub_function(server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
+
+        self.construct_server_job()
 
 
     def tearDown(self):
@@ -96,13 +98,7 @@ class CopyLogsTest(unittest.TestCase):
         self.god.stub_function(self.job, "_execute_code")
 
 
-    def test_constructor(self):
-        self.construct_server_job()
-
-
     def test_init_parser(self):
-        self.construct_server_job()
-
         results = "results"
         log = os.path.join(results, '.parse.log')
 
@@ -135,8 +131,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_fill_server_control_namespace(self):
-        self.construct_server_job()
-
         class MockAutotest(object):
             job = None
         class MockHosts(object):
@@ -191,7 +185,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_parallel_simple_with_one_machine(self):
-        self.construct_server_job()
         self.job.machines = ["hostname"]
 
         # setup
@@ -206,8 +199,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_run_test(self):
-        self.construct_server_job()
-
         # setup
         self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
@@ -234,8 +225,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_run_test_with_test_error(self):
-        self.construct_server_job()
-
         # setup
         self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
@@ -264,8 +253,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_run_test_with_test_fail(self):
-        self.construct_server_job()
-
         # setup
         self.god.stub_function(self.job.pkgmgr, 'get_package_name')
         self.god.stub_function(test, 'runtest')
@@ -294,8 +281,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_run_group(self):
-        self.construct_server_job()
-
         # setup
         func = self.god.create_mock_function("function")
         name = func.__name__
@@ -312,8 +297,6 @@ class CopyLogsTest(unittest.TestCase):
 
 
     def test_run_reboot(self):
-        self.construct_server_job()
-
         # setup
         self.god.stub_function(self.job, 'record')
         reboot_func = self.god.create_mock_function('reboot')
@@ -332,9 +315,71 @@ class CopyLogsTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_record(self):
-        self.construct_server_job()
+    def test_run(self):
+        self.god.stub_function(os, 'chdir')
+        self.god.stub_function(tempfile, 'mkdtmp')
+        self.god.stub_function(utils, 'open_write_close')
+        self.god.stub_function(shutil, 'copy')
+        self.god.stub_function(shutil, 'rmtree')
+        control_files = []
+        def _my_execute_code(control_file, namespace):
+            control_files.append(control_file)
+        self.god.stub_with(self.job, '_execute_code', _my_execute_code)
 
+        self.job.args = ()
+        self.job.ssh_user = None
+        self.job.ssh_port = None
+        self.job.ssh_pass = None
+        self.job.control = 'fakecontrol'
+        self.job.resultdir = '/xyz-unittest'
+
+        def run_and_verify(control_file_executed):
+            self.job.run(collect_crashdumps=False)
+            self.assertEqual(1, len(control_files))
+            self.assertEqual(control_file_executed, control_files[0])
+            self.god.check_playback()
+            control_files[:] = []
+
+        # server with resultdir
+        self.job.client = False
+        os.chdir.expect_call(self.job.resultdir)
+        utils.open_write_close.expect_any_call()
+        run_and_verify(server_job.SERVER_CONTROL_FILENAME)
+
+        # client with resultdir
+        self.job.client = True
+        os.chdir.expect_call(self.job.resultdir)
+        utils.open_write_close.expect_call(server_job.CLIENT_CONTROL_FILENAME,
+                                           'fakecontrol')
+        shutil.copy.expect_call(server_job.CLIENT_WRAPPER_CONTROL_FILE,
+                                server_job.SERVER_CONTROL_FILENAME)
+        run_and_verify(server_job.SERVER_CONTROL_FILENAME)
+
+        # Now test it without self.resultdir set.  It should try a mkdtmp dir.
+        fake_tmp = '/tmp/fake'
+        fake_server_control = os.path.join(fake_tmp,
+                                           server_job.SERVER_CONTROL_FILENAME)
+        fake_client_control = os.path.join(fake_tmp,
+                                           server_job.CLIENT_CONTROL_FILENAME)
+        self.job.resultdir = None
+
+        # client without resultdir
+        self.job.client = True
+        tempfile.mkdtmp.expect_call().and_return(fake_tmp)
+        utils.open_write_close.expect_call(fake_client_control, 'fakecontrol')
+        shutil.copy.expect_any_call()
+        shutil.rmtree.expect_call(fake_tmp)
+        run_and_verify(fake_server_control)
+
+        # server without resultdir
+        self.job.client = False
+        tempfile.mkdtmp.expect_call().and_return(fake_tmp)
+        utils.open_write_close.expect_call(fake_server_control, 'fakecontrol')
+        shutil.rmtree.expect_call(fake_tmp)
+        run_and_verify(fake_server_control)
+
+
+    def test_record(self):
         # setup
         self.god.stub_function(self.job, '_read_warnings')
         self.god.stub_function(self.job, '_record')
