@@ -52,6 +52,8 @@ class rpc_comm(object):
 
 
     def run(self, op, *args, **data):
+        if 'AUTOTEST_CLI_DEBUG' in os.environ:
+            print '%s %s %s' % (op, args, data)
         function = getattr(self.proxy, op)
         return function(*args, **data)
 
