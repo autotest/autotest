@@ -37,7 +37,7 @@ def dump_object(header, obj):
     return result
 
 
-class rpc_client(object):
+class RpcClient(object):
     """
     AFE class for communicating with the autotest frontend
 
@@ -81,9 +81,9 @@ class rpc_client(object):
             print message
 
 
-class tko(rpc_client):
+class TKO(RpcClient):
     def __init__(self, user=None, web_server=None, print_log=True, debug=False):
-        super(tko, self).__init__('/new_tko/server/noauth/rpc/', user,
+        super(TKO, self).__init__('/new_tko/server/noauth/rpc/', user,
                                   web_server, print_log, debug)
 
 
@@ -91,12 +91,12 @@ class tko(rpc_client):
         entries = self.run('get_status_counts',
                            group_by=['hostname', 'test_name'], 
                            job_tag__startswith='%s-' % job, **data)
-        return [test_status(self, e) for e in entries['groups']]
+        return [TestStatus(self, e) for e in entries['groups']]
 
 
-class afe(rpc_client):
+class AFE(RpcClient):
     def __init__(self, user=None, web_server=None, print_log=True, debug=False):
-        super(afe, self).__init__('/afe/server/noauth/rpc/', user, web_server,
+        super(AFE, self).__init__('/afe/server/noauth/rpc/', user, web_server,
                                   print_log, debug)
 
     
@@ -113,7 +113,7 @@ class afe(rpc_client):
 
     def get_hosts(self, **dargs):
         hosts = self.run('get_hosts', **dargs)
-        return [host(self, h) for h in hosts]
+        return [Host(self, h) for h in hosts]
 
 
     def create_host(self, hostname, **dargs):
@@ -123,7 +123,7 @@ class afe(rpc_client):
 
     def get_labels(self, **dargs):
         labels = self.run('get_labels', **dargs)
-        return [label(self, l) for l in labels]
+        return [Label(self, l) for l in labels]
 
 
     def create_label(self, name, **dargs):
@@ -133,7 +133,7 @@ class afe(rpc_client):
 
     def get_acls(self, **dargs):
         acls = self.run('get_acl_groups', **dargs)
-        return [acl(self, a) for a in acls]
+        return [Acl(self, a) for a in acls]
 
 
     def create_acl(self, name, **dargs):
@@ -146,12 +146,12 @@ class afe(rpc_client):
             jobs_data = self.run('get_jobs_summary', **dargs)
         else:
             jobs_data = self.run('get_jobs', **dargs)
-        return [job(self, j) for j in jobs_data]
+        return [Job(self, j) for j in jobs_data]
 
 
     def get_host_queue_entries(self, **data):
         entries = self.run('get_host_queue_entries', **data)
-        return [job_status(self, e) for e in entries]
+        return [JobStatus(self, e) for e in entries]
 
 
     def create_job_by_test(self, tests, kernel=None, **dargs):
@@ -200,14 +200,16 @@ class afe(rpc_client):
             job = self.invoke_test(pairing, kernel, kernel_label)
             job.notified = False
             jobs.append(job)
-            if email_from and email_to:
-                subject = 'Testing started: %s : %s' % (job.name, job.id)
-                utils.send_email(email_from, email_to, subject, subject)
+            # disabled - this is just for debugging: mbligh
+            # if email_from and email_to:
+            #     subject = 'Testing started: %s : %s' % (job.name, job.id)
+            #     utils.send_email(email_from, email_to, subject, subject)
         if not wait:
             return
+        tko = TKO()
         while True:
             time.sleep(60 * poll_interval)
-            result = self.poll_all_jobs(jobs, email_from, email_to)
+            result = self.poll_all_jobs(tko, jobs, email_from, email_to)
             if result is not None:
                 return result
 
@@ -257,7 +259,7 @@ class afe(rpc_client):
         print
 
 
-    def poll_all_jobs(self, jobs, email_from, email_to):
+    def poll_all_jobs(self, tko, jobs, email_from, email_to):
         """
         Poll all jobs in a list.
             jobs: list of job objects to poll
@@ -271,7 +273,7 @@ class afe(rpc_client):
         """
         results = []
         for job in jobs:
-            job.result = self.poll_job_results(job, debug=False)
+            job.result = self.poll_job_results(tko, job, debug=False)
             results.append(job.result)
             if job.result is not None and not job.notified:
                 self.result_notify(job, email_from, email_to)
@@ -313,25 +315,43 @@ class afe(rpc_client):
         return new_job
 
 
-    def poll_job_results(self, job, debug=False):
+    def _job_test_results(self, tko, job):
         """
-        Analyse all job results by platform, return:
-    
-            False: if any platform has more than one failure
-            None:  if any platform has more than one machine not yet Good.
-            True:  if all platforms have at least all-but-one machines Good.
+        Retrieve test results for a job
         """
+        job.test_status = {}
+        try:
+            test_statuses = tko.get_status_counts(job=job.id)
+        except Exception:
+            print "Ignoring exception on poll job; RPC interface is flaky"
+            traceback.print_exc()
+            return
+
+        for test_status in test_statuses:
+            hostname = test_status.hostname
+            if hostname not in job.test_status:
+                job.test_status[hostname] = TestResults()
+            job.test_status[hostname].add(test_status)
+
+
+    def _job_results_platform_map(self, job):
+        job.results_platform_map = {}
         try:
             job_statuses = self.get_host_queue_entries(job=job.id)
         except Exception:
             print "Ignoring exception on poll job; RPC interface is flaky"
             traceback.print_exc()
             return None
-    
+
         platform_map = {}
+        job.job_status = {}
         for job_status in job_statuses:
             hostname = job_status.host.hostname
+            job.job_status[hostname] = job_status.status
             status = job_status.status
+            if hostname in job.test_status and job.test_status[hostname].fail:
+                # Job status doesn't reflect failed tests, override that
+                status = 'Failed'
             platform = job_status.host.platform
             if platform not in platform_map:
                 platform_map[platform] = {'Total' : [hostname]}
@@ -340,10 +360,23 @@ class afe(rpc_client):
             new_host_list = platform_map[platform].get(status, []) + [hostname]
             platform_map[platform][status] = new_host_list
         job.results_platform_map = platform_map
+
+
+    def poll_job_results(self, tko, job, debug=False):
+        """
+        Analyse all job results by platform, return:
     
+            False: if any platform has more than one failure
+            None:  if any platform has more than one machine not yet Good.
+            True:  if all platforms have at least all-but-one machines Good.
+        """
+        self._job_test_results(tko, job)
+        self._job_results_platform_map(job)
+
         good_platforms = []
         bad_platforms = []
         unknown_platforms = []
+        platform_map = job.results_platform_map
         for platform in platform_map:
             total = len(platform_map[platform]['Total'])
             completed = len(platform_map[platform].get('Completed', []))
@@ -380,7 +413,23 @@ class afe(rpc_client):
         return True
 
 
-class rpc_object(object):
+class TestResults(object):
+    """
+    Container class used to hold the results of the tests for a job
+    """
+    def __init__(self):
+        self.good = []
+        self.fail = []
+
+
+    def add(self, result):
+        if result.complete_count - result.pass_count > 0:
+            self.fail.append(result.test_name)
+        else:
+            self.good.append(result.test_name)
+
+
+class RpcObject(object):
     """
     Generic object used to construct python objects from rpc calls
     """
@@ -394,7 +443,7 @@ class rpc_object(object):
         return dump_object(self.__repr__(), self)
 
 
-class label(rpc_object):
+class Label(RpcObject):
     """
     AFE label object
 
@@ -413,7 +462,7 @@ class label(rpc_object):
         return self.afe.run('label_remove_hosts', self.id, hosts)
 
 
-class acl(rpc_object):
+class Acl(RpcObject):
     """
     AFE acl object
 
@@ -434,7 +483,7 @@ class acl(rpc_object):
         return self.afe.run('acl_group_remove_hosts', self.id, hosts)
 
 
-class job(rpc_object):
+class Job(RpcObject):
     """
     AFE job object
 
@@ -447,7 +496,7 @@ class job(rpc_object):
         return 'JOB: %s' % self.id
 
 
-class job_status(rpc_object):
+class JobStatus(RpcObject):
     """
     AFE job_status object
 
@@ -459,7 +508,7 @@ class job_status(rpc_object):
         self.afe = afe
         self.hash = hash
         self.__dict__.update(hash)
-        self.job = job(afe, self.job)
+        self.job = Job(afe, self.job)
         if self.host:
             self.host = afe.get_hosts(hostname=self.host['hostname'])[0]
 
@@ -468,7 +517,7 @@ class job_status(rpc_object):
         return 'JOB STATUS: %s-%s' % (self.job.id, self.host.hostname)
 
 
-class host(rpc_object):
+class Host(RpcObject):
     """
     AFE host object
 
@@ -517,7 +566,7 @@ class host(rpc_object):
         return self.afe.run('host_remove_labels', id=self.id, labels=labels)
 
 
-class test_status(rpc_object):
+class TestStatus(RpcObject):
     """
     TKO test status object
 
