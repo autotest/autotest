@@ -54,7 +54,7 @@ class db_sql(object):
             self.user = user
         else:
             self.user = get_value("TKO", "user")
-        if password:
+        if password is not None:
             self.password = password
         else:
             self.password = get_value("TKO", "password")
