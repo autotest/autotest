@@ -63,6 +63,9 @@ class RpcClient(object):
         self.debug = debug
         headers = {'AUTHORIZATION' : self.user}
         rpc_server = web_server + path
+        if debug:
+            print 'SERVER: %s' % rpc_server
+            print 'HEADERS: %s' % headers
         self.proxy = rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
 
@@ -141,6 +144,11 @@ class AFE(RpcClient):
         return self.get_acls(id=id)[0]
 
 
+    def generate_control_file(self, tests, **dargs):
+        ret = self.run('generate_control_file', tests=tests, **dargs)
+        return ControlFile(self, ret)
+
+
     def get_jobs(self, summary=False, **dargs):
         if summary:
             jobs_data = self.run('get_jobs_summary', **dargs)
@@ -154,21 +162,23 @@ class AFE(RpcClient):
         return [JobStatus(self, e) for e in entries]
 
 
-    def create_job_by_test(self, tests, kernel=None, **dargs):
+    def create_job_by_test(self, tests, kernel=None, use_container=False,
+                           **dargs):
         """
         Given a test name, fetch the appropriate control file from the server
         and submit it
         """
-        results = self.run('generate_control_file', tests=tests, kernel=kernel,
-                           use_container=False, do_push_packages=True)
-        if results['is_server']:
+        control_file = self.generate_control_file(tests=tests, kernel=kernel,
+                                                  use_container=use_container,
+                                                  do_push_packages=True)
+        if control_file.is_server:
             dargs['control_type'] = 'Server'
         else:
             dargs['control_type'] = 'Client'
         dargs['dependencies'] = dargs.get('dependencies', []) + \
-                                results['dependencies']
-        dargs['control_file'] = results['control_file']
-        dargs['synch_count'] = results['synch_count']
+                                control_file.dependencies
+        dargs['control_file'] = control_file.control_file
+        dargs['synch_count'] = control_file.synch_count
         return self.create_job(**dargs)
 
 
@@ -260,6 +270,20 @@ class AFE(RpcClient):
         print
 
 
+    def print_job_result(self, job):
+        """
+        Print the result of a single job.
+            job: a job object
+        """
+        if job.result is None:
+            print 'PENDING',
+        elif job.result == True:
+            print 'PASSED',
+        elif job.result == False:
+            print 'FAILED',
+        print ' %s : %s' % (job.id, job.name)
+
+
     def poll_all_jobs(self, tko, jobs, email_from, email_to):
         """
         Poll all jobs in a list.
@@ -280,13 +304,7 @@ class AFE(RpcClient):
                 self.result_notify(job, email_from, email_to)
                 job.notified = True
 
-            if job.result is None:
-                print 'PENDING',
-            elif job.result == True:
-                print 'PASSED',
-            elif job.result == False:
-                print 'FAILED',
-            print ' %s : %s' % (job.id, job.name)
+            self.print_job_result(job)
 
         if None in results:
             return None
@@ -327,7 +345,8 @@ class AFE(RpcClient):
                                      tests=[pairing.control_file],
                                      priority=priority,
                                      hosts=host_list,
-                                     kernel=kernel)
+                                     kernel=kernel,
+                                     use_container=pairing.container)
         print 'Invoked test %s : %s' % (new_job.id, job_name)
         return new_job
 
@@ -458,6 +477,16 @@ class RpcObject(object):
 
     def __str__(self):
         return dump_object(self.__repr__(), self)
+
+
+class ControlFile(RpcObject):
+    """
+    AFE control file object
+
+    Fields: synch_count, dependencies, control_file, is_server
+    """
+    def __repr__(self):
+        return 'CONTROL FILE: %s' % self.control_file
 
 
 class Label(RpcObject):
@@ -603,7 +632,14 @@ class MachineTestPairing(object):
     control_file: use this control file (by name in the frontend)
     platforms: list of rexeps to filter platforms by. [] => no filtering
     """
-    def __init__(self, machine_label, control_file, platforms=[]):
+    def __init__(self, machine_label, control_file, platforms=[],
+                 container=False):
         self.machine_label = machine_label
         self.control_file = control_file
         self.platforms = platforms
+        self.container = container
+
+
+    def __repr__(self):
+        return '%s %s %s %s' % (self.machine_label, self.control_file,
+                                self.platforms, self.container)
