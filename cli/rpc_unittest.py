@@ -7,19 +7,23 @@
 import unittest, os
 import common
 from autotest_lib.cli import rpc
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.frontend.afe.json_rpc import proxy
+
+GLOBAL_CONFIG = global_config.global_config
 
 
 class rpc_unittest(unittest.TestCase):
     def setUp(self):
-        self.old_environ = os.environ
+        self.old_environ = os.environ.copy()
         if 'AUTOTEST_WEB' in os.environ:
             del os.environ['AUTOTEST_WEB']
 
 
     def tearDown(self):
-        os.environ = self.old_environ
+        os.environ.clear()
+        os.environ.update(self.old_environ)
 
 
     def test_get_autotest_server_specific(self):
@@ -27,7 +31,8 @@ class rpc_unittest(unittest.TestCase):
 
 
     def test_get_autotest_server_none(self):
-        self.assertEqual('http://autotest', rpc.get_autotest_server(None))
+        GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'Prince')
+        self.assertEqual('http://Prince', rpc.get_autotest_server(None))
 
 
     def test_get_autotest_server_environ(self):
