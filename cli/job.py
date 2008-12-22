@@ -204,6 +204,7 @@ class job_create(action_common.atest_create, job):
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <labels this job is dependent on>]
     [--reboot_before <option>] [--reboot_after <option>]
+    [--noverify] [--timeout <timeout>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -266,6 +267,11 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-r', '--reuse-hosts', help='Use the exact same '
                                'hosts as cloned job.  Only for use with '
                                '--clone.', action='store_true', default=False)
+        self.parser.add_option('-n', '--noverify',
+                               help='Do not run verify for job',
+                               default=False, action='store_true')
+        self.parser.add_option('-o', '--timeout', help='Job timeout in hours.',
+                               metavar='TIMEOUT')
 
 
     def parse(self):
@@ -331,6 +337,10 @@ class job_create(action_common.atest_create, job):
             self.data['reboot_before'] = options.reboot_before.capitalize()
         if options.reboot_after:
             self.data['reboot_after'] = options.reboot_after.capitalize()
+        if options.noverify:
+            self.data['run_verify'] = False
+        if options.timeout:
+            self.data['timeout'] = options.timeout
 
         self.data['name'] = self.jobname
 
