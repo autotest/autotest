@@ -1,6 +1,6 @@
 import random, os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class kvmtest(test.test):
@@ -12,7 +12,7 @@ class kvmtest(test.test):
 
     def setup(self, tarball = 'kvm-test.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('python setup.py install')
 
@@ -85,7 +85,7 @@ class kvmtest(test.test):
         in the environment, then attempt to spawn a vncserver, and
         change env DISPLAY so that kvmtest can run
         """
-        for pidfile in autotest_utils.locate("*:*.pid", dirname):
+        for pidfile in utils.locate("*:*.pid", dirname):
             pid = open(pidfile, 'r').readline().strip()
             # if the server is still active, just use it for display
             if os.path.exists('/proc/%s/status' % pid):

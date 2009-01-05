@@ -3,8 +3,7 @@ __author__ = """Copyright Martin J. Bligh, 2006,
 
 import os, shutil, copy, pickle, re, glob
 from autotest_lib.client.bin import kernel, kernel_config, os_dep, test
-from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import utils
 
 
 class xen(kernel.kernel):
@@ -45,7 +44,7 @@ class xen(kernel.kernel):
 
         # build xen hypervisor and user-space tools
         targets = ['xen', 'tools']
-        threads = 2 * autotest_utils.count_cpus()
+        threads = 2 * utils.count_cpus()
         for t in targets:
             build_string = 'make -j %d %s %s' % (threads, make_opts, t)
             self.log('build_string: %s' % build_string)

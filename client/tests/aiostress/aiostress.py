@@ -1,8 +1,7 @@
 # This requires aio headers to build.
 # Should work automagically out of deps now.
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class aiostress(test.test):
@@ -31,8 +30,8 @@ class aiostress(test.test):
     def run_once(self, args = ''):
         os.chdir(self.tmpdir)
         libs = self.autodir+'/deps/libaio/lib/'
-        ld_path = autotest_utils.prepend_path(libs,
-                                      autotest_utils.environ('LD_LIBRARY_PATH'))
+        ld_path = utils.prepend_path(libs,
+                                      utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         cmd = self.srcdir + '/aio-stress ' + args + ' poo'
 

@@ -4,8 +4,7 @@
 import unittest, os
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import package, os_dep
+from autotest_lib.client.bin import package, os_dep, utils
 
 
 class TestPackage(unittest.TestCase):

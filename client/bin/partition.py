@@ -1,8 +1,8 @@
 # Copyright Martin J. Bligh, Google, 2006-2008
 
 import os, re, string, sys, fcntl
-from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib import error
 
 
 class FsOptions(object):

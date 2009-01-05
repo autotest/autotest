@@ -2,8 +2,7 @@
 
 import os
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 
 # To use this, you have to set PERL5LIB to:
 #               autodir+'deps/boottool/lib/perl'
@@ -15,7 +14,7 @@ version = 1
 
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
-    autotest_utils.extract_tarball_to_dir(tarball, srcdir)
+    utils.extract_tarball_to_dir(tarball, srcdir)
     os.chdir(srcdir)
     utils.system ('perl Makefile.PL PREFIX=' + topdir)
     utils.system ('make')

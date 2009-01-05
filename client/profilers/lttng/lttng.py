@@ -21,8 +21,8 @@ or
 """
 
 import os, shutil, time
-from autotest_lib.client.bin import autotest_utils, profiler
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils, profiler
+from autotest_lib.client.common_lib import error
 
 class lttng(profiler.profiler):
     version = 1
@@ -30,7 +30,7 @@ class lttng(profiler.profiler):
     # http://ltt.polymtl.ca/lttng/ltt-control-0.51-12082008.tar.gz
     def setup(self, tarball='ltt-control-0.51-12082008.tar.gz', **dargs):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('./configure')

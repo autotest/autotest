@@ -9,7 +9,7 @@ class iperf(test.test):
     # http://downloads.sourceforge.net/iperf/iperf-2.0.4.tar.gz
     def setup(self, tarball = 'iperf-2.0.4.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('./configure')

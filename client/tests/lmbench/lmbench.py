@@ -1,7 +1,6 @@
 # This will need more work on the configuration stuff before it will function
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class lmbench(test.test):
@@ -17,7 +16,7 @@ class lmbench(test.test):
         # + lmbench3.diff
         #       removes Makefile references to bitkeeper
         #       default mail to no, fix job placement defaults (masouds)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('make')
 

@@ -10,8 +10,7 @@ More Info: http://oprofile.sourceforge.net/
 Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
 import os, shutil
-from autotest_lib.client.bin import autotest_utils, profiler
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import utils, profiler
 
 class oprofile(profiler.profiler):
     version = 5
@@ -33,7 +32,7 @@ class oprofile(profiler.profiler):
         try:
             self.tarball = utils.unmap_url(self.bindir, tarball,
                                                     self.tmpdir)
-            autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+            utils.extract_tarball_to_dir(self.tarball, self.srcdir)
             os.chdir(self.srcdir)
 
             patch = os.path.join(self.bindir,"oprofile-69455.patch")
@@ -55,7 +54,7 @@ class oprofile(profiler.profiler):
         self.job.require_gcc()
 
         if not vmlinux:
-            self.vmlinux = autotest_utils.get_vmlinux()
+            self.vmlinux = utils.get_vmlinux()
         else:
             self.vmlinux = vmlinux
         if not len(events):
@@ -110,8 +109,8 @@ class oprofile(profiler.profiler):
         reportfile = test.profdir + '/oprofile.kernel'
         if self.vmlinux:
             report = self.opreport + ' -l ' + self.vmlinux
-            if os.path.exists(autotest_utils.get_modules_dir()):
-                report += ' -p ' + autotest_utils.get_modules_dir()
+            if os.path.exists(utils.get_modules_dir()):
+                report += ' -p ' + utils.get_modules_dir()
             utils.system(report + ' > ' + reportfile)
         else:
             utils.system("echo 'no vmlinux found.' > %s" % reportfile)

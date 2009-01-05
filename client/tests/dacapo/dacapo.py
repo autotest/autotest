@@ -1,9 +1,9 @@
 # Dacapo test suite wrapper
 #
 import os
-from autotest_lib.client.bin import autotest_utils, package, test
+from autotest_lib.client.bin import utils, package, test
 from autotest_lib.client.bin.test_config import config_loader
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import error
 
 
 class dacapo(test.test):
@@ -55,7 +55,7 @@ class dacapo(test.test):
             e_msg = 'Could not read dacapo package md5sum from conf file'
             raise error.TestError(e_msg)
         self.dacapo_pkg = \
-        autotest_utils.unmap_url_cache(self.cachedir, self.dacapo_url,
+        utils.unmap_url_cache(self.cachedir, self.dacapo_url,
                                        self.dacapo_md5)
 
         # Get jvm package URL
@@ -67,7 +67,7 @@ class dacapo(test.test):
         if not self.jvm_pkg_md5:
             raise error.TestError('Could not read java package_md5 from conf file')
         self.jvm_pkg = \
-        autotest_utils.unmap_url_cache(self.cachedir, self.jvm_pkg_url,
+        utils.unmap_url_cache(self.cachedir, self.jvm_pkg_url,
                                        self.jvm_pkg_md5)
 
         # Install the jvm pakage
