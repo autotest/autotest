@@ -1,0 +1,13 @@
+AUTHOR = "Curt Wohlgemuth <curtw@google.com>"
+NAME = "compilebench"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = "SHORT"
+DOC="""
+Compilebench is a filesystem performance test.  It simulates some of the disk
+IO common in creating, compiling, patching, stating and reading kernel trees.
+It indirectly measures how well filesystems can maintain directory locality as
+the disk fills up and directories age.
+"""
+job.run_test("compilebench")
