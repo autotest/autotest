@@ -1,6 +1,5 @@
 import signal, os
-from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import utils, test
 
 class bash_shared_mapping(test.test):
     version = 3
@@ -8,7 +7,7 @@ class bash_shared_mapping(test.test):
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
         utils.system('make bash-shared-mapping usemem')
@@ -25,7 +24,7 @@ class bash_shared_mapping(test.test):
         file = os.path.join(testdir, 'foo')
         # Want to use 3/4 of all memory for each of
         # bash-shared-mapping and usemem
-        kilobytes = (3 * autotest_utils.memtotal()) / 4
+        kilobytes = (3 * utils.memtotal()) / 4
 
         # Want two usemem -m megabytes in parallel in background.
         pid = [None, None]
@@ -37,7 +36,7 @@ class bash_shared_mapping(test.test):
 
         cmd = "%s/bash-shared-mapping %s %d -t %d -n %d" % \
                         (self.srcdir, file, kilobytes,
-                         autotest_utils.count_cpus(), iterations)
+                         utils.count_cpus(), iterations)
         os.system(cmd)
 
         for i in (0, 1):

@@ -9,8 +9,7 @@ from autotest_lib.client.bin import fd_stack
 fd_stack.tee_output_logdir_mark = lambda f: f
 
 # finish up imports
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import kernel, job, autotest_utils, kernelexpand
+from autotest_lib.client.bin import kernel, job, utils, kernelexpand
 from autotest_lib.client.bin import kernel_config, boottool, os_dep
 
 # we need to reload the kernel to make sure its fresh so that our
@@ -37,12 +36,12 @@ class TestKernel(unittest.TestCase):
         self.god.stub_function(utils, "system")
         self.god.stub_function(utils, "system_output")
         self.god.stub_function(utils, "get_file")
-        self.god.stub_function(autotest_utils, "get_current_kernel_arch")
-        self.god.stub_function(autotest_utils, "cat_file_to_cmd")
-        self.god.stub_function(autotest_utils, "force_copy")
-        self.god.stub_function(autotest_utils, "extract_tarball_to_dir")
-        self.god.stub_function(autotest_utils, "count_cpus")
-        self.god.stub_function(autotest_utils, "get_os_vendor")
+        self.god.stub_function(utils, "get_current_kernel_arch")
+        self.god.stub_function(utils, "cat_file_to_cmd")
+        self.god.stub_function(utils, "force_copy")
+        self.god.stub_function(utils, "extract_tarball_to_dir")
+        self.god.stub_function(utils, "count_cpus")
+        self.god.stub_function(utils, "get_os_vendor")
         self.god.stub_function(kernelexpand, "expand_classic")
         self.god.stub_function(kernel_config, "modules_needed")
         self.god.stub_function(glob, "glob")
@@ -87,7 +86,7 @@ class TestKernel(unittest.TestCase):
         logpath = os.path.join(self.log_dir, 'build_log')
         self.logfile = self.god.create_mock_class(file, "file")
         kernel.open.expect_call(logpath, 'w+').and_return(self.logfile)
-        autotest_utils.get_current_kernel_arch.expect_call().and_return('ia64')
+        utils.get_current_kernel_arch.expect_call().and_return('ia64')
         self.logfile.write.expect_call('BASE: %s\n' % self.base_tree)
         self.kernel.extract.expect_call(self.base_tree)
 
@@ -273,25 +272,25 @@ class TestKernel(unittest.TestCase):
 
         patch_id = "%s %s %s" % ('patch1', 'patch1', 'md5sum1')
         log = "PATCH: " + patch_id + "\n"
-        autotest_utils.cat_file_to_cmd.expect_call('patch1.gz',
+        utils.cat_file_to_cmd.expect_call('patch1.gz',
             'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
 
         patch_id = "%s %s %s" % ('patch2', 'patch2', 'md5sum2')
         log = "PATCH: " + patch_id + "\n"
-        autotest_utils.cat_file_to_cmd.expect_call('patch2.bz2',
+        utils.cat_file_to_cmd.expect_call('patch2.bz2',
             'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
 
-        autotest_utils.force_copy.expect_call('patch3',
+        utils.force_copy.expect_call('patch3',
             self.results_dir).and_return('local_patch3')
         self.job.relative_path.expect_call('local_patch3').and_return(
             'rel_local_patch3')
         patch_id = "%s %s %s" % ('patch3', 'rel_local_patch3', 'md5sum3')
         log = "PATCH: " + patch_id + "\n"
-        autotest_utils.cat_file_to_cmd.expect_call('patch3',
+        utils.cat_file_to_cmd.expect_call('patch3',
             'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
@@ -322,7 +321,7 @@ class TestKernel(unittest.TestCase):
         os.chdir.expect_call(os.path.dirname(self.src_dir))
         tarball = os.path.join(self.src_dir, os.path.basename(self.base_tree))
         utils.get_file.expect_call(self.base_tree, tarball)
-        autotest_utils.extract_tarball_to_dir.expect_call(tarball,
+        utils.extract_tarball_to_dir.expect_call(tarball,
                                                           self.build_dir)
 
         # run and check
@@ -360,7 +359,7 @@ class TestKernel(unittest.TestCase):
         self.kernel.extraversion.expect_call('autotest')
         self.kernel.set_cross_cc.expect_call()
         utils.system.expect_call('make dep', ignore_status=True)
-        autotest_utils.count_cpus.expect_call().and_return(4)
+        utils.count_cpus.expect_call().and_return(4)
         threads = 2 * 4
         build_string = 'make -j %d %s %s' % (threads, '', 'build_target')
         utils.system.expect_call(build_string)
@@ -369,7 +368,7 @@ class TestKernel(unittest.TestCase):
         self.kernel.get_kernel_build_ver.expect_call().and_return('2.6.24')
         kernel_version = re.sub('-autotest', '', '2.6.24')
         self.logfile.write.expect_call('BUILD VERSION: %s\n' % kernel_version)
-        autotest_utils.force_copy.expect_call(self.build_dir+'/System.map',
+        utils.force_copy.expect_call(self.build_dir+'/System.map',
                                               self.results_dir)
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.build')
 
@@ -414,7 +413,7 @@ class TestKernel(unittest.TestCase):
         self.construct_kernel()
 
         # record
-        autotest_utils.get_os_vendor.expect_call().and_return('Ubuntu')
+        utils.get_os_vendor.expect_call().and_return('Ubuntu')
         os.path.isfile.expect_call('initrd').and_return(True)
         os.remove.expect_call('initrd')
         self.job.config_get.expect_call(
@@ -450,13 +449,13 @@ class TestKernel(unittest.TestCase):
         glob.glob.expect_call(
             'arch/*/boot/' + 'build_target').and_return('')
         build_image = self.kernel.build_target
-        autotest_utils.force_copy.expect_call('vmlinux',
+        utils.force_copy.expect_call('vmlinux',
             '/boot/vmlinux-autotest')
-        autotest_utils.force_copy.expect_call('build_target',
+        utils.force_copy.expect_call('build_target',
             '/boot/vmlinuz-autotest')
-        autotest_utils.force_copy.expect_call('System.map',
+        utils.force_copy.expect_call('System.map',
             '/boot/System.map-autotest')
-        autotest_utils.force_copy.expect_call('.config',
+        utils.force_copy.expect_call('.config',
             '/boot/config-autotest')
         kernel_config.modules_needed.expect_call('.config').and_return(True)
         utils.system.expect_call('make modules_install INSTALL_MOD_PATH=%s'
@@ -498,7 +497,7 @@ class TestKernel(unittest.TestCase):
         self.construct_kernel()
 
         # record
-        autotest_utils.get_current_kernel_arch.expect_call().and_return("i386")
+        utils.get_current_kernel_arch.expect_call().and_return("i386")
 
         # run and check
         self.assertEquals(self.kernel.get_kernel_build_arch(), "i386")

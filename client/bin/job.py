@@ -7,18 +7,17 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 
 import copy, os, platform, re, shutil, sys, time, traceback, types
 import cPickle as pickle
-from autotest_lib.client.bin import autotest_utils, parallel, kernel, xen
+from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, cpuset, test, partition
-from autotest_lib.client.common_lib import error, barrier, log, utils
+from autotest_lib.client.common_lib import error, barrier, log
 from autotest_lib.client.common_lib import packages, debug
 
 LAST_BOOT_TAG = object()
 NO_DEFAULT = object()
 JOB_PREAMBLE = """
 from autotest_lib.client.common_lib.error import *
-from autotest_lib.client.common_lib.utils import *
-from autotest_lib.client.bin.autotest_utils import *
+from autotest_lib.client.bin.utils import *
 """
 
 
@@ -41,7 +40,7 @@ def _run_test_complete_on_exit(f):
                 self.harness.run_test_complete()
                 if self.drop_caches:
                     print "Dropping caches"
-                    autotest_utils.drop_caches()
+                    utils.drop_caches()
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__
     wrapped.__dict__.update(f.__dict__)
@@ -103,13 +102,13 @@ class base_job(object):
           harness_type: An alternative server harness.  [None]
           use_external_logging: If true, the enable_external_logging
                   method will be called during construction.  [False]
-          drop_caches: If true, autotest_utils.drop_caches() is
+          drop_caches: If true, utils.drop_caches() is
                   called before and between all tests.  [True]
         """
         self.drop_caches = drop_caches
         if self.drop_caches:
             print "Dropping caches"
-            autotest_utils.drop_caches()
+            utils.drop_caches()
         self.drop_caches_between_iterations = False
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
@@ -608,7 +607,7 @@ class base_job(object):
 
     def new_container(self, mbytes=None, cpus=None, root=None, name=None,
                       network=None, disk=None, kswapd_merge=False):
-        if not autotest_utils.grep('cpuset', '/proc/filesystems'):
+        if not utils.grep('cpuset', '/proc/filesystems'):
             print "Containers not enabled by latest reboot"
             return  # containers weren't enabled in this kernel boot
         pid = os.getpid()
@@ -629,7 +628,7 @@ class base_job(object):
     def cpu_count(self):
         if self.container:
             return len(self.container.cpus)
-        return autotest_utils.count_cpus()  # use total system count
+        return utils.count_cpus()  # use total system count
 
 
     def start_reboot(self):
@@ -655,7 +654,7 @@ class base_job(object):
                 "mark=%d identity='%s' type='%s'") %
                (expected_when, expected_id, type))
 
-        running_id = autotest_utils.running_os_ident()
+        running_id = utils.running_os_ident()
 
         cmdline = utils.read_one_line("/proc/cmdline")
 
@@ -1167,7 +1166,7 @@ class disk_usage_monitor:
 
 
     def start(self):
-        self.initial_space = autotest_utils.freespace(self.device)
+        self.initial_space = utils.freespace(self.device)
         self.start_time = time.time()
 
 
@@ -1177,7 +1176,7 @@ class disk_usage_monitor:
         if not self.max_mb_per_hour:
             return
 
-        final_space = autotest_utils.freespace(self.device)
+        final_space = utils.freespace(self.device)
         used_space = self.initial_space - final_space
         stop_time = time.time()
         total_time = stop_time - self.start_time

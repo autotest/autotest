@@ -7,8 +7,7 @@ sar -A -f
 
 
 import os, shutil, subprocess
-from autotest_lib.client.bin import autotest_utils, profiler
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import utils, profiler
 
 
 class sar(profiler.profiler):

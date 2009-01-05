@@ -1,6 +1,5 @@
 import time, os, signal, re
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class tbench(test.test):
@@ -14,7 +13,7 @@ class tbench(test.test):
     # http://samba.org/ftp/tridge/dbench/dbench-3.04.tar.gz
     def setup(self, tarball = 'dbench-3.04.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('./configure')

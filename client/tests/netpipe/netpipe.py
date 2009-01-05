@@ -1,6 +1,6 @@
 import os, time
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class netpipe(test.test):
@@ -10,7 +10,7 @@ class netpipe(test.test):
     # http://www.scl.ameslab.gov/netpipe/code/NetPIPE-3.7.1.tar.gz
     def setup(self, tarball='NetPIPE-3.7.1.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('make')
 

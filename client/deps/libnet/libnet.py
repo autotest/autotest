@@ -2,8 +2,7 @@
 
 import os
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 
 version = 1
 
@@ -12,7 +11,7 @@ def setup(tarball, topdir):
     if not os.path.exists(tarball):
         utils.get_file('http://www.packetfactory.net/libnet/dist/libnet.tar.gz',
                        tarball)
-    autotest_utils.extract_tarball_to_dir(tarball, 'src')
+    utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     utils.system ('./configure --prefix=%s/libnet' % topdir)
     utils.system('make')

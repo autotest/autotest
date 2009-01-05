@@ -2,8 +2,7 @@
 
 import os
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 
 version = 3
 
@@ -11,11 +10,11 @@ def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     if not os.path.exists(tarball):
         utils.get_file('http://mirror.x10.com/mirror/mysql/Downloads/MySQL-5.0/mysql-5.0.45.tar.gz', tarball)
-    autotest_utils.extract_tarball_to_dir(tarball, 'src')
+    utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     utils.system ('./configure --prefix=%s/mysql --enable-thread-safe-client' \
                     % topdir)
-    utils.system('make -j %d' % autotest_utils.count_cpus())
+    utils.system('make -j %d' % utils.count_cpus())
     utils.system('make install')
 
     #

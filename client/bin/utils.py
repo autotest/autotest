@@ -1,10 +1,13 @@
-"""Convenience functions for use by tests or whomever.
 """
+Convenience functions for use by tests or whomever.
 
+NOTE: this is a mixin library that pulls in functions from both here and
+client/common_lib/utils.py (which are functions shared with the server code)
+"""
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
 import math, re, string, fnmatch
-from autotest_lib.client.common_lib import error, utils
-
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib.utils import *
 
 
 def grep(pattern, file):
@@ -38,9 +41,9 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
                 % (file, command))
 
     if return_output:
-        run_cmd = utils.system_output
+        run_cmd = system_output
     else:
-        run_cmd = utils.system
+        run_cmd = system
 
     if file.endswith('.bz2'):
         cat = 'bzcat'
@@ -93,11 +96,12 @@ def get_md5sum(file_path):
     """Gets the md5sum of a file. You must provide a valid path to the file"""
     if not os.path.isfile(file_path):
         raise ValueError, 'invalid file %s to verify' % file_path
-    return utils.system_output("md5sum " + file_path + " | awk '{print $1}'")
+    md5sum = system_output("md5sum " + file_path)
+    return md5sum.split()[0]
 
 
 def unmap_url_cache(cachedir, url, expected_md5):
-    """\
+    """
     Downloads a file from a URL to a cache directory. If the file is already
     at the expected position and has the expected md5 number, let's not
     download it again.
@@ -106,7 +110,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
     cachedir = os.path.realpath(cachedir)
     if not os.path.isdir(cachedir):
         try:
-            utils.system('mkdir -p ' + cachedir)
+            system('mkdir -p ' + cachedir)
         except:
             raise ValueError('Could not create cache directory %s' % cachedir)
     file_from_url = os.path.basename(url)
@@ -122,7 +126,7 @@ def unmap_url_cache(cachedir, url, expected_md5):
     else:
         # File is not there, let's download it
         src = url
-    return utils.unmap_url(cachedir, src, cachedir)
+    return unmap_url(cachedir, src, cachedir)
 
 
 def force_copy(src, dest):
@@ -137,14 +141,14 @@ def force_copy(src, dest):
 
 def force_link(src, dest):
     """Link src to dest, overwriting it if it exists"""
-    return utils.system("ln -sf %s %s" % (src, dest))
+    return system("ln -sf %s %s" % (src, dest))
 
 
 def file_contains_pattern(file, pattern):
     """Return true if file contains the specified egrep pattern"""
     if not os.path.isfile(file):
         raise NameError('file %s does not exist' % file)
-    return not utils.system('egrep -q "' + pattern + '" ' + file, ignore_status=True)
+    return not system('egrep -q "' + pattern + '" ' + file, ignore_status=True)
 
 
 def list_grep(list, pattern):
@@ -184,10 +188,10 @@ def get_vmlinux():
 
     Ahem. This is crap. Pray harder. Bad Martin.
     """
-    vmlinux = '/boot/vmlinux-%s' % utils.system_output('uname -r')
+    vmlinux = '/boot/vmlinux-%s' % system_output('uname -r')
     if os.path.isfile(vmlinux):
         return vmlinux
-    vmlinux = '/lib/modules/%s/build/vmlinux' % utils.system_output('uname -r')
+    vmlinux = '/lib/modules/%s/build/vmlinux' % system_output('uname -r')
     if os.path.isfile(vmlinux):
         return vmlinux
     return None
@@ -198,10 +202,10 @@ def get_systemmap():
 
     Ahem. This is crap. Pray harder. Bad Martin.
     """
-    map = '/boot/System.map-%s' % utils.system_output('uname -r')
+    map = '/boot/System.map-%s' % system_output('uname -r')
     if os.path.isfile(map):
         return map
-    map = '/lib/modules/%s/build/System.map' % utils.system_output('uname -r')
+    map = '/lib/modules/%s/build/System.map' % system_output('uname -r')
     if os.path.isfile(map):
         return map
     return None
@@ -209,7 +213,7 @@ def get_systemmap():
 
 def get_modules_dir():
     """Return the modules dir for the running kernel version"""
-    kernel_version = utils.system_output('uname -r')
+    kernel_version = system_output('uname -r')
     return '/lib/modules/%s/kernel' % kernel_version
 
 
@@ -241,7 +245,7 @@ def get_current_kernel_arch():
 
 def get_file_arch(filename):
     # -L means follow symlinks
-    file_data = utils.system_output('file -L ' + filename)
+    file_data = system_output('file -L ' + filename)
     if file_data.count('80386'):
         return 'i386'
     return None
@@ -259,7 +263,7 @@ def count_cpus():
 
 # Returns total memory in kb
 def read_from_meminfo(key):
-    meminfo = utils.system_output('grep %s /proc/meminfo' % key)
+    meminfo = system_output('grep %s /proc/meminfo' % key)
     return int(re.search(r'\d+', meminfo).group(0))
 
 
@@ -272,9 +276,9 @@ def freememtotal():
 
 
 def rounded_memtotal():
-    # Get total of all physical mem, in Kbytes
-    usable_Kbytes = memtotal()
-    # usable_Kbytes is system's usable DRAM in Kbytes,
+    # Get total of all physical mem, in kbytes
+    usable_kbytes = memtotal()
+    # usable_kbytes is system's usable DRAM in kbytes,
     #   as reported by memtotal() from device /proc/meminfo memtotal
     #   after Linux deducts 1.5% to 5.1% for system table overhead
     # Undo the unknown actual deduction by rounding up
@@ -290,26 +294,26 @@ def rounded_memtotal():
     #   tighter spread between min and max possible deductions
 
     # increase mem size by at least min deduction, without rounding
-    min_Kbytes   = int(usable_Kbytes / (1.0 - mindeduct))
+    min_kbytes   = int(usable_kbytes / (1.0 - mindeduct))
     # increase mem size further by 2**n rounding, by 0..roundKb or more
-    round_Kbytes = int(usable_Kbytes / (1.0 - maxdeduct)) - min_Kbytes
+    round_kbytes = int(usable_kbytes / (1.0 - maxdeduct)) - min_kbytes
     # find least binary roundup 2**n that covers worst-cast roundKb
-    mod2n = 1 << int(math.ceil(math.log(round_Kbytes, 2)))
-    # have round_Kbytes <= mod2n < round_Kbytes*2
-    # round min_Kbytes up to next multiple of mod2n
-    phys_Kbytes = min_Kbytes + mod2n - 1
-    phys_Kbytes = phys_Kbytes - (phys_Kbytes % mod2n)  # clear low bits
-    return phys_Kbytes
+    mod2n = 1 << int(math.ceil(math.log(round_kbytes, 2)))
+    # have round_kbytes <= mod2n < round_kbytes*2
+    # round min_kbytes up to next multiple of mod2n
+    phys_kbytes = min_kbytes + mod2n - 1
+    phys_kbytes = phys_kbytes - (phys_kbytes % mod2n)  # clear low bits
+    return phys_kbytes
 
 
 def sysctl_kernel(key, value=None):
     """(Very) partial implementation of sysctl, for kernel params"""
     if value:
         # write
-        utils.write_one_line('/proc/sys/kernel/%s' % key, str(value))
+        write_one_line('/proc/sys/kernel/%s' % key, str(value))
     else:
         # read
-        out = utils.read_one_line('/proc/sys/kernel/%s' % key)
+        out = read_one_line('/proc/sys/kernel/%s' % key)
         return int(re.search(r'\d+', out).group(0))
 
 
@@ -401,7 +405,7 @@ def running_config():
     """
     Return path of config file of the currently running kernel
     """
-    version = utils.system_output('uname -r')
+    version = system_output('uname -r')
     for config in ('/proc/config.gz', \
                    '/boot/config-%s' % version,
                    '/lib/modules/%s/build/.config' % version):
@@ -422,7 +426,7 @@ def check_for_kernel_feature(feature):
         grep = 'grep'
     grep += ' ^CONFIG_%s= %s' % (feature, config)
 
-    if not utils.system_output(grep, ignore_status=True):
+    if not system_output(grep, ignore_status=True):
         raise ValueError("Kernel doesn't have a %s feature" % (feature))
 
 
@@ -445,7 +449,7 @@ def check_glibc_ver(ver):
                                                 (glibc_ver, ver))
 
 def check_kernel_ver(ver):
-    kernel_ver = utils.system_output('uname -r')
+    kernel_ver = system_output('uname -r')
     kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
     if kv_tmp[0].split('.') < ver.split('.'):
         raise error.TestError("Kernel too old (%s). Kernel > %s is needed." % \
@@ -528,7 +532,7 @@ def disk_block_size(path):
 
 
 def get_cpu_family():
-    procinfo = utils.system_output('cat /proc/cpuinfo')
+    procinfo = system_output('cat /proc/cpuinfo')
     CPU_FAMILY_RE = re.compile(r'^cpu family\s+:\s+(\S+)', re.M)
     matches = CPU_FAMILY_RE.findall(procinfo)
     if matches:
@@ -538,7 +542,7 @@ def get_cpu_family():
 
 
 def get_disks():
-    df_output = utils.system_output('df')
+    df_output = system_output('df')
     disk_re = re.compile(r'^(/dev/hd[a-z]+)3', re.M)
     return disk_re.findall(df_output)
 
@@ -548,17 +552,17 @@ def load_module(module_name):
     if module_is_loaded(module_name):
         return False
 
-    utils.system('/sbin/modprobe ' + module_name)
+    system('/sbin/modprobe ' + module_name)
     return True
 
 
 def unload_module(module_name):
-    utils.system('/sbin/rmmod ' + module_name)
+    system('/sbin/rmmod ' + module_name)
 
 
 def module_is_loaded(module_name):
     module_name = module_name.replace('-', '_')
-    modules = utils.system_output('/sbin/lsmod').splitlines()
+    modules = system_output('/sbin/lsmod').splitlines()
     for module in modules:
         if module.startswith(module_name) and module[len(module_name)] == ' ':
             return True
@@ -566,22 +570,22 @@ def module_is_loaded(module_name):
 
 
 def get_loaded_modules():
-    lsmod_output = utils.system_output('/sbin/lsmod').splitlines()[1:]
+    lsmod_output = system_output('/sbin/lsmod').splitlines()[1:]
     return [line.split(None, 1)[0] for line in lsmod_output]
 
 
 def get_huge_page_size():
-    output = utils.system_output('grep Hugepagesize /proc/meminfo')
+    output = system_output('grep Hugepagesize /proc/meminfo')
     return int(output.split()[1]) # Assumes units always in kB. :(
 
 
 def get_num_huge_pages():
-    raw_hugepages = utils.system_output('/sbin/sysctl vm.nr_hugepages')
+    raw_hugepages = system_output('/sbin/sysctl vm.nr_hugepages')
     return int(raw_hugepages.split()[2])
 
 
 def set_num_huge_pages(num):
-    utils.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
+    system('/sbin/sysctl vm.nr_hugepages=%d' % num)
 
 
 def get_system_nodes():
@@ -601,11 +605,11 @@ def get_cpu_vendor():
 
 def probe_cpus():
     """
-        This routine returns a list of cpu devices found under /sys/devices/system/cpu.
+    This routine returns a list of cpu devices found under
+    /sys/devices/system/cpu.
     """
-    output = utils.system_output(
-               'find /sys/devices/system/cpu/ -maxdepth 1 -type d -name cpu*')
-    return output.splitlines()
+    cmd = 'find /sys/devices/system/cpu/ -maxdepth 1 -type d -name cpu*'
+    return system_output(cmd).splitlines()
 
 
 def ping_default_gateway():
@@ -617,14 +621,16 @@ def ping_default_gateway():
     if m:
         gw = m.group(1)
         cmd = 'ping %s -c 5 > /dev/null' % gw
-        return utils.system(cmd, ignore_status=True)
+        return system(cmd, ignore_status=True)
 
     raise error.TestError('Unable to find default gateway')
 
 
 def drop_caches():
     """Writes back all dirty pages to disk and clears all the caches."""
-    utils.system("sync")
-    utils.system("sync")
+    system("sync")
+    system("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
-    utils.system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
+    system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
+
+

@@ -1,8 +1,8 @@
 __author__ = """Copyright Google, Peter Dahl, Martin J. Bligh   2007"""
 
 import os, sys, re, glob, math
-from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib import error
 
 super_root = "/dev/cpuset"
 
@@ -69,12 +69,12 @@ def my_available_exclusive_mem_nodes():
 
 def mbytes_per_mem_node():
     # Get mbyte size of each numa mem node, as float
-    # Replaces autotest_utils.node_size().
+    # Replaces utils.node_size().
     # Based on guessed total physical mem size, not on kernel's
     #   lesser 'available memory' after various system tables.
     # Can be non-integer when kernel sets up 15 nodes instead of 16.
-    nodecnt = len(autotest_utils.numa_nodes())
-    return autotest_utils.rounded_memtotal() / (nodecnt * 1024.0)
+    nodecnt = len(utils.numa_nodes())
+    return utils.rounded_memtotal() / (nodecnt * 1024.0)
 
 
 def get_cpus(container_full_name):
@@ -102,7 +102,7 @@ def print_one_cpuset(name):
     memtotal = node_size_ * len(rangelist_to_list(mems))
     tasks = ','.join(get_tasks(dir))
     print "cpuset %s: size %s; tasks %s; cpus %s; mems %s" % \
-          (name, autotest_utils.human_format(memtotal), tasks, cpus, mems)
+          (name, utils.human_format(memtotal), tasks, cpus, mems)
 
 
 def print_all_cpusets():

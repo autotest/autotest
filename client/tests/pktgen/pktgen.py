@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class pktgen(test.test):
@@ -47,6 +47,6 @@ class pktgen(test.test):
         file.write(command + '\n');
         file.close
 
-        if not autotest_utils.grep('Result: OK', self.pgdev):
-            if not autotest_utils.grep('Result: NA', self.pgdev):
+        if not utils.grep('Result: OK', self.pgdev):
+            if not utils.grep('Result: NA', self.pgdev):
                 utils.system('cat ' + self.pgdev)

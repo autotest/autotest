@@ -4,10 +4,10 @@
 
 import unittest, os, socket, time, sys
 import common
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 from autotest_lib.client.bin.net import net_tc, net_utils, net_utils_mock
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import error
 
 class TestNetUtils(unittest.TestCase):
     def setUp(self):

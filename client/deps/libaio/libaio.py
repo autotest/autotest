@@ -2,14 +2,13 @@
 
 import os
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 
 version = 1
 
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
-    autotest_utils.extract_tarball_to_dir(tarball, srcdir)
+    utils.extract_tarball_to_dir(tarball, srcdir)
     os.chdir(srcdir)
     utils.system ('make')
     utils.system ('make prefix=%s install' % topdir)

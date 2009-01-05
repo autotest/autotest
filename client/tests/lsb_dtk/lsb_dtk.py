@@ -1,9 +1,9 @@
 # Wrapper to LSB testsuite
 # Copyright 2008, IBM Corp.
 import os, glob, re
-from autotest_lib.client.bin import test, autotest_utils, package
+from autotest_lib.client.bin import test, utils, package
 from autotest_lib.client.bin.test_config import config_loader
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import error
 
 
 __author__ = '''
@@ -14,7 +14,7 @@ lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)
 class lsb_dtk(test.test):
     version = 1
     def get_lsb_arch(self):
-        self.arch = autotest_utils.get_current_kernel_arch()
+        self.arch = utils.get_current_kernel_arch()
         if self.arch in ['i386', 'i486', 'i586', 'i686', 'athlon']:
             return 'ia32'
         elif self.arch == 'ppc':
@@ -35,7 +35,7 @@ class lsb_dtk(test.test):
         self.dtk_md5 = my_config.get('dtk-manager', 'md5-%s' % self.get_lsb_arch())
         if self.dtk_md5:
             print 'Caching LSB DTK manager RPM'
-            self.dtk_manager_pkg = autotest_utils.unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
+            self.dtk_manager_pkg = utils.unmap_url_cache(cachedir, self.dtk_manager_url, self.dtk_md5)
         else:
             raise error.TestError('Could not find DTK manager package md5, cannot cache DTK manager tarball')
 
@@ -50,11 +50,11 @@ class lsb_dtk(test.test):
         self.lsb_md5 = my_config.get('lsb', self.md5_key)
         if self.lsb_md5:
             print 'Caching LSB tarball'
-            self.lsb_pkg = autotest_utils.unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
+            self.lsb_pkg = utils.unmap_url_cache(self.cachedir, self.lsb_url, self.lsb_md5)
         else:
             raise error.TestError('Could not find LSB package md5, cannot cache LSB tarball')
 
-        autotest_utils.extract_tarball_to_dir(self.lsb_pkg, srcdir)
+        utils.extract_tarball_to_dir(self.lsb_pkg, srcdir)
 
         # Lets load a file that contains the list of RPMs
         os.chdir(srcdir)

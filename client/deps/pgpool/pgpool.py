@@ -2,8 +2,7 @@
 
 import os
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 
 version = 1
 
@@ -13,13 +12,13 @@ def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     if not os.path.exists(tarball):
         utils.get_file('http://pgfoundry.org/frs/download.php/1083/pgpool-II-1.0.1.tar.gz', tarball)
-    autotest_utils.extract_tarball_to_dir(tarball, 'src')
+    utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     # FIXEME - Waiting to be able to use self.autodir instead of
     # os.environ['AUTODIR']
     utils.system('./configure --prefix=%s/pgpool --with-pgsql=%s/deps/pgsql/pgsql' \
                     % (topdir, os.environ['AUTODIR']))
-    utils.system('make -j %d' % autotest_utils.count_cpus())
+    utils.system('make -j %d' % utils.count_cpus())
     utils.system('make install')
 
     os.chdir(topdir)

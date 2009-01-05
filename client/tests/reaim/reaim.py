@@ -1,7 +1,6 @@
 # Needs autoconf & automake & libtool to be installed. Ewwwwwwwwwwwwwwwwwwwwww
 import re, os
-from autotest_lib.client.bin import test, autotest_utils, os_dep
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils, os_dep
 
 
 class reaim(test.test):
@@ -10,7 +9,7 @@ class reaim(test.test):
     # http://prdownloads.sourceforge.net/re-aim-7/osdl-aim-7.0.1.13.tar.gz
     def setup(self, tarball = 'osdl-aim-7.0.1.13.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])
         libs = '-L' + self.autodir + '/deps/libaio/lib -laio'

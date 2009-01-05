@@ -1,6 +1,6 @@
 import time, os
-from autotest_lib.client.bin import test, os_dep, autotest_utils
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.bin import test, os_dep, utils
+from autotest_lib.client.common_lib import error
 
 
 class btreplay(test.test):
@@ -9,7 +9,7 @@ class btreplay(test.test):
     # http://brick.kernel.dk/snaps/blktrace-git-latest.tar.gz
     def setup(self, tarball = 'blktrace-git-latest.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
 
         self.job.setup_dep(['libaio'])
         libs = '-L' + self.autodir + '/deps/libaio/lib -laio'

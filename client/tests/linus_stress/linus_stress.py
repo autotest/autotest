@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class linus_stress(test.test):
@@ -23,7 +22,7 @@ class linus_stress(test.test):
         utils.write_one_line('/proc/sys/vm/dirty_background_ratio', '2')
 
         cmd = os.path.join(self.srcdir, 'linus_stress')
-        args = "%d" % (autotest_utils.memtotal() / 32)
+        args = "%d" % (utils.memtotal() / 32)
 
         profilers = self.job.profilers
         if profilers.present():

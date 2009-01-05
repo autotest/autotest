@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import os, re
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class iozone(test.test):
@@ -14,10 +13,10 @@ class iozone(test.test):
     # http://www.iozone.org/src/current/iozone3_283.tar
     def setup(self, tarball='iozone3_283.tar'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(os.path.join(self.srcdir, 'src/current'))
 
-        arch = autotest_utils.get_current_kernel_arch()
+        arch = utils.get_current_kernel_arch()
         if (arch == 'ppc'):
             utils.system('make linux-powerpc')
         elif (arch == 'ppc64'):

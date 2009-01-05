@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class spew(test.test):
@@ -13,7 +12,7 @@ class spew(test.test):
     # ftp://ftp.berlios.de/pub/spew/1.0.5/spew-1.0.5.tgz
     def setup(self, tarball = 'spew-1.0.5.tgz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
         utils.system('./configure')

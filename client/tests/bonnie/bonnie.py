@@ -1,6 +1,5 @@
 import os, re
-from autotest_lib.client.bin import test, os_dep, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, os_dep, utils
 
 
 def convert_size(values):
@@ -34,7 +33,7 @@ class bonnie(test.test):
     # http://www.coker.com.au/bonnie++/bonnie++-1.03a.tgz
     def setup(self, tarball = 'bonnie++-1.03a.tgz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         os_dep.command('g++')

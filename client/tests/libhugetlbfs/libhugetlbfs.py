@@ -1,6 +1,6 @@
 import re, os
-from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils, test
+from autotest_lib.client.common_lib import error
 
 class libhugetlbfs(test.test):
     version = 6
@@ -8,7 +8,7 @@ class libhugetlbfs(test.test):
     def initialize(self, dir = None, pages_requested = 20):
         self.job.require_gcc()
 
-        autotest_utils.check_kernel_ver("2.6.16")
+        utils.check_kernel_ver("2.6.16")
 
         # Check huge page number
         pages_available = 0
@@ -24,7 +24,7 @@ class libhugetlbfs(test.test):
             raise error.TestError('%d huge pages available, < %d pages requested' % (pages_available, pages_requested))
 
         # Check if hugetlbfs has been mounted
-        if not autotest_utils.file_contains_pattern('/proc/mounts', 'hugetlbfs'):
+        if not utils.file_contains_pattern('/proc/mounts', 'hugetlbfs'):
             if not dir:
                 dir = os.path.join(self.tmpdir, 'hugetlbfs')
                 os.makedirs(dir)
@@ -35,7 +35,7 @@ class libhugetlbfs(test.test):
     # http://libhugetlbfs.ozlabs.org/releases/libhugetlbfs-2.0.tar.gz
     def setup(self, tarball = 'libhugetlbfs-2.0.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         # make might fail if there are no proper headers for the 32 bit

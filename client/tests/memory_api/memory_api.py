@@ -3,8 +3,8 @@ import subprocess
 import re
 import commands
 
-from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.bin import utils, test
+from autotest_lib.client.common_lib import error
 
 class memory_api(test.test):
    version = 1

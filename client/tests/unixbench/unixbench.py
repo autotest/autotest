@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class unixbench(test.test):
@@ -16,7 +16,7 @@ class unixbench(test.test):
     # http://www.tux.org/pub/tux/niemi/unixbench/unixbench-4.1.0.tgz
     def setup(self, tarball = 'unixbench-4.1.0.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('patch -p1 < ../unixbench.patch')
