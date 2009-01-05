@@ -2,8 +2,8 @@
 # the repo.
 
 import shutil, os
-from autotest_lib.client.bin import autotest_utils, kernel_versions
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.bin import utils, kernel_versions
+from autotest_lib.client.common_lib import error
 
 def apply_overrides(orig_file, changes_file, output_file):
     override = dict()
@@ -44,8 +44,7 @@ def diff_configs(old, new):
 
 
 def modules_needed(config):
-    return (autotest_utils.grep('CONFIG_MODULES=y', config)
-            and autotest_utils.grep('=m', config))
+    return (utils.grep('CONFIG_MODULES=y', config) and utils.grep('=m', config))
 
 
 def config_by_name(name, set):

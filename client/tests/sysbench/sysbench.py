@@ -1,6 +1,6 @@
 import os, time, re, pwd
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class sysbench(test.test):
@@ -13,7 +13,7 @@ class sysbench(test.test):
     # http://osdn.dl.sourceforge.net/sourceforge/sysbench/sysbench-0.4.8.tar.gz
     def setup(self, tarball = 'sysbench-0.4.8.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         self.job.setup_dep(['pgsql', 'mysql'])
 
         os.chdir(self.srcdir)
@@ -25,17 +25,17 @@ class sysbench(test.test):
         utils.system(
             'PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql'
             % (pgsql_dir, mysql_dir))
-        utils.system('make -j %d' % autotest_utils.count_cpus())
+        utils.system('make -j %d' % utils.count_cpus())
 
 
     def run_once(self, db_type = 'pgsql', build = 1, \
-                    num_threads = autotest_utils.count_cpus(), max_time = 60, \
+                    num_threads = utils.count_cpus(), max_time = 60, \
                     read_only = 0, args = ''):
         plib = os.path.join(self.autodir, 'deps/pgsql/pgsql/lib')
         mlib = os.path.join(self.autodir, 'deps/mysql/mysql/lib/mysql')
-        ld_path = autotest_utils.prepend_path(plib,
-            autotest_utils.environ('LD_LIBRARY_PATH'))
-        ld_path = autotest_utils.prepend_path(mlib, ld_path)
+        ld_path = utils.prepend_path(plib,
+            utils.environ('LD_LIBRARY_PATH'))
+        ld_path = utils.prepend_path(mlib, ld_path)
         os.environ['LD_LIBRARY_PATH'] = ld_path
 
         # The databases don't want to run as root so run them as nobody

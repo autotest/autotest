@@ -9,8 +9,8 @@ procedure, calculated as a ratio between the number of ticks and the length of
 the procedure. The output is filled with blanks to ease readability.
 """
 import os, shutil
-from autotest_lib.client.bin import autotest_utils, profiler
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils, profiler
+from autotest_lib.client.common_lib import error
 
 class readprofile(profiler.profiler):
     version = 1
@@ -18,7 +18,7 @@ class readprofile(profiler.profiler):
 # http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
     def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('./configure')
@@ -51,7 +51,7 @@ class readprofile(profiler.profiler):
 
     def report(self, test):
         args  = ' -n'
-        args += ' -m ' + autotest_utils.get_systemmap()
+        args += ' -m ' + utils.get_systemmap()
         args += ' -p ' + self.rawprofile
         cmd = self.cmd + ' ' + args
         txtprofile = test.profdir + '/profile.text'

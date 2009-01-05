@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils, test
+from autotest_lib.client.common_lib import error
 
 class ltp(test.test):
     version = 4
@@ -12,7 +12,7 @@ class ltp(test.test):
     # http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
     def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('patch -p1 < ../ltp.patch')
@@ -24,7 +24,7 @@ class ltp(test.test):
             utils.system('patch -p1 < ../ltp_capability.patch')
 
         utils.system('cp ../scan.c pan/')   # saves having lex installed
-        utils.system('make -j %d' % autotest_utils.count_cpus())
+        utils.system('make -j %d' % utils.count_cpus())
         utils.system('yes n | make install')
 
 

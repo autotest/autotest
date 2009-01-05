@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils, os_dep
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils, os_dep
 
 
 class rttester(test.test):
@@ -10,7 +9,7 @@ class rttester(test.test):
 
     def setup(self, tarball = 'rttester.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
 
     def execute(self):
         os.chdir(self.srcdir)

@@ -19,8 +19,8 @@
 import fcntl, os, re, sys, shutil, tarfile, tempfile, time, traceback
 import warnings
 
-from autotest_lib.client.common_lib import error, utils, packages, debug
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error, packages, debug
+from autotest_lib.client.bin import utils
 
 
 class base_test:
@@ -101,7 +101,7 @@ class base_test:
     def drop_caches_between_iterations(self):
         if self.job.drop_caches_between_iterations:
             print "Dropping caches between iterations"
-            autotest_utils.drop_caches()
+            utils.drop_caches()
 
 
     def execute(self, iterations=None, test_length=None, *args, **dargs):

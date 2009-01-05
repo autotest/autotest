@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import unittest, os, socket, time, sys, struct
 import common
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.bin import utils
 from autotest_lib.client.bin.net import net_utils, net_utils_mock
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import error
 
 
 class TestNetUtils(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestNetUtils(unittest.TestCase):
         self.god = mock.mock_god()
         self.god.stub_function(utils, "system")
         self.god.stub_function(utils, "system_output")
-        self.god.stub_function(autotest_utils, "module_is_loaded")
+        self.god.stub_function(utils, "module_is_loaded")
         self.god.stub_function(net_utils, "open")
         self.god.stub_function(time, 'sleep')
 
@@ -962,23 +962,23 @@ class TestNetUtils(unittest.TestCase):
 
 
     def test_bonding_wait_for_state_change(self):
-        self.god.stub_function(autotest_utils, "ping_default_gateway")
+        self.god.stub_function(utils, "ping_default_gateway")
 
         time.sleep.expect_call(10)
-        autotest_utils.ping_default_gateway.expect_call().and_return(False)
+        utils.ping_default_gateway.expect_call().and_return(False)
         self.assertEquals(net_utils.bond().wait_for_state_change(), True)
 
         for x in xrange(9):
             time.sleep.expect_call(10)
-            autotest_utils.ping_default_gateway.expect_call().and_return(True)
+            utils.ping_default_gateway.expect_call().and_return(True)
 
         time.sleep.expect_call(10)
-        autotest_utils.ping_default_gateway.expect_call().and_return(False)
+        utils.ping_default_gateway.expect_call().and_return(False)
         self.assertEquals(net_utils.bond().wait_for_state_change(), True)
 
         for x in xrange(10):
             time.sleep.expect_call(10)
-            autotest_utils.ping_default_gateway.expect_call().and_return(True)
+            utils.ping_default_gateway.expect_call().and_return(True)
 
         self.assertEquals(net_utils.bond().wait_for_state_change(), False)
 

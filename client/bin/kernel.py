@@ -1,8 +1,8 @@
 import os, shutil, copy, pickle, re, glob, time
 from autotest_lib.client.bin.fd_stack import tee_output_logdir_mark
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
-from autotest_lib.client.bin import autotest_utils
-from autotest_lib.client.common_lib import log, utils, error, packages
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib import log, error, packages
 
 
 class kernel(object):
@@ -84,7 +84,7 @@ class kernel(object):
         self.build_target = 'bzImage'
         self.build_image = None
 
-        arch = autotest_utils.get_current_kernel_arch()
+        arch = utils.get_current_kernel_arch()
         if arch == 's390' or arch == 's390x':
             self.build_target = 'image'
         elif arch == 'ia64':
@@ -190,12 +190,12 @@ class kernel(object):
             if local.endswith('.bz2') or local.endswith('.gz'):
                 ref = spec
             else:
-                ref = autotest_utils.force_copy(local, self.results_dir)
+                ref = utils.force_copy(local, self.results_dir)
                 ref = self.job.relative_path(ref)
             patch_id = "%s %s %s" % (spec, ref, md5sum)
             log = "PATCH: " + patch_id + "\n"
             print log
-            autotest_utils.cat_file_to_cmd(local, 'patch -p1 > /dev/null')
+            utils.cat_file_to_cmd(local, 'patch -p1 > /dev/null')
             self.logfile.write(log)
             self.applied_patches.append(patch_id)
 
@@ -215,7 +215,7 @@ class kernel(object):
             tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
             utils.get_file(base_tree, tarball)
             print 'Extracting kernel tarball:', tarball, '...'
-            autotest_utils.extract_tarball_to_dir(tarball, self.build_dir)
+            utils.extract_tarball_to_dir(tarball, self.build_dir)
 
 
     def extraversion(self, tag, append=1):
@@ -248,7 +248,7 @@ class kernel(object):
 
         # Not needed on 2.6, but hard to tell -- handle failure
         utils.system('make dep', ignore_status=True)
-        threads = 2 * autotest_utils.count_cpus()
+        threads = 2 * utils.count_cpus()
         build_string = 'make -j %d %s %s' % (threads, make_opts,
                                      self.build_target)
                                 # eg make bzImage, or make zImage
@@ -261,7 +261,7 @@ class kernel(object):
         kernel_version = re.sub('-autotest', '', kernel_version)
         self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
 
-        autotest_utils.force_copy(self.build_dir+'/System.map',
+        utils.force_copy(self.build_dir+'/System.map',
                                   self.results_dir)
 
 
@@ -307,7 +307,7 @@ class kernel(object):
                 initrd
                         initrd image file to build
         """
-        vendor = autotest_utils.get_os_vendor()
+        vendor = utils.get_os_vendor()
 
         if os.path.isfile(initrd):
             print "Existing %s file, will remove it." % initrd
@@ -375,11 +375,11 @@ class kernel(object):
         self.initrd = ''
 
         # copy to boot dir
-        autotest_utils.force_copy('vmlinux', self.vmlinux)
+        utils.force_copy('vmlinux', self.vmlinux)
         if (self.build_image != 'vmlinux'):
-            autotest_utils.force_copy(self.build_image, self.image)
-        autotest_utils.force_copy('System.map', self.system_map)
-        autotest_utils.force_copy('.config', self.config_file)
+            utils.force_copy(self.build_image, self.image)
+        utils.force_copy('System.map', self.system_map)
+        utils.force_copy('.config', self.config_file)
 
         if not kernel_config.modules_needed('.config'):
             return
@@ -428,7 +428,7 @@ class kernel(object):
         Work out the current kernel architecture (as a kernel arch)
         """
         if not arch:
-            arch = autotest_utils.get_current_kernel_arch()
+            arch = utils.get_current_kernel_arch()
         if re.match('i.86', arch):
             return 'i386'
         elif re.match('sun4u', arch):
@@ -557,7 +557,7 @@ class kernel(object):
 
         # If no 'target_arch' given assume native compilation
         if target_arch is None:
-            target_arch = autotest_utils.get_current_kernel_arch()
+            target_arch = utils.get_current_kernel_arch()
             if target_arch == 'ppc64':
                 if self.build_target == 'bzImage':
                     self.build_target = 'vmlinux'

@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 # tests is a simple array of "cmd" "arguments"
@@ -33,8 +32,8 @@ class aio_dio_bugs(test.test):
     def execute(self, args = ''):
         os.chdir(self.tmpdir)
         libs = self.autodir + '/deps/libaio/lib/'
-        ld_path = autotest_utils.prepend_path(libs,
-                              autotest_utils.environ('LD_LIBRARY_PATH'))
+        ld_path = utils.prepend_path(libs,
+                              utils.environ('LD_LIBRARY_PATH'))
         var_ld_path = 'LD_LIBRARY_PATH=' + ld_path
         for test in tests:
             cmd = self.srcdir + '/' + test[name] + ' ' + args + ' ' \

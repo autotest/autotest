@@ -4,8 +4,8 @@ This library is to release in the public repository.
 """
 
 import commands, os, re, socket, sys, time, struct
-from autotest_lib.client.common_lib import error, utils
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import utils
 
 TIMEOUT = 10 # Used for socket timeout and barrier timeout
 
@@ -414,7 +414,7 @@ class bonding(object):
         wait_time = 0
         while wait_time < 100:
             time.sleep(10)
-            if not autotest_utils.ping_default_gateway():
+            if not utils.ping_default_gateway():
                 return True
             wait_time += 10
         return False

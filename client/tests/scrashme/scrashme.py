@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class scrashme(test.test):
@@ -13,7 +12,7 @@ class scrashme(test.test):
     # http://www.codemonkey.org.uk/projects/git-snapshots/scrashme/scrashme-2007-07-08.tar.gz
     def setup(self, tarball = 'scrashme-2007-07-08.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         utils.system('make')
 

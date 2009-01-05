@@ -1,6 +1,5 @@
 import re, pickle, os
-from autotest_lib.client.bin import autotest_utils, test
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import utils, test
 
 
 class kernbench(test.test):
@@ -21,7 +20,7 @@ class kernbench(test.test):
         # On ia64, we default to 2.6.20, as it can't compile 2.6.14.
         if version:
             default_ver = version
-        elif autotest_utils.get_current_kernel_arch() == 'ia64':
+        elif utils.get_current_kernel_arch() == 'ia64':
             default_ver = '2.6.20'
         else:
             default_ver = '2.6.14'
@@ -80,6 +79,6 @@ class kernbench(test.test):
 
     def __format_results(self, results):
         out = open('keyval', 'w')
-        for result in autotest_utils.extract_all_time_results(results):
+        for result in utils.extract_all_time_results(results):
             print >> out, "user=%s\nsystem=%s\nelapsed=%s\n" % result
         out.close()

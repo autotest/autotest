@@ -9,7 +9,7 @@ class netperf2(test.test):
     # ftp://ftp.netperf.org/netperf/netperf-2.4.4.tar.gz
     def setup(self, tarball = 'netperf-2.4.4.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         # Fixing up a compile issue under newer systems that have

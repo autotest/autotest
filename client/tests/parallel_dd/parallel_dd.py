@@ -1,6 +1,6 @@
 import os, re, time, subprocess, sys
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class parallel_dd(test.test):

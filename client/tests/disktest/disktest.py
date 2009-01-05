@@ -1,6 +1,6 @@
 import os, sys, subprocess
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 
 class disktest(test.test):
@@ -29,7 +29,7 @@ class disktest(test.test):
 
 
     def execute(self, disks = None, gigabytes = None,
-                            chunk_mb = autotest_utils.memtotal() / 1024):
+                            chunk_mb = utils.memtotal() / 1024):
         os.chdir(self.srcdir)
 
         if not disks:
@@ -37,13 +37,13 @@ class disktest(test.test):
         if not gigabytes:
             free = 100       # cap it at 100GB by default
             for disk in disks:
-                free = min(autotest_utils.freespace(disk) / 1024**3, free)
+                free = min(utils.freespace(disk) / 1024**3, free)
             gigabytes = free
             print "resizing to %s GB" % gigabytes
             sys.stdout.flush()
 
         self.chunk_mb = chunk_mb
-        self.memory_mb = autotest_utils.memtotal()/1024
+        self.memory_mb = utils.memtotal()/1024
         if self.memory_mb > chunk_mb:
             e_msg = "Too much RAM (%dMB) for this test to work" % self.memory_mb
             raise error.TestError(e_msg)

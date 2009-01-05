@@ -1,6 +1,4 @@
 #!/usr/bin/python
-
-from autotest_lib.client.bin import autotest_utils
 import os
 
 stdout = fd_stack(1, sys.stdout)

@@ -1,6 +1,6 @@
 import os, time
-from autotest_lib.client.bin import test, autotest_utils, cpuset
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import test, utils, cpuset
+from autotest_lib.client.common_lib import error
 
 
 class shrink_slab(test.test):
@@ -29,7 +29,7 @@ class shrink_slab(test.test):
     def test1(self):
         # Check that slab is reclaimed from the current container when there is
         # memory pressure.
-        autotest_utils.drop_caches()
+        utils.drop_caches()
         utils.system('rm -rf %s/*' % self.tmpdir)
         os.chdir(self.tmpdir)
 
@@ -54,7 +54,7 @@ class shrink_slab(test.test):
     def test2(self):
         # Check that slab is not reclaimed from the main container when there is
         # memory pressure in another container.
-        autotest_utils.drop_caches()
+        utils.drop_caches()
         utils.system('rm -rf %s/*' % self.tmpdir)
         os.chdir(self.tmpdir)
 

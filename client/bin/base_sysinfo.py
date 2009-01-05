@@ -1,7 +1,7 @@
 import os, shutil, re, glob, subprocess
 
-from autotest_lib.client.common_lib import utils, log
-from autotest_lib.client.bin import autotest_utils
+from autotest_lib.client.common_lib import log
+from autotest_lib.client.bin import utils
 
 
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
@@ -276,7 +276,7 @@ class base_sysinfo(object):
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
 
         # guess the system's total physical memory, including sys tables
-        keyval["sysinfo-phys-mbytes"] = autotest_utils.rounded_memtotal()//1024
+        keyval["sysinfo-phys-mbytes"] = utils.rounded_memtotal()//1024
 
         # return what we collected
         return keyval

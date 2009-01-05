@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 # Dbt-2 is a fair-use implementation of the TPC-C benchmark.  The test is
@@ -16,7 +15,7 @@ class dbt2(test.test):
     # http://osdn.dl.sourceforge.net/sourceforge/osdldbt/dbt2-0.39.tar.gz
     def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         self.job.setup_dep(['pgsql', 'pgpool', 'mysql'])
 
         #

@@ -4,8 +4,7 @@
 #       Autotest script for running Xen xm-test
 #       This should be run from a Xen domain0
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class xmtest(test.test):
@@ -23,7 +22,7 @@ class xmtest(test.test):
     # tar -czf xm-test.tgz xm-test
     def setup(self, tarball = 'xm-test.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('./autogen')

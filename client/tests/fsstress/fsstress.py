@@ -1,7 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
-
+from autotest_lib.client.bin import test, utils
 
 
 class fsstress(test.test):
@@ -14,7 +12,7 @@ class fsstress(test.test):
     # http://www.zip.com.au/~akpm/linux/patches/stuff/ext3-tools.tar.gz
     def setup(self, tarball = 'ext3-tools.tar.gz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
         utils.system('patch -p1 < ../fsstress-ltp.patch')

@@ -1,7 +1,7 @@
 import sys, os, re, string
 
-from autotest_lib.client.bin import autotest_utils, fsinfo, fsdev_mgr
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.bin import utils, fsinfo, fsdev_mgr
+from autotest_lib.client.common_lib import error
 
 import partition
 
@@ -198,7 +198,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         disk["fs_opts"] = fs_mnt_opt
 
     # Try to wipe the file system slate clean
-    autotest_utils.drop_caches()
+    utils.drop_caches()
 
 
 # XXX(gps): Remove this code once refactoring is complete to get rid of these

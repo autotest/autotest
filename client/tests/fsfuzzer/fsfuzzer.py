@@ -1,6 +1,5 @@
 import os
-from autotest_lib.client.bin import test, autotest_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.bin import test, utils
 
 
 class fsfuzzer(test.test):
@@ -13,7 +12,7 @@ class fsfuzzer(test.test):
     # http://people.redhat.com/sgrubb/files/fsfuzzer-0.6.tar.gz
     def setup(self, tarball = 'fsfuzzer-0.6.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        autotest_utils.extract_tarball_to_dir(tarball, self.srcdir)
+        utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('make')
