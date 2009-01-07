@@ -9,12 +9,10 @@ class EmailNotificationManager(object):
         self._emails = []
 
         self._from_address = global_config.global_config.get_config_value(
-            CONFIG_SECTION, "notify_email_from")
-        if not self._from_address:
-            self._from_address = getpass.getuser()
+            CONFIG_SECTION, "notify_email_from", default=getpass.getuser())
 
         self._notify_address = global_config.global_config.get_config_value(
-            CONFIG_SECTION, "notify_email")
+            CONFIG_SECTION, "notify_email", default='')
 
 
     def send_email(self, to_string, subject, body):

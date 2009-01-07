@@ -38,18 +38,26 @@ class global_config(object):
         self.config = None
 
 
-    def get_config_value(self, section, key, type=str, default=None):
+    def _handle_no_value(self, section, key, default):
+        if default is None:
+            msg = ("Value '%s' not found in section '%s'" %
+                   (key, section))
+            raise ConfigError(msg)
+        else:
+            return default
+
+
+    def get_config_value(self, section, key, type=str, default=None,
+                         allow_blank=False):
         self._ensure_config_parsed()
 
         try:
             val = self.config.get(section, key)
-        except:
-            if default is None:
-                msg = ("Value '%s' not found in section '%s'" %
-                      (key, section))
-                raise ConfigError(msg)
-            else:
-                return default
+        except ConfigParser.Error:
+            return self._handle_no_value(section, key, default)
+
+        if not val.strip() and not allow_blank:
+            return self._handle_no_value(section, key, default)
 
         return self.convert_value(key, section, val, type, default)
 
