@@ -339,7 +339,8 @@ class AbstractSSHHost(site_host.SiteHost):
 
 class LoggerFile(object):
     def write(self, data):
-        debug.get_logger().debug(data)
+        if data:
+            debug.get_logger().debug(data.rstrip("\n"))
 
 
     def flush(self):
