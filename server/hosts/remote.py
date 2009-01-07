@@ -120,8 +120,7 @@ class RemoteHost(base_classes.Host):
                               "reboot command failed")
                 raise
             if wait:
-                self.wait_for_restart(timeout)
-                self.reboot_followup(**dargs)
+                self.wait_for_restart(timeout, **dargs)
 
         # if this is a full reboot-and-wait, run the reboot inside a group
         if wait:
@@ -136,13 +135,13 @@ class RemoteHost(base_classes.Host):
             self.job.profilers.handle_reboot(self)
 
 
-    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT, **dargs):
         """
         Wait for the host to come back from a reboot. This wraps the
         generic wait_for_restart implementation in a reboot group.
         """
         def reboot_func():
-            super(RemoteHost, self).wait_for_restart(timeout=timeout)
+            super(RemoteHost, self).wait_for_restart(timeout=timeout, **dargs)
         self.log_reboot(reboot_func)
 
 
