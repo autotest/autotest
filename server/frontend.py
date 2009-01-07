@@ -385,6 +385,9 @@ class AFE(RpcClient):
             return
 
         for test_status in test_statuses:
+            # SERVER_JOB is buggy, and often gives false failures. Ignore it.
+            if test_status.test_name == 'SERVER_JOB':
+                continue
             hostname = test_status.hostname
             if hostname not in job.test_status:
                 job.test_status[hostname] = TestResults()
@@ -440,7 +443,7 @@ class AFE(RpcClient):
             failed = len(platform_map[platform].get('Failed', []))
             if failed > 1:
                 bad_platforms.append(platform)
-            elif completed + 1 >= total:
+            elif (completed > 1) and (completed + 1 >= total):
                 # if all or all but one are good, call the job good.
                 good_platforms.append(platform)
             else:
