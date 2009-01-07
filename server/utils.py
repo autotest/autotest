@@ -23,38 +23,14 @@ __tmp_dirs = {}
 
 
 ############# we need pass throughs for the methods in client/common_lib/utils
-def run(command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None, verbose=True, stdin=None):
-    return utils.run(command, timeout, ignore_status,
-                     stdout_tee, stderr_tee, verbose, stdin=stdin)
 
-
-def system(command, timeout=None, ignore_status=False):
-    return utils.system(command, timeout, ignore_status)
-
-
-def system_output(command, timeout=None, ignore_status=False,
-                  retain_output=False):
-    return utils.system_output(command, timeout, ignore_status,
-                               retain_output)
-
-
-def urlopen(url, data=None, proxies=None, timeout=300):
-    return utils.urlopen(url, data=data, proxies=proxies, timeout=timeout)
-
-
-def urlretrieve(url, filename=None, reporthook=None, data=None, timeout=300):
-    return utils.urlretrieve(url, filename=filename, reporthook=reporthook,
-                             data=data, timeout=timeout)
-
-
-def read_keyval(path):
-    return utils.read_keyval(path)
-
-
-def write_keyval(path, dictionary):
-    return utils.write_keyval(path, dictionary)
-
+run = utils.run
+system = utils.system
+system_output = utils.system_output
+urlopen = utils.urlopen
+urlretrieve = utils.urlretrieve
+read_keyval = utils.read_keyval
+write_keyval = utils.write_keyval
 
 ####################################################################
 
