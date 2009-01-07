@@ -6,14 +6,12 @@ import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RealHyperlink;
 
-import com.google.gwt.http.client.Request;
-import com.google.gwt.http.client.RequestBuilder;
-import com.google.gwt.http.client.RequestCallback;
-import com.google.gwt.http.client.RequestException;
-import com.google.gwt.http.client.Response;
+import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
@@ -33,6 +31,10 @@ import java.util.List;
 class TestDetailView extends DetailView {
     private static final int NO_TEST_ID = -1;
     
+    private static List<Element> scripts = new ArrayList<Element>();
+    private static List<String> callbacks = new ArrayList<String>();
+    private static int callbackCounter = 0;
+    
     private int testId = NO_TEST_ID;
     private String jobTag;
     private List<LogFileViewer> logFileViewers = new ArrayList<LogFileViewer>();
@@ -40,10 +42,12 @@ class TestDetailView extends DetailView {
 
     private Panel logPanel;
     
-    private class LogFileViewer extends Composite implements DisclosureHandler, RequestCallback {
-        private static final String FAILED_TEXT = "Failed to retrieve log";
+    private class LogFileViewer extends Composite implements DisclosureHandler {
+        private static final int LOG_LOAD_TIMEOUT_MS = 5000;
         private DisclosurePanel panel;
         private String logFilePath;
+        private String callbackName;
+        private Timer loadTimeout = null;
         
         public LogFileViewer(String logFilePath, String logFileName) {
             this.logFilePath = logFilePath;
@@ -51,20 +55,41 @@ class TestDetailView extends DetailView {
             panel.addEventHandler(this);
             panel.addStyleName("log-file-panel");
             initWidget(panel);
+
+            callbackName = setupCallback(this);
         }
         
         public void onOpen(DisclosureEvent event) {
-            RequestBuilder builder = new RequestBuilder(RequestBuilder.GET, getLogUrl());
-            try {
-                builder.sendRequest("", this);
-                setStatusText("Loading...");
-            } catch (RequestException exc) {
-                onRequestFailure();
-            }
+            addScript(getLogUrl());
+            setStatusText("Loading...");
+            loadTimeout = new Timer() {
+                @Override
+                public void run() {
+                    setStatusText("Failed to load log file");
+                }
+            };
+            loadTimeout.schedule(LOG_LOAD_TIMEOUT_MS);
         }
 
         private String getLogUrl() {
-            return Utils.getLogsURL(jobTag + "/" + logFilePath);
+            return Utils.getJsonpLogsUrl(jobTag + "/" + logFilePath, callbackName);
+        }
+        
+        public void handle(JavaScriptObject jso) {
+            JSONObject object = new JSONObject(jso);
+            if (object.containsKey("error")) {
+                setStatusText(Utils.jsonToString(object.get("error")));
+            } else {
+                assert object.containsKey("contents");
+                String logContents = Utils.jsonToString(object.get("contents"));
+                if (logContents.equals("")) {
+                    setStatusText("Log file is empty");
+                } else {
+                    setLogText(logContents);
+                }
+            }
+            
+            loadTimeout.cancel();
         }
 
         private void setLogText(String text) {
@@ -80,28 +105,6 @@ class TestDetailView extends DetailView {
         }
 
         public void onClose(DisclosureEvent event) {}
-
-        public void onError(Request request, Throwable exception) {
-            onRequestFailure();
-        }
-
-        private void onRequestFailure() {
-            setStatusText(FAILED_TEXT);
-        }
-
-        public void onResponseReceived(Request request, Response response) {
-            if (response.getStatusCode() != 200) {
-                onRequestFailure();
-                return;
-            }
-            
-            String logText = response.getText();
-            if (logText.equals("")) {
-                setStatusText("Log file is empty");
-            } else {
-                setLogText(logText);
-            }
-        }
     }
     
     private static class AttributeTable extends Composite {
@@ -134,6 +137,62 @@ class TestDetailView extends DetailView {
         private void setupTableStyle() {
             container.addStyleName("test-attributes");
         }
+    }
+
+    // JSON-P related methods
+
+    private static String setupCallback(LogFileViewer viewer) {
+        String callbackName = "__gwt_callback" + callbackCounter++;
+        addCallbackToWindow(viewer, callbackName);
+        callbacks.add(callbackName);
+        return callbackName;
+    }
+    /**
+     * See http://code.google.com/docreader/#p=google-web-toolkit-doc-1-5&s=google-web-toolkit-doc-1-5&t=Article_UsingGWTForJSONMashups.
+     */
+    private native static void addCallbackToWindow(LogFileViewer viewer, String callbackName) /*-{
+        window[callbackName] = function(someData) {
+            viewer.@autotest.tko.TestDetailView.LogFileViewer::handle(Lcom/google/gwt/core/client/JavaScriptObject;)(someData);
+        }
+    }-*/;
+    
+    private native static void dropCallback(String callbackName) /*-{
+        window[callbackName] = null;
+    }-*/;
+    
+    private static void addScript(String url) {
+        String scriptId = "__gwt_script" + callbackCounter++;
+        Element scriptElement = addScriptToDocument(scriptId, url);
+        scripts.add(scriptElement);
+    }
+    
+    /**
+     * See http://code.google.com/docreader/#p=google-web-toolkit-doc-1-5&s=google-web-toolkit-doc-1-5&t=Article_UsingGWTForJSONMashups.
+     */
+    private static native Element addScriptToDocument(String uniqueId, String url) /*-{
+        var elem = document.createElement("script");
+        elem.setAttribute("language", "JavaScript");
+        elem.setAttribute("src", url);
+        elem.setAttribute("id", uniqueId);
+        document.getElementsByTagName("body")[0].appendChild(elem);
+        return elem;
+    }-*/;
+    
+    private static native void dropScript(Element scriptElement) /*-{
+        document.getElementsByTagName("body")[0].removeChild(scriptElement);
+    }-*/;
+    
+    private void cleanupCallbacksAndScripts() {
+        for (String callbackName : callbacks) {
+            dropCallback(callbackName);
+        }
+        callbacks.clear();
+
+        for (Element scriptElement : scripts) {
+            dropScript(scriptElement);
+        }
+
+        scripts.clear();
     }
     
     @Override
@@ -270,5 +329,10 @@ class TestDetailView extends DetailView {
         addLogViewers(testName);
         
         displayObjectData("Test " + testName + " (job " + jobTag + ")");
+    }
+    @Override
+    public void resetPage() {
+        super.resetPage();
+        cleanupCallbacksAndScripts();
     }
 }

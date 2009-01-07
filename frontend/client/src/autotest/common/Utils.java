@@ -163,6 +163,10 @@ public class Utils {
         String val = URL.encode("/results/" + path);
         return "/tko/retrieve_logs.cgi?job=" + val;
     }
+    
+    public static String getJsonpLogsUrl(String path, String callbackName) {
+        return getLogsURL(path) + "&jsonp_callback=" + callbackName;
+    }
 
     public static String jsonToString(JSONValue value) {
         JSONString string;
