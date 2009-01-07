@@ -10,12 +10,32 @@ from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.database import database_connection, migrate
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
-from autotest_lib.scheduler import monitor_db
+from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
 
 _DEBUG = False
 
-class Dummy(object):
-    'Dummy object that can have attribute assigned to it'
+class DummyAgent(object):
+    _is_running = False
+    _is_done = False
+    num_processes = 1
+    host_ids = []
+    queue_entry_ids = []
+
+    def is_running(self):
+        return self._is_running
+
+
+    def tick(self):
+        self._is_running = True
+
+
+    def is_done(self):
+        return self._is_done
+
+
+    def set_done(self, done):
+        self._is_done = done
+        self._is_running = not done
 
 
 class IsRow(mock.argument_comparator):
@@ -67,6 +87,8 @@ class BaseSchedulerTest(unittest.TestCase):
 
     def _set_monitor_stubs(self):
         monitor_db._db = self._database
+        monitor_db._drone_manager._results_dir = '/test/path'
+        monitor_db._drone_manager._temporary_directory = '/test/path/tmp'
 
 
     def _fill_in_test_data(self):
@@ -158,7 +180,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
             else:
                 host = hqe_self.host
             self._record_job_scheduled(hqe_self.job.id, host.id)
-            return Dummy()
+            return DummyAgent()
         monitor_db.HostQueueEntry.run = run_stub
 
 
@@ -401,30 +423,8 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self._dispatcher.max_processes_started_per_cycle = self._MAX_STARTED
 
 
-    class DummyAgent(object):
-        _is_running = False
-        _is_done = False
-        num_processes = 1
-
-        def is_running(self):
-            return self._is_running
-
-
-        def tick(self):
-            self._is_running = True
-
-
-        def is_done(self):
-            return self._is_done
-
-
-        def set_done(self, done):
-            self._is_done = done
-            self._is_running = not done
-
-
     def _setup_some_agents(self, num_agents):
-        self._agents = [self.DummyAgent() for i in xrange(num_agents)]
+        self._agents = [DummyAgent() for i in xrange(num_agents)]
         self._dispatcher._agents = list(self._agents)
 
 
@@ -494,33 +494,39 @@ class FindAbortTest(BaseSchedulerTest):
     """
     Test the dispatcher abort functionality.
     """
-    def _check_agent(self, agent, entry_and_host_id, include_host_tasks):
+    def _check_abort_agent(self, agent, entry_id):
         self.assert_(isinstance(agent, monitor_db.Agent))
         tasks = list(agent.queue.queue)
-        self.assert_(len(tasks) > 0)
-
+        self.assertEquals(len(tasks), 1)
         abort = tasks[0]
+
         self.assert_(isinstance(abort, monitor_db.AbortTask))
-        self.assertEquals(abort.queue_entry.id, entry_and_host_id)
+        self.assertEquals(abort.queue_entry.id, entry_id)
 
-        if not include_host_tasks:
-            self.assertEquals(len(tasks), 1)
-            return
 
-        self.assertEquals(len(tasks), 3)
-        cleanup, verify = tasks[1:]
+    def _check_host_agent(self, agent, host_id):
+        self.assert_(isinstance(agent, monitor_db.Agent))
+        tasks = list(agent.queue.queue)
+        self.assertEquals(len(tasks), 2)
+        cleanup, verify = tasks
 
         self.assert_(isinstance(cleanup, monitor_db.CleanupTask))
-        self.assertEquals(cleanup.host.id, entry_and_host_id)
+        self.assertEquals(cleanup.host.id, host_id)
 
         self.assert_(isinstance(verify, monitor_db.VerifyTask))
-        self.assertEquals(verify.host.id, entry_and_host_id)
+        self.assertEquals(verify.host.id, host_id)
 
 
     def _check_agents(self, agents, include_host_tasks):
+        agents = list(agents)
+        if include_host_tasks:
+            self.assertEquals(len(agents), 4)
+            self._check_host_agent(agents.pop(0), 1)
+            self._check_host_agent(agents.pop(1), 2)
+
         self.assertEquals(len(agents), 2)
-        for index, agent in enumerate(agents):
-            self._check_agent(agent, index + 1, include_host_tasks)
+        self._check_abort_agent(agents[0], 1)
+        self._check_abort_agent(agents[1], 2)
 
 
     def test_find_aborting_inactive(self):
@@ -538,7 +544,7 @@ class FindAbortTest(BaseSchedulerTest):
         self._update_hqe(set='status="Abort", active=1')
         # have to make an Agent for the active HQEs
         agent = self.god.create_mock_class(monitor_db.Agent, 'old_agent')
-        agent.queue_entry_ids = [1, 2]
+        agent.host_ids = agent.queue_entry_ids = [1, 2]
         self._dispatcher.add_agent(agent)
 
         self._dispatcher._find_aborting()
@@ -547,9 +553,9 @@ class FindAbortTest(BaseSchedulerTest):
         self.god.check_playback()
 
         # ensure agent gets aborted
-        abort1 = self._dispatcher._agents[0].queue.queue[0]
+        abort1 = self._dispatcher._agents[1].queue.queue[0]
         self.assertEquals(abort1.agents_to_abort, [agent])
-        abort2 = self._dispatcher._agents[1].queue.queue[0]
+        abort2 = self._dispatcher._agents[3].queue.queue[0]
         self.assertEquals(abort2.agents_to_abort, [])
 
 
@@ -596,61 +602,81 @@ class JobTimeoutTest(BaseSchedulerTest):
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
-    results_dir = '/test/path'
-    pidfile_path = os.path.join(results_dir, monitor_db.AUTOSERV_PID_FILE)
+    execution_tag = 'test_tag'
     pid = 12345
+    process = drone_manager.Process('myhost', pid)
     num_tests_failed = 1
-    args = ('nice -n 10 autoserv -P 123-myuser/myhost -p -n '
-            '-r ' + results_dir + ' -b -u myuser -l my-job-name '
-            '-m myhost /tmp/filejx43Zi -c')
-    bad_args = args.replace(results_dir, '/random/results/dir')
 
     def setUp(self):
         self.god = mock.mock_god()
-        self.god.stub_function(monitor_db, 'open')
-        self.god.stub_function(os.path, 'exists')
-        self.god.stub_function(monitor_db.email_manager,
-                               'enqueue_notify_email')
-        self.monitor = monitor_db.PidfileRunMonitor(self.results_dir)
+        self.mock_drone_manager = self.god.create_mock_class(
+            drone_manager.DroneManager, 'drone_manager')
+        self.god.stub_with(monitor_db, '_drone_manager',
+                           self.mock_drone_manager)
+        self.god.stub_function(email_manager.manager, 'enqueue_notify_email')
+
+        self.pidfile_id = object()
+
+        self.mock_drone_manager.get_pidfile_id_from.expect_call(
+            self.execution_tag).and_return(self.pidfile_id)
+        self.mock_drone_manager.register_pidfile.expect_call(self.pidfile_id)
+
+        self.monitor = monitor_db.PidfileRunMonitor()
+        self.monitor.attach_to_existing_process(self.execution_tag)
 
 
     def tearDown(self):
         self.god.unstub_all()
 
 
+    def setup_pidfile(self, pid=None, exit_code=None, tests_failed=None,
+                      use_second_read=False):
+        contents = drone_manager.PidfileContents()
+        if pid is not None:
+            contents.process = drone_manager.Process('myhost', pid)
+        contents.exit_status = exit_code
+        contents.num_tests_failed = tests_failed
+        self.mock_drone_manager.get_pidfile_contents.expect_call(
+            self.pidfile_id, use_second_read=use_second_read).and_return(
+            contents)
+
+
     def set_not_yet_run(self):
-        os.path.exists.expect_call(self.pidfile_path).and_return(False)
-
-
-    def setup_pidfile(self, pidfile_contents):
-        os.path.exists.expect_call(self.pidfile_path).and_return(True)
-        pidfile = StringIO.StringIO(pidfile_contents)
-        monitor_db.open.expect_call(
-            self.pidfile_path, 'r').and_return(pidfile)
+        self.setup_pidfile()
 
 
     def set_empty_pidfile(self):
-        self.setup_pidfile('')
+        self.setup_pidfile()
 
 
-    def set_running(self):
-        self.setup_pidfile(str(self.pid) + '\n')
+    def set_running(self, use_second_read=False):
+        self.setup_pidfile(self.pid, use_second_read=use_second_read)
 
 
-    def set_complete(self, error_code):
-        self.setup_pidfile(str(self.pid) + '\n' +
-                           str(error_code) + '\n' +
-                           str(self.num_tests_failed))
+    def set_complete(self, error_code, use_second_read=False):
+        self.setup_pidfile(self.pid, error_code, self.num_tests_failed,
+                           use_second_read=use_second_read)
+
+
+    def _check_monitor(self, expected_pid, expected_exit_status,
+                       expected_num_tests_failed):
+        if expected_pid is None:
+            self.assertEquals(self.monitor._state.process, None)
+        else:
+            self.assertEquals(self.monitor._state.process.pid, expected_pid)
+        self.assertEquals(self.monitor._state.exit_status, expected_exit_status)
+        self.assertEquals(self.monitor._state.num_tests_failed,
+                          expected_num_tests_failed)
+
+
+        self.god.check_playback()
 
 
     def _test_read_pidfile_helper(self, expected_pid, expected_exit_status,
                                   expected_num_tests_failed):
         self.monitor._read_pidfile()
-        self.assertEquals(self.monitor._state.pid, expected_pid)
-        self.assertEquals(self.monitor._state.exit_status, expected_exit_status)
-        self.assertEquals(self.monitor._state.num_tests_failed,
-                          expected_num_tests_failed)
-        self.god.check_playback()
+        self._check_monitor(expected_pid, expected_exit_status,
+                            expected_num_tests_failed)
 
 
     def _get_expected_tests_failed(self, expected_exit_status):
@@ -676,34 +702,24 @@ class PidfileRunMonitorTest(unittest.TestCase):
 
 
     def test_read_pidfile_error(self):
-        self.setup_pidfile('asdf')
-        self.assertRaises(monitor_db.PidfileException,
+        self.mock_drone_manager.get_pidfile_contents.expect_call(
+            self.pidfile_id, use_second_read=False).and_return(
+            drone_manager.InvalidPidfile('error'))
+        self.assertRaises(monitor_db.PidfileRunMonitor._PidfileException,
                           self.monitor._read_pidfile)
         self.god.check_playback()
 
 
-    def setup_proc_cmdline(self, args):
-        proc_cmdline = args.replace(' ', '\x00')
-        proc_file = StringIO.StringIO(proc_cmdline)
-        monitor_db.open.expect_call(
-            '/proc/%d/cmdline' % self.pid, 'r').and_return(proc_file)
-
-
-    def setup_find_autoservs(self, process_dict):
-        self.god.stub_class_method(monitor_db.Dispatcher,
-                                   'find_autoservs')
-        monitor_db.Dispatcher.find_autoservs.expect_call().and_return(
-            process_dict)
+    def setup_is_running(self, is_running):
+        self.mock_drone_manager.is_process_running.expect_call(
+            self.process).and_return(is_running)
 
 
     def _test_get_pidfile_info_helper(self, expected_pid, expected_exit_status,
                                       expected_num_tests_failed):
         self.monitor._get_pidfile_info()
-        self.assertEquals(self.monitor._state.pid, expected_pid)
-        self.assertEquals(self.monitor._state.exit_status, expected_exit_status)
-        self.assertEquals(self.monitor._state.num_tests_failed,
-                          expected_num_tests_failed)
-        self.god.check_playback()
+        self._check_monitor(expected_pid, expected_exit_status,
+                            expected_num_tests_failed)
 
 
     def test_get_pidfile_info(self):
@@ -712,14 +728,13 @@ class PidfileRunMonitorTest(unittest.TestCase):
         """
         # running
         self.set_running()
-        self.setup_proc_cmdline(self.args)
+        self.setup_is_running(True)
         self._test_get_pidfile_info_helper(self.pid, None, None)
 
         # exited during check
         self.set_running()
-        monitor_db.open.expect_call(
-            '/proc/%d/cmdline' % self.pid, 'r').and_raises(IOError)
-        self.set_complete(123) # pidfile gets read again
+        self.setup_is_running(False)
+        self.set_complete(123, use_second_read=True) # pidfile gets read again
         self._test_get_pidfile_info_helper(self.pid, 123, self.num_tests_failed)
 
         # completed
@@ -733,10 +748,9 @@ class PidfileRunMonitorTest(unittest.TestCase):
         """
         # running but no proc
         self.set_running()
-        monitor_db.open.expect_call(
-            '/proc/%d/cmdline' % self.pid, 'r').and_raises(IOError)
-        self.set_running()
-        monitor_db.email_manager.enqueue_notify_email.expect_call(
+        self.setup_is_running(False)
+        self.set_running(use_second_read=True)
+        email_manager.manager.enqueue_notify_email.expect_call(
             mock.is_string_comparator(), mock.is_string_comparator())
         self._test_get_pidfile_info_helper(self.pid, 1, 0)
         self.assertTrue(self.monitor.lost_process)
@@ -746,20 +760,19 @@ class PidfileRunMonitorTest(unittest.TestCase):
         """
         pidfile hasn't been written yet
         """
-        # process not running
         self.set_not_yet_run()
-        self.setup_find_autoservs({})
         self._test_get_pidfile_info_helper(None, None, None)
 
-        # process running
-        self.set_not_yet_run()
-        self.setup_find_autoservs({self.pid : self.args})
-        self._test_get_pidfile_info_helper(None, None, None)
 
-        # another process running under same pid
+    def test_process_failed_to_write_pidfile(self):
         self.set_not_yet_run()
-        self.setup_find_autoservs({self.pid : self.bad_args})
-        self._test_get_pidfile_info_helper(None, None, None)
+        email_manager.manager.enqueue_notify_email.expect_call(
+            mock.is_string_comparator(), mock.is_string_comparator())
+        dummy_process = drone_manager.Process('dummy', 12345)
+        self.mock_drone_manager.get_dummy_process.expect_call().and_return(
+            dummy_process)
+        self.monitor._start_time = time.time() - monitor_db.PIDFILE_TIMEOUT - 1
+        self._test_get_pidfile_info_helper(12345, 1, 0)
 
 
 class AgentTest(unittest.TestCase):
@@ -771,13 +784,16 @@ class AgentTest(unittest.TestCase):
         self.god.unstub_all()
 
 
+    def _create_mock_task(self, name):
+        task = self.god.create_mock_class(monitor_db.AgentTask, name)
+        task.host_ids = task.queue_entry_ids = []
+        return task
+
+
     def test_agent(self):
-        task1 = self.god.create_mock_class(monitor_db.AgentTask,
-                                          'task1')
-        task2 = self.god.create_mock_class(monitor_db.AgentTask,
-                                          'task2')
-        task3 = self.god.create_mock_class(monitor_db.AgentTask,
-                                           'task3')
+        task1 = self._create_mock_task('task1')
+        task2 = self._create_mock_task('task2')
+        task3 = self._create_mock_task('task3')
 
         task1.start.expect_call()
         task1.is_done.expect_call().and_return(False)
@@ -806,27 +822,39 @@ class AgentTest(unittest.TestCase):
 
 
 class AgentTasksTest(unittest.TestCase):
-    TEMP_DIR = '/temp/dir'
+    TEMP_DIR = '/abspath/tempdir'
     RESULTS_DIR = '/results/dir'
     HOSTNAME = 'myhost'
+    DUMMY_PROCESS = object()
     HOST_PROTECTION = host_protections.default
+    PIDFILE_ID = object()
 
     def setUp(self):
         self.god = mock.mock_god()
-        self.god.stub_with(tempfile, 'mkdtemp',
-                           mock.mock_function('mkdtemp', self.TEMP_DIR))
-        self.god.stub_with(os.path, 'exists',
-                           mock.mock_function('exists', True))
-        self.god.stub_with(shutil, 'rmtree', mock.mock_function('rmtree', None))
-        self.god.stub_class_method(monitor_db.RunMonitor, 'run')
-        self.god.stub_class_method(monitor_db.RunMonitor, 'exit_code')
-        self.god.stub_class_method(monitor_db.PreJobTask, '_move_results')
+        self.god.stub_with(drone_manager.DroneManager, 'get_temporary_path',
+                           mock.mock_function('get_temporary_path',
+                                              default_return_val='tempdir'))
+        self.god.stub_function(drone_manager.DroneManager,
+                               'copy_to_results_repository')
+        self.god.stub_function(drone_manager.DroneManager,
+                               'get_pidfile_id_from')
+
+        def dummy_absolute_path(self, path):
+            return '/abspath/' + path
+        self.god.stub_with(drone_manager.DroneManager, 'absolute_path',
+                           dummy_absolute_path)
+
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'run')
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'get_process')
         self.host = self.god.create_mock_class(monitor_db.Host, 'host')
+        self.host.id = 1
         self.host.hostname = self.HOSTNAME
         self.host.protection = self.HOST_PROTECTION
         self.queue_entry = self.god.create_mock_class(
             monitor_db.HostQueueEntry, 'queue_entry')
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
+        self.queue_entry.id = 1
         self.queue_entry.job = self.job
         self.queue_entry.host = self.host
         self.queue_entry.meta_host = None
@@ -857,11 +885,30 @@ class AgentTasksTest(unittest.TestCase):
         self.assertEquals(task.success, success)
 
 
-    def setup_run_monitor(self, exit_status):
-        monitor_db.RunMonitor.run.expect_call()
-        monitor_db.RunMonitor.exit_code.expect_call()
-        monitor_db.RunMonitor.exit_code.expect_call().and_return(
+    def setup_run_monitor(self, exit_status, copy_log_file=True):
+        monitor_db.PidfileRunMonitor.run.expect_call(
+            mock.is_instance_comparator(list),
+            'tempdir',
+            nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
+            log_file=mock.anything_comparator())
+        monitor_db.PidfileRunMonitor.exit_code.expect_call()
+        monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
             exit_status)
+
+        if copy_log_file:
+            self._setup_move_logfile()
+
+
+    def _setup_move_logfile(self, include_destination=False):
+        monitor_db.PidfileRunMonitor.get_process.expect_call().and_return(
+            self.DUMMY_PROCESS)
+        if include_destination:
+            drone_manager.DroneManager.copy_to_results_repository.expect_call(
+                self.DUMMY_PROCESS, mock.is_string_comparator(),
+                destination_path=mock.is_string_comparator())
+        else:
+            drone_manager.DroneManager.copy_to_results_repository.expect_call(
+                self.DUMMY_PROCESS, mock.is_string_comparator())
 
 
     def _test_repair_task_helper(self, success):
@@ -882,10 +929,10 @@ class AgentTasksTest(unittest.TestCase):
         expected_protection = host_protections.Protection.get_attr_name(
             expected_protection)
 
-        self.assertTrue(set(task.monitor.cmd) >=
-                        set(['autoserv', '-R', '-m', self.HOSTNAME, '-r',
-                             self.TEMP_DIR, '--host-protection',
-                             expected_protection]))
+        self.assertTrue(set(task.cmd) >=
+                        set([monitor_db._autoserv_path, '-p', '-R', '-m',
+                             self.HOSTNAME, '-r', self.TEMP_DIR,
+                             '--host-protection', expected_protection]))
         self.god.check_playback()
 
 
@@ -908,7 +955,6 @@ class AgentTasksTest(unittest.TestCase):
 
     def setup_verify_expects(self, success, use_queue_entry):
         if use_queue_entry:
-            self.queue_entry.clear_results_dir.expect_call()
             self.queue_entry.set_status.expect_call('Verifying')
         self.host.set_status.expect_call('Verifying')
         if success:
@@ -920,7 +966,8 @@ class AgentTasksTest(unittest.TestCase):
             self.setup_run_monitor(1)
             if use_queue_entry and not self.queue_entry.meta_host:
                 self.queue_entry.set_execution_subdir.expect_call()
-                monitor_db.VerifyTask._move_results.expect_call()
+                self.queue_entry.execution_tag.expect_call().and_return('tag')
+                self._setup_move_logfile(include_destination=True)
 
 
     def _check_verify_failure_tasks(self, verify_task):
@@ -939,15 +986,14 @@ class AgentTasksTest(unittest.TestCase):
         self.setup_verify_expects(success, use_queue_entry)
 
         if use_queue_entry:
-            task = monitor_db.VerifyTask(
-                queue_entry=self.queue_entry)
+            task = monitor_db.VerifyTask(queue_entry=self.queue_entry)
         else:
             task = monitor_db.VerifyTask(host=self.host)
         self._check_verify_failure_tasks(task)
         self.run_task(task, success)
-        self.assertTrue(set(task.monitor.cmd) >=
-                        set(['autoserv', '-v', '-m', self.HOSTNAME, '-r',
-                        self.TEMP_DIR]))
+        self.assertTrue(set(task.cmd) >=
+                        set([monitor_db._autoserv_path, '-p', '-v', '-m',
+                             self.HOSTNAME, '-r', self.TEMP_DIR]))
         self.god.check_playback()
 
 
@@ -969,6 +1015,7 @@ class AgentTasksTest(unittest.TestCase):
     def test_abort_task(self):
         queue_entry = self.god.create_mock_class(monitor_db.HostQueueEntry,
                                                  'queue_entry')
+        queue_entry.id = 1
         queue_entry.host_id, queue_entry.job_id = 1, 2
         task = self.god.create_mock_class(monitor_db.AgentTask, 'task')
         agent = self.god.create_mock_class(monitor_db.Agent, 'agent')
@@ -982,45 +1029,61 @@ class AgentTasksTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _setup_pre_parse_expects(self, is_synch, num_machines):
-        self.queue_entry.results_dir.expect_call().and_return(self.RESULTS_DIR)
+    def _setup_pre_parse_expects(self, autoserv_success):
+        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
+        self.pidfile_monitor.pidfile_id = self.PIDFILE_ID
+        self.pidfile_monitor.attach_to_existing_process.expect_call('tag')
+        if autoserv_success:
+            code = 0
+        else:
+            code = 1
+        self.pidfile_monitor.exit_code.expect_call().and_return(code)
+
         self.queue_entry.set_status.expect_call('Parsing')
 
 
     def _setup_post_parse_expects(self, autoserv_success):
-        pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new(
-            self.RESULTS_DIR)
         if autoserv_success:
-            code, status = 0, 'Completed'
+            status = 'Completed'
         else:
-            code, status = 1, 'Failed'
-        pidfile_monitor.exit_code.expect_call().and_return(code)
+            status = 'Failed'
         self.queue_entry.set_status.expect_call(status)
 
 
-    def _test_final_reparse_task_helper(self, is_synch=False, num_machines=1,
-                                        autoserv_success=True):
-        tko_dir = '/tko/dir'
-        monitor_db.AUTOTEST_TKO_DIR = tko_dir
-        parse_path = os.path.join(tko_dir, 'parse')
+    def setup_reparse_run_monitor(self):
+        autoserv_pidfile_id = object()
+        monitor = monitor_db.PidfileRunMonitor.expect_new()
+        monitor.run.expect_call(
+            mock.is_instance_comparator(list),
+            'tag',
+            log_file=mock.anything_comparator(),
+            pidfile_name='.parser_execute',
+            paired_with_pidfile=self.PIDFILE_ID)
+        monitor.exit_code.expect_call()
+        monitor.exit_code.expect_call().and_return(0)
+        monitor.get_process.expect_call().and_return(self.DUMMY_PROCESS)
+        drone_manager.DroneManager.copy_to_results_repository.expect_call(
+                self.DUMMY_PROCESS, mock.is_string_comparator())
 
-        self._setup_pre_parse_expects(is_synch, num_machines)
-        self.setup_run_monitor(0)
+
+    def _test_final_reparse_task_helper(self, autoserv_success=True):
+        self._setup_pre_parse_expects(autoserv_success)
+        self.setup_reparse_run_monitor()
         self._setup_post_parse_expects(autoserv_success)
 
         task = monitor_db.FinalReparseTask([self.queue_entry])
         self.run_task(task, True)
 
         self.god.check_playback()
-        cmd = [parse_path, '-l', '2', '-r', '-o', self.RESULTS_DIR]
+        cmd = [monitor_db._parser_path, '--write-pidfile', '-l', '2', '-r',
+               '-o', '/abspath/tag']
         self.assertEquals(task.cmd, cmd)
 
 
     def test_final_reparse_task(self):
         self.god.stub_class(monitor_db, 'PidfileRunMonitor')
         self._test_final_reparse_task_helper()
-        self._test_final_reparse_task_helper(num_machines=2)
-        self._test_final_reparse_task_helper(is_synch=True)
         self._test_final_reparse_task_helper(autoserv_success=False)
 
 
@@ -1029,12 +1092,12 @@ class AgentTasksTest(unittest.TestCase):
         self.god.stub_function(monitor_db.FinalReparseTask,
                                '_can_run_new_parse')
 
-        self._setup_pre_parse_expects(False, 1)
+        self._setup_pre_parse_expects(True)
         monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
             False)
         monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
             True)
-        self.setup_run_monitor(0)
+        self.setup_reparse_run_monitor()
         self._setup_post_parse_expects(True)
 
         task = monitor_db.FinalReparseTask([self.queue_entry])
@@ -1045,7 +1108,6 @@ class AgentTasksTest(unittest.TestCase):
     def _test_cleanup_task_helper(self, success, use_queue_entry=False):
         if use_queue_entry:
             self.queue_entry.get_host.expect_call().and_return(self.host)
-            self.queue_entry.clear_results_dir.expect_call()
         self.host.set_status.expect_call('Cleaning')
         if success:
             self.setup_run_monitor(0)
@@ -1055,7 +1117,8 @@ class AgentTasksTest(unittest.TestCase):
             self.setup_run_monitor(1)
             if use_queue_entry and not self.queue_entry.meta_host:
                 self.queue_entry.set_execution_subdir.expect_call()
-                monitor_db.VerifyTask._move_results.expect_call()
+                self.queue_entry.execution_tag.expect_call().and_return('tag')
+                self._setup_move_logfile(include_destination=True)
 
         if use_queue_entry:
             task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
@@ -1070,9 +1133,9 @@ class AgentTasksTest(unittest.TestCase):
         self.run_task(task, success)
 
         self.god.check_playback()
-        self.assert_(set(task.monitor.cmd) >=
-                        set(['autoserv', '--cleanup', '-m', self.HOSTNAME,
-                             '-r', self.TEMP_DIR]))
+        self.assert_(set(task.cmd) >=
+                        set([monitor_db._autoserv_path, '-p', '--cleanup', '-m',
+                             self.HOSTNAME, '-r', self.TEMP_DIR]))
 
     def test_cleanup_task(self):
         self._test_cleanup_task_helper(True)
@@ -1086,16 +1149,15 @@ class AgentTasksTest(unittest.TestCase):
 class JobTest(BaseSchedulerTest):
     def setUp(self):
         super(JobTest, self).setUp()
-        self.god.stub_function(os.path, 'exists')
-        self.god.stub_function(monitor_db, 'ensure_directory_exists')
+        self.god.stub_with(
+            drone_manager.DroneManager, 'attach_file_to_execution',
+            mock.mock_function('attach_file_to_execution',
+                               default_return_val='/test/path/tmp/foo'))
 
 
     def _setup_directory_expects(self, execution_subdir):
         job_path = os.path.join('.', '1-my_user')
         results_dir = os.path.join(job_path, execution_subdir)
-        monitor_db.ensure_directory_exists.expect_call(job_path)
-        os.path.exists.expect_call(results_dir)
-        monitor_db.ensure_directory_exists.expect_call(results_dir)
 
 
     def _test_run_helper(self, expect_agent=True, expect_starting=False,

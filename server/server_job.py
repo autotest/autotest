@@ -154,7 +154,8 @@ class base_server_job(object):
             os.unlink(self.status)
         job_data = {'label' : label, 'user' : user,
                     'hostname' : ','.join(machines),
-                    'status_version' : str(self.STATUS_VERSION)}
+                    'status_version' : str(self.STATUS_VERSION),
+                    'job_started' : str(int(time.time()))}
         if self.resultdir:
             job_data.update(get_site_job_data(self))
             utils.write_keyval(self.resultdir, job_data)

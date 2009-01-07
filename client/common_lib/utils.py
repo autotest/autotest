@@ -21,7 +21,8 @@ def deprecated(func):
 
 
 class BgJob(object):
-    def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True):
+    def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
+                 stdin=None):
         self.command = command
         self.stdout_tee = stdout_tee
         self.stderr_tee = stderr_tee
@@ -32,7 +33,8 @@ class BgJob(object):
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    preexec_fn=self._reset_sigpipe, shell=True,
-                                   executable="/bin/bash")
+                                   executable="/bin/bash",
+                                   stdin=stdin)
 
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
@@ -300,7 +302,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
 
 
 def run(command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None, verbose=True):
+        stdout_tee=None, stderr_tee=None, verbose=True, stdin=None):
     """
     Run a command on the host.
 
@@ -316,6 +318,7 @@ def run(command, timeout=None, ignore_status=False,
                         will be written as it is generated (data will still
                         be stored in result.stdout)
             stderr_tee: likewise for stderr
+            stdin: stdin to pass to the executed process
 
     Returns:
             a CmdResult object
@@ -324,8 +327,9 @@ def run(command, timeout=None, ignore_status=False,
             CmdError: the exit code of the command
                     execution was not 0
     """
-    bg_job = join_bg_jobs((BgJob(command, stdout_tee, stderr_tee, verbose),),
-                          timeout)[0]
+    bg_job = join_bg_jobs(
+        (BgJob(command, stdout_tee, stderr_tee, verbose, stdin=stdin),),
+        timeout)[0]
     if not ignore_status and bg_job.result.exit_status:
         raise error.CmdError(command, bg_job.result,
                              "Command returned non-zero exit status")
