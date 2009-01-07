@@ -34,8 +34,10 @@ class gnuplot:
     def xtics(self):
         count = 1
         tics = []
-        for label in self.xsort(self.xlabels):
-            tics.append('"%s" %d' % (label, count))
+        for label in self.xlabels:
+            # prepend 2 blanks to work around gnuplot bug
+            #  in placing X axis legend over X tic labels
+            tics.append('"  %s" %d' % (label, count))
             count += 1
         return tics
 
