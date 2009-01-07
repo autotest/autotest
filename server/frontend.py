@@ -207,7 +207,7 @@ class AFE(RpcClient):
 
     def run_test_suites(self, pairings, kernel, kernel_label, priority='Medium',
                         wait=True, poll_interval=5, email_from=None,
-                        email_to=None):
+                        email_to=None, timeout=168):
         """
         Run a list of test suites on a particular kernel.
     
@@ -224,7 +224,8 @@ class AFE(RpcClient):
         """
         jobs = []
         for pairing in pairings:
-            new_jobs = self.invoke_test(pairing, kernel, kernel_label, priority)
+            new_jobs = self.invoke_test(pairing, kernel, kernel_label, priority,
+                                        timeout=timeout)
             for job in new_jobs:
                 job.notified = False
             jobs += new_jobs
@@ -344,7 +345,8 @@ class AFE(RpcClient):
         return False
 
 
-    def invoke_test(self, pairing, kernel, kernel_label, priority='Medium'):
+    def invoke_test(self, pairing, kernel, kernel_label, priority='Medium',
+                    **dargs):
         """
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
@@ -358,12 +360,13 @@ class AFE(RpcClient):
         host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
         print 'HOSTS: %s' % host_list
         new_jobs = self.create_job_by_test(name=job_name,
-                                     dependencies=[pairing.machine_label],
-                                     tests=[pairing.control_file],
-                                     priority=priority,
-                                     hosts=host_list,
-                                     kernel=kernel,
-                                     use_container=pairing.container)
+                                           dependencies=[pairing.machine_label],
+                                           tests=[pairing.control_file],
+                                           priority=priority,
+                                           hosts=host_list,
+                                           kernel=kernel,
+                                           use_container=pairing.container,
+                                           **dargs)
         for new_job in new_jobs:
             print 'Invoked test %s : %s' % (new_job.id, job_name)
         return new_jobs
