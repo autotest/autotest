@@ -1,4 +1,4 @@
-import os, sys, time, types, socket, traceback, shutil
+import os, sys, time, types, socket, traceback, shutil, glob
 from autotest_lib.client.common_lib import error, debug
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host
@@ -29,53 +29,75 @@ class AbstractSSHHost(site_host.SiteHost):
         self.password = password
 
 
-    def _copy_files(self, sources, dest, delete_dest):
-        """
-        Copy files from one machine to another.
+    def _encode_remote_path(self, path):
+        """ Given a file path, encodes it as a remote path, in the style used
+        by rsync and scp. """
+        return '%s@%s:"%s"' % (self.user, self.hostname,
+                               utils.scp_remote_escape(path))
 
-        This is for internal use by other methods that intend to move
-        files between machines. It expects a list of source files and
-        a destination (a filename if the source is a single file, a
-        destination otherwise). The remote paths must already be
-        pre-processed into the appropriate rsync/scp friendly
-        format (%s@%s:%s).
-        """
 
-        debug.get_logger().debug('_copy_files: copying %s to %s' %
-                                 (sources, dest))
-        try:
-            ssh = make_ssh_command(self.user, self.port)
-            if delete_dest:
-                delete_flag = "--delete"
-            else:
-                delete_flag = ""
-            command = "rsync -L %s --rsh='%s' -az %s %s"
-            command %= (delete_flag, ssh, " ".join(sources), dest)
-            utils.run(command)
-        except Exception, e:
-            print "warning: rsync failed with: %s" % e
-            print "attempting to copy with scp instead"
-            try:
-                if delete_dest:
-                    if ":" in dest:
-                        # dest is remote
-                        dest_path = dest.split(":", 1)[1]
-                        is_dir = self.run("ls -d %s/" % dest_path,
-                                          ignore_status=True).exit_status == 0
-                        if is_dir:
-                            cmd = "rm -rf %s && mkdir %s"
-                            cmd %= (dest_path, dest_path)
-                            self.run(cmd)
-                    else:
-                        # dest is local
-                        if os.path.isdir(dest):
-                            shutil.rmtree(dest)
-                            os.mkdir(dest)
-                command = "scp -rpq -P %d %s '%s'"
-                command %= (self.port, ' '.join(sources), dest)
-                utils.run(command)
-            except error.CmdError, cmderr:
-                raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
+    def _make_rsync_cmd(self, sources, dest, delete_dest):
+        """ Given a list of source paths and a destination path, produces the
+        appropriate rsync command for copying them. Remote paths must be
+        pre-encoded. """
+        ssh_cmd = make_ssh_command(self.user, self.port)
+        if delete_dest:
+            delete_flag = "--delete"
+        else:
+            delete_flag = ""
+        command = "rsync -L %s --rsh='%s' -az %s %s"
+        return command % (delete_flag, ssh_cmd, " ".join(sources), dest)
+
+
+    def _make_scp_cmd(self, sources, dest):
+        """ Given a list of source paths and a destination path, produces the
+        appropriate scp command for encoding it. Remote paths must be
+        pre-encoded. """
+        command = "scp -rpq -P %d %s '%s'"
+        return command % (self.port, " ".join(sources), dest)
+
+
+    def _make_rsync_compatible_globs(self, path, is_local):
+        """ Given an rsync-style path, returns a list of globbed paths
+        that will hopefully provide equivalent behaviour for scp. Does not
+        support the full range of rsync pattern matching behaviour, only that
+        exposed in the get/send_file interface (trailing slashes).
+
+        The is_local param is flag indicating if the paths should be
+        interpreted as local or remote paths. """
+
+        # non-trailing slash paths should just work
+        if len(path) == 0 or path[-1] != "/":
+            return [path]
+
+        # make a function to test if a pattern matches any files
+        if is_local:
+            def glob_matches_files(path):
+                return len(glob.glob(path)) > 0
+        else:
+            def glob_matches_files(path):
+                result = self.run("ls \"%s\"" % utils.sh_escape(path),
+                                  ignore_status=True)
+                return result.exit_status == 0
+
+        # take a set of globs that cover all files, and see which are needed
+        patterns = ["*", ".[!.]*"]
+        patterns = [p for p in patterns if glob_matches_files(path + p)]
+
+        # convert them into a set of paths suitable for the commandline
+        path = utils.sh_escape(path)
+        if is_local:
+            return ["\"%s\"%s" % (path, pattern) for pattern in patterns]
+        else:
+            return ["\"%s\"" % (path + pattern) for pattern in patterns]
+
+
+    def _make_rsync_compatible_source(self, source, is_local):
+        """ Applies the same logic as _make_rsync_compatible_globs, but
+        applies it to an entire list of sources, producing a new list of
+        sources, properly quoted. """
+        return sum((self._make_rsync_compatible_globs(path, is_local)
+                    for path in source), [])
 
 
     def get_file(self, source, dest, delete_dest=False):
@@ -105,22 +127,31 @@ class AbstractSSHHost(site_host.SiteHost):
         """
         if isinstance(source, basestring):
             source = [source]
+        dest = os.path.abspath(dest)
 
-        processed_source = []
-        for path in source:
-            if path.endswith('/'):
-                format_string = '%s@%s:"%s*"'
-            else:
-                format_string = '%s@%s:"%s"'
-            entry = format_string % (self.user, self.hostname,
-                                     utils.scp_remote_escape(path))
-            processed_source.append(entry)
+        try:
+            remote_source = [self._encode_remote_path(p) for p in source]
+            local_dest = utils.sh_escape(dest)
+            rsync = self._make_rsync_cmd(remote_source, local_dest,
+                                         delete_dest)
+            utils.run(rsync)
+        except error.CmdError, e:
+            print "warning: rsync failed with: %s" % e
+            print "attempting to copy with scp instead"
 
-        processed_dest = utils.sh_escape(os.path.abspath(dest))
-        if os.path.isdir(dest):
-            processed_dest += "/"
+            # scp has no equivalent to --delete, just drop the entire dest dir
+            if delete_dest and os.path.isdir(dest):
+                shutil.rmtree(dest)
+                os.mkdir(dest)
 
-        self._copy_files(processed_source, processed_dest, delete_dest)
+            remote_source = self._make_rsync_compatible_source(source, False)
+            if remote_source:
+                local_dest = utils.sh_escape(dest)
+                scp = self._make_scp_cmd(remote_source, local_dest)
+                try:
+                    utils.run(scp)
+                except error.CmdError, e:
+                    raise error.AutoservRunError(e.args[0], e.args[1])
 
 
     def send_file(self, source, dest, delete_dest=False):
@@ -150,20 +181,34 @@ class AbstractSSHHost(site_host.SiteHost):
         """
         if isinstance(source, basestring):
             source = [source]
+        remote_dest = self._encode_remote_path(dest)
 
-        processed_source = []
-        for path in source:
-            if path.endswith('/'):
-                format_string = '"%s/"*'
-            else:
-                format_string = '"%s"'
-            entry = format_string % (utils.sh_escape(os.path.abspath(path)),)
-            processed_source.append(entry)
+        try:
+            local_source = [utils.sh_escape(path) for path in source]
+            rsync = self._make_rsync_cmd(local_source, remote_dest,
+                                         delete_dest)
+            utils.run(rsync)
+        except error.CmdError, e:
+            print "warning: rsync failed with: %s" % e
+            print "attempting to copy with scp instead"
 
-        remote_dest = '%s@%s:"%s"' % (self.user, self.hostname,
-                                      utils.scp_remote_escape(dest))
+            # scp has no equivalent to --delete, just drop the entire dest dir
+            if delete_dest:
+                is_dir = self.run("ls -d %s/" % remote_dest,
+                                  ignore_status=True).exit_status == 0
+                if is_dir:
+                    cmd = "rm -rf %s && mkdir %s"
+                    cmd %= (remote_dest, remote_dest)
+                    self.run(cmd)
 
-        self._copy_files(processed_source, remote_dest, delete_dest)
+            local_source = self._make_rsync_compatible_source(source, True)
+            if local_source:
+                scp = self._make_scp_cmd(local_source, remote_dest)
+                try:
+                    utils.run(scp)
+                except error.CmdError, e:
+                    raise error.AutoservRunError(e.args[0], e.args[1])
+
         self.run('find "%s" -type d -print0 | xargs -0r chmod o+rx' % dest)
         self.run('find "%s" -type f -print0 | xargs -0r chmod o+r' % dest)
         if self.target_file_owner:
