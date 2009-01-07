@@ -418,7 +418,7 @@ class base_server_job(object):
 
         tag = dargs.pop('tag', None)
         if tag:
-            testname += '.' + tag
+            testname += '.' + str(tag)
         subdir = testname
 
         outputdir = os.path.join(self.resultdir, subdir)
