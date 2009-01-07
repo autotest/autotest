@@ -1,0 +1,18 @@
+NameVirtualHost *
+<VirtualHost *>
+    ErrorLog /var/log/apache2/error.log
+    LogLevel warn
+
+    CustomLog /var/log/apache2/access.log combined
+    ServerSignature On
+
+    Alias /results "/usr/local/autotest/results/"
+    <Directory /usr/local/autotest/results/>
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+    </Directory>
+
+
+</VirtualHost>

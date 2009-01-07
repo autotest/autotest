@@ -63,7 +63,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def _run(self, command, timeout, ignore_status, stdout, stderr,
-             connect_timeout, env, options):
+             connect_timeout, env, options, stdin=None):
         """Helper function for run()."""
         ssh_cmd = self.ssh_command(connect_timeout, options)
         echo_cmd = "echo \`date '+%m/%d/%y %H:%M:%S'\` Connected. >&2"
@@ -74,7 +74,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         full_cmd = '%s "%s;%s %s"' % (ssh_cmd, echo_cmd, env,
                                       utils.sh_escape(command))
         result = utils.run(full_cmd, timeout, True, stdout, stderr,
-                           verbose=False)
+                           verbose=False, stdin=stdin)
 
         # The error messages will show up in band (indistinguishable
         # from stuff sent through the SSH connection), so we have the
@@ -96,7 +96,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=None, stderr_tee=None, connect_timeout=30, options=''):
+            stdout_tee=None, stderr_tee=None, connect_timeout=30, options='',
+            stdin=None):
         """
         Run a command on the remote host.
 
@@ -108,6 +109,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                      to complete if it has to kill the process.
             ignore_status: do not raise an exception, no matter
                      what the exit code of the command is.
+            stdin: stdin to pass to the executed process
 
         Returns:
             a utils.CmdResult object
@@ -117,20 +119,22 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                               execution was not 0
             AutoservSSHTimeout: ssh connection has timed out
         """
-        stdout = stdout_tee or sys.stdout
-        stderr = stderr_tee or sys.stdout
+        stdout = stdout_tee or abstract_ssh.LoggerFile()
+        stderr = stderr_tee or abstract_ssh.LoggerFile()
         self.ssh_host_log.debug("ssh: %s" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             try:
                 return self._run(command, timeout, ignore_status, stdout,
-                                 stderr, connect_timeout, env, options)
+                                 stderr, connect_timeout, env, options,
+                                 stdin=stdin)
             except PermissionDeniedError:
-                print("Permission denied to ssh; re-running"
-                      "with increased logging:")
+                print >>stdout, ("Permission denied to ssh; re-running"
+                                 "with increased logging:")
                 try:
                     self._run(command, timeout, ignore_status, stdout,
-                                 stderr, connect_timeout, env, '-v -v -v')
+                              stderr, connect_timeout, env, '-v -v -v',
+                              stdin=stdin)
                 except Exception:
                     pass
                 raise

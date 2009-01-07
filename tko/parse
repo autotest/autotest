@@ -1,9 +1,5 @@
 #!/usr/bin/python -u
 
-import os, sys
-
-# this is a stub that just execs into parse.py
-mypath = os.path.dirname(os.path.abspath(__file__))
-parse_py = os.path.join(mypath, "parse.py")
-
-os.execv(parse_py, [parse_py] + sys.argv[1:])
+import common
+from autotest_lib.tko import parse
+parse.main()
