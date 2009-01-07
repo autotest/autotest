@@ -1,5 +1,5 @@
 import os, sys, time, types, socket, traceback, shutil
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, debug
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host
 
@@ -41,7 +41,8 @@ class AbstractSSHHost(site_host.SiteHost):
         format (%s@%s:%s).
         """
 
-        print '_copy_files: copying %s to %s' % (sources, dest)
+        debug.get_logger().debug('_copy_files: copying %s to %s' %
+                                 (sources, dest))
         try:
             ssh = make_ssh_command(self.user, self.port)
             if delete_dest:
@@ -289,3 +290,12 @@ class AbstractSSHHost(site_host.SiteHost):
                 self.machine_install()
             except NotImplementedError, e:
                 sys.stderr.write(str(e) + "\n\n")
+
+
+class LoggerFile(object):
+    def write(self, data):
+        debug.get_logger().debug(data)
+
+
+    def flush(self):
+        pass

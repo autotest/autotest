@@ -80,6 +80,8 @@ class equality_comparator(argument_comparator):
 
 
     def __str__(self):
+        if isinstance(self.value, argument_comparator):
+            return str(self.value)
         return repr(self.value)
 
 
@@ -116,6 +118,15 @@ class is_instance_comparator(argument_comparator):
 
     def __str__(self):
         return "is a %s" % self.cls
+
+
+class anything_comparator(argument_comparator):
+    def is_satisfied_by(self, parameter):
+        return True
+
+
+    def __str__(self):
+        return 'anything'
 
 
 class base_mapping(object):
@@ -421,14 +432,14 @@ class mock_god:
         if len(self.recording) != 0:
             func_call = self.recording[0]
             if func_call.symbol != symbol:
-                msg = ("Unexpected call: %s. Expected %s"
+                msg = ("Unexpected call: %s\nExpected: %s"
                     % (_dump_function_call(symbol, args, dargs),
                        func_call))
                 self._append_error(msg)
                 return None
 
             if not func_call.match(*args, **dargs):
-                msg = ("%s called. Expected %s"
+                msg = ("Incorrect call: %s\nExpected: %s"
                     % (_dump_function_call(symbol, args, dargs),
                       func_call))
                 self._append_error(msg)

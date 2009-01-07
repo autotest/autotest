@@ -7,17 +7,20 @@ Autotest scheduler
 
 import datetime, errno, MySQLdb, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
+import itertools, logging
 import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import host_protections, utils, debug
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
+from autotest_lib.scheduler import drone_manager, drones, email_manager
 
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
-CONFIG_SECTION = 'AUTOTEST_WEB'
+CONFIG_SECTION = 'SCHEDULER'
+DB_CONFIG_SECTION = 'AUTOTEST_WEB'
 
 AUTOTEST_PATH = os.path.join(os.path.dirname(__file__), '..')
 
@@ -29,20 +32,17 @@ AUTOTEST_TKO_DIR = os.path.join(AUTOTEST_PATH, 'tko')
 if AUTOTEST_SERVER_DIR not in sys.path:
     sys.path.insert(0, AUTOTEST_SERVER_DIR)
 
-AUTOSERV_PID_FILE = '.autoserv_execute'
 # how long to wait for autoserv to write a pidfile
 PIDFILE_TIMEOUT = 5 * 60 # 5 min
 
 _db = None
 _shutdown = False
-_notify_email = None
-_autoserv_path = 'autoserv'
+_autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
+_parser_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'tko', 'parse')
 _testing_mode = False
-_global_config_section = 'SCHEDULER'
 _base_url = None
-# see os.getlogin() online docs
-_email_from = pwd.getpwuid(os.getuid())[0]
 _notify_email_statuses = []
+_drone_manager = drone_manager.DroneManager()
 
 
 def main():
@@ -65,26 +65,16 @@ def main():
     global RESULTS_DIR
     RESULTS_DIR = args[0]
 
-    # read in notify_email from global_config
     c = global_config.global_config
-    global _notify_email
-    val = c.get_config_value(_global_config_section, "notify_email")
-    if val != "":
-        _notify_email = val
-
-    global _email_from
-    val = c.get_config_value(_global_config_section, "notify_email_from")
-    if val != "":
-        _email_from = val
-
+    notify_statuses_list = c.get_config_value(CONFIG_SECTION,
+                                              "notify_email_statuses")
     global _notify_email_statuses
-    val = c.get_config_value(_global_config_section, "notify_email_statuses")
-    if val != "":
-        _notify_email_statuses = [status for status in
-                                 re.split(r'[\s,;:]', val.lower()) if status]
+    _notify_email_statuses = [status for status in
+                              re.split(r'[\s,;:]', notify_statuses_list.lower())
+                              if status]
 
-    tick_pause = c.get_config_value(
-        _global_config_section, 'tick_pause_sec', type=int)
+    tick_pause = c.get_config_value(CONFIG_SECTION, 'tick_pause_sec',
+                                   type=int)
 
     if options.test:
         global _autoserv_path
@@ -95,7 +85,8 @@ def main():
     # AUTOTEST_WEB.base_url is still a supported config option as some people
     # may wish to override the entire url.
     global _base_url
-    config_base_url = c.get_config_value(CONFIG_SECTION, 'base_url')
+    config_base_url = c.get_config_value(DB_CONFIG_SECTION, 'base_url',
+                                         default='')
     if config_base_url:
         _base_url = config_base_url
     else:
@@ -116,9 +107,11 @@ def main():
             dispatcher.tick()
             time.sleep(tick_pause)
     except:
-        log_stacktrace("Uncaught exception; terminating monitor_db")
+        email_manager.manager.log_stacktrace(
+            "Uncaught exception; terminating monitor_db")
 
-    email_manager.send_queued_emails()
+    email_manager.manager.send_queued_emails()
+    _drone_manager.shutdown()
     _db.disconnect()
 
 
@@ -136,20 +129,31 @@ def init(logfile):
 
     if _testing_mode:
         global_config.global_config.override_config_value(
-            CONFIG_SECTION, 'database', 'stresstest_autotest_web')
+            DB_CONFIG_SECTION, 'database', 'stresstest_autotest_web')
 
     os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
     global _db
-    _db = database_connection.DatabaseConnection(CONFIG_SECTION)
+    _db = database_connection.DatabaseConnection(DB_CONFIG_SECTION)
     _db.connect()
 
     # ensure Django connection is in autocommit
     setup_django_environment.enable_autocommit()
 
     debug.configure('scheduler', format_string='%(message)s')
+    debug.get_logger().setLevel(logging.WARNING)
 
     print "Setting signal handler"
     signal.signal(signal.SIGINT, handle_sigint)
+
+    drones = global_config.global_config.get_config_value(CONFIG_SECTION,
+                                                          'drones')
+    if drones:
+        drone_list = [hostname.strip() for hostname in drones.split(',')]
+    else:
+        drone_list = ['localhost']
+    results_host = global_config.global_config.get_config_value(
+        CONFIG_SECTION, 'results_host', default='localhost')
+    _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
 
     print "Connected! Running..."
 
@@ -175,98 +179,6 @@ def queue_entries_to_abort():
 
     qe = [HostQueueEntry(row=i) for i in rows]
     return qe
-
-def remove_file_or_dir(path):
-    if stat.S_ISDIR(os.stat(path).st_mode):
-        # directory
-        shutil.rmtree(path)
-    else:
-        # file
-        os.remove(path)
-
-
-def log_stacktrace(reason):
-    (type, value, tb) = sys.exc_info()
-    str = "EXCEPTION: %s\n" % reason
-    str += ''.join(traceback.format_exception(type, value, tb))
-
-    sys.stderr.write("\n%s\n" % str)
-    email_manager.enqueue_notify_email("monitor_db exception", str)
-
-
-def get_proc_poll_fn(pid):
-    proc_path = os.path.join('/proc', str(pid))
-    def poll_fn():
-        if os.path.exists(proc_path):
-            return None
-        return 0 # we can't get a real exit code
-    return poll_fn
-
-
-def send_email(to_string, subject, body):
-    """Mails out emails to the addresses listed in to_string.
-
-    to_string is split into a list which can be delimited by any of:
-            ';', ',', ':' or any whitespace
-    """
-
-    # Create list from string removing empty strings from the list.
-    to_list = [x for x in re.split('\s|,|;|:', to_string) if x]
-    if not to_list:
-        return
-
-    msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
-        _email_from, ', '.join(to_list), subject, body)
-    try:
-        mailer = smtplib.SMTP('localhost')
-        try:
-            mailer.sendmail(_email_from, to_list, msg)
-        finally:
-            mailer.quit()
-    except Exception, e:
-        print "Sending email failed. Reason: %s" % repr(e)
-
-
-def kill_autoserv(pid, poll_fn=None):
-    print 'killing', pid
-    if poll_fn is None:
-        poll_fn = get_proc_poll_fn(pid)
-    if poll_fn() is None:
-        os.kill(pid, signal.SIGCONT)
-        os.kill(pid, signal.SIGTERM)
-
-
-def ensure_directory_exists(directory_path):
-    if not os.path.exists(directory_path):
-        os.makedirs(directory_path)
-
-
-class EmailNotificationManager(object):
-    def __init__(self):
-        self._emails = []
-
-    def enqueue_notify_email(self, subject, message):
-        if not _notify_email:
-            return
-
-        body = 'Subject: ' + subject + '\n'
-        body += "%s / %s / %s\n%s" % (socket.gethostname(),
-                                      os.getpid(),
-                                      time.strftime("%X %x"), message)
-        self._emails.append(body)
-
-
-    def send_queued_emails(self):
-        if not self._emails:
-            return
-        subject = 'Scheduler notifications from ' + socket.gethostname()
-        separator = '\n' + '-' * 40 + '\n'
-        body = separator.join(self._emails)
-
-        send_email(_notify_email, subject, body)
-        self._emails = []
-
-email_manager = EmailNotificationManager()
 
 
 class HostScheduler(object):
@@ -466,25 +378,26 @@ class HostScheduler(object):
         return self._schedule_metahost(queue_entry)
 
 
-class Dispatcher:
-    autoserv_procs_cache = None
+class Dispatcher(object):
     max_running_processes = global_config.global_config.get_config_value(
-        _global_config_section, 'max_running_jobs', type=int)
+        CONFIG_SECTION, 'max_running_jobs', type=int)
     max_processes_started_per_cycle = (
         global_config.global_config.get_config_value(
-            _global_config_section, 'max_jobs_started_per_cycle', type=int))
+            CONFIG_SECTION, 'max_jobs_started_per_cycle', type=int))
     clean_interval = (
         global_config.global_config.get_config_value(
-            _global_config_section, 'clean_interval_minutes', type=int))
+            CONFIG_SECTION, 'clean_interval_minutes', type=int))
     synch_job_start_timeout_minutes = (
         global_config.global_config.get_config_value(
-            _global_config_section, 'synch_job_start_timeout_minutes',
+            CONFIG_SECTION, 'synch_job_start_timeout_minutes',
             type=int))
 
     def __init__(self):
         self._agents = []
         self._last_clean_time = time.time()
         self._host_scheduler = HostScheduler()
+        self._host_agents = {}
+        self._queue_entry_agents = {}
 
 
     def do_initial_recovery(self, recover_hosts=True):
@@ -496,12 +409,13 @@ class Dispatcher:
 
 
     def tick(self):
-        Dispatcher.autoserv_procs_cache = None
+        _drone_manager.refresh()
         self._run_cleanup_maybe()
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
-        email_manager.send_queued_emails()
+        _drone_manager.execute_actions()
+        email_manager.manager.send_queued_emails()
 
 
     def _run_cleanup_maybe(self):
@@ -514,21 +428,45 @@ class Dispatcher:
             self._last_clean_time = time.time()
 
 
+    def _register_agent_for_ids(self, agent_dict, object_ids, agent):
+        for object_id in object_ids:
+            agent_dict.setdefault(object_id, set()).add(agent)
+
+
+    def _unregister_agent_for_ids(self, agent_dict, object_ids, agent):
+        for object_id in object_ids:
+            assert object_id in agent_dict
+            agent_dict[object_id].remove(agent)
+
+
     def add_agent(self, agent):
         self._agents.append(agent)
         agent.dispatcher = self
+        self._register_agent_for_ids(self._host_agents, agent.host_ids, agent)
+        self._register_agent_for_ids(self._queue_entry_agents,
+                                     agent.queue_entry_ids, agent)
 
-    # Find agent corresponding to the specified queue_entry
-    def get_agents(self, queue_entry):
-        res_agents = []
-        for agent in self._agents:
-            if queue_entry.id in agent.queue_entry_ids:
-                res_agents.append(agent)
-        return res_agents
+
+    def get_agents_for_entry(self, queue_entry):
+        """
+        Find agents corresponding to the specified queue_entry.
+        """
+        return self._queue_entry_agents.get(queue_entry.id, set())
+
+
+    def host_has_agent(self, host):
+        """
+        Determine if there is currently an Agent present using this host.
+        """
+        return bool(self._host_agents.get(host.id, None))
 
 
     def remove_agent(self, agent):
         self._agents.remove(agent)
+        self._unregister_agent_for_ids(self._host_agents, agent.host_ids,
+                                       agent)
+        self._unregister_agent_for_ids(self._queue_entry_agents,
+                                       agent.queue_entry_ids, agent)
 
 
     def num_running_processes(self):
@@ -536,115 +474,108 @@ class Dispatcher:
                    if agent.is_running())
 
 
-    @classmethod
-    def find_autoservs(cls, orphans_only=False):
-        """\
-        Returns a dict mapping pids to command lines for root autoserv
-        processes.  If orphans_only=True, return only processes that
-        have been orphaned (i.e. parent pid = 1).
-        """
-        if cls.autoserv_procs_cache is not None:
-            return cls.autoserv_procs_cache
-
-        proc = subprocess.Popen(
-            ['/bin/ps', 'x', '-o', 'pid,pgid,ppid,comm,args'],
-            stdout=subprocess.PIPE)
-        # split each line into the four columns output by ps
-        procs = [line.split(None, 4) for line in
-                 proc.communicate()[0].splitlines()]
-        autoserv_procs = {}
-        for proc in procs:
-            # check ppid == 1 for orphans
-            if orphans_only and proc[2] != 1:
-                continue
-            # only root autoserv processes have pgid == pid
-            if (proc[3] == 'autoserv' and   # comm
-                proc[1] == proc[0]):        # pgid == pid
-                # map pid to args
-                autoserv_procs[int(proc[0])] = proc[4]
-        cls.autoserv_procs_cache = autoserv_procs
-        return autoserv_procs
+    def _extract_execution_tag(self, command_line):
+        match = re.match(r'.* -P (\S+) ', command_line)
+        if not match:
+            return None
+        return match.group(1)
 
 
     def _recover_queue_entries(self, queue_entries, run_monitor):
         assert len(queue_entries) > 0
-        queue_entry_ids = [entry.id for entry in queue_entries]
         queue_task = RecoveryQueueTask(job=queue_entries[0].job,
                                        queue_entries=queue_entries,
                                        run_monitor=run_monitor)
         self.add_agent(Agent(tasks=[queue_task],
-                             queue_entry_ids=queue_entry_ids))
+                             num_processes=len(queue_entries)))
 
 
     def _recover_processes(self):
-        orphans = self.find_autoservs(orphans_only=True)
+        self._register_pidfiles()
+        _drone_manager.refresh()
+        self._recover_running_entries()
+        self._recover_aborting_entries()
+        self._requeue_other_active_entries()
+        self._recover_parsing_entries()
+        self._reverify_remaining_hosts()
+        # reinitialize drones after killing orphaned processes, since they can
+        # leave around files when they die
+        _drone_manager.execute_actions()
+        _drone_manager.reinitialize_drones()
 
-        # first, recover running queue entries
-        rows = _db.execute("""SELECT * FROM host_queue_entries
-                              WHERE status = 'Running'""")
-        queue_entries = [HostQueueEntry(row=i) for i in rows]
-        requeue_entries = []
-        recovered_entry_ids = set()
+
+    def _register_pidfiles(self):
+        # during recovery we may need to read pidfiles for both running and
+        # parsing entries
+        queue_entries = HostQueueEntry.fetch(
+            where="status IN ('Running', 'Parsing')")
         for queue_entry in queue_entries:
-            run_monitor = PidfileRunMonitor(queue_entry.results_dir())
-            if not run_monitor.has_pid():
-                # autoserv apparently never got run, so requeue
-                requeue_entries.append(queue_entry)
-                continue
-            if queue_entry.id in recovered_entry_ids:
+            pidfile_id = _drone_manager.get_pidfile_id_from(
+                queue_entry.execution_tag())
+            _drone_manager.register_pidfile(pidfile_id)
+
+
+    def _recover_running_entries(self):
+        orphans = _drone_manager.get_orphaned_autoserv_processes()
+
+        queue_entries = HostQueueEntry.fetch(where="status = 'Running'")
+        requeue_entries = []
+        for queue_entry in queue_entries:
+            if self.get_agents_for_entry(queue_entry):
                 # synchronous job we've already recovered
                 continue
-            job_tag = queue_entry.job.get_job_tag([queue_entry])
-            pid = run_monitor.get_pid()
-            print 'Recovering %s (pid %d)' % (queue_entry.id, pid)
+            execution_tag = queue_entry.execution_tag()
+            run_monitor = PidfileRunMonitor()
+            run_monitor.attach_to_existing_process(execution_tag)
+            if not run_monitor.has_process():
+                # autoserv apparently never got run, so let it get requeued
+                continue
             queue_entries = queue_entry.job.get_group_entries(queue_entry)
-            recovered_entry_ids.union(entry.id for entry in queue_entries)
+            print 'Recovering %s (process %s)' % (
+                ', '.join(str(entry) for entry in queue_entries),
+                run_monitor.get_process())
             self._recover_queue_entries(queue_entries, run_monitor)
-            orphans.pop(pid, None)
-
-        # and requeue other active queue entries
-        rows = _db.execute("""SELECT * FROM host_queue_entries
-                              WHERE active AND NOT complete
-                              AND status != 'Running'
-                              AND status != 'Pending'
-                              AND status != 'Abort'
-                              AND status != 'Aborting'""")
-        queue_entries = [HostQueueEntry(row=i) for i in rows]
-        for queue_entry in queue_entries + requeue_entries:
-            print 'Requeuing running QE %d' % queue_entry.id
-            queue_entry.clear_results_dir(dont_delete_files=True)
-            queue_entry.requeue()
-
+            orphans.pop(execution_tag, None)
 
         # now kill any remaining autoserv processes
-        for pid in orphans.keys():
-            print 'Killing orphan %d (%s)' % (pid, orphans[pid])
-            kill_autoserv(pid)
+        for process in orphans.itervalues():
+            print 'Killing orphan %s' % process
+            _drone_manager.kill_process(process)
 
-        # recover aborting tasks
-        rebooting_host_ids = set()
-        rows = _db.execute("""SELECT * FROM host_queue_entries
-                           WHERE status='Abort' or status='Aborting'""")
-        queue_entries = [HostQueueEntry(row=i) for i in rows]
+
+    def _recover_aborting_entries(self):
+        queue_entries = HostQueueEntry.fetch(
+            where='status IN ("Abort", "Aborting")')
         for queue_entry in queue_entries:
-            print 'Recovering aborting QE %d' % queue_entry.id
-            agent = queue_entry.abort()
-            self.add_agent(agent)
-            if queue_entry.get_host():
-                rebooting_host_ids.add(queue_entry.get_host().id)
+            print 'Recovering aborting QE %s' % queue_entry
+            agent = queue_entry.abort(self)
 
-        self._recover_parsing_entries()
 
+    def _requeue_other_active_entries(self):
+        queue_entries = HostQueueEntry.fetch(
+            where='active AND NOT complete AND status != "Pending"')
+        for queue_entry in queue_entries:
+            if self.get_agents_for_entry(queue_entry):
+                # entry has already been recovered
+                continue
+            print 'Requeuing active QE %s (status=%s)' % (queue_entry,
+                                                          queue_entry.status)
+            if queue_entry.host:
+                tasks = queue_entry.host.reverify_tasks()
+                self.add_agent(Agent(tasks))
+            agent = queue_entry.requeue()
+
+
+    def _reverify_remaining_hosts(self):
         # reverify hosts that were in the middle of verify, repair or cleanup
         self._reverify_hosts_where("""(status = 'Repairing' OR
                                        status = 'Verifying' OR
-                                       status = 'Cleaning')""",
-                                   exclude_ids=rebooting_host_ids)
+                                       status = 'Cleaning')""")
 
-        # finally, recover "Running" hosts with no active queue entries,
-        # although this should never happen
-        message = ('Recovering running host %s - this probably '
-                   'indicates a scheduler bug')
+        # recover "Running" hosts with no active queue entries, although this
+        # should never happen
+        message = ('Recovering running host %s - this probably indicates a '
+                   'scheduler bug')
         self._reverify_hosts_where("""status = 'Running' AND
                                       id NOT IN (SELECT host_id
                                                  FROM host_queue_entries
@@ -653,33 +584,31 @@ class Dispatcher:
 
 
     def _reverify_hosts_where(self, where,
-                              print_message='Reverifying host %s',
-                              exclude_ids=set()):
-        rows = _db.execute('SELECT * FROM hosts WHERE locked = 0 AND '
-                           'invalid = 0 AND ' + where)
-        hosts = [Host(row=i) for i in rows]
-        for host in hosts:
-            if host.id in exclude_ids:
+                              print_message='Reverifying host %s'):
+        full_where='locked = 0 AND invalid = 0 AND ' + where
+        for host in Host.fetch(where=full_where):
+            if self.host_has_agent(host):
+                # host has already been recovered in some way
                 continue
-            if print_message is not None:
+            if print_message:
                 print print_message % host.hostname
-            verify_task = VerifyTask(host = host)
-            self.add_agent(Agent(tasks = [verify_task]))
+            tasks = host.reverify_tasks()
+            self.add_agent(Agent(tasks))
 
 
     def _recover_parsing_entries(self):
-        # make sure there are no old parsers running
-        os.system('killall parse')
-
         recovered_entry_ids = set()
         for entry in HostQueueEntry.fetch(where='status = "Parsing"'):
             if entry.id in recovered_entry_ids:
                 continue
             queue_entries = entry.job.get_group_entries(entry)
-            recovered_entry_ids.union(entry.id for entry in queue_entries)
+            recovered_entry_ids = recovered_entry_ids.union(
+                entry.id for entry in queue_entries)
+            print 'Recovering parsing entries %s' % (
+                ', '.join(str(entry) for entry in queue_entries))
 
             reparse_task = FinalReparseTask(queue_entries)
-            self.add_agent(Agent([reparse_task]))
+            self.add_agent(Agent([reparse_task], num_processes=0))
 
 
     def _recover_hosts(self):
@@ -742,8 +671,6 @@ class Dispatcher:
 
 
     def _schedule_new_jobs(self):
-        print "finding work"
-
         queue_entries = self._get_pending_queue_entries()
         if not queue_entries:
             return
@@ -759,24 +686,19 @@ class Dispatcher:
 
     def _run_queue_entry(self, queue_entry, host):
         agent = queue_entry.run(assigned_host=host)
-        # in some cases (synchronous jobs with run_verify=False), agent may be None
+        # in some cases (synchronous jobs with run_verify=False), agent may be
+        # None
         if agent:
             self.add_agent(agent)
 
 
     def _find_aborting(self):
-        num_aborted = 0
-        # Find jobs that are aborting
         for entry in queue_entries_to_abort():
-            agents_to_abort = self.get_agents(entry)
+            agents_to_abort = list(self.get_agents_for_entry(entry))
             for agent in agents_to_abort:
                 self.remove_agent(agent)
 
-            agent = entry.abort(agents_to_abort)
-            self.add_agent(agent)
-            num_aborted += 1
-            if num_aborted >= 50:
-                break
+            entry.abort(self, agents_to_abort)
 
 
     def _can_start_agent(self, agent, num_running_processes,
@@ -811,7 +733,7 @@ class Dispatcher:
         for agent in list(self._agents):
             if agent.is_done():
                 print "agent finished"
-                self._agents.remove(agent)
+                self.remove_agent(agent)
                 continue
             if not agent.is_running():
                 if not self._can_start_agent(agent, num_running_processes,
@@ -836,197 +758,112 @@ class Dispatcher:
                 message += '\n(truncated)\n'
 
             print subject
-            email_manager.enqueue_notify_email(subject, message)
+            email_manager.manager.enqueue_notify_email(subject, message)
 
 
-class RunMonitor(object):
-    def __init__(self, cmd, nice_level = None, log_file = None):
-        self.nice_level = nice_level
-        self.log_file = log_file
-        self.cmd = cmd
-        self.proc = None
+class PidfileRunMonitor(object):
+    """
+    Client must call either run() to start a new process or
+    attach_to_existing_process().
+    """
 
-    def run(self):
-        if self.nice_level:
-            nice_cmd = ['nice','-n', str(self.nice_level)]
-            nice_cmd.extend(self.cmd)
-            self.cmd = nice_cmd
-
-        out_file = None
-        if self.log_file:
-            try:
-                os.makedirs(os.path.dirname(self.log_file))
-            except OSError, exc:
-                if exc.errno != errno.EEXIST:
-                    log_stacktrace(
-                        'Unexpected error creating logfile '
-                        'directory for %s' % self.log_file)
-            try:
-                out_file = open(self.log_file, 'a')
-                out_file.write("\n%s\n" % ('*'*80))
-                out_file.write("%s> %s\n" %
-                               (time.strftime("%X %x"),
-                                self.cmd))
-                out_file.write("%s\n" % ('*'*80))
-            except (OSError, IOError):
-                log_stacktrace('Error opening log file %s' %
-                               self.log_file)
-
-        if not out_file:
-            out_file = open('/dev/null', 'w')
-
-        in_devnull = open('/dev/null', 'r')
-        print "cmd = %s" % self.cmd
-        print "path = %s" % os.getcwd()
-
-        self.proc = subprocess.Popen(self.cmd, stdout=out_file,
-                                     stderr=subprocess.STDOUT,
-                                     stdin=in_devnull)
-        out_file.close()
-        in_devnull.close()
+    class _PidfileException(Exception):
+        """
+        Raised when there's some unexpected behavior with the pid file, but only
+        used internally (never allowed to escape this class).
+        """
 
 
-    def has_pid(self):
-        return self.proc is not None
+    def __init__(self):
+        self._lost_process = False
+        self._start_time = None
+        self.pidfile_id = None
+        self._state = drone_manager.PidfileContents()
 
 
-    def get_pid(self):
-        return self.proc.pid
+    def _add_nice_command(self, command, nice_level):
+        if not nice_level:
+            return command
+        return ['nice', '-n', str(nice_level)] + command
+
+
+    def _set_start_time(self):
+        self._start_time = time.time()
+
+
+    def run(self, command, working_directory, nice_level=None, log_file=None,
+            pidfile_name=None, paired_with_pidfile=None):
+        assert command is not None
+        if nice_level is not None:
+            command = ['nice', '-n', str(nice_level)] + command
+        self._set_start_time()
+        self.pidfile_id = _drone_manager.execute_command(
+            command, working_directory, log_file=log_file,
+            pidfile_name=pidfile_name, paired_with_pidfile=paired_with_pidfile)
+
+
+    def attach_to_existing_process(self, execution_tag):
+        self._set_start_time()
+        self.pidfile_id = _drone_manager.get_pidfile_id_from(execution_tag)
+        _drone_manager.register_pidfile(self.pidfile_id)
 
 
     def kill(self):
-        if self.has_pid():
-            kill_autoserv(self.get_pid(), self.exit_code)
+        if self.has_process():
+            _drone_manager.kill_process(self.get_process())
 
 
-    def exit_code(self):
-        return self.proc.poll()
-
-
-class PidfileException(Exception):
-    """\
-    Raised when there's some unexpected behavior with the pid file.
-    """
-
-
-class PidfileRunMonitor(RunMonitor):
-    class PidfileState(object):
-        pid = None
-        exit_status = None
-        num_tests_failed = None
-
-        def reset(self):
-            self.pid = self.exit_status = self.all_tests_passed = None
-
-
-    def __init__(self, results_dir, cmd=None, nice_level=None,
-                 log_file=None):
-        self.results_dir = os.path.abspath(results_dir)
-        self.pid_file = os.path.join(results_dir, AUTOSERV_PID_FILE)
-        self.lost_process = False
-        self.start_time = time.time()
-        self._state = self.PidfileState()
-        super(PidfileRunMonitor, self).__init__(cmd, nice_level, log_file)
-
-
-    def has_pid(self):
+    def has_process(self):
         self._get_pidfile_info()
-        return self._state.pid is not None
+        return self._state.process is not None
 
 
-    def get_pid(self):
+    def get_process(self):
         self._get_pidfile_info()
-        assert self._state.pid is not None
-        return self._state.pid
+        assert self.has_process()
+        return self._state.process
 
 
-    def _check_command_line(self, command_line, spacer=' ',
-                            print_error=False):
-        results_dir_arg = spacer.join(('', '-r', self.results_dir, ''))
-        match = results_dir_arg in command_line
-        if print_error and not match:
-            print '%s not found in %s' % (repr(results_dir_arg),
-                                          repr(command_line))
-        return match
-
-
-    def _check_proc_fs(self):
-        cmdline_path = os.path.join('/proc', str(self._state.pid), 'cmdline')
-        try:
-            cmdline_file = open(cmdline_path, 'r')
-            cmdline = cmdline_file.read().strip()
-            cmdline_file.close()
-        except IOError:
-            return False
-        # /proc/.../cmdline has \x00 separating args
-        return self._check_command_line(cmdline, spacer='\x00',
-                                        print_error=True)
-
-
-    def _read_pidfile(self):
-        self._state.reset()
-        if not os.path.exists(self.pid_file):
-            return
-        file_obj = open(self.pid_file, 'r')
-        lines = file_obj.readlines()
-        file_obj.close()
-        if not lines:
-            return
-        if len(lines) > 3:
-            raise PidfileException('Corrupt pid file (%d lines) at %s:\n%s' %
-                                   (len(lines), self.pid_file, lines))
-        try:
-            self._state.pid = int(lines[0])
-            if len(lines) > 1:
-                self._state.exit_status = int(lines[1])
-                if len(lines) == 3:
-                    self._state.num_tests_failed = int(lines[2])
-                else:
-                    # maintain backwards-compatibility with two-line pidfiles
-                    self._state.num_tests_failed = 0
-        except ValueError, exc:
-            raise PidfileException('Corrupt pid file: ' + str(exc.args))
-
-
-    def _find_autoserv_proc(self):
-        autoserv_procs = Dispatcher.find_autoservs()
-        for pid, args in autoserv_procs.iteritems():
-            if self._check_command_line(args):
-                return pid, args
-        return None, None
+    def _read_pidfile(self, use_second_read=False):
+        assert self.pidfile_id is not None, (
+            'You must call run() or attach_to_existing_process()')
+        contents = _drone_manager.get_pidfile_contents(
+            self.pidfile_id, use_second_read=use_second_read)
+        if contents.is_invalid():
+            self._state = drone_manager.PidfileContents()
+            raise self._PidfileException(contents)
+        self._state = contents
 
 
     def _handle_pidfile_error(self, error, message=''):
-        message = error + '\nPid: %s\nPidfile: %s\n%s' % (self._state.pid,
-                                                          self.pid_file,
-                                                          message)
+        message = error + '\nProcess: %s\nPidfile: %s\n%s' % (
+            self._state.process, self.pidfile_id, message)
         print message
-        email_manager.enqueue_notify_email(error, message)
-        if self._state.pid is not None:
-            pid = self._state.pid
+        email_manager.manager.enqueue_notify_email(error, message)
+        if self._state.process is not None:
+            process = self._state.process
         else:
-            pid = 0
-        self.on_lost_process(pid)
+            process = _drone_manager.get_dummy_process()
+        self.on_lost_process(process)
 
 
     def _get_pidfile_info_helper(self):
-        if self.lost_process:
+        if self._lost_process:
             return
 
         self._read_pidfile()
 
-        if self._state.pid is None:
-            self._handle_no_pid()
+        if self._state.process is None:
+            self._handle_no_process()
             return
 
         if self._state.exit_status is None:
             # double check whether or not autoserv is running
-            proc_running = self._check_proc_fs()
-            if proc_running:
+            if _drone_manager.is_process_running(self._state.process):
                 return
 
-            # pid but no process - maybe process *just* exited
-            self._read_pidfile()
+            # pid but no running process - maybe process *just* exited
+            self._read_pidfile(use_second_read=True)
             if self._state.exit_status is None:
                 # autoserv exited without writing an exit code
                 # to the pidfile
@@ -1043,46 +880,33 @@ class PidfileRunMonitor(RunMonitor):
         """
         try:
             self._get_pidfile_info_helper()
-        except PidfileException, exc:
+        except self._PidfileException, exc:
             self._handle_pidfile_error('Pidfile error', traceback.format_exc())
 
 
-    def _handle_no_pid(self):
+    def _handle_no_process(self):
         """\
         Called when no pidfile is found or no pid is in the pidfile.
         """
-        # is autoserv running?
-        pid, args = self._find_autoserv_proc()
-        if pid is None:
-            # no autoserv process running
-            message = 'No pid found at ' + self.pid_file
-        else:
-            message = ("Process %d (%s) hasn't written pidfile %s" %
-                       (pid, args, self.pid_file))
-
+        message = 'No pid found at %s' % self.pidfile_id
         print message
-        if time.time() - self.start_time > PIDFILE_TIMEOUT:
-            email_manager.enqueue_notify_email(
+        if time.time() - self._start_time > PIDFILE_TIMEOUT:
+            email_manager.manager.enqueue_notify_email(
                 'Process has failed to write pidfile', message)
-            if pid is not None:
-                kill_autoserv(pid)
-            else:
-                pid = 0
-            self.on_lost_process(pid)
-            return
+            self.on_lost_process(_drone_manager.get_dummy_process())
 
 
-    def on_lost_process(self, pid):
+    def on_lost_process(self, process):
         """\
         Called when autoserv has exited without writing an exit status,
         or we've timed out waiting for autoserv to write a pid to the
         pidfile.  In either case, we just return failure and the caller
         should signal some kind of warning.
 
-        pid is unimportant here, as it shouldn't be used by anyone.
+        process is unimportant here, as it shouldn't be used by anyone.
         """
         self.lost_process = True
-        self._state.pid = pid
+        self._state.process = process
         self._state.exit_status = 1
         self._state.num_tests_failed = 0
 
@@ -1099,15 +923,22 @@ class PidfileRunMonitor(RunMonitor):
 
 
 class Agent(object):
-    def __init__(self, tasks, queue_entry_ids=[], num_processes=1):
+    def __init__(self, tasks, num_processes=1):
         self.active_task = None
         self.queue = Queue.Queue(0)
         self.dispatcher = None
-        self.queue_entry_ids = queue_entry_ids
         self.num_processes = num_processes
+
+        self.queue_entry_ids = self._union_ids(task.queue_entry_ids
+                                               for task in tasks)
+        self.host_ids = self._union_ids(task.host_ids for task in tasks)
 
         for task in tasks:
             self.add_task(task)
+
+
+    def _union_ids(self, id_lists):
+        return set(itertools.chain(*id_lists))
 
 
     def add_task(self, task):
@@ -1160,19 +991,31 @@ class Agent(object):
 
 
 class AgentTask(object):
-    def __init__(self, cmd, failure_tasks = []):
+    def __init__(self, cmd, working_directory=None, failure_tasks=[]):
         self.done = False
         self.failure_tasks = failure_tasks
         self.started = False
         self.cmd = cmd
+        self._working_directory = working_directory
         self.task = None
         self.agent = None
         self.monitor = None
         self.success = None
+        self.queue_entry_ids = []
+        self.host_ids = []
+        self.log_file = None
+
+
+    def _set_ids(self, host=None, queue_entries=None):
+        if queue_entries and queue_entries != [None]:
+            self.host_ids = [entry.host.id for entry in queue_entries]
+            self.queue_entry_ids = [entry.id for entry in queue_entries]
+        else:
+            assert host
+            self.host_ids = [host.id]
 
 
     def poll(self):
-        print "poll"
         if self.monitor:
             self.tick(self.monitor.exit_code())
         else:
@@ -1180,9 +1023,8 @@ class AgentTask(object):
 
 
     def tick(self, exit_code):
-        if exit_code==None:
+        if exit_code is None:
             return
-#               print "exit_code was %d" % exit_code
         if exit_code == 0:
             success = True
         else:
@@ -1206,13 +1048,13 @@ class AgentTask(object):
 
 
     def create_temp_resultsdir(self, suffix=''):
-        self.temp_results_dir = tempfile.mkdtemp(suffix=suffix)
+        self.temp_results_dir = _drone_manager.get_temporary_path('agent_task')
 
 
     def cleanup(self):
-        if (hasattr(self, 'temp_results_dir') and
-            os.path.exists(self.temp_results_dir)):
-            shutil.rmtree(self.temp_results_dir)
+        if self.monitor and self.log_file:
+            _drone_manager.copy_to_results_repository(
+                self.monitor.get_process(), self.log_file)
 
 
     def epilog(self):
@@ -1236,35 +1078,40 @@ class AgentTask(object):
         self.cleanup()
 
 
+    def set_host_log_file(self, base_name, host):
+        filename = '%s.%s' % (time.time(), base_name)
+        self.log_file = os.path.join('hosts', host.hostname, filename)
+
+
     def run(self):
         if self.cmd:
-            print "agent starting monitor"
-            log_file = None
-            if hasattr(self, 'log_file'):
-                log_file = self.log_file
-            elif hasattr(self, 'host'):
-                log_file = os.path.join(RESULTS_DIR, 'hosts',
-                                        self.host.hostname)
-            self.monitor = RunMonitor(
-                self.cmd, nice_level=AUTOSERV_NICE_LEVEL, log_file=log_file)
-            self.monitor.run()
+            self.monitor = PidfileRunMonitor()
+            self.monitor.run(self.cmd, self._working_directory,
+                             nice_level=AUTOSERV_NICE_LEVEL,
+                             log_file=self.log_file)
 
 
 class RepairTask(AgentTask):
     def __init__(self, host, queue_entry=None):
         """\
-        fail_queue_entry: queue entry to mark failed if this repair
-        fails.
+        queue_entry: queue entry to mark failed if this repair fails.
         """
         protection = host_protections.Protection.get_string(host.protection)
         # normalize the protection name
         protection = host_protections.Protection.get_attr_name(protection)
-        self.create_temp_resultsdir('.repair')
-        cmd = [_autoserv_path , '-R', '-m', host.hostname,
-               '-r', self.temp_results_dir, '--host-protection', protection]
+
         self.host = host
         self.queue_entry = queue_entry
-        super(RepairTask, self).__init__(cmd)
+        self._set_ids(host=host, queue_entries=[queue_entry])
+
+        self.create_temp_resultsdir('.repair')
+        cmd = [_autoserv_path , '-p', '-R', '-m', host.hostname,
+               '-r', _drone_manager.absolute_path(self.temp_results_dir),
+               '--host-protection', protection]
+        super(RepairTask, self).__init__(cmd, self.temp_results_dir)
+
+        self._set_ids(host=host, queue_entries=[queue_entry])
+        self.set_host_log_file('repair', self.host)
 
 
     def prolog(self):
@@ -1285,66 +1132,34 @@ class RepairTask(AgentTask):
 
 
 class PreJobTask(AgentTask):
-    def prolog(self):
-        super(PreJobTask, self).prolog()
-        if self.queue_entry:
-            # clear any possibly existing results, could be a previously failed
-            # verify or a previous execution that crashed
-            self.queue_entry.clear_results_dir()
-
-
-    def cleanup(self):
-        if not os.path.exists(self.temp_results_dir):
-            return
+    def epilog(self):
+        super(PreJobTask, self).epilog()
         should_copy_results = (self.queue_entry and not self.success
                                and not self.queue_entry.meta_host)
         if should_copy_results:
             self.queue_entry.set_execution_subdir()
-            self._move_results()
-        super(PreJobTask, self).cleanup()
-
-
-    def _move_results(self):
-        assert self.queue_entry is not None
-        target_dir = self.queue_entry.results_dir()
-        ensure_directory_exists(target_dir)
-        files = os.listdir(self.temp_results_dir)
-        for filename in files:
-            if filename == AUTOSERV_PID_FILE:
-                continue
-            self._force_move(os.path.join(self.temp_results_dir, filename),
-                            os.path.join(target_dir, filename))
-
-
-    @staticmethod
-    def _force_move(source, dest):
-        """\
-        Replacement for shutil.move() that will delete the destination
-        if it exists, even if it's a directory.
-        """
-        if os.path.exists(dest):
-            warning = 'Warning: removing existing destination file ' + dest
-            print warning
-            email_manager.enqueue_notify_email(warning, warning)
-            remove_file_or_dir(dest)
-        shutil.move(source, dest)
+            destination = os.path.join(self.queue_entry.execution_tag(),
+                                       os.path.basename(self.log_file))
+            _drone_manager.copy_to_results_repository(
+                self.monitor.get_process(), self.log_file,
+                destination_path=destination)
 
 
 class VerifyTask(PreJobTask):
     def __init__(self, queue_entry=None, host=None):
         assert bool(queue_entry) != bool(host)
-
         self.host = host or queue_entry.host
         self.queue_entry = queue_entry
 
         self.create_temp_resultsdir('.verify')
-
-        cmd = [_autoserv_path, '-v', '-m', self.host.hostname, '-r',
-               self.temp_results_dir]
-
+        cmd = [_autoserv_path, '-p', '-v', '-m', self.host.hostname, '-r',
+               _drone_manager.absolute_path(self.temp_results_dir)]
         failure_tasks = [RepairTask(self.host, queue_entry=queue_entry)]
+        super(VerifyTask, self).__init__(cmd, self.temp_results_dir,
+                                         failure_tasks=failure_tasks)
 
-        super(VerifyTask, self).__init__(cmd, failure_tasks=failure_tasks)
+        self.set_host_log_file('verify', self.host)
+        self._set_ids(host=host, queue_entries=[queue_entry])
 
 
     def prolog(self):
@@ -1368,56 +1183,44 @@ class VerifyTask(PreJobTask):
 
 class QueueTask(AgentTask):
     def __init__(self, job, queue_entries, cmd):
-        super(QueueTask, self).__init__(cmd)
         self.job = job
         self.queue_entries = queue_entries
+        super(QueueTask, self).__init__(cmd, self._execution_tag())
+        self._set_ids(queue_entries=queue_entries)
 
 
-    @staticmethod
-    def _write_keyval(keyval_dir, field, value, keyval_filename='keyval'):
-        key_path = os.path.join(keyval_dir, keyval_filename)
-        keyval_file = open(key_path, 'a')
-        print >> keyval_file, '%s=%s' % (field, str(value))
-        keyval_file.close()
+    def _format_keyval(self, key, value):
+        return '%s=%s' % (key, value)
 
 
-    def _host_keyval_dir(self):
-        return os.path.join(self.results_dir(), 'host_keyvals')
+    def _write_keyval(self, field, value):
+        keyval_path = os.path.join(self._execution_tag(), 'keyval')
+        assert self.monitor and self.monitor.has_process()
+        paired_with_pidfile = self.monitor.pidfile_id
+        _drone_manager.write_lines_to_file(
+            keyval_path, [self._format_keyval(field, value)],
+            paired_with_pidfile=paired_with_pidfile)
 
 
-    def _write_host_keyval(self, host):
-        labels = ','.join(host.labels())
-        self._write_keyval(self._host_keyval_dir(), 'labels', labels,
-                           keyval_filename=host.hostname)
-
-    def _create_host_keyval_dir(self):
-        directory = self._host_keyval_dir()
-        ensure_directory_exists(directory)
-
-
-    def results_dir(self):
-        return self.queue_entries[0].results_dir()
+    def _write_host_keyvals(self, host):
+        keyval_path = os.path.join(self._execution_tag(), 'host_keyvals',
+                                   host.hostname)
+        platform, all_labels = host.platform_and_labels()
+        keyvals = dict(platform=platform, labels=','.join(all_labels))
+        keyval_content = '\n'.join(self._format_keyval(key, value)
+                                   for key, value in keyvals.iteritems())
+        _drone_manager.attach_file_to_execution(self._execution_tag(),
+                                                keyval_content,
+                                                file_path=keyval_path)
 
 
-    def run(self):
-        """\
-        Override AgentTask.run() so we can use a PidfileRunMonitor.
-        """
-        self.monitor = PidfileRunMonitor(self.results_dir(),
-                                         cmd=self.cmd,
-                                         nice_level=AUTOSERV_NICE_LEVEL)
-        self.monitor.run()
+    def _execution_tag(self):
+        return self.queue_entries[0].execution_tag()
 
 
     def prolog(self):
-        # write some job timestamps into the job keyval file
-        queued = time.mktime(self.job.created_on.timetuple())
-        started = time.time()
-        self._write_keyval(self.results_dir(), "job_queued", int(queued))
-        self._write_keyval(self.results_dir(), "job_started", int(started))
-        self._create_host_keyval_dir()
         for queue_entry in self.queue_entries:
-            self._write_host_keyval(queue_entry.host)
+            self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status('Running')
             queue_entry.host.set_status('Running')
             queue_entry.host.update_field('dirty', 1)
@@ -1427,22 +1230,30 @@ class QueueTask(AgentTask):
 
 
     def _finish_task(self, success):
-        # write out the finished time into the results keyval
+        queued = time.mktime(self.job.created_on.timetuple())
         finished = time.time()
-        self._write_keyval(self.results_dir(), "job_finished", int(finished))
+        self._write_keyval("job_queued", int(queued))
+        self._write_keyval("job_finished", int(finished))
+
+        _drone_manager.copy_to_results_repository(self.monitor.get_process(),
+                                                  self._execution_tag() + '/')
 
         # parse the results of the job
         reparse_task = FinalReparseTask(self.queue_entries)
-        self.agent.dispatcher.add_agent(Agent([reparse_task]))
+        self.agent.dispatcher.add_agent(Agent([reparse_task], num_processes=0))
 
 
     def _write_status_comment(self, comment):
-        status_log = open(os.path.join(self.results_dir(), 'status.log'), 'a')
-        status_log.write('INFO\t----\t----\t' + comment)
-        status_log.close()
+        _drone_manager.write_lines_to_file(
+            os.path.join(self._execution_tag(), 'status.log'),
+            ['INFO\t----\t----\t' + comment],
+            paired_with_pidfile=self.monitor.pidfile_id)
 
 
     def _log_abort(self):
+        if not self.monitor or not self.monitor.has_process():
+            return
+
         # build up sets of all the aborted_by and aborted_on values
         aborted_by, aborted_on = set(), set()
         for queue_entry in self.queue_entries:
@@ -1459,9 +1270,10 @@ class QueueTask(AgentTask):
         else:
             aborted_by_value = 'autotest_system'
             aborted_on_value = int(time.time())
-        results_dir = self.results_dir()
-        self._write_keyval(results_dir, "aborted_by", aborted_by_value)
-        self._write_keyval(results_dir, "aborted_on", aborted_on_value)
+
+        self._write_keyval("aborted_by", aborted_by_value)
+        self._write_keyval("aborted_on", aborted_on_value)
+
         aborted_on_string = str(datetime.datetime.fromtimestamp(
             aborted_on_value))
         self._write_status_comment('Job aborted by %s on %s' %
@@ -1495,10 +1307,6 @@ class QueueTask(AgentTask):
 
     def epilog(self):
         super(QueueTask, self).epilog()
-        for queue_entry in self.queue_entries:
-            # set status to PARSING here so queue entry is marked complete
-            queue_entry.set_status(models.HostQueueEntry.Status.PARSING)
-
         self._finish_task(self.success)
         self._reboot_hosts()
 
@@ -1507,8 +1315,7 @@ class QueueTask(AgentTask):
 
 class RecoveryQueueTask(QueueTask):
     def __init__(self, job, queue_entries, run_monitor):
-        super(RecoveryQueueTask, self).__init__(job,
-                                         queue_entries, cmd=None)
+        super(RecoveryQueueTask, self).__init__(job, queue_entries, cmd=None)
         self.run_monitor = run_monitor
 
 
@@ -1526,14 +1333,18 @@ class CleanupTask(PreJobTask):
         assert bool(host) ^ bool(queue_entry)
         if queue_entry:
             host = queue_entry.get_host()
-
-        self.create_temp_resultsdir('.cleanup')
-        self.cmd = [_autoserv_path, '--cleanup', '-m', host.hostname,
-                    '-r', self.temp_results_dir]
         self.queue_entry = queue_entry
         self.host = host
+
+        self.create_temp_resultsdir('.cleanup')
+        self.cmd = [_autoserv_path, '-p', '--cleanup', '-m', host.hostname,
+                    '-r', _drone_manager.absolute_path(self.temp_results_dir)]
         repair_task = RepairTask(host, queue_entry=queue_entry)
-        super(CleanupTask, self).__init__(self.cmd, failure_tasks=[repair_task])
+        super(CleanupTask, self).__init__(self.cmd, self.temp_results_dir,
+                                          failure_tasks=[repair_task])
+
+        self._set_ids(host=host, queue_entries=[queue_entry])
+        self.set_host_log_file('cleanup', self.host)
 
 
     def prolog(self):
@@ -1551,9 +1362,11 @@ class CleanupTask(PreJobTask):
 
 class AbortTask(AgentTask):
     def __init__(self, queue_entry, agents_to_abort):
-        self.queue_entry = queue_entry
-        self.agents_to_abort = agents_to_abort
         super(AbortTask, self).__init__('')
+        self.queue_entry = queue_entry
+        # don't use _set_ids, since we don't want to set the host_ids
+        self.queue_entry_ids = [queue_entry.id]
+        self.agents_to_abort = agents_to_abort
 
 
     def prolog(self):
@@ -1574,27 +1387,33 @@ class AbortTask(AgentTask):
 
 
 class FinalReparseTask(AgentTask):
-    MAX_PARSE_PROCESSES = (
-        global_config.global_config.get_config_value(
-            _global_config_section, 'max_parse_processes', type=int))
+    MAX_PARSE_PROCESSES = global_config.global_config.get_config_value(
+            CONFIG_SECTION, 'max_parse_processes', type=int)
     _num_running_parses = 0
 
     def __init__(self, queue_entries):
         self._queue_entries = queue_entries
+        # don't use _set_ids, since we don't want to set the host_ids
+        self.queue_entry_ids = [entry.id for entry in queue_entries]
         self._parse_started = False
 
         assert len(queue_entries) > 0
         queue_entry = queue_entries[0]
 
+        self._execution_tag = queue_entry.execution_tag()
+        self._results_dir = _drone_manager.absolute_path(self._execution_tag)
+        self._autoserv_monitor = PidfileRunMonitor()
+        self._autoserv_monitor.attach_to_existing_process(self._execution_tag)
+        self._final_status = self._determine_final_status()
+
         if _testing_mode:
             self.cmd = 'true'
-            return
+        else:
+            super(FinalReparseTask, self).__init__(
+                cmd=self._generate_parse_command(),
+                working_directory=self._execution_tag)
 
-        self._results_dir = queue_entry.results_dir()
-        self.log_file = os.path.abspath(os.path.join(self._results_dir,
-                                                     '.parse.log'))
-        super(FinalReparseTask, self).__init__(
-            cmd=self._generate_parse_command())
+        self.log_file = os.path.join(self._execution_tag, '.parse.log')
 
 
     @classmethod
@@ -1612,6 +1431,13 @@ class FinalReparseTask(AgentTask):
         return cls._num_running_parses < cls.MAX_PARSE_PROCESSES
 
 
+    def _determine_final_status(self):
+        # we'll use a PidfileRunMonitor to read the autoserv exit status
+        if self._autoserv_monitor.exit_code() == 0:
+            return models.HostQueueEntry.Status.COMPLETED
+        return models.HostQueueEntry.Status.FAILED
+
+
     def prolog(self):
         super(FinalReparseTask, self).prolog()
         for queue_entry in self._queue_entries:
@@ -1620,22 +1446,13 @@ class FinalReparseTask(AgentTask):
 
     def epilog(self):
         super(FinalReparseTask, self).epilog()
-        final_status = self._determine_final_status()
         for queue_entry in self._queue_entries:
-            queue_entry.set_status(final_status)
-
-
-    def _determine_final_status(self):
-        # use a PidfileRunMonitor to read the autoserv exit status
-        monitor = PidfileRunMonitor(self._results_dir)
-        if monitor.exit_code() == 0:
-            return models.HostQueueEntry.Status.COMPLETED
-        return models.HostQueueEntry.Status.FAILED
+            queue_entry.set_status(self._final_status)
 
 
     def _generate_parse_command(self):
-        parse = os.path.abspath(os.path.join(AUTOTEST_TKO_DIR, 'parse'))
-        return [parse, '-l', '2', '-r', '-o', self._results_dir]
+        return [_parser_path, '--write-pidfile', '-l', '2', '-r', '-o',
+                self._results_dir]
 
 
     def poll(self):
@@ -1655,8 +1472,14 @@ class FinalReparseTask(AgentTask):
     def _try_starting_parse(self):
         if not self._can_run_new_parse():
             return
+
         # actually run the parse command
-        super(FinalReparseTask, self).run()
+        self.monitor = PidfileRunMonitor()
+        self.monitor.run(self.cmd, self._working_directory,
+                         log_file=self.log_file,
+                         pidfile_name='.parser_execute',
+                         paired_with_pidfile=self._autoserv_monitor.pidfile_id)
+
         self._increment_running_parses()
         self._parse_started = True
 
@@ -1846,19 +1669,32 @@ class Host(DBObject):
         self.update_field('status',status)
 
 
-    def labels(self):
+    def platform_and_labels(self):
         """
-        Fetch a list of names of all non-platform labels associated with this
-        host.
+        Returns a tuple (platform_name, list_of_all_label_names).
         """
         rows = _db.execute("""
-                SELECT labels.name
+                SELECT labels.name, labels.platform
                 FROM labels
                 INNER JOIN hosts_labels ON labels.id = hosts_labels.label_id
-                WHERE NOT labels.platform AND hosts_labels.host_id = %s
+                WHERE hosts_labels.host_id = %s
                 ORDER BY labels.name
                 """, (self.id,))
-        return [row[0] for row in rows]
+        platform = None
+        all_labels = []
+        for label_name, is_platform in rows:
+            if is_platform:
+                platform = label_name
+            all_labels.append(label_name)
+        return platform, all_labels
+
+
+    def reverify_tasks(self):
+        cleanup_task = CleanupTask(host=self)
+        verify_task = VerifyTask(host=self)
+        # just to make sure this host does not get taken away
+        self.set_status('Cleaning')
+        return [cleanup_task, verify_task]
 
 
 class HostQueueEntry(DBObject):
@@ -1872,7 +1708,7 @@ class HostQueueEntry(DBObject):
         else:
             self.host = None
 
-        self.queue_log_path = os.path.join(self.job.results_dir(),
+        self.queue_log_path = os.path.join(self.job.tag(),
                                            'queue.log.' + str(self.id))
 
 
@@ -1911,9 +1747,8 @@ class HostQueueEntry(DBObject):
 
     def queue_log_record(self, log_line):
         now = str(datetime.datetime.now())
-        queue_log = open(self.queue_log_path, 'a', 0)
-        queue_log.write(now + ' ' + log_line + '\n')
-        queue_log.close()
+        _drone_manager.write_lines_to_file(self.queue_log_path,
+                                           [now + ' ' + log_line])
 
 
     def block_host(self, host_id):
@@ -1931,10 +1766,6 @@ class HostQueueEntry(DBObject):
             block.delete()
 
 
-    def results_dir(self):
-        return os.path.join(self.job.job_dir, self.execution_subdir)
-
-
     def set_execution_subdir(self, subdir=None):
         if subdir is None:
             assert self.get_host()
@@ -1948,6 +1779,10 @@ class HostQueueEntry(DBObject):
         return 'no host'
 
 
+    def __str__(self):
+        return "%s/%d (%d)" % (self._get_hostname(), self.job.id, self.id)
+
+
     def set_status(self, status):
         abort_statuses = ['Abort', 'Aborting', 'Aborted']
         if status not in abort_statuses:
@@ -1957,8 +1792,7 @@ class HostQueueEntry(DBObject):
             condition = ''
         self.update_field('status', status, condition=condition)
 
-        print "%s/%d (%d) -> %s" % (self._get_hostname(), self.job.id, self.id,
-                                    self.status)
+        print "%s -> %s" % (self, self.status)
 
         if status in ['Queued', 'Parsing']:
             self.update_field('complete', False)
@@ -1989,7 +1823,7 @@ class HostQueueEntry(DBObject):
         body = "Job ID: %s\nJob Name: %s\nHost: %s\nStatus: %s\n%s\n" % (
                 self.job.id, self.job.name, hostname, status,
                 self._view_job_url())
-        send_email(self.job.email_list, subject, body)
+        email_manager.manager.send_email(self.job.email_list, subject, body)
 
 
     def _email_on_job_complete(self):
@@ -2014,14 +1848,13 @@ class HostQueueEntry(DBObject):
         body = "Job ID: %s\nJob Name: %s\nStatus: %s\n%s\nSummary:\n%s" % (
                 self.job.id, self.job.name, status,  self._view_job_url(),
                 summary_text)
-        send_email(self.job.email_list, subject, body)
+        email_manager.manager.send_email(self.job.email_list, subject, body)
 
 
     def run(self,assigned_host=None):
         if self.meta_host:
             assert assigned_host
             # ensure results dir exists for the queue log
-            self.job.create_results_dir()
             self.set_host(assigned_host)
 
         print "%s/%s scheduled on %s, status=%s" % (self.job.name,
@@ -2031,7 +1864,6 @@ class HostQueueEntry(DBObject):
 
     def requeue(self):
         self.set_status('Queued')
-
         if self.meta_host:
             self.set_host(None)
 
@@ -2044,24 +1876,6 @@ class HostQueueEntry(DBObject):
         assert not self.meta_host
         self.set_status('Failed')
         self.job.stop_if_necessary()
-
-
-    def clear_results_dir(self, dont_delete_files=False):
-        if not self.execution_subdir:
-            return
-        results_dir = self.results_dir()
-        if not os.path.exists(results_dir):
-            return
-        if dont_delete_files:
-            temp_dir = tempfile.mkdtemp(suffix='.clear_results')
-            print 'Moving results from %s to %s' % (results_dir, temp_dir)
-        for filename in os.listdir(results_dir):
-            path = os.path.join(results_dir, filename)
-            if dont_delete_files:
-                shutil.move(path, os.path.join(temp_dir, filename))
-            else:
-                remove_file_or_dir(path)
-        remove_file_or_dir(results_dir)
 
 
     @property
@@ -2107,29 +1921,24 @@ class HostQueueEntry(DBObject):
         return None
 
 
-    def abort(self, agents_to_abort=[]):
-        abort_task = AbortTask(self, agents_to_abort)
-        tasks = [abort_task]
-
+    def abort(self, dispatcher, agents_to_abort=[]):
         host = self.get_host()
         if self.active and host:
-            cleanup_task = CleanupTask(host=host)
-            verify_task = VerifyTask(host=host)
-            # just to make sure this host does not get taken away
-            host.set_status('Cleaning')
-            tasks += [cleanup_task, verify_task]
+            dispatcher.add_agent(Agent(tasks=host.reverify_tasks()))
 
+        abort_task = AbortTask(self, agents_to_abort)
         self.set_status('Aborting')
-        return Agent(tasks=tasks, queue_entry_ids=[self.id])
+        dispatcher.add_agent(Agent(tasks=[abort_task], num_processes=0))
+
+    def execution_tag(self):
+        assert self.execution_subdir
+        return "%s-%s/%s" % (self.job.id, self.job.owner, self.execution_subdir)
 
 
 class Job(DBObject):
     def __init__(self, id=None, row=None):
         assert id or row
         super(Job, self).__init__(id=id, row=row)
-
-        self.job_dir = os.path.join(RESULTS_DIR, "%s-%s" % (self.id,
-                                                            self.owner))
 
 
     @classmethod
@@ -2146,6 +1955,10 @@ class Job(DBObject):
 
     def is_server_job(self):
         return self.control_type != 2
+
+
+    def tag(self):
+        return "%s-%s" % (self.id, self.owner)
 
 
     def get_host_queue_entries(self):
@@ -2173,9 +1986,6 @@ class Job(DBObject):
                                                                status='Pending')
         return (pending_entries.count() >= self.synch_count)
 
-
-    def results_dir(self):
-        return self.job_dir
 
     def num_machines(self, clause = None):
         sql = "job_id=%s" % self.id
@@ -2224,25 +2034,8 @@ class Job(DBObject):
 
     def write_to_machines_file(self, queue_entry):
         hostname = queue_entry.get_host().hostname
-        print "writing %s to job %s machines file" % (hostname, self.id)
-        file_path = os.path.join(self.job_dir, '.machines')
-        mf = open(file_path, 'a')
-        mf.write(hostname + '\n')
-        mf.close()
-
-
-    def create_results_dir(self, queue_entry=None):
-        ensure_directory_exists(self.job_dir)
-
-        if queue_entry:
-            results_dir = queue_entry.results_dir()
-            if os.path.exists(results_dir):
-                warning = 'QE results dir ' + results_dir + ' already exists'
-                print warning
-                email_manager.enqueue_notify_email(warning, warning)
-            ensure_directory_exists(results_dir)
-            return results_dir
-        return self.job_dir
+        file_path = os.path.join(self.tag(), '.machines')
+        _drone_manager.write_lines_to_file(file_path, [hostname])
 
 
     def _next_group_name(self):
@@ -2258,14 +2051,10 @@ class Job(DBObject):
         return "group%d" % next_id
 
 
-    def _write_control_file(self):
-        'Writes control file out to disk, returns a filename'
-        control_fd, control_filename = tempfile.mkstemp(suffix='.control_file')
-        control_file = os.fdopen(control_fd, 'w')
-        if self.control_file:
-            control_file.write(self.control_file)
-        control_file.close()
-        return control_filename
+    def _write_control_file(self, execution_tag):
+        control_path = _drone_manager.attach_file_to_execution(
+                execution_tag, self.control_file)
+        return control_path
 
 
     def get_group_entries(self, queue_entry_from_group):
@@ -2275,23 +2064,17 @@ class Job(DBObject):
             params=(self.id, execution_subdir)))
 
 
-    def get_job_tag(self, queue_entries):
-        assert len(queue_entries) > 0
-        execution_subdir = queue_entries[0].execution_subdir
-        assert execution_subdir
-        return "%s-%s/%s" % (self.id, self.owner, execution_subdir)
-
-
     def _get_autoserv_params(self, queue_entries):
-        results_dir = self.create_results_dir(queue_entries[0])
-        control_filename = self._write_control_file()
+        assert queue_entries
+        execution_tag = queue_entries[0].execution_tag()
+        control_path = self._write_control_file(execution_tag)
         hostnames = ','.join([entry.get_host().hostname
                               for entry in queue_entries])
-        job_tag = self.get_job_tag(queue_entries)
 
-        params = [_autoserv_path, '-P', job_tag, '-p', '-n',
-                  '-r', os.path.abspath(results_dir), '-u', self.owner,
-                  '-l', self.name, '-m', hostnames, control_filename]
+        params = [_autoserv_path, '-P', execution_tag, '-p', '-n',
+                  '-r', _drone_manager.absolute_path(execution_tag),
+                  '-u', self.owner, '-l', self.name, '-m', hostnames,
+                  _drone_manager.absolute_path(control_path)]
 
         if not self.is_server_job():
             params.append('-c')
@@ -2344,8 +2127,7 @@ class Job(DBObject):
         if not self.is_ready():
             if self.run_verify:
                 queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
-                return Agent(self._get_pre_job_tasks(queue_entry),
-                             [queue_entry.id])
+                return Agent(self._get_pre_job_tasks(queue_entry))
             else:
                 return queue_entry.on_pending()
 
@@ -2362,7 +2144,7 @@ class Job(DBObject):
         tasks = initial_tasks + [queue_task]
         entry_ids = [entry.id for entry in queue_entries]
 
-        return Agent(tasks, entry_ids, num_processes=len(queue_entries))
+        return Agent(tasks, num_processes=len(queue_entries))
 
 
 if __name__ == '__main__':

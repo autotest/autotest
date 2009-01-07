@@ -101,8 +101,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         """
 
         # tee to std* if no tees are provided
-        stdout = stdout_tee or sys.stdout
-        stderr = stderr_tee or sys.stdout
+        stdout = stdout_tee or abstract_ssh.LoggerFile()
+        stderr = stderr_tee or abstract_ssh.LoggerFile()
         self.host_log.debug("ssh-paramiko: %s" % command)
 
         # start up the command
