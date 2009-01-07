@@ -1138,6 +1138,20 @@ class host_mod_unittest(cli_mock.cli_unittest):
                      out_words_ok=['Unlocked', 'host0', 'host1'])
 
 
+    def test_execute_lock_unknown_hosts(self):
+        self.run_cmd(argv=['atest', 'host', 'mod',
+                           '-l', 'host0,host1', 'host2', '--ignore_site_file'],
+                     rpcs=[('modify_host', {'id': 'host2', 'locked': True},
+                            True, None),
+                           ('modify_host', {'id': 'host1', 'locked': True},
+                            False, 'DoesNotExist: Host matching '
+                            'query does not exist.'),
+                           ('modify_host', {'id': 'host0', 'locked': True},
+                            True, None)],
+                     out_words_ok=['Locked', 'host0', 'host2'],
+                     err_words_ok=['Host', 'matching', 'query', 'host1'])
+
+
     def test_execute_ready_hosts(self):
         mfile = cli_mock.create_file('host0\nhost1,host2\nhost3 host4')
         self.run_cmd(argv=['atest', 'host', 'mod', '--ready',
