@@ -6,8 +6,13 @@ from autotest_lib.tko.parsers import base, version_0
 
 class job(version_0.job):
     def exit_status(self):
+        # find the .autoserv_execute path
+        top_dir = tko_utils.find_toplevel_job_dir(self.dir)
+        if not top_dir:
+            return "ABORT"
+        execute_path = os.path.join(top_dir, ".autoserv_execute")
+
         # if for some reason we can't read the status code, assume disaster
-        execute_path = os.path.join(self.dir, ".autoserv_execute")
         if not os.path.exists(execute_path):
             return "ABORT"
         lines = open(execute_path).readlines()
