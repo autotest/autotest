@@ -142,7 +142,7 @@ class Host(object):
         raise NotImplementedError('Wait down not implemented!')
 
 
-    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT):
+    def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT, **dargs):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
         if not self.wait_down(self.WAIT_DOWN_REBOOT_TIMEOUT):
@@ -152,6 +152,7 @@ class Host(object):
         time.sleep(2)    # this is needed for complete reliability
         if self.wait_up(timeout):
             self.record("GOOD", None, "reboot.verify")
+            self.reboot_followup(**dargs)
         else:
             self.record("ABORT", None, "reboot.verify",
                         "Host did not return from reboot")
