@@ -5,7 +5,7 @@ import datetime, traceback
 import common
 from autotest_lib.client.common_lib import utils, global_config, error
 from autotest_lib.server import hosts, subcommand
-from autotest_lib.scheduler import email_manager
+from autotest_lib.scheduler import email_manager, scheduler_config
 
 _TEMPORARY_DIRECTORY = 'drone_tmp'
 _TRANSFER_FAILED_FILE = '.transfer_failed'
@@ -41,8 +41,6 @@ class DroneUtility(object):
     All paths going into and out of this class are absolute.
     """
     _PS_ARGS = ['pid', 'pgid', 'ppid', 'comm', 'args']
-    _MAX_TRANSFER_PROCESSES = global_config.global_config.get_config_value(
-        'SCHEDULER', 'max_transfer_processes', type=int)
     _WARNING_DURATION = 60
 
     def __init__(self):
@@ -243,7 +241,8 @@ class DroneUtility(object):
         start_time = time.time()
         for method_call in calls:
             results.append(method_call.execute_on(self))
-            if len(self._subcommands) >= self._MAX_TRANSFER_PROCESSES:
+            max_processes = scheduler_config.config.max_transfer_processes
+            if len(self._subcommands) >= max_processes:
                 self.wait_for_async_commands()
         self.wait_for_async_commands()
 

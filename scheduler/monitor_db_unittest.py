@@ -11,6 +11,7 @@ from autotest_lib.database import database_connection, migrate
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
+from autotest_lib.scheduler import scheduler_config
 
 _DEBUG = False
 
@@ -419,8 +420,9 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
 
     def setUp(self):
         super(DispatcherThrottlingTest, self).setUp()
-        self._dispatcher.max_running_processes = self._MAX_RUNNING
-        self._dispatcher.max_processes_started_per_cycle = self._MAX_STARTED
+        scheduler_config.config.max_running_processes = self._MAX_RUNNING
+        scheduler_config.config.max_processes_started_per_cycle = (
+            self._MAX_STARTED)
 
 
     def _setup_some_agents(self, num_agents):
@@ -563,7 +565,7 @@ class JobTimeoutTest(BaseSchedulerTest):
     def _test_synch_start_timeout_helper(self, expect_abort,
                                          set_created_on=True, set_active=True,
                                          set_acl=True):
-        self._dispatcher.synch_job_start_timeout_minutes = 60
+        scheduler_config.config.synch_job_start_timeout_minutes = 60
         job = self._create_job(hosts=[1, 2])
         if set_active:
             hqe = job.hostqueueentry_set.filter(host__id=1)[0]

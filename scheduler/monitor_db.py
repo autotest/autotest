@@ -15,11 +15,11 @@ from autotest_lib.client.common_lib import host_protections, utils, debug
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import drone_manager, drones, email_manager
+from autotest_lib.scheduler import status_server, scheduler_config
 
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
-CONFIG_SECTION = 'SCHEDULER'
 DB_CONFIG_SECTION = 'AUTOTEST_WEB'
 
 AUTOTEST_PATH = os.path.join(os.path.dirname(__file__), '..')
@@ -66,15 +66,13 @@ def main():
     RESULTS_DIR = args[0]
 
     c = global_config.global_config
-    notify_statuses_list = c.get_config_value(CONFIG_SECTION,
-                                              "notify_email_statuses")
+    notify_statuses_list = c.get_config_value(scheduler_config.CONFIG_SECTION,
+                                              "notify_email_statuses",
+                                              default='')
     global _notify_email_statuses
     _notify_email_statuses = [status for status in
                               re.split(r'[\s,;:]', notify_statuses_list.lower())
                               if status]
-
-    tick_pause = c.get_config_value(CONFIG_SECTION, 'tick_pause_sec',
-                                   type=int)
 
     if options.test:
         global _autoserv_path
@@ -98,6 +96,9 @@ def main():
             sys.exit(1)
         _base_url = 'http://%s/afe/' % server_name
 
+    server = status_server.StatusServer()
+    server.start()
+
     init(options.logfile)
     dispatcher = Dispatcher()
     dispatcher.do_initial_recovery(recover_hosts=options.recover_hosts)
@@ -105,7 +106,7 @@ def main():
     try:
         while not _shutdown:
             dispatcher.tick()
-            time.sleep(tick_pause)
+            time.sleep(scheduler_config.config.tick_pause_sec)
     except:
         email_manager.manager.log_stacktrace(
             "Uncaught exception; terminating monitor_db")
@@ -145,14 +146,11 @@ def init(logfile):
     print "Setting signal handler"
     signal.signal(signal.SIGINT, handle_sigint)
 
-    drones = global_config.global_config.get_config_value(CONFIG_SECTION,
-                                                          'drones')
-    if drones:
-        drone_list = [hostname.strip() for hostname in drones.split(',')]
-    else:
-        drone_list = ['localhost']
+    drones = global_config.global_config.get_config_value(
+        scheduler_config.CONFIG_SECTION, 'drones', default='localhost')
+    drone_list = [hostname.strip() for hostname in drones.split(',')]
     results_host = global_config.global_config.get_config_value(
-        CONFIG_SECTION, 'results_host', default='localhost')
+        scheduler_config.CONFIG_SECTION, 'results_host', default='localhost')
     _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
 
     print "Connected! Running..."
@@ -379,19 +377,6 @@ class HostScheduler(object):
 
 
 class Dispatcher(object):
-    max_running_processes = global_config.global_config.get_config_value(
-        CONFIG_SECTION, 'max_running_jobs', type=int)
-    max_processes_started_per_cycle = (
-        global_config.global_config.get_config_value(
-            CONFIG_SECTION, 'max_jobs_started_per_cycle', type=int))
-    clean_interval = (
-        global_config.global_config.get_config_value(
-            CONFIG_SECTION, 'clean_interval_minutes', type=int))
-    synch_job_start_timeout_minutes = (
-        global_config.global_config.get_config_value(
-            CONFIG_SECTION, 'synch_job_start_timeout_minutes',
-            type=int))
-
     def __init__(self):
         self._agents = []
         self._last_clean_time = time.time()
@@ -419,7 +404,10 @@ class Dispatcher(object):
 
 
     def _run_cleanup_maybe(self):
-        if self._last_clean_time + self.clean_interval * 60 < time.time():
+        should_cleanup = (self._last_clean_time +
+                          scheduler_config.config.clean_interval * 60 <
+                          time.time())
+        if should_cleanup:
             print 'Running cleanup'
             self._abort_timed_out_jobs()
             self._abort_jobs_past_synch_start_timeout()
@@ -635,7 +623,7 @@ class Dispatcher(object):
         config) and are holding a machine that's in everyone.
         """
         timeout_delta = datetime.timedelta(
-            minutes=self.synch_job_start_timeout_minutes)
+            minutes=scheduler_config.config.synch_job_start_timeout_minutes)
         timeout_start = datetime.datetime.now() - timeout_delta
         query = models.Job.objects.filter(
             created_on__lt=timeout_start,
@@ -712,7 +700,7 @@ class Dispatcher(object):
             return False
         # total process throttling
         if (num_running_processes + agent.num_processes >
-            self.max_running_processes):
+            scheduler_config.config.max_running_processes):
             return False
         # if a single agent exceeds the per-cycle throttling, still allow it to
         # run when it's the first agent in the cycle
@@ -720,7 +708,7 @@ class Dispatcher(object):
             return True
         # per-cycle throttling
         if (num_started_this_cycle + agent.num_processes >
-            self.max_processes_started_per_cycle):
+            scheduler_config.config.max_processes_started_per_cycle):
             return False
         return True
 
@@ -1387,8 +1375,6 @@ class AbortTask(AgentTask):
 
 
 class FinalReparseTask(AgentTask):
-    MAX_PARSE_PROCESSES = global_config.global_config.get_config_value(
-            CONFIG_SECTION, 'max_parse_processes', type=int)
     _num_running_parses = 0
 
     def __init__(self, queue_entries):
@@ -1428,7 +1414,8 @@ class FinalReparseTask(AgentTask):
 
     @classmethod
     def _can_run_new_parse(cls):
-        return cls._num_running_parses < cls.MAX_PARSE_PROCESSES
+        return (cls._num_running_parses <
+                scheduler_config.config.max_parse_processes)
 
 
     def _determine_final_status(self):
