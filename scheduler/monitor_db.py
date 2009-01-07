@@ -2002,7 +2002,10 @@ class Job(DBObject):
         queue_entries: sequence of models.HostQueueEntry objects
         """
         for child_entry in entries_to_abort:
-            assert not child_entry.complete
+            assert not child_entry.complete, (
+                '%s status=%s, active=%s, complete=%s' %
+                (child_entry.id, child_entry.status, child_entry.active,
+                 child_entry.complete))
             if child_entry.status == models.HostQueueEntry.Status.PENDING:
                 child_entry.host.status = models.Host.Status.READY
                 child_entry.host.save()
