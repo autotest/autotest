@@ -17,12 +17,6 @@ The common options are:
 -M|--mlist:   file containing a list of machines
 
 
-stat as has additional options:
---lock/-l:      Locks host(s)
---unlock/-u:    Unlock host(s)
---ready/-y:     Marks host(s) ready
---dead/-d:      Marks host(s) dead
-
 See topic_common.py for a High Level Design and Algorithm.
 
 """
@@ -346,13 +340,16 @@ class host_mod(host):
     def execute(self):
         successes = []
         for host in self.hosts:
-            res = self.execute_rpc('modify_host', id=host, **self.data)
-            # TODO: Make the AFE return True or False,
-            # especially for lock
-            if res is None:
+            try:
+                res = self.execute_rpc('modify_host', item=host,
+                                       id=host, **self.data)
+                # TODO: Make the AFE return True or False,
+                # especially for lock
                 successes.append(host)
-            else:
-                self.invalid_arg("Unknown host %s" % host)
+            except topic_common.CliError, full_error:
+                # Already logged by execute_rpc()
+                pass
+
         return successes
 
 
