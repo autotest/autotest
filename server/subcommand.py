@@ -130,6 +130,7 @@ class subcommand(object):
         self.lambda_function = lambda: func(*args)
         self.pid = None
         self.stdprint = stdprint
+        self.returncode = None
 
 
     @classmethod
@@ -190,34 +191,68 @@ class subcommand(object):
             os._exit(exit_code)
 
 
-    def fork_waitfor(self, timeout=None):
-        if not timeout:
-            (pid, status) = os.waitpid(self.pid, 0)
+    def _handle_exitstatus(self, sts):
+        """
+        This is partially borrowed from subprocess.Popen.
+        """
+        if os.WIFSIGNALED(sts):
+            self.returncode = -os.WTERMSIG(sts)
+        elif os.WIFEXITED(sts):
+            self.returncode = os.WEXITSTATUS(sts)
         else:
-            pid = None
-            start_time = time.time()
-            while time.time() <= start_time + timeout:
-                (pid, status) = os.waitpid(self.pid, os.WNOHANG)
-                if pid:
-                    break
-                time.sleep(1)
+            # Should never happen
+            raise RuntimeError("Unknown child exit status!")
 
-            if not pid:
-                utils.nuke_pid(self.pid)
-                print "subcommand failed pid %d" % self.pid
-                print "%s" % (self.func,)
-                print "timeout after %ds" % timeout
-                print
-                return None
-
-        if status != 0:
-            print "subcommand failed pid %d" % pid
+        if self.returncode != 0:
+            print "subcommand failed pid %d" % self.pid
             print "%s" % (self.func,)
-            print "rc=%d" % status
+            print "rc=%d" % self.returncode
             print
             if os.path.exists(self.stderr):
                 for line in open(self.stderr).readlines():
                     print line,
             print "\n--------------------------------------------\n"
-            raise error.AutoservSubcommandError(self.func, status)
-        return status
+            raise error.AutoservSubcommandError(self.func, self.returncode)
+
+
+    def poll(self):
+        """
+        This is borrowed from subprocess.Popen.
+        """
+        if self.returncode is None:
+            try:
+                pid, sts = os.waitpid(self.pid, os.WNOHANG)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+            except os.error:
+                pass
+        return self.returncode
+
+
+    def wait(self):
+        """
+        This is borrowed from subprocess.Popen.
+        """
+        if self.returncode is None:
+            pid, sts = os.waitpid(self.pid, 0)
+            self._handle_exitstatus(sts)
+        return self.returncode
+
+
+    def fork_waitfor(self, timeout=None):
+        if not timeout:
+            return self.wait()
+        else:
+            start_time = time.time()
+            while time.time() <= start_time + timeout:
+                self.poll()
+                if self.returncode is not None:
+                    return self.returncode
+                time.sleep(1)
+
+            utils.nuke_pid(self.pid)
+            print "subcommand failed pid %d" % self.pid
+            print "%s" % (self.func,)
+            print "timeout after %ds" % timeout
+            print
+            return None
