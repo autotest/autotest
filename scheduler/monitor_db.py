@@ -112,6 +112,7 @@ def main():
             "Uncaught exception; terminating monitor_db")
 
     email_manager.manager.send_queued_emails()
+    server.shutdown()
     _drone_manager.shutdown()
     _db.disconnect()
 
