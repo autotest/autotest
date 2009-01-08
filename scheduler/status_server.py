@@ -1,4 +1,4 @@
-import os, BaseHTTPServer, cgi, threading
+import os, BaseHTTPServer, cgi, threading, urllib
 import common
 from autotest_lib.scheduler import scheduler_config
 
@@ -67,18 +67,31 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(_FOOTER)
 
 
-class StatusServer(object):
+class StatusServer(BaseHTTPServer.HTTPServer):
     def __init__(self):
-        self._address = ('', _PORT)
-        self._httpd = BaseHTTPServer.HTTPServer(self._address,
-                                                StatusServerRequestHandler)
+        address = ('', _PORT)
+        # HTTPServer is an old-style class :(
+        BaseHTTPServer.HTTPServer.__init__(self, address,
+                                           StatusServerRequestHandler)
+        self._shutting_down = False
 
 
-    def _run(self):
-        print 'Status server running on', self._address
-        self._httpd.serve_forever()
+    def shutdown(self):
+        if self._shutting_down:
+            return
+        print 'Shutting down server...'
+        self._shutting_down = True
+        # make one last request to awaken the server thread and make it exit
+        urllib.urlopen('http://localhost:%s' % _PORT)
+
+
+    def _serve_until_shutdown(self):
+        print 'Status server running on', self.server_address
+        while not self._shutting_down:
+            self.handle_request()
 
 
     def start(self):
-        self._thread = threading.Thread(target=self._run, name='status_server')
+        self._thread = threading.Thread(target=self._serve_until_shutdown,
+                                        name='status_server')
         self._thread.start()
