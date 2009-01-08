@@ -170,16 +170,32 @@ class DroneUtility(object):
         shutil.copy(source_path, destination_path)
 
 
+    def wait_for_all_async_commands(self):
+        for subproc in self._subcommands:
+            subproc.fork_waitfor()
+        self._subcommands = []
+
+
+    def _poll_async_commands(self):
+        still_running = []
+        for subproc in self._subcommands:
+            if subproc.poll() is None:
+                still_running.append(subproc)
+        self._subcommands = still_running
+
+
+    def _wait_for_some_async_commands(self):
+        self._poll_async_commands()
+        max_processes = scheduler_config.config.max_transfer_processes
+        while len(self._subcommands) >= max_processes:
+            time.sleep(1)
+            self._poll_async_commands()
+
+
     def run_async_command(self, function, args):
         subproc = subcommand.subcommand(function, args)
         self._subcommands.append(subproc)
         subproc.fork_start()
-
-
-    def wait_for_async_commands(self):
-        for subproc in self._subcommands:
-            subproc.fork_waitfor()
-        self._subcommands = []
 
 
     def _sync_get_file_from(self, hostname, source_path, destination_path):
@@ -239,12 +255,12 @@ class DroneUtility(object):
     def execute_calls(self, calls):
         results = []
         start_time = time.time()
+        max_processes = scheduler_config.config.max_transfer_processes
         for method_call in calls:
             results.append(method_call.execute_on(self))
-            max_processes = scheduler_config.config.max_transfer_processes
             if len(self._subcommands) >= max_processes:
-                self.wait_for_async_commands()
-        self.wait_for_async_commands()
+                self._wait_for_some_async_commands()
+        self.wait_for_all_async_commands()
 
         duration = time.time() - start_time
         if duration > self._WARNING_DURATION:
