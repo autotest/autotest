@@ -27,15 +27,18 @@ DATABASE_HOST = c.get_config_value(_section, "host")
 DATABASE_NAME = c.get_config_value(_section, "database")
 # The following not used with sqlite3.
 DATABASE_USER = c.get_config_value(_section, "user")
-DATABASE_PASSWORD = c.get_config_value(_section, "password")
+DATABASE_PASSWORD = c.get_config_value(_section, "password", default='')
 
 DATABASE_READONLY_HOST = c.get_config_value(_section, "readonly_host",
                                             default=DATABASE_HOST)
 DATABASE_READONLY_USER = c.get_config_value(_section, "readonly_user",
                                             default=DATABASE_USER)
-DATABASE_READONLY_PASSWORD = c.get_config_value(_section, "readonly_password",
-                                                default=DATABASE_PASSWORD)
-
+if DATABASE_READONLY_USER != DATABASE_USER:
+    DATABASE_READONLY_PASSWORD = c.get_config_value(_section,
+                                                    "readonly_password",
+                                                    default='')
+else:
+    DATABASE_READONLY_PASSWORD = DATABASE_PASSWORD
 
 # prefix applied to all URLs - useful if requests are coming through apache,
 # and you need this app to coexist with others
