@@ -52,7 +52,11 @@ def check_python_version():
         version = sys.version_info[0:2]
     except AttributeError:
         pass # pre 2.0, no neat way to get the exact number
-    if not version or version != (2, 4):
+
+    desired_python = find_desired_python()
+    desired_version = extract_version(desired_python)
+
+    if desired_version != version:
         try:
             # We can't restart when running under mod_python.
             from mod_python import apache
