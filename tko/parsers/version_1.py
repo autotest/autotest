@@ -353,6 +353,7 @@ class parser(base.parser):
                                            finished_time,
                                            running_test)
                 running_test = None
+                current_status = status_lib.statuses[-1]
                 current_reason = None
                 if new_test.testname == ("boot.%d" % boot_count):
                     boot_count += 1
