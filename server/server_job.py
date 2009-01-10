@@ -464,7 +464,7 @@ class base_server_job(object):
             finally:
                 self.record_prefix = old_record_prefix
         except error.TestBaseException, e:
-            self.record("END %s" % e.exit_status, subdir, name, str(e))
+            self.record("END %s" % e.exit_status, subdir, name)
             exc_info = sys.exc_info()
         except Exception, e:
             err_msg = str(e) + '\n'

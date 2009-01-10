@@ -522,11 +522,11 @@ class base_job(object):
             return result
         except error.TestBaseException, e:
             self._decrement_group_level()
-            self.record('END %s' % e.exit_status, subdir, testname, str(e))
+            self.record('END %s' % e.exit_status, subdir, testname)
             raise
         except error.JobError, e:
             self._decrement_group_level()
-            self.record('END ABORT', subdir, testname, str(e))
+            self.record('END ABORT', subdir, testname)
             raise
         except Exception, e:
             # This should only ever happen due to a bug in the given
