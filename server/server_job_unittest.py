@@ -244,8 +244,7 @@ class CopyLogsTest(unittest.TestCase):
         test.runtest.expect_call(self.job, url, None, (), {}).and_raises(e)
         self.job.record.expect_call('ERROR', testname, testname,
                                     'Unexpected error')
-        self.job.record.expect_call('END ERROR', testname, testname,
-                                    'Unexpected error')
+        self.job.record.expect_call('END ERROR', testname, testname)
 
         # run and check
         self.job.run_test(url)
@@ -272,8 +271,7 @@ class CopyLogsTest(unittest.TestCase):
         test.runtest.expect_call(self.job, url, None, (), {}).and_raises(e)
         self.job.record.expect_call('FAIL', testname, testname,
                                     'The test failed!')
-        self.job.record.expect_call('END FAIL', testname, testname,
-                                    'The test failed!')
+        self.job.record.expect_call('END FAIL', testname, testname)
 
         # run and check
         self.job.run_test(url)

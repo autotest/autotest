@@ -345,8 +345,7 @@ class TestBaseJob(unittest.TestCase):
         self.job.record.expect_call("ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
         self.job._decrement_group_level.expect_call()
-        self.job.record.expect_call("END ERROR", testname, testname,
-                                    first_line_comparator(str(real_error)))
+        self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
         utils.drop_caches.expect_call()
 
@@ -386,7 +385,7 @@ class TestBaseJob(unittest.TestCase):
             unhandled_error)
         self.job.record.expect_call("ERROR", testname, testname, reason)
         self.job._decrement_group_level.expect_call()
-        self.job.record.expect_call("END ERROR", testname, testname, reason)
+        self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
         utils.drop_caches.expect_call()
 
