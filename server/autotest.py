@@ -407,6 +407,21 @@ class _Run(object):
         return open(next_log, "w", 0)
 
 
+    @staticmethod
+    def is_client_job_finished(last_line):
+        return bool(re.match(r'^END .*\t----\t----\t.*$', last_line))
+
+
+    @staticmethod
+    def is_client_job_rebooting(last_line):
+        return bool(re.match(r'^\t*GOOD\t----\treboot\.start.*$', last_line))
+
+
+    def log_unexpected_abort(self):
+        msg = "Autotest client terminated unexpectedly"
+        self.host.job.record("END ABORT", None, None, msg)
+
+
     def execute_section(self, section, timeout, stderr_redirector):
         print "Executing %s/bin/autotest %s/control phase %d" % \
                                 (self.autodir, self.autodir, section)
@@ -423,15 +438,26 @@ class _Run(object):
                                    stderr_tee=stderr_redirector)
         finally:
             self.host.job.resultdir = old_resultdir
+            last_line = stderr_redirector.last_line
 
+        # check if we failed hard enough to warrant an exception
         if result.exit_status == 1:
-            raise error.AutotestRunError("client job was aborted")
-        if not self.background and not result.stderr:
-            raise error.AutotestRunError(
+            err = error.AutotestRunError("client job was aborted")
+        elif not self.background and not result.stderr:
+            err = error.AutotestRunError(
                 "execute_section: %s failed to return anything\n"
                 "stdout:%s\n" % (full_cmd, result.stdout))
+        else:
+            err = None
 
-        return stderr_redirector.last_line
+        # log something if the client failed AND never finished logging
+        if err and not self.is_client_job_finished(last_line):
+            self.log_unexpected_abort()
+
+        if err:
+            raise err
+        else:
+            return stderr_redirector.last_line
 
 
     def _wait_for_reboot(self):
@@ -476,10 +502,10 @@ class _Run(object):
                 if self.background:
                     return
                 section += 1
-                if re.match(r'^END .*\t----\t----\t.*$', last):
+                if self.is_client_job_finished(last):
                     print "Client complete"
                     return
-                elif re.match('^\t*GOOD\t----\treboot\.start.*$', last):
+                elif self.is_client_job_rebooting(last):
                     try:
                         self._wait_for_reboot()
                     except error.AutotestRunError, e:
@@ -489,8 +515,7 @@ class _Run(object):
                     continue
 
                 # if we reach here, something unexpected happened
-                msg = "Autotest client terminated unexpectedly"
-                self.host.job.record("END ABORT", None, None, msg)
+                self.log_unexpected_abort()
 
                 # give the client machine a chance to recover from a crash
                 self.host.wait_up(CRASH_RECOVERY_TIME)
