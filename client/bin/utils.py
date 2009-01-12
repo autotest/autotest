@@ -171,7 +171,7 @@ def get_os_vendor():
 
     if file_contains_pattern(issue, 'Red Hat'):
         return 'Red Hat'
-    elif file_contains_pattern(issue, 'Fedora Core'):
+    elif file_contains_pattern(issue, 'Fedora'):
         return 'Fedora Core'
     elif file_contains_pattern(issue, 'SUSE'):
         return 'SUSE'
