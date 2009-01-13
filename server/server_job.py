@@ -843,13 +843,9 @@ class base_server_job(object):
             print >> sys.stderr, msg
 
 
-# site_server_job.py may be non-existant or empty, make sure that an
-# appropriate site_server_job class is created nevertheless
-try:
-    from autotest_lib.server.site_server_job import site_server_job
-except ImportError:
-    class site_server_job(object):
-        pass
+site_server_job = utils.import_site_class(
+    __file__, "autotest_lib.server.site_server_job", "site_server_job",
+    base_server_job)
 
 class server_job(site_server_job, base_server_job):
     pass
