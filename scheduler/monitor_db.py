@@ -695,6 +695,9 @@ class Dispatcher(object):
         # always allow zero-process agents to run
         if agent.num_processes == 0:
             return True
+        # don't allow processes to run if we've disabled all drones
+        if _drone_manager.num_enabled_drones() == 0:
+            return False
         # don't allow any nonzero-process agents to run after we've reached a
         # limit (this avoids starvation of many-process agents)
         if have_reached_limit:
