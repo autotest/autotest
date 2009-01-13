@@ -34,15 +34,15 @@ VERIFY_CONTROL_FILE = _control_segment_path('verify')
 REPAIR_CONTROL_FILE = _control_segment_path('repair')
 
 
+# by default provide a stub that generates no site data
+def _get_site_job_data_dummy(job):
+    return {}
+
+
 # load up site-specific code for generating site-specific job data
-try:
-    import site_job
-    get_site_job_data = site_job.get_site_job_data
-    del site_job
-except ImportError:
-    # by default provide a stub that generates no site data
-    def get_site_job_data(job):
-        return {}
+get_site_job_data = utils.import_site_function(__file__,
+    "autotest_lib.server.site_job", "get_site_job_data",
+    _get_site_job_data_dummy)
 
 
 class base_server_job(object):

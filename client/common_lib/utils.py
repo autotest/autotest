@@ -800,23 +800,7 @@ class run_randomly:
             fn(*args, **dargs)
 
 
-def import_site_class(path, module, classname, baseclass, modulefile=None):
-    """
-    Try to import site specific class from site specific file if it exists
-
-    Args:
-        path: full filename of the source file calling this (ie __file__)
-        module: full module name
-        classname: class name to be loaded from site file
-        baseclass: base class object to return when no site file present
-        modulefile: module filename
-
-    Returns: class object of the site class or baseclass
-
-    Raises: ImportError if the site file exists but imports fails
-    """
-
-    # get the short module name (without any dot prefix)
+def _import_site_symbol(path, module, name, dummy=None, modulefile=None):
     short_module = module[module.rfind(".") + 1:]
 
     if not modulefile:
@@ -829,13 +813,57 @@ def import_site_class(path, module, classname, baseclass, modulefile=None):
         site_exists = False
 
     if site_exists:
-        # return the class object from the imported module
-        classobj = getattr(__import__(module, {}, {}, [short_module]),
-                           classname)
+        # return the object from the imported module
+        obj = getattr(__import__(module, {}, {}, [short_module]), name)
     else:
+        obj = dummy
+
+    return obj
+
+
+def import_site_class(path, module, classname, baseclass, modulefile=None):
+    """
+    Try to import site specific class from site specific file if it exists
+
+    Args:
+        path: full filename of the source file calling this (ie __file__)
+        module: full module name
+        classname: class name to be loaded from site file
+        baseclass: base class object to inherit from when no site file present
+        modulefile: module filename
+
+    Returns: class object of the site class or baseclass
+
+    Raises: ImportError if the site file exists but imports fails
+    """
+
+    res = _import_site_symbol(path, module, classname, None, modulefile)
+
+    if not res:
+        # we cannot just return baseclass because some callers will want to
+        # use multiple inheritance on the class object we return and baseclass
         class dummy(baseclass):
             pass
 
-        classobj = dummy
+        res = dummy
 
-    return classobj
+    return res
+
+
+def import_site_function(path, module, funcname, dummy, modulefile=None):
+    """
+    Try to import site specific function from site specific file if it exists
+
+    Args:
+        path: full filename of the source file calling this (ie __file__)
+        module: full module name
+        funcname: function name to be imported from site file
+        dummy: dummy function to return in case there is no function to import
+        modulefile: module filename
+
+    Returns: site specific function object or dummy
+
+    Raises: ImportError if the site file exists but imports fails
+    """
+
+    return _import_site_symbol(path, module, funcname, dummy, modulefile)

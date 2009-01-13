@@ -3,6 +3,7 @@
 import cgi, os, sys, urllib2
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.bin import utils
 
 page = """\
 Status: 302 Found
@@ -16,14 +17,16 @@ sys.path.insert(0, tko)
 
 autodir = os.path.abspath(os.path.join(tko, '..'))
 
+
+def _retrieve_logs_dummy(job_path):
+    pass
+
+
 # Define function for retrieving logs
-try:
-    import site_retrieve_logs
-    retrieve_logs = site_retrieve_logs.retrieve_logs
-    del site_retrieve_logs
-except ImportError:
-    def retrieve_logs(job_path):
-        pass
+retrieve_logs = import_site_function(__file__,
+    "autotest_lib.tko.site_retrieve_logs", "retrieve_logs",
+    _retrieve_logs_dummy)
+
 
 # Get form fields
 form = cgi.FieldStorage(keep_blank_values=True)
