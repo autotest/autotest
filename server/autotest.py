@@ -4,6 +4,7 @@ import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob
 from autotest_lib.server import installable_object, utils
 from autotest_lib.client.common_lib import log, error, debug
 from autotest_lib.client.common_lib import global_config, packages
+from autotest_lib.client.common_lib import utils as client_utils
 
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
@@ -794,14 +795,9 @@ class client_logger(object):
         self.flush()
 
 
-# site_autotest.py may be non-existant or empty, make sure that an appropriate
-# SiteAutotest class is created nevertheless
-try:
-    from site_autotest import SiteAutotest
-except ImportError:
-    class SiteAutotest(BaseAutotest):
-        pass
-
+SiteAutotest = client_utils.import_site_class(
+    __file__, "autotest_lib.server.site_autotest", "SiteAutotest",
+    BaseAutotest)
 
 class Autotest(SiteAutotest):
     pass

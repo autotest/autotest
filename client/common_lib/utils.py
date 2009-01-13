@@ -798,3 +798,41 @@ class run_randomly:
                 test_index = 0
             (args, dargs) = self.test_list.pop(test_index)
             fn(*args, **dargs)
+
+
+def import_site_class(path, module, classname, baseclass, modulefile=None):
+    """
+    Try to import site specific class from site specific file if it exists
+
+    Args:
+        path: full filename of the source file calling this (ie __file__)
+        module: full module name
+        classname: class name to be loaded from site file
+        baseclass: base class object to return when no site file present
+        modulefile: module filename
+
+    Returns: class object of the site class or baseclass
+
+    Raises: ImportError if the site file exists but imports fails
+    """
+
+    # get the short module name (without any dot prefix)
+    short_module = module[module.rfind(".") + 1:]
+
+    if not modulefile:
+        modulefile = short_module + ".py"
+
+    try:
+        site_exists = os.path.getsize(os.path.join(os.path.dirname(path),
+                                                   modulefile))
+    except os.error:
+        site_exists = False
+
+    if site_exists:
+        # return the class object from the imported module
+        classobj = getattr(__import__(module, {}, {}, [short_module]),
+                           classname)
+    else:
+        classobj = baseclass
+
+    return classobj

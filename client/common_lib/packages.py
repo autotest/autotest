@@ -685,13 +685,9 @@ class BasePackageManager(object):
         return (group, testname)
 
 
-# site_packages.py may be non-existant or empty, make sure that an appropriate
-# SitePackage class is created nevertheless
-try:
-    from site_packages import SitePackageManager
-except ImportError:
-    class SitePackageManager(BasePackageManager):
-        pass
+SitePackageManager = utils.import_site_class(
+    __file__, "autotest_lib.client.common_lib.site_packages",
+    "SitePackageManager", BasePackageManager)
 
 class PackageManager(SitePackageManager):
     pass
