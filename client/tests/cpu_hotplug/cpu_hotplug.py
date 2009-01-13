@@ -1,5 +1,6 @@
 import time, os
 from autotest_lib.client.bin import test, utils
+from autotest_lib.client.common_lib import error
 
 class cpu_hotplug(test.test):
     version = 2
@@ -17,8 +18,8 @@ class cpu_hotplug(test.test):
 
         # Check cpu nums, if equals 1, quit.
         if utils.count_cpus() == 1:
-            print 'Just only single cpu online, quiting...'
-            sys.exit()
+            e_msg = 'Single CPU online detected, test not supported.'
+            raise error.TestNAError(e_msg)
 
         # Have a simple and quick check first, FIX me please.
         utils.system('dmesg -c > /dev/null')
