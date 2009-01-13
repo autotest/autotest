@@ -15,34 +15,34 @@ my @data_files = grep /^plotdata\.[\w-]+\.[\w-]+$/, readdir PERFDIR;
 closedir PERFDIR;
 chdir ($perfdir);
 
-%axis_labels = (	'kernbench'	=> 'Elapsed time (seconds)',
-			'dbench'	=> 'Throughput (MB/s)',
-			'tbench'	=> 'Throughput (MB/s)',
-			'reaim'		=> 'Max Jobs per Minute',
-		);
+%axis_labels = (    'kernbench'    => 'Elapsed time (seconds)',
+            'dbench'    => 'Throughput (MB/s)',
+            'tbench'    => 'Throughput (MB/s)',
+            'reaim'        => 'Max Jobs per Minute',
+        );
 
-%plot_cols = (		'kernbench'	=> '1:4:8',
-			'dbench'	=> '1:4:5',
-			'tbench'	=> '1:4:5',
-			'reaim'		=> '1:4:5',
-		);
-			
+%plot_cols = (        'kernbench'    => '1:4:8',
+            'dbench'    => '1:4:5',
+            'tbench'    => '1:4:5',
+            'reaim'        => '1:4:5',
+        );
+            
 foreach $data_file (@data_files) {
-	$data_file =~ /^plotdata\.([\w-]+)\.([\w-]+)$/;
-	($test, $machine) = ($1, $2);
-	print " === Analysing data file: $data_file $test $machine\n";
-	push @machines, $machine;
-	open DATAFILE, $data_file || die "Cannot open $data_file";
-	while ($data = <DATAFILE>) {
-		print "X " . $data;
-		chomp $data;
-		$data =~ s/^\d+\s+//; #  get rid of count
-		@data = split (/ /, $data);
-		$version = $data[0];
-		print "$test $version = $data\n";
-		$results{$test}{$machine}{$version} = $data;
-		push @versions, $version;
-	}
+    $data_file =~ /^plotdata\.([\w-]+)\.([\w-]+)$/;
+    ($test, $machine) = ($1, $2);
+    print " === Analysing data file: $data_file $test $machine\n";
+    push @machines, $machine;
+    open DATAFILE, $data_file || die "Cannot open $data_file";
+    while ($data = <DATAFILE>) {
+        print "X " . $data;
+        chomp $data;
+        $data =~ s/^\d+\s+//; #  get rid of count
+        @data = split (/ /, $data);
+        $version = $data[0];
+        print "$test $version = $data\n";
+        $results{$test}{$machine}{$version} = $data;
+        push @versions, $version;
+    }
 }
 
 @machines = list_uniq (@machines);
@@ -51,30 +51,30 @@ foreach $data_file (@data_files) {
 @relevant = relevant_versions(@versions);
 
 foreach $machine (@machines) {
-	foreach $test (keys(%axis_labels)) {
-		graph_plot($machine, "${test}.full.${machine}",
-				$test, @versions);
-		graph_plot($machine, "${test}.${machine}",
-				$test, @relevant);
-	}
+    foreach $test (keys(%axis_labels)) {
+        graph_plot($machine, "${test}.full.${machine}",
+                $test, @versions);
+        graph_plot($machine, "${test}.${machine}",
+                $test, @relevant);
+    }
 }
 
 sub graph_plot
 {
-	my ($machine, $filename, $test, @plot_versions) = @_;
-	my $count = 0;
+    my ($machine, $filename, $test, @plot_versions) = @_;
+    my $count = 0;
 
-	print " ----- test: $test machine: $machine $#plot_versions\n";
-	open (DATA, "> $filename") || die "Cannot open data file $filename";
-	foreach $version (@plot_versions) {
-		my $results = $results{$test}{$machine}{$version};
-		next unless ($results =~ /\S/);
-		$count++;
-		print "$count $version $results\n";
-		print DATA "$count $results\n";
-	}
-	close (DATA);
-	print " ----- \n";
-	print `$plotgraph $filename '$axis_labels{$test}' '$plot_cols{$test}'`;
+    print " ----- test: $test machine: $machine $#plot_versions\n";
+    open (DATA, "> $filename") || die "Cannot open data file $filename";
+    foreach $version (@plot_versions) {
+        my $results = $results{$test}{$machine}{$version};
+        next unless ($results =~ /\S/);
+        $count++;
+        print "$count $version $results\n";
+        print DATA "$count $results\n";
+    }
+    close (DATA);
+    print " ----- \n";
+    print `$plotgraph $filename '$axis_labels{$test}' '$plot_cols{$test}'`;
 }
 
