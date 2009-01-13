@@ -94,7 +94,7 @@ def filter_non_linux(part_name):
 
 
 def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
-                       __open=open):
+                       open_func=open):
     """Get a list of partition objects for all disk partitions on the system.
 
     Loopback devices and unnumbered (whole disk) devices are always excluded.
@@ -107,19 +107,19 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
           Some useful filter functions are already defined in this module.
       exclude_swap: If True any partition actively in use as a swap device
           will be excluded.
-      __open: Reserved for unit testing.
+      open_func: function that should return a file like object.
 
     Returns:
       A list of partition object instances.
     """
     active_swap_devices = set()
     if exclude_swap:
-        for swapline in __open('/proc/swaps'):
+        for swapline in open_func('/proc/swaps'):
             if swapline.startswith('/'):
                 active_swap_devices.add(swapline.split()[0])
 
     partitions = []
-    for partline in __open('/proc/partitions').readlines():
+    for partline in open_func('/proc/partitions').readlines():
         fields = partline.strip().split()
         if len(fields) != 4 or partline.startswith('major'):
             continue
@@ -220,7 +220,8 @@ class partition(object):
         which we mount as loopback.
 
         job
-                A client.bin.job instance.
+                A client.bin.job instance or None
+                Note: DO NOT assume job is a valid instance in self.__init__
         device
                 The device in question (eg "/dev/hda2")
         loop_size
@@ -304,8 +305,8 @@ class partition(object):
         self.job.run_group(func, test_tag=tag, dir=mountpoint, **dargs)
 
 
-    def get_mountpoint(self):
-        for line in open('/proc/mounts', 'r').readlines():
+    def get_mountpoint(self, open_func=open):
+        for line in open_func('/proc/mounts').readlines():
             parts = line.split()
             if parts[0] == self.device:
                 return parts[1]          # The mountpoint where it's mounted

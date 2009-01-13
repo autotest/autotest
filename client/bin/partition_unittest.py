@@ -97,14 +97,14 @@ class GetPartitionsTest(unittest.TestCase):
 
         # Test a filter func that denies all.
         parts = partition.get_partition_list(job, filter_func=lambda x: False,
-                                             __open=fake_open)
+                                             open_func=fake_open)
         self.assertEqual([], parts)
         self.god.check_playback()
 
         # Test normal operation.
         self.god.stub_function(partition, 'partition')
         partition.partition.expect_call(job, '/dev/hdc3').and_return('3')
-        parts = partition.get_partition_list(job, __open=fake_open)
+        parts = partition.get_partition_list(job, open_func=fake_open)
         self.assertEqual(['3'], parts)
         self.god.check_playback()
 
@@ -112,7 +112,7 @@ class GetPartitionsTest(unittest.TestCase):
         partition.partition.expect_call(job, '/dev/hdc2').and_return('2')
         partition.partition.expect_call(job, '/dev/hdc3').and_return('3')
         parts = partition.get_partition_list(job, exclude_swap=False,
-                                             __open=fake_open)
+                                             open_func=fake_open)
         self.assertEqual(['2', '3'], parts)
         self.god.check_playback()
 
@@ -120,7 +120,7 @@ class GetPartitionsTest(unittest.TestCase):
         partition.partition.expect_call(job, '/dev/hdc3').and_return('3')
         parts = partition.get_partition_list(job, min_blocks=600000,
                                              exclude_swap=False,
-                                             __open=fake_open)
+                                             open_func=fake_open)
         self.assertEqual(['3'], parts)
         self.god.check_playback()
 
