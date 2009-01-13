@@ -41,7 +41,7 @@ class iozone(test.test):
         self.__format_results(output, auto_mode)
 
 
-    def __get_section_name(sef, desc):
+    def __get_section_name(self, desc):
         return desc.strip().replace(' ', '_')
 
 
