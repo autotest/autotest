@@ -18,10 +18,11 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import os, re, time
+import os, re, time, cStringIO
 
 from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.client.common_lib import host_protections
+from autotest_lib.client.bin import partition
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import bootloader
 
@@ -176,6 +177,52 @@ class Host(object):
         else:
             print 'Found %s GB >= %s GB of space under %s on machine %s' % \
                                        (free_space_gb, gb, path, self.hostname)
+
+
+    def check_partitions(self, root_part, filter_func=None):
+        """" Compare the contents of /proc/partitions with those of
+        /proc/mounts and raise exception in case unmounted partitions are found
+
+        root_part: in Linux /proc/mounts will never directly mention the root
+        partition as being mounted on / instead it will say that /dev/root is
+        mounted on /. Thus require this argument to filter out the root_part
+        from the ones checked to be mounted
+
+        filter_func: unnary predicate for additional filtering out of
+        partitions required to be mounted
+
+        Raise: error.AutoservHostError if unfiltered unmounted partition found
+        """
+
+        # cache these files because the same file contents is read for
+        # each partition
+        cached_files = {}
+
+        def remote_open(filename):
+            if filename not in cached_files:
+                output = self.run('cat \'%s\'' % filename,
+                                  stdout_tee=open('/dev/null', 'w')).stdout
+                cached_files[filename] = cStringIO.StringIO(output)
+            else:
+                cached_files[filename].seek(0)
+
+            return cached_files[filename]
+
+
+        print 'Checking if non-swap partitions are mounted...'
+
+        partitions = partition.get_partition_list(None,
+            filter_func=filter_func, open_func=remote_open)
+
+        unmounted = []
+        for part in partitions:
+            if part.device != '/dev/' + root_part and \
+               not part.get_mountpoint(open_func=remote_open):
+                unmounted.append(part.device)
+
+        if unmounted:
+            raise error.AutoservHostError('Found unmounted partitions: %s' %
+                                          unmounted)
 
 
     def repair_filesystem_only(self):
