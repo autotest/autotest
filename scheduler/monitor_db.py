@@ -96,14 +96,14 @@ def main():
             sys.exit(1)
         _base_url = 'http://%s/afe/' % server_name
 
-    server = status_server.StatusServer()
+    server = status_server.StatusServer(_drone_manager)
     server.start()
 
-    init(options.logfile)
-    dispatcher = Dispatcher()
-    dispatcher.do_initial_recovery(recover_hosts=options.recover_hosts)
-
     try:
+        init(options.logfile)
+        dispatcher = Dispatcher()
+        dispatcher.do_initial_recovery(recover_hosts=options.recover_hosts)
+
         while not _shutdown:
             dispatcher.tick()
             time.sleep(scheduler_config.config.tick_pause_sec)
