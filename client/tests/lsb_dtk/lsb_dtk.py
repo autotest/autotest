@@ -45,7 +45,7 @@ class lsb_dtk(test.test):
         else:
             self.lsb_url = my_config.get('lsb', 'tarball_url_alt') % self.get_lsb_arch()
         if not self.lsb_url:
-            raise TestError('Could not get lsb URL from configuration file')
+            raise error.TestError('Could not get lsb URL from configuration file')
         self.md5_key = 'md5-%s' % self.get_lsb_arch()
         self.lsb_md5 = my_config.get('lsb', self.md5_key)
         if self.lsb_md5:
