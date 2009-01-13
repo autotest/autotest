@@ -717,15 +717,15 @@ class rpm_kernel(object):
         self.job.reboot(tag=self.installed_as)
 
 
+# just make the preprocessor a nop
+def _preprocess_path_dummy(path):
+    return path.strip()
+
+
 # pull in some optional site-specific path pre-processing
-try:
-    import site_kernel
-    preprocess_path = site_kernel.preprocess_path
-    del site_kernel
-except ImportError:
-    # just make the preprocessor a nop
-    def preprocess_path(path):
-        return path.strip()
+preprocess_path = utils.import_site_function(__file__, 
+    "autotest_lib.client.bin.site_kernel", "preprocess_path",
+    _preprocess_path_dummy)
 
 
 def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
