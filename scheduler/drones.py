@@ -12,6 +12,7 @@ class _AbstractDrone(object):
     def __init__(self):
         self._calls = []
         self.hostname = None
+        self.enabled = True
 
 
     def shutdown(self):
