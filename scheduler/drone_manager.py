@@ -183,6 +183,10 @@ class DroneManager(object):
         return self._drones[process.hostname]
 
 
+    def num_enabled_drones(self):
+        return len(self._drone_queue)
+
+
     def _get_drone_for_pidfile_id(self, pidfile_id):
         pidfile_contents = self.get_pidfile_contents(pidfile_id)
         assert pidfile_contents.process is not None
