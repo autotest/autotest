@@ -218,12 +218,16 @@ class RemoteHost(base_classes.Host):
                 print "crashinfo collection of %s failed with:\n%s" % (log, e)
 
         # collect dmesg
-        print "Collecting dmesg..."
+        print "Collecting dmesg (saved to crashinfo/dmesg)..."
+        devnull = open("/dev/null", "w")
         try:
-            result = self.run("dmesg").stdout
-            file(os.path.join(infodir, "dmesg"), "w").write(result)
-        except Exception, e:
-            print "crashinfo collection of dmesg failed with:\n%s" % e
+            try:
+                result = self.run("dmesg", stdout_tee=devnull).stdout
+                file(os.path.join(infodir, "dmesg"), "w").write(result)
+            except Exception, e:
+                print "crashinfo collection of dmesg failed with:\n%s" % e
+        finally:
+            devnull.close()
 
 
     def are_wait_up_processes_up(self):
