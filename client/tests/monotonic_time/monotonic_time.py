@@ -18,7 +18,7 @@ class monotonic_time(test.test):
 
     def run_once(self, test_type = None, duration = 300, threshold = None):
         if not test_type:
-            raise TestError('missing test type')
+            raise error.TestError('missing test type')
 
         cmd = self.srcdir + '/time_test'
         cmd += ' --duration ' + str(duration)
