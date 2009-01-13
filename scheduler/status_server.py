@@ -1,4 +1,4 @@
-import os, BaseHTTPServer, cgi, threading, urllib
+import os, BaseHTTPServer, cgi, threading, urllib, fcntl
 import common
 from autotest_lib.scheduler import scheduler_config
 
@@ -91,6 +91,10 @@ class StatusServer(BaseHTTPServer.HTTPServer):
                                            StatusServerRequestHandler)
         self._shutting_down = False
         self._drone_manager = drone_manager
+
+        # ensure the listening socket is not inherited by child processes
+        old_flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
+        fcntl.fcntl(self.fileno(), fcntl.F_SETFD, old_flags | fcntl.FD_CLOEXEC)
 
 
     def shutdown(self):
