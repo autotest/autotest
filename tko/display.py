@@ -330,7 +330,7 @@ text-align: left
     print '&nbsp&nbsp&nbsp'
     print '<a href="machine_benchmark.cgi">Performance</a>'
     print '&nbsp&nbsp&nbsp'
-    print '<a href="http://test.kernel.org/autotest">[about Autotest]</a>'
+    print '<a href="http://autotest.kernel.org">[About Page]</a>'
     print '</h2><p>'
 
 
