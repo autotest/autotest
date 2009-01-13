@@ -833,6 +833,9 @@ def import_site_class(path, module, classname, baseclass, modulefile=None):
         classobj = getattr(__import__(module, {}, {}, [short_module]),
                            classname)
     else:
-        classobj = baseclass
+        class dummy(baseclass):
+            pass
+
+        classobj = dummy
 
     return classobj
