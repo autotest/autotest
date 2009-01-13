@@ -49,10 +49,25 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self._write_line()
 
 
+    def _write_drone(self, hostname):
+        line = hostname
+        if not self.server._drone_manager.is_drone_enabled(hostname):
+            line += ' (disabled)'
+        self._write_line(line)
+
+
+    def _write_drone_list(self):
+        self._write_line('Drones:')
+        for hostname in self.server._drone_manager.drone_hostnames():
+            self._write_drone(hostname)
+        self._write_line()
+
+
     def _execute_actions(self, arguments):
         if 'reparse_config' in arguments:
             scheduler_config.config.read_config()
-            self._write_line('Updated config!')
+            self.server._drone_manager.refresh_disabled_drones()
+            self._write_line('Reparsed config!')
         self._write_line()
 
 
@@ -63,17 +78,19 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         arguments = self._parse_arguments()
         self._execute_actions(arguments)
         self._write_all_fields()
+        self._write_drone_list()
 
         self.wfile.write(_FOOTER)
 
 
 class StatusServer(BaseHTTPServer.HTTPServer):
-    def __init__(self):
+    def __init__(self, drone_manager):
         address = ('', _PORT)
         # HTTPServer is an old-style class :(
         BaseHTTPServer.HTTPServer.__init__(self, address,
                                            StatusServerRequestHandler)
         self._shutting_down = False
+        self._drone_manager = drone_manager
 
 
     def shutdown(self):

@@ -1,6 +1,6 @@
 import os, re, shutil, signal, subprocess, errno, time, heapq, traceback
 import common
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.scheduler import email_manager, drone_utility, drones
 
 _AUTOSERV_PID_FILE = '.autoserv_execute'
@@ -130,6 +130,8 @@ class DroneManager(object):
             # all drones failed to initialize
             raise DroneManagerError('No valid drones found')
 
+        self.refresh_disabled_drones()
+
         print 'Using results repository on', results_repository_hostname
         self._results_drone = drones.get_drone(results_repository_hostname)
         # don't initialize() the results drone - we don't want to clear out any
@@ -154,6 +156,25 @@ class DroneManager(object):
 
     def _remove_drone(self, hostname):
         self._drones.pop(hostname, None)
+
+
+    def refresh_disabled_drones(self):
+        """
+        Reread global config "disabled" options for all drones.
+        """
+        global_config.global_config.parse_config_file()
+        for hostname, drone in self._drones.iteritems():
+            disabled = global_config.global_config.get_config_value(
+                'SCHEDULER', '%s_disabled' % hostname, default='')
+            drone.enabled = not bool(disabled)
+
+
+    def is_drone_enabled(self, hostname):
+        return self._drones[hostname].enabled
+
+
+    def drone_hostnames(self):
+        return self._drones.iterkeys()
 
 
     def _get_drone_for_process(self, process):
@@ -232,8 +253,9 @@ class DroneManager(object):
 
         for drone, results_list in all_results.iteritems():
             results = results_list[0]
-            process_count = len(results['processes'])
-            heapq.heappush(self._drone_queue, (process_count, drone))
+            if drone.enabled:
+                process_count = len(results['processes'])
+                heapq.heappush(self._drone_queue, (process_count, drone))
             for process_info in results['processes']:
                 # only root autoserv processes have pgid == pid
                 if process_info['pgid'] != process_info['pid']:
