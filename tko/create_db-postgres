@@ -4,116 +4,116 @@ DROP VIEW IF EXISTS test_view;
 -- kernel versions
 DROP SEQUENCE IF EXISTS kernel_idx_seq;
 CREATE SEQUENCE kernel_idx_seq
-	INCREMENT BY 1
-	NO MAXVALUE
-	NO MINVALUE
-	CACHE 1;
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 DROP TABLE IF EXISTS kernels;
 CREATE TABLE kernels (
 kernel_idx int NOT NULL DEFAULT nextval('kernel_idx_seq'::TEXT) PRIMARY KEY,
-kernel_hash TEXT,		-- Hash of base + all patches
-base TEXT,			-- Base version without patches
-printable TEXT			-- Full version with patches
+kernel_hash TEXT,        -- Hash of base + all patches
+base TEXT,            -- Base version without patches
+printable TEXT            -- Full version with patches
 );
 
 -- main jobs table
 DROP SEQUENCE IF EXISTS machine_idx_seq;
 CREATE SEQUENCE machine_idx_seq
-	INCREMENT BY 1
-	NO MAXVALUE
-	NO MINVALUE
-	CACHE 1;
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 DROP TABLE IF EXISTS machines;
 CREATE TABLE machines (
 machine_idx int NOT NULL DEFAULT nextval('machine_idx_seq'::TEXT) PRIMARY KEY,
-hostname TEXT,			-- hostname
-machine_group TEXT,		-- group name
-owner TEXT			-- owner name
+hostname TEXT,            -- hostname
+machine_group TEXT,        -- group name
+owner TEXT            -- owner name
 );
 
 -- main jobs table
 DROP SEQUENCE IF EXISTS job_idx_seq;
 CREATE SEQUENCE job_idx_seq
-	INCREMENT BY 1
-	NO MAXVALUE
-	NO MINVALUE
-	CACHE 1;
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 DROP TABLE IF EXISTS jobs;
 CREATE TABLE jobs (
 job_idx int NOT NULL DEFAULT nextval('job_idx_seq'::TEXT) PRIMARY KEY,
-tag TEXT,			-- job key
+tag TEXT,            -- job key
 label TEXT,                     -- job label assigned by user
-username TEXT,			-- user name
-machine_idx int			-- reference to machine table
+username TEXT,            -- user name
+machine_idx int            -- reference to machine table
 );
 
 -- One entry per patch used, anywhere
 DROP TABLE IF EXISTS patches;
 CREATE TABLE patches (
-kernel_idx INTEGER,			-- index number
-name TEXT,			-- short name
-url TEXT,			-- full URL
+kernel_idx INTEGER,            -- index number
+name TEXT,            -- short name
+url TEXT,            -- full URL
 hash TEXT
 );
 
 -- test functional results
 DROP SEQUENCE IF EXISTS test_idx_seq;
 CREATE SEQUENCE test_idx_seq
-	INCREMENT BY 1
-	NO MAXVALUE
-	NO MINVALUE
-	CACHE 1;
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 DROP TABLE IF EXISTS tests;
 CREATE TABLE tests (
 test_idx int NOT NULL DEFAULT nextval('test_idx_seq'::TEXT) PRIMARY KEY,
-job_idx INTEGER,			-- ref to job table
-test TEXT,			-- name of test
-subdir TEXT,			-- subdirectory name
-kernel_idx INTEGER,			-- kernel test was AGAINST
-status INTEGER,				-- test status
-reason TEXT,			-- reason for test status
-machine_idx int			-- reference to machine table
+job_idx INTEGER,            -- ref to job table
+test TEXT,            -- name of test
+subdir TEXT,            -- subdirectory name
+kernel_idx INTEGER,            -- kernel test was AGAINST
+status INTEGER,                -- test status
+reason TEXT,            -- reason for test status
+machine_idx int            -- reference to machine table
 );
 
 -- test functional results
 DROP TABLE IF EXISTS test_attributes;
 CREATE TABLE test_attributes (
-test_idx INTEGER,			-- ref to test table
-attribute TEXT,			-- attribute name (e.g. 'throughput')
-value TEXT			-- attribute value
+test_idx INTEGER,            -- ref to test table
+attribute TEXT,            -- attribute name (e.g. 'throughput')
+value TEXT            -- attribute value
 );
 
 -- test functional results
 DROP TABLE IF EXISTS iteration_result;
 CREATE TABLE iteration_result(
-test_idx INTEGER,			-- ref to test table
-iteration INTEGER,			-- integer
-attribute TEXT,			-- attribute name (e.g. 'throughput')
-value FLOAT				-- attribute value (eg 700.1)
+test_idx INTEGER,            -- ref to test table
+iteration INTEGER,            -- integer
+attribute TEXT,            -- attribute name (e.g. 'throughput')
+value FLOAT                -- attribute value (eg 700.1)
 );
 
 -- status key
 DROP SEQUENCE IF EXISTS status_idx_seq;
 CREATE SEQUENCE status_idx_seq
-	INCREMENT BY 1
-	NO MAXVALUE
-	NO MINVALUE
-	CACHE 1;
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 DROP TABLE IF EXISTS status;
 CREATE TABLE status (
 status_idx int NOT NULL DEFAULT nextval('status_idx_seq'::TEXT) PRIMARY KEY,
-word TEXT			-- status word
+word TEXT            -- status word
 );
 
 -- BRRD syncronization
 DROP TABLE IF EXISTS brrd_sync;
 CREATE TABLE brrd_sync (
-test_idx INTEGER			-- ref to test table
+test_idx INTEGER            -- ref to test table
 );
 
 -- test_view (to make life easier for people trying to mine data)

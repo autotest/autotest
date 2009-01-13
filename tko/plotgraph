@@ -14,64 +14,64 @@ plotgraph($file, $y_label, $columns, $title);
 # First column must be kernel count, second kernel version, third is job number
 # $columns spec is 1:y-value:y-stddev
 sub plotgraph {
-	my ($file, $y_label, $columns, $title) = @_;
-	my @xtics;
+    my ($file, $y_label, $columns, $title) = @_;
+    my @xtics;
 
-	if (!$title) {
-		$title = $file;
-		$title =~ s#.*/##;
-	}
-	open (INDATA, $file);
-	open (DATA_MAIN, "> ${file}.main");
-	open (DATA_MM, "> ${file}.mm");
-	open (DATA_OTHER, "> ${file}.other");
-	my $count;
-	while ($data = <INDATA>) {
-		chomp $data;
-		($count, my $version, my $job) = split (/\s+/, $data);
-		$short_ver = $version;
-		$short_ver =~ s/\+.*/+p$job/;
-		push @xtics, "\"$short_ver\" $count";
-		if ($version =~ /^2\.\d+\.\d+(\.\d+|-rc\d+)?(-git\d+)?$/) {
-			print DATA_MAIN "$data\n";
-			$plot_main = "\"${file}.main\" using $columns title \"mainline\"";
-		} elsif ($version =~ /^2\.\d+\.\d+(-rc\d+)?-mm\d+$/) {
-			print DATA_MM "$data\n";
-			$plot_mm = "\"${file}.mm\" using $columns title \"-mm\"";
-		} else {
-			print DATA_OTHER "$data\n";
-			$plot_other = "\"${file}.other\" using $columns title \"other\"";
-		}
-	}
-	close (INDATA);
-	close (DATA_MAIN);
-	close (DATA_MM);
-	close (DATA_OTHER);
+    if (!$title) {
+        $title = $file;
+        $title =~ s#.*/##;
+    }
+    open (INDATA, $file);
+    open (DATA_MAIN, "> ${file}.main");
+    open (DATA_MM, "> ${file}.mm");
+    open (DATA_OTHER, "> ${file}.other");
+    my $count;
+    while ($data = <INDATA>) {
+        chomp $data;
+        ($count, my $version, my $job) = split (/\s+/, $data);
+        $short_ver = $version;
+        $short_ver =~ s/\+.*/+p$job/;
+        push @xtics, "\"$short_ver\" $count";
+        if ($version =~ /^2\.\d+\.\d+(\.\d+|-rc\d+)?(-git\d+)?$/) {
+            print DATA_MAIN "$data\n";
+            $plot_main = "\"${file}.main\" using $columns title \"mainline\"";
+        } elsif ($version =~ /^2\.\d+\.\d+(-rc\d+)?-mm\d+$/) {
+            print DATA_MM "$data\n";
+            $plot_mm = "\"${file}.mm\" using $columns title \"-mm\"";
+        } else {
+            print DATA_OTHER "$data\n";
+            $plot_other = "\"${file}.other\" using $columns title \"other\"";
+        }
+    }
+    close (INDATA);
+    close (DATA_MAIN);
+    close (DATA_MM);
+    close (DATA_OTHER);
 
-	die unless ($count > 0);
-	$x_res = $count * 12;
-	$y_res = 900;
-	push @plots, $plot_main if ($plot_main);
-	push @plots, $plot_mm if ($plot_mm);
-	push @plots, $plot_other if ($plot_other);
-	$plots = join (',', @plots);
+    die unless ($count > 0);
+    $x_res = $count * 12;
+    $y_res = 900;
+    push @plots, $plot_main if ($plot_main);
+    push @plots, $plot_mm if ($plot_mm);
+    push @plots, $plot_other if ($plot_other);
+    $plots = join (',', @plots);
 
-	open (GNUPLOT, "> ${file}.gnuplot");
-	# print "MACHINE: $machine\n";
-	print GNUPLOT "set terminal png size $x_res,$y_res\n";
-	print GNUPLOT "set key below\n";
-	print GNUPLOT "set title \"$title\"\n";
-	print GNUPLOT "set xlabel \"Kernel\"\n";
-	print GNUPLOT "set ylabel \"${y_label}\"\n";
-	print GNUPLOT "set output \"${file}.png\"\n";
-	print GNUPLOT "set style data yerrorlines\n";
-	print GNUPLOT "set grid\n";
-	$xtics = join ',', @xtics;
-	print GNUPLOT "\nset xtics rotate (${xtics})\n\n";
-	print GNUPLOT "plot $plots\n";
-	print GNUPLOT "replot";
-	close (GNUPLOT);
-	`/usr/bin/gnuplot ${file}.gnuplot`;
-	`chmod 644 ${file}.gnuplot`;
-	`chmod 644 ${file}.png`;
+    open (GNUPLOT, "> ${file}.gnuplot");
+    # print "MACHINE: $machine\n";
+    print GNUPLOT "set terminal png size $x_res,$y_res\n";
+    print GNUPLOT "set key below\n";
+    print GNUPLOT "set title \"$title\"\n";
+    print GNUPLOT "set xlabel \"Kernel\"\n";
+    print GNUPLOT "set ylabel \"${y_label}\"\n";
+    print GNUPLOT "set output \"${file}.png\"\n";
+    print GNUPLOT "set style data yerrorlines\n";
+    print GNUPLOT "set grid\n";
+    $xtics = join ',', @xtics;
+    print GNUPLOT "\nset xtics rotate (${xtics})\n\n";
+    print GNUPLOT "plot $plots\n";
+    print GNUPLOT "replot";
+    close (GNUPLOT);
+    `/usr/bin/gnuplot ${file}.gnuplot`;
+    `chmod 644 ${file}.gnuplot`;
+    `chmod 644 ${file}.png`;
 }
