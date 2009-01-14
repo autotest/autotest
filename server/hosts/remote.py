@@ -113,6 +113,10 @@ class RemoteHost(base_classes.Host):
         def reboot():
             self.record("GOOD", None, "reboot.start")
             try:
+                # sync before starting the reboot, so that a long sync during
+                # shutdown isn't timed out by wait_down's short timeout
+                self.run('sync; sync', timeout=timeout, ignore_status=True)
+
                 # Try several methods of rebooting in increasing harshness.
                 self.run('('
                          ' sleep 5; reboot &'
