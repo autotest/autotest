@@ -14,10 +14,13 @@ callback = form['callback'].value
 
 try:
     file_contents = urllib2.urlopen('http://localhost' + path).read()
+    # escape backslashes, double-quotes, newlines, and carriage returns -- all
+    # would mess up a Javascript string literal
     escaped_contents = file_contents.replace(
-        '\\', '\\\\').replace( # get rid of backslashes
-        '"', r'\"').replace( # escape quotes
-        '\n', '\\n') # escape newlines
+        '\\', r'\\').replace(
+        '"', r'\"').replace(
+        '\n', r'\n').replace(
+        '\r', r'\r')
     result = '{"contents" : "%s"}' % escaped_contents
 except urllib2.HTTPError:
     result = '{"error" : "File not found"}'
