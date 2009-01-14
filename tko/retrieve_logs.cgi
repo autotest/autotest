@@ -23,7 +23,7 @@ def _retrieve_logs_dummy(job_path):
 
 
 # Define function for retrieving logs
-retrieve_logs = import_site_function(__file__,
+retrieve_logs = utils.import_site_function(__file__,
     "autotest_lib.tko.site_retrieve_logs", "retrieve_logs",
     _retrieve_logs_dummy)
 
