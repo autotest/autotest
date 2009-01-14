@@ -113,8 +113,13 @@ class RemoteHost(base_classes.Host):
         def reboot():
             self.record("GOOD", None, "reboot.start")
             try:
-                self.run('(sleep 5; reboot) '
-                         '</dev/null >/dev/null 2>&1 &')
+                # Try several methods of rebooting in increasing harshness.
+                self.run('('
+                         ' sleep 5; reboot &'
+                         ' sleep 60; reboot -f &'
+                         ' sleep 10; reboot -nf &'
+                         ' sleep 10; telinit 6 &'
+                         ') </dev/null >/dev/null 2>&1 &')
             except error.AutoservRunError:
                 self.record("ABORT", None, "reboot.start",
                               "reboot command failed")
