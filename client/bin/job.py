@@ -754,8 +754,10 @@ class base_job(object):
         # installed unload it first
         utils.system("modprobe -r netconsole", ignore_status=True)
 
-        cmd = "(sleep 5; reboot) </dev/null >/dev/null 2>&1 &"
-        utils.system(cmd)
+        # sync first, so that a sync during shutdown doesn't time out
+        utils.system("sync; sync", ignore_status=True)
+
+        utils.system("(sleep 5; reboot) </dev/null >/dev/null 2>&1 &")
         self.quit()
 
 
