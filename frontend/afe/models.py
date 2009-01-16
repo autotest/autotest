@@ -226,7 +226,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
 
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
-        logger.debug(self.hostname + ' -> ' + self.status)
+        logger.info(self.hostname + ' -> ' + self.status)
 
 
     def enqueue_job(self, job):
@@ -749,7 +749,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
-        logger.debug('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
+        logger.info('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
                                            self.status))
 
 

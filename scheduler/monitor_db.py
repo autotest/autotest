@@ -142,7 +142,7 @@ def init(logfile):
     setup_django_environment.enable_autocommit()
 
     debug.configure('scheduler', format_string='%(message)s')
-    debug.get_logger().setLevel(logging.WARNING)
+    debug.get_logger().setLevel(logging.INFO)
 
     print "Setting signal handler"
     signal.signal(signal.SIGINT, handle_sigint)
