@@ -62,7 +62,7 @@ class DroneUtility(object):
         self.warnings.append(warning)
 
 
-    def _refresh_autoserv_processes(self):
+    def _refresh_processes(self, command_name):
         ps_proc = subprocess.Popen(
             ['/bin/ps', 'x', '-o', ','.join(self._PS_ARGS)],
             stdout=subprocess.PIPE)
@@ -75,7 +75,7 @@ class DroneUtility(object):
 
         processes = []
         for info in process_infos:
-            if info['comm'] == 'autoserv':
+            if info['comm'] == command_name:
                 processes.append(info)
 
         return processes
@@ -98,7 +98,8 @@ class DroneUtility(object):
     def refresh(self, pidfile_paths):
         results = {
             'pidfiles' : self._read_pidfiles(pidfile_paths),
-            'processes' : self._refresh_autoserv_processes(),
+            'autoserv_processes' : self._refresh_processes('autoserv'),
+            'parse_processes' : self._refresh_processes('parse'),
             'pidfiles_second_read' : self._read_pidfiles(pidfile_paths),
         }
         return results

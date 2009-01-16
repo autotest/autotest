@@ -246,6 +246,23 @@ class DroneManager(object):
             store_in_dict[pidfile_id] = contents
 
 
+    def _add_process(self, drone, process_info):
+        process = Process(drone.hostname, int(process_info['pid']),
+                          int(process_info['ppid']))
+        self._process_set.add(process)
+        return process
+
+
+    def _add_autoserv_process(self, drone, process_info):
+        assert process_info['comm'] == 'autoserv'
+        # only root autoserv processes have pgid == pid
+        if process_info['pgid'] != process_info['pid']:
+            return
+        process = self._add_process(drone, process_info)
+        execution_tag = self._execution_tag_for_process(drone, process_info)
+        self._processes[execution_tag] = process
+
+
     def refresh(self):
         """
         Called at the beginning of a scheduler cycle to refresh all process
@@ -258,18 +275,13 @@ class DroneManager(object):
         for drone, results_list in all_results.iteritems():
             results = results_list[0]
             if drone.enabled:
-                process_count = len(results['processes'])
+                process_count = len(results['autoserv_processes'])
                 heapq.heappush(self._drone_queue, (process_count, drone))
-            for process_info in results['processes']:
-                # only root autoserv processes have pgid == pid
-                if process_info['pgid'] != process_info['pid']:
-                    continue
-                process = Process(drone.hostname, int(process_info['pid']),
-                                  int(process_info['ppid']))
-                execution_tag = self._execution_tag_for_process(drone,
-                                                                process_info)
-                self._processes[execution_tag] = process
-                self._process_set.add(process)
+
+            for process_info in results['autoserv_processes']:
+                self._add_autoserv_process(drone, process_info)
+            for process_info in results['parse_processes']:
+                self._add_process(drone, process_info)
 
             self._process_pidfiles(drone, results['pidfiles'], self._pidfiles)
             self._process_pidfiles(drone, results['pidfiles_second_read'],
