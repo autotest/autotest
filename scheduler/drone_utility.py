@@ -1,7 +1,7 @@
 #!/usr/bin/python2.4
 
 import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
-import datetime, traceback
+import datetime, traceback, tempfile
 import common
 from autotest_lib.client.common_lib import utils, global_config, error
 from autotest_lib.server import hosts, subcommand
@@ -117,9 +117,47 @@ class DroneUtility(object):
             os.kill(process.pid, signal.SIGTERM)
 
 
+    def _convert_old_host_log(self, log_path):
+        """
+        For backwards compatibility only.  This can safely be removed in the
+        future.
+
+        The scheduler used to create files at results/hosts/<hostname>, and
+        append all host logs to that file.  Now, it creates directories at
+        results/hosts/<hostname>, and places individual timestamped log files
+        into that directory.
+
+        This can be a problem the first time the scheduler runs after upgrading.
+        To work around that, we'll look for a file at the path where the
+        directory should be, and if we find one, we'll automatically convert it
+        to a directory containing the old logfile.
+        """
+        # move the file out of the way
+        temp_dir = tempfile.mkdtemp(suffix='.convert_host_log')
+        base_name = os.path.basename(log_path)
+        temp_path = os.path.join(temp_dir, base_name)
+        os.rename(log_path, temp_path)
+
+        os.mkdir(log_path)
+
+        # and move it into the new directory
+        os.rename(temp_path, os.path.join(log_path, 'old_log'))
+        os.rmdir(temp_dir)
+
+
     def _ensure_directory_exists(self, path):
-        if not os.path.exists(path):
-            os.makedirs(path)
+        if os.path.isdir(path):
+            return
+
+        if os.path.exists(path):
+            # path exists already, but as a file, not a directory
+            if '/hosts/' in path:
+                self._convert_old_host_log(path)
+                return
+            else:
+                raise IOError('Path %s exists as a file, not a directory')
+
+        os.makedirs(path)
 
 
     def execute_command(self, command, working_directory, log_file,
