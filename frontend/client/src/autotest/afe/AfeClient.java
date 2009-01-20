@@ -15,7 +15,11 @@ import autotest.common.ui.TabView;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
+
 
 public class AfeClient implements EntryPoint {
     private JobListView jobList;
@@ -44,6 +48,10 @@ public class AfeClient implements EntryPoint {
     }
     
     protected void finishLoading() {
+        String motd = StaticDataRepository.getRepository().getData(
+                                               "motd").isString().stringValue();
+        RootPanel.get("motd").getElement().setInnerHTML(motd);
+
         jobList = new JobListView(new JobSelectListener() {
             public void onJobSelected(int jobId) {
                 showJob(jobId);

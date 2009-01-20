@@ -215,3 +215,19 @@ def check_abort_synchronous_jobs(host_queue_entries):
                     '(%d/%s, %d included, %d expected'
                     % (queue_entry.job.id, queue_entry.execution_subdir,
                        execution_count, queue_entry.job.synch_count)})
+
+
+def get_motd():
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, "..", "..", "motd.txt")
+    text = ''
+    try:
+        fp = open(filename, "r")
+        try:
+            text = fp.read()
+        finally:
+            fp.close()
+    except:
+        pass
+
+    return text
