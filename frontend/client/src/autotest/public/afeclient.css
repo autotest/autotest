@@ -2,6 +2,11 @@ body {
   margin-top: 0px;
 }
 
+.motd {
+  color: #FF0000;
+  text-align: right;
+}
+
 .data-table {
   border: 2px solid #A0A0A0;
   empty-cells: show;
@@ -200,12 +205,6 @@ tr.data-row-clickable:hover {
 
 .paginator-link {
   padding: 0 0.2em;
-}
-
-.links-box {
-  border: 2px solid #AACCFF;
-  background: #CCDDFF;
-  padding: 0.2em;
 }
 
 .SimpleHyperlink {

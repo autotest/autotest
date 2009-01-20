@@ -550,6 +550,7 @@ def get_static_data():
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
     result['reboot_before_options'] = models.RebootBefore.names
     result['reboot_after_options'] = models.RebootAfter.names
+    result['motd'] = rpc_utils.get_motd()
 
     result['status_dictionary'] = {"Abort": "Abort",
                                    "Aborted": "Aborted",
