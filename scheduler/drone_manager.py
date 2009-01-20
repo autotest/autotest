@@ -2,6 +2,7 @@ import os, re, shutil, signal, subprocess, errno, time, heapq, traceback
 import common
 from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.scheduler import email_manager, drone_utility, drones
+from autotest_lib.scheduler import scheduler_config
 
 _AUTOSERV_PID_FILE = '.autoserv_execute'
 
@@ -130,7 +131,7 @@ class DroneManager(object):
             # all drones failed to initialize
             raise DroneManagerError('No valid drones found')
 
-        self.refresh_disabled_drones()
+        self.refresh_drone_configs()
 
         print 'Using results repository on', results_repository_hostname
         self._results_drone = drones.get_drone(results_repository_hostname)
@@ -143,7 +144,7 @@ class DroneManager(object):
 
 
     def shutdown(self):
-        for drone in self._drones.itervalues():
+        for drone in self.get_drones():
             drone.shutdown()
 
 
@@ -158,33 +159,31 @@ class DroneManager(object):
         self._drones.pop(hostname, None)
 
 
-    def refresh_disabled_drones(self):
+    def refresh_drone_configs(self):
         """
-        Reread global config "disabled" options for all drones.
+        Reread global config options for all drones.
         """
-        global_config.global_config.parse_config_file()
+        config = global_config.global_config
+        section = scheduler_config.CONFIG_SECTION
+        config.parse_config_file()
         for hostname, drone in self._drones.iteritems():
-            disabled = global_config.global_config.get_config_value(
-                'SCHEDULER', '%s_disabled' % hostname, default='')
+            disabled = config.get_config_value(
+                section, '%s_disabled' % hostname, default='')
             drone.enabled = not bool(disabled)
 
+            drone.max_processes = config.get_config_value(
+                section, '%s_max_processes' % hostname, type=int,
+                default=scheduler_config.config.max_processes_per_drone)
 
-    def is_drone_enabled(self, hostname):
-        return self._drones[hostname].enabled
 
-
-    def drone_hostnames(self):
-        return self._drones.iterkeys()
+    def get_drones(self):
+        return self._drones.itervalues()
 
 
     def _get_drone_for_process(self, process):
         if process.hostname == self._NULL_HOSTNAME:
             return self._null_drone
         return self._drones[process.hostname]
-
-
-    def num_enabled_drones(self):
-        return len(self._drone_queue)
 
 
     def _get_drone_for_pidfile_id(self, pidfile_id):
@@ -211,7 +210,7 @@ class DroneManager(object):
 
     def _call_all_drones(self, method, *args, **kwargs):
         all_results = {}
-        for drone in self._drones.itervalues():
+        for drone in self.get_drones():
             all_results[drone] = drone.call(method, *args, **kwargs)
         return all_results
 
@@ -263,6 +262,10 @@ class DroneManager(object):
         self._processes[execution_tag] = process
 
 
+    def _enqueue_drone(self, drone):
+        heapq.heappush(self._drone_queue, (drone.used_capacity(), drone))
+
+
     def refresh(self):
         """
         Called at the beginning of a scheduler cycle to refresh all process
@@ -274,9 +277,9 @@ class DroneManager(object):
 
         for drone, results_list in all_results.iteritems():
             results = results_list[0]
+            drone.active_processes = len(results['autoserv_processes'])
             if drone.enabled:
-                process_count = len(results['autoserv_processes'])
-                heapq.heappush(self._drone_queue, (process_count, drone))
+                self._enqueue_drone(drone)
 
             for process_info in results['autoserv_processes']:
                 self._add_autoserv_process(drone, process_info)
@@ -370,10 +373,45 @@ class DroneManager(object):
         return len(machine_list)
 
 
+    def total_running_processes(self):
+        return sum(drone.active_processes for drone in self.get_drones())
+
+
+    def max_runnable_processes(self):
+        """
+        Return the maximum number of processes that can be run (in a single
+        execution) given the current load on drones.
+        """
+        return max(drone.max_processes - drone.active_processes
+                   for drone in self.get_drones())
+
+
     def _choose_drone_for_execution(self, num_processes):
-        processes, drone_to_use = heapq.heappop(self._drone_queue)
-        heapq.heappush(self._drone_queue,
-                       (processes + num_processes, drone_to_use))
+        # cycle through drones is order of increasing used capacity until
+        # we find one that can handle these processes
+        checked_drones = []
+        drone_to_use = None
+        while self._drone_queue:
+            used_capacity, drone = heapq.heappop(self._drone_queue)
+            checked_drones.append(drone)
+            if drone.active_processes + num_processes <= drone.max_processes:
+                drone_to_use = drone
+                break
+
+        if drone_to_use:
+            drone_to_use.active_processes += num_processes
+        else:
+            drone_summary = ','.join('%s %s/%s' % (drone.hostname,
+                                                   drone.active_processes,
+                                                   drone.max_processes)
+                                     for drone in self.get_drones())
+            raise ValueError('No drone has capacity to handle %d processes (%s)'
+                             % (num_processes, drone_summary))
+
+        # refill _drone_queue
+        for drone in checked_drones:
+            self._enqueue_drone(drone)
+
         return drone_to_use
 
 

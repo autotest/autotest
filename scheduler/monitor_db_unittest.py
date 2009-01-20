@@ -420,14 +420,17 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
 
     def setUp(self):
         super(DispatcherThrottlingTest, self).setUp()
-        scheduler_config.config.max_running_processes = self._MAX_RUNNING
+        scheduler_config.config.max_processes_per_drone = self._MAX_RUNNING
         scheduler_config.config.max_processes_started_per_cycle = (
             self._MAX_STARTED)
 
-        def fake_num_enabled_drones(self):
-            return 1
-        self.god.stub_with(drone_manager.DroneManager, 'num_enabled_drones',
-                           fake_num_enabled_drones)
+        def fake_max_runnable_processes(fake_self):
+            running = sum(agent.num_processes
+                          for agent in self._agents
+                          if agent.is_running())
+            return self._MAX_RUNNING - running
+        self.god.stub_with(drone_manager.DroneManager, 'max_runnable_processes',
+                           fake_max_runnable_processes)
 
 
     def _setup_some_agents(self, num_agents):

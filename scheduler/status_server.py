@@ -49,24 +49,25 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self._write_line()
 
 
-    def _write_drone(self, hostname):
-        line = hostname
-        if not self.server._drone_manager.is_drone_enabled(hostname):
+    def _write_drone(self, drone):
+        line = '%s %s/%s processes' % (drone.hostname, drone.active_processes,
+                                       drone.max_processes)
+        if not drone.enabled:
             line += ' (disabled)'
         self._write_line(line)
 
 
     def _write_drone_list(self):
         self._write_line('Drones:')
-        for hostname in self.server._drone_manager.drone_hostnames():
-            self._write_drone(hostname)
+        for drone in self.server._drone_manager.get_drones():
+            self._write_drone(drone)
         self._write_line()
 
 
     def _execute_actions(self, arguments):
         if 'reparse_config' in arguments:
             scheduler_config.config.read_config()
-            self.server._drone_manager.refresh_disabled_drones()
+            self.server._drone_manager.refresh_drone_configs()
             self._write_line('Reparsed config!')
         self._write_line()
 
