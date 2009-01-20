@@ -690,21 +690,17 @@ class Dispatcher(object):
             entry.abort(self, agents_to_abort)
 
 
-    def _can_start_agent(self, agent, num_running_processes,
-                         num_started_this_cycle, have_reached_limit):
+    def _can_start_agent(self, agent, num_started_this_cycle,
+                         have_reached_limit):
         # always allow zero-process agents to run
         if agent.num_processes == 0:
             return True
-        # don't allow processes to run if we've disabled all drones
-        if _drone_manager.num_enabled_drones() == 0:
-            return False
         # don't allow any nonzero-process agents to run after we've reached a
         # limit (this avoids starvation of many-process agents)
         if have_reached_limit:
             return False
         # total process throttling
-        if (num_running_processes + agent.num_processes >
-            scheduler_config.config.max_running_processes):
+        if agent.num_processes > _drone_manager.max_runnable_processes():
             return False
         # if a single agent exceeds the per-cycle throttling, still allow it to
         # run when it's the first agent in the cycle
@@ -718,7 +714,6 @@ class Dispatcher(object):
 
 
     def _handle_agents(self):
-        num_running_processes = self.num_running_processes()
         num_started_this_cycle = 0
         have_reached_limit = False
         # iterate over copy, so we can remove agents during iteration
@@ -728,15 +723,13 @@ class Dispatcher(object):
                 self.remove_agent(agent)
                 continue
             if not agent.is_running():
-                if not self._can_start_agent(agent, num_running_processes,
-                                             num_started_this_cycle,
+                if not self._can_start_agent(agent, num_started_this_cycle,
                                              have_reached_limit):
                     have_reached_limit = True
                     continue
-                num_running_processes += agent.num_processes
                 num_started_this_cycle += agent.num_processes
             agent.tick()
-        print num_running_processes, 'running processes'
+        print _drone_manager.total_running_processes(), 'running processes'
 
 
     def _check_for_db_inconsistencies(self):

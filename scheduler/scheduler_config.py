@@ -7,7 +7,7 @@ class SchedulerConfig(object):
     """
     Contains configuration that can be changed during scheduler execution.
     """
-    FIELDS = {'max_running_processes' : 'max_running_jobs',
+    FIELDS = {'max_processes_per_drone' : 'max_processes_per_drone',
               'max_processes_started_per_cycle' : 'max_jobs_started_per_cycle',
               'clean_interval' : 'clean_interval_minutes',
               'synch_job_start_timeout_minutes' :

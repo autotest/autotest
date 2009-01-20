@@ -13,10 +13,18 @@ class _AbstractDrone(object):
         self._calls = []
         self.hostname = None
         self.enabled = True
+        self.max_processes = 0
+        self.active_processes = 0
 
 
     def shutdown(self):
         pass
+
+
+    def used_capacity(self):
+        if self.max_processes == 0:
+            return 1.0
+        return float(self.active_processes) / self.max_processes
 
 
     def _execute_calls_impl(self, calls):
