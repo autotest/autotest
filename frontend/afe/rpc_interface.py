@@ -329,6 +329,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
 
+    all_host_objects = host_objects + metahost_objects
+
     # check that each metahost request has enough hosts under the label
     for label, requested_count in metahost_counts.iteritems():
         available_count = label.host_set.count()
@@ -336,6 +338,11 @@ def create_job(name, priority, control_file, control_type, timeout=None,
             error = ("You have requested %d %s's, but there are only %d."
                      % (requested_count, label.name, available_count))
             raise model_logic.ValidationError({'meta_hosts' : error})
+
+    if synch_count is not None and synch_count > len(all_host_objects):
+        raise model_logic.ValidationError(
+            {'hosts': 'only %d hosts provided for job with synch_count = %d'
+             % (len(all_host_objects), synch_count)})
 
     rpc_utils.check_job_dependencies(host_objects, dependencies)
     dependency_labels = [labels_by_name[label_name]
@@ -345,14 +352,14 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                             control_file=control_file,
                             control_type=control_type,
                             synch_count=synch_count,
-                            hosts=host_objects + metahost_objects,
+                            hosts=all_host_objects,
                             timeout=timeout,
                             run_verify=run_verify,
                             email_list=email_list.strip(),
                             dependencies=dependency_labels,
                             reboot_before=reboot_before,
                             reboot_after=reboot_after)
-    job.queue(host_objects + metahost_objects)
+    job.queue(all_host_objects)
     return job.id
 
 
