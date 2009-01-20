@@ -639,11 +639,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             reboot_before=reboot_before, reboot_after=reboot_after,
             created_on=datetime.now())
 
-        if job.synch_count > len(hosts):
-            raise model_logic.ValidationError(
-                {'hosts': 'only %d hosts provided for job with synch_count = %d'
-                          % (len(hosts), job.synch_count)})
-        job.save()
         job.dependency_labels = dependencies
         return job
 
