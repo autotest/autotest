@@ -125,6 +125,12 @@ class Host(object):
         raise NotImplementedError('Is up not implemented!')
 
 
+    def is_shutting_down(self):
+        """ Indicates is a machine is currently shutting down. """
+        runlevel = int(self.run("runlevel").stdout.strip().split()[1])
+        return runlevel in (0, 6)
+
+
     def get_wait_up_processes(self):
         """ Gets the list of local processes to wait for in wait_up. """
         get_config = global_config.global_config.get_config_value
