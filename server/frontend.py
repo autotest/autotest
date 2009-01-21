@@ -125,7 +125,7 @@ class AFE(RpcClient):
 
 
     def create_host(self, hostname, **dargs):
-        id = self.run('add_host', **dargs)
+        id = self.run('add_host', hostname=hostname, **dargs)
         return self.get_hosts(id=id)[0]
 
 
@@ -135,7 +135,7 @@ class AFE(RpcClient):
 
 
     def create_label(self, name, **dargs):
-        id = self.run('add_label', **dargs)
+        id = self.run('add_label', name=name, **dargs)
         return self.get_labels(id=id)[0]
 
 
@@ -145,8 +145,13 @@ class AFE(RpcClient):
 
 
     def create_acl(self, name, **dargs):
-        id = self.run('add_acl_group', **dargs)
+        id = self.run('add_acl_group', name=name, **dargs)
         return self.get_acls(id=id)[0]
+
+
+    def get_users(self, **dargs):
+        users = self.run('get_users', **dargs)
+        return [User(self, u) for u in users]
 
 
     def generate_control_file(self, tests, **dargs):
@@ -553,6 +558,11 @@ class Acl(RpcObject):
         return self.afe.run('acl_group_remove_hosts', self.id, hosts)
 
 
+    def add_users(self, users):
+        self.afe.log('Adding users %s to ACL %s' % (users, self.name))
+        return self.afe.run('acl_group_add_users', id=self.name, users=users)
+
+
 class Job(RpcObject):
     """
     AFE job object
@@ -606,6 +616,10 @@ class Host(RpcObject):
                                            ', '.join(labels))
 
 
+    def delete(self):
+        return self.afe.run('delete_host', id=self.id)
+
+
     def get_acls(self):
         return self.afe.get_acls(hosts__hostname=self.hostname)
 
@@ -634,6 +648,11 @@ class Host(RpcObject):
     def remove_labels(self, labels):
         self.afe.log('Removing labels %s from host %s' % (labels,self.hostname))
         return self.afe.run('host_remove_labels', id=self.id, labels=labels)
+
+
+class User(RpcObject):
+    def __repr__(self):
+        return 'USER: %s' % self.login
 
 
 class TestStatus(RpcObject):
