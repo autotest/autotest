@@ -5,7 +5,7 @@ This library is to release in the public repository.
 
 import commands, os, re, socket, sys, time, struct
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+import utils
 
 TIMEOUT = 10 # Used for socket timeout and barrier timeout
 

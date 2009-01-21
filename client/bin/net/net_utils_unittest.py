@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import unittest, os, socket, time, sys, struct
 import common
-from autotest_lib.client.bin import utils
+import utils
 from autotest_lib.client.bin.net import net_utils, net_utils_mock
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import error
