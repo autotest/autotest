@@ -1,7 +1,7 @@
 # Copyright Martin J. Bligh, Google, 2006-2008
 
 import os, re, string, sys, fcntl
-from autotest_lib.client.bin import utils
+import utils
 from autotest_lib.client.common_lib import error
 
 

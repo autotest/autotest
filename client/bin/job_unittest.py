@@ -279,6 +279,7 @@ class TestBaseJob(unittest.TestCase):
         self.job.setup_dirs.expect_call(results,
                                         tmp).and_return((results, tmp))
         kernel.preprocess_path.expect_call(path).and_return(path)
+        os.path.exists.expect_call(path).and_return(False)
         self.job.pkgmgr.fetch_pkg.expect_call(path, packages_dir, repo_url='')
         mykernel = kernel.rpm_kernel.expect_new(self.job, packages_dir,
                                                 results)
@@ -517,6 +518,9 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(utils, "read_one_line")
         utils.read_one_line.expect_call("/proc/cmdline").and_return(
             "blah more-blah root=lala IDENT=81234567 blah-again")
+
+        self.god.stub_function(utils, "running_os_full_version")
+        utils.running_os_full_version.expect_call().and_return("2.6.15-smp")
 
         self.job.record.expect_call("GOOD", "sub", "reboot.verify",
                                     "2.6.15-smp")

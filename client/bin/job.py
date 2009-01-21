@@ -689,7 +689,8 @@ class base_job(object):
             self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
             raise error.JobError("reboot returned with the wrong kernel")
 
-        self.record('GOOD', subdir, 'reboot.verify', expected_id)
+        self.record('GOOD', subdir, 'reboot.verify',
+                    utils.running_os_full_version())
         self.end_reboot(subdir, expected_id, patches)
 
 
