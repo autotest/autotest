@@ -224,8 +224,7 @@ class job_create(action_common.atest_create, job):
                                'urgent'), default='medium')
         self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
-                                    'execution',
-                               default=1)
+                                    'execution')
         self.parser.add_option('-c', '--container', help='Run this client job '
                                'in a container', action='store_true',
                                default=False)
@@ -352,7 +351,8 @@ class job_create(action_common.atest_create, job):
         self.data['dependencies'] = deps
 
         self.data['email_list'] = options.email
-        self.data['synch_count'] = options.synch_count
+        if options.synch_count:
+            self.data['synch_count'] = options.synch_count
         if options.server:
             self.data['control_type'] = 'Server'
         else:
@@ -375,7 +375,8 @@ class job_create(action_common.atest_create, job):
                 print 'Done'
                 socket.setdefaulttimeout(topic_common.DEFAULT_SOCKET_TIMEOUT)
             self.data['control_file'] = cf_info['control_file']
-            self.data['synch_count'] = cf_info['synch_count']
+            if 'synch_count' not in self.data:
+                self.data['synch_count'] = cf_info['synch_count']
             if cf_info['is_server']:
                 self.data['control_type'] = 'Server'
             else:
@@ -385,6 +386,9 @@ class job_create(action_common.atest_create, job):
             deps = set(self.data['dependencies'])
             deps = sorted(deps.union(cf_info['dependencies']))
             self.data['dependencies'] = list(deps)
+
+        if 'synch_count' not in self.data:
+            self.data['synch_count'] = 1
 
         if self.clone_id:
             clone_info = self.execute_rpc(op='get_info_for_clone',
