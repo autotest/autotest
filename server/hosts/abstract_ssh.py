@@ -305,6 +305,9 @@ class AbstractSSHHost(site_host.SiteHost):
         print 'Pinging host ' + self.hostname
         self.ssh_ping()
 
+        if self.is_shutting_down():
+            raise error.AutoservHostError("Host is shutting down")
+
         try:
             autodir = autotest._get_autodir(self)
             if autodir:
@@ -318,7 +321,13 @@ class AbstractSSHHost(site_host.SiteHost):
 
     def repair_filesystem_only(self):
         super(AbstractSSHHost, self).repair_filesystem_only()
-        self.wait_up(int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600))
+
+        TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
+        if self.is_shutting_down():
+            print 'Host is shutting down, waiting for a restart'
+            self.wait_for_restart(TIMEOUT)
+        else:
+            self.wait_up(TIMEOUT)
         self.reboot()
 
 
