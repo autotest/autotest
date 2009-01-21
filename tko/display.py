@@ -340,3 +340,17 @@ def group_name(group):
         (owner, machine) = name.split('/', 1)
         name = owner + '<br>' + machine
     return name
+
+def print_add_test_form(available_params, attributes, cleared):
+    print '<form method="post">'
+    print '<input type="hidden" name="attributes" value="%s" />' % attributes
+    print '<input type="hidden" name="cleared" value="%s" />' % cleared
+    print '<select name="key">'
+    for text in available_params:
+        print '<option value="%s">%s</option>' % (text, text)
+    print '</select>'
+    print '<input type="submit" name="add" value="Add test" />'
+    print '<input type="submit" name="clear" value="Clear all tests" />'
+    print '<input type="submit" name="reset" value="Reset" />'
+    print '</form>'
+
