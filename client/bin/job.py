@@ -9,7 +9,8 @@ import copy, os, platform, re, shutil, sys, time, traceback, types
 import cPickle as pickle
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
-from autotest_lib.client.bin import config, sysinfo, cpuset, test, partition
+from autotest_lib.client.bin import config, sysinfo, cpuset, test
+from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import error, barrier, log
 from autotest_lib.client.common_lib import packages, debug
 
@@ -694,10 +695,18 @@ class base_job(object):
         self.end_reboot(subdir, expected_id, patches)
 
 
-    def filesystem(self, device, mountpoint=None, loop_size=0):
+    def partition(self, device, mountpoint=None, loop_size=0):
         if not mountpoint:
             mountpoint = self.tmpdir
-        return partition.partition(self, device, loop_size)
+        return partition_lib.partition(self, device, loop_size)
+
+    @utils.deprecated
+    def filesystem(self, device, mountpoint=None, loop_size=0):
+        """ Same as partition
+        
+        @deprecated: Use partition method instead
+        """
+        return self.partition(device, mountpoint, loop_size)
 
 
     def enable_external_logging(self):
