@@ -3,6 +3,12 @@ Convenience functions for use by tests or whomever.
 
 NOTE: this is a mixin library that pulls in functions from both here and
 client/common_lib/utils.py (which are functions shared with the server code)
+
+It also pulls in site_utils.py, where you can override functions in here.
+(note the "from site_utils import *" at the END of this file)
+
+There's no really good way to do this, as this isn't a class we can do
+inheritance with, just a collection of static methods.
 """
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
 import math, re, string, fnmatch
@@ -512,6 +518,11 @@ def running_os_ident():
     return version + '::' + timestamp
 
 
+def running_os_full_version():
+    (version, timestamp) = running_os_release()
+    return version
+
+
 # much like find . -name 'pattern'
 def locate(pattern, root=os.getcwd()):
     for path, dirs, files in os.walk(root):
@@ -634,3 +645,4 @@ def drop_caches():
     system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
 
 
+from autotest_lib.client.bin.site_utils import *
