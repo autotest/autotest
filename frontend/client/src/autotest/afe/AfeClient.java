@@ -15,9 +15,6 @@ import autotest.common.ui.TabView;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
 
 
