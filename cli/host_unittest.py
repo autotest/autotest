@@ -234,7 +234,7 @@ class host_list_unittest(cli_mock.cli_unittest):
                      rpcs=[('get_hosts', {'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
-                     out_words_ok=['No', 'results'],
+                     out_words_ok=[],
                      out_words_no=['Hostname', 'Status'],
                      err_words_ok=['Unknown', 'host1', 'host2'])
 
@@ -376,7 +376,7 @@ class host_list_unittest(cli_mock.cli_unittest):
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
-                     out_words_ok=['No', 'results'],
+                     out_words_ok=[],
                      out_words_no=['Hostname', 'Status'],
                      err_words_ok=['Unknown', 'host1', 'host2'])
 
@@ -453,7 +453,7 @@ class host_list_unittest(cli_mock.cli_unittest):
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
-                     out_words_ok=['No', 'results'],
+                     out_words_ok=[],
                      out_words_no=['Hostname', 'Status'],
                      err_words_ok=['Unknown', 'host2'])
 
@@ -466,7 +466,7 @@ class host_list_unittest(cli_mock.cli_unittest):
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
-                     out_words_ok=['No', 'results'],
+                     out_words_ok=[],
                      out_words_no=['Hostname', 'Status'],
                      err_words_ok=['Unknown', 'host2'])
 
