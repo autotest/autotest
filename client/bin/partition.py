@@ -6,13 +6,8 @@ from autotest_lib.client.common_lib import error
 
 
 class FsOptions(object):
-    """A class encapsulating a filesystem test's parameters.
-
-    Properties:  (all strings)
-      fstype: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
-      mkfs_flags: Additional command line options to mkfs or '' if none.
-      mount_options: The options to pass to mount -o or '' if none.
-      fs_tag: A short name for this filesystem test to use in the results.
+    """
+    A class encapsulating a filesystem test's parameters.
     """
     # NOTE(gps): This class could grow or be merged with something else in the
     # future that actually uses the encapsulated data (say to run mkfs) rather
@@ -21,14 +16,23 @@ class FsOptions(object):
 
     __slots__ = ('fstype', 'mkfs_flags', 'mount_options', 'fs_tag')
 
-    def __init__(self, fstype, mkfs_flags, mount_options, fs_tag):
-        """Fill in our properties."""
+    def __init__(self, fstype, fs_tag, mkfs_flags=None, mount_options=None):
+        """ 
+        Fill in our properties.
+    
+            @param fstype: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
+            @param fs_tag: A short name for this filesystem test to use 
+                           in the results.
+            @param mkfs_flags: Optional. Additional command line options to mkfs.
+            @param mount_options: Optional. The options to pass to mount -o.
+        """
+
         if not fstype or not fs_tag:
             raise ValueError('A filesystem and fs_tag are required.')
-        self.fstype = fstype 
-        self.mkfs_flags = mkfs_flags
-        self.mount_options = mount_options
+        self.fstype = fstype
         self.fs_tag = fs_tag
+        self.mkfs_flags = mkfs_flags or ""
+        self.mount_options = mount_options or ""
 
 
     def __str__(self):
@@ -73,16 +77,23 @@ def wipe_filesystem(job, mountpoint):
         job.record('GOOD', None, wipe_cmd)
 
 
-def filter_non_linux(part_name):
-    """Return false if the supplied partition name is not type 83 linux."""
-    part_device = '/dev/' + part_name
-    disk_device = part_device.rstrip('0123456789')
+def is_linux_fs_type(device):
+    """ 
+    Checks if specified partition is type 83
+    
+        @param device: the device, e.g. /dev/sda3
+        
+        @return: False if the supplied partition name is not type 83 linux, True 
+                otherwise
+    """
+    disk_device = device.rstrip('0123456789')
+
     # Parse fdisk output to get partition info.  Ugly but it works.
     fdisk_fd = os.popen("/sbin/fdisk -l -u '%s'" % disk_device)
     fdisk_lines = fdisk_fd.readlines()
     fdisk_fd.close()
     for line in fdisk_lines:
-        if not line.startswith(part_device):
+        if not line.startswith(device):
             continue
         info_tuple = line.split()
         # The Id will be in one of two fields depending on if the boot flag
@@ -93,24 +104,36 @@ def filter_non_linux(part_name):
     return False
 
 
+@utils.deprecated
+def filter_non_linux(part_name):
+    """
+        @param part_name: e.g. sda2, sda3
+        @deprecated: use is_linux_fs_type instead
+    """
+    device = '/dev/' + part_name
+    return is_linux_fs_type(device=device)
+
+
 def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
                        open_func=open):
-    """Get a list of partition objects for all disk partitions on the system.
+    """
+    Get a list of partition objects for all disk partitions on the system.
 
     Loopback devices and unnumbered (whole disk) devices are always excluded.
 
-    Args:
-      job: The job instance to pass to the partition object constructor.
-      min_blocks: The minimum number of blocks for a partition to be considered.
-      filter_func: A callable that returns True if a partition is desired.
-          It will be passed one parameter: The partition name (hdc3, etc.).
-          Some useful filter functions are already defined in this module.
-      exclude_swap: If True any partition actively in use as a swap device
-          will be excluded.
-      open_func: function that should return a file like object.
-
-    Returns:
-      A list of partition object instances.
+        @param job: The job instance to pass to the partition object constructor.
+        @param min_blocks: The minimum number of blocks for a partition to 
+                           be considered.
+        @param filter_func: A callable that returns True if a partition is desired.
+                            It will be passed one parameter: 
+                            The partition name (hdc3, etc.).
+                            Some useful filter functions are already defined 
+                            in this module.
+        @param exclude_swap: If True any partition actively in use as a swap device
+                             will be excluded.
+        @param __open: Reserved for unit testing.
+    
+        @return: A list of L{partition} objects.
     """
     active_swap_devices = set()
     if exclude_swap:
@@ -153,20 +176,20 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
 
 
 def filter_partition_list(partitions, devnames):
-    """Pick and choose which partition to keep.
+    """
+    Pick and choose which partition to keep.
 
     filter_partition_list accepts a list of partition objects and a list
     of strings.  If a partition has the device name of the strings it
     is returned in a list.
 
-    Args:
-         partitions: A list of partition objects
-         devnames: A list of devnames of the form '/dev/hdc3' that
-                  specifies which partitions to include in the returned list.
-
-    Returns: A list of partition objects specified by devnames, in the
+    @param partitions: A list of L{partition} objects
+    @param devnames: A list of devnames of the form '/dev/hdc3' that
+                    specifies which partitions to include in the returned list.
+    
+    @return: A list of L{partition} objects specified by devnames, in the
              order devnames specified
-    """ 
+    """
 
     filtered_list = []
     for p in partitions:
@@ -178,7 +201,7 @@ def filter_partition_list(partitions, devnames):
 
 
 def parallel(partitions, method_name, *args, **dargs):
-    """\
+    """
     Run a partition method (with appropriate arguments) in parallel,
     across a list of partition objects
     """
@@ -203,7 +226,7 @@ def parallel(partitions, method_name, *args, **dargs):
 
 
 def filesystems():
-    """\
+    """
     Return a list of all available filesystems
     """
     return [re.sub('(nodev)?\s*', '', fs) for fs in open('/proc/filesystems')]
@@ -263,18 +286,19 @@ class partition(object):
 
     def __init__(self, job, device, loop_size=0):
         """
-        device should be able to be a file as well
-        which we mount as loopback.
-
-        job
-                A client.bin.job instance or None
-                Note: DO NOT assume job is a valid instance in self.__init__
-        device
-                The device in question (eg "/dev/hda2")
-        loop_size
-                Size of loopback device (in MB). Defaults to 0.
+            @param job: A L{client.bin.job} instance.
+            @param device: The device in question (e.g."/dev/hda2"). If device
+                           is a file it will be mounted as loopback. If you have
+                           job config 'partition.partitions', e.g.,
+                           job.config_set('partition.partitions', ["/dev/sda2",
+                           "/dev/sda3"]) you may specify a partition in the
+                           form of "partN" e.g. "part0", "part1" to refer to
+                           elements of the partition list.
+                           This is specially useful if you run a test in various
+                           machines and you don't want to hardcode device
+                           names as those may vary.
+            @param loop_size: Size of loopback device (in MB). Defaults to 0.
         """
-
         # NOTE: This code is used by IBM / ABAT. Do not remove.
         part = re.compile(r'^part(\d+)$')
         m = part.match(device)
@@ -304,6 +328,12 @@ class partition(object):
 
 
     def set_fs_options(self, fs_options):
+        """
+        Set filesystem options 
+
+            @param fs_options: A L{FsOptions} object 
+        """
+
         self.fstype = fs_options.fstype
         self.mkfs_flags = fs_options.mkfs_flags
         self.mount_options = fs_options.mount_options
@@ -315,15 +345,15 @@ class partition(object):
 
 
     def run_test_on_partition(self, test, mountpoint_func, **dargs):
-        """ executes a test fs-style (umount,mkfs,mount,test)
+        """ 
+        Executes a test fs-style (umount,mkfs,mount,test)
+        
         Here we unmarshal the args to set up tags before running the test.
         Tests are also run by first umounting, mkfsing and then mounting
         before executing the test.
 
-        Args:
-              test - name of test to run
-              mountpoint_func - function to return mount point string
-              dargs - dictionary of args
+            @param test: name of test to run
+            @param mountpoint_func: function to return mount point string
         """
         tag = dargs.get('tag')
         if tag:
@@ -381,8 +411,13 @@ class partition(object):
 
     def mkfs(self, fstype=None, args='', record=True):
         """
-        Format a partition to fstype
+        Format a partition to filesystem type
+        
+            @param fstype: the filesystem type, e.g.. "ext3", "ext2"
+            @param args: arguments to be passed to mkfs command.
+            @param record: if set, output result of mkfs operation to autotest output
         """
+
         if list_mount_devices().count(self.device):
             raise NameError('Attempted to format mounted device %s' %
                              self.device)
@@ -449,6 +484,14 @@ class partition(object):
 
 
     def fsck(self, args='-n', record=True):
+        """ 
+        Run filesystem check 
+        
+            @param args: arguments to filesystem check tool. Default is "-n"
+                         which works on most tools.
+        """
+
+        
         # I hate reiserfstools.
         # Requires an explit Yes for some inane reason
         fsck_cmd = '%s %s %s' % (self.get_fsck_exec(), self.device, args)
@@ -468,6 +511,19 @@ class partition(object):
 
 
     def mount(self, mountpoint, fstype=None, args='', record=True):
+        """
+        Mount this partition to a mount point
+
+            @param mountpoint: If you have not provided a mountpoint to partition
+                            object or want to use a different one, you may speficy 
+                            it here.
+            @param fstype: Filesystem type. If not provided partition object
+                           value will be used.
+            @param args: Arguments to be passed to "mount" command.
+            @param record: If True, output result of mount operation to autotest 
+                           output.
+        """
+
         if fstype is None:
             fstype = self.fstype
         else:
@@ -516,11 +572,12 @@ class partition(object):
 
 
     def unmount_force(self):
-       """Kill all other jobs accessing this partition
+       """
+       Kill all other jobs accessing this partition
 
        Use fuser and ps to find all mounts on this mountpoint and unmount them.
 
-       Returns: true for success or false for any errors
+           @return: true for success or false for any errors
        """
 
        print "Standard umount failed, will try forcing. Users:"
@@ -550,7 +607,8 @@ class partition(object):
 
 
     def unmount(self, ignore_status=False, record=True):
-        """Umount this partition.
+        """
+        Umount this partition.
 
         It's easier said than done to umount a partition. 
         We need to lock the mtab file to make sure we don't have any
@@ -559,9 +617,9 @@ class partition(object):
         If there turns out to be a problem with the simple umount we
         end up calling umount_force to get more  agressive.
 
-        Args: 
-              ignore_status - should we notice the umount status
-              record - should we record the success or failure
+            @param ignore_status: should we notice the umount status
+            @param record: if True, output result of umount operation to 
+                           autotest output
         """
 
         mountpoint = self.get_mountpoint()
@@ -598,6 +656,7 @@ class partition(object):
         
 
     def wipe(self):
+        """ Delete all files of partition filesystem """
         wipe_filesystem(self.job, self.get_mountpoint())
 
 
