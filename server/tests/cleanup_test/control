@@ -1,0 +1,19 @@
+NAME = 'Cleanup Test'
+AUTHOR = 'jorlow@google.com (Jeremy Orlow)'
+TIME = 'SHORT'
+TEST_CLASS = 'Software'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'server'
+RUN_VERIFY = False
+
+DOC = """
+Run the same cleanup function that the scheduler uses in between tests and
+log a test failure if something goes wrong.
+"""
+
+def run(machine):
+    host = hosts.create_host(machine, initialize=False)
+    job.run_test('cleanup_test', host=host, disable_sysinfo=True)
+
+job.parallel_simple(run, machines)
+
