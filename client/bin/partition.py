@@ -209,6 +209,53 @@ def filesystems():
     return [re.sub('(nodev)?\s*', '', fs) for fs in open('/proc/filesystems')]
 
 
+def unmount_partition(device):
+    """
+    Unmount a mounted partition
+    
+        @param device: e.g. /dev/sda1, /dev/hda1
+    """
+    p = partition(job=None, device=device)
+    p.unmount(record=False)
+
+
+def is_valid_partition(device):
+    """
+    Checks if a partition is valid
+    
+        @param device: e.g. /dev/sda1, /dev/hda1
+    """
+    parts = get_partition_list(job=None)
+    p_list = [ p.device for p in parts ]
+    if device in p_list:
+        return True
+    
+    return False
+
+
+def is_valid_disk(device):
+    """ 
+    Checks if a disk is valid
+    
+        @param device: e.g. /dev/sda, /dev/hda
+    """
+    partitions = []
+    for partline in open('/proc/partitions').readlines():
+        fields = partline.strip().split()
+        if len(fields) != 4 or partline.startswith('major'):
+            continue
+        (major, minor, blocks, partname) = fields
+        blocks = int(blocks)
+        
+        if not partname[-1].isdigit():
+            # Disk name does not end in number, AFAIK
+            # so use it as a reference to a disk
+            if device.strip("/dev/") == partname:
+                return True
+            
+    return False
+
+
 class partition(object):
     """
     Class for handling partitions and filesystems
