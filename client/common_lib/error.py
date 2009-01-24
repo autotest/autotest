@@ -217,6 +217,15 @@ class AutoservSubcommandError(AutoservError):
                 (self.func, self.exit_code))
 
 
+class AutoservHardwareRepairRequestedError(AutoservError):
+    """
+    Exception class raised from Host.repair_full() (or overrides) when software
+    repair fails but it successfully managed to request a hardware repair (by
+    notifying the staff, sending mail, etc)
+    """
+    pass
+
+
 # This MUST remain at the end of the file.
 # Limit 'from error import *' to only import the exception instances.
 for _name, _thing in locals().items():
