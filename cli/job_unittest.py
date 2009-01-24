@@ -525,6 +525,8 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     kernel_ctrl_file = 'kernel = \'kernel\'\ndef step_init():\n    job.next_step([step_test])\n    testkernel = job.kernel(\'kernel\')\n    \n    testkernel.install()\n    testkernel.boot(args=\'console_always_print=1\')\n\ndef step_test():\n    job.next_step(\'step0\')\n\ndef step0():\n    AUTHOR = "Autotest Team"\n    NAME = "Sleeptest"\n    TIME = "SHORT"\n    TEST_CATEGORY = "Functional"\n    TEST_CLASS = "General"\n    TEST_TYPE = "client"\n    \n    DOC = """\n    This test simply sleeps for 1 second by default.  It\'s a good way to test\n    profilers and double check that autotest is working.\n    The seconds argument can also be modified to make the machine sleep for as\n    long as needed.\n    """\n    \n    job.run_test(\'sleeptest\', seconds = 1)'
 
+    trivial_ctrl_file = 'print "Hello"\n'
+
     data = {'priority': 'Medium', 'control_file': ctrl_file, 'hosts': ['host0'],
             'name': 'test_job0', 'control_type': 'Client', 'email_list': '',
             'meta_hosts': [], 'synch_count': 1, 'dependencies': []}
@@ -534,7 +536,7 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '-m', 'host0'],
                      rpcs=[('generate_control_file',
-                            {'tests': ['sleeptest'], 'use_container': False},
+                            {'tests': ['sleeptest']},
                             True,
                             {'control_file' : self.ctrl_file,
                              'synch_count' : 1,
@@ -552,6 +554,26 @@ class job_create_unittest(cli_mock.cli_unittest):
                      rpcs=[('create_job', self.data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_with_control_and_kernel(self):
+        data = self.data.copy()
+        data['control_file'] = '# Made up control "file" for unittest.'
+        filename = cli_mock.create_file(self.trivial_ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           '-k', 'Kernel', 'test_job0', '-m', 'host0'],
+                     rpcs=[('generate_control_file',
+                            {'client_control_file': self.trivial_ctrl_file,
+                             'do_push_packages': True,
+                             'kernel': 'Kernel'},
+                            True,
+                            {'control_file': data['control_file'],
+                             'synch_count': 1,
+                             'is_server': False,
+                             'dependencies': []}),
+                           ('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created',
+                                   'Uploading', 'Done'])
 
 
     def test_execute_create_job_with_control_and_email(self):
@@ -593,7 +615,7 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '-m', 'host0', '-b', 'dep1, dep2 '],
                      rpcs=[('generate_control_file',
-                            {'tests': ['sleeptest'], 'use_container': False},
+                            {'tests': ['sleeptest']},
                             True,
                             {'control_file' : self.ctrl_file,
                              'synch_count' : 1,
@@ -610,7 +632,7 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            '-k', 'kernel', 'test_job0', '-m', 'host0'],
                      rpcs=[('generate_control_file',
-                            {'tests': ['sleeptest'], 'use_container': False,
+                            {'tests': ['sleeptest'],
                              'kernel': 'kernel', 'do_push_packages': True},
                             True,
                             {'control_file' : self.kernel_ctrl_file,
@@ -630,7 +652,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                            '-k', 'kernel', 'test job	with  spaces',
                            '-m', 'host0'],
                      rpcs=[('generate_control_file',
-                            {'tests': ['sleeptest'], 'use_container': False,
+                            {'tests': ['sleeptest'],
                              'kernel': 'kernel', 'do_push_packages': True},
                             True,
                             {'control_file' : self.kernel_ctrl_file,
