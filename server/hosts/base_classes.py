@@ -18,7 +18,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import os, re, time, cStringIO
+import os, re, time, cStringIO, sys, traceback
 
 from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.client.common_lib import host_protections
@@ -58,6 +58,8 @@ class Host(object):
     job = None
     DEFAULT_REBOOT_TIMEOUT = 1800
     WAIT_DOWN_REBOOT_TIMEOUT = 600
+    HOURS_TO_WAIT_FOR_RECOVERY = 2.5
+
 
     def __init__(self, *args, **dargs):
         self._initialize(*args, **dargs)
@@ -232,11 +234,27 @@ class Host(object):
 
 
     def repair_filesystem_only(self):
-        pass
+        TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
+        if self.is_shutting_down():
+            print 'Host is shutting down, waiting for a restart'
+            self.wait_for_restart(TIMEOUT)
+        else:
+            self.wait_up(TIMEOUT)
+        self.reboot()
 
 
     def repair_full(self):
-        pass
+        try:
+            self.repair_filesystem_only()
+            self.verify()
+        except Exception:
+            # the filesystem-only repair failed, try something more drastic
+            print "Filesystem-only repair failed"
+            traceback.print_exc()
+            try:
+                self.machine_install()
+            except NotImplementedError, e:
+                sys.stderr.write(str(e) + "\n\n")
 
 
     def cleanup(self):

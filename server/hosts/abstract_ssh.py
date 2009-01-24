@@ -1,4 +1,4 @@
-import os, sys, time, types, socket, traceback, shutil, glob
+import os, time, types, socket, shutil, glob
 from autotest_lib.client.common_lib import error, debug
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import site_host
@@ -295,9 +295,10 @@ class AbstractSSHHost(site_host.SiteHost):
 
         return False
 
+
     # tunable constants for the verify & repair code
     AUTOTEST_GB_DISKSPACE_REQUIRED = 20
-    HOURS_TO_WAIT_FOR_RECOVERY = 2.5
+
 
     def verify(self):
         super(AbstractSSHHost, self).verify()
@@ -317,33 +318,6 @@ class AbstractSSHHost(site_host.SiteHost):
             raise           # only want to raise if it's a space issue
         except Exception:
             pass            # autotest dir may not exist, etc. ignore
-
-
-    def repair_filesystem_only(self):
-        super(AbstractSSHHost, self).repair_filesystem_only()
-
-        TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
-        if self.is_shutting_down():
-            print 'Host is shutting down, waiting for a restart'
-            self.wait_for_restart(TIMEOUT)
-        else:
-            self.wait_up(TIMEOUT)
-        self.reboot()
-
-
-    def repair_full(self):
-        super(AbstractSSHHost, self).repair_full()
-        try:
-            self.repair_filesystem_only()
-            self.verify()
-        except Exception:
-            # the filesystem-only repair failed, try something more drastic
-            print "Filesystem-only repair failed"
-            traceback.print_exc()
-            try:
-                self.machine_install()
-            except NotImplementedError, e:
-                sys.stderr.write(str(e) + "\n\n")
 
 
 class LoggerFile(object):
