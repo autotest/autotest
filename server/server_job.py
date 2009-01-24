@@ -257,12 +257,16 @@ class base_server_job(object):
                      'ssh_user': self.ssh_user, 'ssh_port': self.ssh_port,
                      'ssh_pass': self.ssh_pass,
                      'protection_level': host_protection}
-        # no matter what happens during repair, go on to try to reverify
+        # no matter what happens during repair (except if it succeeded in
+        # initiating hardware repair procedure), go on to try to reverify
         try:
             self._execute_code(REPAIR_CONTROL_FILE, namespace, protect=False)
+        except error.AutoservHardwareRepairRequestedError:
+            raise
         except Exception, exc:
             print 'Exception occured during repair'
             traceback.print_exc()
+
         self.verify()
 
 
