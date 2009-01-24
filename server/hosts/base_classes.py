@@ -243,7 +243,8 @@ class Host(object):
         self.reboot()
 
 
-    def repair_full(self):
+    def repair_software_only(self):
+        """perform software repairs only"""
         try:
             self.repair_filesystem_only()
             self.verify()
@@ -255,6 +256,18 @@ class Host(object):
                 self.machine_install()
             except NotImplementedError, e:
                 sys.stderr.write(str(e) + "\n\n")
+
+
+    def repair_full(self):
+        try:
+            self.repair_software_only()
+        except Exception:
+            # software repair failed, try hardware repair
+            self.request_hardware_repair()
+
+            # repair failed but managed to request for hardware repairs
+            raise error.AutoservHardwareRepairRequestedError(
+                "repair failed but hardware repairs have been requested")
 
 
     def cleanup(self):
@@ -364,3 +377,10 @@ class Host(object):
                 del self.RUNNING_LOG_REBOOT
         else:
             reboot_func()
+
+
+    def request_hardware_repair(self):
+        """ Should somehow request (send a mail?) for hardware repairs on
+        this machine.
+        """
+        raise NotImplementedError("request_hardware_repair not implemented")

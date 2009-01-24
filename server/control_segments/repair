@@ -15,6 +15,10 @@ def repair(machine):
         print "Attempting filesystem-only repair"
         host = hosts.create_host(machine, initialize=False)
         host.repair_filesystem_only()
+    elif level == protection.REPAIR_SOFTWARE_ONLY:
+        print "Attempting software repair only"
+        host = hosts.create_host(machine, initialize=False, auto_monitor=False)
+        host.repair_software_only()
     elif level == protection.NO_PROTECTION:
         print "Attempting full repair"
         host = hosts.create_host(machine, initialize=False, auto_monitor=False)
