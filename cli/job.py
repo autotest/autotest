@@ -295,7 +295,7 @@ class job_create(action_common.atest_create, job):
             return (options, leftover)
 
         if len(self.hosts) == 0:
-            self.invalid_syntax('Must specify at least one host')
+            self.invalid_syntax('Must specify at least one machine (-m or -M).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -305,29 +305,38 @@ class job_create(action_common.atest_create, job):
         if options.container and options.server:
             self.invalid_syntax('Containers (--container) can only be added to'
                                 ' client side jobs.')
+        if options.container:
+            self.ctrl_file_data['use_container'] = options.container
+        if options.kernel:
+            self.ctrl_file_data['kernel'] = options.kernel
+            self.ctrl_file_data['do_push_packages'] = True
         if options.control_file:
-            if options.kernel:
-                self.invalid_syntax('Use --kernel only in conjunction with '
-                                    '--test, not --control-file.')
-            if options.container:
-                self.invalid_syntax('Containers (--container) can only be added'
-                                    ' with --test, not --control-file.')
             try:
-                self.data['control_file'] = open(options.control_file).read()
+                control_file_f = open(options.control_file)
+                try:
+                    control_file_data = control_file_f.read()
+                finally:
+                    control_file_f.close()
             except IOError:
                 self.generic_error('Unable to read from specified '
                                    'control-file: %s' % options.control_file)
+            if options.kernel:
+                if options.server:
+                    self.invalid_syntax(
+                            'A control file and a kernel may only be specified'
+                            ' together on client side jobs.')
+                # execute() will pass this to the AFE server to wrap this
+                # control file up to include the kernel installation steps.
+                self.ctrl_file_data['client_control_file'] = control_file_data
+            else:
+                self.data['control_file'] = control_file_data
         if options.test:
             if options.server:
                 self.invalid_syntax('If you specify tests, then the '
                                     'client/server setting is implicit and '
                                     'cannot be overriden.')
             tests = [t.strip() for t in options.test.split(',') if t.strip()]
-            self.ctrl_file_data = {'tests': tests}
-            if options.kernel:
-                self.ctrl_file_data['kernel'] = options.kernel
-                self.ctrl_file_data['do_push_packages'] = True
-            self.ctrl_file_data['use_container'] = options.container
+            self.ctrl_file_data['tests'] = tests
 
 
         if options.priority:
@@ -363,17 +372,21 @@ class job_create(action_common.atest_create, job):
 
     def execute(self):
         if self.ctrl_file_data:
-            if self.ctrl_file_data.has_key('kernel'):
+            uploading_kernel = 'kernel' in self.ctrl_file_data
+            if uploading_kernel:
                 socket.setdefaulttimeout(topic_common.UPLOAD_SOCKET_TIMEOUT)
                 print 'Uploading Kernel: this may take a while...',
-
-            cf_info = self.execute_rpc(op='generate_control_file',
-                                        item=self.jobname,
-                                        **self.ctrl_file_data)
-
-            if self.ctrl_file_data.has_key('kernel'):
+                sys.stdout.flush()
+            try:
+                cf_info = self.execute_rpc(op='generate_control_file',
+                                           item=self.jobname,
+                                           **self.ctrl_file_data)
+            finally:
+                if uploading_kernel:
+                    socket.setdefaulttimeout(
+                            topic_common.DEFAULT_SOCKET_TIMEOUT)
+            if uploading_kernel:
                 print 'Done'
-                socket.setdefaulttimeout(topic_common.DEFAULT_SOCKET_TIMEOUT)
             self.data['control_file'] = cf_info['control_file']
             if 'synch_count' not in self.data:
                 self.data['synch_count'] = cf_info['synch_count']

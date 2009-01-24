@@ -249,22 +249,33 @@ def get_acl_groups(**filter_data):
 
 # jobs
 
-def generate_control_file(tests, kernel=None, label=None, profilers=[]):
-    """\
-    Generates a client-side control file to load a kernel and run a set of
-    tests.  Returns a dict with the following keys:
-    control_file - the control file text
-    is_server - is the control file a server-side control file?
-    synch_count - how many machines the job uses per autoserv execution.
-                  synch_count == 1 means the job is asynchronous.
-    dependencies - a list of the names of labels on which the job depends
-
-    tests: list of tests to run
-    kernel: kernel to install in generated control file
-    label: name of label to grab kernel config from
-    profilers: list of profilers to activate during the job
+def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
+                          client_control_file='', use_container=False):
     """
-    if not tests:
+    Generates a client-side control file to load a kernel and run tests.
+
+    @param tests List of tests to run.
+    @param kernel Kernel to install in generated control file.
+    @param label Name of label to grab kernel config from.
+    @param profilers List of profilers to activate during the job.
+    @param client_control_file The contents of a client-side control file to
+        run at the end of all tests.  If this is supplied, all tests must be
+        client side.
+        TODO: in the future we should support server control files directly
+        to wrap with a kernel.  That'll require changing the parameter
+        name and adding a boolean to indicate if it is a client or server
+        control file.
+    @param use_container unused argument today.  TODO: Enable containers
+        on the host during a client side test.
+
+    @returns a dict with the following keys:
+        control_file: str, The control file text.
+        is_server: bool, is the control file a server-side control file?
+        synch_count: How many machines the job uses per autoserv execution.
+            synch_count == 1 means the job is asynchronous.
+        dependencies: A list of the names of labels on which the job depends.
+    """
+    if not tests and not control_file:
         return dict(control_file='', is_server=False, synch_count=1,
                     dependencies=[])
 
@@ -273,7 +284,8 @@ def generate_control_file(tests, kernel=None, label=None, profilers=[]):
                                                 profilers))
     cf_info['control_file'] = control_file.generate_control(
         tests=test_objects, kernel=kernel, platform=label,
-        profilers=profiler_objects, is_server=cf_info['is_server'])
+        profilers=profiler_objects, is_server=cf_info['is_server'],
+        client_control_file=client_control_file)
     return cf_info
 
 
