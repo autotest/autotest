@@ -5,6 +5,9 @@ Logic for control file generation.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import re, os
+
+import common
+from autotest_lib.frontend.afe import model_logic
 import frontend.settings
 
 AUTOTEST_DIR = os.path.abspath(os.path.join(
@@ -98,28 +101,55 @@ def format_step(item, lines):
     return lines
 
 
-def get_tests_stanza(tests, is_server, prepend=None, append=None):
-    """Constructs the control file test step code from a list of tests.
+def get_tests_stanza(tests, is_server, prepend=None, append=None,
+                     client_control_file=''):
+    """ Constructs the control file test step code from a list of tests.
 
-    Args:
-      tests: A sequence of test control files to run.
-      is_server: Boolean - is this a server side test?
-      prepend: A list of steps to prepend to each client test.  Defaults to [].
-      append: A list of steps to append to each client test.  Defaults to [].
-    Returns:
-      The control file test code to be run.
+    @param tests A sequence of test control files to run.
+    @param is_server bool, Is this a server side test?
+    @param prepend A list of steps to prepend to each client test.
+        Defaults to [].
+    @param append A list of steps to append to each client test.
+        Defaults to [].
+    @param client_control_file If specified, use this text as the body of a
+        final client control file to run after tests.  is_server must be False.
+
+    @returns The control file test code to be run.
     """
+    assert not (client_control_file and is_server)
     if not prepend:
         prepend = []
     if not append:
         append = []
     raw_control_files = [read_control_file(test) for test in tests]
-    return _get_tests_stanza(raw_control_files, is_server, prepend, append)
+    return _get_tests_stanza(raw_control_files, is_server, prepend, append,
+                             client_control_file=client_control_file)
 
 
-def _get_tests_stanza(raw_control_files, is_server, prepend, append):
+def _get_tests_stanza(raw_control_files, is_server, prepend, append,
+                      client_control_file=''):
+    """
+    Implements the common parts of get_test_stanza.
+
+    A site_control_file that wants to implement its own get_tests_stanza
+    likely wants to call this in the end.
+
+    @param raw_control_files A list of raw control file data to be combined
+        into a single control file.
+    @param is_server bool, Is this a server side test?
+    @param prepend A list of steps to prepend to each client test.
+    @param append A list of steps to append to each client test.
+    @param client_control_file If specified, use this text as the body of a
+        final client control file to append to raw_control_files after fixups.
+
+    @returns The combined mega control file.
+    """
     if is_server:
         return '\n'.join(prepend + raw_control_files + append)
+    if client_control_file:
+        # 'return locals()' is always appended incase the user forgot, it
+        # is necessary to allow for nested step engine execution to work.
+        raw_control_files.append(client_control_file + '\nreturn locals()')
     raw_steps = prepend + [add_boilerplate_to_nested_steps(step)
                            for step in raw_control_files] + append
     steps = [format_step(index, step)
@@ -149,21 +179,40 @@ def split_kernel_list(kernel_string):
     return re.split('[\s,]+', kernel_string.strip())
 
 
-def generate_control(tests, kernel=None, platform=None, is_server=False,
-                     profilers=()):
-    """Generate a control file for a sequence of tests.
-
-    Args:
-      tests: A sequence of test control files to run.
-      kernel: A string listing one or more kernel versions to test separated
-          by spaces or commas.
-      platform: A platform object with a kernel_config attribute.
-      is_server: Boolean - is a server control file rather than a client?
-      profilers: A list of profiler objects to enable during the tests.
-
-    Returns:
-      The control file text as a string.
+def _sanity_check_generate_control(is_server, client_control_file, kernel):
     """
+    Sanity check some of the parameters to generate_control().
+
+    This exists as its own function so that site_control_file may call it as
+    well from its own generate_control().
+
+    @raises ValidationError if any of the parameters do not make sense.
+    """
+    if is_server and client_control_file:
+        raise model_logic.ValidationError(
+                {'tests' : 'You cannot run server tests at the same time '
+                 'as directly supplying a client-side control file.'})
+
+
+def generate_control(tests, kernel=None, platform=None, is_server=False,
+                     profilers=(), client_control_file=''):
+    """
+    Generate a control file for a sequence of tests.
+
+    @param tests A sequence of test control files to run.
+    @param kernel A string listing one or more kernel versions to test
+        separated by spaces or commas.
+    @param platform A platform object with a kernel_config attribute.
+    @param is_server bool, Is this a server control file rather than a client?
+    @param profilers A list of profiler objects to enable during the tests.
+    @param client_control_file Contents of a client control file to run as the
+        last test after everything in tests.  Requires is_server=False.
+
+    @returns The control file text as a string.
+    """
+    _sanity_check_generate_control(is_server=is_server, kernel=kernel,
+                                   client_control_file=client_control_file)
+
     control_file_text = ''
     if kernel:
         kernel_list = split_kernel_list(kernel)
@@ -174,5 +223,6 @@ def generate_control(tests, kernel=None, platform=None, is_server=False,
 
     prepend, append = _get_profiler_commands(profilers, is_server)
 
-    control_file_text += get_tests_stanza(tests, is_server, prepend, append)
+    control_file_text += get_tests_stanza(tests, is_server, prepend, append,
+                                          client_control_file)
     return control_file_text

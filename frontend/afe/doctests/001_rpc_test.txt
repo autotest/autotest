@@ -378,6 +378,37 @@ def step1():
 >>> cf_info['is_server'], cf_info['synch_count'], cf_info['dependencies']
 (False, 1, [])
 
+# generate a control file from existing body text.
+>>> cf_info_pi = rpc_interface.generate_control_file(
+...     kernel='3.1.41', label='my_label',
+...     client_control_file='print "Hi"\n')
+>>> print cf_info_pi['control_file']
+kernel_list = ['3.1.41']
+<BLANKLINE>
+def step_init():
+    for kernel_version in kernel_list:
+        job.next_step(boot_kernel, kernel_version)
+        job.next_step(step_test, kernel_version)
+    if len(kernel_list) > 1:
+        job.set_run_number(1)  # Include run numbers in output directory names.
+        job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
+<BLANKLINE>
+def boot_kernel(kernel_version):
+    testkernel = job.kernel(kernel_version)
+    testkernel.config('my_kernel_config')
+    testkernel.install()
+    testkernel.boot(args='')
+<BLANKLINE>
+def step_test(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
+    job.next_step('step0')
+<BLANKLINE>
+def step0():
+    print "Hi"
+<BLANKLINE>
+    return locals()
+
 # create a job to run on host1, host2, and any two machines in my_label
 >>> rpc_interface.create_job(name='my_job',
 ...                          priority='Low',
