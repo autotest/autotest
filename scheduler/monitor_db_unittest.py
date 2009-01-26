@@ -285,31 +285,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._check_for_extra_schedulings()
 
 
-    def _test_only_if_needed_labels_helper(self, use_metahosts):
-        # apply only_if_needed label3 to host1
-        label3 = models.Label.smart_get('label3')
-        models.Host.smart_get('host1').labels.add(label3)
-
-        job = self._create_job_simple([1], use_metahosts)
-        # if the job doesn't depend on label3, there should be no scheduling
-        self._dispatcher._schedule_new_jobs()
-        self._check_for_extra_schedulings()
-
-        # now make the job depend on label3
-        job.dependency_labels.add(label3)
-        self._dispatcher._schedule_new_jobs()
-        self._assert_job_scheduled_on(1, 1)
-        self._check_for_extra_schedulings()
-
-        if use_metahosts:
-            # should also work if the metahost is the only_if_needed label
-            self._do_query('DELETE FROM jobs_dependency_labels')
-            self._create_job(metahosts=[3])
-            self._dispatcher._schedule_new_jobs()
-            self._assert_job_scheduled_on(2, 1)
-            self._check_for_extra_schedulings()
-
-
     def test_basic_scheduling(self):
         self._test_basic_scheduling_helper(False)
 
@@ -328,10 +303,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_obey_ACLs(self):
         self._test_obey_ACLs_helper(False)
-
-
-    def test_only_if_needed_labels(self):
-        self._test_only_if_needed_labels_helper(False)
 
 
     def test_non_metahost_on_invalid_host(self):
@@ -366,8 +337,28 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._test_obey_ACLs_helper(True)
 
 
-    def test_metahost_only_if_needed_labels(self):
-        self._test_only_if_needed_labels_helper(True)
+    def test_only_if_needed_labels(self):
+        # apply only_if_needed label3 to host1
+        label3 = models.Label.smart_get('label3')
+        models.Host.smart_get('host1').labels.add(label3)
+
+        job = self._create_job_simple([1], use_metahost=True)
+        # if the job doesn't depend on label3, there should be no scheduling
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+        # now make the job depend on label3
+        job.dependency_labels.add(label3)
+        self._dispatcher._schedule_new_jobs()
+        self._assert_job_scheduled_on(1, 1)
+        self._check_for_extra_schedulings()
+
+        # should also work if the metahost is the only_if_needed label
+        self._do_query('DELETE FROM jobs_dependency_labels')
+        self._create_job(metahosts=[3])
+        self._dispatcher._schedule_new_jobs()
+        self._assert_job_scheduled_on(2, 1)
+        self._check_for_extra_schedulings()
 
 
     def test_nonmetahost_over_metahost(self):
