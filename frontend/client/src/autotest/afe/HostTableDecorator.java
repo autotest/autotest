@@ -56,8 +56,7 @@ class HostTableDecorator extends TableDecorator {
         JSONArray statuses = staticData.getData("host_statuses").isArray();
         String[] statusStrings = Utils.JSONtoStrings(statuses);
         
-        hostnameFilter = new SearchFilter("hostname");
-        hostnameFilter.setExactMatch(false);
+        hostnameFilter = new SearchFilter("hostname", true);
         labelFilter = new LabelFilter();
         statusFilter = new ListFilter("status");
         statusFilter.setChoices(statusStrings);

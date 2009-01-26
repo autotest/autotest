@@ -28,9 +28,13 @@
     <div id="tabs" class="hidden">
       <div id="job_list" title="Job List">
         <div id="job_control_links" class="job-control"></div>
-        <div class="job-control">
-          View jobs for user: <span id="user_list"></span>
-        </div>
+        <!--  Table is necessary here to get the right layout with the filter widgets -->
+        <table class="job-control">
+          <tr>
+            <td>Owner:</td><td id="user_list"></td>
+            <td>Name:</td><td id="jl_name_search"></td>
+          </tr>
+        </table>
         <div id="job_table"></div>
       </div>
 
