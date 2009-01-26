@@ -178,20 +178,6 @@ def check_job_dependencies(host_objects, job_dependencies):
             {'hosts' : 'Host(s) failed to meet job dependencies: ' +
                        ', '.join(failing_hosts)})
 
-    # check for hosts that have only_if_needed labels that aren't requested
-    labels_not_requested = models.Label.objects.filter(only_if_needed=True,
-                                                       host__id__in=host_ids)
-    labels_not_requested = labels_not_requested.exclude(
-        name__in=job_dependencies)
-    errors = []
-    for label in labels_not_requested.distinct():
-        hosts_in_label = hosts_in_job.filter(labels=label)
-        errors.append('Cannot use hosts with label "%s" unless requested: %s' %
-                      (label.name,
-                       ', '.join(host.hostname for host in hosts_in_label)))
-    if errors:
-        raise model_logic.ValidationError({'hosts' : '\n'.join(errors)})
-
 
 def _execution_key_for(host_queue_entry):
     return (host_queue_entry.job.id, host_queue_entry.execution_subdir)
