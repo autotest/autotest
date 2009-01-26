@@ -194,8 +194,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     protected void addTableFilters() {
         hostsTable.addFilter(jobFilter);
         
-        SearchFilter hostnameFilter = new SearchFilter("host__hostname");
-        hostnameFilter.setExactMatch(false);
+        SearchFilter hostnameFilter = new SearchFilter("host__hostname", true);
         ListFilter statusFilter = new ListFilter("status");
         StaticDataRepository staticData = StaticDataRepository.getRepository();
         JSONArray statuses = staticData.getData("job_statuses").isArray();
