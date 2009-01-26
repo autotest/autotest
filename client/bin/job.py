@@ -695,10 +695,21 @@ class base_job(object):
         self.end_reboot(subdir, expected_id, patches)
 
 
-    def partition(self, device, mountpoint=None, loop_size=0):
+    def partition(self, device, loop_size=0, mountpoint=None):
+        """ 
+        Work with a machine partition
+ 
+            @param device: e.g. /dev/sda2, /dev/sdb1 etc...
+            @param mountpoint: Specify a directory to mount to. If not specified
+                               autotest tmp directory will be used.
+            @param loop_size: Size of loopback device (in MB). Defaults to 0.
+ 
+            @return: A L{client.bin.partition.partition} object
+        """
+        
         if not mountpoint:
             mountpoint = self.tmpdir
-        return partition_lib.partition(self, device, loop_size)
+        return partition_lib.partition(self, device, loop_size, mountpoint)
 
     @utils.deprecated
     def filesystem(self, device, mountpoint=None, loop_size=0):
@@ -706,7 +717,7 @@ class base_job(object):
         
         @deprecated: Use partition method instead
         """
-        return self.partition(device, mountpoint, loop_size)
+        return self.partition(device, loop_size, mountpoint)
 
 
     def enable_external_logging(self):
