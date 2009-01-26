@@ -284,7 +284,7 @@ class partition(object):
     Class for handling partitions and filesystems
     """
 
-    def __init__(self, job, device, loop_size=0):
+    def __init__(self, job, device, loop_size=0, mountpoint=None):
         """
             @param job: A L{client.bin.job} instance.
             @param device: The device in question (e.g."/dev/hda2"). If device
@@ -315,6 +315,7 @@ class partition(object):
         self.job = job
         self.loop = loop_size
         self.fstype = None
+        self.mountpoint = mountpoint
         self.mkfs_flags = None
         self.mount_options = None
         self.fs_tag = None
@@ -537,8 +538,11 @@ class partition(object):
             args += ' -o loop'
         args = args.lstrip()
 
+        if not mountpoint and not self.mountpoint:
+            raise ValueError("No mountpoint specified and no default "
+                             "provided to this partition object")
         if not mountpoint:
-           raise ValueError('No mount point specified')
+            mountpoint = self.mountpoint
  
         mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
         print mount_cmd
