@@ -5,12 +5,12 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
+import autotest.common.table.SearchFilter;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.Paginator;
 import autotest.common.ui.TabView;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
@@ -19,7 +19,6 @@ import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.Map;
@@ -40,15 +39,13 @@ public class JobListView extends TabView implements TableActionsListener {
     private static final String[] filterStrings = {"not_yet_run", "running",
                                                      "finished"};
     
-    protected JSONObject jobFilterArgs = new JSONObject();
-    protected JobSelectListener selectListener;
+    private JobSelectListener selectListener;
 
-    protected JobTable jobTable;
-    protected TableDecorator tableDecorator;
-    protected JobStateFilter jobStateFilter;
-    protected ListFilter ownerFilter;
-    protected Paginator paginator;
-    protected Hyperlink nextLink, prevLink;
+    private JobTable jobTable;
+    private TableDecorator tableDecorator;
+    private JobStateFilter jobStateFilter;
+    private ListFilter ownerFilter;
+    private SearchFilter nameFilter;
     private SelectionManager selectionManager;
     
     interface JobSelectListener {
@@ -139,6 +136,10 @@ public class JobListView extends TabView implements TableActionsListener {
         jobTable.addFilter(ownerFilter);
         populateUsers();
         RootPanel.get("user_list").add(ownerFilter.getWidget());
+        
+        nameFilter = new SearchFilter("name", false);
+        jobTable.addFilter(nameFilter);
+        RootPanel.get("jl_name_search").add(nameFilter.getWidget());
         
         jobStateFilter = new JobStateFilter();
         for (int i = 0; i < LINK_COUNT; i++)
