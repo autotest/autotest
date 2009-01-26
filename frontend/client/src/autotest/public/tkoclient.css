@@ -47,9 +47,10 @@ div.spreadsheet-cell-nonclickable {
   margin-bottom: 2px;
 }
 
-.log-file-text {
+.log-file-panel .content {
   white-space: pre;
   font-family: monospace;
+  max-height: 30em;
 }
 
 .test-attributes .content {

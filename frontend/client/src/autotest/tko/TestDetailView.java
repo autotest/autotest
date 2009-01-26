@@ -22,6 +22,7 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.ScrollPanel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,8 +96,9 @@ class TestDetailView extends DetailView {
         private void setLogText(String text) {
             panel.clear();
             Label label = new Label(text);
-            label.setStyleName("log-file-text");
-            panel.add(label);
+            ScrollPanel scroller = new ScrollPanel();
+            scroller.add(label);
+            panel.add(scroller);
         }
         
         private void setStatusText(String status) {
