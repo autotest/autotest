@@ -309,6 +309,10 @@ class HostScheduler(object):
 
     def _check_only_if_needed_labels(self, job_dependencies, host_labels,
                                      queue_entry):
+        if not queue_entry.meta_host:
+            # bypass only_if_needed labels when a specific host is selected
+            return True
+
         for label_id in host_labels:
             label = self._labels[label_id]
             if not label.only_if_needed:
