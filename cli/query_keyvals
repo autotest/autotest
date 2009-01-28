@@ -65,7 +65,7 @@ def main():
     if options.test:
         query_filter["test_name"] = options.test
 
-    comm = rpc.tko_comm("dunsel")
+    comm = rpc.tko_comm()
     test_views = comm.run("get_detailed_test_views", **query_filter)
     print_views(test_views, options)
 
