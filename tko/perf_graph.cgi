@@ -39,7 +39,6 @@ def get_cgi_args():
     # optional  platforms=plat1,plat2,plat3...
     #     where platN is  xyz       (combines all xyz_variants as one plotline)
     #                 or  xyz$      (plots each xyz_variant separately)
-    #     e.g.  platforms=Warp18,Warp19$
     #     restrict results just to selected types of test machines
     #     defaults to commonly used types, combining variants 
 
@@ -66,10 +65,6 @@ def get_cgi_args():
         bname = benchmark.split('.',1)[0].rstrip('*')
         metric = perf.benchmark_main_metric(bname)
         assert metric, "no default metric for test %s" % bname
-    if selected_machines == 'yings':
-        selected_machines = 'bdcz12,prik6,ipbj8,bddx9,bdmm9'
-        if not selected_platforms:
-            selected_platforms = '$'
     return (benchmark, metric, selected_platforms, 
             selected_machines, one_user, graph_size, dark, test_attributes)
 
