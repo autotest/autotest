@@ -53,20 +53,21 @@ def print_views(test_views, options):
 
 def main():
     parser, options, args = parse_options()
-    if len(args) != 1:
-        print "Invalid number of arguments"
-        print
+    if not args:
         parser.print_help()
-        sys.exit(1)
+        return
 
-    query_filter = {"job_tag__startswith": "%s-" % args[0]}
+    query_filter = {}
     if options.machine:
         query_filter["hostname"] = options.machine
     if options.test:
         query_filter["test_name"] = options.test
 
     comm = rpc.tko_comm()
-    test_views = comm.run("get_detailed_test_views", **query_filter)
+    test_views = []
+    for job_id in args:
+        query_filter["job_tag__startswith"] = "%s-" % job_id
+        test_views += comm.run("get_detailed_test_views", **query_filter)
     print_views(test_views, options)
 
 
