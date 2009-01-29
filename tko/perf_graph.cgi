@@ -3,239 +3,100 @@
 
 __author__ = """duanes@google.com (Duane Sand), Copyright Google 2008"""
 
-import cgi, cgitb, datetime, re
+import cgi, cgitb
 import common
-from autotest_lib.tko import db, plotgraph  
-from autotest_lib.client.bin import kernel_versions
-
-kernel_names = {}
-kernel_dates = {}
-kernel_sortkeys = {}
-machine_to_platform = {}
-selected_machines = ''
-selected_jobs = set()
-use_all_jobs = True
-
-benchmark_main_metrics = {
-    'dbench'   : 'throughput',
-    'kernbench': '1000/elapsed',
-    'membench' : 'sweeps',
-    'tbench'   : 'throughput',
-    'unixbench': 'score',
-    }  # keep sync'd with similar table in perf_graphs.cgi
-
-usual_platforms = ['Icarus', 'Argo', 'Ilium', 'Warp19', 'Warp18', 'Unicorn']
-
-date_unknown = datetime.datetime(2999, 12, 31, 23, 59, 59)
+from autotest_lib.tko import perf, plotgraph
 
 
-def get_all_kernel_names():
-    # lookup all kernel names once, and edit for graph axis
-    nrows = db.cur.execute('select kernel_idx, printable from kernels')
-    for idx, name in db.cur.fetchall():
-        sortname = kernel_versions.version_encode(name)
-        name = name.replace('-smp-', '-')     # boring, in all names
-        name = name.replace('2.6.18-2', '2')  # reduce clutter 
-        kernel_names[idx] = name
-        kernel_dates[name] = date_unknown
-        kernel_sortkeys[name] = sortname
+def get_cgi_args():
+    cgitb.enable()
+    form = cgi.FieldStorage(keep_blank_values=True)
 
+    benchmark  = form.getvalue('test',   '')
+    # required  test=testname          (untagged runs only) 
+    #       or  test=testname.sometags
+    #       or  test=testname*         (combines all tags except .twoway)
+    #       or  test=testname.twoway*  (combines twoway tags)
+    #     e.g.  test=dbench
 
-def kname_to_sortkey(kname):
-    # cached version of version_encode(uneditted name)
-    return kernel_sortkeys[kname]
+    metric     = form.getvalue('metric', '')
+    # optional  metric=attributename   (from testname.tag/results/keyval)
+    #       or  metric=1/attributename
+    #       or  metric=geo_mean        (combines all attributes)
+    #       or  metric=good_testrun_count   (tally of runs)
+    #       or  metric=$testattrname   (from testname.tag/keyval)
+    #     e.g.  metric=throughput
+    #           metric=$stale_page_age
+    #           metric=$version        (show test's version #)
+    #     defaults to test's main performance attribute, if known   
 
+    one_user   = form.getvalue('user',   '')
+    # optional  user=linuxuserid    
+    #     restrict results just to testrun jobs submitted by that user
+    #     defaults to all users
 
-def sort_kernels(kernels):
-    return sorted(kernels, key=kname_to_sortkey)
+    selected_platforms = form.getvalue('platforms', '')
+    # optional  platforms=plat1,plat2,plat3...
+    #     where platN is  xyz       (combines all xyz_variants as one plotline)
+    #                 or  xyz$      (plots each xyz_variant separately)
+    #     e.g.  platforms=Warp18,Warp19$
+    #     restrict results just to selected types of test machines
+    #     defaults to commonly used types, combining variants 
 
+    selected_machines  = form.getvalue('machines',  '')
+    # optional  machines=mname1,mname2,mname3...
+    #       or  machines=mnam*       (single set of similar host names)
+    #       or  machines=yings       (abbrev for ying's benchmarking machines)
+    #     where mnameN is network hostname of a test machine, eg bdcz12
+    #     restricts results just to selected test machines
+    #     defaults to all machines of selected platform types
+    
+    graph_size = form.getvalue('size', '640,500' )
+    # optional size=width,height     (in pixels)
 
-def get_all_platform_info():
-    # lookup all machine/platform info once
-    global selected_machines
-    machs = []
-    cmd =  'select machine_idx, machine_group from machines'
-    if selected_machine_names:
-        # convert 'a,b,c' to '("a","b","c")'
-        hnames = selected_machine_names.split(',')
-        hnames = ['"%s"' % name for name in hnames]
-        cmd += ' where hostname in (%s)' % ','.join(hnames)
-    nrows = db.cur.execute(cmd)
-    for idx, platform in db.cur.fetchall():
-        # ignore machine variations in 'mobo_memsize_disks'
-        machine_to_platform[idx] = platform.split('_', 2)[0]
-        machs.append(str(idx))
-    if selected_machine_names:
-        selected_machines = ','.join(machs)
+    dark = form.has_key('dark')
 
+    test_attributes = perf.parse_test_attr_args(form)
+    #  see variations listed in perf.py
 
-def get_selected_jobs():
-    global use_all_jobs
-    use_all_jobs = not( one_user or selected_machine_names )
-    if use_all_jobs:
-        return
-    needs = []
-    if selected_machine_names:
-        needs.append('machine_idx in (%s)' % selected_machines)
-    if one_user:
-        needs.append('username = "%s"' % one_user)
-    cmd = 'select job_idx from jobs where %s' % ' and '.join(needs)
-    nrows = db.cur.execute(cmd)
-    for row in db.cur.fetchall():
-        job_idx = row[0]
-        selected_jobs.add(job_idx)
-
-
-def identify_relevent_tests(benchmark, platforms):
-    # Collect idx's for all whole-machine test runs of benchmark
-    # Also collect earliest test dates of kernels used
-
-        cmd = 'select status_idx from status where word = "GOOD"'
-        nrows = db.cur.execute(cmd)
-        good_status = db.cur.fetchall()[0][0]
-
-    tests = {}
-    cmd = ( 'select test_idx, test, kernel_idx, machine_idx,' 
-        ' finished_time, job_idx, status from tests'
-        ' where test like "%s%%"' % benchmark )
-    if selected_machine_names:
-        cmd +=  ' and machine_idx in (%s)' % selected_machines
-    nrows = db.cur.execute(cmd)
-    for row in db.cur.fetchall():
-        (test_idx, tname, kernel_idx, 
-            machine_idx, date, job_idx, status) = row
-        kname = kernel_names[kernel_idx]
-        if date:
-            kernel_dates[kname] = min(kernel_dates[kname], date)
-        # omit test runs from failed runs
-        #   and from unwanted platforms
-        #   and from partial-machine container tests
-        #   and from unselected machines or users
-        platform = machine_to_platform[machine_idx]
-        if ( status == good_status     and
-             platform in platforms     and
-             tname.find('.twoway') < 0 and
-             (use_all_jobs or job_idx in selected_jobs) ):
-            tests.setdefault(platform, {})
-            tests[platform].setdefault(kname, [])
-            tests[platform][kname].append(test_idx)
-    return tests
-
-
-def prune_old_kernels():
-    # reduce clutter of graph and improve lookup times by pruning away
-    #   older experimental kernels and oldest release-candidate kernels
-    today = datetime.datetime.today()
-    exp_cutoff = today - datetime.timedelta(weeks=7)
-    rc_cutoff  = today - datetime.timedelta(weeks=18)
-    kernels_forgotten = set()
-    for kname in kernel_dates:
-        date = kernel_dates[kname]
-        if ( date == date_unknown or
-            (date < exp_cutoff and not kernel_versions.is_release_candidate(kname)) or
-            (date < rc_cutoff  and not kernel_versions.is_released_kernel(kname)  )   ):
-            kernels_forgotten.add(kname)
-    return kernels_forgotten
-
-
-def get_metric_at_point(tests, metric):
-    nruns = len(tests)
-    if metric == 'good_testrun_count':
-        return [nruns]
-
-    # take subsamples from largest sets of test runs
-    min_sample_size = 100  # enough to approx mean & std dev
-    decimator = int(nruns / min_sample_size)
-    if decimator > 1:
-        tests = [tests[i] for i in xrange(0, nruns, decimator)]
-    # have  min_sample_size <= len(tests) < min_sample_size*2
-
-    invert_scale = None
-    if metric.find('/') > 0:
-        invert_scale, metric = metric.split('/', 1)
-        invert_scale = float(invert_scale)
-        # 1/  gives simple inversion of times to rates,
-        # 1000/  scales Y axis labels to nice integers
-
-    if not tests:
-        return []
-    tests = ','.join(str(idx) for idx in tests)
-    cmd = ( 'select value from iteration_result'
-        ' where test_idx in (%s) and attribute = "%s"'
-        % ( tests, metric) )
-    nrows = db.cur.execute(cmd)
-    vals = [row[0] for row in db.cur.fetchall()]
-    if invert_scale:
-        vals = [invert_scale/v for v in vals]
-    return vals
-
-
-def collect_test_results(possible_tests, kernels_forgotten, metric):
-    # collect selected metric of all test results for covered
-    #   combo's of platform and kernel
-    data = {}
-    for platform in possible_tests:
-        for kname in possible_tests[platform]:
-            if kname in kernels_forgotten:
-                continue
-            vals = get_metric_at_point(
-                    possible_tests[platform][kname], metric)
-            if vals:
-                data.setdefault(platform, {})
-                data[platform].setdefault(kname, [])
-                data[platform][kname] += vals
-    return data
-
-
-def one_performance_graph(benchmark, metric=None, one_platform=None):
-    # generate image of graph of one benchmark's performance over
-    #    most kernels (X axis) and all machines (one plotline per type)
-    if one_platform:
-        platforms = [one_platform]
-    else:
-        platforms = usual_platforms
     if not benchmark:
-        benchmark = 'dbench'
+        benchmark = 'dbench*'      # for cgi testing convenience
     if not metric:
-        metric = benchmark_main_metrics[benchmark]
-
-    get_all_kernel_names()
-    get_all_platform_info()
-    get_selected_jobs()
-    possible_tests = identify_relevent_tests(benchmark, platforms)
-    kernels_forgotten = prune_old_kernels()
-    data = collect_test_results(possible_tests, kernels_forgotten, metric)
-
-    if data.keys():
-        title = benchmark.capitalize()
-        if one_user:
-            title += " On %s's Runs" % one_user
-        if selected_machine_names:
-            title += " On Selected Machines " + selected_machine_names
-        else:
-            title += " Over All Machines"
-        graph = plotgraph.gnuplot(title, 'Kernels', 
-                metric.capitalize(), xsort=sort_kernels, 
-                size='1000,600' )
-        for platform in platforms:
-            if platform in data:
-                graph.add_dataset(platform, data[platform])
-        graph.plot(cgi_header = True)
-    else:
-        # graph has no data; avoid plotgraph and Apache complaints
-        print "Content-type: image/gif\n"
-        print file("blank.gif", "rb").read()
+        # strip tags .eth0  etc and * wildcard from benchmark name
+        bname = benchmark.split('.',1)[0].rstrip('*')
+        metric = perf.benchmark_main_metric(bname)
+        assert metric, "no default metric for test %s" % bname
+    if selected_machines == 'yings':
+        selected_machines = 'bdcz12,prik6,ipbj8,bddx9,bdmm9'
+        if not selected_platforms:
+            selected_platforms = '$'
+    return (benchmark, metric, selected_platforms, 
+            selected_machines, one_user, graph_size, dark, test_attributes)
 
 
-cgitb.enable()
-form = cgi.FieldStorage()
-one_platform  = form.getvalue('platform',  None)
-benchmark     = form.getvalue('benchmark', None)
-metric        = form.getvalue('metric',    None)
-one_user      = form.getvalue('user',      '')
-selected_machine_names = form.getvalue('machines', '')
-if selected_machine_names == 'yinghans':
-    selected_machine_names = 'ipbj8,prik6,bdcz12'
-db = db.db()
-one_performance_graph(benchmark, metric, one_platform)
+def one_performance_graph():
+    # generate image of graph of one benchmark's performance over
+    #    most kernels (X axis) and all machines (one plotted line per type)
+    perf.init()
+    (benchmark, metric, selected_platforms, selected_machines,
+        one_user, graph_size, dark, test_attributes) = get_cgi_args()
+    kernels = perf.kernels()
+    kernels.get_all_kernel_names()
+    machine_to_platform, platforms_order = perf.get_platform_info(
+                                selected_platforms, selected_machines)
+    selected_jobs = perf.select_jobs(one_user, machine_to_platform)
+    possible_tests = perf.identify_relevent_tests(
+                                benchmark, selected_jobs, 
+                                kernels, machine_to_platform)
+    data = perf.collect_test_results(possible_tests, kernels, 
+                                     metric, test_attributes)
+    title = benchmark.capitalize() + " Performance"
+    graph = plotgraph.gnuplot(title, 'Kernels', metric.capitalize(), 
+                              xsort=perf.sort_kernels, size=graph_size)
+    for platform in platforms_order:
+        if platform in data:
+            graph.add_dataset(platform, data[platform])
+    graph.plot(cgi_header=True, dark=dark)
 
+
+one_performance_graph()
