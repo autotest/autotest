@@ -2040,11 +2040,19 @@ class Job(DBObject):
         return self.num_complete() == self.num_machines()
 
 
-    def _stop_all_entries(self, entries_to_abort):
-        """
-        queue_entries: sequence of models.HostQueueEntry objects
-        """
-        for child_entry in entries_to_abort:
+    def _not_yet_run_entries(self, include_verifying=True):
+        statuses = [models.HostQueueEntry.Status.QUEUED,
+                    models.HostQueueEntry.Status.PENDING]
+        if include_verifying:
+            statuses.append(models.HostQueueEntry.Status.VERIFYING)
+        return models.HostQueueEntry.objects.filter(job=self.id,
+                                                    status__in=statuses)
+
+
+    def _stop_all_entries(self):
+        entries_to_stop = self._not_yet_run_entries(
+            include_verifying=False)
+        for child_entry in entries_to_stop:
             assert not child_entry.complete, (
                 '%s status=%s, active=%s, complete=%s' %
                 (child_entry.id, child_entry.status, child_entry.active,
@@ -2055,14 +2063,10 @@ class Job(DBObject):
             child_entry.status = models.HostQueueEntry.Status.STOPPED
             child_entry.save()
 
-
     def stop_if_necessary(self):
-        not_yet_run = models.HostQueueEntry.objects.filter(
-            job=self.id, status__in=(models.HostQueueEntry.Status.QUEUED,
-                                     models.HostQueueEntry.Status.VERIFYING,
-                                     models.HostQueueEntry.Status.PENDING))
+        not_yet_run = self._not_yet_run_entries()
         if not_yet_run.count() < self.synch_count:
-            self._stop_all_entries(not_yet_run)
+            self._stop_all_entries()
 
 
     def write_to_machines_file(self, queue_entry):
