@@ -1,7 +1,7 @@
 def verify(machine):
     print 'Initializing host ' + machine
-    host = hosts.create_host(machine, initialize=False, auto_monitor=False)
     try:
+        host = hosts.create_host(machine, initialize=False, auto_monitor=False)
         host.verify()
         job.record('GOOD', None, 'verify', '%s verified successfully' % machine)
     except Exception, e:
