@@ -1,13 +1,15 @@
 from autotest_lib.client.common_lib import host_protections
 
 
-def repair(machine):
+def _call_repair(machine):
     protection = host_protections.Protection
+
     try:
         level = protection.get_value(protection_level)
     except ValueError:
         raise NotImplementedError("Unknown host protection level %s" %
                                   protection_level)
+
     # call the appropriate repair function based on protection level
     if level == protection.DO_NOT_REPAIR:
         print "Host is specified as 'Do not repair', skipping repair stage"
@@ -23,6 +25,15 @@ def repair(machine):
         print "Attempting full repair"
         host = hosts.create_host(machine, initialize=False, auto_monitor=False)
         host.repair_full()
+
+
+def repair(machine):
+    try:
+        _call_repair(machine)
+    except Exception, e:
+        msg = 'repair failed on %s: %s\n' % (machine, str(e))
+        job.record('FAIL', None, 'repair', msg)
+        raise
 
 
 job.parallel_simple(repair, machines, log=False)
