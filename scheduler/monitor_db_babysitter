@@ -89,6 +89,11 @@ class MonitorProc:
 
 
 bprint("initializing")
+
+if os.getuid() == 0:
+    print "run as root!  aborting!"
+    sys.exit(1)
+
 while True:
     proc = MonitorProc(do_recovery=recover)
     time.sleep(PAUSE_LENGTH)
