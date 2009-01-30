@@ -132,7 +132,7 @@ class base_job(object):
 
         self._load_state()
         self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':1800})
+            self.autodir, run_function_dargs={'timeout':3600})
         self.pkgdir = os.path.join(self.autodir, 'packages')
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
