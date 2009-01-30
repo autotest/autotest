@@ -140,8 +140,13 @@ class host_list(action_common.atest_list, host):
             labels = self.labels.split(',')
             labels = [label.strip() for label in labels if label.strip()]
 
-            filters['multiple_labels'] = labels
-            check_results['multiple_labels'] = None
+            if len(labels) == 1:
+                # This is needed for labels with wildcards (x86*)
+                filters['labels__name__in'] = labels
+                check_results['labels__name__in'] = None
+            else:
+                filters['multiple_labels'] = labels
+                check_results['multiple_labels'] = None
 
         if self.status:
             statuses = self.status.split(',')
