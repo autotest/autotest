@@ -51,8 +51,9 @@ class CopyLogsTest(unittest.TestCase):
 
         # setup recording for constructor
         file_obj = self.god.create_mock_class(file, "file")
-        server_job.open.expect_call(self.control, 'r').and_return(file_obj)
+        server_job.open.expect_call(self.control).and_return(file_obj)
         file_obj.read.expect_call().and_return('')
+        file_obj.close.expect_call()
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
@@ -311,70 +312,6 @@ class CopyLogsTest(unittest.TestCase):
         # run and check
         self.job.run_reboot(reboot_func, get_kernel_func)
         self.god.check_playback()
-
-
-    def test_run(self):
-        self.god.stub_function(os, 'chdir')
-        self.god.stub_function(tempfile, 'mkdtemp')
-        self.god.stub_function(utils, 'open_write_close')
-        self.god.stub_function(shutil, 'copy')
-        self.god.stub_function(shutil, 'rmtree')
-        control_files = []
-        def _my_execute_code(control_file, namespace):
-            control_files.append(control_file)
-        self.god.stub_with(self.job, '_execute_code', _my_execute_code)
-
-        self.job.args = ()
-        self.job.ssh_user = None
-        self.job.ssh_port = None
-        self.job.ssh_pass = None
-        self.job.control = 'fakecontrol'
-        self.job.resultdir = '/xyz-unittest'
-
-        def run_and_verify(control_file_executed):
-            self.job.run(collect_crashdumps=False)
-            self.assertEqual(1, len(control_files))
-            self.assertEqual(control_file_executed, control_files[0])
-            self.god.check_playback()
-            control_files[:] = []
-
-        # server with resultdir
-        self.job.client = False
-        os.chdir.expect_call(self.job.resultdir)
-        utils.open_write_close.expect_any_call()
-        run_and_verify(server_job.SERVER_CONTROL_FILENAME)
-
-        # client with resultdir
-        self.job.client = True
-        os.chdir.expect_call(self.job.resultdir)
-        utils.open_write_close.expect_call(server_job.CLIENT_CONTROL_FILENAME,
-                                           'fakecontrol')
-        shutil.copy.expect_call(server_job.CLIENT_WRAPPER_CONTROL_FILE,
-                                server_job.SERVER_CONTROL_FILENAME)
-        run_and_verify(server_job.SERVER_CONTROL_FILENAME)
-
-        # Now test it without self.resultdir set.  It should try a mkdtemp dir.
-        fake_tmp = '/tmp/fake'
-        fake_server_control = os.path.join(fake_tmp,
-                                           server_job.SERVER_CONTROL_FILENAME)
-        fake_client_control = os.path.join(fake_tmp,
-                                           server_job.CLIENT_CONTROL_FILENAME)
-        self.job.resultdir = None
-
-        # client without resultdir
-        self.job.client = True
-        tempfile.mkdtemp.expect_call().and_return(fake_tmp)
-        utils.open_write_close.expect_call(fake_client_control, 'fakecontrol')
-        shutil.copy.expect_any_call()
-        shutil.rmtree.expect_call(fake_tmp)
-        run_and_verify(fake_server_control)
-
-        # server without resultdir
-        self.job.client = False
-        tempfile.mkdtemp.expect_call().and_return(fake_tmp)
-        utils.open_write_close.expect_call(fake_server_control, 'fakecontrol')
-        shutil.rmtree.expect_call(fake_tmp)
-        run_and_verify(fake_server_control)
 
 
     def test_record(self):
