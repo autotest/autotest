@@ -223,8 +223,8 @@ class RemoteHost(base_classes.Host):
             print "Collecting %s..." % log
             try:
                 self.get_file(log, infodir)
-            except Exception, e:
-                print "crashinfo collection of %s failed with:\n%s" % (log, e)
+            except Exception:
+                print "Collection of %s failed. Non-fatal, continuing." % log
 
         # collect dmesg
         print "Collecting dmesg (saved to crashinfo/dmesg)..."
