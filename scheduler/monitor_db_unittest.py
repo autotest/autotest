@@ -943,13 +943,29 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def test_repair_task_with_queue_entry(self):
+        self.god.stub_class(monitor_db, 'FinalReparseTask')
+        self.god.stub_class(monitor_db, 'Agent')
+        dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
+                                                'dispatcher')
+        agent = DummyAgent()
+        agent.dispatcher = dispatcher
+
         self.host.set_status.expect_call('Repairing')
         self.queue_entry.requeue.expect_call()
         self.setup_run_monitor(1)
         self.host.set_status.expect_call('Repair Failed')
+        self.queue_entry.set_execution_subdir.expect_call()
+        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        self._setup_move_logfile(include_destination=True)
+        reparse_task = monitor_db.FinalReparseTask.expect_new(
+            [self.queue_entry])
+        reparse_agent = monitor_db.Agent.expect_new([reparse_task],
+                                                    num_processes=0)
+        dispatcher.add_agent.expect_call(reparse_agent)
         self.queue_entry.handle_host_failure.expect_call()
 
         task = monitor_db.RepairTask(self.host, self.queue_entry)
+        task.agent = agent
         self.run_task(task, False)
         self.god.check_playback()
 
