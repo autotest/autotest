@@ -194,11 +194,11 @@ def main():
             lockfile = open(os.path.join(path, ".parse.lock"), "w")
             flags = fcntl.LOCK_EX
             if options.noblock:
-                flags != fcntl.LOCK_NB
+                flags |= fcntl.LOCK_NB
             try:
                 fcntl.flock(lockfile, flags)
             except IOError, e:
-                # was this because the lock is unavailable?
+                # lock is not available and nonblock has been requested
                 if e.errno == errno.EWOULDBLOCK:
                     lockfile.close()
                     continue
