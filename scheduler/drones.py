@@ -73,7 +73,8 @@ class _LocalDrone(_AbstractDrone):
     def send_file_to(self, drone, source_path, destination_path,
                      can_fail=False):
         if drone.hostname == self.hostname:
-            self.queue_call('copy_file', source_path, destination_path)
+            self.queue_call('copy_file_or_directory', source_path,
+                            destination_path)
         else:
             self.queue_call('send_file_to', drone.hostname, source_path,
                             destination_path, can_fail)
@@ -131,7 +132,8 @@ class _RemoteDrone(_AbstractDrone):
     def send_file_to(self, drone, source_path, destination_path,
                      can_fail=False):
         if drone.hostname == self.hostname:
-            self.queue_call('copy_file', source_path, destination_path)
+            self.queue_call('copy_file_or_directory', source_path,
+                            destination_path)
         elif isinstance(drone, _LocalDrone):
             drone.queue_call('get_file_from', self.hostname, source_path,
                              destination_path)
