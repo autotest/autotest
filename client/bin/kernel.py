@@ -729,25 +729,26 @@ preprocess_path = utils.import_site_function(__file__,
 
 
 def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
-    """\
+    """
     Create a kernel object, dynamically selecting the appropriate class to use
     based on the path provided.
     """
     kernel_path = preprocess_path(path)
     if kernel_path.endswith('.rpm'):
-        # Fetch the rpm into the job's packages directory and pass it to
-        # rpm_kernel
-        rpm_name = os.path.basename(kernel_path)
+        if utils.is_url(kernel_path) or os.path.exists(kernel_path):
+            return rpm_kernel(job, kernel_path, subdir)
 
-        # If the preprocessed path (kernel_path) is only a name then
-        # search for the kernel in all the repositories, else fetch the kernel
-        # from that specific path.
-        job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
-                             repo_url=os.path.dirname(kernel_path))
+        else:
+            # Fetch the rpm into the job's packages directory and pass it to
+            # rpm_kernel
+            rpm_name = os.path.basename(kernel_path)
 
-        # TODO: rpm accepts http paths directly. It might be an optimization
-        # to pass in the http path directly to it. Fetching the file locally
-        # though.
-        return rpm_kernel(job, os.path.join(job.pkgdir, rpm_name), subdir)
+            # If the preprocessed path (kernel_path) is only a name then
+            # search for the kernel in all the repositories, else fetch the
+            # kernel from that specific path.
+            job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
+                                 repo_url=os.path.dirname(kernel_path))
+
+            return rpm_kernel(job, os.path.join(job.pkgdir, rpm_name), subdir)
     else:
         return kernel(job,kernel_path, subdir, tmp_dir, build_dir, leave)
