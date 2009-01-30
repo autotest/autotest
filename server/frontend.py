@@ -61,8 +61,11 @@ class RpcClient(object):
         if not user:
             user = os.environ.get('LOGNAME')
         if not web_server:
-            web_server = 'http://' + GLOBAL_CONFIG.get_config_value(
-                    'SERVER', 'hostname', default=DEFAULT_SERVER)
+            if 'AUTOTEST_WEB' in os.environ:
+                web_server = 'http://' + os.environ['AUTOTEST_WEB']
+            else:
+                web_server = 'http://' + GLOBAL_CONFIG.get_config_value(
+                                  'SERVER', 'hostname', default=DEFAULT_SERVER)
         self.user = user
         self.print_log = print_log
         self.debug = debug
