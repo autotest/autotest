@@ -1164,10 +1164,6 @@ class VerifyTask(PreJobTask):
 
         if self.success:
             self.host.set_status('Ready')
-            if self.queue_entry:
-                agent = self.queue_entry.on_pending()
-                if agent:
-                    self.agent.dispatcher.add_agent(agent)
 
 
 class QueueTask(AgentTask):
@@ -1475,6 +1471,20 @@ class FinalReparseTask(AgentTask):
     def finished(self, success):
         super(FinalReparseTask, self).finished(success)
         self._decrement_running_parses()
+
+
+class SetEntryPendingTask(AgentTask):
+    def __init__(self, queue_entry):
+        super(SetEntryPendingTask, self).__init__(cmd='')
+        self._queue_entry = queue_entry
+        self._set_ids(queue_entries=[queue_entry])
+
+
+    def run(self):
+        agent = self._queue_entry.on_pending()
+        if agent:
+            self.agent.dispatcher.add_agent(agent)
+        self.finished(True)
 
 
 class DBObject(object):
@@ -2073,17 +2083,29 @@ class Job(DBObject):
         return params
 
 
-    def _get_pre_job_tasks(self, queue_entry):
-        do_reboot = False
+    def _should_run_cleanup(self, queue_entry):
         if self.reboot_before == models.RebootBefore.ALWAYS:
-            do_reboot = True
+            return True
         elif self.reboot_before == models.RebootBefore.IF_DIRTY:
-            do_reboot = queue_entry.get_host().dirty
+            return queue_entry.get_host().dirty
+        return False
 
+
+    def _should_run_verify(self, queue_entry):
+        do_not_verify = (queue_entry.host.protection ==
+                         host_protections.Protection.DO_NOT_VERIFY)
+        if do_not_verify:
+            return False
+        return self.run_verify
+
+
+    def _get_pre_job_tasks(self, queue_entry):
         tasks = []
-        if do_reboot:
+        if self._should_run_cleanup(queue_entry):
             tasks.append(CleanupTask(queue_entry=queue_entry))
-        tasks.append(VerifyTask(queue_entry=queue_entry))
+        if self._should_run_verify(queue_entry):
+            tasks.append(VerifyTask(queue_entry=queue_entry))
+        tasks.append(SetEntryPendingTask(queue_entry))
         return tasks
 
 
@@ -2116,11 +2138,8 @@ class Job(DBObject):
 
     def run(self, queue_entry):
         if not self.is_ready():
-            if self.run_verify:
-                queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
-                return Agent(self._get_pre_job_tasks(queue_entry))
-            else:
-                return queue_entry.on_pending()
+            queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
+            return Agent(self._get_pre_job_tasks(queue_entry))
 
         queue_entries = self._choose_group_to_run(queue_entry)
         return self._finish_run(queue_entries)
