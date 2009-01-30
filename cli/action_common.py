@@ -69,7 +69,7 @@ class atest_list(topic_common.atest):
 
     def _convert_in_wildcard(self, key, value, filters, check_results):
         if value.endswith('*'):
-            assert(key.endswith('__in'))
+            assert key.endswith('__in'), 'Key %s does not end with __in' % key
             new_key = key.replace('__in', '__startswith', 1)
             self._convert_wildcard(key, new_key, value, filters, check_results)
 
