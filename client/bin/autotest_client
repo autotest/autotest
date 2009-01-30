@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import common
 
-import sys, os, time, getpass, subprocess
+import sys, os, time, subprocess
 
 from autotest_lib.client.common_lib import utils
 
@@ -14,10 +14,6 @@ from autotest_lib.client.common_lib import utils
 os.dup2(2,3)
 # Join our stderr in with our stdout
 os.dup2(1,2)
-
-# If we're using cpusets, run inside the root one by default
-if os.path.exists("/dev/cpuset/tasks") and getpass.getuser() == "root":
-    utils.write_one_line("/dev/cpuset/tasks", str(os.getpid()))
 
 autodir = os.path.dirname(sys.argv[0])
 autotest = os.path.join(autodir, 'autotest')
