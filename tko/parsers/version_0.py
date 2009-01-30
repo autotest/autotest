@@ -5,6 +5,10 @@ from autotest_lib.tko import utils as tko_utils, models, status_lib
 from autotest_lib.tko.parsers import base
 
 
+class NoHostnameError(Exception):
+    pass
+
+
 class job(models.job):
     def __init__(self, dir):
         job_dict = job.load_from_dir(dir)
@@ -20,7 +24,10 @@ class job(models.job):
         label = keyval.get("label", None)
         machine = keyval.get("hostname", None)
         if machine and "," in machine:
-            machine = job.find_hostname(dir) # find a unique hostname
+            try:
+                machine = job.find_hostname(dir) # find a unique hostname
+            except NoHostnameError:
+                pass  # just use the comma-separated name
         queued_time = tko_utils.get_timestamp(keyval, "job_queued")
         started_time = tko_utils.get_timestamp(keyval, "job_started")
         finished_time = tko_utils.get_timestamp(keyval, "job_finished")
@@ -55,7 +62,7 @@ class job(models.job):
             tko_utils.dprint("Could not read a hostname from "
                              "sysinfo/uname_-a")
 
-        raise Exception("Unable to find a machine name")
+        raise NoHostnameError("Unable to find a machine name")
 
 
 class kernel(models.kernel):
