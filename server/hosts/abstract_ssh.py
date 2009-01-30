@@ -1,7 +1,7 @@
 import os, time, types, socket, shutil, glob
 from autotest_lib.client.common_lib import error, debug
 from autotest_lib.server import utils, autotest
-from autotest_lib.server.hosts import site_host
+from autotest_lib.server.hosts import remote
 
 
 def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
@@ -13,7 +13,13 @@ def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
     return base_command % (opts, connect_timeout, user, port)
 
 
-class AbstractSSHHost(site_host.SiteHost):
+# import site specific Host class
+SiteHost = utils.import_site_class(
+    __file__, "autotest_lib.server.hosts.site_host", "SiteHost",
+    remote.RemoteHost)
+
+
+class AbstractSSHHost(SiteHost):
     """ This class represents a generic implementation of most of the
     framework necessary for controlling a host via ssh. It implements
     almost all of the abstract Host methods, except for the core
