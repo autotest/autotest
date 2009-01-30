@@ -21,7 +21,7 @@ except Exception:
 
 # Create host
 
-new_host = new.create_host(hostname=hostname)
+new_host = new.create_host(hostname=hostname, locked=True)
 
 # Deal with labels
 old_host_labels = old_host.get_labels()
@@ -42,17 +42,24 @@ new_users = [user.login for user in new.get_users()]
 
 for acl in old_host_acls:
     # Create any non-existant ACLs
-    if not new.get_acls(name=acl.name):
+    new_acls = new.get_acls(name=acl.name)
+    if new_acls:
+        new_acl = new_acls[0]
+    else:
         new_acl = new.create_acl(name=acl.name, description=acl.description)
-        # Add any users to the ACL that we can
-        for user in acl.users:
-            if user in new_users:
-                new_acl.add_users([user])
-            else:
-                print 'Skipping absent user %s' % user
+    # Add any users to the ACL that we can
+    for user in acl.users:
+        if user in new_users:
+            new_acl.add_users([user])
+        else:
+            print 'Skipping absent user %s' % user
     # Add any missing ACLs to the machine
     if not [a for a in new_host.get_acls() if a.name == acl.name]:
         new_host.add_acl(acl.name)
+
+# Enable the new host
+if not old_host.locked:
+    new_host.modify(locked=False)
 
 # Delete host from old server
 old_host.delete()
