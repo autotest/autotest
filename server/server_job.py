@@ -95,8 +95,7 @@ class base_server_job(object):
         self.clientdir = os.path.join(self.autodir, 'client')
         self.toolsdir = os.path.join(self.autodir, 'client/tools')
         if control:
-            self.control = open(control, 'r').read()
-            self.control = re.sub('\r', '', self.control)
+            self.control = self._load_control_file(control)
         else:
             self.control = ''
         self.resultdir = resultdir
@@ -174,6 +173,16 @@ class base_server_job(object):
         self.num_tests_failed = 0
 
         self._register_subcommand_hooks()
+
+
+    @staticmethod
+    def _load_control_file(path):
+        f = open(path)
+        try:
+            control_file = f.read()
+        finally:
+            f.close()
+        return re.sub('\r', '', control_file)
 
 
     def _register_subcommand_hooks(self):
@@ -342,11 +351,17 @@ class base_server_job(object):
         subcommand.parallel_simple(wrapper, machines, log, timeout)
 
 
+    USE_TEMP_DIR = object()
     def run(self, cleanup=False, install_before=False, install_after=False,
-            collect_crashdumps=True, namespace={}):
+            collect_crashdumps=True, namespace={}, control=None,
+            control_file_dir=None):
         # use a copy so changes don't affect the original dictionary
         namespace = namespace.copy()
         machines = self.machines
+        if control is None:
+            control = self.control
+        if control_file_dir is None:
+            control_file_dir = self.resultdir
 
         self.aborted = False
         namespace['machines'] = machines
@@ -359,41 +374,44 @@ class base_server_job(object):
 
         if self.resultdir:
             os.chdir(self.resultdir)
-
             self.enable_external_logging()
-            status_log = os.path.join(self.resultdir, 'status.log')
+
         collect_crashinfo = True
         temp_control_file_dir = None
         try:
             if install_before and machines:
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
-            if self.resultdir:
-                server_control_file = SERVER_CONTROL_FILENAME
-                client_control_file = CLIENT_CONTROL_FILENAME
+
+            # determine the dir to write the control files to
+            if control_file_dir and control_file_dir is not self.USE_TEMP_DIR:
+                temp_control_file_dir = None
             else:
-                temp_control_file_dir = tempfile.mkdtemp()
-                server_control_file = os.path.join(temp_control_file_dir,
-                                                   SERVER_CONTROL_FILENAME)
-                client_control_file = os.path.join(temp_control_file_dir,
-                                                   CLIENT_CONTROL_FILENAME)
+                temp_control_file_dir = control_file_dir = tempfile.mkdtemp(
+                    suffix='temp_control_file_dir')
+            server_control_file = os.path.join(control_file_dir,
+                                               SERVER_CONTROL_FILENAME)
+            client_control_file = os.path.join(control_file_dir,
+                                               CLIENT_CONTROL_FILENAME)
             if self.client:
-                namespace['control'] = self.control
-                utils.open_write_close(client_control_file, self.control)
+                namespace['control'] = control
+                utils.open_write_close(client_control_file, control)
                 shutil.copy(CLIENT_WRAPPER_CONTROL_FILE, server_control_file)
             else:
                 namespace['utils'] = utils
-                utils.open_write_close(server_control_file, self.control)
+                utils.open_write_close(server_control_file, control)
             self._execute_code(server_control_file, namespace)
 
             # disable crashinfo collection if we get this far without error
             collect_crashinfo = False
         finally:
             if temp_control_file_dir:
-                # Clean up temp. directory used for copies of the control files.
+                # Clean up temp directory used for copies of the control files
                 try:
                     shutil.rmtree(temp_control_file_dir)
                 except Exception, e:
-                    print 'Error', e, 'removing dir', temp_control_file_dir
+                    print 'Error %s removing dir %s' % (e,
+                                                        temp_control_file_dir)
+
             if machines and (collect_crashdumps or collect_crashinfo):
                 namespace['test_start_time'] = test_start_time
                 if collect_crashinfo:
@@ -525,6 +543,15 @@ class base_server_job(object):
             self.record_prefix = old_record_prefix
             self.record('END GOOD', None, 'reboot',
                         optional_fields={"kernel": kernel})
+
+
+    def run_control(self, path):
+        """Execute a control file found at path (relative to the autotest
+        path). Intended for executing a control file within a control file,
+        not for running the top-level job control file."""
+        path = os.path.join(self.autodir, path)
+        control_file = self._load_control_file(path)
+        self.run(control=control_file, control_file_dir=self.USE_TEMP_DIR)
 
 
     def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
