@@ -55,8 +55,7 @@ test_attributes = perf.parse_test_attr_args(form)
 # see perf_graph.cgi for these options
 if machine_names == 'yings' and not one_user:
     one_user = 'yinghan'
-    benchmarks = ['dbench', 'iozone', 'kernbench', 'tbench', 'unixbench',
-                  'googlemarks']
+    benchmarks = ['dbench', 'iozone', 'kernbench', 'tbench', 'unixbench']
     if not graph_size:
         graph_size = '400,345'
 else:
