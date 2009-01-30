@@ -961,8 +961,6 @@ class AgentTasksTest(unittest.TestCase):
         if success:
             self.setup_run_monitor(0)
             self.host.set_status.expect_call('Ready')
-            if use_queue_entry:
-                self.queue_entry.on_pending.expect_call()
         else:
             self.setup_run_monitor(1)
             if use_queue_entry and not self.queue_entry.meta_host:
@@ -1186,16 +1184,25 @@ class JobTest(BaseSchedulerTest):
         return tasks
 
 
+    def _check_verify_task(self, verify_task):
+        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
+        self.assertEquals(verify_task.queue_entry.id, 1)
+
+
+    def _check_pending_task(self, pending_task):
+        self.assert_(isinstance(pending_task, monitor_db.SetEntryPendingTask))
+        self.assertEquals(pending_task._queue_entry.id, 1)
+
+
     def test_run_asynchronous(self):
         self._create_job(hosts=[1, 2])
 
         tasks = self._test_run_helper()
 
-        self.assertEquals(len(tasks), 1)
-        verify_task = tasks[0]
-
-        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
-        self.assertEquals(verify_task.queue_entry.id, 1)
+        self.assertEquals(len(tasks), 2)
+        verify_task, pending_task = tasks
+        self._check_verify_task(verify_task)
+        self._check_pending_task(pending_task)
 
 
     def test_run_asynchronous_skip_verify(self):
@@ -1204,24 +1211,21 @@ class JobTest(BaseSchedulerTest):
         job.save()
         self._setup_directory_expects('host1')
 
-        tasks = self._test_run_helper(expect_starting=True)
+        tasks = self._test_run_helper()
 
         self.assertEquals(len(tasks), 1)
-        queue_task = tasks[0]
-
-        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
-        self.assertEquals(queue_task.job.id, 1)
+        pending_task = tasks[0]
+        self._check_pending_task(pending_task)
 
 
     def test_run_synchronous_verify(self):
         self._create_job(hosts=[1, 2], synchronous=True)
 
         tasks = self._test_run_helper()
-        self.assertEquals(len(tasks), 1)
-        verify_task = tasks[0]
-
-        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
-        self.assertEquals(verify_task.queue_entry.id, 1)
+        self.assertEquals(len(tasks), 2)
+        verify_task, pending_task = tasks
+        self._check_verify_task(verify_task)
+        self._check_pending_task(pending_task)
 
 
     def test_run_synchronous_skip_verify(self):
@@ -1229,10 +1233,9 @@ class JobTest(BaseSchedulerTest):
         job.run_verify = False
         job.save()
 
-        self._test_run_helper(expect_agent=False, expect_pending=True)
-
-        queue_entry = models.HostQueueEntry.smart_get(1)
-        self.assertEquals(queue_entry.status, 'Pending')
+        tasks = self._test_run_helper()
+        self.assertEquals(len(tasks), 1)
+        self._check_pending_task(tasks[0])
 
 
     def test_run_synchronous_ready(self):
@@ -1256,7 +1259,7 @@ class JobTest(BaseSchedulerTest):
         job.save()
 
         tasks = self._test_run_helper()
-        self.assertEquals(len(tasks), 2)
+        self.assertEquals(len(tasks), 3)
         cleanup_task = tasks[0]
         self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
         self.assertEquals(cleanup_task.host.id, 1)
@@ -1268,7 +1271,7 @@ class JobTest(BaseSchedulerTest):
         job.save()
 
         tasks = self._test_run_helper()
-        self.assertEquals(len(tasks), expect_reboot and 2 or 1)
+        self.assertEquals(len(tasks), expect_reboot and 3 or 2)
         if expect_reboot:
             cleanup_task = tasks[0]
             self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
