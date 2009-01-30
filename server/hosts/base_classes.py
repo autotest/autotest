@@ -68,13 +68,12 @@ class Host(object):
             self.job.hosts.add(self)
 
 
-    def _initialize(self, initialize=True, target_file_owner=None,
+    def _initialize(self, target_file_owner=None,
                     *args, **dargs):
         self.serverdir = utils.get_server_dir()
         self.monitordir = os.path.join(os.path.dirname(__file__), "monitors")
         self.bootloader = bootloader.Bootloader(self)
         self.env = {}
-        self.initialize = initialize
         self.target_file_owner = target_file_owner
 
 
