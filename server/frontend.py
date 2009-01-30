@@ -620,6 +620,10 @@ class Host(RpcObject):
         return self.afe.run('delete_host', id=self.id)
 
 
+    def modify(self, **dargs):
+        return self.afe.run('modify_host', id=self.id, **dargs)
+
+
     def get_acls(self):
         return self.afe.get_acls(hosts__hostname=self.hostname)
 
