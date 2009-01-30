@@ -15,12 +15,13 @@ class FsOptions_test(unittest.TestCase):
     def test_constructor(self):
         self.assertRaises(ValueError, partition.FsOptions, '', '', '', '')
         self.assertRaises(ValueError, partition.FsOptions, 'ext2', '', '', '')
-        obj = partition.FsOptions('ext2', '', '', 'ext2_vanilla')
-        obj = partition.FsOptions('fs', 'mkfs opts', 'mount opts', 'shortie')
+        obj = partition.FsOptions('ext2', 'ext2_vanilla', '', '')
+        obj = partition.FsOptions(fstype='ext2', fs_tag='ext2_vanilla')
+        obj = partition.FsOptions('fs', 'shortie', 'mkfs opts', 'mount opts')
         self.assertEqual('fs', obj.fstype)
+        self.assertEqual('shortie', obj.fs_tag)
         self.assertEqual('mkfs opts', obj.mkfs_flags)
         self.assertEqual('mount opts', obj.mount_options)
-        self.assertEqual('shortie', obj.fs_tag)
 
 
     def test__str__(self):
