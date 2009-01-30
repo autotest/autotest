@@ -6,8 +6,10 @@ Protection = enum.Enum('No protection',          # Repair can do anything to
                                                  # software problem
                        'Repair filesystem only', # Repair should only try to
                                                  # recover the file system.
-                       'Do not repair'           # Repair should not touch this
+                       'Do not repair',          # Repair should not touch this
                                                  # host.
+                       'Do not verify',          # Don't even try to verify
+                                                 # this host
                        )
 
 default = Protection.get_value(
