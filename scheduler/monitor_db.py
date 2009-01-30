@@ -1072,6 +1072,32 @@ class AgentTask(object):
         self.log_file = os.path.join('hosts', host.hostname, filename)
 
 
+    def _get_consistent_execution_tag(self, queue_entries):
+        first_execution_tag = queue_entries[0].execution_tag()
+        for queue_entry in queue_entries[1:]:
+            assert queue_entry.execution_tag() == first_execution_tag, (
+                '%s (%s) != %s (%s)' % (queue_entry.execution_tag(),
+                                        queue_entry,
+                                        first_execution_tag,
+                                        queue_entries[0]))
+        return first_execution_tag
+
+
+    def _copy_and_parse_results(self, queue_entries, source_path=None):
+        assert len(queue_entries) > 0
+        assert self.monitor
+        execution_tag = self._get_consistent_execution_tag(queue_entries)
+        destination_path = execution_tag + '/'
+        if source_path is None:
+            source_path = destination_path
+        _drone_manager.copy_to_results_repository(
+            self.monitor.get_process(), source_path,
+            destination_path=destination_path)
+
+        reparse_task = FinalReparseTask(queue_entries)
+        self.agent.dispatcher.add_agent(Agent([reparse_task], num_processes=0))
+
+
     def run(self):
         if self.cmd:
             self.monitor = PidfileRunMonitor()
@@ -1110,6 +1136,14 @@ class RepairTask(AgentTask):
             self.queue_entry.requeue()
 
 
+    def _fail_queue_entry(self):
+        assert self.queue_entry
+        self.queue_entry.set_execution_subdir()
+        self._copy_and_parse_results([self.queue_entry],
+                                     source_path=self.temp_results_dir + '/')
+        self.queue_entry.handle_host_failure()
+
+
     def epilog(self):
         super(RepairTask, self).epilog()
         if self.success:
@@ -1117,7 +1151,7 @@ class RepairTask(AgentTask):
         else:
             self.host.set_status('Repair Failed')
             if self.queue_entry and not self.queue_entry.meta_host:
-                self.queue_entry.handle_host_failure()
+                self._fail_queue_entry()
 
 
 class PreJobTask(AgentTask):
@@ -1220,12 +1254,8 @@ class QueueTask(AgentTask):
         self._write_keyval("job_queued", int(queued))
         self._write_keyval("job_finished", int(finished))
 
-        _drone_manager.copy_to_results_repository(self.monitor.get_process(),
-                                                  self._execution_tag() + '/')
-
-        # parse the results of the job
-        reparse_task = FinalReparseTask(self.queue_entries)
-        self.agent.dispatcher.add_agent(Agent([reparse_task], num_processes=0))
+        self._copy_and_parse_results(self.queue_entries,
+                                     self._execution_tag() + '/')
 
 
     def _write_status_comment(self, comment):
@@ -1862,6 +1892,8 @@ class HostQueueEntry(DBObject):
 
     def requeue(self):
         self.set_status('Queued')
+        # verify/cleanup failure sets the execution subdir, so reset it here
+        self.set_execution_subdir('')
         if self.meta_host:
             self.set_host(None)
 

@@ -202,11 +202,32 @@ class DroneUtility(object):
             self._warn('Error write to file %s: %s' % (file_path, exc))
 
 
-    def copy_file(self, source_path, destination_path):
-        if source_path == destination_path:
+    def copy_file_or_directory(self, source_path, destination_path):
+        """
+        This interface is designed to match server.hosts.abstract_ssh.get_file
+        (and send_file).  That is, if the source_path ends with a slash, the
+        contents of the directory are copied; otherwise, the directory iself is
+        copied.
+        """
+        if source_path.rstrip('/') == destination_path.rstrip('/'):
             return
         self._ensure_directory_exists(os.path.dirname(destination_path))
-        shutil.copy(source_path, destination_path)
+        if source_path.endswith('/'):
+            # copying a directory's contents to another directory
+            assert os.path.isdir(source_path)
+            assert os.path.isdir(destination_path)
+            for filename in os.listdir(source_path):
+                self.copy_file_or_directory(
+                    os.path.join(source_path, filename),
+                    os.path.join(destination_path, filename))
+        elif os.path.isdir(source_path):
+            shutil.copytree(source_path, destination_path, symlinks=True)
+        elif os.path.islink(source_path):
+            # copied from shutil.copytree()
+            link_to = os.readlink(source_path)
+            os.symlink(link_to, destination_path)
+        else:
+            shutil.copy(source_path, destination_path)
 
 
     def wait_for_all_async_commands(self):
@@ -271,7 +292,7 @@ class DroneUtility(object):
             else:
                 copy_to = destination_path + _TRANSFER_FAILED_FILE
                 self._ensure_directory_exists(os.path.dirname(copy_to))
-                self.copy_file(source_path, copy_to)
+                self.copy_file_or_directory(source_path, copy_to)
 
 
     def send_file_to(self, hostname, source_path, destination_path,
