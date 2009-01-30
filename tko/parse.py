@@ -134,7 +134,11 @@ def _get_job_subdirs(path):
     # if there's a .machines file, use it to get the subdirs
     machine_list = os.path.join(path, ".machines")
     if os.path.exists(machine_list):
-        return set(line.strip() for line in file(machine_list))
+        subdirs = set(line.strip() for line in file(machine_list))
+        existing_subdirs = set(subdir for subdir in subdirs
+                               if os.path.exists(os.path.join(path, subdir)))
+        if len(existing_subdirs) != 0:
+            return existing_subdirs
 
     # if this dir contains ONLY subdirectories, return them
     contents = set(os.listdir(path))
