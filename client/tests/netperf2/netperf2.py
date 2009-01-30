@@ -175,7 +175,7 @@ class netperf2(test.test):
         """Parses the following (works for both TCP_STREAM and TCP_SENDFILE)
         and returns a singleton containing throughput.
 
-        TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to kcqz13.prod.google.com (10.75.222.13) port 0 AF_INET
+        TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to foo (10.1.1.1) port 0 AF_INET
         Recv   Send    Send
         Socket Socket  Message  Elapsed
         Size   Size    Size     Time     Throughput
@@ -191,7 +191,7 @@ class netperf2(test.test):
         """Parses the following and returns a touple containing throughput
         and the number of errors.
 
-        UDP UNIDIRECTIONAL SEND TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to kcqz13.prod.google.com (10.75.222.13) port 0 AF_INET
+        UDP UNIDIRECTIONAL SEND TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to foo (10.1.1.1) port 0 AF_INET
         Socket  Message  Elapsed      Messages
         Size    Size     Time         Okay Errors   Throughput
         bytes   bytes    secs            #      #   10^6bits/sec
@@ -208,7 +208,7 @@ class netperf2(test.test):
         """Parses the following which works for both rr (TCP and UDP) and crr
         tests and returns a singleton containing transfer rate.
 
-        TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to kcqz13.prod.google.com (10.75.222.13) port 0 AF_INET
+        TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to foo (10.1.1.1) port 0 AF_INET
         Local /Remote
         Socket Size   Request  Resp.   Elapsed  Trans.
         Send   Recv   Size     Size    Time     Rate
