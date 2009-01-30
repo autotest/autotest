@@ -4,7 +4,7 @@ import os, unittest, shutil, sys, time
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
-from autotest_lib.client.bin import test, xen, kernel, utils, cpuset
+from autotest_lib.client.bin import test, xen, kernel, utils
 from autotest_lib.client.common_lib import packages, error, log
 from autotest_lib.client.common_lib.test_utils import mock
 
@@ -393,48 +393,6 @@ class TestBaseJob(unittest.TestCase):
         # run and check
         self.job.run_test(testname)
         self.god.check_playback()
-
-
-    def new_container(self):
-        self.construct_job(True)
-
-        # set up stubs
-        self.god.stub_function(utils, "grep")
-        self.god.stub_function(os, "getpid")
-        self.god.stub_class(cpuset, "cpuset")
-        pid = 100
-        name = 'test%d' % pid
-
-        # record
-        utils.grep.expect_call('cpuset', '/proc/filesystems').and_return(True)
-        os.getpid.expect_call().and_return(pid)
-
-        container = cpuset.cpuset.expect_new(name, job_size=None, job_pid=pid,
-                                             cpus=None, root=None, disk=None,
-                                             network=None, kswapd_merge=False)
-
-        # run test
-        self.job.new_container()
-
-        self.god.check_playback()
-        return container
-
-
-    def test_new_container(self):
-        container = self.new_container()
-        self.assertEquals(self.job.container, container)
-
-
-    def test_release_container(self):
-        self.new_container()
-
-        # record
-        self.job.container.release.expect_call()
-
-        # run
-        self.job.release_container()
-        self.god.check_playback()
-        self.assertEquals(self.job.container, None)
 
 
     def test_record(self):

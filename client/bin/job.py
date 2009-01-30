@@ -9,7 +9,7 @@ import copy, os, platform, re, shutil, sys, time, traceback, types
 import cPickle as pickle
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
-from autotest_lib.client.bin import config, sysinfo, cpuset, test
+from autotest_lib.client.bin import config, sysinfo, test
 from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import error, barrier, log
 from autotest_lib.client.common_lib import packages, debug
@@ -179,7 +179,6 @@ class base_job(object):
         self.control = control
         self.jobtag = jobtag
         self.log_filename = self.DEFAULT_LOG_FILENAME
-        self.container = None
 
         self.stdout = fd_stack.fd_stack(1, sys.stdout)
         self.stderr = fd_stack.fd_stack(2, sys.stderr)
@@ -447,32 +446,6 @@ class base_job(object):
         # being constructed the same way as in this code.
         os.mkdir(outputdir)
 
-        container = dargs.pop('container', None)
-        if container:
-            cname = container.get('name', None)
-            if not cname:   # get old name
-                cname = container.get('container_name', None)
-            mbytes = container.get('mbytes', None)
-            if not mbytes:  # get old name
-                mbytes = container.get('mem', None)
-            cpus  = container.get('cpus', None)
-            if not cpus:    # get old name
-                cpus  = container.get('cpu', None)
-            root  = container.get('root', None)
-            network = container.get('network', None)
-            disk = container.get('disk', None)
-            try:
-                self.new_container(mbytes=mbytes, cpus=cpus, root=root,
-                                   name=cname, network=network, disk=disk)
-            except cpuset.CpusetsNotAvailable, e:
-                self.record("START", subdir, testname)
-                self._increment_group_level()
-                self.record("ERROR", subdir, testname, str(e))
-                self._decrement_group_level()
-                self.record("END ERROR", subdir, testname)
-                return False
-            # We are running in a container now...
-
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
         @disk_usage_monitor.watch(log_warning, "/", self.max_disk_usage_rate)
@@ -488,8 +461,6 @@ class base_job(object):
 
         try:
             self._rungroup(subdir, testname, group_func)
-            if container:
-                self.release_container()
             return True
         except error.TestBaseException:
             return False
@@ -606,29 +577,7 @@ class base_job(object):
         self._test_tag_prefix = prefix
 
 
-    def new_container(self, mbytes=None, cpus=None, root=None, name=None,
-                      network=None, disk=None, kswapd_merge=False):
-        if not utils.grep('cpuset', '/proc/filesystems'):
-            print "Containers not enabled by latest reboot"
-            return  # containers weren't enabled in this kernel boot
-        pid = os.getpid()
-        if not name:
-            name = 'test%d' % pid  # make arbitrary unique name
-        self.container = cpuset.cpuset(name, job_size=mbytes, job_pid=pid, 
-                                       cpus=cpus, root=root, network=network, 
-                                       disk=disk, kswapd_merge=kswapd_merge)
-        # This job's python shell is now running in the new container
-        # and all forked test processes will inherit that container
-
-
-    def release_container(self):
-        if self.container:
-            self.container = self.container.release()
-
-
     def cpu_count(self):
-        if self.container:
-            return len(self.container.cpus)
         return utils.count_cpus()  # use total system count
 
 
