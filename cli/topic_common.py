@@ -112,10 +112,9 @@ UPLOAD_SOCKET_TIMEOUT = 60*30
 # Convertion functions to be called for printing,
 # e.g. to print True/False for booleans.
 def __convert_platform(field):
-    if not field:
-        # Can be None
+    if field is None:
         return ""
-    elif type(field) == int:
+    elif isinstance(field, int):
         # Can be 0/1 for False/True
         return str(bool(field))
     else:

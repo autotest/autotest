@@ -150,14 +150,14 @@ class atest_list_unittest(cli_mock.cli_unittest):
         filters['name__in'] = ['label*']
         check_results['name__in'] = 'name'
         values = [{u'id': 180,
-                   u'platform': 0,
+                   u'platform': False,
                    u'name': u'label0',
-                   u'invalid': 0,
+                   u'invalid': False,
                    u'kernel_config': u''},
                   {u'id': 338,
-                   u'platform': 0,
+                   u'platform': False,
                    u'name': u'label1',
-                   u'invalid': 0,
+                   u'invalid': False,
                    u'kernel_config': u''}]
         mytest = action_common.atest_list()
         mytest.afe = rpc.afe_comm()

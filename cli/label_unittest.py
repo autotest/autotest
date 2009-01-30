@@ -12,35 +12,35 @@ from autotest_lib.cli import cli_mock, topic_common
 
 class label_list_unittest(cli_mock.cli_unittest):
     values = [{u'id': 180,          # Valid label
-               u'platform': 0,
+               u'platform': False,
                u'name': u'label0',
-               u'invalid': 0,
+               u'invalid': False,
                u'kernel_config': u'',
-               u'only_if_needed': 0},
+               u'only_if_needed': False},
               {u'id': 338,          # Valid label
-               u'platform': 0,
+               u'platform': False,
                u'name': u'label1',
-               u'invalid': 0,
+               u'invalid': False,
                u'kernel_config': u'',
-               u'only_if_needed': 0},
+               u'only_if_needed': False},
               {u'id': 340,          # Invalid label
-               u'platform': 0,
+               u'platform': False,
                u'name': u'label2',
-               u'invalid': 1,
+               u'invalid': True,
                u'kernel_config': u'',
-               u'only_if_needed': 0},
+               u'only_if_needed': False},
               {u'id': 350,          # Valid platform
-               u'platform': 1,
+               u'platform': True,
                u'name': u'plat0',
-               u'invalid': 0,
+               u'invalid': False,
                u'kernel_config': u'',
-               u'only_if_needed': 0},
+               u'only_if_needed': False},
               {u'id': 420,          # Invalid platform
-               u'platform': 1,
+               u'platform': True,
                u'name': u'plat1',
-               u'invalid': 1,
+               u'invalid': True,
                u'kernel_config': u'',
-               u'only_if_needed': 0}]
+               u'only_if_needed': False}]
 
 
     def test_label_list_labels_only(self):
