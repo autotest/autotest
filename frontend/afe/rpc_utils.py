@@ -5,7 +5,7 @@ only RPC interface functions go into that file.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime, xmlrpclib, threading
+import datetime, os
 from frontend.afe import models, model_logic
 
 NULL_DATETIME = datetime.datetime.max
@@ -146,7 +146,10 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
             test1.name, test2.name)})
 
     is_server = (test_type == models.Test.Types.SERVER)
-    synch_count = max(test.sync_count for test in test_objects)
+    if test_objects:
+        synch_count = max(test.sync_count for test in test_objects)
+    else:
+        synch_count = 1
     if label:
         label = models.Label.smart_get(label)
 
