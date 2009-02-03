@@ -1,3 +1,4 @@
+import common
 import MySQLdb as driver
 import db
 
