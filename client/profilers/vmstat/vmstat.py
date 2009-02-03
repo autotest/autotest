@@ -4,7 +4,9 @@ Runs vmstat X where X is the interval in seconds
 Defaults options:
 job.profilers.add('vmstat', interval=1)
 """
-import profiler,time,os,subprocess
+import time, os, subprocess
+from autotest_lib.client.bin import profiler
+
 
 class vmstat(profiler.profiler):
     version = 1
