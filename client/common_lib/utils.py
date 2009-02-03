@@ -800,7 +800,20 @@ class run_randomly:
             fn(*args, **dargs)
 
 
-def _import_site_symbol(path, module, name, dummy=None, modulefile=None):
+def import_site_symbol(path, module, name, dummy=None, modulefile=None):
+    """
+    Try to import site specific symbol from site specific file if it exists
+
+    @param path full filename of the source file calling this (ie __file__)
+    @param module full module name
+    @param name symbol name to be imported from the site file
+    @param dummy dummy value to return in case there is no symbol to import
+    @param modulefile module filename
+
+    @return site specific symbol or dummy
+
+    @exception ImportError if the site file exists but imports fails
+    """
     short_module = module[module.rfind(".") + 1:]
 
     if not modulefile:
@@ -837,7 +850,7 @@ def import_site_class(path, module, classname, baseclass, modulefile=None):
     Raises: ImportError if the site file exists but imports fails
     """
 
-    res = _import_site_symbol(path, module, classname, None, modulefile)
+    res = import_site_symbol(path, module, classname, None, modulefile)
 
     if not res:
         # we cannot just return baseclass because some callers will want to
@@ -866,4 +879,4 @@ def import_site_function(path, module, funcname, dummy, modulefile=None):
     Raises: ImportError if the site file exists but imports fails
     """
 
-    return _import_site_symbol(path, module, funcname, dummy, modulefile)
+    return import_site_symbol(path, module, funcname, dummy, modulefile)
