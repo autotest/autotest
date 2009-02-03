@@ -24,7 +24,7 @@ delete_acl_group('Everyone') # delete by name
 acl_group_add_users('Everyone', ['mbligh', 'showard'])
 get_jobs(owner='showard', status='Queued')
 
-See doctests/rpc_test.txt for (lots) more examples.
+See doctests/001_rpc_test.txt for (lots) more examples.
 """
 
 __author__ = 'showard@google.com (Steve Howard)'
