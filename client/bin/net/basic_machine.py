@@ -12,10 +12,9 @@ NDLINK_TX = False
 
 
 FLOODPING_NUMPKTS = 100000
-FLOODPING_CONSTRAINTS = ["rtt_max < 0.2",
+FLOODPING_CONSTRAINTS = ["rtt_max < 1.0",
                          "rtt_min < 0.05",
-                         "rtt_avg < .06",
-                         "rtt_mdev < .02",
+                         "rtt_avg < .06"
                         ]
 
 PKT_SIZES = [64, 128, 256, 512, 1024, 1280, 1518]
