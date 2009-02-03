@@ -8,8 +8,6 @@ class unixbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
-        keyval_path = os.path.join(self.resultsdir, 'keyval')
-        self.keyval = open(keyval_path, 'w')
         self.err = None
 
 
@@ -38,7 +36,10 @@ class unixbench(test.test):
 
         report_path = os.path.join(self.resultsdir, 'report')
         report = open(report_path)
-        self.format_results(report, self.keyval)
+        for i in range(9):
+            report.next()
+        self.report_data = report.readlines()
+        report.close()
 
 
     def cleanup(self):
@@ -61,10 +62,9 @@ class unixbench(test.test):
             return False
 
 
-    def format_results(self, report, keyval):
-        for i in range(9):
-            report.next()
-        for line in report:
+    def postprocess_iteration(self):
+        keyval = {}
+        for line in self.report_data:
             if not line.strip():
                 break
 
@@ -78,11 +78,12 @@ class unixbench(test.test):
             if len(words) >= 6:
                 key = '_'.join(words[:-6])
                 value = words[-6]
-                print >> keyval, '%s=%s' % (key, value)
-        for line in report:
+                keyval[key] = value
+        for line in self.report_data:
             if 'FINAL SCORE' in line:
-                print >> keyval, 'score=%s\n' % line.split()[-1]
+                keyval['score'] = line.split()[-1]
                 break
+        self.write_perf_keyval(keyval)
 
 
 """ Here is a sample report file:
