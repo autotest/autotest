@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import unittest, time, subprocess, os, StringIO, tempfile, datetime, shutil
-import MySQLdb
 import common
+import MySQLdb
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
 from autotest_lib.client.common_lib import global_config, host_protections

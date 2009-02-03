@@ -60,7 +60,8 @@ from common_lib.error import AutoservError
 For example:
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
 import sys, time, urllib, urlparse
-import MySQLdb
+import common   # Magic autotest_lib module and sys.path setup code.
+import MySQLdb  # After common so that we check our site-packages first.
 from common_lib import error
 
 Testing None

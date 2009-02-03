@@ -5,10 +5,11 @@ Autotest scheduler
 """
 
 
-import datetime, errno, MySQLdb, optparse, os, pwd, Queue, re, shutil, signal
+import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import itertools, logging
 import common
+import MySQLdb
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import host_protections, utils, debug
