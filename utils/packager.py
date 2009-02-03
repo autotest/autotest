@@ -214,7 +214,11 @@ def get_test_dir(name, client_dir):
 # Given the name of the test the following function
 # returns the directory in which the test files are present
 # in (tests or site_tests)
+
 def main():
+    # get options and args
+    options, args = parse_args()
+
     server_dir = server_utils.get_server_dir()
     autotest_dir = os.path.abspath(os.path.join(server_dir, '..'))
 
@@ -239,8 +243,6 @@ def main():
 
     dep_dir = os.path.join(client_dir, "deps")
     prof_dir = os.path.join(client_dir, "profilers")
-
-    options, args = parse_args()
 
     if len(args)==0 or args[0] not in ['upload','remove']:
         print("Either 'upload' or 'remove' needs to be specified "
