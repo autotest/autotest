@@ -29,10 +29,10 @@ class dbench(test.test):
         cmd = '%s %s %s -D %s -c %s -t %d' % (self.dbench, nprocs, args,
                                               dir, loadfile, seconds)
         print cmd
-        self.results.append(utils.system_output(cmd, retain_output=True))
+        self.results = utils.system_output(cmd, retain_output=True)
 
 
-    def postprocess(self):
+    def postprocess_iteration(self):
         pattern = re.compile(r"Throughput (.*?) MB/sec (.*?) procs")
-        for (throughput, procs) in pattern.findall("\n".join(self.results)):
-            self.write_perf_keyval({'throughput':throughput, 'procs':procs})
+        (throughput, procs) = pattern.findall(self.results)[0]
+        self.write_perf_keyval({'throughput':throughput, 'procs':procs})

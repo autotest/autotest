@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils, test
 
 
 class kernbench(test.test):
-    version = 3
+    version = 4
 
     def initialize(self):
         self.job.require_gcc()
@@ -41,44 +41,41 @@ class kernbench(test.test):
         return kernel
 
 
-    def execute(self, iterations=1, threads=None, version=None):
-        if not threads:
-            threads = self.job.cpu_count()*2
+    def warmup(self, threads=None, version=None):
+        if threads:
+            self.threads = threads
+        else:
+            self.threads = self.job.cpu_count()*2
 
-        kernel = self.__init_tree(version)
-
-        print "kernbench x %d: %d threads" % (iterations, threads)
-
+        self.kernel = self.__init_tree(version)
         logfile = os.path.join(self.debugdir, 'build_log')
 
         print "Warmup run ..."
-        kernel.build_timed(threads, output=logfile)      # warmup run
+        self.kernel.build_timed(self.threads, output=logfile)      # warmup run
 
-        profilers = self.job.profilers
-        if not profilers.only():
-            for i in range(iterations):
-                print "Performance run, iteration %d ..." % i
-                timefile = os.path.join(self.resultsdir, 'time.%d' % i)
-                kernel.build_timed(threads, timefile)
 
-        # Do a profiling run if necessary
-        if profilers.present():
-            profilers.start(self)
-            print "Profiling run ..."
-            timefile = os.path.join(self.resultsdir, 'time.profile')
-            kernel.build_timed(threads, timefile)
-            profilers.stop(self)
-            profilers.report(self)
+    def run_once(self):
+        print "Performance run, iteration %d, %d threads" % (self.iteration,
+                                                             self.threads)
+        if self.iteration:
+            timefile = 'time.%d' % self.iteration
+        else:
+            timefile = 'time.profile'
+        self.timefile = os.path.join(self.resultsdir, timefile)
+        self.kernel.build_timed(self.threads, self.timefile)
 
-        kernel.clean(logged=False)    # Don't leave litter lying around
+
+    def cleanup(self):
+        self.kernel.clean(logged=False)    # Don't leave litter lying around
+
+
+    def postprocess_iteration(self):
         os.chdir(self.resultsdir)
-        utils.system("grep -h elapsed time.* > time")
+        utils.system("grep -h elapsed %s >> time" % self.timefile)
 
-        self.__format_results(open('time').read())
-
-
-    def __format_results(self, results):
-        out = open('keyval', 'w')
-        for result in utils.extract_all_time_results(results):
-            print >> out, "user=%s\nsystem=%s\nelapsed=%s\n" % result
-        out.close()
+        results = open(self.timefile).read()
+        (user, system, elapsed) = utils.extract_all_time_results(results)[0]
+        self.write_perf_keyval({'user':user,
+                                'system':system,
+                                'elapsed':elapsed
+                               })

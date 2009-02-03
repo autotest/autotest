@@ -35,24 +35,22 @@ class iozone(test.test):
             args = '-a'
 
         cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
-        output = utils.system_output('%s %s' % (cmd, args))
-
-        auto_mode = ("-a" in args)
-        self.__format_results(output, auto_mode)
+        self.results = utils.system_output('%s %s' % (cmd, args))
+        self.auto_mode = ("-a" in args)
 
 
     def __get_section_name(self, desc):
         return desc.strip().replace(' ', '_')
 
 
-    def __format_results(self, results, auto_mode):
+    def postprocess_iteration(self):
         keylist = {}
 
-        if auto_mode:
+        if self.auto_mode:
             labels = ('write', 'rewrite', 'read', 'reread', 'randread',
                       'randwrite', 'bkwdread', 'recordrewrite',
                       'strideread', 'fwrite', 'frewrite', 'fread', 'freread')
-            for line in results.splitlines():
+            for line in self.results.splitlines():
                 fields = line.split()
                 if len(fields) != 15:
                     continue
@@ -75,7 +73,7 @@ class iozone(test.test):
             section = None
             w_count = 0
 
-            for line in results.splitlines():
+            for line in self.results.splitlines():
                 line = line.strip()
 
                 # Check for the beginning of a new result section
