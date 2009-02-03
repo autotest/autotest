@@ -24,6 +24,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
@@ -45,24 +46,21 @@ import java.util.Map;
 // TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsListener, ClickListener,
-                                  TableWidgetFactory, CommonPanelListener {
+                                  TableWidgetFactory, CommonPanelListener, ChangeListener {
     private static final int ROWS_PER_PAGE = 30;
+    private static final String COUNT_NAME = "Count in group";
+    private static final String STATUS_COUNTS_NAME = "Test pass rate";
     private static final String[] DEFAULT_COLUMNS = 
-        {"test_idx", "test_name", "job_tag", "hostname", "status"};
+        {"Test index", "Test name", "Job tag", "Hostname", "Status"};
     private static final String[] TRIAGE_GROUP_COLUMNS =
-        {"test_name", "status", "reason"};
+        {"Test name", "Status", COUNT_NAME, "Reason"};
     private static final String[] PASS_RATE_GROUP_COLUMNS =
-        {"hostname"};
+        {"Hostname", STATUS_COUNTS_NAME};
     private static final SortSpec[] TRIAGE_SORT_SPECS = {
         new SortSpec("test_name", SortDirection.ASCENDING),
         new SortSpec("status", SortDirection.ASCENDING),
         new SortSpec("reason", SortDirection.ASCENDING),
     };
-    private static final SortSpec[] PASS_RATE_SORT_SPECS = {
-        new SortSpec("test_name", SortDirection.ASCENDING)
-    };
-    private static final String COUNT_NAME = "Count in group";
-    private static final String STATUS_COUNTS_NAME = "Test pass rate";
 
     private TestSelectionListener listener;
     
@@ -79,9 +77,10 @@ public class TableView extends ConditionTabView
     private Button queryButton = new Button("Query");
     
     private boolean isTestGroupingEnabled = false, isStatusCountEnabled = false;
-    private List<String> fields = new ArrayList<String>();
+    private List<String> columnNames = new ArrayList<String>();
     private List<SortSpec> tableSorts = new ArrayList<SortSpec>();
-    private Map<String, String> fieldNames = new HashMap<String, String>();
+    private Map<String, String> namesToFields = new HashMap<String, String>();
+    private Map<String, String> fieldsToNames = new HashMap<String, String>();
     
     public enum TableViewConfig {
         DEFAULT, PASS_RATE, TRIAGE
@@ -104,15 +103,17 @@ public class TableView extends ConditionTabView
     @Override
     public void initialize() {
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("all_fields")) {
-            fieldNames.put(fieldInfo.field, fieldInfo.name);
+            namesToFields.put(fieldInfo.name, fieldInfo.field);
+            fieldsToNames.put(fieldInfo.field, fieldInfo.name);
             columnSelect.addItem(fieldInfo.name, fieldInfo.field);
         }
-        fieldNames.put(TestGroupDataSource.GROUP_COUNT_FIELD, COUNT_NAME);
-        fieldNames.put(DataTable.WIDGET_COLUMN, STATUS_COUNTS_NAME);
+        namesToFields.put(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD);
+        namesToFields.put(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
         
         selectColumns(DEFAULT_COLUMNS);
         saveOptions(false);
         
+        columnSelect.setListener(this);
         queryButton.addClickListener(this);
         groupCheckbox.addClickListener(this);
         statusGroupCheckbox.addClickListener(this);
@@ -126,50 +127,42 @@ public class TableView extends ConditionTabView
         RootPanel.get("table_query_controls").add(queryButton);
     }
 
-    private void selectColumns(String[] columns) {
+    private void selectColumns(String[] columnNames) {
         columnSelect.deselectAll();
-        for(String field : columns) {
-            columnSelect.selectItemByValue(field);
+        for(String columnName : columnNames) {
+            if (columnName.equals(COUNT_NAME)) {
+                addSpecialItem(COUNT_NAME);
+            } else if (columnName.equals(STATUS_COUNTS_NAME)) {
+                addSpecialItem(STATUS_COUNTS_NAME);
+            } else {
+                columnSelect.selectItem(columnName);
+            }
         }
+        updateCheckboxesFromFields();
     }
     
     public void setupDefaultView() {
         selectColumns(DEFAULT_COLUMNS);
-        statusGroupCheckbox.setChecked(false);
-        groupCheckbox.setChecked(false);
-        updateCheckboxes();
         tableSorts.clear();
     }
-    
+
     public void setupJobTriage() {
-        // easier if we ensure it's deselected and then select it
         selectColumns(TRIAGE_GROUP_COLUMNS);
-        statusGroupCheckbox.setChecked(false);
-        groupCheckbox.setChecked(true);
-        updateCheckboxes();
-        
         // need to copy it so we can mutate it
         tableSorts = new ArrayList<SortSpec>(Arrays.asList(TRIAGE_SORT_SPECS));
     }
-    
+
     public void setupPassRate() {
-        // easier if we ensure it's deselected and then select it
         selectColumns(PASS_RATE_GROUP_COLUMNS);
-        statusGroupCheckbox.setChecked(true);
-        groupCheckbox.setChecked(false);
-        updateCheckboxes();
-        
-        // need to copy it so we can mutate it
-        tableSorts = new ArrayList<SortSpec>(Arrays.asList(PASS_RATE_SORT_SPECS));
     }
 
     private void createTable() {
-        int numColumns = fields.size();
+        int numColumns = columnNames.size();
         String[][] columns = new String[numColumns][2];
         for (int i = 0; i < numColumns; i++) {
-            String field = fields.get(i);
-            columns[i][0] = field;
-            columns[i][1] = fieldNames.get(field);
+            String columnName = columnNames.get(i);
+            columns[i][0] = namesToFields.get(columnName);
+            columns[i][1] = columnName;
         }
         
         RpcDataSource dataSource = testDataSource;
@@ -212,9 +205,9 @@ public class TableView extends ConditionTabView
             commonPanel.saveSqlCondition();
         }
         
-        fields.clear();
+        columnNames.clear();
         for (Item item : columnSelect.getSelectedItems()) {
-            fields.add(item.value);
+            columnNames.add(item.name);
         }
         
         isTestGroupingEnabled = groupCheckbox.isChecked();
@@ -223,12 +216,12 @@ public class TableView extends ConditionTabView
 
     private void updateGroupColumns() {
         List<String> groupFields = new ArrayList<String>();
-        for (String field : fields) {
-            if (!field.equals(TestGroupDataSource.GROUP_COUNT_FIELD) &&
-                !field.equals(DataTable.WIDGET_COLUMN)) {
-                groupFields.add(field);
+        for (String columnName : columnNames) {
+            if (!isSpecialColumnName(columnName)) {
+                groupFields.add(namesToFields.get(columnName));
             }
         }
+
         groupDataSource.setGroupColumns(groupFields.toArray(new String[0]));
     }
     
@@ -242,13 +235,15 @@ public class TableView extends ConditionTabView
     private void restoreTableSorting() {
         // remove sorts on columns that we no longer have
         for (Iterator<SortSpec> i = tableSorts.iterator(); i.hasNext();) {
-            if (!fields.contains(i.next().getField())) {
+            String columnName = fieldsToNames.get(i.next().getField());
+            if (!columnNames.contains(columnName)) {
                 i.remove();
             }
         }
         if (tableSorts.isEmpty()) {
             // default to sorting on the first column
-            SortSpec sortSpec = new SortSpec(fields.get(0), SortDirection.ASCENDING);
+            SortSpec sortSpec = new SortSpec(namesToFields.get(columnNames.get(0)), 
+                                             SortDirection.ASCENDING);
             tableSorts = Arrays.asList(new SortSpec[] {sortSpec});
         }
         
@@ -317,16 +312,9 @@ public class TableView extends ConditionTabView
 
     private void doDrilldown(TestSet testSet) {
         commonPanel.refineCondition(testSet);
-        uncheckBothCheckboxes();
-        updateCheckboxes();
         selectColumns(DEFAULT_COLUMNS);
         doQuery();
         updateHistory();
-    }
-
-    private void uncheckBothCheckboxes() {
-        groupCheckbox.setChecked(false);
-        statusGroupCheckbox.setChecked(false);
     }
 
     private TestSet getTestSet(JSONObject row) {
@@ -335,11 +323,12 @@ public class TableView extends ConditionTabView
         }
 
         ConditionTestSet testSet = new ConditionTestSet(commonPanel.getSavedConditionArgs());
-        for (String field : fields) {
-            if (field.equals(TestGroupDataSource.GROUP_COUNT_FIELD) ||
-                field.equals(DataTable.WIDGET_COLUMN)) {
+        for (String columnName : columnNames) {
+            if (isSpecialColumnName(columnName)) {
                 continue;
             }
+
+            String field = namesToFields.get(columnName);
             testSet.setField(field, Utils.jsonToString(row.get(field)));
         }
         return testSet;
@@ -355,24 +344,62 @@ public class TableView extends ConditionTabView
 
     public void onTableRefreshed() {
         selectionManager.refreshSelection();
-        
         saveTableSorting();
         updateHistory();
     }
-
-    private void updateCheckboxes() {
-        ensureItemRemoved(COUNT_NAME);
-        ensureItemRemoved(STATUS_COUNTS_NAME);
+    
+    private void setCheckboxesEnabled() {
+        assert !(groupCheckbox.isChecked() && statusGroupCheckbox.isChecked());
         groupCheckbox.setEnabled(true);
         statusGroupCheckbox.setEnabled(true);
-        
         if (groupCheckbox.isChecked()) {
-            columnSelect.addReadonlySelectedItem(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD);
             statusGroupCheckbox.setEnabled(false);
         } else if (statusGroupCheckbox.isChecked()) {
-            columnSelect.addReadonlySelectedItem(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
             groupCheckbox.setEnabled(false);
         }
+    }
+
+    private void updateFieldsFromCheckboxes() {
+        ensureItemRemoved(COUNT_NAME);
+        ensureItemRemoved(STATUS_COUNTS_NAME);
+        
+        if (groupCheckbox.isChecked()) {
+            addSpecialItem(COUNT_NAME);
+        } else if (statusGroupCheckbox.isChecked()) {
+            addSpecialItem(STATUS_COUNTS_NAME);
+        }
+        
+        setCheckboxesEnabled();
+    }
+    
+    private void updateCheckboxesFromFields() {
+        groupCheckbox.setChecked(false);
+        statusGroupCheckbox.setChecked(false);
+        
+        if (columnSelect.isItemSelected(COUNT_NAME)) {
+            groupCheckbox.setChecked(true);
+        } 
+        if (columnSelect.isItemSelected(STATUS_COUNTS_NAME)) {
+            statusGroupCheckbox.setChecked(true);
+        }
+        
+        setCheckboxesEnabled();
+    }
+    
+    private void addSpecialItem(String itemName) {
+        assert isSpecialColumnName(itemName);
+        String fieldName;
+        if (itemName.equals(COUNT_NAME)) {
+            fieldName = TestGroupDataSource.GROUP_COUNT_FIELD;
+        } else { // STATUS_COUNT_NAME
+            fieldName = DataTable.WIDGET_COLUMN;
+        }
+        columnSelect.addItem(itemName, fieldName);
+        columnSelect.selectItem(itemName);
+    }
+    
+    private boolean isSpecialColumnName(String columnName) {
+        return columnName.equals(COUNT_NAME) || columnName.equals(STATUS_COUNTS_NAME);
     }
 
     private void ensureItemRemoved(String itemName) {
@@ -399,7 +426,7 @@ public class TableView extends ConditionTabView
     protected Map<String, String> getHistoryArguments() {
         Map<String, String> arguments = super.getHistoryArguments();
         if (table != null) {
-            arguments.put("columns", Utils.joinStrings(",", fields));
+            arguments.put("columns", Utils.joinStrings(",", columnNames));
             arguments.put("sort", Utils.joinStrings(",", tableSorts));
             commonPanel.addHistoryArguments(arguments);
         }
@@ -412,26 +439,14 @@ public class TableView extends ConditionTabView
         
         handleSortString(arguments.get("sort"));
         
-        columnSelect.deselectAll();
-        uncheckBothCheckboxes();
         String[] columns = arguments.get("columns").split(",");
-        for (String column : columns) {
-            if (column.equals(TestGroupDataSource.GROUP_COUNT_FIELD)) {
-                groupCheckbox.setChecked(true);
-                updateCheckboxes();
-            } else if (column.equals(DataTable.WIDGET_COLUMN)) {
-                statusGroupCheckbox.setChecked(true);
-                updateCheckboxes();
-            } else {
-                columnSelect.selectItemByValue(column);
-            }
-        }
+        selectColumns(columns);
         saveOptions(true);
     }
 
     @Override
     protected void fillDefaultHistoryValues(Map<String, String> arguments) {
-        Utils.setDefaultValue(arguments, "sort", DEFAULT_COLUMNS[0]);
+        Utils.setDefaultValue(arguments, "sort", namesToFields.get(DEFAULT_COLUMNS[0]));
         Utils.setDefaultValue(arguments, "columns", 
                         Utils.joinStrings(",", Arrays.asList(DEFAULT_COLUMNS)));
     }
@@ -449,7 +464,7 @@ public class TableView extends ConditionTabView
             doQuery();
             updateHistory();
         } else if (sender == groupCheckbox || sender == statusGroupCheckbox) {
-            updateCheckboxes();
+            updateFieldsFromCheckboxes();
         }
     }
 
@@ -474,5 +489,10 @@ public class TableView extends ConditionTabView
 
     public void onSetControlsVisible(boolean visible) {
         TkoUtils.setElementVisible("table_all_controls", visible);
+    }
+
+    public void onChange(Widget sender) {
+        assert sender == columnSelect;
+        updateCheckboxesFromFields();
     }
 }
