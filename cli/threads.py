@@ -70,4 +70,9 @@ class ThreadPool:
             data = self.queue.get()
             if data == 'die':
                 return
-            self.function(data)
+            try:
+                self.function(data)
+            except Exception:
+                # We don't want one function that raises to kill everything.
+                # TODO: Maybe keep a list of errors or something?
+                pass
