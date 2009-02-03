@@ -645,17 +645,17 @@ class base_job(object):
 
 
     def partition(self, device, loop_size=0, mountpoint=None):
-        """ 
+        """
         Work with a machine partition
- 
+
             @param device: e.g. /dev/sda2, /dev/sdb1 etc...
             @param mountpoint: Specify a directory to mount to. If not specified
                                autotest tmp directory will be used.
             @param loop_size: Size of loopback device (in MB). Defaults to 0.
- 
+
             @return: A L{client.bin.partition.partition} object
         """
-        
+
         if not mountpoint:
             mountpoint = self.tmpdir
         return partition_lib.partition(self, device, loop_size, mountpoint)
@@ -663,7 +663,7 @@ class base_job(object):
     @utils.deprecated
     def filesystem(self, device, mountpoint=None, loop_size=0):
         """ Same as partition
-        
+
         @deprecated: Use partition method instead
         """
         return self.partition(device, loop_size, mountpoint)
@@ -953,7 +953,7 @@ class base_job(object):
 
     def step_engine(self):
         """The multi-run engine used when the control file defines step_init.
-        
+
         Does the next step.
         """
 
