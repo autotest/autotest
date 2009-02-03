@@ -162,6 +162,14 @@ class base_test:
                 self.run_once(*args, **dargs)
             print 'Benchmark finished after %d iterations' % (iterations)
 
+        self.run_once_profiling(*args, **dargs)
+
+        # Do any postprocessing, normally extracting performance keyvals, etc
+        self.postprocess()
+
+
+    def run_once_profiling(self, *args, **dargs):
+        profilers = self.job.profilers
         # Do a profiling run if necessary
         if profilers.present():
             profilers.start(self)
@@ -171,9 +179,6 @@ class base_test:
             finally:
                 profilers.stop(self)
                 profilers.report(self)
-
-        # Do any postprocessing, normally extracting performance keyvals, etc
-        self.postprocess()
 
 
     def postprocess(self):
