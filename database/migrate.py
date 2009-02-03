@@ -1,9 +1,9 @@
 #!/usr/bin/python -u
 
 import os, sys, re, subprocess, tempfile
-import MySQLdb, MySQLdb.constants.ER
 from optparse import OptionParser
 import common
+import MySQLdb, MySQLdb.constants.ER
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.database import database_connection
 
