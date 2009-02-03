@@ -442,8 +442,11 @@ class partition(object):
                 args += ' -f'
         args = args.strip()
 
-        mkfs_cmd = "%s -t %s %s %s" % (self.mkfs_exec(fstype), fstype, args,
-                                       self.device)
+        mkfs_cmd = "%s %s %s" % (self.mkfs_exec(fstype), args, self.device)
+
+        # If there isn't already a '-t <type>' argument, add one.
+        if not "-t" in args:
+            mkfs_cmd += " -t %s" % (fstype)
         print mkfs_cmd
         sys.stdout.flush()
         try:
