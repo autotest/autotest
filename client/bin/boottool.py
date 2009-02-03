@@ -39,17 +39,45 @@ class boottool(object):
 
 
     def print_entry(self, index):
+        """ 
+        Prints entry to stdout as returned by perl boottool 
+        
+            @deprecated: use get_entry instead
+        """
         print self.run_boottool('--info=%s' % index)
 
-    def get_entry(self, index):
-        """ Return entries as a dictionary """
-        entries_str = self.run_boottool('--info=%s' % index)
-        entries = {}
-        for line in entries_str.split("\n"):
-            name, value = line.split(":")
-            entries[name.strip()] = value.strip()
+
+    def get_entries(self):
+        """ 
+        Get all entries 
         
-        return entries 
+            @rtype: dict
+        """
+        titles = self.get_titles()
+        entries = {}
+        for title in titles:
+            entry = self.get_entry(title)
+            entries[title] = entry
+
+        return entries
+
+            
+    def get_entry(self, kernel):
+        """ 
+        Get entry 
+        
+            @param kernel: can be a position number (index) or title
+            @rtype: dict
+        """
+        entry_str = self.run_boottool('--info="%s"' % kernel)
+        entry = {}
+        for line in entry_str.split("\n"):
+            name = line[:line.find(":")]
+            value = line[line.find(":") + 1:]
+            entry[name.strip()] = value.strip()
+        
+        return entry
+
 
     def get_default(self):
         return self.run_boottool('--default').strip()
@@ -71,9 +99,15 @@ class boottool(object):
         return self.xen_mode
 
 
-    # 'kernel' can be an position number or a title
     def add_args(self, kernel, args):
-        parameters = '--update-kernel=%s --args="%s"' % (kernel, args)
+        """ 
+        Add specified argument
+        
+            @param kernel: can be a position number (index) or title
+            @param args: argument to be added to the current list of args
+        """
+        
+        parameters = '--update-kernel="%s" --args="%s"' % (kernel, args)
 
         #add parameter if this is a Xen entry
         if self.xen_mode:
@@ -87,7 +121,14 @@ class boottool(object):
 
 
     def remove_args(self, kernel, args):
-        parameters = '--update-kernel=%s --remove-args=%s' % (kernel, args)
+        """ 
+        Removes specified argument
+        
+            @param kernel: can be a position number (index) or title
+            @param args: argument to be removed of the current list of args
+        """
+        
+        parameters = '--update-kernel="%s" --remove-args="%s"' % (kernel, args)
 
         #add parameter if this is a Xen entry
         if self.xen_mode:
