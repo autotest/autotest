@@ -308,6 +308,8 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     timeout: hours until job times out
     email_list: string containing emails to mail when the job is done
     dependencies: list of label names on which this job depends
+    reboot_before: Never, If dirty, or Always
+    reboot_after: Never, If all tests passed, or Always
     """
 
     if timeout is None:
