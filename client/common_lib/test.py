@@ -160,6 +160,7 @@ class base_test:
                                                                     iterations)
                 self.drop_caches_between_iterations()
                 self.run_once(*args, **dargs)
+                self.postprocess_iteration()
             print 'Benchmark finished after %d iterations' % (iterations)
 
         self.run_once_profiling(*args, **dargs)
@@ -175,6 +176,7 @@ class base_test:
             profilers.start(self)
             print 'Profilers present. Profiling run started'
             try:
+                self.iteration = 0       # indicator this is a profiling run
                 self.run_once(*args, **dargs)
             finally:
                 profilers.stop(self)
@@ -182,6 +184,10 @@ class base_test:
 
 
     def postprocess(self):
+        pass
+
+
+    def postprocess_iteration(self):
         pass
 
 
