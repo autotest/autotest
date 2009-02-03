@@ -181,7 +181,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
             host = query[0]
             if not host.invalid:
                 raise model_logic.ValidationError({
-                    'hostname' : '%s already exists!' % hostname
+                    'hostname' : '%s already exists in the autotest DB.  '
+                        'Select it rather than entering it as a one time '
+                        'host.' % hostname
                     })
             host.clean_object()
             AclGroup.objects.get(name='Everyone').hosts.add(host)
