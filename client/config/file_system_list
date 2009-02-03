@@ -2,9 +2,9 @@
 :----/-------------------------------/--------------------------/---------------
 : FS / mkfs options                  / mount options            / result tag
 :----/-------------------------------/--------------------------/---------------
-ext4 / -q -j -E test_fs              / barrier=0                / ext4_nojournal
-ext4 / -q -j -E test_fs              / barrier=0,data=writeback / ext4_writeback
-ext4 / -q -j -E test_fs              / barrier=0,data=ordered   / ext4_ordered
+ext4 / -q -j -T largefile -E test_fs / barrier=0                / ext4_nojournal
+ext4 / -q -j -T largefile -E test_fs / barrier=0,data=writeback / ext4_writeback
+ext4 / -q -j -T largefile -E test_fs / barrier=0,data=ordered   / ext4_ordered
 ext2 / -q                            /                          / ext2
 xfs  / -f -l size=128m               / logbufs=8,logbsize=32768 / xfs_log8
 xfs  / -f -l size=128m               / logbufs=7                / xfs_log7
