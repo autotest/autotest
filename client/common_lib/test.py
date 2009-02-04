@@ -28,6 +28,7 @@ class base_test:
 
     def __init__(self, job, bindir, outputdir):
         self.job = job
+        self.pkgmgr = job.pkgmgr
         self.autodir = job.autodir
 
         self.outputdir = outputdir
