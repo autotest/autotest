@@ -231,17 +231,24 @@ class parser(base.parser):
                 tko_utils.dprint('non-status line, ignoring')
                 continue
 
+            # do an initial sanity check of the indentation
+            expected_indent = stack.size()
+            if line.type == "END":
+                expected_indent -= 1
+            if line.indent < expected_indent:
+                # ABORT the current level if indentation was unexpectedly low
+                self.put_back_line_and_abort(
+                    buffer, raw_line, stack.size() - 1, subdir_stack[-1],
+                    line.optional_fields.get("timestamp"), line.reason)
+                continue
+            elif line.indent > expected_indent:
+                # ignore the log if the indent was unexpectedly high
+                tko_utils.dprint("unexpected extra indentation, ignoring")
+                continue
+
+
             # initial line processing
             if line.type == "START":
-                # ABORT if indentation was unexpectedly low
-                if line.indent < stack.size():
-                    self.put_back_line_and_abort(
-                        buffer, raw_line,
-                        stack.size() - 1,
-                        subdir_stack[-1],
-                        line.optional_fields.get('timestamp'),
-                        line.reason)
-                    continue
                 stack.start()
                 started_time = line.get_timestamp()
                 if (line.testname is None and line.subdir is None
@@ -270,15 +277,6 @@ class parser(base.parser):
                     current_kernel = line.get_kernel()
                 continue
             elif line.type == "STATUS":
-                # ABORT if indentation was unexpectedly low
-                if line.indent < stack.size():
-                    self.put_back_line_and_abort(
-                        buffer, raw_line,
-                        stack.size() - 1,
-                        subdir_stack[-1],
-                        line.optional_fields.get('timestamp'),
-                        line.reason)
-                    continue
                 # update the stacks
                 if line.subdir and stack.size() > min_stack_size:
                     subdir_stack[-1] = line.subdir
@@ -292,15 +290,6 @@ class parser(base.parser):
                 started_time = None
                 finished_time = line.get_timestamp()
             elif line.type == "END":
-                # ABORT if indentation was unexpectedly low
-                if line.indent + 1 < stack.size():
-                    self.put_back_line_and_abort(
-                        buffer, raw_line,
-                        stack.size() - 1,
-                        subdir_stack[-1],
-                        line.optional_fields.get('timestamp'),
-                        line.reason)
-                    continue
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
                 if (line.testname is None and line.subdir is None
