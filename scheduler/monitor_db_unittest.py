@@ -836,6 +836,8 @@ class AgentTasksTest(unittest.TestCase):
                            mock.mock_function('get_temporary_path',
                                               default_return_val='tempdir'))
         self.god.stub_function(drone_manager.DroneManager,
+                               'copy_results_on_drone')
+        self.god.stub_function(drone_manager.DroneManager,
                                'copy_to_results_repository')
         self.god.stub_function(drone_manager.DroneManager,
                                'get_pidfile_id_from')
@@ -900,10 +902,16 @@ class AgentTasksTest(unittest.TestCase):
             self._setup_move_logfile()
 
 
-    def _setup_move_logfile(self, include_destination=False):
+    def _setup_move_logfile(self, copy_on_drone=False,
+                            include_destination=False):
         monitor_db.PidfileRunMonitor.get_process.expect_call().and_return(
             self.DUMMY_PROCESS)
-        if include_destination:
+        if copy_on_drone:
+            self.queue_entry.execution_tag.expect_call().and_return('tag')
+            drone_manager.DroneManager.copy_results_on_drone.expect_call(
+                self.DUMMY_PROCESS, source_path=mock.is_string_comparator(),
+                destination_path=mock.is_string_comparator())
+        elif include_destination:
             drone_manager.DroneManager.copy_to_results_repository.expect_call(
                 self.DUMMY_PROCESS, mock.is_string_comparator(),
                 destination_path=mock.is_string_comparator())
@@ -955,8 +963,9 @@ class AgentTasksTest(unittest.TestCase):
         self.setup_run_monitor(1)
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.set_execution_subdir.expect_call()
+        self._setup_move_logfile(copy_on_drone=True)
         self.queue_entry.execution_tag.expect_call().and_return('tag')
-        self._setup_move_logfile(include_destination=True)
+        self._setup_move_logfile()
         reparse_task = monitor_db.FinalReparseTask.expect_new(
             [self.queue_entry])
         reparse_agent = monitor_db.Agent.expect_new([reparse_task],
@@ -1067,6 +1076,7 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def setup_reparse_run_monitor(self):
+        self.pidfile_monitor.has_process.expect_call().and_return(True)
         autoserv_pidfile_id = object()
         monitor = monitor_db.PidfileRunMonitor.expect_new()
         monitor.run.expect_call(

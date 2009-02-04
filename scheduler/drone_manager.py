@@ -503,6 +503,19 @@ class DroneManager(object):
         return os.path.join(self._results_dir, path)
 
 
+    def _copy_results_helper(self, process, source_path, destination_path,
+                             to_results_repository=False):
+        full_source = self.absolute_path(source_path)
+        full_destination = self.absolute_path(destination_path)
+        source_drone = self._get_drone_for_process(process)
+        if to_results_repository:
+            source_drone.send_file_to(self._results_drone, full_source,
+                                      full_destination, can_fail=True)
+        else:
+            source_drone.queue_call('copy_file_or_directory', full_source,
+                                    full_destination)
+
+
     def copy_to_results_repository(self, process, source_path,
                                    destination_path=None):
         """
@@ -511,11 +524,15 @@ class DroneManager(object):
         """
         if destination_path is None:
             destination_path = source_path
-        full_source = self.absolute_path(source_path)
-        full_destination = self.absolute_path(destination_path)
-        source_drone = self._get_drone_for_process(process)
-        source_drone.send_file_to(self._results_drone, full_source,
-                                  full_destination, can_fail=True)
+        self._copy_results_helper(process, source_path, destination_path,
+                                  to_results_repository=True)
+
+
+    def copy_results_on_drone(self, process, source_path, destination_path):
+        """
+        Copy a results directory from one place to another on the drone.
+        """
+        self._copy_results_helper(process, source_path, destination_path)
 
 
     def _write_attached_files(self, command, drone):

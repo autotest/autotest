@@ -1084,16 +1084,13 @@ class AgentTask(object):
         return first_execution_tag
 
 
-    def _copy_and_parse_results(self, queue_entries, source_path=None):
+    def _copy_and_parse_results(self, queue_entries):
         assert len(queue_entries) > 0
         assert self.monitor
         execution_tag = self._get_consistent_execution_tag(queue_entries)
-        destination_path = execution_tag + '/'
-        if source_path is None:
-            source_path = destination_path
-        _drone_manager.copy_to_results_repository(
-            self.monitor.get_process(), source_path,
-            destination_path=destination_path)
+        results_path = execution_tag + '/'
+        _drone_manager.copy_to_results_repository(self.monitor.get_process(),
+                                                  results_path)
 
         reparse_task = FinalReparseTask(queue_entries)
         self.agent.dispatcher.add_agent(Agent([reparse_task], num_processes=0))
@@ -1140,8 +1137,13 @@ class RepairTask(AgentTask):
     def _fail_queue_entry(self):
         assert self.queue_entry
         self.queue_entry.set_execution_subdir()
-        self._copy_and_parse_results([self.queue_entry],
-                                     source_path=self.temp_results_dir + '/')
+        # copy results logs into the normal place for job results
+        _drone_manager.copy_results_on_drone(
+            self.monitor.get_process(),
+            source_path=self.temp_results_dir + '/',
+            destination_path=self.queue_entry.execution_tag() + '/')
+
+        self._copy_and_parse_results([self.queue_entry])
         self.queue_entry.handle_host_failure()
 
 
@@ -1255,8 +1257,7 @@ class QueueTask(AgentTask):
         self._write_keyval("job_queued", int(queued))
         self._write_keyval("job_finished", int(finished))
 
-        self._copy_and_parse_results(self.queue_entries,
-                                     self._execution_tag() + '/')
+        self._copy_and_parse_results(self.queue_entries)
 
 
     def _write_status_comment(self, comment):
@@ -1488,6 +1489,14 @@ class FinalReparseTask(AgentTask):
         if not self._can_run_new_parse():
             return
 
+        # make sure we actually have results to parse
+        if not self._autoserv_monitor.has_process():
+            email_manager.manager.enqueue_notify_email(
+                'No results to parse',
+                'No results to parse at %s' % self._autoserv_monitor.pidfile_id)
+            self.finished(False)
+            return
+
         # actually run the parse command
         self.monitor = PidfileRunMonitor()
         self.monitor.run(self.cmd, self._working_directory,
@@ -1501,7 +1510,8 @@ class FinalReparseTask(AgentTask):
 
     def finished(self, success):
         super(FinalReparseTask, self).finished(success)
-        self._decrement_running_parses()
+        if self._parse_started:
+            self._decrement_running_parses()
 
 
 class SetEntryPendingTask(AgentTask):
