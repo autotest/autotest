@@ -105,6 +105,7 @@ test_view_field_dict = {
         'user'          : 'job_username',
         'status'        : 'status_word',
         'time'          : 'test_finished_time',
+        'start_time'    : 'test_started_time',
         'time_daily'    : 'DATE(test_finished_time)'
 }
 
