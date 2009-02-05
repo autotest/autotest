@@ -145,6 +145,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         stderr = "".join(raw_stderr)
         result = utils.CmdResult(command, stdout, stderr, exit_status,
                                  duration)
+        if exit_status == -signal.SIGHUP:
+            msg = "ssh connection unexpectedly terminated"
+            raise error.AutoservRunError(msg, result)
         if not ignore_status and exit_status:
             raise error.AutoservRunError(command, result)
         return result

@@ -182,7 +182,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def run(self, control_file, results_dir = '.', host = None,
-            timeout=None, tag=None, parallel_flag=False, background=False):
+            timeout=None, tag=None, parallel_flag=False, background=False,
+            client_disconnect_timeout=1800):
         """
         Run an autotest job on the remote machine.
 
@@ -210,7 +211,8 @@ class BaseAutotest(installable_object.InstallableObject):
             results_dir = os.path.join(results_dir, tag)
 
         atrun = _Run(host, results_dir, tag, parallel_flag, background)
-        self._do_run(control_file, results_dir, host, atrun, timeout)
+        self._do_run(control_file, results_dir, host, atrun, timeout,
+                     client_disconnect_timeout)
 
 
     def _get_host_and_setup(self, host):
@@ -223,7 +225,8 @@ class BaseAutotest(installable_object.InstallableObject):
         return host
 
 
-    def _do_run(self, control_file, results_dir, host, atrun, timeout):
+    def _do_run(self, control_file, results_dir, host, atrun, timeout,
+                client_disconnect_timeout):
         try:
             atrun.verify_machine()
         except:
@@ -273,7 +276,9 @@ class BaseAutotest(installable_object.InstallableObject):
             os.remove(tmppath)
 
         try:
-            atrun.execute_control(timeout=timeout)
+            atrun.execute_control(
+                timeout=timeout,
+                client_disconnect_timeout=client_disconnect_timeout)
         finally:
             if not atrun.background:
                 collector = log_collector(host, atrun.tag, results_dir)
@@ -383,20 +388,37 @@ class _Run(object):
             self.host.run('umount %s' % tmpdir, ignore_status=True)
             self.host.run('umount %s' % download, ignore_status=True)
 
-    def get_full_cmd(self, section):
-        # build up the full command we want to run over the host
-        cmd = [os.path.join(self.autodir, 'bin/autotest_client')]
-        if not self.background:
-            cmd.append('-H autoserv')
+
+    def get_base_cmd_args(self, section):
+        args = []
         if section > 0:
-            cmd.append('-c')
+            args.append('-c')
         if self.tag:
-            cmd.append('-t %s' % self.tag)
+            args.append('-t %s' % self.tag)
         if self.host.job.use_external_logging():
-            cmd.append('-l')
-        cmd.append(self.remote_control_file)
-        if self.background:
-            cmd = ['nohup'] + cmd + ['>/dev/null 2>/dev/null &']
+            args.append('-l')
+        args.append(self.remote_control_file)
+        return args
+
+
+    def get_background_cmd(self, section):
+        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotest_client')]
+        cmd += self.get_base_cmd_args(section)
+        cmd.append('>/dev/null 2>/dev/null &')
+        return ' '.join(cmd)
+
+
+    def get_daemon_cmd(self, section, monitor_dir):
+        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotestd'),
+               monitor_dir, '-H autoserv']
+        cmd += self.get_base_cmd_args(section)
+        cmd.append('>/dev/null 2>/dev/null </dev/null &')
+        return ' '.join(cmd)
+
+
+    def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
+        cmd = [os.path.join(self.autodir, 'bin', 'autotestd_monitor'),
+               monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
 
@@ -423,23 +445,88 @@ class _Run(object):
         self.host.job.record("END ABORT", None, None, msg)
 
 
-    def execute_section(self, section, timeout, stderr_redirector):
-        print "Executing %s/bin/autotest %s/control phase %d" % \
-                                (self.autodir, self.autodir, section)
+    def _execute_in_background(self, section, timeout):
+        full_cmd = self.get_background_cmd(section)
+        devnull = open(os.devnull, "w")
 
-        full_cmd = self.get_full_cmd(section)
-        client_log = self.get_client_log(section)
-
+        old_resultdir = self.host.job.resultdir
         try:
-            old_resultdir = self.host.job.resultdir
             self.host.job.resultdir = self.results_dir
             result = self.host.run(full_cmd, ignore_status=True,
                                    timeout=timeout,
-                                   stdout_tee=client_log,
-                                   stderr_tee=stderr_redirector)
+                                   stdout_tee=devnull,
+                                   stderr_tee=devnull)
         finally:
             self.host.job.resultdir = old_resultdir
-            last_line = stderr_redirector.last_line
+
+        return result
+
+
+    @staticmethod
+    def _strip_stderr_prologue(stderr):
+        """Strips the 'standard' prologue that get pre-pended to every
+        remote command and returns the text that was actually written to
+        stderr by the remote command."""
+        stderr_lines = stderr.split("\n")[1:]
+        if not stderr_lines:
+            return ""
+        elif stderr_lines[0].startswith("NOTE: autotestd_monitor"):
+            del stderr_lines[0]
+        return "\n".join(stderr_lines)
+
+
+    def _execute_daemon(self, section, timeout, stderr_redirector,
+                        client_disconnect_timeout):
+        monitor_dir = self.host.get_tmp_dir()
+        daemon_cmd = self.get_daemon_cmd(section, monitor_dir)
+        client_log = self.get_client_log(section)
+
+        stdout_read = stderr_read = 0
+        old_resultdir = self.host.job.resultdir
+        try:
+            self.host.run(daemon_cmd, ignore_status=True, timeout=timeout)
+            while True:
+                monitor_cmd = self.get_monitor_cmd(monitor_dir, stdout_read,
+                                                   stderr_read)
+                try:
+                    result = self.host.run(monitor_cmd, ignore_status=True,
+                                           timeout=timeout,
+                                           stdout_tee=client_log,
+                                           stderr_tee=stderr_redirector)
+                except error.AutoservRunError, e:
+                    result = e.result_obj
+                    result.exit_status = None
+                    stderr_redirector.log_warning(
+                        "Autotest client was disconnected: %s" % e.description)
+                except error.AutoservSSHTimeout:
+                    result = utils.CmdResult(monitor_cmd, "", "", None, 0)
+                    stderr_redirector.log_warning(
+                        "Attempt to connect to Autotest client timed out")
+
+                stdout_read += len(result.stdout)
+                stderr_read += len(self._strip_stderr_prologue(result.stderr))
+
+                if result.exit_status is not None:
+                    return result
+                elif not self.host.wait_up(client_disconnect_timeout):
+                    raise error.AutoservSSHTimeout(
+                        "client was disconnected, reconnect timed out")
+        finally:
+            self.host.job.resultdir = old_resultdir
+
+
+    def execute_section(self, section, timeout, stderr_redirector,
+                        client_disconnect_timeout):
+        print "Executing %s/bin/autotest %s/control phase %d" % \
+                                (self.autodir, self.autodir, section)
+
+        if self.background:
+            result = self._execute_in_background(section, timeout)
+        else:
+            result = self._execute_daemon(section, timeout, stderr_redirector,
+                                          client_disconnect_timeout)
+
+        last_line = stderr_redirector.last_line
 
         # check if we failed hard enough to warrant an exception
         if result.exit_status == 1:
@@ -487,7 +574,7 @@ class _Run(object):
         self.host.reboot_followup()
 
 
-    def execute_control(self, timeout=None):
+    def execute_control(self, timeout=None, client_disconnect_timeout=None):
         section = 0
         start_time = time.time()
 
@@ -499,7 +586,7 @@ class _Run(object):
                 else:
                     section_timeout = None
                 last = self.execute_section(section, section_timeout,
-                                            logger)
+                                            logger, client_disconnect_timeout)
                 if self.background:
                     return
                 section += 1
@@ -671,6 +758,7 @@ class client_logger(object):
         self.leftover = ""
         self.last_line = ""
         self.logs = {}
+        self.server_warnings = []
 
 
     def _process_log_dict(self, log_dict):
@@ -768,10 +856,16 @@ class client_logger(object):
                                            log_dict[key],
                                            warnings)
 
+    def log_warning(self, msg):
+        """Injects a WARN message into the current status logging stream."""
+        self.server_warnings.append((int(time.time()), msg))
+
 
     def write(self, data):
         # first check for any new console warnings
-        warnings = self.job._read_warnings()
+        warnings = self.job._read_warnings() + self.server_warnings
+        warnings.sort()  # sort into timestamp order
+        self.server_warnings = []
         self._process_warnings(self.last_line, self.logs, warnings)
         # now process the newest data written out
         data = self.leftover + data
