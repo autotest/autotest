@@ -52,12 +52,5 @@ machine_names = form.getvalue('machines',  '')
 one_user      = form.getvalue('user',      '')
 graph_size    = form.getvalue('size',      '')
 test_attributes = perf.parse_test_attr_args(form)
-# see perf_graph.cgi for these options
-if machine_names == 'yings' and not one_user:
-    one_user = 'yinghan'
-    benchmarks = ['dbench', 'iozone', 'kernbench', 'tbench', 'unixbench']
-    if not graph_size:
-        graph_size = '400,345'
-else:
-    benchmarks = perf.usual_benchmarks
+benchmarks = perf.usual_benchmarks
 multiple_graphs_page(benchmarks)
