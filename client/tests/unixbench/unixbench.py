@@ -1,4 +1,4 @@
-import os
+import os, re
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -73,6 +73,7 @@ class unixbench(test.test):
             # 6 guys before we start accessing the array
             if len(words) >= 6:
                 key = '_'.join(words[:-6])
+                key = re.sub('\W', '', key)
                 value = words[-6]
                 keyval[key] = value
         for line in self.report_data:
