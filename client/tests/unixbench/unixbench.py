@@ -35,11 +35,7 @@ class unixbench(test.test):
         utils.system(vars + ' ./Run ' + args)
 
         report_path = os.path.join(self.resultsdir, 'report')
-        report = open(report_path)
-        for i in range(9):
-            report.next()
-        self.report_data = report.readlines()
-        report.close()
+        self.report_data = open(report_path).readlines()[9:]
 
 
     def cleanup(self):
