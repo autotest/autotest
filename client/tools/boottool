@@ -1881,10 +1881,12 @@ sub _set_config_file {
 sub install {
 	my $self=shift;
 	my $cmd="";
+	# ybin currently returns an error even when it succeeds, but by
+	# dumb luck ybin -v does the right thing
 	if (-f "/usr/sbin/ybin") {
-		$cmd="/usr/sbin/ybin";
+		$cmd="/usr/sbin/ybin -v > /dev/null";
 	} elsif (-f "/sbin/ybin") {
-		$cmd="/sbin/ybin";
+		$cmd="/sbin/ybin -v > /dev/null";
 	} else {
 		print("Not installing bootloader.\n");
 	}
