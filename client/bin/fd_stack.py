@@ -42,7 +42,7 @@ class fd_stack:
             newfd = os.open(filename, os.O_WRONLY | os.O_CREAT)
         os.dup2(newfd, self.fd)
         os.close(newfd)
-        self.update_handle(os.fdopen(self.fd, 'w'))
+        self.update_handle(os.fdopen(self.fd, 'w', 0))
 
 
     def tee_redirect(self, filename):
