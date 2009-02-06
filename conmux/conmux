@@ -23,6 +23,8 @@ use Net::Domain;
 
 # Find our internal libraries.
 use lib $FindBin::Bin;
+use lib "$FindBin::Bin/../lib/";
+use lib "$FindBin::Bin/lib/";
 use Conmux;
 
 our $P = 'conmux';
@@ -652,7 +654,8 @@ sub commandExec {
 	}
 
 	local(*IN, *OUT, *ERR);
-	my $pid = IPC::Open3::open3(*IN, *OUT, *ERR, $run);
+	my ($cmd, @args) = split(' ', $run . " $a");
+	my $pid = IPC::Open3::open3(*IN, *OUT, *ERR, $cmd, @args);
 	close(*IN{IO});
 
 	# XXX: this should not be happening here.
