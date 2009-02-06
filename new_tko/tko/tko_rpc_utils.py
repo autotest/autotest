@@ -101,7 +101,7 @@ def add_machine_label_headers(machine_label_headers, extra_selects):
 
 
 class GroupDataProcessor(object):
-    _MAX_GROUP_RESULTS = 50000
+    _MAX_GROUP_RESULTS = 80000
 
     def __init__(self, query, group_by, header_groups, fixed_headers,
                  extra_select_fields):
