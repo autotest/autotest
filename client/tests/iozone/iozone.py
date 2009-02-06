@@ -63,9 +63,9 @@ class iozone(test.test):
                     keylist[key_name] = v
         else:
             child_regexp  = re.compile('Children see throughput for[\s]+'
-                            '([\d]+)\s+([\w]+[\w\s]*)\=[\s]+([\d\.]*) KB/sec')
+                            '([\d]+)\s+([-\w]+[-\w\s]*)\=[\s]+([\d\.]*) KB/sec')
             parent_regexp = re.compile('Parent sees throughput for[\s]+'
-                            '([\d]+)\s+([\w]+[\w\s]*)\=[\s]+([\d\.]*) KB/sec')
+                            '([\d]+)\s+([-\w]+[-\w\s]*)\=[\s]+([\d\.]*) KB/sec')
 
             KBsec_regexp  = re.compile('\=[\s]+([\d\.]*) KB/sec')
             KBval_regexp  = re.compile('\=[\s]+([\d\.]*) KB')
