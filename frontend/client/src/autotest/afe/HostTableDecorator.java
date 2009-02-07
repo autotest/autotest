@@ -25,7 +25,7 @@ class HostTableDecorator extends TableDecorator {
         private JSONValue username;
         
         public AclAccessibleFilter() {
-            super("acl_group__users__login");
+            super("aclgroup__users__login");
             username = new JSONString(StaticDataRepository.getRepository().getCurrentUserLogin());
         }
 
