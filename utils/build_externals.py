@@ -47,6 +47,14 @@ def main():
     package_dir = os.path.join(top_of_tree, PACKAGE_DIR)
     install_dir = os.path.join(top_of_tree, INSTALL_DIR)
 
+    if install_dir not in sys.path:
+        # Make sure the install_dir is in our python module search path
+        # as well as the PYTHONPATH being used by all our setup.py
+        # install subprocesses.
+        sys.path.insert(0, install_dir)
+        os.environ['PYTHONPATH'] = ':'.join([
+            install_dir, os.environ.get('PYTHONPATH', '')])
+
     fetched_packages, fetch_errors = fetch_necessary_packages(package_dir)
     install_errors = build_and_install_packages(fetched_packages, install_dir)
 
@@ -55,8 +63,11 @@ def main():
     # When printing exception tracebacks, python uses that path first to look
     # for the source code before checking the directory of the .pyc file.
     # Don't leave references to our temporary build dir in the files.
-    logging.info('compiling to .pyc files in %s', install_dir)
-    compileall.compile_dir(install_dir)
+    logging.info('compiling .py files in %s to .pyc', install_dir)
+    compileall.compile_dir(install_dir, quiet=True)
+
+    # Some things install with whacky permissions, fix that.
+    system("chmod -R a+rX '%s'" % install_dir)
 
     errors = fetch_errors + install_errors
     for error_msg in errors:
@@ -76,10 +87,13 @@ def fetch_necessary_packages(dest_dir):
                need to be installed.
              * A list of error messages for any failed fetches.
     """
+    names_to_check = sys.argv[1:]
     errors = []
     fetched_packages = []
     for package_class in ExternalPackage.subclasses:
         package = package_class()
+        if names_to_check and package.name.lower() not in names_to_check:
+            continue
         if not package.is_needed():
             logging.info('A new %s is not needed on this system.',
                          package.name)
@@ -149,6 +163,10 @@ class ExternalPackage(object):
               fetched package.
       @attribute hex_sum - The hex digest (currently SHA1) of this package
               to be used to verify its contents.
+      @attribute module_name - The installed python module name to be used for
+              for a version check.  Defaults to the lower case class name with
+              the word Package stripped off.
+      @attribyte version - The desired minimum package version.
       @attribute name - Read only, the printable name of the package.
       @attribute subclasses - This class attribute holds a list of all defined
               subclasses.  It is constructed dynamically using the metaclass.
@@ -157,22 +175,22 @@ class ExternalPackage(object):
     urls = ()
     local_filename = None
     hex_sum = None
+    module_name = None
+    version = None
 
 
     class __metaclass__(type):
         """Any time a subclass is defined, add it to our list."""
-        def __init__(cls, name, bases, dict):
+        def __init__(mcs, name, bases, dict):
             if name != 'ExternalPackage':
-                cls.subclasses.append(cls)
+                mcs.subclasses.append(mcs)
 
 
     def __init__(self):
         self.verified_package = ''
-
-
-    def is_needed(self):
-        """@returns A boolean indicating if this package is needed."""
-        return True
+        if not self.module_name:
+            self.module_name = self.name.lower()
+        self.installed_version = ''
 
 
     @property
@@ -182,6 +200,32 @@ class ExternalPackage(object):
         if class_name.endswith('Package'):
             return class_name[:-len('Package')]
         return class_name
+
+
+    def is_needed(self):
+        """@returns True if self.module_name needs to be built and installed."""
+        if not self.module_name or not self.version:
+            logging.warning('version and module_name required for '
+                            'is_needed() check to work.')
+            return True
+        try:
+            module = __import__(self.module_name)
+        except ImportError, e:
+            logging.info('Could not import %s.', self.module_name)
+            return True
+        self.installed_version = self._get_installed_version_from_module(module)
+        logging.info('imported %s version %s.', self.module_name,
+                     self.installed_version)
+        return self.version > self.installed_version
+
+
+    def _get_installed_version_from_module(self, module):
+        """Ask our module its version string and return it or '' if unknown."""
+        try:
+            return module.__version__
+        except AttributeError:
+            logging.error('could not get version from %s', module)
+            return ''
 
 
     def _build_and_install(self, install_dir):
@@ -207,6 +251,22 @@ class ExternalPackage(object):
         if not self.verified_package:
             raise Error('Must call fetch() first.  - %s' % self.name)
         return self._build_and_install(install_dir)
+
+
+    def _build_and_install_current_dir_setup_py(self, install_dir):
+        """For use as a _build_and_install_current_dir implementation."""
+        egg_path = self._build_egg_using_setup_py(setup_py='setup.py')
+        if not egg_path:
+            return False
+        return self._install_from_egg(install_dir, egg_path)
+
+
+    def _build_and_install_current_dir_setupegg_py(self, install_dir):
+        """For use as a _build_and_install_current_dir implementation."""
+        egg_path = self._build_egg_using_setup_py(setup_py='setupegg.py')
+        if not egg_path:
+            return False
+        return self._install_from_egg(install_dir, egg_path)
 
 
     def _build_and_install_from_tar_gz(self, install_dir):
@@ -246,35 +306,39 @@ class ExternalPackage(object):
             raise Error('tar failed with %s' % (status,))
 
 
-    def _build_using_setup_py(self):
+    def _build_using_setup_py(self, setup_py='setup.py'):
         """
         Assuming the cwd is the extracted python package, execute a simple
         python setup.py build.
 
+        @param setup_py - The name of the setup.py file to execute.
+
         @returns True on success, False otherwise.
         """
-        if not os.path.exists('setup.py'):
-            raise Error('setup.py does not exist in %s' % os.getcwd())
-        status = system("'%s' setup.py build" % (sys.executable,))
+        if not os.path.exists(setup_py):
+            raise Error('%sdoes not exist in %s' % (setup_py, os.getcwd()))
+        status = system("'%s' %s build" % (sys.executable, setup_py))
         if status:
             logging.error('%s build failed.' % self.name)
             return False
         return True
 
 
-    def _build_egg_using_setup_py(self):
+    def _build_egg_using_setup_py(self, setup_py='setup.py'):
         """
         Assuming the cwd is the extracted python package, execute a simple
         python setup.py bdist_egg.
 
+        @param setup_py - The name of the setup.py file to execute.
+
         @returns The relative path to the resulting egg file or '' on failure.
         """
-        if not os.path.exists('setup.py'):
-            raise Error('setup.py does not exist in %s' % os.getcwd())
+        if not os.path.exists(setup_py):
+            raise Error('%s does not exist in %s' % (setup_py, os.getcwd()))
         egg_subdir = 'dist'
         if os.path.isdir(egg_subdir):
             shutil.rmtree(egg_subdir)
-        status = system("'%s' setup.py bdist_egg" % (sys.executable,))
+        status = system("'%s' %s bdist_egg" % (sys.executable, setup_py))
         if status:
             logging.error('bdist_egg of setuptools failed.')
             return ''
@@ -302,7 +366,8 @@ class ExternalPackage(object):
         return True
 
 
-    def _install_using_setup_py_and_rsync(self, install_dir):
+    def _install_using_setup_py_and_rsync(self, install_dir,
+                                          setup_py='setup.py'):
         """
         Assuming the cwd is the extracted python package, execute a simple:
 
@@ -317,22 +382,20 @@ class ExternalPackage(object):
         site-packages directly up into install_dir itself.
 
         @param install_dir the directory for the install to happen under.
+        @param setup_py - The name of the setup.py file to execute.
 
         @returns True on success, False otherwise.
         """
-        if not os.path.exists('setup.py'):
-            raise Error('No setup.py exists in %s' % os.getcwd())
+        if not os.path.exists(setup_py):
+            raise Error('%s does not exist in %s' % (setup_py, os.getcwd()))
 
         temp_dir = tempfile.mkdtemp(dir='/var/tmp')
         try:
-            status = system("'%s' setup.py install --no-compile --prefix='%s'"
-                            % (sys.executable, temp_dir))
+            status = system("'%s' %s install --no-compile --prefix='%s'"
+                            % (sys.executable, setup_py, temp_dir))
             if status:
-                logging.error('%s setup.py install failed.' % self.name)
+                logging.error('%s install failed.' % self.name)
                 return False
-
-            # Some things installs itself with whacky permissions, fix that.
-            system("chmod -R a+rX '%s'" % temp_dir)
 
             # This makes assumptions about what python setup.py install
             # does when given a prefix.  Is this always correct?
@@ -428,10 +491,13 @@ class ExternalPackage(object):
             return False
 
 
-# NOTE: this class definition must come -before- all other ExternalPackage
+# NOTE: This class definition must come -before- all other ExternalPackage
 # classes that need to use this version of setuptools so that is is inserted
 # into the ExternalPackage.subclasses list before them.
 class SetuptoolsPackage(ExternalPackage):
+    # For all known setuptools releases a string compare works for the
+    # version string.  Hopefully they never release a 0.10.  (Their own
+    # version comparison code would break if they did.)
     version = '0.6c9'
     urls = ('http://pypi.python.org/packages/source/s/setuptools/'
             'setuptools-%s.tar.gz' % (version,),)
@@ -439,18 +505,6 @@ class SetuptoolsPackage(ExternalPackage):
     hex_sum = '79086433b341f0c1df45e10d586a7d3cc25089f1'
 
     SUDO_SLEEP_DELAY = 15
-
-
-    def is_needed(self):
-        """@returns True if setuptools needs to be built and installed."""
-        try:
-            import setuptools
-        except ImportError:
-            return True
-        # For all known setuptools releases a string compare works for the
-        # version string.  Hopefully they never release a 0.10.  (Their own
-        # version comparison code would break if they did.)
-        return self.version > setuptools.__version__
 
 
     def _build_and_install(self, install_dir):
@@ -488,6 +542,7 @@ class SetuptoolsPackage(ExternalPackage):
 
 
 class MySQLdbPackage(ExternalPackage):
+    module_name = 'MySQLdb'
     version = '1.2.2'
     urls = ('http://dl.sourceforge.net/sourceforge/mysql-python/'
             'MySQL-python-%s.tar.gz' % (version,),)
@@ -495,40 +550,55 @@ class MySQLdbPackage(ExternalPackage):
     hex_sum = '945a04773f30091ad81743f9eb0329a3ee3de383'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
-
-
-    def is_needed(self):
-        """@returns True if MySQLdb needs to be built and installed."""
-        try:
-            import MySQLdb
-        except ImportError:
-            return True
-        # Demand the exact version.
-        # I don't trust different MySQLdb versions to not break the APIs as
-        # they have in the past within 1.2.1 versions and going to 1.2.2.
-        return self.version != MySQLdb.__version__
-
-
-    def _build_and_install_current_dir(self, install_dir):
-        egg_path = self._build_egg_using_setup_py()
-        if not egg_path:
-            return False
-        return self._install_from_egg(install_dir, egg_path)
+    _build_and_install_current_dir = (
+            ExternalPackage._build_and_install_current_dir_setup_py)
 
 
 class DjangoPackage(ExternalPackage):
-    urls = ('http://media.djangoproject.com/releases/'
-            '1.0.2/Django-1.0.2-final.tar.gz',)
-    local_filename = 'Django-1.0.2-final.tar.gz'
+    version = '1.0.2'
+    local_filename = 'Django-%s-final.tar.gz' % version
+    urls = ('http://media.djangoproject.com/releases/%s/%s'
+            % (version, local_filename),)
     hex_sum = 'f2d9088f17aff47ea17e5767740cab67b2a73b6b'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
 
 
+    def _get_installed_version_from_module(self, module):
+        return module.get_version().split()[0]
+
+
     def _build_and_install_current_dir(self, install_dir):
         if not self._build_using_setup_py():
             return False
+        # unlike the others, django doesn't use an Egg.
         return self._install_using_setup_py_and_rsync(install_dir)
+
+
+class NumpyPackage(ExternalPackage):
+    version = '1.2.1'
+    local_filename = 'numpy-%s.tar.gz' % version
+    urls = ('http://dl.sourceforge.net/sourceforge/numpy/' +
+            local_filename,)
+    hex_sum = '1aa706e733aea18eaffa70d93c0105718acb66c5'
+
+    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install_current_dir = (
+            ExternalPackage._build_and_install_current_dir_setupegg_py)
+
+
+# This requires numpy so it must be declared after numpy to guarantee that it
+# is already installed.
+class MatplotlibPackage(ExternalPackage):
+    version = '0.98.5.2'
+    urls = ('http://dl.sourceforge.net/sourceforge/matplotlib/'
+            'matplotlib-%s.tar.gz' % (version,),)
+    local_filename = 'matplotlib-%s.tar.gz' % version
+    hex_sum = 'fbce043555de4f5a34e2a47e200527720a90b370'
+
+    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install_current_dir = (
+            ExternalPackage._build_and_install_current_dir_setupegg_py)
 
 
 if __name__ == '__main__':
