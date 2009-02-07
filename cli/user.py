@@ -80,8 +80,8 @@ class user_list(action_common.atest_list, user):
         filters = {}
         check_results = {}
         if self.acl:
-            filters['acl_group__name__in'] = [self.acl]
-            check_results['acl_group__name__in'] = None
+            filters['aclgroup__name__in'] = [self.acl]
+            check_results['aclgroup__name__in'] = None
 
         if self.access_level:
             filters['access_level__in'] = [self.access_level]

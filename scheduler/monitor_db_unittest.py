@@ -1266,7 +1266,7 @@ class JobTest(BaseSchedulerTest):
 
     def test_run_synchronous_ready(self):
         self._create_job(hosts=[1, 2], synchronous=True)
-        self._update_hqe("status='Pending', execution_subdir='")
+        self._update_hqe("status='Pending', execution_subdir=''")
         self._setup_directory_expects('group0')
 
         tasks = self._test_run_helper(expect_starting=True)

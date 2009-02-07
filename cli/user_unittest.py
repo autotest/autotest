@@ -88,7 +88,7 @@ class user_list_unittest(cli_mock.cli_unittest):
 
     def test_execute_list_all_with_acl(self):
         self.run_cmd(argv=['atest', 'user', 'list', '--acl', 'acl0'],
-                     rpcs=[('get_users', {'acl_group__name__in': ['acl0']},
+                     rpcs=[('get_users', {'aclgroup__name__in': ['acl0']},
                             True,
                             [{u'access_level': 2,
                               u'login': u'user0',
@@ -140,7 +140,7 @@ class user_list_unittest(cli_mock.cli_unittest):
 
     def test_execute_list_all_with_acl_verbose(self):
         self.run_cmd(argv=['atest', 'user', 'list', '--acl', 'acl0', '-v'],
-                     rpcs=[('get_users', {'acl_group__name__in': ['acl0']},
+                     rpcs=[('get_users', {'aclgroup__name__in': ['acl0']},
                             True,
                             [{u'access_level': 2,
                               u'login': u'user0',

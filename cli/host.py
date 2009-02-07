@@ -157,11 +157,11 @@ class host_list(action_common.atest_list, host):
             check_results['status__in'] = None
 
         if self.acl:
-            filters['acl_group__name'] = self.acl
-            check_results['acl_group__name'] = None
+            filters['aclgroup__name'] = self.acl
+            check_results['aclgroup__name'] = None
         if self.user:
-            filters['acl_group__users__login'] = self.user
-            check_results['acl_group__users__login'] = None
+            filters['aclgroup__users__login'] = self.user
+            check_results['aclgroup__users__login'] = None
         return super(host_list, self).execute(op='get_hosts',
                                               filters=filters,
                                               check_results=check_results)
