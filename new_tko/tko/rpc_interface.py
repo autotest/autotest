@@ -145,7 +145,13 @@ def get_job_ids(**filter_data):
     job_ids = set()
     for test_view in query.values('job_tag').distinct():
         # extract job ID from tag
-        job_ids.add(int(test_view['job_tag'].split('-')[0]))
+        first_tag_component = test_view['job_tag'].split('-')[0]
+        try:
+            job_id = int(first_tag_component)
+            job_ids.add(job_id)
+        except ValueError:
+            # a nonstandard job tag, i.e. from contributed results
+            pass
     return list(job_ids)
 
 
