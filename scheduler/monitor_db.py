@@ -1215,12 +1215,29 @@ class QueueTask(AgentTask):
         return '%s=%s' % (key, value)
 
 
-    def _write_keyval(self, field, value):
-        keyval_path = os.path.join(self._execution_tag(), 'keyval')
+    def _keyval_path(self):
+        return os.path.join(self._execution_tag(), 'keyval')
+
+
+    def _write_keyvals_before_job_helper(self, keyval_dict, keyval_path):
+        keyval_contents = '\n'.join(self._format_keyval(key, value)
+                                    for key, value in keyval_dict.iteritems())
+        # always end with a newline to allow additional keyvals to be written
+        keyval_contents += '\n'
+        _drone_manager.attach_file_to_execution(self._execution_tag(),
+                                                keyval_contents,
+                                                file_path=keyval_path)
+
+
+    def _write_keyvals_before_job(self, keyval_dict):
+        self._write_keyvals_before_job_helper(keyval_dict, self._keyval_path())
+
+
+    def _write_keyval_after_job(self, field, value):
         assert self.monitor and self.monitor.has_process()
         paired_with_pidfile = self.monitor.pidfile_id
         _drone_manager.write_lines_to_file(
-            keyval_path, [self._format_keyval(field, value)],
+            self._keyval_path(), [self._format_keyval(field, value)],
             paired_with_pidfile=paired_with_pidfile)
 
 
@@ -1228,12 +1245,8 @@ class QueueTask(AgentTask):
         keyval_path = os.path.join(self._execution_tag(), 'host_keyvals',
                                    host.hostname)
         platform, all_labels = host.platform_and_labels()
-        keyvals = dict(platform=platform, labels=','.join(all_labels))
-        keyval_content = '\n'.join(self._format_keyval(key, value)
-                                   for key, value in keyvals.iteritems())
-        _drone_manager.attach_file_to_execution(self._execution_tag(),
-                                                keyval_content,
-                                                file_path=keyval_path)
+        keyval_dict = dict(platform=platform, labels=','.join(all_labels))
+        self._write_keyvals_before_job_helper(keyval_dict, keyval_path)
 
 
     def _execution_tag(self):
@@ -1241,6 +1254,8 @@ class QueueTask(AgentTask):
 
 
     def prolog(self):
+        queued = int(time.mktime(self.job.created_on.timetuple()))
+        self._write_keyvals_before_job({'job_queued': queued})
         for queue_entry in self.queue_entries:
             self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status('Running')
@@ -1252,11 +1267,8 @@ class QueueTask(AgentTask):
 
 
     def _finish_task(self, success):
-        queued = time.mktime(self.job.created_on.timetuple())
-        finished = time.time()
-        self._write_keyval("job_queued", int(queued))
-        self._write_keyval("job_finished", int(finished))
-
+        finished = int(time.time())
+        self._write_keyval_after_job("job_finished", finished)
         self._copy_and_parse_results(self.queue_entries)
 
 
