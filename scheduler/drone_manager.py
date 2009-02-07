@@ -537,8 +537,8 @@ class DroneManager(object):
 
     def _write_attached_files(self, command, drone):
         execution_tag = self._extract_execution_tag(' '.join(command))
-        attached_files = self._attached_files.pop(execution_tag, [])
-        for file_path, contents in attached_files:
+        attached_files = self._attached_files.pop(execution_tag, {})
+        for file_path, contents in attached_files.iteritems():
             drone.queue_call('write_to_file', self.absolute_path(file_path),
                              contents)
 
@@ -552,8 +552,9 @@ class DroneManager(object):
         """
         if not file_path:
             file_path = self.get_temporary_path('attach')
-        self._attached_files.setdefault(execution_tag, []).append(
-            (file_path, file_contents))
+        files_for_execution = self._attached_files.setdefault(execution_tag, {})
+        assert file_path not in files_for_execution
+        files_for_execution[file_path] = file_contents
         return file_path
 
 
