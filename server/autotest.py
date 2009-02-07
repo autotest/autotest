@@ -122,7 +122,7 @@ class BaseAutotest(installable_object.InstallableObject):
             print ("Could not install autotest using the"
                    " packaging system %s" %  e)
         except (packages.PackageInstallError, error.AutoservRunError), e:
-            print "Could not install autotest from %s : %s " % (repos, e)
+            print "Could not install autotest from %s" % (repos)
 
 
         # try to install from file or directory
