@@ -222,7 +222,7 @@ class HostScheduler(object):
     @classmethod
     def _get_job_acl_groups(cls, job_ids):
         query = """
-        SELECT jobs.id, acl_groups_users.acl_group_id
+        SELECT jobs.id, acl_groups_users.aclgroup_id
         FROM jobs
         INNER JOIN users ON users.login = jobs.owner
         INNER JOIN acl_groups_users ON acl_groups_users.user_id = users.id
@@ -254,7 +254,7 @@ class HostScheduler(object):
     @classmethod
     def _get_host_acls(cls, host_ids):
         query = """
-        SELECT host_id, acl_group_id
+        SELECT host_id, aclgroup_id
         FROM acl_groups_hosts
         WHERE host_id IN (%s)
         """
@@ -634,7 +634,7 @@ class Dispatcher(object):
         query = models.Job.objects.filter(
             created_on__lt=timeout_start,
             hostqueueentry__status='Pending',
-            hostqueueentry__host__acl_group__name='Everyone')
+            hostqueueentry__host__aclgroup__name='Everyone')
         for job in query.distinct():
             print 'Aborting job %d due to start timeout' % job.id
             entries_to_abort = job.hostqueueentry_set.exclude(

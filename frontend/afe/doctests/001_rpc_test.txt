@@ -551,7 +551,7 @@ True
 2
 
 # get hosts ACL'd to a user
->>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
+>>> hosts = rpc_interface.get_hosts(aclgroup__users__login='debug_user')
 >>> sorted([host['hostname'] for host in hosts])
 ['host1', 'host2']
 
@@ -566,10 +566,10 @@ True
 >>> data['users'], data['hosts']
 (['debug_user'], ['host1'])
 
->>> hosts = rpc_interface.get_hosts(acl_group__users__login='debug_user')
+>>> hosts = rpc_interface.get_hosts(aclgroup__users__login='debug_user')
 >>> sorted([host['hostname'] for host in hosts])
 ['host1', 'host2']
->>> hosts = rpc_interface.get_hosts(acl_group__users__login='showard')
+>>> hosts = rpc_interface.get_hosts(aclgroup__users__login='showard')
 >>> [host['hostname'] for host in hosts]
 ['host2']
 
