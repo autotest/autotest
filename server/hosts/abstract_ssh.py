@@ -35,11 +35,12 @@ class AbstractSSHHost(SiteHost):
         self.password = password
 
 
-    def _encode_remote_path(self, path):
-        """ Given a file path, encodes it as a remote path, in the style used
-        by rsync and scp. """
+    def _encode_remote_paths(self, paths):
+        """ Given a list of file paths, encodes it as a single remote path, in
+        the style used by rsync and scp. """
+        escaped_paths = [utils.scp_remote_escape(path) for path in paths]
         return '%s@%s:"%s"' % (self.user, self.hostname,
-                               utils.scp_remote_escape(path))
+                               " ".join(paths))
 
 
     def _make_rsync_cmd(self, sources, dest, delete_dest):
@@ -136,9 +137,9 @@ class AbstractSSHHost(SiteHost):
         dest = os.path.abspath(dest)
 
         try:
-            remote_source = [self._encode_remote_path(p) for p in source]
+            remote_source = self._encode_remote_paths(source)
             local_dest = utils.sh_escape(dest)
-            rsync = self._make_rsync_cmd(remote_source, local_dest,
+            rsync = self._make_rsync_cmd([remote_source], local_dest,
                                          delete_dest)
             utils.run(rsync)
         except error.CmdError, e:
@@ -152,8 +153,9 @@ class AbstractSSHHost(SiteHost):
 
             remote_source = self._make_rsync_compatible_source(source, False)
             if remote_source:
+                remote_source = self._encode_remote_paths(remote_source)
                 local_dest = utils.sh_escape(dest)
-                scp = self._make_scp_cmd(remote_source, local_dest)
+                scp = self._make_scp_cmd([remote_source], local_dest)
                 try:
                     utils.run(scp)
                 except error.CmdError, e:
@@ -187,11 +189,11 @@ class AbstractSSHHost(SiteHost):
         """
         if isinstance(source, basestring):
             source = [source]
-        remote_dest = self._encode_remote_path(dest)
+        remote_dest = self._encode_remote_paths([dest])
 
         try:
-            local_source = [utils.sh_escape(path) for path in source]
-            rsync = self._make_rsync_cmd(local_source, remote_dest,
+            local_sources = [utils.sh_escape(path) for path in source]
+            rsync = self._make_rsync_cmd(local_sources, remote_dest,
                                          delete_dest)
             utils.run(rsync)
         except error.CmdError, e:
@@ -207,9 +209,9 @@ class AbstractSSHHost(SiteHost):
                     cmd %= (remote_dest, remote_dest)
                     self.run(cmd)
 
-            local_source = self._make_rsync_compatible_source(source, True)
-            if local_source:
-                scp = self._make_scp_cmd(local_source, remote_dest)
+            local_sources = self._make_rsync_compatible_source(source, True)
+            if local_sources:
+                scp = self._make_scp_cmd(local_sources, remote_dest)
                 try:
                     utils.run(scp)
                 except error.CmdError, e:
