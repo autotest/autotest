@@ -1,5 +1,7 @@
 package autotest.tko;
 
+import autotest.common.Utils;
+import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.FilterStringViewer.EditListener;
 
@@ -21,26 +23,21 @@ import java.util.Map;
 
 public class FilterSelector extends Composite {
     
-    public class Filter extends Composite {
+    public class DatabaseFilter extends Composite implements ChangeListener {
         
-        private DBColumnSelector dbColumnSelector = new DBColumnSelector(dbView);
+        private ExtendedListBox dbColumnSelector = new DBColumnSelector(dbView);
         private TextBox condition = new TextBox();
         private FlexTable flexTable = new FlexTable();
         private SimpleHyperlink deleteLink = new SimpleHyperlink("[X]");
         
-        private Filter() {
-            ChangeListener listener = new ChangeListener() {
-                public void onChange(Widget w) {
-                    buildFilterString();
-                }
-            };
-            dbColumnSelector.addChangeListener(listener);
-            condition.addChangeListener(listener);
+        private DatabaseFilter() {
+            dbColumnSelector.addChangeListener(this);
+            condition.addChangeListener(this);
             
             deleteLink.addClickListener(new ClickListener() {
                 public void onClick(Widget w) {
                     if (enabled) {
-                        deleteFilter(Filter.this);
+                        deleteFilter(DatabaseFilter.this);
                         buildFilterString();
                     }
                 }
@@ -52,11 +49,28 @@ public class FilterSelector extends Composite {
             
             initWidget(flexTable);
         }
+
+        public void onChange(Widget sender) {
+            buildFilterString();
+        }
+        
+        public void setEnabled(boolean enabled) {
+            dbColumnSelector.setEnabled(enabled);
+            condition.setEnabled(enabled);
+        }
+        
+        public boolean isEmpty() {
+            return condition.equals("");
+        }
+        
+        public String getFilterString() {
+            return dbColumnSelector.getSelectedValue() + " " + condition.getText();
+        }
     }
     
     private FlexTable table = new FlexTable();
     private Panel filtersPanel = new VerticalPanel();
-    private List<Filter> filters = new ArrayList<Filter>();
+    private List<DatabaseFilter> filters = new ArrayList<DatabaseFilter>();
     private RadioButton all;
     private RadioButton any;
     private SimpleHyperlink addLink = new SimpleHyperlink("[Add Filter]");
@@ -133,7 +147,7 @@ public class FilterSelector extends Composite {
         // Get all the filters/conditions
         for (int index = 0; index < filters.size(); index++) {
             args.put(prefix + "[" + index + "][db]",
-                    filters.get(index).dbColumnSelector.getColumn());
+                    filters.get(index).dbColumnSelector.getSelectedValue());
             args.put(prefix + "[" + index + "][condition]", filters.get(index).condition.getText());
         }
         
@@ -150,13 +164,13 @@ public class FilterSelector extends Composite {
         // Restore all the filters/conditions
         while ((db = args.get(prefix + "[" + index + "][db]")) != null) {
             condition = args.get(prefix + "[" + index + "][condition]");
-            Filter filter;
+            DatabaseFilter filter;
             if (index == 0) {
                 filter = filters.get(0);
             } else {
                 filter = addFilter();
             }
-            filter.dbColumnSelector.selectColumn(db);
+            filter.dbColumnSelector.selectByValue(db);
             filter.condition.setText(condition);
             index++;
         }
@@ -173,14 +187,14 @@ public class FilterSelector extends Composite {
         viewer.handleHistoryArguments(args, prefix);
     }
     
-    private Filter addFilter() {
-        Filter nextFilter = new Filter();
+    private DatabaseFilter addFilter() {
+        DatabaseFilter nextFilter = new DatabaseFilter();
         filters.add(nextFilter);
         filtersPanel.add(nextFilter);
         return nextFilter;
     }
     
-    private void deleteFilter(Filter filter) {
+    private void deleteFilter(DatabaseFilter filter) {
         // If there's only one filter, clear it
         if (filters.size() == 1) {
             reset();
@@ -195,30 +209,21 @@ public class FilterSelector extends Composite {
         this.enabled = enabled;
         all.setEnabled(enabled);
         any.setEnabled(enabled);
-        for (Filter filter : filters) {
-            filter.condition.setEnabled(enabled);
-            filter.dbColumnSelector.setEnabled(enabled);
+        for (DatabaseFilter filter : filters) {
+            filter.setEnabled(enabled);
         }
     }
     
     private void buildFilterString() {
-        StringBuilder filterString = new StringBuilder();
-        
-        for (Filter filter : filters) {
-            if (!filter.condition.getText().equals("")) {
-                if (filterString.length() != 0) {
-                    if (all.isChecked()) {
-                        filterString.append(" AND ");
-                    } else {
-                        filterString.append(" OR ");
-                    }
-                }
-                filterString.append(filter.dbColumnSelector.getColumn());
-                filterString.append(" ");
-                filterString.append(filter.condition.getText());
+        List<String> filterParts = new ArrayList<String>();
+        for (DatabaseFilter filter : filters) {
+            if (!filter.isEmpty()) {
+                filterParts.add(filter.getFilterString());
             }
         }
-        
-        viewer.setText(filterString.toString());
+
+        String joiner = all.isChecked() ? " AND " : " OR ";
+        String fullFilterString = Utils.joinStrings(joiner, filterParts);
+        viewer.setText(fullFilterString);
     }
 }

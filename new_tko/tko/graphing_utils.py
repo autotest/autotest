@@ -1,6 +1,11 @@
 import base64, os, tempfile, operator, pickle, datetime, django.db
 from math import sqrt
 
+# When you import matplotlib, it tries to write some temp files for better
+# performance, and it does that to the home directory. Problem is, that
+# directory's not writable when running under Apache, and matplotlib's not smart
+# enough to handle that. It does appear smart enough to handle the files going
+# away after they are written, though.
 os.environ['HOME'] = tempfile.gettempdir()
 
 import matplotlib
@@ -13,6 +18,25 @@ from autotest_lib.frontend.afe.model_logic import ValidationError
 from autotest_lib.client.common_lib import global_config
 from new_tko.tko import models, tko_rpc_utils
 
+_FIGURE_DPI = 100
+_FIGURE_WIDTH_IN = 10
+_FIGURE_BOTTOM_PADDING_IN = 2 # for x-axis labels
+
+_SINGLE_PLOT_HEIGHT = 6
+_MULTIPLE_PLOT_HEIGHT_PER_PLOT = 4
+
+_MULTIPLE_PLOT_MARKER_TYPE = 'o'
+_MULTIPLE_PLOT_MARKER_SIZE = 4
+_SINGLE_PLOT_STYLE = 'bs-' # blue squares with lines connecting
+_SINGLE_PLOT_ERROR_BAR_COLOR = 'r'
+
+_LEGEND_FONT_SIZE = 'xx-small'
+_LEGEND_HANDLE_LENGTH = 0.03
+_LEGEND_NUM_POINTS = 3
+_LEGEND_MARKER_TYPE = 'o'
+
+_LINE_XTICK_LABELS_SIZE = 'x-small'
+_BAR_XTICK_LABELS_SIZE = 8
 
 class NoDataError(Exception):
     """\
@@ -22,15 +46,11 @@ class NoDataError(Exception):
 
 def _colors(n):
     """\
-    Returns a generator function for creating n colors. The return value is a
-    tuple representing the RGB of the color.
+    Generator function for creating n colors. The return value is a tuple
+    representing the RGB of the color.
     """
-
-    incr = 1.0 / n
-    hue = 0.0
     for i in xrange(n):
-        yield colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-        hue += incr
+        yield colorsys.hsv_to_rgb(float(i) / n, 1.0, 1.0)
 
 
 def _resort(kernel_labels, list_to_sort):
@@ -44,18 +64,21 @@ def _resort(kernel_labels, list_to_sort):
 
     # We only want the resorted list; we are not interested in the kernel
     # strings.
-    resorted_list = [pair[1] for pair in resorted_pairs]
-    return resorted_list
+    return [pair[1] for pair in resorted_pairs]
 
 
-_tmpl = """\
+def _quote(string):
+    return "%s%s%s" % ("'", string.replace("'", r"\'"), "'")
+
+
+_HTML_TEMPLATE = """\
 <html><head></head><body>
 <img src="data:image/png;base64,%s" usemap="#%s"
   border="0" alt="graph">
 <map name="%s">%s</map>
 </body></html>"""
 
-_area = """\
+_AREA_TEMPLATE = """\
 <area shape="rect" coords="%i,%i,%i,%i" title="%s"
 href="#"
 onclick="%s(%s); return false;">"""
@@ -67,73 +90,79 @@ def _create_figure(height_inches):
     Returns the figure and the height in pixels.
     """
 
-    dpi = 100;
-    fig = matplotlib.figure.Figure(figsize=(10, 2 + height_inches),
-                                   dpi=dpi, facecolor='white')
-    fig.subplots_adjust(bottom=2.0/height_inches)
-    return (fig, fig.get_figheight() * dpi)
+    fig = matplotlib.figure.Figure(
+        figsize=(_FIGURE_WIDTH_IN, height_inches + _FIGURE_BOTTOM_PADDING_IN),
+        dpi=_FIGURE_DPI, facecolor='white')
+    fig.subplots_adjust(bottom=float(_FIGURE_BOTTOM_PADDING_IN) / height_inches)
+    return (fig, fig.get_figheight() * _FIGURE_DPI)
 
 
 def _create_line(plots, labels, queries, invert, single):
     """\
     Given all the data for the metrics, create a line plot.
 
-    plots: dictionary containing the plot data.
+    plots: list of dicts containing the plot data. Each dict contains:
             x: list of x-values for the plot
             y: list of corresponding y-values
             errors: errors for each data point, or None if no error information
                     available
             label: plot title
-    labels: x-tick labels
+    labels: list of x-tick labels
     queries: dictionary containing the relevant drilldown queries for series
-    invert: list of series that should have an inverted y-axis
+    invert: list of plot titles or series titles that should have an inverted
+            y-axis
     single: True if this should be a single plot, False for multiple subplots
     """
 
     area_data = []
     lines = []
     if single:
-        h = 6
+        plot_height = _SINGLE_PLOT_HEIGHT
     else:
-        h = 4 * len(plots)
-    fig, height = _create_figure(h)
-    plot_index = 1
+        plot_height = _MULTIPLE_PLOT_HEIGHT_PER_PLOT * len(plots)
+    figure, height = _create_figure(plot_height)
 
     if single:
-        sub = fig.add_subplot(1,1,1)
+        subplot = figure.add_subplot(1, 1, 1)
 
     # Plot all the data
-    for plot, color in zip(plots, _colors(len(plots))):
+    for plot_index, (plot, color) in enumerate(zip(plots, _colors(len(plots)))):
         needs_invert = (plot['label'] in invert)
 
         # Add a new subplot, if user wants multiple subplots
         # Also handle axis inversion for subplots here
         if not single:
-            sub = fig.add_subplot(len(plots), 1, plot_index)
-            sub.set_title(plot['label'])
+            subplot = figure.add_subplot(len(plots), 1, plot_index + 1)
+            subplot.set_title(plot['label'])
             if needs_invert:
-                sub.set_ylim(1,0)
+                # for separate plots, just invert the y-axis
+                subplot.set_ylim(1, 0)
         elif needs_invert:
+            # for a shared plot (normalized data), need to invert the y values
+            # manually, since all plots share a y-axis
             plot['y'] = [-y for y in plot['y']]
 
         # Plot the series
-        sub.set_xticks(range(0, len(labels)))
-        sub.set_xlim(-1, len(labels))
+        subplot.set_xticks(range(0, len(labels)))
+        subplot.set_xlim(-1, len(labels))
         if single:
-            lines += sub.plot(plot['x'], plot['y'], label=plot['label'],
-                              marker='o', markersize=4)
-            color = lines[-1].get_color()
+            lines += subplot.plot(plot['x'], plot['y'], label=plot['label'],
+                                  marker=_MULTIPLE_PLOT_MARKER_TYPE,
+                                  markersize=_MULTIPLE_PLOT_MARKER_SIZE)
+            error_bar_color = lines[-1].get_color()
         else:
-            lines += sub.plot(plot['x'], plot['y'], 'bs-', label=plot['label'])
-            color = 'r'
+            lines += subplot.plot(plot['x'], plot['y'], _SINGLE_PLOT_STYLE,
+                                  label=plot['label'])
+            error_bar_color = _SINGLE_PLOT_ERROR_BAR_COLOR
         if plot['errors']:
-            sub.errorbar(plot['x'], plot['y'], linestyle='None',
-                         yerr=plot['errors'], color=color)
-        sub.set_xticklabels([])
+            subplot.errorbar(plot['x'], plot['y'], linestyle='None',
+                             yerr=plot['errors'], color=error_bar_color)
+        subplot.set_xticklabels([])
 
-        plot_index += 1
-
-    # Construct the information for the drilldowns
+    # Construct the information for the drilldowns.
+    # We need to do this in a separate loop so that all the data is in
+    # matplotlib before we start calling transform(); otherwise, it will return
+    # incorrect data because it hasn't finished adjusting axis limits.
     for line in lines:
 
         # Get the pixel coordinates of each point on the figure
@@ -143,7 +172,7 @@ def _create_line(plots, labels, queries, invert, single):
         icoords = line.get_transform().transform(zip(x,y))
 
         # Get the appropriate drilldown query
-        drill = "'%s'" % (queries['__' + label + '__'].replace("'", "\\'"))
+        drill = _quote(queries['__' + label + '__'])
 
         # Set the title attributes (hover-over tool-tips)
         x_labels = [labels[x_val] for x_val in x]
@@ -151,111 +180,135 @@ def _create_line(plots, labels, queries, invert, single):
                   for x_label, y_val in zip(x_labels, y)]
 
         # Get the appropriate parameters for the drilldown query
-        params = [[drill, "'%s'" % (line.get_label()), "'%s'" % x_label]
+        params = [[drill, _quote(line.get_label()), _quote(x_label)]
                   for x_label in x_labels]
 
-        area_data += [(ix - 5, height - iy - 5, ix + 5, height - iy + 5,
-                       title, 'showMetricsDrilldown', ','.join(param))
-                      for (ix, iy), title, param
+        area_data += [dict(left=ix - 5, top=height - iy - 5,
+                           right=ix + 5, bottom=height - iy + 5,
+                           title= title,
+                           callback='showMetricsDrilldown',
+                           callback_arguments=param_list)
+                      for (ix, iy), title, param_list
                       in zip(icoords, titles, params)]
 
-    sub.set_xticklabels(labels, rotation=90, size='x-small')
+    subplot.set_xticklabels(labels, rotation=90, size=_LINE_XTICK_LABELS_SIZE)
 
     # Show the legend if there are not multiple subplots
     if single:
-        prop = matplotlib.font_manager.FontProperties(size='xx-small')
-        legend = fig.legend(lines, [plot['label'] for plot in plots],
-                            prop=prop, handlelen=0.03, numpoints=3)
-        # workaround for matplotlib not keeping all line markers in the legend
-        lines = legend.get_lines()
-        for line in lines:
-            line.set_marker('o')
+        font_properties = matplotlib.font_manager.FontProperties(
+            size=_LEGEND_FONT_SIZE)
+        legend = figure.legend(lines, [plot['label'] for plot in plots],
+                               prop=font_properties,
+                               handlelen=_LEGEND_HANDLE_LENGTH,
+                               numpoints=_LEGEND_NUM_POINTS)
+        # Workaround for matplotlib not keeping all line markers in the legend -
+        # it seems if we don't do this, matplotlib won't keep all the line
+        # markers in the legend.
+        for line in legend.get_lines():
+            line.set_marker(_LEGEND_MARKER_TYPE)
 
-    return (fig, area_data)
+    return (figure, area_data)
 
 
-def _get_adjusted_bar(x, width, index, num_plots):
+def _get_adjusted_bar(x, bar_width, series_index, num_plots):
     """\
     Adjust the list 'x' to take the multiple series into account. Each series
-    should be shifted to the right by the width of a bar.
+    should be shifted such that the middle series lies at the appropriate x-axis
+    tick with the other bars around it.  For example, if we had four series
+    (i.e. four bars per x value), we want to shift the left edges of the bars as
+    such:
+    Bar 1: -2 * width
+    Bar 2: -width
+    Bar 3: none
+    Bar 4: width
     """
-    adjust = width * (index - 0.5 * num_plots - 1)
+    adjust = (-0.5 * num_plots - 1 + series_index) * bar_width
     return [x_val + adjust for x_val in x]
 
 
+# TODO(showard): merge much of this function with _create_line by extracting and
+# parameterizing methods
 def _create_bar(plots, labels, queries, invert):
     """\
     Given all the data for the metrics, create a line plot.
 
-    plots: dictionary containing the plot data.
+    plots: list of dicts containing the plot data.
             x: list of x-values for the plot
             y: list of corresponding y-values
             errors: errors for each data point, or None if no error information
                     available
             label: plot title
-    labels: x-tick labels
+    labels: list of x-tick labels
     queries: dictionary containing the relevant drilldown queries for series
     invert: list of series that should have an inverted y-axis
     """
 
     area_data = []
     bars = []
-    fig, height = _create_figure(6)
+    figure, height = _create_figure(_SINGLE_PLOT_HEIGHT)
 
     # Set up the plot
-    sub = fig.add_subplot(1,1,1)
-    sub.set_xticks(range(0, len(labels)))
-    sub.set_xlim(-1, len(labels))
-    sub.set_xticklabels(labels, rotation=90, size=8)
-    sub.axhline(linewidth=2, color='black')
+    subplot = figure.add_subplot(1, 1, 1)
+    subplot.set_xticks(range(0, len(labels)))
+    subplot.set_xlim(-1, len(labels))
+    subplot.set_xticklabels(labels, rotation=90, size=_BAR_XTICK_LABELS_SIZE)
+    # draw a bold line at y=0, making it easier to tell if bars are dipping
+    # below the axis or not.
+    subplot.axhline(linewidth=2, color='black')
 
     # width here is the width for each bar in the plot. Matplotlib default is
     # 0.8.
     width = 0.8 / len(plots)
-    plot_index = 1
 
     # Plot the data
-    for plot, color in zip(plots, _colors(len(plots))):
+    for plot_index, (plot, color) in enumerate(zip(plots, _colors(len(plots)))):
         # Invert the y-axis if needed
         if plot['label'] in invert:
             plot['y'] = [-y for y in plot['y']]
 
-        adjusted_x = _get_adjusted_bar(plot['x'], width, plot_index, len(plots))
-        bars.append(sub.bar(adjusted_x, plot['y'],
-                            width=width, yerr=plot['errors'], facecolor=color,
-                            label=plot['label'])[0])
-        plot_index += 1
+        adjusted_x = _get_adjusted_bar(plot['x'], width, plot_index + 1,
+                                       len(plots))
+        bar_data = subplot.bar(adjusted_x, plot['y'],
+                               width=width, yerr=plot['errors'],
+                               facecolor=color,
+                               label=plot['label'])
+        bars.append(bar_data[0])
 
-    # Construct the information for the drilldowns
-    plot_index = 1
-    for plot in plots:
-        adjusted_x = _get_adjusted_bar(plot['x'], width, plot_index, len(plots))
+    # Construct the information for the drilldowns.
+    # See comment in _create_line for why we need a separate loop to do this.
+    for plot_index, plot in enumerate(plots):
+        adjusted_x = _get_adjusted_bar(plot['x'], width, plot_index + 1,
+                                       len(plots))
 
         # Let matplotlib plot the data, so that we can get the data-to-image
         # coordinate transforms
-        line = sub.plot(adjusted_x, plot['y'], linestyle='None')[0]
-        ulcoords = line.get_transform().transform(zip(adjusted_x, plot['y']))
-        brcoords = line.get_transform().transform(
+        line = subplot.plot(adjusted_x, plot['y'], linestyle='None')[0]
+        label = plot['label']
+        upper_left_coords = line.get_transform().transform(zip(adjusted_x,
+                                                               plot['y']))
+        bottom_right_coords = line.get_transform().transform(
             [(x + width, 0) for x in adjusted_x])
 
         # Get the drilldown query
-        key = '__' + plot['label'] + '__'
-        drill = "'%s'" % (queries[key].replace("'", "\\'"))
+        drill = _quote(queries['__' + label + '__'])
 
         # Set the title attributes
         x_labels = [labels[x] for x in plot['x']]
         titles = ['%s - %s: %f' % (plot['label'], label, y)
                   for label, y in zip(x_labels, plot['y'])]
-        params = [[drill, "'%s'" % plot['label'], "'%s'" % x_label]
+        params = [[drill, _quote(plot['label']), _quote(x_label)]
                   for x_label in x_labels]
-        area_data += [(ulx, height - uly, brx, height - bry,
-                       title, 'showMetricsDrilldown', ','.join(param))
-                      for (ulx, uly), (brx, bry), title, param
-                      in zip(ulcoords, brcoords, titles, params)]
-        plot_index += 1
+        area_data += [dict(left=ulx, top=height - uly,
+                           right=brx, bottom=height - bry,
+                           title=title,
+                           callback='showMetricsDrilldown',
+                           callback_arguments=param_list)
+                      for (ulx, uly), (brx, bry), title, param_list
+                      in zip(upper_left_coords, bottom_right_coords, titles,
+                             params)]
 
-    fig.legend(bars, [plot['label'] for plot in plots])
-    return (fig, area_data)
+    figure.legend(bars, [plot['label'] for plot in plots])
+    return (figure, area_data)
 
 
 def _normalize(data_values, data_errors, base_values, base_errors):
@@ -286,51 +339,63 @@ def _normalize(data_values, data_errors, base_values, base_errors):
     return (values, errors)
 
 
-def _create_png(fig):
+def _create_png(figure):
     """\
     Given the matplotlib figure, generate the PNG data for it.
     """
 
     # Draw the image
-    canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+    canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(figure)
     canvas.draw()
     size = canvas.get_renderer().get_canvas_width_height()
-    buf = canvas.tostring_rgb()
-    im = PIL.Image.fromstring('RGB', size, buf, 'raw', 'RGB', 0, 1)
-    bg = PIL.Image.new(im.mode, im.size, fig.get_facecolor())
+    image_as_string = canvas.tostring_rgb()
+    image = PIL.Image.fromstring('RGB', size, image_as_string, 'raw', 'RGB', 0,
+                                 1)
+    image_background = PIL.Image.new(image.mode, image.size,
+                                     figure.get_facecolor())
 
     # Crop the image to remove surrounding whitespace
-    diff = PIL.ImageChops.difference(im, bg)
-    bbox = diff.getbbox()
-    im = im.crop(bbox)
+    non_whitespace = PIL.ImageChops.difference(image, image_background)
+    bounding_box = non_whitespace.getbbox()
+    image = image.crop(bounding_box)
 
-    imdata = StringIO.StringIO()
-    im.save(imdata, format='PNG')
+    image_data = StringIO.StringIO()
+    image.save(image_data, format='PNG')
 
-    return imdata.getvalue(), bbox
+    return image_data.getvalue(), bounding_box
 
 
-def _create_image_html(fig, area_data, name):
+def _create_image_html(figure, area_data, name):
     """\
     Given the figure and drilldown data, construct the HTML that will render the
     graph as a PNG image, and attach the image map to that image.
 
-    fig: figure containing the drawn plot(s)
+    figure: figure containing the drawn plot(s)
     area_data: list of parameters for each area of the image map. See the
-               definition of the template string '_area'
+               definition of the template string '_AREA_TEMPLATE'
     name: name to give the image map in the HTML
     """
 
-    png, bbox = _create_png(fig)
+    png, bbox = _create_png(figure)
 
     # Construct the list of image map areas
-    areas = [_area % (data[0] - bbox[0], data[1] - bbox[1],
-                      data[2] - bbox[0], data[3] - bbox[1],
-                      data[4], data[5], data[6])
+    areas = [_AREA_TEMPLATE % (data['left'] - bbox[0],
+                               data['top'] - bbox[1],
+                               data['right'] - bbox[0],
+                               data['bottom'] - bbox[1],
+                               data['title'], data['callback'],
+                               ','.join(data['callback_arguments']))
              for data in area_data]
 
-    return _tmpl % (base64.b64encode(png), name,
-                    name, '\n'.join(areas))
+    return _HTML_TEMPLATE % (base64.b64encode(png), name, name,
+                             '\n'.join(areas))
+
+
+def _find_plot_by_label(plots, label):
+    for index, plot in enumerate(plots):
+            if plot['label'] == label:
+                return index
+    raise ValueError('no plot labeled "%s" found' % label)
 
 
 def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
@@ -338,7 +403,11 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
     """\
     Create a metrics plot of the given data.
 
-    queries: dictionary containing the main query and the drilldown queries
+    queries: dictionary containing the main query and the drilldown queries.
+        The main query returns a row for each x value.  The first column
+        contains the x-axis label.  Subsequent columns contain data for each
+        series, named by the column names.  A column names 'errors-<x>' will be
+        interpreted as errors for the series named <x>.
     plot: 'Line' or 'Bar', depending on the plot type the user wants
     invert: list of series that should be plotted on an inverted y-axis
     normalize: None - do not normalize
@@ -390,10 +459,12 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
             if errors:
                 errors = _resort(labels, errors)
 
-        x = [enum[0] for enum in enumerate(y) if enum[1] is not None]
+        x = [index for index, value in enumerate(y) if value is not None]
+        if not x:
+            raise NoDataError('No data for series ' + label)
         y = [y[i] for i in x]
         if errors:
-            errors = [error for error in errors if error is not None]
+            errors = [errors[i] for i in x]
         plots.append({
             'label': label,
             'x': x,
@@ -435,25 +506,31 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
 
     elif normalize.startswith('series__'):
         series = normalize[8:]
-        series_index = [plot['label'] for plot in plots].index(series)
-        plot = plots[series_index]
-        base_x = plot['x']
-        base_values = plot['y']
-        base_errors = plot['errors']
+        series_index = _find_plot_by_label(plots, series)
+        base_plot = plots[series_index]
+        base_xs = base_plot['x']
+        base_values = base_plot['y']
+        base_errors = base_plot['errors']
         del plots[series_index]
+
         for plot in plots:
+            old_xs, old_ys, old_errors = plot['x'], plot['y'], plot['errors']
+            new_xs, new_ys, new_errors = [], [], []
             # Remove all points in the to-be-normalized data that do not
             # have a corresponding baseline value
-            to_remove = []
-            for index, data in enumerate(plot['x']):
-                if not data in base_x:
-                    to_remove.append(index)
-            to_remove.reverse()
-            for index in to_remove:
-                del plot['x'][index]
-                del plot['y'][index]
-                if plot['errors']:
-                    del plot['errors'][index]
+            for index, x_value in enumerate(old_xs):
+                if x_value in base_xs:
+                    new_xs.append(x_value)
+                    new_ys.append(old_ys[index])
+                    if old_errors:
+                        new_errors.append(old_errors[index])
+            if not new_xs:
+                raise NoDataError('No normalizable data for series ' +
+                                  plot['label'])
+            plot['x'] = new_xs
+            plot['y'] = new_ys
+            if old_errors:
+                plot['errors'] = new_errors
 
             plot['y'], plot['errors'] = _normalize(plot['y'], plot['errors'],
                                                    base_values, base_errors)
@@ -461,27 +538,27 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
     # Call the appropriate function to draw the line or bar plot
     params = [plots, labels, queries, invert]
     if line:
-        func = _create_line
-        params.append(normalize)
+        figure, area_data = _create_line(plots, labels, queries, invert,
+                                         normalize)
     else:
-        func = _create_bar
-    fig, area_data = func(*params)
+        figure, area_data = _create_bar(plots, labels, queries, invert)
 
+    # TODO(showard): extract these magic numbers to named constants
     if extra_text:
         text_y = .95 - .0075 * len(plots)
-        fig.text(.1, text_y, extra_text, size='xx-small')
+        figure.text(.1, text_y, extra_text, size='xx-small')
 
-    return (fig, area_data, 'metrics_drilldown')
+    return (figure, area_data, 'metrics_drilldown')
 
 def create_metrics_plot(queries, plot, invert, normalize, extra_text=None):
     """\
     Wrapper for _create_metrics_plot_helper
     """
 
-    fig, area_data, name = _create_metrics_plot_helper(queries, plot,
+    figure, area_data, name = _create_metrics_plot_helper(queries, plot,
                                                        invert, normalize,
                                                        extra_text)
-    return _create_image_html(fig, area_data, name)
+    return _create_image_html(figure, area_data, name)
 
 
 def _get_hostnames_in_bucket(hist_data, bucket):
@@ -492,15 +569,21 @@ def _get_hostnames_in_bucket(hist_data, bucket):
     bucket: tuple containing the (low, high) values of the target bucket
     """
 
-    return [data[0] for data in hist_data
-            if data[1] >= bucket[0] and data[1] < bucket[1]]
+    return [hostname for hostname, pass_rate in hist_data
+            if bucket[0] <= pass_rate < bucket[1]]
 
 
-def _create_qual_histogram_helper(query, filter_string, interval, extra_text=None):
+def _create_qual_histogram_helper(query, filter_string, interval,
+                                  extra_text=None):
     """\
     Create a machine qualification histogram of the given data.
 
-    query: the main query to retrieve the pass rate information
+    query: the main query to retrieve the pass rate information.  The first
+        column contains the hostnames of all the machines that satisfied the
+        global filter. The second column (titled 'total') contains the total
+        number of tests that ran on that machine and satisfied the global
+        filter. The third column (titled 'good') contains the number of those
+        tests that passed on that machine.
     filter_string: filter to apply to the common global filter to show the Table
                    View drilldown of a histogram bucket
     interval: interval for each bucket. E.g., 10 means that buckets should be
@@ -526,38 +609,41 @@ def _create_qual_histogram_helper(query, filter_string, interval, extra_text=Non
 
     # Construct the lists of data to plot
     for hostname, total, good in cursor.fetchall():
-        if total != 0:
-            if good == 0:
-                no_pass.append(hostname)
-            elif good == total:
-                perfect.append(hostname)
-            else:
-                percentage = 100.0 * good / total
-                hist_data.append((hostname, percentage))
-        else:
+        if total == 0:
             no_tests.append(hostname)
+            continue
+
+        if good == 0:
+            no_pass.append(hostname)
+        elif good == total:
+            perfect.append(hostname)
+        else:
+            percentage = 100.0 * good / total
+            hist_data.append((hostname, percentage))
 
     bins = range(0, 100, interval)
     if bins[-1] != 100:
         bins.append(bins[-1] + interval)
 
-    fig, height = _create_figure(6)
-    sub = fig.add_subplot(1,1,1)
+    figure, height = _create_figure(_SINGLE_PLOT_HEIGHT)
+    subplot = figure.add_subplot(1, 1, 1)
 
     # Plot the data and get all the bars plotted
-    _,_, bars = sub.hist([data[1] for data in hist_data],
+    _,_, bars = subplot.hist([data[1] for data in hist_data],
                          bins=bins, align='left')
-    bars += sub.bar([-interval], len(no_pass),
+    bars += subplot.bar([-interval], len(no_pass),
                     width=interval, align='center')
-    bars += sub.bar([bins[-1]], len(perfect),
+    bars += subplot.bar([bins[-1]], len(perfect),
                     width=interval, align='center')
-    bars += sub.bar([-3 * interval], len(no_tests),
+    bars += subplot.bar([-3 * interval], len(no_tests),
                     width=interval, align='center')
 
     buckets = [(bin, min(bin + interval, 100)) for bin in bins[:-1]]
-    sub.set_xlim(-4 * interval, bins[-1] + interval)
-    sub.set_xticks([-3 * interval, -interval] + bins + [100 + interval])
-    sub.set_xticklabels(['N/A', '0%'] +
+    # set the x-axis range to cover all the normal bins plus the three "special"
+    # ones - N/A (3 intervals left), 0% (1 interval left) ,and 100% (far right)
+    subplot.set_xlim(-4 * interval, bins[-1] + interval)
+    subplot.set_xticks([-3 * interval, -interval] + bins + [100 + interval])
+    subplot.set_xticklabels(['N/A', '0%'] +
                         ['%d%% - <%d%%' % bucket for bucket in buckets] +
                         ['100%'], rotation=90, size='small')
 
@@ -567,12 +653,10 @@ def _create_qual_histogram_helper(query, filter_string, interval, extra_text=Non
     for bar in bars:
         x.append(bar.get_x())
         y.append(bar.get_height())
-    f = sub.plot(x, y, linestyle='None')[0]
-    ulcoords = f.get_transform().transform(zip(x, y))
-    brcoords = f.get_transform().transform(
+    f = subplot.plot(x, y, linestyle='None')[0]
+    upper_left_coords = f.get_transform().transform(zip(x, y))
+    bottom_right_coords = f.get_transform().transform(
         [(x_val + interval, 0) for x_val in x])
-
-    filter_string_base = filter_string.replace("'", "\\'").replace('%', '%%')
 
     # Set the title attributes
     titles = ['%d%% - <%d%%: %d machines' % (bucket[0], bucket[1], y_val)
@@ -585,8 +669,9 @@ def _create_qual_histogram_helper(query, filter_string, interval, extra_text=Non
     names_list = [_get_hostnames_in_bucket(hist_data, bucket)
                   for bucket in buckets]
     names_list += [no_pass, perfect]
-    if filter_string_base:
-        filter_string_base += ' AND '
+
+    if filter_string:
+        filter_string += ' AND '
 
     # Construct the list of JavaScript functions to be called when the user
     # clicks on the bar.
@@ -594,26 +679,31 @@ def _create_qual_histogram_helper(query, filter_string, interval, extra_text=Non
     params = []
     for names in names_list:
         if names:
-            s_string = ','.join(["\\'%s\\'"] * len(names))
-            filter_tmpl = '%shostname IN (%s)' % (filter_string_base, s_string)
-            filter_string = filter_tmpl % tuple(names)
+            hostnames = ','.join(_quote(hostname) for hostname in names)
+            hostname_filter = 'hostname IN (%s)' % hostnames
+            full_filter = filter_string + hostname_filter
             funcs.append('showQualDrilldown')
-            params.append("'%s'" % filter_string)
+            params.append([_quote(full_filter)])
         else:
             funcs.append('showQualEmptyDialog')
             params.append([])
+
     funcs.append('showQualNADialog')
-    params.append("<html>%s</html>" % ('<br />'.join(no_tests)))
+    params.append([_quote('<br />'.join(no_tests))])
 
-    area_data = [(ulx, height - uly, brx, height - bry,
-                  title, func, param)
-                 for (ulx, uly), (brx, bry), title, func, param
-                 in zip(ulcoords, brcoords, titles, funcs, params)]
+    area_data = [dict(left=ulx, top=height - uly,
+                      right=brx, bottom=height - bry,
+                      title=title, callback=func,
+                      callback_arguments=param_list)
+                 for (ulx, uly), (brx, bry), title, func, param_list
+                 in zip(upper_left_coords, bottom_right_coords,
+                        titles, funcs, params)]
 
+    # TODO(showard): extract these magic numbers to named constants
     if extra_text:
-        fig.text(.1, .95, extra_text, size='xx-small')
+        figure.text(.1, .95, extra_text, size='xx-small')
 
-    return (fig, area_data, 'qual_drilldown')
+    return (figure, area_data, 'qual_drilldown')
 
 
 def create_qual_histogram(query, filter_string, interval, extra_text=None):
@@ -621,9 +711,9 @@ def create_qual_histogram(query, filter_string, interval, extra_text=None):
     Wrapper for _create_qual_histogram_helper
     """
 
-    fig, area_data, name = _create_qual_histogram_helper(query, filter_string,
+    figure, area_data, name = _create_qual_histogram_helper(query, filter_string,
                                                          interval, extra_text)
-    return _create_image_html(fig, area_data, name)
+    return _create_image_html(figure, area_data, name)
 
 
 def create_embedded_plot(model, update_time):
@@ -634,17 +724,20 @@ def create_embedded_plot(model, update_time):
     update_time: 'Last updated' time
     """
 
-    if model.graph_type == 'metrics':
-        func = _create_metrics_plot_helper
-    elif model.graph_type == 'qual':
-        func = _create_qual_histogram_helper
-
     params = pickle.loads(model.params)
     params['extra_text'] = 'Last updated: %s' % update_time
-    fig, _, _ = func(**params)
-    img, _ = _create_png(fig)
 
-    return img
+    if model.graph_type == 'metrics':
+        figure, areas_unused, drilldown_unused = _create_metrics_plot_helper(
+            **params)
+    elif model.graph_type == 'qual':
+        figure, areas_unused, drilldown_unused = _create_qual_histogram_helper(
+            **params)
+    else:
+        raise ValueError('Invalid graph_type %s' % model.graph_type)
+
+    image, bounding_box_unused = _create_png(figure)
+    return image
 
 
 _cache_timeout = global_config.global_config.get_config_value(

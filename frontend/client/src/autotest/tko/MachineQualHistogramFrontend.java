@@ -1,7 +1,5 @@
 package autotest.tko;
 
-import autotest.common.JsonRpcCallback;
-import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
 import autotest.tko.TableView.TableViewConfig;
@@ -9,94 +7,32 @@ import autotest.tko.TableView.TableViewConfig;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
 
-public class MachineQualHistogramFrontend extends GraphingFrontend {
-    
-    @Override
-    protected void addToHistory(Map<String, String> args) {
-        globalFilters.addToHistory(args, "globalFilter");
-        testFilters.addToHistory(args, "testFilter");
-        args.put("interval", interval.getText());
-    }
-    
-    @Override
-    protected void handleHistoryArguments(Map<String, String> args) {
-        setVisible(false);
-        globalFilters.reset();
-        testFilters.reset();
-        globalFilters.handleHistoryArguments(args, "globalFilter");
-        testFilters.handleHistoryArguments(args, "testFilter");
-        interval.setText(args.get("interval"));
-        setVisible(true);
-    }
-    
-    private PreconfigSelector preconfig = new PreconfigSelector("qual", this);
+public class MachineQualHistogramFrontend extends DynamicGraphingFrontend {
+    private static final String DEFAULT_INTERVAL = "10";
+
     private FilterSelector globalFilters =
         new FilterSelector(DBColumnSelector.TEST_VIEW);
     private FilterSelector testFilters =
         new FilterSelector(DBColumnSelector.TEST_VIEW);
     private TextBox interval = new TextBox();
-    private Button graphButton = new Button("Graph");
-    private HTML graph = new HTML();
-    
     public MachineQualHistogramFrontend(final TabView parent) {
-        interval.setText("10");
-        
-        graphButton.addClickListener(new ClickListener() {
-            public void onClick(Widget w) {
-                parent.updateHistory();
-                graph.setVisible(false);
-                embeddingLink.setVisible(false);
-                
-                JSONObject params = buildParams();
-                if (params == null) {
-                    return;
-                }
-                
-                rpcProxy.rpcCall("create_qual_histogram", params, new JsonRpcCallback() {
-                    @Override
-                    public void onSuccess(JSONValue result) {
-                        graph.setHTML(Utils.jsonToString(result));
-                        graph.setVisible(true);
-                        embeddingLink.setVisible(true);
-                    }
-                });
-            }
-        });
-        
+        super(parent, "create_qual_histogram", "qual");
+
+        interval.setText(DEFAULT_INTERVAL);
+
         addControl("Preconfigured:", preconfig);
         addControl("Global filters:", globalFilters);
         addControl("Test set filters:", testFilters);
         addControl("Interval:", interval);
         
-        table.setWidget(table.getRowCount(), 1, graphButton);
-        table.setWidget(table.getRowCount(), 0, graph);
-        table.getFlexCellFormatter().setColSpan(table.getRowCount() - 1, 0, 3);
-        
-        table.setWidget(table.getRowCount(), 2, embeddingLink);
-        table.getFlexCellFormatter().setHorizontalAlignment(
-                table.getRowCount() - 1, 2, HasHorizontalAlignment.ALIGN_RIGHT);
-        
-        graph.setVisible(false);
-        embeddingLink.setVisible(false);
-        
-        initWidget(table);
+        commonInitialization();
     }
-    
-    @Override
-    public void refresh() {
-        // nothing to refresh
-    }
-    
+
     @Override
     protected native void setDrilldownTrigger() /*-{
         var instance = this;
@@ -117,7 +53,7 @@ public class MachineQualHistogramFrontend extends GraphingFrontend {
         params.put("params", buildParams());
     }
     
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // method is called from native code only
     private void showDrilldown(final String filterString) {
         CommonPanel.getPanel().setSqlCondition(filterString);
         listener.onSwitchToTable(TableViewConfig.PASS_RATE);
@@ -151,9 +87,8 @@ public class MachineQualHistogramFrontend extends GraphingFrontend {
         }
         sql.append(") 'total', COUNT(DISTINCT IF(");
         if (hasTFilter) {
-            sql.append("(");
-            sql.append(tFilterString);
-            sql.append(") AND ");
+            sql.append(TkoUtils.wrapWithParens(tFilterString));
+            sql.append(" AND ");
         }
         
         sql.append("status = 'GOOD', test_idx, NULL)) 'good' FROM test_view_outer_joins");
@@ -172,22 +107,19 @@ public class MachineQualHistogramFrontend extends GraphingFrontend {
         boolean hasGFilter = !gFilterString.equals("");
         boolean hasTFilter = !tFilterString.equals("");
         if (hasGFilter) {
-            filterString.append("(");
-            filterString.append(gFilterString);
-            filterString.append(")");
+            filterString.append(TkoUtils.wrapWithParens(gFilterString));
             if (hasTFilter) {
                 filterString.append(" AND ");
             }
         }
         if (hasTFilter) {
-            filterString.append("(");
-            filterString.append(tFilterString);
-            filterString.append(")");
+            filterString.append(TkoUtils.wrapWithParens(tFilterString));
         }
         return new JSONString(filterString.toString());
     }
     
-    private JSONObject buildParams() {
+    @Override
+    protected JSONObject buildParams() {
         if (interval.getText().equals("")) {
             NotifyManager.getInstance().showError("You must enter an interval");
             return null;
@@ -207,5 +139,28 @@ public class MachineQualHistogramFrontend extends GraphingFrontend {
         params.put("interval", new JSONNumber(intervalValue));
         
         return params;
+    }
+
+    @Override
+    public String getFrontendId() {
+        return "machine_qual_histogram";
+    }
+    
+    @Override
+    public void addToHistory(Map<String, String> args) {
+        globalFilters.addToHistory(args, "globalFilter");
+        testFilters.addToHistory(args, "testFilter");
+        args.put("interval", interval.getText());
+    }
+    
+    @Override
+    public void handleHistoryArguments(Map<String, String> args) {
+        setVisible(false);
+        globalFilters.reset();
+        testFilters.reset();
+        globalFilters.handleHistoryArguments(args, "globalFilter");
+        testFilters.handleHistoryArguments(args, "testFilter");
+        interval.setText(args.get("interval"));
+        setVisible(true);
     }
 }

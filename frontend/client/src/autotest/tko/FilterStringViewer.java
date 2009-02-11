@@ -19,6 +19,7 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.Map;
 
+// TODO(showard): combine this code with similar code from autotest.afe.CreateJobView
 public class FilterStringViewer extends Composite {
     
     public static final String VIEW_FILTER_STRING = "View Filter String";
@@ -123,15 +124,15 @@ public class FilterStringViewer extends Composite {
     // Change the viewer's editable state
     private void changeEditable(boolean clicked) {
         if (clicked) {
-            DOM.eventCancelBubble(DOM.eventGetCurrentEvent(), true);
+            DOM.eventGetCurrentEvent().cancelBubble(true);
         }
         
         if (viewerEditable) {
             // We only want the confirmation on revert from an edited viewer, and only if "revert"
             // was clicked (not on programmatic revert)
-            if (filterEdited &&
-                    clicked &&
-                    !Window.confirm("Are you sure you want to revert your changes?")) {
+            boolean userCancelled = filterEdited && clicked 
+                && !Window.confirm("Are you sure you want to revert your changes?");
+            if (userCancelled) {
                 return;
             }
             

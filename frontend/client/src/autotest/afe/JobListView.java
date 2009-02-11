@@ -159,7 +159,7 @@ public class JobListView extends TabView implements TableActionsListener {
     }
 
     @Override
-    public Map<String, String> getHistoryArguments() {
+    protected Map<String, String> getHistoryArguments() {
         Map<String, String> arguments = super.getHistoryArguments();
         arguments.put("state_filter", historyTokens[jobStateFilter.getSelectedLink()]);
         return arguments;
