@@ -21,3 +21,33 @@ machine took an open firmware exception (see console)
 
 ^(.*CommandAbort.*)
 %s
+
+^.*(possible circular locking dependency detected.*)
+%s
+
+^.*(unsafe lock order detected.*)
+%s
+
+^.*(possible recursive locking detected.*)
+%s
+
+^.*(inconsistent lock state.*)
+%s
+
+^.*(possible irq lock inversion dependency detected.*)
+%s
+
+^.*(bad unlock balance detected.*)
+%s
+
+^.*(bad contention detected.*)
+%s
+
+^.*(held lock freed.*)
+%s
+
+^.*(lock held at task exit time.*)
+%s
+
+^.*(lock held when returning to user space.*)
+%s
