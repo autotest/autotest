@@ -829,6 +829,9 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
         # return the object from the imported module
         obj = getattr(__import__(module, {}, {}, [short_module]), name)
     else:
+        msg = "unable to import site module '%s', using non-site implementation"
+        msg %= modulefile
+        debug.get_logger().info(msg)
         obj = dummy
 
     return obj
