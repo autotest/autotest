@@ -60,6 +60,14 @@ public class Utils {
         }
         return result;
     }
+    
+    public static JSONObject mapToJsonObject(Map<String, String> map) {
+        JSONObject result = new JSONObject();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            result.put(entry.getKey(), new JSONString(entry.getValue()));
+        }
+        return result;
+    }
 
     /**
      * Get a value out of an array of size 1.

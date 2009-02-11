@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.Utils;
+import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimpleHyperlink;
 
 import com.google.gwt.user.client.ui.ChangeListener;
@@ -11,12 +12,12 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class SeriesSelector extends Composite {
         private FlexTable seriesTable = new FlexTable();
         private TextBox name = new TextBox();
         private CheckBox invert = new CheckBox("Invert y-axis");
-        private DBColumnSelector values = new DBColumnSelector(DBColumnSelector.PERF_VIEW);
-        private ListBox aggregation = new ListBox();
+        private ExtendedListBox values = new DBColumnSelector(DBColumnSelector.PERF_VIEW);
+        private ExtendedListBox aggregation = new ExtendedListBox();
         private CheckBox errorBars = new CheckBox();
         private FilterSelector filter = new FilterSelector(DBColumnSelector.PERF_VIEW);
         private SimpleHyperlink deleteLink = new SimpleHyperlink("Delete Series");
@@ -59,17 +60,14 @@ public class SeriesSelector extends Composite {
             aggregation.addItem("COUNT (DISTINCT)", "COUNT(DISTINCT ");
             aggregation.addItem("MIN", "MIN(");
             aggregation.addItem("MAX", "MAX(");
+            aggregation.setSelectedIndex(0);
             aggregation.addChangeListener(new ChangeListener() {
                 public void onChange(Widget w) {
-                    int index = aggregation.getSelectedIndex();
-                    if (index == -1) {
-                        return;
-                    }
-                    
-                    if (aggregation.getValue(index).equals("AVG(")) {
+                    if (getAggregation().equals("AVG(")) {
                         errorBars.setEnabled(true);
                     } else {
                         errorBars.setEnabled(false);
+                        errorBars.setChecked(false);
                     }
                 }
             });
@@ -101,25 +99,19 @@ public class SeriesSelector extends Composite {
         }
         
         private void addControl(String text, Widget control) {
-            int nextRow = seriesTable.getRowCount();
-            seriesTable.setText(nextRow, 0, text);
-            seriesTable.getFlexCellFormatter().setStylePrimaryName(nextRow, 0, "field-name");
-            seriesTable.setWidget(nextRow, 1, control);
+            TkoUtils.addControlRow(seriesTable, text, control);
         }
         
         public String getAggregation() {
-            return aggregation.getValue(aggregation.getSelectedIndex());
+            return aggregation.getSelectedValue();
         }
         
-        public DBColumnSelector getDBColumnSelector() {
+        public ExtendedListBox getDBColumnSelector() {
             return values;
         }
         
         public boolean wantErrorBars() {
-            int index = aggregation.getSelectedIndex();
-            return (index != -1 &&
-                    aggregation.getValue(index).equals("AVG(") &&
-                    errorBars.isChecked());
+            return errorBars.isChecked();
         }
         
         public String getName() {
@@ -128,6 +120,34 @@ public class SeriesSelector extends Composite {
         
         public String getFilterString() {
             return filter.getFilterString();
+        }
+        
+        public void setInverted(boolean isInverted) {
+            invert.setChecked(isInverted);
+        }
+        
+        public void addToHistory(Map<String, String> args, int index) {
+            args.put(parameterString("name", index), getName());
+            args.put(parameterString("values", index), getDBColumnSelector().getSelectedValue());
+            args.put(parameterString("aggregation", index), aggregation.getSelectedName());
+            args.put(parameterString("errorBars", index), String.valueOf(wantErrorBars()));
+            filter.addToHistory(args, parameterString("seriesFilters", index));
+        }
+        
+        public void readHistoryArguments(Map<String, String> args, int index) {
+            name.setText(args.get(parameterString("name", index)));
+
+            String valueColumn = args.get(parameterString("values", index));
+            getDBColumnSelector().selectByValue(valueColumn);
+
+            String aggregationString = args.get(parameterString("aggregation", index));
+            aggregation.selectByName(aggregationString);
+
+            boolean errorBarsChecked = 
+                Boolean.parseBoolean(args.get(parameterString("errorBars", index)));
+            errorBars.setChecked(errorBarsChecked);
+
+            filter.handleHistoryArguments(args, parameterString("seriesFilters", index));
         }
     }
     
@@ -149,8 +169,8 @@ public class SeriesSelector extends Composite {
         initWidget(table);
     }
     
-    public ArrayList<Series> getAllSeries() {
-        return series;
+    public List<Series> getAllSeries() {
+        return Collections.unmodifiableList(series);
     }
     
     public void reset() {
@@ -181,57 +201,40 @@ public class SeriesSelector extends Composite {
         this.invertible = invertible;
     }
     
+    private static String parameterString(String parameterName, int index) {
+        return parameterName + "[" + index + "]";
+    }
+    
     protected void addToHistory(Map<String, String> args) {
         for (int index = 0; index < series.size(); index++) {
-            Series s = series.get(index);
-            args.put("name[" + index + "]", s.getName());
-            args.put("values[" + index + "]", s.getDBColumnSelector().getColumn());
-            args.put("aggregation[" + index + "]",
-                    s.aggregation.getItemText(s.aggregation.getSelectedIndex()));
-            args.put("errorBars[" + index + "]", String.valueOf(s.wantErrorBars()));
-            s.filter.addToHistory(args, "seriesFilters[" + index + "]");
+            series.get(index).addToHistory(args, index);
         }
         List<String> inverted = getInverted();
         if (!inverted.isEmpty()) {
             args.put("inverted", Utils.joinStrings(",", inverted));
-            System.out.println(args.get("inverted"));
         }
     }
     
     protected void handleHistoryArguments(Map<String, String> args) {
-        int index = 0;
-        
         String invertedString = args.get("inverted");
-        Set<String> inverted = null;
+        Set<String> inverted = new HashSet<String>();
         if (invertedString != null) {
-            inverted = new HashSet<String>();
             for (String s : invertedString.split(",")) {
                 inverted.add(s);
             }
         }
-        
+
         String name;
-        while ((name = args.get("name[" + index + "]")) != null) {
-            Series s;
+        for (int index = 0; args.get(parameterString("name", index)) != null; index++) {
+            Series thisSeries;
             if (index == 0) {
-                s = (Series) table.getWidget(0, 0);
+                thisSeries = series.get(0);
             } else {
-                s = addSeries();
+                thisSeries = addSeries();
             }
-            s.name.setText(name);
-            s.getDBColumnSelector().selectColumn(args.get("values[" + index + "]"));
-            String aggregation = args.get("aggregation[" + index + "]");
-            for (int i = 0; i < s.aggregation.getItemCount(); i++) {
-                if (s.aggregation.getItemText(i).equals(aggregation)) {
-                    s.aggregation.setSelectedIndex(i);
-                    break;
-                }
-            }
-            s.errorBars.setChecked(Boolean.parseBoolean(args.get("errorBars[" + index + "]")));
-            s.filter.handleHistoryArguments(args, "seriesFilters[" + index + "]");
-            s.invert.setChecked(inverted != null && inverted.contains(name));
-            
-            index++;
+
+            thisSeries.readHistoryArguments(args, index);
+            thisSeries.setInverted(inverted.contains(thisSeries.getName()));
         }
     }
     

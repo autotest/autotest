@@ -10,6 +10,8 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,5 +84,13 @@ public class TkoUtils {
 
     static String escapeSqlValue(String value) {
         return value.replace("\\", "\\\\").replace("'", "\\'");
+    }
+    
+    static int addControlRow(FlexTable table, String text, Widget control) {
+        int row = table.getRowCount();
+        table.setText(row, 0, text);
+        table.getFlexCellFormatter().setStylePrimaryName(row, 0, "field-name");
+        table.setWidget(row, 1, control);
+        return row;
     }
 }

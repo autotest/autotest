@@ -3,7 +3,8 @@ from django.db import models as dbmodels
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import rpc_utils, model_logic
 from autotest_lib.frontend.afe import readonly_connection
-from new_tko.tko import models, tko_rpc_utils, graphing_utils
+from autotest_lib.new_tko.tko import models, tko_rpc_utils, graphing_utils
+from autotest_lib.new_tko.tko import preconfigs
 
 # table/spreadsheet view support
 
@@ -246,68 +247,17 @@ def create_qual_histogram(query, filter_string, interval):
     return graphing_utils.create_qual_histogram(query, filter_string, interval)
 
 
+# TODO(showard) - this extremely generic RPC is used only by one place in the
+# client.  We should come up with a more opaque RPC for that place to call and
+# get rid of this.
 def execute_query_with_param(query, param):
     cursor = readonly_connection.connection().cursor()
     cursor.execute(query, param)
     return cursor.fetchall()
 
 
-_preconfigs = {}
-is_init = False
-
-
-def _get_preconfig_path(suffix):
-    """\
-    Get the absolute path to a prefix directory or file.
-
-    suffix: list of suffixes after the 'preconfigs' directory to navigate to.
-            E.g., ['metrics', 'abc'] gives the path to
-            <tko>/preconfigs/metrics/abc
-    """
-
-    rel_path = os.path.join(os.path.dirname(__file__), 'preconfigs', *suffix)
-    return os.path.abspath(rel_path)
-
-
-def _init_preconfigs():
-    """\
-    Read the names of all the preconfigs from disk and store them in the
-    _preconfigs dictionary.
-    """
-
-    global is_init
-    if not is_init:
-        # Read the data
-        _preconfigs['metrics'] = dict.fromkeys(
-            os.listdir(_get_preconfig_path(['metrics'])))
-        _preconfigs['qual'] = dict.fromkeys(
-            os.listdir(_get_preconfig_path(['qual'])))
-        is_init = True
-
-def _read_preconfig(name, type):
-    """\
-    Populate the _preconfigs dictionary entry for the preconfig described by the
-    given parameters.
-
-    name: specific name of the preconfig
-    type: 'metrics' or 'qual'
-    """
-
-    _preconfigs[type][name] = {}
-    path = _get_preconfig_path([type, name])
-    config = open(path)
-    for line in config.readlines():
-        line.rstrip('\n')
-        parts = line.split(':')
-        _preconfigs[type][name][parts[0]] = parts[1].strip()
-    config.close()
-
-
 def get_preconfig(name, type):
-    _init_preconfigs()
-    if _preconfigs[type][name] is None:
-        _read_preconfig(name, type)
-    return _preconfigs[type][name]
+    return preconfigs.manager.get_preconfig(name, type)
 
 
 def get_embedding_id(url_token, graph_type, params):
@@ -423,7 +373,6 @@ def get_static_data():
     extra_fields = [(field_name.capitalize(), field_sql)
                     for field_sql, field_name
                     in models.TestView.extra_fields.iteritems()]
-    _init_preconfigs()
 
     benchmark_key = {
         'kernbench' : 'elapsed',
@@ -469,6 +418,6 @@ def get_static_data():
     result['benchmark_key'] = benchmark_key
     result['perf_view'] = perf_view
     result['test_view'] = model_fields
-    result['preconfigs'] = _preconfigs
+    result['preconfigs'] = preconfigs.manager.all_preconfigs()
 
     return result
