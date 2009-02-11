@@ -536,18 +536,17 @@ class ModelExtensions(object):
         smart_get(keyword args) -> normal ModelClass.objects.get()
         """
         assert bool(args) ^ bool(kwargs)
+        manager = cls.get_valid_manager()
         if args:
             assert len(args) == 1
             arg = args[0]
             if isinstance(arg, int) or isinstance(arg, long):
-                return cls.objects.get(pk=arg)
+                return manager.get(pk=arg)
             if isinstance(arg, str) or isinstance(arg, unicode):
-                return cls.objects.get(
-                    **{cls.name_field : arg})
+                return manager.get(**{cls.name_field : arg})
             raise ValueError(
-                'Invalid positional argument: %s (%s)' % (
-                str(arg), type(arg)))
-        return cls.objects.get(**kwargs)
+                'Invalid positional argument: %s (%s)' % (arg, type(arg)))
+        return manager.get(**kwargs)
 
 
     @classmethod
@@ -624,17 +623,18 @@ class ModelWithInvalid(ModelExtensions):
     """
 
     def save(self):
-        # see if this object was previously added and invalidated
-        my_name = getattr(self, self.name_field)
-        filters = {self.name_field : my_name, 'invalid' : True}
-        try:
-            old_object = self.__class__.objects.get(**filters)
-        except self.DoesNotExist:
-            # no existing object
-            super(ModelWithInvalid, self).save()
-            return
+        first_time = (self.id is None)
+        if first_time:
+            # see if this object was previously added and invalidated
+            my_name = getattr(self, self.name_field)
+            filters = {self.name_field : my_name, 'invalid' : True}
+            try:
+                old_object = self.__class__.objects.get(**filters)
+                self.id = old_object.id
+            except self.DoesNotExist:
+                # no existing object
+                pass
 
-        self.id = old_object.id
         super(ModelWithInvalid, self).save()
 
 
