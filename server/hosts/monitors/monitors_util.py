@@ -43,17 +43,18 @@ def write_logline(logfile, msg, timestamp_format=None):
       timestamp_format: str or callable; If specified will
           be passed into prepend_timestamp along with msg.
     """
-    msg = msg.rstrip()
+    msg = msg.rstrip('\n')
     if timestamp_format:
         msg = prepend_timestamp(msg, timestamp_format)
     logfile.write(msg + '\n')
 
 
-def make_alert(warnfile, msg_template, timestamp_format=None):
+def make_alert(warnfile, msg_type, msg_template, timestamp_format=None):
     """Create an alert generation function that writes to warnfile.
 
     Args:
       warnfile: file; File object to write msg's to.
+      msg_type: str; String describing the message type
       msg_template: str; String template that function params
           are passed through.
       timestamp_format: str or callable; If specified will
@@ -61,13 +62,13 @@ def make_alert(warnfile, msg_template, timestamp_format=None):
 
     Returns: function with a signature of (*params);
         The format for a warning used here is:
-            <timestamp (integer)> <tab> <status (string)> <newline>
+            %(timestamp)d\t%(msg_type)s\t%(status)s\n
     """
     if timestamp_format is None:
         timestamp_format = lambda: int(time.time())
 
     def alert(*params):
-        formatted_msg = msg_template % params
+        formatted_msg = msg_type + "\t" + msg_template % params
         timestamped_msg = prepend_timestamp(formatted_msg, timestamp_format)
         print >> warnfile, timestamped_msg
     return alert
@@ -86,21 +87,26 @@ def build_alert_hooks(patterns_file, warnfile):
     """
     pattern_lines = patterns_file.readlines()
     # expected pattern format:
-    # <regex> <newline> <alert> <newline> <newline>
-    #   regex = a python regular expression
-    #   alert = a string describing the alert message
-    #           if the regex matches the line, this displayed warning will
-    #           be the result of (alert % match.groups())
-    patterns = zip(pattern_lines[0::3], pattern_lines[1::3])
+    # <msgtype> <newline> <regex> <newline> <alert> <newline> <newline>
+    #   msgtype = a string categorizing the type of the message - used for
+    #             enabling/disabling specific categories of warnings
+    #   regex   = a python regular expression
+    #   alert   = a string describing the alert message
+    #             if the regex matches the line, this displayed warning will
+    #             be the result of (alert % match.groups())
+    patterns = zip(pattern_lines[0::4], pattern_lines[1::4],
+                   pattern_lines[2::4])
 
     # assert that the patterns are separated by empty lines
-    if sum(len(line.strip()) for line in pattern_lines[2::3]) > 0:
+    if sum(len(line.strip()) for line in pattern_lines[3::4]) > 0:
         raise ValueError('warning patterns are not separated by blank lines')
 
-    hooks = [
-        (re.compile(regex.rstrip('\n')),
-         make_alert(warnfile, alert.rstrip('\n')))
-        for regex, alert in patterns]
+    hooks = []
+    for msgtype, regex, alert in patterns:
+        regex = re.compile(regex.rstrip('\n'))
+        alert_function = make_alert(warnfile, msgtype.rstrip('\n'),
+                                    alert.rstrip('\n'))
+        hooks.append((regex, alert_function))
     return hooks
 
 
