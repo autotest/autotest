@@ -1300,8 +1300,8 @@ class QueueTask(AgentTask):
             aborted_by_value = 'autotest_system'
             aborted_on_value = int(time.time())
 
-        self._write_keyval("aborted_by", aborted_by_value)
-        self._write_keyval("aborted_on", aborted_on_value)
+        self._write_keyval_after_job("aborted_by", aborted_by_value)
+        self._write_keyval_after_job("aborted_on", aborted_on_value)
 
         aborted_on_string = str(datetime.datetime.fromtimestamp(
             aborted_on_value))
