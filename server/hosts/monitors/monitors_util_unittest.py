@@ -66,21 +66,24 @@ class AlertHooksTestCase(unittest.TestCase):
 
     def test_make_alert(self):
         warnfile = StringIO.StringIO()
-        alert = monitors_util.make_alert(warnfile, self.msg_template)
+        alert = monitors_util.make_alert(warnfile, "MSGTYPE",
+                                         self.msg_template)
         alert(*self.params)
         warnfile.seek(0)
         written = warnfile.read()
         ts = str(int(self.epoch_seconds))
-        self.assertEquals(
-            '%s\t%s\n' % (ts, self.msg_template % self.params), written)
+        expected = '%s\tMSGTYPE\t%s\n' % (ts, self.msg_template % self.params)
+        self.assertEquals(expected, written)
 
 
     def test_build_alert_hooks(self):
         warnfile = StringIO.StringIO()
         patterns_file = InlineStringIO("""
+            BUG
             ^.*Kernel panic ?(.*)
             machine panic'd (%s)
 
+            BUG
             ^.*Oops ?(.*)
             machine Oops'd (%s)
             """)

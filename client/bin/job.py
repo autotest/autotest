@@ -209,6 +209,17 @@ class base_job(object):
         # load the max disk usage rate - default to no monitoring
         self.max_disk_usage_rate = self.get_state('__monitor_disk', default=0.0)
 
+    def disable_warnings(self, warning_type):
+        self.record("INFO", None, None,
+                    "disabling %s warnings" % warning_type,
+                    {"warnings.disable": warning_type})
+
+
+    def enable_warnings(self, warning_type):
+        self.record("INFO", None, None,
+                    "enabling %s warnings" % warning_type,
+                    {"warnings.enable": warning_type})
+
 
     def monitor_disk_usage(self, max_rate):
         """\

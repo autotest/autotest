@@ -115,6 +115,7 @@ class base_server_job(object):
         self.client = client
         self.record_prefix = ''
         self.warning_loggers = set()
+        self.warning_manager = warning_manager()
         self.ssh_user = ssh_user
         self.ssh_port = ssh_port
         self.ssh_pass = ssh_pass
@@ -614,6 +615,13 @@ class base_server_job(object):
 
 
     def _read_warnings(self):
+        """Poll all the warning loggers and extract any new warnings that have
+        been logged. If the warnings belong to a category that is currently
+        disabled, this method will discard them and they will no longer be
+        retrievable.
+
+        Returns a list of (timestamp, message) tuples, where timestamp is an
+        integer epoch timestamp."""
         warnings = []
         while True:
             # pull in a line of output from every logger that has
@@ -626,8 +634,12 @@ class base_server_job(object):
                 if len(line) == 0:
                     closed_loggers.add(logger)
                     continue
-                timestamp, msg = line.split('\t', 1)
-                warnings.append((int(timestamp), msg.strip()))
+                # parse out the warning
+                timestamp, msgtype, msg = line.split('\t', 2)
+                timestamp = int(timestamp)
+                # if the warning is valid, add it to the results
+                if self.warning_manager.is_valid(timestamp, msgtype):
+                    warnings.append((timestamp, msg.strip()))
 
             # stop listening to loggers that are closed
             self.warning_loggers -= closed_loggers
@@ -639,6 +651,22 @@ class base_server_job(object):
         # sort into timestamp order
         warnings.sort()
         return warnings
+
+
+    def disable_warnings(self, warning_type, record=True):
+        self.warning_manager.disable_warnings(warning_type)
+        if record:
+            self.record("INFO", None, None,
+                        "disabling %s warnings" % warning_type,
+                        {"warnings.disable": warning_type})
+
+
+    def enable_warnings(self, warning_type, record=True):
+        self.warning_manager.enable_warnings(warning_type)
+        if record:
+            self.record("INFO", None, None,
+                        "enabling %s warnings" % warning_type,
+                        {"warnings.enable": warning_type})
 
 
     def _render_record(self, status_code, subdir, operation, status='',
@@ -880,3 +908,36 @@ site_server_job = utils.import_site_class(
 
 class server_job(site_server_job, base_server_job):
     pass
+
+
+class warning_manager(object):
+    """Class for controlling warning logs. Manages the enabling and disabling
+    of warnings."""
+    def __init__(self):
+        # a map of warning types to a list of disabled time intervals
+        self.disabled_warnings = {}
+
+
+    def is_valid(self, timestamp, warning_type):
+        """Indicates if a warning (based on the time it occured and its type)
+        is a valid warning. A warning is considered "invalid" if this type of
+        warning was marked as "disabled" at the time the warning occured."""
+        disabled_intervals = self.disabled_warnings.get(warning_type, [])
+        for start, end in disabled_intervals:
+            if timestamp >= start and (end is None or timestamp < end):
+                return False
+        return True
+
+
+    def disable_warnings(self, warning_type, current_time_func=time.time):
+        """As of now, disables all further warnings of this type."""
+        intervals = self.disabled_warnings.setdefault(warning_type, [])
+        if not intervals or intervals[-1][1] is not None:
+            intervals.append((current_time_func(), None))
+
+
+    def enable_warnings(self, warning_type, current_time_func=time.time):
+        """As of now, enables all further warnings of this type."""
+        intervals = self.disabled_warnings.get(warning_type, [])
+        if intervals and intervals[-1][1] is None:
+            intervals[-1] = (intervals[-1][0], current_time_func())
