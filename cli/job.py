@@ -199,7 +199,7 @@ class job_stat(job_list_stat):
 
 class job_create(action_common.atest_create, job):
     """atest job create [--priority <Low|Medium|High|Urgent>]
-    [--synch_count] [--container] [--control-file </path/to/cfile>]
+    [--synch_count] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <labels this job is dependent on>]
@@ -225,9 +225,6 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
                                     'execution')
-        self.parser.add_option('-c', '--container', help='Run this client job '
-                               'in a container', action='store_true',
-                               default=False)
         self.parser.add_option('-f', '--control-file',
                                help='use this control file', metavar='FILE')
         self.parser.add_option('-s', '--server',
@@ -302,11 +299,6 @@ class job_create(action_common.atest_create, job):
         if options.control_file and options.test:
             self.invalid_syntax('Can only specify one of --control-file or '
                                 '--test, not both.')
-        if options.container and options.server:
-            self.invalid_syntax('Containers (--container) can only be added to'
-                                ' client side jobs.')
-        if options.container:
-            self.ctrl_file_data['use_container'] = options.container
         if options.kernel:
             self.ctrl_file_data['kernel'] = options.kernel
             self.ctrl_file_data['do_push_packages'] = True
