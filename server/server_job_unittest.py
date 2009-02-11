@@ -337,5 +337,62 @@ class CopyLogsTest(unittest.TestCase):
         self.god.check_playback()
 
 
+class WarningManagerTest(unittest.TestCase):
+    def test_never_disabled(self):
+        manager = server_job.warning_manager()
+        self.assertEqual(manager.is_valid(10, "MSGTYPE"), True)
+
+
+    def test_only_enabled(self):
+        manager = server_job.warning_manager()
+        manager.enable_warnings("MSGTYPE", lambda: 10)
+        self.assertEqual(manager.is_valid(20, "MSGTYPE"), True)
+
+
+    def test_disabled_once(self):
+        manager = server_job.warning_manager()
+        manager.disable_warnings("MSGTYPE", lambda: 10)
+        self.assertEqual(manager.is_valid(5, "MSGTYPE"), True)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
+
+
+    def test_disable_and_enabled(self):
+        manager = server_job.warning_manager()
+        manager.disable_warnings("MSGTYPE", lambda: 10)
+        manager.enable_warnings("MSGTYPE", lambda: 20)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
+        self.assertEqual(manager.is_valid(25, "MSGTYPE"), True)
+
+
+    def test_disabled_changes_is_valid(self):
+        manager = server_job.warning_manager()
+        self.assertEqual(manager.is_valid(15, "MSGTYPE"), True)
+        manager.disable_warnings("MSGTYPE", lambda: 10)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
+
+
+    def test_multiple_disabled_calls(self):
+        manager = server_job.warning_manager()
+        manager.disable_warnings("MSGTYPE", lambda: 10)
+        manager.disable_warnings("MSGTYPE", lambda: 20)
+        manager.enable_warnings("MSGTYPE", lambda: 30)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
+        self.assertEqual(manager.is_valid(25, "MSGTYPE"), False)
+        self.assertEqual(manager.is_valid(35, "MSGTYPE"), True)
+
+
+    def test_multiple_types(self):
+        manager = server_job.warning_manager()
+        manager.disable_warnings("MSGTYPE1", lambda: 10)
+        manager.disable_warnings("MSGTYPE2", lambda: 20)
+        manager.enable_warnings("MSGTYPE2", lambda: 30)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE1"), False)
+        self.assertEqual(manager.is_valid(15, "MSGTYPE2"), True)
+        self.assertEqual(manager.is_valid(25, "MSGTYPE1"), False)
+        self.assertEqual(manager.is_valid(25, "MSGTYPE2"), False)
+        self.assertEqual(manager.is_valid(35, "MSGTYPE1"), False)
+        self.assertEqual(manager.is_valid(35, "MSGTYPE2"), True)
+
+
 if __name__ == "__main__":
     unittest.main()

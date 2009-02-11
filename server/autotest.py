@@ -808,6 +808,23 @@ class client_logger(object):
             log_list.append(line)
 
 
+    def _process_info_line(self, line):
+        """Check if line is an INFO line, and if it is, interpret any control
+        messages (e.g. enabling/disabling warnings) that it may contain."""
+        match = re.search(r"^\t*INFO\t----\t----(.*)\t[^\t]*$", line)
+        if not match:
+            return   # not an INFO line
+        for field in match.group(1).split('\t'):
+            if field.startswith("warnings.enable="):
+                func = self.job.enable_warnings
+            elif field.startswith("warnings.disable="):
+                func = self.job.disable_warnings
+            else:
+                continue
+            warning_type = field.split("=", 1)[1]
+            func(warning_type, record=False)
+
+
     def _process_line(self, line):
         """Write out a line of data to the appropriate stream. Status
         lines sent by autotest will be prepended with
@@ -817,6 +834,7 @@ class client_logger(object):
         test_complete_match = self.test_complete_parser.search(line)
         if status_match:
             tag, line = status_match.groups()
+            self._process_info_line(line)
             self._process_quoted_line(tag, line)
         elif test_complete_match:
             fifo_path, = test_complete_match.groups()
@@ -855,6 +873,7 @@ class client_logger(object):
                     self._process_warnings(last_line,
                                            log_dict[key],
                                            warnings)
+
 
     def log_warning(self, msg):
         """Injects a WARN message into the current status logging stream."""

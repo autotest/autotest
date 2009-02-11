@@ -1,53 +1,71 @@
+BUG
 ^.*Kernel panic ?(.*)
 machine panic'd (%s)
 
+BUG
 ^.*Oops ?(.*)
 machine Oops'd (%s)
 
+BUG
 ^.*kdb>
 machine dropped to kdb (see console)
 
+BUG
 ^.*Open Firmware exception handle entered from non-OF code
 machine took an open firmware exception (see console)
 
+BUG
 ^.*(BUG:.*)
 %s
 
+BUG
 ^.*(kernel BUG .*)
 %s
 
+OOM
 ^.*(invoked oom-killer:.*)
 %s
 
+BUG
 ^(.*CommandAbort.*)
 %s
 
+LOCKDEP
 ^.*(possible circular locking dependency detected.*)
 %s
 
+LOCKDEP
 ^.*(unsafe lock order detected.*)
 %s
 
+LOCKDEP
 ^.*(possible recursive locking detected.*)
 %s
 
+LOCKDEP
 ^.*(inconsistent lock state.*)
 %s
 
+LOCKDEP
 ^.*(possible irq lock inversion dependency detected.*)
 %s
 
+LOCKDEP
 ^.*(bad unlock balance detected.*)
 %s
 
+LOCKDEP
 ^.*(bad contention detected.*)
 %s
 
+LOCKDEP
 ^.*(held lock freed.*)
 %s
 
+LOCKDEP
 ^.*(lock held at task exit time.*)
 %s
 
+LOCKDEP
 ^.*(lock held when returning to user space.*)
 %s
