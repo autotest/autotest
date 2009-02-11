@@ -2,6 +2,7 @@ package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
 import autotest.common.Utils;
+import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
@@ -11,47 +12,39 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class MetricsPlotFrontend extends GraphingFrontend {
+public class MetricsPlotFrontend extends DynamicGraphingFrontend implements ClickListener {
     
     public static final String NORMALIZE_SINGLE = "single";
     public static final String NORMALIZE_FIRST = "first";
     public static final String NORMALIZE_SERIES_PREFIX = "series__";
     public static final String NORMALIZE_X_PREFIX = "x__";
     
-    private PreconfigSelector preconfig = new PreconfigSelector("metrics", this);
-    private ListBox plotSelector = new ListBox();
-    private DBColumnSelector xAxis = new DBColumnSelector(DBColumnSelector.PERF_VIEW, true);
-    private FilterSelector globalFilter =
-        new FilterSelector(DBColumnSelector.PERF_VIEW);
+    protected FilterSelector globalFilter = new FilterSelector(DBColumnSelector.PERF_VIEW);
+    private ExtendedListBox plotSelector = new ExtendedListBox();
+    private ExtendedListBox xAxis = new DBColumnSelector(DBColumnSelector.PERF_VIEW, true);
     private RadioButton noNormalizeMultiple =
         new RadioButton("normalize", "No normalization (multiple subplots)");
     private RadioButton noNormalizeSingle =
         new RadioButton("normalize", "No normalization (single plot)");
     private RadioButton normalizeFirst = new RadioButton("normalize", "First data point");
     private RadioButton normalizeSeries = new RadioButton("normalize", "Specified series:");
-    private ListBox normalizeSeriesSelect = new ListBox();
+    private ExtendedListBox normalizeSeriesSelect = new ExtendedListBox();
     private RadioButton normalizeX = new RadioButton("normalize", "Specified X-axis value:");
     private TextBox normalizeXSelect = new TextBox();
-    private Button graphButton = new Button("Graph");
-    private HTML graph = new HTML();
-    
     private SeriesSelector seriesSelector = new SeriesSelector(new ChangeListener() {
         public void onChange(Widget w) {
             refreshSeries();
@@ -59,46 +52,19 @@ public class MetricsPlotFrontend extends GraphingFrontend {
     });
     
     public MetricsPlotFrontend(final TabView parent) {
+        super(parent, "create_metrics_plot", "metrics");
+
         noNormalizeSingle.setChecked(true);
-        noNormalizeMultiple.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                normalizeSeriesSelect.setEnabled(false);
-                normalizeXSelect.setEnabled(false);
-                checkInvertible();
-            }
-        });
-        noNormalizeSingle.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                normalizeSeriesSelect.setEnabled(false);
-                normalizeXSelect.setEnabled(false);
-                checkInvertible();
-            }
-        });
-        normalizeFirst.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                normalizeSeriesSelect.setEnabled(false);
-                normalizeXSelect.setEnabled(false);
-                checkInvertible();
-            }
-        });
-        normalizeSeries.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                normalizeSeriesSelect.setEnabled(true);
-                normalizeXSelect.setEnabled(false);
-                checkInvertible();
-                refreshSeries();
-            }
-        });
+
+        noNormalizeMultiple.addClickListener(this);
+        noNormalizeSingle.addClickListener(this);
+        normalizeFirst.addClickListener(this);
+        normalizeSeries.addClickListener(this);
+        normalizeX.addClickListener(this);
+
         normalizeSeriesSelect.setEnabled(false);
-        normalizeX.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                normalizeSeriesSelect.setEnabled(false);
-                normalizeXSelect.setEnabled(true);
-                checkInvertible();
-            }
-        });
         normalizeXSelect.setEnabled(false);
-        
+
         plotSelector.addItem("Line");
         plotSelector.addItem("Bar");
         plotSelector.addChangeListener(new ChangeListener() {
@@ -106,29 +72,7 @@ public class MetricsPlotFrontend extends GraphingFrontend {
                 checkNormalizeInput();
             }
         });
-        
-        graphButton.addClickListener(new ClickListener() {
-            public void onClick(Widget w) {
-                parent.updateHistory();
-                graph.setVisible(false);
-                embeddingLink.setVisible(false);
-                
-                JSONObject params = buildParams();
-                if (params == null) {
-                    return;
-                }
-                
-                rpcProxy.rpcCall("create_metrics_plot", params, new JsonRpcCallback() {
-                    @Override
-                    public void onSuccess(JSONValue result) {
-                        graph.setHTML(Utils.jsonToString(result));
-                        graph.setVisible(true);
-                        embeddingLink.setVisible(true);
-                    }
-                });
-            }
-        });
-        
+
         Panel normalizePanel = new VerticalPanel();
         normalizePanel.add(noNormalizeMultiple);
         normalizePanel.add(noNormalizeSingle);
@@ -149,48 +93,60 @@ public class MetricsPlotFrontend extends GraphingFrontend {
         addControl("Series:", seriesSelector);
         addControl("Normalize to:", normalizePanel);
         
-        table.setWidget(table.getRowCount(), 1, graphButton);
-        table.setWidget(table.getRowCount(), 0, graph);
-        table.getFlexCellFormatter().setColSpan(table.getRowCount() - 1, 0, 3);
-        
-        table.setWidget(table.getRowCount(), 2, embeddingLink);
-        table.getFlexCellFormatter().setHorizontalAlignment(
-                table.getRowCount() - 1, 2, HasHorizontalAlignment.ALIGN_RIGHT);
-        
-        graph.setVisible(false);
-        embeddingLink.setVisible(false);
-        
-        initWidget(table);
+        commonInitialization();
+    }
+
+    @Override
+    public void onClick(Widget sender) {
+        if (sender != noNormalizeSingle && sender != noNormalizeMultiple 
+                && sender != normalizeSeries && sender != normalizeX) {
+            super.onClick(sender);
+            return;
+        }
+
+        normalizeSeriesSelect.setEnabled(false);
+        normalizeXSelect.setEnabled(false);
+        if (sender == normalizeSeries) {
+            normalizeSeriesSelect.setEnabled(true);
+            refreshSeries();
+        } else if (sender == normalizeX) {
+            normalizeXSelect.setEnabled(true);
+        }
+
+        checkInvertible();
     }
     
-    @Override
-    public void refresh() {
-        // Nothing to refresh
-    }
-    
-    @Override
-    protected void addToHistory(Map<String, String> args) {
-        String plot = plotSelector.getValue(plotSelector.getSelectedIndex());
-        args.put("plot", plot);
-        args.put("xAxis", xAxis.getColumn());
-        globalFilter.addToHistory(args, "globalFilter");
-        seriesSelector.addToHistory(args);
-        if (plot.equals("Line") && noNormalizeSingle.isChecked()) {
-            args.put("normalize", "single");
+    private void addNormalizeParameter(String plotType, Map<String, String> parameters) {
+        String normalizationType = null;
+        if (plotType.equals("Line") && noNormalizeSingle.isChecked()) {
+            normalizationType = NORMALIZE_SINGLE;
         } else if (normalizeFirst.isChecked()) {
-            args.put("normalize", "first");
+            normalizationType = NORMALIZE_FIRST;
         } else if (normalizeSeries.isChecked()) {
-            String series = 
-                normalizeSeriesSelect.getValue(normalizeSeriesSelect.getSelectedIndex());
-            args.put("normalize", "series__" + series);
+            String series = normalizeSeriesSelect.getSelectedValue();
+            normalizationType = NORMALIZE_SERIES_PREFIX + series;
         } else if (normalizeX.isChecked()) {
             String baseline = normalizeXSelect.getText();
-            args.put("normalize", "x__" + baseline);
+            normalizationType = NORMALIZE_X_PREFIX + baseline;
         }
+        
+        if (normalizationType != null) {
+            parameters.put("normalize", normalizationType);
+        }
+    }
+
+    @Override
+    public void addToHistory(Map<String, String> args) {
+        String plot = plotSelector.getValue(plotSelector.getSelectedIndex());
+        args.put("plot", plot);
+        args.put("xAxis", xAxis.getSelectedValue());
+        globalFilter.addToHistory(args, "globalFilter");
+        seriesSelector.addToHistory(args);
+        addNormalizeParameter(plot, args);
     }
     
     @Override
-    protected void handleHistoryArguments(Map<String, String> args) {
+    public void handleHistoryArguments(Map<String, String> args) {
         setVisible(false);
         graph.setVisible(false);
         embeddingLink.setVisible(false);
@@ -203,7 +159,7 @@ public class MetricsPlotFrontend extends GraphingFrontend {
             }
         }
         
-        xAxis.selectColumn(args.get("xAxis"));
+        xAxis.selectByValue(args.get("xAxis"));
         globalFilter.handleHistoryArguments(args, "globalFilter");
         seriesSelector.handleHistoryArguments(args);
         
@@ -213,9 +169,9 @@ public class MetricsPlotFrontend extends GraphingFrontend {
         normalizeXSelect.setEnabled(false);
         String normalizeString = args.get("normalize");
         if (normalizeString != null) {
-            if (normalizeString.equals("single")) {
+            if (normalizeString.equals(NORMALIZE_SINGLE)) {
                 noNormalizeSingle.setChecked(true);
-            } else if (normalizeString.equals("first")) {
+            } else if (normalizeString.equals(NORMALIZE_FIRST)) {
                 normalizeFirst.setChecked(true);
             } else if (normalizeString.startsWith(NORMALIZE_SERIES_PREFIX)) {
                 normalizeSeries.setChecked(true);
@@ -246,11 +202,7 @@ public class MetricsPlotFrontend extends GraphingFrontend {
     }
     
     private void refreshSeries() {
-        int selectedIndex = normalizeSeriesSelect.getSelectedIndex();
-        String selectedValue = null;
-        if (selectedIndex != -1) {
-            selectedValue = normalizeSeriesSelect.getValue(selectedIndex);
-        }
+        String selectedValue = normalizeSeriesSelect.getSelectedValue();
         normalizeSeriesSelect.clear();
         for (Series selector : seriesSelector.getAllSeries()) {
             normalizeSeriesSelect.addItem(selector.getName());
@@ -284,11 +236,14 @@ public class MetricsPlotFrontend extends GraphingFrontend {
                 
                 for (int i = 0; i < data.size(); i++) {
                     final JSONArray row = data.get(i).isArray();
-                    SimpleHyperlink link = new SimpleHyperlink(Utils.jsonToString(row.get(1)));
+                    final int testId = (int) row.get(0).isNumber().doubleValue();
+                    String yValue = Utils.jsonToString(row.get(1));
+
+                    SimpleHyperlink link = new SimpleHyperlink(yValue);
                     link.addClickListener(new ClickListener() {
                         public void onClick(Widget sender) {
                             drill.hide();
-                            listener.onSelectTest((int) row.get(0).isNumber().doubleValue());
+                            listener.onSelectTest(testId);
                         }
                     });
                     contents.setWidget(i, 0, link);
@@ -312,40 +267,14 @@ public class MetricsPlotFrontend extends GraphingFrontend {
     }
     
     private JSONObject buildQueries() {
-        ArrayList<Series> seriesList = seriesSelector.getAllSeries();
+        List<Series> seriesList = seriesSelector.getAllSeries();
         JSONObject queries = new JSONObject();
         StringBuilder sql = new StringBuilder();
         
         sql.append("SELECT ");
-        sql.append(xAxis.getColumn());
+        sql.append(xAxis.getSelectedValue());
         for (Series series : seriesList) {
-            DBColumnSelector valueSelector = series.getDBColumnSelector();
-            
-            StringBuilder ifClause = new StringBuilder();
-            String seriesFilter = series.getFilterString();
-            if (!seriesFilter.equals("")) {
-                ifClause.append("IF(");
-                ifClause.append(seriesFilter);
-                ifClause.append(", ");
-            }
-            ifClause.append(valueSelector.getColumn());
-            if (!seriesFilter.equals("")) {
-                ifClause.append(", NULL)");   
-            }
-            
-            sql.append(", ");
-            sql.append(series.getAggregation());
-            sql.append(ifClause);
-            sql.append(") '");
-            sql.append(series.getName());
-            sql.append("'");
-            if (series.wantErrorBars()) {
-                sql.append(", STDDEV(");
-                sql.append(ifClause);
-                sql.append(") 'errors-");
-                sql.append(series.getName());
-                sql.append("'");
-            }
+            addSeriesSelects(series, sql);
         }
         
         sql.append(" FROM perf_view_2");
@@ -360,72 +289,99 @@ public class MetricsPlotFrontend extends GraphingFrontend {
         sql.append(xFilterString);
 
         sql.append(" GROUP BY ");
-        sql.append(xAxis.getColumn());
+        sql.append(xAxis.getSelectedValue());
         queries.put("__main__", new JSONString(sql.toString()));
         
         for (Series series : seriesList) {
-            sql = new StringBuilder();
-            DBColumnSelector valueSelector = series.getDBColumnSelector();
-            
-            sql.append("SELECT test_idx, ");
-            sql.append(valueSelector.getColumn());
-            sql.append(" FROM perf_view_2 WHERE ");
-            
-            String seriesFilter = series.getFilterString();
-            if (!xFilterString.equals("") || !seriesFilter.equals("")) {
-                sql.append(xFilterString.replace("%", "%%"));
-                if (!xFilterString.equals("") && !seriesFilter.equals("")) {
-                    sql.append(" AND ");
-                }
-                sql.append(seriesFilter.replace("%", "%%"));
-                sql.append(" AND ");
-            }
-            
-            sql.append(xAxis.getColumn());
-            sql.append(" = %s ORDER BY ");
-            sql.append(valueSelector.getColumn());
-            queries.put("__" + series.getName() + "__", new JSONString(sql.toString()));
+            String drilldownQuery = getSeriesDrilldownQuery(series, xFilterString);
+            queries.put("__" + series.getName() + "__", new JSONString(drilldownQuery));
         }
         
         return queries;
     }
+
+    private String getSeriesDrilldownQuery(Series series, String xFilterString) {
+        StringBuilder sql;
+        sql = new StringBuilder();
+        ExtendedListBox valueSelector = series.getDBColumnSelector();
+        
+        sql.append("SELECT test_idx, ");
+        sql.append(valueSelector.getSelectedValue());
+        sql.append(" FROM perf_view_2 WHERE ");
+        
+        String seriesFilter = series.getFilterString();
+        if (!xFilterString.equals("") || !seriesFilter.equals("")) {
+            sql.append(xFilterString.replace("%", "%%"));
+            if (!xFilterString.equals("") && !seriesFilter.equals("")) {
+                sql.append(" AND ");
+            }
+            sql.append(seriesFilter.replace("%", "%%"));
+            sql.append(" AND ");
+        }
+        
+        sql.append(xAxis.getSelectedValue());
+        sql.append(" = %s ORDER BY ");
+        sql.append(valueSelector.getSelectedValue());
+        return sql.toString();
+    }
+
+    private void addSeriesSelects(Series series, StringBuilder sql) {
+        ExtendedListBox valueSelector = series.getDBColumnSelector();
+        
+        StringBuilder ifClause = new StringBuilder();
+        String seriesFilter = series.getFilterString();
+        if (!seriesFilter.equals("")) {
+            ifClause.append("IF(");
+            ifClause.append(seriesFilter);
+            ifClause.append(", ");
+        }
+        ifClause.append(valueSelector.getSelectedValue());
+        if (!seriesFilter.equals("")) {
+            ifClause.append(", NULL)");   
+        }
+        
+        sql.append(", ");
+        sql.append(series.getAggregation());
+        sql.append(ifClause);
+        sql.append(") '");
+        sql.append(series.getName());
+        sql.append("'");
+        if (series.wantErrorBars()) {
+            sql.append(", STDDEV(");
+            sql.append(ifClause);
+            sql.append(") 'errors-");
+            sql.append(series.getName());
+            sql.append("'");
+        }
+    }
     
     // Disable the "Invert y-axis" checkboxes if inversion doesn't make sense
     private void checkInvertible() {
-        boolean invertible = (
-                noNormalizeMultiple.isChecked() ||
-                normalizeFirst.isChecked() ||
-                normalizeX.isChecked());
+        boolean invertible = noNormalizeMultiple.isChecked() || normalizeFirst.isChecked()
+                             || normalizeX.isChecked();
         seriesSelector.setInvertible(invertible);
     }
     
-    private JSONObject buildParams() {
+    @Override
+    protected JSONObject buildParams() {
         JSONObject queries = buildQueries();
         if (queries == null) {
             return null;
         }
         
-        JSONObject params = new JSONObject();
-        
-        params.put("queries", queries);
-        String plot = plotSelector.getValue(plotSelector.getSelectedIndex());
-        params.put("plot", new JSONString(plot));
-        
-        if (plot.equals("Line") && noNormalizeSingle.isChecked()) {
-            params.put("normalize", new JSONString(NORMALIZE_SINGLE));
-        } else if (normalizeFirst.isChecked()) {
-            params.put("normalize", new JSONString(NORMALIZE_FIRST));
-        } else if (normalizeSeries.isChecked()) {
-            String series = 
-                normalizeSeriesSelect.getValue(normalizeSeriesSelect.getSelectedIndex());
-            params.put("normalize", new JSONString(NORMALIZE_SERIES_PREFIX + series));
-        } else if (normalizeX.isChecked()) {
-            String baseline = normalizeXSelect.getText();
-            params.put("normalize", new JSONString(NORMALIZE_X_PREFIX + baseline));
-        }
-        
-        params.put("invert", Utils.stringsToJSON(seriesSelector.getInverted()));
-        
-        return params;
+        Map<String, String> params = new HashMap<String, String>();
+        String plot = plotSelector.getSelectedValue();
+        params.put("plot", plot);
+        addNormalizeParameter(plot, params);
+
+        JSONObject jsonParams = Utils.mapToJsonObject(params);
+        jsonParams.put("invert", Utils.stringsToJSON(seriesSelector.getInverted()));
+        jsonParams.put("queries", queries);
+        return jsonParams;
+    }
+
+    @Override
+    public String getFrontendId() {
+        return "metrics_plot";
     }
 }

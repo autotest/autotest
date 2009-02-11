@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
+import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.TabView;
@@ -85,24 +86,32 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         initWidget(table);
     }
 
-    @Override
-    public void refresh() {
+    private void getHostsAndTests(final SimpleCallback onFinished) {
         setEnabled(false);
         rpcProxy.rpcCall("get_hosts_and_tests", new JSONObject(), new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 hostsAndTests = result.isObject();
-                oracle.clear();
-                for (String host : hostsAndTests.keySet()) {
-                    oracle.add(host);
-                }
+                onFinished.doCallback(null);
                 setEnabled(true);
             }
         });
     }
 
     @Override
-    protected void addToHistory(Map<String, String> args) {
+    public void refresh() {
+        getHostsAndTests(new SimpleCallback() {
+            public void doCallback(Object source) {
+                oracle.clear();
+                for (String host : hostsAndTests.keySet()) {
+                    oracle.add(host);
+                }
+            } 
+        });
+    }
+
+    @Override
+    public void addToHistory(Map<String, String> args) {
         args.put("normalize", String.valueOf(normalize.isChecked()));
         args.put("hostname", hostname.getText());
 
@@ -120,17 +129,14 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     }
 
     @Override
-    protected void handleHistoryArguments(final Map<String, String> args) {
-        setEnabled(false);
+    public void handleHistoryArguments(final Map<String, String> args) {
         hostname.setText(args.get("hostname"));
         normalize.setChecked(Boolean.parseBoolean(args.get("normalize")));
         normalizeClicked();
         kernel.setText(args.get("kernel"));
 
-        rpcProxy.rpcCall("get_hosts_and_tests", new JSONObject(), new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
-                hostsAndTests = result.isObject();
+        getHostsAndTests(new SimpleCallback() {
+            public void doCallback(Object source) {
                 refreshTests();
 
                 Set<String> benchmarks =
@@ -138,8 +144,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
                 for (int i = 0; i < benchmark.getItemCount(); i++) {
                     benchmark.setItemSelected(i, benchmarks.contains(benchmark.getValue(i)));
                 }
-                setEnabled(true);
-            }
+            } 
         });
     }
 
@@ -156,6 +161,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     // Change the state of the page based on the status of the "normalize" checkbox
     private void normalizeClicked() {
         benchmark.setMultipleSelect(normalize.isChecked());
+        // when switching to single-select, we need to manually force the selection to a single item
         int selectedIndex = benchmark.getSelectedIndex();
         for (int i = 0; i < benchmark.getItemCount(); i++) {
             benchmark.setItemSelected(i, i == selectedIndex);
@@ -252,5 +258,10 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         JSONObject benchmarkKey =
             StaticDataRepository.getRepository().getData("benchmark_key").isObject();
         return Utils.jsonToString(benchmarkKey.get(benchmark.replaceAll("\\..*", "")));
+    }
+
+    @Override
+    public String getFrontendId() {
+        return "existing_graphs";
     }
 }
