@@ -105,7 +105,8 @@ class base_test:
             utils.drop_caches()
 
 
-    def execute(self, iterations=None, test_length=None, *args, **dargs):
+    def execute(self, iterations=None, test_length=None, profile_only=False,
+                _get_time=time.time, *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
         If you want to implement a benchmark test, it's better to implement
@@ -113,12 +114,20 @@ class base_test:
         other tests, you can just override the default implementation.
 
         @param test_length: The minimum test length in seconds. We'll run the
-        run_once function for a number of times large enough to cover the
-        minimum test length.
+            run_once function for a number of times large enough to cover the
+            minimum test length.
 
         @param iterations: A number of iterations that we'll run the run_once
-        function. This parameter is incompatible with test_length and will
-        be silently ignored if you specify both.
+            function. This parameter is incompatible with test_length and will
+            be silently ignored if you specify both.
+
+        @param profile_only: Do not run any test iterations before running
+            the test under the profiler.  This is equivalent to specifying
+            iterations=0 but is much easier to remember/read/comprehend when
+            making control files with job.run_test(profile_only=True) in it
+            rather than job.run_test(iterations=0).
+
+        @param _get_time: [time.time] Used for unit test time injection.
         """
 
         self.warmup(*args, **dargs)
@@ -130,39 +139,51 @@ class base_test:
         if profilers.active():
             profilers.stop(self)
         # If the user called this test in an odd way (specified both iterations
-        # and test_length), let's warn him
+        # and test_length), let's warn them.
         if iterations and test_length:
-            print 'Iterations parameter silently ignored (timed execution)'
+            self.test_log.info(
+                    'Iterations parameter ignored (timed execution).')
         if test_length:
-            test_start = time.time()
+            test_start = _get_time()
             time_elapsed = 0
             timed_counter = 0
-            print 'Benchmark started. Minimum test length: %d s' % (test_length)
+            self.test_log.info('Benchmark started. Minimum test length: %d s',
+                               test_length)
             while time_elapsed < test_length:
                 timed_counter = timed_counter + 1
                 if time_elapsed == 0:
-                    print 'Executing iteration %d' % (timed_counter)
+                    self.test_log.info('Executing iteration %d', timed_counter)
                 elif time_elapsed > 0:
-                    print 'Executing iteration %d, time_elapsed %d s' % \
-                           (timed_counter, time_elapsed)
+                    self.test_log.info(
+                            'Executing iteration %d, time_elapsed %d s',
+                            timed_counter, time_elapsed)
                 self.drop_caches_between_iterations()
                 self.run_once(*args, **dargs)
-                test_iteration_finish = time.time()
+                test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
-            print 'Benchmark finished after %d iterations' % (timed_counter)
-            print 'Time elapsed: %d s' % (time_elapsed)
+            self.test_log.info('Benchmark finished after %d iterations',
+                               timed_counter)
+            self.test_log.info('Time elapsed: %d s', time_elapsed)
         else:
-            if iterations is None:
+            orig_iterations = iterations
+            if profile_only:
+                if iterations:
+                    self.test_log.info('Iterations parameter ignored '
+                                       '(profile_only=True).')
+                iterations = 0
+            elif iterations is None:
                 iterations = 1
-            # Dropped profilers.only() - if you want that, use iterations=0
-            print 'Benchmark started. Number of iterations: %d' % (iterations)
-            for self.iteration in range(1, iterations+1):
-                print 'Executing iteration %d of %d' % (self.iteration,
-                                                                    iterations)
-                self.drop_caches_between_iterations()
-                self.run_once(*args, **dargs)
-                self.postprocess_iteration()
-            print 'Benchmark finished after %d iterations' % (iterations)
+            if iterations:
+                self.test_log.info('Benchmark started. '
+                                   'Number of iterations: %d', iterations)
+                for self.iteration in xrange(1, iterations+1):
+                    self.test_log.info('Executing iteration %d of %d',
+                                       self.iteration, iterations)
+                    self.drop_caches_between_iterations()
+                    self.run_once(*args, **dargs)
+                    self.postprocess_iteration()
+                self.test_log.info('Benchmark finished after %d iterations.',
+                                   iterations)
 
         self.run_once_profiling(*args, **dargs)
 
