@@ -44,33 +44,35 @@ def dump_object(header, obj):
 
 class RpcClient(object):
     """
-    AFE class for communicating with the autotest frontend
+    Abstract RPC class for communicating with the autotest frontend
+    Inherited for both TKO and AFE uses.
 
-    All the constructors go in the afe class. 
-    Manipulating methods go in the classes themselves
+    All the constructors go in the afe / tko class. 
+    Manipulating methods go in the object classes themselves
     """
-    def __init__(self, path, user, web_server, print_log, debug):
+    def __init__(self, path, user, server, print_log, debug):
         """
-        Create a cached instance of a connection to the AFE
+        Create a cached instance of a connection to the frontend
 
             user: username to connect as
-            web_server: AFE instance to connect to
+            server: frontend server to connect to
             print_log: pring a logging message to stdout on every operation
             debug: print out all RPC traffic
         """
         if not user:
             user = os.environ.get('LOGNAME')
-        if not web_server:
+        if not server:
             if 'AUTOTEST_WEB' in os.environ:
-                web_server = 'http://' + os.environ['AUTOTEST_WEB']
+                server = os.environ['AUTOTEST_WEB']
             else:
-                web_server = 'http://' + GLOBAL_CONFIG.get_config_value(
-                                  'SERVER', 'hostname', default=DEFAULT_SERVER)
+                server = GLOBAL_CONFIG.get_config_value('SERVER', 'hostname',
+                                                        default=DEFAULT_SERVER)
+        self.server = server
         self.user = user
         self.print_log = print_log
         self.debug = debug
         headers = {'AUTHORIZATION' : self.user}
-        rpc_server = web_server + path
+        rpc_server = 'http://' + server + path
         if debug:
             print 'SERVER: %s' % rpc_server
             print 'HEADERS: %s' % headers
@@ -84,7 +86,11 @@ class RpcClient(object):
         rpc_call = getattr(self.proxy, call)
         if self.debug:
             print 'DEBUG: %s %s' % (call, dargs)
-        return utils.strip_unicode(rpc_call(**dargs))
+        try:
+            return utils.strip_unicode(rpc_call(**dargs))
+        except Exception:
+            print 'FAILED RPC CALL: %s %s' % (call, dargs)
+            raise
 
 
     def log(self, message):
@@ -93,21 +99,21 @@ class RpcClient(object):
 
 
 class TKO(RpcClient):
-    def __init__(self, user=None, web_server=None, print_log=True, debug=False):
+    def __init__(self, user=None, server=None, print_log=True, debug=False):
         super(TKO, self).__init__('/new_tko/server/noauth/rpc/', user,
-                                  web_server, print_log, debug)
+                                  server, print_log, debug)
 
 
     def get_status_counts(self, job, **data):
         entries = self.run('get_status_counts',
-                           group_by=['hostname', 'test_name'], 
+                           group_by=['hostname', 'test_name', 'reason'], 
                            job_tag__startswith='%s-' % job, **data)
         return [TestStatus(self, e) for e in entries['groups']]
 
 
 class AFE(RpcClient):
-    def __init__(self, user=None, web_server=None, print_log=True, debug=False):
-        super(AFE, self).__init__('/afe/server/noauth/rpc/', user, web_server,
+    def __init__(self, user=None, server=None, print_log=True, debug=False):
+        super(AFE, self).__init__('/afe/server/noauth/rpc/', user, server,
                                   print_log, debug)
 
     
@@ -270,20 +276,26 @@ class AFE(RpcClient):
             for status in job.results_platform_map[platform]:
                 if status == 'Total':
                     continue
-                hosts = ','.join(job.results_platform_map[platform][status])
-                text.append('%20s %10s %s\n' % (platform, status, hosts))
+                for host in job.results_platform_map[platform][status]:
+                    text.append('%20s %10s %10s' % (platform, status, host))
+                    if status == 'Failed':
+                        for test_status in job.test_status[host].fail:
+                            text.append('(%s, %s) : %s' % \
+                                        (host, test_status.test_name,
+                                         test_status.reason))
+                        text.append('')
 
-        tko_base_url = 'http://%s/tko' % GLOBAL_CONFIG.get_config_value(
-                'SERVER', 'hostname', default=DEFAULT_SERVER)
+        base_url = 'http://' + self.server
 
         params = ('columns=test',
                   'rows=machine_group',
                   "condition=tag~'%s-%%25'" % job.id,
                   'title=Report')
         query_string = '&'.join(params)
-        url = '%s/compose_query.cgi?%s' % (tko_base_url, query_string)
-        text.append('\n')
-        text.append(url)
+        url = '%s/tko/compose_query.cgi?%s' % (base_url, query_string)
+        text.append(url + '\n')
+        url = '%s/afe/#tab_id=view_job&object_id=%s' % (base_url, job.id)
+        text.append(url + '\n')
 
         body = '\n'.join(text)
         print '---------------------------------------------------'
@@ -310,7 +322,7 @@ class AFE(RpcClient):
         print ' %s : %s' % (job.id, job.name)
 
 
-    def poll_all_jobs(self, tko, jobs, email_from, email_to):
+    def poll_all_jobs(self, tko, jobs, email_from=None, email_to=None):
         """
         Poll all jobs in a list.
             jobs: list of job objects to poll
@@ -324,7 +336,7 @@ class AFE(RpcClient):
         """
         results = []
         for job in jobs:
-            job.result = self.poll_job_results(tko, job, debug=False)
+            job.result = self.poll_job_results(tko, job)
             results.append(job.result)
             if job.result is not None and not job.notified:
                 self.result_notify(job, email_from, email_to)
@@ -380,7 +392,7 @@ class AFE(RpcClient):
         return new_jobs
 
 
-    def _job_test_results(self, tko, job):
+    def _job_test_results(self, tko, job, debug):
         """
         Retrieve test results for a job
         """
@@ -396,13 +408,15 @@ class AFE(RpcClient):
             # SERVER_JOB is buggy, and often gives false failures. Ignore it.
             if test_status.test_name == 'SERVER_JOB':
                 continue
+            if debug:
+                print test_status
             hostname = test_status.hostname
             if hostname not in job.test_status:
                 job.test_status[hostname] = TestResults()
             job.test_status[hostname].add(test_status)
 
 
-    def _job_results_platform_map(self, job):
+    def _job_results_platform_map(self, job, debug):
         job.results_platform_map = {}
         try:
             job_statuses = self.get_host_queue_entries(job=job.id)
@@ -413,14 +427,34 @@ class AFE(RpcClient):
 
         platform_map = {}
         job.job_status = {}
+        job.metahost_index = {}
         for job_status in job_statuses:
-            hostname = job_status.host.hostname
+            if job_status.host:
+                hostname = job_status.host.hostname
+            else:              # This is a metahost
+                metahost = job_status.meta_host
+                index = job.metahost_index.get(metahost, 1)
+                job.metahost_index[metahost] = index + 1
+                hostname = '%s.%s' % (metahost, index)
             job.job_status[hostname] = job_status.status
             status = job_status.status
+            # Skip hosts that failed verify - that's a machine failure,
+            # not a job failure
+            if hostname in job.test_status:
+                verify_failed = False
+                for failure in job.test_status[hostname].fail:
+                    if failure.test_name == 'verify':
+                        verify_failed = True
+                        break
+                if verify_failed:
+                    continue
             if hostname in job.test_status and job.test_status[hostname].fail:
                 # Job status doesn't reflect failed tests, override that
                 status = 'Failed'
-            platform = job_status.host.platform
+            if job_status.host:
+                platform = job_status.host.platform
+            else:              # This is a metahost
+                platform = job_status.meta_host
             if platform not in platform_map:
                 platform_map[platform] = {'Total' : [hostname]}
             else:
@@ -438,8 +472,8 @@ class AFE(RpcClient):
             None:  if any platform has more than one machine not yet Good.
             True:  if all platforms have at least all-but-one machines Good.
         """
-        self._job_test_results(tko, job)
-        self._job_results_platform_map(job)
+        self._job_test_results(tko, job, debug)
+        self._job_results_platform_map(job, debug)
 
         good_platforms = []
         bad_platforms = []
@@ -448,10 +482,11 @@ class AFE(RpcClient):
         for platform in platform_map:
             total = len(platform_map[platform]['Total'])
             completed = len(platform_map[platform].get('Completed', []))
-            failed = len(platform_map[platform].get('Failed', []))
-            if failed > 1:
+            failed = len(platform_map[platform].get('Failed', [])) + \
+                     len(platform_map[platform].get('Aborted', []))
+            if (failed * 2 >= total) or (failed > 1):
                 bad_platforms.append(platform)
-            elif (completed > 1) and (completed + 1 >= total):
+            elif (completed >= 1) and (completed + 1 >= total):
                 # if all or all but one are good, call the job good.
                 good_platforms.append(platform)
             else:
@@ -488,13 +523,16 @@ class TestResults(object):
     def __init__(self):
         self.good = []
         self.fail = []
+        self.pending = []
 
 
     def add(self, result):
-        if result.complete_count - result.pass_count > 0:
-            self.fail.append(result.test_name)
+        if result.complete_count > result.pass_count:
+            self.fail.append(result)
+        elif result.incomplete_count > 0:
+            self.pending.append(result)
         else:
-            self.good.append(result.test_name)
+            self.good.append(result)
 
 
 class RpcObject(object):
@@ -597,7 +635,11 @@ class JobStatus(RpcObject):
 
 
     def __repr__(self):
-        return 'JOB STATUS: %s-%s' % (self.job.id, self.host.hostname)
+        if self.host and self.host.hostname:
+            hostname = self.host.hostname
+        else:
+            hostname = 'None'
+        return 'JOB STATUS: %s-%s' % (self.job.id, hostname)
 
 
 class Host(RpcObject):
