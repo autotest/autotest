@@ -777,6 +777,61 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test_job0', 'Created'],)
 
 
+    def test_execute_create_job_oth(self):
+        data = self.data.copy()
+        data['one_time_hosts'] = ['host0']
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           'test_job0', '--one-time-hosts', 'host0'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest']},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : []}),
+                           ('create_job', data, True, 180)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_multi_oth(self):
+        data = self.data.copy()
+        data['one_time_hosts'] = ['host1', 'host0']
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           'test_job0', '--one-time-hosts', 'host0,host1'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest']},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : []}),
+                           ('create_job', data, True, 180)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_oth_exists(self):
+        data = self.data.copy()
+        data['one_time_hosts'] = ['host0']
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           'test_job0', '--one-time-hosts', 'host0'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest']},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : []}),
+                           ('create_job', data, False,
+                            '''ValidationError: {'hostname': 'host0 '''
+                            '''already exists in the autotest DB.  '''
+                            '''Select it rather than entering it as '''
+                            '''a one time host.'}''')],
+                     out_words_no=['test_job0', 'Created'],
+                     err_words_ok=['failed', 'already exists'])
+
+
     def _test_parse_hosts(self, args, exp_hosts=[], exp_meta_hosts=[]):
         testjob = job.job_create()
         (hosts, meta_hosts) = testjob.parse_hosts(args)
