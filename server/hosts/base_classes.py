@@ -172,6 +172,14 @@ class Host(object):
         pass
 
 
+    def verify_hardware(self):
+        pass
+
+
+    def verify_software(self):
+        pass
+
+
     def check_diskspace(self, path, gb):
         print 'Checking for >= %s GB of space under %s on machine %s' % \
                                              (gb, path, self.hostname)
