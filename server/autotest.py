@@ -837,6 +837,7 @@ class client_logger(object):
             self._process_info_line(line)
             self._process_quoted_line(tag, line)
         elif test_complete_match:
+            self._process_logs()
             fifo_path, = test_complete_match.groups()
             self.log_collector.collect_client_job_results()
             self.host.run("echo A > %s" % fifo_path)
