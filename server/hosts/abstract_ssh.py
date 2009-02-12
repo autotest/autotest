@@ -309,13 +309,15 @@ class AbstractSSHHost(SiteHost):
 
 
     def verify(self):
-        super(AbstractSSHHost, self).verify()
+        super(AbstractSSHHost, self).verify_hardware()
 
         print 'Pinging host ' + self.hostname
         self.ssh_ping()
 
         if self.is_shutting_down():
             raise error.AutoservHostError("Host is shutting down")
+
+        super(AbstractSSHHost, self).verify_software()
 
         try:
             autodir = autotest._get_autodir(self)
