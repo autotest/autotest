@@ -1,0 +1,29 @@
+#!/usr/bin/python
+import re, sys
+
+def parse_file(filename):
+    data = {}
+    for line in open(filename):
+        if re.match('\d', line):
+            (samples, percent, symbol) = line.split()
+            data[symbol] = float(percent)
+    return data
+
+
+data1 = parse_file(sys.argv[1])
+data2 = parse_file(sys.argv[2])
+
+delta = {}
+for symbol in data1.keys() + data2.keys():
+    delta[symbol] = data1.get(symbol, 0) - data2.get(symbol, 0)
+
+def lookup_delta(symbol):
+    return delta[symbol]
+
+sorted_deltas = sorted(delta.keys(), key=lookup_delta, reverse=True)
+
+if len(sorted_deltas) > 40:
+    sorted_deltas = sorted_deltas[0:20] + sorted_deltas[-20:]
+
+for symbol in sorted_deltas:
+    print '%2.3f %s' % (delta[symbol], symbol)
