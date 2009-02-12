@@ -204,7 +204,8 @@ class job_create(action_common.atest_create, job):
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <labels this job is dependent on>]
     [--reboot_before <option>] [--reboot_after <option>]
-    [--noverify] [--timeout <timeout>]
+    [--noverify] [--timeout <timeout>] [--one-time-hosts <hosts>]
+    [--email <email>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -241,6 +242,8 @@ class job_create(action_common.atest_create, job):
         self.parser.add_option('-M', '--mlist',
                                help='File listing machines to use',
                                type='string', metavar='MACHINE_FLIST')
+        self.parser.add_option('--one-time-hosts',
+                               help='List of one time hosts')
         self.parser.add_option('-e', '--email', help='A comma seperated list '
                                'of email addresses to notify of job completion',
                                default='')
@@ -291,8 +294,9 @@ class job_create(action_common.atest_create, job):
             self.reuse_hosts = options.reuse_hosts
             return (options, leftover)
 
-        if len(self.hosts) == 0:
-            self.invalid_syntax('Must specify at least one machine (-m or -M).')
+        if len(self.hosts) == 0 and not options.one_time_hosts:
+            self.invalid_syntax('Must specify at least one machine '
+                                '(-m, -M or --one-time-hosts).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -341,6 +345,10 @@ class job_create(action_common.atest_create, job):
             self.data['run_verify'] = False
         if options.timeout:
             self.data['timeout'] = options.timeout
+
+        if options.one_time_hosts:
+            one_time_hosts = self._file_list(options, opt_list='one_time_hosts')
+            self.data['one_time_hosts'] = one_time_hosts
 
         self.data['name'] = self.jobname
 
