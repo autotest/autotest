@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils, test
 from autotest_lib.client.common_lib import error
 
 class ltp(test.test):
-    version = 4
+    version = 5
 
     def initialize(self):
         self.job.require_gcc()
@@ -24,7 +24,9 @@ class ltp(test.test):
             utils.system('patch -p1 < ../ltp_capability.patch')
 
         utils.system('cp ../scan.c pan/')   # saves having lex installed
-        utils.system('make -j %d' % utils.count_cpus())
+        utils.system('[ -f configure.ac ] && make autotools || make autoconf')
+        utils.system('[ -x configure ] && ./configure')
+        utils.system('make -j %d || make' % autotest_utils.count_cpus())
         utils.system('yes n | make install')
 
 

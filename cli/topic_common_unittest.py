@@ -427,6 +427,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual({'mlist': flist,
                           'web_server': 'fooweb',
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': False}, options)
@@ -449,6 +450,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual({'mlist': flist,
                           'web_server': 'fooweb',
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': True}, options)
@@ -484,6 +486,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': True}, options)
@@ -519,6 +522,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': True}, options)
@@ -554,6 +558,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': True}, options)
@@ -587,6 +592,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'user': None,
                           'web_server': None,
                           'parse': False,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': False}, options)
@@ -618,6 +624,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': True}, options)
@@ -647,6 +654,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
                           'acl': 'acl1,acl2',
                           'web_server': None,
                           'parse': False,
+                          'parse_delim': '|',
                           'kill_on_failure': True,
                           'verbose': False,
                           'debug': False}, options)
@@ -667,6 +675,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual({'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': False,
+                          'parse_delim': '|',
                           'kill_on_failure': False,
                           'verbose': False,
                           'debug': False}, options)
@@ -701,10 +710,12 @@ class topic_common_unittest(cli_mock.cli_unittest):
 
     def test_parse_all_set(self):
         sys.argv = ['atest', '--web', 'fooweb', '--parse', '--debug',
-                    '--kill-on-failure', '--verbose', 'left1', 'left2']
+                    '--kill-on-failure', '--verbose', 'left1', 'left2',
+                    '--parse-delim', '?']
         (options, leftover) = self.atest.parse()
         self.assertEqual({'web_server': 'fooweb',
                           'parse': True,
+                          'parse_delim': '?',
                           'kill_on_failure': True,
                           'verbose': True,
                           'debug': True}, options)
@@ -813,9 +824,9 @@ class topic_common_unittest(cli_mock.cli_unittest):
 
     def test_print_fields_parse_all_fields(self):
         self.__test_print_fields_parse(['hostname', 'platform', 'locked'],
-                                       'Host=h0:Platform=p0:'
+                                       'Host=h0|Platform=p0|'
                                        'Locked=True\n'
-                                       'Host=h1:Platform=p1:'
+                                       'Host=h1|Platform=p1|'
                                        'Locked=False\n')
 
 
@@ -847,13 +858,22 @@ class topic_common_unittest(cli_mock.cli_unittest):
     def test_print_table_parse_all_fields(self):
         self.__test_print_table_parse(['hostname', 'platform',
                                        'locked'],
-                                      'Host=h0:Platform=p0:Locked=True\n'
-                                      'Host=h1:Platform=p1:Locked=False\n')
+                                      'Host=h0|Platform=p0|Locked=True\n'
+                                      'Host=h1|Platform=p1|Locked=False\n')
+
+
+    def test_print_table_parse_all_fields(self):
+        self.atest.parse_delim = '?'
+        self.__test_print_table_parse(['hostname', 'platform',
+                                       'locked'],
+                                      'Host=h0?Platform=p0?Locked=True\n'
+                                      'Host=h1?Platform=p1?Locked=False\n')
+
 
     def test_print_table_parse_empty_fields(self):
         self.__test_print_fields(self.atest.print_table_parse,
-                                 'Host=h0:Platform=p0\n'
-                                 'Host=h1:Platform=p1:Labels=l2, l3\n',
+                                 'Host=h0|Platform=p0\n'
+                                 'Host=h1|Platform=p1|Labels=l2, l3\n',
                                  items=[{'hostname': 'h0',
                                          'platform': 'p0',
                                          'labels': [],
@@ -915,8 +935,8 @@ class topic_common_unittest(cli_mock.cli_unittest):
 
 
     def test_print_by_ids_parse_all_fields(self):
-        self.__test_print_by_ids_parse('Id=id0:Name=name0:'
-                                       'Id=id1:Name=name1\n')
+        self.__test_print_by_ids_parse('Id=id0|Name=name0|'
+                                       'Id=id1|Name=name1\n')
 
 
 if __name__ == '__main__':

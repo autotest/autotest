@@ -31,7 +31,7 @@ class job(topic_common.atest):
     def _convert_status(self, results):
         for result in results:
             total = sum(result['status_counts'].values())
-            status = ['%s:%s(%.1f%%)' % (key, val, 100.0*float(val)/total)
+            status = ['%s=%s(%.1f%%)' % (key, val, 100.0*float(val)/total)
                       for key, val in result['status_counts'].iteritems()]
             status.sort()
             result['status_counts'] = ', '.join(status)
@@ -161,7 +161,7 @@ class job_stat(job_list_stat):
             job_id = job['id']
             if hosts_status.has_key(job_id):
                 this_job = hosts_status[job_id]
-                host_per_status = ['%s:%s' %(status, ','.join(host))
+                host_per_status = ['%s=%s' %(status, ','.join(host))
                                    for status, host in this_job.iteritems()]
                 job['hosts_status'] = ', '.join(host_per_status)
             else:

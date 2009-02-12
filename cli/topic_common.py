@@ -249,6 +249,7 @@ class atest(object):
         self.failed = {}
         self.data = {}
         self.debug = False
+        self.parse_delim = '|'
         self.kill_on_failure = False
         self.web_server = ''
         self.verbose = False
@@ -261,9 +262,12 @@ class atest(object):
                                help='Stop at the first failure',
                                action='store_true', default=False)
         self.parser.add_option('--parse',
-                               help='Print the output using colon '
+                               help='Print the output using | '
                                'separated key=value fields',
                                action='store_true', default=False)
+        self.parser.add_option('--parse-delim',
+                               help='Delimiter to use to separate the '
+                               'key=value fields', default='|')
         self.parser.add_option('-v', '--verbose',
                                action='store_true', default=False)
         self.parser.add_option('-w', '--web',
@@ -385,6 +389,8 @@ class atest(object):
                      'print_by_ids', 'print_list']:
             setattr(self, func, getattr(self, func + suffix))
 
+        self.parse_delim = options.parse_delim
+
         self.verbose = options.verbose
         self.web_server = options.web_server
         self.afe = rpc.afe_comm(self.web_server)
@@ -488,7 +494,7 @@ class atest(object):
                       for key in keys
                       if self.__conv_value(key,
                                            item[key]) != '']
-            print ':'.join(values)
+            print self.parse_delim.join(values)
 
 
     def __find_justified_fmt(self, items, keys):
@@ -547,7 +553,7 @@ class atest(object):
                  for key in sublist_keys
                  if len(item[key])]
 
-            print ':'.join(values)
+            print self.parse_delim.join(values)
 
 
     def print_by_ids_std(self, items, title=None, line_before=False):
@@ -575,7 +581,7 @@ class atest(object):
                        for key in ['id', 'name']
                        if self.__conv_value(key,
                                             item[key]) != '']
-        print ':'.join(values)
+        print self.parse_delim.join(values)
 
 
     def print_list_std(self, items, key):
