@@ -27,27 +27,36 @@ class boottool(object):
     def architecture(self):
         return self.run_boottool('--arch-probe')
 
-
-    def get_titles(self):
-        regex = re.compile('^title\s*:\s*(.*)')
+        
+    def __get_key_values_from_entries(self, key):
+        """ 
+        Helper method to get key values from boot entries
+        
+            @param key: one of the keys in boot entry. 
+                         e.g. index, title, args, kernel, root
+        """
+        
+        regex = re.compile('^%s\s*:\s*(.*)' % key)
         lines = self.run_boottool('--info all').splitlines()
-        titles = []
+        key_values = []
         for line in lines:
-            if regex.match(line):
-                titles.append(regex.match(line).groups()[0])
+            match = regex.match(line)
+            if match:
+                key_values.append(match.group(1))
                 
-        return titles
+        return key_values
+    
+    
+    def get_titles(self):
+        """ Returns a list of boot entries titles """
+        return self.__get_key_values_from_entries("title")
+
 
     def get_indexes(self):
-        regex = re.compile('^index\s*:\s*(\d*)')
-        lines = self.run_boottool('--info all').splitlines()
-        indexes = []
-        for line in lines:
-            if regex.match(line):
-                indexes.append(regex.match(line).groups()[0])
-                
-        return indexes
+        """ Returns a list of boot entries indexes """
+        return self.__get_key_values_from_entries("index")
 
+    
     def get_default_title(self):
         default = int(self.get_default())
         return self.get_titles()[default]
