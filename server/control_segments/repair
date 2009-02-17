@@ -36,4 +36,4 @@ def repair(machine):
         raise
 
 
-job.parallel_simple(repair, machines, log=False)
+job.parallel_simple(repair, machines)
