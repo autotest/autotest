@@ -119,8 +119,8 @@ class db_sql(object):
 
 
     def _log_operational_error(self, e):
-        msg = ("An operational error occured during a database "
-               "operation: %s" % str(e))
+        msg = ("%s: An operational error occured during a database "
+               "operation: %s" % (time.strftime("%X %x"), str(e))
         print >> sys.stderr, msg
         sys.stderr.flush() # we want these msgs to show up immediately
 
