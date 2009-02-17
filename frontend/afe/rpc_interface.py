@@ -441,7 +441,7 @@ def get_info_for_clone(id, preserve_metahosts):
     """
     info = {}
     job = models.Job.objects.get(id=id)
-    query = job.hostqueueentry_set.filter(deleted=False)
+    query = job.hostqueueentry_set.filter()
 
     hosts = []
     meta_hosts = []
@@ -455,6 +455,8 @@ def get_info_for_clone(id, preserve_metahosts):
     for queue_entry in query:
         if (queue_entry.host and (preserve_metahosts
                                   or not queue_entry.meta_host)):
+            if queue_entry.deleted:
+                continue
             hosts.append(queue_entry.host)
         else:
             meta_hosts.append(queue_entry.meta_host.name)
