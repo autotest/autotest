@@ -199,7 +199,10 @@ class AFE(RpcClient):
         dargs['dependencies'] = dargs.get('dependencies', []) + \
                                 control_file.dependencies
         dargs['control_file'] = control_file.control_file
-        dargs['synch_count'] = control_file.synch_count
+	if 'synch_count' not in dargs:
+            dargs['synch_count'] = control_file.synch_count
+	else:
+	    control_file.synch_count = dargs['synch_count']
         jobs = []
         if control_file.synch_count > 1:
             # We don't trust the scheduler to do the groupings for us.
@@ -379,6 +382,8 @@ class AFE(RpcClient):
         hosts = [h for h in hosts if self._included_platform(h, platforms)]
         host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
         print 'HOSTS: %s' % host_list
+	if pairing.synch_job:
+	    dargs['synch_count'] = len(host_list)
         new_jobs = self.create_job_by_test(name=job_name,
                                            dependencies=[pairing.machine_label],
                                            tests=[pairing.control_file],
@@ -725,11 +730,12 @@ class MachineTestPairing(object):
     platforms: list of rexeps to filter platforms by. [] => no filtering
     """
     def __init__(self, machine_label, control_file, platforms=[],
-                 container=False):
+                 container=False, synch_job=False):
         self.machine_label = machine_label
         self.control_file = control_file
         self.platforms = platforms
         self.container = container
+	self.synch_job = synch_job
 
 
     def __repr__(self):
