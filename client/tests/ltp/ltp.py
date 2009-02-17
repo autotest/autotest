@@ -5,7 +5,21 @@ from autotest_lib.client.common_lib import error
 class ltp(test.test):
     version = 5
 
+    def _import_site_config(self):
+        site_config_path = os.path.join(os.path.dirname(__file__),
+                                        'site_config.py')
+        if os.path.exists(site_config_path):
+            # for some reason __import__ with full path does not work within
+            # autotest, although it works just fine on the same client machine
+            # in the python interactive shell or separate testcases
+            execfile(site_config_path)
+            self.site_ignore_tests = locals().get('ignore_tests', [])
+        else:
+            self.site_ignore_tests = []
+
+
     def initialize(self):
+        self._import_site_config()
         self.job.require_gcc()
 
 
@@ -34,6 +48,8 @@ class ltp(test.test):
     # in the args (-f for test file and -s for the test case)
     # eg, job.run_test('ltp', '-f math -s float_bessel')
     def run_once(self, args = '', script = 'runltp'):
+
+        ignore_tests = ignore_tests + self.site_ignore_tests
 
         # In case the user wants to run another test script
         if script == 'runltp':
