@@ -50,8 +50,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     def enqueue_job(self, job):
         'Enqueue a job on any host of this label.'
         queue_entry = HostQueueEntry(meta_host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED,
-                                     priority=job.priority)
+                                     status=HostQueueEntry.Status.QUEUED)
         queue_entry.save()
 
 
@@ -234,8 +233,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
     def enqueue_job(self, job):
         ' Enqueue a job on this host.'
         queue_entry = HostQueueEntry(host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED,
-                                     priority=job.priority)
+                                     status=HostQueueEntry.Status.QUEUED)
         # allow recovery of dead hosts from the frontend
         if not self.active_queue_entry() and self.is_dead():
             self.status = Host.Status.READY
@@ -696,7 +694,6 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
-    priority = dbmodels.SmallIntegerField()
     status = dbmodels.CharField(maxlength=255)
     meta_host = dbmodels.ForeignKey(Label, blank=True, null=True,
                                     db_column='meta_host')

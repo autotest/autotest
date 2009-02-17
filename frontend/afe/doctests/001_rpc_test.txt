@@ -477,7 +477,6 @@ True
 ...  'id': 1,
 ...  'job': job, # full job info here
 ...  'meta_host': None,
-...  'priority': 0,
 ...  'status': 'Queued',
 ...  'deleted': 0,
 ...  'execution_subdir': ''})
@@ -489,7 +488,6 @@ True
 ...  'id': 3,
 ...  'job': job,
 ...  'meta_host': 'my_label',
-...  'priority': 0,
 ...  'status': 'Queued',
 ...  'deleted': 0,
 ...  'execution_subdir': ''})
