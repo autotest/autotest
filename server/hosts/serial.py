@@ -2,11 +2,16 @@ import os, sys, subprocess
 
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import site_host
+from autotest_lib.server.hosts import remote
 
 
-class SerialHost(site_host.SiteHost):
-    DEFAULT_REBOOT_TIMEOUT = site_host.SiteHost.DEFAULT_REBOOT_TIMEOUT
+SiteHost = utils.import_site_class(
+    __file__, "autotest_lib.server.hosts.site_host", "SiteHost",
+    remote.RemoteHost)
+
+
+class SerialHost(SiteHost):
+    DEFAULT_REBOOT_TIMEOUT = SiteHost.DEFAULT_REBOOT_TIMEOUT
 
     def _initialize(self, conmux_server=None, conmux_attach=None,
                     console_log="console.log", *args, **dargs):
