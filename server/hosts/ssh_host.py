@@ -51,8 +51,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 hostname: network hostname or address of remote machine
         """
         super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
-
         self.ssh_host_log = debug.get_logger()
+        self.setup()
 
 
     def ssh_command(self, connect_timeout=30, options=''):
@@ -224,13 +224,14 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
     def ssh_setup_key(self):
         try:
-            print ('Performing ssh key setup on %s:%d as %s' %
-                   (self.hostname, self.port, self.user))
+            self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' % 
+                                    (self.hostname, self.port, self.user))
 
             host = pxssh.pxssh()
-            host.login(self.hostname, self.user, self.password, port=self.port)
 
             try:
+                host.login(self.hostname, self.user, self.password,
+                           port=self.port)
                 public_key = utils.get_public_key()
 
                 host.sendline('mkdir -p ~/.ssh')
@@ -243,12 +244,13 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 host.sendline('chmod 600 ~/.ssh/authorized_keys')
                 host.prompt()
 
-                print 'SSH key setup complete'
+                self.ssh_host_log.debug('SSH key setup complete.')
 
             finally:
                 host.logout()
 
         except:
+            self.ssh_host_log.debug('SSH key setup has failed.')
             pass
 
 
