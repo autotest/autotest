@@ -213,10 +213,13 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         return Utils.copyJSONObject(savedCondition);
     }
 
-    public void refineCondition(TestSet tests) {
+    public void refineCondition(String newCondition) {
         String sqlCondition = TkoUtils.getSqlCondition(savedCondition);
-        String newCondition = tests.getPartialSqlCondition();
         setSqlCondition(TkoUtils.joinWithParens(" AND ", sqlCondition, newCondition));
+    }
+    
+    public void refineCondition(TestSet tests) {
+        refineCondition(tests.getPartialSqlCondition());
     }
     
     private String getListKey(String base, int index) {

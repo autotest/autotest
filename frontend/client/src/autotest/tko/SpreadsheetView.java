@@ -517,6 +517,7 @@ public class SpreadsheetView extends ConditionTabView
         TableViewConfig config;
         if (isTriageView) {
             config = TableViewConfig.TRIAGE;
+            commonPanel.refineCondition("status != 'GOOD'");
         } else {
             config = TableViewConfig.DEFAULT;
         }
