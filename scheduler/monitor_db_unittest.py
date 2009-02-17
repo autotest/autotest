@@ -141,12 +141,11 @@ class BaseSchedulerTest(unittest.TestCase):
             synch_count=synch_count, created_on=created_on,
             reboot_before=models.RebootBefore.NEVER)
         for host_id in hosts:
-            models.HostQueueEntry.objects.create(job=job, priority=priority,
-                                                 host_id=host_id, status=status)
+            models.HostQueueEntry.objects.create(job=job, host_id=host_id,
+                                                 status=status)
             models.IneligibleHostQueue.objects.create(job=job, host_id=host_id)
         for label_id in metahosts:
-            models.HostQueueEntry.objects.create(job=job, priority=priority,
-                                                 meta_host_id=label_id,
+            models.HostQueueEntry.objects.create(job=job, meta_host_id=label_id,
                                                  status=status)
         return job
 

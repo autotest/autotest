@@ -660,8 +660,9 @@ class Dispatcher(object):
     def _get_pending_queue_entries(self):
         # prioritize by job priority, then non-metahost over metahost, then FIFO
         return list(HostQueueEntry.fetch(
+            joins='INNER JOIN jobs ON (job_id=jobs.id)',
             where='NOT complete AND NOT active AND status="Queued"',
-            order_by='priority DESC, meta_host, job_id'))
+            order_by='jobs.priority DESC, meta_host, job_id'))
 
 
     def _schedule_new_jobs(self):
@@ -1770,7 +1771,7 @@ class HostQueueEntry(DBObject):
 
     @classmethod
     def _fields(cls):
-        return ['id', 'job_id', 'host_id', 'priority', 'status', 'meta_host',
+        return ['id', 'job_id', 'host_id', 'status', 'meta_host',
                 'active', 'complete', 'deleted', 'execution_subdir']
 
 
