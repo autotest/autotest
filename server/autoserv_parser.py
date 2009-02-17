@@ -15,7 +15,6 @@ class base_autoserv_parser(object):
         self.args = sys.argv[1:]
         self.parser = optparse.OptionParser()
         self.setup_options()
-        self.parse_args()
 
 
     def setup_options(self):
