@@ -335,13 +335,10 @@ class ModelExtensions(object):
                         break
             # convert foreign key values
             elif field_obj.rel:
-                dest_obj = field_obj.rel.to.smart_get(
-                    data[field_name])
-                if (to_human_readable and
-                    dest_obj.name_field is not None):
-                    data[field_name] = (
-                        getattr(dest_obj,
-                                dest_obj.name_field))
+                dest_obj = field_obj.rel.to.smart_get(data[field_name],
+                                                      valid_only=False)
+                if to_human_readable and dest_obj.name_field is not None:
+                    data[field_name] = getattr(dest_obj, dest_obj.name_field)
                 else:
                     data[field_name] = dest_obj._get_pk_val()
 
@@ -529,24 +526,23 @@ class ModelExtensions(object):
 
 
     @classmethod
-    def smart_get(cls, *args, **kwargs):
+    def smart_get(cls, id_or_name, valid_only=True):
         """\
         smart_get(integer) -> get object by ID
         smart_get(string) -> get object by name_field
-        smart_get(keyword args) -> normal ModelClass.objects.get()
         """
-        assert bool(args) ^ bool(kwargs)
-        manager = cls.get_valid_manager()
-        if args:
-            assert len(args) == 1
-            arg = args[0]
-            if isinstance(arg, int) or isinstance(arg, long):
-                return manager.get(pk=arg)
-            if isinstance(arg, str) or isinstance(arg, unicode):
-                return manager.get(**{cls.name_field : arg})
-            raise ValueError(
-                'Invalid positional argument: %s (%s)' % (arg, type(arg)))
-        return manager.get(**kwargs)
+        if valid_only:
+            manager = cls.get_valid_manager()
+        else:
+            manager = cls.objects
+
+        if isinstance(id_or_name, (int, long)):
+            return manager.get(pk=id_or_name)
+        if isinstance(id_or_name, basestring):
+            return manager.get(**{cls.name_field : id_or_name})
+        raise ValueError(
+            'Invalid positional argument: %s (%s)' % (id_or_name,
+                                                      type(id_or_name)))
 
 
     @classmethod
