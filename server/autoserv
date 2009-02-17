@@ -139,6 +139,7 @@ def run_autoserv(pid_file_manager, results, parser):
 def main():
     # grab the parser
     parser = autoserv_parser.autoserv_parser
+    parser.parse_args()
 
     if len(sys.argv) == 1:
         parser.parser.print_help()

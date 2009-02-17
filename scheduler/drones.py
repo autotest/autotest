@@ -1,7 +1,6 @@
 import pickle, os, tempfile
 import common
 from autotest_lib.scheduler import drone_utility, email_manager
-from autotest_lib.server import hosts
 from autotest_lib.client.common_lib import error, global_config
 
 
