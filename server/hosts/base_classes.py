@@ -194,6 +194,38 @@ class Host(object):
                                        (free_space_gb, gb, path, self.hostname)
 
 
+    def get_open_func(self, use_cache=True):
+        """
+        Defines and returns a function that may be used instead of built-in
+        open() to open and read files. The returned function is implemented
+        by using self.run('cat <file>') and may cache the results for the same
+        filename.
+
+        @param use_cache Cache results of self.run('cat <filename>') for the
+            same filename
+
+        @return a function that can be used instead of built-in open()
+        """
+        cached_files = {}
+
+        def open_func(filename):
+            if not use_cache or filename not in cached_files:
+                output = self.run('cat \'%s\'' % filename,
+                                  stdout_tee=open('/dev/null', 'w')).stdout
+                fd = cStringIO.StringIO(output)
+
+                if not use_cache:
+                    return fd
+
+                cached_files[filename] = fd
+            else:
+                cached_files[filename].seek(0)
+
+            return cached_files[filename]
+
+        return open_func
+
+
     def check_partitions(self, root_part, filter_func=None):
         """" Compare the contents of /proc/partitions with those of
         /proc/mounts and raise exception in case unmounted partitions are found
@@ -209,35 +241,13 @@ class Host(object):
         Raise: error.AutoservHostError if unfiltered unmounted partition found
         """
 
-        # cache these files because the same file contents is read for
-        # each partition
-        cached_files = {}
-
-        def remote_open(filename):
-            if filename not in cached_files:
-                output = self.run('cat \'%s\'' % filename,
-                                  stdout_tee=open('/dev/null', 'w')).stdout
-                cached_files[filename] = cStringIO.StringIO(output)
-            else:
-                cached_files[filename].seek(0)
-
-            return cached_files[filename]
-
-
         print 'Checking if non-swap partitions are mounted...'
 
-        partitions = partition.get_partition_list(None,
-            filter_func=filter_func, open_func=remote_open)
-
-        unmounted = []
-        for part in partitions:
-            if part.device != '/dev/' + root_part and \
-               not part.get_mountpoint(open_func=remote_open):
-                unmounted.append(part.device)
-
+        unmounted = partition.get_unmounted_partition_list(root_part,
+            filter_func=filter_func, open_func=self.get_open_func())
         if unmounted:
             raise error.AutoservHostError('Found unmounted partitions: %s' %
-                                          unmounted)
+                                          [part.device for part in unmounted])
 
 
     def repair_filesystem_only(self):
