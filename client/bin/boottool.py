@@ -29,9 +29,24 @@ class boottool(object):
 
 
     def get_titles(self):
-        return self.run_boottool('--info all | grep title | '
-                'cut -d " " -f2-').strip().split('\n')
+        regex = re.compile('^title\s*:\s*(.*)')
+        lines = self.run_boottool('--info all').splitlines()
+        titles = []
+        for line in lines:
+            if regex.match(line):
+                titles.append(regex.match(line).groups()[0])
+                
+        return titles
 
+    def get_indexes(self):
+        regex = re.compile('^index\s*:\s*(\d*)')
+        lines = self.run_boottool('--info all').splitlines()
+        indexes = []
+        for line in lines:
+            if regex.match(line):
+                indexes.append(regex.match(line).groups()[0])
+                
+        return indexes
 
     def get_default_title(self):
         default = int(self.get_default())
@@ -53,11 +68,12 @@ class boottool(object):
         
             @rtype: dict
         """
-        titles = self.get_titles()
+        # use indexes, see note on get_entry
+        indexes = self.get_indexes() 
         entries = {}
-        for title in titles:
-            entry = self.get_entry(title)
-            entries[title] = entry
+        for index in indexes:
+            entry = self.get_entry(index)
+            entries[index] = entry
 
         return entries
 
@@ -65,6 +81,10 @@ class boottool(object):
     def get_entry(self, kernel):
         """ 
         Get entry 
+        
+        NOTE: if entry is "fallback" and bootloader is grub
+        use index instead of kernel title ("fallback") as fallback is
+        a special option in grub
         
             @param kernel: can be a position number (index) or title
             @rtype: dict
