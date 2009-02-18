@@ -21,6 +21,15 @@ def launch_tail(filename, outstream, start):
 stdout_pump = launch_tail('stdout', sys.stdout, stdout_start)
 stderr_pump = launch_tail('stderr', sys.stderr, stderr_start)
 
+# wait for logdir/started to exist to be sure autotestd is started
+start_time = time.time()
+started_file_path = os.path.join(logdir, 'started')
+while not os.path.exists(started_file_path):
+    time.sleep(1)
+    if time.time() - start_time >= 30:
+        raise Exception("autotestd failed to start in %s" % logdir)
+os.remove(started_file_path)
+
 # watch the exit code file for an exit
 exit_code_file = open(os.path.join(logdir, 'exit_code'))
 fcntl.flock(exit_code_file, fcntl.LOCK_EX)
