@@ -56,6 +56,13 @@ def encode_args(profiler, args, dargs):
     return ", ".join(parts)
 
 
+def get_profiler_results_dir(autodir):
+    """ Given the directory of the autotest client used to run a profiler,
+    return the remote path where profiler results will be stored."""
+    return os.path.join(PROFILER_TMPDIR, autodir, "results", "default",
+                        "profiler_test", "profiling")
+
+
 class profiler_proxy(object):
     """ This is a server-side class that acts as a proxy to a real client-side
     profiler class."""
@@ -162,8 +169,7 @@ class profiler_proxy(object):
         for host, (at, autodir) in self._get_hosts(host).iteritems():
             if wait_on_client:
                 self._wait_on_client(host, autodir, "finished")
-            results_dir = os.path.join(autodir, "results", "default",
-                                       "profiler_test", "profiling") + "/"
+            results_dir = get_profiler_results_dir(autodir) + "/"
             local_dir = os.path.join(test.profdir, host.hostname)
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir)
