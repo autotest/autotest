@@ -38,6 +38,11 @@ cmd = ' '.join(args)
 # open up a log file for saving off the exit code
 exit_file = open(os.path.join(logdir, 'exit_code'), 'w', 0)
 fcntl.flock(exit_file, fcntl.LOCK_EX)
+
+# touch a 'started' file to indicate we've been initialized
+open(os.path.join(logdir, 'started'), 'w').close()
+
+# run the actual autotest client and write the exit code into the log file
 exit_code = subprocess.call(cmd, shell=True)
 exit_file.write('%+04d' % exit_code)
 exit_file.flush()
