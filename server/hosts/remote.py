@@ -3,7 +3,7 @@ if it is available."""
 
 import os, time
 from autotest_lib.client.common_lib import error
-from autotest_lib.server import utils
+from autotest_lib.server import utils, profiler
 from autotest_lib.server.hosts import base_classes, bootloader
 
 
@@ -237,6 +237,24 @@ class RemoteHost(base_classes.Host):
                 print "crashinfo collection of dmesg failed with:\n%s" % e
         finally:
             devnull.close()
+
+        # collect any profiler data we can find
+        print "Collecting any server-side profiler data lying around..."
+        try:
+            cmd = "ls %s" % profiler.PROFILER_TMPDIR
+            profiler_dirs = [path for path in self.run(cmd).stdout.split()
+                             if path.startswith("autoserv-")]
+            for profiler_dir in profiler_dirs:
+                remote_path = profiler.get_profiler_results_dir(profiler_dir)
+                remote_exists = self.run("ls %s" % remote_path,
+                                         ignore_status=True).exit_status == 0
+                if not remote_exists:
+                    continue
+                local_path = os.path.join(infodir, "profiler." + profiler_dir)
+                os.mkdir(local_path)
+                self.get_file(remote_path + "/", local_path)
+        except Exception, e:
+            print "crashinfo collection of profiler data failed with:\n%s" % e
 
 
     def are_wait_up_processes_up(self):
