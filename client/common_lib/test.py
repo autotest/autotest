@@ -276,11 +276,10 @@ class base_test:
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
                                                         args, dargs)
-                    # self.execute() below consumes these arguments.
-                    if 'iterations' in dargs:
-                        p_dargs['iterations'] = dargs['iterations']
-                    if 'test_length' in dargs:
-                        p_dargs['test_length'] = dargs['test_length']
+                    # pull in any non-* and non-** args from self.execute
+                    for param in _get_nonstar_args(self.execute):
+                        if param in dargs:
+                            p_dargs[param] = dargs[param]
                 else:
                     p_args, p_dargs = _cherry_pick_args(self.execute,
                                                         args, dargs)
@@ -329,6 +328,19 @@ class base_test:
             raise error.UnhandledTestError(e)
 
 
+def _get_nonstar_args(func):
+    """Extract all the (normal) function parameter names.
+
+    Given a function, returns a tuple of parameter names, specifically
+    excluding the * and ** parameters, if the function accepts them.
+
+    @param func: A callable that we want to chose arguments for.
+
+    @return: A tuple of parameters accepted by the function.
+    """
+    return func.func_code.co_varnames[:func.func_code.co_argcount]
+
+
 def _cherry_pick_args(func, args, dargs):
     """Sanitize positional and keyword arguments before calling a function.
 
@@ -357,7 +369,7 @@ def _cherry_pick_args(func, args, dargs):
     else:
         # Only return the keyword arguments that func accepts.
         p_dargs = {}
-        for param in func.func_code.co_varnames[:func.func_code.co_argcount]:
+        for param in _get_nonstar_args(func):
             if param in dargs:
                 p_dargs[param] = dargs[param]
 
