@@ -1542,10 +1542,18 @@ class SetEntryPendingTask(AgentTask):
 
 
 class DBObject(object):
+
+    # Subclasses MUST override these:
+    _table_name = ''
+    _fields = ()
+
+
     def __init__(self, id=None, row=None, new_record=False):
         assert (bool(id) != bool(row))
+        assert self._table_name, '_table_name must be defined in your class'
+        assert self._fields, '_fields must be defined in your class'
 
-        self.__table = self._get_table()
+        self.__table = self._table_name
 
         self.__new_record = new_record
 
@@ -1563,10 +1571,10 @@ class DBObject(object):
     def _update_fields_from_row(self, row):
         assert len(row) == self.num_cols(), (
             "table = %s, row = %s/%d, fields = %s/%d" % (
-            self.__table, row, len(row), self._fields(), self.num_cols()))
+            self.__table, row, len(row), self._fields, self.num_cols()))
 
         self._valid_fields = set()
-        for field, value in zip(self._fields(), row):
+        for field, value in zip(self._fields, row):
             setattr(self, field, value)
             self._valid_fields.add(field)
 
@@ -1574,18 +1582,8 @@ class DBObject(object):
 
 
     @classmethod
-    def _get_table(cls):
-        raise NotImplementedError('Subclasses must override this')
-
-
-    @classmethod
-    def _fields(cls):
-        raise NotImplementedError('Subclasses must override this')
-
-
-    @classmethod
     def num_cols(cls):
-        return len(cls._fields())
+        return len(cls._fields)
 
 
     def count(self, where, table = None):
@@ -1618,7 +1616,7 @@ class DBObject(object):
 
     def save(self):
         if self.__new_record:
-            keys = self._fields()[1:] # avoid id
+            keys = self._fields[1:] # avoid id
             columns = ','.join([str(key) for key in keys])
             values = ['"%s"' % self.__dict__[key] for key in keys]
             values = ','.join(values)
@@ -1644,7 +1642,7 @@ class DBObject(object):
         order_by = cls._prefix_with(order_by, 'ORDER BY ')
         where = cls._prefix_with(where, 'WHERE ')
         query = ('SELECT %(table)s.* FROM %(table)s %(joins)s '
-                 '%(where)s %(order_by)s' % {'table' : cls._get_table(),
+                 '%(where)s %(order_by)s' % {'table' : cls._table_name,
                                              'joins' : joins,
                                              'where' : where,
                                              'order_by' : order_by})
@@ -1654,47 +1652,24 @@ class DBObject(object):
 
 
 class IneligibleHostQueue(DBObject):
-    def __init__(self, id=None, row=None, new_record=None):
-        super(IneligibleHostQueue, self).__init__(id=id, row=row,
-                                                  new_record=new_record)
-
-
-    @classmethod
-    def _get_table(cls):
-        return 'ineligible_host_queues'
-
-
-    @classmethod
-    def _fields(cls):
-        return ['id', 'job_id', 'host_id']
+    _table_name = 'ineligible_host_queues'
+    _fields = ('id', 'job_id', 'host_id')
 
 
 class Label(DBObject):
-    @classmethod
-    def _get_table(cls):
-        return 'labels'
-
-
-    @classmethod
-    def _fields(cls):
-        return ['id', 'name', 'kernel_config', 'platform', 'invalid',
-                'only_if_needed']
+    _table_name = 'labels'
+    _fields = ('id', 'name', 'kernel_config', 'platform', 'invalid',
+               'only_if_needed')
 
 
 class Host(DBObject):
+    _table_name = 'hosts'
+    _fields = ('id', 'hostname', 'locked', 'synch_id', 'status',
+               'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty')
+
+
     def __init__(self, id=None, row=None):
         super(Host, self).__init__(id=id, row=row)
-
-
-    @classmethod
-    def _get_table(cls):
-        return 'hosts'
-
-
-    @classmethod
-    def _fields(cls):
-        return ['id', 'hostname', 'locked', 'synch_id','status',
-                'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty']
 
 
     def current_task(self):
@@ -1707,7 +1682,6 @@ class Host(DBObject):
         else:
             assert len(rows) == 1
             results = rows[0];
-#           print "current = %s" % results
             return HostQueueEntry(row=results)
 
 
@@ -1715,6 +1689,7 @@ class Host(DBObject):
         print "%s yielding work" % self.hostname
         if self.current_task():
             self.current_task().requeue()
+
 
     def set_status(self,status):
         print '%s -> %s' % (self.hostname, status)
@@ -1750,6 +1725,11 @@ class Host(DBObject):
 
 
 class HostQueueEntry(DBObject):
+    _table_name = 'host_queue_entries'
+    _fields = ('id', 'job_id', 'host_id', 'status', 'meta_host',
+               'active', 'complete', 'deleted', 'execution_subdir')
+
+
     def __init__(self, id=None, row=None):
         assert id or row
         super(HostQueueEntry, self).__init__(id=id, row=row)
@@ -1762,17 +1742,6 @@ class HostQueueEntry(DBObject):
 
         self.queue_log_path = os.path.join(self.job.tag(),
                                            'queue.log.' + str(self.id))
-
-
-    @classmethod
-    def _get_table(cls):
-        return 'host_queue_entries'
-
-
-    @classmethod
-    def _fields(cls):
-        return ['id', 'job_id', 'host_id', 'status', 'meta_host',
-                'active', 'complete', 'deleted', 'execution_subdir']
 
 
     def _view_job_url(self):
@@ -1914,6 +1883,7 @@ class HostQueueEntry(DBObject):
 
         return self.job.run(queue_entry=self)
 
+
     def requeue(self):
         self.set_status('Queued')
         # verify/cleanup failure sets the execution subdir, so reset it here
@@ -1990,21 +1960,15 @@ class HostQueueEntry(DBObject):
 
 
 class Job(DBObject):
+    _table_name = 'jobs'
+    _fields = ('id', 'owner', 'name', 'priority', 'control_file',
+               'control_type', 'created_on', 'synch_count', 'timeout',
+               'run_verify', 'email_list', 'reboot_before', 'reboot_after')
+
+
     def __init__(self, id=None, row=None):
         assert id or row
         super(Job, self).__init__(id=id, row=row)
-
-
-    @classmethod
-    def _get_table(cls):
-        return 'jobs'
-
-
-    @classmethod
-    def _fields(cls):
-        return  ['id', 'owner', 'name', 'priority', 'control_file',
-                 'control_type', 'created_on', 'synch_count', 'timeout',
-                 'run_verify', 'email_list', 'reboot_before', 'reboot_after']
 
 
     def is_server_job(self):
