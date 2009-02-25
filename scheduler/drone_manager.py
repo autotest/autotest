@@ -382,8 +382,11 @@ class DroneManager(object):
         Return the maximum number of processes that can be run (in a single
         execution) given the current load on drones.
         """
+        if not self._drone_queue:
+            # all drones disabled
+            return 0
         return max(drone.max_processes - drone.active_processes
-                   for drone in self.get_drones())
+                   for _, drone in self._drone_queue)
 
 
     def _choose_drone_for_execution(self, num_processes):
@@ -404,7 +407,7 @@ class DroneManager(object):
             drone_summary = ','.join('%s %s/%s' % (drone.hostname,
                                                    drone.active_processes,
                                                    drone.max_processes)
-                                     for drone in self.get_drones())
+                                     for drone in checked_drones)
             raise ValueError('No drone has capacity to handle %d processes (%s)'
                              % (num_processes, drone_summary))
 
