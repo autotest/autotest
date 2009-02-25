@@ -7,7 +7,7 @@ from autotest_lib.client.common_lib import error, utils, packages
 class ProfilerNotPresentError(error.JobError):
     def __init__(self, name, *args, **dargs):
         msg = "%s not present" % name
-        super(ProfilerNotPresentError, self).__init__(msg, *args, **dargs)
+        error.JobError.__init__(msg, *args, **dargs)
 
 
 class profiler_manager(object):
