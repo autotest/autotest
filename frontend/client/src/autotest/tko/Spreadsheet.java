@@ -544,4 +544,18 @@ public class Spreadsheet extends Composite implements ScrollListener, TableListe
             cellElement.setClassName("");
         }
     }
+    
+    public List<Integer> getAllTestIndices() {
+        List<Integer> testIndices = new ArrayList<Integer>();
+
+        for (CellInfo[] row : dataCells) {
+            for (CellInfo cellInfo : row) {
+                if (cellInfo != null && !cellInfo.isEmpty()) {
+                    testIndices.add(cellInfo.testIndex);
+                }
+            }
+        }
+
+        return testIndices;
+    }
 }

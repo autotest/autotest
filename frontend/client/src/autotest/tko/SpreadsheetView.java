@@ -76,7 +76,7 @@ public class SpreadsheetView extends ConditionTabView
         new SpreadsheetSelectionManager(spreadsheet, null);
     private TableActionsPanel actionsPanel = new TableActionsPanel(false);
     private RootPanel jobCompletionPanel;
-    private boolean currentShowIncomplete;
+    private boolean currentShowIncomplete, currentShowOnlyLatest;
     private boolean notYetQueried = true;
     
     public SpreadsheetView(TableSwitchListener listener) {
@@ -195,7 +195,7 @@ public class SpreadsheetView extends ConditionTabView
         JSONObject queryParameters = getQueryParameters();
         
         setLoading(true);
-        if (showOnlyLatest.isChecked()) {
+        if (currentShowOnlyLatest) {
             spreadsheetProcessor.setDataSource(latestDataSource);
         } else {
             spreadsheetProcessor.setDataSource(normalDataSource);
@@ -248,6 +248,7 @@ public class SpreadsheetView extends ConditionTabView
         }
         saveSelectedHeaders();
         currentShowIncomplete = showIncomplete.isChecked();
+        currentShowOnlyLatest = showOnlyLatest.isChecked();
         commonPanel.saveSqlCondition();
         refresh();
     }
@@ -517,11 +518,20 @@ public class SpreadsheetView extends ConditionTabView
         TableViewConfig config;
         if (isTriageView) {
             config = TableViewConfig.TRIAGE;
-            commonPanel.refineCondition("status != 'GOOD'");
+            refineConditionForTriage();
         } else {
             config = TableViewConfig.DEFAULT;
         }
         listener.onSwitchToTable(config);
+    }
+
+    private void refineConditionForTriage() {
+        commonPanel.refineCondition("status != 'GOOD'");
+        if (currentShowOnlyLatest) {
+            List<Integer> testIndices = spreadsheet.getAllTestIndices();
+            String filter = "test_idx IN (" + Utils.joinStrings(",", testIndices) + ")";
+            commonPanel.refineCondition(filter);
+        }
     }
 
     public ContextMenu getActionMenu() {
