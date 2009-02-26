@@ -16,6 +16,12 @@ class base_autoserv_parser(object):
         self.parser = optparse.OptionParser()
         self.setup_options()
 
+        # parse an empty list of arguments in order to set self.options
+        # to default values so that codepaths that assume they are always
+        # reached from an autoserv process (when they actually are not)
+        # will still work
+        self.options, self.args = self.parser.parse_args(args=[])
+
 
     def setup_options(self):
         self.parser.add_option("-m", action="store", type="string",
@@ -97,7 +103,7 @@ class base_autoserv_parser(object):
 
 
     def parse_args(self):
-        (self.options, self.args) = self.parser.parse_args()
+        self.options, self.args = self.parser.parse_args()
 
 
 site_autoserv_parser = utils.import_site_class(
