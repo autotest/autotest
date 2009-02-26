@@ -63,7 +63,7 @@ def _print_to_tty(string):
 
 
 def _redirect_stream(fd, output):
-    newfd = os.open(output, os.O_WRONLY | os.O_CREAT)
+    newfd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
     os.dup2(newfd, fd)
     os.close(newfd)
     if fd == 1:
@@ -90,7 +90,7 @@ def _redirect_stream_tee(fd, output, tag):
     else:                                   # Child
         signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
         os.close(w)
-        log = open(output, 'w')
+        log = open(output, 'a')
         f = os.fdopen(r, 'r')
         for line in iter(f.readline, ''):
             # Tee straight to file
