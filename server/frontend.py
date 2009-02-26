@@ -178,7 +178,10 @@ class AFE(RpcClient):
 
     def get_host_queue_entries(self, **data):
         entries = self.run('get_host_queue_entries', **data)
-        return [JobStatus(self, e) for e in entries]
+        job_statuses = [JobStatus(self, e) for e in entries]
+        # filter job statuses that have either host or meta_host
+        return [status for status in job_statuses if (status.host or
+                                                      status.meta_host)]
 
 
     def create_job_by_test(self, tests, hosts, kernel=None, use_container=False,
@@ -636,7 +639,15 @@ class JobStatus(RpcObject):
         self.__dict__.update(hash)
         self.job = Job(afe, self.job)
         if self.host:
-            self.host = afe.get_hosts(hostname=self.host['hostname'])[0]
+            # get list of hosts from AFE; if a host is not present in autotest
+            # anymore, this returns an empty list.
+            afe_hosts = afe.get_hosts(hostname=self.host['hostname'])
+            if len(afe_hosts):
+                # host present, assign it!
+                self.host = afe_hosts[0]
+            else:
+                # AFE does not contain info anymore, set host to None
+                self.host = None
 
 
     def __repr__(self):
