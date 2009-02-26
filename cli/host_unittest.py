@@ -494,6 +494,69 @@ class host_list_unittest(cli_mock.cli_unittest):
                      err_words_ok=['Unknown', 'host2'])
 
 
+    def test_execute_list_filter_locked(self):
+        self.run_cmd(argv=['atest', 'host', 'list', 'host1',
+                           '--locked', 'host2', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'locked': True,
+                                          'hostname__in': ['host2', 'host1']},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host1',
+                              u'locked': True,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label2', u'label3', u'plat1'],
+                              u'invalid': False,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 2},
+                             {u'status': u'Ready',
+                              u'hostname': u'host2',
+                              u'locked': True,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label4', u'plat1'],
+                              u'invalid': False,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 3}])],
+                     out_words_ok=['host1', 'Ready', 'plat1',
+                                   'label2', 'label3', 'True',
+                                   'host2', 'label4'],
+                     out_words_no=['host0', 'label1', 'False'])
+
+
+    def test_execute_list_filter_unlocked(self):
+        self.run_cmd(argv=['atest', 'host', 'list',
+                           '--unlocked', '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'locked': False},
+                            True,
+                            [{u'status': u'Ready',
+                              u'hostname': u'host1',
+                              u'locked': False,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label2', u'label3', u'plat1'],
+                              u'invalid': False,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 2},
+                             {u'status': u'Ready',
+                              u'hostname': u'host2',
+                              u'locked': False,
+                              u'locked_by': 'user0',
+                              u'lock_time': u'2008-07-23 12:54:15',
+                              u'labels': [u'label3', u'label4', u'plat1'],
+                              u'invalid': False,
+                              u'synch_id': None,
+                              u'platform': u'plat1',
+                              u'id': 3}])],
+                     out_words_ok=['host1', 'Ready', 'plat1',
+                                   'label2', 'label3', 'False',
+                                   'host2', 'label4'],
+                     out_words_no=['host0', 'label1', 'True'])
+
+
 class host_stat_unittest(cli_mock.cli_unittest):
     def test_execute_stat_two_hosts(self):
         # The order of RPCs between host1 and host0 could change...

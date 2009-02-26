@@ -116,6 +116,15 @@ class host_list(action_common.atest_list, host):
         self.parser.add_option('-N', '--hostnames-only', help='Only return '
                                'hostnames for the machines queried.',
                                action='store_true')
+        self.parser.add_option('--locked',
+                               default=False,
+                               help='Only list locked hosts',
+                               action='store_true')
+        self.parser.add_option('--unlocked',
+                               default=False,
+                               help='Only list unlocked hosts',
+                               action='store_true')
+
 
 
     def parse(self):
@@ -126,6 +135,12 @@ class host_list(action_common.atest_list, host):
         self.acl = options.acl
         self.user = options.user
         self.hostnames_only = options.hostnames_only
+
+        if options.locked and options.unlocked:
+            self.invalid_syntax('--locked and --unlocked are '
+                                'mutually exclusive')
+        self.locked = options.locked
+        self.unlocked = options.unlocked
         return (options, leftover)
 
 
@@ -162,6 +177,11 @@ class host_list(action_common.atest_list, host):
         if self.user:
             filters['aclgroup__users__login'] = self.user
             check_results['aclgroup__users__login'] = None
+
+        if self.locked or self.unlocked:
+            filters['locked'] = self.locked
+            check_results['locked'] = None
+
         return super(host_list, self).execute(op='get_hosts',
                                               filters=filters,
                                               check_results=check_results)
