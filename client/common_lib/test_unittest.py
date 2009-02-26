@@ -91,7 +91,7 @@ class Test_base_test_execute(TestTestCase):
         self.test.run_once.expect_call()
         self.test.drop_caches_between_iterations.expect_call()
         self.test.run_once.expect_call()
-        self.test.run_once_profiling.expect_call()
+        self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
 
         fake_time = iter(xrange(4)).next
@@ -106,7 +106,7 @@ class Test_base_test_execute(TestTestCase):
             self.test.drop_caches_between_iterations.expect_call()
             self.test.run_once.expect_call()
             self.test.postprocess_iteration.expect_call()
-        self.test.run_once_profiling.expect_call()
+        self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
 
         self.test.execute(iterations=iterations)
@@ -114,7 +114,7 @@ class Test_base_test_execute(TestTestCase):
 
 
     def _mock_calls_for_execute_no_iterations(self):
-        self.test.run_once_profiling.expect_call()
+        self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
 
 
