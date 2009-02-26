@@ -15,6 +15,7 @@ class profiler_manager(object):
         self.job = job
         self.list = []
         self.tmpdir = job.tmpdir
+        self.profile_run_only = False
         self.active_flag = False
 
 
@@ -44,6 +45,18 @@ class profiler_manager(object):
     def present(self):
         """ Indicates if any profilers are enabled """
         return len(self.list) > 0
+
+
+    def only(self):
+        """ Returns True if job is supposed to be run only with profiling
+        turned on, False otherwise """
+        return self.profile_run_only
+
+
+    def set_only(self, value):
+        """ Changes the flag which determines whether or not the job is to be
+        run without profilers at all """
+        self.profile_run_only = value
 
 
     def start(self, test):
