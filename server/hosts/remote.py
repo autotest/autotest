@@ -77,7 +77,7 @@ class RemoteHost(base_classes.Host):
 
 
     def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=LAST_BOOT_TAG,
-               kernel_args=None, wait=True, **dargs):
+               kernel_args=None, wait=True, fastsync=False, **dargs):
         """
         Reboot the remote host.
 
@@ -90,6 +90,10 @@ class RemoteHost(base_classes.Host):
                         job).  If it's None, we'll boot into the default kernel.
                         If it's something else, we'll boot into that.
                 wait - Should we wait to see if the machine comes back up.
+                fastsync - Don't wait for the sync to complete, just start one
+                        and move on. This is for cases where rebooting prompty
+                        is more important than data integrity and/or the
+                        machine may have disks that cause sync to never return.
         """
         if self.job:
             if label == self.LAST_BOOT_TAG:
@@ -115,15 +119,17 @@ class RemoteHost(base_classes.Host):
             try:
                 # sync before starting the reboot, so that a long sync during
                 # shutdown isn't timed out by wait_down's short timeout
-                self.run('sync; sync', timeout=timeout, ignore_status=True)
+                if not fastsync:
+                  self.run('sync; sync', timeout=timeout, ignore_status=True)
 
                 # Try several methods of rebooting in increasing harshness.
-                self.run('('
+                self.run('(('
+                         ' sync &'
                          ' sleep 5; reboot &'
                          ' sleep 60; reboot -f &'
                          ' sleep 10; reboot -nf &'
                          ' sleep 10; telinit 6 &'
-                         ') </dev/null >/dev/null 2>&1 &')
+                         ') </dev/null >/dev/null 2>&1 &)')
             except error.AutoservRunError:
                 self.record("ABORT", None, "reboot.start",
                               "reboot command failed")
