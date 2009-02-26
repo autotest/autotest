@@ -106,7 +106,7 @@ class base_test:
 
 
     def execute(self, iterations=None, test_length=None, profile_only=False,
-                _get_time=time.time, *args, **dargs):
+                _get_time=time.time, profile_perf=False, *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
         If you want to implement a benchmark test, it's better to implement
@@ -128,6 +128,8 @@ class base_test:
             rather than job.run_test(iterations=0).
 
         @param _get_time: [time.time] Used for unit test time injection.
+
+        @param profile_perf: Record performance of profiled run in perf-keyvals.
         """
 
         self.warmup(*args, **dargs)
@@ -185,21 +187,24 @@ class base_test:
                 self.test_log.info('Benchmark finished after %d iterations.',
                                    iterations)
 
-        self.run_once_profiling(*args, **dargs)
+        self.run_once_profiling(profile_perf, *args, **dargs)
 
         # Do any postprocessing, normally extracting performance keyvals, etc
         self.postprocess()
 
 
-    def run_once_profiling(self, *args, **dargs):
+    def run_once_profiling(self, profile_perf=False, *args, **dargs):
         profilers = self.job.profilers
         # Do a profiling run if necessary
         if profilers.present():
+            self.drop_caches_between_iterations()
             profilers.start(self)
             print 'Profilers present. Profiling run started'
             try:
                 self.iteration = 0       # indicator this is a profiling run
                 self.run_once(*args, **dargs)
+                if profile_perf:
+                  self.postprocess_iteration()
             finally:
                 profilers.stop(self)
                 profilers.report(self)
@@ -236,6 +241,7 @@ class base_test:
 
 
     def _exec(self, args, dargs):
+
         self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
 
