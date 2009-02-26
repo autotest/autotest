@@ -29,6 +29,8 @@ modules = []
 
 
 def lister(full, dirname, files):
+    if not os.path.exists(os.path.join(dirname, '__init__.py')):
+        return
     for f in files:
         if f.endswith('_unittest.py'):
             if not full and f in LONG_TESTS:
