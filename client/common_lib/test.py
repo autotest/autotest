@@ -106,7 +106,8 @@ class base_test:
 
 
     def execute(self, iterations=None, test_length=None, profile_only=False,
-                _get_time=time.time, profile_perf=False, *args, **dargs):
+                _get_time=time.time, postprocess_profiled_run=None,
+                *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
         If you want to implement a benchmark test, it's better to implement
@@ -129,7 +130,8 @@ class base_test:
 
         @param _get_time: [time.time] Used for unit test time injection.
 
-        @param profile_perf: Record performance of profiled run in perf-keyvals.
+        @param postprocess_profiled_run: Run the postprocessing for the
+            profiled run.
         """
 
         self.warmup(*args, **dargs)
@@ -149,7 +151,7 @@ class base_test:
             test_start = _get_time()
             time_elapsed = 0
             timed_counter = 0
-            self.test_log.info('Benchmark started. Minimum test length: %d s',
+            self.test_log.info('Test started. Minimum test length: %d s',
                                test_length)
             while time_elapsed < test_length:
                 timed_counter = timed_counter + 1
@@ -163,7 +165,7 @@ class base_test:
                 self.run_once(*args, **dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
-            self.test_log.info('Benchmark finished after %d iterations',
+            self.test_log.info('Test finished after %d iterations',
                                timed_counter)
             self.test_log.info('Time elapsed: %d s', time_elapsed)
         else:
@@ -176,7 +178,7 @@ class base_test:
             elif iterations is None:
                 iterations = 1
             if iterations:
-                self.test_log.info('Benchmark started. '
+                self.test_log.info('Test started. '
                                    'Number of iterations: %d', iterations)
                 for self.iteration in xrange(1, iterations+1):
                     self.test_log.info('Executing iteration %d of %d',
@@ -184,16 +186,16 @@ class base_test:
                     self.drop_caches_between_iterations()
                     self.run_once(*args, **dargs)
                     self.postprocess_iteration()
-                self.test_log.info('Benchmark finished after %d iterations.',
+                self.test_log.info('Test finished after %d iterations.',
                                    iterations)
 
-        self.run_once_profiling(profile_perf, *args, **dargs)
+        self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
 
         # Do any postprocessing, normally extracting performance keyvals, etc
         self.postprocess()
 
 
-    def run_once_profiling(self, profile_perf=False, *args, **dargs):
+    def run_once_profiling(self, postprocess_profiled_run, *args, **dargs):
         profilers = self.job.profilers
         # Do a profiling run if necessary
         if profilers.present():
@@ -203,8 +205,17 @@ class base_test:
             try:
                 self.iteration = 0       # indicator this is a profiling run
                 self.run_once(*args, **dargs)
-                if profile_perf:
-                  self.postprocess_iteration()
+
+                # Priority to the run_once() argument over the attribute.
+                postprocess_attribute = getattr(self,
+                                                'postprocess_profiled_run',
+                                                False)
+
+                if (postprocess_profiled_run or
+                    (postprocess_profiled_run is None and
+                     postprocess_attribute)):
+                    self.postprocess_iteration()
+
             finally:
                 profilers.stop(self)
                 profilers.report(self)
