@@ -248,8 +248,19 @@ class BaseAutotest(installable_object.InstallableObject):
 
         tmppath = utils.get(control_file)
 
-        cfile = "job.default_boot_tag(%r)\n" % host.job.last_boot_tag
-        cfile += "job.default_test_cleanup(%r)\n" % host.job.run_test_cleanup
+        # build up the initialization prologue for the control file
+        prologue_lines = []
+        prologue_lines.append("job.default_boot_tag(%r)\n"
+                              % host.job.last_boot_tag)
+        prologue_lines.append("job.default_test_cleanup(%r)\n"
+                              % host.job.run_test_cleanup)
+        for profiler, (args, dargs) in host.job.profilers.add_log.iteritems():
+            call_args = [repr(profiler)]
+            call_args += [repr(arg) for arg in args]
+            call_args += ["%s=%r" % item for item in dargs.iteritems()]
+            prologue_lines.append("job.profilers.add(%s)\n"
+                                  % ", ".join(call_args))
+        cfile = "".join(prologue_lines)
 
         # If the packaging system is being used, add the repository list.
         try:
