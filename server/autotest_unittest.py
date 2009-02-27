@@ -4,7 +4,7 @@ __author__ = "raphtee@google.com (Travis Miller)"
 
 import unittest, os, tempfile
 import common
-from autotest_lib.server import autotest, utils, hosts, server_job
+from autotest_lib.server import autotest, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib.test_utils import mock
@@ -24,6 +24,9 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.job.last_boot_tag = 'Autotest'
         self.host.job.sysinfo = self.god.create_mock_class(
             sysinfo.sysinfo, "sysinfo")
+        self.host.job.profilers = self.god.create_mock_class(
+            profilers.profilers, "profilers")
+        self.host.job.profilers.add_log = {}
         self.host.job.tmpdir = "/job/tmp"
 
         # stubs
