@@ -1,4 +1,4 @@
-import os, sys, time, signal, socket
+import os, sys, time, signal, socket, re, fnmatch
 import paramiko
 
 from autotest_lib.client.common_lib import utils, error, debug
@@ -14,35 +14,90 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         # paramiko is very noisy, tone down the logging
         paramiko.util.log_to_file("/dev/null", paramiko.util.ERROR)
 
-        self.key = self.get_user_key()
+        self.keys = self.get_user_keys(hostname)
         self.pid = None
 
         self.host_log = debug.get_logger()
 
 
     @staticmethod
-    def get_user_key():
-        # try the dsa key first
-        keyfile = os.path.expanduser("~/.ssh/id_dsa")
-        if os.path.exists(keyfile):
-            return paramiko.DSSKey.from_private_key_file(keyfile)
+    def _load_key(path):
+        """Given a path to a private key file, load the appropriate keyfile.
 
-        # try the rsa key instead
-        keyfile = os.path.expanduser("~/.ssh/id_rsa")
-        if os.path.exists(keyfile):
-            return paramiko.RSAKey.from_private_key_file(keyfile)
+        Tries to load the file as both an RSAKey and a DSAKey. If the file
+        cannot be loaded as either type, returns None."""
+        try:
+            return paramiko.DSSKey.from_private_key_file(path)
+        except paramiko.SSHException:
+            try:
+                return paramiko.RSAKey.from_private_key_file(path)
+            except paramiko.SSHException:
+                return None
 
-        msg = ("Unable to find SSH2 keys. We need a dsa key from "
-               "~/.ssh/id_dsa or an rsa key from ~/.ssh/id_rsa")
-        raise error.AutoservHostError(msg)
+
+    @staticmethod
+    def _parse_config_line(line):
+        """Given an ssh config line, return a (key, value) tuple for the
+        config value listed in the line, or (None, None)"""
+        match = re.match(r"\s*(\w+)\s*=?(.*)\n", line)
+        if match:
+            return match.groups()
+        else:
+            return None, None
+
+
+    @staticmethod
+    def get_user_keys(hostname):
+        """Returns a mapping of path -> paramiko.PKey entries available for
+        this user. Keys are found in the default locations (~/.ssh/id_[d|r]sa)
+        as well as any IdentityFile entries in the standard ssh config files.
+        """
+        raw_identity_files = ["~/.ssh/id_dsa", "~/.ssh/id_rsa"]
+        for config_path in ("/etc/ssh/ssh_config", "~/.ssh/config"):
+            if not os.path.exists(config_path):
+                continue
+            host_pattern = "*"
+            config_lines = open(os.path.expanduser(config_path)).readlines()
+            for line in config_lines:
+                key, value = ParamikoHost._parse_config_line(line)
+                if key == "Host":
+                    host_pattern = value
+                elif (key == "IdentityFile"
+                      and fnmatch.fnmatch(hostname, host_pattern)):
+                    raw_identity_files.append(host_pattern)
+
+        # drop any files that use percent-escapes; we don't support them
+        identity_files = []
+        UNSUPPORTED_ESCAPES = ["%d", "%u", "%l", "%h", "%r"]
+        for path in raw_identity_files:
+            # skip this path if it uses % escapes
+            if sum((escape in path) for escape in UNSUPPORTED_ESCAPES):
+                continue
+            path = os.path.expanduser(path)
+            if os.path.exists(path):
+                identity_files.append(path)
+
+        # load up all the keys that we can and return them
+        user_keys = {}
+        for path in identity_files:
+            key = ParamikoHost._load_key(path)
+            if key:
+                user_keys[path] = key
+        return user_keys
 
 
     def _init_transport(self):
-        transport = paramiko.Transport((self.hostname, self.port))
-        transport.connect(username=self.user, pkey=self.key)
-        transport.set_keepalive(self.KEEPALIVE_TIMEOUT_SECONDS)
-        self.transport = transport
-        self.pid = os.getpid()
+        for path, key in self.keys.iteritems():
+            try:
+                self.host_log.debug("Connecting with %s", path)
+                transport = paramiko.Transport((self.hostname, self.port))
+                transport.connect(username=self.user, pkey=key)
+                transport.set_keepalive(self.KEEPALIVE_TIMEOUT_SECONDS)
+                self.transport = transport
+                self.pid = os.getpid()
+                return
+            except paramiko.AuthenticationException:
+                self.host_log.debug("Authentication failure")
 
 
     def _open_channel(self):
