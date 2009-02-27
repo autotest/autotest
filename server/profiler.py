@@ -32,7 +32,7 @@ def get_unpassable_types(arg):
             parts = iter(arg)
         types = set()
         for part in parts:
-            types |= get_unpassable_types(arg)
+            types |= get_unpassable_types(part)
         return types
     else:
         return set([type(arg)])
