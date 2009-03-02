@@ -52,7 +52,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         """
         super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
         self.ssh_host_log = debug.get_logger()
-        self.setup()
+        self.setup_ssh()
 
 
     def ssh_command(self, connect_timeout=30, options=''):
@@ -222,42 +222,42 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             raise error.AutoservRunError("command execution error", result)
 
 
-    def ssh_setup_key(self):
+    def setup_ssh_key(self):
+        self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' % 
+                                (self.hostname, self.port, self.user))
+
         try:
-            self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' % 
-                                    (self.hostname, self.port, self.user))
-
             host = pxssh.pxssh()
+            host.login(self.hostname, self.user, self.password,
+                        port=self.port)
+            public_key = utils.get_public_key()
 
-            try:
-                host.login(self.hostname, self.user, self.password,
-                           port=self.port)
-                public_key = utils.get_public_key()
+            host.sendline('mkdir -p ~/.ssh')
+            host.prompt()
+            host.sendline('chmod 700 ~/.ssh')
+            host.prompt()
+            host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
+                            public_key)
+            host.prompt()
+            host.sendline('chmod 600 ~/.ssh/authorized_keys')
+            host.prompt()
+            host.logout()
 
-                host.sendline('mkdir -p ~/.ssh')
-                host.prompt()
-                host.sendline('chmod 700 ~/.ssh')
-                host.prompt()
-                host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
-                              public_key)
-                host.prompt()
-                host.sendline('chmod 600 ~/.ssh/authorized_keys')
-                host.prompt()
-
-                self.ssh_host_log.debug('SSH key setup complete.')
-
-            finally:
-                host.logout()
+            self.ssh_host_log.debug('SSH key setup complete.')
 
         except:
             self.ssh_host_log.debug('SSH key setup has failed.')
-            pass
+            try:
+                host.logout()
+            except:
+                pass
 
 
-    def setup(self):
-        super(SSHHost, self).setup()
+    def setup_ssh(self):
         if not self.password == '':
             try:
                 self.ssh_ping()
             except error.AutoservRunError:
-                self.ssh_setup_key()
+                self.setup_ssh_key()
+
+
