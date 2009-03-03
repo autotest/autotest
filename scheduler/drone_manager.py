@@ -92,7 +92,6 @@ class DroneManager(object):
     directory, except for those returns by absolute_path().
     """
     _MAX_PIDFILE_AGE = 1000
-    _NULL_HOSTNAME = 'null host'
 
     def __init__(self):
         self._results_dir = None
@@ -106,7 +105,6 @@ class DroneManager(object):
         self._results_drone = None
         self._attached_files = {}
         self._drone_queue = []
-        self._null_drone = drones.NullDrone()
 
 
     def initialize(self, base_results_dir, drone_hostnames,
@@ -181,8 +179,6 @@ class DroneManager(object):
 
 
     def _get_drone_for_process(self, process):
-        if process.hostname == self._NULL_HOSTNAME:
-            return self._null_drone
         return self._drones[process.hostname]
 
 
@@ -340,13 +336,6 @@ class DroneManager(object):
         Return the process object for the given execution tag.
         """
         return self._processes.get(execution_tag, None)
-
-
-    def get_dummy_process(self):
-        """
-        Return a null process object.
-        """
-        return Process(self._NULL_HOSTNAME, 0)
 
 
     def kill_process(self, process):
@@ -561,17 +550,17 @@ class DroneManager(object):
         return file_path
 
 
-    def write_lines_to_file(self, file_path, lines, paired_with_pidfile=None):
+    def write_lines_to_file(self, file_path, lines, paired_with_process=None):
         """
         Write the given lines (as a list of strings) to a file.  If
-        paired_with_pidfile is given, the file will be written on the drone
-        running the given PidfileId.  Otherwise, the file will be written to the
+        paired_with_process is given, the file will be written on the drone
+        running the given Process.  Otherwise, the file will be written to the
         results repository.
         """
         full_path = os.path.join(self._results_dir, file_path)
         file_contents = '\n'.join(lines) + '\n'
-        if paired_with_pidfile:
-            drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
+        if paired_with_process:
+            drone = self._get_drone_for_process(paired_with_process)
         else:
             drone = self._results_drone
         drone.queue_call('write_to_file', full_path, file_contents)
