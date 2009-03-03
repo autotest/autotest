@@ -98,6 +98,11 @@ class BaseAutotest(installable_object.InstallableObject):
         host.set_autodir(autodir)
         host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
 
+        # make sure there are no files in $AUTODIR/results
+        results_path = os.path.join(autodir, 'results')
+        host.run('rm -rf "%s"/*' % utils.sh_escape(results_path),
+                 ignore_status=True)
+
         # Fetch the autotest client from the nearest repository
         try:
             c = global_config.global_config
@@ -123,7 +128,6 @@ class BaseAutotest(installable_object.InstallableObject):
                    " packaging system %s" %  e)
         except (packages.PackageInstallError, error.AutoservRunError), e:
             print "Could not install autotest from %s" % (repos)
-
 
         # try to install from file or directory
         if self.source_material:
