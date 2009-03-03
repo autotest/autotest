@@ -41,7 +41,7 @@ def _get_site_job_data_dummy(job):
 
 # load up site-specific code for generating site-specific job data
 get_site_job_data = utils.import_site_function(__file__,
-    "autotest_lib.server.site_job", "get_site_job_data",
+    "autotest_lib.server.site_server_job", "get_site_job_data",
     _get_site_job_data_dummy)
 
 
