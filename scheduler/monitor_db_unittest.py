@@ -768,11 +768,9 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.set_not_yet_run()
         email_manager.manager.enqueue_notify_email.expect_call(
             mock.is_string_comparator(), mock.is_string_comparator())
-        dummy_process = drone_manager.Process('dummy', 12345)
-        self.mock_drone_manager.get_dummy_process.expect_call().and_return(
-            dummy_process)
         self.monitor._start_time = time.time() - monitor_db.PIDFILE_TIMEOUT - 1
-        self._test_get_pidfile_info_helper(12345, 1, 0)
+        self._test_get_pidfile_info_helper(None, 1, 0)
+        self.assertTrue(self.monitor.lost_process)
 
 
 class AgentTest(unittest.TestCase):

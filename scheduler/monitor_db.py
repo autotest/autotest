@@ -36,6 +36,13 @@ if AUTOTEST_SERVER_DIR not in sys.path:
 # how long to wait for autoserv to write a pidfile
 PIDFILE_TIMEOUT = 5 * 60 # 5 min
 
+# error message to leave in results dir when an autoserv process disappears
+# mysteriously
+_LOST_PROCESS_ERROR = """\
+Autoserv failed abnormally during execution for this job, probably due to a
+system error on the Autotest server.  Full results may not be available.  Sorry.
+"""
+
 _db = None
 _shutdown = False
 _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
@@ -766,7 +773,7 @@ class PidfileRunMonitor(object):
 
 
     def __init__(self):
-        self._lost_process = False
+        self.lost_process = False
         self._start_time = None
         self.pidfile_id = None
         self._state = drone_manager.PidfileContents()
@@ -811,7 +818,7 @@ class PidfileRunMonitor(object):
 
     def get_process(self):
         self._get_pidfile_info()
-        assert self.has_process()
+        assert self._state.process is not None
         return self._state.process
 
 
@@ -831,15 +838,11 @@ class PidfileRunMonitor(object):
             self._state.process, self.pidfile_id, message)
         print message
         email_manager.manager.enqueue_notify_email(error, message)
-        if self._state.process is not None:
-            process = self._state.process
-        else:
-            process = _drone_manager.get_dummy_process()
-        self.on_lost_process(process)
+        self.on_lost_process(self._state.process)
 
 
     def _get_pidfile_info_helper(self):
-        if self._lost_process:
+        if self.lost_process:
             return
 
         self._read_pidfile()
@@ -884,10 +887,10 @@ class PidfileRunMonitor(object):
         if time.time() - self._start_time > PIDFILE_TIMEOUT:
             email_manager.manager.enqueue_notify_email(
                 'Process has failed to write pidfile', message)
-            self.on_lost_process(_drone_manager.get_dummy_process())
+            self.on_lost_process()
 
 
-    def on_lost_process(self, process):
+    def on_lost_process(self, process=None):
         """\
         Called when autoserv has exited without writing an exit status,
         or we've timed out waiting for autoserv to write a pid to the
@@ -1236,10 +1239,9 @@ class QueueTask(AgentTask):
 
     def _write_keyval_after_job(self, field, value):
         assert self.monitor and self.monitor.has_process()
-        paired_with_pidfile = self.monitor.pidfile_id
         _drone_manager.write_lines_to_file(
             self._keyval_path(), [self._format_keyval(field, value)],
-            paired_with_pidfile=paired_with_pidfile)
+            paired_with_process=self.monitor.get_process())
 
 
     def _write_host_keyvals(self, host):
@@ -1267,17 +1269,28 @@ class QueueTask(AgentTask):
             self.job.write_to_machines_file(self.queue_entries[0])
 
 
+    def _write_lost_process_error_file(self):
+        error_file_path = os.path.join(self._execution_tag(), 'job_failure')
+        _drone_manager.write_lines_to_file(error_file_path,
+                                           [_LOST_PROCESS_ERROR])
+
+
     def _finish_task(self, success):
-        finished = int(time.time())
-        self._write_keyval_after_job("job_finished", finished)
-        self._copy_and_parse_results(self.queue_entries)
+        if self.monitor.has_process():
+            self._write_keyval_after_job("job_finished", int(time.time()))
+            self._copy_and_parse_results(self.queue_entries)
+
+        if self.monitor.lost_process:
+            self._write_lost_process_error_file()
+            for queue_entry in self.queue_entries:
+                queue_entry.set_status(models.HostQueueEntry.Status.FAILED)
 
 
     def _write_status_comment(self, comment):
         _drone_manager.write_lines_to_file(
             os.path.join(self._execution_tag(), 'status.log'),
             ['INFO\t----\t----\t' + comment],
-            paired_with_pidfile=self.monitor.pidfile_id)
+            paired_with_process=self.monitor.get_process())
 
 
     def _log_abort(self):
@@ -1503,6 +1516,7 @@ class FinalReparseTask(AgentTask):
             return
 
         # make sure we actually have results to parse
+        # this should never happen in normal operation
         if not self._autoserv_monitor.has_process():
             email_manager.manager.enqueue_notify_email(
                 'No results to parse',
