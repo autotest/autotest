@@ -31,6 +31,7 @@ class BaseAutotest(installable_object.InstallableObject):
         self.host = host
         self.got = False
         self.installed = False
+        self.lightweight = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
         self.logger = debug.get_logger(module='server')
@@ -122,6 +123,7 @@ class BaseAutotest(installable_object.InstallableObject):
             pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
                                preserve_install_dir=True)
             self.installed = True
+            self.lightweight = lightweight
             return
         except global_config.ConfigError, e:
             print ("Could not install autotest using the"
@@ -157,6 +159,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 raise NotImplementedError(e_msg)
             print "Installation of autotest completed"
             self.installed = True
+            self.lightweight = lightweight
             return
 
         # if that fails try to install using svn
@@ -169,6 +172,7 @@ class BaseAutotest(installable_object.InstallableObject):
             host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
         print "Installation of autotest completed"
         self.installed = True
+        self.lightweight = lightweight
 
 
     def get(self, location = None):
@@ -258,13 +262,6 @@ class BaseAutotest(installable_object.InstallableObject):
                               % host.job.last_boot_tag)
         prologue_lines.append("job.default_test_cleanup(%r)\n"
                               % host.job.run_test_cleanup)
-        for profiler, (args, dargs) in host.job.profilers.add_log.iteritems():
-            call_args = [repr(profiler)]
-            call_args += [repr(arg) for arg in args]
-            call_args += ["%s=%r" % item for item in dargs.iteritems()]
-            prologue_lines.append("job.profilers.add(%s)\n"
-                                  % ", ".join(call_args))
-        cfile = "".join(prologue_lines)
 
         # If the packaging system is being used, add the repository list.
         try:
@@ -272,9 +269,21 @@ class BaseAutotest(installable_object.InstallableObject):
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
-            cfile += 'job.add_repository(%s)\n' % pkgmgr.repo_urls
+            prologue_lines.append('job.add_repository(%s)\n'
+                                  % pkgmgr.repo_urls)
         except global_config.ConfigError, e:
             pass
+
+        # on full-size installs, turn on any profilers the server is using
+        if not self.lightweight:
+            running_profilers = host.job.profilers.add_log.iteritems()
+            for profiler, (args, dargs) in running_profilers:
+                call_args = [repr(profiler)]
+                call_args += [repr(arg) for arg in args]
+                call_args += ["%s=%r" % item for item in dargs.iteritems()]
+                prologue_lines.append("job.profilers.add(%s)\n"
+                                      % ", ".join(call_args))
+        cfile = "".join(prologue_lines)
 
         cfile += open(tmppath).read()
         open(tmppath, "w").write(cfile)
