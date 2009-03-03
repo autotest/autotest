@@ -398,6 +398,46 @@ def _find_plot_by_label(plots, label):
     raise ValueError('no plot labeled "%s" found' % label)
 
 
+def _normalize_to_series(plots, base_series):
+    base_series_index = _find_plot_by_label(plots, base_series)
+    base_plot = plots[base_series_index]
+    base_xs = base_plot['x']
+    base_values = base_plot['y']
+    base_errors = base_plot['errors']
+    del plots[base_series_index]
+
+    for plot in plots:
+        old_xs, old_values, old_errors = plot['x'], plot['y'], plot['errors']
+        new_xs, new_values, new_errors = [], [], []
+        new_base_values, new_base_errors = [], []
+        # Select only points in the to-be-normalized data that have a
+        # corresponding baseline value
+        for index, x_value in enumerate(old_xs):
+            try:
+                base_index = base_xs.index(x_value)
+            except ValueError:
+                continue
+
+            new_xs.append(x_value)
+            new_values.append(old_values[index])
+            new_base_values.append(base_values[base_index])
+            if old_errors:
+                new_errors.append(old_errors[index])
+                new_base_errors.append(base_errors[base_index])
+
+        if not new_xs:
+            raise NoDataError('No normalizable data for series ' +
+                              plot['label'])
+        plot['x'] = new_xs
+        plot['y'] = new_values
+        if old_errors:
+            plot['errors'] = new_errors
+
+        plot['y'], plot['errors'] = _normalize(plot['y'], plot['errors'],
+                                               new_base_values,
+                                               new_base_errors)
+
+
 def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
                                 extra_text=None):
     """\
@@ -505,35 +545,8 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
                                                    None or base_errors)
 
     elif normalize.startswith('series__'):
-        series = normalize[8:]
-        series_index = _find_plot_by_label(plots, series)
-        base_plot = plots[series_index]
-        base_xs = base_plot['x']
-        base_values = base_plot['y']
-        base_errors = base_plot['errors']
-        del plots[series_index]
-
-        for plot in plots:
-            old_xs, old_ys, old_errors = plot['x'], plot['y'], plot['errors']
-            new_xs, new_ys, new_errors = [], [], []
-            # Remove all points in the to-be-normalized data that do not
-            # have a corresponding baseline value
-            for index, x_value in enumerate(old_xs):
-                if x_value in base_xs:
-                    new_xs.append(x_value)
-                    new_ys.append(old_ys[index])
-                    if old_errors:
-                        new_errors.append(old_errors[index])
-            if not new_xs:
-                raise NoDataError('No normalizable data for series ' +
-                                  plot['label'])
-            plot['x'] = new_xs
-            plot['y'] = new_ys
-            if old_errors:
-                plot['errors'] = new_errors
-
-            plot['y'], plot['errors'] = _normalize(plot['y'], plot['errors'],
-                                                   base_values, base_errors)
+        base_series = normalize[8:]
+        _normalize_to_series(plots, base_series)
 
     # Call the appropriate function to draw the line or bar plot
     params = [plots, labels, queries, invert]
