@@ -499,6 +499,7 @@ class _Run(object):
         stdout_read = stderr_read = 0
         old_resultdir = self.host.job.resultdir
         try:
+            self.host.job.resultdir = self.results_dir
             self.host.run(daemon_cmd, ignore_status=True, timeout=timeout)
             while True:
                 monitor_cmd = self.get_monitor_cmd(monitor_dir, stdout_read,
