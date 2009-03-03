@@ -141,34 +141,6 @@ class _RemoteDrone(_AbstractDrone):
                             destination_path, can_fail)
 
 
-class NullDrone(object):
-    """
-    Null object utility for processes that have failed to run.
-    """
-    def shutdown(self):
-        pass
-
-
-    def call(self, *args, **kwargs):
-        pass
-
-
-    def queue_call(self, *args, **kwargs):
-        pass
-
-
-    def clear_call_queue(self):
-        pass
-
-
-    def execute_queued_calls(self):
-        pass
-
-
-    def send_file_to(self, *args, **kwargs):
-        pass
-
-
 def set_temporary_directory(temporary_directory):
     _RemoteDrone.set_temporary_directory(temporary_directory)
 
