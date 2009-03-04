@@ -102,10 +102,10 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.get_autodir.expect_call().and_return("autodir")
         self.host.set_autodir.expect_call("autodir")
         utils.sh_escape.expect_call("autodir").and_return("autodir")
-        self.host.run.expect_call('mkdir -p "autodir"')
+        self.host.run.expect_call('mkdir -p autodir')
         utils.sh_escape.expect_call("autodir/results").and_return(
             "autodir/results")
-        self.host.run.expect_call('rm -rf "autodir/results"/*',
+        self.host.run.expect_call('rm -rf autodir/results/*',
                                   ignore_status=True)
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
