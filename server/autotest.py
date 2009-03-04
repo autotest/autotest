@@ -97,11 +97,11 @@ class BaseAutotest(installable_object.InstallableObject):
         if not autodir:
             autodir = self._get_install_dir(host)
         host.set_autodir(autodir)
-        host.run('mkdir -p "%s"' % utils.sh_escape(autodir))
+        host.run('mkdir -p %s' % utils.sh_escape(autodir))
 
         # make sure there are no files in $AUTODIR/results
         results_path = os.path.join(autodir, 'results')
-        host.run('rm -rf "%s"/*' % utils.sh_escape(results_path),
+        host.run('rm -rf %s/*' % utils.sh_escape(results_path),
                  ignore_status=True)
 
         # Fetch the autotest client from the nearest repository
