@@ -1,0 +1,129 @@
+#!/bin/sh
+
+# steps to take following a release of new code to keep things working.
+#
+# the following scripts may be created to customize behavior:
+# 
+# site_utils/site_sync_code
+#
+# - pull code from a source repository
+#
+# site_utils/site_install_cli
+#
+# - install or update client code (new "atest" build?)
+#
+# site_utils/site_restart_apache
+#
+# - suid helper or similar?
+# 
+# site_utils/site_restart_final
+# 
+# - any finishing touches you may require.
+
+# --- 
+
+INIT_SCR=/etc/init.d/autotest
+
+# ---
+
+print_status() {
+  STATUS=$1
+
+  echo "--- $STATUS"
+}
+
+fatal() {
+  echo "*** Fatal error.  Giving up."
+  exit 1
+}
+
+# ---
+
+MY_DIR=`dirname $0`
+
+if (! test -f $INIT_SCR)
+then
+  echo "Error: $INIT_SCR must be installed."
+  exit 1
+fi
+
+BECOME_USER=`grep ^BECOME_USER= $INIT_SCR`
+
+if (test "$BECOME_USER" == "")
+then
+  echo "Error: BECOME_USER not defined in $INIT_SCR"
+  exit 1
+fi
+
+BASE_DIR=`grep ^BASE_DIR= $INIT_SCR`
+
+if (test "$BASE_DIR" == "")
+then
+  echo "Error: BASE_DIR not defined in $INIT_SCR"
+  exit 1
+fi
+
+eval $BECOME_USER
+eval $BASE_DIR
+
+# --- stop autotest persistent code
+
+print_status "Stopping autotest persistent code"
+$INIT_SCR stop
+
+# --- sync code (site-specific)
+
+if (test -x $BASE_DIR/site_utils/site_sync_code)
+then
+  print_status "Syncing code"
+  su $BECOME_USER -c $BASE_DIR/site_utils/site_sync_code || exit 1
+fi
+
+# --- compile AfeClient 
+
+print_status "Compiling AfeClient"
+( cd $BASE_DIR/frontend/client && 
+  su $BECOME_USER -c ./AfeClient-compile ) || fatal
+
+# --- compile TkoClient
+
+print_status "Compiling TkoClient"
+( cd $BASE_DIR/frontend/client &&
+  su $BECOME_USER -c ./TkoClient-compile ) || fatal
+
+# --- fix gwt permissions
+
+print_status "Fixing permissions"
+( cd $BASE_DIR/frontend/client &&
+  find | xargs chmod o+r &&
+  find -type d | xargs chmod o+rx ) || fatal
+
+# --- update cli repository (site-specific)
+
+if (test -x $BASE_DIR/site_utils/site_install_cli)
+then
+  print_status "Updating cli repository"
+  su $BECOME_USER -c $BASE_DIR/site_utils/site_install_cli || fatal
+fi
+
+# --- restart autotest persistent code
+
+print_status "Restarting autotest persistent code"
+$INIT_SCR start || fatal
+
+# --- possibly restart Apache (site-specific)
+
+if (test -x $BASE_DIR/site_utils/site_restart_apache)
+then
+  print_status "Restarting Apache"
+  su $BECOME_USER -c $BASE_DIR/site_utils/site_restart_apache || fatal
+fi
+
+# --- do any site-specific finalization
+
+if (test -x $BASE_DIR/site_utils/site_restart_final)
+then
+  print_status "Finalizing release"
+  su $BECOME_USER -c $BASE_DIR/site_utils/site_restart_final || fatal
+fi
+
