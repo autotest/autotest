@@ -308,7 +308,7 @@ class host_jobs(host):
 
 
 class host_mod(host):
-    """atest host mod --lock|--unlock|--ready|--dead
+    """atest host mod --lock|--unlock|--ready
     --mlist <file>|<hosts>"""
     usage_action = 'mod'
 
@@ -319,9 +319,6 @@ class host_mod(host):
         super(host_mod, self).__init__()
         self.parser.add_option('-y', '--ready',
                                help='Mark this host ready',
-                               action='store_true')
-        self.parser.add_option('-d', '--dead',
-                               help='Mark this host dead',
                                action='store_true')
         self.parser.add_option('-l', '--lock',
                                help='Lock hosts',
@@ -343,16 +340,9 @@ class host_mod(host):
 
         self._parse_lock_options(options)
 
-        if options.ready and options.dead:
-            self.invalid_syntax('Only specify one of '
-                                '--ready and --dead')
-
         if options.ready:
             self.data['status'] = 'Ready'
             self.messages.append('Set status to Ready for host')
-        elif options.dead:
-            self.data['status'] = 'Dead'
-            self.messages.append('Set status to Dead for host')
 
         if options.protection:
             self.data['protection'] = options.protection

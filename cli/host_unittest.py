@@ -483,9 +483,9 @@ class host_list_unittest(cli_mock.cli_unittest):
 
     def test_execute_list_filter_statuses_and_hosts_none(self):
         self.run_cmd(argv=['atest', 'host', 'list', 'host1',
-                           '--status', 'Repair, Dead',
+                           '--status', 'Repair',
                            'host2', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'status__in': ['Repair', 'Dead'],
+                     rpcs=[('get_hosts', {'status__in': ['Repair'],
                                           'hostname__in': ['host2', 'host1']},
                             True,
                             [])],
@@ -1195,17 +1195,6 @@ class host_jobs_unittest(cli_mock.cli_unittest):
 
 
 class host_mod_unittest(cli_mock.cli_unittest):
-    def test_parse_ready_dead(self):
-        sys.argv = ['atest', 'host', 'mod', '--ready', '--dead']
-        hm = host.host_mod()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
-
-        self.god.mock_io()
-        self.assertRaises(cli_mock.ExitException,
-                          hm.parse)
-        self.god.unmock_io()
-
-
     def test_execute_lock_one_host(self):
         self.run_cmd(argv=['atest', 'host', 'mod',
                            '--lock', 'host0', '--ignore_site_file'],
