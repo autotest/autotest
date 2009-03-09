@@ -17,10 +17,6 @@ from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
 
 
-class PermissionDeniedError(error.AutoservRunError):
-    pass
-
-
 class SSHHost(abstract_ssh.AbstractSSHHost):
     """
     This class represents a remote machine controlled through an ssh
@@ -85,9 +81,9 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             if re.search(r'^ssh: connect to host .* port .*: '
                          r'Connection timed out\r$', result.stderr):
                 raise error.AutoservSSHTimeout("ssh timed out", result)
-            if result.stderr == "Permission denied.\r\n":
+            if "Permission denied." in result.stderr:
                 msg = "ssh permission denied"
-                raise PermissionDeniedError(msg, result)
+                raise error.AutoservSshPermissionDeniedError(msg, result)
 
         if not ignore_status and result.exit_status > 0:
             raise error.AutoservRunError("command execution error", result)
@@ -128,8 +124,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 return self._run(command, timeout, ignore_status, stdout,
                                  stderr, connect_timeout, env, options,
                                  stdin=stdin)
-            except PermissionDeniedError:
-                print >>stdout, ("Permission denied to ssh; re-running"
+            except error.AutoservSshPermissionDeniedError:
+                print >>stdout, ("Permission denied to ssh; re-running "
                                  "with increased logging:")
                 try:
                     self._run(command, timeout, ignore_status, stdout,

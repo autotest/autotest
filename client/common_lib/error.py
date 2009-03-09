@@ -185,6 +185,11 @@ class AutoservRunError(AutoservError):
         return self.description + '\n' + repr(self.result_obj)
 
 
+class AutoservSshPermissionDeniedError(AutoservRunError):
+    """Indicates that a SSH permission denied error was encountered."""
+    pass
+
+
 class AutoservVirtError(AutoservError):
     """Vitualization related error"""
     pass
