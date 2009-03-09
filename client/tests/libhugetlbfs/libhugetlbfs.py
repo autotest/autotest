@@ -6,6 +6,8 @@ class libhugetlbfs(test.test):
     version = 6
 
     def initialize(self, dir = None, pages_requested = 20):
+        self.dir = None
+
         self.job.require_gcc()
 
         utils.check_kernel_ver("2.6.16")
@@ -57,4 +59,5 @@ class libhugetlbfs(test.test):
 
 
     def cleanup(self):
-        utils.system('umount %s' % self.dir)
+        if self.dir:
+            utils.system('umount %s' % self.dir)
