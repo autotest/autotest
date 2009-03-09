@@ -96,6 +96,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'reboot_before': 'Pre-job reboot',
                     'reboot_after': 'Post-job reboot',
                     'experimental': 'Experimental',
+                    'synch_count': 'Sync Count',
                     }
 
 # In the failure, tag that will replace the item.
