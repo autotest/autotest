@@ -230,6 +230,9 @@ class AbstractSSHHost(SiteHost):
         except error.AutoservSSHTimeout:
             msg = "ssh ping timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
+        except error.AutoservSshPermissionDeniedError:
+            #let AutoservSshPermissionDeniedError be visible to the callers
+            raise
         except error.AutoservRunError, e:
             msg = "command true failed in ssh ping"
             raise error.AutoservRunError(msg, e.result_obj)
