@@ -166,6 +166,9 @@ def list_grep(list, pattern):
 def get_os_vendor():
     """Try to guess what's the os vendor
     """
+    if os.path.isfile('/etc/SuSE-release'):
+        return 'SUSE'
+
     issue = '/etc/issue'
 
     if not os.path.isfile(issue):
