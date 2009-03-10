@@ -179,6 +179,7 @@ class parser(base.parser):
         started_time_stack = [None]
         subdir_stack = [None]
         running_test = None
+        running_reasons = []
         yield []   # we're ready to start running
 
         # create a RUNNING SERVER_JOB entry to represent the entire test
@@ -257,6 +258,9 @@ class parser(base.parser):
                     min_stack_size = stack.size()
                 elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
+                    running_reasons = []
+                    if line.reason:
+                        running_reasons.append(line.reason)
                     running_test = test.parse_partial_test(self.job,
                                                            line.subdir,
                                                            line.testname,
@@ -286,6 +290,13 @@ class parser(base.parser):
                                             current_status):
                     if line.reason:
                         current_reason = line.reason
+                        # update the status of a currently running test
+                        if running_test:
+                            running_reasons.append(line.reason)
+                            running_test.reason = ", ".join(running_reasons)
+                            new_tests.append(running_test)
+                            msg = "update RUNNING reason: %s" % line.reason
+                            tko_utils.dprint(msg)
                     current_status = stack.current_status()
                 started_time = None
                 finished_time = line.get_timestamp()
