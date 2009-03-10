@@ -4,6 +4,7 @@ Alias /results "/usr/local/autotest/results/"
     AllowOverride None
     Order allow,deny
     Allow from all
+    ForceType text/plain
 </Directory>
 
 Alias /tko "/usr/local/autotest/tko/"
