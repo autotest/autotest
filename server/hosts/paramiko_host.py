@@ -98,6 +98,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 return
             except paramiko.AuthenticationException:
                 self.host_log.debug("Authentication failure")
+        else:
+            raise error.AutoservSshPermissionDeniedError(
+                "Permission denied using all keys available to ParamikoHost",
+                utils.CmdResult())
 
 
     def _open_channel(self):
