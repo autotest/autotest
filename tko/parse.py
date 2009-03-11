@@ -152,22 +152,31 @@ def _get_job_subdirs(path):
     return None
 
 
+def parse_leaf_path(db, path, level, reparse, mail_on_failure):
+    job_elements = path.split("/")[-level:]
+    jobname = "/".join(job_elements)
+    try:
+        db.run_with_retry(parse_one, db, jobname, path, reparse,
+                          mail_on_failure)
+    except Exception:
+        traceback.print_exc()
+
+
 def parse_path(db, path, level, reparse, mail_on_failure):
     job_subdirs = _get_job_subdirs(path)
     if job_subdirs is not None:
+        # parse status.log in current directory, if it exists. multi-machine
+        # synchronous server side tests record output in this directory. without
+        # this check, we do not parse these results.
+        if os.path.exists(os.path.join(path, 'status.log')):
+            parse_leaf_path(db, path, level, reparse, mail_on_failure)
         # multi-machine job
         for subdir in job_subdirs:
             jobpath = os.path.join(path, subdir)
             parse_path(db, jobpath, level + 1, reparse, mail_on_failure)
     else:
         # single machine job
-        job_elements = path.split("/")[-level:]
-        jobname = "/".join(job_elements)
-        try:
-            db.run_with_retry(parse_one, db, jobname, path,
-                              reparse, mail_on_failure)
-        except Exception:
-            traceback.print_exc()
+        parse_leaf_path(db, path, level, reparse, mail_on_failure)
 
 
 def main():
