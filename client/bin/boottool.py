@@ -62,6 +62,23 @@ class boottool(object):
         return self.get_titles()[default]
 
 
+    def get_title_for_kernel(self, path):
+        """
+        Returns a title for a particular kernel.
+
+            @param path: full path to vmlinuz
+            @rtype: str
+        """
+        entries = self.get_entries()
+        for entry in entries.values():
+            try:
+                if entry['kernel'] == path:
+                    return entry['title']
+            except KeyError:
+                pass
+        return None
+
+
     def print_entry(self, index):
         """ 
         Prints entry to stdout as returned by perl boottool 
