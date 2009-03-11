@@ -164,7 +164,7 @@ def read_keyval(path):
     keyval = {}
     for line in open(path):
         line = re.sub('#.*', '', line).rstrip()
-        if not re.search(r'^[-\w]+=', line):
+        if not re.search(r'^[-\.\w]+=', line):
             raise ValueError('Invalid format line: %s' % line)
         key, value = line.split('=', 1)
         if re.search('^\d+$', value):
@@ -191,12 +191,12 @@ def write_keyval(path, dictionary, type_tag=None):
     keyval = open(path, 'a')
 
     if type_tag is None:
-        key_regex = re.compile(r'^[-\w]+$')
+        key_regex = re.compile(r'^[-\.\w]+$')
     else:
         if type_tag not in ('attr', 'perf'):
             raise ValueError('Invalid type tag: %s' % type_tag)
         escaped_tag = re.escape(type_tag)
-        key_regex = re.compile(r'^[-\w]+\{%s\}$' % escaped_tag)
+        key_regex = re.compile(r'^[-\.\w]+\{%s\}$' % escaped_tag)
     try:
         for key, value in dictionary.iteritems():
             if not key_regex.search(key):
