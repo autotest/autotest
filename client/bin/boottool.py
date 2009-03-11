@@ -77,12 +77,13 @@ class boottool(object):
         
             @rtype: dict
         """
-        # use indexes, see note on get_entry
-        indexes = self.get_indexes() 
+        raw = "\n" + self.run_boottool('--info all')
         entries = {}
-        for index in indexes:
-            entry = self.get_entry(index)
-            entries[index] = entry
+        for entry_str in raw.split("\nindex"):
+            if len(entry_str.strip()) == 0:
+                continue
+            entry = self.parse_entry("index" + entry_str)
+            entries[entry["index"]] = entry
 
         return entries
 
@@ -98,9 +99,20 @@ class boottool(object):
             @param kernel: can be a position number (index) or title
             @rtype: dict
         """
-        entry_str = self.run_boottool('--info="%s"' % kernel)
+        return self.parse_entry(self.run_boottool('--info="%s"' % kernel))
+
+
+    def parse_entry(self, entry_str):
+        """
+        Parse entry as returned by perl boottool
+
+            @param entry_str: one entry from perl boottool
+            @rtype: dict
+        """
         entry = {}
-        for line in entry_str.split("\n"):
+        for line in entry_str.splitlines():
+            if len(line) == 0:
+                continue
             name = line[:line.find(":")]
             value = line[line.find(":") + 1:]
             entry[name.strip()] = value.strip()
