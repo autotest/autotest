@@ -327,11 +327,13 @@ class host_mod(host):
                                help='Unlock hosts',
                                action='store_true')
         self.parser.add_option('-p', '--protection', type='choice',
-                               help='Set the protection level on a host.  Must '
-                               'be one of: "Repair filesystem only", '
-                               '"No protection", or "Do not repair"',
-                               choices=('No protection', 'Do not repair',
-                                        'Repair filesystem only'))
+                               help='Set the protection level on a host.  '
+                               'Must be one of: "No protection", '
+                               '"Software repair only", '
+                               '"Repair filesystem only", or "Do not repair"',
+                               choices=('No protection', 'Repair software only',
+                                        'Repair filesystem only',
+                                        'Do not repair'))
 
 
     def parse(self):
@@ -420,7 +422,7 @@ class host_create(host):
 
     def _execute_add_one_host(self, host):
         # Always add the hosts as locked to avoid the host
-        # being picked up by the scheduler before it's ACL'ed 
+        # being picked up by the scheduler before it's ACL'ed
         self.data['locked'] = True
         self.execute_rpc('add_host', hostname=host,
                          status="Ready", **self.data)
