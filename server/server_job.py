@@ -345,6 +345,9 @@ class base_server_job(object):
             def wrapper(machine):
                 self.resultdir = os.path.join(self.resultdir, machine)
                 os.chdir(self.resultdir)
+                machine_data = {'hostname' : machine,
+                                'status_version' : str(self.STATUS_VERSION)}
+                utils.write_keyval(self.resultdir, machine_data)
                 result = function(machine)
                 return result
         else:
