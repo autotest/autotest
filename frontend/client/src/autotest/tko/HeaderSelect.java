@@ -20,6 +20,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +77,9 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     private StackPanel stack = new StackPanel();
     private SimpleHyperlink switchLink = new SimpleHyperlink(SWITCH_TO_MULTIPLE);
     private Panel machineLabelInputPanel = new VerticalPanel();
+    
+    private List<HeaderField> savedSelectedFields;
+    private String savedFixedValues;
     
     public HeaderSelect() {
         Panel singleHeaderOptions = new VerticalPanel();
@@ -146,7 +150,13 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         }
     }
     
-    public List<HeaderField> getSelectedItems() {
+    public void updateStateFromView() {
+        savedSelectedFields = getSelectedItemsFromView();
+        savedFixedValues = getFixedValuesText();
+        updateMachineLabelsFromView();
+    }
+    
+    private List<HeaderField> getSelectedItemsFromView() {
         if (!isDoubleSelectActive()) {
             copyListSelectionToDoubleList();
         }
@@ -158,20 +168,28 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         return selectedFields;
     }
     
-    public List<String> getFixedValues() {
-        String valueText = fixedValues.getText().trim();
-        if (!isFixedValuesEnabled() || valueText.equals("")) {
-            return null;
+    private String getFixedValuesText() {
+        if (!isFixedValuesEnabled()) {
+            return "";
         }
         
-        return Utils.splitListWithSpaces(valueText);
-    }
-
-    private boolean isDoubleSelectActive() {
-        return switchLink.getText().equals(SWITCH_TO_SINGLE);
+        return fixedValues.getText();
     }
     
-    public void selectItems(List<HeaderField> fields) {
+    public List<HeaderField> getSelectedItems() {
+        return Collections.unmodifiableList(savedSelectedFields);
+    }
+    
+    public void updateViewFromState() {
+        selectItemsInView(savedSelectedFields);
+        resetFixedValues();
+        fixedValues.setText(savedFixedValues);
+        if (!savedFixedValues.equals("")) {
+            onClick(fixedValuesLink);
+        }
+    }
+    
+    private void selectItemsInView(List<HeaderField> fields) {
         addNecessaryMachineLabelFields(fields);
         
         if (fields.size() > 1 && !isDoubleSelectActive()) {
@@ -190,6 +208,26 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         }
     }
 
+    private void resetFixedValues() {
+        if (isFixedValuesEnabled()) {
+            onClick(fixedValuesLink);
+        }
+        fixedValues.setText("");
+    }
+
+    private boolean isDoubleSelectActive() {
+        return switchLink.getText().equals(SWITCH_TO_SINGLE);
+    }
+    
+    public void selectItems(List<HeaderField> fields) {
+        savedSelectedFields = new ArrayList<HeaderField>(fields);
+        savedFixedValues = "";
+    }
+    
+    public void selectItem(HeaderField field) {
+        selectItems(Arrays.asList(new HeaderField[] {field}));
+    }
+    
     private void addNecessaryMachineLabelFields(List<HeaderField> fields) {
         removeAllMachineLabelHeadersExcept(null);
         for (HeaderField field : fields) {
@@ -197,13 +235,6 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
                 addExistingMachineLabelField((MachineLabelField) field);
             }
         }
-    }
-
-    public void resetFixedValues() {
-        if (isFixedValuesEnabled()) {
-            onClick(fixedValuesLink);
-        }
-        fixedValues.setText("");
     }
 
     public void onClick(Widget sender) {
@@ -274,7 +305,6 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     public void handleHistoryArguments(Map<String, String> arguments, String name) {
         List<HeaderField> headerFields = getHeaderFieldsFromValues(arguments, name);
         selectItems(headerFields);
-        resetFixedValues();
         String fixedValuesText = arguments.get(name + HISTORY_FIXED_VALUES);
         fixedValues.setText(fixedValuesText);
         if (!fixedValuesText.equals("")) {
@@ -364,19 +394,29 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
         }
     }
     
-    private void updateMachineLabels() {
+    private void updateMachineLabelsFromView() {
         for (MachineLabelInput input : machineLabelInputMap.values()) {
             input.updateFieldFromInput();
         }
     }
     
-    public List<MachineLabelField> getMachineLabelHeaders() {
-        updateMachineLabels();
+    private List<MachineLabelField> getMachineLabelHeaders() {
         return new ArrayList<MachineLabelField>(machineLabelInputMap.keySet());
+    }
+    
+    /**
+     * @return true if all machine label header inputs are not empty.
+     */
+    public boolean checkMachineLabelHeaders() {
+        for (MachineLabelField field : getMachineLabelHeaders()) {
+            if (field.getLabelList().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void addQueryParameters(JSONObject parameters) {
-        updateMachineLabels();
         for (HeaderField field : getSelectedItems()) {
             field.addQueryParameters(parameters);
         }
@@ -388,5 +428,13 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
             fixedValuesObject.put(getSelectedItems().get(0).getSqlName(), 
                             Utils.stringsToJSON(fixedValues));
         }
+    }
+
+    private List<String> getFixedValues() {
+        String valueText = savedFixedValues.trim();
+        if (valueText.equals("")) {
+            return null;
+        }
+        return Utils.splitListWithSpaces(valueText);
     }
 }

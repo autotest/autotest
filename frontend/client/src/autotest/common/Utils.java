@@ -9,7 +9,6 @@ import com.google.gwt.json.client.JSONValue;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -128,8 +127,8 @@ public class Utils {
         return result.toString();
     }
     
-    public static Map<String,String> decodeUrlArguments(String urlArguments) {
-        Map<String, String> arguments = new HashMap<String, String>();
+    public static Map<String,String> decodeUrlArguments(String urlArguments, 
+                                                        Map<String, String> arguments) {
         String[] components = urlArguments.split("&");
         for (String component : components) {
             String[] parts = component.split("=");

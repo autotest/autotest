@@ -5,6 +5,8 @@ import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.Utils;
 import autotest.common.CustomHistory.CustomHistoryListener;
+import autotest.common.CustomHistory.HistoryToken;
+import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TableView.TableSwitchListener;
 
@@ -85,7 +87,7 @@ public abstract class GraphingFrontend extends Composite
     public void onClick(Widget sender) {
         assert sender == embeddingLink;
         JSONObject params = new JSONObject();
-        params.put("url_token", new JSONString(CustomHistory.getLastHistoryToken()));
+        params.put("url_token", new JSONString(CustomHistory.getLastHistoryToken().toString()));
         addAdditionalEmbeddingParams(params);
         
         rpcProxy.rpcCall("get_embedding_id", params, new JsonRpcCallback() {
@@ -149,11 +151,22 @@ public abstract class GraphingFrontend extends Composite
         rpcProxy.rpcCall("get_embedded_query_url_token", args, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                String token = Utils.jsonToString(result);
+                String tokenString = Utils.jsonToString(result);
+                HistoryToken token;
+                try {
+                    token = HistoryToken.fromString(tokenString);
+                } catch (IllegalArgumentException exc) {
+                    NotifyManager.getInstance().showError("Invalid embedded query token " + 
+                                                          tokenString);
+                    return;
+                }
 
                 // since this is happening asynchronously, the history may have changed, so ensure
                 // it's set back to what it should be.
-                CustomHistory.newItem(HISTORY_TOKEN + "=" + idString);
+                HistoryToken shortToken = new HistoryToken();
+                shortToken.put(HISTORY_TOKEN, idString);
+                CustomHistory.newItem(shortToken);
+
                 CustomHistory.simulateHistoryToken(token);
             }
         });

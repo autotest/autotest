@@ -6,6 +6,7 @@ import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.CustomHistory.CustomHistoryListener;
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONArray;
@@ -143,7 +144,7 @@ class SavedQueriesControl extends Composite
             addQueryDialog.hide();
             JSONObject args = new JSONObject();
             args.put("name", new JSONString(addQueryDialog.widget.getText()));
-            args.put("url_token", new JSONString(CustomHistory.getLastHistoryToken()));
+            args.put("url_token", new JSONString(CustomHistory.getLastHistoryToken().toString()));
             rpcProxy.rpcCall("add_saved_query", args, new JsonRpcCallback() {
                 @Override
                 public void onSuccess(JSONValue result) {
@@ -190,10 +191,22 @@ class SavedQueriesControl extends Composite
                 assert queries.size() == 1;
                 JSONObject query = queries.get(0).isObject();
                 int queryId = (int) query.get("id").isNumber().doubleValue();
-                String token = query.get("url_token").isString().stringValue();
+                String tokenString = query.get("url_token").isString().stringValue();
+                HistoryToken token;
+                try {
+                    token = HistoryToken.fromString(tokenString);
+                } catch (IllegalArgumentException exc) {
+                    NotifyManager.getInstance().showError("Invalid saved query token " + 
+                                                          tokenString);
+                    return;
+                }
+
                 // since this is happening asynchronously, the history may have changed, so ensure
                 // it's set back to what it should be.
-                CustomHistory.newItem(HISTORY_TOKEN + "=" + Integer.toString(queryId));
+                HistoryToken shortToken = new HistoryToken();
+                shortToken.put(HISTORY_TOKEN, Integer.toString(queryId));
+                CustomHistory.newItem(shortToken);
+
                 CustomHistory.simulateHistoryToken(token);
             }
         });

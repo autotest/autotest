@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.Utils;
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.RpcDataSource;
@@ -23,6 +24,7 @@ import autotest.tko.TkoUtils.FieldInfo;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -62,6 +64,8 @@ public class TableView extends ConditionTabView
         new SortSpec("reason", SortDirection.ASCENDING),
     };
 
+    private static enum GroupingType {NO_GROUPING, TEST_GROUPING, STATUS_COUNTS}
+
     private TestSelectionListener listener;
     
     private DynamicTable table;
@@ -75,8 +79,7 @@ public class TableView extends ConditionTabView
     private CheckBox statusGroupCheckbox = 
         new CheckBox("Group by these columns and show pass rates");
     private Button queryButton = new Button("Query");
-    
-    private boolean isTestGroupingEnabled = false, isStatusCountEnabled = false;
+
     private List<String> columnNames = new ArrayList<String>();
     private List<SortSpec> tableSorts = new ArrayList<SortSpec>();
     private Map<String, String> namesToFields = new HashMap<String, String>();
@@ -111,7 +114,7 @@ public class TableView extends ConditionTabView
         namesToFields.put(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
         
         selectColumns(DEFAULT_COLUMNS);
-        saveOptions(false);
+        updateViewFromState();
         
         columnSelect.setListener(this);
         queryButton.addClickListener(this);
@@ -126,34 +129,29 @@ public class TableView extends ConditionTabView
         RootPanel.get("table_column_select").add(columnPanel);
         RootPanel.get("table_query_controls").add(queryButton);
     }
-
-    private void selectColumns(String[] columnNames) {
-        columnSelect.deselectAll();
-        for(String columnName : columnNames) {
-            if (columnName.equals(COUNT_NAME)) {
-                addSpecialItem(COUNT_NAME);
-            } else if (columnName.equals(STATUS_COUNTS_NAME)) {
-                addSpecialItem(STATUS_COUNTS_NAME);
-            } else {
-                columnSelect.selectItem(columnName);
-            }
-        }
-        updateCheckboxesFromFields();
+    
+    private void selectColumns(String[] columns) {
+        columnNames = new ArrayList<String>(Arrays.asList(columns));
+        cleanupSortsForNewColumns();
     }
     
     public void setupDefaultView() {
         selectColumns(DEFAULT_COLUMNS);
         tableSorts.clear();
+        updateViewFromState();
     }
 
     public void setupJobTriage() {
         selectColumns(TRIAGE_GROUP_COLUMNS);
         // need to copy it so we can mutate it
         tableSorts = new ArrayList<SortSpec>(Arrays.asList(TRIAGE_SORT_SPECS));
+        updateViewFromState();
     }
 
     public void setupPassRate() {
         selectColumns(PASS_RATE_GROUP_COLUMNS);
+        tableSorts.clear();
+        updateViewFromState();
     }
 
     private void createTable() {
@@ -166,8 +164,9 @@ public class TableView extends ConditionTabView
         }
         
         RpcDataSource dataSource = testDataSource;
-        if (isAnyGroupingEnabled()) {
-            if (isTestGroupingEnabled) {
+        GroupingType groupingType = getActiveGrouping();
+        if (groupingType != GroupingType.NO_GROUPING) {
+            if (groupingType == GroupingType.TEST_GROUPING) {
                 groupDataSource = TestGroupDataSource.getTestGroupDataSource();
             } else {
                 groupDataSource = TestGroupDataSource.getStatusCountDataSource();
@@ -200,18 +199,31 @@ public class TableView extends ConditionTabView
         selectionManager = new SelectionManager(table, false);
     }
 
-    private void saveOptions(boolean doSaveCondition) {
-        if (doSaveCondition) {
-            commonPanel.saveSqlCondition();
-        }
-        
+    private void updateStateFromView() {
+        commonPanel.updateStateFromView();
         columnNames.clear();
         for (Item item : columnSelect.getSelectedItems()) {
             columnNames.add(item.name);
         }
-        
-        isTestGroupingEnabled = groupCheckbox.isChecked();
-        isStatusCountEnabled = statusGroupCheckbox.isChecked();
+    }
+    
+    private void updateViewFromState() {
+        commonPanel.updateViewFromState();
+        selectColumnsInView();
+    }
+
+    private void selectColumnsInView() {
+        columnSelect.deselectAll();
+        for(String columnName : columnNames) {
+            if (columnName.equals(COUNT_NAME)) {
+                addSpecialItem(COUNT_NAME);
+            } else if (columnName.equals(STATUS_COUNTS_NAME)) {
+                addSpecialItem(STATUS_COUNTS_NAME);
+            } else {
+                columnSelect.selectItem(columnName);
+            }
+        }
+        updateCheckboxesFromFields();
     }
 
     private void updateGroupColumns() {
@@ -233,20 +245,6 @@ public class TableView extends ConditionTabView
     }
 
     private void restoreTableSorting() {
-        // remove sorts on columns that we no longer have
-        for (Iterator<SortSpec> i = tableSorts.iterator(); i.hasNext();) {
-            String columnName = fieldsToNames.get(i.next().getField());
-            if (!columnNames.contains(columnName)) {
-                i.remove();
-            }
-        }
-        if (tableSorts.isEmpty()) {
-            // default to sorting on the first column
-            SortSpec sortSpec = new SortSpec(namesToFields.get(columnNames.get(0)), 
-                                             SortDirection.ASCENDING);
-            tableSorts = Arrays.asList(new SortSpec[] {sortSpec});
-        }
-        
         for (ListIterator<SortSpec> i = tableSorts.listIterator(tableSorts.size()); 
              i.hasPrevious();) {
             SortSpec sortSpec = i.previous();
@@ -254,10 +252,28 @@ public class TableView extends ConditionTabView
         }
     }
 
+    private void cleanupSortsForNewColumns() {
+        // remove sorts on columns that we no longer have
+        for (Iterator<SortSpec> i = tableSorts.iterator(); i.hasNext();) {
+            String columnName = fieldsToNames.get(i.next().getField());
+            if (!columnNames.contains(columnName)) {
+                i.remove();
+            }
+        }
+
+        if (tableSorts.isEmpty()) {
+            // default to sorting on the first column
+            SortSpec sortSpec = new SortSpec(namesToFields.get(columnNames.get(0)), 
+                                             SortDirection.ASCENDING);
+            tableSorts = new ArrayList<SortSpec>();
+            tableSorts.add(sortSpec);
+        }
+    }
+
     @Override
     public void refresh() {
         createTable();
-        JSONObject condition = commonPanel.getSavedConditionArgs();
+        JSONObject condition = commonPanel.getConditionArgs();
         sqlConditionFilter.setAllParameters(condition);
         table.refresh();
     }
@@ -267,7 +283,7 @@ public class TableView extends ConditionTabView
             NotifyManager.getInstance().showError("You must select columns");
             return;
         }
-        saveOptions(true);
+        updateStateFromView();
         refresh();
     }
 
@@ -287,12 +303,14 @@ public class TableView extends ConditionTabView
             selectionManager.toggleSelected(row);
             return;
         }
-        
+
+        HistoryToken historyToken;
         if (isAnyGroupingEnabled()) {
-            doDrilldown(testSet);
+            historyToken = getDrilldownHistoryToken(testSet);
         } else {
-            listener.onSelectTest(testSet.getTestIndex());
+            historyToken = listener.getSelectTestHistoryToken(testSet.getTestIndex());
         }
+        openHistoryToken(historyToken);
     }
 
     private ContextMenu getContextMenu(final TestSet testSet) {
@@ -310,11 +328,17 @@ public class TableView extends ConditionTabView
         return menu;
     }
 
-    private void doDrilldown(TestSet testSet) {
+    private HistoryToken getDrilldownHistoryToken(TestSet testSet) {
+        saveHistoryState();
         commonPanel.refineCondition(testSet);
         selectColumns(DEFAULT_COLUMNS);
-        doQuery();
-        updateHistory();
+        HistoryToken historyToken = getHistoryArguments();
+        restoreHistoryState();
+        return historyToken;
+    }
+    
+    private void doDrilldown(TestSet testSet) {
+        History.newItem(getDrilldownHistoryToken(testSet).toString());
     }
 
     private TestSet getTestSet(JSONObject row) {
@@ -322,7 +346,7 @@ public class TableView extends ConditionTabView
             return new SingleTestSet((int) row.get("test_idx").isNumber().doubleValue());
         }
 
-        ConditionTestSet testSet = new ConditionTestSet(commonPanel.getSavedConditionArgs());
+        ConditionTestSet testSet = new ConditionTestSet(commonPanel.getConditionArgs());
         for (String columnName : columnNames) {
             if (isSpecialColumnName(columnName)) {
                 continue;
@@ -419,12 +443,12 @@ public class TableView extends ConditionTabView
     }
 
     private ConditionTestSet getWholeTableSet() {
-        return new ConditionTestSet(commonPanel.getSavedConditionArgs());
+        return new ConditionTestSet(commonPanel.getConditionArgs());
     }
 
     @Override
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> arguments = super.getHistoryArguments();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken arguments = super.getHistoryArguments();
         if (table != null) {
             arguments.put("columns", Utils.joinStrings(",", columnNames));
             arguments.put("sort", Utils.joinStrings(",", tableSorts));
@@ -440,8 +464,8 @@ public class TableView extends ConditionTabView
         handleSortString(arguments.get("sort"));
         
         String[] columns = arguments.get("columns").split(",");
-        selectColumns(columns);
-        saveOptions(true);
+        columnNames = Arrays.asList(columns);
+        updateViewFromState();
     }
 
     @Override
@@ -469,11 +493,23 @@ public class TableView extends ConditionTabView
     }
 
     private boolean isAnyGroupingEnabled() {
-        return isTestGroupingEnabled || isStatusCountEnabled;
+        return getActiveGrouping() != GroupingType.NO_GROUPING;
+    }
+    
+    private GroupingType getActiveGrouping() {
+        for (String columnName : columnNames) {
+            if (columnName.equals(COUNT_NAME)) {
+                return GroupingType.TEST_GROUPING;
+            }
+            if (columnName.equals(STATUS_COUNTS_NAME)) {
+                return GroupingType.STATUS_COUNTS;
+            }
+        }
+        return GroupingType.NO_GROUPING;
     }
 
     public Widget createWidget(int row, int cell, JSONObject rowObject) {
-        assert isStatusCountEnabled;
+        assert getActiveGrouping() == GroupingType.STATUS_COUNTS;
         StatusSummary statusSummary = StatusSummary.getStatusSummary(rowObject);
         SimplePanel panel = new SimplePanel();
         panel.add(new HTML(statusSummary.formatStatusCounts()));
