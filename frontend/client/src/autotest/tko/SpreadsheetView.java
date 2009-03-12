@@ -3,6 +3,7 @@ package autotest.tko;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.Utils;
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
@@ -24,6 +25,7 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Button;
@@ -36,7 +38,6 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,6 @@ public class SpreadsheetView extends ConditionTabView
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
     private TableSwitchListener listener;
-    protected List<HeaderField> currentRowFields;
-    protected List<HeaderField> currentColumnFields;
     protected Map<String,String[]> drilldownMap = new HashMap<String,String[]>();
     private Map<String, HeaderField> headerFieldMap = new HashMap<String, HeaderField>();
     
@@ -78,7 +77,6 @@ public class SpreadsheetView extends ConditionTabView
     private RootPanel jobCompletionPanel;
     private boolean currentShowIncomplete, currentShowOnlyLatest;
     private boolean notYetQueried = true;
-    
     public SpreadsheetView(TableSwitchListener listener) {
         this.listener = listener;
         commonPanel.addListener(this);
@@ -97,18 +95,15 @@ public class SpreadsheetView extends ConditionTabView
         actionsPanel.setActionsListener(this);
         actionsPanel.setSelectionListener(this);
 
-        currentRowFields = new ArrayList<HeaderField>();
-        currentColumnFields = new ArrayList<HeaderField>();
-
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("group_fields")) {
             HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
             headerFieldMap.put(fieldInfo.field, field);
             rowSelect.addItem(field);
             columnSelect.addItem(field);
         }
-        currentRowFields.add(headerFieldMap.get(DEFAULT_ROW));
-        currentColumnFields.add(headerFieldMap.get(DEFAULT_COLUMN));
-        updateWidgets();
+        rowSelect.selectItem(headerFieldMap.get(DEFAULT_ROW));
+        columnSelect.selectItem(headerFieldMap.get(DEFAULT_COLUMN));
+        updateViewFromState();
 
         queryButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -192,15 +187,15 @@ public class SpreadsheetView extends ConditionTabView
         setJobCompletionHtml("&nbsp");
         
         final JSONObject condition = getFullConditionArgs();
-        JSONObject queryParameters = getQueryParameters();
-        
+
         setLoading(true);
         if (currentShowOnlyLatest) {
             spreadsheetProcessor.setDataSource(latestDataSource);
         } else {
             spreadsheetProcessor.setDataSource(normalDataSource);
         }
-        spreadsheetProcessor.setHeaders(currentRowFields, currentColumnFields, 
+        spreadsheetProcessor.setHeaders(rowSelect.getSelectedItems(), 
+                                        columnSelect.getSelectedItems(), 
                                         getQueryParameters());
         spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
@@ -221,7 +216,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private JSONObject getFullConditionArgs() {
-        JSONObject args = commonPanel.getSavedConditionArgs();
+        JSONObject args = commonPanel.getConditionArgs();
         String condition = TkoUtils.getSqlCondition(args);
         if (!condition.equals("")) {
             condition = "(" + condition + ") AND ";
@@ -233,6 +228,14 @@ public class SpreadsheetView extends ConditionTabView
         args.put("extra_where", new JSONString(condition));
         return args;
     }
+    
+    private void updateStateFromView() {
+        rowSelect.updateStateFromView();
+        columnSelect.updateStateFromView();
+        currentShowIncomplete = showIncomplete.isChecked();
+        currentShowOnlyLatest = showOnlyLatest.isChecked();
+        commonPanel.updateStateFromView();
+    }
 
     public void doQuery() {
         List<HeaderField> rows = rowSelect.getSelectedItems();
@@ -241,30 +244,14 @@ public class SpreadsheetView extends ConditionTabView
             NotifyManager.getInstance().showError("You must select row and column fields");
             return;
         }
-        if (!checkMachineLabelHeaders(rowSelect) || !checkMachineLabelHeaders(columnSelect)) {
+        if (!rowSelect.checkMachineLabelHeaders() || !columnSelect.checkMachineLabelHeaders()) {
             NotifyManager.getInstance().showError(
                       "You must enter labels for all machine label fields");
             return;
         }
-        saveSelectedHeaders();
-        currentShowIncomplete = showIncomplete.isChecked();
-        currentShowOnlyLatest = showOnlyLatest.isChecked();
-        commonPanel.saveSqlCondition();
+        
+        updateStateFromView();
         refresh();
-    }
-
-    private boolean checkMachineLabelHeaders(HeaderSelect headerSelect) {
-        for (MachineLabelField field : headerSelect.getMachineLabelHeaders()) {
-            if (field.getLabelList().isEmpty()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void saveSelectedHeaders() {
-        currentRowFields = rowSelect.getSelectedItems();
-        currentColumnFields = columnSelect.getSelectedItems();
     }
 
     private void showCompletionPercentage(JSONObject condition) {
@@ -335,18 +322,19 @@ public class SpreadsheetView extends ConditionTabView
             selectionManager.toggleSelected(cellInfo);
             return;
         }
-        
-        if (testSet.isSingleTest()) {
-            listener.onSelectTest(testSet.getTestIndex());
-            return;
-        }
-        
-        doDrilldown(testSet, 
-                    getDefaultDrilldownRow(drilldownType), 
-                    getDefaultDrilldownColumn(drilldownType));
-    }
 
-    private DrilldownType getDrilldownType(CellInfo cellInfo) {
+        HistoryToken historyToken;
+        if (testSet.isSingleTest()) {
+            historyToken = listener.getSelectTestHistoryToken(testSet.getTestIndex());
+        } else {
+            historyToken = getDrilldownHistoryToken(testSet, 
+                                                    getDefaultDrilldownRow(drilldownType), 
+                                                    getDefaultDrilldownColumn(drilldownType));
+        }
+        openHistoryToken(historyToken);
+    }
+    
+     private DrilldownType getDrilldownType(CellInfo cellInfo) {
         if (cellInfo.row == null) {
             // column header
             return DrilldownType.DRILLDOWN_COLUMN;
@@ -366,10 +354,10 @@ public class SpreadsheetView extends ConditionTabView
         
         ConditionTestSet testSet = new ConditionTestSet(getFullConditionArgs());
         if (cellInfo.row != null) {
-            setSomeFields(testSet, currentRowFields, cellInfo.row);
+            setSomeFields(testSet, rowSelect.getSelectedItems(), cellInfo.row);
         }
         if (cellInfo.column != null) {
-            setSomeFields(testSet, currentColumnFields, cellInfo.column);
+            setSomeFields(testSet, columnSelect.getSelectedItems(), cellInfo.column);
         }
         return testSet;
     }
@@ -391,15 +379,19 @@ public class SpreadsheetView extends ConditionTabView
         return tests;
     }
 
-    private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
+    private HistoryToken getDrilldownHistoryToken(TestSet tests, String newRowField, 
+                                            String newColumnField) {
+        saveHistoryState();
         commonPanel.refineCondition(tests);
-        currentRowFields = Utils.wrapObjectWithList(headerFieldMap.get(newRowField));
-        currentColumnFields = Utils.wrapObjectWithList(headerFieldMap.get(newColumnField));
-        rowSelect.resetFixedValues();
-        columnSelect.resetFixedValues();
-        updateWidgets();
-        doQuery();
-        updateHistory();
+        rowSelect.selectItem(headerFieldMap.get(newRowField));
+        columnSelect.selectItem(headerFieldMap.get(newColumnField));
+        HistoryToken historyArguments = getHistoryArguments();
+        restoreHistoryState();
+        return historyArguments;
+    }
+    
+    private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
+        History.newItem(getDrilldownHistoryToken(tests, newRowField, newColumnField).toString());
     }
 
     private String getDefaultDrilldownRow(DrilldownType type) {
@@ -464,22 +456,26 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private String[] getDrilldownRows(DrilldownType type) {
-        return getDrilldownFields(currentRowFields, type, DrilldownType.DRILLDOWN_COLUMN);
+        return getDrilldownFields(rowSelect.getSelectedItems(), type, 
+                                  DrilldownType.DRILLDOWN_COLUMN);
     }
     
     private String[] getDrilldownColumns(DrilldownType type) {
-        return getDrilldownFields(currentColumnFields, type, DrilldownType.DRILLDOWN_ROW);
+        return getDrilldownFields(columnSelect.getSelectedItems(), type, 
+                                  DrilldownType.DRILLDOWN_ROW);
     }
     
-    private void updateWidgets() {
-        setSelectedHeader(rowSelect, currentRowFields);
-        setSelectedHeader(columnSelect, currentColumnFields);
+    private void updateViewFromState() {
+        rowSelect.updateViewFromState();
+        columnSelect.updateViewFromState();
         showIncomplete.setChecked(currentShowIncomplete);
+        showOnlyLatest.setChecked(currentShowOnlyLatest);
+        commonPanel.updateViewFromState();
     }
 
     @Override
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> arguments = super.getHistoryArguments();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken arguments = super.getHistoryArguments();
         if (!notYetQueried) {
             rowSelect.addHistoryArguments(arguments, HISTORY_ROW);
             columnSelect.addHistoryArguments(arguments, HISTORY_COLUMN);
@@ -496,11 +492,10 @@ public class SpreadsheetView extends ConditionTabView
         commonPanel.handleHistoryArguments(arguments);
         rowSelect.handleHistoryArguments(arguments, HISTORY_ROW);
         columnSelect.handleHistoryArguments(arguments, HISTORY_COLUMN);
-        saveSelectedHeaders();
-        
+
         currentShowIncomplete = Boolean.valueOf(arguments.get(HISTORY_SHOW_INCOMPLETE));
         showOnlyLatest.setChecked(Boolean.valueOf(arguments.get(HISTORY_ONLY_LATEST)));
-        updateWidgets();
+        updateViewFromState();
     }
 
     @Override

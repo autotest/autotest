@@ -3,17 +3,20 @@ package autotest.tko;
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.CustomTabPanel;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.TabView;
 import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.RootPanel;
 
 public class TkoClient implements EntryPoint, TableSwitchListener {
     private CommonPanel commonPanel;
-    private SpreadsheetView spreadsheetView;
+    private TabView spreadsheetView;
     private TableView tableView;
     private GraphingView graphingView;
     private TestDetailView detailView;
@@ -74,10 +77,14 @@ public class TkoClient implements EntryPoint, TableSwitchListener {
         tableView.doQuery();
         mainTabPanel.selectTabView(tableView);
     }
-
+    
     public void onSelectTest(int testId) {
+        History.newItem(getSelectTestHistoryToken(testId).toString());
+    }
+
+    public HistoryToken getSelectTestHistoryToken(int testId) {
         detailView.ensureInitialized();
         detailView.updateObjectId(Integer.toString(testId));
-        mainTabPanel.selectTabView(detailView);
+        return detailView.getHistoryArguments();
     }
 }

@@ -9,7 +9,7 @@ import java.util.Map;
 abstract class ConditionTabView extends TabView {
     protected static CommonPanel commonPanel = CommonPanel.getPanel();
     private boolean needsRefresh;
-    
+
     protected void checkForHistoryChanges(Map<String, String> newParameters) {
         if (!getHistoryArguments().equals(newParameters)) {
             needsRefresh = true;
@@ -23,7 +23,7 @@ abstract class ConditionTabView extends TabView {
         ensureInitialized();
         commonPanel.setConditionVisible(true);
         if (needsRefresh) {
-            commonPanel.saveSqlCondition();
+            commonPanel.updateStateFromView();
             refresh();
             needsRefresh = false;
         }
@@ -44,7 +44,6 @@ abstract class ConditionTabView extends TabView {
     protected abstract void fillDefaultHistoryValues(Map<String, String> arguments);
 
     static boolean isSelectEvent(Event event) {
-        // handle ctrl-click for windows or command-click for macs
-        return event.getCtrlKey() || event.getMetaKey();
+        return event.getShiftKey();
     }
 }
