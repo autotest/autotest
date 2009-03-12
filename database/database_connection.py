@@ -1,4 +1,4 @@
-import traceback, time
+import re, time, traceback
 import common
 from autotest_lib.client.common_lib import global_config
 
@@ -72,6 +72,8 @@ class _SqliteBackend(_GenericBackend):
     def __init__(self):
         from pysqlite2 import dbapi2
         super(_SqliteBackend, self).__init__(dbapi2)
+        self._last_insert_id_re = re.compile(r'\sLAST_INSERT_ID\(\)',
+                                             re.IGNORECASE)
 
 
     def connect(self, host=None, username=None, password=None, db_name=None):
@@ -88,6 +90,10 @@ class _SqliteBackend(_GenericBackend):
         # exception)
         if parameters is None:
             parameters = ()
+        # sqlite3 doesn't support MySQL's LAST_INSERT_ID().  Instead it has
+        # something similar called LAST_INSERT_ROWID() that will do enough of
+        # what we want (for our non-concurrent unittest use case).
+        query = self._last_insert_id_re.sub(' LAST_INSERT_ROWID()', query)
         return super(_SqliteBackend, self).execute(query, parameters)
 
 
