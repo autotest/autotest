@@ -73,6 +73,11 @@ def main():
     global RESULTS_DIR
     RESULTS_DIR = args[0]
 
+    # Change the cwd while running to avoid issues incase we were launched from
+    # somewhere odd (such as a random NFS home directory of the person running
+    # sudo to launch us as the appropriate user).
+    os.chdir(RESULTS_DIR)
+
     c = global_config.global_config
     notify_statuses_list = c.get_config_value(scheduler_config.CONFIG_SECTION,
                                               "notify_email_statuses",
