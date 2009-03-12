@@ -7,7 +7,7 @@ Autotest scheduler
 
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
-import itertools, logging
+import itertools, logging, weakref
 import common
 import MySQLdb
 from autotest_lib.frontend import setup_django_environment
@@ -1555,17 +1555,49 @@ class SetEntryPendingTask(AgentTask):
         self.finished(True)
 
 
+class DBError(Exception):
+    """Raised by the DBObject constructor when its select fails."""
+
+
 class DBObject(object):
+    """A miniature object relational model for the database."""
 
     # Subclasses MUST override these:
     _table_name = ''
     _fields = ()
 
+    # A mapping from (type, id) to the instance of the object for that
+    # particular id.  This prevents us from creating new Job() and Host()
+    # instances for every HostQueueEntry object that we instantiate as
+    # multiple HQEs often share the same Job.
+    _instances_by_type_and_id = weakref.WeakValueDictionary()
+    _initialized = False
 
-    def __init__(self, id=None, row=None, new_record=False):
+
+    def __new__(cls, id=None, **kwargs):
+        """
+        Look to see if we already have an instance for this particular type
+        and id.  If so, use it instead of creating a duplicate instance.
+        """
+        if id is not None:
+            instance = cls._instances_by_type_and_id.get((cls, id))
+            if instance:
+                return instance
+        return super(DBObject, cls).__new__(cls, id=id, **kwargs)
+
+
+    def __init__(self, id=None, row=None, new_record=False, always_query=True):
         assert (bool(id) != bool(row))
         assert self._table_name, '_table_name must be defined in your class'
         assert self._fields, '_fields must be defined in your class'
+        if not new_record:
+            if self._initialized and not always_query:
+                return  # We've already been initialized.
+            if id is None:
+                id = row[0]
+            # Tell future constructors to use us instead of re-querying while
+            # this instance is still around.
+            self._instances_by_type_and_id[(type(self), id)] = self
 
         self.__table = self._table_name
 
@@ -1574,30 +1606,67 @@ class DBObject(object):
         if row is None:
             sql = 'SELECT * FROM %s WHERE ID=%%s' % self.__table
             rows = _db.execute(sql, (id,))
-            if len(rows) == 0:
-                raise "row not found (table=%s, id=%s)" % \
-                                        (self.__table, id)
+            if not rows:
+                raise DBError("row not found (table=%s, id=%s)"
+                              % (self.__table, id))
             row = rows[0]
 
+        if self._initialized:
+            differences = self._compare_fields_in_row(row)
+            if differences:
+                print ('initialized %s %s instance requery is updating: %s' %
+                       (type(self), self.id, differences))
         self._update_fields_from_row(row)
+        self._initialized = True
+
+
+    @classmethod
+    def _clear_instance_cache(cls):
+        """Used for testing, clear the internal instance cache."""
+        cls._instances_by_type_and_id.clear()
+
+
+    def _assert_row_length(self, row):
+        assert len(row) == len(self._fields), (
+            "table = %s, row = %s/%d, fields = %s/%d" % (
+            self.__table, row, len(row), self._fields, len(self._fields)))
+
+
+    def _compare_fields_in_row(self, row):
+        """
+        Given a row as returned by a SELECT query, compare it to our existing
+        in memory fields.
+
+        @param row - A sequence of values corresponding to fields named in
+                The class attribute _fields.
+
+        @returns A dictionary listing the differences keyed by field name
+                containing tuples of (current_value, row_value).
+        """
+        self._assert_row_length(row)
+        differences = {}
+        for field, row_value in itertools.izip(self._fields, row):
+            current_value = getattr(self, field)
+            if current_value != row_value:
+                differences[field] = (current_value, row_value)
+        return differences
 
 
     def _update_fields_from_row(self, row):
-        assert len(row) == self.num_cols(), (
-            "table = %s, row = %s/%d, fields = %s/%d" % (
-            self.__table, row, len(row), self._fields, self.num_cols()))
+        """
+        Update our field attributes using a single row returned by SELECT.
+
+        @param row - A sequence of values corresponding to fields named in
+                the class fields list.
+        """
+        self._assert_row_length(row)
 
         self._valid_fields = set()
-        for field, value in zip(self._fields, row):
+        for field, value in itertools.izip(self._fields, row):
             setattr(self, field, value)
             self._valid_fields.add(field)
 
         self._valid_fields.remove('id')
-
-
-    @classmethod
-    def num_cols(cls):
-        return len(cls._fields)
 
 
     def count(self, where, table = None):
@@ -1640,6 +1709,9 @@ class DBObject(object):
 
 
     def delete(self):
+        self._instances_by_type_and_id.pop((type(self), id), None)
+        self._initialized = False
+        self._valid_fields.clear()
         query = 'DELETE FROM %s WHERE id=%%s' % self.__table
         _db.execute(query, (self.id,))
 
@@ -1680,10 +1752,6 @@ class Host(DBObject):
     _table_name = 'hosts'
     _fields = ('id', 'hostname', 'locked', 'synch_id', 'status',
                'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty')
-
-
-    def __init__(self, id=None, row=None):
-        super(Host, self).__init__(id=id, row=row)
 
 
     def current_task(self):
@@ -1744,9 +1812,9 @@ class HostQueueEntry(DBObject):
                'active', 'complete', 'deleted', 'execution_subdir')
 
 
-    def __init__(self, id=None, row=None):
+    def __init__(self, id=None, row=None, **kwargs):
         assert id or row
-        super(HostQueueEntry, self).__init__(id=id, row=row)
+        super(HostQueueEntry, self).__init__(id=id, row=row, **kwargs)
         self.job = Job(self.job_id)
 
         if self.host_id:
@@ -1980,9 +2048,9 @@ class Job(DBObject):
                'run_verify', 'email_list', 'reboot_before', 'reboot_after')
 
 
-    def __init__(self, id=None, row=None):
+    def __init__(self, id=None, row=None, **kwargs):
         assert id or row
-        super(Job, self).__init__(id=id, row=row)
+        super(Job, self).__init__(id=id, row=row, **kwargs)
 
 
     def is_server_job(self):
