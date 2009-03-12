@@ -1,5 +1,6 @@
 package autotest.tko;
 
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.TabView;
 import autotest.tko.TableView.TableSwitchListener;
@@ -75,8 +76,8 @@ public class GraphingView extends TabView {
     }
     
     @Override
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> args = super.getHistoryArguments();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken args = super.getHistoryArguments();
         args.put("view", getSelectedFrontend().getFrontendId());
         getSelectedFrontend().addToHistory(args);
         return args;

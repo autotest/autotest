@@ -1,11 +1,14 @@
 package autotest.common.ui;
 
 import autotest.common.CustomHistory;
-import autotest.common.Utils;
+import autotest.common.CustomHistory.HistoryToken;
 
+import com.google.gwt.http.client.URL;
+import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.History;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -20,6 +23,7 @@ public abstract class TabView extends Composite {
     protected boolean initialized = false;
     protected String title;
     protected boolean visible;
+    private Map<String, String> savedState;
     
     public TabView() {
         ElementWidget thisTab = new ElementWidget(getElementId());
@@ -57,18 +61,14 @@ public abstract class TabView extends Composite {
     }
     
     public void updateHistory() {
-        CustomHistory.newItem(getHistoryToken());
-    }
-    
-    public String getHistoryToken() {
-        return Utils.encodeUrlArguments(getHistoryArguments());
+        CustomHistory.newItem(getHistoryArguments());
     }
     
     /**
      * Subclasses should override this to store any additional history information.
      */
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> arguments = new HashMap<String, String>();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken arguments = new HistoryToken();
         arguments.put("tab_id", getElementId());
         return arguments;
     }
@@ -81,4 +81,27 @@ public abstract class TabView extends Composite {
     
     public abstract void initialize();
     public abstract String getElementId();
+
+    protected void saveHistoryState() {
+        savedState = getHistoryArguments();
+    }
+
+    protected void restoreHistoryState() {
+        handleHistoryArguments(savedState);
+    }
+
+    protected void openHistoryToken(HistoryToken historyToken) {
+        if (isOpenInNewWindowEvent()) {
+            String newUrl = Window.Location.getPath() + "#" + historyToken;
+            Window.open(URL.encode(newUrl), "_blank", "");
+        } else {
+            History.newItem(historyToken.toString());
+        }
+    }
+
+    private static boolean isOpenInNewWindowEvent() {
+        Event event = Event.getCurrentEvent();
+        boolean middleMouseButton = (event.getButton() & Event.BUTTON_MIDDLE) != 0;
+        return event.getCtrlKey() || middleMouseButton;
+    }
 }

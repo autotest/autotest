@@ -42,6 +42,51 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     private static final String EXCLUDE_ATTRIBUTES_TABLE = "test_attributes_exclude";
     private static CommonPanel theInstance = new CommonPanel();
     
+    private static class AttributeFilterData {
+        private boolean isInclude;
+        private String attributeWhere, valueWhere;
+
+        public AttributeFilterData(boolean isInclude, String attributeWhere, String valueWhere) {
+            this.isInclude = isInclude;
+            this.attributeWhere = attributeWhere;
+            this.valueWhere = valueWhere;
+        }
+        
+        public boolean isInclude() {
+            return isInclude;
+        }
+
+        private String getFilterString() {
+            String tableName;
+            if (isInclude) {
+                tableName = INCLUDE_ATTRIBUTES_TABLE;
+            } else {
+                tableName = EXCLUDE_ATTRIBUTES_TABLE;
+            }
+            
+            return "(" + tableName + ".attribute " + attributeWhere + " AND " +
+                   tableName + ".value " + valueWhere + ")";
+        }
+
+        public void addToHistory(Map<String, String> args, String prefix) {
+            args.put(prefix + "_include", Boolean.toString(isInclude()));
+            args.put(prefix + "_attribute", attributeWhere);
+            args.put(prefix + "_value", valueWhere);
+        }
+        
+        public static AttributeFilterData fromHistory(Map<String, String> args, String prefix) {
+            String includeKey = prefix + "_include";
+            if (!args.containsKey(includeKey)) {
+                return null;
+            }
+            
+            boolean include = Boolean.valueOf(args.get(includeKey));
+            String attributeWhere = args.get(prefix + "_attribute");
+            String valueWhere = args.get(prefix + "_value");
+            return new AttributeFilterData(include, attributeWhere, valueWhere);
+        }
+    }
+    
     private class AttributeFilter extends Composite implements ClickListener {
         private ListBox includeOrExclude = new ListBox();
         private TextBox attributeWhere = new TextBox(), valueWhere = new TextBox();
@@ -67,27 +112,11 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         public void onClick(Widget sender) {
             attributeFilterList.deleteWidget(this);
         }
-        
-        public boolean isInclude() {
-            return includeOrExclude.getSelectedIndex() == 0;
-        }
-        
-        public String getFilterString() {
-            String tableName;
-            if (isInclude()) {
-                tableName = INCLUDE_ATTRIBUTES_TABLE;
-            } else {
-                tableName = EXCLUDE_ATTRIBUTES_TABLE;
-            }
-            
-            return "(" + tableName + ".attribute " + attributeWhere.getText() + " AND " +
-                   tableName + ".value " + valueWhere.getText() + ")";
-        }
-        
-        public void addToHistory(Map<String, String> args, String prefix) {
-            args.put(prefix + "_include", Boolean.toString(isInclude()));
-            args.put(prefix + "_attribute", attributeWhere.getText());
-            args.put(prefix + "_value", valueWhere.getText());
+
+        public AttributeFilterData getFilterData() {
+            boolean isInclude = (includeOrExclude.getSelectedIndex() == 0);
+            return new AttributeFilterData(isInclude, attributeWhere.getText(), 
+                                           valueWhere.getText());
         }
     }
     
@@ -103,10 +132,12 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     private PopupPanel quickReferencePopup;
     private SimpleHyperlink showHideControlsLink = new SimpleHyperlink(HIDE_CONTROLS);
     private Panel allControlsPanel = RootPanel.get("common_all_controls");
-    private boolean savedShowInvalid = false;
-    private JSONObject savedCondition = new JSONObject();
     private Set<CommonPanelListener> listeners = new HashSet<CommonPanelListener>();
     private WidgetList<AttributeFilter> attributeFilterList;
+
+    private String savedSqlCondition;
+    private boolean savedShowInvalid = false;
+    private List<AttributeFilterData> savedAttributeFilters = new ArrayList<AttributeFilterData>();
     
     public static interface CommonPanelListener {
         public void onSetControlsVisible(boolean visible);
@@ -164,58 +195,78 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         RootPanel.get("common_condition_div").setVisible(visible);
     }
     
-    private String getSqlCondition() {
-        return customSqlBox.getText().trim();
-    }
-    
     public void setSqlCondition(String text) {
         customSqlBox.setText(text);
-        saveSqlCondition();
+        updateStateFromView();
     }
     
-    private void saveAttributeFilters() {
-        List<String> include = new ArrayList<String>(), exclude = new ArrayList<String>();
+    public void updateStateFromView() {
+        savedSqlCondition = customSqlBox.getText().trim();
+        savedShowInvalid = showInvalid.isChecked();
+        
+        savedAttributeFilters.clear();
         for (AttributeFilter filter : attributeFilterList.getWidgets()) {
-            if (filter.isInclude()) {
-                include.add(filter.getFilterString());
+            savedAttributeFilters.add(filter.getFilterData());
+        }
+    }
+    
+    public AttributeFilter getFilterWidgetFromData(AttributeFilterData filterData) {
+        AttributeFilter filter = new AttributeFilter();
+        filter.includeOrExclude.setSelectedIndex(filterData.isInclude() ? 0 : 1);
+        filter.attributeWhere.setText(filterData.attributeWhere);
+        filter.valueWhere.setText(filterData.valueWhere);
+        return filter;
+    }
+    
+    public void updateViewFromState() {
+        customSqlBox.setText(savedSqlCondition);
+        showInvalid.setChecked(savedShowInvalid);
+        
+        attributeFilterList.clear();
+        for (AttributeFilterData filterData : savedAttributeFilters) {
+            attributeFilterList.addWidget(getFilterWidgetFromData(filterData));
+        }
+    }
+    
+    private void addAttributeFilters(JSONObject conditionArgs) {
+        List<String> include = new ArrayList<String>(), exclude = new ArrayList<String>();
+        for (AttributeFilterData filterData : savedAttributeFilters) {
+            if (filterData.isInclude()) {
+                include.add(filterData.getFilterString());
             } else {
-                exclude.add(filter.getFilterString());
+                exclude.add(filterData.getFilterString());
             }
         }
         
         String includeSql = Utils.joinStrings(" OR ", include);
         String excludeSql = Utils.joinStrings(" OR ", exclude);
-        saveIfNonempty("include_attributes_where", includeSql);
-        saveIfNonempty("exclude_attributes_where", excludeSql);
+        addIfNonempty(conditionArgs, "include_attributes_where", includeSql);
+        addIfNonempty(conditionArgs, "exclude_attributes_where", excludeSql);
     }
-    
-    public void saveSqlCondition() {
-        savedCondition = new JSONObject();
-        saveIfNonempty("extra_where", getSqlCondition());
-        saveAttributeFilters();
+
+    public JSONObject getConditionArgs() {
+        JSONObject conditionArgs = new JSONObject();
+        addIfNonempty(conditionArgs, "extra_where", savedSqlCondition);
+        addAttributeFilters(conditionArgs);
         
-        savedShowInvalid = showInvalid.isChecked();
         if (!savedShowInvalid) {
             List<String> labelsToExclude = 
                 Arrays.asList(new String[] {TestLabelManager.INVALIDATED_LABEL});
-            savedCondition.put("exclude_labels", Utils.stringsToJSON(labelsToExclude));
+            conditionArgs.put("exclude_labels", Utils.stringsToJSON(labelsToExclude));
         }
+        
+        return conditionArgs;
     }
     
-    private void saveIfNonempty(String key, String value) {
+    private void addIfNonempty(JSONObject conditionArgs, String key, String value) {
         if (value.equals("")) {
             return;
         }
-        savedCondition.put(key, new JSONString(value));
-    }
-
-    public JSONObject getSavedConditionArgs() {
-        return Utils.copyJSONObject(savedCondition);
+        conditionArgs.put(key, new JSONString(value));
     }
 
     public void refineCondition(String newCondition) {
-        String sqlCondition = TkoUtils.getSqlCondition(savedCondition);
-        setSqlCondition(TkoUtils.joinWithParens(" AND ", sqlCondition, newCondition));
+        setSqlCondition(TkoUtils.joinWithParens(" AND ", savedSqlCondition, newCondition));
     }
     
     public void refineCondition(TestSet tests) {
@@ -225,20 +276,6 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     private String getListKey(String base, int index) {
         return base + "_" + Integer.toString(index);
     }
-    
-    public AttributeFilter attributeFilterFromHistory(Map<String, String> args, String prefix) {
-        String includeKey = prefix + "_include";
-        if (!args.containsKey(includeKey)) {
-            return null;
-        }
-        
-        AttributeFilter filter = new AttributeFilter();
-        boolean include = Boolean.valueOf(args.get(includeKey));
-        filter.includeOrExclude.setSelectedIndex(include ? 0 : 1);
-        filter.attributeWhere.setText(args.get(prefix + "_attribute"));
-        filter.valueWhere.setText(args.get(prefix + "_value"));
-        return filter;
-    }
 
     public void handleHistoryArguments(Map<String, String> arguments) {
         setSqlCondition(arguments.get("condition"));
@@ -247,23 +284,21 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         
         attributeFilterList.clear();
         for (int index = 0; ; index++) {
-            AttributeFilter filter = attributeFilterFromHistory(arguments,
-                                                                getListKey("attribute", index));
-            if (filter == null) {
+            AttributeFilterData filterData = AttributeFilterData.fromHistory(
+                    arguments, getListKey("attribute", index));
+            if (filterData == null) {
                 break;
             }
-            attributeFilterList.addWidget(filter);
+            attributeFilterList.addWidget(getFilterWidgetFromData(filterData));
         }
     }
     
     public void addHistoryArguments(Map<String, String> arguments) {
-        if (savedCondition.containsKey("extra_where")) {
-            arguments.put("condition", savedCondition.get("extra_where").isString().stringValue());
-        }
+        arguments.put("condition", savedSqlCondition);
         arguments.put("show_invalid", Boolean.toString(savedShowInvalid));
         int index = 0;
-        for (AttributeFilter filter : attributeFilterList.getWidgets()) {
-            filter.addToHistory(arguments, getListKey("attribute", index));
+        for (AttributeFilterData filterData : savedAttributeFilters) {
+            filterData.addToHistory(arguments, getListKey("attribute", index));
             index++;
         }
     }

@@ -3,6 +3,7 @@ package autotest.afe;
 import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
+import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
 import autotest.common.table.SearchFilter;
@@ -159,8 +160,8 @@ public class JobListView extends TabView implements TableActionsListener {
     }
 
     @Override
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> arguments = super.getHistoryArguments();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken arguments = super.getHistoryArguments();
         arguments.put("state_filter", historyTokens[jobStateFilter.getSelectedLink()]);
         return arguments;
     }

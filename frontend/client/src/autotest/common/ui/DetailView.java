@@ -2,6 +2,7 @@ package autotest.common.ui;
 
 import autotest.common.JsonRpcProxy;
 import autotest.common.Utils;
+import autotest.common.CustomHistory.HistoryToken;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.DOM;
@@ -99,8 +100,8 @@ public abstract class DetailView extends TabView {
     }
     
     @Override
-    protected Map<String, String> getHistoryArguments() {
-        Map<String, String> arguments = super.getHistoryArguments();
+    public HistoryToken getHistoryArguments() {
+        HistoryToken arguments = super.getHistoryArguments();
         String objectId = getObjectId();
         if (!objectId.equals(NO_OBJECT)) {
             arguments.put("object_id", objectId);
