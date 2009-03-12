@@ -13,6 +13,7 @@ DEFAULT_REBOOT_BEFORE = RebootBefore.IF_DIRTY
 RebootAfter = enum.Enum('Never', 'If all tests passed', 'Always')
 DEFAULT_REBOOT_AFTER = RebootBefore.ALWAYS
 
+
 class AclAccessViolation(Exception):
     """\
     Raised when an operation is attempted with proper permissions as
@@ -20,17 +21,48 @@ class AclAccessViolation(Exception):
     """
 
 
+class AtomicGroup(model_logic.ModelExtensions, dbmodels.Model):
+    """\
+    An atomic group defines a collection of hosts which must only be scheduled
+    all at once.  Any host with a label having an atomic group will only be
+    scheduled for a job at the same time as other hosts sharing that label.
+
+    Required:
+      name: A name for this atomic group.  ex: 'rack23' or 'funky_net'
+      max_number_of_machines: The maximum number of machines that will be
+              scheduled at once when scheduling jobs to this atomic group.
+              The job.synch_count is considered the minimum.
+
+    Optional:
+      description: Arbitrary text description of this group's purpose.
+    """
+    name = dbmodels.CharField(maxlength=255, unique=True)
+    description = dbmodels.TextField(blank=True)
+    max_number_of_machines = dbmodels.IntegerField(default=1)
+
+    # Used by model_logic.ModelExtensions.
+    name_field = 'name'
+
+
+    class Meta:
+        db_table = 'atomic_groups'
+
+    class Admin:
+        list_display = ('name', 'description', 'max_number_of_machines')
+
+
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     """\
     Required:
-    name: label name
+      name: label name
 
     Optional:
-    kernel_config: url/path to kernel config to use for jobs run on this
-                   label
-    platform: if True, this is a platform label (defaults to False)
-    only_if_needed: if True, a machine with this label can only be used if that
-                    that label is requested by the job/test.
+      kernel_config: URL/path to kernel config for jobs run on this label.
+      platform: If True, this is a platform label (defaults to False).
+      only_if_needed: If True, a Host with this label can only be used if that
+              label is requested by the job/test (either as the meta_host or
+              in the job_dependencies).
+      atomic_group: The atomic group associated with this label.
     """
     name = dbmodels.CharField(maxlength=255, unique=True)
     kernel_config = dbmodels.CharField(maxlength=255, blank=True)
@@ -42,6 +74,8 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
     valid_objects = model_logic.ValidObjectsManager()
+    atomic_group = dbmodels.ForeignKey(AtomicGroup, null=True, blank=True)
+
 
     def clean_object(self):
         self.host_set.clear()
@@ -701,6 +735,9 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     complete = dbmodels.BooleanField(default=False)
     deleted = dbmodels.BooleanField(default=False)
     execution_subdir = dbmodels.CharField(maxlength=255, blank=True, default='')
+    # If atomic_group is set, this is a virtual HostQueueEntry that will
+    # be expanded into many actual hosts within the group at schedule time.
+    atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
 
     objects = model_logic.ExtendedManager()
 
