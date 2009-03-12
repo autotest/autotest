@@ -638,8 +638,11 @@ class rpm_kernel(object):
         # search for vmlinuz
         for file in files:
             if file.startswith('/boot/vmlinuz'):
+                self.full_version = file[len('/boot/vmlinuz-'):]
                 self.image = file
-                break
+                # prefer /boot/kernel-version before /boot/kernel
+                if self.full_version:
+                    break
         else:
             errmsg = "%s doesn't contain /boot/vmlinuz"
             errmsg %= self.rpm_package
@@ -650,7 +653,9 @@ class rpm_kernel(object):
         for file in files:
             if file.startswith('/boot/initrd'):
                 self.initrd = file
-                break
+                # prefer /boot/initrd-version before /boot/initrd
+                if len(file) > len('/boot/initrd'):
+                    break
 
         # get version and release number
         self.version, self.release = utils.system_output(
@@ -697,9 +702,11 @@ class rpm_kernel(object):
             self.install()
 
         # If we can check the kernel identity do so.
-        expected_ident = '-'.join([self.version,
-                                   self.rpm_name.split('-')[1],
-                                   self.release])
+        expected_ident = self.full_version
+        if not expected_ident:
+            expected_ident = '-'.join([self.version,
+                                       self.rpm_name.split('-')[1],
+                                       self.release])
         if ident:
             when = int(time.time())
             args += " IDENT=%d" % (when)
