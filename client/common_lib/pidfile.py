@@ -17,8 +17,9 @@ class PidFileManager(object):
     def close_file(self, exit_code, signal_code=0):
         if not self.pid_file:
             return
-        encoded_exit_code = ((exit_code & 0xFF) << 8) | (signal_code & 0xFF)
-        self.pid_file.write("%s\n" % encoded_exit_code)
-        self.pid_file.write("%s\n" % self.num_tests_failed)
-        self.pid_file.close()
+        pid_file = self.pid_file
         self.pid_file = None
+        encoded_exit_code = ((exit_code & 0xFF) << 8) | (signal_code & 0xFF)
+        pid_file.write("%s\n" % encoded_exit_code)
+        pid_file.write("%s\n" % self.num_tests_failed)
+        pid_file.close()
