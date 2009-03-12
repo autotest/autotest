@@ -15,6 +15,7 @@ from autotest_lib.scheduler import scheduler_config
 
 _DEBUG = False
 
+
 class DummyAgent(object):
     _is_running = False
     _is_done = False
@@ -87,6 +88,8 @@ class BaseSchedulerTest(unittest.TestCase):
 
 
     def _set_monitor_stubs(self):
+        # Clear the instance cache as this is a brand new database.
+        monitor_db.DBObject._clear_instance_cache()
         monitor_db._db = self._database
         monitor_db._drone_manager._results_dir = '/test/path'
         monitor_db._drone_manager._temporary_directory = '/test/path/tmp'
@@ -166,6 +169,50 @@ class BaseSchedulerTest(unittest.TestCase):
         if where:
             query += ' WHERE ' + where
         self._do_query(query)
+
+
+class DBObjectTest(BaseSchedulerTest):
+    # It may seem odd to subclass BaseSchedulerTest for this but it saves us
+    # duplicating some setup work for what we want to test.
+
+
+    def test_compare_fields_in_row(self):
+        host = monitor_db.Host(id=1)
+        fields = list(host._fields)
+        row_data = [getattr(host, fieldname) for fieldname in fields]
+        self.assertEqual({}, host._compare_fields_in_row(row_data))
+        row_data[fields.index('hostname')] = 'spam'
+        self.assertEqual({'hostname': ('host1', 'spam')},
+                         host._compare_fields_in_row(row_data))
+        row_data[fields.index('id')] = 23
+        self.assertEqual({'hostname': ('host1', 'spam'), 'id': (1, 23)},
+                         host._compare_fields_in_row(row_data))
+
+
+    def test_always_query(self):
+        host_a = monitor_db.Host(id=2)
+        self.assertEqual(host_a.hostname, 'host2')
+        self._do_query('UPDATE hosts SET hostname="host2-updated" WHERE id=2')
+        host_b = monitor_db.Host(id=2, always_query=True)
+        self.assert_(host_a is host_b, 'Cached instance not returned.')
+        self.assertEqual(host_a.hostname, 'host2-updated',
+                         'Database was not re-queried')
+
+        # If either of these are called, a query was made when it shouldn't be.
+        host_a._compare_fields_in_row = lambda _: self.fail('eek! a query!')
+        host_a._update_fields_from_row = host_a._compare_fields_in_row 
+        host_c = monitor_db.Host(id=2, always_query=False)
+        self.assert_(host_a is host_c, 'Cached instance not returned')
+
+
+    def test_delete(self):
+        host = monitor_db.Host(id=3)
+        host.delete()
+        host = self.assertRaises(monitor_db.DBError, monitor_db.Host, id=3,
+                                 always_query=False)
+        host = self.assertRaises(monitor_db.DBError, monitor_db.Host, id=3,
+                                 always_query=True)
+
 
 
 class DispatcherSchedulingTest(BaseSchedulerTest):
