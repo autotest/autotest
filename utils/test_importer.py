@@ -266,15 +266,15 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
         # check for entries already in existence
         results = cursor.fetchall()
         if results:
-            sql = "UPDATE autotests SET name='%s', test_class='%s',"\
-                  "description='%s', test_type=%d, path='%s',"\
-                  "synch_type=%d, author='%s', dependencies='%s',"\
-                  "experimental=%d, run_verify=%d, test_time=%d,"\
-                  "test_category='%s', sync_count=%d"\
-                  " WHERE path='%s'"
+            sql = ("UPDATE autotests SET name='%s', test_class='%s',"
+                  "description='%s', test_type=%d, path='%s',"
+                  "author='%s', dependencies='%s',"
+                  "experimental=%d, run_verify=%d, test_time=%d,"
+                  "test_category='%s', sync_count=%d"
+                  " WHERE path='%s'")
             sql %= (new_test['name'], new_test['test_class'], new_test['doc'],
                     int(new_test['test_type']), new_test['path'],
-                    int(new_test['synch_type']), new_test['author'],
+                    new_test['author'],
                     new_test['dependencies'], int(new_test['experimental']),
                     int(new_test['run_verify']), new_test['time'],
                     new_test['test_category'], new_test['sync_count'],
@@ -282,18 +282,18 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
         else:
             # Create a relative path
             path = test.replace(autotest_dir, '')
-            sql = "INSERT INTO autotests"\
-                  "(name, test_class, description, test_type, path, "\
-                  "synch_type, author, dependencies, experimental, "\
-                  "run_verify, test_time, test_category, sync_count) "\
-                  "VALUES('%s','%s','%s',%d,'%s',%d,'%s','%s',%d,%d,%d,"\
-                  "'%s',%d)"
+            sql = ("INSERT INTO autotests"
+                  "(name, test_class, description, test_type, path, "
+                  "author, dependencies, experimental, "
+                  "run_verify, test_time, test_category, sync_count) "
+                  "VALUES('%s','%s','%s',%d,'%s','%s','%s',%d,%d,%d,"
+                  "'%s',%d)")
             sql %= (new_test['name'], new_test['test_class'], new_test['doc'],
                     int(new_test['test_type']), new_test['path'],
-                    int(new_test['synch_type']), new_test['author'],
-                    new_test['dependencies'], int(new_test['experimental']),
-                    int(new_test['run_verify']), new_test['time'],
-                    new_test['test_category'], new_test['sync_count'])
+                    new_test['author'], new_test['dependencies'],
+                    int(new_test['experimental']), int(new_test['run_verify']),
+                    new_test['time'], new_test['test_category'],
+                    new_test['sync_count'])
 
         db_execute(cursor, sql)
 
