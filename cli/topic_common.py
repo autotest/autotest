@@ -474,7 +474,6 @@ class atest(object):
     def print_fields_std(self, items, keys, title=None):
         """Print the keys in each item, one on each line"""
         if not items:
-            print "No results"
             return
         if title:
             print title
@@ -522,7 +521,6 @@ class atest(object):
         format
         The headers are justified, the sublist_keys are wrapped."""
         if not items:
-            print "No results"
             return
         fmt = self.__find_justified_fmt(items, keys_header)
         header = tuple(KEYS_TO_NAMES_EN[key] for key in keys_header)
@@ -588,7 +586,6 @@ class atest(object):
     def print_list_std(self, items, key):
         """Print a wrapped list of results"""
         if not items:
-            print "No results"
             return
         print ' '.join(item[key] for item in items)
 
