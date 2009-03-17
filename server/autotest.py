@@ -558,8 +558,8 @@ class _Run(object):
             err = error.AutotestRunError("client job was aborted")
         elif not self.background and not result.stderr:
             err = error.AutotestRunError(
-                "execute_section: %s failed to return anything\n"
-                "stdout:%s\n" % (full_cmd, result.stdout))
+                "execute_section %s failed to return anything\n"
+                "stdout:%s\n" % (section, result.stdout))
         else:
             err = None
 
