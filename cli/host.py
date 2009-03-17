@@ -23,6 +23,7 @@ See topic_common.py for a High Level Design and Algorithm.
 
 import os, sys, socket
 from autotest_lib.cli import topic_common, action_common
+from autotest_lib.client.common_lib import host_protections
 
 
 class host(topic_common.atest):
@@ -31,6 +32,8 @@ class host(topic_common.atest):
     usage_action = '[create|delete|list|stat|mod|jobs]'
     topic = msg_topic = 'host'
     msg_items = '<hosts>'
+
+    protections = host_protections.Protection.names
 
 
     def __init__(self):
@@ -327,13 +330,11 @@ class host_mod(host):
                                help='Unlock hosts',
                                action='store_true')
         self.parser.add_option('-p', '--protection', type='choice',
-                               help='Set the protection level on a host.  '
-                               'Must be one of: "No protection", '
-                               '"Software repair only", '
-                               '"Repair filesystem only", or "Do not repair"',
-                               choices=('No protection', 'Repair software only',
-                                        'Repair filesystem only',
-                                        'Do not repair'))
+                               help=('Set the protection level on a host.  '
+                                     'Must be one of: %s' %
+                                     ', '.join('"%s"' % p
+                                               for p in self.protections)),
+                               choices=self.protections)
 
 
     def parse(self):
@@ -380,6 +381,7 @@ class host_create(host):
     """atest host create [--lock|--unlock --platform <arch>
     --labels <labels>|--blist <label_file>
     --acls <acls>|--alist <acl_file>
+    --protection <protection_type>
     --mlist <mach_file>] <hosts>"""
     usage_action = 'create'
 
@@ -407,6 +409,12 @@ class host_create(host):
                                help='File listing the acls',
                                type='string',
                                metavar='ACL_FLIST')
+        self.parser.add_option('-p', '--protection', type='choice',
+                               help=('Set the protection level on a host.  '
+                                     'Must be one of: %s' %
+                                     ', '.join('"%s"' % p
+                                               for p in self.protections)),
+                               choices=self.protections)
 
 
     def parse(self):
@@ -417,6 +425,8 @@ class host_create(host):
         self._parse_lock_options(options)
         self.locked = options.lock
         self.platform = getattr(options, 'platform', None)
+        if options.protection:
+            self.data['protection'] = options.protection
         return (options, leftover)
 
 
