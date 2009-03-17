@@ -1,0 +1,16 @@
+AUTHOR = """
+Manas Kumar Nayak (maknayak@in.ibm.com) (original code)
+Lucas Meneghel Rodrigues (lucasmr@br.ibm.com) (rewrite)
+"""
+NAME = "Cerberus test suite"
+TEST_TYPE = "client"
+TEST_CLASS = "Hardware"
+TEST_CATEGORY = "Functional"
+TIME = "MEDIUM"
+DOC = """\
+Executes the cerberus VA manufacturing test for a period of time specified. You
+can also provide a cerberus test control file of your own, trough the parameter
+tcf_contents.
+"""
+
+job.run_test(url='cerberus', length='4h')
