@@ -269,6 +269,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_class(kernel, "rpm_kernel")
         self.god.stub_function(kernel, "preprocess_path")
         self.god.stub_function(self.job.pkgmgr, "fetch_pkg")
+        self.god.stub_function(utils, "get_os_vendor")
         results = 'results_dir'
         tmp = 'tmp'
         build = 'xen'
@@ -281,6 +282,7 @@ class TestBaseJob(unittest.TestCase):
         kernel.preprocess_path.expect_call(path).and_return(path)
         os.path.exists.expect_call(path).and_return(False)
         self.job.pkgmgr.fetch_pkg.expect_call(path, packages_dir, repo_url='')
+        utils.get_os_vendor.expect_call()
         mykernel = kernel.rpm_kernel.expect_new(self.job, packages_dir,
                                                 results)
 

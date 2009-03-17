@@ -724,6 +724,41 @@ class rpm_kernel(object):
         self.job.reboot(tag=self.installed_as)
 
 
+class rpm_kernel_suse(rpm_kernel):
+    """ Class for installing openSUSE/SLE rpm kernel package
+    """
+
+    def install(self):
+        # do not set the new kernel as the default one
+        os.environ['PBL_AUTOTEST'] = '1'
+
+        rpm_kernel.install(self, 'dummy')
+        self.installed_as = self.job.bootloader.get_title_for_kernel(self.image)
+        if not self.installed_as:
+            errmsg = "cannot find installed kernel in bootloader configuration"
+            raise error.TestError(errmsg)
+
+
+    def add_to_bootloader(self, tag='dummy', args=''):
+        """ Set parameters of this kernel in bootloader
+        """
+
+        # pull the base argument set from the job config
+        baseargs = self.job.config_get('boot.default_args')
+        if baseargs:
+            args = baseargs + ' ' + args
+
+        self.job.bootloader.add_args(tag, args)
+
+
+def rpm_kernel_vendor(job, rpm_package, subdir):
+        vendor = utils.get_os_vendor()
+        if vendor == "SUSE":
+            return rpm_kernel_suse(job, rpm_package, subdir)
+        else:
+            return rpm_kernel(job, rpm_package, subdir)
+
+
 # just make the preprocessor a nop
 def _preprocess_path_dummy(path):
     return path.strip()
@@ -743,7 +778,7 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     kernel_path = preprocess_path(path)
     if kernel_path.endswith('.rpm'):
         if utils.is_url(kernel_path) or os.path.exists(kernel_path):
-            return rpm_kernel(job, kernel_path, subdir)
+            return rpm_kernel_vendor(job, kernel_path, subdir)
 
         else:
             # Fetch the rpm into the job's packages directory and pass it to
@@ -756,6 +791,6 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
             job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
                                  repo_url=os.path.dirname(kernel_path))
 
-            return rpm_kernel(job, os.path.join(job.pkgdir, rpm_name), subdir)
+            return rpm_kernel_vendor(job, os.path.join(job.pkgdir, rpm_name), subdir)
     else:
         return kernel(job,kernel_path, subdir, tmp_dir, build_dir, leave)
