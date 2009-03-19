@@ -81,8 +81,8 @@ def test_kernel(client, control, kernel, config, patches=None):
     # if we came from an .srv file create an .srv file
     extension = ('', '.srv')[is_autoserv_ctl]
     global counter
-    output = os.path.join(options.queuedir, client, "%s-%d%.3d%s" % (kernel, \
-                                            int(time.time()), counter, extension))
+    output = os.path.join(options.queuedir, client, "%s-%d%.3d%s" % (kernel,
+                          int(time.time()), counter, extension))
     counter = (counter + 1) % 1000
     shutil.move(tmpfile, output)
     return output
@@ -200,19 +200,14 @@ def perform_client_tests(kernel_list):
         # Get a list of all the machines available for testing
         # and the tests that each one is to execute
         for machine, controls in machines.items():
-            config_paths = load_conf(os.path.join(options.config,
-                                                    machine))
+            config_paths = load_conf(os.path.join(options.config, machine))
             config = '/boot/config'
             if len(config_paths) > 0:
                 kvers = config_paths.keys()
-                close =  closest_kver_leq(kvers,
-                                                kernel)
+                close =  closest_kver_leq(kvers, kernel)
                 config = config_paths[close][0]
             for control in controls:
-                test_kernel(machine,
-                                control,
-                                kernel,
-                                config)
+                test_kernel(machine, control, kernel, config)
 
 
 def main():
@@ -242,20 +237,18 @@ if __name__ == '__main__':
     usage = "mirror [options] <mirrordir> <queuedir>"
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-e", "--email", dest="email",
-                            help="Email address to alert for new kernels",
-                            metavar="EMAIL")
+                      help="Email address to alert for new kernels",
+                      metavar="EMAIL")
     parser.add_option("-c", "--clients", dest="clients",
-                            help="Location of the file that describes which \
+                      help="Location of the file that describes which \
                             control file to run on which clients; defaults \
-                            to %s" % default_clients_path, \
-                            metavar="CLIENTS", \
-                            default=default_clients_path)
+                            to %s" % default_clients_path,
+                      metavar="CLIENTS", default=default_clients_path)
     parser.add_option("-f", "--config", dest="config",
-                            help="Location of the directory that describes which \
+                      help="Location of the directory that describes which \
                             config files to use on which clients; defaults \
                             to %s" % default_config_path,
-                            metavar="CONFIG",
-                            default=default_config_path)
+                      metavar="CONFIG", default=default_config_path)
     (options, args) = parser.parse_args()
     if len(args) < 2:
         parser.print_help()
