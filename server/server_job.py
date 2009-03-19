@@ -6,8 +6,8 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-import getpass, os, sys, re, stat, tempfile, time, select, subprocess, traceback
-import shutil, warnings
+import getpass, os, sys, re, stat, tempfile, time, select, subprocess
+import traceback, shutil, warnings, fcntl, pickle
 from autotest_lib.client.bin import fd_stack, sysinfo
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.server import test, subcommand, profilers
@@ -99,10 +99,14 @@ class base_server_job(object):
         else:
             self.control = ''
         self.resultdir = resultdir
+        self.uncollected_log_file = os.path.join(resultdir, "uncollected_logs")
+        self.debugdir = os.path.join(resultdir, 'debug')
         if resultdir:
             if not os.path.exists(resultdir):
                 os.mkdir(resultdir)
-            self.debugdir = os.path.join(resultdir, 'debug')
+            log_file = open(self.uncollected_log_file, "w")
+            pickle.dump([], log_file)
+            log_file.close()
             if not os.path.exists(self.debugdir):
                 os.mkdir(self.debugdir)
             status_log = self.get_status_log_path()
@@ -423,6 +427,7 @@ class base_server_job(object):
                     self._execute_code(CRASHINFO_CONTROL_FILE, namespace)
                 else:
                     self._execute_code(CRASHDUMPS_CONTROL_FILE, namespace)
+            os.remove(self.uncollected_log_file)
             self.disable_external_logging()
             if cleanup and machines:
                 self._execute_code(CLEANUP_CONTROL_FILE, namespace)
@@ -684,6 +689,51 @@ class base_server_job(object):
             return os.path.join(self.resultdir, subdir, "status.log")
         else:
             return os.path.join(self.resultdir, "status.log")
+
+
+    def _update_uncollected_logs_list(self, update_func):
+        """Updates the uncollected logs list in a multi-process safe manner.
+
+        @param update_func - a function that updates the list of uncollected
+            logs. Should take one parameter, the list to be updated.
+        """
+        log_file = open(self.uncollected_log_file, "r+")
+        fcntl.flock(log_file, fcntl.LOCK_EX)
+        try:
+            uncollected_logs = pickle.load(log_file)
+            update_func(uncollected_logs)
+            log_file.seek(0)
+            log_file.truncate()
+            pickle.dump(uncollected_logs, log_file)
+        finally:
+            fcntl.flock(log_file, fcntl.LOCK_UN)
+            log_file.close()
+
+
+    def add_client_log(self, hostname, remote_path, local_path):
+        """Adds a new set of client logs to the list of uncollected logs,
+        to allow for future log recovery.
+
+        @param host - the hostname of the machine holding the logs
+        @param remote_path - the directory on the remote machine holding logs
+        @param local_path - the local directory to copy the logs into
+        """
+        def update_func(logs_list):
+            logs_list.append((hostname, remote_path, local_path))
+        self._update_uncollected_logs_list(update_func)
+
+
+    def remove_client_log(self, hostname, remote_path, local_path):
+        """Removes a set of client logs from the list of uncollected logs,
+        to allow for future log recovery.
+
+        @param host - the hostname of the machine holding the logs
+        @param remote_path - the directory on the remote machine holding logs
+        @param local_path - the local directory to copy the logs into
+        """
+        def update_func(logs_list):
+            logs_list.remove((hostname, remote_path, local_path))
+        self._update_uncollected_logs_list(update_func)
 
 
     def _render_record(self, status_code, subdir, operation, status='',
