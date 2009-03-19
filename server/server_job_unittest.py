@@ -32,7 +32,7 @@ class CopyLogsTest(unittest.TestCase):
         self.god.stub_function(os.path, 'isdir')
         self.god.stub_function(os, 'chmod')
         self.god.stub_function(os, 'chdir')
-        self.god.stub_function(os, 'unlink')
+        self.god.stub_function(os, 'remove')
         self.god.stub_function(server_job, 'get_site_job_data')
         self.god.stub_function(server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
@@ -60,6 +60,9 @@ class CopyLogsTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
+        os.path.exists.expect_call(
+                mock.is_string_comparator()).and_return(True)
+        os.remove.expect_call(mock.is_string_comparator())
 
         self.god.mock_up(sysinfo, 'sysinfo')
         sysinfo.sysinfo.expect_call(mock.is_string_comparator())
@@ -77,9 +80,6 @@ class CopyLogsTest(unittest.TestCase):
                                 0700).and_raises(os.error)
         os.chmod.expect_call(mock.is_string_comparator(), stat.S_IRWXU)
 
-        os.path.exists.expect_call(
-                mock.is_string_comparator()).and_return(True)
-        os.unlink.expect_call(mock.is_string_comparator())
         cls = server_job.base_server_job
         compare = mock.is_instance_comparator(cls)
         server_job.get_site_job_data.expect_call(compare).and_return({})
