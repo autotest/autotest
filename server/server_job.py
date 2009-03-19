@@ -105,9 +105,9 @@ class base_server_job(object):
             self.debugdir = os.path.join(resultdir, 'debug')
             if not os.path.exists(self.debugdir):
                 os.mkdir(self.debugdir)
-            self.status = os.path.join(resultdir, 'status')
-        else:
-            self.status = None
+            status_log = self.get_status_log_path()
+            if os.path.exists(status_log):
+                os.remove(status_log)
         self.label = label
         self.user = user
         self.args = args
@@ -150,8 +150,6 @@ class base_server_job(object):
                 # exception.
                 os.chmod(self.tmpdir, stat.S_IRWXU)
 
-        if self.status and os.path.exists(self.status):
-            os.unlink(self.status)
         job_data = {'label' : label, 'user' : user,
                     'hostname' : ','.join(machines),
                     'status_version' : str(self.STATUS_VERSION),
@@ -378,6 +376,8 @@ class base_server_job(object):
 
         if self.resultdir:
             os.chdir(self.resultdir)
+            # touch status.log so that the parser knows a job is running here
+            open(self.get_status_log_path(), 'w').close()
             self.enable_external_logging()
 
         collect_crashinfo = True
@@ -672,6 +672,20 @@ class base_server_job(object):
                         {"warnings.enable": warning_type})
 
 
+    def get_status_log_path(self, subdir=None):
+        """Return the path to the job status log.
+
+        @param subdir - Optional paramter indicating that you want the path
+            to a subdirectory status log.
+
+        @returns The path where the status log should be.
+        """
+        if subdir:
+            return os.path.join(self.resultdir, subdir, "status.log")
+        else:
+            return os.path.join(self.resultdir, "status.log")
+
+
     def _render_record(self, status_code, subdir, operation, status='',
                        epoch_time=None, record_prefix=None,
                        optional_fields=None):
@@ -730,7 +744,7 @@ class base_server_job(object):
         to standard output.
         """
         lines = []
-        status_file = os.path.join(self.resultdir, 'status.log')
+        status_file = self.get_status_log_path()
         status_log = open(status_file, 'a')
         for line in msg.splitlines():
             line = self.record_prefix + line + '\n'
@@ -868,14 +882,12 @@ class base_server_job(object):
         msg = self._render_record(status_code, subdir, operation, status,
                                   epoch_time, optional_fields=optional_fields)
 
-
-        status_file = os.path.join(self.resultdir, 'status.log')
+        status_file = self.get_status_log_path()
         sys.stdout.write(msg)
         open(status_file, "a").write(msg)
         if subdir:
-            test_dir = os.path.join(self.resultdir, subdir)
-            status_file = os.path.join(test_dir, 'status.log')
-            open(status_file, "a").write(msg)
+            sub_status_file = self.get_status_log_path(subdir)
+            open(sub_status_file, "a").write(msg)
         self.__parse_status(msg.splitlines())
 
 
