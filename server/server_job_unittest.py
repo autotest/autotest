@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, os, shutil, stat, sys, time, tempfile, warnings
+import unittest, os, shutil, stat, sys, time, tempfile, warnings, pickle
 import common
 from autotest_lib.server import server_job, test, subcommand, hosts, autotest
 from autotest_lib.client.bin import sysinfo
@@ -17,6 +17,7 @@ class CopyLogsTest(unittest.TestCase):
         self.control = "control"
         self.args = ""
         self.resultdir = "results"
+        self.uncollected = "results/uncollected_logs"
         self.label = "default"
         self.user = "user"
         self.machines = ('abcd1', 'abcd2', 'abcd3')
@@ -33,6 +34,7 @@ class CopyLogsTest(unittest.TestCase):
         self.god.stub_function(os, 'chmod')
         self.god.stub_function(os, 'chdir')
         self.god.stub_function(os, 'remove')
+        self.god.stub_function(pickle, 'dump')
         self.god.stub_function(server_job, 'get_site_job_data')
         self.god.stub_function(server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
@@ -57,6 +59,9 @@ class CopyLogsTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
+        server_job.open.expect_call(self.uncollected, 'w').and_return(file_obj)
+        pickle.dump.expect_call([], file_obj)
+        file_obj.close.expect_call()
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
@@ -110,8 +115,7 @@ class CopyLogsTest(unittest.TestCase):
 
         # set up recording
         file_obj = self.god.create_mock_class(file, "file")
-        server_job.open.expect_call(log, 'w',
-                                         0).and_return(file_obj)
+        server_job.open.expect_call(log, 'w', 0).and_return(file_obj)
         tko_utils.redirect_parser_debugging.expect_call(file_obj)
         db = self.god.create_mock_class(tko_db.db_sql, "db_sql")
         tko_db.db.expect_call(autocommit=True).and_return(db)
