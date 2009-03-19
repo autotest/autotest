@@ -186,13 +186,13 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 stderr.write(raw_stderr[-1])
             if timeout and time.time() - start_time > timeout:
                 timed_out = True
-                channel.close()
                 break
             time.sleep(1)
         if timed_out:
             exit_status = -signal.SIGTERM
         else:
             exit_status = channel.recv_exit_status()
+        channel.close()
         self._exhaust_stream(stdout, raw_stdout, channel.recv)
         self._exhaust_stream(stderr, raw_stderr, channel.recv_stderr)
         duration = time.time() - start_time
