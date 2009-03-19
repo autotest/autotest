@@ -299,15 +299,9 @@ class BaseAutotest(installable_object.InstallableObject):
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
             os.remove(tmppath)
 
-        try:
-            atrun.execute_control(
+        atrun.execute_control(
                 timeout=timeout,
                 client_disconnect_timeout=client_disconnect_timeout)
-        finally:
-            if not atrun.background:
-                collector = log_collector(host, atrun.tag, results_dir)
-                collector.collect_client_job_results()
-                self._process_client_state_file(host, atrun, results_dir)
 
 
     def _create_state_file(self, job, state_dict):
@@ -318,40 +312,6 @@ class BaseAutotest(installable_object.InstallableObject):
         pickle.dump(state_dict, state_file)
         state_file.close()
         return path
-
-
-    def _process_client_state_file(self, host, atrun, results_dir):
-        state_file = os.path.basename(atrun.remote_control_file) + ".state"
-        state_path = os.path.join(results_dir, state_file)
-        try:
-            state_dict = pickle.load(open(state_path))
-        except Exception, e:
-            msg = "Ignoring error while loading client job state file: %s" % e
-            self.logger.warning(msg)
-            state_dict = {}
-
-        # clear out the state file
-        # TODO: stash the file away somewhere useful instead
-        try:
-            os.remove(state_path)
-        except Exception:
-            pass
-
-        msg = "Persistent state variables pulled back from %s: %s"
-        msg %= (host.hostname, state_dict)
-        print msg
-
-        if "__run_test_cleanup" in state_dict:
-            if state_dict["__run_test_cleanup"]:
-                host.job.enable_test_cleanup()
-            else:
-                host.job.disable_test_cleanup()
-
-        if "__last_boot_tag" in state_dict:
-            host.job.last_boot_tag = state_dict["__last_boot_tag"]
-
-        if "__sysinfo" in state_dict:
-            host.job.sysinfo.deserialize(state_dict["__sysinfo"])
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
@@ -599,7 +559,49 @@ class _Run(object):
         self.host.reboot_followup()
 
 
+    def _process_client_state_file(self):
+        state_file = os.path.basename(self.remote_control_file) + ".state"
+        state_path = os.path.join(self.results_dir, state_file)
+        try:
+            state_dict = pickle.load(open(state_path))
+        except Exception, e:
+            msg = "Ignoring error while loading client job state file: %s" % e
+            self.logger.warning(msg)
+            state_dict = {}
+
+        # clear out the state file
+        # TODO: stash the file away somewhere useful instead
+        try:
+            os.remove(state_path)
+        except Exception:
+            pass
+
+        msg = "Persistent state variables pulled back from %s: %s"
+        msg %= (self.host.hostname, state_dict)
+        print msg
+
+        if "__run_test_cleanup" in state_dict:
+            if state_dict["__run_test_cleanup"]:
+                self.host.job.enable_test_cleanup()
+            else:
+                self.host.job.disable_test_cleanup()
+
+        if "__last_boot_tag" in state_dict:
+            self.host.job.last_boot_tag = state_dict["__last_boot_tag"]
+
+        if "__sysinfo" in state_dict:
+            self.host.job.sysinfo.deserialize(state_dict["__sysinfo"])
+
+
     def execute_control(self, timeout=None, client_disconnect_timeout=None):
+        if not self.background:
+            collector = log_collector(self.host, self.tag, self.results_dir)
+            hostname = self.host.hostname
+            remote_results = collector.client_results_dir
+            local_results = collector.server_results_dir
+            self.host.job.add_client_log(hostname, remote_results,
+                                         local_results)
+
         section = 0
         start_time = time.time()
 
@@ -637,6 +639,11 @@ class _Run(object):
                 raise error.AutotestRunError(msg)
         finally:
             logger.close()
+            if not self.background:
+                collector.collect_client_job_results()
+                self._process_client_state_file()
+                self.host.job.remove_client_log(hostname, remote_results,
+                                                local_results)
 
         # should only get here if we timed out
         assert timeout

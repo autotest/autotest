@@ -197,15 +197,9 @@ class TestBaseAutotest(unittest.TestCase):
         os.path.abspath.expect_call('temp').and_return('control_file')
         os.path.abspath.expect_call('control').and_return('control')
         os.remove.expect_call("temp")
+
         run_obj.execute_control.expect_call(timeout=30,
                                             client_disconnect_timeout=1800)
-        collector = autotest.log_collector.expect_new(self.host, tag, '.')
-        collector.collect_client_job_results.expect_call()
-
-        autotest.open.expect_call('./control.None.autoserv.state').and_raises(
-            Exception("File not found"))
-        os.remove.expect_call('./control.None.autoserv.state').and_raises(
-            Exception("File not found"))
 
         # run and check output
         self.base_autotest.run(control, timeout=30)
