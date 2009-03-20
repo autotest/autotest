@@ -4,8 +4,8 @@
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
-import warnings, smtplib
-from autotest_lib.client.common_lib import error, barrier, debug
+import warnings, smtplib, logging
+from autotest_lib.client.common_lib import error, barrier
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
@@ -27,9 +27,8 @@ class BgJob(object):
         self.stdout_tee = stdout_tee
         self.stderr_tee = stderr_tee
         self.result = CmdResult(command)
-        self.log = debug.get_logger()
         if verbose:
-            self.log.debug("running: %s" % command)
+            logging.debug("Running '%s'" % command)
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    preexec_fn=self._reset_sigpipe, shell=True,
@@ -831,7 +830,7 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
     else:
         msg = "unable to import site module '%s', using non-site implementation"
         msg %= modulefile
-        debug.get_logger().info(msg)
+        logging.info(msg)
         obj = dummy
 
     return obj

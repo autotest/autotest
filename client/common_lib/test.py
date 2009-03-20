@@ -17,9 +17,9 @@
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
 import fcntl, os, re, sys, shutil, tarfile, tempfile, time, traceback
-import warnings
+import warnings, logging
 
-from autotest_lib.client.common_lib import error, packages, debug
+from autotest_lib.client.common_lib import error, packages
 from autotest_lib.client.bin import utils
 
 
@@ -32,7 +32,7 @@ class base_test:
         self.autodir = job.autodir
 
         self.outputdir = outputdir
-        tagged_testname = os.path.basename(self.outputdir)
+        self.tagged_testname = os.path.basename(self.outputdir)
         self.resultsdir = os.path.join(self.outputdir, 'results')
         os.mkdir(self.resultsdir)
         self.profdir = os.path.join(self.outputdir, 'profiling')
@@ -43,8 +43,8 @@ class base_test:
         if hasattr(job, 'libdir'):
             self.libdir = job.libdir
         self.srcdir = os.path.join(self.bindir, 'src')
-        self.tmpdir = tempfile.mkdtemp("_" + tagged_testname, dir=job.tmpdir)
-        self.test_log = debug.get_logger(module='tests')
+        self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname, 
+                                       dir=job.tmpdir)
 
 
     def assert_(self, expr, msg='Assertion failed.'):
@@ -87,7 +87,6 @@ class base_test:
 
 
     def initialize(self):
-        print 'No initialize phase defined'
         pass
 
 
@@ -145,48 +144,48 @@ class base_test:
         # If the user called this test in an odd way (specified both iterations
         # and test_length), let's warn them.
         if iterations and test_length:
-            self.test_log.info(
+            logging.info(
                     'Iterations parameter ignored (timed execution).')
         if test_length:
             test_start = _get_time()
             time_elapsed = 0
             timed_counter = 0
-            self.test_log.info('Test started. Minimum test length: %d s',
+            logging.info('Test started. Minimum test length: %d s',
                                test_length)
             while time_elapsed < test_length:
                 timed_counter = timed_counter + 1
                 if time_elapsed == 0:
-                    self.test_log.info('Executing iteration %d', timed_counter)
+                    logging.info('Executing iteration %d', timed_counter)
                 elif time_elapsed > 0:
-                    self.test_log.info(
+                    logging.info(
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
                 self.drop_caches_between_iterations()
                 self.run_once(*args, **dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
-            self.test_log.info('Test finished after %d iterations',
+            logging.info('Test finished after %d iterations',
                                timed_counter)
-            self.test_log.info('Time elapsed: %d s', time_elapsed)
+            logging.info('Time elapsed: %d s', time_elapsed)
         else:
             orig_iterations = iterations
             if profile_only:
                 if iterations:
-                    self.test_log.info('Iterations parameter ignored '
+                    logging.info('Iterations parameter ignored '
                                        '(profile_only=True).')
                 iterations = 0
             elif iterations is None:
                 iterations = 1
             if iterations:
-                self.test_log.info('Test started. '
+                logging.info('Test started. '
                                    'Number of iterations: %d', iterations)
                 for self.iteration in xrange(1, iterations+1):
-                    self.test_log.info('Executing iteration %d of %d',
+                    logging.info('Executing iteration %d of %d',
                                        self.iteration, iterations)
                     self.drop_caches_between_iterations()
                     self.run_once(*args, **dargs)
                     self.postprocess_iteration()
-                self.test_log.info('Test finished after %d iterations.',
+                logging.info('Test finished after %d iterations.',
                                    iterations)
 
         self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
@@ -251,11 +250,28 @@ class base_test:
             raise error.UnhandledTestError(e)
 
 
+    def _setup_test_logging_handler(self):
+        """
+        Adds a file handler during test execution, which will give test writers
+        the ability to obtain test results on the test results dir just by 
+        making logging calls.
+        """
+        result_filename = os.path.join(self.resultsdir, 
+                                       '%s.log' % self.tagged_testname)
+        self.test_handler = logging.FileHandler(filename=result_filename,
+                                                mode='w')
+        fmt_str = '[%(asctime)s - %(module)-15s - %(levelname)-8s] %(message)s'
+        self.test_formatter = logging.Formatter(fmt_str)
+        self.test_handler.setFormatter(self.test_formatter)
+        self.logger = logging.getLogger()
+        self.logger.addHandler(self.test_handler)
+
+
     def _exec(self, args, dargs):
 
         self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
-
+        self._setup_test_logging_handler()
         try:
             # write out the test attributes into a keyval
             dargs   = dargs.copy()
@@ -335,6 +351,7 @@ class base_test:
                     if run_cleanup:
                         self._run_cleanup(args, dargs)
                 finally:
+                    self.logger.removeHandler(self.test_handler)
                     self.job.stderr.restore()
                     self.job.stdout.restore()
         except error.AutotestError:

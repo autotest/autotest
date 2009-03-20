@@ -1,5 +1,5 @@
-import os, time, types, socket, shutil, glob
-from autotest_lib.client.common_lib import error, debug
+import os, time, types, socket, shutil, glob, logging
+from autotest_lib.client.common_lib import error
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import remote
 
@@ -143,8 +143,8 @@ class AbstractSSHHost(SiteHost):
                                          delete_dest)
             utils.run(rsync)
         except error.CmdError, e:
-            print "warning: rsync failed with: %s" % e
-            print "attempting to copy with scp instead"
+            logging.warn("warning: rsync failed with: %s", e)
+            logging.info("attempting to copy with scp instead")
 
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest and os.path.isdir(dest):
@@ -197,8 +197,8 @@ class AbstractSSHHost(SiteHost):
                                          delete_dest)
             utils.run(rsync)
         except error.CmdError, e:
-            print "warning: rsync failed with: %s" % e
-            print "attempting to copy with scp instead"
+            logging.warn("warning: rsync failed with: %s", e)
+            logging.info("attempting to copy with scp instead")
 
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
@@ -226,7 +226,7 @@ class AbstractSSHHost(SiteHost):
     def ssh_ping(self, timeout=60):
         try:
             self.run("true", timeout=timeout, connect_timeout=timeout)
-            print "ssh_ping of %s completed sucessfully" % self.hostname
+            logging.info("ssh_ping of %s completed sucessfully", self.hostname)
         except error.AutoservSSHTimeout:
             msg = "ssh ping timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
@@ -314,7 +314,7 @@ class AbstractSSHHost(SiteHost):
     def verify(self):
         super(AbstractSSHHost, self).verify_hardware()
 
-        print 'Pinging host ' + self.hostname
+        logging.info('Pinging host ' + self.hostname)
         self.ssh_ping()
 
         if self.is_shutting_down():
@@ -336,7 +336,7 @@ class AbstractSSHHost(SiteHost):
 class LoggerFile(object):
     def write(self, data):
         if data:
-            debug.get_logger().debug(data.rstrip("\n"))
+            logging.debug(data.rstrip("\n"))
 
 
     def flush(self):

@@ -1,5 +1,5 @@
 #!/usr/bin/python -u
-import os, sys, signal, time, subprocess
+import os, sys, signal, time, subprocess, logging, logging.config
 from optparse import OptionParser
 
 PAUSE_LENGTH = 60
@@ -14,6 +14,14 @@ results_dir = os.path.join(autodir, 'results')
 monitor_db = os.path.join(autodir, 'scheduler/monitor_db.py')
 recover = (options.recover == True)
 
+# load logging settings
+scheduler_dir = os.path.join(autodir, 'scheduler')
+os.environ['AUTOTEST_BABYSITTER_LOG_DIR'] = os.path.join(autodir, 'logs')
+# Here we export the log name, using the same convention as autoserv's results
+# directory.
+babysitter_log_name = 'babysitter.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
+os.environ['AUTOTEST_BABYSITTER_LOG_NAME'] = babysitter_log_name 
+logging.config.fileConfig(os.path.join(scheduler_dir, 'debug_babysitter.ini'))
 
 if len(args) != 0:
     print "Usage: %s [options]" % __file__
@@ -23,12 +31,8 @@ if len(args) != 0:
     sys.exit(1)
 
 
-def bprint(msg):
-    print "%s> %s" % (time.strftime("%X %x"), msg)
-
-
 def kill_all_monitors():
-    bprint("Killing all monitor_dbs")
+    logging.info("Killing all monitor_dbs")
     # try shutdown first
     status = os.system("killall -2 monitor_db.py")
     if status == 0: # were any killed?
@@ -39,7 +43,7 @@ def kill_all_monitors():
 
 
 def handle_sigterm(signum, frame):
-    bprint('Caught SIGTERM')
+    logging.info('Caught SIGTERM')
     kill_all_monitors()
     sys.exit(1)
 
@@ -63,7 +67,7 @@ class MonitorProc:
         self.log_size = os.path.getsize(self.log_path)
         self.last_log_change = time.time()
 
-        bprint("STARTING monitor_db with log file %s" % self.log_path)
+        logging.info("STARTING monitor_db with log file %s" % self.log_path)
         self.proc = subprocess.Popen(args, stdout=log, stdin=devnull,
                                      stderr=subprocess.STDOUT)
         log.close()
@@ -72,32 +76,32 @@ class MonitorProc:
 
     def is_running(self):
         if self.proc.poll() is not None:
-            bprint("monitor_db DIED")
+            logging.info("monitor_db DIED")
             return False
 
         old_size = self.log_size
         new_size = os.path.getsize(self.log_path)
         if old_size != new_size:
-            bprint("Log was touched")
+            logging.info("Log was touched")
             self.log_size = new_size
             self.last_log_change = time.time()
         elif self.last_log_change + STALL_TIMEOUT < time.time():
-            bprint("monitor_db STALLED")
+            logging.info("monitor_db STALLED")
             return False
 
         return True
 
 
-bprint("initializing")
+logging.info("initializing")
 
 if os.getuid() == 0:
-    print "run as root!  aborting!"
+    logging.critical("run as root!  aborting!")
     sys.exit(1)
 
 while True:
     proc = MonitorProc(do_recovery=recover)
     time.sleep(PAUSE_LENGTH)
     while proc.is_running():
-        bprint("Tick")
+        logging.info("Tick")
         time.sleep(PAUSE_LENGTH)
     recover = False
