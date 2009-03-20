@@ -1,5 +1,5 @@
 import os, re, shutil, signal, subprocess, errno, time, heapq, traceback
-import common
+import common, logging
 from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.scheduler import email_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
@@ -120,7 +120,7 @@ class DroneManager(object):
             except error.AutoservError:
                 warning = 'Drone %s failed to initialize:\n%s' % (
                     hostname, traceback.format_exc())
-                print warning
+                logging.warn(warning)
                 email_manager.manager.enqueue_notify_email(
                     'Drone failed to initialize', warning)
                 self._remove_drone(hostname)
@@ -131,7 +131,8 @@ class DroneManager(object):
 
         self.refresh_drone_configs()
 
-        print 'Using results repository on', results_repository_hostname
+        logging.info('Using results repository on %s', 
+                     results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
         # don't initialize() the results drone - we don't want to clear out any
         # directories and we don't need ot kill any processes
@@ -147,7 +148,7 @@ class DroneManager(object):
 
 
     def _add_drone(self, hostname):
-        print 'Adding drone', hostname
+        logging.info('Adding drone %s' % hostname)
         drone = drones.get_drone(hostname)
         self._drones[drone.hostname] = drone
         return drone
@@ -315,7 +316,7 @@ class DroneManager(object):
         except error.AutoservError:
             warning = ('Results repository failed to execute calls:\n' +
                        traceback.format_exc())
-            print warning
+            logging.warn(warning)
             email_manager.manager.enqueue_notify_email(
                 'Results repository error', warning)
             self._results_drone.clear_call_queue()
@@ -342,7 +343,7 @@ class DroneManager(object):
         """
         Kill the given process.
         """
-        print 'killing', process
+        logging.info('killing %d' % process)
         drone = self._get_drone_for_process(process)
         drone.queue_call('kill_process', process)
 
@@ -433,8 +434,8 @@ class DroneManager(object):
         else:
             num_processes = self._extract_num_processes(command)
             drone = self._choose_drone_for_execution(num_processes)
-        print "command = %s" % command
-        print 'log file = %s:%s' % (drone.hostname, log_file)
+        logging.info("command = %s" % command)
+        logging.info('log file = %s:%s' % (drone.hostname, log_file))
         self._write_attached_files(command, drone)
         drone.queue_call('execute_command', command, working_directory,
                          log_file, pidfile_name)

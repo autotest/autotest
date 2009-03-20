@@ -5,14 +5,15 @@ This is the core infrastructure.
 Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-import copy, os, platform, re, shutil, sys, time, traceback, types
+import copy, os, platform, re, shutil, sys, time, traceback, types, glob
+import logging, logging.config
 import cPickle as pickle
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, test
 from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import error, barrier, log
-from autotest_lib.client.common_lib import packages, debug
+from autotest_lib.client.common_lib import packages
 
 LAST_BOOT_TAG = object()
 NO_DEFAULT = object()
@@ -40,7 +41,7 @@ def _run_test_complete_on_exit(f):
             if self.log_filename == self.DEFAULT_LOG_FILENAME:
                 self.harness.run_test_complete()
                 if self.drop_caches:
-                    print "Dropping caches"
+                    logging.debug("Dropping caches")
                     utils.drop_caches()
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__
@@ -106,11 +107,6 @@ class base_job(object):
           drop_caches: If true, utils.drop_caches() is
                   called before and between all tests.  [True]
         """
-        self.drop_caches = drop_caches
-        if self.drop_caches:
-            print "Dropping caches"
-            utils.drop_caches()
-        self.drop_caches_between_iterations = False
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
         self.libdir = os.path.join(self.autodir, 'lib')
@@ -121,6 +117,20 @@ class base_job(object):
         self.tmpdir = os.path.join(self.autodir, 'tmp')
         self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', jobtag)
+
+        if not os.path.exists(self.resultdir):
+            os.makedirs(self.resultdir)
+
+        # We export this env variable in order to reference the logging
+        # config system where to put the client logfile.
+        os.environ['AUTOTEST_RESULTS'] = self.resultdir
+        logging.config.fileConfig('%s/debug_client.ini' % self.autodir)
+
+        self.drop_caches_between_iterations = False
+        self.drop_caches = drop_caches
+        if self.drop_caches:
+            logging.debug("Dropping caches")
+            utils.drop_caches()
 
         self.control = os.path.realpath(control)
         self._is_continuation = cont
@@ -141,7 +151,6 @@ class base_job(object):
         self._load_sysinfo_state()
 
         self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
-        self.job_log = debug.get_logger(module='client')
 
         if not cont:
             """
@@ -165,12 +174,20 @@ class base_job(object):
             if not os.path.exists(download):
                 os.mkdir(download)
 
+            # Clean up directory except for the client.log file that
+            # was initialized when job was instantiated anyway
+            client_logfile = os.path.join(self.resultdir, 'client.log')
             if os.path.exists(self.resultdir):
-                utils.system('rm -rf ' + self.resultdir)
-            os.mkdir(self.resultdir)
+                list_files = glob.glob('%s/*' % self.resultdir)
+                for f in list_files:
+                    if f != client_logfile:
+                        if os.path.isdir(f):
+                            shutil.rmtree(f)
+                        elif os.path.isfile(f):
+                            os.remove(f)
 
-            os.mkdir(os.path.join(self.resultdir, 'debug'))
-            os.mkdir(os.path.join(self.resultdir, 'analysis'))
+            os.makedirs(os.path.join(self.resultdir, 'debug'))
+            os.makedirs(os.path.join(self.resultdir, 'analysis'))
 
             shutil.copyfile(self.control,
                             os.path.join(self.resultdir, 'control'))
@@ -393,23 +410,19 @@ class base_job(object):
 
     def _runtest(self, url, tag, args, dargs):
         try:
-            try:
-                l = lambda : test.runtest(self, url, tag, args, dargs)
-                pid = parallel.fork_start(self.resultdir, l)
-                parallel.fork_waitfor(self.resultdir, pid)
-            except error.TestBaseException:
-                # These are already classified with an error type (exit_status)
-                raise
-            except error.JobError:
-                raise  # Caught further up and turned into an ABORT.
-            except Exception, e:
-                # Converts all other exceptions thrown by the test regardless
-                # of phase into a TestError(TestBaseException) subclass that
-                # reports them with their full stack trace.
-                raise error.UnhandledTestError(e)
-        finally:
-            # Reset the logging level to client level
-            debug.configure(module='client')
+            l = lambda : test.runtest(self, url, tag, args, dargs)
+            pid = parallel.fork_start(self.resultdir, l)
+            parallel.fork_waitfor(self.resultdir, pid)
+        except error.TestBaseException:
+            # These are already classified with an error type (exit_status)
+            raise
+        except error.JobError:
+            raise  # Caught further up and turned into an ABORT.
+        except Exception, e:
+            # Converts all other exceptions thrown by the test regardless
+            # of phase into a TestError(TestBaseException) subclass that
+            # reports them with their full stack trace.
+            raise error.UnhandledTestError(e)
 
 
     @_run_test_complete_on_exit
@@ -812,7 +825,7 @@ class base_job(object):
             pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
         finally:
             outfile.close()
-        print "Persistent state variable %s now set to %r" % (var, val)
+        logging.debug("Persistent state variable %s now set to %r", var, val)
 
 
     def _load_state(self):
@@ -836,7 +849,7 @@ class base_job(object):
                                'continuation.')
 
         if initialize:
-            print 'Initializing the state engine.'
+            logging.info('Initializing the state engine')
             self.set_state('__steps', [])  # writes pickle file
 
 
@@ -1128,7 +1141,7 @@ class base_job(object):
 
         # log to stdout (if enabled)
         #if self.log_filename == self.DEFAULT_LOG_FILENAME:
-        print msg
+        logging.info(msg)
 
         # log to the "root" status log
         status_file = os.path.join(self.resultdir, self.log_filename)

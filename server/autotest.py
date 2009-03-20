@@ -1,8 +1,8 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob
+import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob, logging
 from autotest_lib.server import installable_object, utils
-from autotest_lib.client.common_lib import log, error, debug
+from autotest_lib.client.common_lib import log, error
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
 
@@ -34,7 +34,6 @@ class BaseAutotest(installable_object.InstallableObject):
         self.lightweight = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
-        self.logger = debug.get_logger(module='server')
 
 
     install_in_tmpdir = False
@@ -91,7 +90,7 @@ class BaseAutotest(installable_object.InstallableObject):
             self.get()
         host.wait_up(timeout=30)
         host.setup()
-        print "Installing autotest on %s" % host.hostname
+        logging.info("Installing autotest on %s", host.hostname)
 
         # set up the autotest directory on the remote machine
         if not autodir:
@@ -126,10 +125,10 @@ class BaseAutotest(installable_object.InstallableObject):
             self.lightweight = lightweight
             return
         except global_config.ConfigError, e:
-            print ("Could not install autotest using the"
-                   " packaging system %s" %  e)
+            logging.error("Could not install autotest using the packaging"
+                          "system: %s",  e)
         except (packages.PackageInstallError, error.AutoservRunError), e:
-            print "Could not install autotest from %s" % (repos)
+            logging.error("Could not install autotest from %s", repos)
 
         # try to install from file or directory
         if self.source_material:
@@ -157,7 +156,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 # Copy autotest via tarball
                 e_msg = 'Installation method not yet implemented!'
                 raise NotImplementedError(e_msg)
-            print "Installation of autotest completed"
+            logging.info("Installation of autotest completed")
             self.installed = True
             self.lightweight = lightweight
             return
@@ -170,7 +169,7 @@ class BaseAutotest(installable_object.InstallableObject):
             host.run('svn checkout %s %s' % (AUTOTEST_SVN, autodir))
         except error.AutoservRunError, e:
             host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
-        print "Installation of autotest completed"
+        logging.info("Installation of autotest completed")
         self.installed = True
         self.lightweight = lightweight
 
@@ -238,7 +237,8 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             atrun.verify_machine()
         except:
-            print "Verify failed on %s. Reinstalling autotest" % host.hostname
+            logging.error("Verify failed on %s. Reinstalling autotest",
+                          host.hostname)
             self.install(host)
         atrun.verify_machine()
         debug = os.path.join(results_dir, 'debug')
@@ -356,7 +356,6 @@ class _Run(object):
             control += '.' + tag
         self.manual_control_file = control
         self.remote_control_file = control + '.autoserv'
-        self.logger = debug.get_logger(module='server')
 
 
     def verify_machine(self):
@@ -502,8 +501,8 @@ class _Run(object):
 
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
-        print "Executing %s/bin/autotest %s/control phase %d" % \
-                                (self.autodir, self.autodir, section)
+        logging.info("Executing %s/bin/autotest %s/control phase %d",
+                     self.autodir, self.autodir, section)
 
         if self.background:
             result = self._execute_in_background(section, timeout)
@@ -534,26 +533,26 @@ class _Run(object):
 
 
     def _wait_for_reboot(self):
-        self.logger.info("Client is rebooting")
-        self.logger.info("Waiting for client to halt")
+        logging.info("Client is rebooting")
+        logging.info("Waiting for client to halt")
         if not self.host.wait_down(HALT_TIME):
             err = "%s failed to shutdown after %d"
             err %= (self.host.hostname, HALT_TIME)
             raise error.AutotestRunError(err)
-        self.logger.info("Client down, waiting for restart")
+        logging.info("Client down, waiting for restart")
         if not self.host.wait_up(BOOT_TIME):
             # since reboot failed
             # hardreset the machine once if possible
             # before failing this control file
             warning = "%s did not come back up, hard resetting"
             warning %= self.host.hostname
-            self.logger.warning(warning)
+            logging.warning(warning)
             try:
                 self.host.hardreset(wait=False)
             except (AttributeError, error.AutoservUnsupportedError):
                 warning = "Hard reset unsupported on %s"
                 warning %= self.host.hostname
-                self.logger.warning(warning)
+                logging.warning(warning)
             raise error.AutotestRunError("%s failed to boot after %ds" %
                                          (self.host.hostname, BOOT_TIME))
         self.host.reboot_followup()
@@ -618,7 +617,7 @@ class _Run(object):
                     return
                 section += 1
                 if self.is_client_job_finished(last):
-                    print "Client complete"
+                    logging.info("Client complete")
                     return
                 elif self.is_client_job_rebooting(last):
                     try:
@@ -706,7 +705,8 @@ class log_collector(object):
             self._postprocess_copied_logs()
         except Exception:
             # well, don't stop running just because we couldn't get logs
-            print "Unexpected error copying test result logs, continuing ..."
+            e_msg = "Unexpected error copying test result logs, continuing ..."
+            logging.error(e_msg)
             traceback.print_exc(file=sys.stdout)
 
 
@@ -732,7 +732,7 @@ class log_collector(object):
                 self.host.run('mv %s %s' % (client_keyval,
                                             self.temp_keyval_path))
         except (error.AutoservRunError, error.AutoservSSHTimeout):
-            print "Prepare for copying logs failed"
+            logging.error("Prepare for copying logs failed")
         return keyval_path
 
 
@@ -756,7 +756,7 @@ class log_collector(object):
             # Delete keyval_<host> file
             os.remove(keyval_path)
         except IOError:
-            print "Process copied logs failed"
+            logging.error("Process copied logs failed")
 
 
     def _postprocess_copied_logs(self):
@@ -826,7 +826,7 @@ class client_logger(object):
         building up in self.logs, and then the newest line. If the
         tag is not blank, then push the line into the logs for handling
         later."""
-        print line
+        logging.info(line)
         if tag == "":
             self._process_logs()
             self.job._record_prerendered(line + '\n')
@@ -874,7 +874,7 @@ class client_logger(object):
             self.log_collector.collect_client_job_results()
             self.host.run("echo A > %s" % fifo_path)
         else:
-            print line
+            logging.info(line)
 
 
     def _format_warnings(self, last_line, warnings):
