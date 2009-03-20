@@ -6,17 +6,19 @@
 Run an control file through the server side engine
 """
 
-import sys, os, re, traceback, signal, time
+import sys, os, re, traceback, signal, time, logging, logging.config
 
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
-from autotest_lib.client.common_lib import debug, pidfile
-
-
-debug.configure(module='server')
-
+from autotest_lib.client.common_lib import pidfile
 
 def run_autoserv(pid_file_manager, results, parser):
+    os.environ['AUTOSERV_RESULTS'] = results
+    path = os.path.dirname(__file__)
+    autodir = os.path.abspath(os.path.join(path, '..'))
+    serverdir = os.path.join(autodir, 'server')
+    logging.config.fileConfig('%s/debug_server.ini' % serverdir)
+
     # send stdin to /dev/null
     dev_null = os.open(os.devnull, os.O_RDONLY)
     os.dup2(dev_null, sys.stdin.fileno())

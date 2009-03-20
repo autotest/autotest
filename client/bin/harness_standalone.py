@@ -6,7 +6,7 @@ The default interface as required for the standalone reboot helper.
 __author__ = """Copyright Andy Whitcroft 2007"""
 
 from autotest_lib.client.common_lib import utils
-import os, harness, shutil
+import os, harness, shutil, logging
 
 class harness_standalone(harness.harness):
     """The standalone server harness
@@ -30,7 +30,7 @@ class harness_standalone(harness.harness):
             shutil.copyfile(src, dest)
             job.control_set(dest)
 
-        print 'Symlinking init scripts'
+        logging.info('Symlinking init scripts')
         rc = os.path.join(self.autodir, 'tools/autotest')
         # see if system supports event.d versus inittab
         if os.path.exists('/etc/event.d'):
@@ -44,4 +44,4 @@ class harness_standalone(harness.harness):
             utils.system('ln -sf %s /etc/init.d/autotest' % rc)
             utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc,initdefault))
         except:
-            print "WARNING: linking init scripts failed"
+            logging.warning("Linking init scripts failed")

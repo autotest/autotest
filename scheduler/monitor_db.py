@@ -7,12 +7,12 @@ Autotest scheduler
 
 import datetime, errno, optparse, os, pwd, Queue, random, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
-import itertools, logging, weakref
+import itertools, logging, logging.config, weakref
 import common
 import MySQLdb
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib import host_protections, utils, debug
+from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import drone_manager, drones, email_manager
@@ -51,6 +51,15 @@ _testing_mode = False
 _base_url = None
 _notify_email_statuses = []
 _drone_manager = drone_manager.DroneManager()
+
+# load the logging settings
+scheduler_dir = os.path.join(AUTOTEST_PATH, 'scheduler')
+os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = os.path.join(AUTOTEST_PATH, 'logs')
+# Here we export the log name, using the same convention as autoserv's results
+# directory.
+scheduler_log_name = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
+os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = scheduler_log_name
+logging.config.fileConfig(os.path.join(scheduler_dir, 'debug_scheduler.ini'))
 
 
 def main():
@@ -105,7 +114,7 @@ def main():
         # can just set the hostname in a single place in the config file.
         server_name = c.get_config_value('SERVER', 'hostname')
         if not server_name:
-            print 'Error: [SERVER] hostname missing from the config file.'
+            logging.critical('[SERVER] hostname missing from the config file.')
             sys.exit(1)
         _base_url = 'http://%s/afe/' % server_name
 
@@ -133,14 +142,14 @@ def main():
 def handle_sigint(signum, frame):
     global _shutdown
     _shutdown = True
-    print "Shutdown request received."
+    logging.info("Shutdown request received.")
 
 
 def init(logfile):
     if logfile:
         enable_logging(logfile)
-    print "%s> dispatcher starting" % time.strftime("%X %x")
-    print "My PID is %d" % os.getpid()
+    logging.info("%s> dispatcher starting", time.strftime("%X %x"))
+    logging.info("My PID is %d", os.getpid())
 
     if _testing_mode:
         global_config.global_config.override_config_value(
@@ -154,10 +163,7 @@ def init(logfile):
     # ensure Django connection is in autocommit
     setup_django_environment.enable_autocommit()
 
-    debug.configure('scheduler', format_string='%(message)s')
-    debug.get_logger().setLevel(logging.INFO)
-
-    print "Setting signal handler"
+    logging.info("Setting signal handler")
     signal.signal(signal.SIGINT, handle_sigint)
 
     drones = global_config.global_config.get_config_value(
@@ -167,13 +173,13 @@ def init(logfile):
         scheduler_config.CONFIG_SECTION, 'results_host', default='localhost')
     _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
 
-    print "Connected! Running..."
+    logging.info("Connected! Running...")
 
 
 def enable_logging(logfile):
     out_file = logfile
     err_file = "%s.err" % logfile
-    print "Enabling logging to %s (%s)" % (out_file, err_file)
+    logging.info("Enabling logging to %s (%s)", out_file, err_file)
     out_fd = open(out_file, "a", buffering=0)
     err_fd = open(err_file, "a", buffering=0)
 
@@ -574,7 +580,7 @@ class Dispatcher(object):
                           scheduler_config.config.clean_interval * 60 <
                           time.time())
         if should_cleanup:
-            print 'Running cleanup'
+            logging.info('Running cleanup')
             self._abort_timed_out_jobs()
             self._abort_jobs_past_synch_start_timeout()
             self._clear_inactive_blocks()
@@ -685,15 +691,15 @@ class Dispatcher(object):
                 # autoserv apparently never got run, so let it get requeued
                 continue
             queue_entries = queue_entry.job.get_group_entries(queue_entry)
-            print 'Recovering %s (process %s)' % (
-                ', '.join(str(entry) for entry in queue_entries),
-                run_monitor.get_process())
+            logging.info('Recovering %s (process %s)', 
+                         (', '.join(str(entry) for entry in queue_entries),
+                         run_monitor.get_process()))
             self._recover_queue_entries(queue_entries, run_monitor)
             orphans.pop(execution_tag, None)
 
         # now kill any remaining autoserv processes
         for process in orphans.itervalues():
-            print 'Killing orphan %s' % process
+            logging.info('Killing orphan %s', process)
             _drone_manager.kill_process(process)
 
 
@@ -701,7 +707,7 @@ class Dispatcher(object):
         queue_entries = HostQueueEntry.fetch(
             where='status IN ("Abort", "Aborting")')
         for queue_entry in queue_entries:
-            print 'Recovering aborting QE %s' % queue_entry
+            logging.info('Recovering aborting QE %s', queue_entry)
             agent = queue_entry.abort(self)
 
 
@@ -712,8 +718,8 @@ class Dispatcher(object):
             if self.get_agents_for_entry(queue_entry):
                 # entry has already been recovered
                 continue
-            print 'Requeuing active QE %s (status=%s)' % (queue_entry,
-                                                          queue_entry.status)
+            logging.info('Requeuing active QE %s (status=%s)', queue_entry, 
+                         queue_entry.status)
             if queue_entry.host:
                 tasks = queue_entry.host.reverify_tasks()
                 self.add_agent(Agent(tasks))
@@ -745,7 +751,7 @@ class Dispatcher(object):
                 # host has already been recovered in some way
                 continue
             if print_message:
-                print print_message % host.hostname
+                logging.info(print_message, host.hostname)
             tasks = host.reverify_tasks()
             self.add_agent(Agent(tasks))
 
@@ -758,8 +764,8 @@ class Dispatcher(object):
             queue_entries = entry.job.get_group_entries(entry)
             recovered_entry_ids = recovered_entry_ids.union(
                 entry.id for entry in queue_entries)
-            print 'Recovering parsing entries %s' % (
-                ', '.join(str(entry) for entry in queue_entries))
+            logging.info('Recovering parsing entries %s', 
+                         (', '.join(str(entry) for entry in queue_entries)))
 
             reparse_task = FinalReparseTask(queue_entries)
             self.add_agent(Agent([reparse_task], num_processes=0))
@@ -779,7 +785,7 @@ class Dispatcher(object):
         query = models.Job.objects.filter(hostqueueentry__complete=False).extra(
             where=['created_on + INTERVAL timeout HOUR < NOW()'])
         for job in query.distinct():
-            print 'Aborting job %d due to job timeout' % job.id
+            logging.warning('Aborting job %d due to job timeout', job.id)
             job.abort(None)
 
 
@@ -796,7 +802,7 @@ class Dispatcher(object):
             hostqueueentry__status='Pending',
             hostqueueentry__host__aclgroup__name='Everyone')
         for job in query.distinct():
-            print 'Aborting job %d due to start timeout' % job.id
+            logging.warning('Aborting job %d due to start timeout', job.id)
             entries_to_abort = job.hostqueueentry_set.exclude(
                 status=models.HostQueueEntry.Status.RUNNING)
             for queue_entry in entries_to_abort:
@@ -931,7 +937,7 @@ class Dispatcher(object):
         # iterate over copy, so we can remove agents during iteration
         for agent in list(self._agents):
             if agent.is_done():
-                print "agent finished"
+                logging.info("agent finished")
                 self.remove_agent(agent)
                 continue
             if not agent.is_running():
@@ -941,7 +947,8 @@ class Dispatcher(object):
                     continue
                 num_started_this_cycle += agent.num_processes
             agent.tick()
-        print _drone_manager.total_running_processes(), 'running processes'
+        logging.info('%d running processes', 
+                     _drone_manager.total_running_processes())
 
 
     def _check_for_db_inconsistencies(self):
@@ -954,7 +961,7 @@ class Dispatcher(object):
             if len(query) > 50:
                 message += '\n(truncated)\n'
 
-            print subject
+            logging.error(subject)
             email_manager.manager.enqueue_notify_email(subject, message)
 
 
@@ -1035,7 +1042,7 @@ class PidfileRunMonitor(object):
     def _handle_pidfile_error(self, error, message=''):
         message = error + '\nProcess: %s\nPidfile: %s\n%s' % (
             self._state.process, self.pidfile_id, message)
-        print message
+        logging.info(message)
         email_manager.manager.enqueue_notify_email(error, message)
         self.on_lost_process(self._state.process)
 
@@ -1082,7 +1089,7 @@ class PidfileRunMonitor(object):
         Called when no pidfile is found or no pid is in the pidfile.
         """
         message = 'No pid found at %s' % self.pidfile_id
-        print message
+        logging.info(message)
         if time.time() - self._start_time > PIDFILE_TIMEOUT:
             email_manager.manager.enqueue_notify_email(
                 'Process has failed to write pidfile', message)
@@ -1149,7 +1156,7 @@ class Agent(object):
 
 
     def _next_task(self):
-        print "agent picking task"
+        logging.info("agent picking task")
         if self.active_task:
             assert self.active_task.is_done()
 
@@ -1331,7 +1338,7 @@ class RepairTask(AgentTask):
 
 
     def prolog(self):
-        print "repair_task starting"
+        logging.info("repair_task starting")
         self.host.set_status('Repairing')
         if self.queue_entry:
             self.queue_entry.requeue()
@@ -1393,7 +1400,7 @@ class VerifyTask(PreJobTask):
 
     def prolog(self):
         super(VerifyTask, self).prolog()
-        print "starting verify on %s" % (self.host.hostname)
+        logging.info("starting verify on %s", self.host.hostname)
         if self.queue_entry:
             self.queue_entry.set_status('Verifying')
         self.host.set_status('Verifying')
@@ -1552,7 +1559,7 @@ class QueueTask(AgentTask):
         self._finish_task(self.success)
         self._reboot_hosts()
 
-        print "queue_task finished with succes=%s" % self.success
+        logging.info("queue_task finished with succes=%s", self.success)
 
 
 class RecoveryQueueTask(QueueTask):
@@ -1591,7 +1598,7 @@ class CleanupTask(PreJobTask):
 
     def prolog(self):
         super(CleanupTask, self).prolog()
-        print "starting cleanup task for host: %s" % self.host.hostname
+        logging.info("starting cleanup task for host: %s", self.host.hostname)
         self.host.set_status("Cleaning")
 
 
@@ -1612,8 +1619,8 @@ class AbortTask(AgentTask):
 
 
     def prolog(self):
-        print "starting abort on host %s, job %s" % (
-                self.queue_entry.host_id, self.queue_entry.job_id)
+        logging.info("starting abort on host %s, job %s",
+                     self.queue_entry.host_id, self.queue_entry.job_id)
 
 
     def epilog(self):
@@ -1979,13 +1986,13 @@ class Host(DBObject):
 
 
     def yield_work(self):
-        print "%s yielding work" % self.hostname
+        logging.info("%s yielding work", self.hostname)
         if self.current_task():
             self.current_task().requeue()
 
 
     def set_status(self,status):
-        print '%s -> %s' % (self.hostname, status)
+        logging.info('%s -> %s', self.hostname, status)
         self.update_field('status',status)
 
 
@@ -2082,14 +2089,14 @@ class HostQueueEntry(DBObject):
 
 
     def block_host(self, host_id):
-        print "creating block %s/%s" % (self.job.id, host_id)
+        logging.info("creating block %s/%s", self.job.id, host_id)
         row = [0, self.job.id, host_id]
         block = IneligibleHostQueue(row=row, new_record=True)
         block.save()
 
 
     def unblock_host(self, host_id):
-        print "removing block %s/%s" % (self.job.id, host_id)
+        logging.info("removing block %s/%s", self.job.id, host_id)
         blocks = IneligibleHostQueue.fetch(
             'job_id=%d and host_id=%d' % (self.job.id, host_id))
         for block in blocks:
@@ -2122,7 +2129,7 @@ class HostQueueEntry(DBObject):
             condition = ''
         self.update_field('status', status, condition=condition)
 
-        print "%s -> %s" % (self, self.status)
+        logging.info("%s -> %s", self, self.status)
 
         if status in ['Queued', 'Parsing']:
             self.update_field('complete', False)
@@ -2187,9 +2194,9 @@ class HostQueueEntry(DBObject):
             # ensure results dir exists for the queue log
             self.set_host(assigned_host)
 
-        print "%s/%s/%s scheduled on %s, status=%s" % (
-                self.job.name, self.meta_host, self.atomic_group_id,
-                self.host.hostname, self.status)
+        logging.info("%s/%s/%s scheduled on %s, status=%s", 
+                     self.job.name, self.meta_host, self.atomic_group_id,
+                     self.host.hostname, self.status)
 
         return self.job.run(queue_entry=self)
 
@@ -2448,7 +2455,7 @@ class Job(DBObject):
             group_name = queue_entries[0].get_host().hostname
         else:
             group_name = self._next_group_name()
-            print 'Running synchronous job %d hosts %s as %s' % (
+            logging.info('Running synchronous job %d hosts %s as %s',
                 self.id, [entry.host.hostname for entry in queue_entries],
                 group_name)
 
