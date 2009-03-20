@@ -28,7 +28,6 @@ while not os.path.exists(started_file_path):
     time.sleep(1)
     if time.time() - start_time >= 30:
         raise Exception("autotestd failed to start in %s" % logdir)
-os.remove(started_file_path)
 
 # watch the exit code file for an exit
 exit_code_file = open(os.path.join(logdir, 'exit_code'))
