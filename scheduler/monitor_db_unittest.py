@@ -1180,10 +1180,26 @@ class AgentTest(unittest.TestCase):
         return task
 
 
+    class IsAgentWithTaskComparator(mock.argument_comparator):
+        def __init__(self, task):
+            self._task = task
+
+
+        def is_satisfied_by(self, parameter):
+            if not isinstance(parameter, monitor_db.Agent):
+                return False
+            tasks = list(parameter.queue.queue)
+            if len(tasks) != 1:
+                return False
+            return tasks[0] == self._task
+
+
     def test_agent(self):
         task1 = self._create_mock_task('task1')
         task2 = self._create_mock_task('task2')
         task3 = self._create_mock_task('task3')
+        dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
+                                                'dispatcher')
 
         task1.start.expect_call()
         task1.is_done.expect_call().and_return(False)
@@ -1198,13 +1214,10 @@ class AgentTest(unittest.TestCase):
         task2.success = False
         task2.failure_tasks = [task3]
 
-        task3.start.expect_call()
-        task3.is_done.expect_call().and_return(True)
-        task3.is_done.expect_call().and_return(True)
-        task3.success = True
+        dispatcher.add_agent.expect_call(self.IsAgentWithTaskComparator(task3))
 
         agent = monitor_db.Agent([task1, task2])
-        agent.dispatcher = object()
+        agent.dispatcher = dispatcher
         agent.start()
         while not agent.is_done():
             agent.tick()
@@ -1351,6 +1364,7 @@ class AgentTasksTest(unittest.TestCase):
         self.queue_entry.requeue.expect_call()
         self.setup_run_monitor(1)
         self.host.set_status.expect_call('Repair Failed')
+        self.queue_entry.update_from_database.expect_call()
         self.queue_entry.set_execution_subdir.expect_call()
         self._setup_move_logfile(copy_on_drone=True)
         self.queue_entry.execution_tag.expect_call().and_return('tag')
@@ -1364,6 +1378,7 @@ class AgentTasksTest(unittest.TestCase):
 
         task = monitor_db.RepairTask(self.host, self.queue_entry)
         task.agent = agent
+        self.queue_entry.status = 'Queued'
         self.run_task(task, False)
         self.god.check_playback()
 
@@ -1389,9 +1404,10 @@ class AgentTasksTest(unittest.TestCase):
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         self.assertEquals(verify_task.host, repair_task.host)
         if verify_task.queue_entry:
-            self.assertEquals(repair_task.queue_entry, verify_task.queue_entry)
+            self.assertEquals(repair_task.queue_entry_to_fail,
+                              verify_task.queue_entry)
         else:
-            self.assertEquals(repair_task.queue_entry, None)
+            self.assertEquals(repair_task.queue_entry_to_fail, None)
 
 
     def _test_verify_task_helper(self, success, use_queue_entry=False,
@@ -1542,7 +1558,7 @@ class AgentTasksTest(unittest.TestCase):
         repair_task = task.failure_tasks[0]
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         if use_queue_entry:
-            self.assertEquals(repair_task.queue_entry, self.queue_entry)
+            self.assertEquals(repair_task.queue_entry_to_fail, self.queue_entry)
 
         self.run_task(task, success)
 
