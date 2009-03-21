@@ -79,7 +79,7 @@ public class TkoUtils {
     static String joinWithParens(String joiner, String first, String second) {
         first = wrapWithParens(first);
         second = wrapWithParens(second);
-        return Utils.joinStrings(" AND ", Arrays.asList(new String[] {first, second}));
+        return Utils.joinStrings(joiner, Arrays.asList(new String[] {first, second}));
     }
 
     static String escapeSqlValue(String value) {

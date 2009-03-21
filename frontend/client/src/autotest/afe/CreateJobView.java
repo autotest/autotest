@@ -299,6 +299,11 @@ public class CreateJobView extends TabView
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
     }
 
+    /**
+     * Get parameters to submit to the generate_control_file RPC.
+     * @param readyForSubmit are we getting a control file that's ready to submit for a job, or just
+     * an intermediate control file to be viewed by the user?
+     */
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
         

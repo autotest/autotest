@@ -76,6 +76,8 @@ public abstract class TabView extends Composite {
     /**
      * Subclasses should override this to actually handle the tokens.
      * Should *not* trigger a refresh.  refresh() will be called separately.
+     * 
+     * @param arguments the parsed history arguments to use
      */
     public void handleHistoryArguments(Map<String, String> arguments) {}
     
