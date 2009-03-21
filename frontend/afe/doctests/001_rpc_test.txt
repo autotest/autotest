@@ -56,7 +56,7 @@
 ...           'platform': 1,
 ...           'kernel_config': '/my/kernel/config',
 ...	      'only_if_needed' : False,
-...           'invalid': 0}]
+...           'invalid': 0, 'atomic_group': None}]
 True
 
 # get_labels return multiple matches as lists of dictionaries
@@ -68,9 +68,9 @@ True
 4
 >>> data = rpc_interface.get_labels(platform=False)
 >>> data == [{'id': 2, 'name': 'label1', 'platform': 0, 'kernel_config': '',
-...           'only_if_needed': False, 'invalid': 0},
+...           'only_if_needed': False, 'invalid': 0, 'atomic_group': None},
 ...          {'id': 4, 'name': 'label3', 'platform': 0, 'kernel_config': '',
-...           'only_if_needed': False, 'invalid': 0}]
+...           'only_if_needed': False, 'invalid': 0, 'atomic_group': None}]
 True
 
 # delete_label takes an ID or a name as well
@@ -479,7 +479,8 @@ True
 ...  'meta_host': None,
 ...  'status': 'Queued',
 ...  'deleted': 0,
-...  'execution_subdir': ''})
+...  'execution_subdir': '',
+...  'atomic_group': None})
 True
 >>> data[2] == (
 ... {'active': 0,
@@ -490,7 +491,8 @@ True
 ...  'meta_host': 'my_label',
 ...  'status': 'Queued',
 ...  'deleted': 0,
-...  'execution_subdir': ''})
+...  'execution_subdir': '',
+...  'atomic_group': None})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4
