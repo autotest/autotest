@@ -21,7 +21,7 @@ class AclAccessViolation(Exception):
     """
 
 
-class AtomicGroup(model_logic.ModelExtensions, dbmodels.Model):
+class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     """\
     An atomic group defines a collection of hosts which must only be scheduled
     all at once.  Any host with a label having an atomic group will only be
@@ -39,9 +39,16 @@ class AtomicGroup(model_logic.ModelExtensions, dbmodels.Model):
     name = dbmodels.CharField(maxlength=255, unique=True)
     description = dbmodels.TextField(blank=True)
     max_number_of_machines = dbmodels.IntegerField(default=1)
+    invalid = dbmodels.BooleanField(default=False,
+                                    editable=settings.FULL_ADMIN)
 
-    # Used by model_logic.ModelExtensions.
     name_field = 'name'
+    objects = model_logic.ExtendedManager()
+    valid_objects = model_logic.ValidObjectsManager()
+
+
+    def clean_object(self):
+        self.label_set.clear()
 
 
     class Meta:
@@ -49,6 +56,11 @@ class AtomicGroup(model_logic.ModelExtensions, dbmodels.Model):
 
     class Admin:
         list_display = ('name', 'description', 'max_number_of_machines')
+        # see Host.Admin
+        manager = model_logic.ValidObjectsManager()
+
+    def __str__(self):
+        return self.name
 
 
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):

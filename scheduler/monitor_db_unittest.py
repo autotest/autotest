@@ -744,6 +744,22 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
                          models.HostQueueEntry.Status.ABORTED)
 
 
+    def test_atomic_group_no_labels_no_scheduling(self):
+        # Never schedule on atomic groups marked invalid.
+        job = self._create_job(metahosts=[self.label5.id], synchronous=True,
+                               atomic_group=1)
+        # Deleting an atomic group via the frontend marks it invalid and
+        # removes all label references to the group.  The job now references
+        # an invalid atomic group with no labels associated with it.
+        self.label5.atomic_group.invalid = True
+        self.label5.atomic_group.save()
+        self.label5.atomic_group = None
+        self.label5.save()
+
+        self._dispatcher._schedule_new_jobs()
+        self._check_for_extra_schedulings()
+
+
     def test_schedule_directly_on_atomic_group_host_fail(self):
         # Scheduling a job directly on hosts in an atomic group must
         # fail to avoid users inadvertently holding up the use of an

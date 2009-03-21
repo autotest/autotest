@@ -18,7 +18,8 @@ def handle_rpc(request):
 
 def model_documentation(request):
     doc = '<h2>Models</h2>\n'
-    for model_name in ('Label', 'Host', 'Test', 'User', 'AclGroup', 'Job'):
+    for model_name in ('Label', 'Host', 'Test', 'User', 'AclGroup', 'Job',
+                       'AtomicGroup'):
         model_class = getattr(models, model_name)
         doc += '<h3>%s</h3>\n' % model_name
         doc += '<pre>\n%s</pre>\n' % model_class.__doc__

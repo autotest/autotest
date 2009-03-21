@@ -1978,7 +1978,8 @@ class IneligibleHostQueue(DBObject):
 
 class AtomicGroup(DBObject):
     _table_name = 'atomic_groups'
-    _fields = ('id', 'name', 'description', 'max_number_of_machines')
+    _fields = ('id', 'name', 'description', 'max_number_of_machines',
+               'invalid')
 
 
 class Label(DBObject):
