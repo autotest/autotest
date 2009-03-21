@@ -57,13 +57,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         }
 
         private String getFilterString() {
-            String tableName;
-            if (isInclude) {
-                tableName = INCLUDE_ATTRIBUTES_TABLE;
-            } else {
-                tableName = EXCLUDE_ATTRIBUTES_TABLE;
-            }
-            
+            String tableName = isInclude ? INCLUDE_ATTRIBUTES_TABLE : EXCLUDE_ATTRIBUTES_TABLE;
             return "(" + tableName + ".attribute " + attributeWhere + " AND " +
                    tableName + ".value " + valueWhere + ")";
         }
