@@ -224,7 +224,6 @@ public class SeriesSelector extends Composite {
             }
         }
 
-        String name;
         for (int index = 0; args.get(parameterString("name", index)) != null; index++) {
             Series thisSeries;
             if (index == 0) {
