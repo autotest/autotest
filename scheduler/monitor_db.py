@@ -1172,8 +1172,10 @@ class Agent(object):
 
     def on_task_failure(self):
         self.queue = Queue.Queue(0)
-        for task in self.active_task.failure_tasks:
-            self.add_task(task)
+        # run failure tasks in a new Agent, so host_ids and queue_entry_ids will
+        # get reset.
+        new_agent = Agent(self.active_task.failure_tasks)
+        self.dispatcher.add_agent(new_agent)
 
 
     def is_running(self):
@@ -1324,8 +1326,10 @@ class RepairTask(AgentTask):
         protection = host_protections.Protection.get_attr_name(protection)
 
         self.host = host
-        self.queue_entry = queue_entry
-        self._set_ids(host=host, queue_entries=[queue_entry])
+        self.queue_entry_to_fail = queue_entry
+        # *don't* include the queue entry in IDs -- if the queue entry is
+        # aborted, we want to leave the repair task running
+        self._set_ids(host=host)
 
         self.create_temp_resultsdir('.repair')
         cmd = [_autoserv_path , '-p', '-R', '-m', host.hostname,
@@ -1333,28 +1337,35 @@ class RepairTask(AgentTask):
                '--host-protection', protection]
         super(RepairTask, self).__init__(cmd, self.temp_results_dir)
 
-        self._set_ids(host=host, queue_entries=[queue_entry])
         self.set_host_log_file('repair', self.host)
 
 
     def prolog(self):
         logging.info("repair_task starting")
         self.host.set_status('Repairing')
-        if self.queue_entry:
-            self.queue_entry.requeue()
+        if self.queue_entry_to_fail:
+            self.queue_entry_to_fail.requeue()
 
 
     def _fail_queue_entry(self):
-        assert self.queue_entry
-        self.queue_entry.set_execution_subdir()
+        assert self.queue_entry_to_fail
+
+        if self.queue_entry_to_fail.meta_host:
+            return # don't fail metahost entries, they'll be reassigned
+
+        self.queue_entry_to_fail.update_from_database()
+        if self.queue_entry_to_fail.status != 'Queued':
+            return # entry has been aborted
+
+        self.queue_entry_to_fail.set_execution_subdir()
         # copy results logs into the normal place for job results
         _drone_manager.copy_results_on_drone(
             self.monitor.get_process(),
             source_path=self.temp_results_dir + '/',
-            destination_path=self.queue_entry.execution_tag() + '/')
+            destination_path=self.queue_entry_to_fail.execution_tag() + '/')
 
-        self._copy_and_parse_results([self.queue_entry])
-        self.queue_entry.handle_host_failure()
+        self._copy_and_parse_results([self.queue_entry_to_fail])
+        self.queue_entry_to_fail.handle_host_failure()
 
 
     def epilog(self):
@@ -1363,7 +1374,7 @@ class RepairTask(AgentTask):
             self.host.set_status('Ready')
         else:
             self.host.set_status('Repair Failed')
-            if self.queue_entry and not self.queue_entry.meta_host:
+            if self.queue_entry_to_fail:
                 self._fail_queue_entry()
 
 
@@ -1810,12 +1821,7 @@ class DBObject(object):
         self.__new_record = new_record
 
         if row is None:
-            sql = 'SELECT * FROM %s WHERE ID=%%s' % self.__table
-            rows = _db.execute(sql, (id,))
-            if not rows:
-                raise DBError("row not found (table=%s, id=%s)"
-                              % (self.__table, id))
-            row = rows[0]
+            row = self._fetch_row_from_db(id)
 
         if self._initialized:
             differences = self._compare_fields_in_row(row)
@@ -1830,6 +1836,15 @@ class DBObject(object):
     def _clear_instance_cache(cls):
         """Used for testing, clear the internal instance cache."""
         cls._instances_by_type_and_id.clear()
+
+
+    def _fetch_row_from_db(self, row_id):
+        sql = 'SELECT * FROM %s WHERE ID=%%s' % self.__table
+        rows = _db.execute(sql, (row_id,))
+        if not rows:
+            raise DBError("row not found (table=%s, id=%s)"
+                          % (self.__table, id))
+        return rows[0]
 
 
     def _assert_row_length(self, row):
@@ -1873,6 +1888,12 @@ class DBObject(object):
             self._valid_fields.add(field)
 
         self._valid_fields.remove('id')
+
+
+    def update_from_database(self):
+        assert self.id is not None
+        row = self._fetch_row_from_db(self.id)
+        self._update_fields_from_row(row)
 
 
     def count(self, where, table = None):
