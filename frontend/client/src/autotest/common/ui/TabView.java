@@ -102,6 +102,8 @@ public abstract class TabView extends Composite {
     private static boolean isOpenInNewWindowEvent() {
         Event event = Event.getCurrentEvent();
         boolean middleMouseButton = (event.getButton() & Event.BUTTON_MIDDLE) != 0;
-        return event.getCtrlKey() || middleMouseButton;
+        // allow control-click on windows or command-click on macs (control-click is overridden
+        // on macs to take the place of right-click)
+        return event.getCtrlKey() || event.getMetaKey() || middleMouseButton;
     }
 }
