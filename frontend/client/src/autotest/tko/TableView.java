@@ -460,11 +460,9 @@ public class TableView extends ConditionTabView
     @Override
     public void handleHistoryArguments(Map<String, String> arguments) {
         super.handleHistoryArguments(arguments);
-        
-        handleSortString(arguments.get("sort"));
-        
         String[] columns = arguments.get("columns").split(",");
-        columnNames = Arrays.asList(columns);
+        selectColumns(columns);
+        handleSortString(arguments.get("sort"));
         updateViewFromState();
     }
 
