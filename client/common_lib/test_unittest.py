@@ -87,10 +87,13 @@ class Test_base_test_execute(TestTestCase):
         # test that test_length overrides iterations and works.
         self.test.drop_caches_between_iterations.expect_call()
         self.test.run_once.expect_call()
+        self.test.postprocess_iteration.expect_call()
         self.test.drop_caches_between_iterations.expect_call()
         self.test.run_once.expect_call()
+        self.test.postprocess_iteration.expect_call()
         self.test.drop_caches_between_iterations.expect_call()
         self.test.run_once.expect_call()
+        self.test.postprocess_iteration.expect_call()
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
 
