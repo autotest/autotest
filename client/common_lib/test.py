@@ -104,6 +104,12 @@ class base_test:
             utils.drop_caches()
 
 
+    def _call_run_once(self, args, dargs):
+        self.drop_caches_between_iterations()
+        self.run_once(*args, **dargs)
+        self.postprocess_iteration()
+
+
     def execute(self, iterations=None, test_length=None, profile_only=False,
                 _get_time=time.time, postprocess_profiled_run=None,
                 *args, **dargs):
@@ -160,8 +166,7 @@ class base_test:
                     logging.info(
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
-                self.drop_caches_between_iterations()
-                self.run_once(*args, **dargs)
+                self._call_run_once(args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
             logging.info('Test finished after %d iterations',
@@ -182,9 +187,7 @@ class base_test:
                 for self.iteration in xrange(1, iterations+1):
                     logging.info('Executing iteration %d of %d',
                                        self.iteration, iterations)
-                    self.drop_caches_between_iterations()
-                    self.run_once(*args, **dargs)
-                    self.postprocess_iteration()
+                    self._call_run_once(args, dargs)
                 logging.info('Test finished after %d iterations.',
                                    iterations)
 
