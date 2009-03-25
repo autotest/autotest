@@ -35,49 +35,12 @@ class TestTestCase(unittest.TestCase):
 
 
 
-class Test_base_test(TestTestCase):
-    def setUp(self):
-        TestTestCase.setUp(self)
-        self.god.stub_function(self.test, 'cleanup')
-        self.god.stub_function(test, '_cherry_pick_args')
-
-
-    def test_run_cleanup_normal(self):
-        # Normal, good, no errors test.
-        test._cherry_pick_args.expect_call(self.test.cleanup,
-                                           (), {}).and_return(((), {}))
-        self.test.cleanup.expect_call()
-        self.test._run_cleanup((), {})
-        self.god.check_playback()
-
-
-    def test_run_cleanup_autotest_error_passthru(self):
-        # Cleanup func raises an error.AutotestError, it should pass through.
-        test._cherry_pick_args.expect_call(self.test.cleanup,
-                                           (), {}).and_return(((), {}))
-        self.test.cleanup.expect_call().and_raises(error.TestFail)
-        self.assertRaises(error.TestFail, self.test._run_cleanup, (), {})
-        self.god.check_playback()
-
-
-    def test_run_cleanup_other_error(self):
-        # Cleanup func raises a RuntimeError, it should turn into an ERROR.
-        test._cherry_pick_args.expect_call(self.test.cleanup,
-                                           (), {}).and_return(((), {}))
-        self.test.cleanup.expect_call().and_raises(RuntimeError)
-        self.assertRaises(error.TestError, self.test._run_cleanup, (), {})
-        self.god.check_playback()
-
-
 class Test_base_test_execute(TestTestCase):
     # Test the various behaviors of the base_test.execute() method.
     def setUp(self):
         TestTestCase.setUp(self)
-        self.god.stub_function(self.test, 'warmup')
         self.god.stub_function(self.test, 'run_once_profiling')
         self.god.stub_function(self.test, 'postprocess')
-
-        self.test.warmup.expect_call()
 
 
     def test_call_run_once(self):
