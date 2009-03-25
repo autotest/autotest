@@ -208,7 +208,6 @@ class host_stat(host):
     usage_action = 'stat'
 
     def execute(self):
-        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         results = []
         # Convert wildcards into real host stats.
         existing_hosts = []
@@ -270,7 +269,6 @@ class host_jobs(host):
 
 
     def execute(self):
-        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         results = []
         real_hosts = []
         for host in self.hosts:
