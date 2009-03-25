@@ -612,6 +612,8 @@ class base_job(object):
 
 
     def end_reboot(self, subdir, kernel, patches):
+        # strip ::<timestamp> from the kernel version if present
+        kernel = kernel.split("::")[0]
         kernel_info = {"kernel": kernel}
         for i, patch in enumerate(patches):
             kernel_info["patch%d" % i] = patch
