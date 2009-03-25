@@ -181,6 +181,14 @@ class RemoteHost(base_classes.Host):
         return dir_name
 
 
+    def delete_tmp_dir(self, tmpdir):
+        """
+        Delete the given temporary directory on the remote machine.
+        """
+        self.run('rm -rf "%s"' % utils.sh_escape(tmpdir), ignore_status=True)
+        self.tmp_dirs.remove(tmpdir)
+
+
     def ping(self):
         """
         Ping the remote system, and return whether it's available
