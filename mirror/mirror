@@ -3,6 +3,8 @@ import email.Message, optparse, os, os.path, re, shutil, smtplib, sys, tempfile
 import time
 import rsync, trigger, common
 
+from autotest_lib.server import frontend
+
 excludes = ('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz')
 
 default_clients_path = os.path.expanduser(
@@ -13,23 +15,16 @@ options = optparse.Values(defaults={'email': None,
                                         'clients': default_clients_path,
                                         'config': default_config_path})
 
-# This counter gets appended and incremented for all jobs created
-# this ensures that no two jobs of the same name are created during
-# this run of mirror
-counter = 0
-
 PREAMBLE = """# autotest/mirror/mirror generated preamble
 kernel = %s
 config = %s
-patches = %s
+
 """
 
 AUTOTEST_WRAPPER = """def step_init():
         job.next_step([step_test])
         testkernel = job.kernel(kernel)
 
-        if patches:
-                testkernel.patch(*patches)
         if config:
                 testkernel.config(config)
         else:
@@ -37,18 +32,18 @@ AUTOTEST_WRAPPER = """def step_init():
         testkernel.build()
         testkernel.boot()
 
-def step_test():"""
+def step_test():
+"""
 
-def test_kernel(client, control, kernel, config, patches=None):
+def test_kernel(hosts, control, kernel, config):
     """Creates a control file for testing
 
     Args:
-            client: A str of the autoteset client hostname
+            hosts: A list of str of the autoteset client hostnames
             control: A str filename of the control file to wrap as a
                     kernel test or an open file to the same
             kernel: A str of the kernel version (i.e. x.x.xx)
             config: A str filename to the kernel config on the client
-            patches: A list of patches to apply during kernel build
 
     Returns:
             The path to the new control file which may not be needed
@@ -58,14 +53,13 @@ def test_kernel(client, control, kernel, config, patches=None):
 
     is_autoserv_ctl = control.endswith('.srv')
 
-    # Open a temp file to create the generated control file in
-    tmpfile = tempfile.mktemp()
-    c = open(tmpfile, 'w')
+    # Create the control file in a string
+    c = ''
 
-    print >> c, PREAMBLE % tuple([repr(s) for s in (kernel, config, patches)])
+    c += PREAMBLE % tuple([repr(s) for s in (kernel, config)])
 
     if not is_autoserv_ctl:
-        print >> c,  AUTOTEST_WRAPPER
+        c += AUTOTEST_WRAPPER
 
     # Open the basis control file and pull its contents into this one
     control = open(os.path.expanduser(control), "r")
@@ -74,18 +68,13 @@ def test_kernel(client, control, kernel, config, patches=None):
     # function level indentation, srv files don't need this indentation
     indent = ('\t', '')[is_autoserv_ctl]
     for line in control:
-        print >> c, "%s%s" % (indent, line.rstrip())
-    c.close()
+        c += "%s%s" % (indent, line)
 
-    # Create a name for the queued file
-    # if we came from an .srv file create an .srv file
-    extension = ('', '.srv')[is_autoserv_ctl]
-    global counter
-    output = os.path.join(options.queuedir, client, "%s-%d%.3d%s" % (kernel,
-                          int(time.time()), counter, extension))
-    counter = (counter + 1) % 1000
-    shutil.move(tmpfile, output)
-    return output
+    control_type = ('Client', 'Server')[is_autoserv_ctl]
+
+    afe = frontend.AFE()
+    afe.create_job(c, "kerntest-%s" % kernel, control_type=control_type,
+                   hosts=hosts)
 
 
 def load_conf(conf_path):
@@ -198,7 +187,11 @@ def perform_client_tests(kernel_list):
     machines = load_conf(options.clients)
     for kernel in kernel_list:
         # Get a list of all the machines available for testing
-        # and the tests that each one is to execute
+        # and the tests that each one is to execute and group them by
+        # control/kernel-config so we can run a single job for the same group
+
+        # dictionary of (control-file, kernel-config) -> <list-of-machines>
+        jobs = {}
         for machine, controls in machines.items():
             config_paths = load_conf(os.path.join(options.config, machine))
             config = '/boot/config'
@@ -207,7 +200,11 @@ def perform_client_tests(kernel_list):
                 close =  closest_kver_leq(kvers, kernel)
                 config = config_paths[close][0]
             for control in controls:
-                test_kernel(machine, control, kernel, config)
+                jobs.setdefault((control, config), [])
+                jobs[(control, config)].append(machine)
+
+        for (control, config), hosts in jobs.items():
+            test_kernel(hosts, control, kernel, config)
 
 
 def main():
@@ -234,7 +231,7 @@ def main():
 
 
 if __name__ == '__main__':
-    usage = "mirror [options] <mirrordir> <queuedir>"
+    usage = "mirror [options] <mirrordir>"
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-e", "--email", dest="email",
                       help="Email address to alert for new kernels",
@@ -250,10 +247,9 @@ if __name__ == '__main__':
                             to %s" % default_config_path,
                       metavar="CONFIG", default=default_config_path)
     (options, args) = parser.parse_args()
-    if len(args) < 2:
+    if len(args) < 1:
         parser.print_help()
-        parser.error("A mirrordir and a queuedir must be specified")
+        parser.error("A mirrordir must be specified")
     options.target = args[0]
-    options.queuedir = args[1]
 
     main()
