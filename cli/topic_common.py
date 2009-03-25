@@ -102,11 +102,8 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
 # In the failure, tag that will replace the item.
 FAIL_TAG = '<XYZ>'
 
-# Global socket timeout 
-DEFAULT_SOCKET_TIMEOUT = 5
-# For list commands, can take longer
-LIST_SOCKET_TIMEOUT = 30
-# For uploading kernels, can take much, much longer
+# Global socket timeout: uploading kernels can take much,
+# much longer than the default
 UPLOAD_SOCKET_TIMEOUT = 60*30
 
 
@@ -276,9 +273,6 @@ class atest(object):
                                'to talk to',
                                action='store', type='string',
                                dest='web_server', default=None)
-
-        # Shorten the TCP timeout.
-        socket.setdefaulttimeout(DEFAULT_SOCKET_TIMEOUT)
 
 
     def _file_list(self, options, opt_file='', opt_list='', add_on=[]):
