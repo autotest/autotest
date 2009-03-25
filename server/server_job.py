@@ -564,7 +564,7 @@ class base_server_job(object):
 
 
     def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
-        self._add_sysinfo_loggable(sysinfo.command(command, logfile),
+        self._add_sysinfo_loggable(sysinfo.command(command, logf=logfile),
                                    on_every_test)
 
 

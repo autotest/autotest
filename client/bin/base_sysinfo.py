@@ -9,22 +9,31 @@ _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
     "lspci -vvn", "gcc --version", "ld --version", "mount", "hostname",
     "uptime",
     ]
+_DEFAULT_COMMANDS_TO_LOG_BEFORE_ITERATION = []
+_DEFAULT_COMMANDS_TO_LOG_AFTER_ITERATION = []
 
 _DEFAULT_FILES_TO_LOG_PER_TEST = []
 _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/pci", "/proc/meminfo", "/proc/slabinfo", "/proc/version",
     "/proc/cpuinfo", "/proc/modules", "/proc/interrupts",
     ]
+_DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
+    "/proc/schedstat"
+    ]
+_DEFAULT_FILES_TO_LOG_AFTER_ITERATION = [
+    "/proc/schedstat"
+    ]
 
 
 class loggable(object):
     """ Abstract class for representing all things "loggable" by sysinfo. """
-    def __init__(self, log_in_keyval):
+    def __init__(self, logf, log_in_keyval):
+        self.logf = logf
         self.log_in_keyval = log_in_keyval
 
 
     def readline(self, logdir):
-        path = os.path.join(logdir, self.logfile)
+        path = os.path.join(logdir, self.logf)
         if os.path.exists(path):
             return utils.read_one_line(path)
         else:
@@ -32,19 +41,22 @@ class loggable(object):
 
 
 class logfile(loggable):
-    def __init__(self, path, log_in_keyval=False):
-        super(logfile, self).__init__(log_in_keyval)
+    def __init__(self, path, logf=None, log_in_keyval=False):
+        if not logf:
+            logf = os.path.basename(path)
+        super(logfile, self).__init__(logf, log_in_keyval)
         self.path = path
-        self.logfile = os.path.basename(self.path)
 
 
     def __repr__(self):
-        return "sysinfo.logfile(%r, %r)" % (self.path, self.log_in_keyval)
+        r = "sysinfo.logfile(%r, %r, %r)"
+        r %= (self.path, self.logf, self.log_in_keyval)
+        return r
 
 
     def __eq__(self, other):
         if isinstance(other, logfile):
-            return self.path == other.path
+            return (self.path, self.logf) == (other.path, other.logf)
         elif isinstance(other, loggable):
             return False
         return NotImplemented
@@ -58,33 +70,31 @@ class logfile(loggable):
 
 
     def __hash__(self):
-        return hash(self.path)
+        return hash((self.path, self.logf))
 
 
     def run(self, logdir):
         if os.path.exists(self.path):
-            shutil.copy(self.path, logdir)
+            shutil.copy(self.path, os.path.join(logdir, self.logf))
 
 
 class command(loggable):
-    def __init__(self, cmd, logfile=None, log_in_keyval=False):
-        super(command, self).__init__(log_in_keyval)
+    def __init__(self, cmd, logf=None, log_in_keyval=False):
+        if not logf:
+            logf = cmd.replace(" ", "_")
+        super(command, self).__init__(logf, log_in_keyval)
         self.cmd = cmd
-        if logfile:
-            self.logfile = logfile
-        else:
-            self.logfile = cmd.replace(" ", "_")
 
 
     def __repr__(self):
         r = "sysinfo.command(%r, %r, %r)"
-        r %= (self.cmd, self.logfile, self.log_in_keyval)
+        r %= (self.cmd, self.logf, self.log_in_keyval)
         return r
 
 
     def __eq__(self, other):
         if isinstance(other, command):
-            return (self.cmd, self.logfile) == (other.cmd, other.logfile)
+            return (self.cmd, self.logf) == (other.cmd, other.logf)
         elif isinstance(other, loggable):
             return False
         return NotImplemented
@@ -98,12 +108,12 @@ class command(loggable):
 
 
     def __hash__(self):
-        return hash((self.cmd, self.logfile))
+        return hash((self.cmd, self.logf))
 
 
     def run(self, logdir):
         stdin = open(os.devnull, "r")
-        stdout = open(os.path.join(logdir, self.logfile), "w")
+        stdout = open(os.path.join(logdir, self.logf), "w")
         stderr = open(os.devnull, "w")
         env = os.environ.copy()
         if "PATH" not in env:
@@ -132,12 +142,30 @@ class base_sysinfo(object):
         for filename in _DEFAULT_FILES_TO_LOG_PER_BOOT:
             self.boot_loggables.add(logfile(filename))
 
+        # pull in the pre test iteration logs to collect
+        self.before_iteration_loggables = set()
+        for cmd in _DEFAULT_COMMANDS_TO_LOG_BEFORE_ITERATION:
+            self.before_iteration_loggables.add(
+                command(cmd, logf=cmd.replace(" ", "_") + '.before'))
+        for fname in _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION:
+            self.before_iteration_loggables.add(
+                logfile(fname, logf=os.path.basename(fname) + '.before'))
+
+        # pull in the post test iteration logs to collect
+        self.after_iteration_loggables = set()
+        for cmd in _DEFAULT_COMMANDS_TO_LOG_AFTER_ITERATION:
+            self.after_iteration_loggables.add(
+                command(cmd, logf=cmd.replace(" ", "_") + '.after'))
+        for fname in _DEFAULT_FILES_TO_LOG_AFTER_ITERATION:
+            self.after_iteration_loggables.add(
+                logfile(fname, logf=os.path.basename(fname) + '.after'))
+
         # add in a couple of extra files and commands we want to grab
-        self.test_loggables.add(command("df -mP", logfile="df"))
-        self.test_loggables.add(command("dmesg -c", logfile="dmesg"))
+        self.test_loggables.add(command("df -mP", logf="df"))
+        self.test_loggables.add(command("dmesg -c", logf="dmesg"))
         self.boot_loggables.add(logfile("/proc/cmdline",
                                              log_in_keyval=True))
-        self.boot_loggables.add(command("uname -a", logfile="uname",
+        self.boot_loggables.add(command("uname -a", logf="uname",
                                              log_in_keyval=True))
 
 
@@ -174,6 +202,15 @@ class base_sysinfo(object):
         else:
             boot_dir = "boot.%d" % (reboot_count - 1)
             return os.path.join(self.sysinfodir, boot_dir)
+
+
+    def _get_iteration_subdir(self, iteration):
+        iter_dir = "iteration.%d" % iteration
+
+        logdir = os.path.join(self.sysinfodir, iter_dir)
+        if not os.path.exists(logdir):
+            os.mkdir(logdir)
+        return logdir
 
 
     @log.log_and_ignore_errors("post-reboot sysinfo error:")
@@ -220,6 +257,28 @@ class base_sysinfo(object):
         test.write_test_keyval(keyval)
 
 
+    @log.log_and_ignore_errors("pre-test siteration sysinfo error:")
+    def log_before_each_iteration(self, test, iteration=None):
+        """ Logging hook called before a test iteration."""
+        if not iteration:
+            iteration = test.iteration
+        logdir = self._get_iteration_subdir(iteration)
+
+        for log in self.before_iteration_loggables:
+            log.run(logdir)
+
+
+    @log.log_and_ignore_errors("post-test siteration sysinfo error:")
+    def log_after_each_iteration(self, test, iteration=None):
+        """ Logging hook called after a test iteration."""
+        if not iteration:
+            iteration = test.iteration
+        logdir = self._get_iteration_subdir(iteration)
+
+        for log in self.after_iteration_loggables:
+            log.run(logdir)
+
+
     def _log_messages(self, logdir):
         """ Log all of the new data in /var/log/messages. """
         try:
@@ -244,7 +303,7 @@ class base_sysinfo(object):
         keyval = {}
         for log in loggables:
             if log.log_in_keyval:
-                keyval["sysinfo-" + log.logfile] = log.readline(logdir)
+                keyval["sysinfo-" + log.logf] = log.readline(logdir)
         return keyval
 
 
