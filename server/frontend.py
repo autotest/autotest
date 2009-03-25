@@ -118,10 +118,10 @@ class AFE(RpcClient):
 
     
     def host_statuses(self, live=None):
-        dead_statuses = ['Dead', 'Repair Failed']
+        dead_statuses = ['Dead', 'Repair Failed', 'Repairing']
         statuses = self.run('get_static_data')['host_statuses']
         if live == True:
-            return list(set(statuses) - set(['Dead', 'Repair Failed']))
+            return list(set(statuses) - set(dead_statuses))
         if live == False:
             return dead_statuses
         else:
@@ -385,7 +385,8 @@ class AFE(RpcClient):
         hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
         platforms = pairing.platforms
         hosts = [h for h in hosts if self._included_platform(h, platforms)]
-        host_list = [h.hostname for h in hosts if h.status != 'Repair Failed']
+        dead_statuses = self.host_statuses(live=False)
+        host_list = [h.hostname for h in hosts if h.status not in dead_statuses]
         print 'HOSTS: %s' % host_list
         if pairing.synch_job:
             dargs['synch_count'] = len(host_list)
