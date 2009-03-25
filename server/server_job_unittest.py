@@ -59,6 +59,7 @@ class CopyLogsTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
+        os.path.exists.expect_call(self.uncollected).and_return(False)
         server_job.open.expect_call(self.uncollected, 'w').and_return(file_obj)
         pickle.dump.expect_call([], file_obj)
         file_obj.close.expect_call()

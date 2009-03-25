@@ -61,13 +61,15 @@ def run_autoserv(pid_file_manager, results, parser):
     ssh_user = parser.options.ssh_user
     ssh_port = parser.options.ssh_port
     ssh_pass = parser.options.ssh_pass
+    collect_crashinfo = parser.options.collect_crashinfo
 
     # can't be both a client and a server side test
     if client and server:
         print "Can not specify a test as both server and client!"
         sys.exit(1)
 
-    if len(parser.args) < 1 and not (verify or repair or cleanup):
+    if len(parser.args) < 1 and not (verify or repair or cleanup
+                                     or collect_crashinfo):
         print parser.parser.print_help()
         sys.exit(1)
 
@@ -121,7 +123,8 @@ def run_autoserv(pid_file_manager, results, parser):
             job.verify()
         else:
             try:
-                job.run(cleanup, install_before, install_after)
+                job.run(cleanup, install_before, install_after,
+                        only_collect_crashinfo=collect_crashinfo)
             finally:
                 while job.hosts:
                     host = job.hosts.pop()
@@ -152,7 +155,8 @@ def main():
         if not results:
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
         results  = os.path.abspath(results)
-        if os.path.exists(os.path.join(results, 'control.srv')):
+        resultdir_exists = os.path.exists(os.path.join(results, 'control.srv'))
+        if not parser.options.collect_crashinfo and resultdir_exists:
             error = "Error: results directory already exists: %s\n" % results
             sys.stderr.write(error)
             sys.exit(1)
