@@ -74,26 +74,41 @@ class Test_base_test_execute(TestTestCase):
     def setUp(self):
         TestTestCase.setUp(self)
         self.god.stub_function(self.test, 'warmup')
-        self.god.stub_function(self.test, 'drop_caches_between_iterations')
-        self.god.stub_function(self.test, 'run_once')
-        self.god.stub_function(self.test, 'postprocess_iteration')
         self.god.stub_function(self.test, 'run_once_profiling')
         self.god.stub_function(self.test, 'postprocess')
 
         self.test.warmup.expect_call()
 
 
+    def test_call_run_once(self):
+        # setup
+        self.god.stub_function(self.test, 'drop_caches_between_iterations')
+        self.god.stub_function(self.test, 'run_once')
+        self.god.stub_function(self.test, 'postprocess_iteration')
+        before_hook = self.god.create_mock_function('before_hook')
+        after_hook = self.god.create_mock_function('after_hook')
+
+        # tests the test._call_run_once implementation
+        self.test.drop_caches_between_iterations.expect_call()
+        before_hook.expect_call()
+        self.test.run_once.expect_call(1, 2, arg='val')
+        after_hook.expect_call()
+        self.test.postprocess_iteration.expect_call()
+        self.test._call_run_once(before_hook, after_hook, (1, 2),
+                                 {'arg': 'val'})
+
+
+    def _expect_call_run_once(self):
+        self.test._call_run_once.expect_call(None, None, (), {})
+
+
     def test_execute_test_length(self):
         # test that test_length overrides iterations and works.
-        self.test.drop_caches_between_iterations.expect_call()
-        self.test.run_once.expect_call()
-        self.test.postprocess_iteration.expect_call()
-        self.test.drop_caches_between_iterations.expect_call()
-        self.test.run_once.expect_call()
-        self.test.postprocess_iteration.expect_call()
-        self.test.drop_caches_between_iterations.expect_call()
-        self.test.run_once.expect_call()
-        self.test.postprocess_iteration.expect_call()
+        self.god.stub_function(self.test, '_call_run_once')
+
+        self._expect_call_run_once()
+        self._expect_call_run_once()
+        self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
 
@@ -104,11 +119,11 @@ class Test_base_test_execute(TestTestCase):
 
     def test_execute_iterations(self):
         # test that iterations works.
+        self.god.stub_function(self.test, '_call_run_once')
+
         iterations = 2
         for _ in range(iterations):
-            self.test.drop_caches_between_iterations.expect_call()
-            self.test.run_once.expect_call()
-            self.test.postprocess_iteration.expect_call()
+            self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
 
@@ -139,9 +154,9 @@ class Test_base_test_execute(TestTestCase):
 
     def test_execute_postprocess_profiled_false(self):
         # test that postprocess_profiled_run=False works
-        self.test.drop_caches_between_iterations.expect_call()
-        self.test.run_once.expect_call()
-        self.test.postprocess_iteration.expect_call()
+        self.god.stub_function(self.test, '_call_run_once')
+
+        self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
 
@@ -151,9 +166,9 @@ class Test_base_test_execute(TestTestCase):
 
     def test_execute_postprocess_profiled_true(self):
         # test that postprocess_profiled_run=True works
-        self.test.drop_caches_between_iterations.expect_call()
-        self.test.run_once.expect_call()
-        self.test.postprocess_iteration.expect_call()
+        self.god.stub_function(self.test, '_call_run_once')
+
+        self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(True)
         self.test.postprocess.expect_call()
 

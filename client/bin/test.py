@@ -32,4 +32,6 @@ class test(common_test.base_test):
 def runtest(job, url, tag, args, dargs):
     common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
                         job.sysinfo.log_before_each_test,
-                        job.sysinfo.log_after_each_test)
+                        job.sysinfo.log_after_each_test,
+                        job.sysinfo.log_before_each_iteration,
+                        job.sysinfo.log_after_each_iteration)

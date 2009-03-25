@@ -104,14 +104,23 @@ class base_test:
             utils.drop_caches()
 
 
-    def _call_run_once(self, args, dargs):
+    def _call_run_once(self, before_iteration_hook, after_iteration_hook,
+                       args, dargs):
         self.drop_caches_between_iterations()
+
+        # execute iteration hooks
+        if before_iteration_hook:
+            before_iteration_hook(self)
         self.run_once(*args, **dargs)
+        if after_iteration_hook:
+            after_iteration_hook(self)
+
         self.postprocess_iteration()
 
 
     def execute(self, iterations=None, test_length=None, profile_only=False,
                 _get_time=time.time, postprocess_profiled_run=None,
+                before_iteration_hook=None, after_iteration_hook=None,
                 *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
@@ -166,7 +175,8 @@ class base_test:
                     logging.info(
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
-                self._call_run_once(args, dargs)
+                self._call_run_once(before_iteration_hook, after_iteration_hook,
+                                    args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
             logging.info('Test finished after %d iterations',
@@ -186,10 +196,11 @@ class base_test:
                                    'Number of iterations: %d', iterations)
                 for self.iteration in xrange(1, iterations+1):
                     logging.info('Executing iteration %d of %d',
-                                       self.iteration, iterations)
-                    self._call_run_once(args, dargs)
+                                 self.iteration, iterations)
+                    self._call_run_once(before_iteration_hook,
+                                        after_iteration_hook, args, dargs)
                 logging.info('Test finished after %d iterations.',
-                                   iterations)
+                             iterations)
 
         self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
 
@@ -270,7 +281,7 @@ class base_test:
         self.logger.addHandler(self.test_handler)
 
 
-    def _exec(self, args, dargs):
+    def _exec(self, before_iteration_hook, after_iteration_hook, args, dargs):
 
         self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
@@ -309,6 +320,12 @@ class base_test:
 
                 # Execute:
                 os.chdir(self.outputdir)
+
+                # insert the iteration hooks arguments to be potentially
+                # passed over to self.execute() if it accepts them
+                dargs['before_iteration_hook'] = before_iteration_hook
+                dargs['after_iteration_hook'] = after_iteration_hook
+
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
                                                         args, dargs)
@@ -493,7 +510,8 @@ def _installtest(job, url):
 
 def runtest(job, url, tag, args, dargs,
             local_namespace={}, global_namespace={},
-            before_test_hook=None, after_test_hook=None):
+            before_test_hook=None, after_test_hook=None,
+            before_iteration_hook=None, after_iteration_hook=None):
     local_namespace = local_namespace.copy()
     global_namespace = global_namespace.copy()
 
@@ -561,11 +579,14 @@ def runtest(job, url, tag, args, dargs,
 
     pwd = os.getcwd()
     os.chdir(outputdir)
+
     try:
         mytest = global_namespace['mytest']
         if before_test_hook:
             before_test_hook(mytest)
-        mytest._exec(args, dargs)
+        # args/dargs are the test arguments as given by the control file so
+        # we cannot put the iteration hooks inside the dictionary
+        mytest._exec(before_iteration_hook, after_iteration_hook, args, dargs)
     finally:
         os.chdir(pwd)
         if after_test_hook:
