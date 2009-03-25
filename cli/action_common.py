@@ -104,7 +104,6 @@ class atest_list(topic_common.atest):
         print the error"""
         self.check_for_wildcard(filters, check_results)
 
-        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
         results = self.execute_rpc(op, **filters)
 
         for dbkey in filters.keys():

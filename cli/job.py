@@ -374,6 +374,7 @@ class job_create(action_common.atest_create, job):
         if self.ctrl_file_data:
             uploading_kernel = 'kernel' in self.ctrl_file_data
             if uploading_kernel:
+                default_timeout = socket.getdefaulttimeout()
                 socket.setdefaulttimeout(topic_common.UPLOAD_SOCKET_TIMEOUT)
                 print 'Uploading Kernel: this may take a while...',
                 sys.stdout.flush()
@@ -383,8 +384,8 @@ class job_create(action_common.atest_create, job):
                                            **self.ctrl_file_data)
             finally:
                 if uploading_kernel:
-                    socket.setdefaulttimeout(
-                            topic_common.DEFAULT_SOCKET_TIMEOUT)
+                    socket.setdefaulttimeout(default_timeout)
+
             if uploading_kernel:
                 print 'Done'
             self.data['control_file'] = cf_info['control_file']
@@ -439,13 +440,6 @@ class job_create(action_common.atest_create, job):
              self.data['meta_hosts']) = self.parse_hosts(host_list)
             self.data['name'] = self.jobname
 
-        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
-        # This RPC takes a while when there are lots of hosts.
-        # We don't set it back to default because it's the last RPC.
-
-        socket.setdefaulttimeout(topic_common.LIST_SOCKET_TIMEOUT)
-        # This RPC takes a while when there are lots of hosts.
-        # We don't set it back to default because it's the last RPC.
         job_id = self.execute_rpc(op='create_job', **self.data)
         return ['%s (id %s)' % (self.jobname, job_id)]
 
