@@ -325,6 +325,8 @@ class AFE(RpcClient):
             print 'PASSED',
         elif job.result == False:
             print 'FAILED',
+        elif job.result == "Abort":
+            print 'ABORT',
         print ' %s : %s' % (job.id, job.name)
 
 
@@ -352,7 +354,7 @@ class AFE(RpcClient):
 
         if None in results:
             return None
-        elif False in results:
+        elif False in results or "Abort" in results:
             return False
         else:
             return True
@@ -456,7 +458,8 @@ class AFE(RpcClient):
                         break
                 if verify_failed:
                     continue
-            if hostname in job.test_status and job.test_status[hostname].fail:
+            if hostname in job.test_status and job.test_status[hostname].fail \
+            and status != "Aborted":
                 # Job status doesn't reflect failed tests, override that
                 status = 'Failed'
             if job_status.host:
@@ -484,16 +487,19 @@ class AFE(RpcClient):
         self._job_results_platform_map(job, debug)
 
         good_platforms = []
-        bad_platforms = []
+        failed_platforms = []
+        aborted_platforms = []
         unknown_platforms = []
         platform_map = job.results_platform_map
         for platform in platform_map:
             total = len(platform_map[platform]['Total'])
             completed = len(platform_map[platform].get('Completed', []))
-            failed = len(platform_map[platform].get('Failed', [])) + \
-                     len(platform_map[platform].get('Aborted', []))
-            if (failed * 2 >= total) or (failed > 1):
-                bad_platforms.append(platform)
+            failed = len(platform_map[platform].get('Failed', []))
+            aborted = len(platform_map[platform].get('Aborted', []))
+            if aborted > 1:
+                aborted_platforms.append(platform)
+            elif (failed * 2 >= total) or (failed > 1):
+                failed_platforms.append(platform)
             elif (completed >= 1) and (completed + 1 >= total):
                 # if all or all but one are good, call the job good.
                 good_platforms.append(platform)
@@ -509,9 +515,13 @@ class AFE(RpcClient):
                                          ' '.join(detail))
                 print
     
-        if len(bad_platforms) > 0:
+        if len(aborted_platforms) > 0:
             if debug:
-                print 'Result bad - platforms: ' + ' '.join(bad_platforms)
+                print 'Result aborted - platforms: ' + ' '.join(aborted_platforms)
+            return "Abort"
+        if len(failed_platforms) > 0:
+            if debug:
+                print 'Result bad - platforms: ' + ' '.join(failed_platforms)
             return False
         if len(unknown_platforms) > 0:
             if debug:
