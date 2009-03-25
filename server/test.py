@@ -52,6 +52,18 @@ job.record('GOOD', '', 'sysinfo.iteration.%s')
 """
 
 
+def install_autotest_and_run(func):
+    def wrapper(self, mytest):
+        try:
+            host, at = self._install()
+            outputdir = host.get_tmp_dir()
+            func(self, mytest, host, at, outputdir)
+        finally:
+            at.uninstall()
+            host.delete_tmp_dir(outputdir)
+    return wrapper
+
+
 class _sysinfo_logger(object):
     def __init__(self, job):
         self.job = job
@@ -105,23 +117,18 @@ class _sysinfo_logger(object):
 
 
     @log.log_and_ignore_errors("pre-test server sysinfo error:")
-    def before_hook(self, mytest):
-        host, at = self._install()
-        outputdir = host.get_tmp_dir()
-
+    @install_autotest_and_run
+    def before_hook(self, mytest, host, at, outputdir):
         # run the pre-test sysinfo script
         at.run(_sysinfo_before_test_script % outputdir,
                results_dir=self.job.resultdir)
 
         self._pull_pickle(host, outputdir)
-        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("pre-test iteration server sysinfo error:")
-    def before_iteration_hook(self, mytest):
-        host, at = self._install()
-        outputdir = host.get_tmp_dir()
-
+    @install_autotest_and_run
+    def before_iteration_hook(self, mytest, host, at, outputdir):
         # this function is called after before_hook() se we have sysinfo state
         # to push to the server
         self._push_pickle(host, outputdir);
@@ -133,14 +140,11 @@ class _sysinfo_logger(object):
 
         # get the new sysinfo state from the client
         self._pull_pickle(host, outputdir)
-        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("post-test iteration server sysinfo error:")
-    def after_iteration_hook(self, mytest):
-        host, at = self._install()
-        outputdir = host.get_tmp_dir()
-
+    @install_autotest_and_run
+    def after_iteration_hook(self, mytest, host, at, outputdir):
         # push latest sysinfo state to the client
         self._push_pickle(host, outputdir);
         # run the post-test iteration sysinfo script
@@ -152,21 +156,17 @@ class _sysinfo_logger(object):
         # get the new sysinfo state from the client
         self._pull_pickle(host, outputdir)
         self._pull_sysinfo_keyval(host, outputdir, mytest)
-        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("post-test server sysinfo error:")
-    def after_hook(self, mytest):
-        host, at = self._install()
-        outputdir = host.get_tmp_dir()
-
+    @install_autotest_and_run
+    def after_hook(self, mytest, host, at, outputdir):
         self._push_pickle(host, outputdir);
         # run the post-test sysinfo script
         at.run(_sysinfo_after_test_script % outputdir,
                results_dir=self.job.resultdir)
 
         self._pull_sysinfo_keyval(host, outputdir, mytest)
-        host.delete_tmp_dir(outputdir)
 
 
 def runtest(job, url, tag, args, dargs):
