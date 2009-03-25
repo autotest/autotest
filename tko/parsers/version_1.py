@@ -114,7 +114,7 @@ class status_line(version_0.status_line):
     def get_kernel(self):
         # get the base kernel version
         fields = self.optional_fields
-        base = fields.get("kernel", "")
+        base = re.sub("-autotest$", "", fields.get("kernel", ""))
         # get a list of patches
         patches = []
         patch_index = 0
