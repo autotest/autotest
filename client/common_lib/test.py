@@ -43,7 +43,7 @@ class base_test:
         if hasattr(job, 'libdir'):
             self.libdir = job.libdir
         self.srcdir = os.path.join(self.bindir, 'src')
-        self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname, 
+        self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)
 
 
@@ -148,7 +148,6 @@ class base_test:
             profiled run.
         """
 
-        self.warmup(*args, **dargs)
         # For our special class of tests, the benchmarks, we don't want
         # profilers to run during the test iterations. Let's reserve only
         # the last iteration for profiling, if needed. So let's stop
@@ -246,31 +245,13 @@ class base_test:
         pass
 
 
-    def _run_cleanup(self, args, dargs):
-        """Call self.cleanup and convert exceptions as appropriate.
-
-        Args:
-          args: An argument tuple to pass to cleanup.
-          dargs: A dictionary of with potential keyword arguments for cleanup.
-        """
-        p_args, p_dargs = _cherry_pick_args(self.cleanup, args, dargs)
-        try:
-            self.cleanup(*p_args, **p_dargs)
-        except error.AutotestError:
-            raise
-        except Exception, e:
-            # Other exceptions must be treated as a ERROR when
-            # raised during the cleanup() phase.
-            raise error.UnhandledTestError(e)
-
-
     def _setup_test_logging_handler(self):
         """
         Adds a file handler during test execution, which will give test writers
-        the ability to obtain test results on the test results dir just by 
+        the ability to obtain test results on the test results dir just by
         making logging calls.
         """
-        result_filename = os.path.join(self.resultsdir, 
+        result_filename = os.path.join(self.resultsdir,
                                        '%s.log' % self.tagged_testname)
         self.test_handler = logging.FileHandler(filename=result_filename,
                                                 mode='w')
@@ -303,8 +284,7 @@ class base_test:
 
             try:
                 # Initialize:
-                p_args, p_dargs = _cherry_pick_args(self.initialize,args,dargs)
-                self.initialize(*p_args, **p_dargs)
+                _cherry_pick_call(self.initialize, *args, **dargs)
 
                 lockfile = open(os.path.join(self.job.tmpdir, '.testlock'), 'w')
                 try:
@@ -321,6 +301,11 @@ class base_test:
                 # Execute:
                 os.chdir(self.outputdir)
 
+                # call self.warmup cherry picking the arguments it accepts and
+                # translate exceptions if needed
+                _call_test_function(_cherry_pick_call, self.warmup,
+                                    *args, **dargs)
+
                 # insert the iteration hooks arguments to be potentially
                 # passed over to self.execute() if it accepts them
                 dargs['before_iteration_hook'] = before_iteration_hook
@@ -336,15 +321,8 @@ class base_test:
                 else:
                     p_args, p_dargs = _cherry_pick_args(self.execute,
                                                         args, dargs)
-                try:
-                    self.execute(*p_args, **p_dargs)
-                except error.AutotestError:
-                    # Pass already-categorized errors on up as is.
-                    raise
-                except Exception, e:
-                    # Other exceptions must be treated as a FAIL when
-                    # raised during the execute() phase.
-                    raise error.UnhandledTestFail(e)
+
+                _call_test_function(self.execute, *p_args, **p_dargs)
             except Exception:
                 # Save the exception while we run our cleanup() before
                 # reraising it.
@@ -352,7 +330,7 @@ class base_test:
                 try:
                     try:
                         if run_cleanup:
-                            self._run_cleanup(args, dargs)
+                            _cherry_pick_call(self.cleanup, *args, **dargs)
                     except Exception:
                         print 'Ignoring exception during cleanup() phase:'
                         traceback.print_exc()
@@ -369,7 +347,7 @@ class base_test:
             else:
                 try:
                     if run_cleanup:
-                        self._run_cleanup(args, dargs)
+                        _cherry_pick_call(self.cleanup, *args, **dargs)
                 finally:
                     self.logger.removeHandler(self.test_handler)
                     self.job.stderr.restore()
@@ -428,6 +406,13 @@ def _cherry_pick_args(func, args, dargs):
                 p_dargs[param] = dargs[param]
 
     return p_args, p_dargs
+
+
+def _cherry_pick_call(func, *args, **dargs):
+    """Cherry picks arguments from args/dargs based on what "func" accepts
+    and calls the function with the picked arguments."""
+    p_args, p_dargs = _cherry_pick_args(func, args, dargs)
+    return func(*p_args, **p_dargs)
 
 
 def _validate_args(args, dargs, *funcs):
@@ -506,6 +491,20 @@ def _installtest(job, url):
 
     # The test is now installed.
     return (group, name)
+
+
+def _call_test_function(func, *args, **dargs):
+    """Calls a test function and translates exceptions so that errors
+    inside test code are considered test failures."""
+    try:
+        return func(*args, **dargs)
+    except error.AutotestError:
+        # Pass already-categorized errors on up as is.
+        raise
+    except Exception, e:
+        # Other exceptions must be treated as a FAIL when
+        # raised during the test functions
+        raise error.UnhandledTestFail(e)
 
 
 def runtest(job, url, tag, args, dargs,
