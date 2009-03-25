@@ -100,6 +100,9 @@ class base_autoserv_parser(object):
                                dest="install_in_tmpdir", default=False,
                                help=("by default install autotest clients in "
                                      "a temporary directory"))
+        self.parser.add_option("--collect-crashinfo", action="store_true",
+                               dest="collect_crashinfo", default=False,
+                               help="just run crashinfo collection")
 
 
     def parse_args(self):
