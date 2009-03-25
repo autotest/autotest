@@ -114,6 +114,7 @@ class _sysinfo_logger(object):
                results_dir=self.job.resultdir)
 
         self._pull_pickle(host, outputdir)
+        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("pre-test iteration server sysinfo error:")
@@ -132,6 +133,7 @@ class _sysinfo_logger(object):
 
         # get the new sysinfo state from the client
         self._pull_pickle(host, outputdir)
+        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("post-test iteration server sysinfo error:")
@@ -150,6 +152,7 @@ class _sysinfo_logger(object):
         # get the new sysinfo state from the client
         self._pull_pickle(host, outputdir)
         self._pull_sysinfo_keyval(host, outputdir, mytest)
+        host.delete_tmp_dir(outputdir)
 
 
     @log.log_and_ignore_errors("post-test server sysinfo error:")
@@ -163,6 +166,7 @@ class _sysinfo_logger(object):
                results_dir=self.job.resultdir)
 
         self._pull_sysinfo_keyval(host, outputdir, mytest)
+        host.delete_tmp_dir(outputdir)
 
 
 def runtest(job, url, tag, args, dargs):
