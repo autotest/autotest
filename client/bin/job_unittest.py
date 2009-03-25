@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, shutil, sys, time
+import os, unittest, shutil, sys, time, StringIO
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
@@ -31,6 +31,9 @@ class TestBaseJob(unittest.TestCase):
         self.control = "control"
         self.jobtag = "jobtag"
 
+        # get rid of stdout
+        sys.stdout = StringIO.StringIO()
+
         # stub out some stuff
         self.god.stub_function(os.path, 'exists')
         self.god.stub_function(os.path, 'isdir')
@@ -48,6 +51,7 @@ class TestBaseJob(unittest.TestCase):
 
 
     def tearDown(self):
+        sys.stdout = sys.__stdout__
         self.god.unstub_all()
 
 
