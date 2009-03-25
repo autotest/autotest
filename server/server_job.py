@@ -104,9 +104,10 @@ class base_server_job(object):
         if resultdir:
             if not os.path.exists(resultdir):
                 os.mkdir(resultdir)
-            log_file = open(self.uncollected_log_file, "w")
-            pickle.dump([], log_file)
-            log_file.close()
+            if not os.path.exists(self.uncollected_log_file):
+                log_file = open(self.uncollected_log_file, "w")
+                pickle.dump([], log_file)
+                log_file.close()
             if not os.path.exists(self.debugdir):
                 os.mkdir(self.debugdir)
             status_log = self.get_status_log_path()
@@ -360,7 +361,7 @@ class base_server_job(object):
     USE_TEMP_DIR = object()
     def run(self, cleanup=False, install_before=False, install_after=False,
             collect_crashdumps=True, namespace={}, control=None,
-            control_file_dir=None):
+            control_file_dir=None, only_collect_crashinfo=False):
         # use a copy so changes don't affect the original dictionary
         namespace = namespace.copy()
         machines = self.machines
@@ -390,27 +391,31 @@ class base_server_job(object):
             if install_before and machines:
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
-            # determine the dir to write the control files to
-            if control_file_dir and control_file_dir is not self.USE_TEMP_DIR:
-                temp_control_file_dir = None
-            else:
-                temp_control_file_dir = control_file_dir = tempfile.mkdtemp(
-                    suffix='temp_control_file_dir')
-            server_control_file = os.path.join(control_file_dir,
-                                               SERVER_CONTROL_FILENAME)
-            client_control_file = os.path.join(control_file_dir,
-                                               CLIENT_CONTROL_FILENAME)
-            if self.client:
-                namespace['control'] = control
-                utils.open_write_close(client_control_file, control)
-                shutil.copy(CLIENT_WRAPPER_CONTROL_FILE, server_control_file)
-            else:
-                namespace['utils'] = utils
-                utils.open_write_close(server_control_file, control)
-            self._execute_code(server_control_file, namespace)
+            if not only_collect_crashinfo:
+                # determine the dir to write the control files to
+                cfd_specified = (control_file_dir
+                                 and control_file_dir is not self.USE_TEMP_DIR)
+                if cfd_specified:
+                    temp_control_file_dir = None
+                else:
+                    temp_control_file_dir = tempfile.mkdtemp(
+                        suffix='temp_control_file_dir')
+                    control_file_dir = temp_control_file_dir
+                server_control_file = os.path.join(control_file_dir,
+                                                   SERVER_CONTROL_FILENAME)
+                client_control_file = os.path.join(control_file_dir,
+                                                   CLIENT_CONTROL_FILENAME)
+                if self.client:
+                    namespace['control'] = control
+                    utils.open_write_close(client_control_file, control)
+                    shutil.copy(CLIENT_WRAPPER_CONTROL_FILE,
+                                server_control_file)
+                else:
+                    utils.open_write_close(server_control_file, control)
+                self._execute_code(server_control_file, namespace)
 
-            # disable crashinfo collection if we get this far without error
-            collect_crashinfo = False
+                # no error occured, so we don't need to collect crashinfo
+                collect_crashinfo = False
         finally:
             if temp_control_file_dir:
                 # Clean up temp directory used for copies of the control files
