@@ -1,0 +1,19 @@
+AUTHOR = """
+Lucas Meneghel Rodrigues (lucasmr@br.ibm.com)
+Rodrigo Sampaio (rsampaio@br.ibm.com)
+"""
+NAME = "DMA memtest"
+TEST_TYPE = "client"
+TEST_CLASS = "General"
+TEST_CATEGORY = "Memory"
+TIME = "MEDIUM"
+DOC = """\
+    A test for the memory subsystem against heavy IO and DMA operations, 
+    implemented based on the work of Doug Leford
+    (http://people.redhat.com/dledford/memtest.shtml).
+    It will uncompress several copies of the linux kernel in a way that will
+    force the system to go swap, then will compare the trees generated for
+    differences.
+"""
+
+job.run_test('dma_memtest')
