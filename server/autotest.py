@@ -174,6 +174,27 @@ class BaseAutotest(installable_object.InstallableObject):
         self.lightweight = lightweight
 
 
+    def uninstall(self, host=None):
+        """
+        Uninstall (i.e. delete) autotest. Removes the autotest client install
+        from the specified host.
+
+        @params host a Host instance from which the client will be removed
+        """
+        if not self.installed:
+            return
+        if not host:
+            host = self.host
+        autodir = host.get_autodir()
+        if not autodir:
+            return
+
+        # perform the actual uninstall
+        host.run("rm -rf %s" % utils.sh_escape(autodir), ignore_status=True)
+        host.set_autodir(None)
+        self.installed = False
+
+
     def get(self, location = None):
         if not location:
             location = os.path.join(self.serverdir, '../client')
