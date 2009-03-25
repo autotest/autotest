@@ -79,6 +79,34 @@ then
   su $BECOME_USER -c $BASE_DIR/site_utils/site_sync_code || exit 1
 fi
 
+# --- run database migrations
+
+# - AFE
+
+print_status "Running AFE migrations"
+( cd $BASE_DIR/frontend &&
+  su $BECOME_USER -c "python ../database/migrate.py \
+    --database=AUTOTEST_WEB safesync"
+  su $BECOME_USER -c "python manage.py syncdb --noinput"
+  su $BECOME_USER -c "python manage.py syncdb --noinput"
+)
+
+# - TKO
+
+print_status "Running TKO migrations"
+( cd $BASE_DIR/tko &&
+  su $BECOME_USER -c "python ../database/migrate.py \
+    --database=TKO safesync"
+)
+
+# - SITE_DB
+
+print_status "Running site_db migrations"
+( cd $BASE_DIR/site_db &&
+  su $BECOME_USER -c "python ../database/migrate.py \
+    --database=TKO safesync"
+)
+
 # --- compile AfeClient 
 
 print_status "Compiling AfeClient"
