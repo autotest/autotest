@@ -99,9 +99,11 @@ class base_server_job(object):
         else:
             self.control = ''
         self.resultdir = resultdir
-        self.uncollected_log_file = os.path.join(resultdir, "uncollected_logs")
-        self.debugdir = os.path.join(resultdir, 'debug')
+        self.uncollected_log_file = None
         if resultdir:
+            self.uncollected_log_file = os.path.join(resultdir, "uncollected_logs")
+            self.debugdir = os.path.join(resultdir, 'debug')
+
             if not os.path.exists(resultdir):
                 os.mkdir(resultdir)
             if not os.path.exists(self.uncollected_log_file):
@@ -432,7 +434,8 @@ class base_server_job(object):
                     self._execute_code(CRASHINFO_CONTROL_FILE, namespace)
                 else:
                     self._execute_code(CRASHDUMPS_CONTROL_FILE, namespace)
-            os.remove(self.uncollected_log_file)
+            if self.uncollected_log_file:
+                os.remove(self.uncollected_log_file)
             self.disable_external_logging()
             if cleanup and machines:
                 self._execute_code(CLEANUP_CONTROL_FILE, namespace)
@@ -702,8 +705,9 @@ class base_server_job(object):
         @param update_func - a function that updates the list of uncollected
             logs. Should take one parameter, the list to be updated.
         """
-        log_file = open(self.uncollected_log_file, "r+")
-        fcntl.flock(log_file, fcntl.LOCK_EX)
+        if self.uncollected_log_file:
+            log_file = open(self.uncollected_log_file, "r+")
+            fcntl.flock(log_file, fcntl.LOCK_EX)
         try:
             uncollected_logs = pickle.load(log_file)
             update_func(uncollected_logs)
