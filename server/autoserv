@@ -13,12 +13,6 @@ from autotest_lib.server import server_job, utils, autoserv_parser, autotest
 from autotest_lib.client.common_lib import pidfile
 
 def run_autoserv(pid_file_manager, results, parser):
-    os.environ['AUTOSERV_RESULTS'] = results
-    path = os.path.dirname(__file__)
-    autodir = os.path.abspath(os.path.join(path, '..'))
-    serverdir = os.path.join(autodir, 'server')
-    logging.config.fileConfig('%s/debug_server.ini' % serverdir)
-
     # send stdin to /dev/null
     dev_null = os.open(os.devnull, os.O_RDONLY)
     os.dup2(dev_null, sys.stdin.fileno())
@@ -160,7 +154,25 @@ def main():
             error = "Error: results directory already exists: %s\n" % results
             sys.stderr.write(error)
             sys.exit(1)
-        print "Results placed in %s" % results
+
+        # Now that we certified that there's no leftover results dir from
+        # previous jobs, lets create the result dir since the logging system
+        # needs to create the log file in there.
+        if not os.path.isdir(results):
+            os.makedirs(results)
+        os.environ['AUTOSERV_RESULTS'] = results
+        serverdir = os.path.dirname(__file__)
+        logging.config.fileConfig('%s/debug_server.ini' % serverdir)
+        logging.info("Results placed in %s" % results)
+    else:
+        # If we supply -N, no results dir will be generated, so
+        # we'll configure the logging system on code.
+        stamp = '[%(asctime)s - %(levelname)-8s] %(message)s'
+        root_logger = logging.getLogger()
+        formatter = logging.Formatter(stamp, datefmt='%H:%M:%S')
+        root_logger.handlers[0].setFormatter(formatter)
+        root_logger.setLevel(logging.DEBUG)
+
 
     if parser.options.write_pidfile:
         pid_file_manager = pidfile.PidFileManager("autoserv", results)
