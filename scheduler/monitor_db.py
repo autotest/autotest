@@ -501,10 +501,11 @@ class HostScheduler(object):
             # create using the frontend.  Regardless, we can't process it.
             # Abort it immediately and log an error on the scheduler.
             queue_entry.set_status(models.HostQueueEntry.Status.ABORTED)
-            bprint('Error: job %d synch_count=%d > requested atomic_group %d '
-                   'max_number_of_machines=%d.  Aborted host_queue_entry %d.' %
-                   (job.id, job.synch_count, atomic_group.id,
-                    atomic_group.max_number_of_machines, queue_entry.id))
+            logging.error(
+                'Error: job %d synch_count=%d > requested atomic_group %d '
+                'max_number_of_machines=%d.  Aborted host_queue_entry %d.',
+                job.id, job.synch_count, atomic_group.id,
+                 atomic_group.max_number_of_machines, queue_entry.id)
             return []
         hosts_in_label = self._label_hosts.get(queue_entry.meta_host, set())
         ineligible_host_ids = self._ineligible_hosts.get(queue_entry.job_id,
@@ -1826,8 +1827,9 @@ class DBObject(object):
         if self._initialized:
             differences = self._compare_fields_in_row(row)
             if differences:
-                print ('initialized %s %s instance requery is updating: %s' %
-                       (type(self), self.id, differences))
+                logging.warn(
+                    'initialized %s %s instance requery is updating: %s',
+                    type(self), self.id, differences)
         self._update_fields_from_row(row)
         self._initialized = True
 
