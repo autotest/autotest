@@ -267,7 +267,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
      * @param jobLogsId id-owner, e.g. "172-showard"
      */
     protected String getLogsURL(String jobLogsId) {
-        return Utils.getLogsURL(jobLogsId);
+        return Utils.getRetrieveLogsUrl(jobLogsId);
     }
     
     protected void pointToResults(String resultsUrl, String logsUrl, String oldResultsUrl) {
@@ -367,7 +367,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     }
 
     private String getLogsLinkHtml(String url, String text) {
-        url = Utils.getLogsURL(url);
+        url = Utils.getRetrieveLogsUrl(url);
         return "<a target=\"_blank\" href=\"" + url + "\">" + text + "</a>";
     }
 
