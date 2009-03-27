@@ -340,7 +340,7 @@ class ModelExtensions(object):
                 if to_human_readable and dest_obj.name_field is not None:
                     data[field_name] = getattr(dest_obj, dest_obj.name_field)
                 else:
-                    data[field_name] = dest_obj._get_pk_val()
+                    data[field_name] = dest_obj
 
 
     @classmethod
@@ -428,8 +428,7 @@ class ModelExtensions(object):
         """
         data = self.prepare_data_args(data, kwargs)
         for field_name, value in data.iteritems():
-            if value is not None:
-                setattr(self, field_name, value)
+            setattr(self, field_name, value)
         self.do_validate()
         self.save()
 
