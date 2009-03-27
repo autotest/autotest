@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, shutil, sys, time, StringIO
+import os, unittest, shutil, sys, time, StringIO, logging.config
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
@@ -31,13 +31,18 @@ class TestBaseJob(unittest.TestCase):
         self.control = "control"
         self.jobtag = "jobtag"
 
-        # get rid of stdout
+        # get rid of stdout and logging
         sys.stdout = StringIO.StringIO()
+        self.god.stub_with(logging.config, 'fileConfig',
+                           lambda x: None)
 
         # stub out some stuff
         self.god.stub_function(os.path, 'exists')
         self.god.stub_function(os.path, 'isdir')
+        self.god.stub_function(os, 'makedirs')
         self.god.stub_function(os, 'mkdir')
+        self.god.stub_function(os, 'remove')
+        self.god.stub_function(shutil, 'rmtree')
         self.god.stub_function(shutil, 'copyfile')
         self.god.stub_function(job, 'open')
         self.god.stub_function(utils, 'system')
@@ -76,6 +81,9 @@ class TestBaseJob(unittest.TestCase):
         pkgdir = os.path.join(self.autodir, 'packages')
 
         # record
+        os.path.exists.expect_call(resultdir).and_return(False)
+        os.makedirs.expect_call(resultdir)
+
         utils.drop_caches.expect_call()
         self.job._load_state.expect_call()
         self.job.get_state.expect_call("__run_test_cleanup",
@@ -94,12 +102,9 @@ class TestBaseJob(unittest.TestCase):
             os.mkdir.expect_call(results)
             os.path.exists.expect_call(download).and_return(False)
             os.mkdir.expect_call(download)
-            os.path.exists.expect_call(resultdir).and_return(True)
-            utils.system.expect_call('rm -rf ' + resultdir)
-            os.mkdir.expect_call(resultdir)
-            os.mkdir.expect_call(os.path.join(resultdir, 'debug'))
-            os.mkdir.expect_call(os.path.join(resultdir,
-                                              'analysis'))
+            os.path.exists.expect_call(resultdir).and_return(False)
+            os.makedirs.expect_call(os.path.join(resultdir, 'debug'))
+            os.makedirs.expect_call(os.path.join(resultdir, 'analysis'))
             shutil.copyfile.expect_call(mock.is_string_comparator(),
                                  os.path.join(resultdir, 'control'))
 
