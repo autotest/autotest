@@ -8,7 +8,7 @@ should inherit this class.
 """
 
 import re, os, sys, traceback, subprocess, shutil, time, traceback, urlparse
-import fcntl
+import fcntl, logging
 from autotest_lib.client.common_lib import error, utils
 
 
@@ -218,7 +218,8 @@ class BasePackageManager(object):
                 return
             except (PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
-                print '%s could not be fetched from %s' % (pkg_name, location)
+                logging.error('%s could not be fetched from %s', pkg_name, 
+                                                                 location)
 
         # if we got here then that means the package is not found
         # in any of the repositories.
@@ -244,14 +245,16 @@ class BasePackageManager(object):
         """
         Fetch the package using http protocol. Raises a PackageFetchError.
         """
-        print "Fetching %s from %s to %s" % (filename, source_url, dest_path)
+        logging.info("Fetching %s from %s to %s", filename, source_url, 
+                     dest_path)
         # check to see if the source_url is reachable or not
         self.run_http_test(source_url, os.path.dirname(dest_path))
 
         pkg_path = os.path.join(source_url, filename)
         try:
             self._run_command('wget -nv %s -O %s' % (pkg_path, dest_path))
-            print "Successfully fetched %s from %s" % (filename, source_url)
+            logging.debug("Successfully fetched %s from %s", filename,
+                          source_url)
         except error.CmdError:
             raise PackageFetchError("%s not found in %s" % (filename,
                                                             source_url))
@@ -359,14 +362,15 @@ class BasePackageManager(object):
                                           os.path.basename(file_path))
                     utils.run("ssh %s 'chmod 644 %s'" % (hostline, r_path))
                 except error.CmdError:
-                    print "Error uploading to repository " + upload_path
+                    logging.error("Error uploading to repository %s", 
+                                  upload_path)
             else:
                 shutil.copy(file_path, upload_path)
                 os.chmod(os.path.join(upload_path,
                                       os.path.basename(file_path)), 0644)
         except (IOError, os.error), why:
-            print "Upload of %s to %s failed: %s" % (file_path, upload_path,
-                                                     why)
+            logging.error("Upload of %s to %s failed: %s", file_path, 
+                          upload_path, why)
 
 
     def upload_pkg_dir(self, dir_path, upload_path):
@@ -388,7 +392,8 @@ class BasePackageManager(object):
                     ssh_path = os.path.join(remote_path, "*")
                     utils.run("ssh %s 'chmod 644 %s'" % (hostline, ssh_path))
                 except error.CmdError:
-                    print "Error uploading to repository: " + upload_path
+                    logging.error("Error uploading to repository: %s",
+                                  upload_path)
             else:
                 utils.run("cp %s %s " % (local_path, upload_path))
                 up_path = os.path.join(upload_path, "*")
