@@ -111,7 +111,8 @@ class ServiceHandler(object):
 
         return resultdata
 
-    def translateRequest(self, data):
+    @staticmethod
+    def translateRequest(data):
         try:
             req = json_decoder.decode(data)
         except:
@@ -133,7 +134,8 @@ class ServiceHandler(object):
     def invokeServiceEndpoint(self, meth, args):
         return meth(*args)
 
-    def translateResult(self, rslt, err, err_traceback, id_):
+    @staticmethod
+    def translateResult(rslt, err, err_traceback, id_):
         if err is not None:
             err = {"name": err.__class__.__name__, "message":str(err),
                    "traceback": err_traceback}

@@ -4,36 +4,36 @@ import cgi, os, sys, urllib2
 import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.bin import utils
+from autotest_lib.frontend.afe.json_rpc import serviceHandler
 
-page = """\
+_PAGE = """\
 Status: 302 Found
 Content-Type: text/plain
 Location: %s\r\n\r
 """
 
-# Get access to directories
-tko = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
-sys.path.insert(0, tko)
-
-autodir = os.path.abspath(os.path.join(tko, '..'))
-
-
+# Define function for retrieving logs
 def _retrieve_logs_dummy(job_path):
     pass
 
-
-# Define function for retrieving logs
 retrieve_logs = utils.import_site_function(__file__,
     "autotest_lib.tko.site_retrieve_logs", "retrieve_logs",
     _retrieve_logs_dummy)
 
-
-# Get form fields
 form = cgi.FieldStorage(keep_blank_values=True)
-# Retrieve logs
-job_path = form['job'].value
-job_path = os.path.join(autodir, job_path)
-keyval = retrieve_logs(job_path)
+# determine if this is a JSON-RPC request.  we support both so that the new TKO
+# client can use its RPC client code, but the old TKO can still use simple GET
+# params.
+_is_json_request = form.has_key('callback')
+
+def _get_requested_path():
+    if _is_json_request:
+        request_data = form['request'].value
+        request = serviceHandler.ServiceHandler.translateRequest(request_data)
+        parameters = request['params'][0]
+        return parameters['path']
+
+    return form['job'].value
 
 
 def find_repository_host(job_path):
@@ -59,19 +59,20 @@ def find_repository_host(job_path):
         return None
 
 
-def get_full_path(host, path):
+def get_full_url(host, path):
     if host:
         prefix = 'http://' + host
     else:
         prefix = ''
 
-    if form.has_key('jsonp_callback'):
-        callback = form['jsonp_callback'].value
-        return '%s/tko/jsonp_fetcher.cgi?path=%s&callback=%s' % (
-            prefix, path, callback)
+    if _is_json_request:
+        return '%s/tko/jsonp_fetcher.cgi?%s' % (prefix,
+                                                os.environ['QUERY_STRING'])
     else:
         return prefix + path
 
 
-host = find_repository_host(job_path)
-print page % get_full_path(host, job_path)
+log_path = _get_requested_path()
+retrieve_logs(log_path)
+host = find_repository_host(log_path)
+print _PAGE % get_full_url(host, log_path)

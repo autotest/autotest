@@ -14,6 +14,8 @@ import java.util.Map;
 
 public class Utils {
     public static final String JSON_NULL = "<null>";
+    public static final String RETRIEVE_LOGS_URL = "/tko/retrieve_logs.cgi";
+
     private static final String[][] escapeMappings = {
         {"&", "&amp;"},
         {">", "&gt;"},
@@ -166,13 +168,13 @@ public class Utils {
     /**
      * @param path should be of the form "123-showard/status.log" or just "123-showard"
      */
-    public static String getLogsURL(String path) {
-        String val = URL.encode("/results/" + path);
-        return "/tko/retrieve_logs.cgi?job=" + val;
+    public static String getLogsUrl(String path) {
+        return "/results/" + path;
     }
-    
-    public static String getJsonpLogsUrl(String path, String callbackName) {
-        return getLogsURL(path) + "&jsonp_callback=" + callbackName;
+
+    public static String getRetrieveLogsUrl(String path) {
+        String logUrl = URL.encode(getLogsUrl(path));
+        return RETRIEVE_LOGS_URL + "?job=" + logUrl;
     }
 
     public static String jsonToString(JSONValue value) {
