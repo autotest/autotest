@@ -10,6 +10,14 @@ def handle_rpc(request):
     return rpc_handler_obj.handle_rpc_request(request)
 
 
+def handle_jsonp_rpc(request):
+    return rpc_handler_obj.handle_jsonp_rpc_request(request)
+
+
+def rpc_documentation(request):
+    return rpc_handler_obj.get_rpc_documentation()
+
+
 def handle_plot(request):
     id = request.GET['id']
     max_age = request.GET['max_age']

@@ -6,16 +6,44 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
+/**
+ * One of onSuccess() and onError() is guaranteed to be called for every RPC request.
+ */
 public abstract class JsonRpcCallback {
+    /**
+     * Called when a request completes successfully.
+     * @param result the value returned by the server.
+     */
     public abstract void onSuccess(JSONValue result);
+
+    /**
+     * Called when any request error occurs
+     * @param errorObject the error object returned by the server, containing keys "name", 
+     * "message", and "traceback".  This argument may be null in the case where no server response
+     * was received at all. 
+     */
     public void onError(JSONObject errorObject) {
-        String name = errorObject.get("name").isString().stringValue();
-        String message = errorObject.get("message").isString().stringValue();
+        if (errorObject == null) {
+            return;
+        }
+
+        String errorString =  getErrorString(errorObject);
         JSONString tracebackString = errorObject.get("traceback").isString();
         String traceback = null;
-        if (tracebackString != null)
+        if (tracebackString != null) {
             traceback = tracebackString.stringValue();
-        String errorString =  name + ": " + message;
+        }
+
         NotifyManager.getInstance().showError(errorString, traceback);
+    }
+    
+    protected String getErrorString(JSONObject errorObject) {
+        if (errorObject == null) {
+            return "";
+        }
+
+        String name = Utils.jsonToString(errorObject.get("name"));
+        String message = Utils.jsonToString(errorObject.get("message"));
+        return name + ": " + message;
     }
 }

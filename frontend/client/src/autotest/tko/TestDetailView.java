@@ -1,17 +1,17 @@
 package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
+import autotest.common.JsonRpcProxy;
+import autotest.common.PaddedJsonRpcProxy;
 import autotest.common.Utils;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RealHyperlink;
 
-import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
@@ -31,11 +31,10 @@ import java.util.List;
 
 class TestDetailView extends DetailView {
     private static final int NO_TEST_ID = -1;
-    
-    private static List<Element> scripts = new ArrayList<Element>();
-    private static List<String> callbacks = new ArrayList<String>();
-    private static int callbackCounter = 0;
-    
+
+    private static final JsonRpcProxy logLoadingProxy = 
+        new PaddedJsonRpcProxy(Utils.RETRIEVE_LOGS_URL);
+
     private int testId = NO_TEST_ID;
     private String jobTag;
     private List<LogFileViewer> logFileViewers = new ArrayList<LogFileViewer>();
@@ -44,11 +43,25 @@ class TestDetailView extends DetailView {
     private Panel logPanel;
     
     private class LogFileViewer extends Composite implements DisclosureHandler {
-        private static final int LOG_LOAD_TIMEOUT_MS = 5000;
         private DisclosurePanel panel;
         private String logFilePath;
-        private String callbackName;
-        private Timer loadTimeout = null;
+
+        private JsonRpcCallback rpcCallback = new JsonRpcCallback() {
+            @Override
+            public void onError(JSONObject errorObject) {
+                super.onError(errorObject);
+                String errorString = getErrorString(errorObject);
+                if (errorString.equals("")) {
+                    errorString = "Failed to load log "+ logFilePath;
+                }
+                setStatusText(errorString);
+            }
+
+            @Override
+            public void onSuccess(JSONValue result) {
+                handle(result);
+            }
+        };
         
         public LogFileViewer(String logFilePath, String logFileName) {
             this.logFilePath = logFilePath;
@@ -56,41 +69,27 @@ class TestDetailView extends DetailView {
             panel.addEventHandler(this);
             panel.addStyleName("log-file-panel");
             initWidget(panel);
-
-            callbackName = setupCallback(this);
         }
         
         public void onOpen(DisclosureEvent event) {
-            addScript(getLogUrl());
+            JSONObject params = new JSONObject();
+            params.put("path", new JSONString(getLogUrl()));
+            logLoadingProxy.rpcCall("dummy", params, rpcCallback);
+
             setStatusText("Loading...");
-            loadTimeout = new Timer() {
-                @Override
-                public void run() {
-                    setStatusText("Failed to load log file");
-                }
-            };
-            loadTimeout.schedule(LOG_LOAD_TIMEOUT_MS);
         }
 
         private String getLogUrl() {
-            return Utils.getJsonpLogsUrl(jobTag + "/" + logFilePath, callbackName);
+            return Utils.getLogsUrl(jobTag + "/" + logFilePath);
         }
         
-        public void handle(JavaScriptObject jso) {
-            JSONObject object = new JSONObject(jso);
-            if (object.containsKey("error")) {
-                setStatusText(Utils.jsonToString(object.get("error")));
+        public void handle(JSONValue value) {
+            String logContents = value.isString().stringValue();
+            if (logContents.equals("")) {
+                setStatusText("Log file is empty");
             } else {
-                assert object.containsKey("contents");
-                String logContents = Utils.jsonToString(object.get("contents"));
-                if (logContents.equals("")) {
-                    setStatusText("Log file is empty");
-                } else {
-                    setLogText(logContents);
-                }
+                setLogText(logContents);
             }
-            
-            loadTimeout.cancel();
         }
 
         private void setLogText(String text) {
@@ -141,62 +140,6 @@ class TestDetailView extends DetailView {
         }
     }
 
-    // JSON-P related methods
-
-    private static String setupCallback(LogFileViewer viewer) {
-        String callbackName = "__gwt_callback" + callbackCounter++;
-        addCallbackToWindow(viewer, callbackName);
-        callbacks.add(callbackName);
-        return callbackName;
-    }
-    /**
-     * See http://code.google.com/docreader/#p=google-web-toolkit-doc-1-5&s=google-web-toolkit-doc-1-5&t=Article_UsingGWTForJSONMashups.
-     */
-    private native static void addCallbackToWindow(LogFileViewer viewer, String callbackName) /*-{
-        window[callbackName] = function(someData) {
-            viewer.@autotest.tko.TestDetailView.LogFileViewer::handle(Lcom/google/gwt/core/client/JavaScriptObject;)(someData);
-        }
-    }-*/;
-    
-    private native static void dropCallback(String callbackName) /*-{
-        window[callbackName] = null;
-    }-*/;
-    
-    private static void addScript(String url) {
-        String scriptId = "__gwt_script" + callbackCounter++;
-        Element scriptElement = addScriptToDocument(scriptId, url);
-        scripts.add(scriptElement);
-    }
-    
-    /**
-     * See http://code.google.com/docreader/#p=google-web-toolkit-doc-1-5&s=google-web-toolkit-doc-1-5&t=Article_UsingGWTForJSONMashups.
-     */
-    private static native Element addScriptToDocument(String uniqueId, String url) /*-{
-        var elem = document.createElement("script");
-        elem.setAttribute("language", "JavaScript");
-        elem.setAttribute("src", url);
-        elem.setAttribute("id", uniqueId);
-        document.getElementsByTagName("body")[0].appendChild(elem);
-        return elem;
-    }-*/;
-    
-    private static native void dropScript(Element scriptElement) /*-{
-        document.getElementsByTagName("body")[0].removeChild(scriptElement);
-    }-*/;
-    
-    private void cleanupCallbacksAndScripts() {
-        for (String callbackName : callbacks) {
-            dropCallback(callbackName);
-        }
-        callbacks.clear();
-
-        for (Element scriptElement : scripts) {
-            dropScript(scriptElement);
-        }
-
-        scripts.clear();
-    }
-    
     @Override
     public void initialize() {
         super.initialize();
@@ -327,7 +270,7 @@ class TestDetailView extends DetailView {
         attributePanel.clear();
         attributePanel.add(new AttributeTable(attributes));
         
-        logLink.setHref(Utils.getLogsURL(jobTag));
+        logLink.setHref(Utils.getRetrieveLogsUrl(jobTag));
         addLogViewers(testName);
         
         displayObjectData("Test " + testName + " (job " + jobTag + ")");
@@ -335,6 +278,5 @@ class TestDetailView extends DetailView {
     @Override
     public void resetPage() {
         super.resetPage();
-        cleanupCallbacksAndScripts();
     }
 }

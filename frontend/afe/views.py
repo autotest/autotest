@@ -16,6 +16,10 @@ def handle_rpc(request):
     return rpc_handler_obj.handle_rpc_request(request)
 
 
+def rpc_documentation(request):
+    return rpc_handler_obj.get_rpc_documentation()
+
+
 def model_documentation(request):
     doc = '<h2>Models</h2>\n'
     for model_name in ('Label', 'Host', 'Test', 'User', 'AclGroup', 'Job',
