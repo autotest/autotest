@@ -622,8 +622,14 @@ class base_server_job(object):
         """
         # poll all our warning loggers for new warnings
         warnings = self._read_warnings()
-        for timestamp, msg in warnings:
-            self._record("WARN", None, None, msg, timestamp)
+        old_record_prefix = self.record_prefix
+        try:
+            if status_code.startswith("END "):
+                self.record_prefix += "\t"
+            for timestamp, msg in warnings:
+                self._record("WARN", None, None, msg, timestamp)
+        finally:
+            self.record_prefix = old_record_prefix
 
         # write out the actual status log line
         self._record(status_code, subdir, operation, status,
