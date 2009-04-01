@@ -286,8 +286,8 @@ class parser(base.parser):
                     subdir_stack[-1] = line.subdir
                 # update the status, start and finished times
                 stack.update(line.status)
-                if status_lib.is_worse_than(stack.current_status(),
-                                            current_status):
+                if status_lib.is_worse_than_or_equal_to(stack.current_status(),
+                                                        current_status):
                     if line.reason:
                         current_reason = line.reason
                         # update the status of a currently running test
