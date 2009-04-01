@@ -699,10 +699,13 @@ class base_server_job(object):
 
         @returns The path where the status log should be.
         """
-        if subdir:
-            return os.path.join(self.resultdir, subdir, "status.log")
+        if self.resultdir:
+            if subdir:
+                return os.path.join(self.resultdir, subdir, "status.log")
+            else:
+                return os.path.join(self.resultdir, "status.log")
         else:
-            return os.path.join(self.resultdir, "status.log")
+            return None
 
 
     def _update_uncollected_logs_list(self, update_func):
@@ -949,7 +952,8 @@ class base_server_job(object):
 
         status_file = self.get_status_log_path()
         sys.stdout.write(msg)
-        open(status_file, "a").write(msg)
+        if status_file:
+            open(status_file, "a").write(msg)
         if subdir:
             sub_status_file = self.get_status_log_path(subdir)
             open(sub_status_file, "a").write(msg)
