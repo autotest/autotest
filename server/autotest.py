@@ -874,13 +874,13 @@ class client_logger(object):
             return   # not an INFO line
         for field in match.group(1).split('\t'):
             if field.startswith("warnings.enable="):
-                func = self.job.enable_warnings
+                func = self.job.warning_manager.enable_warnings
             elif field.startswith("warnings.disable="):
-                func = self.job.disable_warnings
+                func = self.job.warning_manager.disable_warnings
             else:
                 continue
             warning_type = field.split("=", 1)[1]
-            func(warning_type, record=False)
+            func(warning_type)
 
 
     def _process_line(self, line):
