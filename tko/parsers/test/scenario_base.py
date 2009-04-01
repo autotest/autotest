@@ -231,6 +231,13 @@ class BaseScenarioTestCase(unittest_hotfix.TestCase):
             self.harness.status_version, self.expected_status_version)
 
 
+def shelve_open(filename, flag='c', protocol=None, writeback=False):
+    """A more system-portable wrapper around shelve.open, with the exact
+    same arguments and interpretation."""
+    import dumbdbm
+    return shelve.Shelf(dumbdbm.open(filename, flag), protocol, writeback)
+
+
 def new_parser_harness(results_dirpath):
     """Ensure sane environment and create new parser with wrapper.
 
@@ -269,7 +276,7 @@ def store_parser_result(package_dirpath, parser_result, tag):
     """
     copy = copy_parser_result(parser_result)
     sto_filepath = path.join(package_dirpath, PARSER_RESULT_STORE)
-    sto = shelve.open(sto_filepath)
+    sto = shelve_open(sto_filepath)
     sto[tag] = copy
     sto.close()
 
@@ -286,7 +293,7 @@ def load_parser_result_store(package_dirpath, open_for_write=False):
     """
     open_flag = open_for_write and 'c' or 'r'
     sto_filepath = path.join(package_dirpath, PARSER_RESULT_STORE)
-    return shelve.open(sto_filepath, flag=open_flag)
+    return shelve_open(sto_filepath, flag=open_flag)
 
 
 def store_results_dir(package_dirpath, results_dirpath):
