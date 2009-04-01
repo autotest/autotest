@@ -98,6 +98,8 @@ if os.getuid() == 0:
     logging.critical("run as root!  aborting!")
     sys.exit(1)
 
+utils.write_pid("monitor_db_babysitter")
+
 while True:
     proc = MonitorProc(do_recovery=recover)
     time.sleep(PAUSE_LENGTH)
