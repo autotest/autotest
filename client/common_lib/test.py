@@ -25,6 +25,7 @@ from autotest_lib.client.bin import utils
 
 class base_test:
     preserve_srcdir = False
+    network_destabilizing = False
 
     def __init__(self, job, bindir, outputdir):
         self.job = job
@@ -268,6 +269,9 @@ class base_test:
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
         self._setup_test_logging_handler()
         try:
+            if self.network_destabilizing:
+                self.job.disable_warnings("NETWORK")
+
             # write out the test attributes into a keyval
             dargs   = dargs.copy()
             run_cleanup = dargs.pop('run_cleanup', self.job.run_test_cleanup)
@@ -353,11 +357,18 @@ class base_test:
                     self.job.stderr.restore()
                     self.job.stdout.restore()
         except error.AutotestError:
+            if self.network_destabilizing:
+                self.job.enable_warnings("NETWORK")
             # Pass already-categorized errors on up.
             raise
         except Exception, e:
+            if self.network_destabilizing:
+                self.job.enable_warnings("NETWORK")
             # Anything else is an ERROR in our own code, not execute().
             raise error.UnhandledTestError(e)
+        else:
+            if self.network_destabilizing:
+                self.job.enable_warnings("NETWORK")
 
 
 def _get_nonstar_args(func):
