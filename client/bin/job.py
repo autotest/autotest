@@ -91,6 +91,7 @@ class base_job(object):
     """
 
     DEFAULT_LOG_FILENAME = "status"
+    WARNING_DISABLE_DELAY = 5
 
     def __init__(self, control, jobtag, cont, harness_type=None,
                  use_external_logging=False, drop_caches=True):
@@ -230,9 +231,11 @@ class base_job(object):
         self.record("INFO", None, None,
                     "disabling %s warnings" % warning_type,
                     {"warnings.disable": warning_type})
+        time.sleep(self.WARNING_DISABLE_DELAY)
 
 
     def enable_warnings(self, warning_type):
+        time.sleep(self.WARNING_DISABLE_DELAY)
         self.record("INFO", None, None,
                     "enabling %s warnings" % warning_type,
                     {"warnings.enable": warning_type})
