@@ -54,13 +54,15 @@ job.record('GOOD', '', 'sysinfo.iteration.%s')
 
 def install_autotest_and_run(func):
     def wrapper(self, mytest):
+        host, at = self._install()
         try:
-            host, at = self._install()
             outputdir = host.get_tmp_dir()
-            func(self, mytest, host, at, outputdir)
+            try:
+                func(self, mytest, host, at, outputdir)
+            finally:
+                host.delete_tmp_dir(outputdir)
         finally:
             at.uninstall()
-            host.delete_tmp_dir(outputdir)
     return wrapper
 
 
