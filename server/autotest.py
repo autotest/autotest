@@ -490,6 +490,7 @@ class _Run(object):
         try:
             self.host.job.resultdir = self.results_dir
             self.host.run(daemon_cmd, ignore_status=True, timeout=timeout)
+            disconnect_warnings = []
             while True:
                 monitor_cmd = self.get_monitor_cmd(monitor_dir, stdout_read,
                                                    stderr_read)
@@ -501,12 +502,16 @@ class _Run(object):
                 except error.AutoservRunError, e:
                     result = e.result_obj
                     result.exit_status = None
+                    disconnect_warnings.append(e.description)
+
                     stderr_redirector.log_warning(
-                        "Autotest client was disconnected: %s" % e.description)
+                        "Autotest client was disconnected: %s" % e.description,
+                        "NETWORK")
                 except error.AutoservSSHTimeout:
                     result = utils.CmdResult(monitor_cmd, "", "", None, 0)
                     stderr_redirector.log_warning(
-                        "Attempt to connect to Autotest client timed out")
+                        "Attempt to connect to Autotest client timed out",
+                        "NETWORK")
 
                 stdout_read += len(result.stdout)
                 stderr_read += len(self._strip_stderr_prologue(result.stderr))
@@ -929,9 +934,11 @@ class client_logger(object):
                                            warnings)
 
 
-    def log_warning(self, msg):
+    def log_warning(self, msg, warning_type):
         """Injects a WARN message into the current status logging stream."""
-        self.server_warnings.append((int(time.time()), msg))
+        timestamp = int(time.time())
+        if self.job.warning_manager.is_valid(timestamp, warning_type):
+            self.server_warnings.append((timestamp, msg))
 
 
     def write(self, data):
