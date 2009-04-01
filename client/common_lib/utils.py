@@ -882,3 +882,19 @@ def import_site_function(path, module, funcname, dummy, modulefile=None):
     """
 
     return import_site_symbol(path, module, funcname, dummy, modulefile)
+
+
+def write_pid(program_name):
+    """
+    Try to drop <program_name>.pid in the main autotest directory.
+
+    Args:
+      program_name: prefix for file name
+    """
+
+    my_path = os.path.dirname(__file__)
+    pid_path = os.path.abspath(os.path.join(my_path, "../.."))
+    pidf = open(os.path.join(pid_path, "%s.pid" % program_name), "w")
+    if pidf:
+      pidf.write("%s\n" % os.getpid())
+      pidf.close()
