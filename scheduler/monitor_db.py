@@ -57,8 +57,12 @@ scheduler_dir = os.path.join(AUTOTEST_PATH, 'scheduler')
 os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = os.path.join(AUTOTEST_PATH, 'logs')
 # Here we export the log name, using the same convention as autoserv's results
 # directory.
-scheduler_log_name = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
-os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = scheduler_log_name
+if os.environ.has_key('AUTOTEST_SCHEDULER_LOG_NAME'):
+    scheduler_log_name = os.environ['AUTOTEST_SCHEDULER_LOG_NAME']
+else:
+    scheduler_log_name = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
+    os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = scheduler_log_name
+
 logging.config.fileConfig(os.path.join(scheduler_dir, 'debug_scheduler.ini'))
 
 
