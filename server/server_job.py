@@ -69,7 +69,7 @@ class base_server_job(object):
     """
 
     STATUS_VERSION = 1
-
+    WARNING_DISABLE_DELAY = 5
 
     def __init__(self, control, args, resultdir, label, user, machines,
                  client=False, parse_job='',
@@ -669,20 +669,20 @@ class base_server_job(object):
         return warnings
 
 
-    def disable_warnings(self, warning_type, record=True):
+    def disable_warnings(self, warning_type):
         self.warning_manager.disable_warnings(warning_type)
-        if record:
-            self.record("INFO", None, None,
-                        "disabling %s warnings" % warning_type,
-                        {"warnings.disable": warning_type})
+        self.record("INFO", None, None,
+                    "disabling %s warnings" % warning_type,
+                    {"warnings.disable": warning_type})
+        time.sleep(self.WARNING_DISABLE_DELAY)
 
 
-    def enable_warnings(self, warning_type, record=True):
+    def enable_warnings(self, warning_type):
+        time.sleep(self.WARNING_DISABLE_DELAY)
         self.warning_manager.enable_warnings(warning_type)
-        if record:
-            self.record("INFO", None, None,
-                        "enabling %s warnings" % warning_type,
-                        {"warnings.enable": warning_type})
+        self.record("INFO", None, None,
+                    "enabling %s warnings" % warning_type,
+                    {"warnings.enable": warning_type})
 
 
     def get_status_log_path(self, subdir=None):
@@ -1007,11 +1007,11 @@ class warning_manager(object):
         """As of now, disables all further warnings of this type."""
         intervals = self.disabled_warnings.setdefault(warning_type, [])
         if not intervals or intervals[-1][1] is not None:
-            intervals.append((current_time_func(), None))
+            intervals.append((int(current_time_func()), None))
 
 
     def enable_warnings(self, warning_type, current_time_func=time.time):
         """As of now, enables all further warnings of this type."""
         intervals = self.disabled_warnings.get(warning_type, [])
         if intervals and intervals[-1][1] is None:
-            intervals[-1] = (intervals[-1][0], current_time_func())
+            intervals[-1] = (intervals[-1][0], int(current_time_func()))
