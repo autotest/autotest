@@ -1,5 +1,5 @@
 #!/usr/bin/python -u
-import os, sys, signal, time, subprocess, logging, logging.config
+import os, sys, signal, time, logging, logging.config
 from optparse import OptionParser
 
 PAUSE_LENGTH = 60
@@ -58,20 +58,15 @@ class MonitorProc:
         args.append(results_dir)
 
         kill_all_monitors()
+        environ = os.environ
+        self.log_path = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
+        os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = self.log_path
 
-        self.log_path = os.path.join(autodir, 'logs/monitor.log.%d'
-                                     % time.time())
-        log = open(self.log_path, "a")
-        devnull = open(os.devnull, "r")
-
-        self.log_size = os.path.getsize(self.log_path)
+        self.log_size = 0
         self.last_log_change = time.time()
 
         logging.info("STARTING monitor_db with log file %s" % self.log_path)
-        self.proc = subprocess.Popen(args, stdout=log, stdin=devnull,
-                                     stderr=subprocess.STDOUT)
-        log.close()
-        devnull.close()
+        utils.run(' '.join(args))
 
 
     def is_running(self):
