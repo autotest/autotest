@@ -52,7 +52,7 @@ class AbstractSSHHost(SiteHost):
             delete_flag = "--delete"
         else:
             delete_flag = ""
-        command = "rsync -L %s --rsh='%s' -az %s %s"
+        command = "rsync -L %s --timeout=1800 --rsh='%s' -az %s %s"
         return command % (delete_flag, ssh_cmd, " ".join(sources), dest)
 
 
