@@ -151,6 +151,8 @@ def init(logfile):
     logging.info("%s> dispatcher starting", time.strftime("%X %x"))
     logging.info("My PID is %d", os.getpid())
 
+    utils.write_pid("monitor_db")
+
     if _testing_mode:
         global_config.global_config.override_config_value(
             DB_CONFIG_SECTION, 'database', 'stresstest_autotest_web')
