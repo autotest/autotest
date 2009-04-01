@@ -300,6 +300,9 @@ class parser(base.parser):
                     current_status = stack.current_status()
                 started_time = None
                 finished_time = line.get_timestamp()
+                # if this is a non-test entry there's nothing else to do
+                if line.testname is None and line.subdir is None:
+                    continue
             elif line.type == "END":
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
