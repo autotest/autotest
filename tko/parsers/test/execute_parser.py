@@ -25,7 +25,6 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    sto = scenario_base.load_parser_result_store(scenario_dirpath, True)
     results_dirpath = scenario_base.load_results_dir(scenario_dirpath)
     harness = scenario_base.new_parser_harness(results_dirpath)
     try:
