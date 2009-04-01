@@ -6,6 +6,7 @@ and prints the matrix.
 import sys, os, re, optparse
 import common
 from autotest_lib.cli import rpc
+from autotest_lib.database import database_connection
 from autotest_lib.tko import display, frontend, db, query_lib
 from autotest_lib.client.bin import kernel_versions
 
@@ -37,6 +38,9 @@ parser.add_option('-l', '--logpath', action='store_true', default=False,
                   help='Reformats the the tag column into a URL \
                         like http://autotest/results/[tag]. \
                         This will append the tag column if it isn\'t provided.')
+parser.add_option('--host-label', action='store', dest='host_label',
+                  help=('Return results only for machines currently '
+                        'in the specified label'))
 
 (options, args) = parser.parse_args()
 
@@ -66,6 +70,16 @@ if options.logpath:
 if options.old_condition:
     columns = [frontend.test_view_field_dict.get(field, field)
                for field in columns]
+
+if options.host_label:
+    database = database_connection.DatabaseConnection("AUTOTEST_WEB")
+    database.connect()
+    sql = ("SELECT hostname FROM labels JOIN hosts_labels "
+           "ON labels.id=hosts_labels.label_id JOIN hosts "
+           "ON hosts_labels.host_id=hosts.id WHERE name=%s")
+    results = database.execute(sql, options.host_label)
+    hosts = [row[0] for row in results]
+    where += " AND hostname IN ('" + "','".join(hosts) + "')"
 
 # Grab the data
 db = db.db()
