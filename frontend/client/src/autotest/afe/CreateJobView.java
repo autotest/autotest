@@ -227,17 +227,15 @@ public class CreateJobView extends TabView
         controlReadyForSubmit = true;
         
         JSONArray hostInfo = cloneObject.get("hosts").isArray();
-        for (int i = 0; i < hostInfo.size(); i++) {
-            JSONObject host = hostInfo.get(i).isObject();
-            
+        List<JSONObject> hosts = new JSONArrayList<JSONObject>(hostInfo);
+        for (JSONObject host : hosts) {
             // One-time hosts will already have the locked_text field set by the RPC. Other hosts
             // will need to create their locked_text fields.
             if (host.get("locked_text") == null) {
                 host.put("locked_text", AfeUtils.getLockedText(host));
             }
-            
-            hostSelector.availableSelection.selectObject(host);
         }
+        hostSelector.availableSelection.selectObjects(hosts);
         
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
         
