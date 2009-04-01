@@ -224,7 +224,12 @@ class RemoteHost(base_classes.Host):
             logging.info("%s is back up, collecting crash info", self.hostname)
 
         # find a directory to put the crashinfo into
-        if self.job:
+        try:
+            self.job.resultsdir
+        except AttributeError:
+            self.job.resultsdir = None
+
+        if self.job.resultsdir:
             infodir = self.job.resultdir
         else:
             infodir = os.path.abspath(os.getcwd())
@@ -273,6 +278,8 @@ class RemoteHost(base_classes.Host):
 
 
         # collect any uncollected logs we see (for this host)
+        if not self.job.uncollected_log_file:
+            self.job.uncollected_log_file = ''
         if self.job and os.path.exists(self.job.uncollected_log_file):
             try:
                 logs = pickle.load(open(self.job.uncollected_log_file))
