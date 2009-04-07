@@ -54,7 +54,8 @@ _drone_manager = drone_manager.DroneManager()
 
 # load the logging settings
 scheduler_dir = os.path.join(AUTOTEST_PATH, 'scheduler')
-os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = os.path.join(AUTOTEST_PATH, 'logs')
+if not os.environ.has_key('AUTOTEST_SCHEDULER_LOG_DIR'):
+    os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = os.path.join(AUTOTEST_PATH, 'logs')
 # Here we export the log name, using the same convention as autoserv's results
 # directory.
 if os.environ.has_key('AUTOTEST_SCHEDULER_LOG_NAME'):
