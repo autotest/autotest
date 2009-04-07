@@ -343,7 +343,7 @@ class DroneManager(object):
         """
         Kill the given process.
         """
-        logging.info('killing %d' % process)
+        logging.info('killing %s' % process)
         drone = self._get_drone_for_process(process)
         drone.queue_call('kill_process', process)
 
