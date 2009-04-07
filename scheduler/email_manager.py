@@ -1,4 +1,4 @@
-import traceback, socket, os, time, smtplib, re, sys, getpass
+import traceback, socket, os, time, smtplib, re, sys, getpass, logging
 import common
 from autotest_lib.client.common_lib import global_config
 
@@ -62,8 +62,8 @@ class EmailNotificationManager(object):
 
 
     def log_stacktrace(self, reason):
+        logging.exception(reason)
         message = "EXCEPTION: %s\n%s" % (reason, traceback.format_exc())
-        sys.stderr.write("\n%s\n" % message)
         self.enqueue_notify_email("monitor_db exception", message)
 
 
