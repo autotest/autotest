@@ -23,3 +23,10 @@
 .custom-tab-panel {
   width: 100%;
 }
+
+/* The addition of "body" here gives this priority over the default rule in standard.css, which
+ * would otherwise have the same specificity.
+ */
+body .menubar-hand-cursor .gwt-MenuItem { 
+  cursor: pointer;
+}
