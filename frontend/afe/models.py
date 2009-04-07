@@ -47,6 +47,13 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     valid_objects = model_logic.ValidObjectsManager()
 
 
+    def enqueue_job(self, job):
+        """Enqueue a job on an associated atomic group of hosts."""
+        queue_entry = HostQueueEntry(atomic_group=self, job=job,
+                                     status=HostQueueEntry.Status.QUEUED)
+        queue_entry.save()
+
+
     def clean_object(self):
         self.label_set.clear()
 
@@ -93,10 +100,11 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
         self.host_set.clear()
 
 
-    def enqueue_job(self, job):
-        'Enqueue a job on any host of this label.'
+    def enqueue_job(self, job, atomic_group=None):
+        """Enqueue a job on any host of this label."""
         queue_entry = HostQueueEntry(meta_host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED)
+                                     status=HostQueueEntry.Status.QUEUED,
+                                     atomic_group=atomic_group)
         queue_entry.save()
 
 
@@ -276,10 +284,11 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         logger.info(self.hostname + ' -> ' + self.status)
 
 
-    def enqueue_job(self, job):
-        ' Enqueue a job on this host.'
+    def enqueue_job(self, job, atomic_group=None):
+        """Enqueue a job on this host."""
         queue_entry = HostQueueEntry(host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED)
+                                     status=HostQueueEntry.Status.QUEUED,
+                                     atomic_group=atomic_group)
         # allow recovery of dead hosts from the frontend
         if not self.active_queue_entry() and self.is_dead():
             self.status = Host.Status.READY
@@ -685,10 +694,14 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         return job
 
 
-    def queue(self, hosts):
-        'Enqueue a job on the given hosts.'
+    def queue(self, hosts, atomic_group=None):
+        """Enqueue a job on the given hosts."""
+        if atomic_group and not hosts:
+            # No hosts or labels are required to queue an atomic group
+            # Job.  However, if they are given, we respect them below.
+            atomic_group.enqueue_job(self)
         for host in hosts:
-            host.enqueue_job(self)
+            host.enqueue_job(self, atomic_group=atomic_group)
 
 
     def user(self):

@@ -56,7 +56,8 @@
 ...           'platform': 1,
 ...           'kernel_config': '/my/kernel/config',
 ...	      'only_if_needed' : False,
-...           'invalid': 0, 'atomic_group': None}]
+...           'invalid': 0,
+...           'atomic_group': None}]
 True
 
 # get_labels return multiple matches as lists of dictionaries
@@ -577,3 +578,155 @@ True
 >>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
 >>> sorted(data['hosts'])
 ['host1', 'host2']
+
+# atomic groups
+# #############
+
+# Add an atomic group and associate some labels and new hosts with it.
+>>> rpc_interface.add_atomic_group(name='mini rack',
+...                                max_number_of_machines=10,
+...                                description='a partial rack-o-machines')
+1
+
+>>> label_id = rpc_interface.add_label(name='one-label')
+>>> rpc_interface.modify_label(label_id, atomic_group='mini rack')
+>>> labels = rpc_interface.get_labels(id=label_id)
+>>> assert labels[0]['atomic_group']['id'] == 1, labels
+>>> rpc_interface.modify_label(label_id, atomic_group=None)
+>>> labels = rpc_interface.get_labels(id=label_id)
+>>> assert not labels[0]['atomic_group'], labels
+>>> rpc_interface.modify_label(label_id, atomic_group='mini rack')
+>>> labels = rpc_interface.get_labels(id=label_id)
+>>> assert labels[0]['atomic_group']['id'] == 1, labels
+>>> rpc_interface.modify_label(label_id, atomic_group='dummy')
+Traceback (most recent call last):
+DoesNotExist: AtomicGroup matching query does not exist.
+
+>>> data = rpc_interface.get_labels(atomic_group__name='mini rack')
+>>> assert len(data) == 1
+>>> assert data[0]['name'] == 'one-label', data
+>>> assert data[0]['atomic_group']['id'] == 1, data
+
+>>> data = rpc_interface.get_atomic_groups()
+>>> assert len(data) == 1
+>>> assert data[0]['id'] == 1, data
+>>> assert data[0]['max_number_of_machines'] == 10, data
+>>> assert data[0]['description'] == 'a partial rack-o-machines', data
+
+>>> rpc_interface.modify_atomic_group(1, max_number_of_machines=8)
+>>> data = rpc_interface.get_atomic_groups()
+>>> assert data[0]['max_number_of_machines'] == 8, data
+
+>>> unused = rpc_interface.add_host(hostname='ahost1')
+>>> unused = rpc_interface.add_host(hostname='ahost2')
+>>> unused = rpc_interface.add_host(hostname='ah3-blue')
+>>> unused = rpc_interface.add_host(hostname='ah4-blue')
+>>> two_id = rpc_interface.add_label(name='two-label')
+>>> rpc_interface.label_add_hosts(two_id, ['ahost1', 'ahost2',
+...                                        'ah3-blue', 'ah4-blue'])
+>>> unused = rpc_interface.add_label(name='red-label')
+>>> blue_id = rpc_interface.add_label(name='blue-label')
+>>> rpc_interface.label_add_hosts(blue_id, ['ah3-blue', 'ah4-blue'])
+
+>>> rpc_interface.atomic_group_add_labels(1, ['one-label', 'two-label',
+...                                           'red-label'])
+>>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
+>>> len(ag_labels)
+3
+>>> rpc_interface.atomic_group_remove_labels(1, ['red-label'])
+>>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
+>>> sorted(label['name'] for label in ag_labels)
+['one-label', 'two-label']
+
+## Test job creation with an atomic group.
+
+# fail to create a job in an atomic group.  one_time_hosts not allowed.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          one_time_hosts=['hostX', 'hostY'],
+...                          synch_count=2,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'one_time_hosts': 'One time hosts cannot be used with an Atomic Group.'}
+
+# fail to create a job in an atomic group.  Synch count larger than max
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          synch_count=25,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'You have requested a synch_count (25) greater than the maximum machines in the requested Atomic Group (8).'}
+
+# fail to create a job in an atomic group.  not enough hosts due to host list.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          hosts=['ahost1', 'ahost2'],
+...                          synch_count=3,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'hosts': 'only 2 hosts provided for job with synch_count = 3'}
+
+# fail to create a job in an atomic group.  hosts not in atomic group.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          hosts=['host1', 'host2'],
+...                          synch_count=2,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'hosts': 'Hosts "host1, host2" are not in Atomic Group "mini rack"'}
+
+# fail to create a job in an atomic group.  not enough hosts due to meta_hosts.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          meta_hosts=['blue-label'],
+...                          synch_count=4,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
+
+# fail to create a job in an atomic group.  not enough hosts.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          synch_count=5,
+...                          atomic_group_name='mini rack')
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
+
+# fail to create a job in an atomic group.  Atomic Group not found.
+>>> rpc_interface.create_job(name='my_atomic_job',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Server',
+...                          synch_count=2,
+...                          atomic_group_name='nonexistant rack')
+Traceback (most recent call last):
+DoesNotExist: AtomicGroup matching query does not exist.
+
+# create a job in an atomic group.
+>>> job_id = rpc_interface.create_job(name='my_atomic_job',
+...                                   priority='High',
+...                                   control_file=cf_info['control_file'],
+...                                   control_type='Server',
+...                                   hosts=['ahost1', 'ahost2'],
+...                                   meta_hosts=['blue-label'],
+...                                   synch_count=4,
+...                                   atomic_group_name='mini rack')
+
+>>> data = rpc_interface.get_host_queue_entries(job__id=job_id)
+>>> data[0]['atomic_group']['id']
+1
+
+>>> rpc_interface.delete_atomic_group(1)
+>>> assert len(rpc_interface.get_atomic_groups()) == 0
