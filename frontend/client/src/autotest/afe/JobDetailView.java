@@ -347,17 +347,15 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
             return selectionManager.createWidget(row, cell, hostQueueEntry);
         }
 
-        JSONValue jobValue = hostQueueEntry.get("job");
-        if (jobValue == null) {
+        String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
+        if (executionSubdir.equals("")) {
+            // when executionSubdir == "", it's a job that hasn't yet run.
             return new HTML("");
         }
-        
-        JSONObject jobObject = jobValue.isObject();
-        String basePath = jobId + "-" + jobObject.get("owner").isString().stringValue() + "/";
-        String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
-        if (!executionSubdir.equals("")) {
-            basePath += executionSubdir + "/";
-        }
+
+        JSONObject jobObject = hostQueueEntry.get("job").isObject();
+        String owner = Utils.jsonToString(jobObject.get("owner"));
+        String basePath = jobId + "-" + owner + "/" + executionSubdir + "/";
 
         if (cell == JOB_HOSTS_COLUMNS.length - 1) {
             return new HTML(getLogsLinkHtml(basePath + "debug", "Debug logs"));
