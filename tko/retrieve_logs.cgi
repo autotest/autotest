@@ -61,7 +61,7 @@ def find_repository_host(job_path):
 
 def get_full_url(host, path):
     if host:
-        prefix = 'http://' + host
+        prefix = 'http://' + utils.normalize_hostname(host)
     else:
         prefix = ''
 
