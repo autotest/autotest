@@ -68,6 +68,14 @@ logging.config.fileConfig(os.path.join(scheduler_dir, 'debug_scheduler.ini'))
 
 
 def main():
+    try:
+        main_without_exception_handling()
+    except:
+        logging.exception('Exception escaping in monitor_db')
+        raise
+
+
+def main_without_exception_handling():
     usage = 'usage: %prog [options] results_dir'
 
     parser = optparse.OptionParser(usage)
