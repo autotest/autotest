@@ -21,6 +21,28 @@ def prepare_for_serialization(objects):
     return _prepare_data(objects)
 
 
+def prepare_rows_as_nested_dicts(query, nested_dict_column_names):
+    """
+    Prepare a Django query to be returned via RPC as a sequence of nested
+    dictionaries.
+
+    @param query - A Django model query object with a select_related() method.
+    @param nested_dict_column_names - A list of column/attribute names for the
+            rows returned by query to expand into nested dictionaries using
+            their get_object_dict() method when not None.
+
+    @returns An list suitable to returned in an RPC.
+    """
+    all_dicts = []
+    for row in query.select_related():
+        row_dict = row.get_object_dict()
+        for column in nested_dict_column_names:
+            if row_dict[column] is not None:
+                row_dict[column] = getattr(row, column).get_object_dict()
+        all_dicts.append(row_dict)
+    return prepare_for_serialization(all_dicts)
+
+
 def _prepare_data(data):
     """
     Recursively process data structures, performing necessary type
@@ -201,9 +223,75 @@ def check_abort_synchronous_jobs(host_queue_entries):
         if execution_count < queue_entry.job.synch_count:
           raise model_logic.ValidationError(
               {'' : 'You cannot abort part of a synchronous job execution '
-                    '(%d/%s, %d included, %d expected'
+                    '(%d/%s), %d included, %d expected'
                     % (queue_entry.job.id, queue_entry.execution_subdir,
                        execution_count, queue_entry.job.synch_count)})
+
+
+def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
+                                  dependencies, atomic_group, labels_by_name):
+    """
+    Attempt to reject create_job requests with an atomic group that
+    will be impossible to schedule.  The checks are not perfect but
+    should catch the most obvious issues.
+
+    @param synch_count - The job's minimum synch count.
+    @param host_objects - A list of models.Host instances.
+    @param metahost_objects - A list of models.Label instances.
+    @param dependencies - A list of job dependency label names.
+    @param atomic_group - The models.AtomicGroup instance.
+    @param labels_by_name - A dictionary mapping label names to models.Label
+            instance.  Used to look up instances for dependencies.
+
+    @raises model_logic.ValidationError - When an issue is found.
+    """
+    # If specific host objects were supplied with an atomic group, verify
+    # that there are enough to satisfy the synch_count.
+    minimum_required = synch_count or 1
+    if (host_objects and not metahost_objects and
+        len(host_objects) < minimum_required):
+        raise model_logic.ValidationError(
+                {'hosts':
+                 'only %d hosts provided for job with synch_count = %d' %
+                 (len(host_objects), synch_count)})
+
+    # Check that the atomic group has a hope of running this job
+    # given any supplied metahosts and dependancies that may limit.
+
+    # Get a set of hostnames in the atomic group.
+    possible_hosts = set()
+    for label in atomic_group.label_set.all():
+        possible_hosts.update(h.hostname for h in label.host_set.all())
+
+    # Filter out hosts that don't match all of the job dependency labels.
+    for label_name in set(dependencies):
+        label = labels_by_name[label_name]
+        hosts_in_label = (h.hostname for h in label.host_set.all())
+        possible_hosts.intersection_update(hosts_in_label)
+
+    host_set = set(host.hostname for host in host_objects)
+    unusable_host_set = host_set.difference(possible_hosts)
+    if unusable_host_set:
+        raise model_logic.ValidationError(
+            {'hosts': 'Hosts "%s" are not in Atomic Group "%s"' %
+             (', '.join(sorted(unusable_host_set)), atomic_group.name)})
+
+    # Lookup hosts provided by each meta host and merge them into the
+    # host_set for final counting.
+    for meta_host in metahost_objects:
+        meta_possible = possible_hosts.copy()
+        hosts_in_meta_host = (h.hostname for h in meta_host.host_set.all())
+        meta_possible.intersection_update(hosts_in_meta_host)
+
+        # Count all hosts that this meta_host will provide.
+        host_set.update(meta_possible)
+
+    if len(host_set) < minimum_required:
+        raise model_logic.ValidationError(
+                {'atomic_group_name':
+                 'Insufficient hosts in Atomic Group "%s" with the'
+                 ' supplied dependencies and meta_hosts.' %
+                 (atomic_group.name,)})
 
 
 def get_motd():
