@@ -14,10 +14,19 @@ import com.google.gwt.user.client.ui.Hyperlink;
  */
 public class SimpleHyperlink extends Hyperlink {
     private ClickListenerCollection clickListeners;
-    
+
+    public SimpleHyperlink(String text, boolean asHtml) {
+        super(text, asHtml, "");
+        setStyle();
+    }
+
     public SimpleHyperlink(String text) {
         super(text, "");
-        setStyleName("SimpleHyperlink");
+        setStyle();
+    }
+    
+    private void setStyle() {
+        setStyleName("SimpleHyperlink");        
     }
 
     @Override
