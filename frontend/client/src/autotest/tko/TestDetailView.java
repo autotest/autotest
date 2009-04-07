@@ -12,6 +12,8 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
@@ -19,7 +21,6 @@ import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
@@ -42,8 +43,10 @@ class TestDetailView extends DetailView {
 
     private Panel logPanel;
     
-    private class LogFileViewer extends Composite implements DisclosureHandler {
+    private class LogFileViewer extends Composite 
+                                implements DisclosureHandler, WindowResizeListener {
         private DisclosurePanel panel;
+        private ScrollPanel scroller; // ScrollPanel wrapping log contents
         private String logFilePath;
 
         private JsonRpcCallback rpcCallback = new JsonRpcCallback() {
@@ -69,6 +72,8 @@ class TestDetailView extends DetailView {
             panel.addEventHandler(this);
             panel.addStyleName("log-file-panel");
             initWidget(panel);
+            
+            Window.addWindowResizeListener(this);
         }
         
         public void onOpen(DisclosureEvent event) {
@@ -94,12 +99,31 @@ class TestDetailView extends DetailView {
 
         private void setLogText(String text) {
             panel.clear();
-            Label label = new Label(text);
-            ScrollPanel scroller = new ScrollPanel();
-            scroller.add(label);
+            scroller = new ScrollPanel();
+            scroller.getElement().setInnerText(text);
             panel.add(scroller);
+            setScrollerWidth();
         }
-        
+
+        /**
+         * Firefox fails to set relative widths correctly for elements with overflow: scroll (or 
+         * auto, or hidden).  Instead, it just expands the element to fit the contents.  So we use 
+         * this trick to dynamically implement width: 100%.
+         */
+        private void setScrollerWidth() {
+            assert panel.isOpen();
+            scroller.setWidth("0px"); // allow the parent to assume its natural size
+            int targetWidthPx = scroller.getParent().getOffsetWidth();
+            NotifyManager.getInstance().log(targetWidthPx + "px");
+            scroller.setWidth(targetWidthPx + "px");
+        }
+
+        public void onWindowResized(int width, int height) {
+            if (panel.isOpen()) {
+                setScrollerWidth();
+            }
+        }
+
         private void setStatusText(String status) {
             panel.clear();
             panel.add(new HTML("<i>" + status + "</i>"));
