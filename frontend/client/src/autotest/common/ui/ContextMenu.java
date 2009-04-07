@@ -41,6 +41,10 @@ public class ContextMenu {
         menu.setAutoOpen(true);
         popup.add(menu);
     }
+    
+    public void useHandCursor() {
+        menu.addStyleName("menubar-hand-cursor");
+    }
 
     public void addItem(String text, Command cmd) {
         menu.addItem(text, new CommandWrapper(cmd));

@@ -2,6 +2,7 @@ package autotest.tko;
 
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
+import autotest.common.SiteCommonClassFactory;
 import autotest.common.StaticDataRepository;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.CustomTabPanel;
@@ -38,6 +39,8 @@ public class TkoClient implements EntryPoint, TableSwitchListener {
     }
     
     protected void finishLoading() {
+        SiteCommonClassFactory.globalInitialize();
+
         commonPanel = CommonPanel.getPanel();
         spreadsheetView = new SpreadsheetView(this);
         tableView = new TableView(this);

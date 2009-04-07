@@ -8,6 +8,7 @@ import autotest.afe.JobListView.JobSelectListener;
 import autotest.afe.UserPreferencesView.UserPreferencesListener;
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
+import autotest.common.SiteCommonClassFactory;
 import autotest.common.StaticDataRepository;
 import autotest.common.ui.CustomTabPanel;
 import autotest.common.ui.NotifyManager;
@@ -45,6 +46,8 @@ public class AfeClient implements EntryPoint {
     }
     
     protected void finishLoading() {
+        SiteCommonClassFactory.globalInitialize();
+
         String motd = StaticDataRepository.getRepository().getData(
                                                "motd").isString().stringValue();
         RootPanel.get("motd").getElement().setInnerHTML(motd);
