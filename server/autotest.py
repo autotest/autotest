@@ -591,7 +591,7 @@ class _Run(object):
             state_dict = pickle.load(open(state_path))
         except Exception, e:
             msg = "Ignoring error while loading client job state file: %s" % e
-            self.logger.warning(msg)
+            logging.warning(msg)
             state_dict = {}
 
         # clear out the state file
