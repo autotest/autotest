@@ -1,5 +1,5 @@
 #!/usr/bin/python -u
-import os, sys, signal, time, logging, logging.config
+import os, sys, signal, time, subprocess, logging, logging.config
 from optparse import OptionParser
 
 PAUSE_LENGTH = 60
@@ -16,7 +16,8 @@ recover = (options.recover == True)
 
 # load logging settings
 scheduler_dir = os.path.join(autodir, 'scheduler')
-os.environ['AUTOTEST_BABYSITTER_LOG_DIR'] = os.path.join(autodir, 'logs')
+AUTOTEST_BABYSITTER_LOG_DIR = os.path.join(autodir, 'logs')
+os.environ['AUTOTEST_BABYSITTER_LOG_DIR'] = AUTOTEST_BABYSITTER_LOG_DIR
 # Here we export the log name, using the same convention as autoserv's results
 # directory.
 babysitter_log_name = 'babysitter.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
@@ -59,14 +60,17 @@ class MonitorProc:
 
         kill_all_monitors()
         environ = os.environ
-        self.log_path = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
-        os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = self.log_path
+        log_name = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
+        os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = log_name
+        os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = AUTOTEST_BABYSITTER_LOG_DIR
+        self.log_path = os.path.join(autodir, 'logs', log_name)
 
         self.log_size = 0
         self.last_log_change = time.time()
 
         logging.info("STARTING monitor_db with log file %s" % self.log_path)
-        utils.run(' '.join(args))
+        devnull = open(os.devnull, 'w')
+        self.proc = subprocess.Popen(args, stdout=devnull)
 
 
     def is_running(self):
