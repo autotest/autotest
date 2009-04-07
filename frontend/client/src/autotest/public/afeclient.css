@@ -52,27 +52,6 @@ tr.data-row-clickable:hover {
   background: #FFFFBB;
 }
 
-.gwt-TabBar .gwt-TabBarItem {
-  background: #CCDDFF;
-  margin-right: 2px;
-  padding: 0.2em;
-  padding-left: 0.4em;
-  padding-right: 0.4em;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.gwt-TabBar .gwt-TabBarItem-selected {
-  background: #003399;
-  color: white;
-  cursor: default;
-}
-
-.gwt-TabPanelBottom {
-  border: 2px solid #6699FF;
-  padding: 5px;
-}
-
 .job-control {
   margin-bottom: 0.5em;
 }
