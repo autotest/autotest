@@ -58,6 +58,7 @@ class Host(object):
     job = None
     DEFAULT_REBOOT_TIMEOUT = 1800
     WAIT_DOWN_REBOOT_TIMEOUT = 600
+    WAIT_DOWN_REBOOT_WARNING = 600
     HOURS_TO_WAIT_FOR_RECOVERY = 2.5
 
 
@@ -146,14 +147,15 @@ class Host(object):
         raise NotImplementedError('Wait up not implemented!')
 
 
-    def wait_down(self, timeout=None):
+    def wait_down(self, timeout=None, warning_timer=None):
         raise NotImplementedError('Wait down not implemented!')
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT, **dargs):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
-        if not self.wait_down(self.WAIT_DOWN_REBOOT_TIMEOUT):
+        if not self.wait_down(timeout=self.WAIT_DOWN_REBOOT_TIMEOUT,
+                              warning_timer=self.WAIT_DOWN_REBOOT_WARNING):
             self.record("ABORT", None, "reboot.verify", "shut down failed")
             raise error.AutoservRebootError("Host did not shut down")
         self.wait_up(timeout)
