@@ -229,7 +229,7 @@ class Host(object):
 
 
     def check_partitions(self, root_part, filter_func=None):
-        """" Compare the contents of /proc/partitions with those of
+        """ Compare the contents of /proc/partitions with those of
         /proc/mounts and raise exception in case unmounted partitions are found
 
         root_part: in Linux /proc/mounts will never directly mention the root
