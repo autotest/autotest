@@ -282,7 +282,7 @@ class AbstractSSHHost(SiteHost):
         return False
 
 
-    def wait_down(self, timeout=None):
+    def wait_down(self, timeout=None, warning_timer=None):
         """
         Wait until the remote host is down or the timeout expires.
 
@@ -290,19 +290,33 @@ class AbstractSSHHost(SiteHost):
         host fails.
 
         Args:
-                timeout: time limit in seconds before returning even
-                        if the host is not up.
+            timeout: time limit in seconds before returning even
+                     if the host is still up.
+            warning_timer: time limit in seconds that will generate
+                     a warning if the host is not down yet.
 
         Returns:
                 True if the host was found to be down, False otherwise
         """
+        current_time = time.time()
         if timeout:
-            end_time = time.time() + timeout
+            end_time = current_time + timeout
 
-        while not timeout or time.time() < end_time:
+        if warning_timer:
+            warn_time = current_time + warning_timer
+
+        while not timeout or current_time < end_time:
             if not self.is_up():
                 return True
+
+            if warning_timer and current_time > warn_time:
+                self.record("WARN", None, "shutdown",
+                            "Shutdown took longer than %ds" % warning_timer)
+                # Print the warning only once.
+                warning_timer = None
+
             time.sleep(1)
+            current_time = time.time()
 
         return False
 
