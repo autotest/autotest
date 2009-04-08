@@ -250,43 +250,44 @@ class Host(object):
                                           [part.device for part in unmounted])
 
 
+    def _wrap_with_verify(self, func):
+        try:
+            func()
+        except Exception, err:
+            traceback.print_exc()
+        self.verify()
+
+
     def repair_filesystem_only(self):
-        TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
-        if self.is_shutting_down():
-            print 'Host is shutting down, waiting for a restart'
-            self.wait_for_restart(TIMEOUT)
-        else:
-            self.wait_up(TIMEOUT)
-        self.reboot()
+        """perform file system repairs only"""
+        def do_repair():
+            TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
+            if self.is_shutting_down():
+                print 'Host is shutting down, waiting for a restart'
+                self.wait_for_restart(TIMEOUT)
+            else:
+                self.wait_up(TIMEOUT)
+            self.reboot()
+
+        self._wrap_with_verify(do_repair)
 
 
     def repair_software_only(self):
         """perform software repairs only"""
         try:
             self.repair_filesystem_only()
-            # repair filesystem seems to have succeded, only a successful
-            # verify can confirm it
-            self.verify()
         except Exception:
             # the filesystem-only repair failed, try something more drastic
             print "Filesystem-only repair failed"
-            traceback.print_exc()
-            try:
-                self.machine_install()
-            except NotImplementedError, e:
-                sys.stderr.write(str(e) + "\n\n")
+            self._wrap_with_verify(self.machine_install)
 
 
     def repair_full(self):
         try:
             self.repair_software_only()
-            # repair software seems to have succeded, only a successful
-            # verify can confirm it
-            self.verify()
         except Exception:
             # software repair failed, try hardware repair
             print "Software only repair failed"
-            traceback.print_exc()
             self.request_hardware_repair()
 
             # repair failed but managed to request for hardware repairs
