@@ -170,7 +170,21 @@ def main():
         stamp = '[%(asctime)s - %(levelname)-8s] %(message)s'
         root_logger = logging.getLogger()
         formatter = logging.Formatter(stamp, datefmt='%H:%M:%S')
-        root_logger.handlers[0].setFormatter(formatter)
+        # Let's verify if we already have handlers for the root logger 
+        # at this point.
+        if len(root_logger.handlers) == 0:
+            autoserv_handler = logging.StreamHandler(sys.stdout,)
+            autoserv_handler.setFormatter(formatter)
+            root_logger.addHandler(autoserv_handler)
+        else:
+            # If we already have any handlers up at this point, let's
+            # just configure this one we already have.
+            root_logger.handlers[0].setFormatter(formatter)
+
+        # When the -N flag is being used, we are assuming DEBUG level for the
+        # execution. We could read the level from the configuration file, 
+        # but I am not sure if this is the right way to go, since we are doing
+        # all the configuration on code (lmr).
         root_logger.setLevel(logging.DEBUG)
 
 
