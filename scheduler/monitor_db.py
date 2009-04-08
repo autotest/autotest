@@ -16,6 +16,7 @@ from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import drone_manager, drones, email_manager
+from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
 
 
@@ -569,6 +570,10 @@ class Dispatcher(object):
         self._agents = []
         self._last_clean_time = time.time()
         self._host_scheduler = HostScheduler()
+        user_cleanup_time = scheduler_config.config.clean_interval
+        self._periodic_cleanup = monitor_db_cleanup.UserCleanup(
+            _db, user_cleanup_time)
+        self._24hr_upkeep = monitor_db_cleanup.TwentyFourHourUpkeep(_db)
         self._host_agents = {}
         self._queue_entry_agents = {}
 
@@ -583,7 +588,7 @@ class Dispatcher(object):
 
     def tick(self):
         _drone_manager.refresh()
-        self._run_cleanup_maybe()
+        self._run_cleanup()
         self._find_aborting()
         self._schedule_new_jobs()
         self._handle_agents()
@@ -591,17 +596,9 @@ class Dispatcher(object):
         email_manager.manager.send_queued_emails()
 
 
-    def _run_cleanup_maybe(self):
-        should_cleanup = (self._last_clean_time +
-                          scheduler_config.config.clean_interval * 60 <
-                          time.time())
-        if should_cleanup:
-            logging.info('Running cleanup')
-            self._abort_timed_out_jobs()
-            self._abort_jobs_past_synch_start_timeout()
-            self._clear_inactive_blocks()
-            self._check_for_db_inconsistencies()
-            self._last_clean_time = time.time()
+    def _run_cleanup(self):
+        self._periodic_cleanup.run_cleanup_maybe()
+        self._24hr_upkeep.run_cleanup_maybe()
 
 
     def _register_agent_for_ids(self, agent_dict, object_ids, agent):
@@ -794,50 +791,6 @@ class Dispatcher(object):
                                    print_message=message)
 
 
-    def _abort_timed_out_jobs(self):
-        """
-        Aborts all jobs that have timed out and not completed
-        """
-        query = models.Job.objects.filter(hostqueueentry__complete=False).extra(
-            where=['created_on + INTERVAL timeout HOUR < NOW()'])
-        for job in query.distinct():
-            logging.warning('Aborting job %d due to job timeout', job.id)
-            job.abort(None)
-
-
-    def _abort_jobs_past_synch_start_timeout(self):
-        """
-        Abort synchronous jobs that are past the start timeout (from global
-        config) and are holding a machine that's in everyone.
-        """
-        timeout_delta = datetime.timedelta(
-            minutes=scheduler_config.config.synch_job_start_timeout_minutes)
-        timeout_start = datetime.datetime.now() - timeout_delta
-        query = models.Job.objects.filter(
-            created_on__lt=timeout_start,
-            hostqueueentry__status='Pending',
-            hostqueueentry__host__aclgroup__name='Everyone')
-        for job in query.distinct():
-            logging.warning('Aborting job %d due to start timeout', job.id)
-            entries_to_abort = job.hostqueueentry_set.exclude(
-                status=models.HostQueueEntry.Status.RUNNING)
-            for queue_entry in entries_to_abort:
-                queue_entry.abort(None)
-
-
-    def _clear_inactive_blocks(self):
-        """
-        Clear out blocks for all completed jobs.
-        """
-        # this would be simpler using NOT IN (subquery), but MySQL
-        # treats all IN subqueries as dependent, so this optimizes much
-        # better
-        _db.execute("""
-            DELETE ihq FROM ineligible_host_queues ihq
-            LEFT JOIN (SELECT DISTINCT job_id FROM host_queue_entries
-                       WHERE NOT complete) hqe
-            USING (job_id) WHERE hqe.job_id IS NULL""")
-
 
     def _get_pending_queue_entries(self):
         # prioritize by job priority, then non-metahost over metahost, then FIFO
@@ -965,20 +918,6 @@ class Dispatcher(object):
             agent.tick()
         logging.info('%d running processes', 
                      _drone_manager.total_running_processes())
-
-
-    def _check_for_db_inconsistencies(self):
-        query = models.HostQueueEntry.objects.filter(active=True, complete=True)
-        if query.count() != 0:
-            subject = ('%d queue entries found with active=complete=1'
-                       % query.count())
-            message = '\n'.join(str(entry.get_object_dict())
-                                for entry in query[:50])
-            if len(query) > 50:
-                message += '\n(truncated)\n'
-
-            logging.error(subject)
-            email_manager.manager.enqueue_notify_email(subject, message)
 
 
 class PidfileRunMonitor(object):
