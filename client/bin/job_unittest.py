@@ -68,6 +68,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(self.job, '_load_state')
         self.god.stub_function(self.job, '_init_group_level')
         self.god.stub_function(self.job, 'config_get')
+        self.god.stub_function(self.job, 'config_set')
         self.god.stub_function(self.job, 'record')
         self.god.stub_function(self.job, '_increment_group_level')
         self.god.stub_function(self.job, '_decrement_group_level')
@@ -126,8 +127,14 @@ class TestBaseJob(unittest.TestCase):
         self.job.get_state.expect_call('__monitor_disk',
                                        default=0.0).and_return(0.0)
 
+        self.god.stub_function(utils, 'read_one_line')
+        utils.read_one_line.expect_call('/proc/cmdline').and_return(
+            'blah more-blah root=lala IDENT=81234567 blah-again console=tty1')
+        self.job.config_set.expect_call('boot.default_args',
+                                        'more-blah console=tty1')
         # finish constructor
-        self.job.__init__(self.control, self.jobtag, cont)
+        self.job.__init__(self.control, self.jobtag, cont,
+                          extra_copy_cmdline=['more-blah'])
 
         # check
         self.god.check_playback()
@@ -181,6 +188,8 @@ class TestBaseJob(unittest.TestCase):
     def test_config_set(self):
         self.construct_job(True)
 
+        # unstub config_set
+        self.god.unstub(self.job, 'config_set')
         # record
         name = "foo"
         val = 10
@@ -484,7 +493,6 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(utils, "running_os_ident")
         utils.running_os_ident.expect_call().and_return("2.6.15-smp")
 
-        self.god.stub_function(utils, "read_one_line")
         utils.read_one_line.expect_call("/proc/cmdline").and_return(
             "blah more-blah root=lala IDENT=81234567 blah-again")
 
@@ -511,7 +519,6 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(utils, "running_os_ident")
         utils.running_os_ident.expect_call().and_return("2.6.15-smp")
 
-        self.god.stub_function(utils, "read_one_line")
         utils.read_one_line.expect_call("/proc/cmdline").and_return(
             "blah more-blah root=lala IDENT=81234567 blah-again")
 
