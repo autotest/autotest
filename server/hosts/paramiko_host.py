@@ -1,4 +1,4 @@
-import os, sys, time, signal, socket, re, fnmatch
+import os, sys, time, signal, socket, re, fnmatch, logging
 import paramiko
 
 from autotest_lib.client.common_lib import utils, error, debug
@@ -121,10 +121,20 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
         if not channel:
             # we couldn't get a channel; re-initing transport should fix that
+            try:
+                self.transport.close()
+            except Exception, e:
+                logging.debug("paramiko.Transport.close failed with %s", e)
             self._init_transport()
             return self.transport.open_session()
         else:
             return channel
+
+
+    def close(self):
+        super(ParamikoHost, self).close()
+        if os.getpid() == self.pid:
+            self.transport.close()
 
 
     @staticmethod
