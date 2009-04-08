@@ -94,7 +94,8 @@ class base_job(object):
     WARNING_DISABLE_DELAY = 5
 
     def __init__(self, control, jobtag, cont, harness_type=None,
-                 use_external_logging=False, drop_caches=True):
+                 use_external_logging=False, drop_caches=True,
+                 extra_copy_cmdline=None):
         """
         Prepare a client side job object.
 
@@ -107,6 +108,9 @@ class base_job(object):
                   method will be called during construction.  [False]
           drop_caches: If true, utils.drop_caches() is
                   called before and between all tests.  [True]
+          extra_copy_cmdline: list of additional /proc/cmdline arguments to
+                  copy from the running kernel to all the installed kernels
+                  with this job
         """
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
@@ -226,6 +230,22 @@ class base_job(object):
 
         # load the max disk usage rate - default to no monitoring
         self.max_disk_usage_rate = self.get_state('__monitor_disk', default=0.0)
+
+        copy_cmdline = set(['console'])
+        if extra_copy_cmdline is not None:
+            copy_cmdline.update(extra_copy_cmdline)
+
+        # extract console= and other args from cmdline and add them into the
+        # base args that we use for all kernels we install
+        cmdline = utils.read_one_line('/proc/cmdline')
+        kernel_args = []
+        for karg in cmdline.split():
+            for param in copy_cmdline:
+                if karg.startswith(param) and \
+                    (len(param) == len(karg) or karg[len(param)] == '='):
+                    kernel_args.append(karg)
+        self.config_set('boot.default_args', ' '.join(kernel_args))
+
 
     def disable_warnings(self, warning_type):
         self.record("INFO", None, None,
