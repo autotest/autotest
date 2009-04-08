@@ -107,6 +107,17 @@ print_status "Running site_db migrations"
     --database=TKO safesync"
 )
 
+# - Django syncdb
+
+print_status "Running syncdb on Django interface"
+# Due to the way Django creates permissions objects, we sometimes need
+# to run syncdb twice.
+for i in 1 2; do
+  ( cd $BASE_DIR/frontend && 
+    su $BECOME_USER -c "python manage.py syncdb --noinput"
+  )
+done
+
 # --- compile AfeClient 
 
 print_status "Compiling AfeClient"
@@ -154,4 +165,3 @@ then
   print_status "Finalizing release"
   su $BECOME_USER -c $BASE_DIR/site_utils/site_restart_final || fatal
 fi
-
