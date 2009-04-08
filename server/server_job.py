@@ -555,6 +555,7 @@ class base_server_job(object):
             self.record_prefix = old_record_prefix
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END FAIL', None, 'reboot', err_msg)
+            raise
         else:
             kernel = get_kernel_func()
             self.record_prefix = old_record_prefix
