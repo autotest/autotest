@@ -1,4 +1,4 @@
-import os, sys, subprocess
+import os, sys, subprocess, logging
 
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.server import utils as server_utils
@@ -56,8 +56,13 @@ class SerialHost(SiteHost):
         conmux_attach = cls._get_conmux_attach(conmux_attach)
         conmux_hostname = cls._get_conmux_hostname(hostname, conmux_server)
         cmd = "%s %s echo 2> /dev/null" % (conmux_attach, conmux_hostname)
-        result = utils.run(cmd, ignore_status=True)
-        return result.exit_status == 0
+        try:
+            result = utils.run(cmd, ignore_status=True, timeout=10)
+            return result.exit_status == 0
+        except error.CmdError:
+            logging.warning("Timed out while trying to attach to conmux")
+
+        return False
 
 
     def start_loggers(self):
