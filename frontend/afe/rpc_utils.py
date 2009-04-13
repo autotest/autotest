@@ -269,12 +269,17 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
         hosts_in_label = (h.hostname for h in label.host_set.all())
         possible_hosts.intersection_update(hosts_in_label)
 
-    host_set = set(host.hostname for host in host_objects)
-    unusable_host_set = host_set.difference(possible_hosts)
-    if unusable_host_set:
-        raise model_logic.ValidationError(
-            {'hosts': 'Hosts "%s" are not in Atomic Group "%s"' %
-             (', '.join(sorted(unusable_host_set)), atomic_group.name)})
+    if not host_objects and not metahost_objects:
+        # No hosts or metahosts are required to queue an atomic group Job.
+        # However, if they are given, we respect them below.
+        host_set = possible_hosts
+    else:
+        host_set = set(host.hostname for host in host_objects)
+        unusable_host_set = host_set.difference(possible_hosts)
+        if unusable_host_set:
+            raise model_logic.ValidationError(
+                {'hosts': 'Hosts "%s" are not in Atomic Group "%s"' %
+                 (', '.join(sorted(unusable_host_set)), atomic_group.name)})
 
     # Lookup hosts provided by each meta host and merge them into the
     # host_set for final counting.
