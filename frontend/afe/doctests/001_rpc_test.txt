@@ -535,19 +535,37 @@ True
 ['host2', 'host1']
 
 
+# cloning a job
+# #############
+
+>>> job_id = rpc_interface.create_job(name='my_job_to_clone',
+...                                   priority='High',
+...                                   control_file=cf_info['control_file'],
+...                                   control_type='Client',
+...                                   hosts=['host2'],
+...                                   synch_count=1)
+>>> info = rpc_interface.get_info_for_clone(job_id, False)
+>>> info['atomic_group_name']
+>>> info['meta_host_counts']
+{}
+>>> info['job']['dependencies']
+[]
+>>> info['job']['priority']
+'High'
+
+
 # advanced usage
 # ##############
 
 # synch_count
->>> rpc_interface.create_job(name='my_job',
+>>> job_id = rpc_interface.create_job(name='my_job',
 ...                          priority='Low',
 ...                          control_file=cf_info['control_file'],
 ...                          control_type='Server',
 ...                          synch_count=2,
 ...                          hosts=['host1', 'host2'])
-2
 
->>> data = rpc_interface.get_jobs(id=2)
+>>> data = rpc_interface.get_jobs(id=job_id)
 >>> data[0]['synch_count']
 2
 

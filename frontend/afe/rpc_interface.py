@@ -527,7 +527,8 @@ def get_info_for_clone(id, preserve_metahosts):
         else:
             meta_hosts.append(queue_entry.meta_host.name)
         if atomic_group_name is None:
-            atomic_group_name = queue_entry.atomic_group.name
+            if queue_entry.atomic_group is not None:
+                atomic_group_name = queue_entry.atomic_group.name
         else:
             assert atomic_group_name == queue_entry.atomic_group.name, (
                     'DB inconsistency.  HostQueueEntries with multiple atomic'
