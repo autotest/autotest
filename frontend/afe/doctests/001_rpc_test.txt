@@ -601,21 +601,21 @@ True
 # #############
 
 # Add an atomic group and associate some labels and new hosts with it.
->>> rpc_interface.add_atomic_group(name='mini rack',
-...                                max_number_of_machines=10,
-...                                description='a partial rack-o-machines')
-1
+>>> mini_rack_group_id = rpc_interface.add_atomic_group(
+...         name='mini rack',
+...         max_number_of_machines=10,
+...         description='a partial rack-o-machines')
 
 >>> label_id = rpc_interface.add_label(name='one-label')
 >>> rpc_interface.modify_label(label_id, atomic_group='mini rack')
 >>> labels = rpc_interface.get_labels(id=label_id)
->>> assert labels[0]['atomic_group']['id'] == 1, labels
+>>> assert labels[0]['atomic_group']['id'] == mini_rack_group_id, labels
 >>> rpc_interface.modify_label(label_id, atomic_group=None)
 >>> labels = rpc_interface.get_labels(id=label_id)
 >>> assert not labels[0]['atomic_group'], labels
 >>> rpc_interface.modify_label(label_id, atomic_group='mini rack')
 >>> labels = rpc_interface.get_labels(id=label_id)
->>> assert labels[0]['atomic_group']['id'] == 1, labels
+>>> assert labels[0]['atomic_group']['id'] == mini_rack_group_id, labels
 >>> rpc_interface.modify_label(label_id, atomic_group='dummy')
 Traceback (most recent call last):
 DoesNotExist: AtomicGroup matching query does not exist.
@@ -623,11 +623,11 @@ DoesNotExist: AtomicGroup matching query does not exist.
 >>> data = rpc_interface.get_labels(atomic_group__name='mini rack')
 >>> assert len(data) == 1
 >>> assert data[0]['name'] == 'one-label', data
->>> assert data[0]['atomic_group']['id'] == 1, data
+>>> assert data[0]['atomic_group']['id'] == mini_rack_group_id, data
 
 >>> data = rpc_interface.get_atomic_groups()
 >>> assert len(data) == 1
->>> assert data[0]['id'] == 1, data
+>>> assert data[0]['id'] == mini_rack_group_id, data
 >>> assert data[0]['max_number_of_machines'] == 10, data
 >>> assert data[0]['description'] == 'a partial rack-o-machines', data
 
@@ -646,15 +646,31 @@ DoesNotExist: AtomicGroup matching query does not exist.
 >>> blue_id = rpc_interface.add_label(name='blue-label')
 >>> rpc_interface.label_add_hosts(blue_id, ['ah3-blue', 'ah4-blue'])
 
->>> rpc_interface.atomic_group_add_labels(1, ['one-label', 'two-label',
-...                                           'red-label'])
+>>> rpc_interface.atomic_group_add_labels(mini_rack_group_id,
+...                                       ['one-label', 'two-label',
+...                                        'red-label'])
 >>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
 >>> len(ag_labels)
 3
->>> rpc_interface.atomic_group_remove_labels(1, ['red-label'])
+>>> hosts_in_two = rpc_interface.get_hosts(multiple_labels=['two-label'])
+>>> list(sorted(h['hostname'] for h in hosts_in_two))
+['ah3-blue', 'ah4-blue', 'ahost1', 'ahost2']
+>>> rpc_interface.atomic_group_remove_labels(mini_rack_group_id, ['red-label'])
 >>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
 >>> sorted(label['name'] for label in ag_labels)
 ['one-label', 'two-label']
+
+## Test creation of a job in an atomic group without specifying any
+## hosts or meta_hosts.
+
+>>> sleep_cf_info = rpc_interface.generate_control_file(
+...         tests=['sleeptest'],  kernel='2.6.18-230.3',
+...         label='two-label')
+>>> job_id = rpc_interface.create_job(
+...         name='atomic_sleeptest', priority='Medium',
+...         control_file=sleep_cf_info['control_file'],
+...         control_type='Server', synch_count=1,
+...         atomic_group_name='mini rack')
 
 ## Test job creation with an atomic group.
 
