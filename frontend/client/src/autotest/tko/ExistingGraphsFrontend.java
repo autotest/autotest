@@ -149,11 +149,6 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     }
 
     @Override
-    protected void setDrilldownTrigger() {
-        // No drilldowns
-    }
-
-    @Override
     protected void addAdditionalEmbeddingParams(JSONObject params) {
         // No embedding
     }
