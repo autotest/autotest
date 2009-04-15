@@ -242,6 +242,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
             AclGroup.objects.get(name='Everyone').hosts.add(host)
             host.status = Host.Status.READY
         host.protection = host_protections.Protection.DO_NOT_REPAIR
+        host.locked = False
         host.save()
         return host
 
