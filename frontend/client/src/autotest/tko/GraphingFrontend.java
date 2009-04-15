@@ -7,6 +7,7 @@ import autotest.common.Utils;
 import autotest.common.CustomHistory.CustomHistoryListener;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.NotifyManager;
+import autotest.common.ui.SimpleDialog;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TableView.TableSwitchListener;
 
@@ -15,10 +16,8 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
 import com.google.gwt.user.client.ui.TextBox;
@@ -38,13 +37,7 @@ public abstract class GraphingFrontend extends Composite
     public abstract void refresh();
     public abstract void addToHistory(Map<String, String> args);
     public abstract void handleHistoryArguments(Map<String, String> args);
-    
-    /**
-     * This function is called at initialization time and allows the frontend to put native 
-     * callbacks in place for drilldown functionality from graphs.
-     */
-    protected abstract void setDrilldownTrigger();
-    
+
     /**
      * This function allows subclasses to add parameters to the call to get_embedding_id() RPC,
      * called when a user requests an embeddable link to a graph.
@@ -56,31 +49,8 @@ public abstract class GraphingFrontend extends Composite
      */
     public abstract String getFrontendId();
     
-    protected static class GraphingDialog extends DialogBox {
-        protected GraphingDialog(String title, Widget contents) {
-            super(false, false);
-            
-            FlexTable flex = new FlexTable();
-            flex.setText(0, 0, title);
-            flex.getFlexCellFormatter().setStylePrimaryName(0, 0, "field-name");
-            
-            flex.setWidget(1, 0, contents);
-            
-            Button ok = new Button("OK");
-            ok.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
-                    hide();
-                }
-            });
-            flex.setWidget(2, 0, ok);
-            
-            add(flex);
-        }
-    }
-    
     protected GraphingFrontend() {
         CustomHistory.addHistoryListener(this);
-        setDrilldownTrigger();
         embeddingLink.addClickListener(this);
     }
     
@@ -125,7 +95,7 @@ public abstract class GraphingFrontend extends Composite
         linkBox.setWidth("100%");
         linkBox.setSelectionRange(0, link.length());
         
-        new GraphingDialog("Paste HTML to embed in website:", linkBox).center();
+        new SimpleDialog("Paste HTML to embed in website:", linkBox).center();
     }
     
     protected void setListener(TableSwitchListener listener) {

@@ -1,20 +1,15 @@
 package autotest.tko;
 
-import autotest.common.JsonRpcCallback;
 import autotest.common.Utils;
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 import autotest.tko.SeriesSelector.Series;
 
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
@@ -52,7 +47,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     });
     
     public MetricsPlotFrontend(final TabView parent) {
-        super(parent, "create_metrics_plot", "metrics");
+        super(parent, new MetricsPlot(), "metrics");
 
         noNormalizeSingle.setChecked(true);
 
@@ -148,7 +143,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     @Override
     public void handleHistoryArguments(Map<String, String> args) {
         setVisible(false);
-        graph.setVisible(false);
+        plot.setVisible(false);
         embeddingLink.setVisible(false);
         globalFilter.reset();
         seriesSelector.reset();
@@ -211,49 +206,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
             }
         }
     }
-    
-    @Override
-    protected native void setDrilldownTrigger() /*-{
-        var instance = this;
-        $wnd.showMetricsDrilldown = function(query, series, param) {
-            instance.@autotest.tko.MetricsPlotFrontend::showDrilldown(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)(query, series, param);
-        }
-    }-*/;
-    
-    @SuppressWarnings("unused")
-    private void showDrilldown(String query, final String series, final String param) {
-        JSONObject params = new JSONObject();
-        params.put("query", new JSONString(query));
-        params.put("param", new JSONString(param));
-        rpcProxy.rpcCall("execute_query_with_param", params, new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
-                JSONArray data = result.isArray();
-                
-                String title = series + " for " + param;
-                FlexTable contents = new FlexTable();
-                final GraphingDialog drill = new GraphingDialog(title, contents);
-                
-                for (int i = 0; i < data.size(); i++) {
-                    final JSONArray row = data.get(i).isArray();
-                    final int testId = (int) row.get(0).isNumber().doubleValue();
-                    String yValue = Utils.jsonToString(row.get(1));
 
-                    SimpleHyperlink link = new SimpleHyperlink(yValue);
-                    link.addClickListener(new ClickListener() {
-                        public void onClick(Widget sender) {
-                            drill.hide();
-                            listener.onSelectTest(testId);
-                        }
-                    });
-                    contents.setWidget(i, 0, link);
-                }
-                
-                drill.center();
-            }
-        });
-    }
-    
     // Disable "No Normalization (multiple)" for bar charts
     private void checkNormalizeInput() {
         if (plotSelector.getValue(plotSelector.getSelectedIndex()).equals("Line")) {

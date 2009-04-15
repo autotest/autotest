@@ -2,12 +2,10 @@ package autotest.tko;
 
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
-import autotest.tko.TableView.TableViewConfig;
 
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.TextBox;
 
 import java.util.Map;
@@ -20,8 +18,9 @@ public class MachineQualHistogramFrontend extends DynamicGraphingFrontend {
     private FilterSelector testFilters =
         new FilterSelector(DBColumnSelector.TEST_VIEW);
     private TextBox interval = new TextBox();
+
     public MachineQualHistogramFrontend(final TabView parent) {
-        super(parent, "create_qual_histogram", "qual");
+        super(parent, new MachineQualHistogram(), "qual");
 
         interval.setText(DEFAULT_INTERVAL);
 
@@ -32,41 +31,11 @@ public class MachineQualHistogramFrontend extends DynamicGraphingFrontend {
         
         commonInitialization();
     }
-
-    @Override
-    protected native void setDrilldownTrigger() /*-{
-        var instance = this;
-        $wnd.showQualDrilldown = function(filterString) {
-            instance.@autotest.tko.MachineQualHistogramFrontend::showDrilldown(Ljava/lang/String;)(filterString);
-        }
-        $wnd.showQualNADialog = function(hosts) {
-            instance.@autotest.tko.MachineQualHistogramFrontend::showNADialog(Ljava/lang/String;)(hosts);
-        }
-        $wnd.showQualEmptyDialog = function() {
-            instance.@autotest.tko.MachineQualHistogramFrontend::showEmptyDialog()();
-        }
-    }-*/;
     
     @Override
     protected void addAdditionalEmbeddingParams(JSONObject params) {
         params.put("graph_type", new JSONString("qual"));
         params.put("params", buildParams());
-    }
-    
-    @SuppressWarnings("unused") // method is called from native code only
-    private void showDrilldown(final String filterString) {
-        CommonPanel.getPanel().setSqlCondition(filterString);
-        listener.onSwitchToTable(TableViewConfig.PASS_RATE);
-    }
-    
-    @SuppressWarnings("unused")
-    private void showNADialog(String hosts) {
-        new GraphingDialog("Did not run any of the selected tests:", new HTML(hosts)).center();
-    }
-    
-    @SuppressWarnings("unused")
-    private void showEmptyDialog() {
-        new GraphingDialog("No hosts in this pass rate range", new HTML()).center();
     }
     
     private JSONString buildQuery() {
@@ -137,7 +106,7 @@ public class MachineQualHistogramFrontend extends DynamicGraphingFrontend {
         params.put("query", buildQuery());
         params.put("filter_string", buildFilterString());
         params.put("interval", new JSONNumber(intervalValue));
-        
+
         return params;
     }
 

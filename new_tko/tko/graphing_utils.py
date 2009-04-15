@@ -15,6 +15,7 @@ import matplotlib.figure, matplotlib.backends.backend_agg
 import StringIO, colorsys, PIL.Image, PIL.ImageChops
 from autotest_lib.frontend.afe import readonly_connection
 from autotest_lib.frontend.afe.model_logic import ValidationError
+from autotest_lib.frontend.afe.simplejson import encoder
 from autotest_lib.client.common_lib import global_config
 from new_tko.tko import models, tko_rpc_utils
 
@@ -37,6 +38,8 @@ _LEGEND_MARKER_TYPE = 'o'
 
 _LINE_XTICK_LABELS_SIZE = 'x-small'
 _BAR_XTICK_LABELS_SIZE = 8
+
+_json_encoder = encoder.JSONEncoder()
 
 class NoDataError(Exception):
     """\
@@ -172,7 +175,7 @@ def _create_line(plots, labels, queries, invert, single):
         icoords = line.get_transform().transform(zip(x,y))
 
         # Get the appropriate drilldown query
-        drill = _quote(queries['__' + label + '__'])
+        drill = queries['__' + label + '__']
 
         # Set the title attributes (hover-over tool-tips)
         x_labels = [labels[x_val] for x_val in x]
@@ -180,15 +183,15 @@ def _create_line(plots, labels, queries, invert, single):
                   for x_label, y_val in zip(x_labels, y)]
 
         # Get the appropriate parameters for the drilldown query
-        params = [[drill, _quote(line.get_label()), _quote(x_label)]
+        params = [dict(query=drill, series=line.get_label(), param=x_label)
                   for x_label in x_labels]
 
         area_data += [dict(left=ix - 5, top=height - iy - 5,
                            right=ix + 5, bottom=height - iy + 5,
                            title= title,
                            callback='showMetricsDrilldown',
-                           callback_arguments=param_list)
-                      for (ix, iy), title, param_list
+                           callback_arguments=param_dict)
+                      for (ix, iy), title, param_dict
                       in zip(icoords, titles, params)]
 
     subplot.set_xticklabels(labels, rotation=90, size=_LINE_XTICK_LABELS_SIZE)
@@ -290,20 +293,20 @@ def _create_bar(plots, labels, queries, invert):
             [(x + width, 0) for x in adjusted_x])
 
         # Get the drilldown query
-        drill = _quote(queries['__' + label + '__'])
+        drill = queries['__' + label + '__']
 
         # Set the title attributes
         x_labels = [labels[x] for x in plot['x']]
         titles = ['%s - %s: %f' % (plot['label'], label, y)
                   for label, y in zip(x_labels, plot['y'])]
-        params = [[drill, _quote(plot['label']), _quote(x_label)]
+        params = [dict(query=drill, series=plot['label'], param=x_label)
                   for x_label in x_labels]
         area_data += [dict(left=ulx, top=height - uly,
                            right=brx, bottom=height - bry,
                            title=title,
                            callback='showMetricsDrilldown',
-                           callback_arguments=param_list)
-                      for (ulx, uly), (brx, bry), title, param_list
+                           callback_arguments=param_dict)
+                      for (ulx, uly), (brx, bry), title, param_dict
                       in zip(upper_left_coords, bottom_right_coords, titles,
                              params)]
 
@@ -379,12 +382,11 @@ def _create_image_html(figure, area_data, name):
     png, bbox = _create_png(figure)
 
     # Construct the list of image map areas
-    areas = [_AREA_TEMPLATE % (data['left'] - bbox[0],
-                               data['top'] - bbox[1],
-                               data['right'] - bbox[0],
-                               data['bottom'] - bbox[1],
-                               data['title'], data['callback'],
-                               ','.join(data['callback_arguments']))
+    areas = [_AREA_TEMPLATE %
+             (data['left'] - bbox[0], data['top'] - bbox[1],
+              data['right'] - bbox[0], data['bottom'] - bbox[1],
+              data['title'], data['callback'],
+              _json_encoder.encode(data['callback_arguments']).replace('"', '&quot;'))
              for data in area_data]
 
     return _HTML_TEMPLATE % (base64.b64encode(png), name, name,
@@ -686,31 +688,28 @@ def _create_qual_histogram_helper(query, filter_string, interval,
     if filter_string:
         filter_string += ' AND '
 
-    # Construct the list of JavaScript functions to be called when the user
+    # Construct the list of drilldown parameters to be passed when the user
     # clicks on the bar.
-    funcs = []
     params = []
     for names in names_list:
         if names:
             hostnames = ','.join(_quote(hostname) for hostname in names)
             hostname_filter = 'hostname IN (%s)' % hostnames
             full_filter = filter_string + hostname_filter
-            funcs.append('showQualDrilldown')
-            params.append([_quote(full_filter)])
+            params.append({'type': 'normal',
+                           'filterString': full_filter})
         else:
-            funcs.append('showQualEmptyDialog')
-            params.append([])
+            params.append({'type': 'empty'})
 
-    funcs.append('showQualNADialog')
-    params.append([_quote('<br />'.join(no_tests))])
+    params.append({'type': 'not_applicable',
+                   'hosts': '<br />'.join(no_tests)})
 
     area_data = [dict(left=ulx, top=height - uly,
                       right=brx, bottom=height - bry,
-                      title=title, callback=func,
-                      callback_arguments=param_list)
-                 for (ulx, uly), (brx, bry), title, func, param_list
-                 in zip(upper_left_coords, bottom_right_coords,
-                        titles, funcs, params)]
+                      title=title, callback='showQualDrilldown',
+                      callback_arguments=param_dict)
+                 for (ulx, uly), (brx, bry), title, param_dict
+                 in zip(upper_left_coords, bottom_right_coords, titles, params)]
 
     # TODO(showard): extract these magic numbers to named constants
     if extra_text:
