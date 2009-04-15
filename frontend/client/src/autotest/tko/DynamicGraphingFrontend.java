@@ -1,15 +1,14 @@
 package autotest.tko;
 
 import autotest.common.JsonRpcCallback;
-import autotest.common.Utils;
 import autotest.common.ui.TabView;
 import autotest.tko.PreconfigSelector.PreconfigHandler;
+import autotest.tko.TableView.TableSwitchListener;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -19,13 +18,13 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
                                               implements ClickListener, PreconfigHandler {
     protected PreconfigSelector preconfig;
     protected Button graphButton = new Button("Graph");
-    protected HTML graph = new HTML();
+    protected Plot plot;
     private TabView parent;
-    private String rpcName;
 
-    public DynamicGraphingFrontend(final TabView parent, String rpcName, String preconfigType) {
+    public DynamicGraphingFrontend(final TabView parent, Plot plot, String preconfigType) {
         this.parent = parent;
-        this.rpcName = rpcName;
+        this.plot = plot;
+        plot.setDrilldownTrigger();
         preconfig = new PreconfigSelector(preconfigType, this);
         graphButton.addClickListener(this);
     }
@@ -38,7 +37,7 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
         }
         
         parent.updateHistory();
-        graph.setVisible(false);
+        plot.setVisible(false);
         embeddingLink.setVisible(false);
         graphButton.setEnabled(false);
         
@@ -47,11 +46,10 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
             return;
         }
         
-        rpcProxy.rpcCall(rpcName, params, new JsonRpcCallback() {
+        plot.refresh(params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                graph.setHTML(Utils.jsonToString(result));
-                graph.setVisible(true);
+                plot.setVisible(true);
                 embeddingLink.setVisible(true);
                 graphButton.setEnabled(true);
             }
@@ -73,14 +71,14 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
 
     protected void commonInitialization() {
         table.setWidget(table.getRowCount(), 1, graphButton);
-        table.setWidget(table.getRowCount(), 0, graph);
+        table.setWidget(table.getRowCount(), 0, plot);
         table.getFlexCellFormatter().setColSpan(table.getRowCount() - 1, 0, 3);
         
         table.setWidget(table.getRowCount(), 2, embeddingLink);
         table.getFlexCellFormatter().setHorizontalAlignment(
                 table.getRowCount() - 1, 2, HasHorizontalAlignment.ALIGN_RIGHT);
         
-        graph.setVisible(false);
+        plot.setVisible(false);
         embeddingLink.setVisible(false);
         
         initWidget(table);
@@ -88,5 +86,11 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
 
     public void handlePreconfig(Map<String, String> preconfigParameters) {
         handleHistoryArguments(preconfigParameters);
+    }
+
+    @Override
+    protected void setListener(TableSwitchListener listener) {
+        super.setListener(listener);
+        plot.setListener(listener);
     }
 }

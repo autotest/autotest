@@ -60,7 +60,7 @@ public class FilterSelector extends Composite {
         }
         
         public boolean isEmpty() {
-            return condition.equals("");
+            return condition.getText().equals("");
         }
         
         public String getFilterString() {

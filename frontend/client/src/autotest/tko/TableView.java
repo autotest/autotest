@@ -136,8 +136,8 @@ public class TableView extends ConditionTabView
     }
     
     public void setupDefaultView() {
-        selectColumns(DEFAULT_COLUMNS);
         tableSorts.clear();
+        selectColumns(DEFAULT_COLUMNS);
         updateViewFromState();
     }
 
@@ -149,8 +149,8 @@ public class TableView extends ConditionTabView
     }
 
     public void setupPassRate() {
-        selectColumns(PASS_RATE_GROUP_COLUMNS);
         tableSorts.clear();
+        selectColumns(PASS_RATE_GROUP_COLUMNS);
         updateViewFromState();
     }
 
