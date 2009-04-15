@@ -1798,8 +1798,8 @@ class DBObject(object):
         sql = 'SELECT * FROM %s WHERE ID=%%s' % self.__table
         rows = _db.execute(sql, (row_id,))
         if not rows:
-            raise DBError("row not found (table=%s, id=%s)"
-                          % (self.__table, id))
+            raise DBError("row not found (table=%s, row id=%s)"
+                          % (self.__table, row_id))
         return rows[0]
 
 
@@ -1884,7 +1884,13 @@ class DBObject(object):
         if self.__new_record:
             keys = self._fields[1:] # avoid id
             columns = ','.join([str(key) for key in keys])
-            values = ['"%s"' % self.__dict__[key] for key in keys]
+            values = []
+            for key in keys:
+                value = getattr(self, key)
+                if value is None:
+                    values.append('NULL')
+                else:
+                    values.append('"%s"' % value)
             values_str = ','.join(values)
             query = ('INSERT INTO %s (%s) VALUES (%s)' %
                      (self.__table, columns, values_str))
