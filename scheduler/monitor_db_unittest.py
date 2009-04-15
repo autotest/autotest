@@ -265,6 +265,32 @@ class DBObjectTest(BaseSchedulerTest):
         host = self.assertRaises(monitor_db.DBError, monitor_db.Host, id=3,
                                  always_query=True)
 
+    def test_save(self):
+        # Dummy Job to avoid creating a one in the HostQueueEntry __init__.
+        class MockJob(object):
+            def __init__(self, id):
+                pass
+            def tag(self):
+                return 'MockJob'
+        self.god.stub_with(monitor_db, 'Job', MockJob)
+        hqe = monitor_db.HostQueueEntry(
+                new_record=True,
+                row=[0, 1, 2, 'Queued', None, 0, 0, 0, '.', None])
+        hqe.save()
+        new_id = hqe.id
+        # Force a re-query and verify that the correct data was stored.
+        monitor_db.DBObject._clear_instance_cache()
+        hqe = monitor_db.HostQueueEntry(id=new_id)
+        self.assertEqual(hqe.id, new_id)
+        self.assertEqual(hqe.job_id, 1)
+        self.assertEqual(hqe.host_id, 2)
+        self.assertEqual(hqe.status, 'Queued')
+        self.assertEqual(hqe.meta_host, None)
+        self.assertEqual(hqe.active, False)
+        self.assertEqual(hqe.complete, False)
+        self.assertEqual(hqe.deleted, False)
+        self.assertEqual(hqe.execution_subdir, '.')
+        self.assertEqual(hqe.atomic_group_id, None)
 
 
 class DispatcherSchedulingTest(BaseSchedulerTest):
