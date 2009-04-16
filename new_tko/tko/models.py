@@ -385,6 +385,11 @@ class TestViewManager(TempManager):
         return [row[0] for row in rows if row[0] is not None]
 
 
+    def escape_user_sql(self, sql):
+        sql = super(TestViewManager, self).escape_user_sql(sql)
+        return sql.replace('test_idx', self.get_key_on_this_table('test_idx'))
+
+
 class TestView(dbmodels.Model, model_logic.ModelExtensions):
     extra_fields = {
         'DATE(test_finished_time)' : 'test finished day',
