@@ -419,5 +419,6 @@ def get_static_data():
     result['perf_view'] = perf_view
     result['test_view'] = model_fields
     result['preconfigs'] = preconfigs.manager.all_preconfigs()
+    result['motd'] = rpc_utils.get_motd()
 
     return result
