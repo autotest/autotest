@@ -215,4 +215,9 @@ public class TestLabelManager implements ClickListener {
         currentTestCondition = condition;
         addOrRemoveLabel(INVALIDATED_LABEL, true);
     }
+    
+    public void handleRevalidate(JSONObject condition) {
+        currentTestCondition = condition;
+        addOrRemoveLabel(INVALIDATED_LABEL, false);
+    }
 }
