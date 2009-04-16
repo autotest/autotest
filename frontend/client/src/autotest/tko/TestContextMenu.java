@@ -35,6 +35,11 @@ public class TestContextMenu extends ContextMenu {
                 labelManager.handleInvalidate(condition);
             }
         });
+        addItem("Revalidate tests", new Command() {
+            public void execute() {
+                labelManager.handleRevalidate(condition);
+            }
+        });
         addItem("Add label", new Command() {
             public void execute() {
                 labelManager.handleAddLabels(condition);
