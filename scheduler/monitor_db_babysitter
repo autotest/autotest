@@ -1,6 +1,8 @@
 #!/usr/bin/python -u
 import os, sys, signal, time, subprocess, logging, logging.config
 from optparse import OptionParser
+import common
+from autotest_lib.client.common_lib import error, global_config, utils
 
 PAUSE_LENGTH = 60
 STALL_TIMEOUT = 2*60*60
@@ -30,6 +32,19 @@ if len(args) != 0:
     print "        any crash!)"
     print
     sys.exit(1)
+
+
+def run_banner_output(cmd):
+    """Returns ------ CMD ------\nCMD_OUTPUT in a string"""
+    banner_output = '%s\n%%s\n\n' % cmd.center(60, '-')
+    command_output = ''
+    try:
+        cmd_out = utils.run(cmd, ignore_status=True, timeout=30)
+        command_output = cmd_out.stdout + cmd_out.stderr
+    except error.CmdError:
+        command_output = 'Timed out'
+
+    return banner_output % command_output
 
 
 def kill_all_monitors():
@@ -86,15 +101,38 @@ class MonitorProc:
             self.last_log_change = time.time()
         elif self.last_log_change + STALL_TIMEOUT < time.time():
             logging.info("monitor_db STALLED")
+            self.collect_stalled_info()
             return False
 
         return True
 
 
+    def collect_stalled_info(self):
+        INFO_TO_COLLECT = ['uptime',
+                           'ps auxwww',
+                           'iostat -k -x 2 4',
+                          ]
+        db_cmd = '/usr/bin/mysqladmin --verbose processlist -u%s -p%s'
+        config = global_config.global_config
+        try:
+            user = config.get_config_value("BACKUP", "user")
+            password = config.get_config_value("BACKUP", "password")
+            db_cmd %= (user, password)
+            INFO_TO_COLLECT.append(db_cmd)
+        except global_config.ConfigError:
+            pass
+        stall_log_path = self.log_path + '.stall_info'
+        log = open(stall_log_path, "w")
+        for cmd in INFO_TO_COLLECT:
+            log.write(run_banner_output(cmd))
+
+        log.close()
+
+
 logging.info("initializing")
 
 if os.getuid() == 0:
-    logging.critical("run as root!  aborting!")
+    logging.critical("running as root, aborting!")
     sys.exit(1)
 
 utils.write_pid("monitor_db_babysitter")
