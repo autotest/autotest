@@ -146,7 +146,6 @@ class ExtendedManager(dbmodels.Manager):
         def add_join(self, table, condition, join_type, alias=None):
             if alias is None:
                 alias = table
-            condition = ModelExtensions.escape_user_sql(condition)
             self._joins[alias] = (table, join_type, condition)
 
 
@@ -195,8 +194,7 @@ class ExtendedManager(dbmodels.Manager):
         return self.complex_filter(filter_object)
 
 
-    @staticmethod
-    def _get_quoted_field(table, field):
+    def _get_quoted_field(self, table, field):
         return (backend.quote_name(table) + '.' + backend.quote_name(field))
 
 
@@ -206,6 +204,9 @@ class ExtendedManager(dbmodels.Manager):
             key_field = self.model._meta.pk.column
         return self._get_quoted_field(self.model._meta.db_table, key_field)
 
+
+    def escape_user_sql(self, sql):
+        return sql.replace('%', '%%')
 
 
 class ValidObjectsManager(ExtendedManager):
@@ -433,11 +434,6 @@ class ModelExtensions(object):
         self.save()
 
 
-    @staticmethod
-    def escape_user_sql(sql):
-        return sql.replace('%', '%%')
-
-
     @classmethod
     def query_objects(cls, filter_data, valid_only=True, initial_query=None):
         """\
@@ -462,7 +458,7 @@ class ModelExtensions(object):
         extra_where = filter_data.pop('extra_where', None)
         if extra_where:
             # escape %'s
-            extra_where = cls.escape_user_sql(extra_where)
+            extra_where = cls.objects.escape_user_sql(extra_where)
             extra_args.setdefault('where', []).append(extra_where)
         use_distinct = not filter_data.pop('no_distinct', False)
 
