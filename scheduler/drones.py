@@ -116,7 +116,7 @@ class _RemoteDrone(_AbstractDrone):
 
         try:
             result = self._host.run('python %s' % self._drone_utility_path,
-                                    stdin=calls_file)
+                                    stdin=calls_file, connect_timeout=300)
         finally:
             calls_file.close()
             os.remove(calls_filename)
