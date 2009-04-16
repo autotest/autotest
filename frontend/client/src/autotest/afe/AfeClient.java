@@ -48,10 +48,6 @@ public class AfeClient implements EntryPoint {
     protected void finishLoading() {
         SiteCommonClassFactory.globalInitialize();
 
-        String motd = StaticDataRepository.getRepository().getData(
-                                               "motd").isString().stringValue();
-        RootPanel.get("motd").getElement().setInnerHTML(motd);
-
         jobList = new JobListView(new JobSelectListener() {
             public void onJobSelected(int jobId) {
                 showJob(jobId);
