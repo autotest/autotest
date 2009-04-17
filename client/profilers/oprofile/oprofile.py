@@ -1,10 +1,10 @@
 """
-OProfile is a system-wide profiler for Linux systems, 
-capable of profiling all running code at low overhead. 
+OProfile is a system-wide profiler for Linux systems,
+capable of profiling all running code at low overhead.
 OProfile is released under the GNU GPL.
 
-It consists of a kernel driver and a daemon for collecting sample data, 
-and several post-profiling tools for turning data into information. 
+It consists of a kernel driver and a daemon for collecting sample data,
+and several post-profiling tools for turning data into information.
 
 More Info: http://oprofile.sourceforge.net/
 Will need some libaries to compile. Do 'apt-get build-dep oprofile'
@@ -13,7 +13,8 @@ import os, shutil
 from autotest_lib.client.bin import utils, profiler
 
 class oprofile(profiler.profiler):
-    version = 5
+    version = 6
+    setup_done = False
 
 # Notes on whether to use the local copy or the builtin from source:
 # local = None
@@ -25,7 +26,7 @@ class oprofile(profiler.profiler):
 
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.3.tar.gz
     def setup(self, tarball='oprofile-0.9.3.tar.bz2', local=None,
-                                                            *args, **dargs):
+              *args, **dargs):
         if local == True:
             return
 
@@ -48,6 +49,48 @@ class oprofile(profiler.profiler):
             local_opreport = os.path.exists('/usr/bin/opreport')
             if local == False or not local_opcontrol or not local_opreport:
                 raise
+        else:
+            # if we managed to build, try again to pick binaries
+            self._pick_binaries(True)
+
+
+    def _setup_oprofile(self):
+        setup = ' --setup'
+        if not self.vmlinux:
+            setup += ' --no-vmlinux'
+        else:
+            setup += ' --vmlinux=%s' % self.vmlinux
+        for e in self.events:
+            setup += ' --event=%s' % e
+        if self.others:
+            setup += ' ' + self.others
+
+
+        utils.system(self.opcontrol + setup)
+        self.setup_done = True
+
+
+    def _pick_binaries(self, after_setup):
+        src_opreport  = os.path.join(self.srcdir, '/bin/opreport')
+        src_opcontrol = os.path.join(self.srcdir, '/bin/opcontrol')
+
+        if (self.local == False and after_setup) or (
+                (self.local in (None, False) and os.path.exists(src_opreport)
+                 and os.path.exists(src_opcontrol))):
+            print "Using source-built copy of oprofile"
+            self.opreport = src_opreport
+            self.opcontrol = src_opcontrol
+            perform_setup = True
+        elif not self.local and not after_setup:
+            # if we are neither forced to use the local versions and
+            # we're not running after setup() then delay the decision
+            return
+        else:
+            print "Using machine local copy of oprofile"
+            self.opreport = '/usr/bin/opreport'
+            self.opcontrol = '/usr/bin/opcontrol'
+
+        self._setup_oprofile()
 
 
     def initialize(self, vmlinux=None, events=[], others=None, local=None):
@@ -62,38 +105,19 @@ class oprofile(profiler.profiler):
         else:
             self.events = events
         self.others = others
+        self.local = local
 
         # If there is existing setup file, oprofile may fail to start with default parameters.
         if os.path.isfile('/root/.oprofile/daemonrc'):
             os.rename('/root/.oprofile/daemonrc', '/root/.oprofile/daemonrc.org')
 
-        setup = ' --setup'
-        if not self.vmlinux:
-            setup += ' --no-vmlinux'
-        else:
-            setup += ' --vmlinux=%s' % self.vmlinux
-        for e in self.events:
-            setup += ' --event=%s' % e
-        if self.others:
-            setup += ' ' + self.others
-
-        src_opreport  = os.path.join(self.srcdir, '/bin/opreport')
-        src_opcontrol = os.path.join(self.srcdir, '/bin/opcontrol')
-        if local == False or (local is None and
-                                os.path.exists(src_opreport) and
-                                os.path.exists(src_opcontrol)):
-            print "Using source-built copy of oprofile"
-            self.opreport = src_opreport
-            self.opcontrol = src_opcontrol
-        else:
-            print "Using machine local copy of oprofile"
-            self.opreport = '/usr/bin/opreport'
-            self.opcontrol = '/usr/bin/opcontrol'
-
-        utils.system(self.opcontrol + setup)
+        self._pick_binaries(False)
 
 
     def start(self, test):
+        if not self.setup_done:
+            self._pick_binaries(True)
+
         utils.system(self.opcontrol + ' --shutdown')
         utils.system(self.opcontrol + ' --reset')
         utils.system(self.opcontrol + ' --start')
