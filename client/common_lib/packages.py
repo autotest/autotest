@@ -9,7 +9,8 @@ should inherit this class.
 
 import re, os, sys, traceback, subprocess, shutil, time, traceback, urlparse
 import fcntl, logging
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import error, utils, global_config
+from autotest_lib.server import subcommand
 
 
 class PackageUploadError(error.AutotestError):
@@ -24,8 +25,87 @@ class PackageRemoveError(error.AutotestError):
 class PackageInstallError(error.AutotestError):
     'Raised when there is an error installing the package'
 
+class RepoDiskFull(error.AutotestError):
+    'Raised when the destination for packages is full'
+
+class RepoWriteError(error.AutotestError):
+    "Raised when packager cannot write to a repo's desitnation"
+
+class RepoUnknownError(error.AutotestError):
+    "Raised when packager cannot write to a repo's desitnation"
+
+class RepoError(error.AutotestError):
+    "Raised when a repo isn't working in some way"
+
 # the name of the checksum file that stores the packages' checksums
 CHECKSUM_FILE = "packages.checksum"
+
+
+def parse_ssh_path(repo):
+    '''
+    Parse ssh://xx@xx/path/to/ and return a tuple with host_line and
+    remote path
+    '''
+
+    match = re.search('^ssh://(.*?)(/.*)$', repo)
+    if match:
+        return match.groups()
+    else:
+        raise PackageUploadError("Incorrect SSH path in global_config: %s"
+                                 % repo)
+
+
+def repo_run_command(repo, cmd, ignore_status=False):
+    """Run a command relative to the repos path"""
+    repo = repo.strip()
+    run_cmd = None
+    if repo.startswith('ssh://'):
+        username = None
+        hostline, remote_path = parse_ssh_path(repo)
+        if '@' in hostline:
+            username, host = hostline.split('@')
+            run_cmd = 'ssh %s@%s "cd %s && %s"' % (username, host,
+                                                   remote_path, cmd)
+        else:
+            run_cmd = 'ssh %s "cd %s && %s"' % (host, remote_path, cmd)
+
+    else:
+        run_cmd = "cd %s && %s" % (repo, cmd)
+
+    if run_cmd:
+        return utils.run(run_cmd, ignore_status=ignore_status)
+
+
+def check_diskspace(repo, min_free=None):
+    if not min_free:
+        min_free = global_config.global_config.get_config_value('PACKAGES',
+                                                          'minimum_free_space',
+                                                          type=int)
+    try:
+        df = repo_run_command(repo, 'df -mP . | tail -1').stdout.split()
+        free_space_gb = int(df[3])/1000.0
+    except Exception, e:
+        raise RepoUnknownError('Unknown Repo Error: %s' % e)
+    if free_space_gb < min_free:
+        raise RepoDiskFull('Not enough disk space available')
+
+
+def check_write(repo):
+    try:
+        repo_testfile = '.repo_test_file'
+        repo_run_command(repo, 'touch %s' % repo_testfile).stdout.strip()
+        repo_run_command(repo, 'rm ' + repo_testfile)
+    except error.CmdError:
+        raise RepoWriteError('Unable to write to ' + repo)
+
+
+def trim_custom_directories(repo, older_than_days=40):
+    older_than_days = global_config.global_config.get_config_value('PACKAGES',
+                                                      'custom_max_age',
+                                                      type=int)
+    cmd = 'find . -type f -atime %s -exec rm -f {} \;' % older_than_days
+    repo_run_command(repo, cmd, ignore_status=True)
+
 
 class BasePackageManager(object):
     _repo_exception = {}
@@ -73,6 +153,7 @@ class BasePackageManager(object):
         else:
             self.upload_paths = list(upload_paths)
 
+
         # Create an internal function that is a simple wrapper of
         # run_function and takes in the args and dargs as arguments
         def _run_command(command, _run_command_args=run_function_args,
@@ -90,6 +171,33 @@ class BasePackageManager(object):
                                 **new_dargs)
 
         self._run_command = _run_command
+
+    def repo_check(self, repo):
+        '''
+        Check to make sure the repo is in a sane state:
+        ensure we have at least XX amount of free space
+        Make sure we can write to the repo
+        '''
+        try:
+            check_diskspace(repo)
+            check_write(repo)
+        except (RepoWriteError, RepoUnknownError, RepoDiskFull), e:
+            raise RepoError("ERROR: Repo %s: %s" % (repo, e))
+
+
+    def upkeep(self, custom_repos=None):
+        '''
+        Clean up custom upload/download areas
+        '''
+        if not custom_repos:
+            custom_repos = global_config.global_config.get_config_value('PACKAGES',
+                                               'custom_upload_location').split(',')
+            custom_download = global_config.global_config.get_config_value(
+                'PACKAGES', 'custom_download_location')
+            custom_repos += [custom_download]
+
+        results = subcommand.parallel_simple(trim_custom_directories,
+                                             custom_repos, log=False, )
 
 
     def install_pkg(self, name, pkg_type, fetch_dir, install_dir,
@@ -303,12 +411,34 @@ class BasePackageManager(object):
                                                       e))
 
 
+    def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False):
+        if upload_path:
+            upload_path_list = [upload_path]
+            self.upkeep(upload_path_list)
+        elif len(self.upload_paths) > 0:
+            self.upkeep()
+            upload_path_list = self.upload_paths
+        else:
+            raise PackageUploadError("Invalid Upload Path specified")
+
+        commands = []
+        for path in upload_path_list:
+            commands.append(subcommand.subcommand(self.upload_pkg_parallel,
+                                                  (pkg_path, path,
+                                                   update_checksum)))
+
+        results = subcommand.parallel(commands, 300, return_results=True)
+        for result in results:
+            if result:
+                print str(result)
+
+
     # TODO(aganti): Fix the bug with the current checksum logic where
     # packages' checksums that are not present consistently in all the
     # repositories are not handled properly. This is a corner case though
     # but the ideal solution is to make the checksum file repository specific
     # and then maintain it.
-    def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False):
+    def upload_pkg_parallel(self, pkg_path, upload_path, update_checksum=False):
         '''
         Uploads to a specified upload_path or to all the repos.
         Also uploads the checksum file to all the repos.
@@ -322,24 +452,20 @@ class BasePackageManager(object):
                           that get uploaded which do not need to be part of
                           the checksum file and bloat it.
         '''
+        self.repo_check(upload_path)
         if update_checksum:
             # get the packages' checksum file and update it with the current
             # package's checksum
             checksum_path = self._get_checksum_file_path()
             self.update_checksum(pkg_path)
 
-        if upload_path:
-            upload_path_list = [upload_path]
-        elif len(self.upload_paths) > 0:
-            upload_path_list = self.upload_paths
-        else:
-            raise PackageUploadError("Invalid Upload Path specified")
-
         # upload the package
-        for path in upload_path_list:
-            self.upload_pkg_file(pkg_path, path)
+        if os.path.isdir(pkg_path):
+            self.upload_pkg_dir(pkg_path, upload_path)
+        else:
+            self.upload_pkg_file(pkg_path, upload_path)
             if update_checksum:
-                self.upload_pkg_file(checksum_path, path)
+                self.upload_pkg_file(checksum_path, upload_path)
 
 
     def upload_pkg_file(self, file_path, upload_path):
@@ -354,7 +480,7 @@ class BasePackageManager(object):
         try:
             if upload_path.startswith('ssh://'):
                 # parse ssh://user@host/usr/local/autotest/packages
-                hostline, remote_path = self._parse_ssh_path(upload_path)
+                hostline, remote_path = parse_ssh_path(upload_path)
                 try:
                     utils.run('scp %s %s:%s' % (file_path, hostline,
                                                 remote_path))
@@ -385,7 +511,7 @@ class BasePackageManager(object):
         local_path = os.path.join(dir_path, "*")
         try:
             if upload_path.startswith('ssh://'):
-                hostline, remote_path = self._parse_ssh_path(upload_path)
+                hostline, remote_path = parse_ssh_path(upload_path)
                 try:
                     utils.run('scp %s %s:%s' % (local_path, hostline,
                                                 remote_path))
@@ -436,7 +562,7 @@ class BasePackageManager(object):
         try:
             # Remove the file
             if pkg_dir.startswith('ssh://'):
-                hostline, remote_path = self._parse_ssh_path(pkg_dir)
+                hostline, remote_path = parse_ssh_path(pkg_dir)
                 path = os.path.join(remote_path, filename)
                 utils.run("ssh %s 'rm -rf %s/%s'" % (hostline, remote_path,
                           path))
@@ -525,19 +651,6 @@ class BasePackageManager(object):
         # Write the checksum file back to disk
         self._run_command('echo "%s" > %s' % (checksum_contents,
                                               checksum_path))
-
-    def _parse_ssh_path(self, pkg_path):
-        '''
-        Parse ssh://xx@xx/path/to/ and return a tuple with host_line and 
-        remote path
-        '''
-
-        match = re.search('^ssh://(.*?)(/.*)$', pkg_path)
-        if match:
-            return match.groups()
-        else:
-            raise PackageUploadError("Incorrect SSH path in global_config: %s"
-                                     % upload_path)
 
 
     def compute_checksum(self, pkg_path):

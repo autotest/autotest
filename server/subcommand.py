@@ -1,12 +1,16 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess, traceback, time, signal
+import sys, os, subprocess, traceback, time, signal, pickle
 
 from autotest_lib.client.common_lib import error, utils
 
 
-def parallel(tasklist, timeout=None):
-    """Run an set of predefined subcommands in parallel"""
+def parallel(tasklist, timeout=None, return_results=False):
+    """Run a set of predefined subcommands in parallel.
+       If return_results is True instead of an exception being raised on
+       any error a list of the results/exceptions from the functions is
+       returned.
+    """
     pids = []
     run_error = False
     for task in tasklist:
@@ -16,6 +20,7 @@ def parallel(tasklist, timeout=None):
     if timeout:
         endtime = time.time() + timeout
 
+    results = []
     for task in tasklist:
         if timeout:
             remaining_timeout = max(endtime - time.time(), 1)
@@ -27,7 +32,12 @@ def parallel(tasklist, timeout=None):
             if status != 0:
                 run_error = True
 
-    if run_error:
+        results.append(pickle.load(task.result_pickle))
+        task.result_pickle.close()
+
+    if return_results:
+        return results
+    elif run_error:
         raise error.AutoservError('One or more subcommands failed')
 
 
@@ -161,10 +171,15 @@ class subcommand(object):
     def fork_start(self):
         sys.stdout.flush()
         sys.stderr.flush()
+        r, w = os.pipe()
         self.pid = os.fork()
 
         if self.pid:                            # I am the parent
+            os.close(w)
+            self.result_pickle = os.fdopen(r, 'r')
             return
+        else:
+            os.close(r)
 
         # We are the child from this point on. Never return.
         signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
@@ -175,10 +190,12 @@ class subcommand(object):
         try:
             for hook in self.fork_hooks:
                 hook(self)
-            self.lambda_function()
-        except:
+            result = self.lambda_function()
+            os.write(w, pickle.dumps(result))
+        except Exception, e:
             traceback.print_exc()
             exit_code = 1
+            os.write(w, pickle.dumps(e))
         else:
             exit_code = 0
 
