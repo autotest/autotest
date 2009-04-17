@@ -10,7 +10,6 @@ should inherit this class.
 import re, os, sys, traceback, subprocess, shutil, time, traceback, urlparse
 import fcntl, logging
 from autotest_lib.client.common_lib import error, utils, global_config
-from autotest_lib.server import subcommand
 
 
 class PackageUploadError(error.AutotestError):
@@ -189,6 +188,7 @@ class BasePackageManager(object):
         '''
         Clean up custom upload/download areas
         '''
+        from autotest_lib.server import subcommand
         if not custom_repos:
             custom_repos = global_config.global_config.get_config_value('PACKAGES',
                                                'custom_upload_location').split(',')
@@ -412,6 +412,7 @@ class BasePackageManager(object):
 
 
     def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False):
+        from autotest_lib.server import subcommand
         if upload_path:
             upload_path_list = [upload_path]
             self.upkeep(upload_path_list)
