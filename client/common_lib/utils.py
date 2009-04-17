@@ -373,7 +373,7 @@ def join_bg_jobs(bg_jobs, timeout=None):
 
     Returns the same list of bg_jobs objects that was passed in.
     """
-    ret, timeouterr = 0, False
+    ret, timeout_error = 0, False
     for bg_job in bg_jobs:
         bg_job.output_prepare(StringIO.StringIO(), StringIO.StringIO())
 
