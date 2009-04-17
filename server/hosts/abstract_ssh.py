@@ -314,6 +314,9 @@ class AbstractSSHHost(SiteHost):
                             "Shutdown took longer than %ds" % warning_timer)
                 # Print the warning only once.
                 warning_timer = None
+                # If a machine is stuck switching runlevels
+                # This may cause the machine to reboot.
+                self.run('kill -HUP 1', ignore_status=True)
 
             time.sleep(1)
             current_time = time.time()
