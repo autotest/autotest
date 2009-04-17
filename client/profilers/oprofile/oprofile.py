@@ -13,7 +13,7 @@ import os, shutil
 from autotest_lib.client.bin import utils, profiler
 
 class oprofile(profiler.profiler):
-    version = 6
+    version = 7
     setup_done = False
 
 # Notes on whether to use the local copy or the builtin from source:
@@ -24,8 +24,8 @@ class oprofile(profiler.profiler):
 # local = True
 #       Force use of the local copy
 
-# http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.3.tar.gz
-    def setup(self, tarball='oprofile-0.9.3.tar.bz2', local=None,
+# http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.4.tar.gz
+    def setup(self, tarball='oprofile-0.9.4.tar.bz2', local=None,
               *args, **dargs):
         if local == True:
             return
