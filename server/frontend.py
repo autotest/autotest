@@ -28,7 +28,6 @@ form_ntuples_from_machines = server_utils.form_ntuples_from_machines
 GLOBAL_CONFIG = global_config.global_config
 DEFAULT_SERVER = 'autotest'
 
-
 def dump_object(header, obj):
     """
     Standard way to print out the frontend objects (eg job, host, acl, label)
@@ -184,7 +183,7 @@ class AFE(RpcClient):
                                                       status.meta_host)]
 
 
-    def create_job_by_test(self, tests, hosts, kernel=None, use_container=False,
+    def create_job_by_test(self, tests, kernel=None, use_container=False,
                            **dargs):
         """
         Given a test name, fetch the appropriate control file from the server
@@ -192,6 +191,8 @@ class AFE(RpcClient):
 
         Returns a list of job objects
         """
+        assert ('hosts' in dargs or
+                'atomic_group_name' in dargs and 'synch_count' in dargs)
         control_file = self.generate_control_file(tests=tests, kernel=kernel,
                                                   use_container=use_container,
                                                   do_push_packages=True)
@@ -202,20 +203,11 @@ class AFE(RpcClient):
         dargs['dependencies'] = dargs.get('dependencies', []) + \
                                 control_file.dependencies
         dargs['control_file'] = control_file.control_file
-        if 'synch_count' not in dargs:
-            dargs['synch_count'] = control_file.synch_count
-        else:
-            control_file.synch_count = dargs['synch_count']
-        jobs = []
-        if control_file.synch_count > 1:
-            # We don't trust the scheduler to do the groupings for us.
-            synch_count = control_file.synch_count
-            (pairs, failures) = form_ntuples_from_machines(hosts, synch_count)
-            for machines in pairs:
-                jobs.append(self.create_job(hosts=machines, **dargs))
-        else:
-            jobs.append(self.create_job(hosts=hosts, **dargs))
-        return jobs
+        dargs.setdefault('synch_count', control_file.synch_count)
+        if 'hosts' in dargs and len(dargs['hosts']) < dargs['synch_count']:
+            # will not be able to satisfy this request
+            return []
+        return [self.create_job(**dargs)]
 
 
     def create_job(self, control_file, name=' ', priority='Medium',
@@ -253,7 +245,7 @@ class AFE(RpcClient):
             # if email_from and email_to:
             #     subject = 'Testing started: %s : %s' % (job.name, job.id)
             #     utils.send_email(email_from, email_to, subject, subject)
-        if not wait:
+        if not wait or not jobs:
             return
         tko = TKO()
         while True:
@@ -388,13 +380,20 @@ class AFE(RpcClient):
         dead_statuses = self.host_statuses(live=False)
         host_list = [h.hostname for h in hosts if h.status not in dead_statuses]
         print 'HOSTS: %s' % host_list
-        if pairing.synch_job:
-            dargs['synch_count'] = len(host_list)
+        # TODO(ncrao): fix this when synch_count implements "at least N"
+        # semantics instead of "exactly N".
+        if pairing.atomic_group_sched:
+            if pairing.synch_count > 0:
+                dargs['synch_count'] = pairing.synch_count
+            else:
+                dargs['synch_count'] = len(host_list)
+            dargs['atomic_group_name'] = pairing.machine_label
+        else:
+            dargs['hosts'] = host_list
         new_jobs = self.create_job_by_test(name=job_name,
                                            dependencies=[pairing.machine_label],
                                            tests=[pairing.control_file],
                                            priority=priority,
-                                           hosts=host_list,
                                            kernel=kernel,
                                            use_container=pairing.container,
                                            **dargs)
@@ -403,7 +402,7 @@ class AFE(RpcClient):
         return new_jobs
 
 
-    def _job_test_results(self, tko, job, debug):
+    def _job_test_results(self, tko, job, debug, tests=[]):
         """
         Retrieve test results for a job
         """
@@ -418,6 +417,9 @@ class AFE(RpcClient):
         for test_status in test_statuses:
             # SERVER_JOB is buggy, and often gives false failures. Ignore it.
             if test_status.test_name == 'SERVER_JOB':
+                continue
+            # if tests is not empty, restrict list of test_statuses to tests
+            if tests and test_status.test_name not in tests:
                 continue
             if debug:
                 print test_status
@@ -752,12 +754,13 @@ class MachineTestPairing(object):
     platforms: list of rexeps to filter platforms by. [] => no filtering
     """
     def __init__(self, machine_label, control_file, platforms=[],
-                 container=False, synch_job=False):
+                 container=False, atomic_group_sched=False, synch_count=0):
         self.machine_label = machine_label
         self.control_file = control_file
         self.platforms = platforms
         self.container = container
-        self.synch_job = synch_job
+        self.atomic_group_sched = atomic_group_sched
+        self.synch_count = synch_count
 
 
     def __repr__(self):
