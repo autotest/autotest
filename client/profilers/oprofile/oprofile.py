@@ -40,7 +40,7 @@ class oprofile(profiler.profiler):
             utils.system('patch -p1 < %s' % patch)
             utils.system('./configure --with-kernel-support --prefix=' + \
                                                     self.srcdir)
-            utils.system('make')
+            utils.system('make -j %d' % utils.count_cpus())
             utils.system('make install')
         except:
             # Build from source failed.
