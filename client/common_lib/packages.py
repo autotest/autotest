@@ -422,6 +422,11 @@ class BasePackageManager(object):
         else:
             raise PackageUploadError("Invalid Upload Path specified")
 
+        if update_checksum:
+            # get the packages' checksum file and update it with the current
+            # package's checksum
+            self.update_checksum(pkg_path)
+
         commands = []
         for path in upload_path_list:
             commands.append(subcommand.subcommand(self.upload_pkg_parallel,
@@ -454,19 +459,14 @@ class BasePackageManager(object):
                           the checksum file and bloat it.
         '''
         self.repo_check(upload_path)
-        if update_checksum:
-            # get the packages' checksum file and update it with the current
-            # package's checksum
-            checksum_path = self._get_checksum_file_path()
-            self.update_checksum(pkg_path)
-
         # upload the package
         if os.path.isdir(pkg_path):
             self.upload_pkg_dir(pkg_path, upload_path)
         else:
             self.upload_pkg_file(pkg_path, upload_path)
             if update_checksum:
-                self.upload_pkg_file(checksum_path, upload_path)
+                self.upload_pkg_file(self._get_checksum_file_path(),
+                                     upload_path)
 
 
     def upload_pkg_file(self, file_path, upload_path):
