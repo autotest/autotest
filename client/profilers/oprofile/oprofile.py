@@ -71,8 +71,8 @@ class oprofile(profiler.profiler):
 
 
     def _pick_binaries(self, after_setup):
-        src_opreport  = os.path.join(self.srcdir, '/bin/opreport')
-        src_opcontrol = os.path.join(self.srcdir, '/bin/opcontrol')
+        src_opreport  = os.path.join(self.srcdir, 'bin/opreport')
+        src_opcontrol = os.path.join(self.srcdir, 'bin/opcontrol')
 
         if (self.local == False and after_setup) or (
                 (self.local in (None, False) and os.path.exists(src_opreport)
