@@ -92,6 +92,12 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
             # Tar the source and upload
             try:
                 temp_dir = tempfile.mkdtemp()
+                try:
+                    packages.check_diskspace(temp_dir)
+                except packages.RepoDiskFull:
+                    msg = ("Temporary directory for packages  does not have "
+                           "enough space available")
+                    raise packages.RepoDiskFull(msg)
                 tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
                                                   temp_dir, exclude_string)
                 pkgmgr.upload_pkg(tarball_path, repo_url, update_checksum=True)
@@ -139,6 +145,13 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
     prof_dir = os.path.join(client_dir, "profilers")
     # Directory where all are kept
     temp_dir = tempfile.mkdtemp()
+    try:
+        packages.check_diskspace(temp_dir)
+    except packages.RepoDiskFull:
+        print ("Temp destination for packages is full %s, aborting upload"
+               % temp_dir)
+        os.rmdir(temp_dir)
+        sys.exit(1)
 
     # process tests
     tests_list = get_subdir_list('tests', client_dir)
@@ -169,7 +182,7 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
         os.chdir(cwd)
         for path in upload_paths:
             print "Uploading to: " + path
-            pkgmgr.upload_pkg_dir(temp_dir, path)
+            pkgmgr.upload_pkg(temp_dir, path)
         client_utils.run('rm -rf ' + temp_dir)
     else:
         for repo_url in upload_paths:
