@@ -48,6 +48,7 @@ class Test_base_test_execute(TestTestCase):
         self.god.stub_function(self.test, 'drop_caches_between_iterations')
         self.god.stub_function(self.test, 'run_once')
         self.god.stub_function(self.test, 'postprocess_iteration')
+        self.god.stub_function(self.test, 'analyze_perf_constraints')
         before_hook = self.god.create_mock_function('before_hook')
         after_hook = self.god.create_mock_function('after_hook')
 
@@ -57,12 +58,13 @@ class Test_base_test_execute(TestTestCase):
         self.test.run_once.expect_call(1, 2, arg='val')
         after_hook.expect_call()
         self.test.postprocess_iteration.expect_call()
-        self.test._call_run_once(before_hook, after_hook, (1, 2),
+        self.test.analyze_perf_constraints.expect_call([])
+        self.test._call_run_once(before_hook, after_hook, [], (1, 2),
                                  {'arg': 'val'})
 
 
     def _expect_call_run_once(self):
-        self.test._call_run_once.expect_call(None, None, (), {})
+        self.test._call_run_once.expect_call(None, None, (), (), {})
 
 
     def test_execute_test_length(self):

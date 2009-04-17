@@ -46,6 +46,8 @@ class base_test:
         self.srcdir = os.path.join(self.bindir, 'src')
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)
+        self._keyvals = []
+        self._new_keyval = False
 
 
     def assert_(self, expr, msg='Assertion failed.'):
@@ -75,6 +77,10 @@ class base_test:
 
 
     def write_iteration_keyval(self, attr_dict, perf_dict):
+        # append the dictionaries before they have the {perf} and {attr} added
+        self._keyvals.append({'attr':attr_dict, 'perf':perf_dict})
+        self._new_keyval = True
+
         if attr_dict:
             attr_dict = self._append_type_to_keys(attr_dict, "attr")
             utils.write_keyval(self.resultsdir, attr_dict, type_tag="attr")
@@ -85,6 +91,25 @@ class base_test:
 
         keyval_path = os.path.join(self.resultsdir, "keyval")
         print >> open(keyval_path, "a"), ""
+
+
+    def analyze_perf_constraints(self, constraints):
+        if not self._new_keyval:
+            return
+
+        self._new_keyval = False
+        errors = []
+        for constraint in constraints:
+            print "___________________ constraint = %s" % constraint
+            print "___________________ keyvals = %s" % self._keyvals[-1]['perf']
+            try:
+                if not eval(constraint, self._keyvals[-1]['perf']):
+                    errors.append('%s' % constraint)
+            except:
+                errors.append('could not evaluate constraint: %s' % constraint)
+
+        self.assert_(len(errors) == 0,
+                     'failed constraints: %s' %  ', '.join(errors))
 
 
     def initialize(self):
@@ -106,7 +131,7 @@ class base_test:
 
 
     def _call_run_once(self, before_iteration_hook, after_iteration_hook,
-                       args, dargs):
+                       constraints, args, dargs):
         self.drop_caches_between_iterations()
 
         # execute iteration hooks
@@ -117,12 +142,13 @@ class base_test:
             after_iteration_hook(self)
 
         self.postprocess_iteration()
+        self.analyze_perf_constraints(constraints)
 
 
     def execute(self, iterations=None, test_length=None, profile_only=False,
                 _get_time=time.time, postprocess_profiled_run=None,
                 before_iteration_hook=None, after_iteration_hook=None,
-                *args, **dargs):
+                constraints=(), *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
         If you want to implement a benchmark test, it's better to implement
@@ -176,7 +202,7 @@ class base_test:
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
                 self._call_run_once(before_iteration_hook, after_iteration_hook,
-                                    args, dargs)
+                                    constraints, args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
             logging.info('Test finished after %d iterations',
@@ -198,7 +224,8 @@ class base_test:
                     logging.info('Executing iteration %d of %d',
                                  self.iteration, iterations)
                     self._call_run_once(before_iteration_hook,
-                                        after_iteration_hook, args, dargs)
+                                        after_iteration_hook,
+                                        constraints, args, dargs)
                 logging.info('Test finished after %d iterations.',
                              iterations)
 
