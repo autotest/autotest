@@ -176,7 +176,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
     @staticmethod
     def _exhaust_stream(tee, output_list, recvfunc):
         while True:
-            output_list.append(recvfunc(2**16))
+            try:
+                output_list.append(recvfunc(2**16))
+            except socket.timeout:
+                return
             tee.write(output_list[-1])
             if not output_list[-1]:
                 return
@@ -238,6 +241,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             exit_status = -signal.SIGTERM
         else:
             exit_status = channel.recv_exit_status()
+        channel.settimeout(10)
         self._exhaust_stream(stdout, raw_stdout, channel.recv)
         self._exhaust_stream(stderr, raw_stderr, channel.recv_stderr)
         channel.close()
