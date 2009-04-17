@@ -48,7 +48,7 @@ class oprofile(profiler.profiler):
             local_opcontrol = os.path.exists('/usr/bin/opcontrol')
             local_opreport = os.path.exists('/usr/bin/opreport')
             if local == False or not local_opcontrol or not local_opreport:
-                raise
+                raise error.AutotestError('No oprofile available')
         else:
             # if we managed to build, try again to pick binaries
             self._pick_binaries(True)
