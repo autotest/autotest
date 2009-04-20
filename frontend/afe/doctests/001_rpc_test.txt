@@ -771,6 +771,40 @@ DoesNotExist: AtomicGroup matching query does not exist.
 Traceback (most recent call last):
 ValidationError: {'hosts': 'Host(s) "ahost1, ahost2" are atomic group hosts but no atomic group was specified for this job.'}
 
+# create a job using labels in an atomic group but forget to specify the group
+>>> rpc_interface.create_job(name='never_run1',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Client',
+...                          meta_hosts=['two-label'])
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group but no atomic_group_name was specified for this job.'}
+
+>>> rpc_interface.create_job(name='never_run2',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Client',
+...                          meta_hosts=['blue-label'],
+...                          dependencies=['two-label'])
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group but no atomic_group_name was specified for this job.'}
+
+>>> invisible_group_id = rpc_interface.add_atomic_group(
+...         name='invisible rack',
+...         max_number_of_machines=3,
+...         description='a hidden rack-o-machines')
+>>> rpc_interface.atomic_group_add_labels(invisible_group_id,
+...                                       ['blue-label'])
+>>> rpc_interface.create_job(name='never_run3',
+...                          priority='High',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Client',
+...                          meta_hosts=['two-label'],
+...                          atomic_group_name='invisible rack')
+Traceback (most recent call last):
+ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group other than the one requested for this job.'}
+
 # we're done testing atomic groups, clean up
->>> rpc_interface.delete_atomic_group(1)
+>>> rpc_interface.delete_atomic_group(invisible_group_id)
+>>> rpc_interface.delete_atomic_group(mini_rack_group_id)
 >>> assert len(rpc_interface.get_atomic_groups()) == 0
