@@ -422,6 +422,17 @@ def create_job(name, priority, control_file, control_type, timeout=None,
                     {'hosts':
                      'only %d hosts provided for job with synch_count = %d' %
                      (len(all_host_objects), synch_count)})
+        atomic_hosts = models.Host.objects.filter(
+                id__in=[host.id for host in host_objects],
+                labels__atomic_group=True)
+        unusable_host_names = [host.hostname for host in atomic_hosts]
+        if unusable_host_names:
+            raise model_logic.ValidationError(
+                    {'hosts':
+                     'Host(s) "%s" are atomic group hosts but no '
+                     'atomic group was specified for this job.' %
+                     (', '.join(unusable_host_names),)})
+
 
     rpc_utils.check_job_dependencies(host_objects, dependencies)
     dependency_labels = [labels_by_name[label_name]

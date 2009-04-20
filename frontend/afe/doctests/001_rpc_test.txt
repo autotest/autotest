@@ -762,5 +762,15 @@ DoesNotExist: AtomicGroup matching query does not exist.
 >>> data[0]['atomic_group']['id']
 1
 
+# create a job using hosts in an atomic group but forget to specify the group.
+>>> rpc_interface.create_job(name='poke_foo',
+...                          priority='Low',
+...                          control_file=cf_info['control_file'],
+...                          control_type='Client',
+...                          hosts=['ahost1', 'ahost2'])
+Traceback (most recent call last):
+ValidationError: {'hosts': 'Host(s) "ahost1, ahost2" are atomic group hosts but no atomic group was specified for this job.'}
+
+# we're done testing atomic groups, clean up
 >>> rpc_interface.delete_atomic_group(1)
 >>> assert len(rpc_interface.get_atomic_groups()) == 0
