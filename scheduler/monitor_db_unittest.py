@@ -1273,6 +1273,9 @@ class AgentTasksTest(unittest.TestCase):
     DUMMY_PROCESS = object()
     HOST_PROTECTION = host_protections.default
     PIDFILE_ID = object()
+    JOB_OWNER = 'test_owner'
+    JOB_NAME = 'test_job_name'
+    JOB_AUTOSERV_PARAMS = set(['-u', JOB_OWNER, '-l', JOB_NAME])
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -1301,6 +1304,8 @@ class AgentTasksTest(unittest.TestCase):
         self.queue_entry = self.god.create_mock_class(
             monitor_db.HostQueueEntry, 'queue_entry')
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
+        self.job.owner = self.JOB_OWNER
+        self.job.name = self.JOB_NAME
         self.queue_entry.id = 1
         self.queue_entry.job = self.job
         self.queue_entry.host = self.host
@@ -1422,6 +1427,7 @@ class AgentTasksTest(unittest.TestCase):
         task.agent = agent
         self.queue_entry.status = 'Queued'
         self.run_task(task, False)
+        self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
 
 
@@ -1465,6 +1471,8 @@ class AgentTasksTest(unittest.TestCase):
         self.assertTrue(set(task.cmd) >=
                         set([monitor_db._autoserv_path, '-p', '-v', '-m',
                              self.HOSTNAME, '-r', self.TEMP_DIR]))
+        if use_queue_entry:
+            self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
 
 
@@ -1608,6 +1616,8 @@ class AgentTasksTest(unittest.TestCase):
         self.assert_(set(task.cmd) >=
                         set([monitor_db._autoserv_path, '-p', '--cleanup', '-m',
                              self.HOSTNAME, '-r', self.TEMP_DIR]))
+        if use_queue_entry:
+            self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
 
     def test_cleanup_task(self):
         self._test_cleanup_task_helper(True)
