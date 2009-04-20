@@ -438,6 +438,19 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     dependency_labels = [labels_by_name[label_name]
                          for label_name in dependencies]
 
+    for label in metahost_objects + dependency_labels:
+        if label.atomic_group and not atomic_group:
+            raise model_logic.ValidationError(
+                    {'atomic_group_name':
+                     'Some meta_hosts or dependencies require an atomic group '
+                     'but no atomic_group_name was specified for this job.'})
+        elif (label.atomic_group and
+              label.atomic_group.name != atomic_group_name):
+            raise model_logic.ValidationError(
+                    {'atomic_group_name':
+                     'Some meta_hosts or dependencies require an atomic group '
+                     'other than the one requested for this job.'})
+
     job = models.Job.create(owner=owner, name=name, priority=priority,
                             control_file=control_file,
                             control_type=control_type,
