@@ -215,6 +215,17 @@ def queue_entries_to_abort():
     return qe
 
 
+def _autoserv_command_line(machines, results_dir, extra_args, job=None,
+                           queue_entry=None):
+    autoserv_argv = [_autoserv_path, '-p', '-m', machines,
+                     '-r', _drone_manager.absolute_path(results_dir)]
+    if job or queue_entry:
+        if not job:
+            job = queue_entry.job
+        autoserv_argv += ['-u', job.owner, '-l', job.name]
+    return autoserv_argv + extra_args
+
+
 class SchedulerError(Exception):
     """Raised by HostScheduler when an inconsistent state occurs."""
 
@@ -1287,9 +1298,9 @@ class RepairTask(AgentTask):
         self._set_ids(host=host)
 
         self.create_temp_resultsdir('.repair')
-        cmd = [_autoserv_path , '-p', '-R', '-m', host.hostname,
-               '-r', _drone_manager.absolute_path(self.temp_results_dir),
-               '--host-protection', protection]
+        cmd = _autoserv_command_line(host.hostname, self.temp_results_dir,
+                                     ['-R', '--host-protection', protection],
+                                     queue_entry=queue_entry)
         super(RepairTask, self).__init__(cmd, self.temp_results_dir)
 
         self.set_host_log_file('repair', self.host)
@@ -1354,8 +1365,8 @@ class VerifyTask(PreJobTask):
         self.queue_entry = queue_entry
 
         self.create_temp_resultsdir('.verify')
-        cmd = [_autoserv_path, '-p', '-v', '-m', self.host.hostname, '-r',
-               _drone_manager.absolute_path(self.temp_results_dir)]
+        cmd = _autoserv_command_line(self.host.hostname, self.temp_results_dir,
+                                     ['-v'], queue_entry=queue_entry)
         failure_tasks = [RepairTask(self.host, queue_entry=queue_entry)]
         super(VerifyTask, self).__init__(cmd, self.temp_results_dir,
                                          failure_tasks=failure_tasks)
@@ -1552,8 +1563,9 @@ class CleanupTask(PreJobTask):
         self.host = host
 
         self.create_temp_resultsdir('.cleanup')
-        self.cmd = [_autoserv_path, '-p', '--cleanup', '-m', host.hostname,
-                    '-r', _drone_manager.absolute_path(self.temp_results_dir)]
+        self.cmd = _autoserv_command_line(host.hostname, self.temp_results_dir,
+                                          ['--cleanup'],
+                                          queue_entry=queue_entry)
         repair_task = RepairTask(host, queue_entry=queue_entry)
         super(CleanupTask, self).__init__(self.cmd, self.temp_results_dir,
                                           failure_tasks=[repair_task])
@@ -2397,10 +2409,11 @@ class Job(DBObject):
         hostnames = ','.join([entry.get_host().hostname
                               for entry in queue_entries])
 
-        params = [_autoserv_path, '-P', execution_tag, '-p', '-n',
-                  '-r', _drone_manager.absolute_path(execution_tag),
-                  '-u', self.owner, '-l', self.name, '-m', hostnames,
-                  _drone_manager.absolute_path(control_path)]
+        params = _autoserv_command_line(
+            hostnames, execution_tag,
+            ['-P', execution_tag, '-n',
+             _drone_manager.absolute_path(control_path)],
+            job=self)
 
         if not self.is_server_job():
             params.append('-c')
