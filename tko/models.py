@@ -66,7 +66,7 @@ class kernel(object):
 class test(object):
     def __init__(self, subdir, testname, status, reason, test_kernel,
                  machine, started_time, finished_time, iterations,
-                 attributes):
+                 attributes, labels):
         self.subdir = subdir
         self.testname = testname
         self.status = status
@@ -77,6 +77,7 @@ class test(object):
         self.finished_time = finished_time
         self.iterations = iterations
         self.attributes = attributes
+        self.labels = labels
 
 
     @staticmethod
@@ -119,7 +120,7 @@ class test(object):
             constructor = cls
         return constructor(subdir, testname, status, reason, test_kernel,
                            job.machine, started_time, finished_time,
-                           iterations, attributes)
+                           iterations, attributes, [])
 
 
     @classmethod
@@ -132,7 +133,7 @@ class test(object):
         tko_utils.dprint("parsing partial test %s %s" % (subdir, testname))
 
         return cls(subdir, testname, "RUNNING", reason, test_kernel,
-                   job.machine, started_time, None, [], {})
+                   job.machine, started_time, None, [], {}, [])
 
 
     @staticmethod
