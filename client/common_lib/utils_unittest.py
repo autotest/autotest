@@ -152,6 +152,7 @@ class test_read_keyval(unittest.TestCase):
         self.god = mock.mock_god()
         self.god.stub_function(utils, "open")
         self.god.stub_function(os.path, "isdir")
+        self.god.stub_function(os.path, "exists")
 
 
     def tearDown(self):
@@ -160,6 +161,7 @@ class test_read_keyval(unittest.TestCase):
 
     def create_test_file(self, filename, contents):
         test_file = StringIO.StringIO(contents)
+        os.path.exists.expect_call(filename).and_return(True)
         utils.open.expect_call(filename).and_return(test_file)
 
 
@@ -169,6 +171,13 @@ class test_read_keyval(unittest.TestCase):
         keyval = utils.read_keyval("file")
         self.god.check_playback()
         return keyval
+
+
+    def test_returns_empty_when_file_doesnt_exist(self):
+        os.path.isdir.expect_call("file").and_return(False)
+        os.path.exists.expect_call("file").and_return(False)
+        self.assertEqual({}, utils.read_keyval("file"))
+        self.god.check_playback()
 
 
     def test_accesses_files_directly(self):

@@ -161,16 +161,17 @@ def read_keyval(path):
     if os.path.isdir(path):
         path = os.path.join(path, 'keyval')
     keyval = {}
-    for line in open(path):
-        line = re.sub('#.*', '', line).rstrip()
-        if not re.search(r'^[-\.\w]+=', line):
-            raise ValueError('Invalid format line: %s' % line)
-        key, value = line.split('=', 1)
-        if re.search('^\d+$', value):
-            value = int(value)
-        elif re.search('^(\d+\.)?\d+$', value):
-            value = float(value)
-        keyval[key] = value
+    if os.path.exists(path):
+        for line in open(path):
+            line = re.sub('#.*', '', line).rstrip()
+            if not re.search(r'^[-\.\w]+=', line):
+                raise ValueError('Invalid format line: %s' % line)
+            key, value = line.split('=', 1)
+            if re.search('^\d+$', value):
+                value = int(value)
+            elif re.search('^(\d+\.)?\d+$', value):
+                value = float(value)
+            keyval[key] = value
     return keyval
 
 
