@@ -286,17 +286,19 @@ class parser(base.parser):
                     subdir_stack[-1] = line.subdir
                 # update the status, start and finished times
                 stack.update(line.status)
-                if status_lib.is_worse_than_or_equal_to(stack.current_status(),
+                if status_lib.is_worse_than_or_equal_to(line.status,
                                                         current_status):
                     if line.reason:
-                        current_reason = line.reason
                         # update the status of a currently running test
                         if running_test:
                             running_reasons.append(line.reason)
                             running_test.reason = ", ".join(running_reasons)
+                            current_reason = running_test.reason
                             new_tests.append(running_test)
                             msg = "update RUNNING reason: %s" % line.reason
                             tko_utils.dprint(msg)
+                        else:
+                            current_reason = line.reason
                     current_status = stack.current_status()
                 started_time = None
                 finished_time = line.get_timestamp()
