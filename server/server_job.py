@@ -375,7 +375,7 @@ class base_server_job(object):
         if self.resultdir:
             os.chdir(self.resultdir)
             # touch status.log so that the parser knows a job is running here
-            open(self.get_status_log_path(), 'w').close()
+            open(self.get_status_log_path(), 'a').close()
             self.enable_external_logging()
 
         collect_crashinfo = True
