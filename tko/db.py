@@ -305,6 +305,7 @@ class db_sql(object):
             self.delete('iteration_result', where)
             self.delete('iteration_attributes', where)
             self.delete('test_attributes', where)
+            self.delete('test_labels_tests', {'test_id': test_idx})
         where = {'job_idx' : job_idx}
         self.delete('tests', where)
         self.delete('jobs', where)
@@ -336,7 +337,8 @@ class db_sql(object):
                 'reason':test.reason, 'machine_idx':job.machine_idx,
                 'started_time': test.started_time,
                 'finished_time':test.finished_time}
-        if hasattr(test, "test_idx"):
+        is_update = hasattr(test, "test_idx")
+        if is_update:
             test_idx = test.test_idx
             self.update('tests', data, {'test_idx': test_idx}, commit=commit)
             where = {'test_idx': test_idx}
@@ -365,6 +367,11 @@ class db_sql(object):
             data = {'test_idx': test_idx, 'attribute': key,
                     'value': value}
             self.insert('test_attributes', data, commit=commit)
+
+        if not is_update:
+            for label_index in test.labels:
+                data = {'test_id': test_idx, 'testlabel_id': label_index}
+                self.insert('test_labels_tests', data, commit=commit)
 
 
     def read_machine_map(self):

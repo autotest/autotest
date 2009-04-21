@@ -68,14 +68,41 @@ def mailfailure(jobname, job, message):
     mail.send("", job.user, "", subject, message_header + message)
 
 
+def find_old_tests(db, job_idx):
+    """
+    Given a job index, return a list of all the test objects associated with
+    it in the database, including labels, but excluding other "complex"
+    data (attributes, iteration data, kernels).
+    """
+    raw_tests = db.select("test_idx,subdir,test,started_time,finished_time",
+                          "tests", {"job_idx": job_idx})
+
+    test_ids = ", ".join(str(raw_test[0]) for raw_test in raw_tests)
+
+    labels = db.select("test_id, testlabel_id", "test_labels_tests",
+                       "test_id in (%s)" % test_ids)
+    label_map = {}
+    for test_id, testlabel_id in labels:
+        label_map.setdefault(test_id, []).append(testlabel_id)
+
+    tests = []
+    for raw_test in raw_tests:
+        tests.append(models.test(raw_test[1], raw_test[2], None, None, None,
+                                 None, raw_test[3], raw_test[4],
+                                 [], {}, label_map.get(raw_test[0], [])))
+    return tests
+
+
 def parse_one(db, jobname, path, reparse, mail_on_failure):
     """
     Parse a single job. Optionally send email on failure.
     """
     tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
-    if reparse and db.find_job(jobname):
+    old_job_idx = db.find_job(jobname)
+    if reparse and old_job_idx:
         tko_utils.dprint("! Deleting old copy of job results to "
                          "reparse it")
+        old_tests = find_old_tests(db, old_job_idx)
         db.delete_job(jobname)
     if db.find_job(jobname):
         tko_utils.dprint("! Job is already parsed, done")
@@ -100,7 +127,28 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     status_lines = open(status_log).readlines()
     parser.start(job)
     tests = parser.end(status_lines)
-    job.tests = tests
+
+    # parser.end can return the same object multiple times, so filter out dups
+    job.tests = []
+    already_added = set()
+    for test in tests:
+        if test not in already_added:
+            already_added.add(test)
+            job.tests.append(test)
+
+    # try and port labels over from the old tests, but if old tests stop
+    # matching up with new ones just give up
+    for test, old_test in zip(job.tests, old_tests):
+        tests_are_the_same = (test.testname == old_test.testname and
+                              test.subdir == old_test.subdir and
+                              test.started_time == old_test.started_time and
+                              (test.finished_time == old_test.finished_time or
+                               old_test.finished_time is None))
+        if tests_are_the_same:
+            test.labels = old_test.labels
+        else:
+            tko_utils.dprint("! Reparse returned new tests, "
+                             "dropping old test labels")
 
     # check for failures
     message_lines = [""]
