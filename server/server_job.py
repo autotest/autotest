@@ -162,8 +162,10 @@ class base_server_job(object):
                     'status_version' : str(self.STATUS_VERSION),
                     'job_started' : str(int(time.time()))}
         if self.resultdir:
-            job_data.update(get_site_job_data(self))
-            utils.write_keyval(self.resultdir, job_data)
+            # only write these keyvals out on the first job in a resultdir
+            if 'job_started' not in utils.read_keyval(self.resultdir):
+                job_data.update(get_site_job_data(self))
+                utils.write_keyval(self.resultdir, job_data)
 
         self.parse_job = parse_job
         if self.parse_job and len(machines) == 1:

@@ -88,6 +88,8 @@ class CopyLogsTest(unittest.TestCase):
 
         cls = server_job.base_server_job
         compare = mock.is_instance_comparator(cls)
+        os.path.isdir.expect_call('results').and_return(True)
+        os.path.exists.expect_call('results/keyval').and_return(False)
         server_job.get_site_job_data.expect_call(compare).and_return({})
         utils.write_keyval.expect_call(mock.is_string_comparator(),
                                        mock.is_instance_comparator(dict))
