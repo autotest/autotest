@@ -172,6 +172,7 @@ class subcommand(object):
         sys.stdout.flush()
         sys.stderr.flush()
         r, w = os.pipe()
+        self.returncode = None
         self.pid = os.fork()
 
         if self.pid:                            # I am the parent
