@@ -112,9 +112,6 @@ class base_server_job(object):
                 log_file.close()
             if not os.path.exists(self.debugdir):
                 os.mkdir(self.debugdir)
-            status_log = self.get_status_log_path()
-            if os.path.exists(status_log):
-                os.remove(status_log)
         self.label = label
         self.user = user
         self.args = args
