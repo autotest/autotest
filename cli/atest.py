@@ -93,6 +93,7 @@ def main():
         except topic_common.CliError:
             pass
         except Exception, err:
+            traceback.print_exc()
             topic_obj.generic_error("Unexpected exception: %s" % err)
         else:
             try:

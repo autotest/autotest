@@ -55,7 +55,8 @@ High Level Algorithm:
    atest.print_*() methods.
 """
 
-import os, sys, pwd, optparse, re, textwrap, urllib2, getpass, socket
+import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
+import socket, urllib2
 from autotest_lib.cli import rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 
@@ -97,6 +98,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'reboot_after': 'Post-job reboot',
                     'experimental': 'Experimental',
                     'synch_count': 'Sync Count',
+                    'max_number_of_machines': 'Max. hosts to use',
                     }
 
 # In the failure, tag that will replace the item.
@@ -138,7 +140,7 @@ class atest(object):
     Should only be instantiated by itself for usage
     references, otherwise, the <topic> objects should
     be used."""
-    msg_topic = "[acl|host|job|label|test|user]"
+    msg_topic = "[acl|host|job|label|atomicgroup|test|user]"
     usage_action = "[action]"
     msg_items = ''
 
@@ -164,6 +166,8 @@ class atest(object):
 
 
     def generic_error(self, msg):
+        if self.debug:
+            traceback.print_exc()
         print >> sys.stderr, msg
         sys.exit(1)
 
