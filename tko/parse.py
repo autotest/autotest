@@ -101,6 +101,7 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     """
     tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
     old_job_idx = db.find_job(jobname)
+    old_tests = []
     if reparse and old_job_idx:
         tko_utils.dprint("! Deleting old copy of job results to "
                          "reparse it")
