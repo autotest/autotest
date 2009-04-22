@@ -714,6 +714,7 @@ class base_server_job(object):
             log_file.seek(0)
             log_file.truncate()
             pickle.dump(uncollected_logs, log_file)
+            log_file.flush()
         finally:
             fcntl.flock(log_file, fcntl.LOCK_UN)
             log_file.close()
