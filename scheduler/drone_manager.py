@@ -4,8 +4,6 @@ from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.scheduler import email_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
 
-_AUTOSERV_PID_FILE = '.autoserv_execute'
-
 
 class DroneManagerError(Exception):
     pass
@@ -324,12 +322,10 @@ class DroneManager(object):
 
     def get_orphaned_autoserv_processes(self):
         """
-        Returns a dict mapping execution tags to AutoservProcess objects for
-        orphaned processes only.
+        Returns a set of Process objects for orphaned processes only.
         """
-        return dict((execution_tag, process)
-                    for execution_tag, process in self._processes.iteritems()
-                    if process.ppid == 1)
+        return set(process for process in self._process_set
+                   if process.ppid == 1)
 
 
     def get_process_for(self, execution_tag):
@@ -343,7 +339,7 @@ class DroneManager(object):
         """
         Kill the given process.
         """
-        logging.info('killing %s' % process)
+        logging.info('killing %s', process)
         drone = self._get_drone_for_process(process)
         drone.queue_call('kill_process', process)
 
@@ -408,16 +404,15 @@ class DroneManager(object):
         return drone_to_use
 
 
-    def execute_command(self, command, working_directory, log_file=None,
-                        pidfile_name=None, paired_with_pidfile=None):
+    def execute_command(self, command, working_directory, pidfile_name,
+                        log_file=None, paired_with_pidfile=None):
         """
         Execute the given command, taken as an argv list.
 
         * working_directory: directory in which the pidfile will be written
+        * pidfile_name: gives the name of the pidfile this process will write
         * log_file (optional): specifies a path (in the results repository) to
           hold command output.
-        * pidfile_name (optional): gives the name of the pidfile this process
-          will write
         * paired_with_pidfile (optional): a PidfileId for an already-executed
           process; the new process will execute on the same drone as the
           previous process.
@@ -426,8 +421,6 @@ class DroneManager(object):
         if not log_file:
             log_file = self.get_temporary_path('execute')
         log_file = self.absolute_path(log_file)
-        if not pidfile_name:
-            pidfile_name = _AUTOSERV_PID_FILE
 
         if paired_with_pidfile:
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
@@ -447,9 +440,8 @@ class DroneManager(object):
         return pidfile_id
 
 
-    def get_pidfile_id_from(self, execution_tag):
-        path = os.path.join(self.absolute_path(execution_tag),
-                            _AUTOSERV_PID_FILE)
+    def get_pidfile_id_from(self, execution_tag, pidfile_name):
+        path = os.path.join(self.absolute_path(execution_tag), pidfile_name)
         return PidfileId(path)
 
 

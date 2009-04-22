@@ -677,16 +677,15 @@ def get_static_data():
     result['reboot_after_options'] = models.RebootAfter.names
     result['motd'] = rpc_utils.get_motd()
 
-    result['status_dictionary'] = {"Abort": "Abort",
-                                   "Aborted": "Aborted",
+    result['status_dictionary'] = {"Aborted": "Aborted",
                                    "Verifying": "Verifying Host",
                                    "Pending": "Waiting on other hosts",
                                    "Running": "Running autoserv",
                                    "Completed": "Autoserv completed",
                                    "Failed": "Failed to complete",
-                                   "Aborting": "Abort in progress",
                                    "Queued": "Queued",
                                    "Starting": "Next in host's queue",
                                    "Stopped": "Other host(s) failed verify",
-                                   "Parsing": "Awaiting parse of final results"}
+                                   "Parsing": "Awaiting parse of final results",
+                                   "Gathering": "Gathering log files"}
     return result
