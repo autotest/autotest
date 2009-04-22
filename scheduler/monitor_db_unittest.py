@@ -1017,7 +1017,8 @@ class JobTimeoutTest(BaseSchedulerTest):
             job.created_on -= datetime.timedelta(minutes=100)
         job.save()
 
-        self._dispatcher._abort_jobs_past_synch_start_timeout()
+        cleanup = self._dispatcher._periodic_cleanup
+        cleanup._abort_jobs_past_synch_start_timeout()
 
         for hqe in job.hostqueueentry_set.all():
             if expect_abort:

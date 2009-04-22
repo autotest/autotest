@@ -138,7 +138,7 @@ def main_without_exception_handling():
     try:
         init(options.logfile)
         dispatcher = Dispatcher()
-        dispatcher.do_initial_recovery(recover_hosts=options.recover_hosts)
+        dispatcher.initialize(recover_hosts=options.recover_hosts)
 
         while not _shutdown:
             dispatcher.tick()
@@ -589,7 +589,10 @@ class Dispatcher(object):
         self._queue_entry_agents = {}
 
 
-    def do_initial_recovery(self, recover_hosts=True):
+    def initialize(self, recover_hosts=True):
+        self._periodic_cleanup.initialize()
+        self._24hr_upkeep.initialize()
+
         # always recover processes
         self._recover_processes()
 
