@@ -76,6 +76,8 @@ def find_old_tests(db, job_idx):
     """
     raw_tests = db.select("test_idx,subdir,test,started_time,finished_time",
                           "tests", {"job_idx": job_idx})
+    if not raw_tests:
+        return []
 
     test_ids = ", ".join(str(raw_test[0]) for raw_test in raw_tests)
 
