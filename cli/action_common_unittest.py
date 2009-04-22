@@ -278,10 +278,10 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                           'users': ['user0', 'user1']},
                          True,
                          None)])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqualNoOrder(['acl0'], users_ok)
-        self.assertEqual([], hosts_ok)
+        self.assertEqualNoOrder(['acl0'], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
 
 
 
@@ -299,10 +299,10 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                           'hosts': ['host0', 'host1']},
                          True,
                          None)])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqualNoOrder(['acl0'], users_ok)
-        self.assertEqualNoOrder(['acl0'], hosts_ok)
+        self.assertEqualNoOrder(['acl0'], execute_result['users'])
+        self.assertEqualNoOrder(['acl0'], execute_result['hosts'])
 
 
     def test_execute_add_or_remove_uh_to_topic_acl_bad_users(self):
@@ -314,11 +314,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          False,
                          'DoesNotExist: The following users do not exist: '
                          'user0, user1')])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual([], users_ok)
-        self.assertEqual([], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual([], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           err_words_ok=['DoesNotExist',
                                         'acl_group_add_users',
                                         'user0', 'user1'],
@@ -339,11 +339,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                           'users': ['user1']},
                          True,
                          None)])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual(['acl0'], users_ok)
-        self.assertEqual([], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual(['acl0'], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           out_words_ok=['Added to ACL acl0', 'user1'],
                           err_words_ok=['DoesNotExist',
                                         'acl_group_add_users',
@@ -389,11 +389,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          True,
                          None)])
 
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual([], users_ok)
-        self.assertEqual(['acl0'], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual([], execute_result['users'])
+        self.assertEqual(['acl0'], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           out_words_ok=['Added to ACL acl0 hosts:',
                                         'host0', 'host1'],
                           err_words_ok=['DoesNotExist',
@@ -418,11 +418,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          'DoesNotExist: The following hosts do not exist: '
                          'host0, host1')])
 
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual(['acl0'], users_ok)
-        self.assertEqual([], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual(['acl0'], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           out_words_ok=['Added to ACL acl0 users:',
                                         'user0', 'user1'],
                           err_words_ok=['DoesNotExist',
@@ -452,11 +452,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          True,
                          None)])
 
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual(['acl0'], users_ok)
-        self.assertEqual(['acl0'], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual(['acl0'], execute_result['users'])
+        self.assertEqual(['acl0'], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           out_words_ok=['Added to ACL acl0 users:',
                                         'user0', 'user1', 'host0'],
                           err_words_ok=['DoesNotExist',
@@ -483,11 +483,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          'host0, host1')])
 
 
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual([], users_ok)
-        self.assertEqual([], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual([], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           err_words_ok=['DoesNotExist',
                                         'acl_group_add_hosts',
                                         'host0', 'host1',
@@ -521,11 +521,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                           'hosts': ['host0']},
                          True,
                          None)])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual(['acl0'], users_ok)
-        self.assertEqual(['acl0'], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual(['acl0'], execute_result['users'])
+        self.assertEqual(['acl0'], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           out_words_ok=['Added to ACL acl0 user:',
                                         'Added to ACL acl0 host:',
                                         'user1', 'host0'],
@@ -552,11 +552,11 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
                          False,
                          'DoesNotExist: acl_group matching '
                          'query does not exist.')])
-        (users_ok, hosts_ok) = acl_addrm.execute()
+        execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual([], users_ok)
-        self.assertEqual([], hosts_ok)
-        self.assertOutput(acl_addrm, (users_ok, hosts_ok),
+        self.assertEqual([], execute_result['users'])
+        self.assertEqual([], execute_result['hosts'])
+        self.assertOutput(acl_addrm, execute_result,
                           err_words_ok=['DoesNotExist',
                                         'acl_group_add_hosts',
                                         'acl_group_add_users'])
