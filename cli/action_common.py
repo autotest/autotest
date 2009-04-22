@@ -199,18 +199,26 @@ class atest_delete(atest_create_or_delete):
 
 
 #
-# Adding or Removing users or hosts from a topic (ACL or label)
+# Adding or Removing things (users, hosts or labels) from a topic
+# (ACL, Label or AtomicGroup)
 #
 class atest_add_or_remove(topic_common.atest):
     """atest <topic> [add|remove]
-    To subclass this, you must define:
-                       Example          Comment
-    self.topic         'acl_group'
-    self.op_action     'remove'         Action for adding users/hosts
+    To subclass this, you must define these attributes:
+                       Example             Comment
+    topic              'acl_group'
+    op_action          'remove'            Action for adding users/hosts
+    add_remove_things  {'users': 'user'}   Dict of things to try add/removing.
+                                           Keys are the attribute names.  Values
+                                           are the word to print for an
+                                           individual item of such a value.
     """
 
+    add_remove_things = {'users': 'user', 'hosts': 'host'}  # Original behavior
+
+
     def _add_remove_uh_to_topic(self, item, what):
-        """Adds the 'what' (users or hosts) to the 'item'"""
+        """Adds the 'what' (such as users or hosts) to the 'item'"""
         uhs = getattr(self, what)
         if len(uhs) == 0:
             # To skip the try/else
@@ -232,15 +240,28 @@ class atest_add_or_remove(topic_common.atest):
 
 
     def execute(self):
-        """Adds or removes users or hosts from a topic, e.g.:
-        add hosts to labels:
+        """Adds or removes things (users, hosts, etc.) from a topic, e.g.:
+
+        Add hosts to labels:
           self.topic = 'label'
           self.op_action = 'add'
-          self.get_items() = the labels/ACLs that the hosts
-                             should be added to"""
+          self.add_remove_things = {'users': 'user', 'hosts': 'host'}
+          self.get_items() = The labels/ACLs that the hosts
+                             should be added to.
+
+        Returns:
+          A dictionary of lists of things added successfully using the same
+          keys as self.add_remove_things.
+        """
         oks = {}
         for item in self.get_items():
-            for what in ['users', 'hosts']:
+            # FIXME(gps):
+            # This reverse sorting is only here to avoid breaking many
+            # existing extremely fragile unittests which depend on the
+            # exact order of the calls made below.  'users' must be run
+            # before 'hosts'.
+            plurals = reversed(sorted(self.add_remove_things.keys()))
+            for what in plurals:
                 try:
                     self._add_remove_uh_to_topic(item, what)
                 except AttributeError:
@@ -252,27 +273,23 @@ class atest_add_or_remove(topic_common.atest):
                 else:
                     oks.setdefault(item, []).append(what)
 
-        users_ok = [item for (item, what) in oks.items() if 'users' in what]
-        hosts_ok = [item for (item, what) in oks.items() if 'hosts' in what]
+        results = {}
+        for thing in self.add_remove_things:
+            things_ok = [item for item, what in oks.items() if thing in what]
+            results[thing] = things_ok
 
-        return (users_ok, hosts_ok)
+        return results
 
 
     def output(self, results):
-        (users_ok, hosts_ok) = results
-        if users_ok:
-            self.print_wrapped("%s %s %s user" %
-                               (self.msg_done,
-                                self.msg_topic,
-                                ', '.join(users_ok)),
-                               self.good_users)
-
-        if hosts_ok:
-            self.print_wrapped("%s %s %s host" %
-                               (self.msg_done,
-                                self.msg_topic,
-                                ', '.join(hosts_ok)),
-                               self.good_hosts)
+        for thing, single_thing in self.add_remove_things.iteritems():
+            things_ok = results[thing]
+            if things_ok:
+                self.print_wrapped("%s %s %s %s" % (self.msg_done,
+                                                    self.msg_topic,
+                                                    ', '.join(things_ok),
+                                                    single_thing),
+                                   getattr(self, 'good_%s' % thing))
 
 
 class atest_add(atest_add_or_remove):

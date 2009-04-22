@@ -26,8 +26,8 @@ class main_unittest(cli_mock.cli_unittest):
     def test_main_help(self):
         """Main help level"""
         self._test_help(argv=['atest'],
-                        out_words_ok=['atest [acl|host|job|label|test|user] '
-                                      '[action] [options]'],
+                        out_words_ok=['atest [acl|host|job|label|atomicgroup'
+                                      '|test|user] [action] [options]'],
                         err_words_ok=[])
 
 
@@ -35,7 +35,8 @@ class main_unittest(cli_mock.cli_unittest):
         """Topic level help"""
         self._test_help(argv=['atest', 'host'],
                         out_words_ok=['atest host ',
-                                      '[create|delete|list|stat|mod|jobs] [options]'],
+                                      '[create|delete|list|stat|mod|jobs]'
+                                      ' [options]'],
                         err_words_ok=[])
 
 
@@ -49,22 +50,22 @@ class main_unittest(cli_mock.cli_unittest):
     def test_main_no_topic(self):
         self.run_cmd(['atest'], exit_code=1,
                      out_words_ok=['atest '
-                                   '[acl|host|job|label|test|user] '
+                                   '[acl|host|job|label|atomicgroup|test|user] '
                                    '[action] [options]'],
                      err_words_ok=['No topic argument'])
 
 
     def test_main_bad_topic(self):
         self.run_cmd(['atest', 'bad_topic'], exit_code=1,
-                     out_words_ok=['atest [acl|host|job|'
-                                 'label|test|user] [action] [options]'],
+                     out_words_ok=['atest [acl|host|job|label|atomicgroup'
+                                   '|test|user] [action] [options]'],
                      err_words_ok=['Invalid topic bad_topic\n'])
 
 
     def test_main_bad_action(self):
         self.run_cmd(['atest', 'host', 'bad_action'], exit_code=1,
-                     out_words_ok=['atest host '
-                                 '[create|delete|list|stat|mod|jobs] [options]'],
+                     out_words_ok=['atest host [create|delete|list|stat|'
+                                   'mod|jobs] [options]'],
                      err_words_ok=['Invalid action bad_action'])
 
 
