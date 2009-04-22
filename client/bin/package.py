@@ -155,6 +155,24 @@ def _dpkg_info(dpkg_package):
     return package_info
 
 
+def list_all():
+    """Returns a list with the names of all currently installed packages."""
+    support_info = os_support()
+    installed_packages = []
+
+    if support_info['rpm']:
+        installed_packages += utils.system_output('rpm -qa').splitlines()
+
+    if support_info['dpkg']:
+        raw_list = utils.system_output('dpkg -l').splitlines()[5:]
+        for line in raw_list:
+            parts = line.split()
+            if parts[0] == "ii":  # only grab "installed" packages
+                installed_packages.append("%s-%s" % (parts[1], parts[2]))
+
+    return installed_packages
+
+
 def info(package):
     """\
     Returns a dictionary with package information about a given package file:
