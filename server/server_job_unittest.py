@@ -66,9 +66,6 @@ class CopyLogsTest(unittest.TestCase):
         os.path.exists.expect_call(
                 mock.is_string_comparator()).and_return(False)
         os.mkdir.expect_call(mock.is_string_comparator())
-        os.path.exists.expect_call(
-                mock.is_string_comparator()).and_return(True)
-        os.remove.expect_call(mock.is_string_comparator())
 
         self.god.mock_up(sysinfo, 'sysinfo')
         sysinfo.sysinfo.expect_call(mock.is_string_comparator())
