@@ -189,7 +189,11 @@ def main():
 
 
     if parser.options.write_pidfile:
-        pid_file_manager = pidfile.PidFileManager("autoserv", results)
+        if parser.options.collect_crashinfo:
+            pidfile_label = 'collect_crashinfo'
+        else:
+            pidfile_label = 'autoserv'
+        pid_file_manager = pidfile.PidFileManager(pidfile_label, results)
         pid_file_manager.open_file()
     else:
         pid_file_manager = None

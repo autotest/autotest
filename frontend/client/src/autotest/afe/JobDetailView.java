@@ -43,7 +43,7 @@ import java.util.Set;
 public class JobDetailView extends DetailView implements TableWidgetFactory, TableActionsListener {
     private static final String[][] JOB_HOSTS_COLUMNS = {
         {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, // selection checkbox 
-        {"hostname", "Host"}, {"status", "Status"}, 
+        {"hostname", "Host"}, {"full_status", "Status"}, 
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
         // columns for status log and debug log links
         {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, {DataTable.CLICKABLE_WIDGET_COLUMN, ""}  
@@ -111,7 +111,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 JSONObject counts = jobObject.get("status_counts").isObject();
                 String countString = AfeUtils.formatStatusCounts(counts, ", ");
                 showText(countString, "view_status");
-                abortButton.setVisible(!allFinishedCounts(counts));
+                abortButton.setVisible(isAnyEntryAbortable(counts));
                 
                 String jobTag = AfeUtils.getJobTag(jobObject);
                 pointToResults(getResultsURL(jobId), getLogsURL(jobTag), 
@@ -133,18 +133,17 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         });
     }
     
-    protected boolean allFinishedCounts(JSONObject statusCounts) {
-        Set<String> keys = statusCounts.keySet();
-        for (String key : keys) {
-            if (!(key.equals("Completed") || 
-                  key.equals("Failed") ||
-                  key.equals("Aborting") ||
-                  key.equals("Abort") ||
-                  key.equals("Aborted") ||
-                  key.equals("Stopped")))
-                return false;
+    protected boolean isAnyEntryAbortable(JSONObject statusCounts) {
+        Set<String> statuses = statusCounts.keySet();
+        for (String status : statuses) {
+            if (!(status.equals("Completed") || 
+                  status.equals("Failed") ||
+                  status.equals("Stopped") ||
+                  status.startsWith("Aborted"))) {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
     
     @Override
