@@ -17,7 +17,11 @@ class PeriodicCleanup(object):
         self._db = db
         self.clean_interval = clean_interval
         self._last_clean_time = time.time()
-        if run_at_initialize:
+        self._run_at_initialize = run_at_initialize
+
+
+    def initialize(self):
+        if self._run_at_initialize:
             self._cleanup()
 
 
