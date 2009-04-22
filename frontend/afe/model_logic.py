@@ -565,7 +565,13 @@ class ModelExtensions(object):
         object_dict = dict((field_name, getattr(self, field_name))
                            for field_name in fields)
         self.clean_object_dicts([object_dict])
+        self._postprocess_object_dict(object_dict)
         return object_dict
+
+
+    def _postprocess_object_dict(self, object_dict):
+        """For subclasses to override."""
+        pass
 
 
     @classmethod

@@ -54,9 +54,6 @@ class DroneUtility(object):
             shutil.rmtree(temporary_directory)
         self._ensure_directory_exists(temporary_directory)
 
-        # make sure there are no old parsers running
-        os.system('killall parse')
-
 
     def _warn(self, warning):
         self.warnings.append(warning)
@@ -96,6 +93,19 @@ class DroneUtility(object):
 
 
     def refresh(self, pidfile_paths):
+        """
+        pidfile_paths should be a list of paths to check for pidfiles.
+
+        Returns a dict containing:
+        * pidfiles: dict mapping pidfile paths to file contents, for pidfiles
+        that exist.
+        * autoserv_processes: list of dicts corresponding to running autoserv
+        processes.  each dict contain pid, pgid, ppid, comm, and args (see
+        "man ps" for details).
+        * parse_processes: likewise, for parse processes.
+        * pidfiles_second_read: same info as pidfiles, but gathered after the
+        processes are scanned.
+        """
         results = {
             'pidfiles' : self._read_pidfiles(pidfile_paths),
             'autoserv_processes' : self._refresh_processes('autoserv'),

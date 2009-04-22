@@ -481,7 +481,9 @@ True
 ...  'status': 'Queued',
 ...  'deleted': 0,
 ...  'execution_subdir': '',
-...  'atomic_group': None})
+...  'atomic_group': None,
+...  'aborted': False,
+...  'full_status': 'Queued'})
 True
 >>> data[2] == (
 ... {'active': 0,
@@ -493,7 +495,9 @@ True
 ...  'status': 'Queued',
 ...  'deleted': 0,
 ...  'execution_subdir': '',
-...  'atomic_group': None})
+...  'atomic_group': None,
+...  'aborted': False,
+...  'full_status': 'Queued'})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
 4
@@ -510,7 +514,7 @@ True
 >>> rpc_interface.abort_host_queue_entries(job__id=1)
 >>> data = rpc_interface.get_jobs_summary(id=1)
 >>> data[0]['status_counts']
-{'Abort': 4}
+{'Aborted (Queued)': 4}
 
 # Remove the two hosts in my_label
 >>> rpc_interface.delete_host('my_label_host1')

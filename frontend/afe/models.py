@@ -583,16 +583,18 @@ class JobManager(model_logic.ExtendedManager):
         id_list = '(%s)' % ','.join(str(job_id) for job_id in job_ids)
         cursor = connection.cursor()
         cursor.execute("""
-            SELECT job_id, status, COUNT(*)
+            SELECT job_id, status, aborted, complete, COUNT(*)
             FROM host_queue_entries
             WHERE job_id IN %s
-            GROUP BY job_id, status
+            GROUP BY job_id, status, aborted, complete
             """ % id_list)
         all_job_counts = {}
         for job_id in job_ids:
             all_job_counts[job_id] = {}
-        for job_id, status, count in cursor.fetchall():
-            all_job_counts[job_id][status] = count
+        for job_id, status, aborted, complete, count in cursor.fetchall():
+            full_status = HostQueueEntry.compute_full_status(status, aborted,
+                                                             complete)
+            all_job_counts[job_id][full_status] = count
         return all_job_counts
 
 
@@ -744,11 +746,10 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
-                       'Parsing', 'Abort', 'Aborting', 'Aborted', 'Completed',
+                       'Gathering', 'Parsing', 'Aborted', 'Completed',
                        'Failed', 'Stopped', string_values=True)
-    ABORT_STATUSES = (Status.ABORT, Status.ABORTING, Status.ABORTED)
     ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
-                       Status.RUNNING, Status.ABORTING)
+                       Status.RUNNING, Status.GATHERING)
     COMPLETE_STATUSES = (Status.ABORTED, Status.COMPLETED, Status.FAILED,
                          Status.STOPPED)
 
@@ -764,6 +765,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     # If atomic_group is set, this is a virtual HostQueueEntry that will
     # be expanded into many actual hosts within the group at schedule time.
     atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
+    aborted = dbmodels.BooleanField(default=False)
 
     objects = model_logic.ExtendedManager()
 
@@ -788,11 +790,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def _set_active_and_complete(self):
-        if self.status == self.Status.ABORT:
-            # must leave active flag unchanged so scheduler knows if entry was
-            # active before abort.
-            return
-        elif self.status in self.ACTIVE_STATUSES:
+        if self.status in self.ACTIVE_STATUSES:
             self.active, self.complete = True, False
         elif self.status in self.COMPLETE_STATUSES:
             self.active, self.complete = False, True
@@ -822,10 +820,27 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     def abort(self, user):
         # this isn't completely immune to race conditions since it's not atomic,
         # but it should be safe given the scheduler's behavior.
-        if not self.complete and self.status not in self.ABORT_STATUSES:
-            self.status = HostQueueEntry.Status.ABORT
+        if not self.complete and not self.aborted:
             self.log_abort(user)
+            self.aborted = True
             self.save()
+
+
+    @classmethod
+    def compute_full_status(cls, status, aborted, complete):
+        if aborted and not complete:
+            return 'Aborted (%s)' % status
+        return status
+
+
+    def full_status(self):
+        return self.compute_full_status(self.status, self.aborted,
+                                        self.complete)
+
+
+    def _postprocess_object_dict(self, object_dict):
+        object_dict['full_status'] = self.full_status()
+
 
     class Meta:
         db_table = 'host_queue_entries'
