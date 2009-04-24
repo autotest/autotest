@@ -11,6 +11,8 @@ Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
 import os, shutil
 from autotest_lib.client.bin import utils, profiler
+from autotest_lib.client.common_lib import error
+
 
 class oprofile(profiler.profiler):
     version = 7
