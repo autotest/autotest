@@ -357,6 +357,8 @@ def delete_saved_queries(id_list):
 
 
 # other
+def get_motd():
+    return rpc_utils.get_motd()
 
 
 def get_static_data():
