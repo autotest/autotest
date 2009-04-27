@@ -99,6 +99,7 @@ True
 ...           'synch_id': None,
 ...           'status': 'Hello',
 ...           'labels': [],
+...           'acls': ['Everyone'],
 ...           'platform': None,
 ...           'invalid': 0,
 ...           'protection': 'No protection',
