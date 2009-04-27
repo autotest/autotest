@@ -142,6 +142,7 @@ def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
         host_dict['labels'] = [label.name for label in host_obj.labels.all()]
         platform = host_obj.platform()
         host_dict['platform'] = platform and platform.name or None
+        host_dict['acls'] = [acl.name for acl in host_obj.aclgroup_set.all()]
         host_dicts.append(host_dict)
     return rpc_utils.prepare_for_serialization(host_dicts)
 

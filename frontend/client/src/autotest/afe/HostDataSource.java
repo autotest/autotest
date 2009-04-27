@@ -5,12 +5,15 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
+import autotest.common.JSONArrayList;
+import autotest.common.Utils;
 import autotest.common.table.RpcDataSource;
 
 public class HostDataSource extends RpcDataSource {
     protected static final String LOCKED_TEXT = "locked_text";
     protected static final String OTHER_LABELS = "other_labels";
-
+    protected static final String HOST_ACLS = "host_acls";
+    
     public HostDataSource() {
         super("get_hosts", "get_num_hosts");
     }
@@ -42,6 +45,11 @@ public class HostDataSource extends RpcDataSource {
             labelString += label;
         }
         host.put(OTHER_LABELS, new JSONString(labelString));
+        
+        JSONArrayList<JSONString> aclsList = 
+            new JSONArrayList<JSONString>(host.get("acls").isArray());
+        String aclString = Utils.joinStrings(",", aclsList);
+        host.put(HOST_ACLS, new JSONString(aclString));
     }
     
     
