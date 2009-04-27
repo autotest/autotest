@@ -126,6 +126,7 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
         
         showField(hostObject, "status", "view_host_status");
         showField(hostObject, "platform", "view_host_platform");
+        showField(hostObject, HostDataSource.HOST_ACLS, "view_host_acls");
         showField(hostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
         showField(hostObject, HostDataSource.LOCKED_TEXT, "view_host_locked");
         String pageTitle = "Host " + hostname;
