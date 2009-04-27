@@ -1173,8 +1173,9 @@ class Agent(object):
     def abort(self):
         if self.active_task:
             self.active_task.abort()
-            self.active_task = None
-            self._clear_queue()
+            if self.active_task.aborted: # tasks can choose to ignore aborts
+                self.active_task = None
+                self._clear_queue()
 
 
 class AgentTask(object):
@@ -1241,7 +1242,7 @@ class AgentTask(object):
 
 
     def cleanup(self):
-        if self.monitor and self.log_file:
+        if self.monitor and self.monitor.has_process() and self.log_file:
             _drone_manager.copy_to_results_repository(
                 self.monitor.get_process(), self.log_file)
 
@@ -1284,12 +1285,15 @@ class AgentTask(object):
         return first_execution_tag
 
 
-    def _copy_and_parse_results(self, queue_entries):
+    def _copy_and_parse_results(self, queue_entries, use_monitor=None):
         assert len(queue_entries) > 0
-        assert self.monitor
+        if use_monitor is None:
+            assert self.monitor
+            use_monitor = self.monitor
+        assert use_monitor.has_process()
         execution_tag = self._get_consistent_execution_tag(queue_entries)
         results_path = execution_tag + '/'
-        _drone_manager.copy_to_results_repository(self.monitor.get_process(),
+        _drone_manager.copy_to_results_repository(use_monitor.get_process(),
                                                   results_path)
 
         reparse_task = FinalReparseTask(queue_entries)
@@ -1679,7 +1683,9 @@ class GatherLogsTask(PostJobTask):
     def _reboot_hosts(self):
         reboot_after = self._job.reboot_after
         do_reboot = False
-        if reboot_after == models.RebootAfter.ALWAYS:
+        if self._final_status == models.HostQueueEntry.Status.ABORTED:
+            do_reboot = True
+        elif reboot_after == models.RebootAfter.ALWAYS:
             do_reboot = True
         elif reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED:
             final_success = (
@@ -1699,7 +1705,8 @@ class GatherLogsTask(PostJobTask):
 
     def epilog(self):
         super(GatherLogsTask, self).epilog()
-        self._copy_and_parse_results(self._queue_entries)
+        self._copy_and_parse_results(self._queue_entries,
+                                     use_monitor=self._autoserv_monitor)
         self._reboot_hosts()
 
 

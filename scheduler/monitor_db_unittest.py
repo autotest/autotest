@@ -67,6 +67,12 @@ class IsAgentWithTask(mock.argument_comparator):
             return tasks[0] == self._task
 
 
+def _set_host_and_qe_ids(agent_or_task, id_list=None):
+    if id_list is None:
+        id_list = []
+    agent_or_task.host_ids = agent_or_task.queue_entry_ids = id_list
+
+
 class BaseSchedulerTest(unittest.TestCase):
     _config_section = 'AUTOTEST_WEB'
     _test_db_initialized = False
@@ -967,7 +973,7 @@ class FindAbortTest(BaseSchedulerTest):
         self._create_job(hosts=[1, 2])
         self._update_hqe(set='aborted=1')
         self._agent = self.god.create_mock_class(monitor_db.Agent, 'old_agent')
-        self._agent.host_ids = self._agent.queue_entry_ids = [1, 2]
+        _set_host_and_qe_ids(self._agent, [1, 2])
         self._agent.abort.expect_call()
         self._agent.abort.expect_call() # gets called once for each HQE
         self._dispatcher.add_agent(self._agent)
@@ -1206,6 +1212,8 @@ class PidfileRunMonitorTest(unittest.TestCase):
 class AgentTest(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
+        self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
+                                                      'dispatcher')
 
 
     def tearDown(self):
@@ -1214,17 +1222,24 @@ class AgentTest(unittest.TestCase):
 
     def _create_mock_task(self, name):
         task = self.god.create_mock_class(monitor_db.AgentTask, name)
-        task.host_ids = task.queue_entry_ids = []
+        _set_host_and_qe_ids(task)
         return task
+
+    def _create_agent(self, tasks):
+        agent = monitor_db.Agent(tasks)
+        agent.dispatcher = self._dispatcher
+        return agent
+
+
+    def _finish_agent(self, agent):
+        while not agent.is_done():
+            agent.tick()
 
 
     def test_agent(self):
         task1 = self._create_mock_task('task1')
         task2 = self._create_mock_task('task2')
         task3 = self._create_mock_task('task3')
-        self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
-                                                      'dispatcher')
-
 
         task1.start.expect_call()
         task1.is_done.expect_call().and_return(False)
@@ -1241,12 +1256,45 @@ class AgentTest(unittest.TestCase):
 
         self._dispatcher.add_agent.expect_call(IsAgentWithTask(task3))
 
-        agent = monitor_db.Agent([task1, task2])
-        agent.dispatcher = self._dispatcher
+        agent = self._create_agent([task1, task2])
         agent.start()
-        while not agent.is_done():
-            agent.tick()
+        self._finish_agent(agent)
         self.god.check_playback()
+
+
+    def _test_agent_abort_helper(self, ignore_abort=False):
+        task1 = self._create_mock_task('task1')
+        task2 = self._create_mock_task('task2')
+        task1.start.expect_call()
+        task1.is_done.expect_call().and_return(False)
+        task1.poll.expect_call()
+        task1.is_done.expect_call().and_return(False)
+        task1.abort.expect_call()
+        if ignore_abort:
+            task1.aborted = False # task ignores abort; execution continues
+
+            task1.is_done.expect_call().and_return(True)
+            task1.is_done.expect_call().and_return(True)
+            task1.success = True
+
+            task2.start.expect_call()
+            task2.is_done.expect_call().and_return(True)
+            task2.is_done.expect_call().and_return(True)
+            task2.success = True
+        else:
+            task1.aborted = True # execution halts, no further expectations
+
+        agent = self._create_agent([task1, task2])
+        agent.start()
+        agent.tick()
+        agent.abort()
+        self._finish_agent(agent)
+        self.god.check_playback()
+
+
+    def test_agent_abort(self):
+        self._test_agent_abort_helper()
+        self._test_agent_abort_helper(True)
 
 
 class AgentTasksTest(unittest.TestCase):
@@ -1280,6 +1328,10 @@ class AgentTasksTest(unittest.TestCase):
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'run')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'get_process')
+        def mock_has_process(unused):
+            return True
+        self.god.stub_with(monitor_db.PidfileRunMonitor, 'has_process',
+                           mock_has_process)
         self.host = self.god.create_mock_class(monitor_db.Host, 'host')
         self.host.id = 1
         self.host.hostname = self.HOSTNAME
@@ -1295,7 +1347,6 @@ class AgentTasksTest(unittest.TestCase):
         self.queue_entry.meta_host = None
         self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
                                                       'dispatcher')
-
 
 
     def tearDown(self):
@@ -1477,7 +1528,8 @@ class AgentTasksTest(unittest.TestCase):
         self.test_verify_task_with_queue_entry()
 
 
-    def _setup_post_job_task_expects(self, autoserv_success, hqe_status):
+    def _setup_post_job_task_expects(self, autoserv_success, hqe_status,
+                                     hqe_aborted=False):
         self.queue_entry.execution_tag.expect_call().and_return('tag')
         self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
         self.pidfile_monitor.pidfile_id = self.PIDFILE_ID
@@ -1487,8 +1539,9 @@ class AgentTasksTest(unittest.TestCase):
         else:
             code = 1
         self.queue_entry.update_from_database.expect_call()
-        self.queue_entry.aborted = False
-        self.pidfile_monitor.exit_code.expect_call().and_return(code)
+        self.queue_entry.aborted = hqe_aborted
+        if not hqe_aborted:
+            self.pidfile_monitor.exit_code.expect_call().and_return(code)
 
         self.queue_entry.set_status.expect_call(hqe_status)
 
@@ -1521,8 +1574,13 @@ class AgentTasksTest(unittest.TestCase):
         self._expect_copy_results()
 
 
-    def _expect_copy_results(self):
-        self.monitor.get_process.expect_call().and_return(self.DUMMY_PROCESS)
+    def _expect_copy_results(self, monitor=None, queue_entry=None):
+        if monitor is None:
+            monitor = self.monitor
+        monitor.has_process.expect_call().and_return(True)
+        if queue_entry:
+            queue_entry.execution_tag.expect_call().and_return('tag')
+        monitor.get_process.expect_call().and_return(self.DUMMY_PROCESS)
         drone_manager.DroneManager.copy_to_results_repository.expect_call(
                 self.DUMMY_PROCESS, mock.is_string_comparator())
 
@@ -1565,27 +1623,56 @@ class AgentTasksTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_gather_logs_task(self):
+    def _setup_gather_logs_expects(self, hqe_aborted=False):
         self.god.stub_class(monitor_db, 'PidfileRunMonitor')
         self.god.stub_class(monitor_db, 'FinalReparseTask')
-        self._setup_post_job_task_expects(True, 'Gathering')
+        self._setup_post_job_task_expects(True, 'Gathering', hqe_aborted)
         self._setup_post_job_run_monitor('.collect_crashinfo_execute')
-        self.queue_entry.execution_tag.expect_call().and_return('tag')
-        self._expect_copy_results()
+        self._expect_copy_results(monitor=self.pidfile_monitor,
+                                  queue_entry=self.queue_entry)
         parse_task = monitor_db.FinalReparseTask.expect_new([self.queue_entry])
-        parse_task.host_ids = parse_task.queue_entry_ids = []
+        _set_host_and_qe_ids(parse_task)
         self._dispatcher.add_agent.expect_call(IsAgentWithTask(parse_task))
 
-        # TODO(showard): add tests for rebooting code
-        self.job.reboot_after = models.RebootAfter.NEVER
-        self.host.set_status.expect_call('Ready')
 
+    def _run_gather_logs_task(self):
         task = monitor_db.GatherLogsTask(self.job, [self.queue_entry])
         task.agent = DummyAgent()
         task.agent.dispatcher = self._dispatcher
         self.run_task(task, True)
-
         self.god.check_playback()
+
+
+    def test_gather_logs_task(self):
+        self._setup_gather_logs_expects()
+        # no rebooting for this basic test
+        self.job.reboot_after = models.RebootAfter.NEVER
+        self.host.set_status.expect_call('Ready')
+
+        self._run_gather_logs_task()
+
+
+    def _setup_gather_task_cleanup_expects(self):
+        self.god.stub_class(monitor_db, 'CleanupTask')
+        cleanup_task = monitor_db.CleanupTask.expect_new(host=self.host)
+        _set_host_and_qe_ids(cleanup_task)
+        self._dispatcher.add_agent.expect_call(IsAgentWithTask(cleanup_task))
+
+
+    def test_gather_logs_reboot_hosts(self):
+        self._setup_gather_logs_expects()
+        self.job.reboot_after = models.RebootAfter.ALWAYS
+        self._setup_gather_task_cleanup_expects()
+
+        self._run_gather_logs_task()
+
+
+    def test_gather_logs_reboot_on_abort(self):
+        self._setup_gather_logs_expects(hqe_aborted=True)
+        self.job.reboot_after = models.RebootAfter.NEVER
+        self._setup_gather_task_cleanup_expects()
+
+        self._run_gather_logs_task()
 
 
     def _test_cleanup_task_helper(self, success, use_queue_entry=False):
