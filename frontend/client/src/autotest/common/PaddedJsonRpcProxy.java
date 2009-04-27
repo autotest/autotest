@@ -48,7 +48,6 @@ public class PaddedJsonRpcProxy extends JsonRpcProxy {
             timeoutTimer = new Timer() {
                 @Override
                 public void run() {
-                    GWT.log("timeout firing " + requestId, null);
                     timedOut = true;
                     cleanup();
                     notify.showError("Request timed out");
@@ -68,7 +67,6 @@ public class PaddedJsonRpcProxy extends JsonRpcProxy {
             scriptTag = addScript(getFullUrl(rpcUrl), requestId);
             timeoutTimer.schedule(REQUEST_TIMEOUT_MILLIS);
             notify.setLoading(true);
-            GWT.log("request sent " + requestId + " <" + requestData + ">", null);
         }
 
         public void cleanup() {
@@ -101,19 +99,13 @@ public class PaddedJsonRpcProxy extends JsonRpcProxy {
         }
 
         public void handleResponseImpl(JavaScriptObject responseJso) {
-            GWT.log("response arrived " + requestId, null);
             cleanup();
             if (timedOut) {
-                GWT.log("already timed out " + requestId, null);
                 return;
             }
 
             JSONObject responseObject = new JSONObject(responseJso);
-            GWT.log("handling response " + requestId 
-                    + " (" + responseJso.toString().length() + ")", 
-                    null);
             handleResponseObject(responseObject, rpcCallback);
-            GWT.log("done " + requestId, null);
         }
     }
 

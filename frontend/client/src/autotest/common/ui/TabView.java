@@ -7,7 +7,7 @@ import com.google.gwt.http.client.URL;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
 
@@ -19,18 +19,25 @@ import java.util.Map;
  * tab from the "title" attribute of the HTML element.  This class also supports
  * lazy initialization of the tab by waiting until the tab is first displayed.
  */
-public abstract class TabView extends Composite {
-    protected boolean initialized = false;
-    protected String title;
+public abstract class TabView {
+    private boolean initialized = false;
+    private ElementWidget tabElement;
+    private String title;
     protected boolean visible;
     private Map<String, String> savedState;
-    
-    public TabView() {
-        ElementWidget thisTab = new ElementWidget(getElementId());
-        initWidget(thisTab);
-        title = thisTab.getElement().getAttribute("title");
+
+    public Widget getWidget() {
+        return tabElement;
     }
-    
+
+    public void attachToDocument() {
+        tabElement = new ElementWidget(getElementId());
+        title = tabElement.getElement().getAttribute("title");
+    }
+
+    // for subclasses to override
+    public void initialize() {}
+
     public void ensureInitialized() {
         if (!initialized) {
             initialize();
@@ -38,7 +45,7 @@ public abstract class TabView extends Composite {
         }
     }
     
-    // primarily for subclasses to override
+    // for subclasses to override
     public void refresh() {}
     
     public void display() {
@@ -54,8 +61,7 @@ public abstract class TabView extends Composite {
     protected boolean isTabVisible() {
         return visible;
     }
-    
-    @Override
+
     public String getTitle() {
         return title;
     }
@@ -80,8 +86,7 @@ public abstract class TabView extends Composite {
      * @param arguments the parsed history arguments to use
      */
     public void handleHistoryArguments(Map<String, String> arguments) {}
-    
-    public abstract void initialize();
+
     public abstract String getElementId();
 
     protected void saveHistoryState() {

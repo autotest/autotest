@@ -20,5 +20,9 @@ class ClientCompilationTest(unittest.TestCase):
         self._compile_module('TkoClient')
 
 
+    def test_embedded_tko_compilation(self):
+        self._compile_module('EmbeddedTkoClient')
+
+
 if __name__ == '__main__':
     unittest.main()

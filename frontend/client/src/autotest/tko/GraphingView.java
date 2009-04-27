@@ -33,6 +33,7 @@ public class GraphingView extends TabView {
     
     @Override
     public void initialize() {
+        super.initialize();
         frontendSelection.addItem("Metrics Plot", metricsPlotFrontend.getFrontendId());
         frontendSelection.addItem("Machine Qualification Histogram", 
                                   machineQualHistogramFrontend.getFrontendId());

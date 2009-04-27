@@ -89,6 +89,7 @@ public class SpreadsheetView extends ConditionTabView
 
     @Override
     public void initialize() {
+        super.initialize();
         normalDataSource.setSkipNumResults(true);
         latestDataSource.setSkipNumResults(true);
         
