@@ -633,6 +633,13 @@ def echo(data=""):
     return data
 
 
+def get_motd():
+    """\
+    Returns the message of the day as a string.
+    """
+    return rpc_utils.get_motd()
+
+
 def get_static_data():
     """\
     Returns a dictionary containing a bunch of data that shouldn't change
