@@ -17,6 +17,7 @@ public abstract class JsonRpcProxy {
     public static final String AFE_BASE_URL = "/afe/server/";
     public static final String TKO_BASE_URL = "/new_tko/server/";
     private static final String RPC_URL_SUFFIX = "rpc/";
+    private static final String JSON_RPC_URL_SUFFIX = "jsonp_rpc/";
 
     private static String defaultBaseUrl;
     private static final Map<String, JsonRpcProxy> instanceMap =
@@ -26,10 +27,17 @@ public abstract class JsonRpcProxy {
     public static void setDefaultBaseUrl(String baseUrl) {
         defaultBaseUrl = baseUrl;
     }
+    
+    public static JsonRpcProxy createProxy(String baseUrl, boolean isPaddedJson) {
+        if (isPaddedJson) {
+            return new PaddedJsonRpcProxy(baseUrl + JSON_RPC_URL_SUFFIX);
+        }
+        return new XhrJsonRpcProxy(baseUrl + RPC_URL_SUFFIX);
+    }
 
     public static JsonRpcProxy getProxy(String baseUrl) {
         if (!instanceMap.containsKey(baseUrl)) {
-            instanceMap.put(baseUrl, new XhrJsonRpcProxy(baseUrl + RPC_URL_SUFFIX));
+            instanceMap.put(baseUrl, createProxy(baseUrl, false));
         }
         return instanceMap.get(baseUrl);
     }
@@ -37,6 +45,10 @@ public abstract class JsonRpcProxy {
     public static JsonRpcProxy getProxy() {
         assert defaultBaseUrl != null;
         return getProxy(defaultBaseUrl);
+    }
+    
+    public static void setProxy(String baseUrl, JsonRpcProxy proxy) {
+        instanceMap.put(baseUrl, proxy);
     }
 
     /**

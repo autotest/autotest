@@ -84,8 +84,9 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
     }
     
     public void addTabView(TabView tabView) {
+        tabView.attachToDocument();
         tabViews.add(tabView);
-        tabPanel.add(tabView, tabView.getTitle());
+        tabPanel.add(tabView.getWidget(), tabView.getTitle());
     }
     
     public List<TabView> getTabViews() {

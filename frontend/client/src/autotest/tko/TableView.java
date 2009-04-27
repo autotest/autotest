@@ -105,6 +105,7 @@ public class TableView extends ConditionTabView
 
     @Override
     public void initialize() {
+        super.initialize();
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("all_fields")) {
             namesToFields.put(fieldInfo.name, fieldInfo.field);
             fieldsToNames.put(fieldInfo.field, fieldInfo.name);

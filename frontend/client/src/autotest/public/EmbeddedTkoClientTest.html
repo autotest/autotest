@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Embedded TKO Test</title>
+  <script type="text/javascript" language='javascript' 
+    src='autotest.EmbeddedTkoClient.nocache.js'>
+  </script>
+
+  <script type="text/javascript">
+    function initialize() {
+      Autotest.initialize("http://localhost");
+      var plot = Autotest.createMetricsPlot(document.getElementById("plot_canvas"));
+      queries = {}
+      queries["__main__"] = "SELECT test_name, AVG(IF(kernel LIKE '2.6.18%', iteration_value, NULL)) '2.6.18', STDDEV(IF(kernel LIKE '2.6.18%', iteration_value, NULL)) 'errors-2.6.18' FROM perf_view_2 WHERE test_name IN ('dbench', 'tbench') AND iteration_key = 'throughput' GROUP BY test_name";
+      queries["__2.6.18__"] = "SELECT test_idx, iteration_value FROM perf_view_2 WHERE test_name IN ('dbench', 'tbench') AND iteration_key = 'throughput' AND kernel LIKE '2.6.18%%' AND test_name = %s ORDER BY iteration_value";
+      plot.refresh({
+          plot : "Bar",
+          invert : [],
+          queries : queries
+      });
+    }
+  </script>
+</head>
+
+<body onload="initialize()">
+  Top text
+  <div id="plot_canvas"></div>
+  Bottom text
+</body>

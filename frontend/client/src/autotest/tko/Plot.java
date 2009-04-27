@@ -46,11 +46,28 @@ abstract class Plot extends Composite {
         }
     }-*/;
 
+    /**
+     * Get a native JS object that acts as a proxy to this object.  Currently the only exposed
+     * method is refresh(params), where params is a JS object.  This is only necessary for allowing
+     * externally-written native code to use this object without having to write out the full JSNI
+     * method call syntax.
+     */
+    public native JavaScriptObject getNativeProxy() /*-{
+        var instance = this;
+        return {
+            refresh: function(params) {
+                jsonObjectParams = @com.google.gwt.json.client.JSONObject::new(Lcom/google/gwt/core/client/JavaScriptObject;)(params);
+                instance.@autotest.tko.Plot::refresh(Lcom/google/gwt/json/client/JSONObject;)(jsonObjectParams);
+            }
+        };
+    }-*/;
+
     @SuppressWarnings("unused") // called from native code (see setDrilldownTrigger)
     private void showDrilldown(JavaScriptObject drilldownParamsJso) {
         UncaughtExceptionHandler handler = GWT.getUncaughtExceptionHandler();
         if (handler == null) {
             showDrilldownImpl(new JSONObject(drilldownParamsJso));
+            return;
         }
 
         try {

@@ -50,6 +50,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
 
     @Override
     public void initialize() {
+        super.initialize();
         Panel container = new VerticalPanel();
         AfeUtils.populateRadioChooser(rebootBefore, "reboot_before");
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");

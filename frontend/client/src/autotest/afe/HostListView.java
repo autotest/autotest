@@ -30,6 +30,7 @@ public class HostListView extends TabView {
     
     @Override
     public void initialize() {
+        super.initialize();
         table.setClickable(true);
         table.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {

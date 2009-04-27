@@ -396,6 +396,7 @@ public class CreateJobView extends TabView
     
     @Override
     public void initialize() {
+        super.initialize();
         populatePriorities(staticData.getData("priorities").isArray());
         
         kernel.addFocusListener(new FocusListener() {
