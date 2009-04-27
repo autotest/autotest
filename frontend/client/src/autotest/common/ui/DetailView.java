@@ -34,6 +34,7 @@ public abstract class DetailView extends TabView {
     
     @Override
     public void initialize() {
+        super.initialize();
         resetPage();
         
         RootPanel.get(getFetchControlsElementId()).add(idInput);

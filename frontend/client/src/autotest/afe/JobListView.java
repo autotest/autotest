@@ -113,6 +113,7 @@ public class JobListView extends TabView implements TableActionsListener {
     
     @Override
     public void initialize() {
+        super.initialize();
         jobTable = new JobTable();
         jobTable.setRowsPerPage(JOBS_PER_PAGE);
         jobTable.setClickable(true);
