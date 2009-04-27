@@ -1310,7 +1310,36 @@ class AgentTask(object):
                              paired_with_pidfile=paired_with_pidfile)
 
 
-class RepairTask(AgentTask):
+class TaskWithJobKeyvals(object):
+    """AgentTask mixin providing functionality to help with job keyval files."""
+    _KEYVAL_FILE = 'keyval'
+    def _format_keyval(self, key, value):
+        return '%s=%s' % (key, value)
+
+
+    def _keyval_path(self):
+        """Subclasses must override this"""
+        raise NotImplemented
+
+
+    def _write_keyval_after_job(self, field, value):
+        assert self.monitor
+        if not self.monitor.has_process():
+            return
+        _drone_manager.write_lines_to_file(
+            self._keyval_path(), [self._format_keyval(field, value)],
+            paired_with_process=self.monitor.get_process())
+
+
+    def _job_queued_keyval(self, job):
+        return 'job_queued', int(time.mktime(job.created_on.timetuple()))
+
+
+    def _write_job_finished(self):
+        self._write_keyval_after_job("job_finished", int(time.time()))
+
+
+class RepairTask(AgentTask, TaskWithJobKeyvals):
     def __init__(self, host, queue_entry=None):
         """\
         queue_entry: queue entry to mark failed if this repair fails.
@@ -1341,6 +1370,10 @@ class RepairTask(AgentTask):
             self.queue_entry_to_fail.requeue()
 
 
+    def _keyval_path(self):
+        return os.path.join(self.temp_results_dir, self._KEYVAL_FILE)
+
+
     def _fail_queue_entry(self):
         assert self.queue_entry_to_fail
 
@@ -1352,6 +1385,10 @@ class RepairTask(AgentTask):
             return # entry has been aborted
 
         self.queue_entry_to_fail.set_execution_subdir()
+        queued_key, queued_time = self._job_queued_keyval(
+            self.queue_entry_to_fail.job)
+        self._write_keyval_after_job(queued_key, queued_time)
+        self._write_job_finished()
         # copy results logs into the normal place for job results
         _drone_manager.copy_results_on_drone(
             self.monitor.get_process(),
@@ -1418,7 +1455,7 @@ class VerifyTask(PreJobTask):
             self.host.set_status('Ready')
 
 
-class QueueTask(AgentTask):
+class QueueTask(AgentTask, TaskWithJobKeyvals):
     def __init__(self, job, queue_entries, cmd):
         self.job = job
         self.queue_entries = queue_entries
@@ -1426,12 +1463,8 @@ class QueueTask(AgentTask):
         self._set_ids(queue_entries=queue_entries)
 
 
-    def _format_keyval(self, key, value):
-        return '%s=%s' % (key, value)
-
-
     def _keyval_path(self):
-        return os.path.join(self._execution_tag(), 'keyval')
+        return os.path.join(self._execution_tag(), self._KEYVAL_FILE)
 
 
     def _write_keyvals_before_job_helper(self, keyval_dict, keyval_path):
@@ -1448,13 +1481,6 @@ class QueueTask(AgentTask):
         self._write_keyvals_before_job_helper(keyval_dict, self._keyval_path())
 
 
-    def _write_keyval_after_job(self, field, value):
-        assert self.monitor and self.monitor.has_process()
-        _drone_manager.write_lines_to_file(
-            self._keyval_path(), [self._format_keyval(field, value)],
-            paired_with_process=self.monitor.get_process())
-
-
     def _write_host_keyvals(self, host):
         keyval_path = os.path.join(self._execution_tag(), 'host_keyvals',
                                    host.hostname)
@@ -1468,8 +1494,8 @@ class QueueTask(AgentTask):
 
 
     def prolog(self):
-        queued = int(time.mktime(self.job.created_on.timetuple()))
-        self._write_keyvals_before_job({'job_queued': queued})
+        queued_key, queued_time = self._job_queued_keyval(self.job)
+        self._write_keyvals_before_job({queued_key : queued_time})
         for queue_entry in self.queue_entries:
             self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status('Running')
@@ -1487,10 +1513,11 @@ class QueueTask(AgentTask):
 
 
     def _finish_task(self):
+        self._write_job_finished()
+
         # both of these conditionals can be true, iff the process ran, wrote a
         # pid to its pidfile, and then exited without writing an exit code
         if self.monitor.has_process():
-            self._write_keyval_after_job("job_finished", int(time.time()))
             gather_task = GatherLogsTask(self.job, self.queue_entries)
             self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
 

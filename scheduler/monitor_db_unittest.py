@@ -1441,6 +1441,8 @@ class AgentTasksTest(unittest.TestCase):
     def test_repair_task_with_queue_entry(self):
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self.god.stub_class(monitor_db, 'Agent')
+        self.god.stub_class_method(monitor_db.TaskWithJobKeyvals,
+                                   '_write_keyval_after_job')
         agent = DummyAgent()
         agent.dispatcher = self._dispatcher
 
@@ -1450,6 +1452,10 @@ class AgentTasksTest(unittest.TestCase):
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.update_from_database.expect_call()
         self.queue_entry.set_execution_subdir.expect_call()
+        monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
+            'job_queued', mock.is_instance_comparator(int))
+        monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
+            'job_finished', mock.is_instance_comparator(int))
         self._setup_move_logfile(copy_on_drone=True)
         self.queue_entry.execution_tag.expect_call().and_return('tag')
         self._setup_move_logfile()
@@ -1463,6 +1469,7 @@ class AgentTasksTest(unittest.TestCase):
         task = monitor_db.RepairTask(self.host, self.queue_entry)
         task.agent = agent
         self.queue_entry.status = 'Queued'
+        self.job.created_on = datetime.datetime(2009, 1, 1)
         self.run_task(task, False)
         self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
