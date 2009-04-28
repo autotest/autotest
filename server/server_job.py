@@ -70,6 +70,7 @@ class base_server_job(object):
 
     STATUS_VERSION = 1
     WARNING_DISABLE_DELAY = 5
+    test_tag = None
 
     def __init__(self, control, args, resultdir, label, user, machines,
                  client=False, parse_job='',
@@ -433,6 +434,11 @@ class base_server_job(object):
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
 
+    def set_test_tag(self, tag=''):
+        """Set tag to be added to test name of all following run_test steps."""
+        self.test_tag = tag
+
+
     def run_test(self, url, *args, **dargs):
         """
         Summon a test object and run it.
@@ -446,6 +452,8 @@ class base_server_job(object):
         (group, testname) = self.pkgmgr.get_package_name(url, 'test')
 
         tag = dargs.pop('tag', None)
+        if tag is None:
+            tag = self.test_tag
         if tag:
             testname += '.' + str(tag)
         subdir = testname

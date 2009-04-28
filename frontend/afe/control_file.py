@@ -13,10 +13,10 @@ import frontend.settings
 AUTOTEST_DIR = os.path.abspath(os.path.join(
     os.path.dirname(frontend.settings.__file__), '..'))
 
-CLIENT_EMPTY_TEMPLATE = 'def step_init():\n'
+EMPTY_TEMPLATE = 'def step_init():\n'
 
 CLIENT_KERNEL_TEMPLATE = """\
-kernel_list = %(kernel_list)r
+kernel_list = %(client_kernel_list)s
 
 def step_init():
     for kernel_version in kernel_list:
@@ -38,20 +38,41 @@ def step_test(kernel_version):
 """
 
 SERVER_KERNEL_TEMPLATE = """\
-kernel_list = %%(kernel_list)r
+kernel_list = %%(server_kernel_list)s
 kernel_install_control = \"""
 %s    pass
 \"""
 
 at = autotest.Autotest()
-def install_kernel(machine):
+def install_kernel(machine, kernel_version):
     host = hosts.create_host(machine)
-    at.run(kernel_install_control, host=host)
-job.parallel_simple(install_kernel, machines)
+    at.install(host=host)
+    at.run(kernel_install_control %%%%
+           {'client_kernel_list': repr([kernel_version])}, host=host)
 
+def step_init():
+    # a host object we use solely for the purpose of finding out the booted
+    # kernel version, we use machines[0] since we already check that the same
+    # kernel has been booted on all machines
+    if len(kernel_list) > 1:
+        kernel_host = hosts.create_host(machines[0])
+
+    for kernel_version in kernel_list:
+        func = lambda machine: install_kernel(machine, kernel_version)
+        job.parallel_simple(func, machines)
+
+        # have server_job.run_test() automatically add the kernel version as
+        # a suffix to the test name otherwise we cannot run the same test on
+        # different kernel versions
+        if len(kernel_list) > 1:
+            job.set_test_tag(kernel_host.get_kernel_ver())
+        step_test()
+
+def step_test():
 """ % CLIENT_KERNEL_TEMPLATE
 
 CLIENT_STEP_TEMPLATE = "    job.next_step('step%d')\n"
+SERVER_STEP_TEMPLATE = '    step%d()\n'
 
 
 def kernel_config_line(kernel, platform):
@@ -70,18 +91,23 @@ def read_control_file(test):
 
 def get_kernel_stanza(kernel_list, platform=None, kernel_args='',
                       is_server=False):
-    if is_server:
-        template = SERVER_KERNEL_TEMPLATE
-    else:
-        template = CLIENT_KERNEL_TEMPLATE
 
-    stanza = template % {
-        'kernel_list' : kernel_list,
+    template_args = {
         # XXX This always looks up the config line using the first kernel
         # in the list rather than doing it for each kernel.
         'kernel_config_line' : kernel_config_line(kernel_list[0], platform),
         'kernel_args' : kernel_args}
-    return stanza
+
+    if is_server:
+        template = SERVER_KERNEL_TEMPLATE
+        # leave client_kernel_list as a placeholder
+        template_args['client_kernel_list'] = '%(client_kernel_list)s'
+        template_args['server_kernel_list'] = repr(kernel_list)
+    else:
+        template = CLIENT_KERNEL_TEMPLATE
+        template_args['client_kernel_list'] = repr(kernel_list)
+
+    return template % template_args
 
 
 def add_boilerplate_to_nested_steps(lines):
@@ -144,8 +170,6 @@ def _get_tests_stanza(raw_control_files, is_server, prepend, append,
 
     @returns The combined mega control file.
     """
-    if is_server:
-        return '\n'.join(prepend + raw_control_files + append)
     if client_control_file:
         # 'return locals()' is always appended incase the user forgot, it
         # is necessary to allow for nested step engine execution to work.
@@ -154,8 +178,15 @@ def _get_tests_stanza(raw_control_files, is_server, prepend, append,
                            for step in raw_control_files] + append
     steps = [format_step(index, step)
              for index, step in enumerate(raw_steps)]
-    header = ''.join(CLIENT_STEP_TEMPLATE % i for i in xrange(len(steps)))
-    return header + '\n' + '\n\n'.join(steps)
+    if is_server:
+        step_template = SERVER_STEP_TEMPLATE
+        footer = '\n\nstep_init()\n'
+    else:
+        step_template = CLIENT_STEP_TEMPLATE
+        footer = ''
+
+    header = ''.join(step_template % i for i in xrange(len(steps)))
+    return header + '\n' + '\n\n'.join(steps) + footer
 
 
 def indent_text(text, indent):
@@ -218,8 +249,8 @@ def generate_control(tests, kernel=None, platform=None, is_server=False,
         kernel_list = split_kernel_list(kernel)
         control_file_text = get_kernel_stanza(kernel_list, platform,
                                               is_server=is_server)
-    elif not is_server:
-        control_file_text = CLIENT_EMPTY_TEMPLATE
+    else:
+        control_file_text = EMPTY_TEMPLATE
 
     prepend, append = _get_profiler_commands(profilers, is_server)
 
