@@ -135,7 +135,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 utils.CmdResult())
 
 
-    def _open_channel(self):
+    def _open_channel(self, timeout):
+        start_time = time.time()
         if os.getpid() != self.pid:
             if self.pid is not None:
                 # HACK: paramiko tries to join() on its worker thread
@@ -150,8 +151,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         channel = None
         try:
             channel = self.transport.open_session()
-        except (socket.error, paramiko.SSHException):
-            pass
+        except (socket.error, paramiko.SSHException), e:
+            logging.warn("Exception occured while opening session: %s", e)
+            if time.time() - start_time >= timeout:
+                raise error.AutoservSSHTimeout("ssh failed: %s" % e)
 
         if not channel:
             # we couldn't get a channel; re-initing transport should fix that
@@ -220,7 +223,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         full_cmd = "%s;%s" % (echo_cmd, command)
         start_time = time.time()
         try:
-            channel = self._open_channel()
+            channel = self._open_channel(timeout)
             channel.exec_command(full_cmd)
         except (socket.error, paramiko.SSHException), e:
             raise error.AutoservSSHTimeout("ssh failed: %s" % e)
