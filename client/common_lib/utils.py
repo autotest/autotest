@@ -858,23 +858,26 @@ def import_site_class(path, module, classname, baseclass, modulefile=None):
         path: full filename of the source file calling this (ie __file__)
         module: full module name
         classname: class name to be loaded from site file
-        baseclass: base class object to inherit from when no site file present
+        baseclass: base class object to return when no site file present or
+            to mixin when site class exists but is not inherited from baseclass
         modulefile: module filename
 
-    Returns: class object of the site class or baseclass
+    Returns: baseclass if site specific class does not exist, the site specific
+        class if it exists and is inherited from baseclass or a mixin of the
+        site specific class and baseclass when the site specific class exists
+        and is not inherited from baseclass
 
     Raises: ImportError if the site file exists but imports fails
     """
 
     res = import_site_symbol(path, module, classname, None, modulefile)
-
-    if not res:
-        # we cannot just return baseclass because some callers will want to
-        # use multiple inheritance on the class object we return and baseclass
-        class dummy(baseclass):
-            pass
-
-        res = dummy
+    if res:
+        if not issubclass(res, baseclass):
+            # if not a subclass of baseclass then mix in baseclass with the
+            # site specific class object and return the result
+            res = type(classname, (res, baseclass), {})
+    else:
+        res = baseclass
 
     return res
 
