@@ -1315,5 +1315,5 @@ def runjob(control, cont=False, tag="default", harness_type='',
 site_job = utils.import_site_class(
     __file__, "autotest_lib.client.bin.site_job", "site_job", base_job)
 
-class job(site_job, base_job):
+class job(site_job):
     pass

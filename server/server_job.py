@@ -982,7 +982,7 @@ site_server_job = utils.import_site_class(
     __file__, "autotest_lib.server.site_server_job", "site_server_job",
     base_server_job)
 
-class server_job(site_server_job, base_server_job):
+class server_job(site_server_job):
     pass
 
 
