@@ -151,7 +151,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         channel = None
         try:
             channel = self.transport.open_session()
-        except (socket.error, paramiko.SSHException), e:
+        except (socket.error, paramiko.SSHException, EOFError), e:
             logging.warn("Exception occured while opening session: %s", e)
             if time.time() - start_time >= timeout:
                 raise error.AutoservSSHTimeout("ssh failed: %s" % e)
