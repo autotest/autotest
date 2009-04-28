@@ -23,7 +23,7 @@
 >>> print cf_info['control_file'] #doctest: +NORMALIZE_WHITESPACE
 kernel_list = ['2.6.18', '2.6.22']
 kernel_install_control = """
-kernel_list = ['2.6.18', '2.6.22']
+kernel_list = %(client_kernel_list)s
 <BLANKLINE>
 def step_init():
     for kernel_version in kernel_list:
@@ -46,12 +46,37 @@ def step_test(kernel_version):
 """
 <BLANKLINE>
 at = autotest.Autotest()
-def install_kernel(machine):
+def install_kernel(machine, kernel_version):
     host = hosts.create_host(machine)
-    at.run(kernel_install_control, host=host)
-job.parallel_simple(install_kernel, machines)
+    at.install(host=host)
+    at.run(kernel_install_control %
+           {'client_kernel_list': repr([kernel_version])}, host=host)
 <BLANKLINE>
-job.run_test('testname')
+def step_init():
+    # a host object we use solely for the purpose of finding out the booted
+    # kernel version, we use machines[0] since we already check that the same
+    # kernel has been booted on all machines
+    if len(kernel_list) > 1:
+        kernel_host = hosts.create_host(machines[0])
+<BLANKLINE>
+    for kernel_version in kernel_list:
+        func = lambda machine: install_kernel(machine, kernel_version)
+        job.parallel_simple(func, machines)
+<BLANKLINE>
+        # have server_job.run_test() automatically add the kernel version as
+        # a suffix to the test name otherwise we cannot run the same test on
+        # different kernel versions
+        if len(kernel_list) > 1:
+            job.set_test_tag(kernel_host.get_kernel_ver())
+        step_test()
+<BLANKLINE>
+def step_test():
+    step0()
+<BLANKLINE>
+def step0():
+    job.run_test('testname')
+<BLANKLINE>
+step_init()
 <BLANKLINE>
 >>> cf_info['is_server']
 True
