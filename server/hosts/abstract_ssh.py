@@ -107,7 +107,49 @@ class AbstractSSHHost(SiteHost):
                     for path in source), [])
 
 
-    def get_file(self, source, dest, delete_dest=False):
+    def _set_umask_perms(self, dest):
+        """Given a destination file/dir (recursively) set the permissions on
+        all the files and directories to the max allowed by running umask."""
+
+        # now this looks strange but I haven't found a way in Python to _just_
+        # get the umask, apparently the only option is to try to set it
+        umask = os.umask(0)
+        os.umask(umask)
+
+        max_privs = 0777 & ~umask
+
+        def set_file_privs(filename):
+            file_stat = os.stat(filename)
+
+            file_privs = max_privs
+            # if the original file permissions do not have at least one
+            # executable bit then do not set it anywhere
+            if not file_stat.st_mode & 0111:
+                file_privs &= ~0111
+
+            os.chmod(filename, file_privs)
+
+        # try a bottom-up walk so changes on directory permissions won't cut
+        # our access to the files/directories inside it
+        for root, dirs, files in os.walk(dest, topdown=False):
+            # when setting the privileges we emulate the chmod "X" behaviour
+            # that sets to execute only if it is a directory or any of the
+            # owner/group/other already has execute right
+            for dirname in dirs:
+                os.chmod(os.path.join(root, dirname), max_privs)
+
+            for filename in files:
+                set_file_privs(os.path.join(root, filename))
+
+
+        # now set privs for the dest itself
+        if os.path.isdir(dest):
+            os.chmod(dest, max_privs)
+        else:
+            set_file_privs(dest)
+
+
+    def get_file(self, source, dest, delete_dest=False, preserve_perm=True):
         """
         Copy files from the remote host to a local path.
 
@@ -128,6 +170,8 @@ class AbstractSSHHost(SiteHost):
                 delete_dest: if this is true, the command will also clear
                              out any old files at dest that are not in the
                              source
+                preserve_perm: tells get_file() to try to preserve the sources
+                               permissions on files and dirs
 
         Raises:
                 AutoservRunError: the scp command failed
@@ -160,6 +204,13 @@ class AbstractSSHHost(SiteHost):
                     utils.run(scp)
                 except error.CmdError, e:
                     raise error.AutoservRunError(e.args[0], e.args[1])
+
+        if not preserve_perm:
+            # we have no way to tell scp to not try to preserve the
+            # permissions so set them after copy instead.
+            # for rsync we could use "--no-p --chmod=ugo=rwX" but those
+            # options are only in very recent rsync versions
+            self._set_umask_perms(dest)
 
 
     def send_file(self, source, dest, delete_dest=False):

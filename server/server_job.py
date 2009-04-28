@@ -400,8 +400,8 @@ class base_server_job(object):
                 if self.client:
                     namespace['control'] = control
                     utils.open_write_close(client_control_file, control)
-                    shutil.copy(CLIENT_WRAPPER_CONTROL_FILE,
-                                server_control_file)
+                    shutil.copyfile(CLIENT_WRAPPER_CONTROL_FILE,
+                                    server_control_file)
                 else:
                     utils.open_write_close(server_control_file, control)
                 self._execute_code(server_control_file, namespace)
