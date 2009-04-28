@@ -427,6 +427,12 @@ class AFE(RpcClient):
 
 
     def _job_results_platform_map(self, job, debug):
+        # Figure out which hosts passed / failed / aborted in a job
+        # Creates a 2-dimensional hash, stored as job.results_platform_map
+        #     1st index - platform type (string)
+        #     2nd index - Status (string)
+        #         'Completed' / 'Failed' / 'Aborted'
+        #     Data indexed by this hash is a list of hostnames (text strings)
         job.results_platform_map = {}
         try:
             job_statuses = self.get_host_queue_entries(job=job.id)
@@ -439,6 +445,7 @@ class AFE(RpcClient):
         job.job_status = {}
         job.metahost_index = {}
         for job_status in job_statuses:
+            # This is basically "for each host / metahost in the job"
             if job_status.host:
                 hostname = job_status.host.hostname
             else:              # This is a metahost
@@ -458,10 +465,11 @@ class AFE(RpcClient):
                         break
                 if verify_failed:
                     continue
-            if hostname in job.test_status and job.test_status[hostname].fail \
-            and status != "Aborted":
-                # Job status doesn't reflect failed tests, override that
-                status = 'Failed'
+            if hostname in job.test_status and job.test_status[hostname].fail:
+                # If the any tests failed in the job, we want to mark the
+                # job result as failed, overriding the default job status.
+                if status != "Aborted":         # except if it's an aborted job
+                    status = 'Failed'
             if job_status.host:
                 platform = job_status.host.platform
             else:              # This is a metahost
