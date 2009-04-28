@@ -56,13 +56,16 @@ def install_autotest_and_run(func):
     def wrapper(self, mytest):
         host, at = self._install()
         try:
-            outputdir = host.get_tmp_dir()
             try:
-                func(self, mytest, host, at, outputdir)
+                outputdir = host.get_tmp_dir()
+                try:
+                    func(self, mytest, host, at, outputdir)
+                finally:
+                    host.delete_tmp_dir(outputdir)
             finally:
-                host.delete_tmp_dir(outputdir)
+                at.uninstall()
         finally:
-            at.uninstall()
+            host.close()
     return wrapper
 
 
