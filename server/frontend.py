@@ -206,8 +206,8 @@ class AFE(RpcClient):
         dargs.setdefault('synch_count', control_file.synch_count)
         if 'hosts' in dargs and len(dargs['hosts']) < dargs['synch_count']:
             # will not be able to satisfy this request
-            return []
-        return [self.create_job(**dargs)]
+            return None
+        return self.create_job(**dargs)
 
 
     def create_job(self, control_file, name=' ', priority='Medium',
@@ -236,15 +236,12 @@ class AFE(RpcClient):
         """
         jobs = []
         for pairing in pairings:
-            new_jobs = self.invoke_test(pairing, kernel, kernel_label, priority,
-                                        timeout=timeout)
-            for job in new_jobs:
-                job.notified = False
-            jobs += new_jobs
-            # disabled - this is just for debugging: mbligh
-            # if email_from and email_to:
-            #     subject = 'Testing started: %s : %s' % (job.name, job.id)
-            #     utils.send_email(email_from, email_to, subject, subject)
+            new_job = self.invoke_test(pairing, kernel, kernel_label, priority,
+                                       timeout=timeout)
+            if not new_job:
+                continue
+            new_job.notified = False
+            jobs.append(new_job)
         if not wait or not jobs:
             return
         tko = TKO()
@@ -390,16 +387,16 @@ class AFE(RpcClient):
             dargs['atomic_group_name'] = pairing.machine_label
         else:
             dargs['hosts'] = host_list
-        new_jobs = self.create_job_by_test(name=job_name,
+        new_job = self.create_job_by_test(name=job_name,
                                            dependencies=[pairing.machine_label],
                                            tests=[pairing.control_file],
                                            priority=priority,
                                            kernel=kernel,
                                            use_container=pairing.container,
                                            **dargs)
-        for new_job in new_jobs:
+        if new_job:
             print 'Invoked test %s : %s' % (new_job.id, job_name)
-        return new_jobs
+        return new_job
 
 
     def _job_test_results(self, tko, job, debug, tests=[]):
