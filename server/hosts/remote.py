@@ -247,7 +247,7 @@ class RemoteHost(base_classes.Host):
         for log in log_files:
             logging.info("Collecting %s...", log)
             try:
-                self.get_file(log, infodir)
+                self.get_file(log, infodir, preserve_perm=False)
             except Exception:
                 logging.warning("Collection of %s failed", log)
 
