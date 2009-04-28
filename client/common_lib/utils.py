@@ -699,6 +699,19 @@ def get_arch(run_function=run):
     return arch
 
 
+def get_num_logical_cores(run_function=run):
+    """
+    Get the number of cores (including hyperthreading) per cpu.
+    run_function is used to execute the commands. It defaults to
+    utils.run() but a custom method (if provided) should be of the
+    same schema as utils.run. It should return a CmdResult object and
+    throw a CmdError exception.
+    """
+    coreinfo = run_function('grep "^siblings" /proc/cpuinfo').stdout.rstrip()
+    cores = int(re.match('^siblings.*(\d+)', coreinfo).group(1))
+    return cores
+
+
 def merge_trees(src, dest):
     """
     Merges a source directory tree at 'src' into a destination tree at
