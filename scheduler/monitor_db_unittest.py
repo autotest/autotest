@@ -1639,11 +1639,14 @@ class AgentTasksTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _setup_gather_logs_expects(self, hqe_aborted=False):
+    def _setup_gather_logs_expects(self, autoserv_success=False,
+                                   hqe_aborted=False):
         self.god.stub_class(monitor_db, 'PidfileRunMonitor')
         self.god.stub_class(monitor_db, 'FinalReparseTask')
-        self._setup_post_job_task_expects(True, 'Gathering', hqe_aborted)
-        self._setup_post_job_run_monitor('.collect_crashinfo_execute')
+        self._setup_post_job_task_expects(autoserv_success, 'Gathering',
+                                          hqe_aborted)
+        if not autoserv_success or hqe_aborted:
+            self._setup_post_job_run_monitor('.collect_crashinfo_execute')
         self._expect_copy_results(monitor=self.pidfile_monitor,
                                   queue_entry=self.queue_entry)
         parse_task = monitor_db.FinalReparseTask.expect_new([self.queue_entry])
@@ -1662,6 +1665,15 @@ class AgentTasksTest(unittest.TestCase):
     def test_gather_logs_task(self):
         self._setup_gather_logs_expects()
         # no rebooting for this basic test
+        self.job.reboot_after = models.RebootAfter.NEVER
+        self.host.set_status.expect_call('Ready')
+
+        self._run_gather_logs_task()
+
+
+    def test_gather_logs_task_successful_autoserv(self):
+        """When Autoserv exits successful, no collect_crashinfo stage runs."""
+        self._setup_gather_logs_expects(autoserv_success=True)
         self.job.reboot_after = models.RebootAfter.NEVER
         self.host.set_status.expect_call('Ready')
 
