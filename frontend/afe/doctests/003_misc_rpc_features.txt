@@ -80,3 +80,33 @@ step_init()
 <BLANKLINE>
 >>> cf_info['is_server']
 True
+
+# test that multiline quoted strings are not indented
+>>> import common
+>>> from autotest_lib.frontend.afe import test, control_file
+>>> import os
+>>> control_path = os.path.join(os.path.dirname(test.__file__),
+...                             'doctests', 'test.control.3')
+>>> control_path = os.path.abspath(control_path)
+>>> class FakeTest(object):
+...   path = control_path
+...
+>>> print control_file.generate_control([FakeTest()], is_server=True) #doctest: +NORMALIZE_WHITESPACE
+def step_init():
+    step0()
+<BLANKLINE>
+def step0():
+    client_code = """
+some content\"""quoted content\"""
+'''other quoted content\"""'''
+\\"""
+<BLANKLINE>
+    client_code2 = '''
+some content\'''quoted content\'''
+"""other quoted content\'''"""
+\\'''
+<BLANKLINE>
+    job.run_test('testname')
+<BLANKLINE>
+step_init()
+<BLANKLINE>

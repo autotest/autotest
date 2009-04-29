@@ -1,0 +1,11 @@
+client_code = """
+some content\"""quoted content\"""
+'''other quoted content\"""'''
+\\"""
+
+client_code2 = '''
+some content\'''quoted content\'''
+"""other quoted content\'''"""
+\\'''
+
+job.run_test('testname')
