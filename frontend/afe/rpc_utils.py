@@ -313,3 +313,122 @@ def get_motd():
         pass
 
     return text
+
+
+def _get_metahost_counts(metahost_objects):
+    metahost_counts = {}
+    for metahost in metahost_objects:
+        metahost_counts.setdefault(metahost, 0)
+        metahost_counts[metahost] += 1
+    return metahost_counts
+
+
+def get_job_info(job, preserve_metahosts=False):
+    hosts = []
+    one_time_hosts = []
+    meta_hosts = []
+    atomic_group = None
+
+    for queue_entry in job.hostqueueentry_set.filter():
+        if (queue_entry.host and (preserve_metahosts or
+                                  not queue_entry.meta_host)):
+            if queue_entry.deleted:
+                continue
+            if queue_entry.host.invalid:
+                one_time_hosts.append(queue_entry.host)
+            else:
+                hosts.append(queue_entry.host)
+        else:
+            meta_hosts.append(queue_entry.meta_host)
+        if atomic_group is None:
+            if queue_entry.atomic_group is not None:
+                atomic_group = queue_entry.atomic_group
+        else:
+            assert atomic_group.name == queue_entry.atomic_group.name, (
+                    'DB inconsistency.  HostQueueEntries with multiple atomic'
+                    ' groups on job %s: %s != %s' % (
+                        id, atomic_group.name, queue_entry.atomic_group.name))
+
+    meta_host_counts = _get_metahost_counts(meta_hosts)
+
+    info = dict(dependencies=[label.name for label
+                              in job.dependency_labels.all()],
+                hosts=hosts,
+                meta_hosts=meta_hosts,
+                meta_host_counts=meta_host_counts,
+                one_time_hosts=one_time_hosts,
+                atomic_group=atomic_group)
+    return info
+
+
+def create_new_job(owner, host_objects, metahost_objects,
+                   name, priority, control_file, control_type,
+                   is_template=False, timeout=None, synch_count=None,
+                   run_verify=True, email_list='', dependencies=[],
+                   reboot_before=None, reboot_after=None, atomic_group=None):
+    labels_by_name = dict((label.name, label)
+                     for label in models.Label.objects.all())
+    all_host_objects = host_objects + metahost_objects
+    metahost_counts = _get_metahost_counts(metahost_objects)
+
+    # check that each metahost request has enough hosts under the label
+    for label, requested_count in metahost_counts.iteritems():
+        available_count = label.host_set.count()
+        if requested_count > available_count:
+            error = ("You have requested %d %s's, but there are only %d."
+                     % (requested_count, label.name, available_count))
+            raise model_logic.ValidationError({'meta_hosts' : error})
+
+    if atomic_group:
+        check_atomic_group_create_job(
+                synch_count, host_objects, metahost_objects,
+                dependencies, atomic_group, labels_by_name)
+    else:
+        if synch_count is not None and synch_count > len(all_host_objects):
+            raise model_logic.ValidationError(
+                    {'hosts':
+                     'only %d hosts provided for job with synch_count = %d' %
+                     (len(all_host_objects), synch_count)})
+        atomic_hosts = models.Host.objects.filter(
+                id__in=[host.id for host in host_objects],
+                labels__atomic_group=True)
+        unusable_host_names = [host.hostname for host in atomic_hosts]
+        if unusable_host_names:
+            raise model_logic.ValidationError(
+                    {'hosts':
+                     'Host(s) "%s" are atomic group hosts but no '
+                     'atomic group was specified for this job.' %
+                     (', '.join(unusable_host_names),)})
+
+
+    check_job_dependencies(host_objects, dependencies)
+    dependency_labels = [labels_by_name[label_name]
+                         for label_name in dependencies]
+
+    for label in metahost_objects + dependency_labels:
+        if label.atomic_group and not atomic_group:
+            raise model_logic.ValidationError(
+                    {'atomic_group_name':
+                     'Some meta_hosts or dependencies require an atomic group '
+                     'but no atomic_group_name was specified for this job.'})
+        elif (label.atomic_group and
+              label.atomic_group.name != atomic_group.name):
+            raise model_logic.ValidationError(
+                    {'atomic_group_name':
+                     'Some meta_hosts or dependencies require an atomic group '
+                     'other than the one requested for this job.'})
+
+    job = models.Job.create(owner=owner, name=name, priority=priority,
+                            control_file=control_file,
+                            control_type=control_type,
+                            synch_count=synch_count,
+                            hosts=all_host_objects,
+                            timeout=timeout,
+                            run_verify=run_verify,
+                            email_list=email_list.strip(),
+                            dependencies=dependency_labels,
+                            reboot_before=reboot_before,
+                            reboot_after=reboot_after)
+    job.queue(all_host_objects, atomic_group=atomic_group,
+              is_template=is_template)
+    return job.id

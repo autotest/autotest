@@ -38,13 +38,20 @@
         <div id="job_table"></div>
       </div>
 
+      <div id="recurring_list" title="Recurring Job">
+        View recurring for user: <span id="recurring_user_list"></span>
+        <div id="recurring_table"></div>
+        <div id="recurring_create_panel" class="box" width="0"></div>
+      </div>
+
       <div id="view_job"  title="View Job">
         <span id="job_id_fetch" class="box-full">Fetch job by ID:
           <span id="job_id_fetch_controls"></span>
         </span><br><br>
         <div id="view_title" class="title"></div><br>
         <div id="view_data">
-          <span id="view_abort"></span><span id="view_clone"></span><br>
+          <span id="view_abort"></span><span id="view_clone"></span>
+          <span id="view_recurring"></span><br>
           <span class="field-name">Label:</span>
           <span id="view_label"></span><br>
           <span class="field-name">Owner:</span>
@@ -147,7 +154,8 @@
           </tr>
           <tr>
             <td id="create_submit"></td>
-            <td colspan="2" id="create_reset"></td>
+            <td id="create_template_job"></td>
+            <td id="create_reset"></td>
           </tr>
         </table>
       </div>

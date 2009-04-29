@@ -7,6 +7,7 @@ import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.JSONObjectSet;
+import autotest.common.table.ListFilter;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RadioChooser;
 
@@ -26,6 +27,7 @@ import java.util.Set;
  */
 public class AfeUtils {
     public static final String PLATFORM_SUFFIX = " (platform)";
+    private static final String ALL_USERS = "All Users";
     
     public static final ClassFactory factory = new SiteClassFactory();
 
@@ -171,5 +173,47 @@ public class AfeUtils {
         for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
             chooser.addChoice(Utils.jsonToString(jsonOption));
         }
+    }
+
+    public static int parsePositiveIntegerInput(String input, String fieldName) {
+        final int parsedInt;
+        try {
+            if (input.equals("") ||
+                (parsedInt = Integer.parseInt(input)) <= 0) {
+                    String error = "Please enter a positive " + fieldName;
+                    NotifyManager.getInstance().showError(error);
+                    throw new IllegalArgumentException();
+            }
+        } catch (NumberFormatException e) {
+            String error = "Invalid " + fieldName + ": \"" + input + "\"";
+            NotifyManager.getInstance().showError(error);
+            throw new IllegalArgumentException();
+        }
+        return parsedInt;
+    }
+
+    public static void removeSecondsFromDateField(JSONObject row,
+                                                  String sourceFieldName,
+                                                  String targetFieldName) {
+        JSONValue dateValue = row.get(sourceFieldName);
+        String date = "";
+        if (dateValue.isNull() == null) {
+            date = dateValue.isString().stringValue();
+            date = date.substring(0, date.length() - 3);
+        }
+        row.put(targetFieldName, new JSONString(date));
+    }
+
+    public static ListFilter getUserFilter(String field) {
+        ListFilter userFilter = new ListFilter(field);
+        userFilter.setMatchAllText(ALL_USERS);
+
+        JSONArray userArray = staticData.getData("users").isArray();
+        String[] userStrings = Utils.JSONObjectsToStrings(userArray, "login");
+        userFilter.setChoices(userStrings);
+        String currentUser = staticData.getCurrentUserLogin();
+        userFilter.setSelectedChoice(currentUser);
+
+        return userFilter;
     }
 }
