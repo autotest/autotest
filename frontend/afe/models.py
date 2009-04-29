@@ -47,10 +47,10 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     valid_objects = model_logic.ValidObjectsManager()
 
 
-    def enqueue_job(self, job):
+    def enqueue_job(self, job, is_template=False):
         """Enqueue a job on an associated atomic group of hosts."""
-        queue_entry = HostQueueEntry(atomic_group=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED)
+        queue_entry = HostQueueEntry.create(atomic_group=self, job=job,
+                                            is_template=is_template)
         queue_entry.save()
 
 
@@ -100,11 +100,11 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
         self.host_set.clear()
 
 
-    def enqueue_job(self, job, atomic_group=None):
+    def enqueue_job(self, job, atomic_group=None, is_template=False):
         """Enqueue a job on any host of this label."""
-        queue_entry = HostQueueEntry(meta_host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED,
-                                     atomic_group=atomic_group)
+        queue_entry = HostQueueEntry.create(meta_host=self, job=job,
+                                            is_template=is_template,
+                                            atomic_group=atomic_group)
         queue_entry.save()
 
 
@@ -285,11 +285,11 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         logger.info(self.hostname + ' -> ' + self.status)
 
 
-    def enqueue_job(self, job, atomic_group=None):
+    def enqueue_job(self, job, atomic_group=None, is_template=False):
         """Enqueue a job on this host."""
-        queue_entry = HostQueueEntry(host=self, job=job,
-                                     status=HostQueueEntry.Status.QUEUED,
-                                     atomic_group=atomic_group)
+        queue_entry = HostQueueEntry.create(host=self, job=job,
+                                            is_template=is_template,
+                                            atomic_group=atomic_group)
         # allow recovery of dead hosts from the frontend
         if not self.active_queue_entry() and self.is_dead():
             self.status = Host.Status.READY
@@ -697,14 +697,24 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         return job
 
 
-    def queue(self, hosts, atomic_group=None):
+    def queue(self, hosts, atomic_group=None, is_template=False):
         """Enqueue a job on the given hosts."""
         if atomic_group and not hosts:
             # No hosts or labels are required to queue an atomic group
             # Job.  However, if they are given, we respect them below.
-            atomic_group.enqueue_job(self)
+            atomic_group.enqueue_job(self, is_template=is_template)
         for host in hosts:
-            host.enqueue_job(self, atomic_group=atomic_group)
+            host.enqueue_job(self, atomic_group=atomic_group,
+                             is_template=is_template)
+
+
+    def create_recurring_job(self, start_date, loop_period, loop_count, owner):
+        rec = RecurringRun(job=self, start_date=start_date,
+                           loop_period=loop_period,
+                           loop_count=loop_count,
+                           owner=User.objects.get(login=owner))
+        rec.save()
+        return rec.id
 
 
     def user(self):
@@ -747,11 +757,11 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
                        'Gathering', 'Parsing', 'Aborted', 'Completed',
-                       'Failed', 'Stopped', string_values=True)
+                       'Failed', 'Stopped', 'Template', string_values=True)
     ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
                        Status.RUNNING, Status.GATHERING)
     COMPLETE_STATUSES = (Status.ABORTED, Status.COMPLETED, Status.FAILED,
-                         Status.STOPPED)
+                         Status.STOPPED, Status.TEMPLATE)
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
@@ -773,6 +783,18 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     def __init__(self, *args, **kwargs):
         super(HostQueueEntry, self).__init__(*args, **kwargs)
         self._record_attributes(['status'])
+
+
+    @classmethod
+    def create(cls, job, host=None, meta_host=None, atomic_group=None,
+                 is_template=False):
+        if is_template:
+            status = cls.Status.TEMPLATE
+        else:
+            status = cls.Status.QUEUED
+
+        return cls(job=job, host=host, meta_host=meta_host,
+                   atomic_group=atomic_group, status=status)
 
 
     def save(self):
@@ -865,3 +887,29 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     class Meta:
         db_table = 'aborted_host_queue_entries'
+
+
+class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
+    """\
+    job: job to use as a template
+    owner: owner of the instantiated template
+    start_date: Run the job at scheduled date
+    loop_period: Re-run (loop) the job periodically
+                 (in every loop_period seconds)
+    loop_count: Re-run (loop) count
+    """
+
+    job = dbmodels.ForeignKey(Job)
+    owner = dbmodels.ForeignKey(User)
+    start_date = dbmodels.DateTimeField()
+    loop_period = dbmodels.IntegerField(blank=True)
+    loop_count = dbmodels.IntegerField(blank=True)
+
+    objects = model_logic.ExtendedManager()
+
+    class Meta:
+        db_table = 'recurring_run'
+
+    def __str__(self):
+        return 'RecurringRun(job %s, start %s, period %s, count %s)' % (
+            self.job.id, self.start_date, self.loop_period, self.loop_count)

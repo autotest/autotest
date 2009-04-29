@@ -172,6 +172,7 @@ public class CreateJobView extends TabView
     protected Button editControlButton = new Button(EDIT_CONTROL_STRING);
     protected HostSelector hostSelector;
     protected Button submitJobButton = new Button("Submit Job");
+    protected Button createTemplateJobButton = new Button("Create Template Job");
     private Button resetButton = new Button("Reset");
     
     protected boolean controlEdited = false;
@@ -501,7 +502,13 @@ public class CreateJobView extends TabView
         
         submitJobButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
-                submitJob();
+                submitJob(false);
+            }
+        });
+        
+        createTemplateJobButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                submitJob(true);
             }
         });
         
@@ -525,6 +532,7 @@ public class CreateJobView extends TabView
         RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
         RootPanel.get("create_submit").add(submitJobButton);
+        RootPanel.get("create_template_job").add(createTemplateJobButton);
         RootPanel.get("create_reset").add(resetButton);
         
         testSelector.setListener(this);
@@ -556,7 +564,7 @@ public class CreateJobView extends TabView
         dependencies = new JSONArray();
     }
     
-    protected void submitJob() {
+    protected void submitJob(final boolean isTemplate) {
         final int timeoutValue, synchCount;
         try {
             timeoutValue = parsePositiveIntegerInput(timeout.getText(), "timeout");
@@ -583,6 +591,7 @@ public class CreateJobView extends TabView
                 args.put("timeout", new JSONNumber(timeoutValue));
                 args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
+                args.put("is_template", JSONBoolean.getInstance(isTemplate));
                 args.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
                 args.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();

@@ -1,8 +1,6 @@
 package autotest.afe;
 
 import autotest.common.SimpleCallback;
-import autotest.common.StaticDataRepository;
-import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
@@ -27,7 +25,6 @@ import java.util.Set;
 
 
 public class JobListView extends TabView implements TableActionsListener {
-    protected static final String ALL_USERS = "All Users";
     protected static final String SELECTED_LINK_STYLE = "selected-link";
     protected static final int JOBS_PER_PAGE = 30;
     protected static final int QUEUED = 0, RUNNING = 1, FINISHED = 2, 
@@ -98,15 +95,6 @@ public class JobListView extends TabView implements TableActionsListener {
         jobTable.refresh();
     }
 
-    protected void populateUsers() {
-        StaticDataRepository staticData = StaticDataRepository.getRepository();
-        JSONArray userArray = staticData.getData("users").isArray();
-        String[] userStrings = Utils.JSONObjectsToStrings(userArray, "login");
-        ownerFilter.setChoices(userStrings);
-        String currentUser = staticData.getCurrentUserLogin();
-        ownerFilter.setSelectedChoice(currentUser);
-    }
-
     public JobListView(JobSelectListener listener) {
         selectListener = listener;
     }
@@ -133,10 +121,8 @@ public class JobListView extends TabView implements TableActionsListener {
         tableDecorator.addTableActionsPanel(this, true);
         RootPanel.get("job_table").add(tableDecorator);
         
-        ownerFilter = new ListFilter("owner");
-        ownerFilter.setMatchAllText("All users");
+        ownerFilter = AfeUtils.getUserFilter("owner");
         jobTable.addFilter(ownerFilter);
-        populateUsers();
         RootPanel.get("user_list").add(ownerFilter.getWidget());
         
         nameFilter = new SearchFilter("name", false);

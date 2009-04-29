@@ -55,6 +55,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     public interface JobDetailListener {
         public void onHostSelected(String hostname);
         public void onCloneJob(JSONValue result);
+        public void onCreateRecurringJob(int id);
     }
     
     protected int jobId = NO_JOB_ID;
@@ -65,6 +66,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     protected SimpleFilter jobFilter = new SimpleFilter();
     protected Button abortButton = new Button("Abort job");
     protected Button cloneButton = new Button("Clone job");
+    protected Button recurringButton = new Button("Create recurring job");
     protected HTML tkoResultsHtml = new HTML();
     protected ScrollPanel tkoResultsScroller = new ScrollPanel(tkoResultsHtml);
     protected JobDetailListener listener;
@@ -185,6 +187,13 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         });
         RootPanel.get("view_clone").add(cloneButton);
         
+        recurringButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                createRecurringJob();
+            } 
+        });
+        RootPanel.get("view_recurring").add(recurringButton);
+        
         tkoResultsScroller.setStyleName("results-frame");
         RootPanel.get("tko_results").add(tkoResultsScroller);
     }
@@ -247,6 +256,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 listener.onCloneJob(result);
             }
         });
+    }
+
+    private void createRecurringJob() {
+        listener.onCreateRecurringJob(jobId);
     }
     
     private String getResultsURL(int jobId) {

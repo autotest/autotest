@@ -29,6 +29,7 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
+import datetime
 from frontend import thread_local
 from frontend.afe import models, model_logic, control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config
@@ -325,8 +326,8 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     return cf_info
 
 
-def create_job(name, priority, control_file, control_type, timeout=None,
-               synch_count=None, hosts=(), meta_hosts=(),
+def create_job(name, priority, control_file, control_type, is_template=False,
+               timeout=None, synch_count=None, hosts=(), meta_hosts=(),
                run_verify=True, one_time_hosts=(), email_list='',
                dependencies=(), reboot_before=None, reboot_after=None,
                atomic_group_name=None):
@@ -336,6 +337,7 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     priority: Low, Medium, High, Urgent
     control_file: String contents of the control file.
     control_type: Type of control file, Client or Server.
+    is_template: If true then create a template job.
     timeout: Hours after this call returns until the job times out.
     synch_count: How many machines the job uses per autoserv execution.
                  synch_count == 1 means the job is asynchronous.  If an
@@ -390,81 +392,32 @@ def create_job(name, priority, control_file, control_type, timeout=None,
     # convert hostnames & meta hosts to host/label objects
     host_objects = models.Host.smart_get_bulk(hosts)
     metahost_objects = []
-    metahost_counts = {}
     for label in meta_hosts or []:
         if label not in labels_by_name:
             raise model_logic.ValidationError(
                 {'meta_hosts' : 'Label "%s" not found' % label})
         this_label = labels_by_name[label]
         metahost_objects.append(this_label)
-        metahost_counts.setdefault(this_label, 0)
-        metahost_counts[this_label] += 1
     for host in one_time_hosts or []:
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
 
-    all_host_objects = host_objects + metahost_objects
-
-    # check that each metahost request has enough hosts under the label
-    for label, requested_count in metahost_counts.iteritems():
-        available_count = label.host_set.count()
-        if requested_count > available_count:
-            error = ("You have requested %d %s's, but there are only %d."
-                     % (requested_count, label.name, available_count))
-            raise model_logic.ValidationError({'meta_hosts' : error})
-
-    if atomic_group:
-        rpc_utils.check_atomic_group_create_job(
-                synch_count, host_objects, metahost_objects,
-                dependencies, atomic_group, labels_by_name)
-    else:
-        if synch_count is not None and synch_count > len(all_host_objects):
-            raise model_logic.ValidationError(
-                    {'hosts':
-                     'only %d hosts provided for job with synch_count = %d' %
-                     (len(all_host_objects), synch_count)})
-        atomic_hosts = models.Host.objects.filter(
-                id__in=[host.id for host in host_objects],
-                labels__atomic_group=True)
-        unusable_host_names = [host.hostname for host in atomic_hosts]
-        if unusable_host_names:
-            raise model_logic.ValidationError(
-                    {'hosts':
-                     'Host(s) "%s" are atomic group hosts but no '
-                     'atomic group was specified for this job.' %
-                     (', '.join(unusable_host_names),)})
-
-
-    rpc_utils.check_job_dependencies(host_objects, dependencies)
-    dependency_labels = [labels_by_name[label_name]
-                         for label_name in dependencies]
-
-    for label in metahost_objects + dependency_labels:
-        if label.atomic_group and not atomic_group:
-            raise model_logic.ValidationError(
-                    {'atomic_group_name':
-                     'Some meta_hosts or dependencies require an atomic group '
-                     'but no atomic_group_name was specified for this job.'})
-        elif (label.atomic_group and
-              label.atomic_group.name != atomic_group_name):
-            raise model_logic.ValidationError(
-                    {'atomic_group_name':
-                     'Some meta_hosts or dependencies require an atomic group '
-                     'other than the one requested for this job.'})
-
-    job = models.Job.create(owner=owner, name=name, priority=priority,
-                            control_file=control_file,
-                            control_type=control_type,
-                            synch_count=synch_count,
-                            hosts=all_host_objects,
-                            timeout=timeout,
-                            run_verify=run_verify,
-                            email_list=email_list.strip(),
-                            dependencies=dependency_labels,
-                            reboot_before=reboot_before,
-                            reboot_after=reboot_after)
-    job.queue(all_host_objects, atomic_group=atomic_group)
-    return job.id
+    return rpc_utils.create_new_job(owner=owner,
+                                    host_objects=host_objects,
+                                    metahost_objects=metahost_objects,
+                                    name=name,
+                                    priority=priority,
+                                    control_file=control_file,
+                                    control_type=control_type,
+                                    is_template=is_template,
+                                    synch_count=synch_count,
+                                    timeout=timeout,
+                                    run_verify=run_verify,
+                                    email_list=email_list,
+                                    dependencies=dependencies,
+                                    reboot_before=reboot_before,
+                                    reboot_after=reboot_after,
+                                    atomic_group=atomic_group)
 
 
 def abort_host_queue_entries(**filter_data):
@@ -529,66 +482,39 @@ def get_info_for_clone(id, preserve_metahosts):
     """\
     Retrieves all the information needed to clone a job.
     """
-    info = {}
+
     job = models.Job.objects.get(id=id)
-    query = job.hostqueueentry_set.filter()
-
-    hosts = []
-    meta_hosts = []
-    atomic_group_name = None
-
-    # For each queue entry, if the entry contains a host, add the entry into the
-    # hosts list if either:
-    #     It is not a metahost.
-    #     It was an assigned metahost, and the user wants to keep the specific
-    #         assignments.
-    # Otherwise, add the metahost to the metahosts list.
-    for queue_entry in query:
-        if (queue_entry.host and (preserve_metahosts
-                                  or not queue_entry.meta_host)):
-            if queue_entry.deleted:
-                continue
-            hosts.append(queue_entry.host)
-        else:
-            meta_hosts.append(queue_entry.meta_host.name)
-        if atomic_group_name is None:
-            if queue_entry.atomic_group is not None:
-                atomic_group_name = queue_entry.atomic_group.name
-        else:
-            assert atomic_group_name == queue_entry.atomic_group.name, (
-                    'DB inconsistency.  HostQueueEntries with multiple atomic'
-                    ' groups on job %s: %s != %s' % (
-                        id, atomic_group_name, queue_entry.atomic_group.name))
+    job_info = rpc_utils.get_job_info(job,
+                                      preserve_metahosts=preserve_metahosts)
 
     host_dicts = []
-
-    for host in hosts:
-        # one-time host
-        if host.invalid:
-            host_dict = {}
-            host_dict['hostname'] = host.hostname
-            host_dict['id'] = host.id
-            host_dict['platform'] = '(one-time host)'
-            host_dict['locked_text'] = ''
-        else:
-            host_dict = get_hosts(id=host.id)[0]
-            other_labels = host_dict['labels']
-            if host_dict['platform']:
-                other_labels.remove(host_dict['platform'])
-            host_dict['other_labels'] = ', '.join(other_labels)
+    for host in job_info['hosts']:
+        host_dict = get_hosts(id=host.id)[0]
+        other_labels = host_dict['labels']
+        if host_dict['platform']:
+            other_labels.remove(host_dict['platform'])
+        host_dict['other_labels'] = ', '.join(other_labels)
         host_dicts.append(host_dict)
 
-    meta_host_counts = {}
-    for meta_host in meta_hosts:
-        meta_host_counts.setdefault(meta_host, 0)
-        meta_host_counts[meta_host] += 1
+    for host in job_info['one_time_hosts']:
+        host_dict = dict(hostname=host.hostname,
+                         id=host.id,
+                         platform='(one-time host)',
+                         locked_text='')
+        host_dicts.append(host_dict)
 
-    info['job'] = job.get_object_dict()
-    info['job']['dependencies'] = [label.name for label
-                                   in job.dependency_labels.all()]
-    info['meta_host_counts'] = meta_host_counts
-    info['hosts'] = host_dicts
-    info['atomic_group_name'] = atomic_group_name
+    # convert keys from Label objects to strings (names of labels
+    meta_host_counts = dict((meta_host.name, count) for meta_host, count
+                            in job_info['meta_host_counts'])
+
+    info = dict(job=job.get_object_dict(),
+                meta_host_counts=meta_host_counts,
+                hosts=host_dicts)
+    info['job']['dependencies'] = job_info['dependencies']
+    if job_info['atomic_group']:
+        info['atomic_group_name'] = (job_info['atomic_group']).name
+    else:
+        info['atomic_group_name'] = None
 
     return rpc_utils.prepare_for_serialization(info)
 
@@ -622,6 +548,32 @@ def get_hqe_percentage_complete(**filter_data):
     if total_count == 0:
         return 1
     return float(complete_count) / total_count
+
+
+# recurring run
+
+def get_recurring(**filter_data):
+    return rpc_utils.prepare_rows_as_nested_dicts(
+            models.RecurringRun.query_objects(filter_data),
+            ('job', 'owner'))
+
+
+def get_num_recurring(**filter_data):
+    return models.RecurringRun.query_count(filter_data)
+
+
+def delete_recurring_runs(**filter_data):
+    to_delete = models.RecurringRun.query_objects(filter_data)
+    to_delete.delete()
+
+
+def create_recurring_run(job_id, start_date, loop_period, loop_count):
+    owner = thread_local.get_user().login
+    job = models.Job.objects.get(id=job_id)
+    return job.create_recurring_job(start_date=start_date,
+                                    loop_period=loop_period,
+                                    loop_count=loop_count,
+                                    owner=owner)
 
 
 # other
@@ -695,5 +647,11 @@ def get_static_data():
                                    "Starting": "Next in host's queue",
                                    "Stopped": "Other host(s) failed verify",
                                    "Parsing": "Awaiting parse of final results",
-                                   "Gathering": "Gathering log files"}
+                                   "Gathering": "Gathering log files",
+                                   "Template": "Template job for recurring run"}
+                                    
     return result
+
+
+def get_server_time():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
