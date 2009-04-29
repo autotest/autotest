@@ -9,18 +9,21 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.GWT.UncaughtExceptionHandler;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 
 abstract class Plot extends Composite {
+    private static final String CALLBACK_PREFIX = "__plot_drilldown";
+
+    private static int callbackNameCounter = 0;
     protected final static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
 
     private String rpcName;
     private HTML plotElement = new HTML();
     protected TableSwitchListener listener;
 
-    @SuppressWarnings("unused") // used from native code (setDrilldownTrigger)
     private String callbackName;
 
     private static class DummyRpcCallback extends JsonRpcCallback {
@@ -28,10 +31,15 @@ abstract class Plot extends Composite {
         public void onSuccess(JSONValue result) {}
     }
 
-    public Plot(String rpcName, String callbackName) {
+    public Plot(String rpcName) {
         this.rpcName = rpcName;
-        this.callbackName = callbackName;
+        this.callbackName = getFreshCallbackName();
         initWidget(plotElement);
+    }
+    
+    private static String getFreshCallbackName() {
+        callbackNameCounter++;
+        return CALLBACK_PREFIX + callbackNameCounter;
     }
 
     /**
@@ -80,6 +88,7 @@ abstract class Plot extends Composite {
     protected abstract void showDrilldownImpl(JSONObject drilldownParams);
 
     public void refresh(JSONObject params, final JsonRpcCallback callback) {
+        params.put("drilldown_callback", new JSONString(callbackName));
         rpcProxy.rpcCall(rpcName, params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
