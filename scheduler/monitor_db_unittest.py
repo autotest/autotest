@@ -1297,6 +1297,15 @@ class AgentTest(unittest.TestCase):
         self._test_agent_abort_helper(True)
 
 
+    def test_agent_abort_before_started(self):
+        task = self._create_mock_task('task')
+        agent = self._create_agent([task])
+        agent.abort()
+        agent.start()
+        self._finish_agent(agent)
+        self.god.check_playback()
+
+
 class AgentTasksTest(unittest.TestCase):
     TEMP_DIR = '/abspath/tempdir'
     RESULTS_DIR = '/results/dir'

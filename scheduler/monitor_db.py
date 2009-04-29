@@ -1173,9 +1173,12 @@ class Agent(object):
     def abort(self):
         if self.active_task:
             self.active_task.abort()
-            if self.active_task.aborted: # tasks can choose to ignore aborts
-                self.active_task = None
-                self._clear_queue()
+            if not self.active_task.aborted: # tasks can choose to ignore aborts
+                return
+            self.active_task = None
+
+        self._clear_queue()
+
 
 
 class AgentTask(object):
