@@ -190,8 +190,34 @@ def _get_tests_stanza(raw_control_files, is_server, prepend, append,
 
 
 def indent_text(text, indent):
-    lines = [indent + line for line in text.splitlines()]
-    return '\n'.join(lines)
+    """Indent given lines of python code avoiding indenting multiline
+    quoted content (only for triple " and ' quoting for now)."""
+    regex = re.compile('(\\\\*)("""|\'\'\')')
+
+    res = []
+    in_quote = None
+    for line in text.splitlines():
+        # if not within a multinline quote indent the line contents
+        if in_quote:
+            res.append(line)
+        else:
+            res.append(indent + line)
+
+        while line:
+            match = regex.search(line)
+            if match:
+                # for an even number of backslashes before the triple quote
+                if len(match.group(1)) % 2 == 0:
+                    if not in_quote:
+                        in_quote = match.group(2)[0]
+                    elif in_quote == match.group(2)[0]:
+                        # if we found a matching end triple quote
+                        in_quote = None
+                line = line[match.end():]
+            else:
+                break
+
+    return '\n'.join(res)
 
 
 def _get_profiler_commands(profilers, is_server):
