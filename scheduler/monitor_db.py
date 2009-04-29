@@ -1740,6 +1740,14 @@ class GatherLogsTask(PostJobTask):
         self._reboot_hosts()
 
 
+    def run(self):
+        if self._final_status == models.HostQueueEntry.Status.COMPLETED:
+            # don't run at all if Autoserv exited successfully
+            self.finished(True)
+        else:
+            super(GatherLogsTask, self).run()
+
+
 class CleanupTask(PreJobTask):
     def __init__(self, host=None, queue_entry=None):
         assert bool(host) ^ bool(queue_entry)
