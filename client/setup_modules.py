@@ -1,6 +1,6 @@
 __author__ = "jadmanski@google.com (John Admanski)"
 
-import os, sys, new, glob
+import os, sys, new, glob, logging, traceback
 
 
 def _create_module(name):
@@ -61,6 +61,17 @@ def import_module(module, from_where):
     return getattr(from_module, module)
 
 
+def _autotest_logging_handle_error(self, record):
+    """Method to monkey patch into logging.Handler to replace handleError."""
+    # The same as the default logging.Handler.handleError but also prints
+    # out the original record causing the error so there is -some- idea
+    # about which call caused the logging error.
+    if logging.raiseExceptions:
+        sys.stderr.write('Exception occurred formatting message: '
+                         '%r using args %r\n' % (record.msg, record.args))
+        traceback.print_stack()
+
+
 def setup(base_path, root_module_name=""):
     """
     Perform all the necessary setup so that all the packages at
@@ -79,6 +90,13 @@ def setup(base_path, root_module_name=""):
                               "logging.py*")
     if glob.glob(logging_py):
         os.system("rm -f %s" % logging_py)
+
+    # Monkey patch our own handleError into the logging module's StreamHandler.
+    # A nicer way of doing this -might- be to have our own logging module define
+    # an autotest Logger instance that added our own Handler subclass with this
+    # handleError method in it.  But that would mean modifying tons of code.
+    assert callable(logging.Handler.handleError)
+    logging.Handler.handleError = _autotest_logging_handle_error
 
     # Hack... Any better ideas?
     if (root_module_name == 'autotest_lib.client' and
