@@ -5,6 +5,7 @@ import autotest.afe.HostDetailView.HostDetailListener;
 import autotest.afe.HostListView.HostListListener;
 import autotest.afe.JobDetailView.JobDetailListener;
 import autotest.afe.JobListView.JobSelectListener;
+import autotest.afe.RecurringView.RecurringSelectListener;
 import autotest.afe.UserPreferencesView.UserPreferencesListener;
 import autotest.common.CustomHistory;
 import autotest.common.JsonRpcProxy;
@@ -22,6 +23,7 @@ import com.google.gwt.user.client.ui.RootPanel;
 public class AfeClient implements EntryPoint {
     private JobListView jobList;
     private JobDetailView jobDetail;
+    private RecurringView recurringView;
     private CreateJobView createJob;
     private HostListView hostListView;
     private HostDetailView hostDetailView;
@@ -63,7 +65,20 @@ public class AfeClient implements EntryPoint {
                 createJob.cloneJob(cloneInfo);
                 mainTabPanel.selectTabView(createJob);
             }
+            
+            public void onCreateRecurringJob(int jobId) {
+                recurringView.ensureInitialized();
+                recurringView.createRecurringJob(jobId);
+                mainTabPanel.selectTabView(recurringView);
+            }
         });
+        
+        recurringView = new RecurringView(new RecurringSelectListener() {                                                                                      
+            public void onRecurringSelected(int jobId) {
+            	showJob(jobId);
+            }
+        });
+            
         createJob = AfeUtils.factory.getCreateJobView(new JobCreateListener() {
             public void onJobCreated(int jobId) {
                 showJob(jobId);
@@ -85,7 +100,7 @@ public class AfeClient implements EntryPoint {
             }
         });
         
-        TabView[] tabViews = new TabView[] {jobList, jobDetail, createJob, 
+        TabView[] tabViews = new TabView[] {jobList, jobDetail, recurringView, createJob, 
                                             hostListView, hostDetailView, userPreferencesView};
         for(int i = 0; i < tabViews.length; i++) {
             mainTabPanel.addTabView(tabViews[i]);

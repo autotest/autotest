@@ -32,12 +32,6 @@ public class JobTable extends DynamicTable {
         row.put(HOSTS_SUMMARY, new JSONString(countString));
         
         // remove seconds from created time
-        JSONValue createdValue = row.get("created_on");
-        String created = "";
-        if (createdValue.isNull() == null) {
-            created = createdValue.isString().stringValue();
-            created = created.substring(0, created.length() - 3);
-        }
-        row.put(CREATED_TEXT, new JSONString(created));
+        AfeUtils.removeSecondsFromDateField(row, "created_on", CREATED_TEXT);
     }
 }
