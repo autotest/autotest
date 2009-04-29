@@ -107,10 +107,6 @@ class base_server_job(object):
 
             if not os.path.exists(resultdir):
                 os.mkdir(resultdir)
-            if not os.path.exists(self.uncollected_log_file):
-                log_file = open(self.uncollected_log_file, "w")
-                pickle.dump([], log_file)
-                log_file.close()
             if not os.path.exists(self.debugdir):
                 os.mkdir(self.debugdir)
         self.label = label
@@ -355,6 +351,20 @@ class base_server_job(object):
     def run(self, cleanup=False, install_before=False, install_after=False,
             collect_crashdumps=True, namespace={}, control=None,
             control_file_dir=None, only_collect_crashinfo=False):
+        # for a normal job, make sure the uncollected logs file exists
+        # for a crashinfo-only run it should already exist, bail out otherwise
+        if self.resultdir and not os.path.exists(self.uncollected_log_file):
+            if only_collect_crashinfo:
+                # if this is a crashinfo-only run, and there were no existing
+                # uncollected logs, just bail out early
+                logging.info("No existing uncollected logs, "
+                             "skipping crashinfo collection")
+                return
+            else:
+                log_file = open(self.uncollected_log_file, "w")
+                pickle.dump([], log_file)
+                log_file.close()
+
         # use a copy so changes don't affect the original dictionary
         namespace = namespace.copy()
         machines = self.machines
