@@ -9,12 +9,23 @@
   <script type="text/javascript">
     function initialize() {
       Autotest.initialize("http://localhost");
-      var plot = Autotest.createMetricsPlot(document.getElementById("plot_canvas"));
+
+      var plot1 = Autotest.createMetricsPlot(document.getElementById("plot1_canvas"));
       queries = {}
-      queries["__main__"] = "SELECT test_name, AVG(IF(kernel LIKE '2.6.18%', iteration_value, NULL)) '2.6.18', STDDEV(IF(kernel LIKE '2.6.18%', iteration_value, NULL)) 'errors-2.6.18' FROM perf_view_2 WHERE test_name IN ('dbench', 'tbench') AND iteration_key = 'throughput' GROUP BY test_name";
-      queries["__2.6.18__"] = "SELECT test_idx, iteration_value FROM perf_view_2 WHERE test_name IN ('dbench', 'tbench') AND iteration_key = 'throughput' AND kernel LIKE '2.6.18%%' AND test_name = %s ORDER BY iteration_value";
-      plot.refresh({
+      queries["__main__"] = "SELECT kernel, AVG(iteration_value) 'throughput', STDDEV(iteration_value) 'errors-throughput' FROM perf_view_2 WHERE test_name like 'dbench%' AND iteration_key = 'throughput' GROUP BY kernel";
+      queries["__throughput__"] = "SELECT test_idx, iteration_value FROM perf_view_2 WHERE test_name like 'dbench%%' AND iteration_key = 'throughput' AND kernel = %s ORDER BY iteration_value";
+      plot1.refresh({
           plot : "Bar",
+          invert : [],
+          queries : queries
+      });
+
+      var plot2 = Autotest.createMetricsPlot(document.getElementById("plot2_canvas"));
+      queries = {}
+      queries["__main__"] = "SELECT job_tag, AVG(iteration_value) 'throughput', STDDEV(iteration_value) 'errors-throughput' FROM perf_view_2 WHERE test_name like 'dbench%' AND iteration_key ='throughput' GROUP BY job_tag";
+      queries["__throughput__"] = "SELECT test_idx, iteration_value FROM perf_view_2 WHERE test_name like 'dbench%%' AND iteration_key ='throughput' AND job_tag = %s ORDER BY iteration_value";
+      plot2.refresh({
+          plot : "Line",
           invert : [],
           queries : queries
       });
@@ -24,6 +35,8 @@
 
 <body onload="initialize()">
   Top text
-  <div id="plot_canvas"></div>
+  <div id="plot1_canvas"></div>
+  Middle text
+  <div id="plot2_canvas"></div>
   Bottom text
 </body>

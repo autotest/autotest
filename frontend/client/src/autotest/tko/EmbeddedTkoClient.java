@@ -67,6 +67,9 @@ public class EmbeddedTkoClient implements EntryPoint, TableSwitchListener {
     }
 
     private JavaScriptObject doCreateMetricsPlot(Element parent) {
+        if (parent == null) {
+            throw new IllegalArgumentException("parent element cannot be null");
+        }
         Plot plot = new MetricsPlot();
         plot.setDrilldownTrigger();
         plot.setListener(this);
