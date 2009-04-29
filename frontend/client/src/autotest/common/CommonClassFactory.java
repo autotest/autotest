@@ -10,6 +10,7 @@ public class CommonClassFactory {
         setupMOTD();
 
         Timer timer = new Timer() {
+            @Override
             public void run() {
                 refreshMOTD();
             }
