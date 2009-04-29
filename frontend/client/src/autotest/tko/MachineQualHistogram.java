@@ -9,7 +9,7 @@ import com.google.gwt.user.client.ui.HTML;
 
 class MachineQualHistogram extends Plot {
     public MachineQualHistogram() {
-        super("create_qual_histogram", "showQualDrilldown");
+        super("create_qual_histogram");
     }
 
     /**

@@ -87,6 +87,67 @@ href="#"
 onclick="%s(%s); return false;">"""
 
 
+class MetricsPlot(object):
+    def __init__(self, query_dict, plot_type, inverted_series, normalize_to,
+                 drilldown_callback):
+        """
+        query_dict: dictionary containing the main query and the drilldown
+            queries.  The main query returns a row for each x value.  The first
+            column contains the x-axis label.  Subsequent columns contain data
+            for each series, named by the column names.  A column named
+            'errors-<x>' will be interpreted as errors for the series named <x>.
+
+        plot_type: 'Line' or 'Bar', depending on the plot type the user wants
+
+        inverted_series: list of series that should be plotted on an inverted
+            y-axis
+
+        normalize_to:
+            None - do not normalize
+            'first' - normalize against the first data point
+            'x__%s' - normalize against the x-axis value %s
+            'series__%s' - normalize against the series %s
+
+        drilldown_callback: name of drilldown callback method.
+        """
+        self.query_dict = query_dict
+        if plot_type == 'Line':
+            self.is_line = True
+        elif plot_type == 'Bar':
+            self.is_line = False
+        else:
+            raise ValidationError({'plot' : 'Plot must be either Line or Bar'})
+        self.plot_type = plot_type
+        self.inverted_series = inverted_series
+        self.normalize_to = normalize_to
+        if self.normalize_to is None:
+            self.normalize_to = ''
+        self.drilldown_callback = drilldown_callback
+
+
+class QualificationHistogram(object):
+    def __init__(self, query, filter_string, interval, drilldown_callback):
+        """
+        query: the main query to retrieve the pass rate information.  The first
+            column contains the hostnames of all the machines that satisfied the
+            global filter. The second column (titled 'total') contains the total
+            number of tests that ran on that machine and satisfied the global
+            filter. The third column (titled 'good') contains the number of
+            those tests that passed on that machine.
+
+        filter_string: filter to apply to the common global filter to show the
+                       Table View drilldown of a histogram bucket
+
+        interval: interval for each bucket. E.g., 10 means that buckets should
+                  be 0-10%, 10%-20%, ...
+
+        """
+        self.query = query
+        self.filter_string = filter_string
+        self.interval = interval
+        self.drilldown_callback = drilldown_callback
+
+
 def _create_figure(height_inches):
     """\
     Creates an instance of matplotlib.figure.Figure, given the height in inches.
@@ -100,7 +161,7 @@ def _create_figure(height_inches):
     return (fig, fig.get_figheight() * _FIGURE_DPI)
 
 
-def _create_line(plots, labels, queries, invert, single):
+def _create_line(plots, labels, plot_info):
     """\
     Given all the data for the metrics, create a line plot.
 
@@ -111,11 +172,11 @@ def _create_line(plots, labels, queries, invert, single):
                     available
             label: plot title
     labels: list of x-tick labels
-    queries: dictionary containing the relevant drilldown queries for series
-    invert: list of plot titles or series titles that should have an inverted
-            y-axis
-    single: True if this should be a single plot, False for multiple subplots
+    plot_info: a MetricsPlot
     """
+    # when we're doing any kind of normalization, all series get put into a
+    # single plot
+    single = bool(plot_info.normalize_to)
 
     area_data = []
     lines = []
@@ -130,7 +191,7 @@ def _create_line(plots, labels, queries, invert, single):
 
     # Plot all the data
     for plot_index, (plot, color) in enumerate(zip(plots, _colors(len(plots)))):
-        needs_invert = (plot['label'] in invert)
+        needs_invert = (plot['label'] in plot_info.inverted_series)
 
         # Add a new subplot, if user wants multiple subplots
         # Also handle axis inversion for subplots here
@@ -175,7 +236,7 @@ def _create_line(plots, labels, queries, invert, single):
         icoords = line.get_transform().transform(zip(x,y))
 
         # Get the appropriate drilldown query
-        drill = queries['__' + label + '__']
+        drill = plot_info.query_dict['__' + label + '__']
 
         # Set the title attributes (hover-over tool-tips)
         x_labels = [labels[x_val] for x_val in x]
@@ -189,7 +250,7 @@ def _create_line(plots, labels, queries, invert, single):
         area_data += [dict(left=ix - 5, top=height - iy - 5,
                            right=ix + 5, bottom=height - iy + 5,
                            title= title,
-                           callback='showMetricsDrilldown',
+                           callback=plot_info.drilldown_callback,
                            callback_arguments=param_dict)
                       for (ix, iy), title, param_dict
                       in zip(icoords, titles, params)]
@@ -231,7 +292,7 @@ def _get_adjusted_bar(x, bar_width, series_index, num_plots):
 
 # TODO(showard): merge much of this function with _create_line by extracting and
 # parameterizing methods
-def _create_bar(plots, labels, queries, invert):
+def _create_bar(plots, labels, plot_info):
     """\
     Given all the data for the metrics, create a line plot.
 
@@ -242,8 +303,7 @@ def _create_bar(plots, labels, queries, invert):
                     available
             label: plot title
     labels: list of x-tick labels
-    queries: dictionary containing the relevant drilldown queries for series
-    invert: list of series that should have an inverted y-axis
+    plot_info: a MetricsPlot
     """
 
     area_data = []
@@ -266,7 +326,7 @@ def _create_bar(plots, labels, queries, invert):
     # Plot the data
     for plot_index, (plot, color) in enumerate(zip(plots, _colors(len(plots)))):
         # Invert the y-axis if needed
-        if plot['label'] in invert:
+        if plot['label'] in plot_info.inverted_series:
             plot['y'] = [-y for y in plot['y']]
 
         adjusted_x = _get_adjusted_bar(plot['x'], width, plot_index + 1,
@@ -293,7 +353,7 @@ def _create_bar(plots, labels, queries, invert):
             [(x + width, 0) for x in adjusted_x])
 
         # Get the drilldown query
-        drill = queries['__' + label + '__']
+        drill = plot_info.query_dict['__' + label + '__']
 
         # Set the title attributes
         x_labels = [labels[x] for x in plot['x']]
@@ -304,7 +364,7 @@ def _create_bar(plots, labels, queries, invert):
         area_data += [dict(left=ulx, top=height - uly,
                            right=brx, bottom=height - bry,
                            title=title,
-                           callback='showMetricsDrilldown',
+                           callback=plot_info.drilldown_callback,
                            callback_arguments=param_dict)
                       for (ulx, uly), (brx, bry), title, param_dict
                       in zip(upper_left_coords, bottom_right_coords, titles,
@@ -368,7 +428,7 @@ def _create_png(figure):
     return image_data.getvalue(), bounding_box
 
 
-def _create_image_html(figure, area_data, name):
+def _create_image_html(figure, area_data, plot_info):
     """\
     Given the figure and drilldown data, construct the HTML that will render the
     graph as a PNG image, and attach the image map to that image.
@@ -376,7 +436,7 @@ def _create_image_html(figure, area_data, name):
     figure: figure containing the drawn plot(s)
     area_data: list of parameters for each area of the image map. See the
                definition of the template string '_AREA_TEMPLATE'
-    name: name to give the image map in the HTML
+    plot_info: a MetricsPlot or QualHistogram
     """
 
     png, bbox = _create_png(figure)
@@ -386,10 +446,12 @@ def _create_image_html(figure, area_data, name):
              (data['left'] - bbox[0], data['top'] - bbox[1],
               data['right'] - bbox[0], data['bottom'] - bbox[1],
               data['title'], data['callback'],
-              _json_encoder.encode(data['callback_arguments']).replace('"', '&quot;'))
+              _json_encoder.encode(data['callback_arguments'])
+                  .replace('"', '&quot;'))
              for data in area_data]
 
-    return _HTML_TEMPLATE % (base64.b64encode(png), name, name,
+    map_name = plot_info.drilldown_callback + '_map'
+    return _HTML_TEMPLATE % (base64.b64encode(png), map_name, map_name,
                              '\n'.join(areas))
 
 
@@ -440,28 +502,15 @@ def _normalize_to_series(plots, base_series):
                                                new_base_errors)
 
 
-def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
-                                extra_text=None):
-    """\
-    Create a metrics plot of the given data.
-
-    queries: dictionary containing the main query and the drilldown queries.
-        The main query returns a row for each x value.  The first column
-        contains the x-axis label.  Subsequent columns contain data for each
-        series, named by the column names.  A column names 'errors-<x>' will be
-        interpreted as errors for the series named <x>.
-    plot: 'Line' or 'Bar', depending on the plot type the user wants
-    invert: list of series that should be plotted on an inverted y-axis
-    normalize: None - do not normalize
-               'first' - normalize against the first data point
-               'x__%s' - normalize against the x-axis value %s
-               'series__%s' - normalize against the series %s
-    extra_text: text to show at the uppper-left of the graph
+def _create_metrics_plot_helper(plot_info, extra_text=None):
     """
+    Create a metrics plot of the given plot data.
+    plot_info: a MetricsPlot object.
+    extra_text: text to show at the uppper-left of the graph
 
-    if normalize is None:
-        normalize = ''
-    query = queries['__main__']
+    TODO(showard): move some/all of this logic into methods on MetricsPlot
+    """
+    query = plot_info.query_dict['__main__']
     cursor = readonly_connection.connection().cursor()
     cursor.execute(query)
 
@@ -472,14 +521,6 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
     # etc.
     columns = zip(*rows)
 
-    if plot == 'Line':
-        line = True
-    elif plot == 'Bar':
-        line = False
-    else:
-        raise ValidationError({
-            'Plot' : 'Plot must be either Line or Bar'
-        })
     plots = []
     labels = [str(label) for label in columns[0]]
     needs_resort = (cursor.description[0][0] == 'kernel')
@@ -518,9 +559,10 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
         labels = _resort(labels, labels)
 
     # Normalize the data if necessary
-    if normalize == 'first' or normalize.startswith('x__'):
-        if normalize != 'first':
-            baseline = normalize[3:]
+    normalize_to = plot_info.normalize_to
+    if normalize_to == 'first' or normalize_to.startswith('x__'):
+        if normalize_to != 'first':
+            baseline = normalize_to[3:]
             try:
                 baseline_index = labels.index(baseline)
             except ValueError:
@@ -528,7 +570,7 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
                     'Normalize' : 'Invalid baseline %s' % baseline
                     })
         for plot in plots:
-            if normalize == 'first':
+            if normalize_to == 'first':
                 plot_index = 0
             else:
                 try:
@@ -537,7 +579,7 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
                 except ValueError:
                     raise ValidationError({
                         'Normalize' : ('%s does not have a value for %s'
-                                       % (plot['label'], normalize[3:]))
+                                       % (plot['label'], normalize_to[3:]))
                         })
             base_values = [plot['y'][plot_index]] * len(plot['y'])
             if plot['errors']:
@@ -546,34 +588,30 @@ def _create_metrics_plot_helper(queries, plot, invert, normalize=None,
                                                    base_values,
                                                    None or base_errors)
 
-    elif normalize.startswith('series__'):
-        base_series = normalize[8:]
+    elif normalize_to.startswith('series__'):
+        base_series = normalize_to[8:]
         _normalize_to_series(plots, base_series)
 
     # Call the appropriate function to draw the line or bar plot
-    params = [plots, labels, queries, invert]
-    if line:
-        figure, area_data = _create_line(plots, labels, queries, invert,
-                                         normalize)
+    if plot_info.is_line:
+        figure, area_data = _create_line(plots, labels, plot_info)
     else:
-        figure, area_data = _create_bar(plots, labels, queries, invert)
+        figure, area_data = _create_bar(plots, labels, plot_info)
 
     # TODO(showard): extract these magic numbers to named constants
     if extra_text:
         text_y = .95 - .0075 * len(plots)
         figure.text(.1, text_y, extra_text, size='xx-small')
 
-    return (figure, area_data, 'metrics_drilldown')
+    return (figure, area_data)
 
-def create_metrics_plot(queries, plot, invert, normalize, extra_text=None):
-    """\
-    Wrapper for _create_metrics_plot_helper
-    """
 
-    figure, area_data, name = _create_metrics_plot_helper(queries, plot,
-                                                       invert, normalize,
-                                                       extra_text)
-    return _create_image_html(figure, area_data, name)
+def create_metrics_plot(query_dict, plot_info, inverted_series, normalize_to,
+                        drilldown_callback, extra_text=None):
+    plot_info = MetricsPlot(query_dict, plot_info, inverted_series,
+                            normalize_to, drilldown_callback)
+    figure, area_data = _create_metrics_plot_helper(plot_info, extra_text)
+    return _create_image_html(figure, area_data, plot_info)
 
 
 def _get_hostnames_in_bucket(hist_data, bucket):
@@ -588,25 +626,18 @@ def _get_hostnames_in_bucket(hist_data, bucket):
             if bucket[0] <= pass_rate < bucket[1]]
 
 
-def _create_qual_histogram_helper(query, filter_string, interval,
-                                  extra_text=None):
+def _create_qual_histogram_helper(plot_info, extra_text=None):
     """\
     Create a machine qualification histogram of the given data.
 
-    query: the main query to retrieve the pass rate information.  The first
-        column contains the hostnames of all the machines that satisfied the
-        global filter. The second column (titled 'total') contains the total
-        number of tests that ran on that machine and satisfied the global
-        filter. The third column (titled 'good') contains the number of those
-        tests that passed on that machine.
-    filter_string: filter to apply to the common global filter to show the Table
-                   View drilldown of a histogram bucket
-    interval: interval for each bucket. E.g., 10 means that buckets should be
-              0-10%, 10%-20%, ...
+    plot_info: a QualificationHistogram
     extra_text: text to show at the upper-left of the graph
+
+    TODO(showard): move much or all of this into methods on
+    QualificationHistogram
     """
     cursor = readonly_connection.connection().cursor()
-    cursor.execute(query)
+    cursor.execute(plot_info.query)
 
     if not cursor.rowcount:
         raise NoDataError('query did not return any data')
@@ -636,6 +667,7 @@ def _create_qual_histogram_helper(query, filter_string, interval,
             percentage = 100.0 * good / total
             hist_data.append((hostname, percentage))
 
+    interval = plot_info.interval
     bins = range(0, 100, interval)
     if bins[-1] != 100:
         bins.append(bins[-1] + interval)
@@ -685,8 +717,8 @@ def _create_qual_histogram_helper(query, filter_string, interval,
                   for bucket in buckets]
     names_list += [no_pass, perfect]
 
-    if filter_string:
-        filter_string += ' AND '
+    if plot_info.filter_string:
+        plot_info.filter_string += ' AND '
 
     # Construct the list of drilldown parameters to be passed when the user
     # clicks on the bar.
@@ -695,7 +727,7 @@ def _create_qual_histogram_helper(query, filter_string, interval,
         if names:
             hostnames = ','.join(_quote(hostname) for hostname in names)
             hostname_filter = 'hostname IN (%s)' % hostnames
-            full_filter = filter_string + hostname_filter
+            full_filter = plot_info.filter_string + hostname_filter
             params.append({'type': 'normal',
                            'filterString': full_filter})
         else:
@@ -706,7 +738,7 @@ def _create_qual_histogram_helper(query, filter_string, interval,
 
     area_data = [dict(left=ulx, top=height - uly,
                       right=brx, bottom=height - bry,
-                      title=title, callback='showQualDrilldown',
+                      title=title, callback=plot_info.drilldown_callback,
                       callback_arguments=param_dict)
                  for (ulx, uly), (brx, bry), title, param_dict
                  in zip(upper_left_coords, bottom_right_coords, titles, params)]
@@ -715,17 +747,15 @@ def _create_qual_histogram_helper(query, filter_string, interval,
     if extra_text:
         figure.text(.1, .95, extra_text, size='xx-small')
 
-    return (figure, area_data, 'qual_drilldown')
+    return (figure, area_data)
 
 
-def create_qual_histogram(query, filter_string, interval, extra_text=None):
-    """\
-    Wrapper for _create_qual_histogram_helper
-    """
-
-    figure, area_data, name = _create_qual_histogram_helper(query, filter_string,
-                                                         interval, extra_text)
-    return _create_image_html(figure, area_data, name)
+def create_qual_histogram(query, filter_string, interval, drilldown_callback,
+                          extra_text=None):
+    plot_info = QualificationHistogram(query, filter_string, interval,
+                                       drilldown_callback)
+    figure, area_data = _create_qual_histogram_helper(plot_info, extra_text)
+    return _create_image_html(figure, area_data, plot_info)
 
 
 def create_embedded_plot(model, update_time):

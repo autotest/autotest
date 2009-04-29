@@ -239,12 +239,15 @@ def get_hosts_and_tests():
     return rpc_utils.prepare_for_serialization(host_info)
 
 
-def create_metrics_plot(queries, plot, invert, normalize=None):
-    return graphing_utils.create_metrics_plot(queries, plot, invert, normalize)
+def create_metrics_plot(queries, plot, invert, drilldown_callback,
+                        normalize=None):
+    return graphing_utils.create_metrics_plot(
+        queries, plot, invert, normalize, drilldown_callback=drilldown_callback)
 
 
-def create_qual_histogram(query, filter_string, interval):
-    return graphing_utils.create_qual_histogram(query, filter_string, interval)
+def create_qual_histogram(query, filter_string, interval, drilldown_callback):
+    return graphing_utils.create_qual_histogram(
+        query, filter_string, interval, drilldown_callback=drilldown_callback)
 
 
 # TODO(showard) - this extremely generic RPC is used only by one place in the

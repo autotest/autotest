@@ -15,7 +15,7 @@ import com.google.gwt.user.client.ui.Widget;
 
 class MetricsPlot extends Plot {
     public MetricsPlot() {
-        super("create_metrics_plot", "showMetricsDrilldown");
+        super("create_metrics_plot");
     }
 
     /**
