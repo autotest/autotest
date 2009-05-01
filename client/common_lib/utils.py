@@ -761,7 +761,7 @@ class CmdResult(object):
     """
 
 
-    def __init__(self, command=None, stdout="", stderr="",
+    def __init__(self, command="", stdout="", stderr="",
                  exit_status=None, duration=0):
         self.command = command
         self.exit_status = exit_status
