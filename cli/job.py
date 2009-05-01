@@ -202,10 +202,10 @@ class job_create(action_common.atest_create, job):
     [--synch_count] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
-    [--labels <labels this job is dependent on>]
+    [--labels <list of labels of machines to run on>]
     [--reboot_before <option>] [--reboot_after <option>]
     [--noverify] [--timeout <timeout>] [--one-time-hosts <hosts>]
-    [--email <email>]
+    [--email <email>] [--dependencies <labels this job is dependent on>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -235,8 +235,11 @@ class job_create(action_common.atest_create, job):
                                help='List of tests to run')
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
+        self.parser.add_option('-d', '--dependencies', help='Comma separated '
+                               'list of labels this job is dependent on.',
+                               default='')
         self.parser.add_option('-b', '--labels', help='Comma separated list of '
-                               'labels this job is dependent on.', default='')
+                               'labels to get machine list from.', default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
                                'run on')
         self.parser.add_option('-M', '--mlist',
@@ -294,9 +297,10 @@ class job_create(action_common.atest_create, job):
             self.reuse_hosts = options.reuse_hosts
             return (options, leftover)
 
-        if len(self.hosts) == 0 and not options.one_time_hosts:
+        if (len(self.hosts) == 0 and not options.one_time_hosts
+            and not options.labels):
             self.invalid_syntax('Must specify at least one machine '
-                                '(-m, -M or --one-time-hosts).')
+                                '(-m, -M, -b or --one-time-hosts).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -349,13 +353,20 @@ class job_create(action_common.atest_create, job):
         if options.one_time_hosts:
             one_time_hosts = self._file_list(options, opt_list='one_time_hosts')
             self.data['one_time_hosts'] = one_time_hosts
+        if options.labels:
+            labels = options.labels.split(',')
+            labels = [label.strip() for label in labels if label.strip()]
+            label_hosts = self.execute_rpc(op='get_hosts',
+                                           multiple_labels=labels)
+            for host in label_hosts:
+                self.hosts.append(host['hostname'])
 
         self.data['name'] = self.jobname
 
         (self.data['hosts'],
          self.data['meta_hosts']) = self.parse_hosts(self.hosts)
 
-        deps = options.labels.split(',')
+        deps = options.dependencies.split(',')
         deps = [dep.strip() for dep in deps if dep.strip()]
         self.data['dependencies'] = deps
 
