@@ -48,6 +48,7 @@ class base_test:
                                        dir=job.tmpdir)
         self._keyvals = []
         self._new_keyval = False
+        self.failed_constraints = []
 
 
     def assert_(self, expr, msg='Assertion failed.'):
@@ -98,18 +99,29 @@ class base_test:
             return
 
         self._new_keyval = False
-        errors = []
+        failures = []
         for constraint in constraints:
             print "___________________ constraint = %s" % constraint
             print "___________________ keyvals = %s" % self._keyvals[-1]['perf']
             try:
                 if not eval(constraint, self._keyvals[-1]['perf']):
-                    errors.append('%s' % constraint)
+                    failures.append('%s' % constraint)
             except:
-                errors.append('could not evaluate constraint: %s' % constraint)
+                failures.append('could not evaluate constraint: %s'
+                                % constraint)
 
-        self.assert_(len(errors) == 0,
-                     'failed constraints: %s' %  ', '.join(errors))
+        # keep track of the errors for each iteration
+        self.failed_constraints.append(failures)
+
+
+    def process_failed_constraints(self):
+        msg = ''
+        for i, failures in enumerate(self.failed_constraints):
+            if failures:
+                msg += 'iteration %d:%s  ' % (i, ','.join(failures))
+
+        if msg:
+            raise error.TestFail(msg)
 
 
     def initialize(self):
@@ -233,6 +245,7 @@ class base_test:
 
         # Do any postprocessing, normally extracting performance keyvals, etc
         self.postprocess()
+        self.process_failed_constraints()
 
 
     def run_once_profiling(self, postprocess_profiled_run, *args, **dargs):
