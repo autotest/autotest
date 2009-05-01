@@ -206,6 +206,7 @@ class job_create(action_common.atest_create, job):
     [--reboot_before <option>] [--reboot_after <option>]
     [--noverify] [--timeout <timeout>] [--one-time-hosts <hosts>]
     [--email <email>] [--dependencies <labels this job is dependent on>]
+    [--atomic_group <atomic group name>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -240,6 +241,9 @@ class job_create(action_common.atest_create, job):
                                default='')
         self.parser.add_option('-b', '--labels', help='Comma separated list of '
                                'labels to get machine list from.', default='')
+        self.parser.add_option('-G', '--atomic_group', help='Name of an Atomic '
+                               'Group to schedule this job on.',
+                               default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
                                'run on')
         self.parser.add_option('-M', '--mlist',
@@ -298,9 +302,10 @@ class job_create(action_common.atest_create, job):
             return (options, leftover)
 
         if (len(self.hosts) == 0 and not options.one_time_hosts
-            and not options.labels):
+            and not options.labels and not options.atomic_group):
             self.invalid_syntax('Must specify at least one machine '
-                                '(-m, -M, -b or --one-time-hosts).')
+                                'or an atomic group '
+                                '(-m, -M, -b, -G or --one-time-hosts).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -365,6 +370,9 @@ class job_create(action_common.atest_create, job):
 
         (self.data['hosts'],
          self.data['meta_hosts']) = self.parse_hosts(self.hosts)
+
+        if options.atomic_group:
+            self.data['atomic_group_name'] = options.atomic_group
 
         deps = options.dependencies.split(',')
         deps = [dep.strip() for dep in deps if dep.strip()]
