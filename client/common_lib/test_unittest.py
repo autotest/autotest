@@ -41,6 +41,7 @@ class Test_base_test_execute(TestTestCase):
         TestTestCase.setUp(self)
         self.god.stub_function(self.test, 'run_once_profiling')
         self.god.stub_function(self.test, 'postprocess')
+        self.god.stub_function(self.test, 'process_failed_constraints')
 
 
     def test_call_run_once(self):
@@ -77,6 +78,7 @@ class Test_base_test_execute(TestTestCase):
         self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
 
         fake_time = iter(xrange(4)).next
         self.test.execute(iterations=1, test_length=3, _get_time=fake_time)
@@ -92,6 +94,7 @@ class Test_base_test_execute(TestTestCase):
             self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
 
         self.test.execute(iterations=iterations)
         self.god.check_playback()
@@ -100,6 +103,7 @@ class Test_base_test_execute(TestTestCase):
     def _mock_calls_for_execute_no_iterations(self):
         self.test.run_once_profiling.expect_call(None)
         self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
 
 
     def test_execute_iteration_zero(self):
@@ -125,6 +129,7 @@ class Test_base_test_execute(TestTestCase):
         self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
 
         self.test.execute(postprocess_profiled_run=False, iterations=1)
         self.god.check_playback()
@@ -137,6 +142,7 @@ class Test_base_test_execute(TestTestCase):
         self._expect_call_run_once()
         self.test.run_once_profiling.expect_call(True)
         self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
 
         self.test.execute(postprocess_profiled_run=True, iterations=1)
         self.god.check_playback()
