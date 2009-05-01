@@ -20,7 +20,7 @@ import java.util.Map;
  * Much of the code here is borrowed from or inspired by that article.
  */
 public class PaddedJsonRpcProxy extends JsonRpcProxy {
-    private static final int REQUEST_TIMEOUT_MILLIS = 10000;
+    private static final int REQUEST_TIMEOUT_MILLIS = 60000;
     private static final String SCRIPT_TAG_PREFIX = "__jsonp_rpc_script";
     private static final String CALLBACK_PREFIX = "__jsonp_rpc_callback";
 
