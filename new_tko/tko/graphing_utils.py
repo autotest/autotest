@@ -606,9 +606,9 @@ def _create_metrics_plot_helper(plot_info, extra_text=None):
     return (figure, area_data)
 
 
-def create_metrics_plot(query_dict, plot_info, inverted_series, normalize_to,
+def create_metrics_plot(query_dict, plot_type, inverted_series, normalize_to,
                         drilldown_callback, extra_text=None):
-    plot_info = MetricsPlot(query_dict, plot_info, inverted_series,
+    plot_info = MetricsPlot(query_dict, plot_type, inverted_series,
                             normalize_to, drilldown_callback)
     figure, area_data = _create_metrics_plot_helper(plot_info, extra_text)
     return _create_image_html(figure, area_data, plot_info)
