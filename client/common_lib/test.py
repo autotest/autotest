@@ -296,7 +296,7 @@ class base_test:
                                        '%s.log' % self.tagged_testname)
         self.test_handler = logging.FileHandler(filename=result_filename,
                                                 mode='w')
-        fmt_str = '[%(asctime)s - %(module)-15s - %(levelname)-8s] %(message)s'
+        fmt_str = '[%(asctime)s %(levelname)-5.5s %(module)s] %(message)s'
         self.test_formatter = logging.Formatter(fmt_str)
         self.test_handler.setFormatter(self.test_formatter)
         self.logger = logging.getLogger()
