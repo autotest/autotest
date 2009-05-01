@@ -40,7 +40,7 @@ class ltp(test.test):
         utils.system('cp ../scan.c pan/')   # saves having lex installed
         utils.system('[ -f configure.ac ] && make autotools || make autoconf')
         utils.system('[ -x configure ] && ./configure')
-        utils.system('make -j %d || make' % autotest_utils.count_cpus())
+        utils.system('make -j %d || make' % utils.count_cpus())
         utils.system('yes n | make install')
 
 
