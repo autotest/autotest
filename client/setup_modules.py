@@ -1,6 +1,16 @@
 __author__ = "jadmanski@google.com (John Admanski)"
 
-import os, sys, new, glob, logging, traceback
+import os, sys
+
+# This must run on Python versions less than 2.4.
+dirname = os.path.dirname(sys.modules[__name__].__file__)
+common_dir = os.path.abspath(os.path.join(dirname, "common_lib"))
+sys.path.insert(0, common_dir)
+import check_version
+sys.path.pop(0)
+check_version.check_python_version()
+
+import new, glob, logging, traceback
 
 
 def _create_module(name):
@@ -108,11 +118,10 @@ def setup(base_path, root_module_name=""):
     _create_module_and_parents(root_module_name)
     _import_children_into_module(root_module_name, base_path)
 
-
-# This must run on Python versions less than 2.4.
-dirname = os.path.dirname(sys.modules[__name__].__file__)
-common_dir = os.path.abspath(os.path.join(dirname, "common_lib"))
-sys.path.insert(0, common_dir)
-import check_version
-sys.path.pop(0)
-check_version.check_python_version()
+    if root_module_name == 'autotest_lib':
+        # Allow locally installed third party packages to be found
+        # before any that are installed on the system itself when not.
+        # running as a client.
+        # This is primarily for the benefit of frontend and tko so that they
+        # may use libraries other than those available as system packages.
+        sys.path.insert(0, os.path.join(base_path, "site-packages"))
