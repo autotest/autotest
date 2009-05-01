@@ -185,8 +185,8 @@ class atest_create(atest_create_or_delete):
                     meta_hosts += int(num) * [host]
                 elif re.match('^[*](\w*)', host):
                     meta_hosts += [re.match('^[*](\w*)', host).group(1)]
-                elif host != '':
-                    # Real hostname
+                elif host != '' and host not in hosts:
+                    # Real hostname and not a duplicate
                     hosts.append(host)
 
         return (hosts, meta_hosts)

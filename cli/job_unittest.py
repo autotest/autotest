@@ -601,12 +601,12 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_no=['Uploading', 'Done'])
 
 
-    def test_execute_create_job_with_control_and_label(self):
+    def test_execute_create_job_with_control_and_dependencies(self):
         data = self.data.copy()
         data['dependencies'] = ['dep1', 'dep2']
         filename = cli_mock.create_file(self.ctrl_file)
         self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
-                           'test_job0', '-m', 'host0', '-b', 'dep1, dep2 ',
+                           'test_job0', '-m', 'host0', '-d', 'dep1, dep2 ',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
@@ -625,11 +625,11 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_no=['Uploading', 'Done'])
 
 
-    def test_execute_create_job_with_test_and_label(self):
+    def test_execute_create_job_with_test_and_dependencies(self):
         data = self.data.copy()
         data['dependencies'] = ['dep1', 'dep2', 'dep3']
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
-                           'test_job0', '-m', 'host0', '-b', 'dep1, dep2 ',
+                           'test_job0', '-m', 'host0', '-d', 'dep1, dep2 ',
                            '--ignore_site_file'],
                      rpcs=[('generate_control_file',
                             {'tests': ['sleeptest']},
@@ -830,6 +830,54 @@ class job_create_unittest(cli_mock.cli_unittest):
                             '''a one time host.'}''')],
                      out_words_no=['test_job0', 'Created'],
                      err_words_ok=['failed', 'already exists'])
+
+
+    def test_execute_create_job_with_control_and_labels(self):
+        data = self.data.copy()
+        data['hosts'] = ['host0', 'host1', 'host2']
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '-b', 'label1,label2',
+                           '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'multiple_labels': ['label1',
+                            'label2']}, True,
+                            [{u'status': u'Running', u'lock_time': None,
+                              u'hostname': u'host1', u'locked': False,
+                              u'locked_by': None, u'invalid': False, u'id': 42,
+                              u'labels': [u'label1'], u'platform':
+                              u'Warp18_Diskfull', u'protection':
+                              u'Repair software only', u'dirty':
+                              True, u'synch_id': None},
+                             {u'status': u'Running', u'lock_time': None,
+                              u'hostname': u'host2', u'locked': False,
+                              u'locked_by': None, u'invalid': False, u'id': 43,
+                              u'labels': [u'label2'], u'platform':
+                              u'Warp18_Diskfull', u'protection':
+                              u'Repair software only', u'dirty': True,
+                              u'synch_id': None}]),
+                            ('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_with_label_and_duplicate_hosts(self):
+        data = self.data.copy()
+        data['hosts'] = ['host1', 'host0']
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0,host1', '-b', 'label1',
+                           '--ignore_site_file'],
+                     rpcs=[('get_hosts', {'multiple_labels': ['label1']}, True,
+                            [{u'status': u'Running', u'lock_time': None,
+                              u'hostname': u'host1', u'locked': False,
+                              u'locked_by': None, u'invalid': False, u'id': 42,
+                              u'labels': [u'label1'], u'platform':
+                              u'Warp18_Diskfull', u'protection':
+                              u'Repair software only', u'dirty':
+                              True, u'synch_id': None}]),
+                            ('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
 
 
     def _test_parse_hosts(self, args, exp_hosts=[], exp_meta_hosts=[]):
