@@ -135,6 +135,67 @@ class CliError(Exception):
     pass
 
 
+class item_parse_info(object):
+    def __init__(self, attribute_name, inline_option='',
+                 filename_option='', use_leftover=False):
+        """Object keeping track of the parsing options that will
+        make up the content of the atest attribute:
+        atttribute_name: the atest attribute name to populate    (label)
+        inline_option: the option containing the items           (--label)
+        filename_option: the option containing the filename      (--blist)
+        use_leftover: whether to add the leftover arguments or not."""
+        self.attribute_name = attribute_name
+        self.filename_option = filename_option
+        self.inline_option = inline_option
+        self.use_leftover = use_leftover
+
+
+    def get_values(self, options, leftover=[]):
+        """Returns the value for that attribute by accumualting all
+        the values found through the inline option, the parsing of the
+        file and the leftover"""
+        def __get_items(string, split_re='[\s,]\s*'):
+            return (item.strip() for item in re.split(split_re, string)
+                    if item)
+
+        if self.use_leftover:
+            add_on = leftover
+            leftover = []
+        else:
+            add_on = []
+
+        # Start with the add_on
+        result = set()
+        for items in add_on:
+            # Don't split on space here because the add-on
+            # may have some spaces (like the job name)
+            result.update(__get_items(items, split_re='[,]'))
+
+        # Process the inline_option, if any
+        try:
+            items = getattr(options, self.inline_option)
+            result.update(__get_items(items))
+        except (AttributeError, TypeError):
+            pass
+
+        # Process the file list, if any and not empty
+        # The file can contain space and/or comma separated items
+        try:
+            flist = getattr(options, self.filename_option)
+            file_content = []
+            for line in open(flist).readlines():
+                file_content += __get_items(line)
+            if len(file_content) == 0:
+                raise CliError("Empty file %s" % flist)
+            result.update(file_content)
+        except (AttributeError, TypeError):
+            pass
+        except IOError:
+            raise CliError("Could not open file %s" % flist)
+
+        return list(result), leftover
+
+
 class atest(object):
     """Common class for generic processing
     Should only be instantiated by itself for usage
@@ -255,6 +316,7 @@ class atest(object):
         self.kill_on_failure = False
         self.web_server = ''
         self.verbose = False
+        self.topic_parse_info = item_parse_info(attribute_name='not_used')
 
         self.parser = optparse.OptionParser(self._get_usage())
         self.parser.add_option('-g', '--debug',
@@ -279,82 +341,30 @@ class atest(object):
                                dest='web_server', default=None)
 
 
-    def _file_list(self, options, opt_file='', opt_list='', add_on=[]):
-        """Returns a list containing the unique items from the
-        options.<opt_list>, from the file options.<opt_file>,
-        and from the space separated add_on strings.
-        The opt_list can be space or comma separated list.
-        Used for host, acls, labels... arguments"""
-        def __get_items(string, split_on='[\s,]\s*'):
-            return [item.strip() for item in re.split(split_on, string)
-                    if item]
-
-        # Start with the add_on
-        result = set()
-        for items in add_on:
-            # Don't split on space here because the add-on
-            # may have some spaces (like the job name)
-            #result.update(item.strip() for item in items.split(',') if item)
-            result.update(__get_items(items, split_on='[,]'))
-
-        # Process the opt_list, if any
-        try:
-            items = getattr(options, opt_list)
-            result.update(__get_items(items))
-        except (AttributeError, TypeError):
-            pass
-
-        # Process the file list, if any and not empty
-        # The file can contain space and/or comma separated items
-        try:
-            flist = getattr(options, opt_file)
-            file_content = []
-            for line in open(flist).readlines():
-                file_content += __get_items(line)
-            if len(file_content) == 0:
-                self.invalid_syntax("Empty file %s" % flist)
-            result.update(file_content)
-        except (AttributeError, TypeError):
-            pass
-        except IOError:
-            self.invalid_syntax("Could not open file %s" % flist)
-
-        return list(result)
-
-
     def _get_usage(self):
         return "atest %s %s [options] %s" % (self.msg_topic.lower(),
                                              self.usage_action,
                                              self.msg_items)
 
 
-    def parse_with_flist(self, flists, req_items):
-        """Flists is a list of tuples containing:
-        (attribute, opt_fname, opt_list, use_leftover)
+    def parse(self, parse_info=[], req_items=None):
+        """parse_info is a list of item_parse_info objects
 
-        self.<atttribute> will be populated with a set
-        containing the lines of the file named
-        options.<opt_fname> and the options.<opt_list> values
-        and the leftover from the parsing if use_leftover is
-        True.  There should only be one use_leftover set to
-        True in the list.
-        Also check if the req_items is not empty after parsing."""
-        (options, leftover) = atest.parse(self)
-        if leftover is None:
-            leftover = []
+        There should only be one use_leftover set to True in the list.
 
-        for (attribute, opt_fname, opt_list, use_leftover) in flists:
-            if use_leftover:
-                add_on = leftover
-                leftover = []
-            else:
-                add_on = []
+        Also check that the req_items is not empty after parsing."""
+        (options, leftover) = self.parse_global()
 
-            setattr(self, attribute,
-                    self._file_list(options,
-                                    opt_file=opt_fname,
-                                    opt_list=opt_list,
-                                    add_on=add_on))
+        all_parse_info = parse_info[:]
+        all_parse_info.append(self.topic_parse_info)
+
+        try:
+            for item_parse_info in all_parse_info:
+                values, leftover = item_parse_info.get_values(options,
+                                                              leftover)
+                setattr(self, item_parse_info.attribute_name, values)
+        except CliError, s:
+            self.invalid_syntax(s)
 
         if (req_items and not getattr(self, req_items, None)):
             self.invalid_syntax('%s %s requires at least one %s' %
@@ -365,8 +375,8 @@ class atest(object):
         return (options, leftover)
 
 
-    def parse(self):
-        """Parse all the arguments.
+    def parse_global(self):
+        """Parse the global arguments.
 
         It consumes what the common object needs to know, and
         let the children look at all the options.  We could

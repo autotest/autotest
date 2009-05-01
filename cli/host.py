@@ -47,14 +47,10 @@ class host(topic_common.atest):
                                default=None,
                                metavar='MACHINE_FLIST')
 
-
-    def parse(self, flists=None, req_items='hosts'):
-        """Consume the common host options"""
-        if flists:
-            flists.append(('hosts', 'mlist', '', True))
-        else:
-            flists = [('hosts', 'mlist', '', True)]
-        return self.parse_with_flist(flists, req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='hosts',
+            filename_option='mlist',
+            use_leftover=True)
 
 
     def _parse_lock_options(self, options):
@@ -132,7 +128,7 @@ class host_list(action_common.atest_list, host):
 
     def parse(self):
         """Consume the specific options"""
-        (options, leftover) = super(host_list, self).parse(req_items=None)
+        (options, leftover) = super(host_list, self).parse()
         self.labels = options.label
         self.status = options.status
         self.acl = options.acl
@@ -263,7 +259,7 @@ class host_jobs(host):
 
     def parse(self):
         """Consume the specific options"""
-        (options, leftover) = super(host_jobs, self).parse(req_items=None)
+        (options, leftover) = super(host_jobs, self).parse()
         self.max_queries = options.max_query
         return (options, leftover)
 
@@ -416,9 +412,16 @@ class host_create(host):
 
 
     def parse(self):
-        flists = [('labels', 'blist', 'labels', False),
-                  ('acls', 'alist', 'acls', False)]
-        (options, leftover) = super(host_create, self).parse(flists)
+        label_info = topic_common.item_parse_info(attribute_name='labels',
+                                                 inline_option='labels',
+                                                 filename_option='blist')
+        acl_info = topic_common.item_parse_info(attribute_name='acls',
+                                                inline_option='acls',
+                                                filename_option='alist')
+
+        (options, leftover) = super(host_create, self).parse([label_info,
+                                                              acl_info],
+                                                             req_items='hosts')
 
         self._parse_lock_options(options)
         self.locked = options.lock
