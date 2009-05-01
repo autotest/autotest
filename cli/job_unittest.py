@@ -559,6 +559,29 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_no=['Uploading', 'Done'])
 
 
+    def test_execute_create_job_with_atomic_group(self):
+        data = dict(self.data)
+        data['atomic_group_name'] = 'my-atomic-group'
+        data['control_type'] = 'Server'
+        mock_ctrl_file = 'mock control file'
+        data['control_file'] = mock_ctrl_file
+        data['synch_count'] = 2
+        data['hosts'] = []
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'mocktest',
+                           'test_job0', '--ignore_site_file',
+                           '-G', 'my-atomic-group'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['mocktest']},
+                            True,
+                            {'control_file' : mock_ctrl_file,
+                             'synch_count' : 2,
+                             'is_server' : True,
+                             'dependencies' : []}),
+                           ('create_job', data, True, 180)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
     def test_execute_create_job_with_control(self):
         filename = cli_mock.create_file(self.ctrl_file)
         self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
