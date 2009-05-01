@@ -38,14 +38,10 @@ class label(topic_common.atest):
                                default=None,
                                metavar='LABEL_FLIST')
 
-
-    def parse(self, flists=None, req_items='labels'):
-        """Consume the common label options"""
-        if flists:
-            flists.append(('labels', 'blist', '', True))
-        else:
-            flists = [('labels', 'blist', '', True)]
-        return self.parse_with_flist(flists, req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='labels',
+            filename_option='blist',
+            use_leftover=True)
 
 
     def get_items(self):
@@ -85,9 +81,9 @@ class label_list(action_common.atest_list, label):
 
 
     def parse(self):
-        flists = [('hosts', '', 'machine', False)]
-        (options, leftover) = super(label_list, self).parse(flists,
-                                                            req_items=None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine')
+        (options, leftover) = super(label_list, self).parse([host_info])
 
         if options.all and options.platform_only:
             self.invalid_syntax('Only specify one of --all,'
@@ -154,7 +150,8 @@ class label_create(action_common.atest_create, label):
 
 
     def parse(self):
-        (options, leftover) = super(label_create, self).parse()
+        (options, leftover) = super(label_create,
+                                    self).parse(req_items='labels')
         self.data_item_key = 'name'
         self.data['platform'] = options.platform
         self.data['only_if_needed'] = options.only_if_needed
@@ -184,8 +181,13 @@ class label_add_or_remove(label):
 
 
     def parse(self):
-        flists = [('hosts', 'mlist', 'machine', False)]
-        (options, leftover) = super(label_add_or_remove, self).parse(flists)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine',
+                                                 filename_option='mlist')
+        (options, leftover) = super(label_add_or_remove,
+                                    self).parse([host_info],
+                                                req_items='labels')
+
         if not getattr(self, 'hosts', None):
             self.invalid_syntax('%s %s requires at least one host' %
                                 (self.msg_topic,

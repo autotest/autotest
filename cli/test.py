@@ -37,10 +37,10 @@ class test(topic_common.atest):
                                default=None,
                                metavar='TEST_FLIST')
 
-
-    def parse(self, req_items=None):
-        """Consume the common test options"""
-        return self.parse_with_flist([('tests', 'blist', '', True)], req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='tests',
+            filename_option='tlist',
+            use_leftover=True)
 
 
     def get_items(self):

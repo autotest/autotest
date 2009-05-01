@@ -35,12 +35,10 @@ class atomicgroup(topic_common.atest):
                                type='string', default=None,
                                metavar='ATOMIC_GROUP_FLIST')
 
-
-    def parse(self, flists=None, req_items='atomicgroups'):
-        if not flists:
-            flists = []
-        flists.append(('atomicgroups', 'glist', '', True))
-        return self.parse_with_flist(flists, req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='atomicgroups',
+            filename_option='glist',
+            use_leftover=True)
 
 
     def get_items(self):
@@ -62,7 +60,7 @@ class atomicgroup_list(action_common.atest_list, atomicgroup):
 
 
     def parse(self):
-        options, leftover = super(atomicgroup_list, self).parse(req_items=None)
+        options, leftover = super(atomicgroup_list, self).parse()
         self.show_invalid = options.show_invalid
         return options, leftover
 
@@ -125,8 +123,13 @@ class atomicgroup_add_or_remove(atomicgroup):
 
 
     def parse(self):
-        flists = [('labels', 'label_list', 'label', False)]
-        options, leftover = super(atomicgroup_add_or_remove, self).parse(flists)
+        label_info = topic_common.item_parse_info(attribute_name='labels',
+                                                  inline_option='label',
+                                                  filename_option='label_list')
+
+        options, leftover = super(atomicgroup_add_or_remove,
+                                  self).parse([label_info],
+                                              req_items='atomicgroups')
         if not getattr(self, 'labels', None):
             self.invalid_syntax('%s %s requires at least one label' %
                                 (self.msg_topic,

@@ -26,12 +26,14 @@ class ExitException(Exception):
 
 class cli_unittest(unittest.TestCase):
     def setUp(self):
+        super(cli_unittest, self).setUp()
         self.god = mock.mock_god(debug=CLI_UT_DEBUG)
         self.god.stub_class_method(rpc.afe_comm, 'run')
         self.god.stub_function(sys, 'exit')
 
 
     def tearDown(self):
+        super(cli_unittest, self).tearDown()
         self.god.unstub_all()
 
 

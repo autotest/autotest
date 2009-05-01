@@ -44,6 +44,14 @@ class job_help(job):
 
 
 class job_list_stat(action_common.atest_list, job):
+    def __init__(self):
+        super(job_list_stat, self).__init__()
+
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='jobs',
+            use_leftover=True)
+
+
     def __split_jobs_between_ids_names(self):
         job_ids = []
         job_names = []
@@ -95,8 +103,7 @@ class job_list(job_list_stat):
 
 
     def parse(self):
-        (options, leftover) = self.parse_with_flist([('jobs', '', '', True)],
-                                                    None)
+        options, leftover = super(job_list, self).parse()
         self.all = options.all
         self.data['running'] = options.running
         if options.user:
@@ -107,7 +114,7 @@ class job_list(job_list_stat):
         elif not options.all and not self.jobs:
             self.data['owner'] = getpass.getuser()
 
-        return (options, leftover)
+        return options, leftover
 
 
     def execute(self):
@@ -136,15 +143,13 @@ class job_stat(job_list_stat):
 
 
     def parse(self):
-        (options, leftover) = self.parse_with_flist(flists=[('jobs', '', '',
-                                                             True)],
-                                                    req_items='jobs')
+        options, leftover = super(job_stat, self).parse(req_items='jobs')
         if not self.jobs:
             self.invalid_syntax('Must specify at least one job.')
 
         self.show_control_file = options.control_file
 
-        return (options, leftover)
+        return options, leftover
 
 
     def _merge_results(self, summary, qes):
@@ -281,10 +286,17 @@ class job_create(action_common.atest_create, job):
 
 
     def parse(self):
-        flists = [('hosts', 'mlist', 'machine', False),
-                  ('jobname', '', '', True)]
-        (options, leftover) = self.parse_with_flist(flists,
-                                                    req_items='jobname')
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine',
+                                                 filename_option='mlist')
+        job_info = topic_common.item_parse_info(attribute_name='jobname',
+                                                use_leftover=True)
+        oth_info = topic_common.item_parse_info(attribute_name='one_time_hosts',
+                                                inline_option='one_time_hosts')
+
+        options, leftover = super(job_create,
+                                  self).parse([host_info, job_info, oth_info],
+                                              req_items='jobname')
         self.data = {}
         if len(self.jobname) > 1:
             self.invalid_syntax('Too many arguments specified, only expected '
@@ -299,9 +311,9 @@ class job_create(action_common.atest_create, job):
             self.op_action = 'clone'
             self.msg_items = 'jobid'
             self.reuse_hosts = options.reuse_hosts
-            return (options, leftover)
+            return options, leftover
 
-        if (len(self.hosts) == 0 and not options.one_time_hosts
+        if (len(self.hosts) == 0 and not self.one_time_hosts
             and not options.labels and not options.atomic_group):
             self.invalid_syntax('Must specify at least one machine '
                                 'or an atomic group '
@@ -355,9 +367,8 @@ class job_create(action_common.atest_create, job):
         if options.timeout:
             self.data['timeout'] = options.timeout
 
-        if options.one_time_hosts:
-            one_time_hosts = self._file_list(options, opt_list='one_time_hosts')
-            self.data['one_time_hosts'] = one_time_hosts
+        if self.one_time_hosts:
+            self.data['one_time_hosts'] = self.one_time_hosts
         if options.labels:
             labels = options.labels.split(',')
             labels = [label.strip() for label in labels if label.strip()]
@@ -386,7 +397,7 @@ class job_create(action_common.atest_create, job):
         else:
             self.data['control_type'] = 'Client'
 
-        return (options, leftover)
+        return options, leftover
 
 
     def execute(self):
@@ -473,8 +484,10 @@ class job_abort(job, action_common.atest_delete):
     msg_done = 'Aborted'
 
     def parse(self):
-        (options, leftover) = self.parse_with_flist([('jobids', '', '', True)],
-                                                    req_items='jobids')
+        job_info = topic_common.item_parse_info(attribute_name='jobids',
+                                                use_leftover=True)
+        options, leftover = super(job_abort, self).parse([job_info],
+                                                         req_items='jobids')
 
 
     def execute(self):
