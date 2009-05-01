@@ -10,6 +10,7 @@ import copy, getpass, unittest, sys, os
 
 import common
 from autotest_lib.cli import cli_mock, topic_common, job
+from autotest_lib.client.common_lib.test_utils import mock
 
 
 class job_unittest(cli_mock.cli_unittest):
@@ -207,14 +208,17 @@ class job_list_unittest(job_unittest):
                                    'Created'])
 
 
+class job_list_jobs_all_and_user_unittest(cli_mock.cli_unittest):
     def test_job_list_jobs_all_and_user(self):
         testjob = job.job_list()
         sys.argv = ['atest', 'job', 'list', '-a', '-u', 'user0',
                     '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
 class job_stat_unittest(job_unittest):
@@ -711,9 +715,11 @@ class job_create_unittest(cli_mock.cli_unittest):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
     def test_execute_create_job_no_hosts(self):
@@ -721,9 +727,11 @@ class job_create_unittest(cli_mock.cli_unittest):
         filename = cli_mock.create_file(self.ctrl_file)
         sys.argv = ['atest', '-f', filename, 'test_job0', '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
     def test_execute_create_job_cfile_and_tests(self):
@@ -732,9 +740,11 @@ class job_create_unittest(cli_mock.cli_unittest):
                     'control_file', 'test_job0', '-m', 'host0',
                     '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
     def test_execute_create_job_cfile_and_kernel(self):
@@ -742,9 +752,11 @@ class job_create_unittest(cli_mock.cli_unittest):
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file', '-k',
                     'kernel', 'test_job0', '-m', 'host0', '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
     def test_execute_create_job_bad_cfile(self):
@@ -752,7 +764,8 @@ class job_create_unittest(cli_mock.cli_unittest):
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file',
                     'test_job0', '-m', 'host0', '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(1).and_raises(IOError)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(IOError))
         self.assertRaises(IOError, testjob.parse)
         self.god.unmock_io()
 
@@ -762,9 +775,11 @@ class job_create_unittest(cli_mock.cli_unittest):
         sys.argv = ['atest', 'job', 'create', '-t', 'sleeptest', '-p', 'Uber',
                     '-m', 'host0', 'test_job0', '--ignore_site_file']
         self.god.mock_io()
-        sys.exit.expect_call(2).and_raises(cli_mock.ExitException)
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
+        self.god.check_playback()
 
 
     def test_execute_create_job_with_mfile(self):
