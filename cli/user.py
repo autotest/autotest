@@ -36,14 +36,10 @@ class user(topic_common.atest):
                                default=None,
                                metavar='USER_FLIST')
 
-
-    def parse(self, flists=None, req_items='users'):
-        """Consume the common user options"""
-        if flists:
-            flists.append(('users', 'ulist', '', True))
-        else:
-            flists = [('users', 'ulist', '', True)]
-        return self.parse_with_flist(flists, req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='users',
+            filename_option='ulist',
+            use_leftover=True)
 
 
     def get_items(self):
@@ -70,7 +66,7 @@ class user_list(action_common.atest_list, user):
 
 
     def parse(self):
-        (options, leftover) = super(user_list, self).parse(req_items=None)
+        (options, leftover) = super(user_list, self).parse()
         self.acl = options.acl
         self.access_level = options.access_level
         return (options, leftover)

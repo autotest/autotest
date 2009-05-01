@@ -38,14 +38,10 @@ class acl(topic_common.atest):
                                default=None,
                                metavar='ACL_FLIST')
 
-
-    def parse(self, flists=None, req_items='acls'):
-        """Consume the common acl options"""
-        if flists:
-            flists.append(('acls', 'alist', '', True))
-        else:
-            flists = [('acls', 'alist', '', True)]
-        return self.parse_with_flist(flists, req_items)
+        self.topic_parse_info = topic_common.item_parse_info(
+            attribute_name='acls',
+            filename_option='alist',
+            use_leftover=True)
 
 
     def get_items(self):
@@ -75,10 +71,13 @@ class acl_list(action_common.atest_list, acl):
 
 
     def parse(self):
-        flists = [('users', '', 'user', False),
-                  ('hosts', '', 'machine', False)]
-        (options, leftover) = super(acl_list, self).parse(flists,
-                                                          req_items=None)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user')
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine')
+
+        (options, leftover) = super(acl_list, self).parse([user_info,
+                                                           host_info])
 
         if ((self.users and (self.hosts or self.acls)) or
             (self.hosts and self.acls)):
@@ -140,7 +139,7 @@ class acl_create(action_common.atest_create, acl):
 
 
     def parse(self):
-        (options, leftover) = super(acl_create, self).parse()
+        (options, leftover) = super(acl_create, self).parse(req_items='acls')
 
         if not options.desc:
             self.invalid_syntax('Must specify a description to create an ACL.')
@@ -187,10 +186,15 @@ class acl_add_or_remove(acl):
 
 
     def parse(self):
-        flists = [('users', 'ulist', 'user', False),
-                  ('hosts', 'mlist', 'machine', False)]
-
-        (options, leftover) = super(acl_add_or_remove, self).parse(flists)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user',
+                                                 filename_option='ulist')
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine',
+                                                 filename_option='mlist')
+        (options, leftover) = super(acl_add_or_remove,
+                                    self).parse([user_info, host_info],
+                                                req_items='acls')
 
         if (not getattr(self, 'users', None) and
             not getattr(self, 'hosts', None)):

@@ -10,9 +10,227 @@ import common
 from autotest_lib.cli import cli_mock, topic_common, rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 
-class topic_common_unittest(cli_mock.cli_unittest):
+
+class item_parse_info_unittest(cli_mock.cli_unittest):
+    def __test_parsing_flist_bad(self, options):
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     filename_option='flist')
+        self.assertRaises(topic_common.CliError,
+                          test_parse_info.get_values, options, [])
+
+
+    def __test_parsing_flist_good(self, options, expected):
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     filename_option='flist')
+        result, leftover = test_parse_info.get_values(options, [])
+
+        self.assertEqualNoOrder(expected, result)
+        os.unlink(options.flist)
+
+
+    def __test_parsing_inline_good(self, options, expected):
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     inline_option='inline')
+        result, leftover = test_parse_info.get_values(options, [])
+
+        self.assertEqualNoOrder(expected, result)
+
+
+    def __test_parsing_leftover_good(self, leftover, expected):
+        class opt(object):
+            pass
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     inline_option='inline',
+                                     use_leftover=True)
+        result, leftover = test_parse_info.get_values(opt(), leftover)
+
+        self.assertEqualNoOrder(expected, result)
+
+
+    def __test_parsing_all_good(self, options, leftover, expected):
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     inline_option='inline',
+                                     filename_option='flist',
+                                     use_leftover=True)
+        result, leftover = test_parse_info.get_values(options, leftover)
+
+        self.assertEqualNoOrder(expected, result)
+        os.unlink(options.flist)
+
+
+    def __test_parsing_all_bad(self, options, leftover):
+        parse_info = topic_common.item_parse_info
+        test_parse_info = parse_info(attribute_name='testing',
+                                     inline_option='inline',
+                                     filename_option='flist',
+                                     use_leftover=True)
+        self.assertRaises(topic_common.CliError,
+                          test_parse_info.get_values, options, leftover)
+
+
+    def test_file_list_wrong_file(self):
+        class opt(object):
+            flist = './does_not_exist'
+        self.__test_parsing_flist_bad(opt())
+
+
+    def test_file_list_empty_file(self):
+        class opt(object):
+            flist = cli_mock.create_file('')
+        self.__test_parsing_flist_bad(opt())
+
+
+    def test_file_list_ok(self):
+        class opt(object):
+            flist = cli_mock.create_file('a\nb\nc\n')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
+
+
+    def test_file_list_one_line_space(self):
+        class opt(object):
+            flist = cli_mock.create_file('a b c\nd e\nf\n')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e', 'f'])
+
+
+    def test_file_list_one_line_comma(self):
+        class opt(object):
+            flist = cli_mock.create_file('a,b,c\nd,e\nf\n')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e', 'f'])
+
+
+    def test_file_list_one_line_mix(self):
+        class opt(object):
+            flist = cli_mock.create_file('a,b c\nd,e\nf\ng h,i')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
+                                         'f', 'g', 'h', 'i'])
+
+
+    def test_file_list_one_line_comma_space(self):
+        class opt(object):
+            flist = cli_mock.create_file('a, b c\nd,e\nf\ng h,i')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
+                                         'f', 'g', 'h', 'i'])
+
+
+    def test_file_list_line_end_comma_space(self):
+        class opt(object):
+            flist = cli_mock.create_file('a, b c\nd,e, \nf,\ng h,i ,')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
+                                         'f', 'g', 'h', 'i'])
+
+
+    def test_file_list_no_eof(self):
+        class opt(object):
+            flist = cli_mock.create_file('a\nb\nc')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
+
+
+    def test_file_list_blank_line(self):
+        class opt(object):
+            flist = cli_mock.create_file('\na\nb\n\nc\n')
+        self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
+
+
+    def test_file_list_opt_list_one(self):
+        class opt(object):
+            inline = 'a'
+        self.__test_parsing_inline_good(opt(), ['a'])
+
+
+    def test_file_list_opt_list_space(self):
+        class opt(object):
+            inline = 'a b c'
+        self.__test_parsing_inline_good(opt(), ['a', 'b', 'c'])
+
+
+    def test_file_list_opt_list_mix_space_comma(self):
+        class opt(object):
+            inline = 'a b,c,d e'
+        self.__test_parsing_inline_good(opt(), ['a', 'b', 'c', 'd', 'e'])
+
+
+    def test_file_list_opt_list_mix_comma_space(self):
+        class opt(object):
+            inline = 'a b,c, d e'
+        self.__test_parsing_inline_good(opt(), ['a', 'b', 'c', 'd', 'e'])
+
+
+    def test_file_list_opt_list_end_comma_space(self):
+        class opt(object):
+            inline = 'a b, ,c,, d e, '
+        self.__test_parsing_inline_good(opt(), ['a', 'b', 'c', 'd', 'e'])
+
+
+    def test_file_list_add_on_space(self):
+        self.__test_parsing_leftover_good(['a','c','b'],
+                                          ['a', 'b', 'c'])
+
+
+    def test_file_list_add_on_mix_space_comma(self):
+        self.__test_parsing_leftover_good(['a', 'c','b,d'],
+                                          ['a', 'b', 'c', 'd'])
+
+
+    def test_file_list_add_on_mix_comma_space(self):
+        self.__test_parsing_leftover_good(['a', 'c', 'b,', 'd'],
+                                          ['a', 'b', 'c', 'd'])
+
+
+    def test_file_list_add_on_end_comma_space(self):
+        self.__test_parsing_leftover_good(['a', 'c', 'b,', 'd,', ','],
+                                          ['a', 'b', 'c', 'd'])
+
+
+    def test_file_list_all_opt(self):
+        class opt(object):
+            flist = cli_mock.create_file('f\ng\nh\n')
+            inline = 'a b,c,d e'
+        self.__test_parsing_all_good(opt(), ['i', 'j'],
+                                     ['a', 'b', 'c', 'd', 'e',
+                                      'f', 'g', 'h', 'i', 'j'])
+
+
+    def test_file_list_all_opt_empty_file(self):
+        class opt(object):
+            flist = cli_mock.create_file('')
+            inline = 'a b,c,d e'
+        self.__test_parsing_all_bad(opt(), ['i', 'j'])
+
+
+    def test_file_list_all_opt_in_common(self):
+        class opt(object):
+            flist = cli_mock.create_file('f\nc\na\n')
+            inline = 'a b,c,d e'
+        self.__test_parsing_all_good(opt(), ['i','j,d'],
+                                     ['a', 'b', 'c', 'd', 'e', 'f', 'i', 'j'])
+
+
+    def test_file_list_all_opt_in_common_space(self):
+        class opt(object):
+            flist = cli_mock.create_file('a b c\nd,e\nf\ng')
+            inline = 'a b,c,d h'
+        self.__test_parsing_all_good(opt(), ['i','j,d'],
+                                     ['a', 'b', 'c', 'd', 'e',
+                                      'f', 'g', 'h', 'i', 'j'])
+
+
+    def test_file_list_all_opt_in_common_weird(self):
+        class opt(object):
+            flist = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
+            inline = 'a b,c,d h, ,  ,,	'
+        self.__test_parsing_all_good(opt(), ['i','j,d'],
+                                     ['a', 'b', 'c', 'd', 'e',
+                                      'f', 'g', 'h', 'i', 'j'])
+
+
+class atest_unittest(cli_mock.cli_unittest):
     def setUp(self):
-        super(topic_common_unittest, self).setUp()
+        super(atest_unittest, self).setUp()
         self.atest = topic_common.atest()
         self.atest.afe = rpc.afe_comm()
         if 'AUTOTEST_WEB' in os.environ:
@@ -21,270 +239,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
 
     def tearDown(self):
         self.atest = None
-        super(topic_common_unittest, self).tearDown()
-
-
-    def test_file_list_wrong_file(self):
-        self.god.mock_io()
-        class opt(object):
-            mlist = './does_not_exist'
-        options = opt()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
-        self.assertRaises(cli_mock.ExitException,
-                          self.atest._file_list, options, opt_file='mlist')
-        self.god.check_playback()
-        (output, err) = self.god.unmock_io()
-        self.assert_(err.find('./does_not_exist') >= 0)
-
-
-    def test_file_list_empty_file(self):
-        self.god.mock_io()
-        class opt(object):
-            flist = cli_mock.create_file('')
-        options = opt()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
-        self.assertRaises(cli_mock.ExitException,
-                          self.atest._file_list, options, opt_file='flist')
-        self.god.check_playback()
-        (output, err) = self.god.unmock_io()
-        self.assert_(err.find(options.flist) >= 0)
-
-
-    def test_file_list_ok(self):
-        class opt(object):
-            filename = cli_mock.create_file('a\nb\nc\n')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_one_line_space(self):
-        class opt(object):
-            filename = cli_mock.create_file('a b c\nd e\nf\n')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e', 'f'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_one_line_comma(self):
-        class opt(object):
-            filename = cli_mock.create_file('a,b,c\nd,e\nf\n')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e', 'f'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_one_line_mix(self):
-        class opt(object):
-            filename = cli_mock.create_file('a,b c\nd,e\nf\ng h,i')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_one_line_comma_space(self):
-        class opt(object):
-            filename = cli_mock.create_file('a, b c\nd,e\nf\ng h,i')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_line_end_comma_space(self):
-        class opt(object):
-            filename = cli_mock.create_file('a, b c\nd,e, \nf,\ng h,i ,')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_no_eof(self):
-        class opt(object):
-            filename = cli_mock.create_file('a\nb\nc')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_blank_line(self):
-        class opt(object):
-            filename = cli_mock.create_file('\na\nb\n\nc\n')
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c'],
-                                self.atest._file_list(options,
-                                                      opt_file='filename'))
-        os.unlink(options.filename)
-
-
-    def test_file_list_opt_list_one(self):
-        class opt(object):
-            hlist = 'a'
-        options = opt()
-        self.assertEqualNoOrder(['a'],
-                                self.atest._file_list(options,
-                                                      opt_list='hlist'))
-
-
-    def test_file_list_opt_list_space(self):
-        class opt(object):
-            hlist = 'a b c'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c'],
-                                self.atest._file_list(options,
-                                                      opt_list='hlist'))
-
-
-    def test_file_list_opt_list_mix_space_comma(self):
-        class opt(object):
-            alist = 'a b,c,d e'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e'],
-                                self.atest._file_list(options,
-                                                      opt_list='alist'))
-
-
-    def test_file_list_opt_list_mix_comma_space(self):
-        class opt(object):
-            alist = 'a b,c, d e'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e'],
-                                self.atest._file_list(options,
-                                                      opt_list='alist'))
-
-
-    def test_file_list_opt_list_end_comma_space(self):
-        class opt(object):
-            alist = 'a b, ,c,, d e, '
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e'],
-                                self.atest._file_list(options,
-                                                      opt_list='alist'))
-
-
-    def test_file_list_add_on_space(self):
-        class opt(object):
-            pass
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c'],
-                                self.atest._file_list(options,
-                                                      add_on=['a','c','b']))
-
-
-    def test_file_list_add_on_mix_space_comma(self):
-        class opt(object):
-            pass
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd'],
-                                self.atest._file_list(options,
-                                                      add_on=['a', 'c',
-                                                              'b,d']))
-
-
-    def test_file_list_add_on_mix_comma_space(self):
-        class opt(object):
-            pass
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd'],
-                                self.atest._file_list(options,
-                                                      add_on=['a', 'c',
-                                                              'b,', 'd']))
-
-
-    def test_file_list_add_on_end_comma_space(self):
-        class opt(object):
-            pass
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd'],
-                                self.atest._file_list(options,
-                                                      add_on=['a', 'c', 'b,',
-                                                              'd,', ',']))
-
-
-    def test_file_list_all_opt(self):
-        class opt(object):
-            afile = cli_mock.create_file('f\ng\nh\n')
-            alist = 'a b,c,d e'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i', 'j'],
-                                self.atest._file_list(options,
-                                                      opt_file='afile',
-                                                      opt_list='alist',
-                                                      add_on=['i', 'j']))
-
-
-    def test_file_list_all_opt_empty_file(self):
-        self.god.mock_io()
-        class opt(object):
-            hfile = cli_mock.create_file('')
-            hlist = 'a b,c,d e'
-        options = opt()
-        sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
-        self.assertRaises(cli_mock.ExitException,
-                          self.atest._file_list,
-                          options,
-                          opt_file='hfile',
-                          opt_list='hlist',
-                          add_on=['i', 'j'])
-        (output, err) = self.god.unmock_io()
-        self.god.check_playback()
-        self.assert_(err.find(options.hfile) >= 0)
-
-
-    def test_file_list_all_opt_in_common(self):
-        class opt(object):
-            afile = cli_mock.create_file('f\nc\na\n')
-            alist = 'a b,c,d e'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'i', 'j'],
-                                self.atest._file_list(options,
-                                                      opt_file='afile',
-                                                      opt_list='alist',
-                                                      add_on=['i','j,d']))
-
-
-    def test_file_list_all_opt_in_common_space(self):
-        class opt(object):
-            afile = cli_mock.create_file('a b c\nd,e\nf\ng')
-            alist = 'a b,c,d h'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i', 'j'],
-                                self.atest._file_list(options,
-                                                      opt_file='afile',
-                                                      opt_list='alist',
-                                                      add_on=['i','j,d']))
-
-
-    def test_file_list_all_opt_in_common_weird(self):
-        class opt(object):
-            afile = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
-            alist = 'a b,c,d h, ,  ,,	'
-        options = opt()
-        self.assertEqualNoOrder(['a', 'b', 'c', 'd', 'e',
-                                 'f', 'g', 'h', 'i', 'j'],
-                                self.atest._file_list(options,
-                                                      opt_file='afile',
-                                                      opt_list='alist',
-                                                      add_on=['i','j,d']))
+        super(atest_unittest, self).tearDown()
 
 
     def test_invalid_arg_kill(self):
@@ -411,16 +366,15 @@ class topic_common_unittest(cli_mock.cli_unittest):
                                'This is partly bad', 'item0', 'item1'])
 
 
-    def test_parse_with_flist_add_on(self):
+    def test_parse_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         sys.argv = ['atest', '--web', 'fooweb', '--parse',
                     '--kill-on-failure', 'left1', 'left2', '-M', flist]
         self.atest.parser.add_option('-M', '--mlist', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('hosts',
-                                                            'mlist',
-                                                            [],
-                                                            True)],
-                                                          None)
+        item_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist',
+                                                 use_leftover=True)
+        (options, leftover) = self.atest.parse([item_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
 
@@ -434,16 +388,14 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flist_no_add_on(self):
+    def test_parse_no_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         sys.argv = ['atest', '--web', 'fooweb', '--parse', '-g',
                     '--kill-on-failure', 'left1', 'left2', '-M', flist]
         self.atest.parser.add_option('-M', '--mlist', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('hosts',
-                                                            'mlist',
-                                                            [],
-                                                            False)],
-                                                          None)
+        item_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist')
+        (options, leftover) = self.atest.parse([item_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left2', 'host1', 'host2'])
 
@@ -457,7 +409,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, ['left1', 'left2'])
 
 
-    def test_parse_with_flists_add_on_first(self):
+    def test_parse_add_on_first(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
         sys.argv = ['atest', '-g', '--parse', '--ulist', ulist,
@@ -466,15 +418,14 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('hosts',
-                                                            'mlist',
-                                                            '',
-                                                            True),
-                                                           ('users',
-                                                            'ulist',
-                                                            'user',
-                                                            False)],
-                                                          None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist',
+                                                 use_leftover=True)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user',
+                                                 filename_option='ulist')
+
+        (options, leftover) = self.atest.parse([host_info, user_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -493,7 +444,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_add_on_second(self):
+    def test_parse_add_on_second(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
         sys.argv = ['atest', '-g', '--parse', '-U', ulist,
@@ -502,15 +453,14 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('users',
-                                                            'ulist',
-                                                            'user',
-                                                            False),
-                                                           ('hosts',
-                                                            'mlist',
-                                                            '',
-                                                            True)],
-                                                          None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist',
+                                                 use_leftover=True)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user',
+                                                 filename_option='ulist')
+        (options, leftover) = self.atest.parse([host_info, user_info])
+
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -529,7 +479,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_all_opts(self):
+    def test_parse_all_opts(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
         sys.argv = ['atest', '-g', '--parse', '--ulist', ulist,
@@ -538,15 +488,13 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('users',
-                                                            'ulist',
-                                                            'user',
-                                                            False),
-                                                           ('hosts',
-                                                            'mlist',
-                                                            '',
-                                                            True)],
-                                                          None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist',
+                                                 use_leftover=True)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user',
+                                                 filename_option='ulist')
+        (options, leftover) = self.atest.parse([host_info, user_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -565,7 +513,7 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_no_add_on(self):
+    def test_parse_no_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
         sys.argv = ['atest', '-U', ulist,
@@ -573,15 +521,13 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('hosts',
-                                                            'mlist',
-                                                            '',
-                                                            False),
-                                                           ('users',
-                                                            'ulist',
-                                                            'user',
-                                                            False)],
-                                                          None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 filename_option='mlist',
+                                                 use_leftover=True)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user',
+                                                 filename_option='ulist')
+        (options, leftover) = self.atest.parse([host_info, user_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left2', 'host1', 'host2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -599,21 +545,17 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_no_flist_add_on(self):
+    def test_parse_no_flist_add_on(self):
         sys.argv = ['atest', '-g', '--parse', '-u', 'myuser,youruser',
                     '--kill-on-failure', 'left1', 'left2']
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('users',
-                                                            '',
-                                                            'user',
-                                                            False),
-                                                           ('hosts',
-                                                            '',
-                                                            '',
-                                                            True)],
-                                                          None)
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 use_leftover=True)
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user')
+        (options, leftover) = self.atest.parse([host_info, user_info])
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -631,20 +573,16 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_no_flist_no_add_on(self):
+    def test_parse_no_flist_no_add_on(self):
         sys.argv = ['atest', '-u', 'myuser,youruser', '--kill-on-failure',
                     '-a', 'acl1,acl2']
         self.atest.parser.add_option('-u', '--user', type='string')
         self.atest.parser.add_option('-a', '--acl', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('users',
-                                                            '',
-                                                            'user',
-                                                            False),
-                                                           ('acls',
-                                                            '',
-                                                            'acl',
-                                                            False)],
-                                                          None)
+        acl_info = topic_common.item_parse_info(attribute_name='acls',
+                                                inline_option='acl')
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user')
+        (options, leftover) = self.atest.parse([user_info, acl_info])
         self.assertEqualNoOrder(self.atest.acls,
                                 ['acl1', 'acl2'])
         self.assertEqualNoOrder(self.atest.users,
@@ -661,14 +599,13 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_req_items_ok(self):
+    def test_parse_req_items_ok(self):
         sys.argv = ['atest', '-u', 'myuser,youruser']
         self.atest.parser.add_option('-u', '--user', type='string')
-        (options, leftover) = self.atest.parse_with_flist([('users',
-                                                            '',
-                                                            'user',
-                                                            False)],
-                                                          'users')
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user')
+        (options, leftover) = self.atest.parse([user_info],
+                                               req_items='users')
         self.assertEqualNoOrder(self.atest.users,
                                 ['myuser', 'youruser'])
 
@@ -682,15 +619,18 @@ class topic_common_unittest(cli_mock.cli_unittest):
         self.assertEqual(leftover, [])
 
 
-    def test_parse_with_flists_req_items_missing(self):
+    def test_parse_req_items_missing(self):
         sys.argv = ['atest', '-u', 'myuser,youruser', '--kill-on-failure']
         self.atest.parser.add_option('-u', '--user', type='string')
+        acl_info = topic_common.item_parse_info(attribute_name='acls',
+                                                inline_option='acl')
+        user_info = topic_common.item_parse_info(attribute_name='users',
+                                                 inline_option='user')
         self.god.mock_io()
         sys.exit.expect_call(1).and_raises(cli_mock.ExitException)
         self.assertRaises(cli_mock.ExitException,
-                          self.atest.parse_with_flist,
-                          [('users', '', 'user', False),
-                           ('acls', '', 'acl', False)],
+                          self.atest.parse,
+                          [user_info, acl_info],
                           'acls')
         self.assertEqualNoOrder(self.atest.users,
                                 ['myuser', 'youruser'])
