@@ -54,13 +54,14 @@ class Test_base_test_execute(TestTestCase):
 
         # tests the test._call_run_once implementation
         self.test.drop_caches_between_iterations.expect_call()
-        before_hook.expect_call()
+        before_hook.expect_call(self.test)
         self.test.run_once.expect_call(1, 2, arg='val')
-        after_hook.expect_call()
+        after_hook.expect_call(self.test)
         self.test.postprocess_iteration.expect_call()
         self.test.analyze_perf_constraints.expect_call([])
         self.test._call_run_once(before_hook, after_hook, [], (1, 2),
                                  {'arg': 'val'})
+        self.god.check_playback()
 
 
     def _expect_call_run_once(self):
