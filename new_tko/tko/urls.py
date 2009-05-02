@@ -5,6 +5,7 @@ import os
 pattern_list = [(r'^(?:|noauth/)rpc/', 'new_tko.tko.views.handle_rpc'),
                 (r'^(?:|noauth/)jsonp_rpc/',
                  'new_tko.tko.views.handle_jsonp_rpc'),
+                (r'^(?:|noauth/)csv/', 'new_tko.tko.views.handle_csv'),
                 (r'^rpc_doc', 'new_tko.tko.views.rpc_documentation'),
                 (r'^(?:|noauth/)plot/', 'new_tko.tko.views.handle_plot')]
 
