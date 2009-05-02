@@ -263,15 +263,23 @@ class mock_class(object):
 class mock_god:
     NONEXISTENT_ATTRIBUTE = object()
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, fail_fast=True):
         """
         With debug=True, all recorded method calls will be printed as
         they happen.
+        With fail_fast=True, unexpected calls will immediately cause an
+        exception to be raised.  With False, they will be silently recorded and
+        only reported when check_playback() is called.
         """
         self.recording = collections.deque()
         self.errors = []
         self._stubs = []
         self._debug = debug
+        self._fail_fast = fail_fast
+
+
+    def set_fail_fast(self, fail_fast):
+        self._fail_fast = fail_fast
 
 
     def create_mock_class_obj(self, cls, name, default_ret_val=None):
@@ -465,6 +473,8 @@ class mock_god:
     def _append_error(self, error):
         if self._debug:
             print >> sys.__stdout__, ' *** ' + error
+        if self._fail_fast:
+            raise CheckPlaybackError(error)
         self.errors.append(error)
 
 
