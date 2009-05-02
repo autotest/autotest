@@ -204,4 +204,8 @@ public class SpreadsheetDataProcessor implements DataCallback {
     public void setDataSource(TestGroupDataSource dataSource) {
         this.dataSource = dataSource;
     }
+
+    public TestGroupDataSource getDataSource() {
+        return dataSource;
+    }
 }

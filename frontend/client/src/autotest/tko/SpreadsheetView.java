@@ -9,7 +9,7 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
-import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.Spreadsheet.CellInfo;
@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 public class SpreadsheetView extends ConditionTabView 
-                             implements SpreadsheetListener, TableActionsListener, 
+                             implements SpreadsheetListener, TableActionsWithExportCsvListener, 
                                         CommonPanelListener, SelectionPanelListener {
     private static final String HISTORY_ONLY_LATEST = "show_only_latest";
     public static final String DEFAULT_ROW = "kernel";
@@ -93,8 +93,9 @@ public class SpreadsheetView extends ConditionTabView
         normalDataSource.setSkipNumResults(true);
         latestDataSource.setSkipNumResults(true);
         
-        actionsPanel.setActionsListener(this);
+        actionsPanel.setActionsWithCsvListener(this);
         actionsPanel.setSelectionListener(this);
+        actionsPanel.setVisible(false);
 
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("group_fields")) {
             HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
@@ -182,6 +183,7 @@ public class SpreadsheetView extends ConditionTabView
     @Override
     public void refresh() {
         notYetQueried = false;
+        actionsPanel.setVisible(true);
         spreadsheet.setVisible(false);
         selectionManager.clearSelection();
         spreadsheet.clear();
@@ -538,6 +540,16 @@ public class SpreadsheetView extends ConditionTabView
             tests = getTestSet(selectionManager.getSelectedCells());
         }
         return getContextMenu(tests, DrilldownType.DRILLDOWN_BOTH);
+    }
+
+    public void onExportCsv() {
+        TestGroupDataSource dataSource = spreadsheetProcessor.getDataSource();
+        String rpcMethodName = dataSource.getDataMethodName();
+        JSONObject arguments = dataSource.getFullRequestParams(getFullConditionArgs());
+        JSONObject request = JsonRpcProxy.buildRequestObject(rpcMethodName, arguments);
+
+        String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + request.toString();
+        Window.open(url, "_blank", "");
     }
 
     public void onSelectAll(boolean ignored) {

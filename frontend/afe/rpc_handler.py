@@ -6,8 +6,6 @@ defined in rpc_interface.py.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import traceback, pydoc, re, urllib
-import django.http
-
 from frontend.afe.json_rpc import serviceHandler
 from frontend.afe import rpc_utils
 
@@ -32,28 +30,32 @@ class RpcHandler(object):
         self.html_doc = pydoc.html.document(document_module)
 
 
-    def _raw_response(self, response_data, content_type=None):
-        response = django.http.HttpResponse(response_data)
-        response['Content-length'] = str(len(response.content))
-        if content_type:
-            response['Content-Type'] = content_type
-        return response
-
-
     def get_rpc_documentation(self):
-        return self._raw_response(self.html_doc)
+        return rpc_utils.rpc_http_response(self.html_doc)
 
 
-    def _raw_request_data(self, request):
+    def raw_request_data(self, request):
         if request.method == 'POST':
             return request.raw_post_data
         return urllib.unquote(request.META['QUERY_STRING'])
 
 
+    def execute_request(self, json_request):
+        return self._dispatcher.handleRequest(json_request)
+
+
+    def decode_request(self, json_request):
+        return self._dispatcher.translateRequest(json_request)
+
+
+    def dispatch_request(self, decoded_request):
+        return self._dispatcher.dispatchRequest(decoded_request)
+
+
     def handle_rpc_request(self, request):
-        request_data = self._raw_request_data(request)
-        result = self._dispatcher.handleRequest(request_data)
-        return self._raw_response(result)
+        json_request = self.raw_request_data(request)
+        result = self.execute_request(json_request)
+        return rpc_utils.raw_http_response(result)
 
 
     def handle_jsonp_rpc_request(self, request):
@@ -62,9 +64,10 @@ class RpcHandler(object):
         # callback_name must be a simple identifier
         assert re.search(r'^\w+$', callback_name)
 
-        result = self._dispatcher.handleRequest(request_data)
+        result = self.execute_request(request_data)
         padded_result = '%s(%s)' % (callback_name, result)
-        return self._raw_response(padded_result, content_type='text/javascript')
+        return rpc_utils.raw_http_response(padded_result,
+                                           content_type='text/javascript')
 
 
     @staticmethod
