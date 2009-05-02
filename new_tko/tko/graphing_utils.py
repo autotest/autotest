@@ -767,14 +767,22 @@ def create_embedded_plot(model, update_time):
     """
 
     params = pickle.loads(model.params)
-    params['extra_text'] = 'Last updated: %s' % update_time
+    extra_text = 'Last updated: %s' % update_time
 
     if model.graph_type == 'metrics':
-        figure, areas_unused, drilldown_unused = _create_metrics_plot_helper(
-            **params)
+        plot_info = MetricsPlot(query_dict=params['queries'],
+                                plot_type=params['plot'],
+                                inverted_series=params['invert'],
+                                normalize_to=None,
+                                drilldown_callback='')
+        figure, areas_unused = _create_metrics_plot_helper(plot_info,
+                                                           extra_text)
     elif model.graph_type == 'qual':
-        figure, areas_unused, drilldown_unused = _create_qual_histogram_helper(
-            **params)
+        plot_info = QualificationHistogram(
+            query=params['query'], filter_string=params['filter_string'],
+            interval=params['interval'], drilldown_callback='')
+        figure, areas_unused = _create_qual_histogram_helper(plot_info,
+                                                             extra_text)
     else:
         raise ValueError('Invalid graph_type %s' % model.graph_type)
 
