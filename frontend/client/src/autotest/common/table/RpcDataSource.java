@@ -14,13 +14,13 @@ import com.google.gwt.json.client.JSONValue;
  * Data source that retrieves results via RPC requests to the server.
  */
 public class RpcDataSource implements DataSource {
-    protected String getDataMethod, getCountMethod;
+    protected String dataMethodName, countMethodName;
     protected JSONObject filterParams;
     protected Integer numResults = null;
     
-    public RpcDataSource(String getDataMethod, String getCountMethod) {
-        this.getDataMethod = getDataMethod;
-        this.getCountMethod = getCountMethod;
+    public RpcDataSource(String dataMethodName, String countMethodName) {
+        this.dataMethodName = dataMethodName;
+        this.countMethodName = countMethodName;
     }
     
     /**
@@ -34,7 +34,7 @@ public class RpcDataSource implements DataSource {
     
     public void updateData(JSONObject params, final DataCallback callback) {
         filterParams = params;
-        JsonRpcProxy.getProxy().rpcCall(getCountMethod, params, 
+        JsonRpcProxy.getProxy().rpcCall(countMethodName, params, 
                                         new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
@@ -70,7 +70,7 @@ public class RpcDataSource implements DataSource {
             params.put("sort_by", sortList);
         }
         
-        JsonRpcProxy.getProxy().rpcCall(getDataMethod, params, 
+        JsonRpcProxy.getProxy().rpcCall(dataMethodName, params, 
                                         new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
@@ -89,5 +89,9 @@ public class RpcDataSource implements DataSource {
     public int getNumResults() {
         assert numResults != null;
         return numResults.intValue();
+    }
+
+    public String getDataMethodName() {
+        return dataMethodName;
     }
 }

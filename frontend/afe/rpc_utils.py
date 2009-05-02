@@ -6,6 +6,7 @@ only RPC interface functions go into that file.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime, os
+import django.http
 from frontend.afe import models, model_logic
 
 NULL_DATETIME = datetime.datetime.max
@@ -64,6 +65,12 @@ def _prepare_data(data):
         return str(data)
     else:
         return data
+
+
+def raw_http_response(response_data, content_type=None):
+    response = django.http.HttpResponse(response_data, mimetype=content_type)
+    response['Content-length'] = str(len(response.content))
+    return response
 
 
 def gather_unique_dicts(dict_iterable):

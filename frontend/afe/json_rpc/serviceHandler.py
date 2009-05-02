@@ -65,51 +65,44 @@ class BadServiceRequest(ServiceException):
 class ServiceMethodNotFound(ServiceException):
     pass
 
+
 class ServiceHandler(object):
 
     def __init__(self, service):
         self.service=service
 
-    def handleRequest(self, json):
-        err=None
-        err_traceback = None
-        result = None
-        id_=''
+    def dispatchRequest(self, request):
+        try:
+            methName = request['method']
+            args = request['params']
+        except KeyError:
+            raise BadServiceRequest(request)
 
-        #print 'Request:', json
+        meth = self.findServiceEndpoint(methName)
+        result = self.invokeServiceEndpoint(meth, args)
+        return result
+
+    def _getRequestId(self, request):
+        try:
+            return request['id']
+        except KeyError:
+            raise BadServiceRequest(request)
+
+    def handleRequest(self, jsonRequest):
+        id_ = None
+        result = None
+        err = None
+        err_traceback = None
+
+        request = self.translateRequest(jsonRequest)
 
         try:
-            req = self.translateRequest(json)
-        except ServiceRequestNotTranslatable, e:
-            err = e
-            req={'id':id_}
+            id_ = self._getRequestId(request)
+            result = self.dispatchRequest(request)
+        except Exception, err:
+            err_traceback = traceback.format_exc()
 
-        if err==None:
-            try:
-                id_ = req['id']
-                methName = req['method']
-                args = req['params']
-            except:
-                err = BadServiceRequest(json)
-
-        if err is None:
-            try:
-                meth = self.findServiceEndpoint(methName)
-            except Exception, e:
-                err_traceback = traceback.format_exc()
-                print err_traceback
-                err = e
-
-        if err is None:
-            try:
-                result = self.invokeServiceEndpoint(meth, args)
-            except Exception, e:
-                err_traceback = traceback.format_exc()
-                print err_traceback
-                err = e
-        resultdata = self.translateResult(result, err, err_traceback, id_)
-
-        return resultdata
+        return self.translateResult(result, err, err_traceback, id_)
 
     @staticmethod
     def translateRequest(data):
@@ -117,17 +110,13 @@ class ServiceHandler(object):
             req = json_decoder.decode(data)
         except:
             raise ServiceRequestNotTranslatable(data)
-        req = customConvertJson(req) # -srh
+        req = customConvertJson(req)
         return req
 
     def findServiceEndpoint(self, name):
         try:
             meth = getattr(self.service, name)
-# -srh
-#            if getattr(meth, "IsServiceMethod"):
             return meth
-#            else:
-#                raise ServiceMethodNotFound(name)
         except AttributeError:
             raise ServiceMethodNotFound(name)
 

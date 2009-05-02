@@ -42,18 +42,13 @@ class TestGroupDataSource extends RpcDataSource {
     }
     
     // force construction to go through above factory methods
-    private TestGroupDataSource(String getDataMethod) {
-        super(getDataMethod, NUM_GROUPS_RPC);
+    private TestGroupDataSource(String dataMethodName) {
+        super(dataMethodName, NUM_GROUPS_RPC);
     }
 
     @Override
     public void updateData(JSONObject params, DataCallback callback) {
-        params = Utils.copyJSONObject(params);
-        Utils.updateObject(params, queryParameters);
-        params.put("group_by", groupByFields);
-        if (headerGroups != null) {
-            params.put("header_groups", headerGroups);
-        }
+        params = getFullRequestParams(params);
         
         if (skipNumResults) {
             filterParams = params;
@@ -62,6 +57,16 @@ class TestGroupDataSource extends RpcDataSource {
         } else {
             super.updateData(params, callback);
         }
+    }
+
+    public JSONObject getFullRequestParams(JSONObject conditionParams) {
+        JSONObject fullParams = Utils.copyJSONObject(conditionParams);
+        Utils.updateObject(fullParams, queryParameters);
+        fullParams.put("group_by", groupByFields);
+        if (headerGroups != null) {
+            fullParams.put("header_groups", headerGroups);
+        }
+        return fullParams;
     }
 
     @Override

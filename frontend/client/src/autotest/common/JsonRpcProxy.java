@@ -58,17 +58,21 @@ public abstract class JsonRpcProxy {
      * @param callback callback to be notified of RPC call results
      */
     public void rpcCall(String method, JSONObject params, final JsonRpcCallback callback) {
+        JSONObject request = buildRequestObject(method, params);
+        sendRequest(request, callback);
+    }
+
+    protected abstract void sendRequest(JSONObject request, final JsonRpcCallback callback);
+
+    public static JSONObject buildRequestObject(String method, JSONObject params) {
         JSONObject request = new JSONObject();
         request.put("method", new JSONString(method));
         request.put("params", processParams(params));
         request.put("id", new JSONNumber(0));
-        
-        sendRequest(request, callback);
+        return request;
     }
-    
-    protected abstract void sendRequest(JSONObject request, final JsonRpcCallback callback); 
 
-    private JSONArray processParams(JSONObject params) {
+    private static JSONArray processParams(JSONObject params) {
         JSONArray result = new JSONArray();
         JSONObject newParams = new JSONObject();
         if (params != null) {
