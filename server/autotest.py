@@ -296,7 +296,7 @@ class BaseAutotest(installable_object.InstallableObject):
             pass
 
         # on full-size installs, turn on any profilers the server is using
-        if not self.lightweight:
+        if not self.lightweight and not atrun.background:
             running_profilers = host.job.profilers.add_log.iteritems()
             for profiler, (args, dargs) in running_profilers:
                 call_args = [repr(profiler)]
