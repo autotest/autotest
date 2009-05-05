@@ -17,7 +17,11 @@ class ConditionTestSet extends TestSet {
     public ConditionTestSet(JSONObject initialCondition) {
         this.initialCondition = initialCondition;
     }
-    
+
+    public ConditionTestSet() {
+        this.initialCondition = new JSONObject();
+    }
+
     public void setField(String field, String value) {
         fields.put(field, value);
     }
