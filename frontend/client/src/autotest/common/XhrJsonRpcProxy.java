@@ -38,7 +38,7 @@ class XhrJsonRpcProxy extends JsonRpcProxy {
         notify.setLoading(true);
     }
 
-    private class RpcHandler implements RequestCallback {
+    private static class RpcHandler implements RequestCallback {
         private JsonRpcCallback callback;
 
         public RpcHandler(JsonRpcCallback callback) {
