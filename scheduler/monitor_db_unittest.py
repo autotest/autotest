@@ -1240,15 +1240,14 @@ class AgentTest(unittest.TestCase):
         task1 = self._create_mock_task('task1')
         task2 = self._create_mock_task('task2')
         task3 = self._create_mock_task('task3')
-
-        task1.start.expect_call()
+        task1.poll.expect_call()
         task1.is_done.expect_call().and_return(False)
         task1.poll.expect_call()
         task1.is_done.expect_call().and_return(True)
         task1.is_done.expect_call().and_return(True)
         task1.success = True
 
-        task2.start.expect_call()
+        task2.poll.expect_call()
         task2.is_done.expect_call().and_return(True)
         task2.is_done.expect_call().and_return(True)
         task2.success = False
@@ -1257,7 +1256,6 @@ class AgentTest(unittest.TestCase):
         self._dispatcher.add_agent.expect_call(IsAgentWithTask(task3))
 
         agent = self._create_agent([task1, task2])
-        agent.start()
         self._finish_agent(agent)
         self.god.check_playback()
 
@@ -1265,27 +1263,27 @@ class AgentTest(unittest.TestCase):
     def _test_agent_abort_helper(self, ignore_abort=False):
         task1 = self._create_mock_task('task1')
         task2 = self._create_mock_task('task2')
-        task1.start.expect_call()
-        task1.is_done.expect_call().and_return(False)
         task1.poll.expect_call()
         task1.is_done.expect_call().and_return(False)
         task1.abort.expect_call()
         if ignore_abort:
             task1.aborted = False # task ignores abort; execution continues
 
+            task1.poll.expect_call()
             task1.is_done.expect_call().and_return(True)
             task1.is_done.expect_call().and_return(True)
             task1.success = True
 
-            task2.start.expect_call()
+            task2.poll.expect_call()
             task2.is_done.expect_call().and_return(True)
             task2.is_done.expect_call().and_return(True)
             task2.success = True
         else:
-            task1.aborted = True # execution halts, no further expectations
+            task1.aborted = True
+            task2.abort.expect_call()
+            task2.aborted = True
 
         agent = self._create_agent([task1, task2])
-        agent.start()
         agent.tick()
         agent.abort()
         self._finish_agent(agent)
@@ -1297,13 +1295,27 @@ class AgentTest(unittest.TestCase):
         self._test_agent_abort_helper(True)
 
 
-    def test_agent_abort_before_started(self):
+    def _test_agent_abort_before_started_helper(self, ignore_abort=False):
         task = self._create_mock_task('task')
+        task.abort.expect_call()
+        if ignore_abort:
+            task.aborted = False
+            task.poll.expect_call()
+            task.is_done.expect_call().and_return(True)
+            task.is_done.expect_call().and_return(True)
+            task.success = True
+        else:
+            task.aborted = True
+
         agent = self._create_agent([task])
         agent.abort()
-        agent.start()
         self._finish_agent(agent)
         self.god.check_playback()
+
+
+    def test_agent_abort_before_started(self):
+        self._test_agent_abort_before_started_helper()
+        self._test_agent_abort_before_started_helper(True)
 
 
 class AgentTasksTest(unittest.TestCase):
@@ -1369,7 +1381,6 @@ class AgentTasksTest(unittest.TestCase):
         """
         if not getattr(task, 'agent', None):
             task.agent = object()
-        task.start()
         count = 0
         while not task.is_done():
             count += 1
@@ -1672,7 +1683,7 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def test_gather_logs_task_successful_autoserv(self):
-        """When Autoserv exits successful, no collect_crashinfo stage runs."""
+        # When Autoserv exits successful, no collect_crashinfo stage runs
         self._setup_gather_logs_expects(autoserv_success=True)
         self.job.reboot_after = models.RebootAfter.NEVER
         self.host.set_status.expect_call('Ready')
