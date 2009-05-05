@@ -63,7 +63,7 @@ public class CreateJobView extends TabView
     protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JobCreateListener listener;
     
-    private class CheckBoxPanel<T extends CheckBox> extends Composite {
+    private static class CheckBoxPanel<T extends CheckBox> extends Composite {
         protected int numColumns;
         protected FlexTable table = new FlexTable();
         protected List<T> testBoxes = new ArrayList<T>();

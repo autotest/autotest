@@ -36,7 +36,7 @@ class HeaderSelect extends Composite implements ClickListener, ChangeListener {
     private final static HeaderField MACHINE_LABELS_FIELD = 
         new SimpleHeaderField("Machine labels...", "");
     
-    private class MachineLabelInput extends Composite implements ChangeListener {
+    private static class MachineLabelInput extends Composite implements ChangeListener {
         public MachineLabelField headerField;
         private TextBox labelInput = new TextBox();
         
