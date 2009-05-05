@@ -1189,7 +1189,7 @@ class Agent(object):
 
     def tick(self):
         while not self.is_done():
-            if self.active_task and not self.active_task.is_done():
+            if self.active_task:
                 self.active_task.poll()
                 if not self.active_task.is_done():
                     return
@@ -1198,16 +1198,14 @@ class Agent(object):
 
     def _next_task(self):
         logging.info("agent picking task")
-        if self.active_task:
+        if self.active_task is not None:
             assert self.active_task.is_done()
             if not self.active_task.success:
                 self.on_task_failure()
+            self.active_task = None
 
-        self.active_task = None
         if not self.is_done():
             self.active_task = self.queue.get_nowait()
-            if self.active_task:
-                self.active_task.start()
 
 
     def on_task_failure(self):
@@ -1226,20 +1224,16 @@ class Agent(object):
         return self.active_task is None and self.queue.empty()
 
 
-    def start(self):
-        assert self.dispatcher
-        self._next_task()
-
-
     def abort(self):
-        if self.active_task:
+        # abort tasks until the queue is empty or a task ignores the abort
+        while not self.is_done():
+            if not self.active_task:
+                self._next_task()
             self.active_task.abort()
-            if not self.active_task.aborted: # tasks can choose to ignore aborts
+            if not self.active_task.aborted:
+                # tasks can choose to ignore aborts
                 return
             self.active_task = None
-
-        self._clear_queue()
-
 
 
 class AgentTask(object):
@@ -1270,17 +1264,17 @@ class AgentTask(object):
 
 
     def poll(self):
+        if not self.started:
+            self.start()
+        self.tick()
+
+
+    def tick(self):
         if self.monitor:
-            self.tick(self.monitor.exit_code())
-        else:
-            self.finished(False)
-
-
-    def tick(self, exit_code):
-        if exit_code is None:
-            return
-        if exit_code == 0:
-            success = True
+            exit_code = self.monitor.exit_code()
+            if exit_code is None:
+                return
+            success = (exit_code == 0)
         else:
             success = False
 
@@ -1292,6 +1286,8 @@ class AgentTask(object):
 
 
     def finished(self, success):
+        if self.done:
+            return
         self.done = True
         self.success = success
         self.epilog()
@@ -1577,6 +1573,9 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
 
     def _finish_task(self):
+        if not self.monitor:
+            return
+
         self._write_job_finished()
 
         # both of these conditionals can be true, iff the process ran, wrote a
@@ -1886,11 +1885,11 @@ class FinalReparseTask(PostJobTask):
                 results_dir]
 
 
-    def poll(self):
-        # override poll to keep trying to start until the parse count goes down
+    def tick(self):
+        # override tick to keep trying to start until the parse count goes down
         # and we can, at which point we revert to default behavior
         if self._parse_started:
-            super(FinalReparseTask, self).poll()
+            super(FinalReparseTask, self).tick()
         else:
             self._try_starting_parse()
 
