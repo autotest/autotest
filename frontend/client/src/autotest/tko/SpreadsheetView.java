@@ -148,12 +148,21 @@ public class SpreadsheetView extends ConditionTabView
         
         setupDrilldownMap();
     }
-    
+
     protected TestSet getWholeTableTestSet() {
         boolean isSingleTest = spreadsheetProcessor.getNumTotalTests() == 1;
         if (isSingleTest) {
             return getTestSet(spreadsheetProcessor.getLastCellInfo());
         }
+
+        if (currentShowOnlyLatest) {
+            List<Integer> testIndices = spreadsheet.getAllTestIndices();
+            String filter = "test_idx IN (" + Utils.joinStrings(",", testIndices) + ")";
+            ConditionTestSet tests = new ConditionTestSet();
+            tests.addCondition(filter);
+            return tests;
+        }
+
         return new ConditionTestSet(getFullConditionArgs());
     }
 
@@ -525,11 +534,6 @@ public class SpreadsheetView extends ConditionTabView
 
     private void refineConditionForTriage() {
         commonPanel.refineCondition("status != 'GOOD'");
-        if (currentShowOnlyLatest) {
-            List<Integer> testIndices = spreadsheet.getAllTestIndices();
-            String filter = "test_idx IN (" + Utils.joinStrings(",", testIndices) + ")";
-            commonPanel.refineCondition(filter);
-        }
     }
 
     public ContextMenu getActionMenu() {
