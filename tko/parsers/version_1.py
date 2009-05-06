@@ -179,7 +179,7 @@ class parser(base.parser):
         started_time_stack = [None]
         subdir_stack = [None]
         running_test = None
-        running_reasons = []
+        running_reasons = set()
         yield []   # we're ready to start running
 
         # create a RUNNING SERVER_JOB entry to represent the entire test
@@ -258,9 +258,9 @@ class parser(base.parser):
                     min_stack_size = stack.size()
                 elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
-                    running_reasons = []
+                    running_reasons = set()
                     if line.reason:
-                        running_reasons.append(line.reason)
+                        running_reasons.add(line.reason)
                     running_test = test.parse_partial_test(self.job,
                                                            line.subdir,
                                                            line.testname,
@@ -291,8 +291,9 @@ class parser(base.parser):
                     if line.reason:
                         # update the status of a currently running test
                         if running_test:
-                            running_reasons.append(line.reason)
-                            running_test.reason = ", ".join(running_reasons)
+                            running_reasons.add(line.reason)
+                            sorted_reasons = sorted(running_reasons)
+                            running_test.reason = ", ".join(sorted_reasons)
                             current_reason = running_test.reason
                             new_tests.append(running_test)
                             msg = "update RUNNING reason: %s" % line.reason
