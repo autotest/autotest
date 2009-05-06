@@ -145,7 +145,9 @@ class profiler_proxy(object):
         for host, (at, autodir) in self._get_hosts(host).iteritems():
             fifo_pattern = os.path.join(autodir, "profiler.*")
             host.run("rm -f %s" % fifo_pattern)
+            host.run("mkfifo %s" % os.path.join(autodir, "profiler.ready"))
             at.run(control_script, background=True)
+            self._wait_on_client(host, autodir, "ready")
             self._signal_client(host, autodir, "start")
         self.current_test = test
 
