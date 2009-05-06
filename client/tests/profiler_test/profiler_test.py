@@ -29,12 +29,26 @@ class profiler_test(test.test):
         os.remove(path)
 
 
+    def signal_server(self, command):
+        path = self.make_path_from_command(command)
+        try:
+            fifo = open(path, "w")
+            fifo.write("A")
+            fifo.close()
+        except IOError, e:
+            if e.errno != errno.EPIPE:
+                raise   # the server may have already given up waiting
+
+
     def execute(self):
         # set up a pipe for signalling we are finished
         finished_path = self.make_path_from_command("finished")
         if os.path.exists(finished_path):
             os.remove(finished_path)
         os.mkfifo(finished_path)
+
+        # signal the server that we're ready
+        self.signal_server("ready")
 
         try:
             # wait until each command is signalled, and then execute the
@@ -47,13 +61,7 @@ class profiler_test(test.test):
             self.job.profilers.report(self)
 
             # signal that the profiling run is finished
-            try:
-                finished_fifo = open(finished_path, "w")
-                finished_fifo.write("A")
-                finished_fifo.close()
-            except IOError, e:
-                if e.errno != errno.EPIPE:
-                    raise   # the server may have already given up waiting
+            self.signal_server("finished")
         finally:
             for command in ("start", "stop", "report"):
                 try:
