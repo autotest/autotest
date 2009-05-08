@@ -287,6 +287,7 @@ class TestViewManager(TempManager):
 
     def _add_attribute_join(self, query_set, join_condition='', suffix=None,
                             exclude=False):
+        join_condition = self.escape_user_sql(join_condition)
         if suffix is None:
             suffix = self._get_include_exclude_suffix(exclude)
         return self.add_join(query_set, 'test_attributes',
