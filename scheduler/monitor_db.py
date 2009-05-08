@@ -702,14 +702,17 @@ class Dispatcher(object):
             run_monitor = PidfileRunMonitor()
             run_monitor.attach_to_existing_process(execution_tag,
                                                    pidfile_name=pidfile_name)
+
+            log_message = ('Recovering %s entry %s ' %
+                           (status.lower(),
+                            ', '.join(str(entry) for entry in queue_entries)))
             if not run_monitor.has_process():
                 # execution apparently never happened
+                logging.info(log_message + 'without process')
                 recover_entries_fn(queue_entry.job, queue_entries, None)
                 continue
 
-            logging.info('Recovering %s entry %s (process %s)',
-                         status.lower(),
-                         ', '.join(str(entry) for entry in queue_entries),
+            logging.info(log_message + '(process %s)',
                          run_monitor.get_process())
             recover_entries_fn(queue_entry.job, queue_entries, run_monitor)
             orphans.discard(run_monitor.get_process())
@@ -1803,11 +1806,13 @@ class GatherLogsTask(PostJobTask):
 
 
     def run(self):
-        if self._final_status == models.HostQueueEntry.Status.COMPLETED:
-            # don't run at all if Autoserv exited successfully
-            self.finished(True)
-        else:
+        autoserv_exit_code = self._autoserv_monitor.exit_code()
+        # only run if Autoserv exited due to some signal. if we have no exit
+        # code, assume something bad (and signal-like) happened.
+        if autoserv_exit_code is None or os.WIFSIGNALED(autoserv_exit_code):
             super(GatherLogsTask, self).run()
+        else:
+            self.finished(True)
 
 
 class CleanupTask(PreJobTask):
