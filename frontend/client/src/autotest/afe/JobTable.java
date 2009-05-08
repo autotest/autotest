@@ -6,7 +6,6 @@ import autotest.common.table.DataSource.SortDirection;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.json.client.JSONValue;
 
 /**
  * A table to display jobs, including a summary of host queue entries.
