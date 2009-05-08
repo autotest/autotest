@@ -234,22 +234,33 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         ContextMenu menu = new ContextMenu();
         menu.addItem("Reuse any similar hosts  (default)", new Command() {
             public void execute() {
-                cloneJob(false);
+                cloneJob(false, null);
             }
         });
         menu.addItem("Reuse same specific hosts", new Command() {
             public void execute() {
-                cloneJob(true);
+                cloneJob(true, null);
             }
         });
         menu.showAt(cloneButton.getAbsoluteLeft(), 
                 cloneButton.getAbsoluteTop() + cloneButton.getOffsetHeight());
     }
     
-    private void cloneJob(boolean preserveMetahosts) {
+    private void cloneJobOnSelectedHosts() {
+        Set<JSONObject> hostsQueueEntries = selectionManager.getSelectedObjects();
+        JSONArray queueEntryIds = new JSONArray();
+        for (JSONObject queueEntry : hostsQueueEntries) {
+          queueEntryIds.set(queueEntryIds.size(), queueEntry.get("id"));
+        }
+        
+        cloneJob(true, queueEntryIds);
+    }
+    
+    private void cloneJob(boolean preserveMetahosts, JSONArray queueEntryIds) {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         params.put("preserve_metahosts", JSONBoolean.getInstance(preserveMetahosts));
+        params.put("queue_entry_ids", queueEntryIds);
         rpcProxy.rpcCall("get_info_for_clone", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
@@ -383,11 +394,19 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
     public ContextMenu getActionMenu() {
         ContextMenu menu = new ContextMenu();
+        
         menu.addItem("Abort hosts", new Command() {
             public void execute() {
                 abortSelectedHosts();
             }
         });
+        
+        menu.addItem("Clone job on selected hosts", new Command() {
+            public void execute() {
+                cloneJobOnSelectedHosts();
+            }
+        });
+        
         return menu;
     }
 }

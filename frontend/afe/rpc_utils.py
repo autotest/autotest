@@ -330,13 +330,17 @@ def _get_metahost_counts(metahost_objects):
     return metahost_counts
 
 
-def get_job_info(job, preserve_metahosts=False):
+def get_job_info(job, preserve_metahosts=False, queue_entry_ids=None):
     hosts = []
     one_time_hosts = []
     meta_hosts = []
     atomic_group = None
 
-    for queue_entry in job.hostqueueentry_set.filter():
+    queue_entries = job.hostqueueentry_set.all()
+    if queue_entry_ids is not None:
+        queue_entries = queue_entries.filter(id__in=queue_entry_ids)
+
+    for queue_entry in queue_entries:
         if (queue_entry.host and (preserve_metahosts or
                                   not queue_entry.meta_host)):
             if queue_entry.deleted:
