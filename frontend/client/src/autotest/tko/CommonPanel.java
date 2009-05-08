@@ -40,28 +40,43 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     private static final String HIDE_CONTROLS = "Hide controls";
     private static final String INCLUDE_ATTRIBUTES_TABLE = "test_attributes_include";
     private static final String EXCLUDE_ATTRIBUTES_TABLE = "test_attributes_exclude";
+    
     private static CommonPanel theInstance = new CommonPanel();
     
-    private static class AttributeFilterData {
-        private boolean isInclude;
+    private static abstract class FilterData {
+        protected boolean isInclude;
+        
+        public boolean isInclude() {
+            return isInclude;
+        }
+        
+        public abstract String getFilterString();
+        public abstract String getFilterType();
+        public abstract void addToHistory(Map<String, String> args, String prefix);
+    }
+    
+    private static class AttributeFilterData extends FilterData {
         private String attributeWhere, valueWhere;
-
+        
         public AttributeFilterData(boolean isInclude, String attributeWhere, String valueWhere) {
             this.isInclude = isInclude;
             this.attributeWhere = attributeWhere;
             this.valueWhere = valueWhere;
         }
         
-        public boolean isInclude() {
-            return isInclude;
-        }
-
-        private String getFilterString() {
+        @Override
+        public String getFilterString() {
             String tableName = isInclude ? INCLUDE_ATTRIBUTES_TABLE : EXCLUDE_ATTRIBUTES_TABLE;
             return "(" + tableName + ".attribute " + attributeWhere + " AND " +
                    tableName + ".value " + valueWhere + ")";
         }
+        
+        @Override
+        public String getFilterType() {
+            return FilterFactory.ATTRIBUTE_TYPE;
+        }
 
+        @Override
         public void addToHistory(Map<String, String> args, String prefix) {
             args.put(prefix + "_include", Boolean.toString(isInclude()));
             args.put(prefix + "_attribute", attributeWhere);
@@ -73,7 +88,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
             if (!args.containsKey(includeKey)) {
                 return null;
             }
-            
+          
             boolean include = Boolean.valueOf(args.get(includeKey));
             String attributeWhere = args.get(prefix + "_attribute");
             String valueWhere = args.get(prefix + "_value");
@@ -81,20 +96,60 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         }
     }
     
-    private class AttributeFilter extends Composite implements ClickListener {
-        private ListBox includeOrExclude = new ListBox();
-        private TextBox attributeWhere = new TextBox(), valueWhere = new TextBox();
+    private static class LabelFilterData extends FilterData {
+        private String labelWhere;
         
-        public AttributeFilter() {
+        public LabelFilterData(boolean isInclude, String labelWhere) {
+            this.isInclude = isInclude;
+            this.labelWhere = labelWhere;
+        }
+        
+        @Override
+        public String getFilterString() {
+            return labelWhere;
+        }
+        
+        @Override
+        public String getFilterType() {
+            return FilterFactory.LABEL_TYPE;
+        }
+        
+        @Override
+        public void addToHistory(Map<String, String> args, String prefix) {
+            args.put(prefix + "_include", Boolean.toString(isInclude()));
+            args.put(prefix + "_attribute", labelWhere);
+        }
+        
+        public static LabelFilterData fromHistory(Map<String, String> args, String prefix) {
+            String includeKey = prefix + "_include";
+            if (!args.containsKey(includeKey)) {
+                return null;
+            }
+        
+            boolean include = Boolean.valueOf(args.get(includeKey));
+            String labelWhere = args.get(prefix + "_label");
+            return new LabelFilterData(include, labelWhere);
+      }
+    }
+    
+    private abstract class TestFilterWidget extends Composite implements ClickListener {
+        protected ListBox includeOrExclude = new ListBox();
+        
+        protected boolean isInclude() {
+            return includeOrExclude.getSelectedIndex() == 0;
+        }
+        
+        protected void setupPanel(List<TextBox> textBoxes) {
+            Panel panel = new HorizontalPanel();
+            
             includeOrExclude.addItem("Include");
             includeOrExclude.addItem("Exclude");
-            
-            Panel panel = new HorizontalPanel();
             panel.add(includeOrExclude);
-            panel.add(new Label("tests with attribute"));
-            panel.add(attributeWhere);
-            panel.add(new Label("and value"));
-            panel.add(valueWhere);
+            
+            for (TextBox textBox : textBoxes) {
+                panel.add(new Label(textBox.getName()));
+                panel.add(textBox);
+            }
             
             SimpleHyperlink deleteLink = new SimpleHyperlink("[X]");
             deleteLink.addClickListener(this);
@@ -102,21 +157,83 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
             
             initWidget(panel);
         }
-
+        
         public void onClick(Widget sender) {
-            attributeFilterList.deleteWidget(this);
+            filterList.deleteWidget(this);
+        }
+        
+        public abstract FilterData getFilterData();
+    }
+    
+    private class AttributeFilter extends TestFilterWidget {       
+        private TextBox attributeWhere = new TextBox(), valueWhere = new TextBox();
+        
+        public AttributeFilter() {
+            attributeWhere.setName("tests with attribute");
+            valueWhere.setName("and value");
+            List<TextBox> textBoxes = Arrays.asList(attributeWhere, valueWhere);
+            
+            setupPanel(textBoxes);
         }
 
-        public AttributeFilterData getFilterData() {
-            boolean isInclude = (includeOrExclude.getSelectedIndex() == 0);
-            return new AttributeFilterData(isInclude, attributeWhere.getText(), 
+        @Override
+        public FilterData getFilterData() {
+            return new AttributeFilterData(isInclude(), attributeWhere.getText(), 
                                            valueWhere.getText());
         }
     }
     
-    private class AttributeFilterFactory implements ListWidgetFactory<AttributeFilter> {
-        public AttributeFilter getNewWidget() {
-            return new AttributeFilter();
+    private class LabelFilter extends TestFilterWidget {
+        private TextBox labelWhere = new TextBox();
+        
+        public LabelFilter() {
+            labelWhere.setName("tests with label");
+            List<TextBox> textBoxes = Arrays.asList(labelWhere);
+            
+            setupPanel(textBoxes);
+        }
+        
+        @Override
+        public FilterData getFilterData() {
+            return new LabelFilterData(isInclude(), labelWhere.getText());
+        }
+    }
+    
+    private class FilterFactory implements ListWidgetFactory<TestFilterWidget> {
+        private static final String LABEL_TYPE = "Add label filter";
+        private static final String ATTRIBUTE_TYPE = "Add attribute filter";
+        
+        public List<String> getWidgetTypes() {
+            List<String> types = Arrays.asList(LABEL_TYPE, ATTRIBUTE_TYPE);
+            
+            return types;
+        }
+        
+        public TestFilterWidget getNewWidget(String type) {
+            if (type.equals(LABEL_TYPE)) {
+                return new LabelFilter();
+            } else {
+                assert(type.equals(ATTRIBUTE_TYPE));
+                return new AttributeFilter();
+            }
+        }
+        
+        public TestFilterWidget getFilterWidgetFromData(FilterData filterData) {
+            TestFilterWidget filter = null;
+            if (filterData.getFilterType().equals(FilterFactory.ATTRIBUTE_TYPE)) {
+                AttributeFilter aFilter = new AttributeFilter();
+                aFilter.attributeWhere.setText(((AttributeFilterData)filterData).attributeWhere);
+                aFilter.valueWhere.setText(((AttributeFilterData)filterData).valueWhere);
+                filter = aFilter;
+            } else {
+                assert(filterData.getFilterType().equals(FilterFactory.LABEL_TYPE));
+                LabelFilter lFilter = new LabelFilter();
+                lFilter.labelWhere.setText(((LabelFilterData)filterData).labelWhere);
+                filter = lFilter;
+            }
+            filter.includeOrExclude.setSelectedIndex(filterData.isInclude() ? 0 : 1);
+            
+            return filter;
         }
     }
     
@@ -127,11 +244,12 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     private SimpleHyperlink showHideControlsLink = new SimpleHyperlink(HIDE_CONTROLS);
     private Panel allControlsPanel = RootPanel.get("common_all_controls");
     private Set<CommonPanelListener> listeners = new HashSet<CommonPanelListener>();
-    private WidgetList<AttributeFilter> attributeFilterList;
-
+    private WidgetList<TestFilterWidget> filterList;
+    private FilterFactory filterFactory = new FilterFactory();
+    
     private String savedSqlCondition;
     private boolean savedShowInvalid = false;
-    private List<AttributeFilterData> savedAttributeFilters = new ArrayList<AttributeFilterData>();
+    private List<FilterData> savedFilters = new ArrayList<FilterData>();
     
     public static interface CommonPanelListener {
         public void onSetControlsVisible(boolean visible);
@@ -147,8 +265,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         quickReferenceLink.addClickListener(this);
         showHideControlsLink.addClickListener(this);
         
-        attributeFilterList = 
-            new WidgetList<AttributeFilter>(new AttributeFilterFactory(), "Add attribute filter");
+        filterList = new WidgetList<TestFilterWidget>(filterFactory);
         Panel titlePanel = new HorizontalPanel();
         titlePanel.add(getFieldLabel("Test attributes:"));
         titlePanel.add(new HTML("&nbsp;<a href=\"" + WIKI_URL + "#attribute_filtering\" " +
@@ -156,7 +273,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         Panel attributeFilters = new VerticalPanel();
         attributeFilters.setStyleName("box");
         attributeFilters.add(titlePanel);
-        attributeFilters.add(attributeFilterList);
+        attributeFilters.add(filterList);
         
         Panel commonFilterPanel = new VerticalPanel();
         commonFilterPanel.add(customSqlBox);
@@ -198,39 +315,26 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         savedSqlCondition = customSqlBox.getText().trim();
         savedShowInvalid = showInvalid.isChecked();
         
-        savedAttributeFilters.clear();
-        for (AttributeFilter filter : attributeFilterList.getWidgets()) {
-            savedAttributeFilters.add(filter.getFilterData());
+        savedFilters.clear();
+        for (TestFilterWidget filter : filterList.getWidgets()) {
+            savedFilters.add(filter.getFilterData());
         }
-    }
-    
-    public AttributeFilter getFilterWidgetFromData(AttributeFilterData filterData) {
-        AttributeFilter filter = new AttributeFilter();
-        filter.includeOrExclude.setSelectedIndex(filterData.isInclude() ? 0 : 1);
-        filter.attributeWhere.setText(filterData.attributeWhere);
-        filter.valueWhere.setText(filterData.valueWhere);
-        return filter;
     }
     
     public void updateViewFromState() {
         customSqlBox.setText(savedSqlCondition);
         showInvalid.setChecked(savedShowInvalid);
         
-        attributeFilterList.clear();
-        for (AttributeFilterData filterData : savedAttributeFilters) {
-            attributeFilterList.addWidget(getFilterWidgetFromData(filterData));
+        filterList.clear();
+        for (FilterData filterData : savedFilters) {
+            filterList.addWidget(filterFactory.getFilterWidgetFromData(filterData));
         }
     }
     
     private void addAttributeFilters(JSONObject conditionArgs) {
         List<String> include = new ArrayList<String>(), exclude = new ArrayList<String>();
-        for (AttributeFilterData filterData : savedAttributeFilters) {
-            if (filterData.isInclude()) {
-                include.add(filterData.getFilterString());
-            } else {
-                exclude.add(filterData.getFilterString());
-            }
-        }
+        
+        getIncludeAndExclude(include, exclude, FilterFactory.ATTRIBUTE_TYPE);
         
         String includeSql = Utils.joinStrings(" OR ", include);
         String excludeSql = Utils.joinStrings(" OR ", exclude);
@@ -238,16 +342,41 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         addIfNonempty(conditionArgs, "exclude_attributes_where", excludeSql);
     }
 
+    private void addLabelFilters(JSONObject conditionArgs) {
+        List<String> include = new ArrayList<String>(), exclude = new ArrayList<String>();
+        
+        getIncludeAndExclude(include, exclude, FilterFactory.LABEL_TYPE);
+        
+        if (!savedShowInvalid) {
+            exclude.add(TestLabelManager.INVALIDATED_LABEL); 
+        }
+        
+        if (!include.isEmpty()) {
+            conditionArgs.put("include_labels", Utils.stringsToJSON(include));
+        }
+        if (!exclude.isEmpty()) {
+            conditionArgs.put("exclude_labels", Utils.stringsToJSON(exclude));
+        }
+    }
+    
+    private void getIncludeAndExclude(List<String> include, List<String> exclude, String type) {
+        for (FilterData filterData : savedFilters) {
+            if (filterData.getFilterType().equals(type)) {
+                if (filterData.isInclude()) {
+                    include.add(filterData.getFilterString());
+                }
+                else {
+                    exclude.add(filterData.getFilterString());
+                }
+            }
+        }
+    }
+    
     public JSONObject getConditionArgs() {
         JSONObject conditionArgs = new JSONObject();
         addIfNonempty(conditionArgs, "extra_where", savedSqlCondition);
         addAttributeFilters(conditionArgs);
-        
-        if (!savedShowInvalid) {
-            List<String> labelsToExclude = 
-                Arrays.asList(new String[] {TestLabelManager.INVALIDATED_LABEL});
-            conditionArgs.put("exclude_labels", Utils.stringsToJSON(labelsToExclude));
-        }
+        addLabelFilters(conditionArgs);
         
         return conditionArgs;
     }
@@ -276,14 +405,14 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         savedShowInvalid = Boolean.valueOf(arguments.get("show_invalid"));
         showInvalid.setChecked(savedShowInvalid);
         
-        attributeFilterList.clear();
+        filterList.clear();
         for (int index = 0; ; index++) {
             AttributeFilterData filterData = AttributeFilterData.fromHistory(
-                    arguments, getListKey("attribute", index));
+                    arguments, getListKey("filter", index));
             if (filterData == null) {
                 break;
             }
-            attributeFilterList.addWidget(getFilterWidgetFromData(filterData));
+            filterList.addWidget(filterFactory.getFilterWidgetFromData(filterData));
         }
     }
     
@@ -291,8 +420,8 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         arguments.put("condition", savedSqlCondition);
         arguments.put("show_invalid", Boolean.toString(savedShowInvalid));
         int index = 0;
-        for (AttributeFilterData filterData : savedAttributeFilters) {
-            filterData.addToHistory(arguments, getListKey("attribute", index));
+        for (FilterData filterData : savedFilters) {
+            filterData.addToHistory(arguments, getListKey("filter", index));
             index++;
         }
     }
