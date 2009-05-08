@@ -17,10 +17,11 @@ import autotest.common.ui.DoubleListSelector;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
 import autotest.common.ui.DoubleListSelector.Item;
-import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TkoUtils.FieldInfo;
 
+import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
@@ -47,8 +48,9 @@ import java.util.Map;
 
 // TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
-                       implements DynamicTableListener, TableActionsListener, ClickListener,
-                                  TableWidgetFactory, CommonPanelListener, ChangeListener {
+                       implements DynamicTableListener, TableActionsWithExportCsvListener, 
+                                  ClickListener, TableWidgetFactory, CommonPanelListener, 
+                                  ChangeListener {
     private static final int ROWS_PER_PAGE = 30;
     private static final String COUNT_NAME = "Count in group";
     private static final String STATUS_COUNTS_NAME = "Test pass rate";
@@ -74,6 +76,8 @@ public class TableView extends ConditionTabView
     private SimpleFilter sqlConditionFilter = new SimpleFilter();
     private RpcDataSource testDataSource = new TestViewDataSource();
     private TestGroupDataSource groupDataSource = TestGroupDataSource.getTestGroupDataSource();
+    private RpcDataSource currentDataSource;
+
     private DoubleListSelector columnSelect = new DoubleListSelector();
     private CheckBox groupCheckbox = new CheckBox("Group by these columns and show counts");
     private CheckBox statusGroupCheckbox = 
@@ -156,30 +160,10 @@ public class TableView extends ConditionTabView
     }
 
     private void createTable() {
-        int numColumns = columnNames.size();
-        String[][] columns = new String[numColumns][2];
-        for (int i = 0; i < numColumns; i++) {
-            String columnName = columnNames.get(i);
-            columns[i][0] = namesToFields.get(columnName);
-            columns[i][1] = columnName;
-        }
-        
-        RpcDataSource dataSource = testDataSource;
-        GroupingType groupingType = getActiveGrouping();
-        if (groupingType != GroupingType.NO_GROUPING) {
-            if (groupingType == GroupingType.TEST_GROUPING) {
-                groupDataSource = TestGroupDataSource.getTestGroupDataSource();
-            } else {
-                groupDataSource = TestGroupDataSource.getStatusCountDataSource();
-            }
+        String[][] columns = buildColumnSpecs();
+        currentDataSource = getDataSource();
 
-            updateGroupColumns();
-            dataSource = groupDataSource;
-        } else {
-            dataSource = testDataSource;
-        }
-        
-        table = new DynamicTable(columns, dataSource);
+        table = new DynamicTable(columns, currentDataSource);
         table.addFilter(sqlConditionFilter);
         table.setRowsPerPage(ROWS_PER_PAGE);
         table.makeClientSortable();
@@ -192,12 +176,37 @@ public class TableView extends ConditionTabView
         tableDecorator = new TableDecorator(table);
         tableDecorator.addPaginators();
         selectionManager = tableDecorator.addSelectionManager(false);
-        tableDecorator.addTableActionsPanel(this, true);
+        tableDecorator.addTableActionsWithExportCsvListener(this);
         Panel tablePanel = RootPanel.get("table_table");
         tablePanel.clear();
         tablePanel.add(tableDecorator);
         
         selectionManager = new SelectionManager(table, false);
+    }
+
+    private String[][] buildColumnSpecs() {
+        int numColumns = columnNames.size();
+        String[][] columns = new String[numColumns][2];
+        for (int i = 0; i < numColumns; i++) {
+            String columnName = columnNames.get(i);
+            columns[i][0] = namesToFields.get(columnName);
+            columns[i][1] = columnName;
+        }
+        return columns;
+    }
+
+    private RpcDataSource getDataSource() {
+        GroupingType groupingType = getActiveGrouping();
+        if (groupingType == GroupingType.NO_GROUPING) {
+            return testDataSource;
+        } else if (groupingType == GroupingType.TEST_GROUPING) {
+            groupDataSource = TestGroupDataSource.getTestGroupDataSource();
+        } else {
+            groupDataSource = TestGroupDataSource.getStatusCountDataSource();
+        }
+        
+        updateGroupColumns();
+        return groupDataSource;
     }
 
     private void updateStateFromView() {
@@ -529,5 +538,21 @@ public class TableView extends ConditionTabView
     public void onChange(Widget sender) {
         assert sender == columnSelect;
         updateCheckboxesFromFields();
+    }
+
+    public void onExportCsv() {
+        JSONObject extraParams = new JSONObject();
+        extraParams.put("columns", buildCsvColumnSpecs());
+        TkoUtils.doCsvRequest(currentDataSource, extraParams);
+    }
+    
+    private JSONArray buildCsvColumnSpecs() {
+        String[][] columnSpecs = buildColumnSpecs();
+        JSONArray jsonColumnSpecs = new JSONArray();
+        for (String[] columnSpec : columnSpecs) {
+            JSONArray jsonColumnSpec = Utils.stringsToJSON(Arrays.asList(columnSpec));
+            jsonColumnSpecs.set(jsonColumnSpecs.size(), jsonColumnSpec);
+        }
+        return jsonColumnSpecs;
     }
 }

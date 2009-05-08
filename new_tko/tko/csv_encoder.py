@@ -30,7 +30,7 @@ class CsvEncoder(object):
 class UnhandledMethodEncoder(CsvEncoder):
     def encode(self):
         return rpc_utils.raw_http_response(
-            'Unhandled method %s (this indicates a bug)\n' %
+            'Unhandled method %s (this indicates a bug)\r\n' %
             self._request['method'])
 
 
@@ -86,13 +86,79 @@ class SpreadsheetCsvEncoder(CsvEncoder):
         return self._build_response()
 
 
+class TableCsvEncoder(CsvEncoder):
+    def __init__(self, request, response):
+        super(TableCsvEncoder, self).__init__(request, response)
+        self._column_specs = request['columns']
+
+
+    def _format_row(self, row_object):
+        """Extract data from a row object into a list of strings"""
+        return [row_object.get(field) for field, name in self._column_specs]
+
+
+    def _encode_table(self, row_objects):
+        self._append_output_row([column_spec[1] # header row
+                                 for column_spec in self._column_specs])
+        for row_object in row_objects:
+            self._append_output_row(self._format_row(row_object))
+        return self._build_response()
+
+
+    def encode(self):
+        return self._encode_table(self._response)
+
+
+class GroupedTableCsvEncoder(TableCsvEncoder):
+    def encode(self):
+        return self._encode_table(self._response['groups'])
+
+
+class StatusCountTableCsvEncoder(GroupedTableCsvEncoder):
+    _PASS_RATE_FIELD = '_test_pass_rate'
+
+    def __init__(self, request, response):
+        super(StatusCountTableCsvEncoder, self).__init__(request, response)
+        # inject a more sensible field name for test pass rate
+        for column_spec in self._column_specs:
+            field, name = column_spec
+            if name == 'Test pass rate':
+                column_spec[0] = self._PASS_RATE_FIELD
+                break
+
+
+    def _format_pass_rate(self, row_object):
+        result = '%s / %s' % (row_object['pass_count'],
+                              row_object['complete_count'])
+        incomplete_count = row_object['incomplete_count']
+        if incomplete_count:
+            result += ' (%s incomplete)' % incomplete_count
+        return result
+
+
+    def _format_row(self, row_object):
+        row_object[self._PASS_RATE_FIELD] = self._format_pass_rate(row_object)
+        return super(StatusCountTableCsvEncoder, self)._format_row(row_object)
+
+
 _ENCODER_MAP = {
-    'get_status_counts' : SpreadsheetCsvEncoder,
     'get_latest_tests' : SpreadsheetCsvEncoder,
+    'get_test_views' : TableCsvEncoder,
+    'get_group_counts' : GroupedTableCsvEncoder,
 }
 
 
-def encoder(request, response):
+def _get_encoder_class(request):
     method = request['method']
-    EncoderClass = _ENCODER_MAP.get(method, UnhandledMethodEncoder)
+    if method in _ENCODER_MAP:
+        return _ENCODER_MAP[method]
+    if method == 'get_status_counts':
+        if 'columns' in request:
+            return StatusCountTableCsvEncoder
+        return SpreadsheetCsvEncoder
+    return UnhandledMethodEncoder
+
+
+def encoder(request, response):
+    EncoderClass = _get_encoder_class(request)
     return EncoderClass(request, response)

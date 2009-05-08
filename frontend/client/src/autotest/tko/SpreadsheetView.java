@@ -547,13 +547,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     public void onExportCsv() {
-        TestGroupDataSource dataSource = spreadsheetProcessor.getDataSource();
-        String rpcMethodName = dataSource.getDataMethodName();
-        JSONObject arguments = dataSource.getFullRequestParams(getFullConditionArgs());
-        JSONObject request = JsonRpcProxy.buildRequestObject(rpcMethodName, arguments);
-
-        String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + request.toString();
-        Window.open(url, "_blank", "");
+        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource());
     }
 
     public void onSelectAll(boolean ignored) {
