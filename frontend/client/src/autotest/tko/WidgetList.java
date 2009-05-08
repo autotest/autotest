@@ -4,6 +4,7 @@ import autotest.common.ui.SimpleHyperlink;
 
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -12,25 +13,31 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+
 class WidgetList<T extends Widget> extends Composite implements ClickListener {
     public interface ListWidgetFactory<S extends Widget> {
-        public S getNewWidget();
+        public List<String> getWidgetTypes();
+        public S getNewWidget(String type);
     }
     
     private ListWidgetFactory<T> factory;
     private List<T> widgets = new ArrayList<T>();
     private Panel widgetPanel = new VerticalPanel();
-    private SimpleHyperlink addLink;
+    private HorizontalPanel addLinksPanel = new HorizontalPanel();
     
-    public WidgetList(ListWidgetFactory<T> factory, String addText) {
+    public WidgetList(ListWidgetFactory<T> factory) {
         this.factory = factory;
         
-        addLink = new SimpleHyperlink(addText);
-        addLink.addClickListener(this);
-        
+        addLinksPanel.setSpacing(10);
+        for (String type : factory.getWidgetTypes()) {
+            SimpleHyperlink addLink = new SimpleHyperlink(type);
+            addLink.addClickListener(this);
+            addLinksPanel.add(addLink);
+        }
+            
         Panel outerPanel = new VerticalPanel();
         outerPanel.add(widgetPanel);
-        outerPanel.add(addLink);
+        outerPanel.add(addLinksPanel);
         initWidget(outerPanel);
     }
     
@@ -45,8 +52,8 @@ class WidgetList<T extends Widget> extends Composite implements ClickListener {
     }
 
     public void onClick(Widget sender) {
-        assert sender == addLink;
-        T widget = factory.getNewWidget();
+        SimpleHyperlink addLink = (SimpleHyperlink) sender;
+        T widget = factory.getNewWidget(addLink.getText());
         addWidget(widget);
     }
     
