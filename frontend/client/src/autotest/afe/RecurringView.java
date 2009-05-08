@@ -2,46 +2,39 @@ package autotest.afe;
 
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
-import autotest.common.table.LinkSetFilter;
 import autotest.common.table.ListFilter;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.Paginator;
 import autotest.common.ui.TabView;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
+import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONBoolean;
-import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.Hyperlink;
+import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.HasAlignment;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.HasAlignment;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Widget;
-import com.google.gwt.i18n.client.DateTimeFormat;
 
 import java.util.Set;
-import java.util.Date;
 
 public class RecurringView extends TabView implements TableActionsListener {
     private static final int RECURRINGRUN_PER_PAGE = 30;
     private static final int DEFAULT_LOOP_DELAY = 3600;
     private static final int DEFAULT_LOOP_COUNT = 1;
 
-    private JSONObject jobFilterArgs = new JSONObject();
     private RecurringSelectListener selectListener;
     private RecurringTable recurringTable;
     private TableDecorator tableDecorator;
