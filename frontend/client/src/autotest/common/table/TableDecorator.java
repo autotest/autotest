@@ -5,6 +5,7 @@ import autotest.common.ui.Paginator;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.TableSelectionPanel;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
+import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
@@ -80,15 +81,26 @@ public class TableDecorator extends Composite implements DynamicTableListener {
         selectionPanel.setListener(selectionManager);
         setActionsWidget(selectionPanel);
     }
-    
-    public void addTableActionsPanel(TableActionsListener listener, boolean wantSelectVisible) {
+
+    private TableActionsPanel createTableActionsPanel(boolean wantSelectVisible) {
         assert selectionManager != null;
         TableActionsPanel actionsPanel = new TableActionsPanel(wantSelectVisible);
-        actionsPanel.setActionsListener(listener);
         actionsPanel.setSelectionListener(selectionManager);
+        return actionsPanel;
+    }
+
+    public void addTableActionsPanel(TableActionsListener listener, boolean wantSelectVisible) {
+        TableActionsPanel actionsPanel = createTableActionsPanel(wantSelectVisible);
+        actionsPanel.setActionsListener(listener);
         setActionsWidget(actionsPanel);
     }
-    
+
+    public void addTableActionsWithExportCsvListener(TableActionsWithExportCsvListener listener) {
+        TableActionsPanel actionsPanel = createTableActionsPanel(true);
+        actionsPanel.setActionsWithCsvListener(listener);
+        setActionsWidget(actionsPanel);
+    }
+
     public void setActionsWidget(Widget widget) {
         setRow(LayoutRows.ACTIONS, widget, false);
     }

@@ -48,14 +48,19 @@ class TestGroupDataSource extends RpcDataSource {
 
     @Override
     public void updateData(JSONObject params, DataCallback callback) {
-        params = getFullRequestParams(params);
-        
+        JSONObject fullParams = Utils.copyJSONObject(params);
+        Utils.updateObject(fullParams, queryParameters);
+        fullParams.put("group_by", groupByFields);
+        if (headerGroups != null) {
+            fullParams.put("header_groups", headerGroups);
+        }
+
         if (skipNumResults) {
-            filterParams = params;
+            filterParams = fullParams;
             numResults = 0;
             callback.onGotData(numResults);
         } else {
-            super.updateData(params, callback);
+            super.updateData(fullParams, callback);
         }
     }
 

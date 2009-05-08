@@ -14,8 +14,9 @@ import com.google.gwt.json.client.JSONValue;
  * Data source that retrieves results via RPC requests to the server.
  */
 public class RpcDataSource implements DataSource {
-    protected String dataMethodName, countMethodName;
+    private String dataMethodName, countMethodName;
     protected JSONObject filterParams;
+    private JSONObject lastRequestParams;
     protected Integer numResults = null;
     
     public RpcDataSource(String dataMethodName, String countMethodName) {
@@ -70,6 +71,7 @@ public class RpcDataSource implements DataSource {
             params.put("sort_by", sortList);
         }
         
+        lastRequestParams = params;
         JsonRpcProxy.getProxy().rpcCall(dataMethodName, params, 
                                         new JsonRpcCallback() {
             @Override
@@ -93,5 +95,9 @@ public class RpcDataSource implements DataSource {
 
     public String getDataMethodName() {
         return dataMethodName;
+    }
+
+    public JSONObject getLastRequestParams() {
+        return Utils.copyJSONObject(lastRequestParams);
     }
 }

@@ -1,8 +1,10 @@
 package autotest.tko;
 
 import autotest.common.JSONArrayList;
+import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
+import autotest.common.table.RpcDataSource;
 
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.json.client.JSONArray;
@@ -10,6 +12,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -92,5 +95,25 @@ public class TkoUtils {
         table.getFlexCellFormatter().setStylePrimaryName(row, 0, "field-name");
         table.setWidget(row, 1, control);
         return row;
+    }
+    
+    static void doCsvRequest(RpcDataSource dataSource, JSONObject extraParams) {
+        String rpcMethodName = dataSource.getDataMethodName();
+        JSONObject arguments = dataSource.getLastRequestParams();
+        // remove pagination arguments, since the user will want to export all results
+        arguments.put("query_start", null);
+        arguments.put("query_limit", null);
+
+        JSONObject request = JsonRpcProxy.buildRequestObject(rpcMethodName, arguments);
+        if (extraParams != null) {
+            Utils.updateObject(request, extraParams);
+        }
+
+        String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + request.toString();
+        Window.open(url, "_blank", "");
+    }
+    
+    static void doCsvRequest(RpcDataSource dataSource) {
+        doCsvRequest(dataSource, null);
     }
 }
