@@ -5,7 +5,7 @@ Autotest scheduler
 """
 
 
-import datetime, errno, optparse, os, pwd, Queue, random, re, shutil, signal
+import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import itertools, logging, logging.config, weakref
 import common
@@ -567,10 +567,12 @@ class HostScheduler(object):
                 # Not enough eligible hosts in this atomic group label.
                 continue
 
+            # So that they show up in a sane order when viewing the job.
+            eligible_hosts_in_group = sorted(eligible_hosts_in_group)
+
             # Limit ourselves to scheduling the atomic group size.
             if len(eligible_hosts_in_group) > max_hosts:
-                eligible_hosts_in_group = random.sample(
-                        eligible_hosts_in_group, max_hosts)
+                eligible_hosts_in_group = eligible_hosts_in_group[:max_hosts]
 
             # Remove the selected hosts from our cached internal state
             # of available hosts in order to return the Host objects.
