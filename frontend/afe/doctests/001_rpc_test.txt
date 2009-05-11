@@ -101,6 +101,7 @@ True
 ...           'labels': [],
 ...           'acls': ['Everyone'],
 ...           'platform': None,
+...           'attributes': {},
 ...           'invalid': 0,
 ...           'protection': 'No protection',
 ...           'locked_by': 'debug_user',
@@ -322,6 +323,19 @@ True
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
 ['Everyone']
+
+
+# host attributes
+
+>>> rpc_interface.set_host_attribute('color', 'red', hostname='host1')
+>>> data = rpc_interface.get_hosts(hostname='host1')
+>>> data[0]['attributes']
+{'color': 'red'}
+
+>>> rpc_interface.set_host_attribute('color', None, hostname='host1')
+>>> data = rpc_interface.get_hosts(hostname='host1')
+>>> data[0]['attributes']
+{}
 
 
 # job management
