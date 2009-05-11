@@ -915,3 +915,39 @@ def write_pid(program_name):
     if pidf:
       pidf.write("%s\n" % os.getpid())
       pidf.close()
+
+
+def get_relative_path(path, reference):
+    """Given 2 absolute paths "path" and "reference", compute the path of
+    "path" as relative to the directory "reference".
+
+    @param path the absolute path to convert to a relative path
+    @param reference an absolute directory path to which the relative
+        path will be computed
+    """
+    # normalize the paths (remove double slashes, etc)
+    assert(os.path.isabs(path))
+    assert(os.path.isabs(reference))
+
+    path = os.path.normpath(path)
+    reference = os.path.normpath(reference)
+
+    # we could use os.path.split() but it splits from the end
+    path_list = path.split(os.path.sep)[1:]
+    ref_list = reference.split(os.path.sep)[1:]
+
+    # find the longest leading common path
+    for i in xrange(min(len(path_list), len(ref_list))):
+        if path_list[i] != ref_list[i]:
+            # decrement i so when exiting this loop either by no match or by
+            # end of range we are one step behind
+            i -= 1
+            break
+    i += 1
+    # drop the common part of the paths, not interested in that anymore
+    del path_list[:i]
+
+    # for each uncommon component in the reference prepend a ".."
+    path_list[:0] = ['..'] * (len(ref_list) - i)
+
+    return os.path.join(*path_list)

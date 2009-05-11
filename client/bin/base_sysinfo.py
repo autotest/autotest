@@ -249,7 +249,10 @@ class base_sysinfo(object):
         reboot_dir = self._get_boot_subdir()
         assert os.path.exists(reboot_dir)
         symlink_dest = os.path.join(test_sysinfodir, "reboot_current")
-        os.symlink(reboot_dir, symlink_dest)
+        os.symlink(
+            # create a relative symlink
+            utils.get_relative_path(reboot_dir, os.path.dirname(symlink_dest)),
+            symlink_dest)
 
         # run all the standard logging commands
         for log in self.test_loggables:

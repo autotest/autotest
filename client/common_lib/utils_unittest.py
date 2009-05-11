@@ -571,6 +571,23 @@ class test_merge_trees(unittest.TestCase):
                                 "subfile")
 
 
+class test_get_relative_path(unittest.TestCase):
+    def test_not_absolute(self):
+        self.assertRaises(AssertionError, utils.get_relative_path, "a", "b")
+
+    def test_same_dir(self):
+        self.assertEqual(utils.get_relative_path("/a/b/c", "/a/b"), "c")
+
+    def test_forward_dir(self):
+        self.assertEqual(utils.get_relative_path("/a/b/c/d", "/a/b"), "c/d")
+
+    def test_previous_dir(self):
+        self.assertEqual(utils.get_relative_path("/a/b", "/a/b/c/d"), "../..")
+
+    def test_parallel_dir(self):
+        self.assertEqual(utils.get_relative_path("/a/c/d", "/a/b/c/d"),
+                         "../../../c/d")
+
 
 if __name__ == "__main__":
     unittest.main()

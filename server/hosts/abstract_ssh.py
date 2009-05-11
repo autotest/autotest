@@ -43,7 +43,7 @@ class AbstractSSHHost(SiteHost):
                                " ".join(paths))
 
 
-    def _make_rsync_cmd(self, sources, dest, delete_dest):
+    def _make_rsync_cmd(self, sources, dest, delete_dest, preserve_symlinks):
         """ Given a list of source paths and a destination path, produces the
         appropriate rsync command for copying them. Remote paths must be
         pre-encoded. """
@@ -52,8 +52,13 @@ class AbstractSSHHost(SiteHost):
             delete_flag = "--delete"
         else:
             delete_flag = ""
-        command = "rsync -L %s --timeout=1800 --rsh='%s' -az %s %s"
-        return command % (delete_flag, ssh_cmd, " ".join(sources), dest)
+        if preserve_symlinks:
+            symlink_flag = ""
+        else:
+            symlink_flag = "-L"
+        command = "rsync %s %s --timeout=1800 --rsh='%s' -az %s %s"
+        return command % (symlink_flag, delete_flag, ssh_cmd,
+                          " ".join(sources), dest)
 
 
     def _make_scp_cmd(self, sources, dest):
@@ -149,7 +154,8 @@ class AbstractSSHHost(SiteHost):
             set_file_privs(dest)
 
 
-    def get_file(self, source, dest, delete_dest=False, preserve_perm=True):
+    def get_file(self, source, dest, delete_dest=False, preserve_perm=True,
+                 preserve_symlinks=False):
         """
         Copy files from the remote host to a local path.
 
@@ -172,6 +178,8 @@ class AbstractSSHHost(SiteHost):
                              source
                 preserve_perm: tells get_file() to try to preserve the sources
                                permissions on files and dirs
+                preserve_symlinks: try to preserve symlinks instead of
+                                   transforming them into files/dirs on copy
 
         Raises:
                 AutoservRunError: the scp command failed
@@ -184,7 +192,7 @@ class AbstractSSHHost(SiteHost):
             remote_source = self._encode_remote_paths(source)
             local_dest = utils.sh_escape(dest)
             rsync = self._make_rsync_cmd([remote_source], local_dest,
-                                         delete_dest)
+                                         delete_dest, preserve_symlinks)
             utils.run(rsync)
         except error.CmdError, e:
             logging.warn("warning: rsync failed with: %s", e)
@@ -213,7 +221,8 @@ class AbstractSSHHost(SiteHost):
             self._set_umask_perms(dest)
 
 
-    def send_file(self, source, dest, delete_dest=False):
+    def send_file(self, source, dest, delete_dest=False,
+                  preserve_symlinks=False):
         """
         Copy files from a local path to the remote host.
 
@@ -234,6 +243,9 @@ class AbstractSSHHost(SiteHost):
                 delete_dest: if this is true, the command will also clear
                              out any old files at dest that are not in the
                              source
+                preserve_symlinks: controls if symlinks on the source will be
+                    copied as such on the destination or transformed into the
+                    referenced file/directory
 
         Raises:
                 AutoservRunError: the scp command failed
@@ -245,7 +257,7 @@ class AbstractSSHHost(SiteHost):
         try:
             local_sources = [utils.sh_escape(path) for path in source]
             rsync = self._make_rsync_cmd(local_sources, remote_dest,
-                                         delete_dest)
+                                         delete_dest, preserve_symlinks)
             utils.run(rsync)
         except error.CmdError, e:
             logging.warn("warning: rsync failed with: %s", e)
