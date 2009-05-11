@@ -22,6 +22,7 @@ class job(models.job):
 
         user = keyval.get("user", None)
         label = keyval.get("label", None)
+        host_group_name = keyval.get("host_group_name", None)
         machine = keyval.get("hostname", None)
         if machine and "," in machine:
             try:
@@ -37,6 +38,10 @@ class job(models.job):
         aborted_at = tko_utils.get_timestamp(keyval, "aborted_on")
 
         tko_utils.dprint("MACHINE NAME: %s" % machine)
+        if host_group_name and ((machine and "," in machine) or not machine):
+            tko_utils.dprint("Using host_group_name %r instead of "
+                             "machine name." % host_group_name)
+            machine = host_group_name
 
         return {"user": user, "label": label, "machine": machine,
                 "queued_time": queued_time, "started_time": started_time,

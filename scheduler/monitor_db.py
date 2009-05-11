@@ -224,6 +224,18 @@ def enable_logging(logfile):
 
 def _autoserv_command_line(machines, results_dir, extra_args, job=None,
                            queue_entry=None):
+    """
+    @returns The autoserv command line as a list of executable + parameters.
+
+    @param machines - string - A machine or comma separated list of machines
+            for the (-m) flag.
+    @param results_dir - string - Where the results will be written (-r).
+    @param extra_args - list - Additional arguments to pass to autoserv.
+    @param job - Job object - If supplied, -u owner and -l name parameters
+            will be added.
+    @param queue_entry - A HostQueueEntry object - If supplied and no Job
+            object was supplied, this will be used to lookup the Job object.
+    """
     autoserv_argv = [_autoserv_path, '-p', '-m', machines,
                      '-r', _drone_manager.absolute_path(results_dir)]
     if job or queue_entry:
@@ -1521,9 +1533,10 @@ class VerifyTask(PreJobTask):
 
 
 class QueueTask(AgentTask, TaskWithJobKeyvals):
-    def __init__(self, job, queue_entries, cmd):
+    def __init__(self, job, queue_entries, cmd, group_name=''):
         self.job = job
         self.queue_entries = queue_entries
+        self.group_name = group_name
         super(QueueTask, self).__init__(cmd, self._execution_tag())
         self._set_ids(queue_entries=queue_entries)
 
@@ -1560,7 +1573,10 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
     def prolog(self):
         queued_key, queued_time = self._job_queued_keyval(self.job)
-        self._write_keyvals_before_job({queued_key : queued_time})
+        keyval_dict = {queued_key: queued_time}
+        if self.group_name:
+            keyval_dict['host_group_name'] = self.group_name
+        self._write_keyvals_before_job(keyval_dict)
         for queue_entry in self.queue_entries:
             self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status('Running')
@@ -2256,6 +2272,24 @@ class HostQueueEntry(DBObject):
         return "%s#tab_id=view_job&object_id=%s" % (_base_url, self.job.id)
 
 
+    def get_labels(self):
+        """
+        Get all labels associated with this host queue entry (either via the
+        meta_host or as a job dependency label).  The labels yielded are not
+        guaranteed to be unique.
+
+        @yields Label instances associated with this host_queue_entry.
+        """
+        if self.meta_host:
+            yield Label(id=self.meta_host, always_query=False)
+        labels = Label.fetch(
+                joins="JOIN jobs_dependency_labels AS deps "
+                      "ON (labels.id = deps.label_id)",
+                where="deps.job_id = %d" % self.job.id)
+        for label in labels:
+            yield label
+
+
     def set_host(self, host):
         if host:
             self.queue_log_record('Assigning host ' + host.hostname)
@@ -2576,17 +2610,26 @@ class Job(DBObject):
         _drone_manager.write_lines_to_file(file_path, [hostname])
 
 
-    def _next_group_name(self):
+    def _next_group_name(self, group_name=''):
+        """@returns a directory name to use for the next host group results."""
+        if group_name:
+            # Sanitize for use as a pathname.
+            group_name = group_name.replace(os.path.sep, '_')
+            if group_name.startswith('.'):
+                group_name = '_' + group_name[1:]
+            # Add a separator between the group name and 'group%d'.
+            group_name += '.'
+        group_count_re = re.compile(r'%sgroup(\d+)' % re.escape(group_name))
         query = models.HostQueueEntry.objects.filter(
             job=self.id).values('execution_subdir').distinct()
         subdirs = (entry['execution_subdir'] for entry in query)
-        groups = (re.match(r'group(\d+)', subdir) for subdir in subdirs)
-        ids = [int(match.group(1)) for match in groups if match]
+        group_matches = (group_count_re.match(subdir) for subdir in subdirs)
+        ids = [int(match.group(1)) for match in group_matches if match]
         if ids:
             next_id = max(ids) + 1
         else:
             next_id = 0
-        return "group%d" % next_id
+        return '%sgroup%d' % (group_name, next_id)
 
 
     def _write_control_file(self, execution_tag):
@@ -2647,31 +2690,64 @@ class Job(DBObject):
         return tasks
 
 
-    def _assign_new_group(self, queue_entries):
+    def _assign_new_group(self, queue_entries, group_name=''):
         if len(queue_entries) == 1:
-            group_name = queue_entries[0].get_host().hostname
+            group_subdir_name = queue_entries[0].get_host().hostname
         else:
-            group_name = self._next_group_name()
+            group_subdir_name = self._next_group_name(group_name)
             logging.info('Running synchronous job %d hosts %s as %s',
                 self.id, [entry.host.hostname for entry in queue_entries],
-                group_name)
+                group_subdir_name)
 
         for queue_entry in queue_entries:
-            queue_entry.set_execution_subdir(group_name)
+            queue_entry.set_execution_subdir(group_subdir_name)
 
 
     def _choose_group_to_run(self, include_queue_entry):
+        """
+        @returns A tuple containing a list of HostQueueEntry instances to be
+                used to run this Job, a string group name to suggest giving
+                to this job a results database.
+        """
+        if include_queue_entry.atomic_group_id:
+            atomic_group = AtomicGroup(include_queue_entry.atomic_group_id,
+                                       always_query=False)
+        else:
+            atomic_group = None
+
         chosen_entries = [include_queue_entry]
+        if atomic_group:
+            num_entries_wanted = atomic_group.max_number_of_machines
+        else:
+            num_entries_wanted = self.synch_count
+        num_entries_wanted -= len(chosen_entries)
 
-        num_entries_needed = self.synch_count - 1
-        if num_entries_needed > 0:
+        if num_entries_wanted > 0:
+            where_clause = 'job_id = %s AND status = "Pending" AND id != %s'
             pending_entries = HostQueueEntry.fetch(
-                where='job_id = %s AND status = "Pending" AND id != %s',
-                params=(self.id, include_queue_entry.id))
-            chosen_entries += list(pending_entries)[:num_entries_needed]
+                     where=where_clause,
+                     params=(self.id, include_queue_entry.id))
+            # TODO(gps): sort these by hostname before slicing.
+            chosen_entries += list(pending_entries)[:num_entries_wanted]
 
-        self._assign_new_group(chosen_entries)
-        return chosen_entries
+        # Sanity check.  We'll only ever be called if this can be met.
+        assert len(chosen_entries) >= self.synch_count
+
+        if atomic_group:
+            # Look at any meta_host and dependency labels and pick the first
+            # one that also specifies this atomic group.  Use that label name
+            # as the group name if possible (it is more specific).
+            group_name = atomic_group.name
+            for label in include_queue_entry.get_labels():
+                if label.atomic_group_id:
+                    assert label.atomic_group_id == atomic_group.id
+                    group_name = label.name
+                    break
+        else:
+            group_name = ''
+
+        self._assign_new_group(chosen_entries, group_name=group_name)
+        return chosen_entries, group_name
 
 
     def run(self, queue_entry):
@@ -2679,17 +2755,17 @@ class Job(DBObject):
             queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
             return Agent(self._get_pre_job_tasks(queue_entry))
 
-        queue_entries = self._choose_group_to_run(queue_entry)
-        return self._finish_run(queue_entries)
+        queue_entries, group_name = self._choose_group_to_run(queue_entry)
+        return self._finish_run(queue_entries, group_name)
 
 
-    def _finish_run(self, queue_entries, initial_tasks=[]):
+    def _finish_run(self, queue_entries, group_name):
         for queue_entry in queue_entries:
             queue_entry.set_status('Starting')
         params = self._get_autoserv_params(queue_entries)
         queue_task = QueueTask(job=self, queue_entries=queue_entries,
-                               cmd=params)
-        tasks = initial_tasks + [queue_task]
+                               cmd=params, group_name=group_name)
+        tasks = [queue_task]
         entry_ids = [entry.id for entry in queue_entries]
 
         return Agent(tasks, num_processes=len(queue_entries))
