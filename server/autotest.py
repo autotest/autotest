@@ -726,7 +726,7 @@ class log_collector(object):
         try:
             keyval_path = self._prepare_for_copying_logs()
             self.host.get_file(self.client_results_dir + '/',
-                               self.server_results_dir)
+                               self.server_results_dir, preserve_symlinks=True)
             self._process_copied_logs(keyval_path)
             self._postprocess_copied_logs()
         except Exception:
