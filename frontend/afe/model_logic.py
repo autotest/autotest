@@ -2,6 +2,7 @@
 Extensions to Django's model logic.
 """
 
+import itertools
 from django.db import models as dbmodels, backend, connection
 from django.utils import datastructures
 from autotest_lib.frontend.afe import readonly_connection
@@ -159,13 +160,25 @@ class ExtendedManager(dbmodels.Manager):
 
 
     def add_join(self, query_set, join_table, join_key,
-                 local_join_key='id', join_condition='', suffix='',
-                 exclude=False, force_left_join=False):
-        table_name = self.model._meta.db_table
+                 join_condition='', suffix='', exclude=False,
+                 force_left_join=False):
+        """
+        Add a join to query_set.
+        @param join_table table to join to
+        @param join_key field referencing back to this model to use for the join
+        @param join_condition extra condition for the ON clause of the join
+        @param suffix suffix to add to join_table for the join alias
+        @param exclude if true, exclude rows that match this join (will use a
+        LEFT JOIN and an appropriate WHERE condition)
+        @param force_left_join - if true, a LEFT JOIN will be used instead of an
+        INNER JOIN regardless of other options
+        """
+        join_from_table = self.model._meta.db_table
+        join_from_key = self.model._meta.pk.name
         join_alias = join_table + suffix
         full_join_key = join_alias + '.' + join_key
-        full_join_condition = '%s = %s.%s' % (full_join_key, table_name,
-                                              local_join_key)
+        full_join_condition = '%s = %s.%s' % (full_join_key, join_from_table,
+                                              join_from_key)
         if join_condition:
             full_join_condition += ' AND (' + join_condition + ')'
         if exclude or force_left_join:
@@ -207,6 +220,108 @@ class ExtendedManager(dbmodels.Manager):
 
     def escape_user_sql(self, sql):
         return sql.replace('%', '%%')
+
+
+    def _custom_select_query(self, query_set, selects):
+        query_selects, where, params = query_set._get_sql_clause()
+        if query_set._distinct:
+            distinct = 'DISTINCT '
+        else:
+            distinct = ''
+        sql_query = 'SELECT ' + distinct + ','.join(selects) + where
+        cursor = readonly_connection.connection().cursor()
+        cursor.execute(sql_query, params)
+        return cursor.fetchall()
+
+
+    def _is_relation_to(self, field, model_class):
+        return field.rel and field.rel.to is model_class
+
+
+    def _determine_pivot_table(self, related_model):
+        """
+        Determine the pivot table for this relationship and return a tuple
+        (pivot_table, pivot_from_field, pivot_to_field).  See
+        _query_pivot_table() for more info.
+        Note -- this depends on Django model internals and will likely need to
+        be updated when we move to Django 1.x.
+        """
+        # look for a field on related_model relating to this model
+        for field in related_model._meta.fields:
+            if self._is_relation_to(field, self.model):
+                # many-to-one -- the related table itself is the pivot table
+                return (related_model._meta.db_table, field.column,
+                        related_model.objects.get_key_on_this_table())
+
+        for field in related_model._meta.many_to_many:
+            if self._is_relation_to(field, self.model):
+                # many-to-many
+                return (field.m2m_db_table(), field.m2m_reverse_name(),
+                        field.m2m_column_name())
+
+        # maybe this model has the many-to-many field
+        for field in self.model._meta.many_to_many:
+            if self._is_relation_to(field, related_model):
+                return (field.m2m_db_table(), field.m2m_column_name(),
+                        field.m2m_reverse_name())
+
+        raise ValueError('%s has no relation to %s' %
+                         (related_model, self.model))
+
+
+    def _query_pivot_table(self, id_list, pivot_table, pivot_from_field,
+                           pivot_to_field):
+        """
+        @param id_list list of IDs of self.model objects to include
+        @param pivot_table the name of the pivot table
+        @param pivot_from_field a field name on pivot_table referencing
+        self.model
+        @param pivot_to_field a field name on pivot_table referencing the
+        related model.
+        @returns a dict mapping each IDs from id_list to a list of IDs of
+        related objects.
+        """
+        query = """
+        SELECT %(from_field)s, %(to_field)s
+        FROM %(table)s
+        WHERE %(from_field)s IN (%(id_list)s)
+        """ % dict(from_field=pivot_from_field,
+                   to_field=pivot_to_field,
+                   table=pivot_table,
+                   id_list=','.join(str(id_) for id_ in id_list))
+        cursor = readonly_connection.connection().cursor()
+        cursor.execute(query)
+
+        related_ids = {}
+        for model_id, related_id in cursor.fetchall():
+            related_ids.setdefault(model_id, []).append(related_id)
+        return related_ids
+
+
+    def populate_relationships(self, model_objects, related_model,
+                               related_list_name):
+        """
+        For each instance in model_objects, add a field named related_list_name
+        listing all the related objects of type related_model.  related_model
+        must be in a many-to-one or many-to-many relationship with this model.
+        """
+        if not model_objects:
+            # if we don't bail early, we'll get a SQL error later
+            return
+        id_list = (item.id for item in model_objects)
+        pivot_table, pivot_from_field, pivot_to_field = (
+            self._determine_pivot_table(related_model))
+        related_ids = self._query_pivot_table(id_list, pivot_table,
+                                              pivot_from_field, pivot_to_field)
+
+        all_related_ids = list(set(itertools.chain(*related_ids.itervalues())))
+        related_objects_by_id = related_model.objects.in_bulk(all_related_ids)
+
+        for item in model_objects:
+            related_ids_for_item = related_ids.get(item.id, [])
+            related_objects = [related_objects_by_id[related_id]
+                               for related_id in related_ids_for_item]
+            setattr(item, related_list_name, related_objects)
 
 
 class ValidObjectsManager(ExtendedManager):

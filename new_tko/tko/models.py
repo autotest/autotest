@@ -251,15 +251,6 @@ class TestViewManager(TempManager):
         return query.extra(select=extra_select)
 
 
-    def add_join(self, query_set, join_table, join_key,
-                 join_condition='', suffix='', exclude=False,
-                 force_left_join=False):
-        return super(TestViewManager, self).add_join(
-            query_set, join_table, join_key, local_join_key='test_idx',
-            join_condition=join_condition, suffix=suffix, exclude=exclude,
-            force_left_join=force_left_join)
-
-
     def _get_include_exclude_suffix(self, exclude):
         if exclude:
             suffix = '_exclude'
@@ -365,18 +356,6 @@ class TestViewManager(TempManager):
     def query_test_ids(self, filter_data):
         dicts = self.model.query_objects(filter_data).values('test_idx')
         return [item['test_idx'] for item in dicts]
-
-
-    def _custom_select_query(self, query_set, selects):
-        query_selects, where, params = query_set._get_sql_clause()
-        if query_set._distinct:
-            distinct = 'DISTINCT '
-        else:
-            distinct = ''
-        sql_query = 'SELECT ' + distinct + ','.join(selects) + where
-        cursor = readonly_connection.connection().cursor()
-        cursor.execute(sql_query, params)
-        return cursor.fetchall()
 
 
     def query_test_label_ids(self, filter_data):

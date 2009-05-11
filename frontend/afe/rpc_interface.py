@@ -122,6 +122,24 @@ def host_remove_labels(id, labels):
     models.Host.smart_get(id).labels.remove(*labels)
 
 
+def set_host_attribute(attribute, value, **host_filter_data):
+    """
+    @param attribute string name of attribute
+    @param value string, or None to delete an attribute
+    @param host_filter_data filter data to apply to Hosts to choose hosts to act
+    upon
+    """
+    assert host_filter_data # disallow accidental actions on all hosts
+    hosts = models.Host.query_objects(host_filter_data)
+    models.AclGroup.check_for_acl_violation_hosts(hosts)
+
+    for host in hosts:
+        if value is None:
+            host.delete_attribute(attribute)
+        else:
+            host.set_attribute(attribute, value)
+
+
 def delete_host(id):
     models.Host.smart_get(id).delete()
 
@@ -137,13 +155,21 @@ def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
                                      filter_data)
+    hosts = list(hosts)
+    models.Host.objects.populate_relationships(hosts, models.Label,
+                                               'label_list')
+    models.Host.objects.populate_relationships(hosts, models.AclGroup,
+                                               'acl_list')
+    models.Host.objects.populate_relationships(hosts, models.HostAttribute,
+                                               'attribute_list')
     host_dicts = []
     for host_obj in hosts:
         host_dict = host_obj.get_object_dict()
-        host_dict['labels'] = [label.name for label in host_obj.labels.all()]
-        platform = host_obj.platform()
-        host_dict['platform'] = platform and platform.name or None
-        host_dict['acls'] = [acl.name for acl in host_obj.aclgroup_set.all()]
+        host_dict['labels'] = [label.name for label in host_obj.label_list]
+        host_dict['platform'] = rpc_utils.find_platform(host_obj)
+        host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
+        host_dict['attributes'] = dict((attribute.attribute, attribute.value)
+                                       for attribute in host_obj.attribute_list)
         host_dicts.append(host_dict)
     return rpc_utils.prepare_for_serialization(host_dicts)
 
@@ -448,9 +474,16 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
     filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
                                                             running,
                                                             finished)
-    jobs = models.Job.list_objects(filter_data)
-    models.Job.objects.populate_dependencies(jobs)
-    return rpc_utils.prepare_for_serialization(jobs)
+    job_dicts = []
+    jobs = list(models.Job.query_objects(filter_data))
+    models.Job.objects.populate_relationships(jobs, models.Label,
+                                              'dependencies')
+    for job in jobs:
+        job_dict = job.get_object_dict()
+        job_dict['dependencies'] = ','.join(label.name
+                                            for label in job.dependencies)
+        job_dicts.append(job_dict)
+    return rpc_utils.prepare_for_serialization(job_dicts)
 
 
 def get_num_jobs(not_yet_run=False, running=False, finished=False,

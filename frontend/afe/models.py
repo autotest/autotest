@@ -322,6 +322,20 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         return active[0]
 
 
+    def set_attribute(self, attribute, value):
+        attribute_object = HostAttribute.objects.get_or_create(
+            host=self, attribute=attribute)[0]
+        attribute_object.value = value
+        attribute_object.save()
+
+
+    def delete_attribute(self, attribute):
+        try:
+            HostAttribute.objects.get(host=self, attribute=attribute).delete()
+        except HostAttribute.DoesNotExist:
+            pass
+
+
     class Meta:
         db_table = 'hosts'
 
@@ -338,6 +352,18 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
 
     def __str__(self):
         return self.hostname
+
+
+class HostAttribute(dbmodels.Model):
+    """Arbitrary keyvals associated with hosts."""
+    host = dbmodels.ForeignKey(Host)
+    attribute = dbmodels.CharField(maxlength=90)
+    value = dbmodels.CharField(maxlength=300)
+
+    objects = model_logic.ExtendedManager()
+
+    class Meta:
+        db_table = 'host_attributes'
 
 
 class Test(dbmodels.Model, model_logic.ModelExtensions):
@@ -596,27 +622,6 @@ class JobManager(model_logic.ExtendedManager):
                                                              complete)
             all_job_counts[job_id][full_status] = count
         return all_job_counts
-
-
-    def populate_dependencies(self, jobs):
-        if not jobs:
-            return
-        job_ids = ','.join(str(job['id']) for job in jobs)
-        cursor = connection.cursor()
-        cursor.execute("""
-            SELECT jobs.id, labels.name
-            FROM jobs
-            INNER JOIN jobs_dependency_labels
-              ON jobs.id = jobs_dependency_labels.job_id
-            INNER JOIN labels ON jobs_dependency_labels.label_id = labels.id
-            WHERE jobs.id IN (%s)
-            """ % job_ids)
-        job_dependencies = {}
-        for job_id, dependency in cursor.fetchall():
-            job_dependencies.setdefault(job_id, []).append(dependency)
-        for job in jobs:
-            dependencies = ','.join(job_dependencies.get(job['id'], []))
-            job['dependencies'] = dependencies
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):
