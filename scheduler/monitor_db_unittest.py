@@ -1764,6 +1764,35 @@ class AgentTasksTest(unittest.TestCase):
         self._test_cleanup_task_helper(False, True)
 
 
+class HostQueueEntryTest(BaseSchedulerTest):
+    def _create_hqe(self, dependency_labels=(), **create_job_kwargs):
+        job = self._create_job(**create_job_kwargs)
+        for label in dependency_labels:
+            job.dependency_labels.add(label)
+        hqes = list(monitor_db.HostQueueEntry.fetch(where='job_id=%d' % job.id))
+        self.assertEqual(1, len(hqes))
+        return hqes[0]
+
+    def _check_hqe_labels(self, hqe, expected_labels):
+        expected_labels = set(expected_labels)
+        label_names = set(label.name for label in hqe.get_labels())
+        self.assertEqual(expected_labels, label_names)
+
+    def test_get_labels_empty(self):
+        hqe = self._create_hqe(hosts=[1])
+        labels = list(hqe.get_labels())
+        self.assertEqual([], labels)
+
+    def test_get_labels_metahost(self):
+        hqe = self._create_hqe(metahosts=[2])
+        self._check_hqe_labels(hqe, ['label2'])
+
+    def test_get_labels_dependancies(self):
+        hqe = self._create_hqe(dependency_labels=(self.label3, self.label4),
+                               metahosts=[1])
+        self._check_hqe_labels(hqe, ['label1', 'label3', 'label4'])
+
+
 class JobTest(BaseSchedulerTest):
     def setUp(self):
         super(JobTest, self).setUp()
@@ -1774,6 +1803,7 @@ class JobTest(BaseSchedulerTest):
 
 
     def _setup_directory_expects(self, execution_subdir):
+        # XXX(gps): um... this function does -nothing-
         job_path = os.path.join('.', '1-my_user')
         results_dir = os.path.join(job_path, execution_subdir)
 
@@ -1872,6 +1902,35 @@ class JobTest(BaseSchedulerTest):
         self.assertEquals(hqe_ids, [1, 2])
 
 
+    def test_run_synchronous_atomic_group_ready(self):
+        self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
+        self._update_hqe("status='Pending', execution_subdir=''")
+
+        tasks = self._test_run_helper(expect_starting=True)
+        self.assertEquals(len(tasks), 1)
+        queue_task = tasks[0]
+
+        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
+        # Atomic group jobs that do not a specific label in the atomic group
+        # will use the atomic group name as their group name.
+        self.assertEquals(queue_task.group_name, 'atomic1')
+
+
+    def test_run_synchronous_atomic_group_with_label_ready(self):
+        job = self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
+        job.dependency_labels.add(self.label4)
+        self._update_hqe("status='Pending', execution_subdir=''")
+
+        tasks = self._test_run_helper(expect_starting=True)
+        self.assertEquals(len(tasks), 1)
+        queue_task = tasks[0]
+
+        self.assert_(isinstance(queue_task, monitor_db.QueueTask))
+        # Atomic group jobs that also specify a label in the atomic group
+        # will use the label name as their group name.
+        self.assertEquals(queue_task.group_name, 'label4')
+
+
     def test_reboot_before_always(self):
         job = self._create_job(hosts=[1])
         job.reboot_before = models.RebootBefore.ALWAYS
@@ -1905,6 +1964,39 @@ class JobTest(BaseSchedulerTest):
         models.Host.smart_get(1).update_object(dirty=False)
         self._test_reboot_before_if_dirty_helper(False)
 
+
+    def test_next_group_name(self):
+        django_job = self._create_job(metahosts=[1])
+        job = monitor_db.Job(id=django_job.id)
+        self.assertEqual('group0', job._next_group_name())
+
+        for hqe in django_job.hostqueueentry_set.filter():
+            hqe.execution_subdir = 'my_rack.group0'
+            hqe.save()
+        self.assertEqual('my_rack.group1', job._next_group_name('my/rack'))
+
+
+class TopLevelFunctionsTest(unittest.TestCase):
+    def test_autoserv_command_line(self):
+        machines = 'abcd12,efgh34'
+        results_dir = '/fake/path'
+        extra_args = ['-Z', 'hello']
+        expected_command_line = [monitor_db._autoserv_path, '-p',
+                                 '-m', machines, '-r', results_dir]
+
+        command_line = monitor_db._autoserv_command_line(
+                machines, results_dir, extra_args)
+        self.assertEqual(expected_command_line + extra_args, command_line)
+
+        class FakeJob(object):
+            owner = 'Bob'
+            name = 'fake job name'
+
+        command_line = monitor_db._autoserv_command_line(
+                machines, results_dir, extra_args=[], job=FakeJob())
+        self.assertEqual(expected_command_line +
+                         ['-u', FakeJob.owner, '-l', FakeJob.name],
+                         command_line)
 
 
 if __name__ == '__main__':

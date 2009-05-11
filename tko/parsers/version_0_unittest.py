@@ -3,7 +3,66 @@
 import unittest
 
 import common
+from autotest_lib.client.common_lib.test_utils import mock
+from autotest_lib.tko import models
 from autotest_lib.tko.parsers import version_0
+
+
+class test_job_load_from_dir(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(models.job, 'read_keyval')
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+    keyval_return = {'job_queued': 1234567890,
+                     'job_started': 1234567891,
+                     'job_finished': 1234567892,
+                     'user': 'janet',
+                     'label': 'steeltown',
+                     'hostname': 'abc123'}
+
+    def test_load_from_dir_simple(self):
+        models.job.read_keyval.expect_call('.').and_return(
+                dict(self.keyval_return))
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('janet', job['user'])
+        self.assertEqual('steeltown', job['label'])
+        self.assertEqual('abc123', job['machine'])
+        self.god.check_playback()
+
+    def test_load_from_dir_one_machine_group_name(self):
+        raw_keyval = dict(self.keyval_return)
+        raw_keyval['host_group_name'] = 'jackson five'
+        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('janet', job['user'])
+        self.assertEqual('abc123', job['machine'])
+        self.god.check_playback()
+
+    def test_load_from_dir_multi_machine_group_name(self):
+        raw_keyval = dict(self.keyval_return)
+        raw_keyval['user'] = 'michael'
+        raw_keyval['hostname'] = 'abc123,dancingmachine'
+        raw_keyval['host_group_name'] = 'jackson five'
+        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('michael', job['user'])
+        # The host_group_name is used instead because machine appeared to be
+        # a comma separated list.
+        self.assertEqual('jackson five', job['machine'])
+        self.god.check_playback()
+
+    def test_load_from_dir_no_machine_group_name(self):
+        raw_keyval = dict(self.keyval_return)
+        del raw_keyval['hostname']
+        raw_keyval['host_group_name'] = 'jackson five'
+        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        job = version_0.job.load_from_dir('.')
+        # The host_group_name is used because there is no machine.
+        self.assertEqual('jackson five', job['machine'])
+        self.god.check_playback()
 
 
 class test_status_line(unittest.TestCase):
