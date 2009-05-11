@@ -443,3 +443,13 @@ def create_new_job(owner, host_objects, metahost_objects,
     job.queue(all_host_objects, atomic_group=atomic_group,
               is_template=is_template)
     return job.id
+
+
+def find_platform(host):
+    platforms = [label.name for label in host.label_list if label.platform]
+    if not platforms:
+        return None
+    if len(platforms) > 1:
+        raise ValueError('Host %s has more than one platform: %s' %
+                         (host.hostname, ', '.join(platforms)))
+    return platforms[0]
