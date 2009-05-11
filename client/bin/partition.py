@@ -252,9 +252,9 @@ def parallel(partitions, method_name, *args, **dargs):
         print_args += ['%s=%s' % (key, dargs[key]) for key in dargs.keys()]
         print '%s.%s(%s)' % (str(p), method_name, ', '.join(print_args))
         sys.stdout.flush()
-        def func(function, part=p):
+        def _run_named_method(function, part=p):
             getattr(part, method_name)(*args, **dargs)
-        flist.append((func, ()))
+        flist.append((_run_named_method, ()))
     job.parallel(*flist)
 
 
@@ -310,6 +310,40 @@ def is_valid_disk(device):
                 return True
 
     return False
+
+
+def run_test_on_partitions(job, test, partitions, mountpoint_func,
+                           tag, fs_opt, **dargs):
+    """\
+    Run a test that requires multiple partitions.  Filesystems will be
+    made on the partitions and mounted, then the test will run, then the
+    filesystems will be unmounted and fsck'd.
+
+    Args:
+      job: A job instance to run the test
+      test: A string containing the name of the test
+      partitions: A list of partition objects, these are passed to the test as
+          partitions=
+      mountpoint_func: A callable that returns a mountpoint given a partition
+          instance
+      tag: A string tag to make this test unique (Required for control files
+          that make multiple calls to this routine with the same value of
+          'test'.)
+      fs_opt: An FsOptions instance that describes what filesystem to make
+      dargs: Arguments to be passed to job.run_test() and eventually the test
+    """
+    # setup the filesystem parameters for all the partitions
+    for p in partitions:
+        p.set_fs_options(fs_opt)
+
+    # make and mount all the partitions in parallel
+    parallel(partitions, 'setup_before_test', mountpoint_func=mountpoint_func)
+
+    # run the test against all the partitions
+    job.run_test(test, tag=tag, partitions=partitions, **dargs)
+
+    # fsck and then remake all the filesystems in parallel
+    parallel(partitions, 'cleanup_after_test')
 
 
 class partition(object):
@@ -378,6 +412,34 @@ class partition(object):
         self.job.run_test(test, dir=self.get_mountpoint(), **dargs)
 
 
+    def setup_before_test(self, mountpoint_func):
+        """\
+        Prepare a partition for running a test.  Unmounts any
+        filesystem that's currently mounted on the partition, makes a
+        new filesystem (according to this partition's filesystem
+        options) and mounts it where directed by mountpoint_func.
+
+        Args:
+          mountpoint_func: A callable that returns a path as a string, given a
+          partition instance.
+        """
+        mountpoint = mountpoint_func(self)
+        if not mountpoint:
+            raise ValueError('Don\'t know where to put this partition')
+        self.unmount(ignore_status=True, record=False)
+        self.mkfs()
+        self.mount(mountpoint)
+
+
+    def cleanup_after_test(self):
+        """\
+        Cleans up a partition after running a filesystem test.  The
+        filesystem is unmounted, and then checked for errors.
+        """
+        self.unmount()
+        self.fsck()
+
+
     def run_test_on_partition(self, test, mountpoint_func, **dargs):
         """
         Executes a test fs-style (umount,mkfs,mount,test)
@@ -399,21 +461,19 @@ class partition(object):
 
         dargs['tag'] = test + '.' + tag
 
-        def func(test_tag, dir=None, **dargs):
-            self.unmount(ignore_status=True, record=False)
-            self.mkfs()
-            self.mount(dir)
+        def _make_partition_and_run_test(test_tag, dir=None, **dargs):
+            self.setup_before_test(mountpoint_func)
             try:
                 self.job.run_test(test, tag=test_tag, dir=mountpoint, **dargs)
             finally:
-                self.unmount()
-                self.fsck()
+                self.cleanup_after_test()
 
         mountpoint = mountpoint_func(self)
 
         # The tag is the tag for the group (get stripped off by run_group)
         # The test_tag is the tag for the test itself
-        self.job.run_group(func, test_tag=tag, dir=mountpoint, **dargs)
+        self.job.run_group(_make_partition_and_run_test,
+                           test_tag=tag, dir=mountpoint, **dargs)
 
 
     def get_mountpoint(self, open_func=open):
