@@ -5,10 +5,8 @@ provides access to global configuration file
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
-import os
-import sys
-import ConfigParser
-import error
+import os, sys, ConfigParser
+from autotest_lib.client.common_lib import error
 
 dirname = os.path.dirname(sys.modules[__name__].__file__)
 DEFAULT_CONFIG_FILE = os.path.abspath(os.path.join(dirname,
