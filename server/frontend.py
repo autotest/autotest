@@ -14,7 +14,7 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import os, time, traceback, re
+import os, time, traceback, re, traceback
 import common
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import global_config
@@ -236,12 +236,15 @@ class AFE(RpcClient):
         """
         jobs = []
         for pairing in pairings:
-            new_job = self.invoke_test(pairing, kernel, kernel_label, priority,
-                                       timeout=timeout)
-            if not new_job:
-                continue
-            new_job.notified = False
-            jobs.append(new_job)
+            try:
+                new_job = self.invoke_test(pairing, kernel, kernel_label,
+                                           priority, timeout=timeout)
+                if not new_job:
+                    continue
+                new_job.notified = False
+                jobs.append(new_job)
+            except Exception, e:
+                traceback.print_exc()
         if not wait or not jobs:
             return
         tko = TKO()
