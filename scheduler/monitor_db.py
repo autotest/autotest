@@ -1362,7 +1362,7 @@ class AgentTask(object):
         return first_execution_tag
 
 
-    def _copy_and_parse_results(self, queue_entries, use_monitor=None):
+    def _copy_results(self, queue_entries, use_monitor=None):
         assert len(queue_entries) > 0
         if use_monitor is None:
             assert self.monitor
@@ -1373,8 +1373,15 @@ class AgentTask(object):
         _drone_manager.copy_to_results_repository(use_monitor.get_process(),
                                                   results_path)
 
+
+    def _parse_results(self, queue_entries):
         reparse_task = FinalReparseTask(queue_entries)
         self.agent.dispatcher.add_agent(Agent([reparse_task], num_processes=0))
+
+
+    def _copy_and_parse_results(self, queue_entries, use_monitor=None):
+        self._copy_results(queue_entries, use_monitor)
+        self._parse_results(queue_entries)
 
 
     def run(self, pidfile_name=_AUTOSERV_PID_FILE, paired_with_pidfile=None):
@@ -1472,7 +1479,9 @@ class RepairTask(AgentTask, TaskWithJobKeyvals):
             source_path=self.temp_results_dir + '/',
             destination_path=self.queue_entry_to_fail.execution_tag() + '/')
 
-        self._copy_and_parse_results([self.queue_entry_to_fail])
+        self._copy_results([self.queue_entry_to_fail])
+        if self.queue_entry_to_fail.job.parse_failed_repair:
+            self._parse_results([self.queue_entry_to_fail])
         self.queue_entry_to_fail.handle_host_failure()
 
 
@@ -2510,7 +2519,8 @@ class Job(DBObject):
     _table_name = 'jobs'
     _fields = ('id', 'owner', 'name', 'priority', 'control_file',
                'control_type', 'created_on', 'synch_count', 'timeout',
-               'run_verify', 'email_list', 'reboot_before', 'reboot_after')
+               'run_verify', 'email_list', 'reboot_before', 'reboot_after',
+               'parse_failed_repair')
 
 
     def __init__(self, id=None, row=None, **kwargs):

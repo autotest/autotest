@@ -353,37 +353,36 @@ def create_job(name, priority, control_file, control_type, is_template=False,
                timeout=None, synch_count=None, hosts=(), meta_hosts=(),
                run_verify=True, one_time_hosts=(), email_list='',
                dependencies=(), reboot_before=None, reboot_after=None,
-               atomic_group_name=None):
+               parse_failed_repair=None, atomic_group_name=None):
     """\
     Create and enqueue a job.
 
-    priority: Low, Medium, High, Urgent
-    control_file: String contents of the control file.
-    control_type: Type of control file, Client or Server.
-    is_template: If true then create a template job.
-    timeout: Hours after this call returns until the job times out.
-    synch_count: How many machines the job uses per autoserv execution.
-                 synch_count == 1 means the job is asynchronous.  If an
-                 atomic group is given this value is treated as a minimum.
-    hosts: List of hosts to run job on.
-    meta_hosts: List where each entry is a label name, and for each entry
-                one host will be chosen from that label to run the job
-                on.
-    run_verify: Should the host be verified before running the test?
-    one_time_hosts: List of hosts not in the database to run the job on.
-    email_list: String containing emails to mail when the job is done
-    dependencies: List of label names on which this job depends
-    reboot_before: Never, If dirty, or Always
-    reboot_after: Never, If all tests passed, or Always
-    atomic_group_name: The name of an atomic group to schedule the job on.
+    @param name name of this job
+    @param priority Low, Medium, High, Urgent
+    @param control_file String contents of the control file.
+    @param control_type Type of control file, Client or Server.
+    @param synch_count How many machines the job uses per autoserv execution.
+    synch_count == 1 means the job is asynchronous.  If an atomic group is
+    given this value is treated as a minimum.
+    @param is_template If true then create a template job.
+    @param timeout Hours after this call returns until the job times out.
+    @param run_verify Should the host be verified before running the test?
+    @param email_list String containing emails to mail when the job is done
+    @param dependencies List of label names on which this job depends
+    @param reboot_before Never, If dirty, or Always
+    @param reboot_after Never, If all tests passed, or Always
+    @param parse_failed_repair if true, results of failed repairs launched by
+    this job will be parsed as part of the job.
+
+    @param hosts List of hosts to run job on.
+    @param meta_hosts List where each entry is a label name, and for each entry
+    one host will be chosen from that label to run the job on.
+    @param one_time_hosts List of hosts not in the database to run the job on.
+    @param atomic_group_name The name of an atomic group to schedule the job on.
+
 
     @returns The created Job id number.
     """
-
-    if timeout is None:
-        timeout=global_config.global_config.get_config_value(
-            'AUTOTEST_WEB', 'job_timeout_default')
-
     owner = thread_local.get_user().login
     # input validation
     if not (hosts or meta_hosts or one_time_hosts or atomic_group_name):
@@ -425,21 +424,23 @@ def create_job(name, priority, control_file, control_type, is_template=False,
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
 
+    options = dict(name=name,
+                   priority=priority,
+                   control_file=control_file,
+                   control_type=control_type,
+                   is_template=is_template,
+                   timeout=timeout,
+                   synch_count=synch_count,
+                   run_verify=run_verify,
+                   email_list=email_list,
+                   dependencies=dependencies,
+                   reboot_before=reboot_before,
+                   reboot_after=reboot_after,
+                   parse_failed_repair=parse_failed_repair)
     return rpc_utils.create_new_job(owner=owner,
+                                    options=options,
                                     host_objects=host_objects,
                                     metahost_objects=metahost_objects,
-                                    name=name,
-                                    priority=priority,
-                                    control_file=control_file,
-                                    control_type=control_type,
-                                    is_template=is_template,
-                                    synch_count=synch_count,
-                                    timeout=timeout,
-                                    run_verify=run_verify,
-                                    email_list=email_list,
-                                    dependencies=dependencies,
-                                    reboot_before=reboot_before,
-                                    reboot_after=reboot_after,
                                     atomic_group=atomic_group)
 
 
@@ -639,6 +640,8 @@ def get_static_data():
     host_statuses: Sorted list of possible Host statuses.
     job_statuses: Sorted list of possible HostQueueEntry statuses.
     job_timeout_default: The default job timeout length in hours.
+    parse_failed_repair_default: Default value for the parse_failed_repair job
+    option.
     reboot_before_options: A list of valid RebootBefore string enums.
     reboot_after_options: A list of valid RebootAfter string enums.
     motd: Server's message of the day.
@@ -663,6 +666,8 @@ def get_static_data():
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.HostQueueEntry.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
+    result['parse_failed_repair_default'] = bool(
+        models.Job.DEFAULT_PARSE_FAILED_REPAIR)
     result['reboot_before_options'] = models.RebootBefore.names
     result['reboot_after_options'] = models.RebootAfter.names
     result['motd'] = rpc_utils.get_motd()
@@ -679,7 +684,7 @@ def get_static_data():
                                    "Parsing": "Awaiting parse of final results",
                                    "Gathering": "Gathering log files",
                                    "Template": "Template job for recurring run"}
-                                    
+
     return result
 
 

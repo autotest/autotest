@@ -1458,7 +1458,7 @@ class AgentTasksTest(unittest.TestCase):
         self._test_repair_task_helper(False)
 
 
-    def test_repair_task_with_queue_entry(self):
+    def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair):
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self.god.stub_class(monitor_db, 'Agent')
         self.god.stub_class_method(monitor_db.TaskWithJobKeyvals,
@@ -1479,11 +1479,13 @@ class AgentTasksTest(unittest.TestCase):
         self._setup_move_logfile(copy_on_drone=True)
         self.queue_entry.execution_tag.expect_call().and_return('tag')
         self._setup_move_logfile()
-        reparse_task = monitor_db.FinalReparseTask.expect_new(
-            [self.queue_entry])
-        reparse_agent = monitor_db.Agent.expect_new([reparse_task],
-                                                    num_processes=0)
-        self._dispatcher.add_agent.expect_call(reparse_agent)
+        self.job.parse_failed_repair = parse_failed_repair
+        if parse_failed_repair:
+            reparse_task = monitor_db.FinalReparseTask.expect_new(
+                [self.queue_entry])
+            reparse_agent = monitor_db.Agent.expect_new([reparse_task],
+                                                        num_processes=0)
+            self._dispatcher.add_agent.expect_call(reparse_agent)
         self.queue_entry.handle_host_failure.expect_call()
 
         task = monitor_db.RepairTask(self.host, self.queue_entry)
@@ -1493,6 +1495,11 @@ class AgentTasksTest(unittest.TestCase):
         self.run_task(task, False)
         self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
+
+
+    def test_repair_task_with_queue_entry(self):
+        self._test_repair_task_with_queue_entry_helper(True)
+        self._test_repair_task_with_queue_entry_helper(False)
 
 
     def setup_verify_expects(self, success, use_queue_entry):
