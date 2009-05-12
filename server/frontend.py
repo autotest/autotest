@@ -14,7 +14,7 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import os, time, traceback, re, traceback
+import os, time, traceback, re
 import common
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import global_config
