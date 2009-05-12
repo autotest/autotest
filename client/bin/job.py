@@ -1249,6 +1249,11 @@ def runjob(control, cont=False, tag="default", harness_type='',
     """
     control = os.path.abspath(control)
     state = control + '.state'
+    # Ensure state file is cleaned up before the job starts to run if autotest
+    # is not running with the --continue flag
+    if os.path.isfile(state):
+        logging.debug('Cleaning up previously found state file')
+        os.remove(state)
 
     # instantiate the job object ready for the control file.
     myjob = None
