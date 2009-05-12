@@ -162,6 +162,7 @@ public class CreateJobView extends TabView
     protected CheckBox skipVerify = new CheckBox();
     private RadioChooser rebootBefore = new RadioChooser();
     private RadioChooser rebootAfter = new RadioChooser();
+    private CheckBox parseFailedRepair = new CheckBox();
     protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
@@ -218,6 +219,8 @@ public class CreateJobView extends TabView
         skipVerify.setChecked(!jobObject.get("run_verify").isBoolean().booleanValue());
         rebootBefore.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_before")));
         rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
+        parseFailedRepair.setChecked(
+                jobObject.get("parse_failed_repair").isBoolean().booleanValue());
 
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
@@ -528,6 +531,7 @@ public class CreateJobView extends TabView
         RootPanel.get("create_skip_verify").add(skipVerify);
         RootPanel.get("create_reboot_before").add(rebootBefore);
         RootPanel.get("create_reboot_after").add(rebootAfter);
+        RootPanel.get("create_parse_failed_repair").add(parseFailedRepair);
         RootPanel.get("create_tests").add(testSelector);
         RootPanel.get("create_profilers").add(profilersPanel);
         RootPanel.get("create_edit_control").add(controlFilePanel);
@@ -539,13 +543,16 @@ public class CreateJobView extends TabView
     }
 
     public void reset() {
+        StaticDataRepository repository = StaticDataRepository.getRepository();
+
         jobName.setText("");
         resetPriorityToDefault();
         rebootBefore.reset();
         rebootAfter.reset();
-        kernel.setText("");
-        timeout.setText(StaticDataRepository.getRepository().
-            getData("job_timeout_default").isString().stringValue());
+        parseFailedRepair.setChecked(
+                repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
+        kernel.setText("");        
+        timeout.setText(repository.getData("job_timeout_default").isString().stringValue());
         emailList.setText("");
         testSelector.reset();
         skipVerify.setChecked(false);
@@ -581,8 +588,7 @@ public class CreateJobView extends TabView
             public void doCallback(Object source) {
                 JSONObject args = new JSONObject();
                 args.put("name", new JSONString(jobName.getText()));
-                String priority = priorityList.getItemText(
-                                               priorityList.getSelectedIndex());
+                String priority = priorityList.getItemText(priorityList.getSelectedIndex());
                 args.put("priority", new JSONString(priority));
                 args.put("control_file", new JSONString(controlFile.getText()));
                 args.put("control_type", 
@@ -592,15 +598,18 @@ public class CreateJobView extends TabView
                 args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
                 args.put("is_template", JSONBoolean.getInstance(isTemplate));
+                args.put("dependencies", getSelectedDependencies());
                 args.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
                 args.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
+                args.put("parse_failed_repair",
+                         JSONBoolean.getInstance(parseFailedRepair.isChecked()));
+
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 args.put("one_time_hosts",
                     Utils.stringsToJSON(hosts.oneTimeHosts));
-                args.put("dependencies", getSelectedDependencies());
-                
+
                 rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
                     @Override
                     public void onSuccess(JSONValue result) {

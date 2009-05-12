@@ -234,11 +234,11 @@ class ExtendedManager(dbmodels.Manager):
         return cursor.fetchall()
 
 
-    def _is_relation_to(self, field, model_class):
-        return field.rel and field.rel.to is model_class
+    def _is_relation_to(self, field, ModelClass):
+        return field.rel and field.rel.to is ModelClass
 
 
-    def _determine_pivot_table(self, related_model):
+    def _determine_pivot_table(self, RelatedModel):
         """
         Determine the pivot table for this relationship and return a tuple
         (pivot_table, pivot_from_field, pivot_to_field).  See
@@ -246,14 +246,14 @@ class ExtendedManager(dbmodels.Manager):
         Note -- this depends on Django model internals and will likely need to
         be updated when we move to Django 1.x.
         """
-        # look for a field on related_model relating to this model
-        for field in related_model._meta.fields:
+        # look for a field on RelatedModel relating to this model
+        for field in RelatedModel._meta.fields:
             if self._is_relation_to(field, self.model):
                 # many-to-one -- the related table itself is the pivot table
-                return (related_model._meta.db_table, field.column,
-                        related_model.objects.get_key_on_this_table())
+                return (RelatedModel._meta.db_table, field.column,
+                        RelatedModel.objects.get_key_on_this_table())
 
-        for field in related_model._meta.many_to_many:
+        for field in RelatedModel._meta.many_to_many:
             if self._is_relation_to(field, self.model):
                 # many-to-many
                 return (field.m2m_db_table(), field.m2m_reverse_name(),
@@ -261,12 +261,12 @@ class ExtendedManager(dbmodels.Manager):
 
         # maybe this model has the many-to-many field
         for field in self.model._meta.many_to_many:
-            if self._is_relation_to(field, related_model):
+            if self._is_relation_to(field, RelatedModel):
                 return (field.m2m_db_table(), field.m2m_column_name(),
                         field.m2m_reverse_name())
 
         raise ValueError('%s has no relation to %s' %
-                         (related_model, self.model))
+                         (RelatedModel, self.model))
 
 
     def _query_pivot_table(self, id_list, pivot_table, pivot_from_field,
@@ -298,11 +298,11 @@ class ExtendedManager(dbmodels.Manager):
         return related_ids
 
 
-    def populate_relationships(self, model_objects, related_model,
+    def populate_relationships(self, model_objects, RelatedModel,
                                related_list_name):
         """
-        For each instance in model_objects, add a field named related_list_name
-        listing all the related objects of type related_model.  related_model
+        For each instance in query_set, add a field named related_list_name
+        listing all the related objects of type RelatedModel.  RelatedModel
         must be in a many-to-one or many-to-many relationship with this model.
         """
         if not model_objects:
@@ -310,12 +310,12 @@ class ExtendedManager(dbmodels.Manager):
             return
         id_list = (item._get_pk_val() for item in model_objects)
         pivot_table, pivot_from_field, pivot_to_field = (
-            self._determine_pivot_table(related_model))
+            self._determine_pivot_table(RelatedModel))
         related_ids = self._query_pivot_table(id_list, pivot_table,
                                               pivot_from_field, pivot_to_field)
 
         all_related_ids = list(set(itertools.chain(*related_ids.itervalues())))
-        related_objects_by_id = related_model.objects.in_bulk(all_related_ids)
+        related_objects_by_id = RelatedModel.objects.in_bulk(all_related_ids)
 
         for item in model_objects:
             related_ids_for_item = related_ids.get(item._get_pk_val(), [])

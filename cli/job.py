@@ -194,7 +194,8 @@ class job_stat(job_list_stat):
         else:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status',
                     'owner', 'control_type',  'synch_count', 'created_on',
-                    'run_verify', 'reboot_before', 'reboot_after']
+                    'run_verify', 'reboot_before', 'reboot_after',
+                    'parse_failed_repair']
 
         if self.show_control_file:
             keys.append('control_file')
@@ -211,7 +212,7 @@ class job_create(action_common.atest_create, job):
     [--reboot_before <option>] [--reboot_after <option>]
     [--noverify] [--timeout <timeout>] [--one-time-hosts <hosts>]
     [--email <email>] [--dependencies <labels this job is dependent on>]
-    [--atomic_group <atomic group name>]
+    [--atomic_group <atomic group name>] [--parse-failed-repair <option>]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -271,6 +272,11 @@ class job_create(action_common.atest_create, job):
                                type='choice',
                                choices=('never', 'if all tests passed',
                                         'always'))
+        self.parser.add_option('--parse-failed-repair',
+                               help='Whether or not to parse failed repair '
+                                    'results as part of the job',
+                               type='choice',
+                               choices=('true', 'false'))
         self.parser.add_option('-l', '--clone', help='Clone an existing job.  '
                                'This will discard all other options except '
                                '--reuse-hosts.', default=False,
@@ -362,6 +368,9 @@ class job_create(action_common.atest_create, job):
             self.data['reboot_before'] = options.reboot_before.capitalize()
         if options.reboot_after:
             self.data['reboot_after'] = options.reboot_after.capitalize()
+        if options.parse_failed_repair:
+            self.data['parse_failed_repair'] = (
+                options.parse_failed_repair == 'true')
         if options.noverify:
             self.data['run_verify'] = False
         if options.timeout:
