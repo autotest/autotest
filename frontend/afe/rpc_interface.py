@@ -134,10 +134,7 @@ def set_host_attribute(attribute, value, **host_filter_data):
     models.AclGroup.check_for_acl_violation_hosts(hosts)
 
     for host in hosts:
-        if value is None:
-            host.delete_attribute(attribute)
-        else:
-            host.set_attribute(attribute, value)
+        host.set_or_delete_attribute(attribute, value)
 
 
 def delete_host(id):

@@ -10,11 +10,11 @@ _APP_DIR = os.path.join(os.path.dirname(__file__), 'afe')
 
 class FrontendTest(unittest.TestCase):
     def setUp(self):
-        readonly_connection.ReadOnlyConnection.set_testing_mode(True)
+        setup_test_environment.set_up()
 
 
     def tearDown(self):
-        readonly_connection.ReadOnlyConnection.set_testing_mode(False)
+        setup_test_environment.tear_down()
 
 
     def test_all(self):
