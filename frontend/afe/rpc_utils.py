@@ -372,15 +372,14 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_ids=None):
     return info
 
 
-def create_new_job(owner, host_objects, metahost_objects,
-                   name, priority, control_file, control_type,
-                   is_template=False, timeout=None, synch_count=None,
-                   run_verify=True, email_list='', dependencies=[],
-                   reboot_before=None, reboot_after=None, atomic_group=None):
+def create_new_job(owner, options, host_objects, metahost_objects,
+                   atomic_group=None):
     labels_by_name = dict((label.name, label)
-                     for label in models.Label.objects.all())
+                          for label in models.Label.objects.all())
     all_host_objects = host_objects + metahost_objects
     metahost_counts = _get_metahost_counts(metahost_objects)
+    dependencies = options.get('dependencies', [])
+    synch_count = options.get('synch_count')
 
     # check that each metahost request has enough hosts under the label
     for label, requested_count in metahost_counts.iteritems():
@@ -413,10 +412,10 @@ def create_new_job(owner, host_objects, metahost_objects,
 
 
     check_job_dependencies(host_objects, dependencies)
-    dependency_labels = [labels_by_name[label_name]
-                         for label_name in dependencies]
+    options['dependencies'] = [labels_by_name[label_name]
+                               for label_name in dependencies]
 
-    for label in metahost_objects + dependency_labels:
+    for label in metahost_objects + options['dependencies']:
         if label.atomic_group and not atomic_group:
             raise model_logic.ValidationError(
                     {'atomic_group_name':
@@ -429,19 +428,10 @@ def create_new_job(owner, host_objects, metahost_objects,
                      'Some meta_hosts or dependencies require an atomic group '
                      'other than the one requested for this job.'})
 
-    job = models.Job.create(owner=owner, name=name, priority=priority,
-                            control_file=control_file,
-                            control_type=control_type,
-                            synch_count=synch_count,
-                            hosts=all_host_objects,
-                            timeout=timeout,
-                            run_verify=run_verify,
-                            email_list=email_list.strip(),
-                            dependencies=dependency_labels,
-                            reboot_before=reboot_before,
-                            reboot_after=reboot_after)
+    job = models.Job.create(owner=owner, options=options,
+                            hosts=all_host_objects)
     job.queue(all_host_objects, atomic_group=atomic_group,
-              is_template=is_template)
+              is_template=options.get('is_template', False))
     return job.id
 
 

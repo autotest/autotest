@@ -99,6 +99,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'experimental': 'Experimental',
                     'synch_count': 'Sync Count',
                     'max_number_of_machines': 'Max. hosts to use',
+                    'parse_failed_repair': 'Include failed repair results',
                     }
 
 # In the failure, tag that will replace the item.

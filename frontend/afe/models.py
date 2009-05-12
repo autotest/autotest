@@ -633,9 +633,14 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                        job dependencies
     reboot_before: Never, If dirty, or Always
     reboot_after: Never, If all tests passed, or Always
+    parse_failed_repair: if True, a failed repair launched by this job will have
+    its results parsed as part of the job.
     """
     DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default', default=240)
+    DEFAULT_PARSE_FAILED_REPAIR = global_config.global_config.get_config_value(
+        'AUTOTEST_WEB', 'parse_failed_repair_default', type=bool,
+        default=False)
 
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
@@ -662,6 +667,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
                                               blank=True,
                                               default=DEFAULT_REBOOT_AFTER)
+    parse_failed_repair = dbmodels.BooleanField(
+        default=DEFAULT_PARSE_FAILED_REPAIR)
 
 
     # custom manager
@@ -673,23 +680,28 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @classmethod
-    def create(cls, owner, name, priority, control_file, control_type,
-               hosts, synch_count, timeout, run_verify, email_list,
-               dependencies, reboot_before, reboot_after):
+    def create(cls, owner, options, hosts):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
         """
         AclGroup.check_for_acl_violation_hosts(hosts)
         job = cls.add_object(
-            owner=owner, name=name, priority=priority,
-            control_file=control_file, control_type=control_type,
-            synch_count=synch_count, timeout=timeout,
-            run_verify=run_verify, email_list=email_list,
-            reboot_before=reboot_before, reboot_after=reboot_after,
+            owner=owner,
+            name=options['name'],
+            priority=options['priority'],
+            control_file=options['control_file'],
+            control_type=options['control_type'],
+            synch_count=options.get('synch_count'),
+            timeout=options.get('timeout'),
+            run_verify=options.get('run_verify'),
+            email_list=options.get('email_list'),
+            reboot_before=options.get('reboot_before'),
+            reboot_after=options.get('reboot_after'),
+            parse_failed_repair=options.get('parse_failed_repair'),
             created_on=datetime.now())
 
-        job.dependency_labels = dependencies
+        job.dependency_labels = options['dependencies']
         return job
 
 
@@ -819,7 +831,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
         logger.info('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
-                                           self.status))
+                                          self.status))
 
 
     def is_meta_host_entry(self):

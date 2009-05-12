@@ -105,6 +105,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showText(runVerify, "view_run_verify");
                 showField(jobObject, "reboot_before", "view_reboot_before");
                 showField(jobObject, "reboot_after", "view_reboot_after");
+                showField(jobObject, "parse_failed_repair", "view_parse_failed_repair");
                 showField(jobObject, "synch_count", "view_synch_count");
                 showField(jobObject, "control_type", "view_control_type");
                 showField(jobObject, "control_file", "view_control_file");
