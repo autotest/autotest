@@ -308,7 +308,7 @@ class ExtendedManager(dbmodels.Manager):
         if not model_objects:
             # if we don't bail early, we'll get a SQL error later
             return
-        id_list = (item.id for item in model_objects)
+        id_list = (item._get_pk_val() for item in model_objects)
         pivot_table, pivot_from_field, pivot_to_field = (
             self._determine_pivot_table(related_model))
         related_ids = self._query_pivot_table(id_list, pivot_table,
@@ -318,7 +318,7 @@ class ExtendedManager(dbmodels.Manager):
         related_objects_by_id = related_model.objects.in_bulk(all_related_ids)
 
         for item in model_objects:
-            related_ids_for_item = related_ids.get(item.id, [])
+            related_ids_for_item = related_ids.get(item._get_pk_val(), [])
             related_objects = [related_objects_by_id[related_id]
                                for related_id in related_ids_for_item]
             setattr(item, related_list_name, related_objects)
@@ -374,7 +374,7 @@ class ModelExtensions(object):
                 continue
             value = data[field.name]
             if isinstance(value, dbmodels.Model):
-                data[field.name] = value.id
+                data[field.name] = value._get_pk_val()
 
 
     @classmethod
@@ -385,7 +385,7 @@ class ModelExtensions(object):
         a problem, but it can be annoying in certain situations.
         """
         for field in cls._meta.fields:
-            if type(field) == dbmodels.BooleanField:
+            if type(field) == dbmodels.BooleanField and field.name in data:
                 data[field.name] = bool(data[field.name])
 
 
@@ -453,8 +453,10 @@ class ModelExtensions(object):
             elif field_obj.rel:
                 dest_obj = field_obj.rel.to.smart_get(data[field_name],
                                                       valid_only=False)
-                if to_human_readable and dest_obj.name_field is not None:
-                    data[field_name] = getattr(dest_obj, dest_obj.name_field)
+                if to_human_readable:
+                    if dest_obj.name_field is not None:
+                        data[field_name] = getattr(dest_obj,
+                                                   dest_obj.name_field)
                 else:
                     data[field_name] = dest_obj
 
@@ -780,3 +782,43 @@ class ModelWithInvalid(ModelExtensions):
         def _prepare(cls, model):
             super(ModelWithInvalid.Manipulator, cls)._prepare(model)
             cls.manager = model.valid_objects
+
+
+class ModelWithAttributes(object):
+    """
+    Mixin class for models that have an attribute model associated with them.
+    The attribute model is assumed to have its value field named "value".
+    """
+
+    def _get_attribute_model_and_args(self, attribute):
+        """
+        Subclasses should override this to return a tuple (attribute_model,
+        keyword_args), where attribute_model is a model class and keyword_args
+        is a dict of args to pass to attribute_model.objects.get() to get an
+        instance of the given attribute on this object.
+        """
+        raise NotImplemented
+
+
+    def set_attribute(self, attribute, value):
+        attribute_model, get_args = self._get_attribute_model_and_args(
+            attribute)
+        attribute_object, _ = attribute_model.objects.get_or_create(**get_args)
+        attribute_object.value = value
+        attribute_object.save()
+
+
+    def delete_attribute(self, attribute):
+        attribute_model, get_args = self._get_attribute_model_and_args(
+            attribute)
+        try:
+            attribute_model.objects.get(**get_args).delete()
+        except HostAttribute.DoesNotExist:
+            pass
+
+
+    def set_or_delete_attribute(self, attribute, value):
+        if value is None:
+            self.delete_attribute(attribute)
+        else:
+            self.set_attribute(attribute, value)

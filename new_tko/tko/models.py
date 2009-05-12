@@ -99,7 +99,7 @@ class TempManager(model_logic.ExtendedManager):
 
 
 class Machine(dbmodels.Model):
-    machine_idx = dbmodels.IntegerField(primary_key=True)
+    machine_idx = dbmodels.AutoField(primary_key=True)
     hostname = dbmodels.CharField(unique=True, maxlength=300)
     machine_group = dbmodels.CharField(blank=True, maxlength=240)
     owner = dbmodels.CharField(blank=True, maxlength=240)
@@ -109,7 +109,7 @@ class Machine(dbmodels.Model):
 
 
 class Kernel(dbmodels.Model):
-    kernel_idx = dbmodels.IntegerField(primary_key=True)
+    kernel_idx = dbmodels.AutoField(primary_key=True)
     kernel_hash = dbmodels.CharField(maxlength=105, editable=False)
     base = dbmodels.CharField(maxlength=90)
     printable = dbmodels.CharField(maxlength=300)
@@ -129,7 +129,7 @@ class Patch(dbmodels.Model):
 
 
 class Status(dbmodels.Model):
-    status_idx = dbmodels.IntegerField(primary_key=True)
+    status_idx = dbmodels.AutoField(primary_key=True)
     word = dbmodels.CharField(maxlength=30)
 
     class Meta:
@@ -137,7 +137,7 @@ class Status(dbmodels.Model):
 
 
 class Job(dbmodels.Model):
-    job_idx = dbmodels.IntegerField(primary_key=True)
+    job_idx = dbmodels.AutoField(primary_key=True)
     tag = dbmodels.CharField(unique=True, maxlength=300)
     label = dbmodels.CharField(maxlength=300)
     username = dbmodels.CharField(maxlength=240)
@@ -150,8 +150,9 @@ class Job(dbmodels.Model):
         db_table = 'jobs'
 
 
-class Test(dbmodels.Model, model_logic.ModelExtensions):
-    test_idx = dbmodels.IntegerField(primary_key=True)
+class Test(dbmodels.Model, model_logic.ModelExtensions,
+           model_logic.ModelWithAttributes):
+    test_idx = dbmodels.AutoField(primary_key=True)
     job = dbmodels.ForeignKey(Job, db_column='job_idx')
     test = dbmodels.CharField(maxlength=90)
     subdir = dbmodels.CharField(blank=True, maxlength=180)
@@ -162,39 +163,63 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
 
+    objects = model_logic.ExtendedManager()
+
+    def _get_attribute_model_and_args(self, attribute):
+        return TestAttribute, dict(test=self, attribute=attribute,
+                                   user_created=True)
+
+
+    def set_attribute(self, attribute, value):
+        # ensure non-user-created attributes remain immutable
+        try:
+            TestAttribute.objects.get(test=self, attribute=attribute,
+                                      user_created=False)
+            raise ValueError('Attribute %s already exists for test %s and is '
+                             'immutable' % (attribute, self.test_idx))
+        except TestAttribute.DoesNotExist:
+            super(Test, self).set_attribute(attribute, value)
+
+
     class Meta:
         db_table = 'tests'
 
 
 class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
-    # this isn't really a primary key, but it's necessary to appease Django
-    # and is harmless as long as we're careful
-    test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
+    test = dbmodels.ForeignKey(Test, db_column='test_idx')
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.CharField(blank=True, maxlength=300)
+    user_created = dbmodels.BooleanField(default=False)
+
+    objects = model_logic.ExtendedManager()
 
     class Meta:
         db_table = 'test_attributes'
 
 
 class IterationAttribute(dbmodels.Model, model_logic.ModelExtensions):
-    # see comment on TestAttribute regarding primary_key=True
+    # this isn't really a primary key, but it's necessary to appease Django
+    # and is harmless as long as we're careful
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.CharField(blank=True, maxlength=300)
+
+    objects = model_logic.ExtendedManager()
 
     class Meta:
         db_table = 'iteration_attributes'
 
 
 class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
-    # see comment on TestAttribute regarding primary_key=True
+    # see comment on IterationAttribute regarding primary_key=True
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
     attribute = dbmodels.CharField(maxlength=90)
     value = dbmodels.FloatField(null=True, max_digits=12, decimal_places=31,
                               blank=True)
+
+    objects = model_logic.ExtendedManager()
 
     class Meta:
         db_table = 'iteration_result'
@@ -207,6 +232,7 @@ class TestLabel(dbmodels.Model, model_logic.ModelExtensions):
                                      filter_interface=dbmodels.HORIZONTAL)
 
     name_field = 'name'
+    objects = model_logic.ExtendedManager()
 
     class Meta:
         db_table = 'test_labels'

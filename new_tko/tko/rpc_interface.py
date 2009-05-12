@@ -158,19 +158,13 @@ def get_job_ids(**filter_data):
 
 # test detail view
 
-def _itermodel_to_list(test_id, iteration_model):
-    return iteration_model.list_objects(
-        dict(test__test_idx=test_id),
-        fields=('iteration', 'attribute', 'value'))
-
-
 def _attributes_to_dict(attribute_list):
-    return dict((attribute_dict['attribute'], attribute_dict['value'])
-                for attribute_dict in attribute_list)
+    return dict((attribute.attribute, attribute.value)
+                for attribute in attribute_list)
 
 
 def _iteration_attributes_to_dict(attribute_list):
-    iter_keyfunc = operator.itemgetter('iteration')
+    iter_keyfunc = operator.attrgetter('iteration')
     attribute_list.sort(key=iter_keyfunc)
     iterations = {}
     for key, group in itertools.groupby(attribute_list, iter_keyfunc):
@@ -178,38 +172,37 @@ def _iteration_attributes_to_dict(attribute_list):
     return iterations
 
 
+def _format_iteration_keyvals(test):
+    iteration_attr = _iteration_attributes_to_dict(test.iteration_attributes)
+    iteration_perf = _iteration_attributes_to_dict(test.iteration_results)
+
+    all_iterations = iteration_attr.keys() + iteration_perf.keys()
+    max_iterations = max(all_iterations + [0])
+
+    # merge the iterations into a single list of attr & perf dicts
+    return [{'attr': iteration_attr.get(index, {}),
+             'perf': iteration_perf.get(index, {})}
+            for index in xrange(1, max_iterations + 1)]
+
+
 def get_detailed_test_views(**filter_data):
     test_views = models.TestView.list_objects(filter_data)
+    tests_by_id = models.Test.objects.in_bulk([test_view['test_idx']
+                                               for test_view in test_views])
+    tests = tests_by_id.values()
+    models.Test.objects.populate_relationships(tests, models.TestAttribute,
+                                               'attributes')
+    models.Test.objects.populate_relationships(tests, models.IterationAttribute,
+                                               'iteration_attributes')
+    models.Test.objects.populate_relationships(tests, models.IterationResult,
+                                               'iteration_results')
+    models.Test.objects.populate_relationships(tests, models.TestLabel,
+                                               'labels')
     for test_view in test_views:
-        test_id = test_view['test_idx']
-
-        # load in the test keyvals
-        attribute_dicts = models.TestAttribute.list_objects(
-            dict(test__test_idx=test_id), fields=('attribute', 'value'))
-        test_view['attributes'] = _attributes_to_dict(attribute_dicts)
-
-        # load in the iteration keyvals
-        attr_dicts = _itermodel_to_list(test_id, models.IterationAttribute)
-        perf_dicts = _itermodel_to_list(test_id, models.IterationResult)
-
-        # convert the iterations into dictionarys and count total iterations
-        iteration_attr = _iteration_attributes_to_dict(attr_dicts)
-        iteration_perf = _iteration_attributes_to_dict(perf_dicts)
-        all_dicts = attr_dicts + perf_dicts
-        if all_dicts:
-            max_iterations = max(row['iteration'] for row in all_dicts)
-        else:
-            max_iterations = 0
-
-        # merge the iterations into a single list of attr & perf dicts
-        test_view['iterations'] = [{'attr': iteration_attr.get(index, {}),
-                                    'perf': iteration_perf.get(index, {})}
-                                   for index in xrange(1, max_iterations + 1)]
-
-        # load in the test labels
-        label_dicts = models.TestLabel.list_objects(
-            dict(tests__test_idx=test_id), fields=('name',))
-        test_view['labels'] = [label_dict['name'] for label_dict in label_dicts]
+        test = tests_by_id[test_view['test_idx']]
+        test_view['attributes'] = _attributes_to_dict(test.attributes)
+        test_view['iterations'] = _format_iteration_keyvals(test)
+        test_view['labels'] = [label.name for label in test.labels]
     return rpc_utils.prepare_for_serialization(test_views)
 
 # graphing view support
@@ -327,6 +320,23 @@ def test_label_remove_tests(label_id, **test_filter_data):
     test_ids = models.TestView.objects.query_test_ids(test_filter_data)
 
     label.tests.remove(*test_ids)
+
+
+# user-created test attributes
+
+def set_test_attribute(attribute, value, **test_filter_data):
+    """
+    * attribute - string name of attribute
+    * value - string, or None to delete an attribute
+    * test_filter_data - filter data to apply to TestView to choose tests to act
+      upon
+    """
+    assert test_filter_data # disallow accidental actions on all hosts
+    test_ids = models.TestView.objects.query_test_ids(test_filter_data)
+    tests = models.Test.objects.in_bulk(test_ids)
+
+    for test in tests.itervalues():
+        test.set_or_delete_attribute(attribute, value)
 
 
 # saved queries
