@@ -175,7 +175,8 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
         return self.login
 
 
-class Host(model_logic.ModelWithInvalid, dbmodels.Model):
+class Host(model_logic.ModelWithInvalid, dbmodels.Model,
+           model_logic.ModelWithAttributes):
     """\
     Required:
     hostname
@@ -322,18 +323,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model):
         return active[0]
 
 
-    def set_attribute(self, attribute, value):
-        attribute_object = HostAttribute.objects.get_or_create(
-            host=self, attribute=attribute)[0]
-        attribute_object.value = value
-        attribute_object.save()
-
-
-    def delete_attribute(self, attribute):
-        try:
-            HostAttribute.objects.get(host=self, attribute=attribute).delete()
-        except HostAttribute.DoesNotExist:
-            pass
+    def _get_attribute_model_and_args(self, attribute):
+        return HostAttribute, dict(host=self, attribute=attribute)
 
 
     class Meta:

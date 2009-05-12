@@ -24,6 +24,7 @@ LONG_TESTS = set((
     'frontend_unittest.py',
     'client_compilation_unittest.py',
     'csv_encoder_unittest.py',
+    'rpc_interface_unittest.py',
     ))
 
 modules = []

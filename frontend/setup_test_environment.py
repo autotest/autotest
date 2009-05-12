@@ -12,10 +12,11 @@ settings.DATABASE_ENGINE = 'sqlite3'
 settings.DATABASE_NAME = ':memory:'
 
 from django.db import connection
+from autotest_lib.frontend.afe import readonly_connection
 
 def set_test_database(database):
     settings.DATABASE_NAME = database
-    connection.close()
+    destroy_test_database()
 
 
 def backup_test_database():
@@ -36,3 +37,26 @@ def cleanup_database_backup(backup_path):
 
 def run_syncdb(verbosity=0):
     management.syncdb(verbosity, interactive=False)
+
+
+def destroy_test_database():
+    connection.close()
+    # Django brilliantly ignores close() requests on in-memory DBs to keep us
+    # naive users from accidentally destroying data.  So reach in and close
+    # the real connection ourselves.
+    # Note this depends on Django internals and will likely need to be changed
+    # when we move to Django 1.x.
+    real_connection = connection.connection
+    if real_connection is not None:
+        real_connection.close()
+        connection.connection = None
+
+
+def set_up():
+    run_syncdb()
+    readonly_connection.ReadOnlyConnection.set_testing_mode(True)
+
+
+def tear_down():
+    readonly_connection.ReadOnlyConnection.set_testing_mode(False)
+    destroy_test_database()
