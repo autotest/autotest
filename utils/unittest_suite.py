@@ -22,7 +22,8 @@ LONG_TESTS = set((
     'barrier_unittest.py',
     'migrate_unittest.py',
     'frontend_unittest.py',
-    'client_compilation_unittest.py'
+    'client_compilation_unittest.py',
+    'csv_encoder_unittest.py',
     ))
 
 modules = []
