@@ -598,12 +598,6 @@ def set_num_huge_pages(num):
     utils.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
 
 
-def get_system_nodes():
-    nodes = os.listdir('/sys/devices/system/node')
-    nodes.sort()
-    return nodes
-
-
 def get_cpu_vendor():
     cpuinfo = open('/proc/cpuinfo').read()
     vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
