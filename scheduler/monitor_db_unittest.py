@@ -272,7 +272,7 @@ class DBObjectTest(BaseSchedulerTest):
 
         # If either of these are called, a query was made when it shouldn't be.
         host_a._compare_fields_in_row = lambda _: self.fail('eek! a query!')
-        host_a._update_fields_from_row = host_a._compare_fields_in_row 
+        host_a._update_fields_from_row = host_a._compare_fields_in_row
         host_c = monitor_db.Host(id=2, always_query=False)
         self.assert_(host_a is host_c, 'Cached instance not returned')
 
@@ -295,7 +295,7 @@ class DBObjectTest(BaseSchedulerTest):
         self.god.stub_with(monitor_db, 'Job', MockJob)
         hqe = monitor_db.HostQueueEntry(
                 new_record=True,
-                row=[0, 1, 2, 'Queued', None, 0, 0, 0, '.', None, False])
+                row=[0, 1, 2, 'Queued', None, 0, 0, 0, '.', None, False, None])
         hqe.save()
         new_id = hqe.id
         # Force a re-query and verify that the correct data was stored.
@@ -311,6 +311,7 @@ class DBObjectTest(BaseSchedulerTest):
         self.assertEqual(hqe.deleted, False)
         self.assertEqual(hqe.execution_subdir, '.')
         self.assertEqual(hqe.atomic_group_id, None)
+        self.assertEqual(hqe.started_on, None)
 
 
 class DispatcherSchedulingTest(BaseSchedulerTest):
