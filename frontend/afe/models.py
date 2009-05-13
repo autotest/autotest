@@ -626,7 +626,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     submitted_on: date of job submission
     synch_count: how many hosts should be used per autoserv execution
     run_verify: Whether or not to run the verify phase
-    timeout: hours until job times out
+    timeout: hours from queuing time until job times out
+    max_runtime_hrs: hours from job starting time until job times out
     email_list: list of people to email on completion delimited by any of:
                 white space, ',', ':', ';'
     dependency_labels: many-to-many relationship with labels corresponding to
@@ -638,6 +639,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     """
     DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default', default=240)
+    DEFAULT_MAX_RUNTIME_HRS = global_config.global_config.get_config_value(
+        'AUTOTEST_WEB', 'job_max_runtime_hrs_default', default=72)
     DEFAULT_PARSE_FAILED_REPAIR = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'parse_failed_repair_default', type=bool,
         default=False)
@@ -669,6 +672,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                                               default=DEFAULT_REBOOT_AFTER)
     parse_failed_repair = dbmodels.BooleanField(
         default=DEFAULT_PARSE_FAILED_REPAIR)
+    max_runtime_hrs = dbmodels.IntegerField(default=DEFAULT_MAX_RUNTIME_HRS)
 
 
     # custom manager
@@ -694,6 +698,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             control_type=options['control_type'],
             synch_count=options.get('synch_count'),
             timeout=options.get('timeout'),
+            max_runtime_hrs=options.get('max_runtime_hrs'),
             run_verify=options.get('run_verify'),
             email_list=options.get('email_list'),
             reboot_before=options.get('reboot_before'),
@@ -784,6 +789,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     # be expanded into many actual hosts within the group at schedule time.
     atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
     aborted = dbmodels.BooleanField(default=False)
+    started_on = dbmodels.DateTimeField(null=True)
 
     objects = model_logic.ExtendedManager()
 
@@ -875,10 +881,18 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'host_queue_entries'
 
+
     if settings.FULL_ADMIN:
         class Admin:
             list_display = ('id', 'job', 'host', 'status',
                             'meta_host')
+
+
+    def __str__(self):
+        hostname = None
+        if self.host:
+            hostname = self.host.hostname
+        return "%s/%d (%d)" % (hostname, self.job.id, self.id)
 
 
 class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):

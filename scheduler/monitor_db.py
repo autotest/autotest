@@ -1589,6 +1589,7 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
         for queue_entry in self.queue_entries:
             self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status('Running')
+            queue_entry.update_field('started_on', datetime.datetime.now())
             queue_entry.host.set_status('Running')
             queue_entry.host.update_field('dirty', 1)
         if self.job.synch_count == 1:
@@ -2245,7 +2246,7 @@ class HostQueueEntry(DBObject):
     _table_name = 'host_queue_entries'
     _fields = ('id', 'job_id', 'host_id', 'status', 'meta_host',
                'active', 'complete', 'deleted', 'execution_subdir',
-               'atomic_group_id', 'aborted')
+               'atomic_group_id', 'aborted', 'started_on')
 
 
     def __init__(self, id=None, row=None, **kwargs):
@@ -2432,6 +2433,7 @@ class HostQueueEntry(DBObject):
 
     def requeue(self):
         self.set_status('Queued')
+        self.update_field('started_on', None)
         # verify/cleanup failure sets the execution subdir, so reset it here
         self.set_execution_subdir('')
         if self.meta_host:
@@ -2520,7 +2522,7 @@ class Job(DBObject):
     _fields = ('id', 'owner', 'name', 'priority', 'control_file',
                'control_type', 'created_on', 'synch_count', 'timeout',
                'run_verify', 'email_list', 'reboot_before', 'reboot_after',
-               'parse_failed_repair')
+               'parse_failed_repair', 'max_runtime_hrs')
 
 
     def __init__(self, id=None, row=None, **kwargs):

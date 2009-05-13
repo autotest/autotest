@@ -349,11 +349,12 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     return cf_info
 
 
-def create_job(name, priority, control_file, control_type, is_template=False,
-               timeout=None, synch_count=None, hosts=(), meta_hosts=(),
-               run_verify=True, one_time_hosts=(), email_list='',
-               dependencies=(), reboot_before=None, reboot_after=None,
-               parse_failed_repair=None, atomic_group_name=None):
+def create_job(name, priority, control_file, control_type,
+               hosts=(), meta_hosts=(), one_time_hosts=(),
+               atomic_group_name=None, synch_count=None, is_template=False,
+               timeout=None, max_runtime_hrs=None, run_verify=True,
+               email_list='', dependencies=(), reboot_before=None,
+               reboot_after=None, parse_failed_repair=None):
     """\
     Create and enqueue a job.
 
@@ -366,6 +367,7 @@ def create_job(name, priority, control_file, control_type, is_template=False,
     given this value is treated as a minimum.
     @param is_template If true then create a template job.
     @param timeout Hours after this call returns until the job times out.
+    @param max_runtime_hrs Hours from job starting time until job times out
     @param run_verify Should the host be verified before running the test?
     @param email_list String containing emails to mail when the job is done
     @param dependencies List of label names on which this job depends
@@ -430,6 +432,7 @@ def create_job(name, priority, control_file, control_type, is_template=False,
                    control_type=control_type,
                    is_template=is_template,
                    timeout=timeout,
+                   max_runtime_hrs=max_runtime_hrs,
                    synch_count=synch_count,
                    run_verify=run_verify,
                    email_list=email_list,
@@ -666,6 +669,7 @@ def get_static_data():
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.HostQueueEntry.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
+    result['job_max_runtime_hrs_default'] = models.Job.DEFAULT_MAX_RUNTIME_HRS
     result['parse_failed_repair_default'] = bool(
         models.Job.DEFAULT_PARSE_FAILED_REPAIR)
     result['reboot_before_options'] = models.RebootBefore.names

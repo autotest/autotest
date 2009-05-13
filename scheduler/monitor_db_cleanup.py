@@ -52,6 +52,7 @@ class UserCleanup(PeriodicCleanup):
             logging.info('Running periodic cleanup')
             self._abort_timed_out_jobs()
             self._abort_jobs_past_synch_start_timeout()
+            self._abort_jobs_past_max_runtime()
             self._clear_inactive_blocks()
             self._check_for_db_inconsistencies()
 
@@ -86,6 +87,24 @@ class UserCleanup(PeriodicCleanup):
                 status=models.HostQueueEntry.Status.RUNNING)
             for queue_entry in entries_to_abort:
                 queue_entry.abort(None)
+
+
+    def _abort_jobs_past_max_runtime(self):
+        """
+        Abort executions that have started and are past the job's max runtime.
+        """
+        logging.info('Aborting all jobs that have passed maximum runtime')
+        rows = self._db.execute("""
+            SELECT hqe.id
+            FROM host_queue_entries AS hqe
+            INNER JOIN jobs ON (hqe.job_id = jobs.id)
+            WHERE NOT hqe.complete AND NOT hqe.aborted AND
+            hqe.started_on + INTERVAL jobs.max_runtime_hrs HOUR < NOW()""")
+        query = models.HostQueueEntry.objects.filter(
+            id__in=[row[0] for row in rows])
+        for queue_entry in query.distinct():
+            logging.warning('Aborting entry %s due to max runtime', queue_entry)
+            queue_entry.abort(None)
 
 
     def _check_for_db_inconsistencies(self):
