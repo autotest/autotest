@@ -74,17 +74,23 @@ class base_server_job(object):
 
     def __init__(self, control, args, resultdir, label, user, machines,
                  client=False, parse_job='',
-                 ssh_user='root', ssh_port=22, ssh_pass=''):
+                 ssh_user='root', ssh_port=22, ssh_pass='',
+                 group_name=''):
         """
-            Server side job object.
+        Create a server side job object.
 
-            Parameters:
-                control:        The control file (pathname of)
-                args:           args to pass to the control file
-                resultdir:      where to throw the results
-                label:          label for the job
-                user:           Username for the job (email address)
-                client:         True if a client-side control file
+        @param control The pathname of the control file.
+        @param args Passed to the control file.
+        @param resultdir Where to throw the results.
+        @param label Description of the job.
+        @param user Username for the job (email address).
+        @param client True if this is a client-side control file.
+        @param parse_job bool, should the results be through the TKO parser.
+        @param ssh_user The SSH username.  [root]
+        @param ssh_port The SSH port number.  [22]
+        @param ssh_pass The SSH passphrase, if needed.
+        @param group_name If supplied, this will be written out as
+                host_group_name in the keyvals file for the parser.
         """
         path = os.path.dirname(__file__)
         self.autodir = os.path.abspath(os.path.join(path, '..'))
@@ -102,7 +108,8 @@ class base_server_job(object):
         self.resultdir = resultdir
         self.uncollected_log_file = None
         if resultdir:
-            self.uncollected_log_file = os.path.join(resultdir, "uncollected_logs")
+            self.uncollected_log_file = os.path.join(resultdir,
+                                                     'uncollected_logs')
             self.debugdir = os.path.join(resultdir, 'debug')
 
             if not os.path.exists(resultdir):
@@ -155,6 +162,8 @@ class base_server_job(object):
                     'hostname' : ','.join(machines),
                     'status_version' : str(self.STATUS_VERSION),
                     'job_started' : str(int(time.time()))}
+        if group_name:
+            job_data['host_group_name'] = group_name
         if self.resultdir:
             # only write these keyvals out on the first job in a resultdir
             if 'job_started' not in utils.read_keyval(self.resultdir):

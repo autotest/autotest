@@ -42,6 +42,9 @@ class base_autoserv_parser(object):
         self.parser.add_option("-l", action="store", type="string",
                                dest="label", default='',
                                help="label for the job")
+        self.parser.add_option("-G", action="store", type="string",
+                               dest="group_name", default='',
+                               help="The host_group_name to store in keyvals")
         self.parser.add_option("-u", action="store", type="string",
                                dest="user",
                                default=os.environ.get('USER'),
@@ -110,7 +113,7 @@ class base_autoserv_parser(object):
     def parse_args(self):
         self.options, self.args = self.parser.parse_args()
         if self.options.args:
-            self.args += self.options.args.split(' ')
+            self.args += self.options.args.split()
 
 
 site_autoserv_parser = utils.import_site_class(
