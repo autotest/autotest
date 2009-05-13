@@ -721,78 +721,15 @@ class log_collector(object):
             # get the results anyway
             pass
 
-
         # Copy all dirs in default to results_dir
         try:
-            keyval_path = self._prepare_for_copying_logs()
             self.host.get_file(self.client_results_dir + '/',
                                self.server_results_dir, preserve_symlinks=True)
-            self._process_copied_logs(keyval_path)
-            self._postprocess_copied_logs()
         except Exception:
             # well, don't stop running just because we couldn't get logs
             e_msg = "Unexpected error copying test result logs, continuing ..."
             logging.error(e_msg)
             traceback.print_exc(file=sys.stdout)
-
-
-    def _prepare_for_copying_logs(self):
-        server_keyval = os.path.join(self.server_results_dir, 'keyval')
-        if not os.path.exists(server_keyval):
-            # Client-side keyval file can be copied directly
-            return
-
-        # Copy client-side keyval to temporary location
-        suffix = '.keyval_%s' % self.host.hostname
-        fd, keyval_path = tempfile.mkstemp(suffix)
-        os.close(fd)
-        try:
-            client_keyval = os.path.join(self.client_results_dir, 'keyval')
-            try:
-                self.host.get_file(client_keyval, keyval_path)
-            finally:
-                # We will squirrel away the client side keyval
-                # away and move it back when we are done
-                remote_temp_dir = self.host.get_tmp_dir()
-                self.temp_keyval_path = os.path.join(remote_temp_dir, "keyval")
-                self.host.run('mv %s %s' % (client_keyval,
-                                            self.temp_keyval_path))
-        except (error.AutoservRunError, error.AutoservSSHTimeout):
-            logging.error("Prepare for copying logs failed")
-        return keyval_path
-
-
-    def _process_copied_logs(self, keyval_path):
-        if not keyval_path:
-            # Client-side keyval file was copied directly
-            return
-
-        # Append contents of keyval_<host> file to keyval file
-        try:
-            # Read in new and old keyval files
-            new_keyval = utils.read_keyval(keyval_path)
-            old_keyval = utils.read_keyval(self.server_results_dir)
-            # 'Delete' from new keyval entries that are in both
-            tmp_keyval = {}
-            for key, val in new_keyval.iteritems():
-                if key not in old_keyval:
-                    tmp_keyval[key] = val
-            # Append new info to keyval file
-            utils.write_keyval(self.server_results_dir, tmp_keyval)
-            # Delete keyval_<host> file
-            os.remove(keyval_path)
-        except IOError:
-            logging.error("Process copied logs failed")
-
-
-    def _postprocess_copied_logs(self):
-        # we can now put our keyval file back
-        client_keyval = os.path.join(self.client_results_dir, 'keyval')
-        try:
-            self.host.run('mv %s %s' % (self.temp_keyval_path, client_keyval))
-        except Exception:
-            pass
-
 
 
 # a file-like object for catching stderr from an autotest client and
