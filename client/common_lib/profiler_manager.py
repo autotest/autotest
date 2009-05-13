@@ -17,6 +17,7 @@ class profiler_manager(object):
         self.tmpdir = job.tmpdir
         self.profile_run_only = False
         self.active_flag = False
+        self.created_dirs = []
 
 
     def load_profiler(self, profiler, args, dargs):
@@ -83,3 +84,15 @@ class profiler_manager(object):
         """ Report on all enabled profilers """
         for p in self.list:
             p.report(test)
+        if test.iteration:
+            name = 'iteration.%s' % test.iteration
+            iter_path = os.path.join(test.profdir, name)
+            os.system('mkdir -p %s' % iter_path)
+            self.created_dirs.append(name)
+            print self.created_dirs
+            for file in os.listdir(test.profdir):
+                if file in self.created_dirs:
+                    continue
+                file_path = os.path.join(test.profdir, file)
+                iter_path_file = os.path.join(iter_path, file)
+                os.rename(file_path, iter_path_file)
