@@ -1629,7 +1629,7 @@ class AgentTasksTest(unittest.TestCase):
 
         self.god.check_playback()
         cmd = [monitor_db._parser_path, '--write-pidfile', '-l', '2', '-r',
-               '-o', '/abspath/tag']
+               '-o', '-P', '/abspath/tag']
         self.assertEquals(task.cmd, cmd)
 
 
