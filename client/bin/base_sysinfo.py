@@ -1,4 +1,4 @@
-import os, shutil, re, glob, subprocess
+import os, shutil, re, glob, subprocess, logging
 
 from autotest_lib.client.common_lib import log
 from autotest_lib.client.bin import utils, package
@@ -314,7 +314,7 @@ class base_sysinfo(object):
             in_messages.close()
             out_messages.close()
         except Exception, e:
-            print "/var/log/messages collection failed with %s" % e
+            logging.error("/var/log/messages collection failed with %s", e)
 
 
     @staticmethod
