@@ -170,13 +170,19 @@ class base_test:
             utils.drop_caches()
 
 
-    def _call_run_once(self, constraints, args, dargs):
+    def _call_run_once(self, constraints, profile_only,
+                       postprocess_profiled_run, args, dargs):
         self.drop_caches_between_iterations()
 
         # execute iteration hooks
         for hook in self.before_iteration_hooks:
             hook(self)
-        self.run_once(*args, **dargs)
+
+        if profile_only:
+            self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
+        else:
+            self.run_once(*args, **dargs)
+
         for hook in self.after_iteration_hooks:
             hook(self)
 
@@ -201,11 +207,9 @@ class base_test:
             function. This parameter is incompatible with test_length and will
             be silently ignored if you specify both.
 
-        @param profile_only: Do not run any test iterations before running
-            the test under the profiler.  This is equivalent to specifying
-            iterations=0 but is much easier to remember/read/comprehend when
-            making control files with job.run_test(profile_only=True) in it
-            rather than job.run_test(iterations=0).
+        @param profile_only: If true run X iterations with profilers enabled.
+            Otherwise run X iterations and one with profiling if profiles are
+            enabled.
 
         @param _get_time: [time.time] Used for unit test time injection.
 
@@ -223,8 +227,7 @@ class base_test:
         # If the user called this test in an odd way (specified both iterations
         # and test_length), let's warn them.
         if iterations and test_length:
-            logging.info(
-                    'Iterations parameter ignored (timed execution).')
+            logging.info('Iterations parameter ignored (timed execution).')
         if test_length:
             test_start = _get_time()
             time_elapsed = 0
@@ -239,32 +242,26 @@ class base_test:
                     logging.info(
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
-                self._call_run_once(constraints, args, dargs)
+                self._call_run_once(constraints, profile_only,
+                                    postprocess_profiled_run, args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
             logging.info('Test finished after %d iterations',
                                timed_counter)
             logging.info('Time elapsed: %d s', time_elapsed)
         else:
-            orig_iterations = iterations
-            if profile_only:
-                if iterations:
-                    logging.info('Iterations parameter ignored '
-                                       '(profile_only=True).')
-                iterations = 0
-            elif iterations is None:
+            if iterations is None:
                 iterations = 1
-            if iterations:
-                logging.info('Test started. '
-                                   'Number of iterations: %d', iterations)
-                for self.iteration in xrange(1, iterations+1):
-                    logging.info('Executing iteration %d of %d',
-                                 self.iteration, iterations)
-                    self._call_run_once(constraints, args, dargs)
-                logging.info('Test finished after %d iterations.',
-                             iterations)
+            logging.info('Test started. Number of iterations: %d', iterations)
+            for self.iteration in xrange(1, iterations+1):
+                logging.info('Executing iteration %d of %d', self.iteration,
+                                                             iterations)
+                self._call_run_once(constraints, profile_only,
+                                    postprocess_profiled_run, args, dargs)
+            logging.info('Test finished after %d iterations.', iterations)
 
-        self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
+        if not profile_only:
+            self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
 
         # Do any postprocessing, normally extracting performance keyvals, etc
         self.postprocess()
@@ -279,7 +276,6 @@ class base_test:
             profilers.start(self)
             print 'Profilers present. Profiling run started'
             try:
-                self.iteration = 0       # indicator this is a profiling run
                 self.run_once(*args, **dargs)
 
                 # Priority to the run_once() argument over the attribute.
@@ -319,7 +315,7 @@ class base_test:
                                        '%s.log' % self.tagged_testname)
         self.test_handler = logging.FileHandler(filename=result_filename,
                                                 mode='w')
-        fmt_str = '[%(asctime)s %(levelname)-5.5s %(module)s] %(message)s'
+        fmt_str = '[%(asctime)s - %(module)-15s - %(levelname)-8s] %(message)s'
         self.test_formatter = logging.Formatter(fmt_str)
         self.test_handler.setFormatter(self.test_formatter)
         self.logger = logging.getLogger()
