@@ -115,5 +115,49 @@ class MigrateManagerTest(unittest.TestCase):
         self.assertEquals(DummyMigration.get_migrations_done(), [])
 
 
+class DummyMigrationManager(object):
+    def __init__(self):
+        self.calls = []
+
+
+    def execute_script(self, script):
+        self.calls.append(script)
+
+
+class MigrationTest(unittest.TestCase):
+    def setUp(self):
+        self.manager = DummyMigrationManager()
+
+
+    def _do_migration(self, migration_module):
+        migration = migrate.Migration('name', 1, migration_module)
+        migration.migrate_up(self.manager)
+        migration.migrate_down(self.manager)
+
+        self.assertEquals(self.manager.calls, ['foo', 'bar'])
+
+
+    def test_migration_with_methods(self):
+        class DummyMigration(object):
+            @staticmethod
+            def migrate_up(manager):
+                manager.execute_script('foo')
+
+
+            @staticmethod
+            def migrate_down(manager):
+                manager.execute_script('bar')
+
+        self._do_migration(DummyMigration)
+
+
+    def test_migration_with_strings(self):
+        class DummyMigration(object):
+            UP_SQL = 'foo'
+            DOWN_SQL = 'bar'
+
+        self._do_migration(DummyMigration)
+
+
 if __name__ == '__main__':
     unittest.main()

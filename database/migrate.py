@@ -17,20 +17,49 @@ _MIGRATIONS_DIRS = {
 _DEFAULT_MIGRATIONS_DIR = 'migrations' # use CWD
 
 class Migration(object):
-    def __init__(self, filename):
-        self.version = int(filename[:3])
-        self.name = filename[:-3]
-        self.module = __import__(self.name, globals(), locals(), [])
-        assert hasattr(self.module, 'migrate_up')
-        assert hasattr(self.module, 'migrate_down')
+    _UP_ATTRIBUTES = ('migrate_up', 'UP_SQL')
+    _DOWN_ATTRIBUTES = ('migrate_down', 'DOWN_SQL')
+
+    def __init__(self, name, version, module):
+        self.name = name
+        self.version = version
+        self.module = module
+        self._check_attributes(self._UP_ATTRIBUTES)
+        self._check_attributes(self._DOWN_ATTRIBUTES)
+
+
+    @classmethod
+    def from_file(cls, filename):
+        version = int(filename[:3])
+        name = filename[:-3]
+        module = __import__(name, globals(), locals(), [])
+        return cls(name, version, module)
+
+
+    def _check_attributes(self, attributes):
+        method_name, sql_name = attributes
+        assert (hasattr(self.module, method_name) or
+                hasattr(self.module, sql_name))
+
+
+    def _execute_migration(self, attributes, manager):
+        method_name, sql_name = attributes
+        method = getattr(self.module, method_name, None)
+        if method:
+            assert callable(method)
+            method(manager)
+        else:
+            sql = getattr(self.module, sql_name)
+            assert isinstance(sql, basestring)
+            manager.execute_script(sql)
 
 
     def migrate_up(self, manager):
-        self.module.migrate_up(manager)
+        self._execute_migration(self._UP_ATTRIBUTES, manager)
 
 
     def migrate_down(self, manager):
-        self.module.migrate_down(manager)
+        self._execute_migration(self._DOWN_ATTRIBUTES, manager)
 
 
 class MigrationManager(object):
@@ -112,7 +141,8 @@ class MigrationManager(object):
                          in os.listdir(self.migrations_dir)
                          if re.match(r'^\d\d\d_.*\.py$', filename)]
         migrate_files.sort()
-        migrations = [Migration(filename) for filename in migrate_files]
+        migrations = [Migration.from_file(filename)
+                      for filename in migrate_files]
         if minimum_version is not None:
             migrations = [migration for migration in migrations
                           if migration.version >= minimum_version]
