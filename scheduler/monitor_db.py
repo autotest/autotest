@@ -961,7 +961,7 @@ class Dispatcher(object):
                     continue
                 num_started_this_cycle += agent.num_processes
             agent.tick()
-        logging.info('%d running processes', 
+        logging.info('%d running processes',
                      _drone_manager.total_running_processes())
 
 
@@ -972,6 +972,7 @@ class Dispatcher(object):
             # Create job from template
             job = rrun.job
             info = rpc_utils.get_job_info(job)
+            options = job.get_object_dict()
 
             host_objects = info['hosts']
             one_time_hosts = info['one_time_hosts']
@@ -985,20 +986,9 @@ class Dispatcher(object):
 
             try:
                 rpc_utils.create_new_job(owner=rrun.owner.login,
+                                         options=options,
                                          host_objects=host_objects,
                                          metahost_objects=metahost_objects,
-                                         name=job.name,
-                                         priority=job.priority,
-                                         control_file=job.control_file,
-                                         control_type=job.control_type,
-                                         is_template=False,
-                                         synch_count=job.synch_count,
-                                         timeout=job.timeout,
-                                         run_verify=job.run_verify,
-                                         email_list=job.email_list,
-                                         dependencies=dependencies,
-                                         reboot_before=job.reboot_before,
-                                         reboot_after=job.reboot_after,
                                          atomic_group=atomic_group)
 
             except Exception, ex:
