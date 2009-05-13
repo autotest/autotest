@@ -1673,6 +1673,7 @@ class AgentTasksTest(unittest.TestCase):
         self.pidfile_monitor.exit_code.expect_call().and_return(exit_code)
         if exit_code != 0:
             self._setup_post_job_run_monitor('.collect_crashinfo_execute')
+        self.pidfile_monitor.has_process.expect_call().and_return(True)
         self._expect_copy_results(monitor=self.pidfile_monitor,
                                   queue_entry=self.queue_entry)
         parse_task = monitor_db.FinalReparseTask.expect_new([self.queue_entry])

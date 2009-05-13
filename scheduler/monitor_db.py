@@ -1826,8 +1826,9 @@ class GatherLogsTask(PostJobTask):
 
     def epilog(self):
         super(GatherLogsTask, self).epilog()
-        self._copy_and_parse_results(self._queue_entries,
-                                     use_monitor=self._autoserv_monitor)
+        if self._autoserv_monitor.has_process():
+            self._copy_and_parse_results(self._queue_entries,
+                                         use_monitor=self._autoserv_monitor)
         self._reboot_hosts()
 
 
