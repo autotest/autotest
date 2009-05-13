@@ -49,6 +49,8 @@ class base_test:
         self._keyvals = []
         self._new_keyval = False
         self.failed_constraints = []
+        self.before_iteration_hooks = []
+        self.after_iteration_hooks = []
 
 
     def assert_(self, expr, msg='Assertion failed.'):
@@ -124,6 +126,32 @@ class base_test:
             raise error.TestFail(msg)
 
 
+    def register_before_iteration_hook(self, iteration_hook):
+        """
+        This is how we expect test writers to register a before_iteration_hook.
+        This adds the method to the list of hooks which are executed
+        before each iteration.
+
+        @param iteration_hook: Method to run before each iteration. A valid
+                               hook accepts a single argument which is the
+                               test object.
+        """
+        self.before_iteration_hooks.append(iteration_hook)
+
+
+    def register_after_iteration_hook(self, iteration_hook):
+        """
+        This is how we expect test writers to register an after_iteration_hook.
+        This adds the method to the list of hooks which are executed
+        after each iteration.
+
+        @param iteration_hook: Method to run after each iteration. A valid
+                               hook accepts a single argument which is the
+                               test object.
+        """
+        self.after_iteration_hooks.append(iteration_hook)
+
+
     def initialize(self):
         pass
 
@@ -142,16 +170,15 @@ class base_test:
             utils.drop_caches()
 
 
-    def _call_run_once(self, before_iteration_hook, after_iteration_hook,
-                       constraints, args, dargs):
+    def _call_run_once(self, constraints, args, dargs):
         self.drop_caches_between_iterations()
 
         # execute iteration hooks
-        if before_iteration_hook:
-            before_iteration_hook(self)
+        for hook in self.before_iteration_hooks:
+            hook(self)
         self.run_once(*args, **dargs)
-        if after_iteration_hook:
-            after_iteration_hook(self)
+        for hook in self.after_iteration_hooks:
+            hook(self)
 
         self.postprocess_iteration()
         self.analyze_perf_constraints(constraints)
@@ -159,7 +186,6 @@ class base_test:
 
     def execute(self, iterations=None, test_length=None, profile_only=False,
                 _get_time=time.time, postprocess_profiled_run=None,
-                before_iteration_hook=None, after_iteration_hook=None,
                 constraints=(), *args, **dargs):
         """
         This is the basic execute method for the tests inherited from base_test.
@@ -213,8 +239,7 @@ class base_test:
                     logging.info(
                             'Executing iteration %d, time_elapsed %d s',
                             timed_counter, time_elapsed)
-                self._call_run_once(before_iteration_hook, after_iteration_hook,
-                                    constraints, args, dargs)
+                self._call_run_once(constraints, args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
             logging.info('Test finished after %d iterations',
@@ -235,9 +260,7 @@ class base_test:
                 for self.iteration in xrange(1, iterations+1):
                     logging.info('Executing iteration %d of %d',
                                  self.iteration, iterations)
-                    self._call_run_once(before_iteration_hook,
-                                        after_iteration_hook,
-                                        constraints, args, dargs)
+                    self._call_run_once(constraints, args, dargs)
                 logging.info('Test finished after %d iterations.',
                              iterations)
 
@@ -303,7 +326,7 @@ class base_test:
         self.logger.addHandler(self.test_handler)
 
 
-    def _exec(self, before_iteration_hook, after_iteration_hook, args, dargs):
+    def _exec(self, args, dargs):
 
         self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
         self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
@@ -349,11 +372,6 @@ class base_test:
                 # translate exceptions if needed
                 _call_test_function(_cherry_pick_call, self.warmup,
                                     *args, **dargs)
-
-                # insert the iteration hooks arguments to be potentially
-                # passed over to self.execute() if it accepts them
-                dargs['before_iteration_hook'] = before_iteration_hook
-                dargs['after_iteration_hook'] = after_iteration_hook
 
                 if hasattr(self, 'run_once'):
                     p_args, p_dargs = _cherry_pick_args(self.run_once,
@@ -634,9 +652,14 @@ def runtest(job, url, tag, args, dargs,
         mytest = global_namespace['mytest']
         if before_test_hook:
             before_test_hook(mytest)
-        # args/dargs are the test arguments as given by the control file so
-        # we cannot put the iteration hooks inside the dictionary
-        mytest._exec(before_iteration_hook, after_iteration_hook, args, dargs)
+
+        # we use the register iteration hooks methods to register the passed
+        # in hooks
+        if before_iteration_hook:
+            mytest.register_before_iteration_hook(before_iteration_hook)
+        if after_iteration_hook:
+            mytest.register_after_iteration_hook(after_iteration_hook)
+        mytest._exec(args, dargs)
     finally:
         os.chdir(pwd)
         if after_test_hook:
