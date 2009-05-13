@@ -24,6 +24,9 @@ class TestTestCase(unittest.TestCase):
             self.job = MockJob()
             self.job.profilers = MockProfilerManager()
 
+            self.before_iteration_hooks = []
+            self.after_iteration_hooks = []
+
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -52,6 +55,8 @@ class Test_base_test_execute(TestTestCase):
         self.god.stub_function(self.test, 'analyze_perf_constraints')
         before_hook = self.god.create_mock_function('before_hook')
         after_hook = self.god.create_mock_function('after_hook')
+        self.test.register_before_iteration_hook(before_hook)
+        self.test.register_after_iteration_hook(after_hook)
 
         # tests the test._call_run_once implementation
         self.test.drop_caches_between_iterations.expect_call()
@@ -60,13 +65,12 @@ class Test_base_test_execute(TestTestCase):
         after_hook.expect_call(self.test)
         self.test.postprocess_iteration.expect_call()
         self.test.analyze_perf_constraints.expect_call([])
-        self.test._call_run_once(before_hook, after_hook, [], (1, 2),
-                                 {'arg': 'val'})
+        self.test._call_run_once([], (1, 2), {'arg': 'val'})
         self.god.check_playback()
 
 
     def _expect_call_run_once(self):
-        self.test._call_run_once.expect_call(None, None, (), (), {})
+        self.test._call_run_once.expect_call((), (), {})
 
 
     def test_execute_test_length(self):
