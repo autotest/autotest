@@ -108,7 +108,7 @@ def extra_job_filters(not_yet_run=False, running=False, finished=False):
         where = ['id NOT IN (SELECT job_id FROM host_queue_entries '
                  'WHERE not complete OR active)']
     else:
-        return None
+        return {}
     return {'where': where}
 
 
