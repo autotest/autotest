@@ -41,6 +41,7 @@ def run_autoserv(pid_file_manager, results, parser):
         machines = []
     machines_file = parser.options.machines_file
     label = parser.options.label
+    group_name = parser.options.group_name
     user = parser.options.user
     client = parser.options.client
     server = parser.options.server
@@ -91,9 +92,15 @@ def run_autoserv(pid_file_manager, results, parser):
         machines = list(set(machines))
         machines.sort()
 
+    if group_name and len(machines) < 2:
+        print ("-G %r may only be supplied with more than one machine."
+               % group_name)
+        sys.exit(1)
+
     job = server_job.server_job(control, parser.args[1:], results, label,
                                 user, machines, client, parse_job,
-                                ssh_user, ssh_port, ssh_pass)
+                                ssh_user, ssh_port, ssh_pass,
+                                group_name=group_name)
     if results:
         debug_dir = os.path.join(results, 'debug')
         stdout = os.path.join(debug_dir, 'autoserv.stdout')
