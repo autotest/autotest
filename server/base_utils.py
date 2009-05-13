@@ -315,7 +315,7 @@ def get_public_key():
     ssh-keygen and return it.
     """
 
-    ssh_conf_path = os.path.join(os.environ['HOME'], '.ssh')
+    ssh_conf_path = os.path.expanduser('~/.ssh')
 
     dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
     dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
