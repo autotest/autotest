@@ -411,7 +411,7 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
     for dir in [ parent_dir ]:
         files = recursive_walk(dir, control_pattern)
         for file in files:
-            if '__init__.py' in file:
+            if '__init__.py' in file or '.svn' in file:
                 continue
             if not profilers:
                 if not add_noncompliant:
