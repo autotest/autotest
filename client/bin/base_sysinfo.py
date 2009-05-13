@@ -204,10 +204,10 @@ class base_sysinfo(object):
             return os.path.join(self.sysinfodir, boot_dir)
 
 
-    def _get_iteration_subdir(self, iteration):
+    def _get_iteration_subdir(self, test, iteration):
         iter_dir = "iteration.%d" % iteration
 
-        logdir = os.path.join(self.sysinfodir, iter_dir)
+        logdir = os.path.join(self._get_sysinfodir(test.outputdir), iter_dir)
         if not os.path.exists(logdir):
             os.mkdir(logdir)
         return logdir
@@ -281,7 +281,7 @@ class base_sysinfo(object):
         """ Logging hook called before a test iteration."""
         if not iteration:
             iteration = test.iteration
-        logdir = self._get_iteration_subdir(iteration)
+        logdir = self._get_iteration_subdir(test, iteration)
 
         for log in self.before_iteration_loggables:
             log.run(logdir)
@@ -292,7 +292,7 @@ class base_sysinfo(object):
         """ Logging hook called after a test iteration."""
         if not iteration:
             iteration = test.iteration
-        logdir = self._get_iteration_subdir(iteration)
+        logdir = self._get_iteration_subdir(test, iteration)
 
         for log in self.after_iteration_loggables:
             log.run(logdir)
