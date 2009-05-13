@@ -458,12 +458,13 @@ class AFE(RpcClient):
                 hostname = '%s.%s' % (metahost, index)
             job.job_status[hostname] = job_status.status
             status = job_status.status
-            # Skip hosts that failed verify - that's a machine failure,
-            # not a job failure
+            # Skip hosts that failed verify or repair:
+            # that's a machine failure, not a job failure
             if hostname in job.test_status:
                 verify_failed = False
                 for failure in job.test_status[hostname].fail:
-                    if failure.test_name == 'verify':
+                    if (failure.test_name == 'verify' or
+                            failure.test_name == 'repair'):
                         verify_failed = True
                         break
                 if verify_failed:
