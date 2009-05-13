@@ -109,7 +109,8 @@ class base_autoserv_parser(object):
 
     def parse_args(self):
         self.options, self.args = self.parser.parse_args()
-        self.args += self.options.args.split(' ')
+        if self.options.args:
+            self.args += self.options.args.split(' ')
 
 
 site_autoserv_parser = utils.import_site_class(
