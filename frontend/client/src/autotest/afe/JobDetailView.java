@@ -101,6 +101,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showField(jobObject, "priority", "view_priority");
                 showField(jobObject, "created_on", "view_created");
                 showField(jobObject, "timeout", "view_timeout");
+                showField(jobObject, "max_runtime_hrs", "view_max_runtime");
                 showField(jobObject, "email_list", "view_email_list");
                 showText(runVerify, "view_run_verify");
                 showField(jobObject, "reboot_before", "view_reboot_before");

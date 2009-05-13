@@ -158,6 +158,7 @@ public class CreateJobView extends TabView
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
     protected TextBox timeout = new TextBox();
+    private TextBox maxRuntime = new TextBox();
     protected TextBox emailList = new TextBox();
     protected CheckBox skipVerify = new CheckBox();
     private RadioChooser rebootBefore = new RadioChooser();
@@ -211,8 +212,8 @@ public class CreateJobView extends TabView
             }
         }
         
-        timeout.setText(Integer.toString(
-                (int) jobObject.get("timeout").isNumber().doubleValue()));
+        timeout.setText(Utils.jsonToString(jobObject.get("timeout")));
+        maxRuntime.setText(Utils.jsonToString(jobObject.get("max_runtime_hrs")));
         emailList.setText(
                 jobObject.get("email_list").isString().stringValue());
 
@@ -526,6 +527,7 @@ public class CreateJobView extends TabView
         RootPanel.get("create_job_name").add(jobName);
         RootPanel.get("create_kernel").add(kernel);
         RootPanel.get("create_timeout").add(timeout);
+        RootPanel.get("create_max_runtime").add(maxRuntime);
         RootPanel.get("create_email_list").add(emailList);
         RootPanel.get("create_priority").add(priorityList);
         RootPanel.get("create_skip_verify").add(skipVerify);
@@ -552,7 +554,8 @@ public class CreateJobView extends TabView
         parseFailedRepair.setChecked(
                 repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
         kernel.setText("");        
-        timeout.setText(repository.getData("job_timeout_default").isString().stringValue());
+        timeout.setText(Utils.jsonToString(repository.getData("job_timeout_default")));
+        maxRuntime.setText(Utils.jsonToString(repository.getData("job_max_runtime_hrs_default")));
         emailList.setText("");
         testSelector.reset();
         skipVerify.setChecked(false);
@@ -572,9 +575,10 @@ public class CreateJobView extends TabView
     }
     
     protected void submitJob(final boolean isTemplate) {
-        final int timeoutValue, synchCount;
+        final int timeoutValue, maxRuntimeValue, synchCount;
         try {
             timeoutValue = parsePositiveIntegerInput(timeout.getText(), "timeout");
+            maxRuntimeValue = parsePositiveIntegerInput(maxRuntime.getText(), "max runtime");
             synchCount = parsePositiveIntegerInput(synchCountInput.getText(), 
                                                    "number of machines used per execution");
         } catch (IllegalArgumentException exc) {
@@ -595,6 +599,7 @@ public class CreateJobView extends TabView
                          new JSONString(controlTypeSelect.getControlType()));
                 args.put("synch_count", new JSONNumber(synchCount));
                 args.put("timeout", new JSONNumber(timeoutValue));
+                args.put("max_runtime_hrs", new JSONNumber(maxRuntimeValue));
                 args.put("email_list", new JSONString(emailList.getText()));
                 args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
                 args.put("is_template", JSONBoolean.getInstance(isTemplate));

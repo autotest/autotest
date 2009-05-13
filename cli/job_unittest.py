@@ -804,6 +804,18 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test_job0', 'Created'],)
 
 
+    def test_execute_create_job_with_max_runtime(self):
+        data = self.data.copy()
+        data['max_runtime_hrs'] = '222'
+        filename = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+                           'test_job0', '-m', 'host0', '--max_runtime', '222',
+                           '--ignore_site_file'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],)
+
+
+
     def test_execute_create_job_with_noverify(self):
         data = self.data.copy()
         data['run_verify'] = False

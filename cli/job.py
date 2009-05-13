@@ -210,8 +210,9 @@ class job_create(action_common.atest_create, job):
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <list of labels of machines to run on>]
     [--reboot_before <option>] [--reboot_after <option>]
-    [--noverify] [--timeout <timeout>] [--one-time-hosts <hosts>]
-    [--email <email>] [--dependencies <labels this job is dependent on>]
+    [--noverify] [--timeout <timeout>] [--max_runtime <max runtime>]
+    [--one-time-hosts <hosts>] [--email <email>]
+    [--dependencies <labels this job is dependent on>]
     [--atomic_group <atomic group name>] [--parse-failed-repair <option>]
     job_name
 
@@ -289,6 +290,8 @@ class job_create(action_common.atest_create, job):
                                default=False, action='store_true')
         self.parser.add_option('-o', '--timeout', help='Job timeout in hours.',
                                metavar='TIMEOUT')
+        self.parser.add_option('--max_runtime',
+                               help='Job maximum runtime in hours')
 
 
     def parse(self):
@@ -375,6 +378,8 @@ class job_create(action_common.atest_create, job):
             self.data['run_verify'] = False
         if options.timeout:
             self.data['timeout'] = options.timeout
+        if options.max_runtime:
+            self.data['max_runtime_hrs'] = options.max_runtime
 
         if self.one_time_hosts:
             self.data['one_time_hosts'] = self.one_time_hosts
