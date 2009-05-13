@@ -26,7 +26,7 @@ class kvmtest(test.test):
         # spawn vncserver if needed
         if not os.environ.has_key('DISPLAY'):
             print("No DISPLAY set in environment, spawning vncserver...")
-            display = self.__create_vncserver(os.environ['HOME'] + "/.vnc")
+            display = self.__create_vncserver(os.path.expanduser("~/.vnc"))
             print("Setting DISPLAY=%s"%(display))
             os.environ['DISPLAY'] = display
 
