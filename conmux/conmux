@@ -654,8 +654,13 @@ sub commandExec {
 	}
 
 	local(*IN, *OUT, *ERR);
-	my ($cmd, @args) = split(' ', $run . " $a");
-	my $pid = IPC::Open3::open3(*IN, *OUT, *ERR, $cmd, @args);
+	my ($cmd, @args) = split(m/'(.*?)'|"(.*?)"|\s(.*?)\s/g, $run . " $a");
+	my @opts;
+	for (my $i=0; $i < @args; $i++) {
+		next if not $args[$i];
+		push(@opts, $args[$i]);
+	}
+	my $pid = IPC::Open3::open3(*IN, *OUT, *ERR, $cmd, @opts);
 	close(*IN{IO});
 
 	# XXX: this should not be happening here.
