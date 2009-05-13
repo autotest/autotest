@@ -842,14 +842,21 @@ class atest_unittest(cli_mock.cli_unittest):
 
 
     def test_print_mix_table(self):
-        self.__test_print_mix_table_std(['name', 'hostname'],
-                                        ['hosts', 'users'],
+        self.__test_print_mix_table_std(['name', 'hostname'], [],
                                         'Name   Host\n'
                                         'name0  h0\n'
                                         'name1  h1\n')
 
-    # TODO(jmeurin) Add actual test with sublist_keys.
 
+    def test_print_mix_table_sublist(self):
+        self.__test_print_mix_table_std(['name', 'hostname'], ['labels'],
+                                        'Name   Host\n'
+                                        'name0  h0\n'
+                                        'Labels: \n'
+                                        '\tl0, l1\n\n\n'
+                                        'name1  h1\n'
+                                        'Labels: \n'
+                                        '\tl2, l3\n\n\n')
 
 
     #

@@ -525,7 +525,7 @@ class atest(object):
         return '  '.join(["%%-%ds" % lens[key] for key in keys])
 
 
-    def print_table_std(self, items, keys_header, sublist_keys={}):
+    def print_table_std(self, items, keys_header, sublist_keys=()):
         """Print a mix of header and lists in a user readable
         format
         The headers are justified, the sublist_keys are wrapped."""
@@ -538,14 +538,14 @@ class atest(object):
             values = tuple(self.__conv_value(key, item[key])
                            for key in keys_header)
             print fmt % values
-            if self.verbose and sublist_keys:
+            if sublist_keys:
                 for key in sublist_keys:
                     self.print_wrapped(KEYS_TO_NAMES_EN[key],
                                        item[key])
                 print '\n'
 
 
-    def print_table_parse(self, items, keys_header, sublist_keys=[]):
+    def print_table_parse(self, items, keys_header, sublist_keys=()):
         """Print a mix of header and lists in a user readable
         format"""
         for item in items:
@@ -555,7 +555,7 @@ class atest(object):
                       if self.__conv_value(key,
                                            item[key]) != '']
 
-            if self.verbose:
+            if sublist_keys:
                 [values.append('%s=%s'% (KEYS_TO_NAMES_EN[key],
                                          ','.join(item[key])))
                  for key in sublist_keys
