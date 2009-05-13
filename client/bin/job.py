@@ -649,9 +649,9 @@ class base_job(object):
         """ Check the passed kernel identifier against the command line
             and the running kernel, abort the job on missmatch. """
 
-        print (("POST BOOT: checking booted kernel " +
-                "mark=%d identity='%s' type='%s'") %
-               (expected_when, expected_id, type))
+        logging.info(("POST BOOT: checking booted kernel " +
+                      "mark=%d identity='%s' type='%s'"),
+                     (expected_when, expected_id, type))
 
         running_id = utils.running_os_ident()
 
@@ -669,24 +669,24 @@ class base_job(object):
         if (type == 'src' and expected_id != running_id or
             type == 'rpm' and
             not running_id.startswith(expected_id + '::')):
-            print "check_kernel_ident: kernel identifier mismatch"
+            logging.error("Kernel identifier mismatch")
             bad = True
         if expected_when != cmdline_when:
-            print "check_kernel_ident: kernel command line mismatch"
+            logging.error("Kernel command line mismatch")
             bad = True
 
         if bad:
-            print "   Expected Ident: " + expected_id
-            print "    Running Ident: " + running_id
-            print "    Expected Mark: %d" % (expected_when)
-            print "Command Line Mark: %d" % (cmdline_when)
-            print "     Command Line: " + cmdline
+            logging.error("   Expected Ident: " + expected_id)
+            logging.error("    Running Ident: " + running_id)
+            logging.error("    Expected Mark: %d", expected_when)
+            logging.error("Command Line Mark: %d", cmdline_when)
+            logging.error("     Command Line: " + cmdline)
 
             self.record("ABORT", subdir, "reboot.verify", "boot failure")
             self._decrement_group_level()
             kernel = {"kernel": running_id.split("::")[0]}
             self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
-            raise error.JobError("reboot returned with the wrong kernel")
+            raise error.JobError("Reboot returned with the wrong kernel")
 
         self.record('GOOD', subdir, 'reboot.verify',
                     utils.running_os_full_version())
@@ -781,7 +781,7 @@ class base_job(object):
 
 
     def noop(self, text):
-        print "job: noop: " + text
+        logging.info("job: noop: " + text)
 
 
     @_run_test_complete_on_exit
@@ -1282,7 +1282,7 @@ def runjob(control, cont=False, tag="default", harness_type='',
         sys.exit(1)
 
     except error.JobError, instance:
-        print "JOB ERROR: " + instance.args[0]
+        logging.error("JOB ERROR: " + instance.args[0])
         if myjob:
             command = None
             if len(instance.args) > 1:
@@ -1300,7 +1300,7 @@ def runjob(control, cont=False, tag="default", harness_type='',
         # NOTE: job._run_step_fn and job.step_engine will turn things into
         # a JobError for us.  If we get here, its likely an autotest bug.
         msg = str(e) + '\n' + traceback.format_exc()
-        print "JOB ERROR (autotest bug?): " + msg
+        logging.critical("JOB ERROR (autotest bug?): " + msg)
         if myjob:
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, msg)
