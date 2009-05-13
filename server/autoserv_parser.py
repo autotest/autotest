@@ -74,6 +74,8 @@ class base_autoserv_parser(object):
         self.parser.add_option("-p", "--write-pidfile", action="store_true",
                                dest="write_pidfile", default=False,
                                help="write pidfile (.autoserv_execute)")
+        self.parser.add_option("-a", "--args", dest='args',
+                               help="additional args to pass to control file")
         protection_levels = [host_protections.Protection.get_attr_name(s)
                              for i, s in host_protections.choices]
         self.parser.add_option("--host-protection", action="store",
@@ -107,6 +109,7 @@ class base_autoserv_parser(object):
 
     def parse_args(self):
         self.options, self.args = self.parser.parse_args()
+        self.args += self.options.args.split(' ')
 
 
 site_autoserv_parser = utils.import_site_class(
