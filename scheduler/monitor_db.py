@@ -1913,7 +1913,7 @@ class FinalReparseTask(PostJobTask):
 
 
     def _generate_command(self, results_dir):
-        return [_parser_path, '--write-pidfile', '-l', '2', '-r', '-o',
+        return [_parser_path, '--write-pidfile', '-l', '2', '-r', '-o', '-P',
                 results_dir]
 
 

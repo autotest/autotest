@@ -5,6 +5,7 @@ import os, sys, optparse, fcntl, errno, traceback, socket
 import common
 from autotest_lib.client.common_lib import mail, pidfile
 from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib, models
+from autotest_lib.client.common_lib import utils
 
 
 def parse_args():
@@ -29,6 +30,8 @@ def parse_args():
                       action="store")
     parser.add_option("-d", help="Database name", dest="db_name",
                       action="store")
+    parser.add_option("-P", help="Run site post-processing",
+                      dest="site_do_post", action="store_true", default=False)
     parser.add_option("--write-pidfile",
                       help="write pidfile (.parser_execute)",
                       dest="write_pidfile", action="store_true",
@@ -230,6 +233,10 @@ def parse_path(db, path, level, reparse, mail_on_failure):
         parse_leaf_path(db, path, level, reparse, mail_on_failure)
 
 
+def _site_post_parse_job_dummy():
+    return {}
+
+
 def main():
     options, args = parse_args()
     results_dir = os.path.abspath(args[0])
@@ -239,6 +246,10 @@ def main():
 
     if options.write_pidfile:
         pid_file_manager.open_file()
+
+    site_post_parse_job = utils.import_site_function(__file__,
+        "autotest_lib.tko.site_parse", "site_post_parse_job",
+        _site_post_parse_job_dummy)
 
     try:
         # build up the list of job dirs to parse
@@ -271,6 +282,10 @@ def main():
             try:
                 parse_path(db, path, options.level, options.reparse,
                            options.mailit)
+
+                if options.site_do_post is True:
+                    site_post_parse_job(path)
+
             finally:
                 fcntl.flock(lockfile, fcntl.LOCK_UN)
                 lockfile.close()
