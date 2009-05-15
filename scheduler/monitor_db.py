@@ -625,6 +625,7 @@ class Dispatcher(object):
         _drone_manager.refresh()
         self._run_cleanup()
         self._find_aborting()
+        self._find_reverify()
         self._process_recurring_runs()
         self._schedule_new_jobs()
         self._handle_agents()
@@ -799,6 +800,10 @@ class Dispatcher(object):
                 tasks = queue_entry.host.reverify_tasks()
                 self.add_agent(Agent(tasks))
             agent = queue_entry.requeue()
+
+
+    def _find_reverify(self):
+        self._reverify_hosts_where("status = 'Reverify'")
 
 
     def _reverify_remaining_hosts(self):

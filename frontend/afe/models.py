@@ -21,6 +21,13 @@ class AclAccessViolation(Exception):
     """
 
 
+class StateError(Exception):
+    """\
+    Raised when a reverification is attempted on a host that is not
+    in a valid state to accept a reverify.
+    """
+
+
 class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     """\
     An atomic group defines a collection of hosts which must only be scheduled
@@ -195,7 +202,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     """
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
                        'Repair Failed', 'Dead', 'Cleaning', 'Pending',
-                        string_values=True)
+                       'Reverify', string_values=True)
 
     hostname = dbmodels.CharField(maxlength=255, unique=True)
     labels = dbmodels.ManyToManyField(Label, blank=True,
@@ -246,6 +253,37 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         host.locked = False
         host.save()
         return host
+
+
+    @classmethod
+    def reverify_hosts(cls, hosts):
+        """
+        Reverifies the hosts if and only if they are all in Ready, Repair
+        Failed, or Dead state. Raises an exception if any of them are not
+        in one of these three states.
+        """
+        valid_status = (cls.Status.READY,
+                        cls.Status.REPAIR_FAILED,
+                        cls.Status.DEAD)
+
+        for host in hosts:
+            if host.status not in valid_status:
+                raise StateError("Can only force reverify on Ready, "
+                                 "Repair Failed, and Dead machines")
+
+        cursor = connection.cursor()
+
+        sql = """
+            UPDATE hosts
+            SET status = %%s
+            WHERE status IN (%s)
+            AND id IN (%s)
+            """ % (','.join(['%s'] * len(valid_status)),
+                   ','.join(['%s'] * len(hosts)))
+        cursor.execute(sql, [cls.Status.REVERIFY] +
+                            [status for status in valid_status] +
+                            [host.id for host in hosts])
+
 
     def clean_object(self):
         self.aclgroup_set.clear()
