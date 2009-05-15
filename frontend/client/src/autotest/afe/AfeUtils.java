@@ -163,6 +163,22 @@ public class AfeUtils {
     public static void callAbort(JSONObject params, final SimpleCallback onSuccess) {
         callAbort(params, onSuccess, true);
     }
+    
+    public static void callReverify(JSONObject params, final SimpleCallback onSuccess) {
+        JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+        rpcProxy.rpcCall("reverify_hosts", params, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                
+                NotifyManager.getInstance().showMessage(
+                        "Hosts scheduled for reverification");
+                    
+                if (onSuccess != null) {
+                    onSuccess.doCallback(null);
+                }
+            }
+        });
+    }
 
     public static String getJobTag(JSONObject job) {
         return Utils.jsonToString(job.get("id")) + "-" + Utils.jsonToString(job.get("owner"));
