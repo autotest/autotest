@@ -52,6 +52,8 @@ class WidgetList<T extends Widget> extends Composite implements ClickListener {
     }
 
     public void onClick(Widget sender) {
+        assert (sender instanceof SimpleHyperlink);
+      
         SimpleHyperlink addLink = (SimpleHyperlink) sender;
         T widget = factory.getNewWidget(addLink.getText());
         addWidget(widget);
