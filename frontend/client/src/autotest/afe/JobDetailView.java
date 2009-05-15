@@ -27,6 +27,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
@@ -38,7 +39,6 @@ import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Set;
-
 
 public class JobDetailView extends DetailView implements TableWidgetFactory, TableActionsListener {
     private static final String[][] JOB_HOSTS_COLUMNS = {
@@ -236,14 +236,24 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         ContextMenu menu = new ContextMenu();
         menu.addItem("Reuse any similar hosts  (default)", new Command() {
             public void execute() {
-                cloneJob(false, null);
+                cloneJob(false);
             }
         });
         menu.addItem("Reuse same specific hosts", new Command() {
             public void execute() {
-                cloneJob(true, null);
+                cloneJob(true);
             }
         });
+        menu.addItem("Use failed and aborted hosts", new Command() {
+            public void execute() {
+                JSONObject queueEntryFilterData = new JSONObject();
+                String sql = "(status = 'Failed' OR aborted = TRUE)";
+                
+                queueEntryFilterData.put("extra_where", new JSONString(sql));
+                cloneJob(true, queueEntryFilterData);
+            }
+        });
+        
         menu.showAt(cloneButton.getAbsoluteLeft(), 
                 cloneButton.getAbsoluteTop() + cloneButton.getOffsetHeight());
     }
@@ -255,14 +265,21 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
           queueEntryIds.set(queueEntryIds.size(), queueEntry.get("id"));
         }
         
-        cloneJob(true, queueEntryIds);
+        JSONObject queueEntryFilterData = new JSONObject();
+        queueEntryFilterData.put("id__in", queueEntryIds);
+        cloneJob(true, queueEntryFilterData);
     }
     
-    private void cloneJob(boolean preserveMetahosts, JSONArray queueEntryIds) {
+    private void cloneJob(boolean preserveMetahosts) {
+        cloneJob(preserveMetahosts, new JSONObject());
+    }
+    
+    private void cloneJob(boolean preserveMetahosts, JSONObject queueEntryFilterData) {
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         params.put("preserve_metahosts", JSONBoolean.getInstance(preserveMetahosts));
-        params.put("queue_entry_ids", queueEntryIds);
+        params.put("queue_entry_filter_data", queueEntryFilterData);
+
         rpcProxy.rpcCall("get_info_for_clone", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
