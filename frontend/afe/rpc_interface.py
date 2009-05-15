@@ -462,6 +462,15 @@ def abort_host_queue_entries(**filter_data):
         queue_entry.abort(user)
 
 
+def reverify_hosts(**filter_data):
+    """\
+    Schedules a set of hosts for verify.
+    """
+    hosts = models.Host.query_objects(filter_data)
+    models.AclGroup.check_for_acl_violation_hosts(hosts)
+    models.Host.reverify_hosts(hosts)
+
+
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
     """\
     Extra filter args for get_jobs:
@@ -687,8 +696,8 @@ def get_static_data():
                                    "Stopped": "Other host(s) failed verify",
                                    "Parsing": "Awaiting parse of final results",
                                    "Gathering": "Gathering log files",
-                                   "Template": "Template job for recurring run"}
-
+                                   "Template": "Template job for recurring run",
+                                   "Reverify": "Scheduled for reverification"}
     return result
 
 
