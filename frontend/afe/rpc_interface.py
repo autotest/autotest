@@ -521,14 +521,14 @@ def get_jobs_summary(**filter_data):
     return rpc_utils.prepare_for_serialization(jobs)
 
 
-def get_info_for_clone(id, preserve_metahosts, queue_entry_ids=None):
+def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
     """\
     Retrieves all the information needed to clone a job.
     """
     job = models.Job.objects.get(id=id)
     job_info = rpc_utils.get_job_info(job,
-                                      preserve_metahosts=preserve_metahosts,
-                                      queue_entry_ids=queue_entry_ids)
+                                      preserve_metahosts,
+                                      queue_entry_filter_data)
 
     host_dicts = []
     for host in job_info['hosts']:
