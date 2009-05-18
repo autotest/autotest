@@ -51,7 +51,7 @@ def validate_args(args):
 
 def encode_args(profiler, args, dargs):
     parts = [repr(profiler)]
-    parts += [repr(arg) for arg in dargs]
+    parts += [repr(arg) for arg in args]
     parts += ["%s=%r" % darg for darg in dargs.iteritems()]
     return ", ".join(parts)
 
