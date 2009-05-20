@@ -2,7 +2,6 @@
 Extensions to Django's model logic.
 """
 
-import itertools
 from django.db import models as dbmodels, backend, connection
 from django.utils import datastructures
 from autotest_lib.frontend.afe import readonly_connection
@@ -234,43 +233,64 @@ class ExtendedManager(dbmodels.Manager):
         return cursor.fetchall()
 
 
-    def _is_relation_to(self, field, ModelClass):
-        return field.rel and field.rel.to is ModelClass
+    def _is_relation_to(self, field, model_class):
+        return field.rel and field.rel.to is model_class
 
 
-    def _determine_pivot_table(self, RelatedModel):
+    def _get_pivot_iterator(self, base_objects_by_id, related_model):
         """
-        Determine the pivot table for this relationship and return a tuple
-        (pivot_table, pivot_from_field, pivot_to_field).  See
-        _query_pivot_table() for more info.
+        Determine the relationship between this model and related_model, and
+        return a pivot iterator.
+        @param base_objects_by_id: dict of instances of this model indexed by
+        their IDs
+        @returns a pivot iterator, which yields a tuple (base_object,
+        related_object) for each relationship between a base object and a
+        related object.  all base_object instances come from base_objects_by_id.
         Note -- this depends on Django model internals and will likely need to
         be updated when we move to Django 1.x.
         """
-        # look for a field on RelatedModel relating to this model
-        for field in RelatedModel._meta.fields:
+        # look for a field on related_model relating to this model
+        for field in related_model._meta.fields:
             if self._is_relation_to(field, self.model):
-                # many-to-one -- the related table itself is the pivot table
-                return (RelatedModel._meta.db_table, field.column,
-                        RelatedModel.objects.get_key_on_this_table())
+                # many-to-one
+                return self._many_to_one_pivot(base_objects_by_id,
+                                               related_model, field)
 
-        for field in RelatedModel._meta.many_to_many:
+        for field in related_model._meta.many_to_many:
             if self._is_relation_to(field, self.model):
                 # many-to-many
-                return (field.m2m_db_table(), field.m2m_reverse_name(),
-                        field.m2m_column_name())
+                return self._many_to_many_pivot(
+                    base_objects_by_id, related_model, field.m2m_db_table(),
+                    field.m2m_reverse_name(), field.m2m_column_name())
 
         # maybe this model has the many-to-many field
         for field in self.model._meta.many_to_many:
-            if self._is_relation_to(field, RelatedModel):
-                return (field.m2m_db_table(), field.m2m_column_name(),
-                        field.m2m_reverse_name())
+            if self._is_relation_to(field, related_model):
+                return self._many_to_many_pivot(
+                    base_objects_by_id, related_model, field.m2m_db_table(),
+                    field.m2m_column_name(), field.m2m_reverse_name())
 
         raise ValueError('%s has no relation to %s' %
-                         (RelatedModel, self.model))
+                         (related_model, self.model))
 
 
-    def _query_pivot_table(self, id_list, pivot_table, pivot_from_field,
-                           pivot_to_field):
+    def _many_to_one_pivot(self, base_objects_by_id, related_model,
+                           foreign_key_field):
+        """
+        @returns a pivot iterator - see _get_pivot_iterator()
+        """
+        filter_data = {foreign_key_field.name + '__pk__in':
+                       base_objects_by_id.keys()}
+        for related_object in related_model.objects.filter(**filter_data):
+            fresh_base_object = getattr(related_object, foreign_key_field.name)
+            # lookup base object in the dict -- we need to return instances from
+            # the dict, not fresh instances of the same models
+            base_object = base_objects_by_id[fresh_base_object._get_pk_val()]
+            yield base_object, related_object
+
+
+    def _query_pivot_table(self, base_objects_by_id, pivot_table,
+                           pivot_from_field, pivot_to_field):
         """
         @param id_list list of IDs of self.model objects to include
         @param pivot_table the name of the pivot table
@@ -278,8 +298,7 @@ class ExtendedManager(dbmodels.Manager):
         self.model
         @param pivot_to_field a field name on pivot_table referencing the
         related model.
-        @returns a dict mapping each IDs from id_list to a list of IDs of
-        related objects.
+        @returns pivot list of IDs (base_id, related_id)
         """
         query = """
         SELECT %(from_field)s, %(to_field)s
@@ -288,40 +307,58 @@ class ExtendedManager(dbmodels.Manager):
         """ % dict(from_field=pivot_from_field,
                    to_field=pivot_to_field,
                    table=pivot_table,
-                   id_list=','.join(str(id_) for id_ in id_list))
+                   id_list=','.join(str(id_) for id_
+                                    in base_objects_by_id.iterkeys()))
         cursor = readonly_connection.connection().cursor()
         cursor.execute(query)
-
-        related_ids = {}
-        for model_id, related_id in cursor.fetchall():
-            related_ids.setdefault(model_id, []).append(related_id)
-        return related_ids
+        return cursor.fetchall()
 
 
-    def populate_relationships(self, model_objects, RelatedModel,
+    def _many_to_many_pivot(self, base_objects_by_id, related_model,
+                            pivot_table, pivot_from_field, pivot_to_field):
+        """
+        @param pivot_table: see _query_pivot_table
+        @param pivot_from_field: see _query_pivot_table
+        @param pivot_to_field: see _query_pivot_table
+        @returns a pivot iterator - see _get_pivot_iterator()
+        """
+        id_pivot = self._query_pivot_table(base_objects_by_id, pivot_table,
+                                           pivot_from_field, pivot_to_field)
+
+        all_related_ids = list(set(related_id for base_id, related_id
+                                   in id_pivot))
+        related_objects_by_id = related_model.objects.in_bulk(all_related_ids)
+
+        for base_id, related_id in id_pivot:
+            yield base_objects_by_id[base_id], related_objects_by_id[related_id]
+
+
+    def populate_relationships(self, base_objects, related_model,
                                related_list_name):
         """
-        For each instance in query_set, add a field named related_list_name
-        listing all the related objects of type RelatedModel.  RelatedModel
-        must be in a many-to-one or many-to-many relationship with this model.
+        For each instance of this model in base_objects, add a field named
+        related_list_name listing all the related objects of type related_model.
+        related_model must be in a many-to-one or many-to-many relationship with
+        this model.
+        @param base_objects - list of instances of this model
+        @param related_model - model class related to this model
+        @param related_list_name - attribute name in which to store the related
+        object list.
         """
-        if not model_objects:
+        if not base_objects:
             # if we don't bail early, we'll get a SQL error later
             return
-        id_list = (item._get_pk_val() for item in model_objects)
-        pivot_table, pivot_from_field, pivot_to_field = (
-            self._determine_pivot_table(RelatedModel))
-        related_ids = self._query_pivot_table(id_list, pivot_table,
-                                              pivot_from_field, pivot_to_field)
 
-        all_related_ids = list(set(itertools.chain(*related_ids.itervalues())))
-        related_objects_by_id = RelatedModel.objects.in_bulk(all_related_ids)
+        base_objects_by_id = dict((base_object._get_pk_val(), base_object)
+                                  for base_object in base_objects)
+        pivot_iterator = self._get_pivot_iterator(base_objects_by_id,
+                                                  related_model)
 
-        for item in model_objects:
-            related_ids_for_item = related_ids.get(item._get_pk_val(), [])
-            related_objects = [related_objects_by_id[related_id]
-                               for related_id in related_ids_for_item]
-            setattr(item, related_list_name, related_objects)
+        for base_object in base_objects:
+            setattr(base_object, related_list_name, [])
+
+        for base_object, related_object in pivot_iterator:
+            getattr(base_object, related_list_name).append(related_object)
 
 
 class ValidObjectsManager(ExtendedManager):
