@@ -41,6 +41,27 @@ INNER JOIN kernels ON kernels.kernel_idx = tests.kernel_idx
 INNER JOIN status ON status.status_idx = tests.status;
 """
 
+# this will need to be updated if the table schemas change (or removed if we
+# add proper primary keys)
+_CREATE_ITERATION_ATTRIBUTES = """
+CREATE TABLE "iteration_attributes" (
+    "test_idx" integer NOT NULL REFERENCES "tests" ("test_idx"),
+    "iteration" integer NOT NULL,
+    "attribute" varchar(90) NOT NULL,
+    "value" varchar(300) NOT NULL
+);
+"""
+
+_CREATE_ITERATION_RESULTS = """
+CREATE TABLE "iteration_result" (
+    "test_idx" integer NOT NULL REFERENCES "tests" ("test_idx"),
+    "iteration" integer NOT NULL,
+    "attribute" varchar(90) NOT NULL,
+    "value" numeric(12, 31) NULL
+);
+"""
+
+
 def setup_test_view():
     """
     Django has no way to actually represent a view; we simply create a model for
@@ -52,9 +73,22 @@ def setup_test_view():
     cursor.execute(_CREATE_TEST_VIEW)
 
 
+def fix_iteration_tables():
+    """
+    Since iteration tables don't have any real primary key, we "fake" one in the
+    Django models.  So fix up the generated schema to match the real schema.
+    """
+    cursor = connection.cursor()
+    cursor.execute('DROP TABLE iteration_attributes')
+    cursor.execute(_CREATE_ITERATION_ATTRIBUTES)
+    cursor.execute('DROP TABLE iteration_result')
+    cursor.execute(_CREATE_ITERATION_RESULTS)
+
+
 class RpcInterfaceTest(unittest.TestCase):
     def setUp(self):
         setup_test_environment.set_up()
+        fix_iteration_tables()
         setup_test_view()
         self._create_initial_data()
 
@@ -83,20 +117,40 @@ class RpcInterfaceTest(unittest.TestCase):
                                 status=status, machine=machine)
         test.save()
 
-        attribute = models.TestAttribute(test=test, attribute='myattr',
-                                         value='myval')
-        attribute.save()
+        # like Noah's Ark, include two of each...just in case there's a bug with
+        # multiple related items
 
-        iteration_attribute = models.IterationAttribute(test=test, iteration=1,
-                                                        attribute='iattr',
-                                                        value='ival')
-        iteration_result = models.IterationResult(test=test, iteration=1,
-                                                  attribute='iresult',
-                                                  value=1)
-        iteration_attribute.save()
-        iteration_result.save()
+        (models.TestAttribute(test=test, attribute='myattr', value='myval')
+         .save())
+        (models.TestAttribute(test=test, attribute='myattr2', value='myval2')
+         .save())
 
-        test_label = models.TestLabel(name='testlabel')
+        # can't use models to add these, since they don't have real primary keys
+        self._add_iteration_keyval('iteration_attributes', test=test,
+                                   iteration=1, attribute='iattr',
+                                   value='ival')
+        self._add_iteration_keyval('iteration_attributes', test=test,
+                                   iteration=1, attribute='iattr2',
+                                   value='ival2')
+        self._add_iteration_keyval('iteration_result', test=test,
+                                   iteration=1, attribute='iresult',
+                                   value=1)
+        self._add_iteration_keyval('iteration_result', test=test,
+                                   iteration=1, attribute='iresult2',
+                                   value=2)
+
+        self._add_test_label(test, 'testlabel')
+        self._add_test_label(test, 'testlabel2')
+
+
+    def _add_iteration_keyval(self, table, test, iteration, attribute, value):
+        cursor = connection.cursor()
+        cursor.execute('INSERT INTO %s ' 'VALUES (%%s, %%s, %%s, %%s)' % table,
+                       (test.test_idx, iteration, attribute, value))
+
+
+    def _add_test_label(self, test, label_name):
+        test_label = models.TestLabel(name=label_name)
         test_label.save()
         test_label.tests.add(test)
 
@@ -112,26 +166,32 @@ class RpcInterfaceTest(unittest.TestCase):
         self.assertEquals(test['hostname'], 'host1')
         self.assertEquals(test['kernel'], 'mykernel')
 
-        self.assertEquals(test['attributes'], {'myattr' : 'myval'})
-        self.assertEquals(test['iterations'], [{'attr' : {'iattr' : 'ival'},
-                                                'perf' : {'iresult' : 1}}])
-        self.assertEquals(test['labels'], ['testlabel'])
+        self.assertEquals(test['attributes'], {'myattr': 'myval',
+                                               'myattr2': 'myval2'})
+        self.assertEquals(test['iterations'], [{'attr': {'iattr': 'ival',
+                                                         'iattr2': 'ival2'},
+                                                'perf': {'iresult': 1,
+                                                         'iresult2': 2}}])
+        self.assertEquals(test['labels'], ['testlabel', 'testlabel2'])
 
 
     def test_test_attributes(self):
         rpc_interface.set_test_attribute('foo', 'bar', test_name='mytest')
         test = rpc_interface.get_detailed_test_views()[0]
-        self.assertEquals(test['attributes'], {'foo' : 'bar',
-                                               'myattr' : 'myval'})
+        self.assertEquals(test['attributes'], {'foo': 'bar',
+                                               'myattr': 'myval',
+                                               'myattr2': 'myval2'})
 
         rpc_interface.set_test_attribute('foo', 'goo', test_name='mytest')
         test = rpc_interface.get_detailed_test_views()[0]
-        self.assertEquals(test['attributes'], {'foo' : 'goo',
-                                               'myattr' : 'myval'})
+        self.assertEquals(test['attributes'], {'foo': 'goo',
+                                               'myattr': 'myval',
+                                               'myattr2': 'myval2'})
 
         rpc_interface.set_test_attribute('foo', None, test_name='mytest')
         test = rpc_interface.get_detailed_test_views()[0]
-        self.assertEquals(test['attributes'], {'myattr' : 'myval'})
+        self.assertEquals(test['attributes'], {'myattr': 'myval',
+                                               'myattr2': 'myval2'})
 
 
     def test_immutable_attributes(self):
