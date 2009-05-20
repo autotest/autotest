@@ -9,6 +9,7 @@ import autotest.common.ui.TabView;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.RootPanel;
@@ -68,10 +69,56 @@ public class HostListView extends TabView implements TableActionsListener {
     }
     
     private void reverifySelectedHosts() {
+        JSONObject params = new JSONObject();
+        JSONArray hostIds = getSelectedHostIds();
+        if (hostIds == null) {
+            return;
+        }
+        
+        params.put("id__in", hostIds);
+        AfeUtils.callReverify(params, new SimpleCallback() {
+            public void doCallback(Object source) {
+               refresh();
+            }
+        });
+    }
+    
+    private void changeLockStatus(final boolean lock) {
+        JSONArray hostIds = getSelectedHostIds();
+        if (hostIds == null) {
+            return;
+        }
+        
+        JSONObject hostFilterData = new JSONObject();
+        JSONObject updateData = new JSONObject();
+        JSONObject params = new JSONObject();
+        
+        hostFilterData.put("id__in", hostIds);
+        updateData.put("locked", JSONBoolean.getInstance(lock));
+        
+        params.put("host_filter_data", hostFilterData);
+        params.put("update_data", updateData);
+        
+        AfeUtils.callModifyHosts(params, new SimpleCallback() {
+            public void doCallback(Object source) {
+                String message = "Hosts ";
+                if (!lock) {
+                    message += "un";
+                }
+                message += "locked";
+                
+                NotifyManager.getInstance().showMessage(message);
+                
+                refresh();
+            }
+        });
+    }
+    
+    private JSONArray getSelectedHostIds() {
         Set<JSONObject> selectedSet = selectionManager.getSelectedObjects();
         if (selectedSet.isEmpty()) {
             NotifyManager.getInstance().showError("No hosts selected");
-            return;
+            return null;
         }
         
         JSONArray ids = new JSONArray();
@@ -79,13 +126,7 @@ public class HostListView extends TabView implements TableActionsListener {
             ids.set(ids.size(), jsonObj.get("id"));
         }
         
-        JSONObject params = new JSONObject();
-        params.put("id__in", ids);
-        AfeUtils.callReverify(params, new SimpleCallback() {
-            public void doCallback(Object source) {
-               refresh();
-            }
-        });
+        return ids;
     }
     
     public ContextMenu getActionMenu() {
@@ -95,6 +136,17 @@ public class HostListView extends TabView implements TableActionsListener {
                 reverifySelectedHosts();
             }
         });
+        menu.addItem("Lock hosts", new Command() {
+            public void execute() {
+                changeLockStatus(true);
+            }
+        });
+        menu.addItem("Unlock hosts", new Command() {
+            public void execute() {
+                changeLockStatus(false);
+            }
+      });
+        
         return menu;
     }
 }
