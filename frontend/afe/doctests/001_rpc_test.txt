@@ -338,6 +338,30 @@ True
 {}
 
 
+# host bulk modify
+##################
+
+>>> rpc_interface.modify_hosts(
+...     host_filter_data={'hostname__in': ['host1', 'host2']},
+...     update_data={'locked': True})
+>>> data = rpc_interface.get_hosts(hostname__in=['host1', 'host2'])
+
+>>> data[0]['locked']
+True
+>>> data[1]['locked']
+True
+
+>>> rpc_interface.modify_hosts(
+...     host_filter_data={'id': 2},
+...     update_data={'locked': False})
+>>> data = rpc_interface.get_hosts(hostname__in=['host1', 'host2'])
+
+>>> data[0]['locked']
+False
+>>> data[1]['locked']
+True
+
+
 # job management
 # ############
 
