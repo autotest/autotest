@@ -112,6 +112,16 @@ def modify_host(id, **data):
     models.Host.smart_get(id).update_object(data)
 
 
+def modify_hosts(host_filter_data, update_data):
+    """
+    @param host_filter_data filters out which hosts to modify
+    @param update_data dictionary with the changes to make to the hosts
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    for host in hosts:
+        host.update_object(update_data)
+
+
 def host_add_labels(id, labels):
     labels = models.Label.smart_get_bulk(labels)
     models.Host.smart_get(id).labels.add(*labels)

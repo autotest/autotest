@@ -179,6 +179,18 @@ public class AfeUtils {
             }
         });
     }
+    
+    public static void callModifyHosts(JSONObject params, final SimpleCallback onSuccess) {
+        JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+        rpcProxy.rpcCall("modify_hosts", params, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                if (onSuccess != null) {
+                    onSuccess.doCallback(null);
+                }
+            }
+        });
+    }
 
     public static String getJobTag(JSONObject job) {
         return Utils.jsonToString(job.get("id")) + "-" + Utils.jsonToString(job.get("owner"));
