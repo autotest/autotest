@@ -444,7 +444,7 @@ class HostScheduler(object):
                 and not label.invalid)
 
 
-    def _get_eligible_hosts_in_group(self, group_hosts, queue_entry):
+    def _get_eligible_host_ids_in_group(self, group_hosts, queue_entry):
         """
         @param group_hosts - A sequence of Host ids to test for usability
                 and eligibility against the Job associated with queue_entry.
@@ -565,7 +565,7 @@ class HostScheduler(object):
                 # If we have a metahost label, only allow its hosts.
                 group_hosts.intersection_update(hosts_in_label)
             group_hosts -= ineligible_host_ids
-            eligible_hosts_in_group = self._get_eligible_hosts_in_group(
+            eligible_host_ids_in_group = self._get_eligible_host_ids_in_group(
                     group_hosts, queue_entry)
 
             # Job.synch_count is treated as "minimum synch count" when
@@ -575,12 +575,14 @@ class HostScheduler(object):
             min_hosts = job.synch_count
             max_hosts = atomic_group.max_number_of_machines
 
-            if len(eligible_hosts_in_group) < min_hosts:
+            if len(eligible_host_ids_in_group) < min_hosts:
                 # Not enough eligible hosts in this atomic group label.
                 continue
 
+            eligible_hosts_in_group = [self._hosts_available[id]
+                                       for id in eligible_host_ids_in_group]
             # So that they show up in a sane order when viewing the job.
-            eligible_hosts_in_group = sorted(eligible_hosts_in_group)
+            eligible_hosts_in_group.sort(cmp=Host.cmp_for_sort)
 
             # Limit ourselves to scheduling the atomic group size.
             if len(eligible_hosts_in_group) > max_hosts:
@@ -589,9 +591,10 @@ class HostScheduler(object):
             # Remove the selected hosts from our cached internal state
             # of available hosts in order to return the Host objects.
             host_list = []
-            for host_id in eligible_hosts_in_group:
-                hosts_in_label.discard(host_id)
-                host_list.append(self._hosts_available.pop(host_id))
+            for host in eligible_hosts_in_group:
+                hosts_in_label.discard(host.id)
+                self._hosts_available.pop(host.id)
+                host_list.append(host)
             return host_list
 
         return []
@@ -2238,6 +2241,46 @@ class Host(DBObject):
         return [cleanup_task, verify_task]
 
 
+    _ALPHANUM_HOST_RE = re.compile(r'^([a-z-]+)(\d+)$', re.IGNORECASE)
+
+
+    @classmethod
+    def cmp_for_sort(cls, a, b):
+        """
+        A comparison function for sorting Host objects by hostname.
+
+        This strips any trailing numeric digits, ignores leading 0s and
+        compares hostnames by the leading name and the trailing digits as a
+        number.  If both hostnames do not match this pattern, they are simply
+        compared as lower case strings.
+
+        Example of how hostnames will be sorted:
+
+          alice, host1, host2, host09, host010, host10, host11, yolkfolk
+
+        This hopefully satisfy most people's hostname sorting needs regardless
+        of their exact naming schemes.  Nobody sane should have both a host10
+        and host010 (but the algorithm works regardless).
+        """
+        lower_a = a.hostname.lower()
+        lower_b = b.hostname.lower()
+        match_a = cls._ALPHANUM_HOST_RE.match(lower_a)
+        match_b = cls._ALPHANUM_HOST_RE.match(lower_b)
+        if match_a and match_b:
+            name_a, number_a_str = match_a.groups()
+            name_b, number_b_str = match_b.groups()
+            number_a = int(number_a_str.lstrip('0'))
+            number_b = int(number_b_str.lstrip('0'))
+            result = cmp((name_a, number_a), (name_b, number_b))
+            if result == 0 and lower_a != lower_b:
+                # If they compared equal above but the lower case names are
+                # indeed different, don't report equality.  abc012 != abc12.
+                return cmp(lower_a, lower_b)
+            return result
+        else:
+            return cmp(lower_a, lower_b)
+
+
 class HostQueueEntry(DBObject):
     _table_name = 'host_queue_entries'
     _fields = ('id', 'job_id', 'host_id', 'status', 'meta_host',
@@ -2715,7 +2758,7 @@ class Job(DBObject):
         """
         @returns A tuple containing a list of HostQueueEntry instances to be
                 used to run this Job, a string group name to suggest giving
-                to this job a results database.
+                to this job in the results database.
         """
         if include_queue_entry.atomic_group_id:
             atomic_group = AtomicGroup(include_queue_entry.atomic_group_id,
@@ -2732,11 +2775,15 @@ class Job(DBObject):
 
         if num_entries_wanted > 0:
             where_clause = 'job_id = %s AND status = "Pending" AND id != %s'
-            pending_entries = HostQueueEntry.fetch(
+            pending_entries = list(HostQueueEntry.fetch(
                      where=where_clause,
-                     params=(self.id, include_queue_entry.id))
-            # TODO(gps): sort these by hostname before slicing.
-            chosen_entries += list(pending_entries)[:num_entries_wanted]
+                     params=(self.id, include_queue_entry.id)))
+
+            # Sort the chosen hosts by hostname before slicing.
+            def cmp_queue_entries_by_hostname(entry_a, entry_b):
+                return Host.cmp_for_sort(entry_a.host, entry_b.host)
+            pending_entries.sort(cmp=cmp_queue_entries_by_hostname)
+            chosen_entries += pending_entries[:num_entries_wanted]
 
         # Sanity check.  We'll only ever be called if this can be met.
         assert len(chosen_entries) >= self.synch_count
