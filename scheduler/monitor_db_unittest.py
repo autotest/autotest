@@ -1773,6 +1773,44 @@ class AgentTasksTest(unittest.TestCase):
         self._test_cleanup_task_helper(False, True)
 
 
+class HostTest(BaseSchedulerTest):
+    def test_cmp_for_sort(self):
+        expected_order = [
+                'alice', 'Host1', 'host2', 'host3', 'host09', 'HOST010',
+                'host10', 'host11', 'yolkfolk']
+        hostname_idx = list(monitor_db.Host._fields).index('hostname')
+        row = [None] * len(monitor_db.Host._fields)
+        hosts = []
+        for hostname in expected_order:
+            row[hostname_idx] = hostname
+            hosts.append(monitor_db.Host(row=row, new_record=True))
+
+        host1 = hosts[expected_order.index('Host1')]
+        host010 = hosts[expected_order.index('HOST010')]
+        host10 = hosts[expected_order.index('host10')]
+        host3 = hosts[expected_order.index('host3')]
+        alice = hosts[expected_order.index('alice')]
+        self.assertEqual(0, monitor_db.Host.cmp_for_sort(host10, host10))
+        self.assertEqual(1, monitor_db.Host.cmp_for_sort(host10, host010))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host010, host10))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host1, host10))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host1, host010))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host3, host10))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host3, host010))
+        self.assertEqual(1, monitor_db.Host.cmp_for_sort(host3, host1))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(host1, host3))
+        self.assertEqual(-1, monitor_db.Host.cmp_for_sort(alice, host3))
+        self.assertEqual(1, monitor_db.Host.cmp_for_sort(host3, alice))
+        self.assertEqual(0, monitor_db.Host.cmp_for_sort(alice, alice))
+
+        hosts.sort(cmp=monitor_db.Host.cmp_for_sort)
+        self.assertEqual(expected_order, [h.hostname for h in hosts])
+
+        hosts.reverse()
+        hosts.sort(cmp=monitor_db.Host.cmp_for_sort)
+        self.assertEqual(expected_order, [h.hostname for h in hosts])
+
+
 class HostQueueEntryTest(BaseSchedulerTest):
     def _create_hqe(self, dependency_labels=(), **create_job_kwargs):
         job = self._create_job(**create_job_kwargs)
