@@ -283,12 +283,13 @@ def main():
                 parse_path(db, path, options.level, options.reparse,
                            options.mailit)
 
-                if options.site_do_post is True:
-                    site_post_parse_job(path)
-
             finally:
                 fcntl.flock(lockfile, fcntl.LOCK_UN)
                 lockfile.close()
+
+        if options.site_do_post is True:
+            site_post_parse_job(results_dir)
+
     except:
         pid_file_manager.close_file(1)
         raise
