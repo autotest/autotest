@@ -57,7 +57,7 @@ class Host(object):
     bootloader = None
     job = None
     DEFAULT_REBOOT_TIMEOUT = 1800
-    WAIT_DOWN_REBOOT_TIMEOUT = 600
+    WAIT_DOWN_REBOOT_TIMEOUT = 840
     WAIT_DOWN_REBOOT_WARNING = 540
     HOURS_TO_WAIT_FOR_RECOVERY = 2.5
 
