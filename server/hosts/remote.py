@@ -1,9 +1,9 @@
 """This class defines the Remote host class, mixing in the SiteHost class
 if it is available."""
 
-import os, time, pickle, logging
+import os, logging
 from autotest_lib.client.common_lib import error
-from autotest_lib.server import utils, profiler
+from autotest_lib.server import utils
 from autotest_lib.server.hosts import base_classes, bootloader
 
 
@@ -211,91 +211,6 @@ class RemoteHost(base_classes.Host):
             raise error.AutoservHostError('Client is not pingable')
         result = self.run("/bin/cat /proc/uptime", 30)
         return result.stdout.strip().split()[0]
-
-
-    def get_crashinfo(self, test_start_time):
-        logging.info("Collecting crash information...")
-        super(RemoteHost, self).get_crashinfo(test_start_time)
-
-        # wait for four hours, to see if the machine comes back up
-        current_time = time.strftime("%b %d %H:%M:%S", time.localtime())
-        logging.info("Waiting four hours for %s to come up (%s)",
-                    self.hostname, current_time)
-        if not self.wait_up(timeout=4*60*60):
-            logging.warning("%s down, unable to collect crash info",
-                           self.hostname)
-            return
-        else:
-            logging.info("%s is back up, collecting crash info", self.hostname)
-
-        # find a directory to put the crashinfo into
-        try:
-            self.job.resultsdir
-        except AttributeError:
-            self.job.resultsdir = None
-
-        if self.job.resultsdir:
-            infodir = self.job.resultdir
-        else:
-            infodir = os.path.abspath(os.getcwd())
-        infodir = os.path.join(infodir, "crashinfo.%s" % self.hostname)
-        if not os.path.exists(infodir):
-            os.mkdir(infodir)
-
-        # collect various log files
-        log_files = ["/var/log/messages", "/var/log/monitor-ssh-reboots"]
-        for log in log_files:
-            logging.info("Collecting %s...", log)
-            try:
-                self.get_file(log, infodir, preserve_perm=False)
-            except Exception:
-                logging.warning("Collection of %s failed", log)
-
-        # collect dmesg
-        logging.info("Collecting dmesg (saved to crashinfo/dmesg)...")
-        devnull = open("/dev/null", "w")
-        try:
-            try:
-                result = self.run("dmesg", stdout_tee=devnull).stdout
-                file(os.path.join(infodir, "dmesg"), "w").write(result)
-            except Exception, e:
-                logging.warning("Collection of dmesg failed:\n%s", e)
-        finally:
-            devnull.close()
-
-        # collect any profiler data we can find
-        logging.info("Collecting any server-side profiler data lying around...")
-        try:
-            cmd = "ls %s" % profiler.PROFILER_TMPDIR
-            profiler_dirs = [path for path in self.run(cmd).stdout.split()
-                             if path.startswith("autoserv-")]
-            for profiler_dir in profiler_dirs:
-                remote_path = profiler.get_profiler_results_dir(profiler_dir)
-                remote_exists = self.run("ls %s" % remote_path,
-                                         ignore_status=True).exit_status == 0
-                if not remote_exists:
-                    continue
-                local_path = os.path.join(infodir, "profiler." + profiler_dir)
-                os.mkdir(local_path)
-                self.get_file(remote_path + "/", local_path)
-        except Exception, e:
-            logging.warning("Collection of profiler data failed with:\n%s", e)
-
-
-        # collect any uncollected logs we see (for this host)
-        if not self.job.uncollected_log_file:
-            self.job.uncollected_log_file = ''
-        if self.job and os.path.exists(self.job.uncollected_log_file):
-            try:
-                logs = pickle.load(open(self.job.uncollected_log_file))
-                for hostname, remote_path, local_path in logs:
-                    if hostname == self.hostname:
-                        logging.info("Retrieving logs from %s:%s into %s",
-                                    hostname, remote_path, local_path)
-                        self.get_file(remote_path + "/", local_path + "/")
-            except Exception, e:
-                logging.warning("Error while trying to collect stranded "
-                               "Autotest client logs: %s", e)
 
 
     def are_wait_up_processes_up(self):
