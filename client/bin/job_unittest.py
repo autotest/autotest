@@ -301,7 +301,7 @@ class TestBaseJob(unittest.TestCase):
         os.path.exists.expect_call(path).and_return(False)
         self.job.pkgmgr.fetch_pkg.expect_call(path, packages_dir, repo_url='')
         utils.get_os_vendor.expect_call()
-        mykernel = kernel.rpm_kernel.expect_new(self.job, packages_dir,
+        mykernel = kernel.rpm_kernel.expect_new(self.job, [packages_dir],
                                                 results)
 
         # check
