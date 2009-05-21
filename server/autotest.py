@@ -444,7 +444,8 @@ class _Run(object):
         return bool(re.match(r'^\t*GOOD\t----\treboot\.start.*$', last_line))
 
 
-    def log_unexpected_abort(self):
+    def log_unexpected_abort(self, stderr_redirector):
+        stderr_redirector.flush_all_buffers()
         msg = "Autotest client terminated unexpectedly"
         self.host.job.record("END ABORT", None, None, msg)
 
@@ -550,7 +551,7 @@ class _Run(object):
 
         # log something if the client failed AND never finished logging
         if err and not self.is_client_job_finished(last_line):
-            self.log_unexpected_abort()
+            self.log_unexpected_abort(stderr_redirector)
 
         if err:
             raise err
@@ -655,7 +656,7 @@ class _Run(object):
                     continue
 
                 # if we reach here, something unexpected happened
-                self.log_unexpected_abort()
+                self.log_unexpected_abort(logger)
 
                 # give the client machine a chance to recover from a crash
                 self.host.wait_up(CRASH_RECOVERY_TIME)
@@ -914,12 +915,17 @@ class client_logger(object):
         sys.stdout.flush()
 
 
-    def close(self):
+    def flush_all_buffers(self):
         if self.leftover:
             self._process_line(self.leftover)
+            self.leftover = ""
         self._process_warnings(self.last_line, self.logs, self.server_warnings)
         self._process_logs()
         self.flush()
+
+
+    def close(self):
+        self.flush_all_buffers()
 
 
 SiteAutotest = client_utils.import_site_class(
