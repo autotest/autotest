@@ -309,14 +309,6 @@ class Host(object):
         installableObject.install(self)
 
 
-    def get_crashinfo(self, test_start_time):
-        self.get_crashdumps(test_start_time)
-
-
-    def get_crashdumps(self, test_start_time):
-        pass
-
-
     def get_autodir(self):
         raise NotImplementedError('Get autodir not implemented!')
 
