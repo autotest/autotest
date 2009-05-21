@@ -627,40 +627,44 @@ class rpm_kernel(object):
     def install(self, tag='autotest'):
         self.installed_as = tag
 
-        self.rpm_name = utils.system_output('rpm -qp ' + self.rpm_package)
-
-        # install
-        utils.system('rpm -i --force ' + self.rpm_package)
-
-        # get file list
-        files = utils.system_output('rpm -ql ' + self.rpm_name).splitlines()
-
-        # search for vmlinuz
-        for file in files:
-            if file.startswith('/boot/vmlinuz'):
-                self.full_version = file[len('/boot/vmlinuz-'):]
-                self.image = file
-                # prefer /boot/kernel-version before /boot/kernel
-                if self.full_version:
-                    break
-        else:
-            errmsg = "%s doesn't contain /boot/vmlinuz"
-            errmsg %= self.rpm_package
-            raise error.TestError(errmsg)
-
-        # search for initrd
+        self.image = None
         self.initrd = ''
-        for file in files:
-            if file.startswith('/boot/initrd'):
-                self.initrd = file
-                # prefer /boot/initrd-version before /boot/initrd
-                if len(file) > len('/boot/initrd'):
-                    break
+        for rpm_pack in self.rpm_package:
+            rpm_name = utils.system_output('rpm -qp ' + rpm_pack)
 
-        # get version and release number
-        self.version, self.release = utils.system_output(
-                'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
-                + self.rpm_name).splitlines()[0:2]
+            # install
+            utils.system('rpm -i --force ' + rpm_pack)
+
+            # get file list
+            files = utils.system_output('rpm -ql ' + rpm_name).splitlines()
+
+            # search for vmlinuz
+            for file in files:
+                if file.startswith('/boot/vmlinuz'):
+                    self.full_version = file[len('/boot/vmlinuz-'):]
+                    self.image = file
+                    self.rpm_flavour = rpm_name.split('-')[1]
+
+                    # get version and release number
+                    self.version, self.release = utils.system_output(
+                            'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
+                            + rpm_name).splitlines()[0:2]
+
+                    # prefer /boot/kernel-version before /boot/kernel
+                    if self.full_version:
+                        break
+
+            # search for initrd
+            for file in files:
+                if file.startswith('/boot/initrd'):
+                    self.initrd = file
+                    # prefer /boot/initrd-version before /boot/initrd
+                    if len(file) > len('/boot/initrd'):
+                        break
+
+        if self.image == None:
+            errmsg = "specified rpm file(s) don't contain /boot/vmlinuz"
+            raise error.TestError(errmsg)
 
 
     def add_to_bootloader(self, tag='autotest', args=''):
@@ -705,7 +709,7 @@ class rpm_kernel(object):
         expected_ident = self.full_version
         if not expected_ident:
             expected_ident = '-'.join([self.version,
-                                       self.rpm_name.split('-')[1],
+                                       self.rpm_flavour,
                                        self.release])
         if ident:
             when = int(time.time())
@@ -775,22 +779,33 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     Create a kernel object, dynamically selecting the appropriate class to use
     based on the path provided.
     """
-    kernel_path = preprocess_path(path)
-    if kernel_path.endswith('.rpm'):
-        if utils.is_url(kernel_path) or os.path.exists(kernel_path):
-            return rpm_kernel_vendor(job, kernel_path, subdir)
+    kernel_paths = [preprocess_path(path)]
+    if kernel_paths[0].endswith('.list'):
+        # Fetch the list of packages to install
+        kernel_list = os.path.join(tmp_dir, 'kernel.list')
+        utils.get_file(kernel_paths[0], kernel_list)
+        kernel_paths = [p.strip() for p in open(kernel_list).readlines()]
 
-        else:
-            # Fetch the rpm into the job's packages directory and pass it to
-            # rpm_kernel
-            rpm_name = os.path.basename(kernel_path)
+    if kernel_paths[0].endswith('.rpm'):
+        rpm_paths = []
+        for kernel_path in kernel_paths:
+            if utils.is_url(kernel_path) or os.path.exists(kernel_path):
+                rpm_paths.append(kernel_path)
 
-            # If the preprocessed path (kernel_path) is only a name then
-            # search for the kernel in all the repositories, else fetch the
-            # kernel from that specific path.
-            job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
-                                 repo_url=os.path.dirname(kernel_path))
+            else:
+                # Fetch the rpm into the job's packages directory and pass it to
+                # rpm_kernel
+                rpm_name = os.path.basename(kernel_path)
 
-            return rpm_kernel_vendor(job, os.path.join(job.pkgdir, rpm_name), subdir)
+                # If the preprocessed path (kernel_path) is only a name then
+                # search for the kernel in all the repositories, else fetch the
+                # kernel from that specific path.
+                job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
+                                     repo_url=os.path.dirname(kernel_path))
+
+                rpm_paths.append(os.path.join(job.pkgdir, rpm_name))
+        return rpm_kernel_vendor(job, rpm_paths, subdir)
     else:
-        return kernel(job,kernel_path, subdir, tmp_dir, build_dir, leave)
+        if len(kernel_paths) > 1:
+            raise error.TestError("don't know what to do with more than one non-rpm kernel file")
+        return kernel(job,kernel_paths[0], subdir, tmp_dir, build_dir, leave)
