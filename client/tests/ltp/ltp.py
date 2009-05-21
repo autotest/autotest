@@ -38,16 +38,14 @@ class ltp(test.test):
             utils.system('patch -p1 < ../ltp_capability.patch')
 
         utils.system('cp ../scan.c pan/')   # saves having lex installed
-        utils.system('[ -f configure.ac ] && make autotools || make autoconf')
-        utils.system('[ -x configure ] && ./configure')
-        utils.system('make -j %d || make' % utils.count_cpus())
+        utils.system('make -j %d' % utils.count_cpus())
         utils.system('yes n | make install')
 
 
     # Note: to run a specific test, try '-f cmdfile -s test' in the
     # in the args (-f for test file and -s for the test case)
     # eg, job.run_test('ltp', '-f math -s float_bessel')
-    def run_once(self, args = '', script = 'runltp'):
+    def run_once(self, args = '', script = 'runltp', ignore_tests=[]):
 
         ignore_tests = ignore_tests + self.site_ignore_tests
 
@@ -59,4 +57,12 @@ class ltp(test.test):
             args = args + ' ' + args2
 
         cmd = os.path.join(self.srcdir, script) + ' ' + args
-        utils.system(cmd)
+        result = utils.run(cmd, ignore_status=True)
+
+        # look for the first line in result.stdout containing FAIL and,
+        # if found, raise the whole line as a reason of the test failure.
+        for line in result.stdout.split():
+            if 'FAIL' in line:
+                test_name = line.strip().split(' ')[0]
+                if not test_name in ignore_tests:
+                    raise error.TestFail(line)
