@@ -1,9 +1,12 @@
+from autotest_lib.server import crashcollect
+
+
 def crashinfo(machine):
     hostname, user, passwd, port = parse_machine(machine, ssh_user,
                                                  ssh_port, ssh_pass)
     host = hosts.create_host(hostname, user=user, port=port, initialize=False,
                              password=passwd, auto_monitor=False)
-    host.get_crashinfo(test_start_time)
+    crashcollect.get_crashinfo(host, test_start_time)
 
 
 job.parallel_simple(crashinfo, machines, log=False)

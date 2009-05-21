@@ -2,7 +2,7 @@ import os, itertools, shutil, tempfile
 import common
 
 from autotest_lib.client.common_lib import utils, error
-from autotest_lib.server import autotest
+from autotest_lib.server import autotest, hosts
 
 
 PROFILER_TMPDIR = "/tmp/profilers"
@@ -82,18 +82,26 @@ class profiler_proxy(object):
 
     def _install(self):
         """ Install autotest on any current job hosts. """
-        current_job_hosts = set(host for host in self.job.hosts
-                                if not host.get_autodir() or
-                                host.get_autodir().startswith(PROFILER_TMPDIR))
-        current_profiler_hosts = set(self.installed_hosts.keys())
-        # install autotest on any new hosts in job.hosts
-        for host in current_job_hosts - current_profiler_hosts:
+        in_use_hosts = set(host.hostname for host in self.job.hosts
+                           if not
+                           (host.get_autodir() and
+                            host.get_autodir().startswith(PROFILER_TMPDIR)))
+        profiler_hosts = set(self.installed_hosts.keys())
+
+        # install autotest on any new hosts in use
+        for hostname in in_use_hosts - profiler_hosts:
+            host = hosts.create_host(hostname, auto_monitor=False)
             tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
             at = autotest.Autotest(host)
             at.install(autodir=tmp_dir)
             self.installed_hosts[host] = (at, tmp_dir)
+
         # drop any installs from hosts no longer in job.hosts
-        for host in current_profiler_hosts - current_job_hosts:
+        hostnames_to_drop = profiler_hosts - in_use_hosts
+        hosts_to_drop = [host for host in self.installed_hosts.iterkeys()
+                         if host.hostname in hostnames_to_drop]
+        for host in hosts_to_drop:
+            host.close()
             del self.installed_hosts[host]
 
 
