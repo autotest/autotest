@@ -7,11 +7,10 @@ __author__ = 'gps@google.com (Gregory P. Smith)'
 import os, unittest
 from cStringIO import StringIO
 import common
-from autotest_lib.client.bin import partition
 from autotest_lib.client.common_lib.test_utils import mock
 
 
-class FsOptions_test(unittest.TestCase):
+class FsOptions_common(object):
     def test_constructor(self):
         self.assertRaises(ValueError, partition.FsOptions, '', '', '', '')
         self.assertRaises(ValueError, partition.FsOptions, 'ext2', '', '', '')
@@ -63,7 +62,7 @@ Units = sectors of 1 * 512 = 512 bytes
 """
 
 
-class GetPartitionsTest(unittest.TestCase):
+class get_partition_list_common(object):
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(os, 'popen')
@@ -125,6 +124,40 @@ class GetPartitionsTest(unittest.TestCase):
         self.assertEqual(['3'], parts)
         self.god.check_playback()
 
+
+# we want to run the unit test suite once strictly on the non site specific
+# version of partition (ie on base_partition.py) and once on the version
+# that would result after the site specific overrides take place in order
+# to check that the overrides to not break expected functionality of the
+# non site specific code
+class FSOptions_base_test(FsOptions_common, unittest.TestCase):
+    def setUp(self):
+        global partition
+        from autotest_lib.client.bin import base_partition
+        partition = base_partition
+
+
+class get_partition_list_base_test(get_partition_list_common, unittest.TestCase):
+    def setUp(self):
+        global partition
+        from autotest_lib.client.bin import base_partition
+        partition = base_partition
+
+        get_partition_list_common.setUp(self)
+
+
+class FSOptions_test(FsOptions_common, unittest.TestCase):
+    def setUp(self):
+        global partition
+        from autotest_lib.client.bin import partition
+
+
+class get_partition_list_test(get_partition_list_common, unittest.TestCase):
+    def setUp(self):
+        global partition
+        from autotest_lib.client.bin import partition
+
+        get_partition_list_common.setUp(self)
 
 
 if __name__ == '__main__':
