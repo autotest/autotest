@@ -22,21 +22,45 @@ def get_crashinfo(host, test_start_time):
     # include crashdumps as part of the general crashinfo
     get_crashdumps(host, test_start_time)
 
-    # wait for four hours, to see if the machine comes back up
+    if wait_for_machine_to_recover(host):
+        # run any site-specific collection
+        get_site_crashinfo(host, test_start_time)
+
+        crashinfo_dir = get_crashinfo_dir(host)
+        collect_log_file(host, "/var/log/messages", crashinfo_dir)
+        collect_log_file(host, "/var/log/monitor-ssh-reboots", crashinfo_dir)
+        collect_command(host, "dmesg", os.path.join(crashinfo_dir, "dmesg"))
+        collect_profiler_data(host, crashinfo_dir)
+        collect_uncollected_logs(host)
+
+
+def wait_for_machine_to_recover(host, hours_to_wait=4.0):
+    """Wait for a machine (possibly down) to become accessible again.
+
+    @param host: A RemoteHost instance to wait on
+    @param hours_to_wait: Number of hours to wait before giving up
+
+    @returns: True if the machine comes back up, False otherwise
+    """
     current_time = time.strftime("%b %d %H:%M:%S", time.localtime())
     logging.info("Waiting four hours for %s to come up (%s)",
                  host.hostname, current_time)
-    if not host.wait_up(timeout=4*60*60):
+    if not host.wait_up(timeout=hours_to_wait * 3600):
         logging.warning("%s down, unable to collect crash info",
                         host.hostname)
-        return
+        return False
     else:
         logging.info("%s is back up, collecting crash info", host.hostname)
+        return True
 
-    # run any site-specific crashinfo collection
-    get_site_crashinfo(host, test_start_time)
 
-    # find a directory to put the crashinfo into
+def get_crashinfo_dir(host):
+    """Find and if necessary create a directory to store crashinfo in.
+
+    @param host: The RemoteHost object that crashinfo will be collected from
+
+    @returns: The path to an existing directory for writing crashinfo into
+    """
     host_resultdir = getattr(getattr(host, "job", None), "resultdir", None)
     if host_resultdir:
         infodir = host_resultdir
@@ -45,29 +69,62 @@ def get_crashinfo(host, test_start_time):
     infodir = os.path.join(infodir, "crashinfo.%s" % host.hostname)
     if not os.path.exists(infodir):
         os.mkdir(infodir)
+    return infodir
 
-    # collect various log files
-    log_files = ["/var/log/messages", "/var/log/monitor-ssh-reboots"]
-    for log in log_files:
-        logging.info("Collecting %s...", log)
-        try:
-            host.get_file(log, infodir, preserve_perm=False)
-        except Exception:
-            logging.warning("Collection of %s failed", log)
 
-    # collect dmesg
-    logging.info("Collecting dmesg (saved to crashinfo/dmesg)...")
+def collect_log_file(host, log_path, dest_path):
+    """Collects a log file from the remote machine.
+
+    Log files are collected from the remote machine and written into the
+    destination path. If dest_path is a directory, the log file will be named
+    using the basename of the remote log path.
+
+    @param host: The RemoteHost to collect logs from
+    @param log_path: The remote path to collect the log file from
+    @param dest_path: A path (file or directory) to write the copies logs into
+    """
+    logging.info("Collecting %s...", log_path)
+    try:
+        host.get_file(log_path, dest_path, preserve_perm=False)
+    except Exception:
+        logging.warning("Collection of %s failed", log_path)
+
+
+
+def collect_command(host, command, dest_path):
+    """Collects the result of a command on the remote machine.
+
+    The standard output of the command will be collected and written into the
+    desitionation path. The destination path is assumed to be filename and
+    not a directory.
+
+    @param host: The RemoteHost to collect from
+    @param command: A shell command to run on the remote machine and capture
+        the output from.
+    @param dest_path: A file path to write the results of the log into
+    """
+    logging.info("Collecting '%s' ...", command)
     devnull = open("/dev/null", "w")
     try:
         try:
-            result = host.run("dmesg", stdout_tee=devnull).stdout
-            file(os.path.join(infodir, "dmesg"), "w").write(result)
+            result = host.run(command, stdout_tee=devnull).stdout
+            utils.open_write_close(dest_path, result)
         except Exception, e:
-            logging.warning("Collection of dmesg failed:\n%s", e)
+            logging.warning("Collection of '%s' failed:\n%s", command, e)
     finally:
         devnull.close()
 
-    # collect any profiler data we can find
+
+def collect_profiler_data(host, dest_path):
+    """Collects any leftover profiler data that can be found.
+
+    Any profiler data found will be written into a subdirectory of the
+    crashinfo path called "profiler.$REMOTEDIR" where $REMOTEDIR is the
+    basename of the remote profiler data path.
+
+    @param host: The RemoteHost to collect from
+    @param dest_path: A directory to copy the profiler results into
+    """
     logging.info("Collecting any server-side profiler data lying around...")
     try:
         cmd = "ls %s" % profiler.PROFILER_TMPDIR
@@ -79,24 +136,29 @@ def get_crashinfo(host, test_start_time):
                                      ignore_status=True).exit_status == 0
             if not remote_exists:
                 continue
-            local_path = os.path.join(infodir, "profiler." + profiler_dir)
+            local_path = os.path.join(dest_path, "profiler." + profiler_dir)
             os.mkdir(local_path)
             host.get_file(remote_path + "/", local_path)
     except Exception, e:
         logging.warning("Collection of profiler data failed with:\n%s", e)
 
 
-    # collect any uncollected logs we see (for this host)
+def collect_uncollected_logs(host):
+    """Collects any leftover uncollected logs from the client.
+
+    @param host: The RemoteHost to collect from
+    """
     if not host.job.uncollected_log_file:
         host.job.uncollected_log_file = ''
+
     if host.job and os.path.exists(host.job.uncollected_log_file):
         try:
             logs = pickle.load(open(host.job.uncollected_log_file))
             for hostname, remote_path, local_path in logs:
                 if hostname == host.hostname:
                     logging.info("Retrieving logs from %s:%s into %s",
-                                hostname, remote_path, local_path)
+                                 hostname, remote_path, local_path)
                     host.get_file(remote_path + "/", local_path + "/")
         except Exception, e:
             logging.warning("Error while trying to collect stranded "
-                           "Autotest client logs: %s", e)
+                            "Autotest client logs: %s", e)
