@@ -108,6 +108,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 completed.wait(self.CONNECT_TIMEOUT_SECONDS)
                 if completed.isSet():
                     self._check_transport_error(transport)
+                    if not transport.is_authenticated():
+                        transport.close()
+                        raise paramiko.AuthenticationException()
                     return transport
             logging.warn("SSH negotiation timed out, retrying")
             # HACK: we can't count on transport.join not hanging now, either
