@@ -107,7 +107,7 @@ class base_test:
             print "___________________ keyvals = %s" % self._keyvals[-1]['perf']
             try:
                 if not eval(constraint, self._keyvals[-1]['perf']):
-                    failures.append('%s' % constraint)
+                    failures.append('%s: constraint was not met' % constraint)
             except:
                 failures.append('could not evaluate constraint: %s'
                                 % constraint)
