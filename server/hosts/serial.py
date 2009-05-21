@@ -135,7 +135,13 @@ class SerialHost(SiteHost):
             if wait:
                 self.wait_for_restart(timeout)
 
-        if wait:
-            self.log_reboot(reboot)
-        else:
-            reboot()
+        if self.job:
+            self.job.disable_warnings("POWER_FAILURE")
+        try:
+            if wait:
+                self.log_reboot(reboot)
+            else:
+                reboot()
+        finally:
+            if self.job:
+                self.job.enable_warnings("POWER_FAILURE")
