@@ -716,9 +716,16 @@ class BasePackageManager(object):
         the source. Returns the tarball path.
         '''
         tarball_path = os.path.join(dest_dir, pkg_name)
-        cmd = "tar -cvjf %s -C %s %s " % (tarball_path, src_dir, exclude_string)
+        temp_path = tarball_path + '.tmp'
+        cmd = "tar -cvjf %s -C %s %s " % (temp_path, src_dir, exclude_string)
 
-        utils.system(cmd)
+        try:
+            utils.system(cmd)
+        except:
+            os.unlink(temp_path)
+            raise
+
+        os.rename(temp_path, tarball_path)
         return tarball_path
 
 
