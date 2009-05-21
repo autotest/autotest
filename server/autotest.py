@@ -745,6 +745,7 @@ class client_logger(object):
     status_parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
     test_complete_parser = re.compile(r"^AUTOTEST_TEST_COMPLETE:(.*)$")
     extract_indent = re.compile(r"^(\t*).*$")
+    extract_timestamp = re.compile(r".*\ttimestamp=(\d+)\t.*$")
 
     def __init__(self, host, tag, server_results_dir):
         self.host = host
@@ -752,8 +753,16 @@ class client_logger(object):
         self.log_collector = log_collector(host, tag, server_results_dir)
         self.leftover = ""
         self.last_line = ""
+        self.newest_timestamp = float("-inf")
         self.logs = {}
         self.server_warnings = []
+
+
+    def _update_timestamp(self, line):
+        match = self.extract_timestamp.search(line)
+        if match:
+            self.newest_timestamp = max(self.newest_timestamp,
+                                        int(match.group(1)))
 
 
     def _process_log_dict(self, log_dict):
@@ -882,14 +891,20 @@ class client_logger(object):
         # first check for any new console warnings
         warnings = self.job._read_warnings() + self.server_warnings
         warnings.sort()  # sort into timestamp order
-        self.server_warnings = []
-        self._process_warnings(self.last_line, self.logs, warnings)
         # now process the newest data written out
         data = self.leftover + data
         lines = data.split("\n")
         # process every line but the last one
         for line in lines[:-1]:
+            self._update_timestamp(line)
+            # output any warnings between now and the next status line
+            old_warnings = [(timestamp, msg) for timestamp, msg in warnings
+                            if timestamp < self.newest_timestamp]
+            self._process_warnings(self.last_line, self.logs, warnings)
+            del warnings[:len(old_warnings)]
             self._process_line(line)
+        # save off any warnings not yet logged for later processing
+        self.server_warnings = warnings
         # save the last line for later processing
         # since we may not have the whole line yet
         self.leftover = lines[-1]
@@ -902,6 +917,7 @@ class client_logger(object):
     def close(self):
         if self.leftover:
             self._process_line(self.leftover)
+        self._process_warnings(self.last_line, self.logs, self.server_warnings)
         self._process_logs()
         self.flush()
 
