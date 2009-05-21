@@ -69,7 +69,6 @@ class base_server_job(object):
     """
 
     STATUS_VERSION = 1
-    WARNING_DISABLE_DELAY = 5
     test_tag = None
 
     def __init__(self, control, args, resultdir, label, user, machines,
@@ -698,11 +697,9 @@ class base_server_job(object):
         self.record("INFO", None, None,
                     "disabling %s warnings" % warning_type,
                     {"warnings.disable": warning_type})
-        time.sleep(self.WARNING_DISABLE_DELAY)
 
 
     def enable_warnings(self, warning_type):
-        time.sleep(self.WARNING_DISABLE_DELAY)
         self.warning_manager.enable_warnings(warning_type)
         self.record("INFO", None, None,
                     "enabling %s warnings" % warning_type,
