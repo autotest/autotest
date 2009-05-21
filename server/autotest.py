@@ -679,23 +679,26 @@ class _Run(object):
 def _get_autodir(host):
     autodir = host.get_autodir()
     if autodir:
+        logging.debug('Using existing host autodir: %s', autodir)
         return autodir
     try:
         # There's no clean way to do this. readlink may not exist
-        cmd = "python -c 'import os,sys; print os.readlink(sys.argv[1])' /etc/autotest.conf 2> /dev/null"
+        cmd = ("python -c '%s' /etc/autotest.conf 2> /dev/null"
+               % "import os,sys; print os.readlink(sys.argv[1])")
         autodir = os.path.dirname(host.run(cmd).stdout)
         if autodir:
+            logging.debug('Using autodir from /etc/autotest.conf: %s', autodir)
             return autodir
     except error.AutoservRunError:
         pass
     for path in ['/usr/local/autotest', '/home/autotest']:
         try:
-            host.run('ls %s > /dev/null 2>&1' %
-                     os.path.join(path, 'bin/autotest'))
+            host.run('ls %s > /dev/null 2>&1' % path)
+            logging.debug('Found autodir at %s', path)
             return path
         except error.AutoservRunError:
-            pass
-    raise error.AutotestRunError("Cannot figure out autotest directory")
+            logging.debug('%s does not exist', path)
+    raise error.AutotestRunError('Cannot figure out autotest directory')
 
 
 class log_collector(object):
