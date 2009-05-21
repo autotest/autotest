@@ -496,6 +496,8 @@ class AFE(RpcClient):
             True:  if all platforms have at least all-but-one machines Good.
         """
         self._job_test_results(tko, job, debug)
+        if job.test_status == {}:
+            return None
         self._job_results_platform_map(job, debug)
 
         good_platforms = []
