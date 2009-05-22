@@ -34,6 +34,10 @@ class RemoteHost(base_classes.Host):
         self.tmp_dirs = []
 
 
+    def __repr__(self):
+        return "<remote host: %s>" % self.hostname
+
+
     def close(self):
         super(RemoteHost, self).close()
         self.stop_loggers()
