@@ -82,6 +82,8 @@ def _site_init_monitor_db_dummy():
 def main():
     try:
         main_without_exception_handling()
+    except SystemExit:
+        raise
     except:
         logging.exception('Exception escaping in monitor_db')
         raise
