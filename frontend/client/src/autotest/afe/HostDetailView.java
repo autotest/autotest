@@ -22,7 +22,10 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.Widget;
 
 public class HostDetailView extends DetailView implements DataCallback, TableActionsListener {
     private static final String[][] HOST_JOBS_COLUMNS = {
@@ -60,6 +63,10 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
     protected SimpleFilter hostFilter = new SimpleFilter();
     protected HostDetailListener listener = null;
     private SelectionManager selectionManager;
+    
+    private JSONObject currentHostObject;
+    
+    private Button lockButton = new Button();
 
     public HostDetailView(HostDetailListener listener) {
         this.listener = listener;
@@ -114,9 +121,8 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
     }
     
     public void handlePage(JSONArray data) {
-        JSONObject hostObject;
         try {
-            hostObject = Utils.getSingleValueFromArray(data).isObject();
+            currentHostObject = Utils.getSingleValueFromArray(data).isObject();
         }
         catch (IllegalArgumentException exc) {
             NotifyManager.getInstance().showError("No such host found");
@@ -124,12 +130,13 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
             return;
         }
         
-        showField(hostObject, "status", "view_host_status");
-        showField(hostObject, "platform", "view_host_platform");
-        showField(hostObject, HostDataSource.HOST_ACLS, "view_host_acls");
-        showField(hostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
-        showField(hostObject, HostDataSource.LOCKED_TEXT, "view_host_locked");
+        showField(currentHostObject, "status", "view_host_status");
+        showField(currentHostObject, "platform", "view_host_platform");
+        showField(currentHostObject, HostDataSource.HOST_ACLS, "view_host_acls");
+        showField(currentHostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
+        showField(currentHostObject, HostDataSource.LOCKED_TEXT, "view_host_locked");
         String pageTitle = "Host " + hostname;
+        updateLockButton();
         displayObjectData(pageTitle);
         
         DOM.setElementProperty(DOM.getElementById("view_host_logs_link"), "href",
@@ -165,6 +172,14 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
         jobsTable.setWidgetFactory(selectionManager);
         tableDecorator.addTableActionsPanel(this, true);
         RootPanel.get("view_host_jobs_table").add(tableDecorator);
+        
+        lockButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+               boolean locked = currentHostObject.get("locked").isBoolean().booleanValue();
+               changeLock(!locked);
+            } 
+        });
+        RootPanel.get("view_host_lock_button").add(lockButton);
     }
 
     public void onError(JSONObject errorObject) {
@@ -186,6 +201,26 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
             public void doCallback(Object source) {
                 refresh();
             } 
+        });
+    }
+    
+    private void updateLockButton() {
+        boolean locked = currentHostObject.get("locked").isBoolean().booleanValue();
+        if (locked) {
+            lockButton.setText("Unlock");
+        } else {
+            lockButton.setText("Lock");
+        }
+    }
+    
+    private void changeLock(final boolean lock) {
+        JSONArray hostIds = new JSONArray();
+        hostIds.set(0, currentHostObject.get("id"));
+        
+        AfeUtils.changeHostLocks(hostIds, lock, "Host " + hostname, new SimpleCallback() {
+            public void doCallback(Object source) {
+                refresh();
+            }
         });
     }
 }
