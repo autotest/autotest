@@ -1673,16 +1673,17 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 class RecoveryQueueTask(QueueTask):
     def __init__(self, job, queue_entries, run_monitor):
         super(RecoveryQueueTask, self).__init__(job, queue_entries, cmd=None)
-        self.run_monitor = run_monitor
+        self.monitor = run_monitor
+        self.started = True
+        # since we set started=True here, prolog() and run() shouldn't be called
 
 
     def run(self):
-        self.monitor = self.run_monitor
+        raise NotImplemented('This should never be called')
 
 
     def prolog(self):
-        # recovering an existing process - don't do prolog
-        pass
+        raise NotImplemented('This should never be called')
 
 
 class PostJobTask(AgentTask):
@@ -1693,7 +1694,6 @@ class PostJobTask(AgentTask):
         """
         self._queue_entries = queue_entries
         self._pidfile_name = pidfile_name
-        self._run_monitor = run_monitor
 
         self._execution_tag = self._get_consistent_execution_tag(queue_entries)
         self._results_dir = _drone_manager.absolute_path(self._execution_tag)
@@ -1708,6 +1708,10 @@ class PostJobTask(AgentTask):
 
         super(PostJobTask, self).__init__(cmd=command,
                                           working_directory=self._execution_tag)
+        # this must happen *after* the super call
+        self.monitor = run_monitor
+        if run_monitor:
+            self.started = True
 
         self.log_file = os.path.join(self._execution_tag, logfile_name)
         self._final_status = self._determine_final_status()
@@ -1744,22 +1748,21 @@ class PostJobTask(AgentTask):
 
 
     def run(self):
-        if self._run_monitor is not None:
-            self.monitor = self._run_monitor
-        else:
-            # make sure we actually have results to work with.
-            # this should never happen in normal operation.
-            if not self._autoserv_monitor.has_process():
-                email_manager.manager.enqueue_notify_email(
-                    'No results in post-job task',
-                    'No results in post-job task at %s' %
-                    self._autoserv_monitor.pidfile_id)
-                self.finished(False)
-                return
+        assert not self.monitor
 
-            super(PostJobTask, self).run(
-                pidfile_name=self._pidfile_name,
-                paired_with_pidfile=self._paired_with_pidfile)
+        # make sure we actually have results to work with.
+        # this should never happen in normal operation.
+        if not self._autoserv_monitor.has_process():
+            email_manager.manager.enqueue_notify_email(
+                'No results in post-job task',
+                'No results in post-job task at %s' %
+                self._autoserv_monitor.pidfile_id)
+            self.finished(False)
+            return
+
+        super(PostJobTask, self).run(
+            pidfile_name=self._pidfile_name,
+            paired_with_pidfile=self._paired_with_pidfile)
 
 
     def _set_all_statuses(self, status):
@@ -1885,7 +1888,7 @@ class FinalReparseTask(PostJobTask):
                                                run_monitor=run_monitor)
         # don't use _set_ids, since we don't want to set the host_ids
         self.queue_entry_ids = [entry.id for entry in queue_entries]
-        self._parse_started = False
+        self._parse_started = (run_monitor is not None)
 
 
     @classmethod
