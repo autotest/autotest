@@ -644,12 +644,12 @@ class JobManager(model_logic.ExtendedManager):
             GROUP BY job_id, status, aborted, complete
             """ % id_list)
         all_job_counts = {}
-        for job_id in job_ids:
-            all_job_counts[job_id] = {}
         for job_id, status, aborted, complete, count in cursor.fetchall():
+            job_dict = all_job_counts.setdefault(job_id, {})
             full_status = HostQueueEntry.compute_full_status(status, aborted,
                                                              complete)
-            all_job_counts[job_id][full_status] = count
+            job_dict.setdefault(full_status, 0)
+            all_job_counts[job_id][full_status] += count
         return all_job_counts
 
 
