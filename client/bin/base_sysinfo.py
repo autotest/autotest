@@ -18,10 +18,10 @@ _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/cpuinfo", "/proc/modules", "/proc/interrupts",
     ]
 _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
-    "/proc/schedstat"
+    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts"
     ]
 _DEFAULT_FILES_TO_LOG_AFTER_ITERATION = [
-    "/proc/schedstat"
+    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts"
     ]
 
 
