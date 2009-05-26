@@ -12,9 +12,12 @@ class test_job_load_from_dir(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(models.job, 'read_keyval')
+        self.god.stub_function(version_0.job, 'find_hostname')
+
 
     def tearDown(self):
         self.god.unstub_all()
+
 
     keyval_return = {'job_queued': 1234567890,
                      'job_started': 1234567891,
@@ -22,6 +25,7 @@ class test_job_load_from_dir(unittest.TestCase):
                      'user': 'janet',
                      'label': 'steeltown',
                      'hostname': 'abc123'}
+
 
     def test_load_from_dir_simple(self):
         models.job.read_keyval.expect_call('.').and_return(
@@ -32,6 +36,24 @@ class test_job_load_from_dir(unittest.TestCase):
         self.assertEqual('abc123', job['machine'])
         self.god.check_playback()
 
+
+    def test_load_from_dir_two_machine(self):
+        raw_keyval = dict(self.keyval_return)
+        raw_keyval['hostname'] = 'easyas,abc123'
+        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        version_0.job.find_hostname.expect_call('.').and_raises(
+                version_0.NoHostnameError('find_hostname stubbed out'))
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('easyas,abc123', job['machine'])
+
+        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        version_0.job.find_hostname.expect_call('.').and_return('foo')
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('foo', job['machine'])
+
+        self.god.check_playback()
+
+
     def test_load_from_dir_one_machine_group_name(self):
         raw_keyval = dict(self.keyval_return)
         raw_keyval['host_group_name'] = 'jackson five'
@@ -40,6 +62,7 @@ class test_job_load_from_dir(unittest.TestCase):
         self.assertEqual('janet', job['user'])
         self.assertEqual('abc123', job['machine'])
         self.god.check_playback()
+
 
     def test_load_from_dir_multi_machine_group_name(self):
         raw_keyval = dict(self.keyval_return)
@@ -53,6 +76,7 @@ class test_job_load_from_dir(unittest.TestCase):
         # a comma separated list.
         self.assertEqual('jackson five', job['machine'])
         self.god.check_playback()
+
 
     def test_load_from_dir_no_machine_group_name(self):
         raw_keyval = dict(self.keyval_return)

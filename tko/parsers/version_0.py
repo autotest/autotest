@@ -24,7 +24,7 @@ class job(models.job):
         label = keyval.get("label", None)
         host_group_name = keyval.get("host_group_name", None)
         machine = keyval.get("hostname", None)
-        if machine and "," in machine:
+        if not host_group_name and machine and "," in machine:
             try:
                 machine = job.find_hostname(dir) # find a unique hostname
             except NoHostnameError:
