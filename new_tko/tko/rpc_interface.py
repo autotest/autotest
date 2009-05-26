@@ -90,11 +90,14 @@ def get_status_counts(group_by, header_groups=[], fixed_headers={},
 
 
 def get_latest_tests(group_by, header_groups=[], fixed_headers={},
-                     machine_label_headers={}, **filter_data):
+                     machine_label_headers={}, extra_info=[], **filter_data):
     """
     Similar to get_status_counts, but return only the latest test result per
     group.  It still returns the same information (i.e. with pass count etc.)
     for compatibility.
+    @param extra_info a list containing the field names that should be returned
+                      with each cell. The fields are returned in the extra_info
+                      field of the return dictionary.
     """
     # find latest test per group
     query = models.TestView.objects.get_query_set_with_joins(
@@ -120,9 +123,14 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     for group_dict in info['groups']:
         test_idx = group_dict.pop('latest_test_idx')
         group_dict['test_idx'] = test_idx
-        tko_rpc_utils.add_status_counts(group_dict,
-                                        test_views[test_idx].status)
-    return info
+        test_view = test_views[test_idx]
+
+        tko_rpc_utils.add_status_counts(group_dict, test_view.status)
+        group_dict['extra_info'] = []
+        for field in extra_info:
+            group_dict['extra_info'].append(getattr(test_view, field))
+
+    return rpc_utils.prepare_for_serialization(info)
 
 
 
