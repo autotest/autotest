@@ -699,7 +699,7 @@ def get_arch(run_function=run):
     return arch
 
 
-def get_num_logical_cores(run_function=run):
+def get_num_logical_cpus_per_socket(run_function=run):
     """
     Get the number of cores (including hyperthreading) per cpu.
     run_function is used to execute the commands. It defaults to
@@ -707,9 +707,16 @@ def get_num_logical_cores(run_function=run):
     same schema as utils.run. It should return a CmdResult object and
     throw a CmdError exception.
     """
-    coreinfo = run_function('grep "^siblings" /proc/cpuinfo').stdout.rstrip()
-    cores = int(re.match('^siblings.*(\d+)', coreinfo).group(1))
-    return cores
+    siblings = run_function('grep "^siblings" /proc/cpuinfo').stdout.rstrip()
+    num_siblings = map(int,
+                       re.findall(r'^siblings\s*:\s*(\d+)\s*$',
+                                  siblings, re.M))
+    if len(num_siblings) == 0:
+        raise error.TestError('Unable to find siblings info in /proc/cpuinfo')
+    if min(num_siblings) != max(num_siblings):
+        raise error.TestError('Number of siblings differ %r' %
+                              num_siblings)
+    return num_siblings[0]
 
 
 def merge_trees(src, dest):
