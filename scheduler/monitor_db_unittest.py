@@ -1563,7 +1563,7 @@ class AgentTasksTest(unittest.TestCase):
         self.test_verify_task_with_queue_entry()
 
 
-    def _setup_post_job_task_expects(self, autoserv_success, hqe_status,
+    def _setup_post_job_task_expects(self, autoserv_success, hqe_status=None,
                                      hqe_aborted=False):
         self.queue_entry.execution_tag.expect_call().and_return('tag')
         self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
@@ -1578,7 +1578,8 @@ class AgentTasksTest(unittest.TestCase):
         if not hqe_aborted:
             self.pidfile_monitor.exit_code.expect_call().and_return(code)
 
-        self.queue_entry.set_status.expect_call(hqe_status)
+        if hqe_status:
+            self.queue_entry.set_status.expect_call(hqe_status)
 
 
     def _setup_pre_parse_expects(self, autoserv_success):
@@ -1593,6 +1594,12 @@ class AgentTasksTest(unittest.TestCase):
         self.queue_entry.set_status.expect_call(status)
 
 
+    def _expect_execute_run_monitor(self):
+        self.monitor.exit_code.expect_call()
+        self.monitor.exit_code.expect_call().and_return(0)
+        self._expect_copy_results()
+
+
     def _setup_post_job_run_monitor(self, pidfile_name):
         self.pidfile_monitor.has_process.expect_call().and_return(True)
         autoserv_pidfile_id = object()
@@ -1604,9 +1611,7 @@ class AgentTasksTest(unittest.TestCase):
             log_file=mock.anything_comparator(),
             pidfile_name=pidfile_name,
             paired_with_pidfile=self.PIDFILE_ID)
-        self.monitor.exit_code.expect_call()
-        self.monitor.exit_code.expect_call().and_return(0)
-        self._expect_copy_results()
+        self._expect_execute_run_monitor()
 
 
     def _expect_copy_results(self, monitor=None, queue_entry=None):
@@ -1654,6 +1659,20 @@ class AgentTasksTest(unittest.TestCase):
         self._setup_post_parse_expects(True)
 
         task = monitor_db.FinalReparseTask([self.queue_entry])
+        self.run_task(task, True)
+        self.god.check_playback()
+
+
+    def test_final_reparse_recovery(self):
+        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
+        self.monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
+                                                  'run_monitor')
+        self._setup_post_job_task_expects(True)
+        self._expect_execute_run_monitor()
+        self._setup_post_parse_expects(True)
+
+        task = monitor_db.FinalReparseTask([self.queue_entry],
+                                           run_monitor=self.monitor)
         self.run_task(task, True)
         self.god.check_playback()
 
@@ -1771,6 +1790,26 @@ class AgentTasksTest(unittest.TestCase):
 
     def test_cleanup_task_with_queue_entry(self):
         self._test_cleanup_task_helper(False, True)
+
+
+    def test_recovery_queue_task_aborted_early(self):
+        # abort a RecoveryQueueTask right after it's created
+        self.god.stub_class_method(monitor_db.QueueTask, '_log_abort')
+        self.god.stub_class_method(monitor_db.QueueTask, '_finish_task')
+        run_monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
+                                                 'run_monitor')
+
+        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        run_monitor.kill.expect_call()
+        run_monitor.has_process.expect_call().and_return(True)
+        monitor_db.QueueTask._log_abort.expect_call()
+        monitor_db.QueueTask._finish_task.expect_call()
+
+        task = monitor_db.RecoveryQueueTask(self.job, [self.queue_entry],
+                                            run_monitor)
+        task.abort()
+        self.assert_(task.aborted)
+        self.god.check_playback()
 
 
 class HostTest(BaseSchedulerTest):
