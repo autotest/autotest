@@ -130,7 +130,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
         CellInfo cellInfo = spreadsheet.getCellInfo(row, column);
         StatusSummary statusSummary = StatusSummary.getStatusSummary(group);
         numTotalTests += statusSummary.getTotal();
-        cellInfo.contents = statusSummary.formatStatusCounts();
+        cellInfo.contents = statusSummary.formatContents();
         cellInfo.color = statusSummary.getColor();
         cellInfo.testCount = statusSummary.getTotal();
         cellInfo.testIndex = (int) group.get("test_idx").isNumber().doubleValue();

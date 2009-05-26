@@ -111,12 +111,12 @@ public class Utils {
         return list;
     }
     
-    public static <T> String joinStrings(String joiner, List<T> objects) {
+    public static <T> String joinStrings(String joiner, List<T> objects, boolean wantBlanks) {
         StringBuilder result = new StringBuilder();
         boolean first = true;
         for (T object : objects) {
             String piece = object.toString();
-            if (piece.equals("")) {
+            if (piece.equals("") && !wantBlanks) {
                 continue;
             }
             if (first) {
@@ -127,6 +127,10 @@ public class Utils {
             result.append(piece);
         }
         return result.toString();
+    }
+    
+    public static <T> String joinStrings(String joiner, List<T> objects) {
+        return joinStrings(joiner, objects, false);
     }
     
     public static Map<String,String> decodeUrlArguments(String urlArguments, 

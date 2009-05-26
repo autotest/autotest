@@ -2,7 +2,11 @@
 
 package autotest.tko;
 
+import autotest.common.Utils;
+
 import com.google.gwt.json.client.JSONObject;
+
+import java.util.Arrays;
 
 class StatusSummary {
     static final String BLANK_COLOR = "#FFFFFF";
@@ -20,6 +24,8 @@ class StatusSummary {
     public int complete = 0;
     public int incomplete = 0;
     public int total = 0; // TEST_NA is included here, but not in any other
+    
+    private String[] contents = null;
     
     /**
      * Stores a color for pass rates and the minimum passing percentage required
@@ -46,6 +52,11 @@ class StatusSummary {
         summary.complete = getField(group, TestGroupDataSource.COMPLETE_COUNT_FIELD);
         summary.incomplete = getField(group, TestGroupDataSource.INCOMPLETE_COUNT_FIELD);
         summary.total = getField(group, TestGroupDataSource.GROUP_COUNT_FIELD);
+        
+        if (group.containsKey("extra_info")) {
+            summary.contents = Utils.JSONtoStrings(group.get("extra_info").isArray());
+        }
+        
         return summary;
     }
 
@@ -62,10 +73,21 @@ class StatusSummary {
         return total;
     }
 
-    public String formatStatusCounts() {
+    public String formatContents() {
+        String result = formatStatusCounts();
+        
+        if (contents != null) {
+            result += "<br>";
+            result += Utils.joinStrings("<br>", Arrays.asList(contents), true);
+        }
+        
+        return result;
+    }
+    
+    private String formatStatusCounts() {
         String text = passed + " / " + complete;
         if (incomplete > 0) {
-            text += "<br>" + incomplete + " incomplete";
+            text += " (" + incomplete + " incomplete)";
         }
         return text;
     }

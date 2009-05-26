@@ -29,6 +29,7 @@ import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
@@ -63,6 +64,7 @@ public class SpreadsheetView extends ConditionTabView
     
     private HeaderSelect rowSelect = new HeaderSelect();
     private HeaderSelect columnSelect = new HeaderSelect();
+    private ContentSelect contentSelect = new ContentSelect();
     private CheckBox showIncomplete = new CheckBox("Show incomplete tests");
     private CheckBox showOnlyLatest = new CheckBox("Show only latest test per cell");
     private Button queryButton = new Button("Query");
@@ -102,9 +104,22 @@ public class SpreadsheetView extends ConditionTabView
             headerFieldMap.put(fieldInfo.field, field);
             rowSelect.addItem(field);
             columnSelect.addItem(field);
+            contentSelect.addItem(field);
         }
         rowSelect.selectItem(headerFieldMap.get(DEFAULT_ROW));
         columnSelect.selectItem(headerFieldMap.get(DEFAULT_COLUMN));
+        
+        contentSelect.setChangeListener(new ChangeListener() {
+            public void onChange(Widget sender) {
+                if (contentSelect.hasSelection()) {
+                    showOnlyLatest.setChecked(true);
+                    showOnlyLatest.setEnabled(false);
+                } else {
+                    showOnlyLatest.setEnabled(true);
+                }
+            }
+        });
+        
         updateViewFromState();
 
         queryButton.addClickListener(new ClickListener() {
@@ -133,6 +148,7 @@ public class SpreadsheetView extends ConditionTabView
         RootPanel.get("ss_filter_options").add(filterOptions);
         RootPanel.get("ss_row_select").add(rowSelect);
         RootPanel.get("ss_column_select").add(columnSelect);
+        RootPanel.get("ss_additional_content").add(contentSelect);
         RootPanel.get("ss_swap").add(swapLink);
         RootPanel.get("ss_query_controls").add(queryButton);
         RootPanel.get("ss_actions").add(actionsPanel);
@@ -199,6 +215,8 @@ public class SpreadsheetView extends ConditionTabView
         setJobCompletionHtml("&nbsp");
         
         final JSONObject condition = getFullConditionArgs();
+        
+        contentSelect.addToCondition(condition);
 
         setLoading(true);
         if (currentShowOnlyLatest) {
@@ -211,6 +229,8 @@ public class SpreadsheetView extends ConditionTabView
                                         getQueryParameters());
         spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
+                condition.put("extra_info", null);
+                
                 if (isJobFilteringCondition(condition)) {
                     showCompletionPercentage(condition);
                 } else {
