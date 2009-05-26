@@ -520,7 +520,7 @@ public class TableView extends ConditionTabView
         assert getActiveGrouping() == GroupingType.STATUS_COUNTS;
         StatusSummary statusSummary = StatusSummary.getStatusSummary(rowObject);
         SimplePanel panel = new SimplePanel();
-        panel.add(new HTML(statusSummary.formatStatusCounts()));
+        panel.add(new HTML(statusSummary.formatContents()));
         panel.getElement().getStyle().setProperty("backgroundColor", 
                                                   statusSummary.getColor());
         return panel;
