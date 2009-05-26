@@ -84,7 +84,8 @@ class profiler_manager(object):
         """ Report on all enabled profilers """
         for p in self.list:
             p.report(test)
-        if test.iteration:
+
+        if getattr(test, 'iteration', None):
             name = 'iteration.%s' % test.iteration
             iter_path = os.path.join(test.profdir, name)
             os.system('mkdir -p %s' % iter_path)
