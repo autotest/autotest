@@ -12,6 +12,7 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RadioChooser;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
@@ -188,6 +189,33 @@ public class AfeUtils {
                 if (onSuccess != null) {
                     onSuccess.doCallback(null);
                 }
+            }
+        });
+    }
+    
+    public static void changeHostLocks(JSONArray hostIds, final boolean lock,
+                                       final String messagePrefix, final SimpleCallback callback) {
+        JSONObject hostFilterData = new JSONObject();
+        JSONObject updateData = new JSONObject();
+        JSONObject params = new JSONObject();
+        
+        hostFilterData.put("id__in", hostIds);
+        updateData.put("locked", JSONBoolean.getInstance(lock));
+        
+        params.put("host_filter_data", hostFilterData);
+        params.put("update_data", updateData);
+        
+        callModifyHosts(params, new SimpleCallback() {
+            public void doCallback(Object source) {
+                String message = messagePrefix + " ";
+                if (!lock) {
+                    message += "un";
+                }
+                message += "locked";
+                
+                NotifyManager.getInstance().showMessage(message);
+                
+                callback.doCallback(source);
             }
         });
     }

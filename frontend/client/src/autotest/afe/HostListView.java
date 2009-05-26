@@ -9,7 +9,6 @@ import autotest.common.ui.TabView;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
 import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.RootPanel;
@@ -89,26 +88,8 @@ public class HostListView extends TabView implements TableActionsListener {
             return;
         }
         
-        JSONObject hostFilterData = new JSONObject();
-        JSONObject updateData = new JSONObject();
-        JSONObject params = new JSONObject();
-        
-        hostFilterData.put("id__in", hostIds);
-        updateData.put("locked", JSONBoolean.getInstance(lock));
-        
-        params.put("host_filter_data", hostFilterData);
-        params.put("update_data", updateData);
-        
-        AfeUtils.callModifyHosts(params, new SimpleCallback() {
+        AfeUtils.changeHostLocks(hostIds, lock, "Hosts", new SimpleCallback() {
             public void doCallback(Object source) {
-                String message = "Hosts ";
-                if (!lock) {
-                    message += "un";
-                }
-                message += "locked";
-                
-                NotifyManager.getInstance().showMessage(message);
-                
                 refresh();
             }
         });
