@@ -6,6 +6,7 @@ from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils
 from django.db import connection
 from autotest_lib.frontend.afe import models, rpc_interface, frontend_test_utils
+from autotest_lib.frontend.afe import model_logic
 
 
 _hqe_status = models.HostQueueEntry.Status
@@ -19,6 +20,20 @@ class RpcInterfaceTest(unittest.TestCase,
 
     def tearDown(self):
         self._frontend_common_teardown()
+
+
+    def test_multiple_platforms(self):
+        platform2 = models.Label.objects.create(name='platform2', platform=True)
+        self.assertRaises(model_logic.ValidationError,
+                          rpc_interface. label_add_hosts, 'platform2',
+                          ['host1', 'host2'])
+        self.assertRaises(model_logic.ValidationError,
+                          rpc_interface.host_add_labels, 'host1', ['platform2'])
+        # make sure the platform didn't get added
+        platforms = rpc_interface.get_labels(
+            host__hostname__in=['host1', 'host2'], platform=True)
+        self.assertEquals(len(platforms), 1)
+        self.assertEquals(platforms[0]['name'], 'myplatform')
 
 
     def test_get_jobs_summary(self):
