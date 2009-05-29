@@ -79,7 +79,7 @@ public class HostListView extends TabView implements TableActionsListener {
             public void doCallback(Object source) {
                refresh();
             }
-        });
+        }, "Hosts");
     }
     
     private void changeLockStatus(final boolean lock) {
