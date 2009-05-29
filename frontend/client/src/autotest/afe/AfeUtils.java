@@ -165,14 +165,15 @@ public class AfeUtils {
         callAbort(params, onSuccess, true);
     }
     
-    public static void callReverify(JSONObject params, final SimpleCallback onSuccess) {
+    public static void callReverify(JSONObject params, final SimpleCallback onSuccess,
+                                    final String messagePrefix) {
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("reverify_hosts", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 
                 NotifyManager.getInstance().showMessage(
-                        "Hosts scheduled for reverification");
+                        messagePrefix + " scheduled for reverification");
                     
                 if (onSuccess != null) {
                     onSuccess.doCallback(null);

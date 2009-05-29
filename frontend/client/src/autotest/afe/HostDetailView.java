@@ -67,6 +67,7 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
     private JSONObject currentHostObject;
     
     private Button lockButton = new Button();
+    private Button reverifyButton = new Button("Reverify");
 
     public HostDetailView(HostDetailListener listener) {
         this.listener = listener;
@@ -180,6 +181,20 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
             } 
         });
         RootPanel.get("view_host_lock_button").add(lockButton);
+        
+        reverifyButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                JSONObject params = new JSONObject();
+                
+                params.put("id", currentHostObject.get("id"));
+                AfeUtils.callReverify(params, new SimpleCallback() {
+                    public void doCallback(Object source) {
+                       refresh();
+                    }
+                }, "Host " + hostname);
+            }
+        });
+        RootPanel.get("view_host_reverify_button").add(reverifyButton);
     }
 
     public void onError(JSONObject errorObject) {
