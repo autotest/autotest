@@ -1190,7 +1190,7 @@ class AgentTest(unittest.TestCase):
         self._test_agent_abort_before_started_helper(True)
 
 
-class AgentTasksTest(unittest.TestCase):
+class AgentTasksTest(BaseSchedulerTest):
     TEMP_DIR = '/abspath/tempdir'
     RESULTS_DIR = '/results/dir'
     HOSTNAME = 'myhost'
@@ -1202,6 +1202,7 @@ class AgentTasksTest(unittest.TestCase):
     JOB_AUTOSERV_PARAMS = set(['-u', JOB_OWNER, '-l', JOB_NAME])
 
     def setUp(self):
+        super(AgentTasksTest, self).setUp()
         self.god = mock.mock_god()
         self.god.stub_with(drone_manager.DroneManager, 'get_temporary_path',
                            mock.mock_function('get_temporary_path',
@@ -1243,6 +1244,7 @@ class AgentTasksTest(unittest.TestCase):
 
 
     def tearDown(self):
+        super(AgentTasksTest, self).tearDown()
         self.god.unstub_all()
 
 
