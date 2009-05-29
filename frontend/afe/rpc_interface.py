@@ -409,7 +409,8 @@ def create_job(name, priority, control_file, control_type,
 
     @returns The created Job id number.
     """
-    owner = thread_local.get_user().login
+    user = thread_local.get_user()
+    owner = user.login
     # input validation
     if not (hosts or meta_hosts or one_time_hosts or atomic_group_name):
         raise model_logic.ValidationError({
@@ -449,6 +450,11 @@ def create_job(name, priority, control_file, control_type,
     for host in one_time_hosts or []:
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
+
+    if reboot_before is None:
+        reboot_before = user.get_reboot_before_display()
+    if reboot_after is None:
+        reboot_after = user.get_reboot_after_display()
 
     options = dict(name=name,
                    priority=priority,
