@@ -1,7 +1,8 @@
 from datetime import datetime
 from django.db import models as dbmodels, connection
-from frontend.afe import model_logic
-from frontend import settings, thread_local
+import common
+from autotest_lib.frontend.afe import model_logic
+from autotest_lib.frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
 from autotest_lib.client.common_lib import debug
 
@@ -346,6 +347,22 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             return None
         return platforms[0]
     platform.short_description = 'Platform'
+
+
+    @classmethod
+    def check_no_platform(cls, hosts):
+        Host.objects.populate_relationships(hosts, Label, 'label_list')
+        errors = []
+        for host in hosts:
+            platforms = [label.name for label in host.label_list
+                         if label.platform]
+            if platforms:
+                # do a join, just in case this host has multiple platforms,
+                # we'll be able to see it
+                errors.append('Host %s already has a platform: %s' % (
+                              host.hostname, ', '.join(platforms)))
+        if errors:
+            raise model_logic.ValidationError({'labels': '; '.join(errors)})
 
 
     def is_dead(self):

@@ -30,8 +30,10 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
-from frontend import thread_local
-from frontend.afe import models, model_logic, control_file, rpc_utils
+import common
+from autotest_lib.frontend import thread_local
+from autotest_lib.frontend.afe import models, model_logic, control_file
+from autotest_lib.frontend.afe import rpc_utils
 from autotest_lib.client.common_lib import global_config
 
 
@@ -53,7 +55,10 @@ def delete_label(id):
 
 def label_add_hosts(id, hosts):
     host_objs = models.Host.smart_get_bulk(hosts)
-    models.Label.smart_get(id).host_set.add(*host_objs)
+    label = models.Label.smart_get(id)
+    if label.platform:
+        models.Host.check_no_platform(host_objs)
+    label.host_set.add(*host_objs)
 
 
 def label_remove_hosts(id, hosts):
@@ -124,7 +129,16 @@ def modify_hosts(host_filter_data, update_data):
 
 def host_add_labels(id, labels):
     labels = models.Label.smart_get_bulk(labels)
-    models.Host.smart_get(id).labels.add(*labels)
+    host = models.Host.smart_get(id)
+
+    platforms = [label.name for label in labels if label.platform]
+    if len(platforms) > 1:
+        raise model_logic.ValidationError(
+            {'labels': 'Adding more than one platform label: %s' %
+                       ', '.join(platforms)})
+    if len(platforms) == 1:
+        models.Host.check_no_platform([host])
+    host.labels.add(*labels)
 
 
 def host_remove_labels(id, labels):
