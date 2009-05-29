@@ -108,17 +108,57 @@ class UserCleanup(PeriodicCleanup):
 
 
     def _check_for_db_inconsistencies(self):
-        logging.info('Checking for db inconsistencies')
-        query = models.HostQueueEntry.objects.filter(active=True, complete=True)
-        if query.count() != 0:
-            subject = ('%d queue entries found with active=complete=1'
-                       % query.count())
-            message = '\n'.join(str(entry.get_object_dict())
-                                for entry in query[:50])
-            if len(query) > 50:
-                message += '\n(truncated)\n'
+        logging.info('Cleaning db inconsistencies')
+        self._check_all_invalid_related_objects()
 
-            logging.error(subject)
+
+    def _check_invalid_related_objects_one_way(self, first_model,
+                                               relation_field, second_model):
+        if 'invalid' not in first_model.get_field_dict():
+            return []
+        invalid_objects = list(first_model.objects.filter(invalid=True))
+        first_model.objects.populate_relationships(invalid_objects,
+                                                   second_model,
+                                                   'related_objects')
+        error_lines = []
+        for invalid_object in invalid_objects:
+            if invalid_object.related_objects:
+                related_list = ', '.join(str(related_object) for related_object
+                                         in invalid_object.related_objects)
+                error_lines.append('Invalid %s %s is related to %ss: %s'
+                                   % (first_model.__name__, invalid_object,
+                                      second_model.__name__, related_list))
+                related_manager = getattr(invalid_object, relation_field)
+                related_manager.clear()
+        return error_lines
+
+
+    def _check_invalid_related_objects(self, first_model, first_field,
+                                       second_model, second_field):
+        errors = self._check_invalid_related_objects_one_way(
+            first_model, first_field, second_model)
+        errors.extend(self._check_invalid_related_objects_one_way(
+            second_model, second_field, first_model))
+        return errors
+
+
+    def _check_all_invalid_related_objects(self):
+        model_pairs = ((models.Host, 'labels', models.Label, 'host_set'),
+                       (models.AclGroup, 'hosts', models.Host, 'aclgroup_set'),
+                       (models.AclGroup, 'users', models.User, 'aclgroup_set'),
+                       (models.Test, 'dependency_labels', models.Label,
+                        'test_set'))
+        errors = []
+        for first_model, first_field, second_model, second_field in model_pairs:
+            errors.extend(self._check_invalid_related_objects(
+                first_model, first_field, second_model, second_field))
+
+        if errors:
+            subject = ('%s relationships to invalid models, cleaned all' %
+                       len(errors))
+            message = '\n'.join(errors)
+            logging.warning(subject)
+            logging.warning(message)
             email_manager.manager.enqueue_notify_email(subject, message)
 
 
@@ -150,6 +190,7 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
     def _cleanup(self):
         logging.info('Running 24 hour clean up')
         self._django_session_cleanup()
+        self._check_for_uncleanable_db_inconsistencies()
 
 
     def _django_session_cleanup(self):
@@ -159,3 +200,60 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
         logging.info('Deleting old sessions from django_session')
         sql = 'DELETE FROM django_session WHERE expire_date < NOW()'
         self._db.execute(sql)
+
+
+    def _check_for_uncleanable_db_inconsistencies(self):
+        logging.info('Checking for uncleanable DB inconsistencies')
+        self._check_for_active_and_complete_queue_entries()
+        self._check_for_multiple_platform_hosts()
+        self._check_for_no_platform_hosts()
+
+
+    def _check_for_active_and_complete_queue_entries(self):
+        query = models.HostQueueEntry.objects.filter(active=True, complete=True)
+        if query.count() != 0:
+            subject = ('%d queue entries found with active=complete=1'
+                       % query.count())
+            lines = [str(entry.get_object_dict()) for entry in query]
+            self._send_inconsistency_message(subject, lines)
+
+
+    def _check_for_multiple_platform_hosts(self):
+        rows = self._db.execute("""
+            SELECT hosts.id, hostname, COUNT(1) AS platform_count,
+                   GROUP_CONCAT(labels.name)
+            FROM hosts
+            INNER JOIN hosts_labels ON hosts.id = hosts_labels.host_id
+            INNER JOIN labels ON hosts_labels.label_id = labels.id
+            WHERE labels.platform
+            GROUP BY hosts.id
+            HAVING platform_count > 1
+            ORDER BY hostname""")
+        if rows:
+            subject = '%s hosts with multiple platforms' % self._db.rowcount
+            lines = [' '.join(str(item) for item in row)
+                     for row in rows]
+            self._send_inconsistency_message(subject, lines)
+
+
+    def _check_for_no_platform_hosts(self):
+        rows = self._db.execute("""
+            SELECT hostname
+            FROM hosts
+            LEFT JOIN hosts_labels
+              ON hosts.id = hosts_labels.host_id
+              AND hosts_labels.label_id IN (SELECT id FROM labels
+                                            WHERE platform)
+            WHERE NOT hosts.invalid AND hosts_labels.host_id IS NULL""")
+        if rows:
+            subject = '%s hosts with no platform' % self._db.rowcount
+            self._send_inconsistency_message(
+                subject, [', '.join(row[0] for row in rows)])
+
+
+    def _send_inconsistency_message(self, subject, lines):
+        logging.error(subject)
+        message = '\n'.join(lines)
+        if len(message) > 5000:
+            message = message[:5000] + '\n(truncated)\n'
+        email_manager.manager.enqueue_notify_email(subject, message)

@@ -106,6 +106,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
 
     def clean_object(self):
         self.host_set.clear()
+        self.test_set.clear()
 
 
     def enqueue_job(self, job, atomic_group=None, is_template=False):
