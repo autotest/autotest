@@ -297,8 +297,11 @@ def main():
                       dest="action")
     parser.add_option("-f", "--force", help="don't ask for confirmation",
                       action="store_true")
+    parser.add_option('--debug', help='print all DB queries',
+                      action='store_true')
     (options, args) = parser.parse_args()
     database = database_connection.DatabaseConnection(options.database)
+    database.debug = options.debug
     database.reconnect_enabled = False
     database.connect()
     manager = MigrationManager(database, force=options.force)
