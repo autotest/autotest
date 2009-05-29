@@ -54,9 +54,9 @@ def destroy_test_database():
 
 def set_up():
     run_syncdb()
-    readonly_connection.ReadOnlyConnection.set_testing_mode(True)
+    readonly_connection.ReadOnlyConnection.set_globally_disabled(True)
 
 
 def tear_down():
-    readonly_connection.ReadOnlyConnection.set_testing_mode(False)
+    readonly_connection.ReadOnlyConnection.set_globally_disabled(False)
     destroy_test_database()
