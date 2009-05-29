@@ -21,8 +21,12 @@ class ReadOnlyConnection(object):
 
 
     @classmethod
-    def set_testing_mode(cls, enabled):
-        if enabled:
+    def set_globally_disabled(cls, disabled):
+        """
+        When globally disabled, the ReadOnlyConnection will simply pass through
+        to the global Django connection.
+        """
+        if disabled:
             cls._the_instance = DummyReadOnlyConnection()
         else:
             cls._the_instance = None
@@ -92,10 +96,14 @@ class ReadOnlyConnection(object):
 
 
 class DummyReadOnlyConnection(object):
-    'A dummy version for testing which does nothing.'
+    """
+    A dummy version which passes queries straight to the global Django
+    connection.
+    """
 
     def __init__(self):
         self._is_set = False
+
 
     def set_django_connection(self):
         assert not self._is_set
