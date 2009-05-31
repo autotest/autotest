@@ -1,0 +1,155 @@
+AUTHOR = """
+uril@redhat.com (Uri Lublin)
+mgoldish@redhat.com (Michael Goldish)
+dhuff@redhat.com (David Huff)
+aeromenk@redhat.com (Alexey Eromenko)
+mburns@redhat.com (Mike Burns)
+"""
+TIME = 'SHORT'
+NAME = 'KVM test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Virtualization'
+TEST_CATEGORY = 'Functional'
+
+DOC = """
+Executes the KVM test framework on a given host. This module is separated in
+minor functions, that execute different tests for doing Quality Assurance on
+KVM (both kernelspace and userspace) code.
+
+steps
+Also known as Guestwizard for historical reasons.
+Function: runs a given steps file on a given VM. 
+
+stepmaker
+This isn't really a test -- just a comfortable way of running Stepmaker. If one
+wishes to run a steps file created with Stepmaker, one only needs to change the
+type parameter from stepmaker to steps, and the steps file should run properly
+(assuming the VM is in the state the steps file expects it to be). 
+
+boot
+Function: verifies the VM has booted properly by logging into it via SSH/Telnet,
+and optionally reboots the VM. 
+
+migration
+Function: migrates a VM from one VM object to another and verifies the VM is 
+alive following migration. 
+
+autotest
+Function: logs into the VM, runs an Autotest test on it, reports the results 
+and copies the results dir back to the host.
+
+Each test is appropriately documented on each test docstrings. 
+"""
+
+
+import sys, os
+
+# enable modules import from current directory (tests/kvm_runtest_2)
+pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm_runtest_2')
+sys.path.append(pwd)
+
+# ------------------------
+# create required symlinks
+# ------------------------
+# When dispatching tests from autotest-server the links we
+# need do not exist on the host (the client). The following
+# lines create those symlinks.
+# Change 'rootdir' here and/or mount appropriate directories in it
+# When dispatching tests on local host (client mode) one can
+# either setup kvm_runtest_2 links, or same as server mode
+# use rootdir and set all appropriate links/mount-points there.
+# For example, guest installation tests need to know where to
+# find the iso-files.
+# We create the links only if not already exist, so
+# if one already set up the links for client/local
+# run we do not touch the links.
+rootdir='/tmp/kvm_autotest_root'
+iso=os.path.join(rootdir, 'iso')
+images=os.path.join(rootdir, 'images')
+qemu=os.path.join(rootdir, 'qemu')
+qemu_img=os.path.join(rootdir, 'qemu-img')
+
+
+def link_if_not_exist(ldir, target, link_name):
+    t = target
+    l = os.path.join(ldir, link_name)
+    if not os.path.exists(l):
+        os.system('ln -s %s %s' % (t, l))
+
+# Create links only if not already exist
+link_if_not_exist(pwd, '../../', 'autotest')
+link_if_not_exist(pwd, iso, 'isos')
+link_if_not_exist(pwd, images, 'images')
+link_if_not_exist(pwd, qemu, 'qemu')
+link_if_not_exist(pwd, qemu_img, 'qemu-img')
+
+# ---------------------
+# Build and install kvm
+# ---------------------
+params = {
+    "name": "kvm_install",
+    "shortname": "kvm_install",
+    "type": "kvm_install",
+    "mode": "release",
+
+    ## Install from a tarball
+    "tarball": "/tmp/kvm-84.tar.gz",
+
+    ## Install from a kvm release.
+    "release_dir": 'http://downloads.sourceforge.net/kvm/',
+    #"release_tag": '84',
+
+    ## Install from git
+    "git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git',
+    "user_git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm-userspace.git'
+}
+
+# Comment the job.run_test line if you do not want to install kvm on the host.
+# If you run the tests from autotest-server, make sure
+# that /tmp/kvm-autotest-root/qemu is a link to your existing executable
+#
+# Note that if kvm_install is chose to run, it overwrites
+# existing qemu and qemu-img links to point to the newly
+# built executables.
+r = True
+r = job.run_test("kvm", params=params, tag=params.get("shortname"))
+if not r:
+    print 'kvm_installation failed ... exiting'
+    sys.exit(1)
+
+# ----------------------------------------------------------
+# Get test set (dictionary list) from the configuration file
+# ----------------------------------------------------------
+import kvm_config
+
+filename = os.path.join(pwd, "kvm_tests.cfg")
+list = kvm_config.config(filename).get_list()
+
+
+#  -------------
+#  Run the tests
+#  -------------
+status_dict = {}
+
+for dict in list:
+    if dict.get("skip") == "yes":
+        continue
+    dependencies_satisfied = True
+    for dep in dict.get("depend"):
+        for test_name in status_dict.keys():
+            if not dep in test_name:
+                continue
+            if not status_dict[test_name]:
+                dependencies_satisfied = False
+                break
+    if dependencies_satisfied:
+        current_status = job.run_test("kvm", params=dict,
+                                      tag=dict.get("shortname"))
+    else:
+        current_status = False
+    status_dict[dict.get("name")] = current_status
+
+# create the html report in result dir
+reporter = os.path.join(pwd, 'make_html_report.py')
+html_file = os.path.join(job.resultdir,'results.html')
+os.system('%s -r %s -f %s -R'%(reporter, job.resultdir, html_file))

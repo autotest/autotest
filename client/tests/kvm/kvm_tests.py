@@ -1,0 +1,468 @@
+import time, os, logging
+from autotest_lib.client.common_lib import utils, error
+import kvm_utils, ppm_utils, scan_results
+
+"""
+KVM test definitions.
+
+@copyright: 2008-2009 Red Hat Inc.
+"""
+
+
+def run_boot(test, params, env):
+    """
+    KVM reboot test:
+    1) Log into a guest
+    2) Send a reboot command to the guest
+    3) Wait until it's up.
+    4) Log into the guest to verify it's up again.
+
+    @param test: kvm test object
+    @param params: Dictionary with the test parameters
+    @param env: Dictionary with test environment.
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        raise error.TestError("VM object not found in environment")
+    if not vm.is_alive():
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
+
+    logging.info("Waiting for guest to be up...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    logging.info("Logged in")
+
+    if params.get("reboot") == "yes":
+        # Send the VM's reboot command
+        session.sendline(vm.get_params().get("cmd_reboot"))
+        logging.info("Reboot command sent; waiting for guest to go down...")
+
+        if not kvm_utils.wait_for(lambda: not session.is_responsive(),
+                                  120, 0, 1):
+            raise error.TestFail("Guest refuses to go down")
+
+        session.close()
+
+        logging.info("Guest is down; waiting for it to go up again...")
+
+        session = kvm_utils.wait_for(vm.ssh_login, 120, 0, 2)
+        if not session:
+            raise error.TestFail("Could not log into guest after reboot")
+
+        logging.info("Guest is up again")
+
+    session.close()
+
+
+def run_migration(test, params, env):
+    """
+    KVM migration test:
+
+    1) Get two live VMs. One will be the 'source', the other will be the
+    'destination'.
+    2) Verify if the source VM supports migration. If it does, proceed with
+    the test
+    3) Send a migration command to the source vm and wait until it's finished.
+    4) Kill off the source vm
+    3) Log into the destination vm after the migration is finished.
+    4) Compare the output of a reference command executed on the source with
+    the output of the same command on the destination machine
+
+    @param test: kvm test object.
+    @param params: Dictionary with test parameters.
+    @param env: Dictionary with the test environment.
+    """
+    src_vm_name = params.get("migration_src")
+    vm = kvm_utils.env_get_vm(env, src_vm_name)
+    if not vm:
+        raise error.TestError("VM '%s' not found in environment" % src_vm_name)
+    if not vm.is_alive():
+        raise error.TestError("VM '%s' seems to be dead; Test requires a"
+                              " living VM" % src_vm_name)
+
+    dest_vm_name = params.get("migration_dst")
+    dest_vm = kvm_utils.env_get_vm(env, dest_vm_name)
+    if not dest_vm:
+        raise error.TestError("VM '%s' not found in environment" % dest_vm_name)
+    if not dest_vm.is_alive():
+        raise error.TestError("VM '%s' seems to be dead; Test requires a"
+                              " living VM" % dest_vm_name)
+
+    pre_scrdump_filename = os.path.join(test.debugdir, "migration_pre.ppm")
+    post_scrdump_filename = os.path.join(test.debugdir, "migration_post.ppm")
+
+    # See if migration is supported
+    s, o = vm.send_monitor_cmd("help info")
+    if not "info migrate" in o:
+        raise error.TestError("Migration is not supported")
+
+    # Log into guest and get the output of migration_test_command
+    logging.info("Waiting for guest to be up...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    logging.info("Logged in")
+
+    reference_output = session.get_command_output(params.get("migration_test_"
+                                                             "command"))
+    session.close()
+
+    # Define the migration command
+    cmd = "migrate -d tcp:localhost:%d" % dest_vm.migration_port
+    logging.debug("Migration command: %s" % cmd)
+
+    # Migrate
+    s, o = vm.send_monitor_cmd(cmd)
+    if s:
+        logging.error("Migration command failed (command: %r, output: %r)" %
+                      (cmd, o))
+        raise error.TestFail("Migration command failed")
+
+    # Define some helper functions
+    def mig_finished():
+        s, o = vm.send_monitor_cmd("info migrate")
+        if s:
+            return False
+        if "Migration status: active" in o:
+            return False
+        return True
+
+    def mig_succeeded():
+        s, o = vm.send_monitor_cmd("info migrate")
+        if s == 0 and "Migration status: completed" in o:
+            return True
+        return False
+
+    def mig_failed():
+        s, o = vm.send_monitor_cmd("info migrate")
+        if s == 0 and "Migration status: failed" in o:
+            return True
+        return False
+
+    # Wait for migration to finish
+    if not kvm_utils.wait_for(mig_finished, 90, 2, 2,
+                              "Waiting for migration to finish..."):
+        raise error.TestFail("Timeout elapsed while waiting for migration to"
+                             "finish")
+
+    # Report migration status
+    if mig_succeeded():
+        logging.info("Migration finished successfully")
+    else:
+        if mig_failed():
+            message = "Migration failed"
+        else:
+            message = "Migration ended with unknown status"
+        raise error.TestFail(message)
+
+    # Get 'post' screendump
+    dest_vm.send_monitor_cmd("screendump %s" % post_scrdump_filename)
+
+    # Get 'pre' screendump
+    vm.send_monitor_cmd("screendump %s" % pre_scrdump_filename)
+
+    # Kill the source VM
+    vm.send_monitor_cmd("quit", block=False)
+
+    # Hack: it seems that the first attempt to communicate with the SSH port
+    # following migration always fails (or succeeds after a very long time).
+    # So just connect to the port once so the following call to ssh_login
+    # succeeds.
+    dest_vm.is_sshd_running(timeout=0.0)
+
+    # Log into guest and get the output of migration_test_command
+    logging.info("Logging into guest after migration...")
+
+    session = dest_vm.ssh_login()
+    if not session:
+        raise error.TestFail("Could not log into guest after migration")
+
+    logging.info("Logged in after migration")
+
+    output = session.get_command_output(params.get("migration_test_command"))
+    session.close()
+
+    # Compare output to reference output
+    if output != reference_output:
+        logging.info("Command output before migration differs from command"
+                     " output after migration")
+        logging.info("Command: %s" % params.get("migration_test_command"))
+        logging.info("Output before:" +
+                     kvm_utils.format_str_for_message(reference_output))
+        logging.info("Output after:" + kvm_utils.format_str_for_message(output))
+        raise error.TestFail("Command produced different output before and"
+                             " after migration")
+
+
+def run_autotest(test, params, env):
+    """
+    Run an autotest test inside a guest.
+
+    @param test: kvm test object.
+    @param params: Dictionary with test parameters.
+    @param env: Dictionary with the test environment.
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        raise error.TestError("VM object not found in environment")
+    if not vm.is_alive():
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
+
+    logging.info("Logging into guest...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    logging.info("Logged in")
+
+    # Collect some info
+    test_name = params.get("test_name")
+    test_timeout = int(params.get("test_timeout", 300))
+    test_control_file = params.get("test_control_file", "control")
+    tarred_autotest_path = "/tmp/autotest.tar.bz2"
+    tarred_test_path = "/tmp/%s.tar.bz2" % test_name
+
+    # tar the contents of bindir/autotest
+    cmd = "cd %s; tar cvjf %s autotest/*"
+    cmd += " --exclude=autotest/tests"
+    cmd += " --exclude=autotest/results"
+    cmd += " --exclude=autotest/tmp"
+    cmd += " --exclude=autotest/control"
+    cmd += " --exclude=*.pyc"
+    cmd += " --exclude=*.svn"
+    cmd += " --exclude=*.git"
+    kvm_utils.run_bg(cmd % (test.bindir, tarred_autotest_path), timeout=30)
+
+    # tar the contents of bindir/autotest/tests/<test_name>
+    cmd = "cd %s; tar cvjf %s %s/*"
+    cmd += " --exclude=*.pyc"
+    cmd += " --exclude=*.svn"
+    cmd += " --exclude=*.git"
+    kvm_utils.run_bg(cmd % (os.path.join(test.bindir, "autotest", "tests"),
+                            tarred_test_path, test_name), timeout=30)
+
+    # Check if we need to copy autotest.tar.bz2
+    copy = False
+    output = session.get_command_output("ls -l autotest.tar.bz2")
+    if "such file" in output:
+        copy = True
+    else:
+        size = int(output.split()[4])
+        if size != os.path.getsize(tarred_autotest_path):
+            copy = True
+    # Perform the copy
+    if copy:
+        logging.info("Copying autotest.tar.bz2 to guest"
+                     " (file is missing or has a different size)...")
+        if not vm.scp_to_remote(tarred_autotest_path, ""):
+            raise error.TestFail("Could not copy autotest.tar.bz2 to guest")
+
+    # Check if we need to copy <test_name>.tar.bz2
+    copy = False
+    output = session.get_command_output("ls -l %s.tar.bz2" % test_name)
+    if "such file" in output:
+        copy = True
+    else:
+        size = int(output.split()[4])
+        if size != os.path.getsize(tarred_test_path):
+            copy = True
+    # Perform the copy
+    if copy:
+        logging.info("Copying %s.tar.bz2 to guest (file is missing or has a"
+                     " different size)..." % test_name)
+        if not vm.scp_to_remote(tarred_test_path, ""):
+            raise error.TestFail("Could not copy %s.tar.bz2 to guest" %
+                                 test_name)
+
+    # Extract autotest.tar.bz2
+    logging.info("Extracting autotest.tar.bz2...")
+    status = session.get_command_status("tar xvfj autotest.tar.bz2")
+    if status != 0:
+        raise error.TestFail("Could not extract autotest.tar.bz2")
+
+    # mkdir autotest/tests
+    session.sendline("mkdir autotest/tests")
+
+    # Extract <test_name>.tar.bz2 into autotest/tests
+    logging.info("Extracting %s.tar.bz2..." % test_name)
+    status = session.get_command_status("tar xvfj %s.tar.bz2 -C "
+                                        "autotest/tests" % test_name)
+    if status != 0:
+        raise error.TestFail("Could not extract %s.tar.bz2" % test_name)
+
+    # Run the test
+    logging.info("Running test '%s'..." % test_name)
+    session.sendline("cd autotest/tests/%s" % test_name)
+    session.sendline("rm -f ./%s.state" % test_control_file)
+    session.read_up_to_prompt()
+    session.sendline("../../bin/autotest ./%s" % test_control_file)
+    logging.info("---------------- Test output ----------------")
+    match, output = session.read_up_to_prompt(timeout=test_timeout,
+                                              print_func=logging.info)
+    logging.info("---------------- End of test output ----------------")
+    if not match:
+        raise error.TestFail("Timeout elapsed while waiting for test to"
+                             " complete")
+
+    session.close()
+
+    # Parse test results
+    result_list = scan_results.parse_results(output)
+
+    # Report test results and check for FAIL/ERROR status
+    logging.info("Results (test, status, duration, info):")
+    status_error = False
+    status_fail = False
+    if result_list == []:
+        status_fail = True
+        message_fail = "Test '%s' did not produce any recognizable"
+        " results" % test_name
+    for result in result_list:
+        logging.info(str(result))
+        if result[1] == "FAIL":
+            status_fail = True
+            message_fail = "Test '%s' ended with FAIL"
+            " (info: '%s')" % (result[0], result[3])
+        if result[1] == "ERROR":
+            status_error = True
+            message_error = "Test '%s' ended with ERROR"
+            " (info: '%s')" % (result[0], result[3])
+        if result[1] == "ABORT":
+            status_error = True
+            message_error = "Test '%s' ended with ABORT"
+            " (info: '%s')" % (result[0], result[3])
+
+    # Copy test results to the local bindir/guest_results
+    logging.info("Copying results back from guest...")
+    guest_results_dir = os.path.join(test.outputdir, "guest_results")
+    if not os.path.exists(guest_results_dir):
+        os.mkdir(guest_results_dir)
+    if not vm.scp_from_remote("autotest/results/default/*", guest_results_dir):
+        logging.error("Could not copy results back from guest")
+
+    # Fail the test if necessary
+    if status_fail:
+        raise error.TestFail(message_fail)
+    elif status_error:
+        raise error.TestError(message_error)
+
+
+def internal_yum_update(session, command, prompt, timeout):
+    """
+    Helper function to perform the yum update test.
+
+    @param session: SSH session stablished to the host
+    @param command: Command to be sent to the SSH connection
+    @param prompt: Machine prompt
+    @param timeout: How long to wait until we get an appropriate output from
+            the SSH session.
+    """
+    session.sendline(command)
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        (match, text) = session.read_until_last_line_matches(
+                        ["[Ii]s this [Oo][Kk]", prompt], timeout=timeout)
+        if match == 0:
+            logging.info("Got 'Is this ok'; sending 'y'")
+            session.sendline("y")
+        elif match == 1:
+            logging.info("Got shell prompt")
+            return True
+        else:
+            logging.info("Timeout or process exited")
+            return False
+
+
+def run_yum_update(test, params, env):
+    """
+    Runs yum update and yum update kernel on the remote host (yum enabled
+    hosts only).
+
+    @param test: kvm test object.
+    @param params: Dictionary with test parameters.
+    @param env: Dictionary with the test environment.
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        message = "VM object not found in environment"
+        logging.error(message)
+        raise error.TestError(message)
+    if not vm.is_alive():
+        message = "VM seems to be dead; Test requires a living VM"
+        logging.error(message)
+        raise error.TestError(message)
+
+    logging.info("Logging into guest...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 120, 0, 2)
+    if not session:
+        message = "Could not log into guest"
+        logging.error(message)
+        raise error.TestFail(message)
+
+    logging.info("Logged in")
+
+    internal_yum_update(session, "yum update", params.get("ssh_prompt"), 600)
+    internal_yum_update(session, "yum update kernel",
+                        params.get("ssh_prompt"), 600)
+
+    session.close()
+
+
+def run_linux_s3(test, params, env):
+    """
+    Suspend a guest Linux OS to memory.
+
+    @param test: kvm test object.
+    @param params: Dictionary with test parameters.
+    @param env: Dictionary with the test environment.
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        raise error.TestError("VM object not found in environment")
+    if not vm.is_alive():
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
+
+    logging.info("Waiting for guest to be up...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    logging.info("Logged in")
+    logging.info("Checking that VM supports S3")
+
+    status = session.get_command_status("grep -q mem /sys/power/state")
+    if status == None:
+        logging.error("Failed to check if S3 exists")
+    elif status != 0:
+        raise error.TestFail("Guest does not support S3")
+
+    logging.info("Waiting for a while for X to start")
+    time.sleep(10)
+
+    src_tty = session.get_command_output("fgconsole").strip()
+    logging.info("Current virtual terminal is %s" % src_tty)
+    if src_tty not in map(str, range(1,10)):
+        raise error.TestFail("Got a strange current vt (%s)" % src_tty)
+
+    dst_tty = "1"
+    if src_tty == "1":
+        dst_tty = "2"
+
+    logging.info("Putting VM into S3")
+    command = "chvt %s && echo mem > /sys/power/state && chvt %s" % (dst_tty,
+                                                                     src_tty)
+    status = session.get_command_status(command, timeout=120)
+    if status != 0:
+        raise error.TestFail("Suspend to mem failed")
+
+    logging.info("VM resumed after S3")
+
+    session.close()
