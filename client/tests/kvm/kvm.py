@@ -17,6 +17,7 @@ class kvm(test.test):
 
     @copyright: Red Hat 2008-2009
     @author: Uri Lublin (uril@redhat.com)
+    @author: Dror Russo (drusso@redhat.com)
     @author: Michael Goldish (mgoldish@redhat.com)
     @author: David Huff (dhuff@redhat.com)
     @author: Alexey Eromenko (aeromenk@redhat.com)
