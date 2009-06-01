@@ -4,6 +4,7 @@ Script used to parse the test results and generate an HTML report.
 
 @copyright: (c)2005-2007 Matt Kruse (javascripttoolbox.com)
 @copyright: Red Hat 2008-2009
+@author: Dror Russo (drusso@redhat.com)
 """
 
 import os, sys, re, getopt, time, datetime, commands
