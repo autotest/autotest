@@ -649,9 +649,9 @@ class base_job(object):
         """ Check the passed kernel identifier against the command line
             and the running kernel, abort the job on missmatch. """
 
-        logging.info(("POST BOOT: checking booted kernel " +
-                      "mark=%d identity='%s' type='%s'"),
-                     (expected_when, expected_id, type))
+        logging.info("POST BOOT: checking booted kernel "
+                     "mark=%d identity='%s' type='%s'",
+                     expected_when, expected_id, type)
 
         running_id = utils.running_os_ident()
 
