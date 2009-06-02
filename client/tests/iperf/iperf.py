@@ -1,4 +1,4 @@
-import os, re, socket, time
+import os, re, socket, time, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -222,4 +222,4 @@ class iperf(test.test):
         else:
             # This test currently does not produce a keyval file on the
             # server side. This should be implemented eventually.
-            print self.results
+            logging.info(self.results)

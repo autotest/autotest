@@ -54,7 +54,6 @@ class reaim(test.test):
         args += ' -c ./reaim.config'
         open(config, 'a+').write("DISKDIR %s\n" % tmpdir)
         os.chdir(self.srcdir)
-        print os.getcwd()
         cmd = self.ldlib + ' ./reaim ' + args + ' ' + extra_args
 
         results = []
@@ -82,7 +81,7 @@ class reaim(test.test):
                 max_jobs_per_min = m.group(1)
             if re.match(r"^[0-9\. ]+$", line):
                 fields = line.split()
-        print >> out, """\
+        out.write("""\
 max_jobs_per_min=%s
 num_forked=%s
 parent_time=%s
@@ -93,5 +92,5 @@ jobs_min_child=%s
 std_dev_time=%s
 std_dev_pct=%s
 jti=%s
-""" % tuple([max_jobs_per_min] + fields)
+""" % tuple([max_jobs_per_min] + fields))
         out.close()

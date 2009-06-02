@@ -1,4 +1,4 @@
-import random, os
+import random, os, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -25,9 +25,9 @@ class kvmtest(test.test):
 
         # spawn vncserver if needed
         if not os.environ.has_key('DISPLAY'):
-            print("No DISPLAY set in environment, spawning vncserver...")
+            logging.info("No DISPLAY set in environment, spawning vncserver...")
             display = self.__create_vncserver(os.path.expanduser("~/.vnc"))
-            print("Setting DISPLAY=%s"%(display))
+            logging.info("Setting DISPLAY=%s"%(display))
             os.environ['DISPLAY'] = display
 
         # build a list of dirs with 'vm.log' files
@@ -59,13 +59,13 @@ class kvmtest(test.test):
         # produce pass/fail output
         for (x, y) in results:
             if y != 0:
-                print("FAIL: '%s' with rv %s" % (x, y))
+                logging.error("FAIL: '%s' with rv %s" % (x, y))
                 failed = failed + 1
             else:
-                print("pass: '%s' with rv %s" % (x, y))
+                logging.info("PASS: '%s' with rv %s" % (x, y))
                 passed = passed + 1
 
-        print("Summary: Passed %d Failed %d" % (passed, failed))
+        logging.info("Summary: Passed %d Failed %d" % (passed, failed))
         # if we had any tests not passed, fail entire test
         if failed != 0:
             raise error.TestError('kvm-test-replay')
@@ -91,13 +91,13 @@ class kvmtest(test.test):
             if os.path.exists('/proc/%s/status' % pid):
                 vncdisplay = os.path.basename(pidfile)\
                                .split(":")[1].split(".")[0]
-                print("Found vncserver on port %s, using it" % vncdisplay)
+                logging.info("Found vncserver on port %s, using it" % vncdisplay)
                 return ':%s.0' %(vncdisplay)
 
         # none of the vncserver were still alive, spawn our own and
         # return the display whack existing server first, then spawn it
         vncdisplay = "1"
-        print("Spawning vncserver on port %s" % vncdisplay)
+        logging.info("Spawning vncserver on port %s" % vncdisplay)
         utils.system('vncserver :%s' % vncdisplay)
         return ':%s.0' % vncdisplay
 

@@ -1,4 +1,4 @@
-import os,time
+import os, time, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -109,7 +109,7 @@ class netperf2(test.test):
 
             if ('within' in e.additional_text
                 or 'non-zero' in e.additional_text):
-                print e.additional_text
+                logging.debug(e.additional_text)
                 # Results are cpu%, outputs
                 self.results.append((0, None))
                 self.actual_times.append(1)

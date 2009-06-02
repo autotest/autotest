@@ -163,5 +163,5 @@ class sysbench(test.test):
                 tps = tps_re.group(1)
                 break
 
-        print >> out, 'threads=%s\ntps=%s' % (threads, tps)
+        out.write('threads=%s\ntps=%s' % (threads, tps))
         out.close()

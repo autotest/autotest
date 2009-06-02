@@ -1,4 +1,4 @@
-import os, time
+import os, time, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -91,7 +91,7 @@ class netpipe(test.test):
 
             if ('within' in e.additional_text
                 or 'non-zero' in e.additional_text):
-                print e.additional_text
+                logging.debug(e.additional_text)
             else:
                 raise
 
