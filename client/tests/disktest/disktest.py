@@ -1,4 +1,4 @@
-import os, sys, subprocess
+import os, sys, subprocess, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -20,8 +20,8 @@ class disktest(test.test):
 
 
     def test_one_disk_chunk(self, disk, chunk):
-        print "testing %d MB files on %s in %d MB memory" % \
-                                (self.chunk_mb, disk, self.memory_mb)
+        logging.info("testing %d MB files on %s in %d MB memory",
+                     (self.chunk_mb, disk, self.memory_mb))
         cmd = "%s/disktest -m %d -f %s/testfile.%d -i -S" % \
                                 (self.srcdir, self.chunk_mb, disk, chunk)
         p = subprocess.Popen(cmd, shell=True)
@@ -29,7 +29,7 @@ class disktest(test.test):
 
 
     def execute(self, disks = None, gigabytes = None,
-                            chunk_mb = utils.memtotal() / 1024):
+                chunk_mb = utils.memtotal() / 1024):
         os.chdir(self.srcdir)
 
         if not disks:
@@ -39,7 +39,7 @@ class disktest(test.test):
             for disk in disks:
                 free = min(utils.freespace(disk) / 1024**3, free)
             gigabytes = free
-            print "resizing to %s GB" % gigabytes
+            logging.info("resizing to %s GB", gigabytes)
             sys.stdout.flush()
 
         self.chunk_mb = chunk_mb

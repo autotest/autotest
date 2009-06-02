@@ -1,4 +1,4 @@
-import re, pickle, os
+import re, pickle, os, logging
 from autotest_lib.client.bin import utils, test
 
 
@@ -50,13 +50,13 @@ class kernbench(test.test):
         self.kernel = self.__init_tree(version)
         logfile = os.path.join(self.debugdir, 'build_log')
 
-        print "Warmup run ..."
+        logging.info("Warmup run ...")
         self.kernel.build_timed(self.threads, output=logfile)      # warmup run
 
 
     def run_once(self):
-        print "Performance run, iteration %d, %d threads" % (self.iteration,
-                                                             self.threads)
+        logging.info("Performance run, iteration %d,"
+                     " %d threads" % (self.iteration, self.threads))
         if self.iteration:
             timefile = 'time.%d' % self.iteration
         else:

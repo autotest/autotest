@@ -1,8 +1,4 @@
-import os
-import subprocess
-import re
-import commands
-
+import os, subprocess, re, commands, logging
 from autotest_lib.client.bin import utils, test
 from autotest_lib.client.common_lib import error
 
@@ -64,13 +60,13 @@ class memory_api(test.test):
                expected_vma_count += 1
          if expected_vma_count != vma_count:
             raise error.TestFail("VmaCountMismatch")
-         print "%s %s %d %d" % (hex(mem_start), hex(mem_len),
-                                vma_count, expected_vma_count)
+         logging.info("%s %s %d %d", hex(mem_start), hex(mem_len), vma_count,
+                      expected_vma_count)
          if p1.poll() is None:
             p1.stdin.write("\n")
             p1.stdin.flush()
 
       if p1.poll() != 0:
-         raise error.TestFail("UnexpectedApplicationAbort")
+         raise error.TestFail("Unexpected application abort")
 
       utils.system('%s/mremaps ' % self.tmpdir  + '100000000')

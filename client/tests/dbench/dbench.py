@@ -28,7 +28,6 @@ class dbench(test.test):
         loadfile = os.path.join(self.srcdir, 'client.txt')
         cmd = '%s %s %s -D %s -c %s -t %d' % (self.dbench, nprocs, args,
                                               dir, loadfile, seconds)
-        print cmd
         self.results = utils.system_output(cmd, retain_output=True)
 
 
