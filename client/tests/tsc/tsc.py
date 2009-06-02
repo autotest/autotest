@@ -1,4 +1,4 @@
-import os, re
+import os, re, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -19,8 +19,9 @@ class tsc(test.test):
     def run_once(self, args = '-t 650'):
         result = utils.run(self.srcdir + '/checktsc ' + args,
                            ignore_status=True)
-        print 'result.exit_status', result.exit_status
         if result.exit_status != 0:
+            logging.error('Program checktsc exit status is %s',
+                          result.exit_status)
             default_reason = ("UNKNOWN FAILURE: rc=%d from %s" %
                               (result.exit_status, result.command))
             ## Analyze result.stdout to see if it is possible to form qualified

@@ -23,7 +23,6 @@ class compilebench(test.test):
                          num_kernel_trees,
                          num_random_runs)
 
-        print "Executing: %s" % cmd
         output = utils.system_output(cmd)
 
         self.__format_results(output)

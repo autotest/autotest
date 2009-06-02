@@ -1,4 +1,4 @@
-import os
+import os, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -13,7 +13,7 @@ class pktgen(test.test):
         if not os.path.exists('/proc/net/pktgen'):
             raise error.TestError('pktgen not loaded')
 
-        print 'Adding devices to run'
+        logging.info('Adding devices to run')
         self.pgdev = '/proc/net/pktgen/kpktgend_0'
 
         self.pgset('rem_device_all')
@@ -21,7 +21,7 @@ class pktgen(test.test):
         self.pgset('max_before_softirq 10000')
 
         # Configure the individual devices
-        print 'Configuring devices'
+        logging.info('Configuring devices')
 
         self.ethdev='/proc/net/pktgen/' + eth
         self.pgdev=self.ethdev

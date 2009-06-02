@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, logging
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 
@@ -26,7 +26,7 @@ class selftest(test.test):
 
         os.rename(name + '.new', name)
 
-        print "checkpoint %d %d" % (current, checkpoint)
+        logging.debug("checkpoint %d %d", current, checkpoint)
 
         if (current != checkpoint):
             raise error.JobError("selftest: sequence was " +

@@ -1,4 +1,4 @@
-import os, re
+import os, re, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -27,7 +27,8 @@ class monotonic_time(test.test):
         cmd += ' ' + test_type
 
         self.results = utils.run(cmd, ignore_status=True)
-        print 'results.exit_status', self.results.exit_status
+        logging.info('Time test command exit status: %s',
+                     self.results.exit_status)
         if self.results.exit_status != 0:
             for line in self.results.stdout.splitlines():
                 if line.startswith('ERROR:'):

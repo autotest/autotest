@@ -1,4 +1,4 @@
-import os, re, time, subprocess, sys
+import os, re, time, subprocess, sys, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -20,24 +20,23 @@ class parallel_dd(test.test):
         if not self.old_fstype:
             self.old_fstype = self.fstype
 
-        print 'Dumping %d megabytes across %d streams' % (megabytes, streams)
+        logging.info('Dumping %d megabytes across %d streams', megabytes,
+                     streams)
 
 
     def raw_write(self):
-        print "Timing raw write of %d megabytes" % self.megabytes
+        logging.info("Timing raw write of %d megabytes" % self.megabytes)
         sys.stdout.flush()
-        dd = 'dd if=/dev/zero of=%s bs=4k count=%d' % \
-                                        (self.fs.device, self.blocks)
-        print dd
+        dd = 'dd if=/dev/zero of=%s bs=4k count=%d' % (self.fs.device,
+                                                       self.blocks)
         utils.system(dd + ' > /dev/null')
 
 
     def raw_read(self):
-        print "Timing raw read of %d megabytes" % self.megabytes
+        logging.info("Timing raw read of %d megabytes", self.megabytes)
         sys.stdout.flush()
-        dd = 'dd if=%s of=/dev/null bs=4k count=%d' % \
-                                        (self.fs.device, self.blocks)
-        print dd
+        dd = 'dd if=%s of=/dev/null bs=4k count=%d' % (self.fs.device,
+                                                       self.blocks)
         utils.system(dd + ' > /dev/null')
 
 
@@ -49,12 +48,11 @@ class parallel_dd(test.test):
             file = os.path.join(self.job.tmpdir, file)
             dd = 'dd if=/dev/zero of=%s bs=4k count=%d' % \
                                     (file, self.blocks_per_file)
-            print dd
             p.append(subprocess.Popen(dd + ' > /dev/null', shell=True))
-        print "Waiting for %d streams" % self.streams
+        logging.info("Waiting for %d streams", self.streams)
         # Wait for everyone to complete
         for i in range(self.streams):
-            print "Waiting for %d" % p[i].pid
+            logging.info("Waiting for %d", p[i].pid)
             sys.stdout.flush()
             os.waitpid(p[i].pid, 0)
         sys.stdout.flush()
@@ -73,12 +71,12 @@ class parallel_dd(test.test):
         device = self.fs.device
         try:
             line = utils.system_output('egrep ^%s %s' % (device, file))
-            print line
+            logging.debug(line)
             fstype = line.split()[2]
-            print 'Found %s is type %s from %s' % (device, fstype, file)
+            logging.debug('Found %s is type %s from %s', device, fstype, file)
             return fstype
         except error.CmdError, e:
-            print 'No %s found in %s' % (device, file)
+            logging.error('No %s found in %s', device, file)
             return None
 
 
@@ -88,7 +86,7 @@ class parallel_dd(test.test):
         except error.CmdError, e:
             pass
 
-        print '----------------- Timing raw operations ----------------------'
+        logging.info('------------- Timing raw operations ------------------')
         start = time.time()
         self.raw_write()
         self.raw_write_rate = self.megabytes / (time.time() - start)
@@ -101,7 +99,7 @@ class parallel_dd(test.test):
         self.fs.mkfs(self.fstype)
         self.fs.mount()
 
-        print '----------------- Timing fs operations ----------------------'
+        logging.info('------------- Timing fs operations ------------------')
         start = time.time()
         self.fs_write()
         self.fs_write_rate = self.megabytes / (time.time() - start)
@@ -124,6 +122,7 @@ class parallel_dd(test.test):
             self.fs.unmount()
         except error.CmdError, e:
             pass
-        print '\nFormatting %s back to type %s\n' % (self.fs, self.old_fstype)
+        logging.debug('\nFormatting %s back to type %s\n', self.fs,
+                      self.old_fstype)
         self.fs.mkfs(self.old_fstype)
         self.fs.mount()

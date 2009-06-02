@@ -17,7 +17,6 @@ class aiostress(test.test):
 
     # ftp://ftp.suse.com/pub/people/mason/utils/aio-stress.c
     def setup(self, tarball = None):
-        print self.srcdir, self.bindir, self.tmpdir
         os.mkdir(self.srcdir)
         os.chdir(self.srcdir)
         utils.system('cp ' + self.bindir+'/aio-stress.c .')
