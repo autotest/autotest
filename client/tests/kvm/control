@@ -45,8 +45,8 @@ Each test is appropriately documented on each test docstrings.
 
 import sys, os
 
-# enable modules import from current directory (tests/kvm_runtest_2)
-pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm_runtest_2')
+# enable modules import from current directory (tests/kvm)
+pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')
 sys.path.append(pwd)
 
 # ------------------------
