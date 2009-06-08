@@ -23,7 +23,6 @@ from autotest_lib.scheduler import status_server, scheduler_config
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
 DB_CONFIG_SECTION = 'AUTOTEST_WEB'
-
 AUTOTEST_PATH = os.path.join(os.path.dirname(__file__), '..')
 
 if os.environ.has_key('AUTOTEST_DIR'):
@@ -105,6 +104,15 @@ def main_without_exception_handling():
     if len(args) != 1:
         parser.print_usage()
         return
+
+    scheduler_enabled = global_config.global_config.get_config_value(
+        scheduler_config.CONFIG_SECTION, 'enable_scheduler', type=bool)
+
+    if not scheduler_enabled:
+        msg = ("Scheduler not enabled, set enable_scheduler to true in the "
+               "global_config's SCHEDULER section to enabled it. Exiting.")
+        print msg
+        sys.exit(1)
 
     global RESULTS_DIR
     RESULTS_DIR = args[0]
