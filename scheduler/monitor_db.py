@@ -810,7 +810,7 @@ class Dispatcher(object):
 
 
     def _find_reverify(self):
-        self._reverify_hosts_where("status = 'Reverify'")
+        self._reverify_hosts_where("status = 'Reverify'", cleanup=False)
 
 
     def _reverify_remaining_hosts(self):
@@ -831,7 +831,8 @@ class Dispatcher(object):
 
 
     def _reverify_hosts_where(self, where,
-                              print_message='Reverifying host %s'):
+                              print_message='Reverifying host %s',
+                              cleanup=True):
         full_where='locked = 0 AND invalid = 0 AND ' + where
         for host in Host.fetch(where=full_where):
             if self.host_has_agent(host):
@@ -839,7 +840,7 @@ class Dispatcher(object):
                 continue
             if print_message:
                 logging.info(print_message, host.hostname)
-            tasks = host.reverify_tasks()
+            tasks = host.reverify_tasks(cleanup)
             self.add_agent(Agent(tasks))
 
 
@@ -2240,12 +2241,13 @@ class Host(DBObject):
         return platform, all_labels
 
 
-    def reverify_tasks(self):
-        cleanup_task = CleanupTask(host=self)
-        verify_task = VerifyTask(host=self)
+    def reverify_tasks(self, cleanup=True):
+        tasks = [VerifyTask(host=self)]
+        if cleanup:
+            tasks.insert(0, CleanupTask(host=self))
         # just to make sure this host does not get taken away
         self.set_status('Cleaning')
-        return [cleanup_task, verify_task]
+        return tasks
 
 
     _ALPHANUM_HOST_RE = re.compile(r'^([a-z-]+)(\d+)$', re.IGNORECASE)
