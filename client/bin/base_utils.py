@@ -8,7 +8,7 @@ Note that this file is mixed in by utils.py - note very carefully the
 precedence order defined there
 """
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
-import math, re, string, fnmatch
+import math, re, string, fnmatch, logging
 from autotest_lib.client.common_lib import error, utils
 
 
@@ -567,7 +567,24 @@ def load_module(module_name):
 
 
 def unload_module(module_name):
-    utils.system('/sbin/rmmod ' + module_name)
+    """
+    Removes a module. Handles dependencies. If even then it's not possible
+    to remove one of the modules, it will trhow an error.CmdError exception.
+
+    @param module_name: Name of the module we want to remove.
+    """
+    l_raw = utils.system_output("/sbin/lsmod").splitlines()
+    lsmod = [x for x in l_raw if x.split()[0] == module_name]
+    if len(lsmod) > 0:
+        line_parts = lsmod[0].split()
+        if len(line_parts) == 4:
+            submodules = line_parts[3].split(",")
+            for submodule in submodules:
+                unload_module(submodule)
+        utils.system("/sbin/modprobe -r %s" % module_name)
+        logging.info("Module %s unloaded" % module_name)
+    else:
+        logging.info("Module %s is already unloaded" % module_name)
 
 
 def module_is_loaded(module_name):
