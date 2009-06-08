@@ -1,4 +1,4 @@
-import os, itertools, shutil, tempfile
+import os, itertools, shutil, tempfile, logging
 import common
 
 from autotest_lib.client.common_lib import utils, error
@@ -54,6 +54,12 @@ def encode_args(profiler, args, dargs):
     parts += [repr(arg) for arg in args]
     parts += ["%s=%r" % darg for darg in dargs.iteritems()]
     return ", ".join(parts)
+
+
+def get_profiler_log_path(autodir):
+    """Given the directory of a profiler client, find the client log path."""
+    return os.path.join(PROFILER_TMPDIR, autodir, "results", "default",
+                        "client.log")
 
 
 def get_profiler_results_dir(autodir):
@@ -146,6 +152,21 @@ class profiler_proxy(object):
             return {}
 
 
+    def _get_failure_logs(self, autodir, test, host):
+        """Collect the client logs from a profiler run and put them in a
+        file named failure-*.log."""
+        try:
+            fd, path = tempfile.mkstemp(suffix=".log", prefix="failure",
+                                        dir=os.path.join(test.profdir,
+                                                         host.hostname))
+            os.close(fd)
+            host.get_file(get_profiler_log_path(autodir), path)
+        except (error.AutotestError, error.AutoservError):
+            logging.exception("Profiler failure log collection failed")
+            # swallow the exception so that we don't override an existing
+            # exception being thrown
+
+
     def start(self, test, host=None):
         self._install()
         encoded_args = encode_args(self.name, self.args, self.dargs)
@@ -154,16 +175,24 @@ class profiler_proxy(object):
             fifo_pattern = os.path.join(autodir, "profiler.*")
             host.run("rm -f %s" % fifo_pattern)
             host.run("mkfifo %s" % os.path.join(autodir, "profiler.ready"))
-            at.run(control_script, background=True)
-            self._wait_on_client(host, autodir, "ready")
-            self._signal_client(host, autodir, "start")
+            try:
+                at.run(control_script, background=True)
+                self._wait_on_client(host, autodir, "ready")
+                self._signal_client(host, autodir, "start")
+            except:
+                self._get_failure_logs(autodir, test, host)
+                raise
         self.current_test = test
 
 
     def stop(self, test, host=None):
         assert self.current_test == test
         for host, (at, autodir) in self._get_hosts(host).iteritems():
-            self._signal_client(host, autodir, "stop")
+            try:
+                self._signal_client(host, autodir, "stop")
+            except:
+                self._get_failure_logs(autodir, test, host)
+                raise
 
 
     def report(self, test, host=None, wait_on_client=True):
@@ -173,7 +202,11 @@ class profiler_proxy(object):
         # signal to all the clients that they should report
         if wait_on_client:
             for host, (at, autodir) in self._get_hosts(host).iteritems():
-                self._signal_client(host, autodir, "report")
+                try:
+                    self._signal_client(host, autodir, "report")
+                except:
+                    self._get_failure_logs(autodir, test, host)
+                    raise
 
         # pull back all the results
         for host, (at, autodir) in self._get_hosts(host).iteritems():
