@@ -135,7 +135,7 @@ class profiler_proxy(object):
         before giving up. """
         path = os.path.join(autodir, "profiler.%s" % command)
         try:
-            host.run("cat %s" % path, ignore_status=True, timeout=30)
+            host.run("cat %s" % path, ignore_status=True, timeout=180)
         except error.AutoservSSHTimeout:
             pass  # even if it times out, just give up and go ahead anyway
 
@@ -156,7 +156,10 @@ class profiler_proxy(object):
         """Collect the client logs from a profiler run and put them in a
         file named failure-*.log."""
         try:
-            fd, path = tempfile.mkstemp(suffix=".log", prefix="failure",
+            profdir = os.path.join(test.profdir, host.hostname)
+            if not os.path.exists(profdir):
+                os.makedirs(profdir)
+            fd, path = tempfile.mkstemp(suffix=".log", prefix="failure-",
                                         dir=os.path.join(test.profdir,
                                                          host.hostname))
             os.close(fd)
