@@ -220,7 +220,7 @@ class AFE(RpcClient):
 
 
     def run_test_suites(self, pairings, kernel, kernel_label, priority='Medium',
-                        wait=True, poll_interval=5, email_from=None,
+                        wait=True, poll_interval=10, email_from=None,
                         email_to=None, timeout=168):
         """
         Run a list of test suites on a particular kernel.
