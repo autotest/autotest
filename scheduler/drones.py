@@ -1,4 +1,4 @@
-import pickle, os, tempfile
+import pickle, os, tempfile, logging
 import common
 from autotest_lib.scheduler import drone_utility, email_manager
 from autotest_lib.client.common_lib import error, global_config
@@ -115,6 +115,7 @@ class _RemoteDrone(_AbstractDrone):
         calls_file.seek(0)
 
         try:
+            logging.info("Running drone_utility on %s", self.hostname)
             result = self._host.run('python %s' % self._drone_utility_path,
                                     stdin=calls_file, connect_timeout=300)
         finally:
