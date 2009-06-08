@@ -49,7 +49,7 @@ class RpcClient(object):
     All the constructors go in the afe / tko class. 
     Manipulating methods go in the object classes themselves
     """
-    def __init__(self, path, user, server, print_log, debug):
+    def __init__(self, path, user, server, print_log, debug, reply_debug):
         """
         Create a cached instance of a connection to the frontend
 
@@ -70,6 +70,7 @@ class RpcClient(object):
         self.user = user
         self.print_log = print_log
         self.debug = debug
+        self.reply_debug = reply_debug
         headers = {'AUTHORIZATION' : self.user}
         rpc_server = 'http://' + server + path
         if debug:
@@ -86,7 +87,10 @@ class RpcClient(object):
         if self.debug:
             print 'DEBUG: %s %s' % (call, dargs)
         try:
-            return utils.strip_unicode(rpc_call(**dargs))
+            result = utils.strip_unicode(rpc_call(**dargs))
+            if self.reply_debug:
+                print result
+            return result
         except Exception:
             print 'FAILED RPC CALL: %s %s' % (call, dargs)
             raise
@@ -98,9 +102,14 @@ class RpcClient(object):
 
 
 class TKO(RpcClient):
-    def __init__(self, user=None, server=None, print_log=True, debug=False):
-        super(TKO, self).__init__('/new_tko/server/noauth/rpc/', user,
-                                  server, print_log, debug)
+    def __init__(self, user=None, server=None, print_log=True, debug=False,
+                 reply_debug=False):
+        super(TKO, self).__init__(path='/new_tko/server/noauth/rpc/',
+                                  user=user,
+                                  server=server,
+                                  print_log=print_log,
+                                  debug=debug,
+                                  reply_debug=reply_debug)
 
 
     def get_status_counts(self, job, **data):
@@ -112,10 +121,14 @@ class TKO(RpcClient):
 
 class AFE(RpcClient):
     def __init__(self, user=None, server=None, print_log=True, debug=False,
-                 job=None):
+                 reply_debug=False, job=None):
         self.job = job
-        super(AFE, self).__init__('/afe/server/noauth/rpc/', user, server,
-                                  print_log, debug)
+        super(AFE, self).__init__(path='/afe/server/noauth/rpc/',
+                                  user=user,
+                                  server=server,
+                                  print_log=print_log,
+                                  debug=debug,
+                                  reply_debug=reply_debug)
 
     
     def host_statuses(self, live=None):
@@ -188,6 +201,17 @@ class AFE(RpcClient):
     def get_host_queue_entries(self, **data):
         entries = self.run('get_host_queue_entries', **data)
         job_statuses = [JobStatus(self, e) for e in entries]
+
+        # Sadly, get_host_queue_entries doesn't return platforms, we have
+        # to get those back from an explicit get_hosts queury, then patch
+        # the new host objects back into the host list.
+        hostnames = [s.host.hostname for s in job_statuses if s.host]
+        host_hash = {}
+        for host in self.get_hosts(hostname__in=hostnames):
+            host_hash[host.hostname] = host
+        for status in job_statuses:
+            if status.host:
+                status.host = host_hash[status.host.hostname]
         # filter job statuses that have either host or meta_host
         return [status for status in job_statuses if (status.host or
                                                       status.meta_host)]
@@ -707,15 +731,7 @@ class JobStatus(RpcObject):
         self.__dict__.update(hash)
         self.job = Job(afe, self.job)
         if self.host:
-            # get list of hosts from AFE; if a host is not present in autotest
-            # anymore, this returns an empty list.
-            afe_hosts = afe.get_hosts(hostname=self.host['hostname'])
-            if len(afe_hosts):
-                # host present, assign it!
-                self.host = afe_hosts[0]
-            else:
-                # AFE does not contain info anymore, set host to None
-                self.host = None
+            self.host = Host(afe, self.host)
 
 
     def __repr__(self):
