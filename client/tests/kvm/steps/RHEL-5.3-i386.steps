@@ -7,7 +7,7 @@ step 10.33
 screendump 20080101_000001_8333460cfad39ef04d6dbbf7d35fdcba.ppm
 # boot options
 sleep 10
-barrier_2 459 65 5 223 a817e977c049abaaab9a391d3cbeb1ab 52
+barrier_2 44 40 0 410 2f6c4cea4cf5b03bec757893e4982897 52
 # Sending keys: ret
 key ret
 # --------------------------------
@@ -187,8 +187,16 @@ key alt-f
 step 1518.52
 screendump 20080101_000024_3e641443dd4ea558467e517a4be68517.ppm
 # confirm no rhn
-barrier_2 97 18 146 77 a6a767b46d079c6879ebd5aec00cda46 43
+barrier_2 97 18 146 77 a6a767b46d079c6879ebd5aec00cda46 15 optional
 # Sending keys: alt-n
+key alt-n
+# --------------------------------
+step 1518.52
+screendump 20090506_091708_e5436357421502fccb3df89a830fd2f4.ppm
+# confirm no rhn (2)
+barrier_2 60 37 59 15 d94ff141696970e06545ce9854306970 5 optional
+# Sending keys: alt-tab alt-n
+key alt-tab
 key alt-n
 # --------------------------------
 step 1526.55
