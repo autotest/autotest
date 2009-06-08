@@ -390,19 +390,31 @@ def _normalize(data_values, data_errors, base_values, base_errors):
     base_values: list of values normalize against
     base_errors: list of standard deviations for those base values
     """
-
-    values = [100 * (value - base) / base
-              for value, base in zip(data_values, base_values)]
+    values = []
+    for value, base in zip(data_values, base_values):
+        try:
+            values.append(100 * (value - base) / base)
+        except ZeroDivisionError:
+            # Base is 0.0 so just simplify:
+            #   If value < base: append -100.0;
+            #   If value == base: append 0.0 (obvious); and
+            #   If value > base: append 100.0. 
+            values.append(100 * float(cmp(value, base)))
 
     # Based on error for f(x,y) = 100 * (x - y) / y
     if data_errors:
         if not base_errors:
             base_errors = [0] * len(data_errors)
-        errors = [sqrt(error**2 * (100 / base_value)**2
-                       + base_error**2 * (100 * data / base_value**2)**2
-                       + error * base_error * (100 / base_value**2)**2)
-                  for data, error, base_value, base_error
-                  in zip(data_values, data_errors, base_values, base_errors)]
+        errors = []
+        for data, error, base_value, base_error in zip(
+                data_values, data_errors, base_values, base_errors):
+            try:
+                errors.append(sqrt(error**2 * (100 / base_value)**2
+                        + base_error**2 * (100 * data / base_value**2)**2
+                        + error * base_error * (100 / base_value**2)**2))
+            except ZeroDivisionError:
+                # Again, base is 0.0 so do the simple thing.
+                errors.append(100 * abs(error))
     else:
         errors = None
 
