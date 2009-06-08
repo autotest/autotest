@@ -60,7 +60,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
                 return null;
             }
 
-            if (!args.containsKey(prefix + "_attribute")) {
+            if (args.containsKey(prefix + "_attribute")) {
                 return AttributeFilterData.fromHistory(args, prefix);
             } else {
                 return LabelFilterData.fromHistory(args, prefix);
