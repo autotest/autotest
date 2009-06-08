@@ -1,6 +1,6 @@
-import os, time, re, subprocess, shutil
+import os, time, re, subprocess, shutil, logging
 from autotest_lib.client.bin import utils, test
-from autotest_lib.client.common_lib import debug, error
+from autotest_lib.client.common_lib import error
 
 
 class dma_memtest(test.test):
@@ -36,7 +36,7 @@ class dma_memtest(test.test):
         kernel_repo = 'http://www.kernel.org/pub/linux/kernel/v2.6'
         tarball_url = os.path.join(kernel_repo, tarball_base)
         tarball_md5 = '296a6d150d260144639c3664d127d174'
-        print 'Downloading linux kernel tarball'
+        logging.info('Downloading linux kernel tarball')
         self.tarball = utils.unmap_url_cache(self.cachedir, tarball_url, 
                                              tarball_md5)
         size_tarball = os.path.getsize(self.tarball) / 1024 / 1024
@@ -44,18 +44,18 @@ class dma_memtest(test.test):
         compress_ratio = 5
         est_size = size_tarball * compress_ratio
         self.sim_cps = self.get_sim_cps(est_size)
-        print 'Source file: %s' % tarball_base
-        print 'Megabytes per copy: %s' % size_tarball
-        print 'Compress ratio: %s' % compress_ratio
-        print 'Estimated size after uncompression: %s' % est_size
-        print 'Number of copies: %s' % self.sim_cps
-        print 'Parallel: %s' % parallel
+        logging.info('Source file: %s' % tarball_base)
+        logging.info('Megabytes per copy: %s' % size_tarball)
+        logging.info('Compress ratio: %s' % compress_ratio)
+        logging.info('Estimated size after uncompression: %s' % est_size)
+        logging.info('Number of copies: %s' % self.sim_cps)
+        logging.info('Parallel: %s' % parallel)
 
 
     def get_sim_cps(self, est_size):
-        '''\
+        '''
         Calculate the amount of simultaneous copies that can be uncompressed
-        so that it will make the system swap
+        so that it will make the system swap.
 
             @param est_size: Estimated size of uncompressed linux tarball
         '''
@@ -92,46 +92,49 @@ class dma_memtest(test.test):
         os.chdir(self.tmpdir)
         # This is the reference copy of the linux tarball
         # that will be used for subsequent comparisons
-        print 'Unpacking base copy'
+        logging.info('Unpacking base copy')
         base_dir = os.path.join(self.tmpdir, 'linux.orig')
         utils.extract_tarball_to_dir(self.tarball, base_dir)
-        print 'Unpacking test copies'
+        logging.info('Unpacking test copies')
         for j in range(self.sim_cps):
+            tmp_dir = 'linux.%s' % j
             if self.parallel:
-                tmp_dir = 'linux.%s' % j
                 os.mkdir(tmp_dir)
                 # Start parallel process
                 tar_cmd = ['tar', 'jxf', self.tarball, '-C', tmp_dir]
-                print 
+                logging.debug("Unpacking tarball to %s", tmp_dir)
                 parallel_procs.append(subprocess.Popen(tar_cmd,
                                                        stdout=subprocess.PIPE,
                                                        stderr=subprocess.PIPE))
             else:
-                utils.extract_tarball_to_dir(self.tarball, 'linux.%s' % j)
+                logging.debug("Unpacking tarball to %s", tmp_dir)
+                utils.extract_tarball_to_dir(self.tarball, tmp_dir)
         # Wait for the subprocess before comparison
         if self.parallel:
-            print "Wait background processes before proceed"
+            logging.debug("Wait background processes before proceed")
             for proc in parallel_procs:
                 proc.wait()
 
         parallel_procs = []
 
-        print 'Comparing test copies with base copy'
+        logging.info('Comparing test copies with base copy')
         for j in range(self.sim_cps):
+            tmp_dir = 'linux.%s/%s' % (j, 
+                            os.path.basename(self.tarball).strip('.tar.bz2'))
             if self.parallel:
-                tmp_dir = 'linux.%s/%s' % (j,
-                        os.path.basename(self.tarball).strip('.tar.bz2'))
                 diff_cmd = ['diff', '-U3', '-rN', 'linux.orig', tmp_dir]
+                logging.debug("Comparing linux.orig with %s", tmp_dir)
                 p = subprocess.Popen(diff_cmd,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
                 parallel_procs.append(p)
             else:
                 try:
+                    logging.debug('Comparing linux.orig with %s', tmp_dir)
                     utils.system('diff -U3 -rN linux.orig linux.%s' % j)
                 except error.CmdError, e:
                     self.nfail += 1
-                    print 'Error comparing trees: %s' % e
+                    logging.error('Error comparing trees: %s', e)
 
         for proc in parallel_procs:
             out_buf = proc.stdout.read()
@@ -139,23 +142,20 @@ class dma_memtest(test.test):
             proc.wait()
             if out_buf != "":
                 self.nfail += 1
-                print 'Error comparing trees: %s' % out_buf
+                logging.error('Error comparing trees: %s', out_buf)
 
-        # Clear for the next iteration
+        # Clean up for the next iteration
         parallel_procs = []
 
-        print 'Removing test copies'
+        logging.info('Cleaning up')
         for j in range(self.sim_cps):
             tmp_dir = 'linux.%s' % j
             shutil.rmtree(tmp_dir)
-
-        print 'Removing base copy'
         shutil.rmtree(base_dir)
-        print 'Done'
 
 
     def cleanup(self):
         if self.nfail != 0:
-            raise error.TestError('Memory test failed.')
+            raise error.TestError('DMA memory test failed.')
         else:
-            print 'Memory test passed.'
+            logging.info('DMA memory test passed.')
