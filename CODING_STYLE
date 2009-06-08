@@ -82,6 +82,39 @@ places, though undoubtedly we're not perfect. A high level overview is
 incredibly helpful in understanding code.
 
 
+Docstrings
+
+Docstrings are important to keep our code self documenting. While it's not
+necessary to overdo documentation, we ask you to be sensible and document any
+nontrivial function. When creating docstrings, please add a newline at the
+beginning of your triple quoted string and another newline at the end of it.
+Please capitalize and punctuate accordingly the sentences. If the description
+has multiple lines, put two levels of indentation before proceeding with text,
+so it reads something like:
+
+def foo(param1, param2):
+"""
+Long description of method foo.
+
+@param param1: A thing called param1 that is used for a bunch of stuff
+        that has methods bar() and baz() which raise SpamError if·····
+        something goes awry.
+"""
+
+The tags that you can put inside your docstring are tags recognized by systems
+like doxygen. Not all places need all tags defined, so choose them wisely while
+writing code.
+
+@author - Code author
+@param - Parameter description
+@return - Return value description
+@see - Reference to what you have done
+@todo - Things that still need to be worked out
+@version - Version string
+@warning - Call attention to potential problems with the code
+@raises - If the function can throw an exception, this tag documents the
+possible exception types.
+
 Simple code
 
 Keep it simple; this is not the right place to show how smart you are. We
