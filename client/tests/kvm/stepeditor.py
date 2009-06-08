@@ -858,27 +858,27 @@ class StepMakerWindow:
 class StepEditor(StepMakerWindow):
     ui = '''<ui>
     <menubar name="MenuBar">
-      <menu action="File">
-        <menuitem action="Open"/>
-        <separator/>
-        <menuitem action="Quit"/>
-      </menu>
-      <menu action="Edit">
-        <menuitem action="CopyStep"/>
-        <menuitem action="DeleteStep"/>
-      </menu>
-      <menu action="Insert">
-        <menuitem action="InsertNewBefore"/>
-        <menuitem action="InsertNewAfter"/>
-        <separator/>
-        <menuitem action="InsertStepsBefore"/>
-        <menuitem action="InsertStepsAfter"/>
-      </menu>
-      <menu action="Tools">
-        <menuitem action="CleanUp"/>
-      </menu>
+        <menu action="File">
+            <menuitem action="Open"/>
+            <separator/>
+            <menuitem action="Quit"/>
+        </menu>
+        <menu action="Edit">
+            <menuitem action="CopyStep"/>
+            <menuitem action="DeleteStep"/>
+        </menu>
+        <menu action="Insert">
+            <menuitem action="InsertNewBefore"/>
+            <menuitem action="InsertNewAfter"/>
+            <separator/>
+            <menuitem action="InsertStepsBefore"/>
+            <menuitem action="InsertStepsAfter"/>
+        </menu>
+        <menu action="Tools">
+            <menuitem action="CleanUp"/>
+        </menu>
     </menubar>
-    </ui>'''
+</ui>'''
 
     # Constructor
 
@@ -896,7 +896,7 @@ class StepEditor(StepMakerWindow):
         self.window.add_accel_group(accelgroup)
 
         # Create an ActionGroup
-        actiongroup = gtk.ActionGroup('UIManagerExample')
+        actiongroup = gtk.ActionGroup('StepEditor')
 
         # Create actions
         actiongroup.add_actions([
@@ -904,22 +904,22 @@ class StepEditor(StepMakerWindow):
              self.quit),
             ('Open', gtk.STOCK_OPEN, '_Open', None, 'Open steps file',
              self.open_steps_file),
-            ('CopyStep', gtk.STOCK_COPY, '_Copy current step...', None,
+            ('CopyStep', gtk.STOCK_COPY, '_Copy current step...', "",
              'Copy current step to user specified position', self.copy_step),
-            ('DeleteStep', gtk.STOCK_DELETE, '_Delete current step', None,
+            ('DeleteStep', gtk.STOCK_DELETE, '_Delete current step', "",
              'Delete current step', self.event_remove_clicked),
-            ('InsertNewBefore', gtk.STOCK_ADD, '_New step before current', None,
+            ('InsertNewBefore', gtk.STOCK_ADD, '_New step before current', "",
              'Insert new step before current step', self.insert_before),
-            ('InsertNewAfter', gtk.STOCK_ADD, 'N_ew step after current', None,
+            ('InsertNewAfter', gtk.STOCK_ADD, 'N_ew step after current', "",
              'Insert new step after current step', self.insert_after),
             ('InsertStepsBefore', gtk.STOCK_ADD, '_Steps before current...',
-             None, 'Insert steps (from file) before current step',
+             "", 'Insert steps (from file) before current step',
              self.insert_steps_before),
-            ('InsertStepsAfter', gtk.STOCK_ADD, 'Steps _after current...',
-             None, 'Insert steps (from file) after current step',
+            ('InsertStepsAfter', gtk.STOCK_ADD, 'Steps _after current...', "",
+             'Insert steps (from file) after current step',
              self.insert_steps_after),
-            ('CleanUp', gtk.STOCK_DELETE, '_Clean up data directory',
-             None, 'Move unused PPM files to a backup directory', self.cleanup),
+            ('CleanUp', gtk.STOCK_DELETE, '_Clean up data directory', "",
+             'Move unused PPM files to a backup directory', self.cleanup),
             ('File', None, '_File'),
             ('Edit', None, '_Edit'),
             ('Insert', None, '_Insert'),
@@ -939,9 +939,6 @@ class StepEditor(StepMakerWindow):
 
         create_shortcut("Next", self.event_next_clicked, "Page_Down")
         create_shortcut("Previous", self.event_prev_clicked, "Page_Up")
-        create_shortcut("First", self.event_first_clicked, "Home")
-        create_shortcut("Last", self.event_last_clicked, "End")
-        create_shortcut("Delete", self.event_remove_clicked, "Delete")
 
         # Add the actiongroup to the uimanager
         uimanager.insert_action_group(actiongroup, 0)
