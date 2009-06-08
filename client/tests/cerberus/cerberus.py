@@ -1,4 +1,4 @@
-import os, shutil, glob
+import os, shutil, glob, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
@@ -49,21 +49,23 @@ class cerberus(test.test):
         self.tcf_path = os.path.join(self.debugdir, 'autotest.tcf')
 
         if not tcf_contents:
-            print 'Generating cerberus control file'
+            logging.info('Generating cerberus control file')
             # Note about the control file generation command - we are creating
             # a control file with the default tests, except for the kernel
             # compilation test (flag -k).
             g_cmd = './newburn-generator -k %s> %s' % (length, self.tcf_path)
             utils.system(g_cmd)
         else:
-            print 'TCF file contents supplied, ignoring test length altogether'
+            logging.debug('TCF file contents supplied, ignoring test length'
+                          ' altogether')
             tcf = open(self.tcf_path, 'w')
             tcf.write(tcf_contents)
 
-        print "Contents of the control file that will be passed to ctcs:"
+        logging.debug('Contents of the control file that will be passed to'
+                      ' ctcs:')
         tcf = open(self.tcf_path, 'r')
         buf = tcf.read()
-        print buf
+        logging.debug(buf)
 
 
     def run_once(self):
@@ -80,7 +82,7 @@ class cerberus(test.test):
         log_base_path = os.path.join(self.srcdir, 'log')
         log_dir = glob.glob(os.path.join(log_base_path, 
                                          'autotest.tcf.log.*'))[0]
-        print 'Copying %s log directory to results dir' % log_dir
+        logging.debug('Copying %s log directory to results dir', log_dir)
         dst = os.path.join(self.resultsdir, os.path.basename(log_dir))
         shutil.move(log_dir, dst)
 
