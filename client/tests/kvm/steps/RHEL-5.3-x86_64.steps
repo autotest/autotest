@@ -7,7 +7,7 @@ step 9.22
 screendump 20080101_000001_8333460cfad39ef04d6dbbf7d35fdcba.ppm
 # boot options
 sleep 10
-barrier_2 441 88 18 213 881883a4fa307a918f40804c70b9880d 46
+barrier_2 43 39 0 411 3c4a56d04a8ea1c0c5c1edfe10d472a0 46
 # Sending keys: ret
 key ret
 # --------------------------------
