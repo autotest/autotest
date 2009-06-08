@@ -136,7 +136,7 @@ class config:
             @param str: String that will be processed
             @param sep: Separator that will be used to split the string
         """
-        temp = str.split(sep)
+        temp = str.split(sep, 1)
         for i in range(len(temp)):
             temp[i] = temp[i].strip()
             temp[i] = temp[i].strip("\"\'")
