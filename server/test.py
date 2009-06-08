@@ -54,18 +54,11 @@ job.record('GOOD', '', 'sysinfo.iteration.%s')
 
 def install_autotest_and_run(func):
     def wrapper(self, mytest):
-        host, at = self._install()
-        try:
-            try:
-                outputdir = host.get_tmp_dir()
-                try:
-                    func(self, mytest, host, at, outputdir)
-                finally:
-                    host.delete_tmp_dir(outputdir)
-            finally:
-                at.uninstall()
-        finally:
-            host.close()
+        host, at, outputdir = self._install()
+        host.run('rm -rf %s' % os.path.join(outputdir, '*'),
+                 ignore_status=True)
+        func(self, mytest, host, at, outputdir)
+
     return wrapper
 
 
@@ -73,18 +66,29 @@ class _sysinfo_logger(object):
     def __init__(self, job):
         self.job = job
         self.pickle = None
+
+        # for now support a single host
+        self.host = None
+        self.autotest = None
+        self.outputdir = None
+
         if len(job.machines) != 1:
             # disable logging on multi-machine tests
             self.before_hook = self.after_hook = None
+            self.before_iteration_hook = self.after_iteration_hook = None
 
 
     def _install(self):
-        from autotest_lib.server import hosts, autotest
-        host = hosts.create_host(self.job.machines[0], auto_monitor=False)
-        tmp_dir = host.get_tmp_dir(parent="/tmp/sysinfo")
-        at = autotest.Autotest(host)
-        at.install_base(autodir=tmp_dir)
-        return host, at
+        if not self.host:
+            from autotest_lib.server import hosts, autotest
+            self.host = hosts.create_host(self.job.machines[0],
+                                          auto_monitor=False)
+            tmp_dir = self.host.get_tmp_dir(parent="/tmp/sysinfo")
+            self.autotest = autotest.Autotest(self.host)
+            self.autotest.install_base(autodir=tmp_dir)
+            self.outputdir = self.host.get_tmp_dir()
+
+        return self.host, self.autotest, self.outputdir
 
 
     def _pull_pickle(self, host, outputdir):
@@ -174,6 +178,14 @@ class _sysinfo_logger(object):
         self._pull_sysinfo_keyval(host, outputdir, mytest)
 
 
+    def cleanup(self):
+        if self.host and self.autotest:
+            try:
+                self.autotest.uninstall()
+            finally:
+                self.host.close()
+
+
 def runtest(job, url, tag, args, dargs):
     if not dargs.pop('disable_sysinfo', False):
         logger = _sysinfo_logger(job)
@@ -181,6 +193,12 @@ def runtest(job, url, tag, args, dargs):
                         logger.before_iteration_hook,
                         logger.after_iteration_hook]
     else:
-        logging_args = [None, None]
-    common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
-                        *logging_args)
+        logger = None
+        logging_args = [None, None, None, None]
+
+    try:
+        common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
+                            *logging_args)
+    finally:
+        if logger:
+            logger.cleanup()
