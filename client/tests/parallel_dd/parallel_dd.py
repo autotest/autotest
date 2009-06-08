@@ -6,13 +6,15 @@ from autotest_lib.client.common_lib import error
 class parallel_dd(test.test):
     version = 2
 
-    def initialize(self, fs, fstype = 'ext2', megabytes = 1000, streams = 2):
+    def initialize(self, fs, fstype = 'ext2', megabytes = 1000, streams = 2,
+                   seq_read = True):
         self.megabytes = megabytes
         self.blocks = megabytes * 256
         self.blocks_per_file = self.blocks / streams
         self.fs = fs
         self.fstype = fstype
         self.streams = streams
+        self.seq_read = seq_read
 
         self.old_fstype = self._device_to_fstype('/etc/mtab')
         if not self.old_fstype:
@@ -44,8 +46,7 @@ class parallel_dd(test.test):
         p = []
         # Write out 'streams' files in parallel background tasks
         for i in range(self.streams):
-            file = 'poo%d' % (i+1)
-            file = os.path.join(self.job.tmpdir, file)
+            file = os.path.join(self.job.tmpdir, 'poo%d' % (i+1))
             dd = 'dd if=/dev/zero of=%s bs=4k count=%d' % \
                                     (file, self.blocks_per_file)
             p.append(subprocess.Popen(dd + ' > /dev/null', shell=True))
@@ -60,11 +61,24 @@ class parallel_dd(test.test):
 
 
     def fs_read(self):
+        p = []
+        # Read in 'streams' files in parallel background tasks
         for i in range(self.streams):
             file = os.path.join(self.job.tmpdir, 'poo%d' % (i+1))
             dd = 'dd if=%s of=/dev/null bs=4k count=%d' % \
                                     (file, self.blocks_per_file)
-            utils.system(dd + ' > /dev/null')
+            if self.seq_read:
+                utils.system(dd + ' > /dev/null')
+            else:
+                p.append(subprocess.Popen(dd + ' > /dev/null', shell=True))
+        if self.seq_read:
+            return
+        logging.info("Waiting for %d streams", self.streams)
+        # Wait for everyone to complete
+        for i in range(self.streams):
+            logging.info("Waiting for %d", p[i].pid)
+            sys.stdout.flush()
+            os.waitpid(p[i].pid, 0)
 
 
     def _device_to_fstype(self, file):
@@ -97,7 +111,7 @@ class parallel_dd(test.test):
 
         # Set up the filesystem
         self.fs.mkfs(self.fstype)
-        self.fs.mount()
+        self.fs.mount(None)
 
         logging.info('------------- Timing fs operations ------------------')
         start = time.time()
@@ -105,7 +119,7 @@ class parallel_dd(test.test):
         self.fs_write_rate = self.megabytes / (time.time() - start)
         self.fs.unmount()
 
-        self.fs.mount()
+        self.fs.mount(None)
         start = time.time()
         self.fs_read()
         self.fs_read_rate = self.megabytes / (time.time() - start)
@@ -125,4 +139,4 @@ class parallel_dd(test.test):
         logging.debug('\nFormatting %s back to type %s\n', self.fs,
                       self.old_fstype)
         self.fs.mkfs(self.old_fstype)
-        self.fs.mount()
+        self.fs.mount(None)
