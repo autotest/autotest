@@ -255,6 +255,9 @@ class Host(object):
     def _wrap_with_verify(self, func):
         try:
             func()
+        except error.AutoservHardwareRepairRequestedError:
+            # let this special exception propagate
+            raise
         except Exception, err:
             traceback.print_exc()
         self.verify()
@@ -290,11 +293,7 @@ class Host(object):
         except Exception:
             # software repair failed, try hardware repair
             print "Software only repair failed"
-            self.request_hardware_repair()
-
-            # repair failed but managed to request for hardware repairs
-            raise error.AutoservHardwareRepairRequestedError(
-                "repair failed but hardware repairs have been requested")
+            self._wrap_with_verify(self.request_hardware_repair)
 
 
     def cleanup(self):
@@ -407,6 +406,8 @@ class Host(object):
 
     def request_hardware_repair(self):
         """ Should somehow request (send a mail?) for hardware repairs on
-        this machine.
+        this machine. The implementation can either return by raising the
+        special error.AutoservHardwareRepairRequestedError exception or can
+        try to wait until the machine is repaired and then return normally.
         """
         raise NotImplementedError("request_hardware_repair not implemented")
