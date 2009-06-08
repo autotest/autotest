@@ -115,6 +115,17 @@ class VM:
         self.iso_dir = iso_dir
 
 
+        # Find available monitor filename
+        while True:
+            # The monitor filename should be unique
+            self.instance = time.strftime("%Y%m%d-%H%M%S-") + \
+            kvm_utils.generate_random_string(4)
+            self.monitor_file_name = os.path.join("/tmp",
+                                                  "monitor-" + self.instance)
+            if not os.path.exists(self.monitor_file_name):
+                break
+
+
     def verify_process_identity(self):
         """
         Make sure .pid really points to the original qemu process. If .pid
@@ -296,16 +307,6 @@ class VM:
                 else:
                     logging.error("Actual MD5 sum differs from expected one")
                     return False
-
-        # Find available monitor filename
-        while True:
-            # The monitor filename should be unique
-            self.instance = time.strftime("%Y%m%d-%H%M%S-") + \
-            kvm_utils.generate_random_string(4)
-            self.monitor_file_name = os.path.join("/tmp",
-                                                  "monitor-" + self.instance)
-            if not os.path.exists(self.monitor_file_name):
-                break
 
         # Handle port redirections
         redir_names = kvm_utils.get_sub_dict_names(params, "redirs")
