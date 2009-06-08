@@ -13,12 +13,16 @@ Usage?  Just run it.
 """
 
 import compileall, logging, os, sha, shutil, sys, tempfile, time, urllib2
+import subprocess, re
 
 # Where package source be fetched to relative to the top of the autotest tree.
 PACKAGE_DIR = 'ExternalSource'
 
 # Where packages will be installed to relative to the top of the autotest tree.
 INSTALL_DIR = 'site-packages'
+
+# Installs all packages, even if the system already has the version required
+INSTALL_ALL = False
 
 
 # Want to add more packages to fetch, build and install?  See the class
@@ -97,7 +101,10 @@ def fetch_necessary_packages(dest_dir):
         if not package.is_needed():
             logging.info('A new %s is not needed on this system.',
                          package.name)
-            continue
+            if INSTALL_ALL:
+                logging.info('Installing anyways...')
+            else:
+                continue
         if not package.fetch(dest_dir):
             msg = '!!! Unable to download %s' % package.name
             print msg
@@ -531,7 +538,15 @@ class SetuptoolsPackage(ExternalPackage):
             shutil.copy(egg_path, temp_dir)
             egg_name = os.path.split(egg_path)[1]
             temp_egg = os.path.join(temp_dir, egg_name)
-            status = system("sudo /bin/sh '%s'" % (temp_egg,))
+            p = subprocess.Popen(['sudo', '/bin/sh', temp_egg],
+                                 stdout=subprocess.PIPE)
+            regex = re.compile('Copying (.*?) to (.*?)\n')
+            match = regex.search(p.communicate()[0])
+            status = p.wait()
+
+            if match:
+                compiled = os.path.join(match.group(2), match.group(1))
+                os.system("sudo chmod a+r '%s'" % compiled)
         finally:
             shutil.rmtree(temp_dir)
 
