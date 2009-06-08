@@ -1,4 +1,4 @@
-import sys, os, time, shelve, random, resource, logging
+import sys, os, time, shelve, random, resource, logging, cPickle
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 
@@ -8,6 +8,22 @@ class test_routine:
         self.module_name = module_name
         self.routine_name = routine_name
         self.routine = None
+
+
+def dump_env(obj, filename):
+    file = open(filename, "w")
+    cPickle.dump(obj, file)
+    file.close()
+
+
+def load_env(filename, default=None):
+    try:
+        file = open(filename, "r")
+    except:
+        return default
+    obj = cPickle.load(file)
+    file.close()
+    return obj
 
 
 class kvm(test.test):
@@ -62,12 +78,12 @@ class kvm(test.test):
         keys = params.keys()
         keys.sort()
         for key in keys:
-            logging.debug("    %s = %s" % (key, params[key]))
+            logging.debug("    %s = %s", key, params[key])
             self.write_test_keyval({key: params[key]})
 
         # Open the environment file
         env_filename = os.path.join(self.bindir, "env")
-        env = shelve.open(env_filename, writeback=True)
+        env = load_env(env_filename, {})
         logging.debug("Contents of environment: %s" % str(env))
 
         try:
@@ -90,21 +106,20 @@ class kvm(test.test):
 
                 # Preprocess
                 kvm_preprocessing.preprocess(self, params, env)
-                env.sync()
+                dump_env(env, env_filename)
                 # Run the test function
                 routine_obj.routine(self, params, env)
-                env.sync()
+                dump_env(env, env_filename)
 
             except Exception, e:
-                logging.error("Test failed: %s" % e)
+                logging.error("Test failed: %s", e)
                 logging.debug("Postprocessing on error...")
                 kvm_preprocessing.postprocess_on_error(self, params, env)
-                env.sync()
+                dump_env(env, env_filename)
                 raise
 
         finally:
             # Postprocess
             kvm_preprocessing.postprocess(self, params, env)
-            logging.debug("Contents of environment: %s" % str(env))
-            env.sync()
-            env.close()
+            logging.debug("Contents of environment: %s", str(env))
+            dump_env(env, env_filename)
