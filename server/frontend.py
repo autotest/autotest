@@ -174,7 +174,15 @@ class AFE(RpcClient):
             jobs_data = self.run('get_jobs_summary', **dargs)
         else:
             jobs_data = self.run('get_jobs', **dargs)
-        return [Job(self, j) for j in jobs_data]
+        jobs = []
+        for j in jobs_data:
+            job = Job(self, j)
+            # Set up some extra information defaults
+            job.testname = re.sub('\s.*', '', job.name) # arbitrary default
+            job.platform_results = {}
+            job.platform_reasons = {}
+            jobs.append(job)
+        return jobs
 
 
     def get_host_queue_entries(self, **data):
@@ -400,12 +408,8 @@ class AFE(RpcClient):
                                           use_container=pairing.container,
                                           **dargs)
         if new_job:
-            new_job.platform_results = {}
-            new_job.platform_reasons = {}
             if pairing.testname:
                 new_job.testname = pairing.testname
-            else:
-                new_job.testname = re.sub('\s.*', '', new_job.name)
             print 'Invoked test %s : %s' % (new_job.id, job_name)
         return new_job
 
