@@ -11,21 +11,18 @@ def _call_repair(machine):
                                   protection_level)
 
     # call the appropriate repair function based on protection level
+    host = hosts.create_host(machine, initialize=False, auto_monitor=False)
     if level == protection.DO_NOT_REPAIR:
         print "Host is specified as 'Do not repair', doing only a verify."
-        host = hosts.create_host(machine, initialize=False)
         host.verify()
     elif level == protection.REPAIR_FILESYSTEM_ONLY:
         print "Attempting filesystem-only repair"
-        host = hosts.create_host(machine, initialize=False)
         host.repair_filesystem_only()
     elif level == protection.REPAIR_SOFTWARE_ONLY:
         print "Attempting software repair only"
-        host = hosts.create_host(machine, initialize=False, auto_monitor=False)
         host.repair_software_only()
     elif level == protection.NO_PROTECTION:
         print "Attempting full repair"
-        host = hosts.create_host(machine, initialize=False, auto_monitor=False)
         host.repair_full()
 
 
