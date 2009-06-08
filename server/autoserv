@@ -118,18 +118,18 @@ def run_autoserv(pid_file_manager, results, parser):
     # run the job
     exit_code = 0
     try:
-        if repair:
-            job.repair(host_protection)
-        elif verify:
-            job.verify()
-        else:
-            try:
+        try:
+            if repair:
+                job.repair(host_protection)
+            elif verify:
+                job.verify()
+            else:
                 job.run(cleanup, install_before, install_after,
                         only_collect_crashinfo=collect_crashinfo)
-            finally:
-                while job.hosts:
-                    host = job.hosts.pop()
-                    host.close()
+        finally:
+            while job.hosts:
+                host = job.hosts.pop()
+                host.close()
     except:
         exit_code = 1
         traceback.print_exc()
