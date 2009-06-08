@@ -4,8 +4,14 @@
 # --------------------------------
 step 24.72
 screendump 20080101_000001_5965948293222a6d6f3e545db40c23c1.ppm
-# open start menu
-barrier_2 125 79 342 270 368b3d82c870dbcdc4dfc2a49660e798 124
+# desktop reached
+barrier_2 36 32 392 292 3828d3a9587b3a9766a567a2b7570e42 124
+# --------------------------------
+step 24.72
+screendump 20080101_000001_5965948293222a6d6f3e545db40c23c1.ppm
+# open start menu if not already open
+sleep 10
+barrier_2 84 48 0 552 082462ce890968a264b9b13cddda8ae3 10 optional
 # Sending keys: ctrl-esc
 key ctrl-esc
 # --------------------------------

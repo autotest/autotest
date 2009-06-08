@@ -74,7 +74,6 @@ key ret
 # --------------------------------
 step 286.86
 screendump 20080101_000010_bb878343930f948c0346f103a387157a.ppm
-barrier_2 69 15 179 8 93889bdbe5351e61a6d9c7d00bb1c971 10
 # --------------------------------
 step 409.46
 screendump 20080101_000011_30db9777a7883a07e6e65bff74e1d98f.ppm
@@ -100,7 +99,7 @@ key 0xdc
 step 978.02
 screendump 20080101_000014_213fbe6fa13bf32dfac6a00bf4205e45.ppm
 # Windows XP Start Menu Opened
-barrier_2 48 20 274 420 c4a9620d84508013050e5a37a0d9e4ef 15
+barrier_2 129 30 196 72 aae68af7e05e2312c707f2f4bd73f024 15
 # Sending keys: u
 key u
 # --------------------------------

@@ -136,7 +136,8 @@ key alt-n
 step 2251.56
 screendump 20080101_000022_dcdc2fe9606c044ce648422afe42e23d.ppm
 # User
-barrier_2 409 35 64 188 3d71d4d7a9364c1e6415b3d554ce6e5b 9
+barrier_2 161 37 312 187 a941ecbeb73f9d73e3e9c38da9a4b743 9
+# Sending keys: $user alt-n
 var user
 key alt-n
 # --------------------------------
@@ -154,6 +155,7 @@ barrier_2 48 51 391 288 bbac8a522510d7c8d6e515f6a3fbd4c3 240
 step 2279.61
 screendump 20090416_150641_b72ad5c48ec2dbc9814d569e38cbb4cc.ppm
 # Win XP Start Menu (closed)
+sleep 20
 barrier_2 104 41 0 559 a7cc02cecff2cb495f300aefbb99d9ae 5 optional
 # Sending keys: ctrl-esc
 key ctrl-esc
