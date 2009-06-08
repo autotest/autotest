@@ -205,6 +205,38 @@ class AutoservHostError(AutoservError):
     pass
 
 
+class AutoservHostIsShuttingDownError(AutoservHostError):
+    """Host is shutting down"""
+    pass
+
+
+class AutoservNotMountedHostError(AutoservHostError):
+    """Found unmounted partitions that should be mounted"""
+    pass
+
+
+class AutoservSshPingHostError(AutoservHostError):
+    """SSH ping failed"""
+    pass
+
+
+class AutoservDiskFullHostError(AutoservHostError):
+    """Not enough free disk space on host"""
+    def __init__(self, path, want_gb, free_space_gb):
+        AutoservHostError.__init__(self,
+            'Not enough free space on %s - %.3fGB free, want %.3fGB' %
+            (path, free_space_gb, want_gb))
+
+        self.path = path
+        self.want_gb = want_gb
+        self.free_space_gb = free_space_gb
+
+
+class AutoservHardwareHostError(AutoservHostError):
+    """Found hardware problems with the host"""
+    pass
+
+
 class AutoservRebootError(AutoservError):
     """Error occured while rebooting a machine"""
     pass

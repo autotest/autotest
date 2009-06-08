@@ -18,7 +18,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import os, re, time, cStringIO, sys, traceback
+import os, re, time, cStringIO, sys, logging
 
 from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.client.common_lib import host_protections
@@ -76,6 +76,9 @@ class Host(object):
         self.bootloader = bootloader.Bootloader(self)
         self.env = {}
         self.target_file_owner = target_file_owner
+
+        self._already_repaired = []
+        self._removed_files = False
 
 
     def close(self):
@@ -183,17 +186,15 @@ class Host(object):
 
 
     def check_diskspace(self, path, gb):
-        print 'Checking for >= %s GB of space under %s on machine %s' % \
-                                             (gb, path, self.hostname)
+        logging.info('Checking for >= %s GB of space under %s on machine %s',
+                     gb, path, self.hostname)
         df = self.run('df -mP %s | tail -1' % path).stdout.split()
         free_space_gb = int(df[3])/1000.0
         if free_space_gb < gb:
-            raise error.AutoservHostError('Not enough free space on ' +
-                                          '%s - %.3fGB free, want %.3fGB' %
-                                          (path, free_space_gb, gb))
+            raise error.AutoservDiskFullHostError(path, gb, free_space_gb)
         else:
-            print 'Found %s GB >= %s GB of space under %s on machine %s' % \
-                                       (free_space_gb, gb, path, self.hostname)
+            logging.info('Found %s GB >= %s GB of space under %s on machine %s',
+                free_space_gb, gb, path, self.hostname)
 
 
     def get_open_func(self, use_cache=True):
@@ -248,52 +249,117 @@ class Host(object):
         unmounted = partition.get_unmounted_partition_list(root_part,
             filter_func=filter_func, open_func=self.get_open_func())
         if unmounted:
-            raise error.AutoservHostError('Found unmounted partitions: %s' %
-                                          [part.device for part in unmounted])
+            raise error.AutoservNotMountedHostError(
+                'Found unmounted partitions: %s' %
+                [part.device for part in unmounted])
 
 
-    def _wrap_with_verify(self, func):
+    def _repair_wait_for_reboot(self):
+        TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
+        if self.is_shutting_down():
+            logging.info('Host is shutting down, waiting for a restart')
+            self.wait_for_restart(TIMEOUT)
+        else:
+            self.wait_up(TIMEOUT)
+
+
+    def _get_mountpoint(self, path):
+        """Given a "path" get the mount point of the filesystem containing
+        that path."""
+        code = ('import os\n'
+                # sanitize the path and resolve symlinks
+                'path = os.path.realpath(%r)\n'
+                "while path != '/' and not os.path.ismount(path):\n"
+                '    path, _ = os.path.split(path)\n'
+                'print path\n') % path
+        return self.run('python2.4 -c "%s"' % code,
+                        stdout_tee=open(os.devnull, 'w')).stdout.rstrip()
+
+
+    def erase_dir_contents(self, path, ignore_status=True, timeout=3600):
+        """Empty a given directory path contents."""
+        rm_cmd = 'find "%s" -mindepth 1 -maxdepth 1 -print0 | xargs -0 rm -rf'
+        self.run(rm_cmd % path, ignore_status=ignore_status, timeout=timeout)
+        self._removed_files = True
+
+
+    def repair_full_disk(self, mountpoint):
+        # it's safe to remove /tmp and /var/tmp, site specific overrides may
+        # want to remove some other places too
+        if mountpoint == self._get_mountpoint('/tmp'):
+            self.erase_dir_contents('/tmp')
+
+        if mountpoint == self._get_mountpoint('/var/tmp'):
+            self.erase_dir_contents('/var/tmp')
+
+
+    def _call_repair_func(self, err, func, *args, **dargs):
+        for old_call in self._already_repaired:
+            if old_call == (func, args, dargs):
+                # re-raising the original exception because surrounding
+                # error handling may want to try other ways to fix it
+                logging.warn('Already done this (%s) repair procedure, '
+                             're-raising the original exception.', func)
+                raise err
+
         try:
-            func()
+            func(*args, **dargs)
         except error.AutoservHardwareRepairRequestedError:
             # let this special exception propagate
             raise
-        except Exception, err:
-            traceback.print_exc()
-        self.verify()
+        except error.AutoservError:
+            logging.exception('Repair failed but continuing in case it managed'
+                              ' to repair enough')
+
+        self._already_repaired.append((func, args, dargs))
 
 
     def repair_filesystem_only(self):
         """perform file system repairs only"""
-        def do_repair():
-            TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
-            if self.is_shutting_down():
-                print 'Host is shutting down, waiting for a restart'
-                self.wait_for_restart(TIMEOUT)
-            else:
-                self.wait_up(TIMEOUT)
-            self.reboot()
-
-        self._wrap_with_verify(do_repair)
+        while True:
+            # try to repair specific problems
+            try:
+                logging.info('Running verify to find failures to repair...')
+                self.verify()
+                if self._removed_files:
+                    logging.info('Removed files, rebooting to release the'
+                                 ' inodes')
+                    self.reboot()
+                return # verify succeeded, then repair succeeded
+            except error.AutoservHostIsShuttingDownError, err:
+                logging.exception('verify failed')
+                self._call_repair_func(err, self._repair_wait_for_reboot)
+            except error.AutoservDiskFullHostError, err:
+                logging.exception('verify failed')
+                self._call_repair_func(err, self.repair_full_disk,
+                                       self._get_mountpoint(err.path))
 
 
     def repair_software_only(self):
         """perform software repairs only"""
-        try:
-            self.repair_filesystem_only()
-        except Exception:
-            # the filesystem-only repair failed, try something more drastic
-            print "Filesystem-only repair failed"
-            self._wrap_with_verify(self.machine_install)
+        while True:
+            try:
+                self.repair_filesystem_only()
+                break
+            except (error.AutoservSshPingHostError, error.AutoservSSHTimeout,
+                    error.AutoservSshPermissionDeniedError,
+                    error.AutoservDiskFullHostError), err:
+                logging.exception('verify failed')
+                logging.info('Trying to reinstall the machine')
+                self._call_repair_func(err, self.machine_install)
 
 
     def repair_full(self):
-        try:
-            self.repair_software_only()
-        except Exception:
-            # software repair failed, try hardware repair
-            print "Software only repair failed"
-            self._wrap_with_verify(self.request_hardware_repair)
+        while True:
+            try:
+                self.repair_software_only()
+                break
+            except error.AutoservHardwareHostError, err:
+                logging.exception('verify failed')
+                # software repair failed, try hardware repair
+                logging.info('Hardware problem found, '
+                             'requesting hardware repairs')
+                self._call_repair_func(err, self.request_hardware_repair)
 
 
     def cleanup(self):
