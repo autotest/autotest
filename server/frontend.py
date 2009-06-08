@@ -111,7 +111,9 @@ class TKO(RpcClient):
 
 
 class AFE(RpcClient):
-    def __init__(self, user=None, server=None, print_log=True, debug=False):
+    def __init__(self, user=None, server=None, print_log=True, debug=False,
+                 job=None):
+        self.job = job
         super(AFE, self).__init__('/afe/server/noauth/rpc/', user, server,
                                   print_log, debug)
 
@@ -391,13 +393,19 @@ class AFE(RpcClient):
         else:
             dargs['hosts'] = host_list
         new_job = self.create_job_by_test(name=job_name,
-                                           dependencies=[pairing.machine_label],
-                                           tests=[pairing.control_file],
-                                           priority=priority,
-                                           kernel=kernel,
-                                           use_container=pairing.container,
-                                           **dargs)
+                                          dependencies=[pairing.machine_label],
+                                          tests=[pairing.control_file],
+                                          priority=priority,
+                                          kernel=kernel,
+                                          use_container=pairing.container,
+                                          **dargs)
         if new_job:
+            new_job.platform_results = {}
+            new_job.platform_reasons = {}
+            if pairing.testname:
+                new_job.testname = pairing.testname
+            else:
+                new_job.testname = re.sub('\s.*', '', new_job.name)
             print 'Invoked test %s : %s' % (new_job.id, job_name)
         return new_job
 
@@ -487,6 +495,21 @@ class AFE(RpcClient):
         job.results_platform_map = platform_map
 
 
+    def set_platform_results(self, test_job, platform, result):
+        """
+        Result must be None, 'FAIL', 'WARN' or 'GOOD'
+        """
+        if test_job.platform_results[platform] is not None:
+            # We're already done, and results recorded. This can't change later.
+            return
+        test_job.platform_results[platform] = result
+        # Note that self.job refers to the metajob we're IN, not the job
+        # that we're excuting from here.
+        testname = '%s.%s' % (test_job.testname, platform)
+        if self.job:
+            self.job.record(result, None, testname, status='')
+
+
     def poll_job_results(self, tko, job, debug=False):
         """
         Analyse all job results by platform, return:
@@ -506,17 +529,33 @@ class AFE(RpcClient):
         unknown_platforms = []
         platform_map = job.results_platform_map
         for platform in platform_map:
+            if not job.platform_results.has_key(platform):
+                # record test start, but there's no way to do this right now
+                job.platform_results[platform] = None
             total = len(platform_map[platform]['Total'])
             completed = len(platform_map[platform].get('Completed', []))
             failed = len(platform_map[platform].get('Failed', []))
             aborted = len(platform_map[platform].get('Aborted', []))
+
+            # We set up what we want to record here, but don't actually do 
+            # it yet, until we have a decisive answer for this platform
+            if aborted or failed:
+                bad = aborted + failed
+                if (bad > 1) or (bad * 2 >= total):
+                    platform_test_result = 'FAIL'
+                else:
+                    platform_test_result = 'WARN'
+
             if aborted > 1:
                 aborted_platforms.append(platform)
+                self.set_platform_results(job, platform, platform_test_result)
             elif (failed * 2 >= total) or (failed > 1):
                 failed_platforms.append(platform)
+                self.set_platform_results(job, platform, platform_test_result)
             elif (completed >= 1) and (completed + 1 >= total):
                 # if all or all but one are good, call the job good.
                 good_platforms.append(platform)
+                self.set_platform_results(job, platform, 'GOOD')
             else:
                 unknown_platforms.append(platform)
             detail = []
@@ -531,7 +570,8 @@ class AFE(RpcClient):
     
         if len(aborted_platforms) > 0:
             if debug:
-                print 'Result aborted - platforms: ' + ' '.join(aborted_platforms)
+                print 'Result aborted - platforms: ',
+                print ' '.join(aborted_platforms)
             return "Abort"
         if len(failed_platforms) > 0:
             if debug:
@@ -765,13 +805,15 @@ class MachineTestPairing(object):
     platforms: list of rexeps to filter platforms by. [] => no filtering
     """
     def __init__(self, machine_label, control_file, platforms=[],
-                 container=False, atomic_group_sched=False, synch_count=0):
+                 container=False, atomic_group_sched=False, synch_count=0,
+                 testname=None):
         self.machine_label = machine_label
         self.control_file = control_file
         self.platforms = platforms
         self.container = container
         self.atomic_group_sched = atomic_group_sched
         self.synch_count = synch_count
+        self.testname = testname
 
 
     def __repr__(self):
