@@ -6,7 +6,7 @@ step 8.84
 screendump 20080101_000001_868fe81019ae64a0b066c4c0d4ebc4e1.ppm
 # boot options
 sleep 5
-barrier_2 194 59 101 59 8c4f6b29e4087e1bed13c40e4a6a904f 44 optional
+barrier_2 44 36 0 365 ea4c08daabe1f982b243fce9c5b542a0 44 optional
 # Sending keys: ret
 key ret
 # --------------------------------
