@@ -21,5 +21,7 @@ def purge_src(top_dir):
         os.system(cmd)
 
 
+os.system('cd tmp && ls -A | xargs rm -rf')
+
 for dir in ['tests', 'profilers', 'deps']:
     purge_src(dir)
