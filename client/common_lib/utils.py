@@ -4,7 +4,7 @@
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
-import warnings, smtplib, logging
+import warnings, smtplib, logging, urllib2
 from autotest_lib.client.common_lib import error, barrier
 
 def deprecated(func):
@@ -238,18 +238,25 @@ def urlretrieve(url, filename=None, reporthook=None, data=None, timeout=300):
 
 def get_file(src, dest, permissions=None):
     """Get a file from src, which can be local or a remote URL"""
-    if (src == dest):
+    if src == dest:
         return
-    if (is_url(src)):
-        print 'PWD: ' + os.getcwd()
-        print 'Fetching \n\t', src, '\n\t->', dest
+
+    if is_url(src):
+        logging.debug('PWD: %s', os.getcwd())
+        logging.info('Fetching %s -> %s', src, dest)
+
+        src_file = urllib2.urlopen(src)
         try:
-            urllib.urlretrieve(src, dest)
-        except IOError, e:
-            raise error.AutotestError('Unable to retrieve %s (to %s)'
-                                % (src, dest), e)
+            dest_file = open(dest, 'wb')
+            try:
+                shutil.copyfileobj(src_file, dest_file)
+            finally:
+                dest_file.close()
+        finally:
+            src_file.close()
     else:
         shutil.copyfile(src, dest)
+
     if permissions:
         os.chmod(dest, permissions)
     return dest
