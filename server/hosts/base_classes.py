@@ -362,6 +362,13 @@ class Host(object):
         return self.run('cat /proc/cmdline').stdout.rstrip()
 
 
+    def path_exists(self, path):
+        """ Determine if path exists on the remote machine. """
+        result = self.run('ls %s > /dev/null' % utils.sh_escape(path),
+                          ignore_status=True)
+        return result.exit_status == 0
+
+
     # some extra helpers for doing job-related operations
 
     def record(self, *args, **dargs):
