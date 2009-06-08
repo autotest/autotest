@@ -219,7 +219,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def setup_ssh_key(self):
-        self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' % 
+        self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' %
                                 (self.hostname, self.port, self.user))
 
         try:
@@ -250,10 +250,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def setup_ssh(self):
-        if not self.password == '':
+        if self.password:
             try:
                 self.ssh_ping()
-            except error.AutoservRunError:
+            except error.AutoservSshPingHostError:
                 self.setup_ssh_key()
-
-
