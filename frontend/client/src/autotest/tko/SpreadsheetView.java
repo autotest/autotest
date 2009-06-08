@@ -53,6 +53,7 @@ public class SpreadsheetView extends ConditionTabView
     private static final String HISTORY_SHOW_INCOMPLETE = "show_incomplete";
     private static final String HISTORY_COLUMN = "column";
     private static final String HISTORY_ROW = "row";
+    private static final String HISTORY_CONTENT = "content";
     
     private static enum DrilldownType {DRILLDOWN_ROW, DRILLDOWN_COLUMN, DRILLDOWN_BOTH}
     
@@ -511,6 +512,7 @@ public class SpreadsheetView extends ConditionTabView
         if (!notYetQueried) {
             rowSelect.addHistoryArguments(arguments, HISTORY_ROW);
             columnSelect.addHistoryArguments(arguments, HISTORY_COLUMN);
+            contentSelect.addHistoryArguments(arguments, HISTORY_CONTENT);
             arguments.put(HISTORY_SHOW_INCOMPLETE, Boolean.toString(currentShowIncomplete));
             arguments.put(HISTORY_ONLY_LATEST, Boolean.toString(showOnlyLatest.isChecked()));
             commonPanel.addHistoryArguments(arguments);
@@ -524,9 +526,10 @@ public class SpreadsheetView extends ConditionTabView
         commonPanel.handleHistoryArguments(arguments);
         rowSelect.handleHistoryArguments(arguments, HISTORY_ROW);
         columnSelect.handleHistoryArguments(arguments, HISTORY_COLUMN);
+        contentSelect.handleHistoryArguments(arguments, HISTORY_CONTENT);
 
         currentShowIncomplete = Boolean.valueOf(arguments.get(HISTORY_SHOW_INCOMPLETE));
-        showOnlyLatest.setChecked(Boolean.valueOf(arguments.get(HISTORY_ONLY_LATEST)));
+        currentShowOnlyLatest = Boolean.valueOf(arguments.get(HISTORY_ONLY_LATEST));
         updateViewFromState();
     }
 
@@ -567,7 +570,9 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     public void onExportCsv() {
-        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource());
+        JSONObject params = new JSONObject();
+        contentSelect.addToCondition(params);
+        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource(), params);
     }
 
     public void onSelectAll(boolean ignored) {
