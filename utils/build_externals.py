@@ -549,9 +549,17 @@ class MySQLdbPackage(ExternalPackage):
     local_filename = 'MySQL-python-%s.tar.gz' % version
     hex_sum = '945a04773f30091ad81743f9eb0329a3ee3de383'
 
-    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
     _build_and_install_current_dir = (
             ExternalPackage._build_and_install_current_dir_setup_py)
+
+
+    def _build_and_install(self, install_dir):
+        if not os.path.exists('/usr/bin/mysql_config'):
+            logging.error('You need to install /usr/bin/mysql_config')
+            logging.error('On Ubuntu or Debian based systems use this: '
+                          'sudo apt-get install mysqlclient15-dev')
+            return False
+        return self._build_and_install_from_tar_gz(install_dir)
 
 
 class DjangoPackage(ExternalPackage):
