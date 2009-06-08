@@ -852,12 +852,22 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
     except os.error:
         site_exists = False
 
+    msg = None
     if site_exists:
+        # special unique value to tell us if the symbol can't be imported
+        cant_import = object()
+
         # return the object from the imported module
-        obj = getattr(__import__(module, {}, {}, [short_module]), name)
+        obj = getattr(__import__(module, {}, {}, [short_module]), name,
+                      cant_import)
+        if obj is cant_import:
+            msg = ("unable to import site symbol '%s', using non-site "
+                   "implementation") % name
     else:
         msg = "unable to import site module '%s', using non-site implementation"
         msg %= modulefile
+
+    if msg:
         logging.info(msg)
         obj = dummy
 
