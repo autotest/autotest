@@ -44,6 +44,8 @@ class SpreadsheetCsvEncoder(CsvEncoder):
         result = '%s / %s' % (group['pass_count'], group['complete_count'])
         if group['incomplete_count'] > 0:
             result +=  ' (%s incomplete)' % group['incomplete_count']
+        if 'extra_info' in group:
+            result = '\n'.join([result] + group['extra_info'])
         return result
 
 

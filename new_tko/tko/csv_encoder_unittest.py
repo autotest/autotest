@@ -89,6 +89,27 @@ class CsvEncodingTest(unittest.TestCase):
                                       'baz,4 / 5 (6 incomplete)')
 
 
+    def test_extra_info_spreadsheet_encoder(self):
+        request = self._make_request('get_latest_tests')
+
+
+        group1 = self._make_group((0, 0), 1, 1)
+        group2 = self._make_group((1, 0), 1, 1)
+
+        group1['extra_info'] = ['info1', 'info2']
+        group2['extra_info'] = ['', 'info3']
+
+        response = {'header_values' :
+                        [[('row1',), ('row2',)],
+                         [('col1',), ('col2',)]],
+                    'groups' : [group1, group2]}
+
+        self._encode_and_check_result(request, response,
+                                      ',col1,col2',
+                                      'row1,"1 / 1\ninfo1\ninfo2",',
+                                      'row2,"1 / 1\n\ninfo3",')
+
+
     def test_unhandled_method(self):
         request = self._make_request('foo')
         self._encode_and_check_result(request, None,
