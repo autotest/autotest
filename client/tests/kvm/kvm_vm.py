@@ -126,6 +126,33 @@ class VM:
                 break
 
 
+    def clone(self, name=None, params=None, qemu_path=None, image_dir=None,
+              iso_dir=None):
+        """
+        Return a clone of the VM object with optionally modified parameters.
+        The clone is initially not alive and needs to be started using create().
+        Any parameters not passed to this function are copied from the source
+        VM.
+
+        @param name: Optional new VM name
+        @param params: Optional new VM creation parameters
+        @param qemu_path: Optional new path to qemu
+        @param image_dir: Optional new image dir
+        @param iso_dir: Optional new iso directory
+        """
+        if name == None:
+            name = self.name
+        if params == None:
+            params = self.params.copy()
+        if qemu_path == None:
+            qemu_path = self.qemu_path
+        if image_dir == None:
+            image_dir = self.image_dir
+        if iso_dir == None:
+            iso_dir = self.iso_dir
+        return VM(name, params, qemu_path, image_dir, iso_dir)
+
+
     def verify_process_identity(self):
         """
         Make sure .pid really points to the original qemu process. If .pid
