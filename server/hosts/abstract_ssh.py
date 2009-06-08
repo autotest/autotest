@@ -297,8 +297,10 @@ class AbstractSSHHost(SiteHost):
             #let AutoservSshPermissionDeniedError be visible to the callers
             raise
         except error.AutoservRunError, e:
-            msg = "command true failed in ssh ping"
-            raise error.AutoservRunError(msg, e.result_obj)
+            # convert the generic AutoservRunError into something more
+            # specific for this context
+            raise error.AutoservSshPingHostError(e.description + '\n' +
+                                                 repr(e.result_obj))
 
 
     def is_up(self):
@@ -398,7 +400,7 @@ class AbstractSSHHost(SiteHost):
         self.ssh_ping()
 
         if self.is_shutting_down():
-            raise error.AutoservHostError("Host is shutting down")
+            raise error.AutoservHostIsShuttingDownError("Host is shutting down")
 
         super(AbstractSSHHost, self).verify_software()
 
