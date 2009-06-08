@@ -1,12 +1,19 @@
 import base64, os, tempfile, operator, pickle, datetime, django.db
+import os.path, getpass
 from math import sqrt
 
 # When you import matplotlib, it tries to write some temp files for better
-# performance, and it does that to the home directory. Problem is, that
-# directory's not writable when running under Apache, and matplotlib's not smart
-# enough to handle that. It does appear smart enough to handle the files going
+# performance, and it does that to the directory in MPLCONFIGDIR, or, if that
+# doesn't exist, the home directory. Problem is, the home directory is not
+# writable when running under Apache, and matplotlib's not smart enough to
+# handle that. It does appear smart enough to handle the files going
 # away after they are written, though.
-os.environ['HOME'] = tempfile.gettempdir()
+
+temp_dir = os.path.join(tempfile.gettempdir(),
+                        '.matplotlib-%s' % getpass.getuser())
+if not os.path.exists(temp_dir):
+    os.mkdir(temp_dir)
+os.environ['MPLCONFIGDIR'] = temp_dir
 
 import matplotlib
 matplotlib.use('Agg')
