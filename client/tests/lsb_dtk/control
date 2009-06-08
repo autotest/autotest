@@ -24,7 +24,7 @@ md5-s390 = c28b2d46459e6f0c591a06f7ee10ad84
 md5-s390x = bf65a09c986a8e6cbec9276fa894c7b0
 
 [dtk-manager]
-tarball_url = ftp://ftp.freestandards.org/pub/lsb/test_suites/released-3.2.0/binary/runtime/lsb-dtk-manager-1.5.5-1.%s.rpm
+tarball_url = ftp://ftp.freestandards.org/pub/lsb/test_suites/released-3.2.0/binary/runtime/lsb-dtk-manager-1.5.8-1.%s.rpm
 arch-ia32 = i486
 arch-ppc32 = ppc
 arch-ppc64 = ppc64
@@ -32,13 +32,13 @@ arch-s390 = s390
 arch-s390x = s390x
 arch-ia64 = ia64
 arch-x86_64 = x86_64
-md5-ia32 = e4884f02cbed335f0e21f099290f752b
-md5-ia64 = 29e8bf9b9072f8696b8a3b67c03438ab
-md5-ppc64 = 8eee2cbd9a3f61a797b435a739e94ef2
-md5-ppc = be693a1bbd1da6fd98d1fe74cb187d85
-md5-s390 = 344c9ceaf8fe85fb28e8e2e8a1f311d8
-md5-s390x = a3eb5f1bb6736854ac2a8986ba50c292
-md5-x86_64 =  f9d2c35dc7d4e1c49966619bc1017d23
+md5-ia32 = 9251e87b01f7ae45dc3256c4a68d1916
+md5-ia64 = 1492809a15fd00e559addb6c7fcf0965
+md5-ppc64 = 897835ed4e3f67ab872db1635ed24177
+md5-ppc = dddbeb156300af5065f0d4bcf3cc557e
+md5-s390 = 418e4bbf2ffe762a3b2b7f8f4d55b2d2
+md5-s390x = c68be6e8b95b81fd8acae5f1b7fb8608
+md5-x86_64 = 5db36531869dab4a0df3ed862a0e40e6
 
 [lib]
 libdir-ia32 = /lib
