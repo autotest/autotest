@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import shutil, os, sys
+import common
 
 """
 Program that replaces the CD keys present on a KVM autotest configuration file.

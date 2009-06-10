@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import pygtk, gtk, gobject, time, os, commands
+import common
 from autotest_lib.client.common_lib import error
 import kvm_utils, logging, ppm_utils, stepeditor
 pygtk.require('2.0')
+
 """
 Step file creator/editor.
 

@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 import pygtk, gtk, os, glob, shutil, sys, logging
-import ppm_utils
+import common, ppm_utils
 pygtk.require('2.0')
 
 """
