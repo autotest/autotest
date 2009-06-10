@@ -139,7 +139,10 @@ class config:
         temp = str.split(sep, 1)
         for i in range(len(temp)):
             temp[i] = temp[i].strip()
-            temp[i] = temp[i].strip("\"\'")
+            if re.findall("^\".*\"$", temp[i]):
+                temp[i] = temp[i].strip("\"")
+            elif re.findall("^\'.*\'$", temp[i]):
+                temp[i] = temp[i].strip("\'")
         return temp
 
 
