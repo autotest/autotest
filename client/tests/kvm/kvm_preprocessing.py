@@ -80,7 +80,6 @@ def preprocess_vm(test, params, env, name):
             start_vm = True
 
     if start_vm:
-        vm.destroy()
         if not vm.create(name, params, qemu_path, image_dir, iso_dir,
                          for_migration):
             message = "Could not start VM"
