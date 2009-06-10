@@ -35,8 +35,7 @@ class EmailNotificationManager(object):
             finally:
                 mailer.quit()
         except Exception:
-            print "Sending email failed:"
-            traceback.print_exc()
+            logging.exception('Sending email failed:')
 
 
     def enqueue_notify_email(self, subject, message):
