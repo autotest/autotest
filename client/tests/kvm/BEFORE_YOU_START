@@ -6,7 +6,7 @@ Copy kvm_tests.cfg.sample into kvm_tests.cfg
 Modify kvm_tests.cfg to your liking.
 Modify control if you prefer to "use your own kvm" (comment out kvm_install).
 
-Create those symbolic links under kvm_runtest_2 or under <rootdir>
+Create those symbolic links under kvm or under <rootdir>
 qemu                   -> qemu-kvm binary (unless using kvm_install)
 qemu-img               -> qemu-img binary (unless using kvm_install)
 isos/                  -> isos (mount or symlink)
