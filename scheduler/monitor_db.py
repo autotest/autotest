@@ -818,7 +818,20 @@ class Dispatcher(object):
 
 
     def _find_reverify(self):
-        self._reverify_hosts_where("status = 'Reverify'", cleanup=False)
+        tasks = models.SpecialTask.objects.filter(
+            task=models.SpecialTask.Task.REVERIFY, is_active=False,
+            is_complete=False)
+
+        host_ids = [str(task.host.id) for task in tasks]
+
+        if host_ids:
+            where = 'id IN (%s)' % ','.join(host_ids)
+            host_ids_reverifying = self._reverify_hosts_where(
+                where, cleanup=False)
+            tasks = tasks.filter(host__id__in=host_ids_reverifying)
+            for task in tasks:
+                task.is_active=True
+                task.save()
 
 
     def _reverify_remaining_hosts(self):
@@ -842,6 +855,7 @@ class Dispatcher(object):
                               print_message='Reverifying host %s',
                               cleanup=True):
         full_where='locked = 0 AND invalid = 0 AND ' + where
+        host_ids_reverifying = []
         for host in Host.fetch(where=full_where):
             if self.host_has_agent(host):
                 # host has already been recovered in some way
@@ -850,6 +864,8 @@ class Dispatcher(object):
                 logging.info(print_message, host.hostname)
             tasks = host.reverify_tasks(cleanup)
             self.add_agent(Agent(tasks))
+            host_ids_reverifying.append(host.id)
+        return host_ids_reverifying
 
 
     def _recover_hosts(self):
@@ -1585,6 +1601,13 @@ class RepairTask(AgentTask, TaskWithJobKeyvals):
 
     def epilog(self):
         super(RepairTask, self).epilog()
+
+        tasks = models.SpecialTask.objects.filter(host__id=self.host.id,
+                                                  is_active=True)
+        for task in tasks:
+            task.is_complete = True
+            task.save()
+
         if self.success:
             self.host.set_status('Ready')
         else:
@@ -1636,6 +1659,12 @@ class VerifyTask(PreJobTask):
         super(VerifyTask, self).epilog()
 
         if self.success:
+            tasks = models.SpecialTask.objects.filter(host__id=self.host.id,
+                                                      is_active=True)
+            for task in tasks:
+                task.is_complete=True
+                task.save()
+
             self.host.set_status('Ready')
 
 
@@ -2338,10 +2367,11 @@ class Host(DBObject):
 
     def reverify_tasks(self, cleanup=True):
         tasks = [VerifyTask(host=self)]
+        # just to make sure this host does not get taken away
+        self.set_status('Verifying')
         if cleanup:
             tasks.insert(0, CleanupTask(host=self))
-        # just to make sure this host does not get taken away
-        self.set_status('Cleaning')
+            self.set_status('Cleaning')
         return tasks
 
 
