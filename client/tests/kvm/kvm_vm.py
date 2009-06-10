@@ -335,51 +335,60 @@ class VM:
                     logging.error("Actual MD5 sum differs from expected one")
                     return False
 
-        # Handle port redirections
-        redir_names = kvm_utils.get_sub_dict_names(params, "redirs")
-        host_ports = kvm_utils.find_free_ports(5000, 6000, len(redir_names))
-        self.redirs = {}
-        for i in range(len(redir_names)):
-            redir_params = kvm_utils.get_sub_dict(params, redir_names[i])
-            guest_port = int(redir_params.get("guest_port"))
-            self.redirs[guest_port] = host_ports[i]
+        # Make sure the following code is not executed by more than one thread
+        # at the same time
+        lockfile = open("/tmp/kvm-autotest-vm-create.lock", "w+")
+        fcntl.lockf(lockfile, fcntl.LOCK_EX)
 
-        # Find available VNC port, if needed
-        if params.get("display") == "vnc":
-            self.vnc_port = kvm_utils.find_free_port(5900, 6000)
+        try:
+            # Handle port redirections
+            redir_names = kvm_utils.get_sub_dict_names(params, "redirs")
+            host_ports = kvm_utils.find_free_ports(5000, 6000, len(redir_names))
+            self.redirs = {}
+            for i in range(len(redir_names)):
+                redir_params = kvm_utils.get_sub_dict(params, redir_names[i])
+                guest_port = int(redir_params.get("guest_port"))
+                self.redirs[guest_port] = host_ports[i]
 
-        # Make qemu command
-        qemu_command = self.make_qemu_command()
+            # Find available VNC port, if needed
+            if params.get("display") == "vnc":
+                self.vnc_port = kvm_utils.find_free_port(5900, 6000)
 
-        # Is this VM supposed to accept incoming migrations?
-        if for_migration:
-            # Find available migration port
-            self.migration_port = kvm_utils.find_free_port(5200, 6000)
-            # Add -incoming option to the qemu command
-            qemu_command += " -incoming tcp:0:%d" % self.migration_port
+            # Make qemu command
+            qemu_command = self.make_qemu_command()
 
-        logging.debug("Running qemu command:\n%s" % qemu_command)
-        (status, pid, output) = kvm_utils.run_bg(qemu_command, None,
-                                                 logging.debug, "(qemu) ")
+            # Is this VM supposed to accept incoming migrations?
+            if for_migration:
+                # Find available migration port
+                self.migration_port = kvm_utils.find_free_port(5200, 6000)
+                # Add -incoming option to the qemu command
+                qemu_command += " -incoming tcp:0:%d" % self.migration_port
 
-        if status:
-            logging.debug("qemu exited with status %d" % status)
-            logging.error("VM could not be created -- qemu command"
-                          " failed:\n%s" % qemu_command)
-            return False
+            logging.debug("Running qemu command:\n%s", qemu_command)
+            (status, pid, output) = kvm_utils.run_bg(qemu_command, None,
+                                                     logging.debug, "(qemu) ")
 
-        self.pid = pid
+            if status:
+                logging.debug("qemu exited with status %d", status)
+                logging.error("VM could not be created -- qemu command"
+                              " failed:\n%s", qemu_command)
+                return False
 
-        if not kvm_utils.wait_for(self.is_alive, timeout, 0, 1):
-            logging.debug("VM is not alive for some reason")
-            logging.error("VM could not be created with"
-                          " command:\n%s" % qemu_command)
-            self.destroy()
-            return False
+            self.pid = pid
 
-        logging.debug("VM appears to be alive with PID %d" % self.pid)
+            if not kvm_utils.wait_for(self.is_alive, timeout, 0, 1):
+                logging.debug("VM is not alive for some reason")
+                logging.error("VM could not be created with"
+                              " command:\n%s", qemu_command)
+                self.destroy()
+                return False
 
-        return True
+            logging.debug("VM appears to be alive with PID %d", self.pid)
+            return True
+
+        finally:
+            fcntl.lockf(lockfile, fcntl.LOCK_UN)
+            lockfile.close()
 
 
     def send_monitor_cmd(self, command, block=True, timeout=20.0):
