@@ -7,16 +7,16 @@ Autotest scheduler
 
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
-import itertools, logging, logging.config, weakref
+import itertools, logging, weakref
 import common
 import MySQLdb
 from autotest_lib.frontend import setup_django_environment
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, logging_manager
 from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
 from autotest_lib.scheduler import drone_manager, drones, email_manager
-from autotest_lib.scheduler import monitor_db_cleanup
+from autotest_lib.scheduler import monitor_db_cleanup, scheduler_logging_config
 from autotest_lib.scheduler import status_server, scheduler_config
 
 
@@ -59,20 +59,6 @@ _base_url = None
 _notify_email_statuses = []
 _drone_manager = drone_manager.DroneManager()
 
-# load the logging settings
-scheduler_dir = os.path.join(AUTOTEST_PATH, 'scheduler')
-if not os.environ.has_key('AUTOTEST_SCHEDULER_LOG_DIR'):
-    os.environ['AUTOTEST_SCHEDULER_LOG_DIR'] = os.path.join(AUTOTEST_PATH, 'logs')
-# Here we export the log name, using the same convention as autoserv's results
-# directory.
-if os.environ.has_key('AUTOTEST_SCHEDULER_LOG_NAME'):
-    scheduler_log_name = os.environ['AUTOTEST_SCHEDULER_LOG_NAME']
-else:
-    scheduler_log_name = 'scheduler.log.%s' % time.strftime('%Y-%m-%d-%H.%M.%S')
-    os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = scheduler_log_name
-
-logging.config.fileConfig(os.path.join(scheduler_dir, 'debug_scheduler.ini'))
-
 
 def _site_init_monitor_db_dummy():
     return {}
@@ -89,14 +75,12 @@ def main():
 
 
 def main_without_exception_handling():
-    usage = 'usage: %prog [options] results_dir'
+    setup_logging()
 
+    usage = 'usage: %prog [options] results_dir'
     parser = optparse.OptionParser(usage)
     parser.add_option('--recover-hosts', help='Try to recover dead hosts',
                       action='store_true')
-    parser.add_option('--logfile', help='Set a log file that all stdout ' +
-                      'should be redirected to.  Stderr will go to this ' +
-                      'file + ".err"')
     parser.add_option('--test', help='Indicate that scheduler is under ' +
                       'test and should use dummy autoserv and no parsing',
                       action='store_true')
@@ -162,7 +146,7 @@ def main_without_exception_handling():
     server.start()
 
     try:
-        init(options.logfile)
+        init()
         dispatcher = Dispatcher()
         dispatcher.initialize(recover_hosts=options.recover_hosts)
 
@@ -179,15 +163,21 @@ def main_without_exception_handling():
     _db.disconnect()
 
 
+def setup_logging():
+    log_dir = os.environ.get('AUTOTEST_SCHEDULER_LOG_DIR', None)
+    log_name = os.environ.get('AUTOTEST_SCHEDULER_LOG_NAME', None)
+    logging_manager.configure_logging(
+            scheduler_logging_config.SchedulerLoggingConfig(), log_dir=log_dir,
+            logfile_name=log_name)
+
+
 def handle_sigint(signum, frame):
     global _shutdown
     _shutdown = True
     logging.info("Shutdown request received.")
 
 
-def init(logfile):
-    if logfile:
-        enable_logging(logfile)
+def init():
     logging.info("%s> dispatcher starting", time.strftime("%X %x"))
     logging.info("My PID is %d", os.getpid())
 
@@ -218,20 +208,6 @@ def init(logfile):
     _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
 
     logging.info("Connected! Running...")
-
-
-def enable_logging(logfile):
-    out_file = logfile
-    err_file = "%s.err" % logfile
-    logging.info("Enabling logging to %s (%s)", out_file, err_file)
-    out_fd = open(out_file, "a", buffering=0)
-    err_fd = open(err_file, "a", buffering=0)
-
-    os.dup2(out_fd.fileno(), sys.stdout.fileno())
-    os.dup2(err_fd.fileno(), sys.stderr.fileno())
-
-    sys.stdout = out_fd
-    sys.stderr = err_fd
 
 
 def _autoserv_command_line(machines, results_dir, extra_args, job=None,
