@@ -303,6 +303,8 @@ class VM:
         @param for_migration: If True, start the VM with the -incoming
         option
         """
+        self.destroy()
+
         if name != None:
             self.name = name
         if params != None:
