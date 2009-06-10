@@ -323,9 +323,7 @@ class base_test:
 
 
     def _exec(self, args, dargs):
-
-        self.job.stdout.tee_redirect(os.path.join(self.debugdir, 'stdout'))
-        self.job.stderr.tee_redirect(os.path.join(self.debugdir, 'stderr'))
+        self.job.logging.tee_redirect_debug_dir(self.debugdir)
         self._setup_test_logging_handler()
         try:
             if self.network_destabilizing:
@@ -394,8 +392,7 @@ class base_test:
                         traceback.print_exc()
                         print 'Now raising the earlier %s error' % exc_info[0]
                 finally:
-                    self.job.stderr.restore()
-                    self.job.stdout.restore()
+                    self.job.logging.restore()
                     try:
                         raise exc_info[0], exc_info[1], exc_info[2]
                     finally:
@@ -408,8 +405,7 @@ class base_test:
                         _cherry_pick_call(self.cleanup, *args, **dargs)
                 finally:
                     self.logger.removeHandler(self.test_handler)
-                    self.job.stderr.restore()
-                    self.job.stdout.restore()
+                    self.job.logging.restore()
         except error.AutotestError:
             if self.network_destabilizing:
                 self.job.enable_warnings("NETWORK")

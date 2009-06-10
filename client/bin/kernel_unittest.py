@@ -3,21 +3,8 @@
 import unittest, os, time, re, glob
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-
-# need to import this guy first and then stub out before kernel import
-from autotest_lib.client.bin import fd_stack
-fd_stack.tee_output_logdir_mark = lambda f: f
-
-# finish up imports
 from autotest_lib.client.bin import kernel, job, utils, kernelexpand
 from autotest_lib.client.bin import kernel_config, boottool, os_dep
-
-# we need to reload the kernel to make sure its fresh so that our
-# stub of the tee_output_logdir_mark decorator "takes" since in the
-# context of the unittest_suite kernel may already have been loaded.
-reload(kernel)
-
-
 
 class TestKernel(unittest.TestCase):
     def setUp(self):
@@ -45,10 +32,23 @@ class TestKernel(unittest.TestCase):
         self.god.stub_function(kernelexpand, "expand_classic")
         self.god.stub_function(kernel_config, "modules_needed")
         self.god.stub_function(glob, "glob")
+        def dummy_mark(filename, msg):
+            pass
+        self.god.stub_with(kernel, '_mark', dummy_mark)
 
         self.job = self.god.create_mock_class(job.job, "job")
         self.job.bootloader = self.god.create_mock_class(boottool.boottool,
                                                          "boottool")
+
+        class DummyLoggingManager(object):
+            def tee_redirect_debug_dir(self, *args, **kwargs):
+                pass
+
+
+            def restore(self, *args, **kwargs):
+                pass
+
+        self.job.logging = DummyLoggingManager()
 
         self.job.autodir = "autodir"
         self.base_tree = "2.6.24"

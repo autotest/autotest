@@ -38,9 +38,8 @@ class xen(kernel.kernel):
         if logfile == '':
             logfile = os.path.join(self.log_dir, 'xen_build')
         os.chdir(self.build_dir)
-        self.log('log_dir: %s ' % os.path.join(self.log_dir, 'stdout'))
-        self.job.stdout.tee_redirect(logfile + '.stdout')
-        self.job.stderr.tee_redirect(logfile + '.stderr')
+        self.log('log_dir: %s ' % self.log_dir)
+        self.job.logging.tee_redirect_debug_dir(self.log_dir, log_name=logfile)
 
         # build xen hypervisor and user-space tools
         targets = ['xen', 'tools']
@@ -85,8 +84,7 @@ class xen(kernel.kernel):
 
         self.kjob.build()
 
-        self.job.stdout.restore()
-        self.job.stderr.restore()
+        self.job.logging.restore()
 
         xen_version = self.get_xen_build_ver()
         self.log('BUILD VERSION: Xen: %s Kernel:%s' % \
