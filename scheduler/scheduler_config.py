@@ -15,7 +15,10 @@ class SchedulerConfig(object):
               'max_parse_processes' : 'max_parse_processes',
               'tick_pause_sec' : 'tick_pause_sec',
               'max_transfer_processes' : 'max_transfer_processes',
+              'secs_to_wait_for_atomic_group_hosts' :
+                  'secs_to_wait_for_atomic_group_hosts',
              }
+
 
     def __init__(self):
         self.read_config()
@@ -28,5 +31,6 @@ class SchedulerConfig(object):
             setattr(self, field, config.get_config_value(CONFIG_SECTION,
                                                          config_option,
                                                          type=int))
+
 
 config = SchedulerConfig()
