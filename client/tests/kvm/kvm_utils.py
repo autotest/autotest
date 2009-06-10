@@ -570,8 +570,8 @@ class kvm_spawn:
 
         # Print some debugging info
         if status != 0:
-            logging.debug("Command failed; status: %d, output:" % status \
-                    + format_str_for_message(output.strip()))
+            logging.debug("Command failed; status: %d, output:%s", status,
+                          format_str_for_message(output.strip()))
 
         return (status, output)
 
