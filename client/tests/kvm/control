@@ -102,7 +102,8 @@ params = {
 
     ## Install from git
     "git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git',
-    "user_git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm-userspace.git'
+    "user_git_repo": 'git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git',
+    "kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git'
 }
 
 # Comment the job.run_test line if you do not want to install kvm on the host.
