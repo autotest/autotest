@@ -321,8 +321,8 @@ def run_autotest(test, params, env):
     status_fail = False
     if result_list == []:
         status_fail = True
-        message_fail = "Test '%s' did not produce any recognizable"
-        " results" % test_name
+        message_fail = ("Test '%s' did not produce any recognizable "
+                        "results" % test_name)
     for result in result_list:
         logging.info(str(result))
         if result[1] == "FAIL":

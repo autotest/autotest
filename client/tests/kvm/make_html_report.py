@@ -1443,10 +1443,8 @@ return true;
     stat_str = 'No test cases executed'
     if total_executed>0:
         failed_perct = int(float(total_failed)/float(total_executed)*100)
-        stat_str = 'From %d tests executed, '
-        '%d have passed (%d%s)' % (total_executed, total_passed,failed_perct,
-                                   '% failures')
-
+        stat_str = ('From %d tests executed, %d have passed (%d%% failures)' %
+                    (total_executed, total_passed, failed_perct))
 
     kvm_ver_str = metadata['kvmver']
 

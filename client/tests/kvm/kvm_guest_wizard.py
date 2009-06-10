@@ -105,8 +105,8 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
         time.sleep(sleep_duration)
 
     # Failure
-    message = "Barrier failed at step %s after %.2f seconds (%s)" % \
-            (current_step_num, time.time() - start_time, failure_message)
+    message = ("Barrier failed at step %s after %.2f seconds (%s)" %
+               (current_step_num, time.time() - start_time, failure_message))
 
     # What should we do with this failure?
     if words[-1] == "optional":
@@ -201,9 +201,9 @@ def run_steps(test, params, env):
                 logging.error("Variable not defined: %s" % words[1])
         elif words[0] == "barrier_2":
             if current_screendump:
-                scrdump_filename = \
+                scrdump_filename = (
                 os.path.join(ppm_utils.get_data_dir(steps_filename),
-                             current_screendump)
+                             current_screendump))
             else:
                 scrdump_filename = None
             if not barrier_2(vm, words, fail_if_stuck_for,
