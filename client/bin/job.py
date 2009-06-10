@@ -6,14 +6,15 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
-import logging, logging.config
+import logging
 import cPickle as pickle
+from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
-from autotest_lib.client.bin import profilers, fd_stack, boottool, harness
+from autotest_lib.client.bin import profilers, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, test
 from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import error, barrier, log
-from autotest_lib.client.common_lib import packages
+from autotest_lib.client.common_lib import packages, logging_manager
 
 LAST_BOOT_TAG = object()
 NO_DEFAULT = object()
@@ -76,10 +77,8 @@ class base_job(object):
                     <autodir>/results/<jobtag>
             toolsdir
                     <autodir>/tools/
-            stdout
-                    fd_stack object for stdout
-            stderr
-                    fd_stack object for stderr
+            logging
+                    logging_manager.LoggingManager object
             profilers
                     the profilers object for this job
             harness
@@ -126,10 +125,10 @@ class base_job(object):
         if not os.path.exists(self.resultdir):
             os.makedirs(self.resultdir)
 
-        # We export this env variable in order to reference the logging
-        # config system where to put the client logfile.
-        os.environ['AUTOTEST_RESULTS'] = self.resultdir
-        logging.config.fileConfig('%s/debug_client.ini' % self.autodir)
+        logging_manager.configure_logging(
+                client_logging_config.ClientLoggingConfig(),
+                results_dir=self.resultdir)
+        logging.info('Writing results to %s', self.resultdir)
 
         self.drop_caches_between_iterations = False
         self.drop_caches = drop_caches
@@ -202,8 +201,9 @@ class base_job(object):
         self.jobtag = jobtag
         self.log_filename = self.DEFAULT_LOG_FILENAME
 
-        self.stdout = fd_stack.fd_stack(1, sys.stdout)
-        self.stderr = fd_stack.fd_stack(2, sys.stderr)
+        self.logging = logging_manager.get_logging_manager(
+                manage_stdout_and_stderr=True, redirect_fds=True)
+        self.logging.start_logging()
 
         self._init_group_level()
 
@@ -861,6 +861,7 @@ class base_job(object):
             try:
                 infile = open(self.state_file, 'rb')
                 self.state = pickle.load(infile)
+                logging.info('Loaded state from %s', self.state_file)
             except IOError:
                 self.state = {}
                 initialize = True

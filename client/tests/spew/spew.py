@@ -31,8 +31,8 @@ class spew(test.test):
         cmd += ' ' + args
 
         open(self.resultsdir + '/command', 'w').write(cmd + '\n')
-        self.job.stdout.redirect(results)
+        self.job.logging.redirect(results)
         try:
             utils.system(cmd)
         finally:
-            self.job.stdout.restore()
+            self.job.logging.restore()
