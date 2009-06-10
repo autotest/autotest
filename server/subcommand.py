@@ -5,6 +5,11 @@ import sys, os, subprocess, traceback, time, signal, pickle
 from autotest_lib.client.common_lib import error, utils
 
 
+# entry points that use subcommand must set this to their logging manager
+# to get log redirection for subcommands
+logging_manager_object = None
+
+
 def parallel(tasklist, timeout=None, return_results=False):
     """Run a set of predefined subcommands in parallel.
        If return_results is True instead of an exception being raised on
@@ -64,62 +69,12 @@ def parallel_simple(function, arglist, log=True, timeout=None):
     parallel(subcommands, timeout)
 
 
-def _where_art_thy_filehandles():
-    os.system("ls -l /proc/%d/fd >> /dev/tty" % os.getpid())
-
-
-def _print_to_tty(string):
-    open('/dev/tty', 'w').write(string + '\n')
-
-
-def _redirect_stream(fd, output):
-    newfd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
-    os.dup2(newfd, fd)
-    os.close(newfd)
-    if fd == 1:
-        sys.stdout = os.fdopen(fd, 'w')
-    if fd == 2:
-        sys.stderr = os.fdopen(fd, 'w')
-
-
-def _redirect_stream_tee(fd, output, tag):
-    """Use the low-level fork & pipe operations here to get a fd,
-    not a filehandle. This ensures that we get both the
-    filehandle and fd for stdout/stderr redirected correctly."""
-    r, w = os.pipe()
-    pid = os.fork()
-    if pid:                                 # Parent
-        os.dup2(w, fd)
-        os.close(r)
-        os.close(w)
-        if fd == 1:
-            sys.stdout = os.fdopen(fd, 'w', 1)
-        if fd == 2:
-            sys.stderr = os.fdopen(fd, 'w', 1)
-        return
-    else:                                   # Child
-        signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
-        os.close(w)
-        log = open(output, 'a')
-        f = os.fdopen(r, 'r')
-        for line in iter(f.readline, ''):
-            # Tee straight to file
-            log.write(line)
-            log.flush()
-            # Prepend stdout with the tag
-            print tag + ' : ' + line,
-            sys.stdout.flush()
-        log.close()
-        os._exit(0)
-
-
 class subcommand(object):
     fork_hooks, join_hooks = [], []
 
-    def __init__(self, func, args, subdir = None, stdprint = True):
+    def __init__(self, func, args, subdir = None):
         # func(args) - the subcommand to run
         # subdir     - the subdirectory to log results in
-        # stdprint   - whether to print results to stdout/stderr
         if subdir:
             self.subdir = os.path.abspath(subdir)
             if not os.path.exists(self.subdir):
@@ -127,19 +82,14 @@ class subcommand(object):
             self.debug = os.path.join(self.subdir, 'debug')
             if not os.path.exists(self.debug):
                 os.mkdir(self.debug)
-            self.stdout = os.path.join(self.debug, 'stdout')
-            self.stderr = os.path.join(self.debug, 'stderr')
         else:
             self.subdir = None
-            self.debug = '/dev/null'
-            self.stdout = '/dev/null'
-            self.stderr = '/dev/null'
+            self.debug = None
 
         self.func = func
         self.args = args
         self.lambda_function = lambda: func(*args)
         self.pid = None
-        self.stdprint = stdprint
         self.returncode = None
 
 
@@ -158,14 +108,9 @@ class subcommand(object):
 
 
     def redirect_output(self):
-        if self.stdprint:
-            if self.subdir:
-                tag = os.path.basename(self.subdir)
-                _redirect_stream_tee(1, self.stdout, tag)
-                _redirect_stream_tee(2, self.stderr, tag)
-        else:
-            _redirect_stream(1, self.stdout)
-            _redirect_stream(2, self.stderr)
+        if self.subdir and logging_manager_object:
+            tag = os.path.basename(self.subdir)
+            logging_manager_object.tee_redirect_debug_dir(self.debug, tag=tag)
 
 
     def fork_start(self):
@@ -226,9 +171,11 @@ class subcommand(object):
             print "%s" % (self.func,)
             print "rc=%d" % self.returncode
             print
-            if os.path.exists(self.stderr):
-                for line in open(self.stderr).readlines():
-                    print line,
+            if self.debug:
+                stderr_file = os.path.join(self.debug, 'autoserv.stderr')
+                if os.path.exists(stderr_file):
+                    for line in open(stderr_file).readlines():
+                        print line,
             print "\n--------------------------------------------\n"
             raise error.AutoservSubcommandError(self.func, self.returncode)
 

@@ -23,7 +23,7 @@ def get_logging_manager(manage_stdout_and_stderr=False, redirect_fds=False):
     LoggingManager to manage a stack of destinations should call this method
     at application startup.
     """
-    if redirect_fds and not disable_fd_redirection:
+    if redirect_fds:
         manager = FdRedirectionLoggingManager()
     else:
         manager = LoggingManager()
@@ -556,31 +556,3 @@ class FdRedirectionLoggingManager(LoggingManager):
         if len(self._context_stack) < 2:
             raise RuntimeError('No redirects to undo')
         super(FdRedirectionLoggingManager, self).undo_redirect()
-
-
-# this decorator is from the original fd_stack module
-# TODO(showard): move this to a more appropriate module
-
-def __mark(filename, msg):
-    file = open(filename, 'a')
-    file.write(msg)
-    file.close()
-
-
-def tee_output_logdir_mark(fn):
-    def tee_logdir_mark_wrapper(self, *args, **dargs):
-        mark = self.__class__.__name__ + "." + fn.__name__
-        outfile = os.path.join(self.log_dir, 'client.log')
-        __mark(outfile, "--- START " + mark + " ---\n")
-        self.job.logging.tee_redirect_debug_dir(self.log_dir)
-        try:
-            result = fn(self, *args, **dargs)
-        finally:
-            self.job.logging.restore()
-            __mark(outfile, "--- END " + mark + " ---\n")
-            __mark(errfile, "--- END " + mark + " ---\n")
-
-        return result
-
-    tee_logdir_mark_wrapper.__name__ = fn.__name__
-    return tee_logdir_mark_wrapper

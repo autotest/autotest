@@ -5,7 +5,8 @@ import common
 from autotest_lib.server import server_job, test, subcommand, hosts, autotest
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils, error, host_protections
-from autotest_lib.client.common_lib import packages
+from autotest_lib.client.common_lib import packages, logging_manager
+from autotest_lib.client.common_lib import logging_config
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko.parsers import version_1 as parser_mod
@@ -38,6 +39,8 @@ class CopyLogsTest(unittest.TestCase):
         self.god.stub_function(server_job, 'get_site_job_data')
         self.god.stub_function(server_job, 'open')
         self.god.stub_function(utils, 'write_keyval')
+
+        logging_manager.configure_logging(logging_config.TestingConfig())
 
         self.construct_server_job()
 

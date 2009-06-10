@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
-import os, unittest, shutil, sys, time, StringIO, logging.config
+import logging, os, unittest, shutil, sys, time, StringIO
 import common
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
 from autotest_lib.client.bin import test, xen, kernel, utils
-from autotest_lib.client.common_lib import packages, error, log
+from autotest_lib.client.common_lib import packages, error, log, logging_manager
+from autotest_lib.client.common_lib import logging_config
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -33,8 +34,18 @@ class TestBaseJob(unittest.TestCase):
 
         # get rid of stdout and logging
         sys.stdout = StringIO.StringIO()
-        self.god.stub_with(logging.config, 'fileConfig',
-                           lambda x: None)
+        logging_manager.configure_logging(logging_config.TestingConfig())
+        logging.disable(logging.CRITICAL)
+        def dummy_configure_logging(*args, **kwargs):
+            pass
+        self.god.stub_with(logging_manager, 'configure_logging',
+                           dummy_configure_logging)
+        real_get_logging_manager = logging_manager.get_logging_manager
+        def get_logging_manager_no_fds(manage_stdout_and_stderr=False,
+                                       redirect_fds=False):
+            return real_get_logging_manager(manage_stdout_and_stderr, False)
+        self.god.stub_with(logging_manager, 'get_logging_manager',
+                           get_logging_manager_no_fds)
 
         # stub out some stuff
         self.god.stub_function(os.path, 'exists')

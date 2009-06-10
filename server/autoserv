@@ -6,11 +6,12 @@
 Run an control file through the server side engine
 """
 
-import sys, os, re, traceback, signal, time, logging, logging.config
+import sys, os, re, traceback, signal, time, logging
 
 import common
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
-from autotest_lib.client.common_lib import pidfile
+from autotest_lib.server import server_logging_config
+from autotest_lib.client.common_lib import pidfile, logging_manager
 
 def run_autoserv(pid_file_manager, results, parser):
     # send stdin to /dev/null
@@ -101,16 +102,7 @@ def run_autoserv(pid_file_manager, results, parser):
                                 user, machines, client, parse_job,
                                 ssh_user, ssh_port, ssh_pass,
                                 group_name=group_name)
-    if results:
-        debug_dir = os.path.join(results, 'debug')
-        stdout = os.path.join(debug_dir, 'autoserv.stdout')
-        stderr = os.path.join(debug_dir, 'autoserv.stderr')
-        if no_tee:
-            job.stdout.redirect(stdout)
-            job.stderr.redirect(stderr)
-        else:
-            job.stdout.tee_redirect(stdout)
-            job.stderr.tee_redirect(stderr)
+    job.logging.start_logging()
 
     # perform checks
     job.precheck()
@@ -151,8 +143,10 @@ def main():
         parser.parser.print_help()
         sys.exit(1)
 
-    results = parser.options.results
-    if not parser.options.no_logging:
+    if parser.options.no_logging:
+        results = None
+    else:
+        results = parser.options.results
         if not results:
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
         results  = os.path.abspath(results)
@@ -167,33 +161,12 @@ def main():
         # needs to create the log file in there.
         if not os.path.isdir(results):
             os.makedirs(results)
-        os.environ['AUTOSERV_RESULTS'] = results
-        serverdir = os.path.dirname(__file__)
-        logging.config.fileConfig('%s/debug_server.ini' % serverdir)
+
+    logging_manager.configure_logging(
+            server_logging_config.ServerLoggingConfig(), results_dir=results,
+            use_console=not parser.options.no_tee)
+    if results:
         logging.info("Results placed in %s" % results)
-    else:
-        # If we supply -N, no results dir will be generated, so
-        # we'll configure the logging system on code.
-        stamp = '[%(asctime)s - %(levelname)-8s] %(message)s'
-        root_logger = logging.getLogger()
-        formatter = logging.Formatter(stamp, datefmt='%H:%M:%S')
-        # Let's verify if we already have handlers for the root logger 
-        # at this point.
-        if len(root_logger.handlers) == 0:
-            autoserv_handler = logging.StreamHandler(sys.stdout,)
-            autoserv_handler.setFormatter(formatter)
-            root_logger.addHandler(autoserv_handler)
-        else:
-            # If we already have any handlers up at this point, let's
-            # just configure this one we already have.
-            root_logger.handlers[0].setFormatter(formatter)
-
-        # When the -N flag is being used, we are assuming DEBUG level for the
-        # execution. We could read the level from the configuration file, 
-        # but I am not sure if this is the right way to go, since we are doing
-        # all the configuration on code (lmr).
-        root_logger.setLevel(logging.DEBUG)
-
 
     if parser.options.write_pidfile:
         if parser.options.collect_crashinfo:

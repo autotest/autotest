@@ -7,9 +7,10 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess
-import traceback, shutil, warnings, fcntl, pickle, logging, logging.config
-from autotest_lib.client.bin import fd_stack, sysinfo
+import traceback, shutil, warnings, fcntl, pickle, logging
+from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import error, log, utils, packages
+from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server import test, subcommand, profilers
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 
@@ -131,8 +132,9 @@ class base_server_job(object):
         self.hosts = set()
         self.drop_caches_between_iterations = False
 
-        self.stdout = fd_stack.fd_stack(1, sys.stdout)
-        self.stderr = fd_stack.fd_stack(2, sys.stderr)
+        self.logging = logging_manager.get_logging_manager(
+                manage_stdout_and_stderr=True, redirect_fds=True)
+        subcommand.logging_manager_object = self.logging
 
         if resultdir:
             self.sysinfo = sysinfo.sysinfo(self.resultdir)
