@@ -32,8 +32,8 @@ __author__ = 'showard@google.com (Steve Howard)'
 import datetime
 import common
 from autotest_lib.frontend import thread_local
-from autotest_lib.frontend.afe import models, model_logic, control_file
-from autotest_lib.frontend.afe import rpc_utils
+from autotest_lib.frontend.afe import models, model_logic
+from autotest_lib.frontend.afe import control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config
 
 
@@ -514,7 +514,8 @@ def reverify_hosts(**filter_data):
     """
     hosts = models.Host.query_objects(filter_data)
     models.AclGroup.check_for_acl_violation_hosts(hosts)
-    models.Host.reverify_hosts(hosts)
+    models.SpecialTask.schedule_special_task(hosts,
+                                             models.SpecialTask.Task.REVERIFY)
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
@@ -742,8 +743,7 @@ def get_static_data():
                                    "Stopped": "Other host(s) failed verify",
                                    "Parsing": "Awaiting parse of final results",
                                    "Gathering": "Gathering log files",
-                                   "Template": "Template job for recurring run",
-                                   "Reverify": "Scheduled for reverification"}
+                                   "Template": "Template job for recurring run"}
     return result
 
 

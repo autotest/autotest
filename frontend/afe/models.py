@@ -22,13 +22,6 @@ class AclAccessViolation(Exception):
     """
 
 
-class StateError(Exception):
-    """\
-    Raised when a reverification is attempted on a host that is not
-    in a valid state to accept a reverify.
-    """
-
-
 class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     """\
     An atomic group defines a collection of hosts which must only be scheduled
@@ -204,7 +197,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     """
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
                        'Repair Failed', 'Dead', 'Cleaning', 'Pending',
-                       'Reverify', string_values=True)
+                       string_values=True)
 
     hostname = dbmodels.CharField(maxlength=255, unique=True)
     labels = dbmodels.ManyToManyField(Label, blank=True,
@@ -255,36 +248,6 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         host.locked = False
         host.save()
         return host
-
-
-    @classmethod
-    def reverify_hosts(cls, hosts):
-        """
-        Reverifies the hosts if and only if they are all in Ready, Repair
-        Failed, or Dead state. Raises an exception if any of them are not
-        in one of these three states.
-        """
-        valid_status = (cls.Status.READY,
-                        cls.Status.REPAIR_FAILED,
-                        cls.Status.DEAD)
-
-        for host in hosts:
-            if host.status not in valid_status:
-                raise StateError("Can only force reverify on Ready, "
-                                 "Repair Failed, and Dead machines")
-
-        cursor = connection.cursor()
-
-        sql = """
-            UPDATE hosts
-            SET status = %%s
-            WHERE status IN (%s)
-            AND id IN (%s)
-            """ % (','.join(['%s'] * len(valid_status)),
-                   ','.join(['%s'] * len(hosts)))
-        cursor.execute(sql, [cls.Status.REVERIFY] +
-                            [status for status in valid_status] +
-                            [host.id for host in hosts])
 
 
     def clean_object(self):
@@ -991,3 +954,51 @@ class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
     def __str__(self):
         return 'RecurringRun(job %s, start %s, period %s, count %s)' % (
             self.job.id, self.start_date, self.loop_period, self.loop_count)
+
+
+class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
+    """\
+    Tasks to run on hosts at the next time they are in the Ready state. Use this
+    for high-priority tasks, such as forced repair or forced reinstall.
+
+    host: host to run this task on
+    task: special task to run (currently only Reverify)
+    time_requested: date and time the request for this task was made
+    is_active: task is currently running
+    is_complete: task has finished running
+    """
+    Task = enum.Enum('Reverify', string_values=True)
+
+    host = dbmodels.ForeignKey(Host, blank=False, null=False)
+    task = dbmodels.CharField(maxlength=64, choices=Task.choices(),
+                              blank=False, null=False)
+    time_requested = dbmodels.DateTimeField(auto_now_add=True, blank=False,
+                                            null=False)
+    is_active = dbmodels.BooleanField(default=False, blank=False, null=False)
+    is_complete = dbmodels.BooleanField(default=False, blank=False, null=False)
+
+    objects = model_logic.ExtendedManager()
+
+
+    @classmethod
+    def schedule_special_task(cls, hosts, task):
+        """\
+        Schedules hosts for a special task
+        """
+        for host in hosts:
+            special_task = SpecialTask(host=host, task=task)
+            special_task.save()
+
+
+    class Meta:
+        db_table = 'special_tasks'
+
+    def __str__(self):
+        result = 'Special Task (host %s, task %s, time %s)' % (
+            self.host, self.task, self.time_requested)
+        if self.is_complete:
+            result += ' (completed)'
+        elif self.is_active:
+            result += ' (active)'
+
+        return result
