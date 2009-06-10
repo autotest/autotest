@@ -115,6 +115,8 @@ class FrontendTestMixin(object):
                 or None if atomic scheduling is not required.  Each metahost
                 becomes a request to schedule an entire atomic group.
                 This does not support creating an active atomic group job.
+
+        @returns A Django frontend.afe.models.Job instance.
         """
         assert not (atomic_group and active)  # TODO(gps): support this
         synch_count = synchronous and 2 or 1
