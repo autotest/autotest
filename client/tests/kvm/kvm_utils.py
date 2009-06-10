@@ -644,8 +644,8 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
 
     while True:
         (match, text) = sub.read_until_last_line_matches(
-                ["[Aa]re you sure", "[Pp]assword:", "[Ll]ogin:",
-                 "[Cc]onnection.*closed", prompt],
+                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"^\s*[Ll]ogin:\s*$",
+                 r"[Cc]onnection.*closed", r"[Cc]onnection.*refused", prompt],
                  timeout=timeout, internal_timeout=0.5)
         if match == 0:  # "Are you sure you want to continue connecting"
             logging.debug("Got 'Are you sure...'; sending 'yes'")
@@ -669,11 +669,15 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
             logging.debug("Got 'Connection closed'")
             sub.close()
             return None
-        elif match == 4:  # prompt
+        elif match == 4:  # "Connection refused"
+            kvm_log.debug("Got 'Connection refused'")
+            sub.close()
+            return None
+        elif match == 5:  # prompt
             logging.debug("Got shell prompt -- logged in")
             return sub
         else:  # match == None
-            logging.debug("Timeout or process terminated")
+            logging.debug("Timeout elapsed or process terminated")
             sub.close()
             return None
 
@@ -707,7 +711,7 @@ def remote_scp(command, password, timeout=300, login_timeout=10):
 
     while True:
         (match, text) = sub.read_until_last_line_matches(
-                ["[Aa]re you sure", "[Pp]assword:", "lost connection"],
+                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection"],
                 timeout=_timeout, internal_timeout=0.5)
         if match == 0:  # "Are you sure you want to continue connecting"
             logging.debug("Got 'Are you sure...'; sending 'yes'")
