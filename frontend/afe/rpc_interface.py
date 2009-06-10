@@ -359,7 +359,7 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
             synch_count == 1 means the job is asynchronous.
         dependencies: A list of the names of labels on which the job depends.
     """
-    if not tests and not control_file:
+    if not tests and not client_control_file:
         return dict(control_file='', is_server=False, synch_count=1,
                     dependencies=[])
 
