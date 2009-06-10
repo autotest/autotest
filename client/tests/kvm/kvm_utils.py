@@ -753,8 +753,8 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
 
     @return: True on success and False on failure.
     """
-    command = "scp -o UserKnownHostsFile=/dev/null -r -P %s %s %s@%s:%s" % \
-        (port, local_path, username, host, remote_path)
+    command = ("scp -o UserKnownHostsFile=/dev/null -r -P %s %s %s@%s:%s" %
+               (port, local_path, username, host, remote_path))
     return remote_scp(command, password, timeout)
 
 
@@ -773,8 +773,8 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
 
     @return: True on success and False on failure.
     """
-    command = "scp -o UserKnownHostsFile=/dev/null -r -P %s %s@%s:%s %s" % \
-        (port, username, host, remote_path, local_path)
+    command = ("scp -o UserKnownHostsFile=/dev/null -r -P %s %s@%s:%s %s" %
+               (port, username, host, remote_path, local_path))
     return remote_scp(command, password, timeout)
 
 
@@ -790,8 +790,8 @@ def ssh(host, port, username, password, prompt, timeout=10):
 
     @return: kvm_spawn object on success and None on failure.
     """
-    command = "ssh -o UserKnownHostsFile=/dev/null -p %s %s@%s" % \
-        (port, username, host)
+    command = ("ssh -o UserKnownHostsFile=/dev/null -p %s %s@%s" %
+               (port, username, host))
     return remote_login(command, password, prompt, "\n", timeout)
 
 
