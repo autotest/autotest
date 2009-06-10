@@ -118,8 +118,8 @@ class VM:
         # Find available monitor filename
         while True:
             # The monitor filename should be unique
-            self.instance = time.strftime("%Y%m%d-%H%M%S-") + \
-            kvm_utils.generate_random_string(4)
+            self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
+                             kvm_utils.generate_random_string(4))
             self.monitor_file_name = os.path.join("/tmp",
                                                   "monitor-" + self.instance)
             if not os.path.exists(self.monitor_file_name):
