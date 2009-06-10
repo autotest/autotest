@@ -34,7 +34,7 @@ class _AbstractDrone(object):
         return_message = self._execute_calls_impl(calls)
         for warning in return_message['warnings']:
             subject = 'Warning from drone %s' % self.hostname
-            print subject + '\n' + warning
+            logging.warn(subject + '\n' + warning)
             email_manager.manager.enqueue_notify_email(subject, warning)
         return return_message['results']
 
@@ -125,7 +125,7 @@ class _RemoteDrone(_AbstractDrone):
         try:
             return pickle.loads(result.stdout)
         except Exception: # pickle.loads can throw all kinds of exceptions
-            print 'Invalid response:\n---\n%s\n---' % result.stdout
+            logging.critical('Invalid response:\n---\n%s\n---', result.stdout)
             raise
 
 
