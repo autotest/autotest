@@ -82,7 +82,7 @@ class kvm(test.test):
             self.write_test_keyval({key: params[key]})
 
         # Open the environment file
-        env_filename = os.path.join(self.bindir, "env")
+        env_filename = os.path.join(self.bindir, params.get("env", "env"))
         env = load_env(env_filename, {})
         logging.debug("Contents of environment: %s" % str(env))
 
