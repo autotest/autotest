@@ -1,4 +1,4 @@
-import os, BaseHTTPServer, cgi, threading, urllib, fcntl
+import os, BaseHTTPServer, cgi, threading, urllib, fcntl, logging
 import common
 from autotest_lib.scheduler import scheduler_config
 
@@ -101,14 +101,14 @@ class StatusServer(BaseHTTPServer.HTTPServer):
     def shutdown(self):
         if self._shutting_down:
             return
-        print 'Shutting down server...'
+        logging.info('Shutting down server...')
         self._shutting_down = True
         # make one last request to awaken the server thread and make it exit
         urllib.urlopen('http://localhost:%s' % _PORT)
 
 
     def _serve_until_shutdown(self):
-        print 'Status server running on', self.server_address
+        logging.info('Status server running on %s', self.server_address)
         while not self._shutting_down:
             self.handle_request()
 
