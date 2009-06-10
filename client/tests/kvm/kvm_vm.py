@@ -196,6 +196,9 @@ class VM:
                (iso_dir is pre-pended to the ISO filename)
                extra_params -- a string to append to the qemu command
                ssh_port -- should be 22 for SSH, 23 for Telnet
+               x11_display -- if specified, the DISPLAY environment variable
+               will be be set to this value for the qemu process (useful for
+               SDL rendering)
                images -- a list of image object names, separated by spaces
                nics -- a list of NIC object names, separated by spaces
 
@@ -222,8 +225,16 @@ class VM:
         if iso_dir == None:
             iso_dir = self.iso_dir
 
-        qemu_cmd = qemu_path
+        # Start constructing the qemu command
+        qemu_cmd = ""
+        # Set the X11 display parameter if requested
+        if params.get("x11_display"):
+            qemu_cmd += "DISPLAY=%s " % params.get("x11_display")
+        # Add the qemu binary
+        qemu_cmd += qemu_path
+        # Add the VM's name
         qemu_cmd += " -name '%s'" % name
+        # Add the monitor socket parameter
         qemu_cmd += " -monitor unix:%s,server,nowait" % self.monitor_file_name
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
