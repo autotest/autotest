@@ -57,8 +57,8 @@ sys.path.append(pwd)
 # lines create those symlinks.
 # Change 'rootdir' here and/or mount appropriate directories in it
 # When dispatching tests on local host (client mode) one can
-# either setup kvm_runtest_2 links, or same as server mode
-# use rootdir and set all appropriate links/mount-points there.
+# either setup kvm links, or same as server mode use rootdir and set
+# all appropriate links/mount-points there.
 # For example, guest installation tests need to know where to
 # find the iso-files.
 # We create the links only if not already exist, so

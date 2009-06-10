@@ -1635,7 +1635,7 @@ def get_keyval_value(result_dir, key):
     Return the value of the first appearance of key in any keyval file in
     result_dir. If no appropriate line is found, return 'Unknown'.
     """
-    keyval_pattern = os.path.join(result_dir, "kvm_runtest_2.*", "keyval")
+    keyval_pattern = os.path.join(result_dir, "kvm.*", "keyval")
     keyval_lines = commands.getoutput(r"grep -h '\b%s\b.*=' %s"
                                       % (key, keyval_pattern))
     if not keyval_lines:

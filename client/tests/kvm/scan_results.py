@@ -30,9 +30,9 @@ def parse_results(text):
             info = info_list.pop()
             test_name = parts[2]
             test_status = parts[0].split()[1]
-            # Remove 'kvm_runtest_2.' prefix
-            if test_name.startswith("kvm_runtest_2."):
-                test_name = test_name.split("kvm_runtest_2.")[1]
+            # Remove 'kvm.' prefix
+            if test_name.startswith("kvm."):
+                test_name = test_name.split("kvm.")[1]
             result_list.append((test_name, test_status, int(end_time - start_time), info))
 
         # Found a FAIL/ERROR/GOOD line -- get failure/success info
