@@ -315,6 +315,8 @@ class parser(base.parser):
                     subdir_stack.pop()
                 else:
                     line.subdir = subdir_stack.pop()
+                    if not subdir_stack[-1] and stack.size() > min_stack_size:
+                        subdir_stack[-1] = line.subdir
                 # update the status, start and finished times
                 stack.update(line.status)
                 current_status = stack.end()
