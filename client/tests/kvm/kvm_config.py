@@ -22,7 +22,7 @@ class config:
         """
         Initialize the list and optionally parse filename.
 
-            @param filename: Path of the file that will be taken
+        @param filename: Path of the file that will be taken
         """
         self.list = [{"name": "", "shortname": "", "depend": []}]
         self.debug = debug
@@ -35,7 +35,7 @@ class config:
         """
         Enable or disable debugging output.
 
-            @param debug: Whether debug is enabled (True) or disabled (False).
+        @param debug: Whether debug is enabled (True) or disabled (False).
         """
         self.debug = debug
 
@@ -45,7 +45,7 @@ class config:
         Parse filename, return the resulting list and store it in .list. If
         filename does not exist, raise an exception.
 
-            @param filename: Path of the configuration file.
+        @param filename: Path of the configuration file.
         """
         if not os.path.exists(filename):
             raise Exception, "File %s not found" % filename
@@ -60,7 +60,7 @@ class config:
         """
         Parse a string, return the resulting list and store it in .list.
 
-            @param str: String that will be parsed.
+        @param str: String that will be parsed.
         """
         file = StringIO.StringIO(str)
         self.list = self.parse(file, self.list)
@@ -80,8 +80,8 @@ class config:
         """
         Return True if dict matches filter.
 
-            @param filter: A regular expression that defines the filter.
-            @param dict: Dictionary that will be inspected.
+        @param filter: A regular expression that defines the filter.
+        @param dict: Dictionary that will be inspected.
         """
         filter = re.compile("(\\.|^)" + filter + "(\\.|$)")
         return filter.search(dict["name"]) != None
@@ -91,8 +91,8 @@ class config:
         """
         Filter a list of dicts.
 
-            @param filter: A regular expression that will be used as a filter.
-            @param list: A list of dictionaries that will be filtered.
+        @param filter: A regular expression that will be used as a filter.
+        @param list: A list of dictionaries that will be filtered.
         """
         if list == None:
             list = self.list
@@ -108,9 +108,8 @@ class config:
         """
         Get the indexes of a list that match a given filter.
 
-            @param filter: A regular expression that will filter the list.
-            @param list: List which we want to know the indexes that match
-            a filter.
+        @param filter: A regular expression that will filter the list.
+        @param list: List which we want to know the indexes that match a filter.
         """
         if list == None:
             list = self.list
@@ -135,8 +134,8 @@ class config:
         """
         Split str and strip quotes from the resulting parts.
 
-            @param str: String that will be processed
-            @param sep: Separator that will be used to split the string
+        @param str: String that will be processed
+        @param sep: Separator that will be used to split the string
         """
         temp = str.split(sep, 1)
         for i in range(len(temp)):
@@ -152,8 +151,8 @@ class config:
         """
         Get the next non-empty, non-comment line in a file like object.
 
-            @param file: File like object
-            @return: If no line is available, return None.
+        @param file: File like object
+        @return: If no line is available, return None.
         """
         while True:
             line = file.readline()
