@@ -719,6 +719,24 @@ DoesNotExist: AtomicGroup matching query does not exist.
 ...         control_type='Server', synch_count=1,
 ...         atomic_group_name='mini rack')
 
+## Test creation of a job in an atomic group by specifying the atomic group
+## name as a meta_host rather than explicitly using the atomic_group_name
+## parameter.
+
+>>> job_id = rpc_interface.create_job(
+...         name='atomic_sleeptest', priority='Medium',
+...         control_file=sleep_cf_info['control_file'],
+...         control_type='Server', synch_count=1,
+...         meta_hosts=['mini rack'])
+>>> job_id = rpc_interface.create_job(
+...         name='atomic_sleeptest', priority='Medium',
+...         control_file=sleep_cf_info['control_file'],
+...         control_type='Server', synch_count=1,
+...         meta_hosts=['mini rack'],
+...         atomic_group_name='Different')
+Traceback (most recent call last):
+ValidationError: {'meta_hosts': 'Label "mini rack" not found.  If assumed to be an atomic group it would conflict with the supplied atomic group "Different".'}
+
 ## Test job creation with an atomic group.
 
 # fail to create a job in an atomic group.  one_time_hosts not allowed.

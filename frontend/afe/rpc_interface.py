@@ -419,6 +419,34 @@ def create_job(name, priority, control_file, control_type,
                           "or 'atomic_group_name'"
             })
 
+    labels_by_name = dict((label.name, label)
+                          for label in models.Label.objects.all())
+    atomic_groups_by_name = dict((ag.name, ag)
+                                 for ag in models.AtomicGroup.objects.all())
+
+    # convert hostnames & meta hosts to host/label objects
+    host_objects = models.Host.smart_get_bulk(hosts)
+    metahost_objects = []
+    for label in meta_hosts or []:
+        if label in labels_by_name:
+            this_label = labels_by_name[label]
+            metahost_objects.append(this_label)
+        elif label in atomic_groups_by_name:
+            # If a given metahost (Label) name that isn't a label, check to
+            # see if the user was specifying an atomic group instead.
+            atomic_group = atomic_groups_by_name[label]
+            if atomic_group_name and atomic_group_name != atomic_group.name:
+                raise model_logic.ValidationError({
+                        'meta_hosts': (
+                                'Label "%s" not found.  If assumed to be an '
+                                'atomic group it would conflict with the '
+                                'supplied atomic group "%s".' % (
+                                        label, atomic_group_name))})
+            atomic_group_name = atomic_group.name
+        else:
+            raise model_logic.ValidationError(
+                {'meta_hosts' : 'Label "%s" not found' % label})
+
     # Create and sanity check an AtomicGroup object if requested.
     if atomic_group_name:
         if one_time_hosts:
@@ -435,18 +463,6 @@ def create_job(name, priority, control_file, control_type,
     else:
         atomic_group = None
 
-    labels_by_name = dict((label.name, label)
-                          for label in models.Label.objects.all())
-
-    # convert hostnames & meta hosts to host/label objects
-    host_objects = models.Host.smart_get_bulk(hosts)
-    metahost_objects = []
-    for label in meta_hosts or []:
-        if label not in labels_by_name:
-            raise model_logic.ValidationError(
-                {'meta_hosts' : 'Label "%s" not found' % label})
-        this_label = labels_by_name[label]
-        metahost_objects.append(this_label)
     for host in one_time_hosts or []:
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
