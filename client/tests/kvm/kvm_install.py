@@ -1,40 +1,248 @@
 import time, os, sys, urllib, re, signal, logging, datetime
-from datetime import *
 from autotest_lib.client.bin import utils, test
 from autotest_lib.client.common_lib import error
 import kvm_utils
 
 
-def run_kvm_install(test, params, env):
+def load_kvm_modules(module_dir):
     """
-    KVM build test. Installs KVM using the selected install mode. Most install
-    methods will take kvm source code, build it and install it to a given
-    location.
+    Unload previously loaded kvm modules, then load modules present on any
+    sub directory of module_dir. Function will walk through module_dir until
+    it finds the modules.
 
-    @param test: kvm test object.
-    @param params: Dictionary with the test parameters.
-    @param env: Dictionary with test environment.
+    @param module_dir: Directory where the KVM modules are located. 
     """
-    install_mode = params.get("mode")
-    logging.info("Selected installation mode: %s" % install_mode)
+    vendor = "intel"
+    if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
+        vendor = "amd"
+    logging.debug("Detected CPU vendor as '%s'" %(vendor))
 
-    srcdir = params.get("srcdir", test.srcdir)
-    if not os.path.exists(srcdir):
-        os.mkdir(srcdir)
+    logging.debug("Killing any qemu processes that might be left behind")
+    utils.system("pkill qemu", ignore_status=True)
 
-    # do not install
-    if install_mode == "noinstall":
-        logging.info("Skipping installation")
+    logging.info("Unloading previously loaded KVM modules")
+    kvm_utils.unload_module("kvm")
+    if utils.module_is_loaded("kvm"):
+        message = "Failed to remove old KVM modules"
+        logging.error(message)
+        raise error.TestError(message)
 
-    # install from git
-    elif install_mode == "git":
-        repo = params.get("git_repo")
+    logging.info("Loading new KVM modules...")
+    kvm_module_path = None
+    kvm_vendor_module_path = None
+    for folder, subdirs, files in os.walk(module_dir):
+        if "kvm.ko" in files:
+            kvm_module_path = os.path.join(folder, "kvm.ko")
+            kvm_vendor_module_path = os.path.join(folder, "kvm-%s.ko" % vendor)
+    abort = False
+    if not os.path.isfile(kvm_module_path):
+        logging.error("Could not find KVM module that was supposed to be"
+                      " built on the source dir")
+        abort = True
+    elif not os.path.isfile(kvm_vendor_module_path):
+        logging.error("Could not find KVM (%s) module that was supposed to be"
+                      " built on the source dir", vendor)
+        abort = True
+    if abort:
+        raise error.TestError("Could not load KVM modules.")
+    utils.system("/sbin/insmod %s" % kvm_module_path)
+    time.sleep(1)
+    utils.system("/sbin/insmod %s" % kvm_vendor_module_path)
+
+    if not utils.module_is_loaded("kvm"):
+        message = "Failed to load the KVM modules built for the test"
+        logging.error(message)
+        raise error.TestError(message)
+
+
+def create_symlinks(test_bindir, prefix):
+    """
+    Create symbolic links for the appropriate qemu and qemu-img commands on
+    the kvm test bindir.
+
+    @param test_bindir: KVM test bindir
+    @param prefix: KVM prefix path
+    """
+    qemu_path = os.path.join(test_bindir, "qemu")
+    qemu_img_path = os.path.join(test_bindir, "qemu-img")
+    if os.path.lexists(qemu_path):
+        os.unlink(qemu_path)
+    if os.path.lexists(qemu_img_path):
+        os.unlink(qemu_img_path)
+    kvm_qemu = os.path.join(prefix, "bin", "qemu-system-x86_64")
+    if not os.path.isfile(kvm_qemu):
+        raise error.TestError('Invalid qemu path')
+    kvm_qemu_img = os.path.join(prefix, "bin", "qemu-img")
+    if not os.path.isfile(kvm_qemu_img):
+        raise error.TestError('Invalid qemu-img path')
+    os.symlink(kvm_qemu, qemu_path)
+    os.symlink(kvm_qemu_img, qemu_img_path)
+
+
+class SourceDirInstaller:
+    """
+    Class that handles building/installing KVM directly from a tarball or
+    a single source code dir.
+    """
+    def __init__(self, test, params):
+        """
+        Initializes class attributes, and retrieves KVM code.
+
+        @param test: kvm test object
+        @param params: Dictionary with test arguments
+        """
+        install_mode = params["mode"]
+        srcdir = params.get("srcdir")
+        # KVM build prefix
+        self.test_bindir = test.bindir
+        prefix = os.path.join(test.bindir, 'build')
+        self.prefix = os.path.abspath(prefix)
+        # Are we going to load modules?
+        load_modules = params.get('load_modules')
+        if not load_modules:
+            self.load_modules = True
+        elif load_modules == 'yes':
+            self.load_modules = True
+        elif load_modules == 'no':
+            self.load_modules = False
+
+        if install_mode == 'localsrc': 
+            if not srcdir:
+                raise error.TestError("Install from source directory specified"
+                                      "but no source directory provided on the"
+                                      "control file.")
+            else:
+                self.srcdir = srcdir
+                self.repo_type = kvm_utils.check_kvm_source_dir(self.srcdir)
+                return
+        else:
+            srcdir = test.srcdir
+            if not os.path.isdir(srcdir):
+                os.makedirs(srcdir)
+
+        if install_mode == 'release':
+            release_tag = params.get("release_tag")
+            release_dir = params.get("release_dir")
+            logging.info("Installing KVM from release tarball")
+            if not release_tag:
+                release_tag = kvm_utils.get_latest_kvm_release_tag(release_dir)
+            tarball = os.path.join(release_dir, "kvm-%s.tar.gz" % release_tag)
+            logging.info("Retrieving release kvm-%s" % release_tag)
+            tarball = utils.unmap_url("/", tarball, "/tmp")
+
+        elif install_mode == 'snapshot':
+            logging.info("Installing KVM from snapshot")
+            snapshot_dir = params.get("snapshot_dir")
+            if not snapshot_dir:
+                raise error.TestError("Snapshot dir not provided")
+            snapshot_date = params.get("snapshot_date")
+            if not snapshot_date:
+                # Take yesterday's snapshot
+                d = (datetime.date.today() - 
+                     datetime.timedelta(1)).strftime("%Y%m%d")
+            else:
+                d = snapshot_date
+            tarball = os.path.join(snapshot_dir, "kvm-snapshot-%s.tar.gz" % d)
+            logging.info("Retrieving kvm-snapshot-%s" % d)
+            tarball = utils.unmap_url("/", tarball, "/tmp")
+
+        elif install_mode == 'localtar':
+            tarball = params.get("tarball")
+            if not tarball:
+                raise error.TestError("KVM Tarball install specified but no"
+                                      " tarball provided on control file.")
+            logging.info("Installing KVM from a local tarball")
+            logging.info("Using tarball %s")
+            tarball = utils.unmap_url("/", params.get("tarball"), "/tmp")
+
+        os.chdir(srcdir)
+        self.srcdir = os.path.join(srcdir, utils.extract_tarball(tarball))
+        self.repo_type = kvm_utils.check_kvm_source_dir(self.srcdir)
+
+
+    def __build(self):
+        os.chdir(self.srcdir)
+        cfg = "./configure --prefix=%s" % self.prefix
+        if self.repo_type == 1:
+            steps = [cfg, "make clean", "make -j %s" % utils.count_cpus()]
+            if not os.path.exists('qemu/pc-bios/bios.bin'):
+                steps.append("make -C bios")
+                steps.append("make -C extboot")
+                steps.append("cp -f bios/BIOS-bochs-latest"
+                             " qemu/pc-bios/bios.bin")
+                steps.append("cp -f vgabios/VGABIOS-lgpl-latest.bin"
+                             " qemu/pc-bios/vgabios.bin")
+                steps.append("cp -f vgabios/VGABIOS-lgpl-latest.cirrus.bin"
+                             " qemu/pc-bios/vgabios-cirrus.bin")
+                steps.append("cp -f extboot/extboot.bin"
+                             " qemu/pc-bios/extboot.bin")
+        elif self.repo_type == 2:
+            steps = [cfg, "make clean", "make -j %s" % utils.count_cpus()]
+
+        logging.info("Building KVM")
+        for step in steps:
+            utils.system(step)
+
+
+    def __install(self):
+        os.chdir(self.srcdir)
+        logging.info("Installing KVM userspace")
+        if self.repo_type == 1:
+            utils.system("make -C qemu install")
+        elif self.repo_type == 2:
+            utils.system("make install")
+        create_symlinks(self.test_bindir, self.prefix)
+
+
+    def __load_modules(self):
+        load_kvm_modules(self.srcdir)
+
+
+    def install(self):
+        self.__build()
+        self.__install()
+        if self.load_modules:
+            self.__load_modules()
+
+
+class GitInstaller:
+    def __init__(self, test, params):
+        """
+        Initialize class parameters and retrieves code from git repositories.
+
+        @param test: kvm test object.
+        @param params: Dictionary with test parameters.
+        """
+        install_mode = params["mode"]
+        srcdir = params.get("srcdir", test.bindir)
+        if not srcdir:
+            os.makedirs(srcdir)
+        self.srcdir = srcdir
+        # KVM build prefix
+        self.test_bindir = test.bindir
+        prefix = os.path.join(test.bindir, 'build')
+        self.prefix = os.path.abspath(prefix)
+        # Are we going to load modules?
+        load_modules = params.get('load_modules')
+        if not load_modules:
+            self.load_modules = True
+        elif load_modules == 'yes':
+            self.load_modules = True
+        elif load_modules == 'no':
+            self.load_modules = False
+
+        kernel_repo = params.get("git_repo")
         user_repo = params.get("user_git_repo")
+        kmod_repo = params.get("kmod_repo")
+
         branch = params.get("git_branch", "master")
         lbranch = params.get("lbranch")
+
         tag = params.get("git_tag", "HEAD")
         user_tag = params.get("user_git_tag", "HEAD")
-        if not repo:
+        kmod_tag = params.get("kmod_git_tag", "HEAD")
+
+        if not kernel_repo:
             message = "KVM git repository path not specified"
             logging.error(message)
             raise error.TestError(message)
@@ -42,256 +250,89 @@ def run_kvm_install(test, params, env):
             message = "KVM user git repository path not specified"
             logging.error(message)
             raise error.TestError(message)
-        __install_kvm_from_git(test, srcdir, repo, user_repo, branch, tag,
-                               user_tag, lbranch)
 
-    # install from release
-    elif install_mode == "release":
-        release_dir = params.get("release_dir")
-        release_tag = params.get("release_tag")
-        if not release_dir:
-            message = "Release dir not specified"
-            logging.error(message)
-            raise error.TestError(message)
-        __install_kvm_release(test, srcdir, release_dir, release_tag)
+        kernel_srcdir = os.path.join(srcdir, "kvm")
+        kvm_utils.get_git_branch(kernel_repo, branch, kernel_srcdir, tag,
+                                 lbranch)
+        self.kernel_srcdir = kernel_srcdir
 
-    # install from snapshot
-    elif install_mode == "snapshot":
-        snapshot_dir = params.get("snapshot_dir")
-        snapshot_date = params.get("snapshot_date")
-        if not snapshot_dir:
-            message = "Snapshot dir not specified"
-            logging.error(message)
-            raise error.TestError(message)
-        __install_kvm_from_snapshot(test, srcdir, snapshot_dir, snapshot_date)
+        userspace_srcdir = os.path.join(srcdir, "kvm_userspace")
+        kvm_utils.get_git_branch(user_repo, branch, userspace_srcdir, user_tag,
+                                 lbranch)
+        self.userspace_srcdir = userspace_srcdir
 
-    # install from tarball
-    elif install_mode == "localtar":
-        tarball = params.get("tarball")
-        if not tarball:
-            message = "Local tarball filename not specified"
-            logging.error(message)
-            raise error.TestError(message)
-        __install_kvm_from_local_tarball(test, srcdir, tarball)
+        if kmod_repo:
+            kmod_srcdir = os.path.join (srcdir, "kvm_kmod")
+            kvm_utils.get_git_branch(kmod_repo, branch, kmod_srcdir, user_tag,
+                                     lbranch)
+            self.kmod_srcdir = kmod_srcdir
 
-    # install from local sources
-    elif install_mode == "localsrc":
-        __install_kvm(test, srcdir)
 
-    # invalid installation mode
+    def __build(self):
+        if self.kmod_srcdir:
+            logging.info('Building KVM modules')
+            os.chdir(self.kmod_srcdir)
+            utils.system('./configure')
+            utils.system('make clean')
+            utils.system('make sync LINUX=%s' % self.kernel_srcdir)
+            utils.system('make -j %s' % utils.count_cpus())
+            logging.info('Building KVM userspace code')
+            os.chdir(self.userspace_srcdir)
+            utils.system('./configure --prefix=%s' % self.prefix)
+            utils.system('make clean')
+            utils.system('make -j %s' % utils.count_cpus())
+        else:
+            os.chdir(self.userspace_srcdir)
+            utils.system('./configure --prefix=%s' % self.prefix)
+            logging.info('Building KVM modules')
+            utils.system('make clean')
+            utils.system('make -C kernel LINUX=%s sync' % self.kernel_srcdir)
+            logging.info('Building KVM userspace code')
+            utils.system('make -j %s' % utils.count_cpus())
+
+
+    def __install(self):
+        os.chdir(self.userspace_srcdir)
+        utils.system('make install')
+        create_symlinks(self.test_bindir, self.prefix)
+
+
+    def __load_modules(self):
+        if self.kmod_srcdir:
+            load_kvm_modules(self.kmod_srcdir)
+        else:
+            load_kvm_modules(self.userspace_srcdir)
+
+
+    def install(self):
+        self.__build()
+        self.__install()
+        if self.load_modules:
+            self.__load_modules()
+
+
+def run_kvm_install(test, params, env):
+    """
+    Installs KVM using the selected install mode. Most install methods will
+    take kvm source code, build it and install it to a given location.
+
+    @param test: kvm test object.
+    @param params: Dictionary with test parameters.
+    @param env: Test environment.
+    """
+    install_mode = params.get("mode")
+    srcdir = params.get("srcdir", test.srcdir)
+    params["srcdir"] = srcdir
+
+    if install_mode == 'noinstall':
+        logging.info("Skipping installation")
+        return
+    elif install_mode in ['localsrc', 'localtar', 'release', 'snapshot']:
+        installer = SourceDirInstaller(test, params)
+    elif install_mode == 'git':
+        installer = GitInstaller(test, params)
     else:
-        message = "Invalid installation mode: '%s'" % install_mode
-        logging.error(message)
-        raise error.TestError(message)
+        raise error.TestError('Invalid or unsupported'
+                              ' install mode: %s' % install_mode)
 
-    # load kvm modules (unless requested not to)
-    if params.get('load_modules', "yes") == "yes":
-        __load_kvm_modules()
-    else:
-        logging.info("user requested not to load kvm modules")
-
-def __cleanup_dir(dir):
-    # only alerts if src directory is not empty
-    for root, dirs, files in os.walk(dir):
-        if dirs or files:
-            message = "Directory \'%s\' is not empty" % dir
-            logging.error(message)
-            raise error.TestError(message)
-
-def __install_kvm_release(test, srcdir, release_dir, release_tag):
-    if not release_tag:
-        try:
-            # look for the latest release in the web
-            page_url = os.path.join(release_dir, "showfiles.php")
-            local_web_page = utils.unmap_url("/", page_url, "/tmp")
-            f = open(local_web_page, "r")
-            data = f.read()
-            f.close()
-            rx = re.compile("package_id=(\d+).*\>kvm\<", re.IGNORECASE)
-            matches = rx.findall(data)
-            package_id = matches[0]
-            #package_id = 209008
-            rx = re.compile("package_id=%s.*release_id=\d+\">(\d+)" %
-                            package_id, re.IGNORECASE)
-            matches = rx.findall(data)
-            # the first match contains the latest release tag
-            release_tag = matches[0]
-        except Exception, e:
-            message = "Could not fetch latest KVM release tag (%s)" % str(e)
-            logging.error(message)
-            raise error.TestError(message)
-
-    logging.info("Installing release %s (kvm-%s)" % (release_tag, release_tag))
-    tarball = os.path.join(release_dir, "kvm-%s.tar.gz" % release_tag)
-    tarball = utils.unmap_url("/", tarball, "/tmp")
-    __install_kvm_from_local_tarball(test, srcdir, tarball)
-
-
-def __install_kvm_from_git(test, srcdir, repo, user_repo, branch, tag,
-                           user_tag, lbranch):
-    local_git_srcdir = os.path.join(srcdir, "kvm")
-    if not os.path.exists(local_git_srcdir):
-        os.mkdir(local_git_srcdir)
-    local_user_git_srcdir = os.path.join(srcdir, "kvmuser")
-    if not os.path.exists(local_user_git_srcdir):
-        os.mkdir(local_user_git_srcdir)
-
-    __get_git_branch(repo, branch, local_git_srcdir, tag, lbranch)
-    __get_git_branch(user_repo, branch, local_user_git_srcdir, user_tag,
-                     lbranch)
-    utils.system("cd %s && ./configure &&  make -C kernel LINUX=%s sync" %
-                 (local_user_git_srcdir, local_git_srcdir))
-    __install_kvm(test, local_user_git_srcdir)
-
-
-def __get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
-    logging.info("Getting sources from git <REP=%s BRANCH=%s TAG=%s> to local"
-                 "directory <%s>" % (repository, branch, commit, srcdir))
-    pwd = os.getcwd()
-    os.chdir(srcdir)
-    if os.path.exists(".git"):
-        utils.system("git reset --hard")
-    else:
-        utils.system("git init")
-
-    if not lbranch:
-        lbranch = branch
-
-    utils.system("git fetch -q -f -u -t %s %s:%s" %
-                 (repository, branch, lbranch))
-    utils.system("git checkout %s" % lbranch)
-    if commit:
-        utils.system("git checkout %s" % commit)
-
-    h = utils.system_output('git log --pretty=format:"%H" -1')
-    desc = utils.system_output("git describe")
-    logging.info("Commit hash for %s is %s (%s)" % (repository, h.strip(),
-                                                    desc))
-    os.chdir(pwd)
-
-
-def __install_kvm_from_snapshot(test, srcdir, snapshot_dir ,snapshot_date):
-    logging.info("Source snapshot dir: %s" % snaphost_dir)
-    logging.info("Source snapshot date: %s" % snapshot_date)
-
-    if not snapshot_date:
-        # takes yesterday's snapshot
-        d = (datetime.date.today() - datetime.timedelta(1)).strftime("%Y%m%d")
-    else:
-        d = snapshot_date
-
-    tarball = os.path.join(snaphost_dir, "kvm-snapshot-%s.tar.gz" % d)
-    logging.info("Tarball url: %s" % tarball)
-    tarball = utils.unmap_url("/", tarball, "/tmp")
-    __install_kvm_from_local_tarball(test, srcdir, tarball)
-
-
-def __install_kvm_from_local_tarball(test, srcdir, tarball):
-    pwd = os.getcwd()
-    os.chdir(srcdir)
-    newdir = utils.extract_tarball(tarball)
-    if newdir:
-        srcdir = os.path.join(srcdir, newdir)
-    os.chdir(pwd)
-    __install_kvm(test, srcdir)
-
-
-def __load_kvm_modules():
-    logging.info("Detecting CPU vendor...")
-    vendor = "intel"
-    if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
-        vendor = "amd"
-    logging.info("Detected CPU vendor as '%s'" %(vendor))
-
-    #if self.config.load_modules == "yes":
-    # remove existing in kernel kvm modules
-    logging.info("Unloading loaded KVM modules (if present)...")
-    #utils.system("pkill qemu 1>/dev/null 2>&1", ignore_status=True)
-    utils.system("pkill qemu", ignore_status=True)
-    #if utils.system("grep kvm_%s /proc/modules 1>/dev/null" % vendor,
-    #                ignore_status=True) == 0:
-    utils.system("/sbin/modprobe -r kvm_%s" % vendor, ignore_status=True)
-    #if utils.system("grep kvm /proc/modules 1>/dev/null",
-    #                ignore_status=True) == 0:
-    utils.system("/sbin/modprobe -r kvm", ignore_status=True)
-
-    if utils.system("grep kvm /proc/modules 1>/dev/null",
-                    ignore_status=True) == 0:
-        message = "Failed to remove old KVM modules"
-        logging.error(message)
-        raise error.TestError(message)
-
-    logging.info("Loading new KVM modules...")
-    os.chdir("kernel")
-    if os.path.exists("x86"):
-        os.chdir("x86")
-    utils.system("/sbin/insmod ./kvm.ko && sleep 1 && /sbin/insmod"
-                 "./kvm-%s.ko" % vendor)
-
-    #elif self.config.load_modules == "no":
-        #logging.info("user requested not to load kvm modules")
-
-    ### no matter if new kvm modules are to be loaded or not
-    ### make sure there are kvm modules installed.
-    if utils.system("grep kvm_%s /proc/modules 1>/dev/null" %(vendor),
-                    ignore_status=True) != 0:
-        message = "Failed to load KVM modules"
-        logging.error(message)
-        raise error.TestError(message)
-
-def __install_kvm(test, srcdir):
-    # create destination dir
-
-    kvm_build_dir = os.path.join(srcdir, '..', '..', 'build')
-    kvm_build_dir = os.path.abspath(kvm_build_dir)
-
-    if not os.path.exists(kvm_build_dir):
-        os.mkdir(kvm_build_dir)
-
-    # change to source dir
-    os.chdir(srcdir)
-
-    # start working...
-    logging.info("Building KVM...")
-
-    def run(cmd, title, timeout):
-        (status, pid, output) = kvm_utils.run_bg(cmd, None, logging.info,
-                                                 '(%s)' % title,
-                                                 timeout=timeout)
-        if status != 0:
-            kvm_utils.safe_kill(pid, signal.SIGTERM)
-            raise error.TestFail, "'%s' failed" % cmd
-
-    # configure + make
-    run("./configure --prefix=%s" % kvm_build_dir, "configure", 30)
-    run("make clean", "make clean", 30)
-    run("make", "make", 1200)
-
-    # make bios binaries if missing
-    if not os.path.exists('qemu/pc-bios/bios.bin'):
-        run("make -C bios", "make bios", 60)
-        run("make -C vgabios", "make vgabios", 60)
-        run("make -C extboot", "make extboot", 60)
-        cp1 = "cp -f bios/BIOS-bochs-latest qemu/pc-bios/bios.bin"
-        cp2 = "cp -f vgabios/VGABIOS-lgpl-latest.bin qemu/pc-bios/vgabios.bin"
-        cp3 = "cp -f vgabios/VGABIOS-lgpl-latest.cirrus.bin qemu/pc-bios/vgabios-cirrus.bin"
-        cp4 = "cp -f extboot/extboot.bin qemu/pc-bios/extboot.bin"
-        cmd = "&& ".join([cp1, cp2, cp3, cp4])
-        run(cmd, "copy bios binaries", 30)
-
-    # install from qemu directory
-    run("make -C qemu install", "(make install) ", 120)
-
-    # create symlinks
-    qemu_path = os.path.join(test.bindir, "qemu")
-    qemu_img_path = os.path.join(test.bindir, "qemu-img")
-    if os.path.lexists(qemu_path):
-        os.unlink(qemu_path)
-    if os.path.lexists(qemu_img_path):
-        os.unlink(qemu_img_path)
-    kvm_qemu = os.path.join(kvm_build_dir, "bin", "qemu-system-x86_64")
-    kvm_qemu_img = os.path.join(kvm_build_dir, "bin", "qemu-img")
-    os.symlink(kvm_qemu, qemu_path)
-    os.symlink(kvm_qemu_img, qemu_img_path)
-
-    logging.info("Done building and installing KVM")
+    installer.install()

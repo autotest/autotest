@@ -1,5 +1,7 @@
 import md5, thread, subprocess, time, string, random, socket, os, signal, pty
 import select, re, logging
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib import error
 
 """
 KVM test utility functions.
@@ -123,6 +125,109 @@ def safe_kill(pid, signal):
         return True
     except:
         return False
+
+
+def get_latest_kvm_release_tag(release_dir):
+    """
+    Fetches the latest release tag for KVM.
+
+    @param release_dir: KVM source forge download location.
+    """
+    try:
+        page_url = os.path.join(release_dir, "showfiles.php")
+        local_web_page = utils.unmap_url("/", page_url, "/tmp")
+        f = open(local_web_page, "r")
+        data = f.read()
+        f.close()
+        rx = re.compile("package_id=(\d+).*\>kvm\<", re.IGNORECASE)
+        matches = rx.findall(data)
+        package_id = matches[0]
+        #package_id = 209008
+        rx = re.compile("package_id=%s.*release_id=\d+\">(\d+)" % package_id, 
+                        re.IGNORECASE)
+        matches = rx.findall(data)
+        return matches[0] # the first match contains the latest release tag
+    except Exception, e:
+        message = "Could not fetch latest KVM release tag: %s" % str(e)
+        logging.error(message)
+        raise error.TestError(message)
+
+
+def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
+    """
+    Retrieves a given git code repository.
+
+    @param repository: Git repository URL
+    """
+    logging.info("Fetching git [REP '%s' BRANCH '%s' TAG '%s'] -> %s",
+                 repository, branch, commit, srcdir)
+    if not os.path.exists(srcdir):
+        os.makedirs(srcdir)
+    os.chdir(srcdir)
+
+    if os.path.exists(".git"):
+        utils.system("git reset --hard")
+    else:
+        utils.system("git init")
+
+    if not lbranch:
+        lbranch = branch
+
+    utils.system("git fetch -q -f -u -t %s %s:%s" %
+                 (repository, branch, lbranch))
+    utils.system("git checkout %s" % lbranch)
+    if commit:
+        utils.system("git checkout %s" % commit)
+
+    h = utils.system_output('git log --pretty=format:"%H" -1')
+    desc = utils.system_output("git describe")
+    logging.info("Commit hash for %s is %s (%s)" % (repository, h.strip(),
+                                                    desc))
+    return srcdir
+
+
+def unload_module(module_name):
+    """
+    Removes a module. Handles dependencies. If even then it's not possible
+    to remove one of the modules, it will trhow an error.CmdError exception.
+
+    @param module_name: Name of the module we want to remove.
+    """
+    l_raw = utils.system_output("/sbin/lsmod").splitlines()
+    lsmod = [x for x in l_raw if x.split()[0] == module_name]
+    if len(lsmod) > 0:
+        line_parts = lsmod[0].split()
+        if len(line_parts) == 4:
+            submodules = line_parts[3].split(",")
+            for submodule in submodules:
+                unload_module(submodule)
+        utils.system("/sbin/modprobe -r %s" % module_name)
+        logging.info("Module %s unloaded" % module_name)
+    else:
+        logging.info("Module %s is already unloaded" % module_name)
+
+
+def check_kvm_source_dir(source_dir):
+    """
+    Inspects the kvm source directory and verifies its disposition. In some
+    occasions build may be dependant on the source directory disposition.
+    The reason why the return codes are numbers is that we might have more
+    changes on the source directory layout, so it's not scalable to just use
+    strings like 'old_repo', 'new_repo' and such.
+
+    @param source_dir: Source code path that will be inspected.
+    """
+    os.chdir(source_dir)
+    has_qemu_dir = os.path.isdir('qemu')
+    has_kvm_dir = os.path.isdir('kvm')
+    if has_qemu_dir and not has_kvm_dir:
+        logging.debug("qemu directory detected, source dir layout 1")
+        return 1
+    if has_kvm_dir and not has_qemu_dir:
+        logging.debug("kvm directory detected, source dir layout 2")
+        return 2
+    else:
+        raise error.TestError("Unknown source dir layout, cannot proceed.")
 
 
 # The following are a class and functions used for SSH, SCP and Telnet
@@ -297,14 +402,14 @@ class kvm_spawn:
                 done = True
             # Check if child has died
             if self.poll() != None:
-                logging.debug("Process terminated with status %d" % self.poll())
+                logging.debug("Process terminated with status %d", self.poll())
                 done = True
             # Are we done?
             if done: break
 
         # Print some debugging info
         if match == None and self.poll() != 0:
-            logging.debug("Timeout elapsed or process terminated. Output:",
+            logging.debug("Timeout elapsed or process terminated. Output: %s",
                           format_str_for_message(data.strip()))
 
         return (match, data)
