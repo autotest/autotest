@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import time, socket, os, logging
+import time, socket, os, logging, fcntl
 import kvm_utils
 
 """
