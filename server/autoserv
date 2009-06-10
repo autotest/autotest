@@ -9,8 +9,8 @@ Run an control file through the server side engine
 import sys, os, re, traceback, signal, time, logging
 
 import common
-from autotest_lib.server import server_job, utils, autoserv_parser, autotest
 from autotest_lib.server import server_logging_config
+from autotest_lib.server import server_job, utils, autoserv_parser, autotest
 from autotest_lib.client.common_lib import pidfile, logging_manager
 
 def run_autoserv(pid_file_manager, results, parser):

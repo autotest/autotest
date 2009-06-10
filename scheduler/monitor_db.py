@@ -10,13 +10,14 @@ import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import itertools, logging, weakref
 import common
 import MySQLdb
+from autotest_lib.scheduler import scheduler_logging_config
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import global_config, logging_manager
 from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
 from autotest_lib.scheduler import drone_manager, drones, email_manager
-from autotest_lib.scheduler import monitor_db_cleanup, scheduler_logging_config
+from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
 
 
