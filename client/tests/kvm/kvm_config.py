@@ -304,7 +304,7 @@ class config:
             if op_found:
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Parsing operator (%d dicts in current"
+                                     "Parsing operator (%d dicts in current "
                                      "context)" % len_list)
                 (left, value) = self.split_and_strip(line, op_found)
                 filters_and_key = self.split_and_strip(left, ":")
@@ -351,7 +351,7 @@ class config:
                 list = filtered_list
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Parsing no/only (%d dicts in current"
+                                     "Parsing no/only (%d dicts in current "
                                      "context, %d remain)" %
                                      (len_list, len(list)))
 
@@ -374,7 +374,7 @@ class config:
             elif line == "subvariants:":
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Entering subvariants block (%d dicts in"
+                                     "Entering subvariants block (%d dicts in "
                                      "current context)" % len_list)
                 new_list = []
                 # Remember current file position
@@ -422,7 +422,7 @@ class config:
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
                                      "Entering multi-line exception block"
-                                     "(%d dicts in current context outside"
+                                     "(%d dicts in current context outside "
                                      "exception)" % len_list)
                 line = line.strip(":")
                 new_list = []
