@@ -145,8 +145,10 @@ for dict in list:
                 dependencies_satisfied = False
                 break
     if dependencies_satisfied:
+        test_iterations=int(dict.get("iterations", 1))
         current_status = job.run_test("kvm", params=dict,
-                                      tag=dict.get("shortname"))
+                                      tag=dict.get("shortname"),
+                                      iterations=test_iterations)
     else:
         current_status = False
     status_dict[dict.get("name")] = current_status
