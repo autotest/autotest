@@ -49,6 +49,7 @@ class base_test:
         self._keyvals = []
         self._new_keyval = False
         self.failed_constraints = []
+        self.iteration = 0
         self.before_iteration_hooks = []
         self.after_iteration_hooks = []
 
@@ -261,6 +262,7 @@ class base_test:
             logging.info('Test finished after %d iterations.', iterations)
 
         if not profile_only:
+            self.iteration += 1
             self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
 
         # Do any postprocessing, normally extracting performance keyvals, etc

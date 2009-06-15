@@ -24,6 +24,7 @@ class TestTestCase(unittest.TestCase):
             self.job = MockJob()
             self.job.profilers = MockProfilerManager()
 
+            self.iteration = 0
             self.before_iteration_hooks = []
             self.after_iteration_hooks = []
 
