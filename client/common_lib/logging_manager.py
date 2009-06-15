@@ -504,6 +504,7 @@ class _FdRedirectionStreamManager(_StreamManager):
         input_file = os.fdopen(read_fd, 'r')
         for line in iter(input_file.readline, ''):
             logging.log(self._level, line.rstrip('\n'))
+        logging.debug('Logging subprocess finished')
         os._exit(0)
 
 
@@ -527,8 +528,11 @@ class _FdRedirectionStreamManager(_StreamManager):
 
         # shut down subprocess
         child_pid = my_context['child_pid']
-        os.close(self._fd)
-        os.waitpid(child_pid, 0)
+        try:
+            os.close(self._fd)
+            os.waitpid(child_pid, 0)
+        except OSError:
+            logging.exception('Failed to cleanly shutdown logging subprocess:')
 
         # restore previous FD
         old_fd = my_context['old_fd']
