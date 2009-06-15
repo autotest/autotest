@@ -50,6 +50,14 @@ def install_kernel(machine, kernel_version):
     at.run(kernel_install_control %%%%
            {'client_kernel_list': repr([kernel_version])}, host=host)
 
+num_machines_required = len(machines)
+if len(machines) > 4:
+    # Allow a large multi-host tests to proceed despite a couple of hosts
+    # failing to properly install the desired kernel (exclude those hosts).
+    # TODO(gps): Figure out how to get and use SYNC_COUNT here.  It is defined
+    # within some control files and will end up inside of stepN functions below.
+    num_machines_required = len(machines) - 2
+
 def step_init():
     # a host object we use solely for the purpose of finding out the booted
     # kernel version, we use machines[0] since we already check that the same
@@ -59,7 +67,15 @@ def step_init():
 
     for kernel_version in kernel_list:
         func = lambda machine: install_kernel(machine, kernel_version)
-        job.parallel_simple(func, machines)
+        good_machines = job.parallel_on_machines(func, machines)
+        if len(good_machines) < num_machines_required:
+            raise error.TestError(
+                    "kernel installed on only %%%%d of %%%%d machines."
+                    %%%% (len(good_machines), num_machines_required))
+
+        # Replace the machines list that step_test() will use with the
+        # ones that successfully installed the kernel.
+        machines[:] = good_machines
 
         # have server_job.run_test() automatically add the kernel version as
         # a suffix to the test name otherwise we cannot run the same test on
