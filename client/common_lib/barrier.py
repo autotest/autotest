@@ -131,7 +131,7 @@ class barrier:
         except AttributeError, a:
             timeout = self.timeout
 
-        logging.info("remaining: %d", timeout)
+        logging.info("seconds remaining: %d", timeout)
         return timeout
 
 
