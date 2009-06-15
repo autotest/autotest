@@ -640,7 +640,7 @@ class rpm_kernel(object):
 
     @log.record
     @tee_output_logdir_mark
-    def install(self, tag='autotest'):
+    def install(self, tag='autotest', install_vmlinux=True):
         self.installed_as = tag
 
         self.image = None
@@ -681,6 +681,17 @@ class rpm_kernel(object):
         if self.image == None:
             errmsg = "specified rpm file(s) don't contain /boot/vmlinuz"
             raise error.TestError(errmsg)
+
+        # install vmlinux
+        if install_vmlinux:
+            for rpm_pack in self.rpm_package:
+                vmlinux = utils.system_output(
+                        'rpm -q -l -p %s | grep /boot/vmlinux' % rpm_pack)
+            utils.system('cd /; rpm2cpio %s | cpio -imuv .%s'
+                         % (rpm_pack, vmlinux))
+            if not os.path.exists(vmlinux):
+                raise error.TestError('%s does not exist after installing %s'
+                                      % (vmlinux, rpm_pack))
 
 
     def add_to_bootloader(self, tag='autotest', args=''):
