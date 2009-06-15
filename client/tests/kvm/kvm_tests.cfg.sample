@@ -67,16 +67,17 @@ variants:
     - autotest:     install setup
         type = autotest
         test_timeout = 720
-        test_control_file = control
         variants:
             - sleeptest:
                 test_name = sleeptest
                 test_timeout = 30
+                test_control_file = sleeptest.control
             - dbench:
                 test_name = dbench
-                test_control_file = control.60
+                test_control_file = dbench.control
             - bonnie:
                 test_name = bonnie
+                test_control_file = bonnie.control
 
     - linux_s3:      install setup
         type = linux_s3
