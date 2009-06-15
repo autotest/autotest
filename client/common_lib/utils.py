@@ -511,6 +511,19 @@ def nuke_pid(pid):
             pass
 
 
+def pid_is_alive(pid):
+    """
+    True if process pid exists and is not yet stuck in Zombie state.
+    Zombies are impossible to move between cgroups, etc.
+    pid can be integer, or text of integer.
+    """
+    try:
+        stat = utils.read_one_line('/proc/%s/stat' % pid)  # pid exists
+        return stat.split()[2] != 'Z'  # and is not in Zombie state
+    except Exception:
+        return False  # process no longer exists at all
+
+
 def system(command, timeout=None, ignore_status=False):
     """This function returns the exit status of command."""
     return run(command, timeout=timeout, ignore_status=ignore_status,
