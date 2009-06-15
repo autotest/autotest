@@ -1,4 +1,4 @@
-import sys, os, time, commands, re, logging
+import sys, os, time, commands, re, logging, signal
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 import kvm_vm, kvm_utils
@@ -133,6 +133,43 @@ def postprocess_vm(test, params, env, name):
         vm.destroy(gracefully = params.get("kill_vm_gracefully") == "yes")
 
 
+def process_command(test, params, env, command, command_timeout,
+                    command_noncritical):
+    """
+    Pre- or post- custom commands to be executed before/after a test is run
+
+    @param test: An Autotest test object.
+    @param params: A dict containing all VM and image parameters.
+    @param env: The environment (a dict-like object).
+    @param command: Script containing the command to be run.
+    @param commmand_timeout: Timeout for command execution.
+    @param command_noncritical: if 'yes' test will not fail if command fails.
+    """
+    if command_timeout is None:
+        command_timeout = "600"
+
+    if command_noncritical is None:
+        command_noncritical = "no"
+
+    # export environment vars
+    for k in params.keys():
+        logging.info("Adding KVM_TEST_%s to Environment" % (k))
+        os.putenv("KVM_TEST_%s" % (k), str(params[k]))
+    # execute command
+    logging.info("Executing command '%s'..." % command)
+    timeout = int(command_timeout)
+    (status, pid, output) = kvm_utils.run_bg("cd %s; %s" % (test.bindir,
+                                                            command),
+                                                            None, logging.debug,
+                                                            "(command) ",
+                                                            timeout = timeout)
+    if status != 0:
+        kvm_utils.safe_kill(pid, signal.SIGTERM)
+        logging.warn("Custom processing command failed: '%s'..." % command)
+        if command_noncritical != "yes":
+            raise error.TestError("Custom processing command failed")
+
+
 def process(test, params, env, image_func, vm_func):
     """
     Pre- or post-process VMs and images according to the instructions in params.
@@ -190,6 +227,12 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
+    #execute any pre_commands
+    if params.get("pre_command"):
+        process_command(test, params, env, params.get("pre_command"),
+                        params.get("pre_command_timeout"),
+                        params.get("pre_command_noncritical"))
+
     # Preprocess all VMs and images
     process(test, params, env, preprocess_image, preprocess_vm)
 
@@ -241,6 +284,12 @@ def postprocess(test, params, env):
                       " from results dir...")
         kvm_utils.run_bg("rm -vf %s" % os.path.join(test.debugdir, "*.ppm"),
                           None, logging.debug, "(rm) ", timeout=5.0)
+
+    #execute any post_commands
+    if params.get("post_command"):
+        process_command(test, params, env, params.get("post_command"),
+                        params.get("post_command_timeout"),
+                        params.get("post_command_noncritical"))
 
 
 def postprocess_on_error(test, params, env):
