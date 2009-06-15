@@ -60,7 +60,7 @@ class LoggingConfig(object):
 
 
     def add_console_handlers(self):
-        stdout_handler = self.add_stream_handler(sys.stdout)
+        stdout_handler = self.add_stream_handler(sys.stdout, level=logging.INFO)
         # only pass records *below* STDERR_LEVEL to stdout, to avoid duplication
         stdout_handler.addFilter(AllowBelowSeverity(self.STDERR_LEVEL))
 
