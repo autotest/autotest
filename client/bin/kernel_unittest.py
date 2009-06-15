@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, os, time, re, glob
+import unittest, os, time, re, glob, logging
 import common
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.bin import kernel, job, utils, kernelexpand
@@ -9,6 +9,8 @@ from autotest_lib.client.bin import kernel_config, boottool, os_dep
 class TestKernel(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
+
+        logging.disable(logging.CRITICAL)
 
         self.god.stub_function(time, "time")
         self.god.stub_function(os, "mkdir")

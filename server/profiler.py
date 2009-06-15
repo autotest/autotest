@@ -59,7 +59,7 @@ def encode_args(profiler, args, dargs):
 def get_profiler_log_path(autodir):
     """Given the directory of a profiler client, find the client log path."""
     return os.path.join(PROFILER_TMPDIR, autodir, "results", "default",
-                        "client.log")
+                        "debug", "client.DEBUG")
 
 
 def get_profiler_results_dir(autodir):
