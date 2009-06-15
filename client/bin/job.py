@@ -125,6 +125,9 @@ class base_job(object):
         if not os.path.exists(self.resultdir):
             os.makedirs(self.resultdir)
 
+        if not cont:
+            self._cleanup_results_dir()
+
         logging_manager.configure_logging(
                 client_logging_config.ClientLoggingConfig(),
                 results_dir=self.resultdir)
@@ -178,19 +181,6 @@ class base_job(object):
             if not os.path.exists(download):
                 os.mkdir(download)
 
-            # Clean up directory except for the client.log file that
-            # was initialized when job was instantiated anyway
-            client_logfile = os.path.join(self.resultdir, 'client.log')
-            if os.path.exists(self.resultdir):
-                list_files = glob.glob('%s/*' % self.resultdir)
-                for f in list_files:
-                    if f != client_logfile:
-                        if os.path.isdir(f):
-                            shutil.rmtree(f)
-                        elif os.path.isfile(f):
-                            os.remove(f)
-
-            os.makedirs(os.path.join(self.resultdir, 'debug'))
             os.makedirs(os.path.join(self.resultdir, 'analysis'))
 
             shutil.copyfile(self.control,
@@ -245,6 +235,17 @@ class base_job(object):
                     (len(param) == len(karg) or karg[len(param)] == '='):
                     kernel_args.append(karg)
         self.config_set('boot.default_args', ' '.join(kernel_args))
+
+
+    def _cleanup_results_dir(self):
+        """Delete everything in resultsdir"""
+        assert os.path.exists(self.resultdir)
+        list_files = glob.glob('%s/*' % self.resultdir)
+        for f in list_files:
+            if os.path.isdir(f):
+                shutil.rmtree(f)
+            elif os.path.isfile(f):
+                os.remove(f)
 
 
     def disable_warnings(self, warning_type):
