@@ -1,0 +1,196 @@
+--- src/netserver.c	2007-10-17 14:09:12.000000000 -0700
++++ src.patch/netserver.c	2008-11-05 10:23:55.253300000 -0800
+@@ -527,7 +527,7 @@
+     if ((bind (server_control, 
+ 	       local_res_temp->ai_addr, 
+ 	       local_res_temp->ai_addrlen) != SOCKET_ERROR) &&
+-	(listen (server_control,5) != SOCKET_ERROR))  {
++	(listen (server_control, 512) != SOCKET_ERROR))  {
+       not_listening = 0;
+       break;
+     }
+--- src/netsh.c	2007-08-08 13:29:21.000000000 -0700
++++ src.patch/netsh.c	2008-11-05 09:45:47.967668000 -0800
+@@ -93,7 +93,7 @@
+  /* Some of the args take optional parameters. Since we are using */
+  /* getopt to parse the command line, we will tell getopt that they do */
+  /* not take parms, and then look for them ourselves */
+-#define GLOBAL_CMD_LINE_ARGS "A:a:b:B:CcdDf:F:H:hi:I:k:K:l:L:n:NO:o:P:p:rt:T:v:VW:w:46"
++#define GLOBAL_CMD_LINE_ARGS "A:a:b:B:CcdDf:F:H:hi:I:k:K:l:L:n:NO:o:P:p:rt:s:T:v:VW:w:46"
+ 
+ /************************************************************************/
+ /*									*/
+@@ -174,6 +174,10 @@
+   remote_send_offset = 0,
+   remote_recv_offset = 0;
+ 
++/* wait time between control/data connection establishment and
++   start of data traffic 					*/
++int wait_time_secs;
++
+ #if defined(WANT_INTERVALS) || defined(WANT_DEMO)
+ int
+   interval_usecs,
+@@ -269,6 +273,7 @@
+     -p port,lport*    Specify netserver port number and/or local port\n\
+     -P 0|1            Don't/Do display test headers\n\
+     -r                Allow confidence to be hit on result only\n\
++    -s time           Time to wait before starting data traffic\n\
+     -t testname       Specify test to perform\n\
+     -T lcpu,rcpu      Request netperf/netserver be bound to local/remote cpu\n\
+     -v verbosity      Specify the verbosity level\n\
+@@ -697,6 +702,9 @@
+ 	test_time = 0;
+       }
+       break;
++     case 's':
++      wait_time_secs  =  convert(optarg);
++      break;
+     case 'v':
+       /* say how much to say */
+       verbosity = convert(optarg);
+--- src/netsh.h	2007-08-08 13:30:15.000000000 -0700
++++ src.patch/netsh.h	2008-11-05 09:45:48.020604000 -0800
+@@ -65,6 +65,8 @@
+   test_bytes,		/* test ends on byte count		*/
+   test_trans;		/* test ends on tran count		*/
+ 
++extern int wait_time_secs;
++
+ /* the alignment conditions for the tests				*/
+ extern int
+   local_recv_align,	/* alignment for local receives		*/
+--- src/nettest_bsd.c	2007-10-17 14:17:13.000000000 -0700
++++ src.patch/nettest_bsd.c	2008-11-05 10:41:34.391144000 -0800
+@@ -306,6 +306,12 @@
+ #endif
+ #endif
+ 
++#define WAIT_BEFORE_DATA_TRAFFIC() \
++{ \
++  if (wait_time_secs) \
++    sleep(wait_time_secs); \
++} \
++
+ #ifdef WANT_DEMO
+ #ifdef HAVE_GETHRTIME
+ static hrtime_t demo_one;
+@@ -1535,6 +1541,8 @@
+     /* we'll see it here. If it didn't, we might as well start pumping */
+     /* data. */ 
+     
++    WAIT_BEFORE_DATA_TRAFFIC();
++    
+     /* Set-up the test end conditions. For a stream test, they can be */
+     /* either time or byte-count based. */
+     
+@@ -2229,6 +2237,8 @@
+     /* we'll see it here. If it didn't, we might as well start pumping */
+     /* data. */ 
+     
++    WAIT_BEFORE_DATA_TRAFFIC();
++    
+     /* Set-up the test end conditions. For a maerts test, they can be */
+     /* either time or byte-count based. */
+     
+@@ -3681,7 +3691,7 @@
+     tcp_stream_request->cpu_rate	=	remote_cpu_rate;
+ 
+     if (test_time) {
+-      tcp_stream_request->test_length	=	test_time;
++      tcp_stream_request->test_length	=	test_time + wait_time_secs;
+     }
+     else {
+       tcp_stream_request->test_length	=	test_bytes;
+@@ -3762,6 +3772,8 @@
+        we'll see it here. If it didn't, we might as well start pumping
+        data. */
+     
++    WAIT_BEFORE_DATA_TRAFFIC();
++
+     /* Set-up the test end conditions. For a stream test, they can be */
+     /* either time or byte-count based. */
+     
+@@ -5149,7 +5161,7 @@
+       tcp_rr_request->so_rcvavoid	=	rem_rcvavoid;
+       tcp_rr_request->so_sndavoid	=	rem_sndavoid;
+       if (test_time) {
+-	tcp_rr_request->test_length	=	test_time;
++	tcp_rr_request->test_length	=	test_time + wait_time_secs;
+       }
+       else {
+ 	tcp_rr_request->test_length	=	test_trans * -1;
+@@ -5211,6 +5223,8 @@
+       
+       exit(1);
+     }
++
++    WAIT_BEFORE_DATA_TRAFFIC();
+     
+     /* Data Socket set-up is finished. If there were problems, either the */
+     /* connect would have failed, or the previous response would have */
+@@ -5925,6 +5939,8 @@
+           fflush(where);
+        }
+     }
++
++    WAIT_BEFORE_DATA_TRAFFIC();
+     
+     /* set up the timer to call us after test_time. one of these days, */
+     /* it might be nice to figure-out a nice reliable way to have the */
+@@ -6776,7 +6792,7 @@
+       udp_rr_request->so_rcvavoid	        = rem_rcvavoid;
+       udp_rr_request->so_sndavoid	        = rem_sndavoid;
+       if (test_time) {
+-	udp_rr_request->test_length	= test_time;
++	udp_rr_request->test_length	= test_time + wait_time_secs;
+       }
+       else {
+ 	udp_rr_request->test_length	= test_trans * -1;
+@@ -6847,6 +6863,8 @@
+     /* message after the accept on the remote. If it failed, we'll see it */
+     /* here. If it didn't, we might as well start pumping data. */
+     
++    WAIT_BEFORE_DATA_TRAFFIC();
++
+     /* Set-up the test end conditions. For a request/response test, they */
+     /* can be either time or transaction based. */
+     
+@@ -8128,7 +8146,7 @@
+     tcp_conn_rr_request->so_rcvavoid	=	rem_rcvavoid;
+     tcp_conn_rr_request->so_sndavoid	=	rem_sndavoid;
+     if (test_time) {
+-      tcp_conn_rr_request->test_length	=	test_time;
++      tcp_conn_rr_request->test_length	=	test_time + wait_time_secs;
+     }
+     else {
+       tcp_conn_rr_request->test_length	=	test_trans * -1;
+@@ -8199,6 +8217,8 @@
+   /* Set-up the test end conditions. For a request/response test, they */
+   /* can be either time or transaction based. */
+   
++  WAIT_BEFORE_DATA_TRAFFIC();
++
+   if (test_time) {
+     /* The user wanted to end the test after a period of time. */
+     times_up = 0;
+@@ -10313,7 +10333,7 @@
+     tcp_rr_request->so_rcvavoid	        =	rem_rcvavoid;
+     tcp_rr_request->so_sndavoid	        =	rem_sndavoid;
+     if (test_time) {
+-      tcp_rr_request->test_length	=	test_time;
++      tcp_rr_request->test_length	=	test_time + wait_time_secs;
+     }
+     else {
+       tcp_rr_request->test_length	=	test_trans * -1;
+@@ -10379,7 +10399,9 @@
+     /* indicated a problem. I failed to see the value of the extra */
+     /* message after the accept on the remote. If it failed, we'll see it */
+     /* here. If it didn't, we might as well start pumping data. */
+-    
++
++    WAIT_BEFORE_DATA_TRAFFIC();
++
+     /* Set-up the test end conditions. For a request/response test, they */
+     /* can be either time or transaction based. */
+     
