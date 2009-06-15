@@ -5,6 +5,7 @@ import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextArea;
@@ -21,25 +22,29 @@ public class NotifyManager {
     public static final NotifyManager theInstance = new NotifyManager();
     
     static class NotifyBox {
-        private PopupPanel panel;
+        private PopupPanel outerPanel;
+        private Panel innerPanel = new HorizontalPanel();
         private Label message = new Label();
         
         public NotifyBox(boolean autoHide) {
-            panel = new PopupPanel(autoHide);
-            panel.setStyleName("notify");
+            outerPanel = new PopupPanel(autoHide);
+            outerPanel.setStyleName("notify");
+            
+            innerPanel.setStyleName("notify-inner");
+            outerPanel.add(innerPanel);
         }
         
         public void addStyle(String style) {
-            panel.addStyleName(style);
+            innerPanel.addStyleName(style);
         }
         
         public void hide() {
-            panel.hide();
+            outerPanel.hide();
         }
         
         public void show() {
-            panel.show();
-            panel.getElement().getStyle().setProperty("position", "fixed");
+            outerPanel.show();
+            outerPanel.getElement().getStyle().setProperty("position", "fixed");
         }
         
         public void showMessage(String messageString) {
@@ -48,8 +53,8 @@ public class NotifyManager {
         }
 
         public void showWidget(Widget widget) {
-            panel.clear();
-            panel.add(widget);
+            innerPanel.clear();
+            innerPanel.add(widget);
             show();
         }
     }

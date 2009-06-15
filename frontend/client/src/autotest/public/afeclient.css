@@ -153,10 +153,15 @@ tr.data-row-clickable:hover {
 }
 
 .notify {
-  background: #FFF;
-  padding: 0.2em;
-  border: 2px solid #CDF;
   vertical-align: middle;
+  width: 100%;
+}
+
+.notify-inner {
+  background: #FEF0A7;
+  padding: 0.2em;
+  vertical-align: middle;
+  margin: 0 auto;
 }
 
 .error {
