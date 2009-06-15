@@ -77,6 +77,13 @@ class LoggingConfig(object):
         return handler
 
 
+    def _add_file_handlers_for_all_levels(self, log_dir, log_name):
+        for level in (logging.DEBUG, logging.INFO, logging.WARNING,
+                      logging.ERROR):
+            file_name = '%s.%s' % (log_name, logging.getLevelName(level))
+            self.add_file_handler(file_name, level=level, log_dir=log_dir)
+
+
     def add_debug_file_handlers(self, log_dir, log_name=None):
         raise NotImplemented
 
