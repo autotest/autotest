@@ -30,3 +30,7 @@
 body .menubar-hand-cursor .gwt-MenuItem { 
   cursor: pointer;
 }
+
+.preformatted {
+  white-space: pre;
+}
