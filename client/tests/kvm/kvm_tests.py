@@ -327,16 +327,16 @@ def run_autotest(test, params, env):
         logging.info(str(result))
         if result[1] == "FAIL":
             status_fail = True
-            message_fail = "Test '%s' ended with FAIL"
-            " (info: '%s')" % (result[0], result[3])
+            message_fail = ("Test '%s' ended with FAIL "
+                            "(info: '%s')" % (result[0], result[3]))
         if result[1] == "ERROR":
             status_error = True
-            message_error = "Test '%s' ended with ERROR"
-            " (info: '%s')" % (result[0], result[3])
+            message_error = ("Test '%s' ended with ERROR "
+                             "(info: '%s')" % (result[0], result[3]))
         if result[1] == "ABORT":
             status_error = True
-            message_error = "Test '%s' ended with ABORT"
-            " (info: '%s')" % (result[0], result[3])
+            message_error = ("Test '%s' ended with ABORT "
+                             "(info: '%s')" % (result[0], result[3]))
 
     # Copy test results to the local bindir/guest_results
     logging.info("Copying results back from guest...")
