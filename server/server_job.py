@@ -324,12 +324,8 @@ class base_server_job(object):
         return False
 
 
-    def parallel_simple(self, function, machines, log=True, timeout=None):
-        """
-        Run 'function' using parallel_simple, with an extra wrapper to handle
-        the necessary setup for continuous parsing, if possible. If continuous
-        parsing is already properly initialized then this should just work.
-        """
+    def _make_parallel_wrapper(self, function, machines, log):
+        """Wrap function as appropriate for calling by parallel_simple."""
         is_forking = not (len(machines) == 1 and self.machines == machines)
         if self.parse_job and is_forking and log:
             def wrapper(machine):
@@ -354,7 +350,50 @@ class base_server_job(object):
                 return result
         else:
             wrapper = function
-        subcommand.parallel_simple(wrapper, machines, log, timeout)
+        return wrapper
+
+
+    def parallel_simple(self, function, machines, log=True, timeout=None,
+                        return_results=False):
+        """
+        Run 'function' using parallel_simple, with an extra wrapper to handle
+        the necessary setup for continuous parsing, if possible. If continuous
+        parsing is already properly initialized then this should just work.
+
+        @param function: A callable to run in parallel given each machine.
+        @param machines: A list of machine names to be passed one per subcommand
+                invocation of function.
+        @param log: If True, output will be written to output in a subdirectory
+                named after each machine.
+        @param timeout: Seconds after which the function call should timeout.
+        @param return_results: If True instead of an AutoServError being raised
+                on any error a list of the results|exceptions from the function
+                called on each arg is returned.  [default: False]
+
+        @raises error.AutotestError: If any of the functions failed.
+        """
+        wrapper = self._make_parallel_wrapper(function, machines, log)
+        return subcommand.parallel_simple(wrapper, machines,
+                                          log=log, timeout=timeout,
+                                          return_results=return_results)
+
+
+    def parallel_on_machines(self, function, machines, timeout=None):
+        """
+        @param func: Called in parallel with one machine as its argument.
+        @param machines: A list of machines to call function(machine) on.
+        @param timeout: Seconds after which the function call should timeout.
+
+        @returns A list of machines on which function(machine) returned
+                without raising an exception.
+        """
+        results = self.parallel_simple(func, machines, timeout=timeout,
+                                       return_results=True)
+        success_machines = []
+        for result, machine in itertools.izip(results, machines):
+            if not isinstance(result, Exception):
+                success_machines.append(machine)
+        return success_machines
 
 
     USE_TEMP_DIR = object()
