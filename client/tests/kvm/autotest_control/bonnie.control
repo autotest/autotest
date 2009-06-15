@@ -1,0 +1,21 @@
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+NAME = "bonnie"
+TIME = "MEDIUM"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TEST_TYPE = "client"
+DOC = """\
+Bonnie is a benchmark which measures the performance of Unix file system
+operations. Bonnie is concerned with identifying bottlenecks; the name is a
+tribute to Bonnie Raitt, who knows how to use one.
+
+For more info, see http://www.textuality.com/bonnie/
+
+This benchmark configuration run generates sustained write traffic
+of 35-50MB/s of .1MB writes to just one disk.  It appears to have a
+sequential and a random workload. It gives profile measurements for:
+throughput, %CPU rand seeks per second. Not sure if the the CPU numbers
+are trustworthy.
+"""
+
+job.run_test('bonnie')
