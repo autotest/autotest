@@ -1,0 +1,15 @@
+AUTHOR = "Autotest Team"
+NAME = "Sleeptest"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+
+DOC = """
+This test simply sleeps for 1 second by default.  It's a good way to test
+profilers and double check that autotest is working.
+The seconds argument can also be modified to make the machine sleep for as
+long as needed.
+"""
+
+job.run_test('sleeptest', seconds = 1)

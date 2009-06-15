@@ -1,0 +1,20 @@
+TIME="SHORT"
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+DOC = """
+dbench is one of our standard kernel stress tests.  It produces filesystem
+load like netbench originally did, but involves no network system calls.
+Its results include throughput rates, which can be used for performance
+analysis.
+
+More information on dbench can be found here:
+http://samba.org/ftp/tridge/dbench/README
+
+Currently it needs to be updated in its configuration. It is a great test for
+the higher level I/O systems but barely touches the disk right now.
+"""
+NAME = 'dbench'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+job.run_test('dbench', seconds=60)
