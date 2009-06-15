@@ -10,6 +10,7 @@ class ServerLoggingConfig(logging_config.LoggingConfig):
                               log_dir=log_dir)
         self.add_file_handler(log_name + '.stderr', self.STDERR_LEVEL,
                               log_dir=log_dir)
+        self._add_file_handlers_for_all_levels(log_dir, log_name)
 
 
     def configure_logging(self, results_dir=None, use_console=True):
