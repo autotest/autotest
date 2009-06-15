@@ -483,16 +483,18 @@ class _FdRedirectionStreamManager(_StreamManager):
             os.close(write_end)
             return pid
         else: # child
-            os.close(write_end)
-            # ensure this subprocess doesn't hold any pipes to others
-            os.close(1)
-            os.close(2)
             try:
+                os.close(write_end)
+                # ensure this subprocess doesn't hold any pipes to others
+                os.close(1)
+                os.close(2)
                 self._run_logging_subprocess(read_end) # never returns
             except:
                 # don't let exceptions in the child escape
-                logging.exception('Logging subprocess died:')
-                os._exit(1)
+                try:
+                    logging.exception('Logging subprocess died:')
+                finally:
+                    os._exit(1)
 
 
     def _run_logging_subprocess(self, read_fd):
