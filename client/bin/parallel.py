@@ -16,24 +16,25 @@ def fork_start(tmp, l):
     try:
         try:
             l()
-
         except error.AutotestError:
             raise
-
         except Exception, e:
             raise error.UnhandledTestError(e)
-
     except Exception, detail:
-        ename = tmp + "/debug/error-%d" % (os.getpid())
-        pickle.dump(detail, open(ename, "w"))
-
-        sys.stdout.flush()
-        sys.stderr.flush()
-        os._exit(1)
-
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(0)
+        try:
+            logging.exception("child process failed")
+            ename = tmp + "/debug/error-%d" % (os.getpid())
+            pickle.dump(detail, open(ename, "w"))
+            sys.stdout.flush()
+            sys.stderr.flush()
+        finally:
+            os._exit(1)
+    else:
+        try:
+            sys.stdout.flush()
+            sys.stderr.flush()
+        finally:
+            os._exit(0)
 
 
 def fork_waitfor(tmp, pid):
