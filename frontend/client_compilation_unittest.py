@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, os
+import os, shutil, tempfile, unittest
 
 COMPILE_SCRIPT_DIR = os.path.join(os.path.dirname(__file__), 'client')
 
@@ -8,7 +8,11 @@ class ClientCompilationTest(unittest.TestCase):
     def _compile_module(self, module_name):
         compile_script = module_name + '-compile'
         full_path = os.path.join(COMPILE_SCRIPT_DIR, compile_script)
-        result = os.system(full_path + ' -validateOnly')
+        temp_dir = tempfile.mkdtemp('.client_compilation_unittest')
+        try:
+            result = os.system(full_path + ' -validateOnly -out ' + temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
         self.assertEquals(result, 0)
 
 
