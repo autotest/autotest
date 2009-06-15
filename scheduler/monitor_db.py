@@ -2578,7 +2578,10 @@ class HostQueueEntry(DBObject):
         if self.meta_host is not None or self.atomic_group:
             assert assigned_host
             # ensure results dir exists for the queue log
-            self.set_host(assigned_host)
+            if self.host_id is None:
+                self.set_host(assigned_host)
+            else:
+                assert assigned_host.id == self.host_id
 
         logging.info("%s/%s/%s scheduled on %s, status=%s", 
                      self.job.name, self.meta_host, self.atomic_group_id,
