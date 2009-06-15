@@ -65,6 +65,8 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_class(boottool, 'boottool')
         self.god.stub_class(sysinfo, 'sysinfo')
 
+        self.god.stub_class_method(job.base_job, '_cleanup_results_dir')
+
 
     def tearDown(self):
         sys.stdout = sys.__stdout__
@@ -95,6 +97,8 @@ class TestBaseJob(unittest.TestCase):
         # record
         os.path.exists.expect_call(resultdir).and_return(False)
         os.makedirs.expect_call(resultdir)
+        if not cont:
+            job.base_job._cleanup_results_dir.expect_call()
 
         utils.drop_caches.expect_call()
         self.job._load_state.expect_call()
@@ -114,8 +118,6 @@ class TestBaseJob(unittest.TestCase):
             os.mkdir.expect_call(results)
             os.path.exists.expect_call(download).and_return(False)
             os.mkdir.expect_call(download)
-            os.path.exists.expect_call(resultdir).and_return(False)
-            os.makedirs.expect_call(os.path.join(resultdir, 'debug'))
             os.makedirs.expect_call(os.path.join(resultdir, 'analysis'))
             shutil.copyfile.expect_call(mock.is_string_comparator(),
                                  os.path.join(resultdir, 'control'))

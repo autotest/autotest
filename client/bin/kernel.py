@@ -1,26 +1,19 @@
-import os, shutil, copy, pickle, re, glob, time
+import os, shutil, copy, pickle, re, glob, time, logging
 from autotest_lib.client.bin import kernel_config, os_dep, kernelexpand, test
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import log, error, packages
 
 
-def _mark(filename, msg):
-    file = open(filename, 'a')
-    file.write(msg)
-    file.close()
-
-
 def tee_output_logdir_mark(fn):
     def tee_logdir_mark_wrapper(self, *args, **dargs):
         mark = self.__class__.__name__ + "." + fn.__name__
-        outfile = os.path.join(self.log_dir, 'client.log')
-        _mark(outfile, "--- START " + mark + " ---\n")
+        logging.info("--- START %s ---", mark)
         self.job.logging.tee_redirect_debug_dir(self.log_dir)
         try:
             result = fn(self, *args, **dargs)
         finally:
             self.job.logging.restore()
-            _mark(outfile, "--- END " + mark + " ---\n")
+            logging.info("--- END %s ---", mark)
 
         return result
 
