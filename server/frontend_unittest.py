@@ -35,7 +35,7 @@ class RpcClientTest(BaseRpcClientTest):
         rpc_client_lib.get_proxy.expect_call(
                 'http://test-host/path',
                 headers={'AUTHORIZATION': 'unittest-user'})
-        frontend.RpcClient('/path', None, None, None, None)
+        frontend.RpcClient('/path', None, None, None, None, None)
         self.god.check_playback()
 
 
