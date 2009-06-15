@@ -33,7 +33,9 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -51,6 +53,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     public static final String NO_URL = "about:blank";
     public static final int NO_JOB_ID = -1;
     public static final int HOSTS_PER_PAGE = 30;
+    
+    public static final String SHOW_CONTROL_FILE = "Show control file";
+    public static final String HIDE_CONTROL_FILE = "Hide control file";
     
     public interface JobDetailListener {
         public void onHostSelected(String hostname);
@@ -108,9 +113,14 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showField(jobObject, "reboot_after", "view_reboot_after");
                 showField(jobObject, "parse_failed_repair", "view_parse_failed_repair");
                 showField(jobObject, "synch_count", "view_synch_count");
-                showField(jobObject, "control_type", "view_control_type");
-                showField(jobObject, "control_file", "view_control_file");
                 showField(jobObject, "dependencies", "view_dependencies");
+                
+                Label controlFile = new Label(Utils.jsonToString(jobObject.get("control_file")));
+                controlFile.addStyleName("preformatted");
+                String header = Utils.jsonToString(jobObject.get("control_type")) + " control file";
+                DisclosurePanel controlFilePanel = new DisclosurePanel(header);
+                controlFilePanel.setContent(controlFile);
+                RootPanel.get("view_control_file").add(controlFilePanel);
                 
                 JSONObject counts = jobObject.get("status_counts").isObject();
                 String countString = AfeUtils.formatStatusCounts(counts, ", ");
