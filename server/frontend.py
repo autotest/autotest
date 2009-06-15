@@ -275,7 +275,6 @@ class AFE(RpcClient):
                                            priority, timeout=timeout)
                 if not new_job:
                     continue
-                new_job.notified = False
                 jobs.append(new_job)
             except Exception, e:
                 traceback.print_exc()
@@ -370,12 +369,12 @@ class AFE(RpcClient):
         """
         results = []
         for job in jobs:
-            job.result = self.poll_job_results(tko, job)
-            results.append(job.result)
-            if job.result is not None and not job.notified:
-                self.result_notify(job, email_from, email_to)
-                job.notified = True
+            if getattr(job, 'result', None) is None:
+                job.result = self.poll_job_results(tko, job)
+                if job.result is not None:
+                    self.result_notify(job, email_from, email_to)
 
+            results.append(job.result)
             self.print_job_result(job)
 
         if None in results:
