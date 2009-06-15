@@ -11,10 +11,14 @@ logging_manager_object = None
 
 
 def parallel(tasklist, timeout=None, return_results=False):
-    """Run a set of predefined subcommands in parallel.
-       If return_results is True instead of an exception being raised on
-       any error a list of the results/exceptions from the functions is
-       returned.
+    """
+    Run a set of predefined subcommands in parallel.
+
+    @param tasklist: A list of subcommand instances to execute.
+    @param timeout: Number of seconds after which the commands should timeout.
+    @param return_results: If True instead of an AutoServError being raised
+            on any error a list of the results|exceptions from the tasks is
+            returned.  [default: False]
     """
     pids = []
     run_error = False
@@ -46,17 +50,42 @@ def parallel(tasklist, timeout=None, return_results=False):
         raise error.AutoservError('One or more subcommands failed')
 
 
-def parallel_simple(function, arglist, log=True, timeout=None):
-    """Each element in the arglist used to create a subcommand object,
+def parallel_simple(function, arglist, log=True, timeout=None,
+                    return_results=False):
+    """
+    Each element in the arglist used to create a subcommand object,
     where that arg is used both as a subdir name, and a single argument
     to pass to "function".
-    We create a subcommand object for each element in the list,
-    then execute those subcommand objects in parallel."""
 
+    We create a subcommand object for each element in the list,
+    then execute those subcommand objects in parallel.
+
+    NOTE: As an optimization, if len(arglist) == 1 a subcommand is not used.
+
+    @param function: A callable to run in parallel once per arg in arglist.
+    @param arglist: A list of single arguments to be used one per subcommand;
+            typically a list of machine names.
+    @param log: If True, output will be written to output in a subdirectory
+            named after each subcommand's arg.
+    @param timeout: Number of seconds after which the commands should timeout.
+    @param return_results: If True instead of an AutoServError being raised
+            on any error a list of the results|exceptions from the function
+            called on each arg is returned.  [default: False]
+
+    @returns None or a list of results/exceptions.
+    """
     # Bypass the multithreading if only one machine.
-    if len (arglist) == 1:
-        function(arglist[0])
-        return
+    if len(arglist) == 1:
+        arg = arglist[0]
+        if return_results:
+            try:
+                result = function(arg)
+            except Exception, e:
+                return [e]
+            return [result]
+        else:
+            function(arg)
+            return
 
     subcommands = []
     for arg in arglist:
@@ -66,7 +95,7 @@ def parallel_simple(function, arglist, log=True, timeout=None):
         else:
             subdir = None
         subcommands.append(subcommand(function, args, subdir))
-    parallel(subcommands, timeout)
+    return parallel(subcommands, timeout, return_results=return_results)
 
 
 class subcommand(object):
