@@ -2748,11 +2748,12 @@ class Job(DBObject):
         if atomic_entries.count() <= 0:
             return False
 
-        non_started_statuses = (models.HostQueueEntry.Status.QUEUED,
-                                models.HostQueueEntry.Status.VERIFYING,
-                                models.HostQueueEntry.Status.PENDING)
-        started_entries = atomic_entries.exclude(
-                status__in=non_started_statuses)
+        # These states may *only* be reached if Job.run() has been called.
+        started_statuses = (models.HostQueueEntry.Status.STARTING,
+                            models.HostQueueEntry.Status.RUNNING,
+                            models.HostQueueEntry.Status.COMPLETED)
+
+        started_entries = atomic_entries.filter(status__in=started_statuses)
         return started_entries.count() > 0
 
 
