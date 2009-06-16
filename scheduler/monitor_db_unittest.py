@@ -1977,18 +1977,22 @@ class JobTest(BaseSchedulerTest):
         self._create_job(hosts=[5, 6], atomic_group=1)
         job = monitor_db.Job.fetch('id = 1').next()
         self.assertFalse(job._atomic_and_has_started())
+
         self._update_hqe("status='Pending'")
         self.assertFalse(job._atomic_and_has_started())
         self._update_hqe("status='Verifying'")
         self.assertFalse(job._atomic_and_has_started())
+        self.assertFalse(job._atomic_and_has_started())
+        self._update_hqe("status='Failed'")
+        self.assertFalse(job._atomic_and_has_started())
+        self._update_hqe("status='Stopped'")
+        self.assertFalse(job._atomic_and_has_started())
+
         self._update_hqe("status='Starting'")
         self.assertTrue(job._atomic_and_has_started())
         self._update_hqe("status='Completed'")
         self.assertTrue(job._atomic_and_has_started())
         self._update_hqe("status='Aborted'")
-        self.assertTrue(job._atomic_and_has_started())
-        self._update_hqe("status='Failed'")
-        self.assertTrue(job._atomic_and_has_started())
 
 
     def test__atomic_and_has_started__not_atomic(self):
