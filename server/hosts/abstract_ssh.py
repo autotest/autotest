@@ -416,8 +416,14 @@ class AbstractSSHHost(SiteHost):
 
 
 class LoggerFile(object):
+
+
+    def __init__(self, verbose=True):
+        self.verbose = verbose
+
+
     def write(self, data):
-        if data:
+        if data and self.verbose:
             logging.debug(data.rstrip("\n"))
 
 

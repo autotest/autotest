@@ -194,7 +194,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=None, stderr_tee=None, connect_timeout=30):
+            stdout_tee=None, stderr_tee=None, connect_timeout=30,
+            verbose=True):
         """
         Run a command on the remote host.
 
@@ -217,9 +218,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         """
 
         # tee to std* if no tees are provided
-        stdout = stdout_tee or abstract_ssh.LoggerFile()
-        stderr = stderr_tee or abstract_ssh.LoggerFile()
-        logging.debug("ssh-paramiko: %s" % command)
+        stdout = stdout_tee or abstract_ssh.LoggerFile(verbose)
+        stderr = stderr_tee or abstract_ssh.LoggerFile(verbose)
+        if verbose:
+            logging.debug("ssh-paramiko: %s" % command)
 
         # start up the command
         echo_cmd = "echo `date '+%m/%d/%y %H:%M:%S'` Connected. >&2"
