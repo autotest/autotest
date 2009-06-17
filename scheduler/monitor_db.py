@@ -892,6 +892,10 @@ class Dispatcher(object):
                 queue_entry)
         if not group_hosts:
             return
+
+        logging.info('Expanding atomic group entry %s with hosts %s',
+                     queue_entry,
+                     ', '.join(host.hostname for host in group_hosts))
         # The first assigned host uses the original HostQueueEntry
         group_queue_entries = [queue_entry]
         for assigned_host in group_hosts[1:]:
