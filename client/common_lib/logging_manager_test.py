@@ -72,11 +72,11 @@ _EXPECTED_STDOUT = """\
 print 1
 system 1
 INFO: logging 1
-DEBUG: print 2
-DEBUG: system 2
+INFO: print 2
+INFO: system 2
 INFO: logging 2
-DEBUG: print 6
-DEBUG: system 6
+INFO: print 6
+INFO: system 6
 INFO: logging 6
 print 7
 system 7
@@ -84,20 +84,20 @@ INFO: logging 7
 """
 
 _EXPECTED_LOG1 = """\
-DEBUG: print 3
-DEBUG: system 3
+INFO: print 3
+INFO: system 3
 INFO: logging 3
-DEBUG: print 4
-DEBUG: system 4
+INFO: print 4
+INFO: system 4
 INFO: logging 4
-DEBUG: print 5
-DEBUG: system 5
+INFO: print 5
+INFO: system 5
 INFO: logging 5
 """
 
 _EXPECTED_LOG2 = """\
-DEBUG: print 4
-DEBUG: system 4
+INFO: print 4
+INFO: system 4
 INFO: logging 4
 """
 
@@ -128,7 +128,12 @@ class LoggingManagerTest(unittest.TestCase):
         # copy around
         self._original_stdout = self.stdout
 
-        logging.basicConfig(level=logging.DEBUG, format=LOGGING_FORMAT,
+        # clear out import-time logging config and reconfigure
+        root_logger = logging.getLogger()
+        for handler in list(root_logger.handlers):
+            root_logger.removeHandler(handler)
+        # use INFO to ignore debug output from logging_manager itself
+        logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT,
                             stream=self.stdout)
 
         self._config_object = DummyLoggingConfig()
@@ -155,7 +160,7 @@ class LoggingManagerTest(unittest.TestCase):
         def set_stdout(file_object):
             self.stdout = file_object
         manager = manager_class()
-        manager.manage_stream(self.stdout, logging.DEBUG, set_stdout)
+        manager.manage_stream(self.stdout, logging.INFO, set_stdout)
         return manager
 
 
@@ -239,7 +244,7 @@ class LoggingManagerTest(unittest.TestCase):
         manager.stop_logging()
 
         self._compare_logs(self.stdout,
-                           'DEBUG: mytag : hello\nDEBUG: goodbye')
+                           'INFO: mytag : hello\nINFO: goodbye')
         self._compare_logs(self._config_object.log, 'hello\n')
 
 
