@@ -11,7 +11,7 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-import sys, re, traceback
+import sys, re, traceback, logging
 from autotest_lib.client.common_lib import error, pxssh, debug
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
@@ -93,7 +93,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=None, stderr_tee=None, connect_timeout=30, options='',
-            stdin=None):
+            stdin=None, verbose=True):
         """
         Run a command on the remote host.
 
@@ -115,9 +115,10 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                               execution was not 0
             AutoservSSHTimeout: ssh connection has timed out
         """
-        stdout = stdout_tee or abstract_ssh.LoggerFile()
-        stderr = stderr_tee or abstract_ssh.LoggerFile()
-        self.ssh_host_log.debug("ssh: %s" % command)
+        stdout = stdout_tee or abstract_ssh.LoggerFile(verbose)
+        stderr = stderr_tee or abstract_ssh.LoggerFile(verbose)
+        if verbose:
+            logging.debug("ssh: %s" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             try:
@@ -125,7 +126,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                                  stderr, connect_timeout, env, options,
                                  stdin=stdin)
             except error.AutoservSshPermissionDeniedError:
-                print >>stdout, ("Permission denied to ssh; re-running "
+                logging.error("Permission denied to ssh; re-running "
                                  "with increased logging:")
                 try:
                     self._run(command, timeout, ignore_status, stdout,

@@ -165,6 +165,7 @@ class BasePackageManager(object):
             '''
             new_dargs = dict(run_function_dargs)
             new_dargs.update(_run_command_dargs)
+            new_dargs.update({'verbose' : False})
 
             return run_function(command, *_run_command_args,
                                 **new_dargs)
