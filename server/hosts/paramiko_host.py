@@ -194,8 +194,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=None, stderr_tee=None, connect_timeout=30,
-            verbose=True):
+            stdout_tee=abstract_ssh.TEE_TO_LOGS,
+            stderr_tee=abstract_ssh.TEE_TO_LOGS,
+            connect_timeout=30, verbose=True):
         """
         Run a command on the remote host.
 
@@ -217,9 +218,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             AutoservSSHTimeout: ssh connection has timed out
         """
 
-        # tee to std* if no tees are provided
-        stdout = stdout_tee or abstract_ssh.LoggerFile(verbose)
-        stderr = stderr_tee or abstract_ssh.LoggerFile(verbose)
+        stdout = self._get_stream_tee_file(stdout_tee, logging.DEBUG, verbose)
+        stderr = self._get_stream_tee_file(stderr_tee, logging.ERROR, verbose)
+
         if verbose:
             logging.debug("ssh-paramiko: %s" % command)
 

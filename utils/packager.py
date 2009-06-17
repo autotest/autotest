@@ -4,14 +4,14 @@
 Utility to upload or remove the packages from the packages repository.
 """
 
-import os, sys, optparse, socket, tempfile, shutil
+import logging, os, sys, optparse, socket, tempfile, shutil
 import common
 from autotest_lib.client.common_lib import utils as client_utils
-from autotest_lib.client.common_lib import packages, global_config, debug
+from autotest_lib.client.common_lib import packages, global_config
 from autotest_lib.server import utils as server_utils
 
 c = global_config.global_config
-debug.configure(module='utils')
+logging.basicConfig(logging.DEBUG)
 
 def get_exclude_string(client_dir):
     '''
