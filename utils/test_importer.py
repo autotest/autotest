@@ -19,12 +19,13 @@ Most options should be fairly self explanatory use --help to display them.
 """
 
 
-import time, re, os, MySQLdb, sys, optparse, compiler
+import logging, time, re, os, MySQLdb, sys, optparse, compiler
 import common
 from autotest_lib.client.common_lib import control_data, test, global_config
 from autotest_lib.client.common_lib import utils
 
 
+logging.basicConfig(logging.DEBUG)
 # Global
 DRY_RUN = False
 DEPENDENCIES_NOT_FOUND = set()

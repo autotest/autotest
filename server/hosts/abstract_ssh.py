@@ -1,5 +1,5 @@
 import os, time, types, socket, shutil, glob, logging
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, logging_manager
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import remote
 
@@ -17,6 +17,11 @@ def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
 SiteHost = utils.import_site_class(
     __file__, "autotest_lib.server.hosts.site_host", "SiteHost",
     remote.RemoteHost)
+
+
+# this constant can be passed to run() to tee stdout/stdout to the logging
+# module.
+TEE_TO_LOGS = object()
 
 
 class AbstractSSHHost(SiteHost):
@@ -415,17 +420,9 @@ class AbstractSSHHost(SiteHost):
             pass            # autotest dir may not exist, etc. ignore
 
 
-class LoggerFile(object):
-
-
-    def __init__(self, verbose=True):
-        self.verbose = verbose
-
-
-    def write(self, data):
-        if data and self.verbose:
-            logging.debug(data.rstrip("\n"))
-
-
-    def flush(self):
-        pass
+    def _get_stream_tee_file(self, stream, level, verbose):
+        if stream is not TEE_TO_LOGS:
+            return stream
+        if not verbose:
+            return None
+        return logging_manager.LoggingFile(level=level)

@@ -12,7 +12,7 @@ You should import the "hosts" package instead of importing each type of host.
 """
 
 import sys, re, traceback, logging
-from autotest_lib.client.common_lib import error, pxssh, debug
+from autotest_lib.client.common_lib import error, pxssh
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
 
@@ -47,7 +47,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 hostname: network hostname or address of remote machine
         """
         super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
-        self.ssh_host_log = debug.get_logger()
         self.setup_ssh()
 
 
@@ -92,8 +91,9 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=None, stderr_tee=None, connect_timeout=30, options='',
-            stdin=None, verbose=True):
+            stdout_tee=abstract_ssh.TEE_TO_LOGS,
+            stderr_tee=abstract_ssh.TEE_TO_LOGS,
+            connect_timeout=30, options='', stdin=None, verbose=True):
         """
         Run a command on the remote host.
 
@@ -115,8 +115,9 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                               execution was not 0
             AutoservSSHTimeout: ssh connection has timed out
         """
-        stdout = stdout_tee or abstract_ssh.LoggerFile(verbose)
-        stderr = stderr_tee or abstract_ssh.LoggerFile(verbose)
+        stdout = self._get_stream_tee_file(stdout_tee, logging.DEBUG, verbose)
+        stderr = self._get_stream_tee_file(stderr_tee, logging.ERROR, verbose)
+
         if verbose:
             logging.debug("ssh: %s" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
@@ -126,8 +127,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                                  stderr, connect_timeout, env, options,
                                  stdin=stdin)
             except error.AutoservSshPermissionDeniedError:
-                logging.error("Permission denied to ssh; re-running "
-                                 "with increased logging:")
+                logging.error("Permission denied to ssh; re-running with "
+                              "increased logging:")
                 try:
                     self._run(command, timeout, ignore_status, stdout,
                               stderr, connect_timeout, env, '-v -v -v',
@@ -220,8 +221,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def setup_ssh_key(self):
-        self.ssh_host_log.debug('Performing SSH key setup on %s:%d as %s.' %
-                                (self.hostname, self.port, self.user))
+        logging.debug('Performing SSH key setup on %s:%d as %s.' %
+                      (self.hostname, self.port, self.user))
 
         try:
             host = pxssh.pxssh()
@@ -240,10 +241,10 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             host.prompt()
             host.logout()
 
-            self.ssh_host_log.debug('SSH key setup complete.')
+            logging.debug('SSH key setup complete.')
 
         except:
-            self.ssh_host_log.debug('SSH key setup has failed.')
+            logging.debug('SSH key setup has failed.')
             try:
                 host.logout()
             except:

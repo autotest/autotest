@@ -1,7 +1,7 @@
-import os, sys, subprocess, tempfile, traceback
+import logging, os, sys, subprocess, tempfile, traceback
 import time
 
-from autotest_lib.client.common_lib import debug, utils
+from autotest_lib.client.common_lib import utils
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import abstract_ssh, monitors
 
@@ -57,19 +57,16 @@ def copy_monitordir(host):
 
 def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     """Launch followfiles.py remotely on follow_paths."""
-    logfile_monitor_log = debug.get_logger()
-    logfile_monitor_log.info(
-        'logfile_monitor: Launching followfiles on target: %s, %s, %s',
-        host.hostname, lastlines_dirpath, str(follow_paths))
+    logging.info('logfile_monitor: Launching followfiles on target: %s, %s, %s',
+                 host.hostname, lastlines_dirpath, str(follow_paths))
 
     # First make sure a supported Python is on host
     installed_pythons = list_remote_pythons(host)
     supported_python = select_supported_python(installed_pythons)
     if not supported_python:
         if DEFAULT_PYTHON in installed_pythons:
-            logfile_monitor_log.info(
-                'logfile_monitor: No versioned Python binary found,'
-                ' defaulting to: %s', DEFAULT_PYTHON)
+            logging.info('logfile_monitor: No versioned Python binary found,'
+                         ' defaulting to: %s', DEFAULT_PYTHON)
             supported_python = DEFAULT_PYTHON
         else:
             raise FollowFilesLaunchError('No supported Python on host.')
@@ -185,7 +182,6 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         self._lastlines_dirpath = None
         self._console_proc = None
         self._console_log = console_log or 'logfile_monitor.log'
-        self.logfile_monitor_log = debug.get_logger()
 
 
     def reboot_followup(self, *args, **dargs):
@@ -225,9 +221,8 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         missing = follow_paths_set.difference(existing)
         if missing:
             # Log warning that we are missing expected remote paths.
-            self.logfile_monitor_log.warn(
-                'Target(%s) missing expected remote paths: %s',
-                self.hostname, ', '.join(missing))
+            logging.warn('Target(%s) missing expected remote paths: %s',
+                         self.hostname, ', '.join(missing))
 
         # If none of them exist just return (for now).
         if not existing:
@@ -243,9 +238,8 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
                 self, self._lastlines_dirpath, existing)
         except FollowFilesLaunchError:
             # We're hosed, there is no point in proceeding.
-            self.logfile_monitor_log.fatal(
-                'Failed to launch followfiles on target,'
-                ' aborting logfile monitoring: %s', self.hostname)
+            logging.fatal('Failed to launch followfiles on target,'
+                          ' aborting logfile monitoring: %s', self.hostname)
             if self.job:
                 # Put a warning in the status.log
                 self.job.record(
@@ -259,9 +253,8 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
             try:
                 patterns_path = resolve_patterns_path(patterns_path)
             except InvalidPatternsPathError, e:
-                self.logfile_monitor_log.warn(
-                    'Specified patterns_path is invalid: %s, %s',
-                    patterns_path, str(e))
+                logging.warn('Specified patterns_path is invalid: %s, %s',
+                             patterns_path, str(e))
             else:
                 sane_pattern_paths.append(patterns_path)
 
