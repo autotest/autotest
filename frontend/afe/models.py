@@ -1,12 +1,10 @@
+import logging
 from datetime import datetime
 from django.db import models as dbmodels, connection
 import common
 from autotest_lib.frontend.afe import model_logic
 from autotest_lib.frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
-from autotest_lib.client.common_lib import debug
-
-logger = debug.get_logger()
 
 # job options and user preferences
 RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
@@ -286,7 +284,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
-        logger.info(self.hostname + ' -> ' + self.status)
+        logging.info(self.hostname + ' -> ' + self.status)
 
 
     def enqueue_job(self, job, atomic_group=None, is_template=False):
@@ -855,8 +853,8 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
-        logger.info('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
-                                          self.status))
+        logging.info('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
+                                           self.status))
 
 
     def is_meta_host_entry(self):

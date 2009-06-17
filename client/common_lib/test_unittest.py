@@ -7,15 +7,13 @@ __author__ = 'gps@google.com (Gregory P. Smith)'
 import unittest
 from cStringIO import StringIO
 import common
-from autotest_lib.client.common_lib import error, test, debug
+from autotest_lib.client.common_lib import error, test
 from autotest_lib.client.common_lib.test_utils import mock
 
 class TestTestCase(unittest.TestCase):
     class _neutered_base_test(test.base_test):
         """A child class of base_test to avoid calling the constructor."""
         def __init__(self, *args, **kwargs):
-            self.test_log = debug.get_logger(module='tests')
-
             class MockJob(object):
                 pass
             class MockProfilerManager(object):
