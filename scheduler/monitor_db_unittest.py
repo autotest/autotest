@@ -348,6 +348,15 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._test_obey_ACLs_helper(False)
 
 
+    def test_one_time_hosts_ignore_ACLs(self):
+        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
+        self._do_query('UPDATE hosts SET invalid=1 WHERE id=1')
+        self._create_job_simple([1])
+        self._dispatcher._schedule_new_jobs()
+        self._assert_job_scheduled_on(1, 1)
+        self._check_for_extra_schedulings()
+
+
     def test_non_metahost_on_invalid_host(self):
         """
         Non-metahost entries can get scheduled on invalid hosts (this is how

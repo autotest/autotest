@@ -239,12 +239,11 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
                         'Select it rather than entering it as a one time '
                         'host.' % hostname
                     })
-            host.clean_object()
-            AclGroup.objects.get(name='Everyone').hosts.add(host)
             host.status = Host.Status.READY
         host.protection = host_protections.Protection.DO_NOT_REPAIR
         host.locked = False
         host.save()
+        host.clean_object()
         return host
 
 
