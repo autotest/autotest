@@ -8,13 +8,17 @@ class ServerLoggingConfig(logging_config.LoggingConfig):
             log_name = 'autoserv'
         self.add_file_handler(log_name + '.stdout', logging.DEBUG,
                               log_dir=log_dir)
-        self.add_file_handler(log_name + '.stderr', self.STDERR_LEVEL,
+        self.add_file_handler(log_name + '.stderr', self.stderr_level,
                               log_dir=log_dir)
         self._add_file_handlers_for_all_levels(log_dir, log_name)
 
 
-    def configure_logging(self, results_dir=None, use_console=True):
-        super(ServerLoggingConfig, self).configure_logging(use_console)
+    def configure_logging(self, results_dir=None, use_console=True,
+                          verbose=False, no_console_prefix=False):
+        if no_console_prefix:
+            self.console_formatter = logging.Formatter()
+
+        super(ServerLoggingConfig, self).configure_logging(use_console, verbose)
 
         if results_dir:
             log_dir = os.path.join(results_dir, 'debug')

@@ -70,10 +70,15 @@ class base_autoserv_parser(object):
                                help="cleanup all machines after the job")
         self.parser.add_option("-n", action="store_true",
                                dest="no_tee", default=False,
-                              help="no teeing the status to stdout/err")
+                               help="no teeing the status to stdout/err")
         self.parser.add_option("-N", action="store_true",
                                dest="no_logging", default=False,
-                              help="no logging")
+                               help="no logging")
+        self.parser.add_option('--verbose', action='store_true',
+                               help='Include DEBUG messages in console output')
+        self.parser.add_option('--no_console_prefix', action='store_true',
+                               help='Disable the logging prefix on console '
+                               'output')
         self.parser.add_option("-p", "--write-pidfile", action="store_true",
                                dest="write_pidfile", default=False,
                                help="write pidfile (.autoserv_execute)")

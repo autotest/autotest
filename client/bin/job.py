@@ -92,24 +92,23 @@ class base_job(object):
     DEFAULT_LOG_FILENAME = "status"
     WARNING_DISABLE_DELAY = 5
 
-    def __init__(self, control, jobtag, cont, harness_type=None,
-                 use_external_logging=False, drop_caches=True,
+    def __init__(self, control, options, drop_caches=True,
                  extra_copy_cmdline=None):
         """
         Prepare a client side job object.
 
-        Args:
-          control: The control file (pathname of).
-          jobtag: The job tag string (eg "default").
-          cont: If this is the continuation of this job.
-          harness_type: An alternative server harness.  [None]
-          use_external_logging: If true, the enable_external_logging
-                  method will be called during construction.  [False]
-          drop_caches: If true, utils.drop_caches() is
-                  called before and between all tests.  [True]
-          extra_copy_cmdline: list of additional /proc/cmdline arguments to
-                  copy from the running kernel to all the installed kernels
-                  with this job
+        @param control: The control file (pathname of).
+        @param options: an object which includes:
+                jobtag: The job tag string (eg "default").
+                cont: If this is the continuation of this job.
+                harness_type: An alternative server harness.  [None]
+                use_external_logging: If true, the enable_external_logging
+                          method will be called during construction.  [False]
+        @param drop_caches: If true, utils.drop_caches() is called before and
+                between all tests.  [True]
+        @param extra_copy_cmdline: list of additional /proc/cmdline arguments to
+                copy from the running kernel to all the installed kernels with
+                this job
         """
         self.autodir = os.environ['AUTODIR']
         self.bindir = os.path.join(self.autodir, 'bin')
@@ -120,17 +119,18 @@ class base_job(object):
         self.profdir = os.path.join(self.autodir, 'profilers')
         self.tmpdir = os.path.join(self.autodir, 'tmp')
         self.toolsdir = os.path.join(self.autodir, 'tools')
-        self.resultdir = os.path.join(self.autodir, 'results', jobtag)
+        self.resultdir = os.path.join(self.autodir, 'results', options.tag)
 
         if not os.path.exists(self.resultdir):
             os.makedirs(self.resultdir)
 
-        if not cont:
+        if not options.cont:
             self._cleanup_results_dir()
 
         logging_manager.configure_logging(
                 client_logging_config.ClientLoggingConfig(),
-                results_dir=self.resultdir)
+                results_dir=self.resultdir,
+                verbose=options.verbose)
         logging.info('Writing results to %s', self.resultdir)
 
         self.drop_caches_between_iterations = False
@@ -140,7 +140,7 @@ class base_job(object):
             utils.drop_caches()
 
         self.control = os.path.realpath(control)
-        self._is_continuation = cont
+        self._is_continuation = options.cont
         self.state_file = self.control + '.state'
         self.current_step_ancestry = []
         self.next_step_index = 0
@@ -159,7 +159,7 @@ class base_job(object):
 
         self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
 
-        if not cont:
+        if not options.cont:
             """
             Don't cleanup the tmp dir (which contains the lockfile)
             in the constructor, this would be a problem for multiple
@@ -188,7 +188,7 @@ class base_job(object):
 
 
         self.control = control
-        self.jobtag = jobtag
+        self.jobtag = options.tag
         self.log_filename = self.DEFAULT_LOG_FILENAME
 
         self.logging = logging_manager.get_logging_manager(
@@ -198,7 +198,7 @@ class base_job(object):
         self._init_group_level()
 
         self.config = config.config(self)
-        self.harness = harness.select(harness_type, self)
+        self.harness = harness.select(options.harness, self)
         self.profilers = profilers.profilers(self)
 
         try:
@@ -209,13 +209,13 @@ class base_job(object):
 
         self.sysinfo.log_per_reboot_data()
 
-        if not cont:
+        if not options.cont:
             self.record('START', None, None)
             self._increment_group_level()
 
         self.harness.run_start()
 
-        if use_external_logging:
+        if options.log:
             self.enable_external_logging()
 
         # load the max disk usage rate - default to no monitoring
@@ -1235,19 +1235,13 @@ class disk_usage_monitor:
         return decorator
 
 
-def runjob(control, cont=False, tag="default", harness_type='',
-           use_external_logging=False):
+def runjob(control, options):
     """
     Run a job using the given control file.
 
     This is the main interface to this module.
 
-    Args:
-        control: The control file to use for this job.
-        cont: Whether this is the continuation of a previously started job.
-        tag: The job tag string.  ['default']
-        harness_type: An alternative server harness.  [None]
-        use_external_logging: Should external logging be enabled?  [False]
+    @see base_job.__init__ for parameter info.
     """
     control = os.path.abspath(control)
     state = control + '.state'
@@ -1266,11 +1260,10 @@ def runjob(control, cont=False, tag="default", harness_type='',
 
         # When continuing, the job is complete when there is no
         # state file, ensure we don't try and continue.
-        if cont and not os.path.exists(state):
+        if options.cont and not os.path.exists(state):
             raise error.JobComplete("all done")
 
-        myjob = job(control, tag, cont, harness_type=harness_type,
-                    use_external_logging=use_external_logging)
+        myjob = job(control, options)
 
         # Load in the users control file, may do any one of:
         #  1) execute in toto

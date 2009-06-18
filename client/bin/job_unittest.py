@@ -10,6 +10,11 @@ from autotest_lib.client.common_lib import logging_config
 from autotest_lib.client.common_lib.test_utils import mock
 
 
+class Dummy(object):
+    """A simple placeholder for attributes"""
+    pass
+
+
 class first_line_comparator(mock.argument_comparator):
     def __init__(self, first_line):
         self.first_line = first_line
@@ -146,7 +151,13 @@ class TestBaseJob(unittest.TestCase):
         self.job.config_set.expect_call('boot.default_args',
                                         'more-blah console=tty1')
         # finish constructor
-        self.job.__init__(self.control, self.jobtag, cont,
+        options = Dummy()
+        options.tag = self.jobtag
+        options.cont = cont
+        options.harness = None
+        options.log = False
+        options.verbose = False
+        self.job.__init__(self.control, options,
                           extra_copy_cmdline=['more-blah'])
 
         # check

@@ -37,6 +37,9 @@ parser.add_option("-H", "--harness", dest="harness", type="string", default='',
 parser.add_option("-l", "--external_logging", dest="log", action="store_true",
                         default=False, help="enable external logging")
 
+parser.add_option('--verbose', action='store_true',
+                  help='Include DEBUG messages in console output')
+
 def usage():
     parser.print_help()
     sys.exit(1)
@@ -48,5 +51,4 @@ if len(args) != 1:
     usage()
 
 # JOB: run the specified job control file.
-job.runjob(os.path.realpath(args[0]), options.cont, options.tag, options.harness,
-           options.log)
+job.runjob(os.path.realpath(args[0]), options)

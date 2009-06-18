@@ -206,7 +206,7 @@ class LoggingManager(object):
 
 
     def manage_stderr(self):
-        self.manage_stream(sys.stderr, self.logging_config_object.STDERR_LEVEL,
+        self.manage_stream(sys.stderr, self.logging_config_object.stderr_level,
                            self._sys_stream_setter('stderr'))
 
 
