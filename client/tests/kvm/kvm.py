@@ -48,6 +48,7 @@ class kvm(test.test):
                 "steps":        test_routine("kvm_guest_wizard", "run_steps"),
                 "stepmaker":    test_routine("stepmaker", "run_stepmaker"),
                 "boot":         test_routine("kvm_tests", "run_boot"),
+                "shutdown":     test_routine("kvm_tests", "run_shutdown"),
                 "migration":    test_routine("kvm_tests", "run_migration"),
                 "yum_update":   test_routine("kvm_tests", "run_yum_update"),
                 "autotest":     test_routine("kvm_tests", "run_autotest"),
