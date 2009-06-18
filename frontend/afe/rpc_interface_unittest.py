@@ -52,5 +52,14 @@ class RpcInterfaceTest(unittest.TestCase,
                                                      'Failed': 2})
 
 
+    def test_one_time_hosts(self):
+        job = rpc_interface.create_job('test', 'Medium', 'control file',
+                                       'Server', one_time_hosts=['testhost'])
+        host = models.Host.objects.get(hostname='testhost')
+        self.assertEquals(host.invalid, True)
+        self.assertEquals(host.labels.count(), 0)
+        self.assertEquals(host.aclgroup_set.count(), 0)
+
+
 if __name__ == '__main__':
     unittest.main()
