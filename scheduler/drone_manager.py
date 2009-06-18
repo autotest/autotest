@@ -375,6 +375,14 @@ class DroneManager(object):
                    for _, drone in self._drone_queue)
 
 
+    def _least_loaded_drone(self, drones):
+        drone_to_use = drones[0]
+        for drone in drones[1:]:
+            if drone.used_capacity() < drone_to_use.used_capacity():
+                drone_to_use = drone
+        return drone_to_use
+
+
     def _choose_drone_for_execution(self, num_processes):
         # cycle through drones is order of increasing used capacity until
         # we find one that can handle these processes
@@ -387,15 +395,16 @@ class DroneManager(object):
                 drone_to_use = drone
                 break
 
-        if drone_to_use:
-            drone_to_use.active_processes += num_processes
-        else:
+        if not drone_to_use:
             drone_summary = ','.join('%s %s/%s' % (drone.hostname,
                                                    drone.active_processes,
                                                    drone.max_processes)
                                      for drone in checked_drones)
-            raise ValueError('No drone has capacity to handle %d processes (%s)'
-                             % (num_processes, drone_summary))
+            logging.error('No drone has capacity to handle %d processes (%s)',
+                          num_processes, drone_summary)
+            drone_to_use = self._least_loaded_drone(checked_drones)
+
+        drone_to_use.active_processes += num_processes
 
         # refill _drone_queue
         for drone in checked_drones:
