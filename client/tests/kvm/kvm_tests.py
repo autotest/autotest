@@ -57,6 +57,43 @@ def run_boot(test, params, env):
     session.close()
 
 
+def run_shutdown(test, params, env):
+    """
+    KVM shutdown test:
+    1) Log into a guest
+    2) Send a shutdown command to the guest
+    3) Wait until it's down
+
+    @param test: kvm test object
+    @param params: Dictionary with the test parameters
+    @param env: Dictionary with test environment
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        raise error.TestError("VM object not found in environment")
+    if not vm.is_alive():
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
+
+    logging.info("Waiting for guest to be up...")
+
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    logging.info("Logged in")
+
+    # Send the VM's shutdown command
+    session.sendline(vm.get_params().get("cmd_shutdown"))
+    session.close()
+
+    logging.info("Shutdown command sent; waiting for guest to go down...")
+
+    if not kvm_utils.wait_for(vm.is_dead, 120, 0, 1):
+        raise error.TestFail("Guest refuses to go down")
+
+    logging.info("Guest is down")
+
+
 def run_migration(test, params, env):
     """
     KVM migration test:
