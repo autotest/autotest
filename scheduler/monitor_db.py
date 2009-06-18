@@ -449,6 +449,13 @@ class HostScheduler(object):
 
 
     def _is_host_eligible_for_job(self, host_id, queue_entry):
+        if self._is_host_invalid(host_id):
+            # if an invalid host is scheduled for a job, it's a one-time host
+            # and it therefore bypasses eligibility checks. note this can only
+            # happen for non-metahosts, because invalid hosts have their label
+            # relationships cleared.
+            return True
+
         job_dependencies = self._job_dependencies.get(queue_entry.job_id, set())
         host_labels = self._host_labels.get(host_id, set())
 
@@ -457,6 +464,11 @@ class HostScheduler(object):
                 self._check_only_if_needed_labels(
                     job_dependencies, host_labels, queue_entry) and
                 self._check_atomic_group_labels(host_labels, queue_entry))
+
+
+    def _is_host_invalid(self, host_id):
+        host_object = self._hosts_available.get(host_id, None)
+        return host_object and host_object.invalid
 
 
     def _schedule_non_metahost(self, queue_entry):
