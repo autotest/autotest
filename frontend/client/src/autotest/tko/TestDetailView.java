@@ -177,11 +177,11 @@ class TestDetailView extends DetailView {
 
     private void addLogViewers(String testName) {
         logPanel.clear();
-        addLogFileViewer(testName + "/debug/client.DEBUG", "Test debug log");
-        addLogFileViewer(testName + "/debug/client.ERROR", "Test error log");
+        addLogFileViewer(testName + "/debug/" + testName + ".DEBUG", "Test debug log");
+        addLogFileViewer(testName + "/debug/" + testName + ".ERROR", "Test error log");
         addLogFileViewer("status.log", "Job status log");
-        addLogFileViewer("debug/autoserv.DEBUG", "Job autoserv debug log");
-        addLogFileViewer("debug/autoserv.ERROR", "Job autoserv error log");
+        addLogFileViewer("debug/autoserv.DEBUG", "Job debug log");
+        addLogFileViewer("debug/autoserv.ERROR", "Job error log");
     }
 
     private void addLogFileViewer(String logPath, String logName) {
