@@ -164,7 +164,9 @@ def main():
 
     logging_manager.configure_logging(
             server_logging_config.ServerLoggingConfig(), results_dir=results,
-            use_console=not parser.options.no_tee)
+            use_console=not parser.options.no_tee,
+            verbose=parser.options.verbose,
+            no_console_prefix=parser.options.no_console_prefix)
     if results:
         logging.info("Results placed in %s" % results)
 
