@@ -19,14 +19,15 @@ class AllowBelowSeverity(logging.Filter):
 
 
 class LoggingConfig(object):
-    GLOBAL_LEVEL = logging.DEBUG
-    STDERR_LEVEL = logging.ERROR
+    global_level = logging.DEBUG
+    stdout_level = logging.INFO
+    stderr_level = logging.ERROR
 
-    FILE_FORMATTER = logging.Formatter(
+    file_formatter = logging.Formatter(
         fmt='[%(asctime)s %(levelname)-5.5s %(module)s] %(message)s',
         datefmt='%m/%d %H:%M:%S')
 
-    CONSOLE_FORMATTER = logging.Formatter(
+    console_formatter = logging.Formatter(
         fmt='[%(asctime)s %(levelname)-5.5s] %(message)s',
         datefmt='%H:%M:%S')
 
@@ -54,17 +55,18 @@ class LoggingConfig(object):
     def add_stream_handler(self, stream, level=logging.DEBUG):
         handler = logging.StreamHandler(stream)
         handler.setLevel(level)
-        handler.setFormatter(self.CONSOLE_FORMATTER)
+        handler.setFormatter(self.console_formatter)
         self.logger.addHandler(handler)
         return handler
 
 
     def add_console_handlers(self):
-        stdout_handler = self.add_stream_handler(sys.stdout, level=logging.INFO)
+        stdout_handler = self.add_stream_handler(sys.stdout,
+                                                 level=self.stdout_level)
         # only pass records *below* STDERR_LEVEL to stdout, to avoid duplication
-        stdout_handler.addFilter(AllowBelowSeverity(self.STDERR_LEVEL))
+        stdout_handler.addFilter(AllowBelowSeverity(self.stderr_level))
 
-        self.add_stream_handler(sys.stderr, self.STDERR_LEVEL)
+        self.add_stream_handler(sys.stderr, self.stderr_level)
 
 
     def add_file_handler(self, file_path, level=logging.DEBUG, log_dir=None):
@@ -72,7 +74,7 @@ class LoggingConfig(object):
             file_path = os.path.join(log_dir, file_path)
         handler = logging.FileHandler(file_path)
         handler.setLevel(level)
-        handler.setFormatter(self.FILE_FORMATTER)
+        handler.setFormatter(self.file_formatter)
         self.logger.addHandler(handler)
         return handler
 
@@ -93,10 +95,12 @@ class LoggingConfig(object):
             self.logger.removeHandler(handler)
 
 
-    def configure_logging(self, use_console=True):
+    def configure_logging(self, use_console=True, verbose=False):
         self._clear_all_handlers() # see comment at top of file
-        self.logger.setLevel(self.GLOBAL_LEVEL)
+        self.logger.setLevel(self.global_level)
 
+        if verbose:
+            self.stdout_level = logging.DEBUG
         if use_console:
             self.add_console_handlers()
 
