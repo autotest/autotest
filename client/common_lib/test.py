@@ -307,26 +307,9 @@ class base_test:
         pass
 
 
-    def _setup_test_logging_handler(self):
-        """
-        Adds a file handler during test execution, which will give test writers
-        the ability to obtain test results on the test results dir just by
-        making logging calls.
-        """
-        result_filename = os.path.join(self.resultsdir,
-                                       '%s.log' % self.tagged_testname)
-        self.test_handler = logging.FileHandler(filename=result_filename,
-                                                mode='w')
-        fmt_str = '[%(asctime)s - %(module)-15s - %(levelname)-8s] %(message)s'
-        self.test_formatter = logging.Formatter(fmt_str)
-        self.test_handler.setFormatter(self.test_formatter)
-        self.logger = logging.getLogger()
-        self.logger.addHandler(self.test_handler)
-
-
     def _exec(self, args, dargs):
-        self.job.logging.tee_redirect_debug_dir(self.debugdir)
-        self._setup_test_logging_handler()
+        self.job.logging.tee_redirect_debug_dir(self.debugdir,
+                                                log_name=self.tagged_testname)
         try:
             if self.network_destabilizing:
                 self.job.disable_warnings("NETWORK")
@@ -406,7 +389,6 @@ class base_test:
                     if run_cleanup:
                         _cherry_pick_call(self.cleanup, *args, **dargs)
                 finally:
-                    self.logger.removeHandler(self.test_handler)
                     self.job.logging.restore()
         except error.AutotestError:
             if self.network_destabilizing:
