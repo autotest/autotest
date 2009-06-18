@@ -39,6 +39,7 @@ variants:
         type = steps
         fail_if_stuck_for = 300
         stuck_detection_history = 2
+        kill_vm_on_error = yes
 
     - boot:         install setup
         type = boot
@@ -81,6 +82,12 @@ variants:
 
     - linux_s3:      install setup
         type = linux_s3
+
+    - shutdown:      install setup
+        type = shutdown
+        kill_vm = yes
+        kill_vm_gracefully = no
+
 
 # NICs
 variants:
@@ -543,7 +550,7 @@ variants:
         only default
         only up
         only Fedora.8.32
-        only install setup boot
+        only install setup boot shutdown
         only rtl8139
     - @sample1:
         only qcow2
