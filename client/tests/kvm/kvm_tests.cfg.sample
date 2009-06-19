@@ -89,6 +89,11 @@ variants:
         kill_vm_gracefully = no
 
 
+    - stress_boot:
+        type = stress_boot
+        max_vms = 5    
+        alive_test_cmd = ps aux
+
 # NICs
 variants:
     - @rtl8139:
@@ -299,6 +304,8 @@ variants:
         password = 123456
         migrate:
             migration_test_command = ver && vol
+        stress_boot:
+            alive_test_cmd = systeminfo
 
         variants:
             - Win2000:
