@@ -34,9 +34,8 @@ class FrontendTestMixin(object):
 
     def _fill_in_test_data(self):
         """Populate the test database with some hosts and labels."""
-        user = models.User.objects.create(login='my_user')
         acl_group = models.AclGroup.objects.create(name='my_acl')
-        acl_group.users.add(user)
+        acl_group.users.add(self.user)
 
         hosts = [models.Host.objects.create(hostname=hostname) for hostname in
                  ('host1', 'host2', 'host3', 'host4', 'host5', 'host6',
@@ -82,19 +81,20 @@ class FrontendTestMixin(object):
 
 
     def _setup_dummy_user(self):
-        user = models.User.objects.create(login='dummy', access_level=100)
-        thread_local.set_user(user)
+        self.user = models.User.objects.create(login='my_user', access_level=0)
+        thread_local.set_user(self.user)
 
 
     def _frontend_common_setup(self):
         self.god = mock.mock_god()
         self._open_test_db()
-        self._fill_in_test_data()
         self._setup_dummy_user()
+        self._fill_in_test_data()
 
 
     def _frontend_common_teardown(self):
         setup_test_environment.tear_down()
+        thread_local.set_user(None)
         self.god.unstub_all()
 
 

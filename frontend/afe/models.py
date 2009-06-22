@@ -492,9 +492,11 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             host.id for host in Host.objects.filter(aclgroup__users=user))
         for host in hosts:
             # Check if the user has access to this host,
-            # but only if it is not a metahost
-            if (isinstance(host, Host)
-                and int(host.id) not in accessible_host_ids):
+            # but only if it is not a metahost or a one-time-host
+            no_access = (isinstance(host, Host)
+                         and not host.invalid
+                         and int(host.id) not in accessible_host_ids)
+            if no_access:
                 raise AclAccessViolation("You do not have access to %s"
                                          % str(host))
 
