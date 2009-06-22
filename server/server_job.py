@@ -465,7 +465,9 @@ class base_server_job(object):
                                     server_control_file)
                 else:
                     utils.open_write_close(server_control_file, control)
+                logging.info("Processing control file")
                 self._execute_code(server_control_file, namespace)
+                logging.info("Finished processing control file")
 
                 # no error occured, so we don't need to collect crashinfo
                 collect_crashinfo = False
