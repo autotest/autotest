@@ -31,7 +31,7 @@ class RpcHandler(object):
 
 
     def get_rpc_documentation(self):
-        return rpc_utils.rpc_http_response(self.html_doc)
+        return rpc_utils.raw_http_response(self.html_doc)
 
 
     def raw_request_data(self, request):
