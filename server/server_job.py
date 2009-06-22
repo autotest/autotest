@@ -944,7 +944,7 @@ class base_server_job(object):
 
         # This is the equivalent of prepending a bunch of import statements to
         # the front of the control script.
-        namespace.update(os=os, sys=sys)
+        namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest_lib.server',
                 ('hosts', 'autotest', 'kvm', 'git', 'standalone_profiler',
                  'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
