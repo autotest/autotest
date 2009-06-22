@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 

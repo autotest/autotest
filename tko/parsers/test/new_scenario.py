@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 """Create new scenario test instance from an existing results directory.
 
 This automates creation of regression tests for the results parsers.
