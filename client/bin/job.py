@@ -635,7 +635,38 @@ class base_job(object):
         self.record('GOOD', None, 'reboot.start')
 
 
-    def end_reboot(self, subdir, kernel, patches):
+    def _record_reboot_failure(self, subdir, operation, status,
+                               running_id=None):
+        self.record("ABORT", subdir, operation, status)
+        self._decrement_group_level()
+        if not running_id:
+            running_id = utils.running_os_ident()
+        kernel = {"kernel": running_id.split("::")[0]}
+        self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
+
+
+    def _check_post_reboot(self, subdir, running_id=None):
+        """
+        Function to perform post boot checks such as if the mounted
+        partition list has changed across reboots.
+        """
+        partition_list = partition_lib.get_partition_list(self)
+        mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
+        old_mount_info = self.get_state("__mount_info")
+        if mount_info != old_mount_info:
+            new_entries = mount_info - old_mount_info
+            old_entries = old_mount_info - mount_info
+            description = ("mounted partitions are different after reboot "
+                           "(old entries: %s, new entries: %s)" %
+                           (old_entries, new_entries))
+            self._record_reboot_failure(subdir, "reboot.verify_config",
+                                        description, running_id=running_id)
+            raise error.JobError("Reboot failed: %s" % description)
+
+
+    def end_reboot(self, subdir, kernel, patches, running_id=None):
+        self._check_post_reboot(subdir, running_id=running_id)
+
         # strip ::<timestamp> from the kernel version if present
         kernel = kernel.split("::")[0]
         kernel_info = {"kernel": kernel}
@@ -683,15 +714,13 @@ class base_job(object):
             logging.error("Command Line Mark: %d", cmdline_when)
             logging.error("     Command Line: " + cmdline)
 
-            self.record("ABORT", subdir, "reboot.verify", "boot failure")
-            self._decrement_group_level()
-            kernel = {"kernel": running_id.split("::")[0]}
-            self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
+            self._record_reboot_failure(subdir, "reboot.verify", "boot failure",
+                                        running_id=running_id)
             raise error.JobError("Reboot returned with the wrong kernel")
 
         self.record('GOOD', subdir, 'reboot.verify',
                     utils.running_os_full_version())
-        self.end_reboot(subdir, expected_id, patches)
+        self.end_reboot(subdir, expected_id, patches, running_id=running_id)
 
 
     def partition(self, device, loop_size=0, mountpoint=None):
@@ -752,7 +781,11 @@ class base_job(object):
 
 
     def reboot_setup(self):
-        pass
+        # save the partition list and their mount point and compare it
+        # after reboot
+        partition_list = partition_lib.get_partition_list(self)
+        mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
+        self.set_state("__mount_info", mount_info)
 
 
     def reboot(self, tag=LAST_BOOT_TAG):
@@ -846,7 +879,7 @@ class base_job(object):
         # without it being re-written.  Perf wise, deep copies
         # are overshadowed by pickling/loading.
         self.state[var] = copy.deepcopy(val)
-        outfile = open(self.state_file, 'w')
+        outfile = open(self.state_file, 'wb')
         try:
             pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
         finally:
