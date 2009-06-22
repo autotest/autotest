@@ -14,7 +14,7 @@ total_wall_time_start = time.time()
 
 import common
 from autotest_lib.tko import display, frontend, db, query_lib
-from autotest_lib.client.bin import kernel_versions
+from autotest_lib.client.common_lib import kernel_versions
 
 html_header = """\
 <form action="/tko/compose_query.cgi" method="get">

@@ -1,13 +1,12 @@
 #!/usr/bin/python
 import os, re, db, sys, datetime
+import common
+from autotest_lib.client.common_lib import kernel_versions
+
 MAX_RECORDS = 50000L
 MAX_CELLS = 500000L
 
 tko = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
-client_bin = os.path.abspath(os.path.join(tko, '../client/bin'))
-sys.path.insert(0, client_bin)
-import kernel_versions
-
 root_url_file = os.path.join(tko, '.root_url')
 if os.path.exists(root_url_file):
     html_root = open(root_url_file, 'r').readline().rstrip()
