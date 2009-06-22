@@ -2,29 +2,23 @@
 #  tko/nightly.py  code shared by various *_nightly.cgi scripts
 
 import cgi, cgitb
-import common, os, sys
+import os, sys
+import common
 from autotest_lib.tko import db, plotgraph, perf
+from autotest_lib.client.common_lib import kernel_versions
 
-default_max_kernels = 15
 
-
-def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
-                  ref_release, ref_job_label, 
-                  latest_rc,   rc_job_label, nightly_job_label,
-                  tko_mysql_server, results_server):
+def nightly_views(suite_notes, kernel_legend, benchmarks,
+                  released_kernel_series,
+                  nightly_kernel_series,
+                  smp = 'smp',
+                  test_group='Kernel_Qual_Containers',
+                  tko_mysql_server='autotest', results_server='autotest',
+                  max_rel_kernels=8, max_dev_kernels=5):
 
     test_runs = {}  # kernel --> (platform --> list of test runs)
-    job_table = {}  # kernel name (test date) --> list of job idxs
-
-
-    def survey_all_tested_DEV_kernels():
-        # find dates and job#s of all nightly DEV kernel perf tests
-        cmd = ( "select label, job_idx from jobs"
-                " where label like '%s'" % nightly_job_label )
-        nrows = perf.db_cur.execute(cmd)
-        for joblabel, jobx in perf.db_cur.fetchall():
-            kerntestdate = joblabel.split(' : ')[3]
-            job_table.setdefault(kerntestdate, []).append(jobx)
+    job_table = {}  # kernel id --> list of job idxs
+    kernel_dates = {}  # Kernel id --> date of nightly test
 
 
     def add_kernel_jobs(label_pattern):
@@ -127,17 +121,21 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
 
 
     def select_dev_kernels():
-        # collect table of all DEV kernels' test runs and add ref kernel's runs
-        survey_all_tested_DEV_kernels()
-        dev_dates = sorted(job_table.keys())
-        trimmed_kernels = dev_dates[-maxdev:]   # use only latest N DEV kernels
-        ref_kernel = ' '+ref_release            # leading blank helps sort order
-        rc_kernel  = ' '+latest_rc         
-        job_table[ref_kernel] = add_kernel_jobs(ref_job_label)
-        job_table[rc_kernel ] = add_kernel_jobs(rc_job_label )
-        trimmed_kernels.insert(0, rc_kernel)
-        trimmed_kernels.insert(0, ref_kernel)
-        return trimmed_kernels
+        # collect table of all tested kernels' test runs
+        kernels = []
+        for series in released_kernel_series:
+            kernels += survey_all_kernels_tested(perf.db_cur, series+'.',
+                                                 '', smp, test_group,
+                                                 max_rel_kernels,
+                                                 job_table, kernel_dates)
+        for series in nightly_kernel_series:
+            kernels += survey_all_kernels_tested(perf.db_cur,
+                                                 '2.6.26-%s-' % series,
+                                                 series, smp, test_group,
+                                                 max_dev_kernels,
+                                                 job_table, kernel_dates)
+        kernels = sort_kernels(kernels)
+        return kernels  # sorted subset of kernels in job_table 
 
 
     def graph_1_test(test, metric, size):
@@ -154,7 +152,8 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
             ylegend = ''
             ymin = None
         ylegend += metric.capitalize()
-        graph = plotgraph.gnuplot(title, kernel_legend, ylegend, size=size)
+        graph = plotgraph.gnuplot(title, kernel_legend, ylegend, size=size,
+                                  xsort=sort_kernels)
         for platform in platforms:
             graph.add_dataset(platform, plot_data[platform])
         graph.plot(cgi_header=True, ymin=ymin, dark=dark)
@@ -182,7 +181,8 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
             print "<td><b>", p, "</b></td>"
         print "</tr>"
         for kernel in kernels:
-            print "<tr> <td><b>", kernel, "</b></td>"
+            print "<tr> <td><b>", kernel, "</b><br><small>",
+            print kernel_dates[kernel], "</small></td>"
             for platform in platforms:
                 print "<td",
                 vals = plot_data[platform].get(kernel, [])
@@ -196,7 +196,7 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
                             "&platforms=%s&runs&kernel=%s'>" 
                             % (myself, test, metric, platform, kernel) )
                     print "<b>%.4g</b>" % avg, "</a><br>",
-                    print "&nbsp; <small> %d   </small>" % len(vals),
+                    print "&nbsp; <small> %dr   </small>" % len(vals),
                     print "&nbsp; <small> %.3g </small>" % std_dev,
                 else:
                     print "> ?",
@@ -298,7 +298,6 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
     dark     = 'dark'     in form
     platforms_filter = form.getvalue('platforms', '')
     by_hosts = 'by_hosts' in form  or  '.' in platforms_filter
-    maxdev = eval(form.getvalue('maxdev', str(default_max_kernels)))
     passthru = []
     if relative:
         passthru += ['relative']
@@ -310,8 +309,6 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
         passthru += ['by_hosts']
     if platforms_filter:
         passthru += ['platforms=%s' % platforms_filter]
-    if maxdev != default_max_kernels:
-        passthru += ['maxdev=%i' % maxdev]
     myself = os.path.basename(sys.argv[0])
     if test:
         passthru += ['test=%s' % test]
@@ -339,3 +336,42 @@ def nightly_views(test_group, suite_notes, kernel_legend, benchmarks,
             graph_1_test(test, metric, size)
     else:
         overview_page(benchmarks)
+
+
+def sort_kernels(kernels):
+    return sorted(kernels, key=kernel_versions.version_encode)
+
+
+def survey_all_kernels_tested(db_cur, kernel_series, kname_prefix, smp,
+                              test_group, maxkernels,
+                              kernel_jobs, kernel_dates):
+    kernels = set()
+    # script run's job label has form
+    #    'Kernel_Qual_Containers : 2.6.26-300.8-jilee : smp : 2009-05-15'
+    # or 'Kernel_Qual_Containers : 2.6.26-DEV-4099999 : smp : 2009-05-15'
+    job_label = ('%s : %s%% : %s : %%'
+                 % (test_group, kernel_series, smp))
+    # find names and job#s of all matching perf runs
+    cmd = ( "select job_idx, label, tag from jobs"
+            " where label like '%s' order by label desc" % job_label )
+    nrows = db_cur.execute(cmd)
+    for jobx, joblabel, tag in db_cur.fetchall():
+        cols = joblabel.split(' : ')
+        kernvers  = cols[1].split('-')   #  2.6.26  300.8  jilee
+        #                               or  2.6.26  DEV    4099999
+        if kname_prefix:  # nightly build, eg 'DEV' or '300'
+            changelist = kernvers[2]   # build's CL number
+            testdate = cols[3]
+            kernel = '%s_%s' % (kname_prefix, changelist)
+        else:             # release candidates
+            if len(kernvers) > 2:  # reject jobs with -qual suffix
+                continue
+            kernel = kernvers[1]   # 300.8
+            testdate = ''
+        kernel_jobs.setdefault(kernel, [])
+        kernel_jobs[kernel].append(jobx)
+        kernel_dates[kernel] = testdate
+        kernels.add(kernel)
+    kernels = sort_kernels(kernels)[-maxkernels:]
+    return kernels
+
