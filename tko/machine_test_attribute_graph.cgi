@@ -8,7 +8,7 @@ Popen = subprocess.Popen
 
 import common
 from autotest_lib.tko import db, display, frontend, plotgraph
-from autotest_lib.client.bin import kernel_versions
+from autotest_lib.client.common_lib import kernel_versions
 
 db = db.db()
 
