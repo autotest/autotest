@@ -54,9 +54,6 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     public static final int NO_JOB_ID = -1;
     public static final int HOSTS_PER_PAGE = 30;
     
-    public static final String SHOW_CONTROL_FILE = "Show control file";
-    public static final String HIDE_CONTROL_FILE = "Hide control file";
-    
     public interface JobDetailListener {
         public void onHostSelected(String hostname);
         public void onCloneJob(JSONValue result);
@@ -76,6 +73,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     protected ScrollPanel tkoResultsScroller = new ScrollPanel(tkoResultsHtml);
     protected JobDetailListener listener;
     private SelectionManager selectionManager;
+    
+    private Label controlFile = new Label();
+    private DisclosurePanel controlFilePanel = new DisclosurePanel("");
     
     public JobDetailView(JobDetailListener listener) {
         this.listener = listener;
@@ -115,12 +115,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showField(jobObject, "synch_count", "view_synch_count");
                 showField(jobObject, "dependencies", "view_dependencies");
                 
-                Label controlFile = new Label(Utils.jsonToString(jobObject.get("control_file")));
-                controlFile.addStyleName("preformatted");
                 String header = Utils.jsonToString(jobObject.get("control_type")) + " control file";
-                DisclosurePanel controlFilePanel = new DisclosurePanel(header);
-                controlFilePanel.setContent(controlFile);
-                RootPanel.get("view_control_file").add(controlFilePanel);
+                controlFilePanel.getHeaderTextAccessor().setText(header);
+                controlFile.setText(Utils.jsonToString(jobObject.get("control_file")));
                 
                 JSONObject counts = jobObject.get("status_counts").isObject();
                 String countString = AfeUtils.formatStatusCounts(counts, ", ");
@@ -208,6 +205,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         
         tkoResultsScroller.setStyleName("results-frame");
         RootPanel.get("tko_results").add(tkoResultsScroller);
+        
+        controlFile.addStyleName("preformatted");
+        controlFilePanel.setContent(controlFile);
+        RootPanel.get("view_control_file").add(controlFilePanel);
     }
 
     
