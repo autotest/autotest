@@ -67,12 +67,12 @@ class iperf(test.test):
                     # Wait up to ten minutes for the server and client
                     # to reach this point
                     self.job.barrier(server_tag, 'start_%d' % num_streams,
-                                     600).rendevous(*all)
+                                     600).rendezvous(*all)
 
                     # Stop the server when the client finishes
                     # Wait up to test_time + five minutes
                     self.job.barrier(server_tag, 'finish_%d' % num_streams,
-                                     test_time+300).rendevous(*all)
+                                     test_time+300).rendezvous(*all)
                 finally:
                     self.server_stop()
 
@@ -81,12 +81,12 @@ class iperf(test.test):
                 # Wait up to ten minutes for the server and client
                 # to reach this point
                 self.job.barrier(client_tag, 'start_%d' % num_streams,
-                                 600).rendevous(*all)
+                                 600).rendezvous(*all)
                 self.client(server_ip, test_time, num_streams)
 
                 # Wait up to 5 minutes for the server to also reach this point
                 self.job.barrier(client_tag, 'finish_%d' % num_streams,
-                                 300).rendevous(*all)
+                                 300).rendezvous(*all)
             else:
                 raise error.TestError('invalid role specified')
 

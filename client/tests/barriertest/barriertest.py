@@ -11,20 +11,20 @@ class barriertest(test.test):
 
         b0 = self.job.barrier(hostid, "sync_profilers", timeout_start,
                               port=63100)
-        b0.rendevous_servers(masterid, hostid)
+        b0.rendezvous_servers(masterid, hostid)
 
         b1 = self.job.barrier(hostid, "start_profilers", timeout_start,
                               port=63100)
-        b1.rendevous_servers(masterid, hostid)
+        b1.rendezvous_servers(masterid, hostid)
 
         b2 = self.job.barrier(hostid, "local_sync_profilers", timeout_sync)
-        b2.rendevous(*all_ids)
+        b2.rendezvous(*all_ids)
 
         profilers.start(self)
 
         b3 = self.job.barrier(hostid, "stop_profilers", timeout_stop,
                               port=63100)
-        b3.rendevous_servers(masterid, hostid)
+        b3.rendezvous_servers(masterid, hostid)
 
         profilers.stop(self)
         profilers.report(self)

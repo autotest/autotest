@@ -696,7 +696,7 @@ def get_sync_control_file(control, host_name, host_num,
             'b0 = job.barrier("%s", "sc_bar", %d, port=%d)'
             % (jobid, sc_bar_timeout, sc_bar_port))
         control_new.append(
-        'b0.rendevous_servers("PARALLEL_MASTER", "%s")'
+        'b0.rendezvous_servers("PARALLEL_MASTER", "%s")'
          % jobid)
 
     elif instance == 1:
@@ -704,22 +704,22 @@ def get_sync_control_file(control, host_name, host_num,
         # process to complete setup
         b0 = barrier.barrier("PARALLEL_MASTER", "sc_bar", sc_bar_timeout,
                      port=sc_bar_port)
-        b0.rendevous_servers("PARALLEL_MASTER", jobid)
+        b0.rendezvous_servers("PARALLEL_MASTER", jobid)
 
         if(num_jobs > 2):
             b1 = barrier.barrier(jobid, "s_bar", s_bar_timeout,
                          port=s_bar_port)
-            b1.rendevous(rendvstr)
+            b1.rendezvous(rendvstr)
 
     else:
         # For the rest of the clients
         b2 = barrier.barrier(jobid, "s_bar", s_bar_timeout, port=s_bar_port)
-        b2.rendevous(rendvstr)
+        b2.rendezvous(rendvstr)
 
     # Client side barrier for all the tests to start at the same time
     control_new.append('b1 = job.barrier("%s", "c_bar", %d, port=%d)'
                     % (jobid, c_bar_timeout, c_bar_port))
-    control_new.append("b1.rendevous(%s)" % rendvstr)
+    control_new.append("b1.rendezvous(%s)" % rendvstr)
 
     # Stick in the rest of the control file
     control_new.append(control)
