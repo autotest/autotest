@@ -201,7 +201,7 @@ class LoggingManager(object):
 
 
     def manage_stdout(self):
-        self.manage_stream(sys.stdout, logging.DEBUG,
+        self.manage_stream(sys.stdout, logging.INFO,
                            self._sys_stream_setter('stdout'))
 
 
