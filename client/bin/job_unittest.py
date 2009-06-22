@@ -164,6 +164,16 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
+    def get_partition_mock(self, devname):
+        """
+        Create a mock of a partition object and return it.
+        """
+        class mock(object):
+            device = devname
+            get_mountpoint = self.god.create_mock_function('get_mountpoint')
+        return mock
+
+
     def test_constructor(self):
         self.construct_job(False)
 
@@ -492,12 +502,75 @@ class TestBaseJob(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_report_reboot_failure(self):
+        self.construct_job(True)
+
+        # record
+        self.job.record.expect_call("ABORT", "sub", "reboot.verify",
+                                    "boot failure")
+        self.job._decrement_group_level.expect_call()
+        self.job.record.expect_call("END ABORT", "sub", "reboot",
+                                    optional_fields={"kernel": "2.6.15-smp"})
+
+        # playback
+        self.job._record_reboot_failure("sub", "reboot.verify", "boot failure",
+                                        running_id="2.6.15-smp")
+        self.god.check_playback()
+
+
+    def _setup_check_post_reboot(self, mount_info):
+        # setup
+        self.god.stub_function(job.partition_lib, "get_partition_list")
+
+        part_list = [self.get_partition_mock("/dev/hda1"),
+                     self.get_partition_mock("/dev/hdb1")]
+        mount_list = ["/mnt/hda1", "/mnt/hdb1"]
+
+        # record
+        job.partition_lib.get_partition_list.expect_call(self.job).and_return(
+                part_list)
+        for i in xrange(len(part_list)):
+            part_list[i].get_mountpoint.expect_call().and_return(mount_list[i])
+        self.job.get_state.expect_call("__mount_info").and_return(mount_info)
+
+
+    def test_check_post_reboot_success(self):
+        self.construct_job(True)
+
+        mount_info = set([("/dev/hda1", "/mnt/hda1"),
+                          ("/dev/hdb1", "/mnt/hdb1")])
+        self._setup_check_post_reboot(mount_info)
+
+        # playback
+        self.job._check_post_reboot("sub")
+        self.god.check_playback()
+
+
+    def test_check_post_reboot_mounts_failure(self):
+        self.construct_job(True)
+
+        mount_info = set([("/dev/hda1", "/mnt/hda1")])
+        self._setup_check_post_reboot(mount_info)
+
+        self.god.stub_function(self.job, "_record_reboot_failure")
+        self.job._record_reboot_failure.expect_call("sub",
+                "reboot.verify_config", "mounted partitions are different after"
+                " reboot (old entries: set([]), new entries: set([('/dev/hdb1',"
+                " '/mnt/hdb1')]))", running_id=None)
+
+        # playback
+        self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
+        self.god.check_playback()
+
+
     def test_end_boot(self):
         self.construct_job(True)
+        self.god.stub_function(self.job, "_check_post_reboot")
 
         # set up the job class
         self.job.group_level = 2
 
+        self.job._check_post_reboot.expect_call("sub", running_id=None)
         self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END GOOD", "sub", "reboot",
                                     optional_fields={"kernel": "2.6.15-smp",
@@ -510,6 +583,7 @@ class TestBaseJob(unittest.TestCase):
 
     def test_end_boot_and_verify_success(self):
         self.construct_job(True)
+        self.god.stub_function(self.job, "_check_post_reboot")
 
         # set up the job class
         self.job.group_level = 2
@@ -521,13 +595,15 @@ class TestBaseJob(unittest.TestCase):
             "blah more-blah root=lala IDENT=81234567 blah-again")
 
         self.god.stub_function(utils, "running_os_full_version")
-        utils.running_os_full_version.expect_call().and_return("2.6.15-smp")
+        running_id = "2.6.15-smp"
+        utils.running_os_full_version.expect_call().and_return(running_id)
 
         self.job.record.expect_call("GOOD", "sub", "reboot.verify",
-                                    "2.6.15-smp")
+                                    running_id)
+        self.job._check_post_reboot.expect_call("sub", running_id=running_id)
         self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END GOOD", "sub", "reboot",
-                                    optional_fields={"kernel": "2.6.15-smp"})
+                                    optional_fields={"kernel": running_id})
 
         # run test
         self.job.end_reboot_and_verify(81234567, "2.6.15-smp", "sub")
@@ -536,6 +612,7 @@ class TestBaseJob(unittest.TestCase):
 
     def test_end_boot_and_verify_failure(self):
         self.construct_job(True)
+        self.god.stub_function(self.job, "_record_reboot_failure")
 
         # set up the job class
         self.job.group_level = 2
@@ -546,11 +623,8 @@ class TestBaseJob(unittest.TestCase):
         utils.read_one_line.expect_call("/proc/cmdline").and_return(
             "blah more-blah root=lala IDENT=81234567 blah-again")
 
-        self.job.record.expect_call("ABORT", "sub", "reboot.verify",
-                                    "boot failure")
-        self.job._decrement_group_level.expect_call()
-        self.job.record.expect_call("END ABORT", "sub", "reboot",
-                                    optional_fields={"kernel": "2.6.15-smp"})
+        self.job._record_reboot_failure.expect_call("sub", "reboot.verify",
+                "boot failure", running_id="2.6.15-smp")
 
         # run test
         self.assertRaises(error.JobError, self.job.end_reboot_and_verify,
