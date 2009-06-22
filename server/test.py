@@ -3,13 +3,13 @@
 # Define the server-side test class
 #
 
-import os, tempfile
+import os, tempfile, logging
 
 from autotest_lib.client.common_lib import log, utils, test as common_test
 
 
 class test(common_test.base_test):
-    pass
+    disable_sysinfo_install_cache = False
 
 
 _sysinfo_before_test_script = """\
@@ -55,9 +55,14 @@ job.record('GOOD', '', 'sysinfo.iteration.%s')
 def install_autotest_and_run(func):
     def wrapper(self, mytest):
         host, at, outputdir = self._install()
-        host.run('rm -rf %s' % os.path.join(outputdir, '*'),
-                 ignore_status=True)
-        func(self, mytest, host, at, outputdir)
+        try:
+            host.erase_dir_contents(outputdir)
+            func(self, mytest, host, at, outputdir)
+        finally:
+            # the test class can define this flag to make us remove the
+            # sysinfo install files and outputdir contents after each run
+            if mytest.disable_sysinfo_install_cache:
+                self.cleanup(host_close=False)
 
     return wrapper
 
@@ -87,6 +92,18 @@ class _sysinfo_logger(object):
             self.autotest = autotest.Autotest(self.host)
             self.autotest.install_base(autodir=tmp_dir)
             self.outputdir = self.host.get_tmp_dir()
+        else:
+            host = self.host
+
+            # if autotest client dir does not exist, reinstall (it may have
+            # been removed by the test code)
+            autodir = host.get_autodir()
+            if not autodir or not host.path_exists(autodir):
+                self.autotest.install_base(autodir=autodir)
+
+            # if the output dir does not exist, recreate it
+            if not host.path_exists(self.outputdir):
+                host.run('mkdir -p %s' % self.outputdir)
 
         return self.host, self.autotest, self.outputdir
 
@@ -178,12 +195,22 @@ class _sysinfo_logger(object):
         self._pull_sysinfo_keyval(host, outputdir, mytest)
 
 
-    def cleanup(self):
+    def cleanup(self, host_close=True):
         if self.host and self.autotest:
             try:
-                self.autotest.uninstall()
-            finally:
-                self.host.close()
+                try:
+                    self.autotest.uninstall()
+                finally:
+                    if host_close:
+                        self.host.close()
+                    else:
+                        self.host.erase_dir_contents(self.outputdir)
+
+            except Exception:
+                # ignoring exceptions here so that we don't hide the true
+                # reason of failure from runtest
+                logging.exception('Error cleaning up the sysinfo autotest/host '
+                                  'objects, ignoring it')
 
 
 def runtest(job, url, tag, args, dargs):
