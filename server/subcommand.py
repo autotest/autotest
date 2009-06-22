@@ -1,6 +1,6 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess, traceback, time, signal, pickle
+import sys, os, subprocess, traceback, time, signal, pickle, logging
 
 from autotest_lib.client.common_lib import error, utils
 
@@ -74,6 +74,9 @@ def parallel_simple(function, arglist, log=True, timeout=None,
 
     @returns None or a list of results/exceptions.
     """
+    if not arglist:
+        logging.warn("parallel_simple was called with an empty arglist, "
+                     "did you forget to pass in a list of machines?")
     # Bypass the multithreading if only one machine.
     if len(arglist) == 1:
         arg = arglist[0]
