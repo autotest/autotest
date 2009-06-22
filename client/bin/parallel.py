@@ -2,7 +2,7 @@
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys, os, pickle
+import sys, os, pickle, logging
 from autotest_lib.client.common_lib import error
 
 def fork_start(tmp, l):
@@ -22,11 +22,13 @@ def fork_start(tmp, l):
             raise error.UnhandledTestError(e)
     except Exception, detail:
         try:
-            logging.exception("child process failed")
-            ename = tmp + "/debug/error-%d" % (os.getpid())
-            pickle.dump(detail, open(ename, "w"))
-            sys.stdout.flush()
-            sys.stderr.flush()
+            try:
+                logging.exception("child process failed")
+            finally:
+                ename = tmp + "/debug/error-%d" % (os.getpid())
+                pickle.dump(detail, open(ename, "w"))
+                sys.stdout.flush()
+                sys.stderr.flush()
         finally:
             os._exit(1)
     else:
@@ -41,8 +43,8 @@ def fork_waitfor(tmp, pid):
     (pid, status) = os.waitpid(pid, 0)
 
     ename = tmp + "/debug/error-%d" % pid
-    if (os.path.exists(ename)):
+    if os.path.exists(ename):
         raise pickle.load(file(ename, 'r'))
 
-    if (status != 0):
-        raise error.TestError("test failed rc=%d" % (status))
+    if status:
+        raise error.TestError("Test subprocess failed rc=%d" % (status))
