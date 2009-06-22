@@ -225,12 +225,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             logging.debug("ssh-paramiko: %s" % command)
 
         # start up the command
-        echo_cmd = "echo `date '+%m/%d/%y %H:%M:%S'` Connected. >&2"
-        full_cmd = "%s;%s" % (echo_cmd, command)
         start_time = time.time()
         try:
             channel = self._open_channel(timeout)
-            channel.exec_command(full_cmd)
+            channel.exec_command(command)
         except (socket.error, paramiko.SSHException), e:
             raise error.AutoservSSHTimeout("ssh failed: %s" % e)
 
