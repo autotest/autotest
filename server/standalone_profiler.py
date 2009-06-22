@@ -34,16 +34,16 @@ def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
 def wait_for_profilers(machines, timeout = 300):
     sb = barrier.barrier("PROF_MASTER", "sync_profilers",
             timeout, port=63100)
-    sb.rendevous_servers("PROF_MASTER", *machines)
+    sb.rendezvous_servers("PROF_MASTER", *machines)
 
 
 def start_profilers(machines, timeout = 120):
     sb = barrier.barrier("PROF_MASTER", "start_profilers",
             timeout, port=63100)
-    sb.rendevous_servers("PROF_MASTER", *machines)
+    sb.rendezvous_servers("PROF_MASTER", *machines)
 
 
 def stop_profilers(machines, timeout = 120):
     sb = barrier.barrier("PROF_MASTER", "stop_profilers",
             timeout, port=63100)
-    sb.rendevous_servers("PROF_MASTER", *machines)
+    sb.rendezvous_servers("PROF_MASTER", *machines)

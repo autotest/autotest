@@ -28,19 +28,19 @@ def wait_for_profilers(machines, timeout = 180):
     # wait until the profilers have started
     sync_bar = barrier("PROF_MASTER", "sync_profilers",
             timeout, port=63100)
-    sync_bar.rendevous_servers("PROF_MASTER", *machines)
+    sync_bar.rendezvous_servers("PROF_MASTER", *machines)
 
 
 def start_profilers(machines, timeout = 180):
     # wait until the profilers have started
     start_bar = barrier("PROF_MASTER", "start_profilers",
             timeout, port=63100)
-    start_bar.rendevous_servers("PROF_MASTER", *machines)
+    start_bar.rendezvous_servers("PROF_MASTER", *machines)
 
 
 def stop_profilers(machines, timeout = 120):
     stop_bar = barrier("PROF_MASTER", "stop_profilers", timeout, port=63100)
-    stop_bar.rendevous_servers("PROF_MASTER", *machines)
+    stop_bar.rendezvous_servers("PROF_MASTER", *machines)
 
 
 def server_sleep_test(seconds):

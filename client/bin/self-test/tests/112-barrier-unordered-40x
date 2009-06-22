@@ -11,7 +11,7 @@ def payload1(id):
 	time.sleep(random.randint(1, 5))
 
 	b = job.barrier('127.0.0.1#P%d' % (id), 'here', 60)
-	b.rendevous(*us)
+	b.rendezvous(*us)
 
 	print "--STEPTEST-- payload1 complete"
 
