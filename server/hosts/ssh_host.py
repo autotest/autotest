@@ -61,13 +61,11 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
              connect_timeout, env, options, stdin=None):
         """Helper function for run()."""
         ssh_cmd = self.ssh_command(connect_timeout, options)
-        echo_cmd = "echo \`date '+%m/%d/%y %H:%M:%S'\` Connected. >&2"
         if not env.strip():
             env = ""
         else:
             env = "export %s;" % env
-        full_cmd = '%s "%s;%s %s"' % (ssh_cmd, echo_cmd, env,
-                                      utils.sh_escape(command))
+        full_cmd = '%s "%s %s"' % (ssh_cmd, env, utils.sh_escape(command))
         result = utils.run(full_cmd, timeout, True, stdout, stderr,
                            verbose=False, stdin=stdin)
 
