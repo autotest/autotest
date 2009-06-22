@@ -5,7 +5,7 @@
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
 import warnings, smtplib, logging, urllib2
-from autotest_lib.client.common_lib import error, barrier
+from autotest_lib.client.common_lib import error, barrier, logging_manager
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
@@ -20,12 +20,32 @@ def deprecated(func):
     return new_func
 
 
+class _NullStream(object):
+    def write(self, data):
+        pass
+
+
+    def flush(self):
+        pass
+
+
+TEE_TO_LOGS = object()
+_the_null_stream = _NullStream()
+
+def get_stream_tee_file(stream, level):
+    if stream is None:
+        return _the_null_stream
+    if stream is TEE_TO_LOGS:
+        return logging_manager.LoggingFile(level=level)
+    return stream
+
+
 class BgJob(object):
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
                  stdin=None):
         self.command = command
-        self.stdout_tee = stdout_tee
-        self.stderr_tee = stderr_tee
+        self.stdout_tee = get_stream_tee_file(stdout_tee, logging.DEBUG)
+        self.stderr_tee = get_stream_tee_file(stderr_tee, logging.ERROR)
         self.result = CmdResult(command)
         if verbose:
             logging.debug("Running '%s'" % command)
@@ -60,12 +80,12 @@ class BgJob(object):
             # perform a single read
             data = os.read(pipe.fileno(), 1024)
         buf.write(data)
-        if tee:
-            tee.write(data)
-            tee.flush()
+        tee.write(data)
 
 
     def cleanup(self):
+        self.stdout_tee.flush()
+        self.stderr_tee.flush()
         self.sp.stdout.close()
         self.sp.stderr.close()
         self.result.stdout = self.stdout_file.getvalue()
@@ -325,6 +345,7 @@ def run(command, timeout=None, ignore_status=False,
                         will be written as it is generated (data will still
                         be stored in result.stdout)
             stderr_tee: likewise for stderr
+            verbose: if True, log the command being run
             stdin: stdin to pass to the executed process
 
     Returns:
@@ -527,7 +548,7 @@ def pid_is_alive(pid):
 def system(command, timeout=None, ignore_status=False):
     """This function returns the exit status of command."""
     return run(command, timeout=timeout, ignore_status=ignore_status,
-               stdout_tee=sys.stdout, stderr_tee=sys.stderr).exit_status
+               stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS).exit_status
 
 
 def system_parallel(commands, timeout=None, ignore_status=False):
@@ -535,14 +556,14 @@ def system_parallel(commands, timeout=None, ignore_status=False):
     list of commands."""
     return [bg_jobs.exit_status for bg_jobs in
             run_parallel(commands, timeout=timeout, ignore_status=ignore_status,
-                         stdout_tee=sys.stdout, stderr_tee=sys.stderr)]
+                         stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS)]
 
 
 def system_output(command, timeout=None, ignore_status=False,
                   retain_output=False):
     if retain_output:
         out = run(command, timeout=timeout, ignore_status=ignore_status,
-                  stdout_tee=sys.stdout, stderr_tee=sys.stderr).stdout
+                  stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS).stdout
     else:
         out = run(command, timeout=timeout, ignore_status=ignore_status).stdout
     if out[-1:] == '\n': out = out[:-1]
@@ -552,9 +573,10 @@ def system_output(command, timeout=None, ignore_status=False,
 def system_output_parallel(commands, timeout=None, ignore_status=False,
                            retain_output=False):
     if retain_output:
-        out = [bg_job.stdout for bg_job in run_parallel(commands,
-                                  timeout=timeout, ignore_status=ignore_status,
-                                  stdout_tee=sys.stdout, stderr_tee=sys.stderr)]
+        out = [bg_job.stdout for bg_job
+               in run_parallel(commands, timeout=timeout,
+                               ignore_status=ignore_status,
+                               stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS)]
     else:
         out = [bg_job.stdout for bg_job in run_parallel(commands,
                                   timeout=timeout, ignore_status=ignore_status)]

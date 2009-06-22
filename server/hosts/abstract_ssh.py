@@ -418,11 +418,3 @@ class AbstractSSHHost(SiteHost):
             raise           # only want to raise if it's a space issue
         except Exception:
             pass            # autotest dir may not exist, etc. ignore
-
-
-    def _get_stream_tee_file(self, stream, level, verbose):
-        if stream is not TEE_TO_LOGS:
-            return stream
-        if not verbose:
-            return None
-        return logging_manager.LoggingFile(level=level)
