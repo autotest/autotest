@@ -285,7 +285,8 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
         print "<h2> %s </h2>" % heading
         for test in benchmarks:
             overview_thumb(test)
-        overview_thumb('unixbench', 'Process_creation')
+            if test == 'unixbench':
+                overview_thumb('unixbench', 'Process_creation')
         print "</body></html>"
 
 
