@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
 import datetime, traceback, tempfile

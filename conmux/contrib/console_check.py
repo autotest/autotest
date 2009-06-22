@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 _author_ = 'Scott Zawalski (scottz@google.com)'
 
