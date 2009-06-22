@@ -8,7 +8,7 @@ def payload1():
 	print "--STEPTEST-- payload1 start"
 
 	b = job.barrier('127.0.0.1#P2', 'here', 45)
-	b.rendevous(*us)
+	b.rendezvous(*us)
 
 	print "--STEPTEST-- payload1 complete"
 
@@ -17,7 +17,7 @@ def payload2():
 
 	time.sleep(5)
 	b = job.barrier('127.0.0.1#P1', 'here', 40)
-	b.rendevous(*us)
+	b.rendezvous(*us)
 
 	time.sleep(1)
 	print "--STEPTEST-- payload2 complete"

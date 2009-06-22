@@ -50,23 +50,23 @@ class barrier:
     the failed host has effectively broken 'right at the
     beginning' of the post barrier execution window.
 
-    In addition, there is another rendevous, that makes each slave a server
+    In addition, there is another rendezvous, that makes each slave a server
     and the master a client. The connection process and usage is still the
     same but allows barriers from machines that only have a one-way
-    connection initiation. This is called rendevous_servers.
+    connection initiation. This is called rendezvous_servers.
 
     For example:
         if ME == SERVER:
             server start
 
         b = job.barrier(ME, 'server-up', 120)
-        b.rendevous(CLIENT, SERVER)
+        b.rendezvous(CLIENT, SERVER)
 
         if ME == CLIENT:
             client run
 
         b = job.barrier(ME, 'test-complete', 3600)
-        b.rendevous(CLIENT, SERVER)
+        b.rendezvous(CLIENT, SERVER)
 
         if ME == SERVER:
             server stop
@@ -414,7 +414,7 @@ class barrier:
             raise error.BarrierError("master handshake failure: " + mode)
 
 
-    def rendevous(self, *hosts):
+    def rendezvous(self, *hosts):
         self.start = time()
         self.members = list(hosts)
         self.members.sort()
@@ -438,7 +438,7 @@ class barrier:
             self.run_client(is_master=False)
 
 
-    def rendevous_servers(self, masterid, *hosts):
+    def rendezvous_servers(self, masterid, *hosts):
         self.start = time()
         self.members = list(hosts)
         self.members.sort()
