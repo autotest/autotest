@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 import fcntl, os, signal, subprocess, StringIO
 import tempfile, textwrap, time, unittest
