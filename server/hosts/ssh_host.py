@@ -89,8 +89,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def run(self, command, timeout=3600, ignore_status=False,
-            stdout_tee=abstract_ssh.TEE_TO_LOGS,
-            stderr_tee=abstract_ssh.TEE_TO_LOGS,
+            stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             connect_timeout=30, options='', stdin=None, verbose=True):
         """
         Run a command on the remote host.
@@ -113,23 +112,20 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                               execution was not 0
             AutoservSSHTimeout: ssh connection has timed out
         """
-        stdout = self._get_stream_tee_file(stdout_tee, logging.DEBUG, verbose)
-        stderr = self._get_stream_tee_file(stderr_tee, logging.ERROR, verbose)
-
         if verbose:
             logging.debug("ssh: %s" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             try:
-                return self._run(command, timeout, ignore_status, stdout,
-                                 stderr, connect_timeout, env, options,
+                return self._run(command, timeout, ignore_status, stdout_tee,
+                                 stderr_tee, connect_timeout, env, options,
                                  stdin=stdin)
             except error.AutoservSshPermissionDeniedError:
                 logging.error("Permission denied to ssh; re-running with "
                               "increased logging:")
                 try:
-                    self._run(command, timeout, ignore_status, stdout,
-                              stderr, connect_timeout, env, '-v -v -v',
+                    self._run(command, timeout, ignore_status, stdout_tee,
+                              stderr_tee, connect_timeout, env, '-v -v -v',
                               stdin=stdin)
                 except Exception:
                     pass
