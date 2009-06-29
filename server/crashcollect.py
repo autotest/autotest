@@ -30,7 +30,6 @@ def get_crashinfo(host, test_start_time):
         collect_log_file(host, "/var/log/messages", crashinfo_dir)
         collect_log_file(host, "/var/log/monitor-ssh-reboots", crashinfo_dir)
         collect_command(host, "dmesg", os.path.join(crashinfo_dir, "dmesg"))
-        collect_profiler_data(host, crashinfo_dir)
         collect_uncollected_logs(host)
 
 
@@ -113,34 +112,6 @@ def collect_command(host, command, dest_path):
             logging.warning("Collection of '%s' failed:\n%s", command, e)
     finally:
         devnull.close()
-
-
-def collect_profiler_data(host, dest_path):
-    """Collects any leftover profiler data that can be found.
-
-    Any profiler data found will be written into a subdirectory of the
-    crashinfo path called "profiler.$REMOTEDIR" where $REMOTEDIR is the
-    basename of the remote profiler data path.
-
-    @param host: The RemoteHost to collect from
-    @param dest_path: A directory to copy the profiler results into
-    """
-    logging.info("Collecting any server-side profiler data lying around...")
-    try:
-        cmd = "ls %s" % profiler.PROFILER_TMPDIR
-        profiler_dirs = [path for path in host.run(cmd).stdout.split()
-                         if path.startswith("autoserv-")]
-        for profiler_dir in profiler_dirs:
-            remote_path = profiler.get_profiler_results_dir(profiler_dir)
-            remote_exists = host.run("ls %s" % remote_path,
-                                     ignore_status=True).exit_status == 0
-            if not remote_exists:
-                continue
-            local_path = os.path.join(dest_path, "profiler." + profiler_dir)
-            os.mkdir(local_path)
-            host.get_file(remote_path + "/", local_path)
-    except Exception, e:
-        logging.warning("Collection of profiler data failed with:\n%s", e)
 
 
 def collect_uncollected_logs(host):
