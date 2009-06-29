@@ -182,6 +182,11 @@ class profiler_proxy(object):
                 at.run(control_script, background=True)
                 self._wait_on_client(host, autodir, "ready")
                 self._signal_client(host, autodir, "start")
+
+                remote_results_dir = get_profiler_results_dir(autodir)
+                local_results_dir = os.path.join(test.profdir, host.hostname)
+                self.job.add_client_log(host.hostname, remote_results_dir,
+                                        local_results_dir)
             except:
                 self._get_failure_logs(autodir, test, host)
                 raise
@@ -215,14 +220,15 @@ class profiler_proxy(object):
         for host, (at, autodir) in self._get_hosts(host).iteritems():
             if wait_on_client:
                 self._wait_on_client(host, autodir, "finished")
-            results_dir = get_profiler_results_dir(autodir) + "/"
+            results_dir = get_profiler_results_dir(autodir)
             local_dir = os.path.join(test.profdir, host.hostname)
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir)
 
+            self.job.remove_client_log(host.hostname, results_dir, local_dir)
             tempdir = tempfile.mkdtemp(dir=self.job.tmpdir)
             try:
-                host.get_file(results_dir, tempdir)
+                host.get_file(results_dir + "/", tempdir)
             except error.AutoservRunError:
                 pass # no files to pull back, nothing we can do
             utils.merge_trees(tempdir, local_dir)
