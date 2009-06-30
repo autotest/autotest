@@ -212,7 +212,7 @@ def init():
 
 
 def _autoserv_command_line(machines, results_dir, extra_args, job=None,
-                           queue_entry=None):
+                           queue_entry=None, verbose=True):
     """
     @returns The autoserv command line as a list of executable + parameters.
 
@@ -231,6 +231,8 @@ def _autoserv_command_line(machines, results_dir, extra_args, job=None,
         if not job:
             job = queue_entry.job
         autoserv_argv += ['-u', job.owner, '-l', job.name]
+    if verbose:
+        autoserv_argv.append('--verbose')
     return autoserv_argv + extra_args
 
 
@@ -2899,7 +2901,7 @@ class Job(DBObject):
             hostnames, execution_tag,
             ['-P', execution_tag, '-n',
              _drone_manager.absolute_path(control_path)],
-            job=self)
+            job=self, verbose=False)
 
         if not self.is_server_job():
             params.append('-c')
