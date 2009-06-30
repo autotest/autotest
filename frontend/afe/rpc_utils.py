@@ -420,14 +420,16 @@ def create_new_job(owner, options, host_objects, metahost_objects,
         if label.atomic_group and not atomic_group:
             raise model_logic.ValidationError(
                     {'atomic_group_name':
-                     'Some meta_hosts or dependencies require an atomic group '
-                     'but no atomic_group_name was specified for this job.'})
+                     'Dependency %r requires an atomic group but no '
+                     'atomic_group_name or meta_host in an atomic group was '
+                     'specified for this job.' % label.name})
         elif (label.atomic_group and
               label.atomic_group.name != atomic_group.name):
             raise model_logic.ValidationError(
                     {'atomic_group_name':
-                     'Some meta_hosts or dependencies require an atomic group '
-                     'other than the one requested for this job.'})
+                     'meta_hosts or dependency %r requires atomic group '
+                     '%r instead of the supplied atomic_group_name=%r.' %
+                     (label.name, label.atomic_group.name, atomic_group.name)})
 
     job = models.Job.create(owner=owner, options=options,
                             hosts=all_host_objects)
