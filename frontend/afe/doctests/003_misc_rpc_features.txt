@@ -45,6 +45,8 @@ def step_test(kernel_version):
     pass
 """
 <BLANKLINE>
+from autotest_lib.client.common_lib import error
+<BLANKLINE>
 at = autotest.Autotest()
 def install_kernel(machine, kernel_version):
     host = hosts.create_host(machine)
