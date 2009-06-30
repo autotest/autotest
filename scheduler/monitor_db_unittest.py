@@ -2168,14 +2168,16 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
         command_line = monitor_db._autoserv_command_line(
                 machines, results_dir, extra_args)
-        self.assertEqual(expected_command_line + extra_args, command_line)
+        self.assertEqual(expected_command_line + ['--verbose'] + extra_args,
+                         command_line)
 
         class FakeJob(object):
             owner = 'Bob'
             name = 'fake job name'
 
         command_line = monitor_db._autoserv_command_line(
-                machines, results_dir, extra_args=[], job=FakeJob())
+                machines, results_dir, extra_args=[], job=FakeJob(),
+                verbose=False)
         self.assertEqual(expected_command_line +
                          ['-u', FakeJob.owner, '-l', FakeJob.name],
                          command_line)
