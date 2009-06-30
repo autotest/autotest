@@ -40,7 +40,7 @@ class TestDetailView extends DetailView {
     private String jobTag;
     private List<LogFileViewer> logFileViewers = new ArrayList<LogFileViewer>();
     private RealHyperlink logLink = new RealHyperlink("(view all logs)");
-
+    private RealHyperlink testLogLink = new RealHyperlink("(view test logs)");
     private Panel logPanel;
     
     private class LogFileViewer extends Composite 
@@ -170,7 +170,8 @@ class TestDetailView extends DetailView {
         
         logPanel = new FlowPanel();
         RootPanel.get("td_log_files").add(logPanel);
-        
+        testLogLink.setOpensNewWindow(true);
+        RootPanel.get("td_view_logs_link").add(testLogLink);
         logLink.setOpensNewWindow(true);
         RootPanel.get("td_view_logs_link").add(logLink);
     }
@@ -295,6 +296,7 @@ class TestDetailView extends DetailView {
         attributePanel.add(new AttributeTable(attributes));
         
         logLink.setHref(Utils.getRetrieveLogsUrl(jobTag));
+        testLogLink.setHref(Utils.getRetrieveLogsUrl(jobTag) + "/" + testName);
         addLogViewers(testName);
         
         displayObjectData("Test " + testName + " (job " + jobTag + ")");
