@@ -133,19 +133,6 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     return rpc_utils.prepare_for_serialization(info)
 
 
-
-def get_test_logs_urls(**filter_data):
-    """
-    Return URLs to test logs for all tests matching the filter data.
-    """
-    query = models.TestView.query_objects(filter_data)
-    tests = set((test_view.job_tag, test_view.test) for test_view in query)
-    links = []
-    for job_tag, test in tests:
-        links.append('/results/' + job_tag + '/' + test)
-    return links
-
-
 def get_job_ids(**filter_data):
     """
     Returns AFE job IDs for all tests matching the filters.
