@@ -264,9 +264,6 @@ class MonkeyPatchTestCase(unittest.TestCase):
         filename, lineno, caller_name = finder(logging_manager.logger)
         self.check_filename(filename)
         self.assertEquals('test_find_caller', caller_name)
-        orig_finder = logging_manager._original_logger__find_caller 
-        self.assertEquals(orig_finder(logging_manager.logger),
-                          (filename, lineno, caller_name))
 
 
     def _1_test_find_caller(self):
