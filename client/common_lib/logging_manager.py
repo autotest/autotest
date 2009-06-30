@@ -61,7 +61,7 @@ def _logging_manager_aware_logger__find_caller(unused):
     Find the stack frame of the caller so that we can note the source
     file name, line number and function name.
     """
-    f = logging.currentframe().f_back
+    f = sys._getframe(2).f_back
     rv = "(unknown file)", 0, "(unknown function)"
     while hasattr(f, "f_code"):
         co = f.f_code
