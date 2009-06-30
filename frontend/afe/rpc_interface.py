@@ -77,7 +77,7 @@ def get_labels(**filter_data):
 
 # atomic groups
 
-def add_atomic_group(name, max_number_of_machines, description=None):
+def add_atomic_group(name, max_number_of_machines=None, description=None):
     return models.AtomicGroup.add_object(
             name=name, max_number_of_machines=max_number_of_machines,
             description=description).id
