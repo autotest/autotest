@@ -1661,7 +1661,28 @@ class VerifyTask(PreJobTask):
             self.host.set_status('Ready')
 
 
-class QueueTask(AgentTask, TaskWithJobKeyvals):
+class CleanupHostsMixin(object):
+    def _reboot_hosts(self, job, queue_entries, final_success,
+                      num_tests_failed):
+        reboot_after = job.reboot_after
+        do_reboot = (
+                # always reboot after aborted jobs
+                self._final_status == models.HostQueueEntry.Status.ABORTED
+                or reboot_after == models.RebootAfter.ALWAYS
+                or (reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED
+                    and final_success and num_tests_failed == 0))
+
+        for queue_entry in queue_entries:
+            if do_reboot:
+                # don't pass the queue entry to the CleanupTask. if the cleanup
+                # fails, the job doesn't care -- it's over.
+                cleanup_task = CleanupTask(host=queue_entry.host)
+                self.agent.dispatcher.add_agent(Agent([cleanup_task]))
+            else:
+                queue_entry.host.set_status('Ready')
+
+
+class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
     def __init__(self, job, queue_entries, cmd, group_name=''):
         self.job = job
         self.queue_entries = queue_entries
@@ -1734,6 +1755,9 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
         if self.monitor.has_process():
             gather_task = GatherLogsTask(self.job, self.queue_entries)
             self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
+        else:
+            self._reboot_hosts(self.job, self.queue_entries,
+                               final_success=False, num_tests_failed=0)
 
         if self.monitor.lost_process:
             self._write_lost_process_error_file()
@@ -1896,7 +1920,7 @@ class PostJobTask(AgentTask):
         pass
 
 
-class GatherLogsTask(PostJobTask):
+class GatherLogsTask(PostJobTask, CleanupHostsMixin):
     """
     Task responsible for
     * gathering uncollected logs (if Autoserv crashed hard or was killed)
@@ -1924,35 +1948,17 @@ class GatherLogsTask(PostJobTask):
         self._set_all_statuses(models.HostQueueEntry.Status.GATHERING)
 
 
-    def _reboot_hosts(self):
-        reboot_after = self._job.reboot_after
-        do_reboot = False
-        if self._final_status == models.HostQueueEntry.Status.ABORTED:
-            do_reboot = True
-        elif reboot_after == models.RebootAfter.ALWAYS:
-            do_reboot = True
-        elif reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED:
-            final_success = (
-                self._final_status == models.HostQueueEntry.Status.COMPLETED)
-            num_tests_failed = self._autoserv_monitor.num_tests_failed()
-            do_reboot = (final_success and num_tests_failed == 0)
-
-        for queue_entry in self._queue_entries:
-            if do_reboot:
-                # don't pass the queue entry to the CleanupTask. if the cleanup
-                # fails, the job doesn't care -- it's over.
-                cleanup_task = CleanupTask(host=queue_entry.host)
-                self.agent.dispatcher.add_agent(Agent([cleanup_task]))
-            else:
-                queue_entry.host.set_status('Ready')
-
-
     def epilog(self):
         super(GatherLogsTask, self).epilog()
         if self._autoserv_monitor.has_process():
             self._copy_and_parse_results(self._queue_entries,
                                          use_monitor=self._autoserv_monitor)
-        self._reboot_hosts()
+
+        final_success = (
+                self._final_status == models.HostQueueEntry.Status.COMPLETED)
+        num_tests_failed = self._autoserv_monitor.num_tests_failed()
+        self._reboot_hosts(self._job, self._queue_entries, final_success,
+                           num_tests_failed)
 
 
     def run(self):
