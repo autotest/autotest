@@ -26,8 +26,8 @@
 >>> test_path = os.path.abspath(test_path)
 
 # disable logging
->>> from autotest_lib.client.common_lib import debug
->>> debug.get_logger().setLevel(100)
+>>> from autotest_lib.client.common_lib import logging_manager
+>>> logging_manager.logger.setLevel(100)
 
 # basic interface test
 ######################
