@@ -22,7 +22,7 @@ public abstract class JsonRpcProxy {
     private static String defaultBaseUrl;
     private static final Map<String, JsonRpcProxy> instanceMap =
         new HashMap<String, JsonRpcProxy>();
-    protected static NotifyManager notify = NotifyManager.getInstance();
+    protected static final NotifyManager notify = NotifyManager.getInstance();
 
     public static void setDefaultBaseUrl(String baseUrl) {
         defaultBaseUrl = baseUrl;

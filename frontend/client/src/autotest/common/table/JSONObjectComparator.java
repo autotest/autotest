@@ -10,7 +10,8 @@ public class JSONObjectComparator implements Comparator<JSONObject> {
     SortSpec[] sortSpecs;
     
     public JSONObjectComparator(SortSpec[] specs) {
-        sortSpecs = specs;
+        sortSpecs = new SortSpec[specs.length];
+        System.arraycopy(specs, 0, sortSpecs, 0, specs.length);
     }
 
     public int compare(JSONObject arg0, JSONObject arg1) {
