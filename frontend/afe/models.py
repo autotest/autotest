@@ -37,7 +37,12 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     """
     name = dbmodels.CharField(maxlength=255, unique=True)
     description = dbmodels.TextField(blank=True)
-    max_number_of_machines = dbmodels.IntegerField(default=1)
+    # This magic value is the default to simplify the scheduler logic.
+    # It must be "large".  The common use of atomic groups is to want all
+    # machines in the group to be used, limits on which subset used are
+    # often chosen via dependency labels.
+    INFINITE_MACHINES = 333333333
+    max_number_of_machines = dbmodels.IntegerField(default=INFINITE_MACHINES)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
 

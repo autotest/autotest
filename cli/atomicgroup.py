@@ -83,11 +83,10 @@ class atomicgroup_create(action_common.atest_create, atomicgroup):
         super(atomicgroup_create, self).__init__()
         self.parser.add_option('-n', '--max_number_of_machines',
                                help='Maximum # of machines for this group.',
-                               type='int')
+                               type='int', default=None)
         self.parser.add_option('-d', '--description',
                                help='Description of this atomic group.',
-                               type='string',
-                               default='')
+                               type='string', default='')
 
 
     def parse(self):
