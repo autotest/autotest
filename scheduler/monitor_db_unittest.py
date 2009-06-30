@@ -1633,6 +1633,8 @@ class AgentTasksTest(BaseSchedulerTest):
         _set_host_and_qe_ids(parse_task)
         self._dispatcher.add_agent.expect_call(IsAgentWithTask(parse_task))
 
+        self.pidfile_monitor.num_tests_failed.expect_call().and_return(0)
+
 
     def _run_gather_logs_task(self):
         task = monitor_db.GatherLogsTask(self.job, [self.queue_entry])
