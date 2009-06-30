@@ -43,6 +43,8 @@ kernel_install_control = \"""
 %s    pass
 \"""
 
+from autotest_lib.client.common_lib import error
+
 at = autotest.Autotest()
 def install_kernel(machine, kernel_version):
     host = hosts.create_host(machine)
