@@ -47,6 +47,14 @@ class TempManager(model_logic.ExtendedManager):
         return ('SELECT ' + ', '.join(select_fields) + where), params
 
 
+    def _get_column_names(self, cursor):
+        """\
+        Gets the column names from the cursor description. This method exists
+        so that it can be mocked in the unit test for sqlite3 compatibility."
+        """
+        return [column_info[0] for column_info in cursor.description]
+
+
     def execute_group_query(self, query, group_by, extra_select_fields=[]):
         """
         Performs the given query grouped by the fields in group_by with the
@@ -60,7 +68,7 @@ class TempManager(model_logic.ExtendedManager):
                                                 extra_select_fields)
         cursor = readonly_connection.connection().cursor()
         cursor.execute(sql, params)
-        field_names = [column_info[0] for column_info in cursor.description]
+        field_names = self._get_column_names(cursor)
         row_dicts = [dict(zip(field_names, row)) for row in cursor.fetchall()]
         return row_dicts
 
