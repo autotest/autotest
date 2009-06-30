@@ -103,7 +103,7 @@ INFO: logging 4
 
 
 class DummyLoggingConfig(logging_config.LoggingConfig):
-    CONSOLE_FORMATTER = logging.Formatter(LOGGING_FORMAT)
+    console_formatter = logging.Formatter(LOGGING_FORMAT)
 
     def __init__(self):
         super(DummyLoggingConfig, self).__init__()
@@ -246,6 +246,51 @@ class LoggingManagerTest(unittest.TestCase):
         self._compare_logs(self.stdout,
                            'INFO: mytag : hello\nINFO: goodbye')
         self._compare_logs(self._config_object.log, 'hello\n')
+
+
+class MonkeyPatchTestCase(unittest.TestCase):
+    def setUp(self):
+        self.expected_filename = os.path.split(__file__)[1]
+
+
+    def check_filename(self, filename, expected=None):
+        if expected is None:
+            expected = self.expected_filename
+        self.assertEquals(expected, os.path.split(filename)[1])
+
+
+    def _0_test_find_caller(self):
+        finder = logging_manager._logging_manager_aware_logger__find_caller
+        filename, lineno, caller_name = finder(logging_manager.logger)
+        self.check_filename(filename)
+        self.assertEquals('test_find_caller', caller_name)
+        orig_finder = logging_manager._original_logger__find_caller 
+        self.assertEquals(orig_finder(logging_manager.logger),
+                          (filename, lineno, caller_name))
+
+
+    def _1_test_find_caller(self):
+        self._0_test_find_caller()
+
+
+    def test_find_caller(self):
+        self._1_test_find_caller()
+
+
+    def _0_test_non_reported_find_caller(self):
+        finder = logging_manager._logging_manager_aware_logger__find_caller
+        filename, lineno, caller_name = finder(logging_manager.logger)
+        self.check_filename(filename, expected='unittest.py')
+
+
+    def _1_test_non_reported_find_caller(self):
+        self._0_test_non_reported_find_caller()
+
+
+    @logging_manager._do_not_report_as_logging_caller
+    def test_non_reported_find_caller(self):
+        self._1_test_non_reported_find_caller()
+
 
 
 if __name__ == '__main__':

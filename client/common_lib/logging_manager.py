@@ -1,4 +1,4 @@
-import logging, os, signal, sys
+import logging, os, signal, sys, warnings
 
 # primary public APIs
 
@@ -37,8 +37,56 @@ def get_logging_manager(manage_stdout_and_stderr=False, redirect_fds=False):
 
 logger = logging.getLogger()
 
+
 def _current_handlers():
     return set(logger.handlers)
+
+
+_caller_code_to_skip_in_logging_stack = set()
+
+
+def _do_not_report_as_logging_caller(func):
+    """Decorator to annotate functions we will tell logging not to log."""
+    # These are not the droids you are looking for.
+    # You may go about your business.
+    _caller_code_to_skip_in_logging_stack.add(func.func_code)
+    return func
+
+
+# Copied from Python 2.4 logging/__init__.py Logger.findCaller and enhanced.
+# The logging code remains the same and compatible with this monkey patching
+# through at least Python version 2.6.2.
+def _logging_manager_aware_logger__find_caller(unused):
+    """
+    Find the stack frame of the caller so that we can note the source
+    file name, line number and function name.
+    """
+    f = logging.currentframe().f_back
+    rv = "(unknown file)", 0, "(unknown function)"
+    while hasattr(f, "f_code"):
+        co = f.f_code
+        filename = os.path.normcase(co.co_filename)
+        if filename == logging._srcfile:
+            f = f.f_back
+            continue
+        ### START additional code.
+        if co in _caller_code_to_skip_in_logging_stack:
+            f = f.f_back
+            continue
+        ### END additional code.
+        rv = (filename, f.f_lineno, co.co_name)
+        break
+    return rv
+
+
+if sys.version_info > (2, 6):
+    warnings.warn('This module has not been reviewed for Python %s',
+                  sys.version)
+
+
+# Monkey patch our way around logging's design...
+_original_logger__find_caller = logging.Logger.findCaller
+logging.Logger.findCaller = _logging_manager_aware_logger__find_caller
 
 
 class LoggingFile(object):
@@ -55,6 +103,7 @@ class LoggingFile(object):
         self._buffer = []
 
 
+    @_do_not_report_as_logging_caller
     def write(self, data):
         """"
         Writes data only if it constitutes a whole line. If it's not the case,
@@ -72,6 +121,7 @@ class LoggingFile(object):
             self._buffer.append(data_lines[-1])
 
 
+    @_do_not_report_as_logging_caller
     def _log_line(self, line):
         """
         Passes lines of output to the logging module.
@@ -79,12 +129,14 @@ class LoggingFile(object):
         logging.log(self._level, self._prefix + line)
 
 
+    @_do_not_report_as_logging_caller
     def _flush_buffer(self):
         if self._buffer:
             self._log_line(''.join(self._buffer))
             self._buffer = []
 
 
+    @_do_not_report_as_logging_caller
     def flush(self):
         self._flush_buffer()
 
