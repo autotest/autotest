@@ -836,14 +836,20 @@ DoesNotExist: AtomicGroup matching query does not exist.
 Traceback (most recent call last):
 ValidationError: {'hosts': 'Host(s) "ahost1, ahost2" are atomic group hosts but no atomic group was specified for this job.'}
 
-# create a job using labels in an atomic group but forget to specify the group
->>> rpc_interface.create_job(name='never_run1',
+# Create a job using a label in an atomic group as the meta-host but forget
+# to specify the group.  The frontend should figure this out for us.
+>>> job_id = rpc_interface.create_job(name='created_without_explicit_ag',
 ...                          priority='High',
 ...                          control_file=cf_info['control_file'],
 ...                          control_type='Client',
 ...                          meta_hosts=['two-label'])
-Traceback (most recent call last):
-ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group but no atomic_group_name was specified for this job.'}
+
+>>> job_id = rpc_interface.create_job(
+...         name='atomic_sleeptest', priority='Medium',
+...         control_file=sleep_cf_info['control_file'],
+...         control_type='Server', synch_count=1,
+...         meta_hosts=['two-label'],
+...         dependencies=['blue-label'])
 
 >>> rpc_interface.create_job(name='never_run2',
 ...                          priority='High',
@@ -852,7 +858,7 @@ ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require 
 ...                          meta_hosts=['blue-label'],
 ...                          dependencies=['two-label'])
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group but no atomic_group_name was specified for this job.'}
+ValidationError: {'atomic_group_name': "Dependency 'two-label' requires an atomic group but no atomic_group_name or meta_host in an atomic group was specified for this job."}
 
 >>> invisible_group_id = rpc_interface.add_atomic_group(
 ...         name='invisible rack',
@@ -867,7 +873,7 @@ ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require 
 ...                          meta_hosts=['two-label'],
 ...                          atomic_group_name='invisible rack')
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': 'Some meta_hosts or dependencies require an atomic group other than the one requested for this job.'}
+ValidationError: {'atomic_group_name': "meta_hosts or dependency 'two-label' requires atomic group 'mini rack' instead of the supplied atomic_group_name='invisible rack'."}
 
 # we're done testing atomic groups, clean up
 >>> rpc_interface.delete_atomic_group(invisible_group_id)

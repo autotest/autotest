@@ -424,24 +424,33 @@ def create_job(name, priority, control_file, control_type,
     atomic_groups_by_name = dict((ag.name, ag)
                                  for ag in models.AtomicGroup.objects.all())
 
+    # Schedule on an atomic group automagically if one of the labels given
+    # is an atomic group label and no explicit atomic_group_name was supplied.
+    if not atomic_group_name:
+        for label_name in meta_hosts or []:
+            label = labels_by_name.get(label_name)
+            if label and label.atomic_group:
+                atomic_group_name = label.atomic_group.name
+                break
+
     # convert hostnames & meta hosts to host/label objects
     host_objects = models.Host.smart_get_bulk(hosts)
     metahost_objects = []
-    for label in meta_hosts or []:
-        if label in labels_by_name:
-            this_label = labels_by_name[label]
-            metahost_objects.append(this_label)
-        elif label in atomic_groups_by_name:
-            # If a given metahost (Label) name that isn't a label, check to
-            # see if the user was specifying an atomic group instead.
-            atomic_group = atomic_groups_by_name[label]
+    for label_name in meta_hosts or []:
+        if label_name in labels_by_name:
+            label = labels_by_name[label_name]
+            metahost_objects.append(label)
+        elif label_name in atomic_groups_by_name:
+            # If given a metahost name that isn't a Label, check to
+            # see if the user was specifying an Atomic Group instead.
+            atomic_group = atomic_groups_by_name[label_name]
             if atomic_group_name and atomic_group_name != atomic_group.name:
                 raise model_logic.ValidationError({
                         'meta_hosts': (
                                 'Label "%s" not found.  If assumed to be an '
                                 'atomic group it would conflict with the '
                                 'supplied atomic group "%s".' % (
-                                        label, atomic_group_name))})
+                                        label_name, atomic_group_name))})
             atomic_group_name = atomic_group.name
         else:
             raise model_logic.ValidationError(
