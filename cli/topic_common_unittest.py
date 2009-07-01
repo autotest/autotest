@@ -11,6 +11,22 @@ from autotest_lib.cli import cli_mock, topic_common, rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 
 
+class topic_common_misc_tests(unittest.TestCase):
+    def test_get_item_key(self):
+        get_item_key = topic_common._get_item_key
+        self.assertRaises(ValueError, get_item_key, {}, '')
+        self.assertRaises(ValueError, get_item_key, {}, '.')
+        self.assertRaises(KeyError, get_item_key, {}, 'a')
+        self.assertRaises(KeyError, get_item_key, {}, 'a.')
+        self.assertRaises(ValueError, get_item_key, {'a': {}}, 'a.')
+        self.assertRaises(KeyError, get_item_key, {'a': {}}, 'a.b')
+        self.assertEquals(2, get_item_key({'a.b': 2, 'a': {}}, 'a.b'))
+        self.assertEquals(9, get_item_key({'a': {'b': 9}}, 'a.b'))
+        self.assertEquals(3, get_item_key({'a': {'b': {'c': 3}}}, 'a.b.c'))
+        self.assertEquals(5, get_item_key({'a': 5}, 'a'))
+        self.assertEquals({'b': 9}, get_item_key({'a': {'b': 9}}, 'a'))
+
+
 class item_parse_info_unittest(cli_mock.cli_unittest):
     def __test_parsing_flist_bad(self, options):
         parse_info = topic_common.item_parse_info
