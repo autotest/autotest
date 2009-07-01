@@ -72,9 +72,6 @@ class kvm(test.test):
         # Enable core dumps
         resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
 
-        # Set the logging prefix
-        #kvm_log.set_prefix(params.get("shortname"))
-
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
         keys = params.keys()
