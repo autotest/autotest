@@ -25,6 +25,7 @@ LONG_TESTS = set((
     'client_compilation_unittest.py',
     'csv_encoder_unittest.py',
     'rpc_interface_unittest.py',
+    'logging_manager_test.py',
     ))
 
 modules = []
@@ -34,7 +35,7 @@ def lister(full, dirname, files):
     if not os.path.exists(os.path.join(dirname, '__init__.py')):
         return
     for f in files:
-        if f.endswith('_unittest.py'):
+        if f.endswith('_unittest.py') or f.endswith('_test.py'):
             if not full and f in LONG_TESTS:
                 continue
             temp = os.path.join(dirname, f).strip('.py')
