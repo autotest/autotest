@@ -30,3 +30,22 @@ def find_toplevel_job_dir(start_dir):
             return None
         job_dir = os.path.dirname(job_dir)
     return job_dir
+
+
+def drop_redundant_messages(messages):
+    """ Given a set of message strings discard any 'redundant' messages which
+    are simple a substring of the existing ones.
+
+    @param messages - a set of message strings
+
+    @return - a subset of messages with unnecessary strings dropped
+    """
+    sorted_messages = sorted(messages, key=len, reverse=True)
+    filtered_messages = set()
+    for message in sorted_messages:
+        for filtered_message in filtered_messages:
+            if message in filtered_message:
+                break
+        else:
+            filtered_messages.add(message)
+    return filtered_messages
