@@ -47,7 +47,10 @@ finally:
     fcntl.flock(exit_code_file, fcntl.LOCK_UN)
     exit_code_file.close()
 
-time.sleep(2) # tail runs in 1s polling loop, so give them a chance to finish
+# tail runs in 1s polling loop, so give them a chance to finish
+time.sleep(2)
+# clear the SIGCHLD handler so that killing the tails doesn't kill us
+signal.signal(signal.SIGCHLD, signal.SIG_DFL)
 os.kill(stdout_pump.pid, signal.SIGTERM)
 os.kill(stderr_pump.pid, signal.SIGTERM)
 
