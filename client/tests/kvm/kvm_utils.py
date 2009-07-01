@@ -670,7 +670,7 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
             sub.close()
             return None
         elif match == 4:  # "Connection refused"
-            kvm_log.debug("Got 'Connection refused'")
+            logging.debug("Got 'Connection refused'")
             sub.close()
             return None
         elif match == 5:  # prompt
