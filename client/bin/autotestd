@@ -17,8 +17,8 @@ logdir = sys.argv[1]
 os.dup2(2, 3)
 
 # open up log files to use for std*
-stdout = open(os.path.join(logdir, 'stdout'), 'w', 0)
-stderr = open(os.path.join(logdir, 'stderr'), 'w', 0)
+stdout = open(os.path.join(logdir, 'stdout'), 'a', 0)
+stderr = open(os.path.join(logdir, 'stderr'), 'a', 0)
 
 # set up the file descriptors now, simulating the old behaviour
 os.dup2(stdout.fileno(), 1)
