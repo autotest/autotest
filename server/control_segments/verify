@@ -5,7 +5,7 @@ def verify(machine):
         host.verify()
         job.record('GOOD', None, 'verify', '%s verified successfully' % machine)
     except Exception, e:
-        msg = 'verify failed on %s: %s\n' % (machine, str(e))
+        msg = 'verify failed: %s' % e
         job.record('FAIL', None, 'verify', msg)
         raise
 
