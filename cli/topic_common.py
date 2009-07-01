@@ -100,6 +100,7 @@ KEYS_TO_NAMES_EN = {'hostname': 'Host',
                     'synch_count': 'Sync Count',
                     'max_number_of_machines': 'Max. hosts to use',
                     'parse_failed_repair': 'Include failed repair results',
+                    'atomic_group.name': 'Atomic Group Name',
                     }
 
 # In the failure, tag that will replace the item.
@@ -131,6 +132,24 @@ KEYS_CONVERT = {'locked': _int_2_bool_string,
                 'only_if_needed': _int_2_bool_string,
                 'platform': __convert_platform,
                 'labels': lambda labels: ', '.join(labels)}
+
+
+def _get_item_key(item, key):
+    """Allow for lookups in nested dictionaries using '.'s within a key."""
+    if key in item:
+        return item[key]
+    nested_item = item
+    for subkey in key.split('.'):
+        if not subkey:
+            raise ValueError('empty subkey in %r' % key)
+        try:
+            nested_item = nested_item[subkey]
+        except KeyError, e:
+            raise KeyError('%r - looking up key %r in %r' %
+                           (e, key, nested_item))
+    else:
+        return nested_item
+
 
 class CliError(Exception):
     pass
@@ -490,7 +509,7 @@ class atest(object):
             for key in keys:
                 print '%s: %s' % (KEYS_TO_NAMES_EN[key],
                                   self.__conv_value(key,
-                                                    item[key]))
+                                                    _get_item_key(item, key)))
 
 
     def print_fields_parse(self, items, keys, title=None):
@@ -499,10 +518,10 @@ class atest(object):
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
                                   self.__conv_value(key,
-                                                    item[key]))
+                                                    _get_item_key(item, key)))
                       for key in keys
                       if self.__conv_value(key,
-                                           item[key]) != '']
+                                           _get_item_key(item, key)) != '']
             print self.parse_delim.join(values)
 
 
@@ -517,7 +536,7 @@ class atest(object):
             return
         for key in keys[:-1]:
             lens[key] = max(len(self.__conv_value(key,
-                                                  item[key]))
+                                                  _get_item_key(item, key)))
                             for item in items)
             lens[key] = max(lens[key], len(KEYS_TO_NAMES_EN[key]))
         lens[keys[-1]] = 0
@@ -535,13 +554,14 @@ class atest(object):
         header = tuple(KEYS_TO_NAMES_EN[key] for key in keys_header)
         print fmt % header
         for item in items:
-            values = tuple(self.__conv_value(key, item[key])
+            values = tuple(self.__conv_value(key,
+                                             _get_item_key(item, key))
                            for key in keys_header)
             print fmt % values
             if sublist_keys:
                 for key in sublist_keys:
                     self.print_wrapped(KEYS_TO_NAMES_EN[key],
-                                       item[key])
+                                       _get_item_key(item, key))
                 print '\n'
 
 
@@ -550,16 +570,16 @@ class atest(object):
         format"""
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
-                                 self.__conv_value(key, item[key]))
+                                 self.__conv_value(key, _get_item_key(item, key)))
                       for key in keys_header
                       if self.__conv_value(key,
-                                           item[key]) != '']
+                                           _get_item_key(item, key)) != '']
 
             if sublist_keys:
                 [values.append('%s=%s'% (KEYS_TO_NAMES_EN[key],
-                                         ','.join(item[key])))
+                                         ','.join(_get_item_key(item, key))))
                  for key in sublist_keys
-                 if len(item[key])]
+                 if len(_get_item_key(item, key))]
 
             print self.parse_delim.join(values)
 
@@ -585,10 +605,10 @@ class atest(object):
         for item in items:
             values += ['%s=%s' % (KEYS_TO_NAMES_EN[key],
                                   self.__conv_value(key,
-                                                    item[key]))
+                                                    _get_item_key(item, key)))
                        for key in ['id', 'name']
                        if self.__conv_value(key,
-                                            item[key]) != '']
+                                            _get_item_key(item, key)) != '']
         print self.parse_delim.join(values)
 
 
@@ -596,7 +616,7 @@ class atest(object):
         """Print a wrapped list of results"""
         if not items:
             return
-        print ' '.join(item[key] for item in items)
+        print ' '.join(_get_item_key(item, key) for item in items)
 
 
     def print_list_parse(self, items, key):
@@ -604,4 +624,4 @@ class atest(object):
         if not items:
             return
         print '%s=%s' % (KEYS_TO_NAMES_EN[key],
-                         ','.join(item[key] for item in items))
+                         ','.join(_get_item_key(item, key) for item in items))
