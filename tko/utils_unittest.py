@@ -98,6 +98,33 @@ class find_toplevel_job_dir_test(unittest.TestCase):
         self.assertEqual(utils.find_toplevel_job_dir(jobdir), None)
 
 
+class drop_redundant_messages(unittest.TestCase):
+    def test_empty_set(self):
+        self.assertEqual(utils.drop_redundant_messages(set()), set())
+
+
+    def test_singleton(self):
+        self.assertEqual(utils.drop_redundant_messages(set(["abc"])),
+                         set(["abc"]))
+
+
+    def test_distinct_messages(self):
+        self.assertEqual(utils.drop_redundant_messages(set(["abc", "def"])),
+                         set(["abc", "def"]))
+
+
+    def test_one_unique_message(self):
+        self.assertEqual(
+                utils.drop_redundant_messages(set(["abc", "abcd", "abcde"])),
+                set(["abcde"]))
+
+
+    def test_some_unique_some_not(self):
+        self.assertEqual(
+                utils.drop_redundant_messages(set(["abc", "def", "abcdef",
+                                                   "defghi", "cd"])),
+                set(["abcdef", "defghi"]))
+
 
 if __name__ == "__main__":
     unittest.main()

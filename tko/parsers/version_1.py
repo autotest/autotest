@@ -292,6 +292,8 @@ class parser(base.parser):
                         # update the status of a currently running test
                         if running_test:
                             running_reasons.add(line.reason)
+                            running_reasons = tko_utils.drop_redundant_messages(
+                                    running_reasons)
                             sorted_reasons = sorted(running_reasons)
                             running_test.reason = ", ".join(sorted_reasons)
                             current_reason = running_test.reason
