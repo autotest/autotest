@@ -18,7 +18,7 @@ class harness_autoserv(harness.harness):
                         The job object for this job
         """
         super(harness_autoserv, self).__init__(job)
-        self.status = os.fdopen(3, 'w')
+        self.status = os.fdopen(3, 'w', 0)
 
 
     def run_test_complete(self):
@@ -34,7 +34,6 @@ class harness_autoserv(harness.harness):
         msg = "AUTOTEST_TEST_COMPLETE:%s\n"
         msg %= fifo_path
         self.status.write(msg)
-        self.status.flush()
 
         # wait for the server to signal back to us
         fifo = open(fifo_path)
@@ -53,4 +52,3 @@ class harness_autoserv(harness.harness):
             msg = "AUTOTEST_STATUS:%s:%s\n"
             msg %= (tag, line)
             self.status.write(msg)
-            self.status.flush()
