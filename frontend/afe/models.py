@@ -432,8 +432,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         fields = (
             (None, {'fields' :
                     ('name', 'author', 'test_category', 'test_class',
-                     'test_time', 'sync_count', 'test_type', 'sync_count',
-                     'path', 'dependencies', 'experimental', 'run_verify',
+                     'test_time', 'sync_count', 'test_type', 'path',
+                     'dependencies', 'experimental', 'run_verify',
                      'description')}),
             )
         list_display = ('name', 'test_type', 'description', 'sync_count')
