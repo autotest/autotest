@@ -1,4 +1,4 @@
-import os, time, pickle, logging
+import os, time, pickle, logging, shutil
 
 from autotest_lib.server import utils, profiler
 
@@ -27,7 +27,7 @@ def get_crashinfo(host, test_start_time):
         get_site_crashinfo(host, test_start_time)
 
         crashinfo_dir = get_crashinfo_dir(host)
-        collect_log_file(host, "/var/log/messages", crashinfo_dir)
+        collect_messages(host)
         collect_log_file(host, "/var/log/monitor-ssh-reboots", crashinfo_dir)
         collect_command(host, "dmesg", os.path.join(crashinfo_dir, "dmesg"))
         collect_uncollected_logs(host)
@@ -133,3 +133,54 @@ def collect_uncollected_logs(host):
         except Exception, e:
             logging.warning("Error while trying to collect stranded "
                             "Autotest client logs: %s", e)
+
+
+def collect_messages(host):
+    """Collects the 'new' contents of /var/log/messages.
+
+    If host.VAR_LOG_MESSAGE_COPY_PATH is on the remote machine, collects
+    the contents of /var/log/messages excluding whatever initial contents
+    are already present in host.VAR_LOG_MESSAGE_COPY_PATH. If it is not
+    present, simply collects the entire contents of /var/log/messages.
+
+    @param host: The RemoteHost to collect from
+    """
+    crashinfo_dir = get_crashinfo_dir(host)
+
+    try:
+        # paths to the messages files
+        messages = os.path.join(crashinfo_dir, "messages")
+        messages_raw = os.path.join(crashinfo_dir, "messages.raw")
+        messages_at_start = os.path.join(crashinfo_dir, "messages.at_start")
+
+        # grab the files from the remote host
+        collect_log_file(host, host.VAR_LOG_MESSAGES_COPY_PATH,
+                         messages_at_start)
+        collect_log_file(host, "/var/log/messages", messages_raw)
+
+        # figure out how much of messages.raw to skip
+        if os.path.exists(messages_at_start):
+            # if the first lines of the messages at start should match the
+            # first lines of the current messages; if they don't then messages
+            # has been erase or rotated and we just grab all of it
+            first_line_at_start = utils.read_one_line(messages_at_start)
+            first_line_now = utils.read_one_line(messages_raw)
+            if first_line_at_start != first_line_now:
+                size_at_start = 0
+            else:
+                size_at_start = os.path.getsize(messages_at_start)
+        else:
+            size_at_start = 0
+        raw_messages_file = open(messages_raw)
+        messages_file = open(messages, "w")
+        raw_messages_file.seek(size_at_start)
+        shutil.copyfileobj(raw_messages_file, messages_file)
+        raw_messages_file.close()
+        messages_file.close()
+
+        # get rid of the "raw" versions of messages
+        os.remove(messages_raw)
+        if os.path.exists(messages_at_start):
+            os.remove(messages_at_start)
+    except Exception, e:
+        logging.warning("Error while collecting /var/log/messages: %s", e)
