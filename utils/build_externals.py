@@ -45,7 +45,8 @@ def main():
     Find all ExternalPackage classes defined in this file and ask them to
     fetch, build and install themselves.
     """
-    logging.basicConfig(level=logging.INFO)
+    _configure_logging()
+    os.umask(022)
 
     top_of_tree = _find_top_of_autotest_tree()
     package_dir = os.path.join(top_of_tree, PACKAGE_DIR)
@@ -59,7 +60,8 @@ def main():
         os.environ['PYTHONPATH'] = ':'.join([
             install_dir, os.environ.get('PYTHONPATH', '')])
 
-    fetched_packages, fetch_errors = fetch_necessary_packages(package_dir)
+    fetched_packages, fetch_errors = fetch_necessary_packages(package_dir,
+                                                              install_dir)
     install_errors = build_and_install_packages(fetched_packages, install_dir)
 
     # Byte compile the code after it has been installed in its final
@@ -80,11 +82,25 @@ def main():
     return len(errors)
 
 
-def fetch_necessary_packages(dest_dir):
+def _configure_logging(level=logging.INFO):
+    """Setup familiar looking console log message output."""
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    console_formatter = logging.Formatter(
+            fmt='[%(asctime)s %(levelname)-5.5s] %(message)s',
+            datefmt='%H:%M:%S')
+    console_handler.setFormatter(console_formatter)
+    root_logger.addHandler(console_handler)
+
+
+def fetch_necessary_packages(dest_dir, install_dir):
     """
     Fetches all ExternalPackages into dest_dir.
 
-    @param dest_dir - Directory the packages should be fetched into.
+    @param dest_dir: Directory the packages should be fetched into.
+    @param install_dir: Directory where packages will later installed.
 
     @returns A tuple containing two lists:
              * A list of ExternalPackage instances that were fetched and
@@ -98,7 +114,7 @@ def fetch_necessary_packages(dest_dir):
         package = package_class()
         if names_to_check and package.name.lower() not in names_to_check:
             continue
-        if not package.is_needed():
+        if not package.is_needed(install_dir):
             logging.info('A new %s is not needed on this system.',
                          package.name)
             if INSTALL_ALL:
@@ -209,7 +225,7 @@ class ExternalPackage(object):
         return class_name
 
 
-    def is_needed(self):
+    def is_needed(self, unused_install_dir):
         """@returns True if self.module_name needs to be built and installed."""
         if not self.module_name or not self.version:
             logging.warning('version and module_name required for '
@@ -292,7 +308,7 @@ class ExternalPackage(object):
 
         @raises OSError If the expected extraction directory does not exist.
         """
-        self._extract_tar_gz()
+        self._extract_compressed_tar()
         os.chdir(os.path.dirname(self.verified_package))
         os.chdir(self.local_filename[:-len('.tar.gz')])
         extracted_dir = os.getcwd()
@@ -303,12 +319,18 @@ class ExternalPackage(object):
             shutil.rmtree(extracted_dir)
 
 
-    def _extract_tar_gz(self):
-        """Extract the fetched gzipped tar file within its directory."""
+    def _extract_compressed_tar(self):
+        """Extract the fetched compressed tar file within its directory."""
         if not self.verified_package:
             raise Error('Package must have been fetched first.')
         os.chdir(os.path.dirname(self.verified_package))
-        status = system("tar -xzf '%s'" % self.verified_package)
+        if self.verified_package.endswith('gz'):
+            status = system("tar -xzf '%s'" % self.verified_package)
+        elif self.verified_package.endswith('bz2'):
+            status = system("tar -xjf '%s'" % self.verified_package)
+        else:
+            raise Error('Unknown compression suffix on %s.' %
+                        self.verified_package)
         if status:
             raise Error('tar failed with %s' % (status,))
 
@@ -463,7 +485,7 @@ class ExternalPackage(object):
             logging.info('Fetching %s', url)
             try:
                 url_file = urllib2.urlopen(url)
-            except (urllib2.URLError, os.EnvironmentError):
+            except (urllib2.URLError, EnvironmentError):
                 logging.warning('Could not fetch %s package from %s.',
                                 self.name, url)
                 continue
@@ -588,7 +610,10 @@ class DjangoPackage(ExternalPackage):
 
 
     def _get_installed_version_from_module(self, module):
-        return module.get_version().split()[0]
+        try:
+            return module.get_version().split()[0]
+        except AttributeError:
+            return '0.9.6'
 
 
     def _build_and_install_current_dir(self, install_dir):
@@ -614,14 +639,77 @@ class NumpyPackage(ExternalPackage):
 # is already installed.
 class MatplotlibPackage(ExternalPackage):
     version = '0.98.5.2'
-    urls = ('http://dl.sourceforge.net/sourceforge/matplotlib/'
-            'matplotlib-%s.tar.gz' % (version,),)
     local_filename = 'matplotlib-%s.tar.gz' % version
+    urls = ('http://dl.sourceforge.net/sourceforge/matplotlib/' +
+            local_filename,)
     hex_sum = 'fbce043555de4f5a34e2a47e200527720a90b370'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
     _build_and_install_current_dir = (
             ExternalPackage._build_and_install_current_dir_setupegg_py)
+
+
+class ParamikoPackage(ExternalPackage):
+    version = '1.7.4'
+    local_filename = 'paramiko-%s.tar.gz' % version
+    urls = ('http://www.lag.net/paramiko/download/' + local_filename,)
+    hex_sum = 'a33e9c3fbd63f7e3a83278179a4d436e5b28347f'
+
+
+    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+
+
+    def _check_for_pycrypto(self):
+        # NOTE(gps): Linux distros have better python-crypto packages than we
+        # can easily get today via a wget due to the library's age and staleness
+        # yet many security and behavior bugs are fixed by patches that distros
+        # already apply.  PyCrypto has a new active maintainer in 2009.  Once a
+        # new release is made (http://pycrypto.org/) we should add an installer.
+        try:
+            import Crypto
+        except ImportError:
+            logging.error('Please run "sudo apt-get install python-crypto" '
+                          'or your Linux distro\'s equivalent.')
+            return False
+        return True
+
+
+    def _build_and_install_current_dir(self, install_dir):
+        if not self._check_for_pycrypto():
+            return False
+        # paramiko 1.7.4 doesn't require building, it is just a module directory
+        # that we can rsync into place directly.
+        if not os.path.isdir('paramiko'):
+            raise Error('no paramiko directory in %s.' % os.getcwd())
+        status = system("rsync -r 'paramiko' '%s/'" % install_dir)
+        if status:
+            logging.error('%s rsync to install_dir failed.' % self.name)
+            return False
+        return True
+
+
+class GwtPackage(ExternalPackage):
+    """Fetch and extract a local copy of GWT used to build the frontend."""
+
+    version = '1.6.4'
+    local_filename = 'gwt-linux-%s.tar.bz2' % version
+    urls = ('http://google-web-toolkit.googlecode.com/files/' + local_filename,)
+    hex_sum = '480882f630993da727eaae464341a5ff86f9b7d7'
+    name = 'gwt'
+    module_name = None  # Not a Python module.
+
+
+    def is_needed(self, install_dir):
+        return not os.path.exists(os.path.join(install_dir, self.name))
+
+
+    def build_and_install(self, install_dir):
+        os.chdir(install_dir)
+        self._extract_compressed_tar()
+        extracted_dir = self.local_filename[:-len('.tar.bz2')]
+        target_dir = os.path.join(install_dir, self.name)
+        os.rename(extracted_dir, target_dir)
+        return True
 
 
 if __name__ == '__main__':
