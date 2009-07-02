@@ -91,6 +91,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(self.job, '_increment_group_level')
         self.god.stub_function(self.job, '_decrement_group_level')
         self.god.stub_function(self.job, 'get_state')
+        self.god.stub_function(self.job, 'set_state')
 
         # other setup
         tmpdir = os.path.join(self.autodir, 'tmp')
@@ -114,6 +115,8 @@ class TestBaseJob(unittest.TestCase):
                                        None).and_return(None)
         self.job.get_state.expect_call("__last_boot_tag",
                                        default=None).and_return(None)
+        self.job.get_state.expect_call("__job_tag",
+                                       default=None).and_return('1337-gps')
         if not cont:
             os.path.exists.expect_call(tmpdir).and_return(False)
             os.mkdir.expect_call(tmpdir)
@@ -180,9 +183,6 @@ class TestBaseJob(unittest.TestCase):
 
     def test_monitor_disk_usage(self):
         self.construct_job(True)
-
-        # setup
-        self.god.stub_function(self.job, 'set_state')
 
         # record
         max_rate = 10.0
@@ -629,6 +629,22 @@ class TestBaseJob(unittest.TestCase):
         # run test
         self.assertRaises(error.JobError, self.job.end_reboot_and_verify,
                           91234567, "2.6.16-smp", "sub")
+        self.god.check_playback()
+
+
+    def test_default_tag(self):
+        self.construct_job(cont=False)
+
+        self.job.set_state.expect_call("__job_tag", None)
+        self.job.default_tag(None)
+        self.assertEqual(None, self.job.tag)
+
+        self.job.set_state.expect_call("__job_tag", '1337-gps')
+        self.job.default_tag('1337-gps')
+        self.assertEqual('1337-gps', self.job.tag)
+
+        self.construct_job(cont=True)
+        self.job.default_tag(None)
         self.god.check_playback()
 
 

@@ -52,7 +52,13 @@ class base_autoserv_parser(object):
         self.parser.add_option("-P", action="store", type="string",
                                dest="parse_job",
                                default='',
-                               help="parse the results of the job")
+                               help="Parse the results of the job using this "
+                                    "execution tag.  Accessable in control "
+                                    "files as job.tag.")
+        self.parser.add_option("--execution-tag", action="store", type="string",
+                               dest="execution_tag", default='',
+                               help="Accessable in control files as job.tag; "
+                                    "Defaults to the value passed to -P.")
         self.parser.add_option("-i", action="store_true",
                                dest="install_before", default=False,
                        help="reinstall machines before running the job")

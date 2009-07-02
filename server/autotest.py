@@ -209,28 +209,31 @@ class BaseAutotest(installable_object.InstallableObject):
         self.got = True
 
 
-    def run(self, control_file, results_dir = '.', host = None,
-            timeout=None, tag=None, parallel_flag=False, background=False,
-            client_disconnect_timeout=1800):
+    def run(self, control_file, results_dir='.', host=None, timeout=None,
+            tag=None, parallel_flag=False, background=False,
+            client_disconnect_timeout=1800, job_tag=''):
         """
         Run an autotest job on the remote machine.
 
-        Args:
-                control_file: an open file-like-obj of the control file
-                results_dir: a str path where the results should be stored
-                        on the local filesystem
-                host: a Host instance on which the control file should
-                        be run
-                tag: tag name for the client side instance of autotest
-                parallel_flag: flag set when multiple jobs are run at the
-                          same time
-                background: indicates that the client should be launched as
-                            a background job; the code calling run will be
-                            responsible for monitoring the client and
-                            collecting the results
-        Raises:
-                AutotestRunError: if there is a problem executing
-                        the control file
+        @param control_file: An open file-like-obj of the control file.
+        @param results_dir: A str path where the results should be stored
+                on the local filesystem.
+        @param host: A Host instance on which the control file should
+                be run.
+        @param timeout: Maximum number of seconds to wait for the run or None.
+        @param tag: Tag name for the client side instance of autotest.
+        @param parallel_flag: Flag set when multiple jobs are run at the
+                same time.
+        @param background: Indicates that the client should be launched as
+                a background job; the code calling run will be responsible
+                for monitoring the client and collecting the results.
+        @param client_disconnect_timeout: Seconds to wait for the remote host
+                to come back after a reboot.  [default: 30 minutes]
+        @param job_tag: The scheduler's execution tag for this particular job
+                to pass on to the clients.  'job#-owner/hostgroupname'
+
+        @raises AutotestRunError: If there is a problem executing
+                the control file.
         """
         host = self._get_host_and_setup(host)
         results_dir = os.path.abspath(results_dir)
@@ -240,7 +243,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         atrun = _Run(host, results_dir, tag, parallel_flag, background)
         self._do_run(control_file, results_dir, host, atrun, timeout,
-                     client_disconnect_timeout)
+                     client_disconnect_timeout, job_tag)
 
 
     def _get_host_and_setup(self, host):
@@ -254,7 +257,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def _do_run(self, control_file, results_dir, host, atrun, timeout,
-                client_disconnect_timeout):
+                client_disconnect_timeout, job_tag):
         try:
             atrun.verify_machine()
         except:
@@ -283,6 +286,8 @@ class BaseAutotest(installable_object.InstallableObject):
                               % host.job.last_boot_tag)
         prologue_lines.append("job.default_test_cleanup(%r)\n"
                               % host.job.run_test_cleanup)
+        if job_tag:
+            prologue_lines.append("job.default_tag(%r)\n" % job_tag)
 
         # If the packaging system is being used, add the repository list.
         try:

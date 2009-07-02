@@ -1296,6 +1296,8 @@ class AgentTasksTest(BaseSchedulerTest):
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
         self.job.owner = self.JOB_OWNER
         self.job.name = self.JOB_NAME
+        self.job.id = 1337
+        self.job.tag = lambda: 'fake-job-tag'
         self.queue_entry.id = 1
         self.queue_entry.job = self.job
         self.queue_entry.host = self.host
@@ -2159,6 +2161,14 @@ class JobTest(BaseSchedulerTest):
 
 
 class TopLevelFunctionsTest(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
     def test_autoserv_command_line(self):
         machines = 'abcd12,efgh34'
         results_dir = '/fake/path'
@@ -2174,9 +2184,13 @@ class TopLevelFunctionsTest(unittest.TestCase):
         class FakeJob(object):
             owner = 'Bob'
             name = 'fake job name'
+            id = 1337
+
+        class FakeHQE(object):
+            job = FakeJob
 
         command_line = monitor_db._autoserv_command_line(
-                machines, results_dir, extra_args=[], job=FakeJob(),
+                machines, results_dir, extra_args=[], queue_entry=FakeHQE,
                 verbose=False)
         self.assertEqual(expected_command_line +
                          ['-u', FakeJob.owner, '-l', FakeJob.name],

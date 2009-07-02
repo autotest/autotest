@@ -48,6 +48,9 @@ def run_autoserv(pid_file_manager, results, parser):
     cleanup = parser.options.cleanup
     no_tee = parser.options.no_tee
     parse_job = parser.options.parse_job
+    execution_tag = parser.options.execution_tag
+    if not execution_tag:
+        execution_tag = parse_job
     host_protection = parser.options.host_protection
     ssh_user = parser.options.ssh_user
     ssh_port = parser.options.ssh_port
@@ -96,7 +99,7 @@ def run_autoserv(pid_file_manager, results, parser):
     job = server_job.server_job(control, parser.args[1:], results, label,
                                 user, machines, client, parse_job,
                                 ssh_user, ssh_port, ssh_pass,
-                                group_name=group_name)
+                                group_name=group_name, tag=execution_tag)
     job.logging.start_logging()
 
     # perform checks

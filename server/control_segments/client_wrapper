@@ -6,7 +6,7 @@ def run_client(machine):
                                                  ssh_pass)
     host = hosts.create_host(hostname, user=user, port=port, password=passwd)
     host.log_kernel()
-    at.run(control, host=host)
+    at.run(control, host=host, job_tag=job.tag)
 
 
 job.parallel_simple(run_client, machines)
