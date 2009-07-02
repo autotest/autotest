@@ -23,18 +23,13 @@ def run_autoserv(pid_file_manager, results, parser):
     os.setpgrp()
 
     # Implement SIGTERM handler
-    def handle_sigint(signum, frame):
+    def handle_sigterm(signum, frame):
         if pid_file_manager:
             pid_file_manager.close_file(1, signal.SIGTERM)
         os.killpg(os.getpgrp(), signal.SIGKILL)
 
     # Set signal handler
-    signal.signal(signal.SIGTERM, handle_sigint)
-
-    # Get a useful value for running 'USER'
-    realuser = os.environ.get('USER')
-    if not realuser:
-        realuser = 'anonymous'
+    signal.signal(signal.SIGTERM, handle_sigterm)
 
     if parser.options.machines:
         machines = parser.options.machines.replace(',', ' ').strip().split()
