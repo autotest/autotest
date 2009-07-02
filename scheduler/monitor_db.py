@@ -2704,7 +2704,7 @@ class HostQueueEntry(DBObject):
 
     def execution_tag(self):
         assert self.execution_subdir
-        return "%s-%s/%s" % (self.job.id, self.job.owner, self.execution_subdir)
+        return "%s/%s" % (self.job.tag(), self.execution_subdir)
 
 
 class Job(DBObject):

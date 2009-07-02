@@ -76,22 +76,24 @@ class base_server_job(object):
     def __init__(self, control, args, resultdir, label, user, machines,
                  client=False, parse_job='',
                  ssh_user='root', ssh_port=22, ssh_pass='',
-                 group_name=''):
+                 group_name='', tag=''):
         """
         Create a server side job object.
 
-        @param control The pathname of the control file.
-        @param args Passed to the control file.
-        @param resultdir Where to throw the results.
-        @param label Description of the job.
-        @param user Username for the job (email address).
-        @param client True if this is a client-side control file.
-        @param parse_job bool, should the results be through the TKO parser.
-        @param ssh_user The SSH username.  [root]
-        @param ssh_port The SSH port number.  [22]
-        @param ssh_pass The SSH passphrase, if needed.
-        @param group_name If supplied, this will be written out as
+        @param control: The pathname of the control file.
+        @param args: Passed to the control file.
+        @param resultdir: Where to throw the results.
+        @param label: Description of the job.
+        @param user: Username for the job (email address).
+        @param client: True if this is a client-side control file.
+        @param parse_job: string, if supplied it is the job execution tag that
+                the results will be passed through to the TKO parser with.
+        @param ssh_user: The SSH username.  [root]
+        @param ssh_port: The SSH port number.  [22]
+        @param ssh_pass: The SSH passphrase, if needed.
+        @param group_name: If supplied, this will be written out as
                 host_group_name in the keyvals file for the parser.
+        @param tag: The job execution tag from the scheduler.  [optional]
         """
         path = os.path.dirname(__file__)
         self.autodir = os.path.abspath(os.path.join(path, '..'))
@@ -128,6 +130,7 @@ class base_server_job(object):
         self.ssh_user = ssh_user
         self.ssh_port = ssh_port
         self.ssh_pass = ssh_pass
+        self.tag = tag
         self.run_test_cleanup = True
         self.last_boot_tag = None
         self.hosts = set()
@@ -477,8 +480,8 @@ class base_server_job(object):
                 try:
                     shutil.rmtree(temp_control_file_dir)
                 except Exception, e:
-                    print 'Error %s removing dir %s' % (e,
-                                                        temp_control_file_dir)
+                    logging.warn('Could not remove temp directory %s: %s',
+                                 temp_control_file_dir, e)
 
             if machines and (collect_crashdumps or collect_crashinfo):
                 namespace['test_start_time'] = test_start_time
