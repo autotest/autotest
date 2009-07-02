@@ -602,9 +602,8 @@ class _Run(object):
         except Exception:
             pass
 
-        msg = "Persistent state variables pulled back from %s: %s"
-        msg %= (self.host.hostname, state_dict)
-        print msg
+        logging.debug("Persistent state variables pulled back from %s: %s",
+                      self.host.hostname, state_dict)
 
         if "__run_test_cleanup" in state_dict:
             if state_dict["__run_test_cleanup"]:
