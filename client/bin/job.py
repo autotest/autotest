@@ -158,6 +158,7 @@ class base_job(object):
         self._load_sysinfo_state()
 
         self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
+        self.tag = self.get_state("__job_tag", default=None)
 
         if not options.cont:
             """
@@ -778,6 +779,13 @@ class base_job(object):
         if not self._is_continuation:
             self.set_state("__last_boot_tag", tag)
             self.last_boot_tag = tag
+
+
+    def default_tag(self, tag):
+        """Allows the scheduler's job tag to be passed in from autoserv."""
+        if not self._is_continuation:
+            self.set_state("__job_tag", tag)
+            self.tag = tag
 
 
     def reboot_setup(self):
