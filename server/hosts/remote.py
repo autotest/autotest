@@ -26,6 +26,8 @@ class RemoteHost(base_classes.Host):
     DEFAULT_REBOOT_TIMEOUT = base_classes.Host.DEFAULT_REBOOT_TIMEOUT
     LAST_BOOT_TAG = object()
 
+    VAR_LOG_MESSAGES_COPY_PATH = "/var/log/messages.autotest_start"
+
     def _initialize(self, hostname, autodir=None, *args, **dargs):
         super(RemoteHost, self)._initialize(*args, **dargs)
 
@@ -60,7 +62,13 @@ class RemoteHost(base_classes.Host):
         you will need to call this method yourself (and enforce the
         single-call rule).
         """
-        pass
+        try:
+            self.run('rm -f %s' % self.VAR_LOG_MESSAGES_COPY_PATH)
+            self.run('cp /var/log/messages %s' %
+                     self.VAR_LOG_MESSAGES_COPY_PATH)
+        except Exception, e:
+            # Non-fatal error
+            logging.info('Failed to copy /var/log/messages at startup: %s', e)
 
 
     def get_autodir(self):
