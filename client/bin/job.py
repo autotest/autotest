@@ -1288,7 +1288,7 @@ def runjob(control, options):
     state = control + '.state'
     # Ensure state file is cleaned up before the job starts to run if autotest
     # is not running with the --continue flag
-    if os.path.isfile(state):
+    if not options.cont and os.path.isfile(state):
         logging.debug('Cleaning up previously found state file')
         os.remove(state)
 
