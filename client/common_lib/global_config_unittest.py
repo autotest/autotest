@@ -3,6 +3,7 @@
 import os, sys, tempfile, unittest, types
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import autotemp
 
 
 global_config_ini_contents = """
@@ -31,15 +32,18 @@ value_1: somebody@remotehost
 
 
 def create_config_files():
-    (fp, global_file) = tempfile.mkstemp(".ini", text=True)
-    os.write(fp, global_config_ini_contents)
-    os.close(fp)
+    global_temp = autotemp.tempfile("global", ".ini", 
+                                            text=True)
+    os.write(global_temp.fd, global_config_ini_contents)
+    os.close(global_temp.fd)
 
-    (fp, shadow_file) = tempfile.mkstemp(".ini", text=True)
-    os.write(fp, shadow_config_ini_contents)
-    os.close(fp)
+    shadow_temp = autotemp.tempfile("shadow", ".ini",
+                                           text=True)
+    fd = shadow_temp.fd
+    os.write(shadow_temp.fd, shadow_config_ini_contents)
+    os.close(shadow_temp.fd)
 
-    return (global_file, shadow_file)
+    return (global_temp, shadow_temp)
 
 
 class global_config_test(unittest.TestCase):
@@ -48,13 +52,14 @@ class global_config_test(unittest.TestCase):
 
     def setUp(self):
         # set the config files to our test files
-        (self.global_file, self.shadow_file) = create_config_files()
-        self.conf.set_config_files(self.global_file, self.shadow_file)
+        (self.global_temp, self.shadow_temp) = create_config_files()
+
+        self.conf.set_config_files(self.global_temp.name, self.shadow_temp.name)
 
 
     def tearDown(self):
-        os.remove(self.global_file)
-        os.remove(self.shadow_file)
+        self.shadow_temp.clean()
+        self.global_temp.clean()
         self.conf.set_config_files(global_config.DEFAULT_CONFIG_FILE,
                                 global_config.DEFAULT_SHADOW_FILE)
 
