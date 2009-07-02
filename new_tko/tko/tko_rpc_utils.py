@@ -1,5 +1,5 @@
 from autotest_lib.frontend.afe import rpc_utils
-from autotest_lib.client.bin import kernel_versions
+from autotest_lib.client.common_lib import kernel_versions
 from autotest_lib.new_tko.tko import models
 
 class TooManyRowsError(Exception):
