@@ -87,6 +87,14 @@ public class DataTable extends Composite implements TableListener {
         table.addTableListener(this);
     }
     
+    /**
+     * Causes the last column of the data table to fill the remainder of the width left in the
+     * parent widget.
+     */
+    public void fillParent() {
+        table.getColumnFormatter().setWidth(table.getCellCount(0) - 1, "100%");
+    }
+    
     public void setWidgetFactory(TableWidgetFactory widgetFactory) {
         this.widgetFactory = widgetFactory;
     }
