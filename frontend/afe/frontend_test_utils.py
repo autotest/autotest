@@ -46,7 +46,7 @@ class FrontendTestMixin(object):
 
         labels = [models.Label.objects.create(name=name) for name in
                   ('label1', 'label2', 'label3', 'label4', 'label5', 'label6',
-                   'label7')]
+                   'label7', 'label8')]
 
         platform = models.Label.objects.create(name='myplatform', platform=True)
         for host in hosts:
@@ -70,6 +70,9 @@ class FrontendTestMixin(object):
         hosts[1].labels.add(labels[1])  # label2
         self.label6 = labels[5]
         self.label7 = labels[6]
+        self.label8 = labels[7]
+        self.label8.atomic_group = atomic_group2
+        self.label8.save()
         for hostnum in xrange(4,7):  # host5..host7
             hosts[hostnum].labels.add(self.label4)  # an atomic group lavel
             hosts[hostnum].labels.add(self.label6)  # a normal label
