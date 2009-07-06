@@ -31,6 +31,7 @@ body .menubar-hand-cursor .gwt-MenuItem {
   cursor: pointer;
 }
 
-.preformatted {
+.code {
   white-space: pre;
+  font-family: Courier New, Courier, monospace;
 }
