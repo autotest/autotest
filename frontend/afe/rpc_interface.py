@@ -524,7 +524,7 @@ def reverify_hosts(**filter_data):
     hosts = models.Host.query_objects(filter_data)
     models.AclGroup.check_for_acl_violation_hosts(hosts)
     models.SpecialTask.schedule_special_task(hosts,
-                                             models.SpecialTask.Task.REVERIFY)
+                                             models.SpecialTask.Task.VERIFY)
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
