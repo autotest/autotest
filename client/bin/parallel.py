@@ -23,7 +23,7 @@ def fork_start(tmp, l):
     except Exception, detail:
         try:
             try:
-                logging.exception("child process failed")
+                logging.error("child process failed")
             finally:
                 ename = tmp + "/debug/error-%d" % (os.getpid())
                 pickle.dump(detail, open(ename, "w"))
