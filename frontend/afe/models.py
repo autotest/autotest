@@ -966,12 +966,16 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     for high-priority tasks, such as forced repair or forced reinstall.
 
     host: host to run this task on
-    task: special task to run (currently only Reverify)
+    task: special task to run
     time_requested: date and time the request for this task was made
     is_active: task is currently running
     is_complete: task has finished running
+    time_started: date and time the task started
+    log_file: location of host log file for this task
+    queue_entry: Host queue entry waiting on this task (or None, if task was not
+                 started in preparation of a job)
     """
-    Task = enum.Enum('Reverify', string_values=True)
+    Task = enum.Enum('Verify', 'Cleanup', 'Repair', string_values=True)
 
     host = dbmodels.ForeignKey(Host, blank=False, null=False)
     task = dbmodels.CharField(maxlength=64, choices=Task.choices(),
@@ -980,6 +984,9 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
                                             null=False)
     is_active = dbmodels.BooleanField(default=False, blank=False, null=False)
     is_complete = dbmodels.BooleanField(default=False, blank=False, null=False)
+    time_started = dbmodels.DateTimeField()
+    log_file = dbmodels.CharField(maxlength=45, blank=True, null=False)
+    queue_entry = dbmodels.ForeignKey(HostQueueEntry, blank=True, null=True)
 
     objects = model_logic.ExtendedManager()
 
@@ -987,11 +994,53 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     @classmethod
     def schedule_special_task(cls, hosts, task):
         """\
-        Schedules hosts for a special task
+        Schedules hosts for a special task, if the task is not already scheduled
         """
         for host in hosts:
-            special_task = SpecialTask(host=host, task=task)
-            special_task.save()
+            if not SpecialTask.objects.filter(host__id=host.id, task=task,
+                                              is_active=False):
+                special_task = SpecialTask(host=host, task=task)
+                special_task.save()
+
+
+    @classmethod
+    def prepare(cls, agent, task):
+        """\
+        Creates a new special task if necessary, and prepares it to be run. Sets
+        as active, and sets the time started to the current time.
+
+        agent: scheduler agent that will be taking this task
+        task: task to prepare, or None if a new task should be created
+        """
+        if not task:
+            if not hasattr(agent, 'task_type'):
+                raise ValueError("Can only prepare special tasks for "
+                                 "verify, cleanup, or repair")
+            task = SpecialTask(host=agent.host, task=agent.task_type,
+                               queue_entry=agent.queue_entry)
+
+        task.activate(agent.log_file)
+        return task
+
+
+    def activate(self, log_file):
+        """\
+        Sets a task as active.
+
+        log_file: file where the verify/cleanup/repair log is kept
+        """
+        self.log_file = log_file
+        self.is_active = True
+        self.time_started = datetime.now()
+        self.save()
+
+
+    def finish(self):
+        """\
+        Sets a task as completed
+        """
+        self.is_complete = True
+        self.save()
 
 
     class Meta:
