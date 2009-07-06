@@ -384,14 +384,14 @@ class base_server_job(object):
 
     def parallel_on_machines(self, function, machines, timeout=None):
         """
-        @param func: Called in parallel with one machine as its argument.
+        @param function: Called in parallel with one machine as its argument.
         @param machines: A list of machines to call function(machine) on.
         @param timeout: Seconds after which the function call should timeout.
 
         @returns A list of machines on which function(machine) returned
                 without raising an exception.
         """
-        results = self.parallel_simple(func, machines, timeout=timeout,
+        results = self.parallel_simple(function, machines, timeout=timeout,
                                        return_results=True)
         success_machines = []
         for result, machine in itertools.izip(results, machines):
