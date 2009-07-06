@@ -125,6 +125,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         testTypeSelect.addItem(SERVER_TYPE);
         testTypeSelect.addChangeListener(this);
         
+        testTable.fillParent();
         testTable.setWidgetFactory(this);
         testTable.setClickable(true);
         testTable.addListener(this);
