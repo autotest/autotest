@@ -206,7 +206,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         tkoResultsScroller.setStyleName("results-frame");
         RootPanel.get("tko_results").add(tkoResultsScroller);
         
-        controlFile.addStyleName("preformatted");
+        controlFile.addStyleName("code");
         controlFilePanel.setContent(controlFile);
         RootPanel.get("view_control_file").add(controlFilePanel);
     }
