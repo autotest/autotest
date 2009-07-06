@@ -207,6 +207,7 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
         self._check_for_active_and_complete_queue_entries()
         self._check_for_multiple_platform_hosts()
         self._check_for_no_platform_hosts()
+        self._check_for_multiple_atomic_group_hosts()
 
 
     def _check_for_active_and_complete_queue_entries(self):
@@ -249,6 +250,26 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
             subject = '%s hosts with no platform' % self._db.rowcount
             self._send_inconsistency_message(
                 subject, [', '.join(row[0] for row in rows)])
+
+
+    def _check_for_multiple_atomic_group_hosts(self):
+        rows = self._db.execute("""
+            SELECT hosts.id, hostname, COUNT(1) AS atomic_group_count,
+                   GROUP_CONCAT(labels.name), GROUP_CONCAT(atomic_groups.name)
+            FROM hosts
+            INNER JOIN hosts_labels ON hosts.id = hosts_labels.host_id
+            INNER JOIN labels ON hosts_labels.label_id = labels.id
+            INNER JOIN atomic_groups ON
+                       labels.atomic_group_id = atomic_groups.id
+            WHERE NOT hosts.invalid AND NOT labels.invalid
+            GROUP BY hosts.id
+            HAVING atomic_group_count > 1
+            ORDER BY hostname""")
+        if rows:
+            subject = '%s hosts with multiple atomic groups' % self._db.rowcount
+            lines = [' '.join(str(item) for item in row)
+                     for row in rows]
+            self._send_inconsistency_message(subject, lines)
 
 
     def _send_inconsistency_message(self, subject, lines):
