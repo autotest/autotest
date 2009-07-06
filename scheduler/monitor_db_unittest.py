@@ -1460,10 +1460,10 @@ class AgentTasksTest(BaseSchedulerTest):
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         self.assertEquals(verify_task.host, repair_task.host)
         if verify_task.queue_entry:
-            self.assertEquals(repair_task.queue_entry_to_fail,
+            self.assertEquals(repair_task.queue_entry,
                               verify_task.queue_entry)
         else:
-            self.assertEquals(repair_task.queue_entry_to_fail, None)
+            self.assertEquals(repair_task.queue_entry, None)
 
 
     def _test_verify_task_helper(self, success, use_queue_entry=False,
@@ -1710,7 +1710,7 @@ class AgentTasksTest(BaseSchedulerTest):
         repair_task = task.failure_tasks[0]
         self.assert_(isinstance(repair_task, monitor_db.RepairTask))
         if use_queue_entry:
-            self.assertEquals(repair_task.queue_entry_to_fail, self.queue_entry)
+            self.assertEquals(repair_task.queue_entry, self.queue_entry)
 
         self.run_task(task, success)
 

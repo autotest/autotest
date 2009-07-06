@@ -785,44 +785,119 @@ class Dispatcher(object):
         self._recover_running_entries(orphans)
         self._recover_gathering_entries(orphans)
         self._recover_parsing_entries(orphans)
+        self._recover_special_tasks()
         self._kill_remaining_orphan_processes(orphans)
+
+
+    def _recover_special_tasks(self):
+        """\
+        Recovers all special tasks that have started running but have not
+        completed.
+        """
+
+        tasks = models.SpecialTask.objects.filter(is_active=True,
+                                                  is_complete=False)
+        # Use ordering to force NULL queue_entry_id's to the end of the list
+        for task in tasks.order_by('-queue_entry_id'):
+            if self.host_has_agent(task.host):
+                # Duplicated verify task that we've already recovered
+                continue
+
+            logging.info("Recovering %s", task)
+
+            host = Host(id=task.host.id)
+            queue_entry = None
+            if task.queue_entry:
+                queue_entry = HostQueueEntry.fetch(
+                    where='id = %s', params=(task.queue_entry.id,)).next()
+
+            self._recover_special_task(task, host, queue_entry)
+
+
+    def _recover_special_task(self, task, host, queue_entry):
+        """\
+        Recovers a single special task.
+        """
+        if task.task == models.SpecialTask.Task.VERIFY:
+            agent_tasks = self._recover_verify(task, host, queue_entry)
+        elif task.task == models.SpecialTask.Task.REPAIR:
+            agent_tasks = self._recover_repair(task, host, queue_entry)
+        elif task.task == models.SpecialTask.Task.CLEANUP:
+            agent_tasks = self._recover_cleanup(task, host, queue_entry)
+        else:
+            # Should never happen
+            logging.error(
+                "Special task id %d had invalid task %s", (task.id, task.task))
+
+        self.add_agent(Agent(agent_tasks))
+
+
+    def _recover_verify(self, task, host, queue_entry):
+        """\
+        Recovers a verify task.
+        No associated queue entry: Verify host
+        With associated queue entry: Verify host, and run associated queue
+                                     entry
+        """
+        if not task.queue_entry:
+            return [VerifyTask(host=host, task=task)]
+        else:
+            return [VerifyTask(queue_entry=queue_entry, task=task),
+                    SetEntryPendingTask(queue_entry=queue_entry)]
+
+
+    def _recover_repair(self, task, host, queue_entry):
+        """\
+        Recovers a repair task.
+        Always repair host
+        """
+        return [RepairTask(host=host, queue_entry=queue_entry, task=task)]
+
+
+    def _recover_cleanup(self, task, host, queue_entry):
+        """\
+        Recovers a cleanup task.
+        No associated queue entry: Clean host
+        With associated queue entry: Clean host, verify host if needed, and
+                                     run associated queue entry
+        """
+        if not task.queue_entry:
+            return [CleanupTask(host=host, task=task)]
+        else:
+            agent_tasks = [CleanupTask(queue_entry=queue_entry,
+                                       task=task)]
+            if queue_entry.job.should_run_verify(queue_entry):
+                agent_tasks.append(VerifyTask(queue_entry=queue_entry))
+            agent_tasks.append(
+                SetEntryPendingTask(queue_entry=queue_entry))
+            return agent_tasks
 
 
     def _requeue_other_active_entries(self):
         queue_entries = HostQueueEntry.fetch(
             where='active AND NOT complete AND '
                   '(aborted OR status != "Pending")')
-        for queue_entry in queue_entries:
-            if self.get_agents_for_entry(queue_entry):
-                # entry has already been recovered
-                continue
-            if queue_entry.aborted:
-                queue_entry.abort(self)
-                continue
 
-            logging.info('Requeuing active QE %s (status=%s)', queue_entry,
-                         queue_entry.status)
-            if queue_entry.host:
-                tasks = queue_entry.host.reverify_tasks()
-                self.add_agent(Agent(tasks))
-            agent = queue_entry.requeue()
+        message = '\n'.join(str(entry) for entry in queue_entries
+                            if not self.get_agents_for_entry(entry))
+        if message:
+            email_manager.manager.enqueue_notify_email(
+                'Unrecovered active host queue entries exist',
+                message)
 
 
     def _find_reverify(self):
         tasks = models.SpecialTask.objects.filter(
-            task=models.SpecialTask.Task.REVERIFY, is_active=False,
-            is_complete=False)
+            task=models.SpecialTask.Task.VERIFY, is_active=False,
+            is_complete=False, queue_entry__isnull=True)
 
-        host_ids = [str(task.host.id) for task in tasks]
+        for task in tasks:
+            host = Host.fetch(where='id = %s', params=(task.host.id,)).next()
+            if host.locked or host.invalid or self.host_has_agent(host):
+                continue
 
-        if host_ids:
-            where = 'id IN (%s)' % ','.join(host_ids)
-            host_ids_reverifying = self._reverify_hosts_where(
-                where, cleanup=False)
-            tasks = tasks.filter(host__id__in=host_ids_reverifying)
-            for task in tasks:
-                task.is_active=True
-                task.save()
+            logging.info('Force reverifying host %s', host.hostname)
+            self.add_agent(Agent([VerifyTask(host=host, task=task)]))
 
 
     def _reverify_remaining_hosts(self):
@@ -843,20 +918,16 @@ class Dispatcher(object):
 
 
     def _reverify_hosts_where(self, where,
-                              print_message='Reverifying host %s',
-                              cleanup=True):
+                              print_message='Reverifying host %s'):
         full_where='locked = 0 AND invalid = 0 AND ' + where
-        host_ids_reverifying = []
         for host in Host.fetch(where=full_where):
             if self.host_has_agent(host):
                 # host has already been recovered in some way
                 continue
             if print_message:
                 logging.info(print_message, host.hostname)
-            tasks = host.reverify_tasks(cleanup)
+            tasks = host.reverify_tasks()
             self.add_agent(Agent(tasks))
-            host_ids_reverifying.append(host.id)
-        return host_ids_reverifying
 
 
     def _recover_hosts(self):
@@ -1533,7 +1604,7 @@ class TaskWithJobKeyvals(object):
 
 
 class RepairTask(AgentTask, TaskWithJobKeyvals):
-    def __init__(self, host, queue_entry=None):
+    def __init__(self, host, queue_entry=None, task=None):
         """\
         queue_entry: queue entry to mark failed if this repair fails.
         """
@@ -1542,10 +1613,7 @@ class RepairTask(AgentTask, TaskWithJobKeyvals):
         protection = host_protections.Protection.get_attr_name(protection)
 
         self.host = host
-        self.queue_entry_to_fail = queue_entry
-        # *don't* include the queue entry in IDs -- if the queue entry is
-        # aborted, we want to leave the repair task running
-        self._set_ids(host=host)
+        self.queue_entry = queue_entry
 
         self.create_temp_resultsdir('.repair')
         cmd = _autoserv_command_line(host.hostname, self.temp_results_dir,
@@ -1553,14 +1621,22 @@ class RepairTask(AgentTask, TaskWithJobKeyvals):
                                      queue_entry=queue_entry)
         super(RepairTask, self).__init__(cmd, self.temp_results_dir)
 
+        # *don't* include the queue entry in IDs -- if the queue entry is
+        # aborted, we want to leave the repair task running
+        self._set_ids(host=host)
+
         self.set_host_log_file('repair', self.host)
+        self._task = task
 
 
     def prolog(self):
         logging.info("repair_task starting")
         self.host.set_status('Repairing')
-        if self.queue_entry_to_fail:
-            self.queue_entry_to_fail.requeue()
+        if self.queue_entry:
+            self.queue_entry.requeue()
+
+        self.task_type = models.SpecialTask.Task.REPAIR
+        self._task = models.SpecialTask.prepare(self, self._task)
 
 
     def _keyval_path(self):
@@ -1568,46 +1644,42 @@ class RepairTask(AgentTask, TaskWithJobKeyvals):
 
 
     def _fail_queue_entry(self):
-        assert self.queue_entry_to_fail
+        assert self.queue_entry
 
-        if self.queue_entry_to_fail.meta_host:
+        if self.queue_entry.meta_host:
             return # don't fail metahost entries, they'll be reassigned
 
-        self.queue_entry_to_fail.update_from_database()
-        if self.queue_entry_to_fail.status != 'Queued':
+        self.queue_entry.update_from_database()
+        if self.queue_entry.status != 'Queued':
             return # entry has been aborted
 
-        self.queue_entry_to_fail.set_execution_subdir()
+        self.queue_entry.set_execution_subdir()
         queued_key, queued_time = self._job_queued_keyval(
-            self.queue_entry_to_fail.job)
+            self.queue_entry.job)
         self._write_keyval_after_job(queued_key, queued_time)
         self._write_job_finished()
         # copy results logs into the normal place for job results
         _drone_manager.copy_results_on_drone(
             self.monitor.get_process(),
             source_path=self.temp_results_dir + '/',
-            destination_path=self.queue_entry_to_fail.execution_tag() + '/')
+            destination_path=self.queue_entry.execution_tag() + '/')
 
-        self._copy_results([self.queue_entry_to_fail])
-        if self.queue_entry_to_fail.job.parse_failed_repair:
-            self._parse_results([self.queue_entry_to_fail])
-        self.queue_entry_to_fail.handle_host_failure()
+        self._copy_results([self.queue_entry])
+        if self.queue_entry.job.parse_failed_repair:
+            self._parse_results([self.queue_entry])
+        self.queue_entry.handle_host_failure()
 
 
     def epilog(self):
         super(RepairTask, self).epilog()
 
-        tasks = models.SpecialTask.objects.filter(host__id=self.host.id,
-                                                  is_active=True)
-        for task in tasks:
-            task.is_complete = True
-            task.save()
+        self._task.finish()
 
         if self.success:
             self.host.set_status('Ready')
         else:
             self.host.set_status('Repair Failed')
-            if self.queue_entry_to_fail:
+            if self.queue_entry:
                 self._fail_queue_entry()
 
 
@@ -1626,7 +1698,7 @@ class PreJobTask(AgentTask):
 
 
 class VerifyTask(PreJobTask):
-    def __init__(self, queue_entry=None, host=None):
+    def __init__(self, queue_entry=None, host=None, task=None):
         assert bool(queue_entry) != bool(host)
         self.host = host or queue_entry.host
         self.queue_entry = queue_entry
@@ -1640,6 +1712,7 @@ class VerifyTask(PreJobTask):
 
         self.set_host_log_file('verify', self.host)
         self._set_ids(host=host, queue_entries=[queue_entry])
+        self._task = task
 
 
     def prolog(self):
@@ -1649,17 +1722,32 @@ class VerifyTask(PreJobTask):
             self.queue_entry.set_status('Verifying')
         self.host.set_status('Verifying')
 
+        self.task_type = models.SpecialTask.Task.VERIFY
+
+        # Prepare all SpecialTasks associated with this verify.
+        # Include "active" verify tasks for recovery; we want the new log file
+        # and started time to be recorded
+        self._tasks = list(models.SpecialTask.objects.filter(
+            host__id=self.host.id,
+            task=models.SpecialTask.Task.VERIFY,
+            is_complete=False,
+            queue_entry__isnull=True))
+        task_not_included = (
+            not self._task
+            or self._task.id not in [task.id for task in self._tasks])
+        if task_not_included:
+            self._tasks.append(self._task)
+        for i in range(len(self._tasks)):
+            self._tasks[i] = models.SpecialTask.prepare(self, self._tasks[i])
+
 
     def epilog(self):
         super(VerifyTask, self).epilog()
 
-        if self.success:
-            tasks = models.SpecialTask.objects.filter(host__id=self.host.id,
-                                                      is_active=True)
-            for task in tasks:
-                task.is_complete=True
-                task.save()
+        for task in self._tasks:
+            task.finish()
 
+        if self.success:
             self.host.set_status('Ready')
 
 
@@ -1974,7 +2062,7 @@ class GatherLogsTask(PostJobTask, CleanupHostsMixin):
 
 
 class CleanupTask(PreJobTask):
-    def __init__(self, host=None, queue_entry=None):
+    def __init__(self, host=None, queue_entry=None, task=None):
         assert bool(host) ^ bool(queue_entry)
         if queue_entry:
             host = queue_entry.get_host()
@@ -1991,6 +2079,7 @@ class CleanupTask(PreJobTask):
 
         self._set_ids(host=host, queue_entries=[queue_entry])
         self.set_host_log_file('cleanup', self.host)
+        self._task = task
 
 
     def prolog(self):
@@ -1998,9 +2087,15 @@ class CleanupTask(PreJobTask):
         logging.info("starting cleanup task for host: %s", self.host.hostname)
         self.host.set_status("Cleaning")
 
+        self.task_type = models.SpecialTask.Task.CLEANUP
+        self._task = models.SpecialTask.prepare(self, self._task)
+
 
     def epilog(self):
         super(CleanupTask, self).epilog()
+
+        self._task.finish()
+
         if self.success:
             self.host.set_status('Ready')
             self.host.update_field('dirty', 0)
@@ -2366,14 +2461,13 @@ class Host(DBObject):
         return platform, all_labels
 
 
-    def reverify_tasks(self, cleanup=True):
-        tasks = [VerifyTask(host=self)]
+    def reverify_tasks(self):
+        cleanup_task = CleanupTask(host=self)
+        verify_task = VerifyTask(host=self)
+
         # just to make sure this host does not get taken away
-        self.set_status('Verifying')
-        if cleanup:
-            tasks.insert(0, CleanupTask(host=self))
-            self.set_status('Cleaning')
-        return tasks
+        self.set_status('Cleaning')
+        return [cleanup_task, verify_task]
 
 
     _ALPHANUM_HOST_RE = re.compile(r'^([a-z-]+)(\d+)$', re.IGNORECASE)
@@ -2917,7 +3011,7 @@ class Job(DBObject):
         return False
 
 
-    def _should_run_verify(self, queue_entry):
+    def should_run_verify(self, queue_entry):
         do_not_verify = (queue_entry.host.protection ==
                          host_protections.Protection.DO_NOT_VERIFY)
         if do_not_verify:
@@ -2938,7 +3032,7 @@ class Job(DBObject):
         tasks = []
         if self._should_run_cleanup(queue_entry):
             tasks.append(CleanupTask(queue_entry=queue_entry))
-        if self._should_run_verify(queue_entry):
+        if self.should_run_verify(queue_entry):
             tasks.append(VerifyTask(queue_entry=queue_entry))
         tasks.append(SetEntryPendingTask(queue_entry))
         return tasks
