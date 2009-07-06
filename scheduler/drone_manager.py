@@ -89,7 +89,7 @@ class DroneManager(object):
     All paths going into and out of this class are relative to the full results
     directory, except for those returns by absolute_path().
     """
-    _MAX_PIDFILE_AGE = 1000
+    _MAX_PIDFILE_AGE = 100
 
     def __init__(self):
         self._results_dir = None
@@ -267,6 +267,7 @@ class DroneManager(object):
         information.
         """
         self._reset()
+        self._drop_old_pidfiles()
         pidfile_paths = [pidfile_id.path for pidfile_id in self._pidfile_age]
         all_results = self._call_all_drones('refresh', pidfile_paths)
 
