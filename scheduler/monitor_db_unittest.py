@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import unittest, time, subprocess, os, StringIO, tempfile, datetime, shutil
+import logging
 import common
 import MySQLdb
 from autotest_lib.frontend import setup_django_environment
@@ -455,8 +456,10 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # Indirectly initialize the internal state of the host scheduler.
         self._dispatcher._refresh_pending_queue_entries()
 
-        atomic_hqe = monitor_db.HostQueueEntry(id=atomic_job.id)
-        normal_hqe = monitor_db.HostQueueEntry(id=normal_job.id)
+        atomic_hqe = monitor_db.HostQueueEntry.fetch(where='job_id=%d' %
+                                                     atomic_job.id).next()
+        normal_hqe = monitor_db.HostQueueEntry.fetch(where='job_id=%d' %
+                                                     normal_job.id).next()
 
         host_scheduler = self._dispatcher._host_scheduler
         self.assertTrue(host_scheduler._check_atomic_group_labels(
@@ -467,28 +470,46 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
                 [self.label5.id, self.label6.id, self.label7.id], normal_hqe))
         self.assertTrue(host_scheduler._check_atomic_group_labels(
                 [self.label4.id, self.label6.id], atomic_hqe))
-        self.assertRaises(monitor_db.SchedulerError,
-                          host_scheduler._check_atomic_group_labels,
-                          [self.label4.id, self.label5.id],
-                          atomic_hqe)
+        self.assertTrue(host_scheduler._check_atomic_group_labels(
+                        [self.label4.id, self.label5.id],
+                        atomic_hqe))
 
 
     def test_HostScheduler_get_host_atomic_group_id(self):
-        self._create_job(metahosts=[self.label6.id])
+        job = self._create_job(metahosts=[self.label6.id])
+        queue_entry = monitor_db.HostQueueEntry.fetch(
+                where='job_id=%d' % job.id).next()
         # Indirectly initialize the internal state of the host scheduler.
         self._dispatcher._refresh_pending_queue_entries()
 
         # Test the host scheduler
         host_scheduler = self._dispatcher._host_scheduler
-        self.assertRaises(monitor_db.SchedulerError,
-                          host_scheduler._get_host_atomic_group_id,
-                          [self.label4.id, self.label5.id])
-        self.assertEqual(None, host_scheduler._get_host_atomic_group_id([]))
-        self.assertEqual(None, host_scheduler._get_host_atomic_group_id(
+
+        # Two labels each in a different atomic group.  This should log an
+        # error and continue.
+        orig_logging_error = logging.error
+        def mock_logging_error(message, *args):
+            mock_logging_error._num_calls += 1
+            # Test the logging call itself, we just wrapped it to count it.
+            orig_logging_error(message, *args)
+        mock_logging_error._num_calls = 0
+        self.god.stub_with(logging, 'error', mock_logging_error)
+        self.assertNotEquals(None, host_scheduler._get_host_atomic_group_id(
+                [self.label4.id, self.label8.id], queue_entry))
+        self.assertTrue(mock_logging_error._num_calls > 0)
+        self.god.unstub(logging, 'error')
+
+        # Two labels both in the same atomic group, this should not raise an
+        # error, it will merely cause the job to schedule on the intersection.
+        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
+                [self.label4.id, self.label5.id]))
+
+        self.assertEquals(None, host_scheduler._get_host_atomic_group_id([]))
+        self.assertEquals(None, host_scheduler._get_host_atomic_group_id(
                 [self.label3.id, self.label7.id, self.label6.id]))
-        self.assertEqual(1, host_scheduler._get_host_atomic_group_id(
+        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
                 [self.label4.id, self.label7.id, self.label6.id]))
-        self.assertEqual(1, host_scheduler._get_host_atomic_group_id(
+        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
                 [self.label7.id, self.label5.id]))
 
 

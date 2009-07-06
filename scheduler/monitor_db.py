@@ -391,35 +391,37 @@ class HostScheduler(object):
         Determine if the given HostQueueEntry's atomic group settings are okay
         to schedule on a host with the given labels.
 
-        @param host_labels - A list of label ids that the host has.
-        @param queue_entry - The HostQueueEntry being considered for the host.
+        @param host_labels: A list of label ids that the host has.
+        @param queue_entry: The HostQueueEntry being considered for the host.
 
         @returns True if atomic group settings are okay, False otherwise.
         """
-        return (self._get_host_atomic_group_id(host_labels) ==
+        return (self._get_host_atomic_group_id(host_labels, queue_entry) ==
                 queue_entry.atomic_group_id)
 
 
-    def _get_host_atomic_group_id(self, host_labels):
+    def _get_host_atomic_group_id(self, host_labels, queue_entry=None):
         """
         Return the atomic group label id for a host with the given set of
         labels if any, or None otherwise.  Raises an exception if more than
         one atomic group are found in the set of labels.
 
-        @param host_labels - A list of label ids that the host has.
+        @param host_labels: A list of label ids that the host has.
+        @param queue_entry: The HostQueueEntry we're testing.  Only used for
+                extra info in a potential logged error message.
 
         @returns The id of the atomic group found on a label in host_labels
                 or None if no atomic group label is found.
-        @raises SchedulerError - If more than one atomic group label is found.
         """
-        atomic_ids = [self._labels[label_id].atomic_group_id
-                      for label_id in host_labels
-                      if self._labels[label_id].atomic_group_id is not None]
+        atomic_labels = [self._labels[label_id] for label_id in host_labels
+                         if self._labels[label_id].atomic_group_id is not None]
+        atomic_ids = set(label.atomic_group_id for label in atomic_labels)
         if not atomic_ids:
             return None
         if len(atomic_ids) > 1:
-            raise SchedulerError('More than one atomic label on host.')
-        return atomic_ids[0]
+            logging.error('More than one Atomic Group on HQE "%s" via: %r',
+                          queue_entry, atomic_labels)
+        return atomic_ids.pop()
 
 
     def _get_atomic_group_labels(self, atomic_group_id):
@@ -2409,6 +2411,11 @@ class Label(DBObject):
     _table_name = 'labels'
     _fields = ('id', 'name', 'kernel_config', 'platform', 'invalid',
                'only_if_needed', 'atomic_group_id')
+
+
+    def __repr__(self):
+        return 'Label(name=%r, id=%d, atomic_group_id=%r)' % (
+                self.name, self.id, self.atomic_group_id)
 
 
 class Host(DBObject):
