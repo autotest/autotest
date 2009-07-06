@@ -80,7 +80,6 @@ class qemu_iotests(test.test):
         """
         Copies the log files to the results dir.
         """
-        logging.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         src = os.path.join(self.srcdir, "check.log")
         dest = os.path.join(self.resultsdir, "qemu_iotests.log")
         logging.critical('First copy')
