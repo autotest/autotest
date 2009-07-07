@@ -187,7 +187,8 @@ def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
     for host_obj in hosts:
         host_dict = host_obj.get_object_dict()
         host_dict['labels'] = [label.name for label in host_obj.label_list]
-        host_dict['platform'] = rpc_utils.find_platform(host_obj)
+        host_dict['platform'], host_dict['atomic_group'] = (rpc_utils.
+                find_platform_and_atomic_group(host_obj))
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
