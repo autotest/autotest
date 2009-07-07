@@ -99,6 +99,7 @@ True
 ...           'synch_id': None,
 ...           'status': 'Hello',
 ...           'labels': [],
+...           'atomic_group': None,
 ...           'acls': ['Everyone'],
 ...           'platform': None,
 ...           'attributes': {},
@@ -706,6 +707,22 @@ DoesNotExist: AtomicGroup matching query does not exist.
 >>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
 >>> sorted(label['name'] for label in ag_labels)
 ['one-label', 'two-label']
+
+>>> host_list = rpc_interface.get_hosts()
+>>> hosts_by_name = {}
+>>> for host in host_list:
+...     hosts_by_name[host['hostname']] = host
+...
+>>> hosts_by_name['host1']['atomic_group']
+>>> hosts_by_name['ahost1']['atomic_group']
+'mini rack'
+>>> hosts_by_name['ah3-blue']['atomic_group']
+'mini rack'
+>>> host_list = rpc_interface.get_hosts(labels__atomic_group__name='mini rack')
+>>> list(sorted(h['hostname'] for h in host_list))
+['ah3-blue', 'ah4-blue', 'ahost1', 'ahost2']
+
+
 
 ## Test creation of a job in an atomic group without specifying any
 ## hosts or meta_hosts.
