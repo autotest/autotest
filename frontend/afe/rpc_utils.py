@@ -438,11 +438,28 @@ def create_new_job(owner, options, host_objects, metahost_objects,
     return job.id
 
 
-def find_platform(host):
+def find_platform_and_atomic_group(host):
+    """
+    Figure out the platform name and atomic group name for the given host
+    object.  If none, the return value for either will be None.
+
+    @returns (platform name, atomic group name) for the given host.
+    """
     platforms = [label.name for label in host.label_list if label.platform]
     if not platforms:
-        return None
+        platform = None
+    else:
+        platform = platforms[0]
     if len(platforms) > 1:
         raise ValueError('Host %s has more than one platform: %s' %
                          (host.hostname, ', '.join(platforms)))
-    return platforms[0]
+    for label in host.label_list:
+        if label.atomic_group:
+            atomic_group_name = label.atomic_group.name
+            break
+    else:
+        atomic_group_name = None
+    # Don't check for multiple atomic groups on a host here.  That is an
+    # error but should not trip up the RPC interface.  monitor_db_cleanup
+    # deals with it.  This just returns the first one found.
+    return platform, atomic_group_name
