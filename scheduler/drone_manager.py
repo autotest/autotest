@@ -114,15 +114,8 @@ class DroneManager(object):
             base_results_dir, drone_utility._TEMPORARY_DIRECTORY))
 
         for hostname in drone_hostnames:
-            try:
-                drone = self._add_drone(hostname)
-                drone.call('initialize', base_results_dir)
-            except error.AutoservError:
-                warning = 'Drone %s failed to initialize:\n%s' % (
-                    hostname, traceback.format_exc())
-                email_manager.manager.enqueue_notify_email(
-                    'Drone failed to initialize', warning)
-                self._remove_drone(hostname)
+            drone = self._add_drone(hostname)
+            drone.call('initialize', base_results_dir)
 
         if not self._drones:
             # all drones failed to initialize
@@ -130,7 +123,7 @@ class DroneManager(object):
 
         self.refresh_drone_configs()
 
-        logging.info('Using results repository on %s', 
+        logging.info('Using results repository on %s',
                      results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
         # don't initialize() the results drone - we don't want to clear out any
