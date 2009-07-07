@@ -37,11 +37,12 @@ class FrontendTestMixin(object):
         acl_group = models.AclGroup.objects.create(name='my_acl')
         acl_group.users.add(self.user)
 
-        hosts = [models.Host.objects.create(hostname=hostname) for hostname in
-                 ('host1', 'host2', 'host3', 'host4', 'host5', 'host6',
-                  'host7', 'host8', 'host9')]
+        self.hosts = [models.Host.objects.create(hostname=hostname)
+                      for hostname in
+                      ('host1', 'host2', 'host3', 'host4', 'host5', 'host6',
+                       'host7', 'host8', 'host9')]
 
-        acl_group.hosts = hosts
+        acl_group.hosts = self.hosts
         models.AclGroup.smart_get('Everyone').hosts = []
 
         labels = [models.Label.objects.create(name=name) for name in
@@ -49,7 +50,7 @@ class FrontendTestMixin(object):
                    'label7', 'label8')]
 
         platform = models.Label.objects.create(name='myplatform', platform=True)
-        for host in hosts:
+        for host in self.hosts:
           host.labels.add(platform)
 
         atomic_group1 = models.AtomicGroup.objects.create(
@@ -66,21 +67,21 @@ class FrontendTestMixin(object):
         self.label5 = labels[4]
         self.label5.atomic_group = atomic_group1
         self.label5.save()
-        hosts[0].labels.add(labels[0])  # label1
-        hosts[1].labels.add(labels[1])  # label2
+        self.hosts[0].labels.add(labels[0])  # label1
+        self.hosts[1].labels.add(labels[1])  # label2
         self.label6 = labels[5]
         self.label7 = labels[6]
         self.label8 = labels[7]
         self.label8.atomic_group = atomic_group2
         self.label8.save()
         for hostnum in xrange(4,7):  # host5..host7
-            hosts[hostnum].labels.add(self.label4)  # an atomic group lavel
-            hosts[hostnum].labels.add(self.label6)  # a normal label
-        hosts[6].labels.add(self.label7)
+            self.hosts[hostnum].labels.add(self.label4)  # an atomic group lavel
+            self.hosts[hostnum].labels.add(self.label6)  # a normal label
+        self.hosts[6].labels.add(self.label7)
         for hostnum in xrange(7,9):  # host8..host9
-            hosts[hostnum].labels.add(self.label5)  # an atomic group lavel
-            hosts[hostnum].labels.add(self.label6)  # a normal label
-            hosts[hostnum].labels.add(self.label7)
+            self.hosts[hostnum].labels.add(self.label5)  # an atomic group lavel
+            self.hosts[hostnum].labels.add(self.label6)  # a normal label
+            self.hosts[hostnum].labels.add(self.label7)
 
 
     def _setup_dummy_user(self):

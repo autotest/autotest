@@ -39,6 +39,7 @@ class EmailNotificationManager(object):
 
 
     def enqueue_notify_email(self, subject, message):
+        logging.error(subject + '\n' + message)
         if not self._notify_address:
             return
 

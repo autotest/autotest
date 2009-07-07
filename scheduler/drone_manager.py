@@ -5,6 +5,8 @@ from autotest_lib.scheduler import email_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
 
 
+WORKING_DIRECTORY = object() # see execute_command()
+
 class DroneManagerError(Exception):
     pass
 
@@ -118,7 +120,6 @@ class DroneManager(object):
             except error.AutoservError:
                 warning = 'Drone %s failed to initialize:\n%s' % (
                     hostname, traceback.format_exc())
-                logging.warn(warning)
                 email_manager.manager.enqueue_notify_email(
                     'Drone failed to initialize', warning)
                 self._remove_drone(hostname)
@@ -315,7 +316,6 @@ class DroneManager(object):
         except error.AutoservError:
             warning = ('Results repository failed to execute calls:\n' +
                        traceback.format_exc())
-            logging.warn(warning)
             email_manager.manager.enqueue_notify_email(
                 'Results repository error', warning)
             self._results_drone.clear_call_queue()
@@ -414,23 +414,36 @@ class DroneManager(object):
         return drone_to_use
 
 
+    def _substitute_working_directory_into_command(self, command,
+                                                   working_directory):
+        for i, item in enumerate(command):
+            if item is WORKING_DIRECTORY:
+                command[i] = working_directory
+
+
     def execute_command(self, command, working_directory, pidfile_name,
                         log_file=None, paired_with_pidfile=None):
         """
         Execute the given command, taken as an argv list.
 
-        * working_directory: directory in which the pidfile will be written
-        * pidfile_name: gives the name of the pidfile this process will write
-        * log_file (optional): specifies a path (in the results repository) to
-          hold command output.
-        * paired_with_pidfile (optional): a PidfileId for an already-executed
-          process; the new process will execute on the same drone as the
-          previous process.
+        @param command: command to execute as a list.  if any item is
+                WORKING_DIRECTORY, the absolute path to the working directory
+                will be substituted for it.
+        @param working_directory: directory in which the pidfile will be written
+        @param pidfile_name: name of the pidfile this process will write
+        @param log_file (optional): path (in the results repository) to hold
+                command output.
+        @param paired_with_pidfile (optional): a PidfileId for an
+                already-executed process; the new process will execute on the
+                same drone as the previous process.
         """
         working_directory = self.absolute_path(working_directory)
         if not log_file:
             log_file = self.get_temporary_path('execute')
         log_file = self.absolute_path(log_file)
+
+        self._substitute_working_directory_into_command(command,
+                                                        working_directory)
 
         if paired_with_pidfile:
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
