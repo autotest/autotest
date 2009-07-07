@@ -971,7 +971,6 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     is_active: task is currently running
     is_complete: task has finished running
     time_started: date and time the task started
-    log_file: location of host log file for this task
     queue_entry: Host queue entry waiting on this task (or None, if task was not
                  started in preparation of a job)
     """
@@ -984,11 +983,15 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
                                             null=False)
     is_active = dbmodels.BooleanField(default=False, blank=False, null=False)
     is_complete = dbmodels.BooleanField(default=False, blank=False, null=False)
-    time_started = dbmodels.DateTimeField()
-    log_file = dbmodels.CharField(maxlength=45, blank=True, null=False)
+    time_started = dbmodels.DateTimeField(null=True)
     queue_entry = dbmodels.ForeignKey(HostQueueEntry, blank=True, null=True)
 
     objects = model_logic.ExtendedManager()
+
+
+    def execution_path(self):
+        return 'hosts/%s/%s-%s' % (self.host.hostname, self.id,
+                                   self.task.lower())
 
 
     @classmethod
@@ -998,7 +1001,8 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         """
         for host in hosts:
             if not SpecialTask.objects.filter(host__id=host.id, task=task,
-                                              is_active=False):
+                                              is_active=False,
+                                              is_complete=False):
                 special_task = SpecialTask(host=host, task=task)
                 special_task.save()
 
@@ -1013,23 +1017,19 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         task: task to prepare, or None if a new task should be created
         """
         if not task:
-            if not hasattr(agent, 'task_type'):
+            if not hasattr(agent, 'TASK_TYPE'):
                 raise ValueError("Can only prepare special tasks for "
                                  "verify, cleanup, or repair")
-            task = SpecialTask(host=agent.host, task=agent.task_type,
-                               queue_entry=agent.queue_entry)
+            task = cls.objects.create(host=agent.host, task=agent.TASK_TYPE,
+                                      queue_entry=agent.queue_entry)
 
-        task.activate(agent.log_file)
         return task
 
 
-    def activate(self, log_file):
+    def activate(self):
         """\
         Sets a task as active.
-
-        log_file: file where the verify/cleanup/repair log is kept
         """
-        self.log_file = log_file
         self.is_active = True
         self.time_started = datetime.now()
         self.save()
@@ -1039,6 +1039,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         """\
         Sets a task as completed
         """
+        self.is_active = False
         self.is_complete = True
         self.save()
 
@@ -1047,8 +1048,8 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'special_tasks'
 
     def __str__(self):
-        result = 'Special Task (host %s, task %s, time %s)' % (
-            self.host, self.task, self.time_requested)
+        result = 'Special Task %s (host %s, task %s, time %s)' % (
+            self.id, self.host, self.task, self.time_requested)
         if self.is_complete:
             result += ' (completed)'
         elif self.is_active:

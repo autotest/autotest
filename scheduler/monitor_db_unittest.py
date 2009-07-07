@@ -1273,7 +1273,8 @@ class DelayedCallTaskTest(unittest.TestCase):
 
 
 class AgentTasksTest(BaseSchedulerTest):
-    TEMP_DIR = '/abspath/tempdir'
+    ABSPATH_BASE = '/abspath/'
+    BASE_TASK_DIR = 'hosts/host1/'
     RESULTS_DIR = '/results/dir'
     HOSTNAME = 'myhost'
     DUMMY_PROCESS = object()
@@ -1296,8 +1297,8 @@ class AgentTasksTest(BaseSchedulerTest):
         self.god.stub_function(drone_manager.DroneManager,
                                'get_pidfile_id_from')
 
-        def dummy_absolute_path(self, path):
-            return '/abspath/' + path
+        def dummy_absolute_path(drone_manager_self, path):
+            return self.ABSPATH_BASE + path
         self.god.stub_with(drone_manager.DroneManager, 'absolute_path',
                            dummy_absolute_path)
 
@@ -1352,10 +1353,10 @@ class AgentTasksTest(BaseSchedulerTest):
         self.assertEquals(task.success, success)
 
 
-    def setup_run_monitor(self, exit_status, copy_log_file=True):
+    def setup_run_monitor(self, exit_status, task_tag, copy_log_file=True):
         monitor_db.PidfileRunMonitor.run.expect_call(
             mock.is_instance_comparator(list),
-            'tempdir',
+            self.BASE_TASK_DIR + task_tag,
             nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
             log_file=mock.anything_comparator(),
             pidfile_name=monitor_db._AUTOSERV_PID_FILE,
@@ -1373,7 +1374,7 @@ class AgentTasksTest(BaseSchedulerTest):
         monitor_db.PidfileRunMonitor.get_process.expect_call().and_return(
             self.DUMMY_PROCESS)
         if copy_on_drone:
-            self.queue_entry.execution_tag.expect_call().and_return('tag')
+            self.queue_entry.execution_path.expect_call().and_return('tag')
             drone_manager.DroneManager.copy_results_on_drone.expect_call(
                 self.DUMMY_PROCESS, source_path=mock.is_string_comparator(),
                 destination_path=mock.is_string_comparator())
@@ -1386,13 +1387,13 @@ class AgentTasksTest(BaseSchedulerTest):
                 self.DUMMY_PROCESS, mock.is_string_comparator())
 
 
-    def _test_repair_task_helper(self, success):
+    def _test_repair_task_helper(self, success, task_tag):
         self.host.set_status.expect_call('Repairing')
         if success:
-            self.setup_run_monitor(0)
+            self.setup_run_monitor(0, task_tag)
             self.host.set_status.expect_call('Ready')
         else:
-            self.setup_run_monitor(1)
+            self.setup_run_monitor(1, task_tag)
             self.host.set_status.expect_call('Repair Failed')
 
         task = monitor_db.RepairTask(self.host)
@@ -1406,17 +1407,19 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.assertTrue(set(task.cmd) >=
                         set([monitor_db._autoserv_path, '-p', '-R', '-m',
-                             self.HOSTNAME, '-r', self.TEMP_DIR,
+                             self.HOSTNAME, '-r',
+                             drone_manager.WORKING_DIRECTORY,
                              '--host-protection', expected_protection]))
         self.god.check_playback()
 
 
     def test_repair_task(self):
-        self._test_repair_task_helper(True)
-        self._test_repair_task_helper(False)
+        self._test_repair_task_helper(True, '1-repair')
+        self._test_repair_task_helper(False, '2-repair')
 
 
-    def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair):
+    def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair,
+                                                  task_tag):
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self.god.stub_class(monitor_db, 'Agent')
         self.god.stub_class_method(monitor_db.TaskWithJobKeyvals,
@@ -1426,7 +1429,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.host.set_status.expect_call('Repairing')
         self.queue_entry.requeue.expect_call()
-        self.setup_run_monitor(1)
+        self.setup_run_monitor(1, task_tag)
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.update_from_database.expect_call()
         self.queue_entry.set_execution_subdir.expect_call()
@@ -1435,7 +1438,7 @@ class AgentTasksTest(BaseSchedulerTest):
         monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
             'job_finished', mock.is_instance_comparator(int))
         self._setup_move_logfile(copy_on_drone=True)
-        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        self.queue_entry.execution_path.expect_call().and_return('tag')
         self._setup_move_logfile()
         self.job.parse_failed_repair = parse_failed_repair
         if parse_failed_repair:
@@ -1456,22 +1459,22 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def test_repair_task_with_queue_entry(self):
-        self._test_repair_task_with_queue_entry_helper(True)
-        self._test_repair_task_with_queue_entry_helper(False)
+        self._test_repair_task_with_queue_entry_helper(True, '1-repair')
+        self._test_repair_task_with_queue_entry_helper(False, '2-repair')
 
 
-    def setup_verify_expects(self, success, use_queue_entry):
+    def setup_verify_expects(self, success, use_queue_entry, task_tag):
         if use_queue_entry:
             self.queue_entry.set_status.expect_call('Verifying')
         self.host.set_status.expect_call('Verifying')
         if success:
-            self.setup_run_monitor(0)
+            self.setup_run_monitor(0, task_tag)
             self.host.set_status.expect_call('Ready')
         else:
-            self.setup_run_monitor(1)
+            self.setup_run_monitor(1, task_tag)
             if use_queue_entry and not self.queue_entry.meta_host:
                 self.queue_entry.set_execution_subdir.expect_call()
-                self.queue_entry.execution_tag.expect_call().and_return('tag')
+                self.queue_entry.execution_path.expect_call().and_return('tag')
                 self._setup_move_logfile(include_destination=True)
 
 
@@ -1487,9 +1490,9 @@ class AgentTasksTest(BaseSchedulerTest):
             self.assertEquals(repair_task.queue_entry, None)
 
 
-    def _test_verify_task_helper(self, success, use_queue_entry=False,
+    def _test_verify_task_helper(self, success, task_tag, use_queue_entry=False,
                                  use_meta_host=False):
-        self.setup_verify_expects(success, use_queue_entry)
+        self.setup_verify_expects(success, use_queue_entry, task_tag)
 
         if use_queue_entry:
             task = monitor_db.VerifyTask(queue_entry=self.queue_entry)
@@ -1499,20 +1502,21 @@ class AgentTasksTest(BaseSchedulerTest):
         self.run_task(task, success)
         self.assertTrue(set(task.cmd) >=
                         set([monitor_db._autoserv_path, '-p', '-v', '-m',
-                             self.HOSTNAME, '-r', self.TEMP_DIR]))
+                             self.HOSTNAME, '-r',
+                             drone_manager.WORKING_DIRECTORY]))
         if use_queue_entry:
             self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
 
 
     def test_verify_task_with_host(self):
-        self._test_verify_task_helper(True)
-        self._test_verify_task_helper(False)
+        self._test_verify_task_helper(True, '1-verify')
+        self._test_verify_task_helper(False, '2-verify')
 
 
     def test_verify_task_with_queue_entry(self):
-        self._test_verify_task_helper(True, use_queue_entry=True)
-        self._test_verify_task_helper(False, use_queue_entry=True)
+        self._test_verify_task_helper(True, '1-verify', use_queue_entry=True)
+        self._test_verify_task_helper(False, '2-verify', use_queue_entry=True)
 
 
     def test_verify_task_with_metahost(self):
@@ -1522,7 +1526,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
     def _setup_post_job_task_expects(self, autoserv_success, hqe_status=None,
                                      hqe_aborted=False):
-        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        self.queue_entry.execution_path.expect_call().and_return('tag')
         self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
         self.pidfile_monitor.pidfile_id = self.PIDFILE_ID
         self.pidfile_monitor.attach_to_existing_process.expect_call('tag')
@@ -1576,7 +1580,7 @@ class AgentTasksTest(BaseSchedulerTest):
             monitor = self.monitor
         monitor.has_process.expect_call().and_return(True)
         if queue_entry:
-            queue_entry.execution_tag.expect_call().and_return('tag')
+            queue_entry.execution_path.expect_call().and_return('tag')
         monitor.get_process.expect_call().and_return(self.DUMMY_PROCESS)
         drone_manager.DroneManager.copy_to_results_repository.expect_call(
                 self.DUMMY_PROCESS, mock.is_string_comparator())
@@ -1629,7 +1633,7 @@ class AgentTasksTest(BaseSchedulerTest):
         self._setup_post_parse_expects(True)
 
         task = monitor_db.FinalReparseTask([self.queue_entry],
-                                           run_monitor=self.monitor)
+                                           recover_run_monitor=self.monitor)
         self.run_task(task, True)
         self.god.check_playback()
 
@@ -1708,19 +1712,20 @@ class AgentTasksTest(BaseSchedulerTest):
         self._run_gather_logs_task()
 
 
-    def _test_cleanup_task_helper(self, success, use_queue_entry=False):
+    def _test_cleanup_task_helper(self, success, task_tag,
+                                  use_queue_entry=False):
         if use_queue_entry:
             self.queue_entry.get_host.expect_call().and_return(self.host)
         self.host.set_status.expect_call('Cleaning')
         if success:
-            self.setup_run_monitor(0)
+            self.setup_run_monitor(0, task_tag)
             self.host.set_status.expect_call('Ready')
             self.host.update_field.expect_call('dirty', 0)
         else:
-            self.setup_run_monitor(1)
+            self.setup_run_monitor(1, task_tag)
             if use_queue_entry and not self.queue_entry.meta_host:
                 self.queue_entry.set_execution_subdir.expect_call()
-                self.queue_entry.execution_tag.expect_call().and_return('tag')
+                self.queue_entry.execution_path.expect_call().and_return('tag')
                 self._setup_move_logfile(include_destination=True)
 
         if use_queue_entry:
@@ -1737,35 +1742,36 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.god.check_playback()
         self.assert_(set(task.cmd) >=
-                        set([monitor_db._autoserv_path, '-p', '--cleanup', '-m',
-                             self.HOSTNAME, '-r', self.TEMP_DIR]))
+                     set([monitor_db._autoserv_path, '-p', '--cleanup', '-m',
+                          self.HOSTNAME, '-r',
+                          drone_manager.WORKING_DIRECTORY]))
         if use_queue_entry:
             self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
 
     def test_cleanup_task(self):
-        self._test_cleanup_task_helper(True)
-        self._test_cleanup_task_helper(False)
+        self._test_cleanup_task_helper(True, '1-cleanup')
+        self._test_cleanup_task_helper(False, '2-cleanup')
 
 
     def test_cleanup_task_with_queue_entry(self):
-        self._test_cleanup_task_helper(False, True)
+        self._test_cleanup_task_helper(False, '1-cleanup', True)
 
 
     def test_recovery_queue_task_aborted_early(self):
-        # abort a RecoveryQueueTask right after it's created
+        # abort a recovery QueueTask right after it's created
         self.god.stub_class_method(monitor_db.QueueTask, '_log_abort')
         self.god.stub_class_method(monitor_db.QueueTask, '_finish_task')
         run_monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
                                                  'run_monitor')
 
-        self.queue_entry.execution_tag.expect_call().and_return('tag')
+        self.queue_entry.execution_path.expect_call().and_return('tag')
         run_monitor.kill.expect_call()
         run_monitor.has_process.expect_call().and_return(True)
         monitor_db.QueueTask._log_abort.expect_call()
         monitor_db.QueueTask._finish_task.expect_call()
 
-        task = monitor_db.RecoveryQueueTask(self.job, [self.queue_entry],
-                                            run_monitor)
+        task = monitor_db.QueueTask(self.job, [self.queue_entry],
+                                    recover_run_monitor=run_monitor)
         task.abort()
         self.assert_(task.aborted)
         self.god.check_playback()
@@ -2192,13 +2198,12 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
     def test_autoserv_command_line(self):
         machines = 'abcd12,efgh34'
-        results_dir = '/fake/path'
         extra_args = ['-Z', 'hello']
         expected_command_line = [monitor_db._autoserv_path, '-p',
-                                 '-m', machines, '-r', results_dir]
+                                 '-m', machines, '-r',
+                                 drone_manager.WORKING_DIRECTORY]
 
-        command_line = monitor_db._autoserv_command_line(
-                machines, results_dir, extra_args)
+        command_line = monitor_db._autoserv_command_line(machines, extra_args)
         self.assertEqual(expected_command_line + ['--verbose'] + extra_args,
                          command_line)
 
@@ -2211,8 +2216,7 @@ class TopLevelFunctionsTest(unittest.TestCase):
             job = FakeJob
 
         command_line = monitor_db._autoserv_command_line(
-                machines, results_dir, extra_args=[], queue_entry=FakeHQE,
-                verbose=False)
+                machines, extra_args=[], queue_entry=FakeHQE, verbose=False)
         self.assertEqual(expected_command_line +
                          ['-u', FakeJob.owner, '-l', FakeJob.name],
                          command_line)
