@@ -23,6 +23,7 @@ LONG_TESTS = set((
     'csv_encoder_unittest.py',
     'rpc_interface_unittest.py',
     'logging_manager_test.py',
+    'models_test.py',
     ))
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
