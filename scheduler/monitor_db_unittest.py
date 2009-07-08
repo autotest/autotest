@@ -1304,6 +1304,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'run')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'kill')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'get_process')
         def mock_has_process(unused):
             return True
@@ -1353,7 +1354,8 @@ class AgentTasksTest(BaseSchedulerTest):
         self.assertEquals(task.success, success)
 
 
-    def setup_run_monitor(self, exit_status, task_tag, copy_log_file=True):
+    def setup_run_monitor(self, exit_status, task_tag, copy_log_file=True,
+                          aborted=False):
         monitor_db.PidfileRunMonitor.run.expect_call(
             mock.is_instance_comparator(list),
             self.BASE_TASK_DIR + task_tag,
@@ -1362,8 +1364,11 @@ class AgentTasksTest(BaseSchedulerTest):
             pidfile_name=monitor_db._AUTOSERV_PID_FILE,
             paired_with_pidfile=None)
         monitor_db.PidfileRunMonitor.exit_code.expect_call()
-        monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
-            exit_status)
+        if aborted:
+            monitor_db.PidfileRunMonitor.kill.expect_call()
+        else:
+            monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
+                    exit_status)
 
         if copy_log_file:
             self._setup_move_logfile()
@@ -1416,6 +1421,22 @@ class AgentTasksTest(BaseSchedulerTest):
     def test_repair_task(self):
         self._test_repair_task_helper(True, '1-repair')
         self._test_repair_task_helper(False, '2-repair')
+
+
+    def test_repair_task_aborted(self):
+        self.host.set_status.expect_call('Repairing')
+        self.setup_run_monitor(0, '1-repair', aborted=True)
+
+        task = monitor_db.RepairTask(self.host)
+        task.agent = object()
+        task.poll()
+        task.abort()
+
+        self.assertTrue(task.done)
+        self.assertTrue(task.aborted)
+        self.assertTrue(task.task.is_complete)
+        self.assertFalse(task.task.is_active)
+        self.god.check_playback()
 
 
     def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair,
