@@ -67,7 +67,7 @@ public class DynamicTable extends DataTable
     
     public DynamicTable(String[][] columns, DataSource dataSource) {
         super(columns);
-        this.dataSource = dataSource;
+        setDataSource(dataSource);
     }
     
     // SORTING
@@ -143,6 +143,11 @@ public class DynamicTable extends DataTable
      */
     public void sortOnColumn(String columnField) {
         sortOnColumn(columnField, SortDirection.ASCENDING);
+    }
+    
+    public void clearSorts() {
+        sortColumns.clear();
+        updateSortIndicators();
     }
     
     // PAGINATION
@@ -261,6 +266,10 @@ public class DynamicTable extends DataTable
     
     public DataSource getDataSource() {
         return dataSource;
+    }
+    
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
     
     

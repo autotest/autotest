@@ -1,6 +1,7 @@
 package autotest.common.ui;
 
 import autotest.common.CustomHistory;
+import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 
 import com.google.gwt.http.client.URL;
@@ -100,7 +101,7 @@ public abstract class TabView {
     protected void openHistoryToken(HistoryToken historyToken) {
         if (isOpenInNewWindowEvent()) {
             String newUrl = Window.Location.getPath() + "#" + historyToken;
-            Window.open(URL.encode(newUrl), "_blank", "");
+            Utils.openUrlInNewWindow(URL.encode(newUrl));
         } else {
             History.newItem(historyToken.toString());
         }

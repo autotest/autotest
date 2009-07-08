@@ -463,3 +463,88 @@ def find_platform_and_atomic_group(host):
     # error but should not trip up the RPC interface.  monitor_db_cleanup
     # deals with it.  This just returns the first one found.
     return platform, atomic_group_name
+
+
+# support for get_host_queue_entries_and_special_tasks()
+
+def _common_entry_to_dict(entry, type, job_dict):
+    return dict(type=type,
+                host=entry.host.get_object_dict(),
+                job=job_dict,
+                execution_path=entry.execution_path(),
+                status=entry.status,
+                started_on=entry.started_on,
+                id=entry.id)
+
+
+def _special_task_to_dict(special_task):
+    job_dict = None
+    if special_task.queue_entry:
+        job_dict = special_task.queue_entry.job.get_object_dict()
+    return _common_entry_to_dict(special_task, special_task.task, job_dict)
+
+
+def _queue_entry_to_dict(queue_entry):
+    return _common_entry_to_dict(queue_entry, 'Job',
+                                 queue_entry.job.get_object_dict())
+
+
+def _compute_next_job_for_tasks(queue_entries, special_tasks):
+    """
+    For each task, try to figure out the next job that ran after that task.
+    This is done using two pieces of information:
+    * if the task has a queue entry, we can use that entry's job ID.
+    * if the task has a time_started, we can try to compare that against the
+      started_on field of queue_entries. this isn't guaranteed to work perfectly
+      since queue_entries may also have null started_on values.
+    * if the task has neither, or if use of time_started fails, just use the
+      last computed job ID.
+    """
+    next_job_id = None # most recently computed next job
+    hqe_index = 0 # index for scanning by started_on times
+    for task in special_tasks:
+        if task.queue_entry:
+            next_job_id = task.queue_entry.job.id
+        elif task.time_started is not None:
+            for queue_entry in queue_entries[hqe_index:]:
+                if queue_entry.started_on is None:
+                    continue
+                if queue_entry.started_on < task.time_started:
+                    break
+                next_job_id = queue_entry.job.id
+
+        task.next_job_id = next_job_id
+
+        # advance hqe_index to just after next_job_id
+        if next_job_id is not None:
+            for queue_entry in queue_entries[hqe_index:]:
+                if queue_entry.job.id < next_job_id:
+                    break
+                hqe_index += 1
+
+
+def interleave_entries(queue_entries, special_tasks):
+    """
+    Both lists should be ordered by descending ID.
+    """
+    _compute_next_job_for_tasks(queue_entries, special_tasks)
+
+    # start with all special tasks that've run since the last job
+    interleaved_entries = []
+    for task in special_tasks:
+        if task.next_job_id is not None:
+            break
+        interleaved_entries.append(_special_task_to_dict(task))
+
+    # now interleave queue entries with the remaining special tasks
+    special_task_index = len(interleaved_entries)
+    for queue_entry in queue_entries:
+        interleaved_entries.append(_queue_entry_to_dict(queue_entry))
+        # add all tasks that ran between this job and the previous one
+        for task in special_tasks[special_task_index:]:
+            if task.next_job_id < queue_entry.job.id:
+                break
+            interleaved_entries.append(_special_task_to_dict(task))
+            special_task_index += 1
+
+    return interleaved_entries
