@@ -10,7 +10,6 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
@@ -246,7 +245,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
             args.put("benchmark", benchmarkStr);
             args.put("key", getKey(benchmarkStr));
         }
-        Window.open(url + Utils.encodeUrlArguments(args), "_blank", "");
+        Utils.openUrlInNewWindow(url + Utils.encodeUrlArguments(args));
     }
     
     private String getKey(String benchmark) {

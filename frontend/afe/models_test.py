@@ -16,11 +16,25 @@ class SpecialTaskUnittest(unittest.TestCase,
         self._frontend_common_teardown()
 
 
-    def test_execution_path(self):
-        task = models.SpecialTask.objects.create(
+    def _create_task(self):
+        return models.SpecialTask.objects.create(
                 host=self.hosts[0], task=models.SpecialTask.Task.VERIFY)
 
+
+    def test_execution_path(self):
+        task = self._create_task()
         self.assertEquals(task.execution_path(), 'hosts/host1/1-verify')
+
+
+    def test_status(self):
+        task = self._create_task()
+        self.assertEquals(task.status, 'Queued')
+
+        task.update_object(is_active=True)
+        self.assertEquals(task.status, 'Running')
+
+        task.update_object(is_active=False, is_complete=True)
+        self.assertEquals(task.status, 'Completed')
 
 
 if __name__ == '__main__':

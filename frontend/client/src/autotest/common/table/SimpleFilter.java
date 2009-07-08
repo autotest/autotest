@@ -22,7 +22,7 @@ public class SimpleFilter extends Filter {
     }
     
     public void setAllParameters(JSONObject params) {
-        parameters = new JSONObject();
+        clear();
         updateObject(parameters, params);
     }
 
@@ -39,6 +39,10 @@ public class SimpleFilter extends Filter {
     @Override
     public boolean isActive() {
         return true;
+    }
+
+    public void clear() {
+        parameters = new JSONObject();
     }
 
 }

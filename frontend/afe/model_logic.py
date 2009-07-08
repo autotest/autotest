@@ -602,6 +602,7 @@ class ModelExtensions(object):
          DB layer documentation)
          -extra_where: extra WHERE clause to append
         """
+        filter_data = dict(filter_data) # copy so we don't mutate the original
         query_start = filter_data.pop('query_start', None)
         query_limit = filter_data.pop('query_limit', None)
         if query_start and not query_limit:

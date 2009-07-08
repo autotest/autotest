@@ -6,6 +6,7 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.Window;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -239,5 +240,9 @@ public class Utils {
         for (String key : source.keySet()) {
             destination.put(key, source.get(key));
         }
+    }
+
+    public static void openUrlInNewWindow(String url) {
+        Window.open(url, "_blank", "");
     }
 }

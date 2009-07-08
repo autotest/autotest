@@ -12,7 +12,6 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -110,7 +109,7 @@ public class TkoUtils {
         }
 
         String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + request.toString();
-        Window.open(url, "_blank", "");
+        Utils.openUrlInNewWindow(url);
     }
     
     static void doCsvRequest(RpcDataSource dataSource) {

@@ -37,7 +37,7 @@ class RpcInterfaceTest(unittest.TestCase,
 
 
     def test_get_jobs_summary(self):
-        job = self._create_job(xrange(3))
+        job = self._create_job(hosts=xrange(1, 4))
         entries = list(job.hostqueueentry_set.all())
         entries[1].status = _hqe_status.FAILED
         entries[1].save()
@@ -59,6 +59,59 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(host.invalid, True)
         self.assertEquals(host.labels.count(), 0)
         self.assertEquals(host.aclgroup_set.count(), 0)
+
+
+    def _common_entry_check(self, entry_dict):
+        self.assertEquals(entry_dict['host']['hostname'], 'host1')
+        self.assertEquals(entry_dict['job']['id'], 2)
+
+
+
+    def test_get_host_queue_entries_and_special_tasks(self):
+        host = self.hosts[0]
+
+        job1 = self._create_job(hosts=[1])
+        job2 = self._create_job(hosts=[1])
+
+        entry1 = job1.hostqueueentry_set.all()[0]
+        entry1.update_object(started_on=datetime.datetime(2009, 1, 2),
+                             execution_subdir='1-myuser/host1')
+        entry2 = job2.hostqueueentry_set.all()[0]
+        entry2.update_object(started_on=datetime.datetime(2009, 1, 3),
+                             execution_subdir='2-myuser/host1')
+
+        task1 = models.SpecialTask.objects.create(
+                host=host, task=models.SpecialTask.Task.VERIFY,
+                time_started=datetime.datetime(2009, 1, 1), # ran before job 1
+                is_complete=True)
+        task2 = models.SpecialTask.objects.create(
+                host=host, task=models.SpecialTask.Task.VERIFY,
+                queue_entry=entry2, # ran with job 2
+                is_active=True)
+        task3 = models.SpecialTask.objects.create(
+                host=host, task=models.SpecialTask.Task.VERIFY) # not yet run
+
+        entries_and_tasks = (
+                rpc_interface.get_host_queue_entries_and_special_tasks('host1'))
+
+        paths = [entry['execution_path'] for entry in entries_and_tasks]
+        self.assertEquals(paths, ['hosts/host1/3-verify',
+                                  '2-myuser/host1',
+                                  'hosts/host1/2-verify',
+                                  '1-myuser/host1',
+                                  'hosts/host1/1-verify'])
+
+        verify2 = entries_and_tasks[2]
+        self._common_entry_check(verify2)
+        self.assertEquals(verify2['type'], 'Verify')
+        self.assertEquals(verify2['status'], 'Running')
+        self.assertEquals(verify2['execution_path'], 'hosts/host1/2-verify')
+
+        entry2 = entries_and_tasks[1]
+        self._common_entry_check(entry2)
+        self.assertEquals(entry2['type'], 'Job')
+        self.assertEquals(entry2['status'], 'Queued')
+        self.assertEquals(entry2['started_on'], '2009-01-03 00:00:00')
 
 
 if __name__ == '__main__':

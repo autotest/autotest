@@ -25,15 +25,19 @@ import java.util.Set;
  */
 public class SelectionManager implements TableWidgetFactory, TableWidgetClickListener,
                                          SelectionPanelListener {
-    protected Set<JSONObject> selectedObjects = new JSONObjectSet<JSONObject>();
-    protected boolean selectOnlyOne = false;
-    protected DataTable attachedTable;
-    protected List<SelectionListener> listeners =
-        new ArrayList<SelectionListener>();
+    private Set<JSONObject> selectedObjects = new JSONObjectSet<JSONObject>();
+    private boolean selectOnlyOne = false;
+    private DataTable attachedTable;
+    private List<SelectionListener> listeners = new ArrayList<SelectionListener>();
+    private SelectableRowFilter selectableRowFilter;
     
     public interface SelectionListener {
         public void onAdd(Collection<JSONObject> objects);
         public void onRemove(Collection<JSONObject> objects);
+    }
+    
+    public interface SelectableRowFilter {
+        public boolean isRowSelectable(JSONObject row);
     }
     
     public SelectionManager(DataTable table, boolean selectOnlyOne) {
@@ -41,16 +45,32 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
         this.selectOnlyOne = selectOnlyOne;
     }
     
+    public void setSelectableRowFilter(SelectableRowFilter filter) {
+        selectableRowFilter = filter;
+    }
+    
     public void refreshSelection() {
         for (int i = 0; i < attachedTable.getRowCount(); i++) {
-            if (selectedObjects.contains(attachedTable.getRow(i)))
+            JSONObject row = attachedTable.getRow(i);
+            if (!isSelectable(row)) {
+                continue;
+            }
+            if (selectedObjects.contains(row)) { 
                 attachedTable.highlightRow(i);
-            else
+            } else {
                 attachedTable.unhighlightRow(i);
+            }
         }
         attachedTable.refreshWidgets();
     }
     
+    private boolean isSelectable(JSONObject row) {
+        if (selectableRowFilter != null) {
+            return selectableRowFilter.isRowSelectable(row);
+        }
+        return true;
+    }
+
     public void selectObject(JSONObject object) {
         selectObjects(Utils.wrapObjectWithList(object));
     }
@@ -75,13 +95,18 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
                                       boolean add) {
         List<JSONObject> actuallyUsed = new ArrayList<JSONObject>();
         for (JSONObject object : objects) {
+            if (!isSelectable(object)) {
+                continue;
+            }
             boolean used = false;
-            if (add)
+            if (add) {
                 used = selectedObjects.add(object);
-            else
+            } else {
                 used = selectedObjects.remove(object);
-            if (used)
+            }
+            if (used) {
                 actuallyUsed.add(object);
+            }
         }
         notifyListeners(actuallyUsed, add);
     }
@@ -134,12 +159,6 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
         listeners.remove(listener);
     }
     
-    protected void notifyListeners(JSONObject object, boolean add) {
-        List<JSONObject> objectList = new ArrayList<JSONObject>();
-        objectList.add(object);
-        notifyListeners(objectList, add);
-    }
-    
     protected void notifyListeners(Collection<JSONObject> objects,
                                    boolean add) {
         refreshSelection();
@@ -151,9 +170,13 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
         }
     }
 
-    // code for acting as a TableWidgetFactory follows
+    // code for acting as a TableWidgetFactory/TableWidgetClickListener
     
     public Widget createWidget(int row, int cell, JSONObject rowObject) {
+        if (!isSelectable(rowObject)) {
+            return null;
+        }
+
         CheckBox checkBox = new CheckBox();
         if(selectedObjects.contains(rowObject)) {
             checkBox.setChecked(true);
@@ -165,6 +188,8 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
         toggleSelected(attachedTable.getRow(widget.getRow()));
         refreshSelection();
     }
+    
+    // code for acting as a SelectionPanelListener
 
     public void onSelectAll(boolean visibleOnly) {
         if (visibleOnly) {

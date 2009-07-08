@@ -840,6 +840,13 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         self._check_for_updated_attributes()
 
 
+    def execution_path(self):
+        """
+        Path to this entry's results (relative to the base results directory).
+        """
+        return self.execution_subdir
+
+
     def host_or_metahost_name(self):
         if self.host:
             return self.host.hostname
@@ -983,15 +990,37 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
                                             null=False)
     is_active = dbmodels.BooleanField(default=False, blank=False, null=False)
     is_complete = dbmodels.BooleanField(default=False, blank=False, null=False)
-    time_started = dbmodels.DateTimeField(null=True)
+    time_started = dbmodels.DateTimeField(null=True, blank=True)
     queue_entry = dbmodels.ForeignKey(HostQueueEntry, blank=True, null=True)
 
     objects = model_logic.ExtendedManager()
 
 
     def execution_path(self):
+        """@see HostQueueEntry.execution_path()"""
         return 'hosts/%s/%s-%s' % (self.host.hostname, self.id,
                                    self.task.lower())
+
+
+    # property to emulate HostQueueEntry.status
+    @property
+    def status(self):
+        """
+        Return a host queue entry status appropriate for this task.  Although
+        SpecialTasks are not HostQueueEntries, it is helpful to the user to
+        present similar statuses.
+        """
+        if self.is_complete:
+            return HostQueueEntry.Status.COMPLETED
+        if self.is_active:
+            return HostQueueEntry.Status.RUNNING
+        return HostQueueEntry.Status.QUEUED
+
+
+    # property to emulate HostQueueEntry.started_on
+    @property
+    def started_on(self):
+        return self.time_started
 
 
     @classmethod
