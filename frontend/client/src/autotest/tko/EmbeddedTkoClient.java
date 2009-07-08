@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.JsonRpcProxy;
+import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
@@ -10,7 +11,6 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.GWT.UncaughtExceptionHandler;
 import com.google.gwt.dom.client.Element;
-import com.google.gwt.user.client.Window;
 
 public class EmbeddedTkoClient implements EntryPoint, TableSwitchListener {
     private String autotestServerUrl; 
@@ -84,7 +84,7 @@ public class EmbeddedTkoClient implements EntryPoint, TableSwitchListener {
 
     public void onSelectTest(int testId) {
         String fullUrl = autotestServerUrl + "/new_tko/#" + getSelectTestHistoryToken(testId);
-        Window.open(fullUrl, "_blank", "");
+        Utils.openUrlInNewWindow(fullUrl);
     }
 
     public void onSwitchToTable(TableViewConfig config) {

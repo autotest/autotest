@@ -12,6 +12,7 @@ import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DataCallback;
 import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.SelectionManager.SelectableRowFilter;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
@@ -23,14 +24,17 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-public class HostDetailView extends DetailView implements DataCallback, TableActionsListener {
+public class HostDetailView extends DetailView 
+                            implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
-            {DataTable.WIDGET_COLUMN, ""}, {"job_id", "Job ID"}, {"job_owner", "Job Owner"}, 
-            {"job_name", "Job Name"}, {"status", "Status"}
+            {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job_id", "Job ID"}, 
+            {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"started_on", "Time started"},
+            {"status", "Status"}
     };
     public static final int JOBS_PER_PAGE = 20;
     
@@ -39,35 +43,84 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
     }
     
     static class HostJobsTable extends DynamicTable {
-        public HostJobsTable(String[][] columns, DataSource dataSource) {
-            super(columns, dataSource);
+        private static final DataSource normalDataSource = 
+            new RpcDataSource("get_host_queue_entries", "get_num_host_queue_entries");
+        private static final DataSource dataSourceWithSpecialTasks = 
+            new RpcDataSource("get_host_queue_entries_and_special_tasks",
+                              "get_num_host_queue_entries_and_special_tasks");
+
+        private SimpleFilter hostFilter = new SimpleFilter();
+        private String hostname;
+
+        public HostJobsTable() {
+            super(HOST_JOBS_COLUMNS, normalDataSource);
+            addFilter(hostFilter);
+        }
+        
+        public void setHostname(String hostname) {
+            this.hostname = hostname;
+            updateFilter();
+        }
+
+        private void updateFilter() {
+            String key;
+            if (getDataSource() == normalDataSource) {
+                key = "host__hostname";
+                sortOnColumn("job_id", SortDirection.DESCENDING);
+            } else {
+                key = "hostname";
+                clearSorts();
+            }
+
+            hostFilter.clear();
+            hostFilter.setParameter(key, new JSONString(hostname));
+        }
+        
+        public void setSpecialTasksEnabled(boolean enabled) {
+            if (enabled) {
+                setDataSource(dataSourceWithSpecialTasks);
+            } else {
+                setDataSource(normalDataSource);
+            }
+            
+            updateFilter();
         }
 
         @Override
         protected void preprocessRow(JSONObject row) {
             JSONObject job = row.get("job").isObject();
-            int jobId = (int) job.get("id").isNumber().doubleValue();
-            row.put("job_id", new JSONString(Integer.toString(jobId)));
-            row.put("job_owner", job.get("owner"));
-            row.put("job_name", job.get("name"));
+            JSONString blank = new JSONString("");
+            JSONString jobId = blank, owner = blank, name = blank;
+            if (job != null) {
+                int id = (int) job.get("id").isNumber().doubleValue();
+                jobId = new JSONString(Integer.toString(id));
+                owner = job.get("owner").isString();
+                name = job.get("name").isString();
+            }
+
+            row.put("job_id", jobId);
+            row.put("job_owner", owner);
+            row.put("job_name", name);
+
+            // get_host_queue_entries() doesn't return type, so fill it in for consistency
+            if (!row.containsKey("type")) {
+                row.put("type", new JSONString("Job"));
+            }
         }
     }
     
-    protected String hostname = "";
-    protected DataSource hostDataSource = new HostDataSource();
-    protected DynamicTable jobsTable = 
-        new HostJobsTable(HOST_JOBS_COLUMNS, 
-                          new RpcDataSource("get_host_queue_entries", 
-                                            "get_num_host_queue_entries"));
-    protected TableDecorator tableDecorator = new TableDecorator(jobsTable);
-    protected SimpleFilter hostFilter = new SimpleFilter();
-    protected HostDetailListener listener = null;
+    private String hostname = "";
+    private DataSource hostDataSource = new HostDataSource();
+    private HostJobsTable jobsTable = new HostJobsTable();
+    private TableDecorator tableDecorator = new TableDecorator(jobsTable);
+    private HostDetailListener listener = null;
     private SelectionManager selectionManager;
     
     private JSONObject currentHostObject;
     
     private Button lockButton = new Button();
     private Button reverifyButton = new Button("Reverify");
+    private CheckBox showSpecialTasks = new CheckBox();
 
     public HostDetailView(HostDetailListener listener) {
         this.listener = listener;
@@ -144,7 +197,7 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
         DOM.setElementProperty(DOM.getElementById("view_host_logs_link"), "href",
                 getLogLink(hostname));
         
-        hostFilter.setParameter("host__hostname", new JSONString(hostname));
+        jobsTable.setHostname(hostname);
         jobsTable.refresh();
     }
 
@@ -157,23 +210,36 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
         super.initialize();
         
         jobsTable.setRowsPerPage(JOBS_PER_PAGE);
-        jobsTable.sortOnColumn("job_id", SortDirection.DESCENDING);
-        jobsTable.addFilter(hostFilter);
         jobsTable.setClickable(true);
         jobsTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
-                JSONObject job = row.get("job").isObject();
-                int jobId = (int) job.get("id").isNumber().doubleValue();
-                listener.onJobSelected(jobId);
+                if (isJobRow(row)) {
+                    JSONObject job = row.get("job").isObject();
+                    int jobId = (int) job.get("id").isNumber().doubleValue();
+                    listener.onJobSelected(jobId);
+                } else {
+                    String resultsPath = "/results/" 
+                                         + Utils.jsonToString(row.get("execution_path"));
+                    Utils.openUrlInNewWindow(resultsPath);
+                }
             }
 
             public void onTableRefreshed() {}
         });
         tableDecorator.addPaginators();
         selectionManager = tableDecorator.addSelectionManager(false);
+        selectionManager.setSelectableRowFilter(this);
         jobsTable.setWidgetFactory(selectionManager);
         tableDecorator.addTableActionsPanel(this, true);
+        tableDecorator.addControl("Show verifies, repairs and cleanups", showSpecialTasks);
         RootPanel.get("view_host_jobs_table").add(tableDecorator);
+        
+        showSpecialTasks.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                jobsTable.setSpecialTasksEnabled(showSpecialTasks.isChecked());
+                jobsTable.refresh();
+            }
+        });
         
         lockButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -238,5 +304,14 @@ public class HostDetailView extends DetailView implements DataCallback, TableAct
                 refresh();
             }
         });
+    }
+    
+    private boolean isJobRow(JSONObject row) {
+        String type = Utils.jsonToString(row.get("type"));
+        return type.equals("Job");
+    }
+
+    public boolean isRowSelectable(JSONObject row) {
+        return isJobRow(row);
     }
 }

@@ -62,7 +62,7 @@ public class TableDecorator extends Composite implements DynamicTableListener {
         addControl(text, filter.getWidget());
     }
     
-    protected void addControl(String text, Widget widget) {
+    public void addControl(String text, Widget widget) {
       int row = numFilters;
       numFilters++;
       filterTable.setText(row, 0, text);

@@ -650,6 +650,40 @@ def get_hqe_percentage_complete(**filter_data):
     return float(complete_count) / total_count
 
 
+# support for host detail view
+
+def get_host_queue_entries_and_special_tasks(hostname, query_start=None,
+                                             query_limit=None):
+    """
+    @returns an interleaved list of HostQueueEntries and SpecialTasks,
+            in approximate run order.  each dict contains keys for type, host,
+            job, status, started_on, execution_path, and ID.
+    """
+    total_limit = None
+    if query_limit is not None:
+        total_limit = query_start + query_limit
+    filter_data = {'host__hostname': hostname,
+                   'query_limit': total_limit,
+                   'sort_by': ['-id']}
+
+    queue_entries = list(models.HostQueueEntry.query_objects(filter_data))
+    special_tasks = list(models.SpecialTask.query_objects(filter_data))
+
+    interleaved_entries = rpc_utils.interleave_entries(queue_entries,
+                                                       special_tasks)
+    if query_start is not None:
+        interleaved_entries = interleaved_entries[query_start:]
+    if query_limit is not None:
+        interleaved_entries = interleaved_entries[:query_limit]
+    return rpc_utils.prepare_for_serialization(interleaved_entries)
+
+
+def get_num_host_queue_entries_and_special_tasks(hostname):
+    filter_data = {'host__hostname': hostname}
+    return (models.HostQueueEntry.query_count(filter_data)
+            + models.SpecialTask.query_count(filter_data))
+
+
 # recurring run
 
 def get_recurring(**filter_data):
