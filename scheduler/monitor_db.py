@@ -1624,10 +1624,10 @@ class SpecialAgentTask(AgentTask):
         self.task.activate()
 
 
-    def epilog(self):
-        super(SpecialAgentTask, self).epilog()
+    def cleanup(self):
+        super(SpecialAgentTask, self).cleanup()
         self.task.finish()
-        if self.monitor.has_process():
+        if self.monitor and self.monitor.has_process():
             self._copy_results([self.task])
 
 
