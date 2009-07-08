@@ -29,6 +29,7 @@ import java.util.Set;
 public class AfeUtils {
     public static final String PLATFORM_SUFFIX = " (platform)";
     private static final String ALL_USERS = "All Users";
+    public static final String ATOMIC_GROUP_SUFFIX = " (atomic group)";
     
     public static final ClassFactory factory = new SiteClassFactory();
 
@@ -60,6 +61,10 @@ public class AfeUtils {
             JSONObject label = labels.get(i).isObject();
             String name = label.get("name").isString().stringValue();
             boolean labelIsPlatform = label.get("platform").isBoolean().booleanValue();
+            JSONObject atomicGroup = label.get("atomic_group").isObject();
+            if (atomicGroup != null) {
+                name += ATOMIC_GROUP_SUFFIX;
+            }
             if ((onlyPlatforms && labelIsPlatform) ||
                 (onlyNonPlatforms && !labelIsPlatform)) {
                     result.add(name);
@@ -72,23 +77,28 @@ public class AfeUtils {
         }
         return result.toArray(new String[result.size()]);
     }
-    
+
     public static String[] getPlatformStrings() {
-      return getFilteredLabelStrings(true, false);
+        return getFilteredLabelStrings(true, false);
     }
     
     public static String[] getNonPlatformLabelStrings() {
         return getFilteredLabelStrings(false, true);
     }
-    
+
     public static String decodeLabelName(String labelName) {
-        if (labelName.endsWith(PLATFORM_SUFFIX)) {
-            int nameLength = labelName.length() - PLATFORM_SUFFIX.length();
-            return labelName.substring(0, nameLength);
+        String name = labelName;
+        if (name.endsWith(PLATFORM_SUFFIX)) {
+            int nameLength = name.length() - PLATFORM_SUFFIX.length();
+            name = name.substring(0, nameLength);
         }
-        return labelName;
+        if (name.endsWith(ATOMIC_GROUP_SUFFIX)) {
+            int nameLength = name.length() - ATOMIC_GROUP_SUFFIX.length();
+            name = name.substring(0, nameLength);
+        }
+        return name;
     }
-    
+
     public static JSONString getLockedText(JSONObject host) {
         boolean locked = host.get("locked").isBoolean().booleanValue();
         return new JSONString(locked ? "Yes" : "No");
