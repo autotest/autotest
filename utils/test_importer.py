@@ -6,7 +6,7 @@ This utility allows for easy updating, removing and importing
 of tests into the autotest_web autotests table.
 
 Example of updating client side tests:
-./tests.py -t /usr/local/autotest/client/tests 
+./tests.py -t /usr/local/autotest/client/tests
 
 If for example not all of your control files adhere to the standard outlined at
 http://test.kernel.org/autotest/ControlRequirements
@@ -25,7 +25,7 @@ from autotest_lib.client.common_lib import control_data, test, global_config
 from autotest_lib.client.common_lib import utils
 
 
-logging.basicConfig(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 # Global
 DRY_RUN = False
 DEPENDENCIES_NOT_FOUND = set()
@@ -140,7 +140,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir,
                            verbose=verbose)
-     
+
     profilers_path = os.path.join(autotest_dir, "client/profilers")
     if os.path.exists(profilers_path):
         if verbose:
@@ -151,7 +151,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                                description='NA')
     # Clean bad db entries
     db_clean_broken(autotest_dir, verbose)
- 
+
 
 def db_clean_broken(autotest_dir, verbose):
     """Remove tests from autotest_web that do not have valid control files
@@ -252,7 +252,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
             else:
                 control_name = "%s:%s"
                 control_name %= (test_new_test[-2],
-                                 test_new_test[-1]) 
+                                 test_new_test[-1])
                 new_test['name'] = control_name.replace('control.', '')
         # Experimental Check
         if not add_experimental:
