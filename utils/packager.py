@@ -11,7 +11,7 @@ from autotest_lib.client.common_lib import packages, global_config
 from autotest_lib.server import utils as server_utils
 
 c = global_config.global_config
-logging.basicConfig(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 def get_exclude_string(client_dir):
     '''
