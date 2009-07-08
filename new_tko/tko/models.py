@@ -406,22 +406,25 @@ class TestViewManager(TempManager):
 
 class TestView(dbmodels.Model, model_logic.ModelExtensions):
     extra_fields = {
-        'DATE(test_finished_time)' : 'test finished day',
+            'DATE(job_queued_time)': 'job queued day',
+            'DATE(test_finished_time)': 'test finished day',
     }
 
     group_fields = [
-        'test_name',
-        'status',
-        'kernel',
-        'hostname',
-        'job_tag',
-        'job_name',
-        'platform',
-        'reason',
-        'job_owner',
-        'test_started_time',
-        'test_finished_time',
-        'DATE(test_finished_time)',
+            'test_name',
+            'status',
+            'kernel',
+            'hostname',
+            'job_tag',
+            'job_name',
+            'platform',
+            'reason',
+            'job_owner',
+            'job_queued_time',
+            'DATE(job_queued_time)',
+            'test_started_time',
+            'test_finished_time',
+            'DATE(test_finished_time)',
     ]
 
     test_idx = dbmodels.IntegerField('test index', primary_key=True)
