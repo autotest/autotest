@@ -6,9 +6,8 @@ and formatting.
 @author: Martin Bligh (mbligh@google.com)
 """
 
-import os, re, string, sys, fcntl
-import utils
-from autotest_lib.client.bin import os_dep
+import os, re, string, sys, fcntl, logging
+from autotest_lib.client.bin import os_dep, utils
 from autotest_lib.client.common_lib import error
 
 
@@ -166,15 +165,15 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
 
         device = '/dev/' + partname
         if exclude_swap and device in active_swap_devices:
-            print 'get_partition_list() skipping', partname, '- Active swap.'
+            logging.debug('Skipping %s - Active swap.' % partname)
             continue
 
         if min_blocks and blocks < min_blocks:
-            print 'get_partition_list() skipping', partname, '- Too small.'
+            logging.debug('Skipping %s - Too small.' % partname)
             continue
 
         if filter_func and not filter_func(partname):
-            print 'get_partition_list() skipping', partname, '- filter_func.'
+            logging.debug('Skipping %s - Filter func.' % partname)
             continue
 
         partitions.append(partition(job, device))
@@ -200,9 +199,9 @@ def filter_partition_list(partitions, devnames):
 
     filtered_list = []
     for p in partitions:
-       for d in devnames:
-           if p.device == d and p not in filtered_list:
-              filtered_list.append(p)
+        for d in devnames:
+            if p.device == d and p not in filtered_list:
+                filtered_list.append(p)
 
     return filtered_list
 
@@ -253,7 +252,8 @@ def parallel(partitions, method_name, *args, **dargs):
     for p in partitions:
         print_args = list(args)
         print_args += ['%s=%s' % (key, dargs[key]) for key in dargs.keys()]
-        print '%s.%s(%s)' % (str(p), method_name, ', '.join(print_args))
+        logging.debug('%s.%s(%s)' % (str(p), method_name,
+                                     ', '.join(print_args)))
         sys.stdout.flush()
         def _run_named_method(function, part=p):
             getattr(part, method_name)(*args, **dargs)
@@ -541,14 +541,13 @@ class partition(object):
         # If there isn't already a '-t <type>' argument, add one.
         if not "-t" in args:
             mkfs_cmd += " -t %s" % (fstype)
-        print mkfs_cmd
         sys.stdout.flush()
         try:
             # We throw away the output here - we only need it on error, in
             # which case it's in the exception
             utils.system_output("yes | %s" % mkfs_cmd)
         except error.CmdError, e:
-            print e.result_obj
+            logging.error(e.result_obj)
             if record:
                 self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
@@ -595,7 +594,6 @@ class partition(object):
         fsck_cmd = '%s %s %s' % (self.get_fsck_exec(), self.device, args)
         if self.fstype == 'reiserfs':
             fsck_cmd = 'yes "Yes" | ' + fsck_cmd
-        print fsck_cmd
         sys.stdout.flush()
         try:
             utils.system("yes | " + fsck_cmd)
@@ -641,7 +639,6 @@ class partition(object):
             mountpoint = self.mountpoint
 
         mount_cmd = "mount %s %s %s" % (args, self.device, mountpoint)
-        print mount_cmd
 
         if list_mount_devices().count(self.device):
             err = 'Attempted to mount mounted device'
@@ -655,7 +652,6 @@ class partition(object):
         mtab = open('/etc/mtab')
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
-        print mount_cmd
         sys.stdout.flush()
         try:
             utils.system(mount_cmd)
@@ -672,36 +668,35 @@ class partition(object):
 
 
     def unmount_force(self):
-       """
-       Kill all other jobs accessing this partition. Use fuser and ps to find
-       all mounts on this mountpoint and unmount them.
+        """
+        Kill all other jobs accessing this partition. Use fuser and ps to find
+        all mounts on this mountpoint and unmount them.
 
-       @return: true for success or false for any errors
-       """
+        @return: true for success or false for any errors
+        """
 
-       print "Standard umount failed, will try forcing. Users:"
-       try:
-           cmd = 'fuser ' + self.get_mountpoint()
-           print cmd
-           fuser = utils.system_output(cmd)
-           print fuser
-           users = re.sub('.*:', '', fuser).split()
-           for user in users:
-               m = re.match('(\d+)(.*)', user)
-               (pid, usage) = (m.group(1), m.group(2))
-               try:
-                  ps = utils.system_output('ps -p %s | tail +2' % pid)
-                  print '%s %s %s' % (usage, pid, ps)
-               except Exception:
-                  pass
-               utils.system('ls -l ' + self.device)
-               umount_cmd = "umount -f " + self.device
-               print umount_cmd
-               utils.system(umount_cmd)
-               return True
-       except error.CmdError:
-           print 'umount_force failed for %s' % self.device
-           return False
+        logging.debug("Standard umount failed, will try forcing. Users:")
+        try:
+            cmd = 'fuser ' + self.get_mountpoint()
+            logging.debug(cmd)
+            fuser = utils.system_output(cmd)
+            logging.debug(fuser)
+            users = re.sub('.*:', '', fuser).split()
+            for user in users:
+                m = re.match('(\d+)(.*)', user)
+                (pid, usage) = (m.group(1), m.group(2))
+                try:
+                    ps = utils.system_output('ps -p %s | tail +2' % pid)
+                    logging.debug('%s %s %s' % (usage, pid, ps))
+                except Exception:
+                    pass
+                utils.system('ls -l ' + self.device)
+                umount_cmd = "umount -f " + self.device
+                utils.system(umount_cmd)
+                return True
+        except error.CmdError:
+            logging.debug('Umount_force failed for %s' % self.device)
+            return False
 
 
 
@@ -734,7 +729,6 @@ class partition(object):
 
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
-        print umount_cmd
         sys.stdout.flush()
         try:
             utils.system(umount_cmd)
@@ -750,7 +744,7 @@ class partition(object):
 
             # If we are here we cannot umount this partition
             if record and not ignore_status:
-               self.job.record('FAIL', None, umount_cmd, error.format_error())
+                self.job.record('FAIL', None, umount_cmd, error.format_error())
             raise
 
 
@@ -775,7 +769,7 @@ class partition(object):
         if name not in self.get_io_scheduler_list(device_name):
             raise NameError('No such IO scheduler: %s' % name)
         f = open(self.__sched_path(device_name), 'w')
-        print >> f, name
+        f.write(name)
         f.close()
 
 
@@ -802,22 +796,23 @@ class virtual_partition:
         @param file_img: Path to the desired disk image file.
         @param file_size: Size of the desired image in Bytes.
         """
-        print 'Sanity check before attempting to create virtual partition'
+        logging.debug('Sanity check before attempting to create virtual '
+                      'partition')
         try:
             os_dep.commands('sfdisk', 'losetup', 'kpartx')
         except ValueError, e:
             e_msg = 'Unable to create virtual partition: %s' % e
             raise error.AutotestError(e_msg)
 
-        print 'Creating virtual partition'
+        logging.debug('Creating virtual partition')
         self.img = self.__create_disk_img(file_img, file_size)
         self.loop = self.__attach_img_loop(self.img)
         self.__create_single_partition(self.loop)
         self.device = self.__create_entries_partition(self.loop)
-        print 'Virtual partition successfuly created'
-        print 'Image disk: %s' % self.img
-        print 'Loopback device: %s' % self.loop
-        print 'Device path: %s' % self.device
+        logging.debug('Virtual partition successfuly created')
+        logging.debug('Image disk: %s', self.img)
+        logging.debug('Loopback device: %s', self.loop)
+        logging.debug('Device path: %s', self.device)
 
 
     def destroy(self):
@@ -825,7 +820,7 @@ class virtual_partition:
         Removes the virtual partition from /dev/mapper, detaches the image file
         from the loopback device and removes the image file.
         """
-        print 'Removing virtual partition - device %s' % self.device
+        logging.debug('Removing virtual partition - device %s', self.device)
         self.__remove_entries_partition()
         self.__detach_img_loop()
         self.__remove_disk_img()
@@ -839,9 +834,9 @@ class virtual_partition:
         @param size: Size of the desired image in Bytes.
         @returns: Path of the image created.
         """
-        print 'Creating disk image %s, size = %s Bytes' % (img_path, size)
+        logging.debug('Creating disk image %s, size = %d Bytes', img_path, size)
         try:
-            cmd = 'dd if=/dev/zero of=%s bs=1024 count=%s' % (img_path, size)
+            cmd = 'dd if=/dev/zero of=%s bs=1024 count=%d' % (img_path, size)
             utils.system(cmd)
         except error.CmdError, e:
             e_msg = 'Error creating disk image %s: %s' % (img_path, e)
@@ -857,7 +852,7 @@ class virtual_partition:
                 loopback device
         @returns: Path of the loopback device associated.
         """
-        print 'Attaching image %s to a loop device' % img_path
+        logging.debug('Attaching image %s to a loop device', img_path)
         try:
             cmd = 'losetup -f'
             loop_path = utils.system_output(cmd)
@@ -876,7 +871,7 @@ class virtual_partition:
 
         @param loop_path: Path to the loopback device.
         """
-        print 'Creating single partition on %s' % loop_path
+        logging.debug('Creating single partition on %s', loop_path)
         try:
             single_part_cmd = '0,,c\n'
             sfdisk_file_path = '/tmp/create_partition.sfdisk'
@@ -898,7 +893,8 @@ class virtual_partition:
 
         @param loop_path: Path to the loopback device.
         """
-        print 'Creating entries under /dev/mapper for %s loop dev' % loop_path
+        logging.debug('Creating entries under /dev/mapper for %s loop dev',
+                      loop_path)
         try:
             cmd = 'kpartx -a %s' % loop_path
             utils.system(cmd)
@@ -912,10 +908,11 @@ class virtual_partition:
 
     def __remove_entries_partition(self):
         """
-        Removes the entries under /dev/mapper for the partition associated 
+        Removes the entries under /dev/mapper for the partition associated
         to the loopback device.
         """
-        print 'Removing the entry on /dev/mapper for %s loop dev' % self.loop
+        logging.debug('Removing the entry on /dev/mapper for %s loop dev',
+                      self.loop)
         try:
             cmd = 'kpartx -d %s' % self.loop
             utils.system(cmd)
@@ -928,13 +925,14 @@ class virtual_partition:
         """
         Detaches the image file from the loopback device.
         """
-        print 'Detaching image %s from loop device %s' % (self.img, self.loop)
+        logging.debug('Detaching image %s from loop device %s', self.img,
+                      self.loop)
         try:
             cmd = 'losetup -d %s' % self.loop
             utils.system(cmd)
         except error.CmdError, e:
-            e_msg = 'Error detaching image %s from loop device %s: %s' % \
-                    (self.loop, e)
+            e_msg = ('Error detaching image %s from loop device %s: %s' %
+                    (self.loop, e))
             raise error.AutotestError(e_msg)
 
 
@@ -942,10 +940,9 @@ class virtual_partition:
         """
         Removes the disk image.
         """
-        print 'Removing disk image %s' % self.img
+        logging.debug('Removing disk image %s', self.img)
         try:
             os.remove(self.img)
         except:
             e_msg = 'Error removing image file %s' % self.img
             raise error.AutotestError(e_msg)
-
