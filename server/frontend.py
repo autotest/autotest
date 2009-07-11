@@ -237,7 +237,8 @@ class AFE(RpcClient):
         dargs['dependencies'] = dargs.get('dependencies', []) + \
                                 control_file.dependencies
         dargs['control_file'] = control_file.control_file
-        dargs.setdefault('synch_count', control_file.synch_count)
+        if not dargs['synch_count']:
+            dargs['synch_count'] = control_file.synch_count
         if 'hosts' in dargs and len(dargs['hosts']) < dargs['synch_count']:
             # will not be able to satisfy this request
             return None
@@ -413,13 +414,8 @@ class AFE(RpcClient):
         dead_statuses = self.host_statuses(live=False)
         host_list = [h.hostname for h in hosts if h.status not in dead_statuses]
         print 'HOSTS: %s' % host_list
-        # TODO(ncrao): fix this when synch_count implements "at least N"
-        # semantics instead of "exactly N".
         if pairing.atomic_group_sched:
-            if pairing.synch_count > 0:
-                dargs['synch_count'] = pairing.synch_count
-            else:
-                dargs['synch_count'] = len(host_list)
+            dargs['synch_count'] = pairing.synch_count
             dargs['atomic_group_name'] = pairing.machine_label
         else:
             dargs['hosts'] = host_list
