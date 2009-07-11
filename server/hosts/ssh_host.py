@@ -113,7 +113,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             AutoservSSHTimeout: ssh connection has timed out
         """
         if verbose:
-            logging.debug("ssh: %s" % command)
+            logging.debug("Running (ssh) '%s'" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             return self._run(command, timeout, ignore_status, stdout_tee,

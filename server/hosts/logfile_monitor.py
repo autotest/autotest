@@ -57,7 +57,7 @@ def copy_monitordir(host):
 
 def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     """Launch followfiles.py remotely on follow_paths."""
-    logging.info('logfile_monitor: Launching followfiles on target: %s, %s, %s',
+    logging.info('Launching followfiles on target: %s, %s, %s',
                  host.hostname, lastlines_dirpath, str(follow_paths))
 
     # First make sure a supported Python is on host
@@ -65,8 +65,8 @@ def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     supported_python = select_supported_python(installed_pythons)
     if not supported_python:
         if DEFAULT_PYTHON in installed_pythons:
-            logging.info('logfile_monitor: No versioned Python binary found,'
-                         ' defaulting to: %s', DEFAULT_PYTHON)
+            logging.info('No versioned Python binary found, '
+                         'defaulting to: %s', DEFAULT_PYTHON)
             supported_python = DEFAULT_PYTHON
         else:
             raise FollowFilesLaunchError('No supported Python on host.')
@@ -88,7 +88,7 @@ def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
     time.sleep(5)
     doa = remote_followfiles_proc.poll()
     if doa:
-        raise FollowFilesLaunchError('SSH command crashed.')
+        raise FollowFilesLaunchError('ssh command crashed.')
 
     return remote_followfiles_proc
 
@@ -221,7 +221,7 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         missing = follow_paths_set.difference(existing)
         if missing:
             # Log warning that we are missing expected remote paths.
-            logging.warn('Target(%s) missing expected remote paths: %s',
+            logging.warn('Target %s is missing expected remote paths: %s',
                          self.hostname, ', '.join(missing))
 
         # If none of them exist just return (for now).

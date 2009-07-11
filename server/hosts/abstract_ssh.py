@@ -265,8 +265,8 @@ class AbstractSSHHost(SiteHost):
                                          delete_dest, preserve_symlinks)
             utils.run(rsync)
         except error.CmdError, e:
-            logging.warn("warning: rsync failed with: %s", e)
-            logging.info("attempting to copy with scp instead")
+            logging.warn("Command rsync failed with: %s", e)
+            logging.info("Attempting to copy with scp instead")
 
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
@@ -294,9 +294,9 @@ class AbstractSSHHost(SiteHost):
     def ssh_ping(self, timeout=60):
         try:
             self.run("true", timeout=timeout, connect_timeout=timeout)
-            logging.info("ssh_ping of %s completed sucessfully", self.hostname)
+            logging.info("Host (ssh) %s is alive", self.hostname)
         except error.AutoservSSHTimeout:
-            msg = "ssh ping timed out (timeout = %d)" % timeout
+            msg = "Host (ssh) verify timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
         except error.AutoservSshPermissionDeniedError:
             #let AutoservSshPermissionDeniedError be visible to the callers

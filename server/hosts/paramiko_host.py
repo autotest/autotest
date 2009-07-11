@@ -221,7 +221,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         stderr = utils.get_stream_tee_file(stderr_tee, logging.ERROR)
 
         if verbose:
-            logging.debug("ssh-paramiko: %s" % command)
+            logging.debug("Running (ssh-paramiko) '%s'" % command)
 
         # start up the command
         start_time = time.time()
