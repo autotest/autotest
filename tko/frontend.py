@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os, re, db, sys, datetime
 import common
 from autotest_lib.client.common_lib import kernel_versions
