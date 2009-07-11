@@ -2,7 +2,7 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import compiler, textwrap, types, sys
+import compiler, textwrap, types
 
 
 REQUIRED_VARS = set(['author', 'doc', 'name', 'time', 'test_class',
@@ -172,8 +172,8 @@ def parse_control(path, raise_warnings=False):
     try:
         mod = compiler.parseFile(path)
     except SyntaxError, e:
-        print "Error parsing %s because %s" % (path, e)
-        sys.exit(1)
+        raise ControlVariableException("Error parsing %s because %s" %
+                                       (path, e))
 
     assert(mod.__class__ == compiler.ast.Module)
     assert(mod.node.__class__ == compiler.ast.Stmt)
