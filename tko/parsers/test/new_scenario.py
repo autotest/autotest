@@ -17,11 +17,12 @@ While much is done automatically, a scenario harness is meant to
 be easily extended and configured once generated.
 """
 
-import optparse, os, shutil, sys, tempfile
+import optparse, os, shutil, sys
 from os import path
 
 import common
 from autotest_lib.tko.parsers.test import scenario_base
+from autotest_lib.client.common_lib import autotemp
 
 usage = 'usage: %prog [options] results_dirpath scenerios_dirpath'
 parser = optparse.OptionParser(usage=usage)
@@ -74,8 +75,8 @@ def main():
     os.mkdir(scenario_package_dirpath)
 
     # Create tmp_dir
-    tmp_dirpath = tempfile.mkdtemp()
-    copied_dirpath = path.join(tmp_dirpath, results_dirname)
+    tmp_dirpath = autotemp.tempdir(unique_id='new_scenario')
+    copied_dirpath = path.join(tmp_dirpath.name, results_dirname)
     # Copy results_dir
     shutil.copytree(results_dirpath, copied_dirpath)
 
@@ -103,6 +104,7 @@ def main():
 
     scenario_base.install_unittest_module(
         scenario_package_dirpath, options.template_type)
+    tmp_dirpath.clean()
 
 
 if __name__ == '__main__':
