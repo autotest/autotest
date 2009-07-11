@@ -218,10 +218,10 @@ def write_keyval(path, dictionary, type_tag=None):
         escaped_tag = re.escape(type_tag)
         key_regex = re.compile(r'^[-\.\w]+\{%s\}$' % escaped_tag)
     try:
-        for key, value in dictionary.iteritems():
+        for key in sorted(dictionary.keys()):
             if not key_regex.search(key):
                 raise ValueError('Invalid key: %s' % key)
-            keyval.write('%s=%s\n' % (key, value))
+            keyval.write('%s=%s\n' % (key, dictionary[key]))
     finally:
         keyval.close()
 
