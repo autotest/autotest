@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 This module defines the BaseFsdevManager Class which provides an
 implementation of the 'fsdev' helper API; site specific extensions

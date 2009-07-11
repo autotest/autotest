@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os, re
 
 # Given a file full of rsync output, scan through it for things that look like

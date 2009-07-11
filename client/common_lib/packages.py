@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 This module defines the BasePackageManager Class which provides an
 implementation of the packaging system API providing methods to fetch,
