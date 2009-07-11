@@ -1645,7 +1645,14 @@ class RepairTask(SpecialAgentTask, TaskWithJobKeyvals):
         protection = host_protections.Protection.get_attr_name(protection)
 
         self.host = host
-        self.queue_entry = queue_entry
+        self.queue_entry = None
+        # recovery code can pass a HQE that's already been requeued. for a
+        # metahost, that means the host has been unassigned. in that case,
+        # ignore the HQE.
+        hqe_still_assigned_to_this_host = (queue_entry and queue_entry.host
+                                           and queue_entry.host.id == host.id)
+        if hqe_still_assigned_to_this_host:
+            self.queue_entry = queue_entry
 
         super(RepairTask, self).__init__(
                 task, ['-R', '--host-protection', protection],
@@ -1662,7 +1669,6 @@ class RepairTask(SpecialAgentTask, TaskWithJobKeyvals):
         self.host.set_status('Repairing')
         if self.queue_entry:
             self.queue_entry.requeue()
-
 
 
     def _keyval_path(self):
@@ -2412,25 +2418,6 @@ class Host(DBObject):
                'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty')
 
 
-    def current_task(self):
-        rows = _db.execute("""
-                SELECT * FROM host_queue_entries WHERE host_id=%s AND NOT complete AND active
-                """, (self.id,))
-
-        if len(rows) == 0:
-            return None
-        else:
-            assert len(rows) == 1
-            results = rows[0];
-            return HostQueueEntry(row=results)
-
-
-    def yield_work(self):
-        logging.info("%s yielding work", self.hostname)
-        if self.current_task():
-            self.current_task().requeue()
-
-
     def set_status(self,status):
         logging.info('%s -> %s', self.hostname, status)
         self.update_field('status',status)
@@ -2696,7 +2683,7 @@ class HostQueueEntry(DBObject):
             else:
                 assert assigned_host.id == self.host_id
 
-        logging.info("%s/%s/%s scheduled on %s, status=%s", 
+        logging.info("%s/%s/%s scheduled on %s, status=%s",
                      self.job.name, self.meta_host, self.atomic_group_id,
                      self.host.hostname, self.status)
 
@@ -2714,6 +2701,7 @@ class HostQueueEntry(DBObject):
 
 
     def requeue(self):
+        assert self.host
         self.set_status('Queued')
         self.update_field('started_on', None)
         # verify/cleanup failure sets the execution subdir, so reset it here
