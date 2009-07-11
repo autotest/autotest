@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #  tko/nightly.py  code shared by various *_nightly.cgi scripts
 
 import cgi, cgitb

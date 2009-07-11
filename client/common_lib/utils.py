@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
