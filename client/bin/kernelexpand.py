@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # (C) International Business Machines 2008
 # Author: Andy Whitcroft
