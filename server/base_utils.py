@@ -19,28 +19,6 @@ from autotest_lib.server import subcommand
 __tmp_dirs = {}
 
 
-def sh_escape(command):
-    """
-    Escape special characters from a command so that it can be passed
-    as a double quoted (" ") string in a (ba)sh command.
-
-    Args:
-            command: the command string to escape.
-
-    Returns:
-            The escaped command string. The required englobing double
-            quotes are NOT added and so should be added at some point by
-            the caller.
-
-    See also: http://www.tldp.org/LDP/abs/html/escapingsection.html
-    """
-    command = command.replace("\\", "\\\\")
-    command = command.replace("$", r'\$')
-    command = command.replace('"', r'\"')
-    command = command.replace('`', r'\`')
-    return command
-
-
 def scp_remote_escape(filename):
     """
     Escape special characters from a filename so that it can be passed
@@ -67,7 +45,7 @@ def scp_remote_escape(filename):
         else:
             new_name.append(char)
 
-    return sh_escape("".join(new_name))
+    return utils.sh_escape("".join(new_name))
 
 
 def get(location, local_copy = False):
@@ -181,17 +159,17 @@ def unarchive(host, source_material):
     # uncompress
     if (source_material.endswith(".gz") or
             source_material.endswith(".gzip")):
-        host.run('gunzip "%s"' % (sh_escape(source_material)))
+        host.run('gunzip "%s"' % (utils.sh_escape(source_material)))
         source_material= ".".join(source_material.split(".")[:-1])
     elif source_material.endswith("bz2"):
-        host.run('bunzip2 "%s"' % (sh_escape(source_material)))
+        host.run('bunzip2 "%s"' % (utils.sh_escape(source_material)))
         source_material= ".".join(source_material.split(".")[:-1])
 
     # untar
     if source_material.endswith(".tar"):
         retval= host.run('tar -C "%s" -xvf "%s"' % (
-                sh_escape(os.path.dirname(source_material)),
-                sh_escape(source_material),))
+                utils.sh_escape(os.path.dirname(source_material)),
+                utils.sh_escape(source_material),))
         source_material= os.path.join(os.path.dirname(source_material),
                 retval.stdout.split()[0])
 
