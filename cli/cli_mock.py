@@ -3,21 +3,22 @@
 
 """Test for cli."""
 
-import unittest, os, sys, tempfile, StringIO
+import unittest, os, sys, StringIO
 
 import common
 from autotest_lib.cli import atest, topic_common, rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 from autotest_lib.client.common_lib.test_utils import mock
+from autotest_lib.client.common_lib import autotemp
 
 CLI_USING_PDB = False
 CLI_UT_DEBUG = False
 
 def create_file(content):
-    (fp, filename) = tempfile.mkstemp(text=True)
-    os.write(fp, content)
-    os.close(fp)
-    return filename
+    file_temp = autotemp.tempfile(unique_id='cli_mock', text=True)
+    os.write(file_temp.fd, content)
+    os.close(file_temp.fd)
+    return file_temp
 
 
 class ExitException(Exception):

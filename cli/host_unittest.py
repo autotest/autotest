@@ -58,11 +58,12 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_parse_with_hosts(self):
         hl = host.host_list()
         mfile = cli_mock.create_file('host0\nhost3\nhost4\n')
-        sys.argv = ['atest', 'host1', '--mlist', mfile, 'host3']
+        sys.argv = ['atest', 'host1', '--mlist', mfile.name, 'host3']
         (options, leftover) = hl.parse()
         self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
                                 hl.hosts)
         self.assertEqual(leftover, [])
+        mfile.clean()
 
 
     def test_parse_with_labels(self):
@@ -84,13 +85,14 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_parse_with_both(self):
         hl = host.host_list()
         mfile = cli_mock.create_file('host0\nhost3\nhost4\n')
-        sys.argv = ['atest', 'host1', '--mlist', mfile, 'host3',
+        sys.argv = ['atest', 'host1', '--mlist', mfile.name, 'host3',
                     '--label', 'label0']
         (options, leftover) = hl.parse()
         self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
                                 hl.hosts)
         self.assertEqual('label0', hl.labels)
         self.assertEqual(leftover, [])
+        mfile.clean()
 
 
     def test_execute_list_all_no_labels(self):
@@ -174,7 +176,7 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_execute_list_filter_two_hosts(self):
         mfile = cli_mock.create_file('host2')
         self.run_cmd(argv=['atest', 'host', 'list', 'host1',
-                           '--mlist', mfile, '--ignore_site_file'],
+                           '--mlist', mfile.name, '--ignore_site_file'],
                      # This is a bit fragile as the list order may change...
                      rpcs=[('get_hosts', {'hostname__in': ['host2', 'host1']},
                             True,
@@ -202,12 +204,13 @@ class host_list_unittest(cli_mock.cli_unittest):
                                    'label2', 'label3', 'True',
                                    'host2', 'label4'],
                      out_words_no=['host0', 'label1', 'False'])
+        mfile.clean()
 
 
     def test_execute_list_filter_two_hosts_one_not_found(self):
         mfile = cli_mock.create_file('host2')
         self.run_cmd(argv=['atest', 'host', 'list', 'host1',
-                           '--mlist', mfile, '--ignore_site_file'],
+                           '--mlist', mfile.name, '--ignore_site_file'],
                      # This is a bit fragile as the list order may change...
                      rpcs=[('get_hosts', {'hostname__in': ['host2', 'host1']},
                             True,
@@ -225,6 +228,7 @@ class host_list_unittest(cli_mock.cli_unittest):
                                    'label3', 'label4', 'True'],
                      out_words_no=['host1', 'False'],
                      err_words_ok=['host1'])
+        mfile.clean()
 
 
     def test_execute_list_filter_two_hosts_none_found(self):
@@ -1230,7 +1234,7 @@ class host_mod_unittest(cli_mock.cli_unittest):
     def test_execute_ready_hosts(self):
         mfile = cli_mock.create_file('host0\nhost1,host2\nhost3 host4')
         self.run_cmd(argv=['atest', 'host', 'mod', '--ready',
-                           'host5' ,'--mlist', mfile, 'host1', 'host6',
+                           'host5' ,'--mlist', mfile.name, 'host1', 'host6',
                            '--ignore_site_file'],
                      rpcs=[('modify_host', {'id': 'host6', 'status': 'Ready'},
                             True, None),
@@ -1248,6 +1252,7 @@ class host_mod_unittest(cli_mock.cli_unittest):
                             True, None)],
                      out_words_ok=['Ready', 'host0', 'host1', 'host2',
                                    'host3', 'host4', 'host5', 'host6'])
+        mfile.clean()
 
 
 

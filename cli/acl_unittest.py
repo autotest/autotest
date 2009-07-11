@@ -15,10 +15,11 @@ class acl_list_unittest(cli_mock.cli_unittest):
         acl_list = acl.acl_list()
         afile = cli_mock.create_file('acl0\nacl3\nacl4\n')
         sys.argv = ['atest', 'acl0', 'acl1,acl2',
-                    '--alist', afile, 'acl5', 'acl6,acl7']
+                    '--alist', afile.name, 'acl5', 'acl6,acl7']
         acl_list.parse()
         self.assertEqualNoOrder(['acl%s' % x for x in range(8)],
                                 acl_list.acls)
+        afile.clean()
 
 
     def test_parse_list_user(self):
@@ -218,7 +219,7 @@ class acl_delete_unittest(cli_mock.cli_unittest):
     def test_acl_delete_multiple_acl_ok(self):
         alist = cli_mock.create_file('acl2\nacl1')
         self.run_cmd(argv=['atest', 'acl', 'delete',
-                           'acl0', 'acl1', '--alist', alist],
+                           'acl0', 'acl1', '--alist', alist.name],
                      rpcs=[('delete_acl_group',
                            {'id': 'acl0'},
                            True,
@@ -232,12 +233,13 @@ class acl_delete_unittest(cli_mock.cli_unittest):
                            True,
                            None)],
                      out_words_ok=['acl0', 'acl1', 'acl2', 'Deleted'])
+        alist.clean()
 
 
     def test_acl_delete_multiple_acl_bad(self):
         alist = cli_mock.create_file('acl2\nacl1')
         self.run_cmd(argv=['atest', 'acl', 'delete',
-                           'acl0', 'acl1', '--alist', alist],
+                           'acl0', 'acl1', '--alist', alist.name],
                      rpcs=[('delete_acl_group',
                            {'id': 'acl0'},
                            True,
@@ -255,6 +257,7 @@ class acl_delete_unittest(cli_mock.cli_unittest):
                      err_words_ok=['acl1', 'delete_acl_group',
                                    'DoesNotExist', 'acl_group',
                                    'matching'])
+        alist.clean()
 
 
 class acl_add_unittest(cli_mock.cli_unittest):

@@ -4,7 +4,7 @@
 
 """Tests for action_common."""
 
-import unittest, os, sys, tempfile, StringIO, copy
+import unittest, os, sys, StringIO, copy
 
 import common
 from autotest_lib.cli import cli_mock, topic_common, action_common, rpc

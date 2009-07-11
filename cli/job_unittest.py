@@ -587,19 +587,20 @@ class job_create_unittest(cli_mock.cli_unittest):
 
 
     def test_execute_create_job_with_control(self):
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '--ignore_site_file'],
                      rpcs=[('create_job', self.data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_control_and_kernel(self):
         data = self.data.copy()
         data['control_file'] = '# Made up control "file" for unittest.'
-        filename = cli_mock.create_file(self.trivial_ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.trivial_ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            '-k', 'Kernel', 'test_job0', '-m', 'host0',
                            '--ignore_site_file'],
                      rpcs=[('generate_control_file',
@@ -614,42 +615,46 @@ class job_create_unittest(cli_mock.cli_unittest):
                            ('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created',
                                    'Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_control_and_email(self):
         data = self.data.copy()
         data['email_list'] = 'em'
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-e', 'em',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_control_and_dependencies(self):
         data = self.data.copy()
         data['dependencies'] = ['dep1', 'dep2']
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-d', 'dep1, dep2 ',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_synch_count(self):
         data = self.data.copy()
         data['synch_count'] = 2
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-y', '2',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_test_and_dependencies(self):
@@ -724,14 +729,16 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     def test_execute_create_job_no_hosts(self):
         testjob = job.job_create()
-        filename = cli_mock.create_file(self.ctrl_file)
-        sys.argv = ['atest', '-f', filename, 'test_job0', '--ignore_site_file']
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        sys.argv = ['atest', '-f', file_temp.name, 'test_job0',
+                    '--ignore_site_file']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
         self.assertRaises(cli_mock.ExitException, testjob.parse)
         self.god.unmock_io()
         self.god.check_playback()
+        file_temp.clean()
 
 
     def test_execute_create_job_cfile_and_tests(self):
@@ -785,46 +792,51 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_with_mfile(self):
         data = self.data.copy()
         data['hosts'] = ['host3', 'host2', 'host1', 'host0']
-        cfile = cli_mock.create_file(self.ctrl_file)
-        filename = cli_mock.create_file('host0\nhost1\nhost2\nhost3')
-        self.run_cmd(argv=['atest', 'job', 'create', '--mlist', filename, '-f',
-                           cfile, 'test_job0', '--ignore_site_file'],
+        ctemp = cli_mock.create_file(self.ctrl_file)
+        file_temp = cli_mock.create_file('host0\nhost1\nhost2\nhost3')
+        self.run_cmd(argv=['atest', 'job', 'create', '--mlist', file_temp.name,
+                           '-f', ctemp.name, 'test_job0', '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'])
+        ctemp.clean()
+        file_temp.clean()
 
 
     def test_execute_create_job_with_timeout(self):
         data = self.data.copy()
         data['timeout'] = '222'
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-o', '222',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],)
+        file_temp.clean()
 
 
     def test_execute_create_job_with_max_runtime(self):
         data = self.data.copy()
         data['max_runtime_hrs'] = '222'
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '--max_runtime', '222',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],)
+        file_temp.clean()
 
 
 
     def test_execute_create_job_with_noverify(self):
         data = self.data.copy()
         data['run_verify'] = False
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-n',
                            '--ignore_site_file'],
                      rpcs=[('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],)
+        file_temp.clean()
 
 
     def test_execute_create_job_oth(self):
@@ -885,8 +897,8 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_with_control_and_labels(self):
         data = self.data.copy()
         data['hosts'] = ['host0', 'host1', 'host2']
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0', '-b', 'label1,label2',
                            '--ignore_site_file'],
                      rpcs=[('get_hosts', {'multiple_labels': ['label1',
@@ -908,13 +920,14 @@ class job_create_unittest(cli_mock.cli_unittest):
                             ('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def test_execute_create_job_with_label_and_duplicate_hosts(self):
         data = self.data.copy()
         data['hosts'] = ['host1', 'host0']
-        filename = cli_mock.create_file(self.ctrl_file)
-        self.run_cmd(argv=['atest', 'job', 'create', '-f', filename,
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
                            'test_job0', '-m', 'host0,host1', '-b', 'label1',
                            '--ignore_site_file'],
                      rpcs=[('get_hosts', {'multiple_labels': ['label1']}, True,
@@ -928,6 +941,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                             ('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
 
 
     def _test_parse_hosts(self, args, exp_hosts=[], exp_meta_hosts=[]):
