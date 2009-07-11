@@ -22,11 +22,12 @@ class user_list_unittest(cli_mock.cli_unittest):
     def test_parse_with_users(self):
         ul = user.user_list()
         ufile = cli_mock.create_file('user0\nuser3\nuser4\n')
-        sys.argv = ['atest', 'user1', '--ulist', ufile, 'user3']
+        sys.argv = ['atest', 'user1', '--ulist', ufile.name, 'user3']
         (options, leftover) = ul.parse()
         self.assertEqualNoOrder(['user0', 'user1','user3', 'user4'],
                                 ul.users)
         self.assertEqual(leftover, [])
+        ufile.clean()
 
 
     def test_parse_with_acl(self):
@@ -48,7 +49,7 @@ class user_list_unittest(cli_mock.cli_unittest):
     def test_parse_with_all(self):
         ul = user.user_list()
         ufile = cli_mock.create_file('user0\nuser3\nuser4\n')
-        sys.argv = ['atest', 'user1', '--ulist', ufile, 'user3',
+        sys.argv = ['atest', 'user1', '--ulist', ufile.name, 'user3',
                     '-l', '4', '-a', 'acl0']
         (options, leftover) = ul.parse()
         self.assertEqualNoOrder(['user0', 'user1','user3', 'user4'],
@@ -56,6 +57,7 @@ class user_list_unittest(cli_mock.cli_unittest):
         self.assertEqual('acl0', ul.acl)
         self.assertEqual('4', ul.access_level)
         self.assertEqual(leftover, [])
+        ufile.clean()
 
 
     def test_execute_list_all(self):
@@ -126,7 +128,8 @@ class user_list_unittest(cli_mock.cli_unittest):
 
     def test_execute_list_all_with_user_verbose(self):
         ufile = cli_mock.create_file('user0 user1\n')
-        self.run_cmd(argv=['atest', 'user', 'list', '--ulist', ufile, '-v'],
+        self.run_cmd(argv=['atest', 'user', 'list', '--ulist', ufile.name,
+                           '-v'],
                      rpcs=[('get_users', {'login__in': ['user0', 'user1']},
                             True,
                             [{u'access_level': 2,
@@ -136,6 +139,7 @@ class user_list_unittest(cli_mock.cli_unittest):
                               u'login': u'user1',
                               u'id': 4}])],
                      out_words_ok=['user0', 'user1', '3', '4', '5'])
+        ufile.clean()
 
 
     def test_execute_list_all_with_acl_verbose(self):

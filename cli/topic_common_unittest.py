@@ -4,7 +4,7 @@
 
 """Test for atest."""
 
-import unittest, os, sys, tempfile, StringIO, urllib2
+import unittest, os, sys, StringIO, urllib2
 
 import common
 from autotest_lib.cli import cli_mock, topic_common, rpc
@@ -97,58 +97,67 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
     def test_file_list_empty_file(self):
         class opt(object):
-            flist = cli_mock.create_file('')
+            flist_obj = cli_mock.create_file('')
+            flist = flist_obj.name
         self.__test_parsing_flist_bad(opt())
 
 
     def test_file_list_ok(self):
         class opt(object):
-            flist = cli_mock.create_file('a\nb\nc\n')
+            flist_obj = cli_mock.create_file('a\nb\nc\n')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
 
 
     def test_file_list_one_line_space(self):
         class opt(object):
-            flist = cli_mock.create_file('a b c\nd e\nf\n')
+            flist_obj = cli_mock.create_file('a b c\nd e\nf\n')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e', 'f'])
 
 
     def test_file_list_one_line_comma(self):
         class opt(object):
-            flist = cli_mock.create_file('a,b,c\nd,e\nf\n')
+            flist_obj = cli_mock.create_file('a,b,c\nd,e\nf\n')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e', 'f'])
 
 
     def test_file_list_one_line_mix(self):
         class opt(object):
-            flist = cli_mock.create_file('a,b c\nd,e\nf\ng h,i')
+            flist_obj = cli_mock.create_file('a,b c\nd,e\nf\ng h,i')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
                                          'f', 'g', 'h', 'i'])
 
 
     def test_file_list_one_line_comma_space(self):
         class opt(object):
-            flist = cli_mock.create_file('a, b c\nd,e\nf\ng h,i')
+            flist_obj = cli_mock.create_file('a, b c\nd,e\nf\ng h,i')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
                                          'f', 'g', 'h', 'i'])
 
 
     def test_file_list_line_end_comma_space(self):
         class opt(object):
-            flist = cli_mock.create_file('a, b c\nd,e, \nf,\ng h,i ,')
+            flist_obj = cli_mock.create_file('a, b c\nd,e, \nf,\ng h,i ,')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c', 'd', 'e',
                                          'f', 'g', 'h', 'i'])
 
 
     def test_file_list_no_eof(self):
         class opt(object):
-            flist = cli_mock.create_file('a\nb\nc')
+            flist_obj = cli_mock.create_file('a\nb\nc')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
 
 
     def test_file_list_blank_line(self):
         class opt(object):
-            flist = cli_mock.create_file('\na\nb\n\nc\n')
+            flist_obj = cli_mock.create_file('\na\nb\n\nc\n')
+            flist = flist_obj.name
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
 
 
@@ -204,7 +213,8 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
     def test_file_list_all_opt(self):
         class opt(object):
-            flist = cli_mock.create_file('f\ng\nh\n')
+            flist_obj = cli_mock.create_file('f\ng\nh\n')
+            flist = flist_obj.name
             inline = 'a b,c,d e'
         self.__test_parsing_all_good(opt(), ['i', 'j'],
                                      ['a', 'b', 'c', 'd', 'e',
@@ -213,14 +223,16 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
     def test_file_list_all_opt_empty_file(self):
         class opt(object):
-            flist = cli_mock.create_file('')
+            flist_obj = cli_mock.create_file('')
+            flist = flist_obj.name
             inline = 'a b,c,d e'
         self.__test_parsing_all_bad(opt(), ['i', 'j'])
 
 
     def test_file_list_all_opt_in_common(self):
         class opt(object):
-            flist = cli_mock.create_file('f\nc\na\n')
+            flist_obj = cli_mock.create_file('f\nc\na\n')
+            flist = flist_obj.name
             inline = 'a b,c,d e'
         self.__test_parsing_all_good(opt(), ['i','j,d'],
                                      ['a', 'b', 'c', 'd', 'e', 'f', 'i', 'j'])
@@ -228,7 +240,8 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
     def test_file_list_all_opt_in_common_space(self):
         class opt(object):
-            flist = cli_mock.create_file('a b c\nd,e\nf\ng')
+            flist_obj = cli_mock.create_file('a b c\nd,e\nf\ng')
+            flist = flist_obj.name
             inline = 'a b,c,d h'
         self.__test_parsing_all_good(opt(), ['i','j,d'],
                                      ['a', 'b', 'c', 'd', 'e',
@@ -237,7 +250,8 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
     def test_file_list_all_opt_in_common_weird(self):
         class opt(object):
-            flist = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
+            flist_obj = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
+            flist = flist_obj.name
             inline = 'a b,c,d h, ,  ,,	'
         self.__test_parsing_all_good(opt(), ['i','j,d'],
                                      ['a', 'b', 'c', 'd', 'e',
@@ -385,7 +399,7 @@ class atest_unittest(cli_mock.cli_unittest):
     def test_parse_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         sys.argv = ['atest', '--web', 'fooweb', '--parse',
-                    '--kill-on-failure', 'left1', 'left2', '-M', flist]
+                    '--kill-on-failure', 'left1', 'left2', '-M', flist.name]
         self.atest.parser.add_option('-M', '--mlist', type='string')
         item_info = topic_common.item_parse_info(attribute_name='hosts',
                                                  filename_option='mlist',
@@ -394,7 +408,7 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
 
-        self.assertEqual({'mlist': flist,
+        self.assertEqual({'mlist': flist.name,
                           'web_server': 'fooweb',
                           'parse': True,
                           'parse_delim': '|',
@@ -402,12 +416,13 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': False}, options)
         self.assertEqual(leftover, [])
+        flist.clean()
 
 
     def test_parse_no_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         sys.argv = ['atest', '--web', 'fooweb', '--parse', '-g',
-                    '--kill-on-failure', 'left1', 'left2', '-M', flist]
+                    '--kill-on-failure', 'left1', 'left2', '-M', flist.name]
         self.atest.parser.add_option('-M', '--mlist', type='string')
         item_info = topic_common.item_parse_info(attribute_name='hosts',
                                                  filename_option='mlist')
@@ -415,7 +430,7 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left2', 'host1', 'host2'])
 
-        self.assertEqual({'mlist': flist,
+        self.assertEqual({'mlist': flist.name,
                           'web_server': 'fooweb',
                           'parse': True,
                           'parse_delim': '|',
@@ -423,14 +438,15 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': True}, options)
         self.assertEqual(leftover, ['left1', 'left2'])
+        flist.clean()
 
 
     def test_parse_add_on_first(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
-        sys.argv = ['atest', '-g', '--parse', '--ulist', ulist,
+        sys.argv = ['atest', '-g', '--parse', '--ulist', ulist.name,
                     '-u', 'myuser,youruser',
-                    '--kill-on-failure', 'left1', 'left2', '-M', flist]
+                    '--kill-on-failure', 'left1', 'left2', '-M', flist.name]
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
@@ -448,8 +464,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist,
-                          'ulist': ulist,
+        self.assertEqual({'mlist': flist.name,
+                          'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
@@ -458,14 +474,16 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': True}, options)
         self.assertEqual(leftover, [])
+        flist.clean()
+        ulist.clean()
 
 
     def test_parse_add_on_second(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
-        sys.argv = ['atest', '-g', '--parse', '-U', ulist,
+        sys.argv = ['atest', '-g', '--parse', '-U', ulist.name,
                     '-u', 'myuser,youruser',
-                    '--kill-on-failure', 'left1', 'left2', '-M', flist]
+                    '--kill-on-failure', 'left1', 'left2', '-M', flist.name]
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
@@ -483,8 +501,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist,
-                          'ulist': ulist,
+        self.assertEqual({'mlist': flist.name,
+                          'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
@@ -493,14 +511,16 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': True}, options)
         self.assertEqual(leftover, [])
+        flist.clean()
+        ulist.clean()
 
 
     def test_parse_all_opts(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
-        sys.argv = ['atest', '-g', '--parse', '--ulist', ulist,
+        sys.argv = ['atest', '-g', '--parse', '--ulist', ulist.name,
                     '-u', 'myuser,youruser',
-                    '--kill-on-failure', '-M', flist, 'left1', 'left2']
+                    '--kill-on-failure', '-M', flist.name, 'left1', 'left2']
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
@@ -517,8 +537,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist,
-                          'ulist': ulist,
+        self.assertEqual({'mlist': flist.name,
+                          'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': True,
@@ -527,13 +547,15 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': True}, options)
         self.assertEqual(leftover, [])
+        flist.clean()
+        ulist.clean()
 
 
     def test_parse_no_add_on(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
-        sys.argv = ['atest', '-U', ulist,
-                    '--kill-on-failure', '-M', flist]
+        sys.argv = ['atest', '-U', ulist.name,
+                    '--kill-on-failure', '-M', flist.name]
         self.atest.parser.add_option('-M', '--mlist', type='string')
         self.atest.parser.add_option('-U', '--ulist', type='string')
         self.atest.parser.add_option('-u', '--user', type='string')
@@ -549,8 +571,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.users,
                                 ['user1', 'user2', 'user3'])
 
-        self.assertEqual({'mlist': flist,
-                          'ulist': ulist,
+        self.assertEqual({'mlist': flist.name,
+                          'ulist': ulist.name,
                           'user': None,
                           'web_server': None,
                           'parse': False,
@@ -559,6 +581,8 @@ class atest_unittest(cli_mock.cli_unittest):
                           'verbose': False,
                           'debug': False}, options)
         self.assertEqual(leftover, [])
+        flist.clean()
+        ulist.clean()
 
 
     def test_parse_no_flist_add_on(self):
