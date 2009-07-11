@@ -539,7 +539,7 @@ def pid_is_alive(pid):
     pid can be integer, or text of integer.
     """
     try:
-        stat = utils.read_one_line('/proc/%s/stat' % pid)  # pid exists
+        stat = read_one_line('/proc/%s/stat' % pid)  # pid exists
         return stat.split()[2] != 'Z'  # and is not in Zombie state
     except Exception:
         return False  # process no longer exists at all
@@ -1010,3 +1010,25 @@ def get_relative_path(path, reference):
     path_list[:0] = ['..'] * (len(ref_list) - i)
 
     return os.path.join(*path_list)
+
+
+def sh_escape(command):
+    """
+    Escape special characters from a command so that it can be passed
+    as a double quoted (" ") string in a (ba)sh command.
+
+    Args:
+            command: the command string to escape.
+
+    Returns:
+            The escaped command string. The required englobing double
+            quotes are NOT added and so should be added at some point by
+            the caller.
+
+    See also: http://www.tldp.org/LDP/abs/html/escapingsection.html
+    """
+    command = command.replace("\\", "\\\\")
+    command = command.replace("$", r'\$')
+    command = command.replace('"', r'\"')
+    command = command.replace('`', r'\`')
+    return command
