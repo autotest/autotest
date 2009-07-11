@@ -17,7 +17,7 @@ def purge_src(top_dir):
         else:
             cmd = 'cd %s; make clean > /dev/null 2>&1 ' % src_path
 
-        print cmd
+        print 'Cleaning %s test dir' % dir
         os.system(cmd)
 
 

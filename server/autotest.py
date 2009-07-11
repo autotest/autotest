@@ -125,7 +125,7 @@ class BaseAutotest(installable_object.InstallableObject):
             self.lightweight = lightweight
             return
         except global_config.ConfigError, e:
-            logging.error("Could not install autotest using the packaging"
+            logging.error("Could not install autotest using the packaging "
                           "system: %s",  e)
         except (packages.PackageInstallError, error.AutoservRunError), e:
             logging.error("Could not install autotest from %s", repos)
