@@ -1,0 +1,12 @@
+AUTHOR = "Sudhir Kumar <skumar@linux.vnet.ibm.com>"
+NAME = "Kernbench"
+TIME = "SHORT"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Benchmark"
+TEST_TYPE = "client"
+
+DOC = """
+A standard CPU benchmark. Runs a kernel compile and measures the performance.
+"""
+
+job.run_test('kernbench')
