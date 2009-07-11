@@ -6,16 +6,23 @@ This utility allows for easy updating, removing and importing
 of tests into the autotest_web autotests table.
 
 Example of updating client side tests:
-./tests.py -t /usr/local/autotest/client/tests
+./test_importer.py -t /usr/local/autotest/client/tests
 
-If for example not all of your control files adhere to the standard outlined at
-http://test.kernel.org/autotest/ControlRequirements
+If, for example, not all of your control files adhere to the standard outlined
+at http://autotest.kernel.org/wiki/ControlRequirements, you can force options:
 
-You can force options:
-./tests.py --test-type server -t /usr/local/autotest/server/tests
+./test_importer.py --test-type server -t /usr/local/autotest/server/tests
 
+You would need to pass --add-noncompliant to include such control files,
+however.  An easy way to check for compliance is to run in dry mode:
 
-Most options should be fairly self explanatory use --help to display them.
+./test_importer.py --dry-run -t /usr/local/autotest/server/tests/mytest
+
+Or to check a single control file, you can use check_control_file_vars.py.
+
+Running with no options is equivalent to --add-all --db-clear-tests.
+
+Most options should be fairly self explanatory, use --help to display them.
 """
 
 
@@ -52,7 +59,8 @@ def main(argv):
     parser.add_option('-N', '--add-noncompliant',
                       dest='add_noncompliant', action='store_true',
                       default=False,
-                      help='Skip any tests that are not compliant')
+                      help='Add non-compliant tests (i.e. tests that do not '
+                           'define all required control variables)')
     parser.add_option('-p', '--profile-dir', dest='profile_dir',
                       help='Directory to recursively check for profiles')
     parser.add_option('-t', '--tests-dir', dest='tests_dir',
@@ -88,9 +96,7 @@ def main(argv):
     if options.clear_tests:
         db_clean_broken(options.autotest_dir, options.verbose)
     if options.tests_dir:
-        if ".." in options.tests_dir:
-            path = os.path.join(os.getcwd(), options.tests_dir)
-            options.tests_dir = os.path.abspath(path)
+        options.tests_dir = os.path.abspath(options.tests_dir)
         tests = get_tests_from_fs(options.tests_dir, options.control_pattern,
                                   add_noncompliant=options.add_noncompliant)
         update_tests_in_db(tests, add_experimental=options.add_experimental,
@@ -140,7 +146,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir,
                            verbose=verbose)
-
+     
     profilers_path = os.path.join(autotest_dir, "client/profilers")
     if os.path.exists(profilers_path):
         if verbose:
@@ -151,7 +157,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                                description='NA')
     # Clean bad db entries
     db_clean_broken(autotest_dir, verbose)
-
+ 
 
 def db_clean_broken(autotest_dir, verbose):
     """Remove tests from autotest_web that do not have valid control files
@@ -252,7 +258,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
             else:
                 control_name = "%s:%s"
                 control_name %= (test_new_test[-2],
-                                 test_new_test[-1])
+                                 test_new_test[-1]) 
                 new_test['name'] = control_name.replace('control.', '')
         # Experimental Check
         if not add_experimental:
