@@ -2,10 +2,10 @@
 """
 
 from os import path
-import ConfigParser, os, shelve, shutil, sys, tarfile, tempfile, time
+import ConfigParser, os, shelve, shutil, sys, tarfile, time
 import difflib, itertools
 import common
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, autotemp
 from autotest_lib.tko import status_lib
 from autotest_lib.tko.parsers.test import templates
 from autotest_lib.tko.parsers.test import unittest_hotfix
@@ -208,7 +208,8 @@ class BaseScenarioTestCase(unittest_hotfix.TestCase):
         unittest_hotfix.TestCase.__init__(self, methodName)
         self.package_dirpath = path.dirname(
             sys.modules[self.__module__].__file__)
-        self.results_dirpath = load_results_dir(self.package_dirpath)
+        self.tmp_dirpath, self.results_dirpath = load_results_dir(
+            self.package_dirpath)
         self.parser_result_store = load_parser_result_store(
             self.package_dirpath)
         self.config = load_config(self.package_dirpath)
@@ -222,6 +223,11 @@ class BaseScenarioTestCase(unittest_hotfix.TestCase):
     def setUp(self):
         if self.results_dirpath:
             self.harness = new_parser_harness(self.results_dirpath)
+
+
+    def tearDown(self):
+        if self.tmp_dirpath:
+            self.tmp_dirpath.clean()
 
 
     def test_status_version(self):
@@ -323,15 +329,15 @@ def load_results_dir(package_dirpath):
     """
     tgz_filepath = path.join(package_dirpath, RESULTS_DIR_TARBALL)
     if not path.exists(tgz_filepath):
-        return None
+        return None, None
 
     tgz = tarfile.open(tgz_filepath, 'r:gz')
-    tmp_dirpath = tempfile.mkdtemp()
+    tmp_dirpath = autotemp.tempdir(unique_id='scenario_base')
     results_dirname = tgz.next().name
-    tgz.extract(results_dirname, tmp_dirpath)
+    tgz.extract(results_dirname, tmp_dirpath.name)
     for info in tgz:
-        tgz.extract(info.name, tmp_dirpath)
-    return path.join(tmp_dirpath, results_dirname)
+        tgz.extract(info.name, tmp_dirpath.name)
+    return tmp_dirpath, path.join(tmp_dirpath.name, results_dirname)
 
 
 def write_config(package_dirpath, **properties):
