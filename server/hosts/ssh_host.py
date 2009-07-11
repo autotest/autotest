@@ -116,20 +116,9 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             logging.debug("ssh: %s" % command)
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
-            try:
-                return self._run(command, timeout, ignore_status, stdout_tee,
-                                 stderr_tee, connect_timeout, env, options,
-                                 stdin=stdin)
-            except error.AutoservSshPermissionDeniedError:
-                logging.error("Permission denied to ssh; re-running with "
-                              "increased logging:")
-                try:
-                    self._run(command, timeout, ignore_status, stdout_tee,
-                              stderr_tee, connect_timeout, env, '-v -v -v',
-                              stdin=stdin)
-                except Exception:
-                    pass
-                raise
+            return self._run(command, timeout, ignore_status, stdout_tee,
+                             stderr_tee, connect_timeout, env, options,
+                             stdin=stdin)
         except error.CmdError, cmderr:
             # We get a CmdError here only if there is timeout of that command.
             # Catch that and stuff it into AutoservRunError and raise it.
