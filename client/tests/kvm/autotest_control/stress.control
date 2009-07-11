@@ -1,0 +1,13 @@
+NAME='Stress'
+AUTHOR='Sudhir Kumar <skumar@linux.vnet.ibm.com>'
+EXPERIMENTAL='True'
+TEST_TYPE='client'
+TIME='MEDIUM'
+TEST_CATEGORY='Functional'
+TEST_CLASS='Software'
+DOC='''\
+stress is not a benchmark, but is rather a tool designed to put given subsytems
+under a specified load. Instances in which this is useful include those in which
+a system administrator wishes to perform tuning activities, a kernel or libc
+programmer wishes to evaluate denial of service possibilities, etc.
+'''
