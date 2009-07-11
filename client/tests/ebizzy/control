@@ -1,0 +1,11 @@
+NAME = "ebizzy"
+AUTHOR = "Sudhir Kumar <skumar@linux.vnet.ibm.com>"
+TIME = "MEDIUM, VARIABLE"
+TEST_CATEGORY = "FUNCTIONAL"
+TEST_CLASS = "SYSTEM STRESS"
+TEST_TYPE = "CLIENT"
+DOC = """
+http://sourceforge.net/project/platformdownload.php?group_id=202378&sel_platform=3809
+"""
+
+job.run_test('ebizzy', args = '-vv')
