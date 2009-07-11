@@ -3,7 +3,7 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
-import socket, struct, subprocess, sys, time, textwrap, urllib, urlparse
+import socket, struct, subprocess, sys, time, textwrap, urlparse
 import warnings, smtplib, logging, urllib2
 from autotest_lib.client.common_lib import error, barrier, logging_manager
 
@@ -233,27 +233,31 @@ def is_url(path):
     return (url_parts[0] in ('http', 'ftp'))
 
 
-def urlopen(url, data=None, proxies=None, timeout=5):
-    """Wrapper to urllib.urlopen with timeout addition."""
+def urlopen(url, data=None, timeout=5):
+    """Wrapper to urllib2.urlopen with timeout addition."""
 
     # Save old timeout
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
     try:
-        return urllib.urlopen(url, data=data, proxies=proxies)
+        return urllib2.urlopen(url, data=data)
     finally:
         socket.setdefaulttimeout(old_timeout)
 
 
-def urlretrieve(url, filename=None, reporthook=None, data=None, timeout=300):
-    """Wrapper to urllib.urlretrieve with timeout addition."""
-    old_timeout = socket.getdefaulttimeout()
-    socket.setdefaulttimeout(timeout)
+def urlretrieve(url, filename, data=None, timeout=300):
+    """Retrieve a file from given url."""
+    logging.debug('Fetching %s -> %s', url, filename)
+
+    src_file = urlopen(url, data=data, timeout=timeout)
     try:
-        return urllib.urlretrieve(url, filename=filename,
-                                  reporthook=reporthook, data=data)
+        dest_file = open(filename, 'wb')
+        try:
+            shutil.copyfileobj(src_file, dest_file)
+        finally:
+            dest_file.close()
     finally:
-        socket.setdefaulttimeout(old_timeout)
+        src_file.close()
 
 
 def get_file(src, dest, permissions=None):
@@ -262,18 +266,7 @@ def get_file(src, dest, permissions=None):
         return
 
     if is_url(src):
-        logging.debug('PWD: %s', os.getcwd())
-        logging.info('Fetching %s -> %s', src, dest)
-
-        src_file = urllib2.urlopen(src)
-        try:
-            dest_file = open(dest, 'wb')
-            try:
-                shutil.copyfileobj(src_file, dest_file)
-            finally:
-                dest_file.close()
-        finally:
-            src_file.close()
+        urlretrieve(src, dest)
     else:
         shutil.copyfile(src, dest)
 
