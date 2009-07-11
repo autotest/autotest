@@ -1,0 +1,15 @@
+AUTHOR = 'Sudhir Kumar <skumar@linux.vnet.ibm.com>'
+NAME = 'Disktest'
+DOC = '''\
+Pattern test of the disk, using unique signatures for each block and each
+iteration of the test. Designed to check for data corruption issues in the
+disk and disk controller.
+
+It writes 50MB/s of 500KB size ops.
+'''
+TIME = 'MEDIUM'
+TEST_CATEGORY = 'Kernel'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Hardware'
+
+job.run_test('disktest')
