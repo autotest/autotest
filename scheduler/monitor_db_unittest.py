@@ -1392,7 +1392,7 @@ class AgentTasksTest(BaseSchedulerTest):
                 self.DUMMY_PROCESS, mock.is_string_comparator())
 
 
-    def _test_repair_task_helper(self, success, task_tag):
+    def _test_repair_task_helper(self, success, task_tag, queue_entry=None):
         self.host.set_status.expect_call('Repairing')
         if success:
             self.setup_run_monitor(0, task_tag)
@@ -1401,7 +1401,7 @@ class AgentTasksTest(BaseSchedulerTest):
             self.setup_run_monitor(1, task_tag)
             self.host.set_status.expect_call('Repair Failed')
 
-        task = monitor_db.RepairTask(self.host)
+        task = monitor_db.RepairTask(self.host, queue_entry=queue_entry)
         self.assertEquals(task.failure_tasks, [])
         self.run_task(task, success)
 
@@ -1421,6 +1421,15 @@ class AgentTasksTest(BaseSchedulerTest):
     def test_repair_task(self):
         self._test_repair_task_helper(True, '1-repair')
         self._test_repair_task_helper(False, '2-repair')
+
+
+    def test_repair_task_with_hqe_already_requeued(self):
+        # during recovery, a RepairTask can be passed a queue entry that has
+        # already been requeued.  ensure it leaves the HQE alone in that case.
+        self.queue_entry.meta_host = 1
+        self.queue_entry.host = None
+        self._test_repair_task_helper(False, '1-repair',
+                                      queue_entry=self.queue_entry)
 
 
     def test_repair_task_aborted(self):
