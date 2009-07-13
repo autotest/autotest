@@ -84,26 +84,53 @@ link_if_not_exist(pwd, images, 'images')
 link_if_not_exist(pwd, qemu, 'qemu')
 link_if_not_exist(pwd, qemu_img, 'qemu-img')
 
-# ---------------------
-# Build and install kvm
-# ---------------------
+# --------------------------------------------------------
+# Params that will be passed to the KVM install/build test
+# --------------------------------------------------------
 params = {
     "name": "kvm_install",
     "shortname": "kvm_install",
     "type": "kvm_install",
     "mode": "release",
+    #"mode": "snapshot",
+    #"mode": "localtar",
+    #"mode": "localsrc",
+    #"mode": "git",
 
-    ## Install from a tarball
-    "tarball": "/tmp/kvm-84.tar.gz",
+    ## Are we going to load modules built by this test?
+    ## Defaults to 'yes', so if you are going to provide only userspace code to
+    ## be built by this test, please set load_modules to 'no', and make sure
+    ## the kvm and kvm-[vendor] module is already loaded by the time you start
+    ## it.
+    #"load_modules": "no",
 
-    ## Install from a kvm release.
-    "release_dir": 'http://downloads.sourceforge.net/kvm/',
+    ## Install from a kvm release ("mode": "release"). You can optionally
+    ## specify a release tag. If you omit it, the test will get the latest
+    ## release tag available.
     #"release_tag": '84',
+    "release_dir": 'http://downloads.sourceforge.net/kvm/',
 
-    ## Install from git
-    "git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git',
-    "user_git_repo": 'git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git',
-    "kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git'
+    ## Install from a kvm snapshot location ("mode": "snapshot"). You can
+    ## optionally specify a snapshot date. If you omit it, the test will get
+    ## yesterday's snapshot.
+    #"snapshot_date": '20090712'
+    #"snapshot_dir": 'http://foo.org/kvm-snapshots/',
+
+    ## Install from a tarball ("mode": "localtar")
+    #"tarball": "/tmp/kvm-84.tar.gz",
+
+    ## Install from a local source code dir ("mode": "localsrc")
+    #"srcdir": "/path/to/source-dir"
+
+    ## Install from git ("mode": "git")
+    ## If you provide only "git_repo" and "user_git_repo", the build test
+    ## will assume it will perform all build from the userspace dir, building
+    ## modules trough make -C kernel LINUX=%s sync. As of today (07-13-2009)
+    ## we need 3 git repos, "git_repo" (linux sources), "user_git_repo" and 
+    ## "kmod_repo" to build KVM userspace + kernel modules.
+    #"git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git',
+    #"user_git_repo": 'git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git',
+    #"kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git'
 }
 
 # Comment the job.run_test line if you do not want to install kvm on the host.
