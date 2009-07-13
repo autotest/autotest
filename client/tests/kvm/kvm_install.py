@@ -30,15 +30,21 @@ def load_kvm_modules(module_dir):
     logging.info("Loading new KVM modules...")
     kvm_module_path = None
     kvm_vendor_module_path = None
+    # Search for the built KVM modules
     for folder, subdirs, files in os.walk(module_dir):
         if "kvm.ko" in files:
             kvm_module_path = os.path.join(folder, "kvm.ko")
             kvm_vendor_module_path = os.path.join(folder, "kvm-%s.ko" % vendor)
     abort = False
-    if not os.path.isfile(kvm_module_path):
-        logging.error("Could not find KVM module that was supposed to be"
-                      " built on the source dir")
-        abort = True
+    if not kvm_module_path:
+        logging.error("Need a directory containing both kernel module and "
+                      "userspace sources.")
+        logging.error("If you are trying to build only KVM userspace and use "
+                      "the KVM modules you have already loaded, put "
+                      "'load_modules': 'no' on the control file 'params' "
+                      "dictionary.")
+        raise error.TestError("Could not find a built kvm.ko module on the "
+                              "source dir.")
     elif not os.path.isfile(kvm_vendor_module_path):
         logging.error("Could not find KVM (%s) module that was supposed to be"
                       " built on the source dir", vendor)
