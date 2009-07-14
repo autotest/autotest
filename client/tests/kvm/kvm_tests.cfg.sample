@@ -79,6 +79,15 @@ variants:
             - bonnie:
                 test_name = bonnie
                 test_control_file = bonnie.control
+            - ebizzy:
+                test_name = ebizzy
+                test_control_file = ebizzy.control
+            - stress:
+                test_name = stress
+                test_control_file = stress.control
+            - disktest:
+                test_name = disktest
+                test_control_file = disktest.control
 
     - linux_s3:      install setup
         type = linux_s3
