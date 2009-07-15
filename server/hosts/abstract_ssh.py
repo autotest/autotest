@@ -45,7 +45,7 @@ class AbstractSSHHost(SiteHost):
         the style used by rsync and scp. """
         escaped_paths = [utils.scp_remote_escape(path) for path in paths]
         return '%s@%s:"%s"' % (self.user, self.hostname,
-                               " ".join(paths))
+                               " ".join(escaped_paths))
 
 
     def _make_rsync_cmd(self, sources, dest, delete_dest, preserve_symlinks):
@@ -270,7 +270,7 @@ class AbstractSSHHost(SiteHost):
 
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
-                is_dir = self.run("ls -d %s/" % remote_dest,
+                is_dir = self.run("ls -d %s/" % dest,
                                   ignore_status=True).exit_status == 0
                 if is_dir:
                     cmd = "rm -rf %s && mkdir %s"
