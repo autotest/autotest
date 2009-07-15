@@ -66,7 +66,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             env = "export %s;" % env
         full_cmd = '%s "%s %s"' % (ssh_cmd, env, utils.sh_escape(command))
         result = utils.run(full_cmd, timeout, True, stdout, stderr,
-                           verbose=False, stdin=stdin)
+                           verbose=False, stdin=stdin,
+                           stderr_is_expected=ignore_status)
 
         # The error messages will show up in band (indistinguishable
         # from stuff sent through the SSH connection), so we have the
@@ -178,7 +179,8 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
         # We ignore the status, because we will handle it at the end.
         result = self.run(command, timeout, ignore_status=True,
-                          connect_timeout=connect_timeout)
+                          connect_timeout=connect_timeout,
+                          stderr_is_expected=ignore_status)
 
         # Look for the patterns, in order
         for (regexp, stream) in ((stderr_err_regexp, result.stderr),
