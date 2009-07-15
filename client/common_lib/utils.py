@@ -31,6 +31,9 @@ class _NullStream(object):
 TEE_TO_LOGS = object()
 _the_null_stream = _NullStream()
 
+DEFAULT_STDOUT_LEVEL = logging.DEBUG
+DEFAULT_STDERR_LEVEL = logging.ERROR
+
 def get_stream_tee_file(stream, level):
     if stream is None:
         return _the_null_stream
@@ -41,10 +44,10 @@ def get_stream_tee_file(stream, level):
 
 class BgJob(object):
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
         self.command = command
-        self.stdout_tee = get_stream_tee_file(stdout_tee, logging.DEBUG)
-        self.stderr_tee = get_stream_tee_file(stderr_tee, logging.ERROR)
+        self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL)
+        self.stderr_tee = get_stream_tee_file(stderr_tee, stderr_level)
         self.result = CmdResult(command)
         if verbose:
             logging.debug("Running '%s'" % command)
@@ -320,8 +323,15 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
             pickle.dump(new_version, open(versionfile, 'w'))
 
 
+def get_stderr_level(stderr_is_expected):
+    if stderr_is_expected:
+        return DEFAULT_STDOUT_LEVEL
+    return DEFAULT_STDERR_LEVEL
+
+
 def run(command, timeout=None, ignore_status=False,
-        stdout_tee=None, stderr_tee=None, verbose=True, stdin=None):
+        stdout_tee=None, stderr_tee=None, verbose=True, stdin=None,
+        stderr_is_expected=None):
     """
     Run a command on the host.
 
@@ -347,8 +357,11 @@ def run(command, timeout=None, ignore_status=False,
             CmdError: the exit code of the command
                     execution was not 0
     """
+    if stderr_is_expected is None:
+        stderr_is_expected = ignore_status
     bg_job = join_bg_jobs(
-        (BgJob(command, stdout_tee, stderr_tee, verbose, stdin=stdin),),
+        (BgJob(command, stdout_tee, stderr_tee, verbose, stdin=stdin,
+               stderr_level=get_stderr_level(stderr_is_expected)),),
         timeout)[0]
     if not ignore_status and bg_job.result.exit_status:
         raise error.CmdError(command, bg_job.result,
@@ -369,7 +382,8 @@ def run_parallel(commands, timeout=None, ignore_status=False,
     """
     bg_jobs = []
     for command in commands:
-        bg_jobs.append(BgJob(command, stdout_tee, stderr_tee))
+        bg_jobs.append(BgJob(command, stdout_tee, stderr_tee,
+                             stderr_level=get_stderr_level(ignore_status)))
 
     # Updates objects in bg_jobs list with their process information
     join_bg_jobs(bg_jobs, timeout)

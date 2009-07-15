@@ -217,8 +217,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             AutoservSSHTimeout: ssh connection has timed out
         """
 
-        stdout = utils.get_stream_tee_file(stdout_tee, logging.DEBUG)
-        stderr = utils.get_stream_tee_file(stderr_tee, logging.ERROR)
+        stdout = utils.get_stream_tee_file(
+                stdout_tee, utils.DEFAULT_STDOUT_LEVEL)
+        stderr = utils.get_stream_tee_file(
+                stderr_tee, utils.get_stderr_level(ignore_status))
 
         if verbose:
             logging.debug("Running (ssh-paramiko) '%s'" % command)
