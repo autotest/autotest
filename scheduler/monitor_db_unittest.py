@@ -1274,9 +1274,9 @@ class DelayedCallTaskTest(unittest.TestCase):
 
 class AgentTasksTest(BaseSchedulerTest):
     ABSPATH_BASE = '/abspath/'
-    BASE_TASK_DIR = 'hosts/host1/'
-    RESULTS_DIR = '/results/dir'
     HOSTNAME = 'myhost'
+    BASE_TASK_DIR = 'hosts/%s/' % HOSTNAME
+    RESULTS_DIR = '/results/dir'
     DUMMY_PROCESS = object()
     HOST_PROTECTION = host_protections.default
     PIDFILE_ID = object()
@@ -1310,21 +1310,33 @@ class AgentTasksTest(BaseSchedulerTest):
             return True
         self.god.stub_with(monitor_db.PidfileRunMonitor, 'has_process',
                            mock_has_process)
+
         self.host = self.god.create_mock_class(monitor_db.Host, 'host')
         self.host.id = 1
         self.host.hostname = self.HOSTNAME
         self.host.protection = self.HOST_PROTECTION
-        self.queue_entry = self.god.create_mock_class(
-            monitor_db.HostQueueEntry, 'queue_entry')
+        host = models.Host.objects.create(id=self.host.id,
+                                          hostname=self.host.hostname,
+                                          protection=self.host.protection)
+
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
         self.job.owner = self.JOB_OWNER
         self.job.name = self.JOB_NAME
         self.job.id = 1337
         self.job.tag = lambda: 'fake-job-tag'
+        job = models.Job.objects.create(id=self.job.id, owner=self.job.owner,
+                                        name=self.job.name,
+                                        created_on=datetime.datetime.now())
+
+        self.queue_entry = self.god.create_mock_class(
+            monitor_db.HostQueueEntry, 'queue_entry')
         self.queue_entry.id = 1
         self.queue_entry.job = self.job
         self.queue_entry.host = self.host
         self.queue_entry.meta_host = None
+        models.HostQueueEntry.objects.create(id=self.queue_entry.id, job=job,
+                                             host=host, meta_host=None)
+
         self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
                                                       'dispatcher')
 
