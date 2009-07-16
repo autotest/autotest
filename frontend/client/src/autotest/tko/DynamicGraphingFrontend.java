@@ -43,6 +43,7 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
         
         JSONObject params = buildParams();
         if (params == null) {
+            graphButton.setEnabled(true);
             return;
         }
         
