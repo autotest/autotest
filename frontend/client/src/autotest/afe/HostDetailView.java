@@ -218,9 +218,8 @@ public class HostDetailView extends DetailView
                     int jobId = (int) job.get("id").isNumber().doubleValue();
                     listener.onJobSelected(jobId);
                 } else {
-                    String resultsPath = "/results/" 
-                                         + Utils.jsonToString(row.get("execution_path"));
-                    Utils.openUrlInNewWindow(resultsPath);
+                    String resultsPath = Utils.jsonToString(row.get("execution_path"));
+                    Utils.openUrlInNewWindow(Utils.getRetrieveLogsUrl(resultsPath));
                 }
             }
 
