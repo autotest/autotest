@@ -1444,6 +1444,19 @@ class AgentTasksTest(BaseSchedulerTest):
                                       queue_entry=self.queue_entry)
 
 
+    def test_recovery_repair_task_working_directory(self):
+        # ensure that a RepairTask recovering an existing SpecialTask picks up
+        # the working directory immediately
+        class MockSpecialTask(object):
+            def execution_path(self):
+                return '/my/path'
+
+        special_task = MockSpecialTask()
+        task = monitor_db.RepairTask(self.host, task=special_task)
+
+        self.assertEquals(task._working_directory, '/my/path')
+
+
     def test_repair_task_aborted(self):
         self.host.set_status.expect_call('Repairing')
         self.setup_run_monitor(0, '1-repair', aborted=True)

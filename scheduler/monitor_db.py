@@ -1610,6 +1610,8 @@ class SpecialAgentTask(AgentTask):
         assert (self.TASK_TYPE is not None,
                 'self.TASK_TYPE must be overridden')
         self.task = task
+        if task:
+            kwargs['working_directory'] = task.execution_path()
         self._extra_command_args = extra_command_args
         super(SpecialAgentTask, self).__init__(**kwargs)
 
