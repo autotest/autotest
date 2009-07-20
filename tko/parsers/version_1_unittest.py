@@ -211,6 +211,42 @@ class test_status_line(unittest.TestCase):
         self.assertEquals(None, line.get_timestamp())
 
 
+class iteration_parse_line_into_dicts(unittest.TestCase):
+    def parse_line(self, line):
+        attr, perf = {}, {}
+        version_1.iteration.parse_line_into_dicts(line, attr, perf)
+        return attr, perf
+
+
+    def test_perf_entry(self):
+        result = self.parse_line("perf-val{perf}=173")
+        self.assertEqual(({}, {"perf-val": 173}), result)
+
+
+    def test_attr_entry(self):
+        result = self.parse_line("attr-val{attr}=173")
+        self.assertEqual(({"attr-val": "173"}, {}), result)
+
+
+    def test_untagged_is_perf(self):
+        result = self.parse_line("untagged=678.5")
+        self.assertEqual(({}, {"untagged": 678.5}), result)
+
+
+    def test_invalid_tag_ignored(self):
+        result = self.parse_line("bad-tag{invalid}=56")
+        self.assertEqual(({}, {}), result)
+
+
+    def test_non_numeric_perf_ignored(self):
+        result = self.parse_line("perf-val{perf}=NaN")
+        self.assertEqual(({}, {}), result)
+
+
+    def test_non_numeric_untagged_ignored(self):
+        result = self.parse_line("untagged=NaN")
+        self.assertEqual(({}, {}), result)
+
 
 class DummyAbortTestCase(unittest.TestCase):
     def setUp(self):
