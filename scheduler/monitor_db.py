@@ -690,7 +690,7 @@ class Dispatcher(object):
         self._register_pidfiles()
         _drone_manager.refresh()
         self._recover_all_recoverable_entries()
-        self._requeue_other_active_entries()
+        self._check_for_remaining_active_entries()
         self._reverify_remaining_hosts()
         # reinitialize drones after killing orphaned processes, since they can
         # leave around files when they die
@@ -738,10 +738,13 @@ class Dispatcher(object):
             recover_entries_fn(queue_entry.job, queue_entries, run_monitor)
 
 
-    def _kill_remaining_orphan_processes(self, orphans):
-        for process in orphans:
-            logging.info('Killing orphan %s', process)
-            _drone_manager.kill_process(process)
+    def _check_for_remaining_orphan_processes(self, orphans):
+        if not orphans:
+            return
+        subject = 'Unrecovered orphan autoserv processes remain'
+        message = '\n'.join(str(process) for process in orphans)
+        email_manager.manager.enqueue_notify_email(subject, message)
+        raise RuntimeError(subject + '\n' + message)
 
 
     def _recover_running_entries(self, orphans):
@@ -751,7 +754,12 @@ class Dispatcher(object):
                                        recover_run_monitor=run_monitor)
                 self.add_agent(Agent(tasks=[queue_task],
                                      num_processes=len(queue_entries)))
-            # else, _requeue_other_active_entries will cover this
+            else:
+                # we could do better, but this retains legacy behavior for now
+                for queue_entry in queue_entries:
+                    logging.info('Requeuing running HQE %s since it has no '
+                                 'process' % queue_entry)
+                    queue_entry.requeue()
 
         self._recover_entries_with_status(models.HostQueueEntry.Status.RUNNING,
                                           orphans, _AUTOSERV_PID_FILE,
@@ -786,7 +794,7 @@ class Dispatcher(object):
         self._recover_gathering_entries(orphans)
         self._recover_parsing_entries(orphans)
         self._recover_special_tasks(orphans)
-        self._kill_remaining_orphan_processes(orphans)
+        self._check_for_remaining_orphan_processes(orphans)
 
 
     def _recover_special_tasks(self, orphans):
@@ -880,7 +888,7 @@ class Dispatcher(object):
             return agent_tasks
 
 
-    def _requeue_other_active_entries(self):
+    def _check_for_remaining_active_entries(self):
         queue_entries = HostQueueEntry.fetch(
             where='active AND NOT complete AND '
                   '(aborted OR status != "Pending")')
