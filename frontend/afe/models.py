@@ -1059,6 +1059,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         """\
         Sets a task as active.
         """
+        logging.info('Starting: %s', self)
         self.is_active = True
         self.time_started = datetime.now()
         self.save()
@@ -1068,6 +1069,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         """\
         Sets a task as completed
         """
+        logging.info('Finished: %s', self)
         self.is_active = False
         self.is_complete = True
         self.save()

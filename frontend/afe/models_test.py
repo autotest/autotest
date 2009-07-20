@@ -37,5 +37,20 @@ class SpecialTaskUnittest(unittest.TestCase,
         self.assertEquals(task.status, 'Completed')
 
 
+    def test_activate(self):
+        task = self._create_task()
+        task.activate()
+        self.assertTrue(task.is_active)
+        self.assertFalse(task.is_complete)
+
+
+    def test_finish(self):
+        task = self._create_task()
+        task.activate()
+        task.finish()
+        self.assertFalse(task.is_active)
+        self.assertTrue(task.is_complete)
+
+
 if __name__ == '__main__':
     unittest.main()
