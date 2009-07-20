@@ -56,30 +56,29 @@ class test(models.test):
 class iteration(models.iteration):
     @staticmethod
     def parse_line_into_dicts(line, attr_dict, perf_dict):
+        key, val_type, value = "", "", ""
+
+        # figure out what the key, value and keyval type are 
         typed_match = re.search("^([^=]*)\{(\w*)\}=(.*)$", line)
         if typed_match:
             key, val_type, value = typed_match.groups()
-            if val_type == "attr":
-                attr_dict[key] = value
-            elif val_type == "perf":
-                perf_dict[key] = value
-            else:
-                msg = ("WARNING: line '%s' found in test "
-                       "iteration keyval could not be parsed")
-                msg %= line
-                tko_utils.dprint(msg)
-                return # skip the line
         else:
             # old-fashioned untyped match, assume perf
             untyped_match = re.search("^([^=]*)=(.*)$", line)
-            if not untyped_match:
-                msg = ("WARNING: line '%s' found in test "
-                       "iteration keyval could not be parsed")
-                msg %= line
-                tko_utils.dprint(msg)
-                return # skip this line
-            key, value = untyped_match.groups()
-            perf_dict[key] = value
+            if untyped_match:
+                key, value = untyped_match.groups()
+                val_type = "perf"
+
+        # parse the actual value into a dict
+        if val_type == "attr":
+            attr_dict[key] = value
+        elif val_type == "perf" and re.search("^\d+(\.\d+)?$", value):
+            perf_dict[key] = float(value)
+        else:
+            msg = ("WARNING: line '%s' found in test "
+                   "iteration keyval could not be parsed")
+            msg %= line
+            tko_utils.dprint(msg)
 
 
 class status_line(version_0.status_line):
