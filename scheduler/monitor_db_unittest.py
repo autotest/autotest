@@ -1579,6 +1579,12 @@ class AgentTasksTest(BaseSchedulerTest):
         self.test_verify_task_with_queue_entry()
 
 
+    def test_specialtask_abort_before_prolog(self):
+        task = monitor_db.RepairTask(self.host)
+        task.abort()
+        self.assertTrue(task.aborted)
+
+
     def _setup_post_job_task_expects(self, autoserv_success, hqe_status=None,
                                      hqe_aborted=False):
         self.queue_entry.execution_path.expect_call().and_return('tag')
