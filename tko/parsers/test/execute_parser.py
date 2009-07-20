@@ -25,7 +25,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    results_dirpath = scenario_base.load_results_dir(scenario_dirpath)
+    tempdir, results_dirpath = scenario_base.load_results_dir(scenario_dirpath)
     harness = scenario_base.new_parser_harness(results_dirpath)
     try:
         parser_result = harness.execute()
@@ -33,6 +33,7 @@ def main():
         parser_result = e
     scenario_base.store_parser_result(
         scenario_dirpath, parser_result, parser_result_tag)
+    tempdir.clean()
 
 
 if __name__ == '__main__':
