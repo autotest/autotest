@@ -1628,8 +1628,13 @@ class SpecialAgentTask(AgentTask):
 
     def cleanup(self):
         super(SpecialAgentTask, self).cleanup()
-        self.task.finish()
-        if self.monitor and self.monitor.has_process():
+
+        # self.task can be None if a SpecialAgentTask is aborted before the
+        # prolog runs
+        if self.task:
+            self.task.finish()
+
+        if self.monitor and self.monitor.has_process() and self.task:
             self._copy_results([self.task])
 
 
