@@ -107,6 +107,7 @@ class VM:
         @param iso_dir: The directory where ISOs reside
         """
         self.pid = None
+        self.uuid = None
 
         self.name = name
         self.params = params
@@ -287,6 +288,11 @@ class VM:
         elif params.get("display") == "nographic":
             qemu_cmd += " -nographic"
 
+        if params.get("uuid") == "random":
+            qemu_cmd += " -uuid %s" % self.uuid
+        elif params.get("uuid"):
+            qemu_cmd += " -uuid %s" % params.get("uuid")
+
         return qemu_cmd
 
 
@@ -370,6 +376,12 @@ class VM:
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
                 self.vnc_port = kvm_utils.find_free_port(5900, 6000)
+
+            # Find random UUID if specified 'uuid = random' in config file
+            if params.get("uuid") == "random":
+                f = open("/proc/sys/kernel/random/uuid")
+                self.uuid = f.read().strip()
+                f.close()
 
             # Make qemu command
             qemu_command = self.make_qemu_command()
@@ -732,3 +744,15 @@ class VM:
                 self.send_key("shift-%s" % char.lower())
             else:
                 self.send_key(char)
+
+    
+    def get_uuid(self):
+        """
+        Catch UUID of the VM.
+
+        @return: None,if not specified in config file
+        """
+        if self.params.get("uuid") == "random":
+            return self.uuid
+        else:
+            return self.params.get("uuid", None)
