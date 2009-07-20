@@ -45,6 +45,8 @@ Each test is appropriately documented on each test docstrings.
 
 import sys, os
 
+# set English environment
+os.environ['LANG'] = 'en_US.UTF-8'
 # enable modules import from current directory (tests/kvm)
 pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')
 sys.path.append(pwd)
