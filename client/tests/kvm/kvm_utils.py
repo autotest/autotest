@@ -2,6 +2,7 @@ import md5, thread, subprocess, time, string, random, socket, os, signal, pty
 import select, re, logging
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
+import kvm_subprocess
 
 """
 KVM test utility functions.
@@ -631,8 +632,9 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
 
     @return Return the kvm_spawn object on success and None on failure.
     """
-    sub = kvm_spawn(command, linesep)
-    sub.set_prompt(prompt)
+    sub = kvm_subprocess.kvm_shell_session(command,
+                                           linesep=linesep,
+                                           prompt=prompt)
 
     password_prompt_count = 0
 
@@ -698,7 +700,7 @@ def remote_scp(command, password, timeout=300, login_timeout=10):
 
     @return: True if the transfer succeeds and False on failure.
     """
-    sub = kvm_spawn(command)
+    sub = kvm_subprocess.kvm_expect(command)
 
     password_prompt_count = 0
     _timeout = login_timeout
@@ -729,9 +731,10 @@ def remote_scp(command, password, timeout=300, login_timeout=10):
             sub.close()
             return False
         else:  # match == None
-            logging.debug("Timeout or process terminated")
+            logging.debug("Timeout elapsed or process terminated")
+            status = sub.get_status()
             sub.close()
-            return sub.poll() == 0
+            return status == 0
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
