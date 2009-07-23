@@ -1,6 +1,6 @@
 import time, os, logging
 from autotest_lib.client.common_lib import utils, error
-import kvm_utils, ppm_utils, scan_results
+import kvm_utils, kvm_subprocess, ppm_utils, scan_results
 
 """
 KVM test definitions.
@@ -274,15 +274,16 @@ def run_autotest(test, params, env):
     cmd += " --exclude=*.pyc"
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
-    kvm_utils.run_bg(cmd % (test.bindir, tarred_autotest_path), timeout=30)
+    kvm_subprocess.run_fg(cmd % (test.bindir, tarred_autotest_path), timeout=30)
 
     # tar the contents of bindir/autotest/tests/<test_name>
     cmd = "cd %s; tar cvjf %s %s/*"
     cmd += " --exclude=*.pyc"
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
-    kvm_utils.run_bg(cmd % (os.path.join(test.bindir, "autotest", "tests"),
-                            tarred_test_path, test_name), timeout=30)
+    kvm_subprocess.run_fg(cmd %
+                          (os.path.join(test.bindir, "autotest", "tests"),
+                           tarred_test_path, test_name), timeout=30)
 
     # Check if we need to copy autotest.tar.bz2
     copy = False
