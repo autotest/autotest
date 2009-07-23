@@ -1,7 +1,7 @@
 import sys, os, time, commands, re, logging, signal
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
-import kvm_vm, kvm_utils
+import kvm_vm, kvm_utils, kvm_subprocess
 
 
 def preprocess_image(test, params):
@@ -75,7 +75,7 @@ def preprocess_vm(test, params, env, name):
                                                             qemu_path,
                                                             image_dir,
                                                             iso_dir):
-            logging.debug("VM's qemu command differs from requested one;"
+            logging.debug("VM's qemu command differs from requested one; "
                           "restarting it...")
             start_vm = True
 
@@ -158,13 +158,11 @@ def process_command(test, params, env, command, command_timeout,
     # execute command
     logging.info("Executing command '%s'..." % command)
     timeout = int(command_timeout)
-    (status, pid, output) = kvm_utils.run_bg("cd %s; %s" % (test.bindir,
+    (status, output) = kvm_subprocess.run_fg("cd %s; %s" % (test.bindir,
                                                             command),
-                                                            None, logging.debug,
-                                                            "(command) ",
-                                                            timeout = timeout)
+                                             logging.debug, "(command) ",
+                                             timeout=timeout)
     if status != 0:
-        kvm_utils.safe_kill(pid, signal.SIGTERM)
         logging.warn("Custom processing command failed: '%s'..." % command)
         if command_noncritical != "yes":
             raise error.TestError("Custom processing command failed")
@@ -204,17 +202,6 @@ def preprocess(test, params, env):
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
-    # Verify the identities of all living VMs
-    for vm in env.values():
-        if not kvm_utils.is_vm(vm):
-            continue
-        if vm.is_dead():
-            continue
-        if not vm.verify_process_identity():
-            logging.debug("VM '%s' seems to have been replaced by another"
-                          " process" % vm.name)
-            vm.pid = None
-
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = kvm_utils.get_sub_dict_names(params, "vms")
     for key in env.keys():
@@ -282,8 +269,8 @@ def postprocess(test, params, env):
         # Remove them all
         logging.debug("'keep_ppm_files' not specified; removing all PPM files"
                       " from results dir...")
-        kvm_utils.run_bg("rm -vf %s" % os.path.join(test.debugdir, "*.ppm"),
-                          None, logging.debug, "(rm) ", timeout=5.0)
+        rm_cmd = "rm -vf %s" % os.path.join(test.debugdir, "*.ppm")
+        kvm_subprocess.run_fg(rm_cmd, logging.debug, "(rm) ", timeout=5.0)
 
     #execute any post_commands
     if params.get("post_command"):

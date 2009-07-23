@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import time, socket, os, logging, fcntl
-import kvm_utils
+import kvm_utils, kvm_subprocess
 
 """
 Utility classes and functions to handle Virtual Machine creation using qemu.
@@ -54,17 +54,22 @@ def create_image(params, qemu_img_path, image_dir):
     qemu_img_cmd += " %s" % size
 
     logging.debug("Running qemu-img command:\n%s" % qemu_img_cmd)
-    (status, pid, output) = kvm_utils.run_bg(qemu_img_cmd, None,
-                                             logging.debug, "(qemu-img) ",
-                                             timeout=30)
+    (status, output) = kvm_subprocess.run_fg(qemu_img_cmd, logging.debug,
+                                             "(qemu-img) ", timeout=30)
 
-    if status:
-        logging.debug("qemu-img exited with status %d" % status)
-        logging.error("Could not create image %s" % image_filename)
+    if status is None:
+        logging.error("Timeout elapsed while waiting for qemu-img command "
+                      "to complete:\n%s" % qemu_img_cmd)
+        return None
+    elif status != 0:
+        logging.error("Could not create image; "
+                      "qemu-img command failed:\n%s" % qemu_img_cmd)
+        logging.error("Status: %s" % status)
+        logging.error("Output:" + kvm_utils.format_str_for_message(output))
         return None
     if not os.path.exists(image_filename):
-        logging.debug("Image file does not exist for some reason")
-        logging.error("Could not create image %s" % image_filename)
+        logging.error("Image could not be created for some reason; "
+                      "qemu-img command:\n%s" % qemu_img_cmd)
         return None
 
     logging.info("Image created in %s" % image_filename)
@@ -106,7 +111,7 @@ class VM:
         @param image_dir: The directory where images reside
         @param iso_dir: The directory where ISOs reside
         """
-        self.pid = None
+        self.process = None
         self.uuid = None
 
         self.name = name
@@ -152,28 +157,6 @@ class VM:
         if iso_dir == None:
             iso_dir = self.iso_dir
         return VM(name, params, qemu_path, image_dir, iso_dir)
-
-
-    def verify_process_identity(self):
-        """
-        Make sure .pid really points to the original qemu process. If .pid
-        points to the same process that was created with the create method,
-        or to a dead process, return True. Otherwise return False.
-        """
-        if self.is_dead():
-            return True
-        filename = "/proc/%d/cmdline" % self.pid
-        if not os.path.exists(filename):
-            logging.debug("Filename %s does not exist" % filename)
-            return False
-        file = open(filename)
-        cmdline = file.read()
-        file.close()
-        if not self.qemu_path in cmdline:
-            return False
-        if not self.monitor_file_name in cmdline:
-            return False
-        return True
 
 
     def make_qemu_command(self, name=None, params=None, qemu_path=None,
@@ -394,25 +377,26 @@ class VM:
                 qemu_command += " -incoming tcp:0:%d" % self.migration_port
 
             logging.debug("Running qemu command:\n%s", qemu_command)
-            (status, pid, output) = kvm_utils.run_bg(qemu_command, None,
-                                                     logging.debug, "(qemu) ")
+            self.process = kvm_subprocess.run_bg(qemu_command, None,
+                                                 logging.debug, "(qemu) ")
 
-            if status:
-                logging.debug("qemu exited with status %d", status)
-                logging.error("VM could not be created -- qemu command"
-                              " failed:\n%s", qemu_command)
-                return False
-
-            self.pid = pid
-
-            if not kvm_utils.wait_for(self.is_alive, timeout, 0, 1):
-                logging.debug("VM is not alive for some reason")
-                logging.error("VM could not be created with"
-                              " command:\n%s", qemu_command)
+            if not self.process.is_alive():
+                logging.error("VM could not be created; "
+                              "qemu command failed:\n%s" % qemu_command)
+                logging.error("Status: %s" % self.process.get_status())
+                logging.error("Output:" + kvm_utils.format_str_for_message(
+                    self.process.get_output()))
                 self.destroy()
                 return False
 
-            logging.debug("VM appears to be alive with PID %d", self.pid)
+            if not kvm_utils.wait_for(self.is_alive, timeout, 0, 1):
+                logging.error("VM is not alive for some reason; "
+                              "qemu command:\n%s" % qemu_command)
+                self.destroy()
+                return False
+
+            logging.debug("VM appears to be alive with PID %d",
+                          self.process.get_pid())
             return True
 
         finally:
@@ -511,9 +495,11 @@ class VM:
         # Is it already dead?
         if self.is_dead():
             logging.debug("VM is already down")
+            if self.process:
+                self.process.close()
             return
 
-        logging.debug("Destroying VM with PID %d..." % self.pid)
+        logging.debug("Destroying VM with PID %d..." % self.process.get_pid())
 
         if gracefully and self.params.get("cmd_shutdown"):
             # Try to destroy with SSH command
@@ -521,12 +507,11 @@ class VM:
             (status, output) = self.ssh(self.params.get("cmd_shutdown"))
             # Was the command sent successfully?
             if status == 0:
-            #if self.ssh(self.params.get("cmd_shutdown")):
-                logging.debug("Shutdown command sent; Waiting for VM to go"
+                logging.debug("Shutdown command sent; waiting for VM to go "
                               "down...")
                 if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
                     logging.debug("VM is down")
-                    self.pid = None
+                    self.process.close()
                     return
 
         # Try to destroy with a monitor command
@@ -537,28 +522,29 @@ class VM:
             # Wait for the VM to be really dead
             if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                 logging.debug("VM is down")
-                self.pid = None
+                self.process.close()
                 return
 
         # If the VM isn't dead yet...
-        logging.debug("Cannot quit normally; Sending a kill to close the"
-                      " deal...")
-        kvm_utils.safe_kill(self.pid, 9)
+        logging.debug("Cannot quit normally; sending a kill to close the "
+                      "deal...")
+        kvm_utils.safe_kill(self.process.get_pid(), 9)
         # Wait for the VM to be really dead
         if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
             logging.debug("VM is down")
-            self.pid = None
+            self.process.close()
             return
 
-        logging.error("We have a zombie! PID %d is a zombie!" % self.pid)
+        logging.error("Process %s is a zombie!" % self.process.get_pid())
+        self.process.close()
 
 
     def is_alive(self):
         """
         Return True if the VM's monitor is responsive.
         """
-        # Check if the process exists
-        if not kvm_utils.pid_exists(self.pid):
+        # Check if the process is running
+        if self.is_dead():
             return False
         # Try sending a monitor command
         (status, output) = self.send_monitor_cmd("help")
@@ -569,9 +555,9 @@ class VM:
 
     def is_dead(self):
         """
-        Return True iff the VM's PID does not exist.
+        Return True if the qemu process is dead.
         """
-        return not kvm_utils.pid_exists(self.pid)
+        return not self.process or not self.process.is_alive()
 
 
     def get_params(self):
@@ -608,6 +594,13 @@ class VM:
             logging.debug("Warning: guest port %s requested but not"
                           " redirected" % port)
             return None
+
+
+    def get_pid(self):
+        """
+        Return the VM's PID.
+        """
+        return self.process.get_pid()
 
 
     def is_sshd_running(self, timeout=10):
