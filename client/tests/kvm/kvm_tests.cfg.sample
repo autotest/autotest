@@ -30,6 +30,7 @@ variants:
         type = steps
         fail_if_stuck_for = 300
         stuck_detection_history = 2
+        keep_screendump_history = yes
         force_create_image = yes
         kill_vm = yes
         kill_vm_timeout = 60
@@ -40,6 +41,7 @@ variants:
         fail_if_stuck_for = 300
         stuck_detection_history = 2
         kill_vm_on_error = yes
+        keep_screendump_history = yes
 
     - boot:         install setup
         type = boot
