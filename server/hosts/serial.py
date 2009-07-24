@@ -114,7 +114,7 @@ class SerialHost(SiteHost):
 
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
-                  conmux_command='hardreset'):
+                  conmux_command='hardreset', num_attempts=1):
         """
         Reach out and slap the box in the power switch.
         Args:
@@ -133,7 +133,17 @@ class SerialHost(SiteHost):
                     'Hard reset unavailable')
             self.record("GOOD", None, "reboot.start", "hard reset")
             if wait:
-                self.wait_for_restart(timeout)
+                for _ in xrange(num_attempts):
+                    try:
+                        self.wait_for_restart(timeout)
+                    except error.AutoservShutdownError:
+                        msg = "Serial console failed to respond to hard reset"
+                        logging.warning(msg)
+                    else:
+                        break
+                else:
+                    msg = "Host did not shutdown"
+                    raise error.AutoservShutdownError(msg)
 
         if self.job:
             self.job.disable_warnings("POWER_FAILURE")

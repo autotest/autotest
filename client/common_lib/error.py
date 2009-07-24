@@ -242,6 +242,11 @@ class AutoservRebootError(AutoservError):
     pass
 
 
+class AutoservShutdownError(AutoservRebootError):
+    """Error occured during shutdown of machine"""
+    pass
+
+
 class AutoservSubcommandError(AutoservError):
     """Indicates an error while executing a (forked) subcommand"""
     def __init__(self, func, exit_code):

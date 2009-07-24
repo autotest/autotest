@@ -159,7 +159,8 @@ class Host(object):
         if not self.wait_down(timeout=self.WAIT_DOWN_REBOOT_TIMEOUT,
                               warning_timer=self.WAIT_DOWN_REBOOT_WARNING):
             self.record("ABORT", None, "reboot.verify", "shut down failed")
-            raise error.AutoservRebootError("Host did not shut down")
+            raise error.AutoservShutdownError("Host did not shut down")
+
         self.wait_up(timeout)
         time.sleep(2)    # this is needed for complete reliability
         if self.wait_up(timeout):
@@ -168,8 +169,7 @@ class Host(object):
         else:
             self.record("ABORT", None, "reboot.verify",
                         "Host did not return from reboot")
-            raise error.AutoservRebootError(
-                "Host did not return from reboot")
+            raise error.AutoservRebootError("Host did not return from reboot")
 
 
     def verify(self):
