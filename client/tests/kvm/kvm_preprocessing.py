@@ -264,11 +264,19 @@ def postprocess(test, params, env):
     """
     process(test, params, env, postprocess_image, postprocess_vm)
 
-    # See if we should get rid of all PPM files
-    if not params.get("keep_ppm_files") == "yes":
-        # Remove them all
+    # Should we convert PPM files to PNG format?
+    if params.get("convert_ppm_files_to_png") == "yes":
+        logging.debug("'convert_ppm_files_to_png' specified; converting PPM"
+                      " files to PNG format...")
+        mogrify_cmd = ("mogrify -format png %s" %
+                       os.path.join(test.debugdir, "*.ppm"))
+        kvm_subprocess.run_fg(mogrify_cmd, logging.debug, "(mogrify) ",
+                              timeout=30.0)
+
+    # Should we keep the PPM files?
+    if params.get("keep_ppm_files") != "yes":
         logging.debug("'keep_ppm_files' not specified; removing all PPM files"
-                      " from results dir...")
+                      " from debug dir...")
         rm_cmd = "rm -vf %s" % os.path.join(test.debugdir, "*.ppm")
         kvm_subprocess.run_fg(rm_cmd, logging.debug, "(rm) ", timeout=5.0)
 
