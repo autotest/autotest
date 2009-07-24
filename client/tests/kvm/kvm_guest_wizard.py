@@ -1,6 +1,6 @@
 import os, time, md5, re, shutil, logging
 from autotest_lib.client.common_lib import utils, error
-import kvm_utils, ppm_utils
+import kvm_utils, ppm_utils, kvm_subprocess
 
 """
 Utilities to perform automatic guest installation using step files.
@@ -53,6 +53,11 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
     else:
         stuck_detection_history = 2
 
+    keep_screendump_history = params.get("keep_screendump_history") == "yes"
+    if keep_screendump_history:
+        keep_all_history = params.get("keep_all_history") == "yes"
+        history_dir = os.path.join(debug_dir, "barrier_history")
+
     end_time = time.time() + timeout
     end_time_stuck = time.time() + fail_if_stuck_for
     start_time = time.time()
@@ -91,21 +96,42 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         # Read image file
         (w, h, data) = ppm_utils.image_read_from_ppm_file(scrdump_filename)
 
+        # Compute md5sum of whole image
+        whole_image_md5sum = ppm_utils.image_md5sum(w, h, data)
+
+        # Write screendump to history_dir (as JPG) if requested
+        # and if the screendump differs from the previous one
+        if (keep_screendump_history and
+            whole_image_md5sum not in prev_whole_image_md5sums[:1]):
+            try:
+                os.makedirs(history_dir)
+            except:
+                pass
+            history_scrdump_filename = os.path.join(history_dir,
+                    "scrdump-step_%s-%s.jpg" % (current_step_num,
+                                                time.strftime("%Y%m%d-%H%M%S")))
+            kvm_subprocess.run_fg("convert -quality 30 %s %s" %
+                                  (scrdump_filename, history_scrdump_filename),
+                                  logging.debug, "(convert) ", timeout=30)
+
         # Compare md5sum of barrier region with the expected md5sum
         calced_md5sum = ppm_utils.get_region_md5sum(w, h, data, x1, y1, dx, dy,
                                                     cropped_scrdump_filename)
         if calced_md5sum == md5sum:
+            # Success -- remove screendump history unless requested not to
+            if keep_screendump_history and not keep_all_history:
+                kvm_subprocess.run_fg("rm -rvf %s" % history_dir,
+                                      logging.debug, "(rm) ", timeout=30)
+            # Report success
             return True
 
-        # Compute md5sum of whole image in order to compare it with
-        # previous ones
-        whole_image_md5sum = ppm_utils.image_md5sum(w, h, data)
+        # Insert image md5sum into queue of last seen images:
         # If md5sum is already in queue...
         if whole_image_md5sum in prev_whole_image_md5sums:
             # Remove md5sum from queue
             prev_whole_image_md5sums.remove(whole_image_md5sum)
         else:
-            # Extend 'stuck' timeout
+            # Otherwise extend 'stuck' timeout
             end_time_stuck = time.time() + fail_if_stuck_for
         # Insert md5sum at beginning of queue
         prev_whole_image_md5sums.insert(0, whole_image_md5sum)
@@ -129,7 +155,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         if data_scrdump_filename and os.path.exists(data_scrdump_filename):
             # Read expected screendump image
             (ew, eh, edata) = \
-            ppm_utils.image_read_from_ppm_file(data_scrdump_filename)
+                    ppm_utils.image_read_from_ppm_file(data_scrdump_filename)
             # Write it in debug_dir
             ppm_utils.image_write_to_ppm_file(expected_scrdump_filename,
                                               ew, eh, edata)
