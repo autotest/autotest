@@ -17,8 +17,8 @@ def handle_var(vm, params, varname):
     return True
 
 
-def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
-              debug_dir, data_scrdump_filename, current_step_num):
+def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
+              current_step_num):
     if len(words) < 7:
         logging.error("Bad barrier_2 command line")
         return False
@@ -40,6 +40,18 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
     expected_cropped_scrdump_filename = os.path.join(debug_dir,
                                                  "cropped_scrdump_expected.ppm")
     comparison_filename = os.path.join(debug_dir, "comparison.ppm")
+
+    fail_if_stuck_for = params.get("fail_if_stuck_for")
+    if fail_if_stuck_for:
+        fail_if_stuck_for = float(fail_if_stuck_for)
+    else:
+        fail_if_stuck_for = 1e308
+
+    stuck_detection_history = params.get("stuck_detection_history")
+    if stuck_detection_history:
+        stuck_detection_history = int(stuck_detection_history)
+    else:
+        stuck_detection_history = 2
 
     end_time = time.time() + timeout
     end_time_stuck = time.time() + fail_if_stuck_for
@@ -151,18 +163,6 @@ def run_steps(test, params, env):
     if not os.path.exists(steps_filename):
         raise error.TestError("Steps file not found: %s" % steps_filename)
 
-    fail_if_stuck_for = params.get("fail_if_stuck_for")
-    if fail_if_stuck_for:
-        fail_if_stuck_for = float(fail_if_stuck_for)
-    else:
-        fail_if_stuck_for = 1e308
-
-    stuck_detection_history = params.get("stuck_detection_history")
-    if stuck_detection_history:
-        stuck_detection_history = int(stuck_detection_history)
-    else:
-        stuck_detection_history = 2
-
     sf = open(steps_filename, "r")
     lines = sf.readlines()
     sf.close()
@@ -201,13 +201,12 @@ def run_steps(test, params, env):
                 logging.error("Variable not defined: %s" % words[1])
         elif words[0] == "barrier_2":
             if current_screendump:
-                scrdump_filename = (
-                os.path.join(ppm_utils.get_data_dir(steps_filename),
-                             current_screendump))
+                scrdump_filename = os.path.join(
+                    ppm_utils.get_data_dir(steps_filename),
+                    current_screendump)
             else:
                 scrdump_filename = None
-            if not barrier_2(vm, words, fail_if_stuck_for,
-                             stuck_detection_history, test.debugdir,
+            if not barrier_2(vm, words, params, test.debugdir,
                              scrdump_filename, current_step_num):
                 skip_current_step = True
         else:
