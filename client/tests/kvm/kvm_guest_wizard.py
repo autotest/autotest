@@ -18,7 +18,7 @@ def handle_var(vm, params, varname):
 
 
 def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
-              output_dir, data_scrdump_filename, current_step_num):
+              debug_dir, data_scrdump_filename, current_step_num):
     if len(words) < 7:
         logging.error("Bad barrier_2 command line")
         return False
@@ -34,12 +34,12 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
     if sleep_duration < 1.0: sleep_duration = 1.0
     if sleep_duration > 10.0: sleep_duration = 10.0
 
-    scrdump_filename = os.path.join(output_dir, "scrdump.ppm")
-    cropped_scrdump_filename = os.path.join(output_dir, "cropped_scrdump.ppm")
-    expected_scrdump_filename = os.path.join(output_dir, "scrdump_expected.ppm")
-    expected_cropped_scrdump_filename = os.path.join(output_dir,
+    scrdump_filename = os.path.join(debug_dir, "scrdump.ppm")
+    cropped_scrdump_filename = os.path.join(debug_dir, "cropped_scrdump.ppm")
+    expected_scrdump_filename = os.path.join(debug_dir, "scrdump_expected.ppm")
+    expected_cropped_scrdump_filename = os.path.join(debug_dir,
                                                  "cropped_scrdump_expected.ppm")
-    comparison_filename = os.path.join(output_dir, "comparison.ppm")
+    comparison_filename = os.path.join(debug_dir, "comparison.ppm")
 
     end_time = time.time() + timeout
     end_time_stuck = time.time() + fail_if_stuck_for
@@ -99,7 +99,7 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
         prev_whole_image_md5sums.insert(0, whole_image_md5sum)
         # Limit queue length to stuck_detection_history
         prev_whole_image_md5sums = \
-        prev_whole_image_md5sums[:stuck_detection_history]
+                prev_whole_image_md5sums[:stuck_detection_history]
 
         # Sleep for a while
         time.sleep(sleep_duration)
@@ -113,12 +113,12 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
         logging.info(message)
         return False
     else:
-        # Collect information and put it in output_dir
+        # Collect information and put it in debug_dir
         if data_scrdump_filename and os.path.exists(data_scrdump_filename):
             # Read expected screendump image
             (ew, eh, edata) = \
             ppm_utils.image_read_from_ppm_file(data_scrdump_filename)
-            # Write it in output_dir
+            # Write it in debug_dir
             ppm_utils.image_write_to_ppm_file(expected_scrdump_filename,
                                               ew, eh, edata)
             # Write the cropped version as well
@@ -131,7 +131,7 @@ def barrier_2(vm, words, fail_if_stuck_for, stuck_detection_history,
                 ppm_utils.image_write_to_ppm_file(comparison_filename, w, h,
                                                   data)
         # Print error messages and fail the test
-        long_message = message + "\n(see analysis at %s)" % output_dir
+        long_message = message + "\n(see analysis at %s)" % debug_dir
         logging.error(long_message)
         raise error.TestFail, message
 
