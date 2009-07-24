@@ -8,8 +8,9 @@ main_vm = vm1
 
 # Some preprocessor/postprocessor params
 start_vm = yes
-keep_ppm_files = no
-keep_ppm_files_on_error = yes
+convert_ppm_files_to_png_on_error = yes
+#keep_ppm_files = yes
+#keep_ppm_files_on_error = yes
 kill_vm = no
 kill_vm_gracefully = yes
 
