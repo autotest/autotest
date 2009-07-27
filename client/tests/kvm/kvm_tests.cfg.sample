@@ -92,19 +92,32 @@ variants:
                 test_name = disktest
                 test_control_file = disktest.control
 
-    - linux_s3:      install setup
+    - linux_s3:     install setup
         type = linux_s3
 
-    - shutdown:      install setup
+    - timedrift:    install setup
+        type = timedrift
+        extra_params += " -rtc-td-hack"
+        # Pin the VM and host load to CPU #0
+        cpu_mask = 0x1
+        # Set the load and rest durations
+        load_duration = 20
+        rest_duration = 20
+        # Fail if the drift after load is higher than 50%
+        drift_threshold = 50
+        # Fail if the drift after the rest period is higher than 10%
+        drift_threshold_after_rest = 10
+
+    - stress_boot:  install setup
+        type = stress_boot
+        max_vms = 5    
+        alive_test_cmd = ps aux
+
+    - shutdown:     install setup
         type = shutdown
         kill_vm = yes
         kill_vm_gracefully = no
 
-
-    - stress_boot:
-        type = stress_boot
-        max_vms = 5    
-        alive_test_cmd = ps aux
 
 # NICs
 variants:
@@ -121,6 +134,7 @@ variants:
 variants:
     # Linux section
     - @Linux:
+        no timedrift
         cmd_shutdown = shutdown -h now
         cmd_reboot = shutdown -r now
         ssh_status_test_command = echo $?
@@ -303,8 +317,6 @@ variants:
                             md5sum=bf4635e4a4bd3b43838e72bc8c329d55
                             md5sum_1m=18ecd37b639109f1b2af05cfb57dfeaf
 
-
-
     # Windows section
     - @Windows:
         no autotest
@@ -318,6 +330,21 @@ variants:
             migration_test_command = ver && vol
         stress_boot:
             alive_test_cmd = systeminfo
+        timedrift:
+            # For this to work, the ISO should contain vlc (vlc.exe) and a video (ED_1024.avi)
+            cdrom = windows/vlc.iso
+            time_command = "echo TIME: %date% %time%"
+            time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
+            time_format = "%m/%d/%Y %H:%M:%S"
+            guest_load_command = 'cmd /c "d:\vlc -f --loop --no-qt-privacy-ask --no-qt-system-tray d:\ED_1024.avi"'
+            # Alternative guest load:
+            #guest_load_command = "(dir /s && dir /s && dir /s && dir /s) > nul"
+            guest_load_stop_command = "taskkill /F /IM vlc.exe"
+            guest_load_instances = 2
+            host_load_command = "bzip2 -c --best /dev/urandom > /dev/null"
+            # Alternative host load:
+            #host_load_command = "dd if=/dev/urandom of=/dev/null"
+            host_load_instances = 8
 
         variants:
             - Win2000:
@@ -581,6 +608,7 @@ variants:
     - @custom:
         only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
         only rtl8139
+
 
 # Choose your test list
 only fc8_quick
