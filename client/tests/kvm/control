@@ -16,56 +16,36 @@ DOC = """
 Executes the KVM test framework on a given host. This module is separated in
 minor functions, that execute different tests for doing Quality Assurance on
 KVM (both kernelspace and userspace) code.
-
-steps
-Also known as Guestwizard for historical reasons.
-Function: runs a given steps file on a given VM. 
-
-stepmaker
-This isn't really a test -- just a comfortable way of running Stepmaker. If one
-wishes to run a steps file created with Stepmaker, one only needs to change the
-type parameter from stepmaker to steps, and the steps file should run properly
-(assuming the VM is in the state the steps file expects it to be). 
-
-boot
-Function: verifies the VM has booted properly by logging into it via SSH/Telnet,
-and optionally reboots the VM. 
-
-migration
-Function: migrates a VM from one VM object to another and verifies the VM is 
-alive following migration. 
-
-autotest
-Function: logs into the VM, runs an Autotest test on it, reports the results 
-and copies the results dir back to the host.
-
-Each test is appropriately documented on each test docstrings. 
 """
 
 
 import sys, os
 
-# set English environment
+#-----------------------------------------------------------------------------
+# set English environment (command output might be localized, need to be safe)
+#-----------------------------------------------------------------------------
 os.environ['LANG'] = 'en_US.UTF-8'
-# enable modules import from current directory (tests/kvm)
+
+#---------------------------------------------------------
+# Enable modules import from current directory (tests/kvm)
+#---------------------------------------------------------
 pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')
 sys.path.append(pwd)
 
 # ------------------------
 # create required symlinks
 # ------------------------
-# When dispatching tests from autotest-server the links we
-# need do not exist on the host (the client). The following
-# lines create those symlinks.
-# Change 'rootdir' here and/or mount appropriate directories in it
-# When dispatching tests on local host (client mode) one can
-# either setup kvm links, or same as server mode use rootdir and set
-# all appropriate links/mount-points there.
-# For example, guest installation tests need to know where to
-# find the iso-files.
-# We create the links only if not already exist, so
-# if one already set up the links for client/local
-# run we do not touch the links.
+# When dispatching tests from autotest-server the links we need do not exist on
+# the host (the client). The following lines create those symlinks. Change
+# 'rootdir' here and/or mount appropriate directories in it.
+#
+# When dispatching tests on local host (client mode) one can either setup kvm
+# links, or same as server mode use rootdir and set all appropriate links and
+# mount-points there. For example, guest installation tests need to know where
+# to find the iso-files.
+#
+# We create the links only if not already exist, so if one already set up the
+# links for client/local run we do not touch the links.
 rootdir='/tmp/kvm_autotest_root'
 iso=os.path.join(rootdir, 'iso')
 images=os.path.join(rootdir, 'images')
@@ -98,6 +78,7 @@ params = {
     #"mode": "localtar",
     #"mode": "localsrc",
     #"mode": "git",
+    #"mode": "noinstall",
 
     ## Are we going to load modules built by this test?
     ## Defaults to 'yes', so if you are going to provide only userspace code to
@@ -135,13 +116,11 @@ params = {
     #"kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git'
 }
 
-# Comment the job.run_test line if you do not want to install kvm on the host.
-# If you run the tests from autotest-server, make sure
-# that /tmp/kvm-autotest-root/qemu is a link to your existing executable
-#
-# Note that if kvm_install is chose to run, it overwrites
-# existing qemu and qemu-img links to point to the newly
-# built executables.
+# If you don't want to execute the build stage, just use 'noinstall' as the
+# install type. If you run the tests from autotest-server, make sure that
+# /tmp/kvm-autotest-root/qemu is a link to your existing executable. Note that
+# if kvm_install is chose to run, it overwrites existing qemu and qemu-img
+# links to point to the newly built executables.
 r = True
 r = job.run_test("kvm", params=params, tag=params.get("shortname"))
 if not r:
