@@ -141,30 +141,22 @@ def process_command(test, params, env, command, command_timeout,
     @param test: An Autotest test object.
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
-    @param command: Script containing the command to be run.
-    @param commmand_timeout: Timeout for command execution.
-    @param command_noncritical: if 'yes' test will not fail if command fails.
+    @param command: Command to be run.
+    @param command_timeout: Timeout for command execution.
+    @param command_noncritical: If True test will not fail if command fails.
     """
-    if command_timeout is None:
-        command_timeout = "600"
-
-    if command_noncritical is None:
-        command_noncritical = "no"
-
-    # export environment vars
+    # Export environment vars
     for k in params.keys():
-        logging.info("Adding KVM_TEST_%s to Environment" % (k))
-        os.putenv("KVM_TEST_%s" % (k), str(params[k]))
-    # execute command
+        os.putenv("KVM_TEST_%s" % k, str(params[k]))
+    # Execute command
     logging.info("Executing command '%s'..." % command)
-    timeout = int(command_timeout)
     (status, output) = kvm_subprocess.run_fg("cd %s; %s" % (test.bindir,
                                                             command),
                                              logging.debug, "(command) ",
-                                             timeout=timeout)
+                                             timeout=command_timeout)
     if status != 0:
-        logging.warn("Custom processing command failed: '%s'..." % command)
-        if command_noncritical != "yes":
+        logging.warn("Custom processing command failed: '%s'" % command)
+        if not command_noncritical:
             raise error.TestError("Custom processing command failed")
 
 
@@ -214,11 +206,11 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
-    #execute any pre_commands
+    # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
-                        params.get("pre_command_timeout"),
-                        params.get("pre_command_noncritical"))
+                        int(params.get("pre_command_timeout", "600")),
+                        params.get("pre_command_noncritical") == "yes")
 
     # Preprocess all VMs and images
     process(test, params, env, preprocess_image, preprocess_vm)
@@ -280,11 +272,11 @@ def postprocess(test, params, env):
         rm_cmd = "rm -vf %s" % os.path.join(test.debugdir, "*.ppm")
         kvm_subprocess.run_fg(rm_cmd, logging.debug, "(rm) ", timeout=5.0)
 
-    #execute any post_commands
+    # Execute any post_commands
     if params.get("post_command"):
         process_command(test, params, env, params.get("post_command"),
-                        params.get("post_command_timeout"),
-                        params.get("post_command_noncritical"))
+                        int(params.get("post_command_timeout", "600")),
+                        params.get("post_command_noncritical") == "yes")
 
 
 def postprocess_on_error(test, params, env):
