@@ -168,8 +168,8 @@ class config:
         """
         Return the indent level of the next non-empty, non-comment line in file.
 
-            @param file: File like object.
-            @return: If no line is available, return -1.
+        @param file: File like object.
+        @return: If no line is available, return -1.
         """
         pos = file.tell()
         line = self.get_next_line(file)
@@ -188,10 +188,10 @@ class config:
         """
         Add name to str with a separator dot and return the result.
 
-            @param str: String that will be processed
-            @param name: name that will be appended to the string.
-            @return: If append is True, append name to str.
-            Otherwise, pre-pend name to str.
+        @param str: String that will be processed
+        @param name: name that will be appended to the string.
+        @return: If append is True, append name to str.
+                Otherwise, pre-pend name to str.
         """
         if str == "":
             return name
@@ -208,14 +208,14 @@ class config:
         Read and parse lines from file like object until a line with an indent
         level lower than or equal to prev_indent is encountered.
 
-            @brief: Parse a 'variants' or 'subvariants' block from a file-like
-            object.
-            @param file: File-like object that will be parsed
-            @param list: List of dicts to operate on
-            @param subvariants: If True, parse in 'subvariants' mode;
-            otherwise parse in 'variants' mode
-            @param prev_indent: The indent level of the "parent" block
-            @return: The resulting list of dicts.
+        @brief: Parse a 'variants' or 'subvariants' block from a file-like
+        object.
+        @param file: File-like object that will be parsed
+        @param list: List of dicts to operate on
+        @param subvariants: If True, parse in 'subvariants' mode;
+        otherwise parse in 'variants' mode
+        @param prev_indent: The indent level of the "parent" block
+        @return: The resulting list of dicts.
         """
         new_list = []
 
@@ -270,16 +270,16 @@ class config:
         Read and parse lines from file until a line with an indent level lower
         than or equal to prev_indent is encountered.
 
-            @brief: Parse a file-like object.
-            @param file: A file-like object
-            @param list: A list of dicts to operate on (list is modified in
-            place and should not be used after the call)
-            @param restricted: if True, operate in restricted mode
-            (prohibit 'variants')
-            @param prev_indent: the indent level of the "parent" block
-            @return: Return the resulting list of dicts.
-            @note: List is destroyed and should not be used after the call.
-            Only the returned list should be used.
+        @brief: Parse a file-like object.
+        @param file: A file-like object
+        @param list: A list of dicts to operate on (list is modified in
+        place and should not be used after the call)
+        @param restricted: if True, operate in restricted mode
+        (prohibit 'variants')
+        @param prev_indent: the indent level of the "parent" block
+        @return: Return the resulting list of dicts.
+        @note: List is destroyed and should not be used after the call.
+        Only the returned list should be used.
         """
         while True:
             indent = self.get_next_line_indent(file)
@@ -305,8 +305,8 @@ class config:
             if op_found:
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Parsing operator (%d dicts in current "
-                                     "context)" % len_list)
+                                       "Parsing operator (%d dicts in current "
+                                       "context)" % len_list)
                 (left, value) = self.split_and_strip(line, op_found)
                 filters_and_key = self.split_and_strip(left, ":")
                 filters = filters_and_key[:-1]
@@ -352,9 +352,9 @@ class config:
                 list = filtered_list
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Parsing no/only (%d dicts in current "
-                                     "context, %d remain)" %
-                                     (len_list, len(list)))
+                                       "Parsing no/only (%d dicts in current "
+                                       "context, %d remain)" %
+                                       (len_list, len(list)))
 
             # Parse 'variants'
             elif line == "variants:":
@@ -365,8 +365,8 @@ class config:
                     raise error.AutotestError(e_msg)
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Entering variants block (%d dicts in"
-                                     "current context)" % len_list)
+                                       "Entering variants block (%d dicts in "
+                                       "current context)" % len_list)
                 list = self.parse_variants(file, list, subvariants=False,
                                            prev_indent=indent)
 
@@ -375,8 +375,8 @@ class config:
             elif line == "subvariants:":
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Entering subvariants block (%d dicts in "
-                                     "current context)" % len_list)
+                                       "Entering subvariants block (%d dicts in "
+                                       "current context)" % len_list)
                 new_list = []
                 # Remember current file position
                 pos = file.tell()
@@ -422,9 +422,9 @@ class config:
             elif line.endswith(":"):
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Entering multi-line exception block"
-                                     "(%d dicts in current context outside "
-                                     "exception)" % len_list)
+                                       "Entering multi-line exception block "
+                                       "(%d dicts in current context outside "
+                                       "exception)" % len_list)
                 line = line.strip(":")
                 new_list = []
                 # Remember current file position
@@ -452,8 +452,8 @@ class config:
         """
         Nicely print two strings and an arrow.
 
-            @param str1: First string
-            @param str2: Second string
+        @param str1: First string
+        @param str2: Second string
         """
         if str2:
             str = "%-50s ---> %s" % (str1, str2)
@@ -466,7 +466,12 @@ class config:
         """
         Make some modifications to list, as part of parsing a 'variants' block.
 
-            @param list
+        @param list: List to be processed
+        @param name: Name to be prepended to the dictionary's 'name' key
+        @param dep_list: List of dependencies to be added to the dictionary's
+                'depend' key
+        @param add_to_shortname: Boolean indicating whether name should be
+                prepended to the dictionary's 'shortname' key as well
         """
         for dict in list:
             # Prepend name to the dict's 'name' field
@@ -483,15 +488,15 @@ class config:
 
     def __modify_list_subvariants(self, list, name, dep_list, add_to_shortname):
         """
-        Make some modifications to list, as part of parsing a
-        'subvariants' block.
+        Make some modifications to list, as part of parsing a 'subvariants'
+        block.
 
-            @param list: List that will be processed
-            @param name: Name that will be prepended to the dictionary name
-            @param dep_list: List of dependencies to be added to the list
-            dictionaries
-            @param add_to_shortname: Whether we'll add a shortname parameter to
-            the dictionaries.
+        @param list: List to be processed
+        @param name: Name to be appended to the dictionary's 'name' key
+        @param dep_list: List of dependencies to be added to the dictionary's
+                'depend' key
+        @param add_to_shortname: Boolean indicating whether name should be
+                appended to the dictionary's 'shortname' as well
         """
         for dict in list:
             # Add new dependencies
