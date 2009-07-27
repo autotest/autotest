@@ -112,6 +112,8 @@ class VM:
         @param iso_dir: The directory where ISOs reside
         """
         self.process = None
+        self.redirs = {}
+        self.vnc_port = 5900
         self.uuid = None
 
         self.name = name
