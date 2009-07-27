@@ -55,6 +55,7 @@ class kvm(test.test):
                 "kvm_install":  test_routine("kvm_install", "run_kvm_install"),
                 "linux_s3":     test_routine("kvm_tests", "run_linux_s3"),
                 "stress_boot":  test_routine("kvm_tests", "run_stress_boot"),
+                "timedrift":    test_routine("kvm_tests", "run_timedrift"),
                 }
 
         # Make it possible to import modules from the test's bindir
