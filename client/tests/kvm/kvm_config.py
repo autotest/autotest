@@ -294,10 +294,12 @@ class config:
             # Look for a known operator in the line
             operators = ["?+=", "?<=", "?=", "+=", "<=", "="]
             op_found = None
+            op_pos = len(line)
             for op in operators:
-                if op in line:
+                pos = line.find(op)
+                if pos >= 0 and pos < op_pos:
                     op_found = op
-                    break
+                    op_pos = pos
 
             # Found an operator?
             if op_found:
