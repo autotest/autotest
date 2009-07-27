@@ -212,7 +212,8 @@ class kvm_spawn:
             sub.stdin.write("%s\n" % ",".join(self.readers))
             sub.stdin.write("%s\n" % command)
             # Wait for the server to complete its initialization
-            sub.stdout.readline()
+            while not "Server %s ready" % self.id in sub.stdout.readline():
+                pass
 
         # Open the reading pipes
         self.reader_fds = {}
@@ -1081,7 +1082,7 @@ def _server_main():
         file.close()
 
         # Print something to stdout so the client can start working
-        print "hello"
+        print "Server %s ready" % id
         sys.stdout.flush()
 
         # Initialize buffers
