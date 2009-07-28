@@ -1874,8 +1874,9 @@ class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
             queue_entry.update_field('started_on', datetime.datetime.now())
             queue_entry.host.set_status('Running')
             queue_entry.host.update_field('dirty', 1)
-        if self.job.synch_count == 1:
-            assert len(self.queue_entries) == 1
+        if self.job.synch_count == 1 and len(self.queue_entries) == 1:
+            # TODO(gps): Remove this if nothing needs it anymore.
+            # A potential user is: tko/parser
             self.job.write_to_machines_file(self.queue_entries[0])
 
 
