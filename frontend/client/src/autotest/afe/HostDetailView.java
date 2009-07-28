@@ -22,7 +22,6 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
@@ -194,15 +193,8 @@ public class HostDetailView extends DetailView
         updateLockButton();
         displayObjectData(pageTitle);
         
-        DOM.setElementProperty(DOM.getElementById("view_host_logs_link"), "href",
-                getLogLink(hostname));
-        
         jobsTable.setHostname(hostname);
         jobsTable.refresh();
-    }
-
-    private String getLogLink(String hostname) {
-        return "/results/hosts/" + hostname;
     }
     
     @Override
