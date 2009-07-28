@@ -801,9 +801,11 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     def host_or_metahost_name(self):
         if self.host:
             return self.host.hostname
-        else:
-            assert self.meta_host
+        elif self.meta_host:
             return self.meta_host.name
+        else:
+            assert self.atomic_group, "no host, meta_host or atomic group!"
+            return self.atomic_group.name
 
 
     def _set_active_and_complete(self):

@@ -867,6 +867,17 @@ ValidationError: {'hosts': u'Host(s) "ahost1, ahost2" are atomic group hosts but
 ...         control_type='Server', synch_count=1,
 ...         meta_hosts=['two-label'],
 ...         dependencies=['blue-label'])
+>>> peon_user = models.User(login='peon_user')
+>>> peon_user.access_level = 0
+>>> from autotest_lib.client.common_lib.test_utils import mock
+>>> god = mock.mock_god()
+>>> god.stub_function(rpc_interface.thread_local, "get_user")
+>>> rpc_interface.thread_local.get_user.expect_call().and_return(peon_user)
+>>> rpc_interface.abort_host_queue_entries(job__id=job_id)
+Traceback (most recent call last):
+AclAccessViolation: You cannot abort the following job entries: 8-debug_user/two-label
+>>> god.check_playback()
+>>> god.unstub_all()
 
 >>> rpc_interface.create_job(name='never_run2',
 ...                          priority='High',
