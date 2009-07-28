@@ -690,6 +690,7 @@ class Dispatcher(object):
         self._register_pidfiles()
         _drone_manager.refresh()
         self._recover_all_recoverable_entries()
+        self._requeue_starting_entries()
         self._check_for_remaining_active_entries()
         self._reverify_remaining_hosts()
         # reinitialize drones after killing orphaned processes, since they can
@@ -886,6 +887,16 @@ class Dispatcher(object):
             agent_tasks.append(
                 SetEntryPendingTask(queue_entry=queue_entry))
             return agent_tasks
+
+
+    def _requeue_starting_entries(self):
+        # temporary measure until we implement proper recovery of Starting HQEs
+        for entry in HostQueueEntry.fetch(where='status="Starting"'):
+            logging.info('Requeuing "Starting" queue entry %s' % entry)
+            assert not self.get_agents_for_entry(entry)
+            assert entry.host.status == models.Host.Status.PENDING
+            self._reverify_hosts_where('id = %s' % entry.host.id)
+            entry.requeue()
 
 
     def _check_for_remaining_active_entries(self):
