@@ -237,7 +237,7 @@ class AFE(RpcClient):
         dargs['dependencies'] = dargs.get('dependencies', []) + \
                                 control_file.dependencies
         dargs['control_file'] = control_file.control_file
-        if not dargs['synch_count']:
+        if not dargs.get('synch_count', None):
             dargs['synch_count'] = control_file.synch_count
         if 'hosts' in dargs and len(dargs['hosts']) < dargs['synch_count']:
             # will not be able to satisfy this request
