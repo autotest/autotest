@@ -476,12 +476,38 @@ class partition(object):
                            test_tag=tag, dir=mountpoint, **dargs)
 
 
-    def get_mountpoint(self, open_func=open):
-        for line in open_func('/proc/mounts').readlines():
-            parts = line.split()
-            if parts[0] == self.device:
-                return parts[1]          # The mountpoint where it's mounted
-        return None
+    def get_mountpoint(self, open_func=open, filename=None):
+        """
+        Find the mount point of this partition object.
+
+        @param open_func: the function to use for opening the file containing
+                the mounted partitions information
+        @param filename: where to look for the mounted partitions information
+                (default None which means it will search /proc/mounts and/or
+                /etc/mtab)
+
+        @returns a string with the mount point of the partition or None if not
+                mounted
+        """
+        if filename:
+            for line in open_func(filename).readlines():
+                parts = line.split()
+                if parts[0] == self.device:
+                    return parts[1] # The mountpoint where it's mounted
+            return None
+
+        # no specific file given, look in /proc/mounts
+        res = self.get_mountpoint(open_func=open_func, filename='/proc/mounts')
+        if not res:
+            # sometimes the root partition is reported as /dev/root in
+            # /proc/mounts in this case, try /etc/mtab
+            res = self.get_mountpoint(open_func=open_func, filename='/etc/mtab')
+
+            # trust /etc/mtab only about /
+            if res != '/':
+                res = None
+
+        return res
 
 
     def mkfs_exec(self, fstype):
