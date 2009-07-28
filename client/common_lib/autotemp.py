@@ -12,7 +12,7 @@ It is required that the unique_id param is supplied when a temp dir/file is
 created.
 """
 
-import shutil, os, tempfile, logging
+import shutil, os, logging
 import tempfile as module_tempfile
 
 _TEMPLATE = '_autotmp_'
@@ -73,7 +73,7 @@ class tempdir(object):
     @var name: The name of the temporary dir.
     @return A tempdir object
     example usage:
-        b = tempdir.create(unique_id='exemdir')
+        b = autotemp.tempdir(unique_id='exemdir')
         b.name # your directory
         b.clean() # clean up after yourself
     """

@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import os, unittest, StringIO, socket, urllib2, tempfile, shutil
+import os, unittest, StringIO, socket, urllib, urllib2, shutil
 
 import common
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, autotemp
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -446,11 +446,11 @@ class test_urlretrieve(unittest.TestCase):
 class test_merge_trees(unittest.TestCase):
     # a some path-handling helper functions
     def src(self, *path_segments):
-        return os.path.join(self.src_tree, *path_segments)
+        return os.path.join(self.src_tree.name, *path_segments)
 
 
     def dest(self, *path_segments):
-        return os.path.join(self.dest_tree, *path_segments)
+        return os.path.join(self.dest_tree.name, *path_segments)
 
 
     def paths(self, *path_segments):
@@ -473,8 +473,8 @@ class test_merge_trees(unittest.TestCase):
 
 
     def setUp(self):
-        self.src_tree = tempfile.mkdtemp()
-        self.dest_tree = tempfile.mkdtemp()
+        self.src_tree = autotemp.tempdir(unique_id='utilsrc')
+        self.dest_tree = autotemp.tempdir(unique_id='utilsdest')
 
         # empty subdirs
         os.mkdir(self.src("empty"))
@@ -482,8 +482,8 @@ class test_merge_trees(unittest.TestCase):
 
 
     def tearDown(self):
-        shutil.rmtree(self.src_tree)
-        shutil.rmtree(self.dest_tree)
+        self.src_tree.clean()
+        self.dest_tree.clean()
 
 
     def test_both_dont_exist(self):
