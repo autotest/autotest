@@ -49,6 +49,11 @@ class FsOptions(object):
         return val
 
 
+def partname_to_device(part):
+    """ Converts a partition name to its associated device """
+    return os.path.join(os.sep, 'dev', part)
+
+
 def list_mount_devices():
     devices = []
     # list mounted filesystems
@@ -81,6 +86,7 @@ def wipe_filesystem(job, mountpoint):
         raise
     else:
         job.record('GOOD', None, wipe_cmd)
+
 
 
 def is_linux_fs_type(device):
@@ -153,7 +159,7 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
         if 'loop' in partname:
             continue
 
-        device = '/dev/' + partname
+        device = partname_to_device(partname)
         if exclude_swap and device in active_swap_devices:
             logging.debug('Skipping %s - Active swap.' % partname)
             continue
@@ -218,7 +224,7 @@ def get_unmounted_partition_list(root_part, job=None, min_blocks=0,
 
     unmounted = []
     for part in partitions:
-        if (part.device != '/dev/' + root_part and
+        if (part.device != partname_to_device(root_part) and
             not part.get_mountpoint(open_func=open_func)):
             unmounted.append(part)
 
