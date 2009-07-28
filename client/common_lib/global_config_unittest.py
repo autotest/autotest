@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys, tempfile, unittest, types
+import os, sys, unittest, types
 import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import autotemp
@@ -32,7 +32,7 @@ value_1: somebody@remotehost
 
 
 def create_config_files():
-    global_temp = autotemp.tempfile("global", ".ini", 
+    global_temp = autotemp.tempfile("global", ".ini",
                                             text=True)
     os.write(global_temp.fd, global_config_ini_contents)
     os.close(global_temp.fd)

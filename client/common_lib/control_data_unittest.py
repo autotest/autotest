@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import os, sys, unittest, tempfile
+import os, sys, unittest
 import common
-from autotest_lib.client.common_lib import control_data
+from autotest_lib.client.common_lib import control_data, autotemp
 
 ControlData = control_data.ControlData
 
@@ -24,17 +24,18 @@ TEST_TYPE='client'
 
 class ParseControlTest(unittest.TestCase):
     def setUp(self):
-        fp, self.control_file = tempfile.mkstemp(text=True)
-        os.write(fp, CONTROL)
-        os.close(fp)
+        self.control_tmp = autotemp.tempfile(unique_id='control_unit',
+                                             text=True)
+        os.write(self.control_tmp.fd, CONTROL)
+        os.close(self.control_tmp.fd)
 
 
     def tearDown(self):
-        os.remove(self.control_file)
+        self.control_tmp.clean()
 
 
     def test_parse_control(self):
-        cd = control_data.parse_control(self.control_file, True)
+        cd = control_data.parse_control(self.control_tmp.name, True)
         self.assertEquals(cd.author, "Author")
         self.assertEquals(cd.dependencies, set(['console', 'power']))
         self.assertEquals(cd.doc, "doc stuff")
