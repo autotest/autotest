@@ -110,16 +110,6 @@ def is_linux_fs_type(device):
     return False
 
 
-@utils.deprecated
-def filter_non_linux(part_name):
-    """
-    @param part_name: e.g. sda2, sda3
-    @deprecated: use is_linux_fs_type instead
-    """
-    device = '/dev/' + part_name
-    return is_linux_fs_type(device=device)
-
-
 def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
                        open_func=open):
     """

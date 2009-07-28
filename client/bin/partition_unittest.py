@@ -72,14 +72,14 @@ class get_partition_list_common(object):
         self.god.unstub_all()
 
 
-    def test_filter_non_linux(self):
+    def test_is_linux_fs_type(self):
         for unused in xrange(4):
             os.popen.expect_call(SAMPLE_FDISK).and_return(
                     StringIO(SAMPLE_FDISK_OUTPUT))
-        self.assertFalse(partition.filter_non_linux('hdc1'))
-        self.assertFalse(partition.filter_non_linux('hdc2'))
-        self.assertTrue(partition.filter_non_linux('hdc3'))
-        self.assertTrue(partition.filter_non_linux('hdc4'))
+        self.assertFalse(partition.is_linux_fs_type('/dev/hdc1'))
+        self.assertFalse(partition.is_linux_fs_type('/dev/hdc2'))
+        self.assertTrue(partition.is_linux_fs_type('/dev/hdc3'))
+        self.assertTrue(partition.is_linux_fs_type('/dev/hdc4'))
         self.god.check_playback()
 
 
