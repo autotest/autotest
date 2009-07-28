@@ -1036,6 +1036,7 @@ class Dispatcher(object):
 
     def _find_aborting(self):
         for entry in HostQueueEntry.fetch(where='aborted and not complete'):
+            logging.info('Aborting %s', entry)
             for agent in self.get_agents_for_entry(entry):
                 agent.abort()
             entry.abort(self)
