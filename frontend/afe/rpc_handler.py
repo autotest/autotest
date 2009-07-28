@@ -6,8 +6,8 @@ defined in rpc_interface.py.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import traceback, pydoc, re, urllib
-from frontend.afe.json_rpc import serviceHandler
-from frontend.afe import rpc_utils
+from autotest_lib.frontend.afe.json_rpc import serviceHandler
+from autotest_lib.frontend.afe import rpc_utils
 
 
 class RpcMethodHolder(object):

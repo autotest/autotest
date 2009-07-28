@@ -1,6 +1,6 @@
 import django.http
 from django.contrib.syndication import feeds
-from frontend.afe import models
+from autotest_lib.frontend.afe import models
 
 
 # Copied from django/contrib/syndication/views.py.  The default view doesn't

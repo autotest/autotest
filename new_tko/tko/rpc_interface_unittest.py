@@ -229,6 +229,30 @@ class RpcInterfaceTest(unittest.TestCase):
             [], rpc_interface.get_test_views(hostname='fakehost'))
 
 
+    def _check_test_names(self, tests, expected_names):
+        self.assertEquals(set(test['test_name'] for test in tests),
+                          set(expected_names))
+
+
+    def test_get_test_views_filter_on_labels(self):
+        tests = rpc_interface.get_test_views(include_labels=['testlabel1'])
+        self._check_test_names(tests, ['mytest1'])
+
+        tests = rpc_interface.get_test_views(exclude_labels=['testlabel1'])
+        self._check_test_names(tests, ['mytest2', 'kernbench'])
+
+
+    def test_get_test_views_filter_on_attributes(self):
+        tests = rpc_interface.get_test_views(
+                include_attributes_where='attribute = "myattr" '
+                                         'and value = "myval"')
+        self._check_test_names(tests, ['mytest1'])
+
+        tests = rpc_interface.get_test_views(
+                exclude_attributes_where='attribute="myattr2"')
+        self._check_test_names(tests, ['mytest2', 'kernbench'])
+
+
     def test_get_num_test_views(self):
         self.assertEquals(rpc_interface.get_num_test_views(), 3)
         self.assertEquals(rpc_interface.get_num_test_views(
