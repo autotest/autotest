@@ -48,7 +48,7 @@ def run_boot(test, params, env):
 
         logging.info("Guest is down; waiting for it to go up again...")
 
-        session = kvm_utils.wait_for(vm.ssh_login, 120, 0, 2)
+        session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
         if not session:
             raise error.TestFail("Could not log into guest after reboot")
 
@@ -88,7 +88,7 @@ def run_shutdown(test, params, env):
 
     logging.info("Shutdown command sent; waiting for guest to go down...")
 
-    if not kvm_utils.wait_for(vm.is_dead, 120, 0, 1):
+    if not kvm_utils.wait_for(vm.is_dead, 240, 0, 1):
         raise error.TestFail("Guest refuses to go down")
 
     logging.info("Guest is down")
@@ -446,7 +446,7 @@ def run_yum_update(test, params, env):
 
     logging.info("Logging into guest...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 120, 0, 2)
+    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
     if not session:
         message = "Could not log into guest"
         logging.error(message)
