@@ -2,13 +2,17 @@
 Extensions to Django's model logic.
 """
 
+import re
+import django.core.exceptions
 from django.db import models as dbmodels, backend, connection
+from django.db.models.sql import query
 from django.utils import datastructures
 from autotest_lib.frontend.afe import readonly_connection
 
+
 class ValidationError(Exception):
     """\
-    Data validation error in adding or updating an object.  The associated
+    Data validation error in adding or updating an object. The associated
     value is a dictionary mapping field names to error strings.
     """
 
@@ -22,6 +26,11 @@ def _wrap_with_readonly(method):
                 readonly_connection.connection().unset_django_connection()
         wrapper_method.__name__ = method.__name__
         return wrapper_method
+
+
+def _quote_name(name):
+    """Shorthand for connection.ops.quote_name()."""
+    return connection.ops.quote_name(name)
 
 
 def _wrap_generator_with_readonly(generator):
@@ -64,18 +73,19 @@ class ReadonlyQuerySet(dbmodels.query.QuerySet):
     QuerySet object that performs all database queries with the read-only
     connection.
     """
-    def __init__(self, model=None):
-        super(ReadonlyQuerySet, self).__init__(model)
+    def __init__(self, model=None, *args, **kwargs):
+        super(ReadonlyQuerySet, self).__init__(model, *args, **kwargs)
         _make_queryset_readonly(self)
 
 
     def values(self, *fields):
-        return self._clone(klass=ReadonlyValuesQuerySet, _fields=fields)
+        return self._clone(klass=ReadonlyValuesQuerySet,
+                           setup=True, _fields=fields)
 
 
 class ReadonlyValuesQuerySet(dbmodels.query.ValuesQuerySet):
-    def __init__(self, model=None):
-        super(ReadonlyValuesQuerySet, self).__init__(model)
+    def __init__(self, model=None, *args, **kwargs):
+        super(ReadonlyValuesQuerySet, self).__init__(model, *args, **kwargs)
         _make_queryset_readonly(self)
 
 
@@ -84,57 +94,33 @@ class ExtendedManager(dbmodels.Manager):
     Extended manager supporting subquery filtering.
     """
 
-    class _CustomJoinQ(dbmodels.Q):
-        """
-        Django "Q" object supporting a custom suffix for join aliases.See
-        filter_custom_join() for why this can be useful.
-        """
+    class _CustomQuery(query.Query):
+        def clone(self, klass=None, **kwargs):
+            obj = super(ExtendedManager._CustomQuery, self).clone(
+                klass, _customSqlQ=self._customSqlQ)
 
-        def __init__(self, join_suffix, **kwargs):
-            super(ExtendedManager._CustomJoinQ, self).__init__(**kwargs)
-            self._join_suffix = join_suffix
+            customQ = kwargs.get('_customSqlQ', None)
+            if customQ is not None:
+                obj._customSqlQ._joins.update(customQ._joins)
+                obj._customSqlQ._where.extend(customQ._where)
+                obj._customSqlQ._params.extend(customQ._params)
 
+            return obj
 
-        @staticmethod
-        def _substitute_aliases(renamed_aliases, condition):
-            for old_alias, new_alias in renamed_aliases:
-                    condition = condition.replace(backend.quote_name(old_alias),
-                                                  backend.quote_name(new_alias))
-            return condition
+        def get_from_clause(self):
+            from_, params = super(
+                ExtendedManager._CustomQuery, self).get_from_clause()
 
+            join_clause = ''
+            for join_alias, join in self._customSqlQ._joins.iteritems():
+                join_table, join_type, condition = join
+                join_clause += ' %s %s AS %s ON (%s)' % (
+                    join_type, join_table, join_alias, condition)
 
-        @staticmethod
-        def _unquote_name(name):
-            'This may be MySQL specific'
-            if backend.quote_name(name) == name:
-                return name[1:-1]
-            return name
+            if join_clause:
+                from_.append(join_clause)
 
-
-        def get_sql(self, opts):
-            joins, where, params = (
-                super(ExtendedManager._CustomJoinQ, self).get_sql(opts))
-
-            new_joins = datastructures.SortedDict()
-
-            # rename all join aliases and correct references in later joins
-            renamed_tables = []
-            # using iteritems seems to mess up the ordering here
-            for alias, (table, join_type, condition) in joins.items():
-                alias = self._unquote_name(alias)
-                new_alias = alias + self._join_suffix
-                renamed_tables.append((alias, new_alias))
-                condition = self._substitute_aliases(renamed_tables, condition)
-                new_alias = backend.quote_name(new_alias)
-                new_joins[new_alias] = (table, join_type, condition)
-
-            # correct references in where
-            new_where = []
-            for clause in where:
-                new_where.append(
-                    self._substitute_aliases(renamed_tables, clause))
-
-            return new_joins, new_where, params
+            return from_, params
 
 
     class _CustomSqlQ(dbmodels.Q):
@@ -154,8 +140,22 @@ class ExtendedManager(dbmodels.Manager):
             self._params.extend(params)
 
 
-        def get_sql(self, opts):
-            return self._joins, self._where, self._params
+        def add_to_query(self, query, aliases):
+            if self._where:
+                where = ' AND '.join(self._where)
+                query.add_extra(None, None, (where,), self._params, None, None)
+
+
+    def _add_customSqlQ(self, query_set, filter_object):
+        """\
+        Add a _CustomSqlQ to the query set.
+        """
+        # Make a copy of the query set
+        query_set = query_set.all()
+
+        query_set.query = query_set.query.clone(
+            ExtendedManager._CustomQuery, _customSqlQ=filter_object)
+        return query_set.filter(filter_object)
 
 
     def add_join(self, query_set, join_table, join_key,
@@ -168,8 +168,8 @@ class ExtendedManager(dbmodels.Manager):
         @param join_condition extra condition for the ON clause of the join
         @param suffix suffix to add to join_table for the join alias
         @param exclude if true, exclude rows that match this join (will use a
-        LEFT JOIN and an appropriate WHERE condition)
-        @param force_left_join - if true, a LEFT JOIN will be used instead of an
+        LEFT OUTER JOIN and an appropriate WHERE condition)
+        @param force_left_join - if true, a LEFT OUTER JOIN will be used instead of an
         INNER JOIN regardless of other options
         """
         join_from_table = self.model._meta.db_table
@@ -181,9 +181,9 @@ class ExtendedManager(dbmodels.Manager):
         if join_condition:
             full_join_condition += ' AND (' + join_condition + ')'
         if exclude or force_left_join:
-            join_type = 'LEFT JOIN'
+            join_type = query_set.query.LOUTER
         else:
-            join_type = 'INNER JOIN'
+            join_type = query_set.query.INNER
 
         filter_object = self._CustomSqlQ()
         filter_object.add_join(join_table,
@@ -192,22 +192,13 @@ class ExtendedManager(dbmodels.Manager):
                                alias=join_alias)
         if exclude:
             filter_object.add_where(full_join_key + ' IS NULL')
-        return query_set.filter(filter_object).distinct()
 
-
-    def filter_custom_join(self, join_suffix, **kwargs):
-        """
-        Just like Django filter(), but allows the user to specify a custom
-        suffix for the join aliases involves in the filter.  This makes it
-        possible to join against a table multiple times (as long as a different
-        suffix is used each time), which is necessary for certain queries.
-        """
-        filter_object = self._CustomJoinQ(join_suffix, **kwargs)
-        return self.complex_filter(filter_object)
+        query_set = self._add_customSqlQ(query_set, filter_object)
+        return query_set.distinct()
 
 
     def _get_quoted_field(self, table, field):
-        return (backend.quote_name(table) + '.' + backend.quote_name(field))
+        return _quote_name(table) + '.' + _quote_name(field)
 
 
     def get_key_on_this_table(self, key_field=None):
@@ -222,12 +213,15 @@ class ExtendedManager(dbmodels.Manager):
 
 
     def _custom_select_query(self, query_set, selects):
-        query_selects, where, params = query_set._get_sql_clause()
-        if query_set._distinct:
+        sql, params = query_set.query.as_sql()
+        from_ = sql[sql.find(' FROM'):]
+
+        if query_set.query.distinct:
             distinct = 'DISTINCT '
         else:
             distinct = ''
-        sql_query = 'SELECT ' + distinct + ','.join(selects) + where
+
+        sql_query = ('SELECT ' + distinct + ','.join(selects) + from_)
         cursor = readonly_connection.connection().cursor()
         cursor.execute(sql_query, params)
         return cursor.fetchall()
@@ -549,8 +543,36 @@ class ModelExtensions(object):
         return errors
 
 
+    def _validate(self):
+        """
+        First coerces all fields on this instance to their proper Python types.
+        Then runs validation on every field. Returns a dictionary of
+        field_name -> error_list.
+
+        Based on validate() from django.db.models.Model in Django 0.96, which
+        was removed in Django 1.0. It should reappear in a later version. See:
+            http://code.djangoproject.com/ticket/6845
+        """
+        error_dict = {}
+        for f in self._meta.fields:
+            try:
+                python_value = f.to_python(
+                    getattr(self, f.attname, f.get_default()))
+            except django.core.exceptions.ValidationError, e:
+                error_dict[f.name] = str(e.message)
+                continue
+
+            if not f.blank and not python_value:
+                error_dict[f.name] = 'This field is required.'
+                continue
+
+            setattr(self, f.attname, python_value)
+
+        return error_dict
+
+
     def do_validate(self):
-        errors = self.validate()
+        errors = self._validate()
         unique_errors = self.validate_unique()
         for field_name, error in unique_errors.iteritems():
             errors.setdefault(field_name, error)
@@ -600,7 +622,7 @@ class ModelExtensions(object):
          field name changes the sort to descending order.
         -extra_args: keyword args to pass to query.extra() (see Django
          DB layer documentation)
-         -extra_where: extra WHERE clause to append
+        -extra_where: extra WHERE clause to append
         """
         filter_data = dict(filter_data) # copy so we don't mutate the original
         query_start = filter_data.pop('query_start', None)
@@ -774,7 +796,7 @@ class ModelWithInvalid(ModelExtensions):
     field.
     """
 
-    def save(self):
+    def save(self, *args, **kwargs):
         first_time = (self.id is None)
         if first_time:
             # see if this object was previously added and invalidated
@@ -787,7 +809,7 @@ class ModelWithInvalid(ModelExtensions):
                 # no existing object
                 pass
 
-        super(ModelWithInvalid, self).save()
+        super(ModelWithInvalid, self).save(*args, **kwargs)
 
 
     def clean_object(self):

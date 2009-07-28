@@ -21,7 +21,7 @@
 
 import traceback
 
-from frontend.afe.simplejson import decoder, encoder
+from autotest_lib.frontend.afe.simplejson import decoder, encoder
 
 def customConvertJson(value):
     """\

@@ -1,15 +1,16 @@
 from django.conf.urls.defaults import *
 import os
-from frontend import settings
-from frontend.afe.feeds import feed
+from autotest_lib.frontend import settings
+from autotest_lib.frontend.afe.feeds import feed
 
 feeds = {
     'jobs' : feed.JobFeed
 }
 
-pattern_list = [(r'^(?:|noauth/)rpc/', 'frontend.afe.views.handle_rpc'),
-                (r'^rpc_doc', 'frontend.afe.views.rpc_documentation'),
-               ]
+pattern_list = [
+        (r'^(?:|noauth/)rpc/', 'frontend.afe.views.handle_rpc'),
+        (r'^rpc_doc', 'frontend.afe.views.rpc_documentation'),
+    ]
 
 debug_pattern_list = [
     (r'^model_doc/', 'frontend.afe.views.model_documentation'),

@@ -8,6 +8,10 @@ Alias /new_tko "/usr/local/autotest/frontend/client/www/autotest.TkoClient"
     PythonHandler django.core.handlers.modpython
     SetEnv DJANGO_SETTINGS_MODULE new_tko.settings
     PythonDebug On
-    PythonPath "['/usr/local/autotest'] + sys.path"
+    # Force our own site-packages to be loaded by mod_python prior
+    # to mod_python's system python site-packages directory.
+    # This way our code can depend on library versions other than
+    # those available as packages on various OS distributions.
+    PythonPath "['/usr/local/autotest/site-packages', '/usr/local/autotest'] + sys.path"
     PythonInterpreter tko_interpreter
 </Location>

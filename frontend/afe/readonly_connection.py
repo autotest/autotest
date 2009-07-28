@@ -1,6 +1,5 @@
 from django.db import connection as django_connection
 from django.conf import settings
-from django.dispatch import dispatcher
 from django.core import signals
 
 class ReadOnlyConnection(object):
@@ -129,6 +128,6 @@ def connection():
 
 
 # close any open connection when request finishes
-def _close_connection():
+def _close_connection(**unused_kwargs):
     connection().close()
-dispatcher.connect(_close_connection, signal=signals.request_finished)
+signals.request_finished.connect(_close_connection)

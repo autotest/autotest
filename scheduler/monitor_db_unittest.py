@@ -1315,18 +1315,24 @@ class AgentTasksTest(BaseSchedulerTest):
         self.host.id = 1
         self.host.hostname = self.HOSTNAME
         self.host.protection = self.HOST_PROTECTION
-        host = models.Host.objects.create(id=self.host.id,
-                                          hostname=self.host.hostname,
-                                          protection=self.host.protection)
+
+        # For this (and other model creations), we must create the entry this
+        # way; otherwise, if an entry matching the id already exists, Django 1.0
+        # will raise an exception complaining about a duplicate primary key.
+        # This way, Django performs an UPDATE query if an entry matching the id
+        # already exists.
+        host = models.Host(id=self.host.id, hostname=self.host.hostname,
+                           protection=self.host.protection)
+        host.save()
 
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
         self.job.owner = self.JOB_OWNER
         self.job.name = self.JOB_NAME
         self.job.id = 1337
         self.job.tag = lambda: 'fake-job-tag'
-        job = models.Job.objects.create(id=self.job.id, owner=self.job.owner,
-                                        name=self.job.name,
-                                        created_on=datetime.datetime.now())
+        job = models.Job(id=self.job.id, owner=self.job.owner,
+                         name=self.job.name, created_on=datetime.datetime.now())
+        job.save()
 
         self.queue_entry = self.god.create_mock_class(
             monitor_db.HostQueueEntry, 'queue_entry')
@@ -1334,8 +1340,9 @@ class AgentTasksTest(BaseSchedulerTest):
         self.queue_entry.job = self.job
         self.queue_entry.host = self.host
         self.queue_entry.meta_host = None
-        models.HostQueueEntry.objects.create(id=self.queue_entry.id, job=job,
-                                             host=host, meta_host=None)
+        queue_entry = models.HostQueueEntry(id=self.queue_entry.id, job=job,
+                                            host=host, meta_host=None)
+        queue_entry.save()
 
         self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
                                                       'dispatcher')

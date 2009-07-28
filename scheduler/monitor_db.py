@@ -807,7 +807,7 @@ class Dispatcher(object):
         tasks = models.SpecialTask.objects.filter(is_active=True,
                                                   is_complete=False)
         # Use ordering to force NULL queue_entry_id's to the end of the list
-        for task in tasks.order_by('-queue_entry_id'):
+        for task in tasks.order_by('-queue_entry__id'):
             assert not self.host_has_agent(task.host)
 
             host = Host(id=task.host.id)

@@ -1,7 +1,7 @@
 import urllib2, sys, traceback, cgi
 
-from frontend.afe import models, rpc_handler, rpc_interface, site_rpc_interface
-from frontend.afe import rpc_utils
+from autotest_lib.frontend.afe import models, rpc_handler, rpc_interface
+from autotest_lib.frontend.afe import site_rpc_interface, rpc_utils
 from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
 from django.template import Context, loader

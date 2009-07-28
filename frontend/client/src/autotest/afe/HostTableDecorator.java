@@ -48,7 +48,7 @@ class HostTableDecorator extends TableDecorator {
     
     public HostTableDecorator(HostTable table, int rowsPerPage) {
         super(table);
-        table.sortOnColumn("Hostname");
+        table.sortOnColumn("hostname");  /* Case sensitive name */
         table.setRowsPerPage(rowsPerPage);
         addPaginators();
         

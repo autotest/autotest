@@ -32,7 +32,7 @@ import com.google.gwt.user.client.ui.Widget;
 public class HostDetailView extends DetailView 
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
-            {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job_id", "Job ID"}, 
+            {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"}, 
             {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"started_on", "Time started"},
             {"status", "Status"}
     };
@@ -66,7 +66,7 @@ public class HostDetailView extends DetailView
             String key;
             if (getDataSource() == normalDataSource) {
                 key = "host__hostname";
-                sortOnColumn("job_id", SortDirection.DESCENDING);
+                sortOnColumn("job__id", SortDirection.DESCENDING);
             } else {
                 key = "hostname";
                 clearSorts();
@@ -98,7 +98,7 @@ public class HostDetailView extends DetailView
                 name = job.get("name").isString();
             }
 
-            row.put("job_id", jobId);
+            row.put("job__id", jobId);
             row.put("job_owner", owner);
             row.put("job_name", name);
 

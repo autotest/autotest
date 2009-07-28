@@ -7,7 +7,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime, os
 import django.http
-from frontend.afe import models, model_logic
+from autotest_lib.frontend.afe import models, model_logic
 
 NULL_DATETIME = datetime.datetime.max
 NULL_DATE = datetime.date.max
@@ -201,8 +201,7 @@ def check_job_dependencies(host_objects, job_dependencies):
     hosts_in_job = models.Host.objects.filter(id__in=host_ids)
     ok_hosts = hosts_in_job
     for index, dependency in enumerate(job_dependencies):
-        ok_hosts &= models.Host.objects.filter_custom_join(
-            '_label%d' % index, labels__name=dependency)
+        ok_hosts = ok_hosts.filter(labels__name=dependency)
     failing_hosts = (set(host.hostname for host in host_objects) -
                      set(host.hostname for host in ok_hosts))
     if failing_hosts:

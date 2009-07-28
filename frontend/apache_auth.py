@@ -1,13 +1,14 @@
 from django.contrib.auth.models import User, Group, check_password
+from django.contrib.auth import backends
 from django.contrib import auth
 from django import http
 
-from frontend import thread_local
-from frontend.afe import models, management
+from autotest_lib.frontend import thread_local
+from autotest_lib.frontend.afe import models, management
 
 DEBUG_USER = 'debug_user'
 
-class SimpleAuthBackend:
+class SimpleAuthBackend(backends.ModelBackend):
     """
     Automatically allows any login.  This backend is for use when Apache is
     doing the real authentication.  Also ensures logged-in user exists in

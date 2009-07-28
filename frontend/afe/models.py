@@ -35,7 +35,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     Optional:
       description: Arbitrary text description of this group's purpose.
     """
-    name = dbmodels.CharField(maxlength=255, unique=True)
+    name = dbmodels.CharField(max_length=255, unique=True)
     description = dbmodels.TextField(blank=True)
     # This magic value is the default to simplify the scheduler logic.
     # It must be "large".  The common use of atomic groups is to want all
@@ -44,7 +44,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     INFINITE_MACHINES = 333333333
     max_number_of_machines = dbmodels.IntegerField(default=INFINITE_MACHINES)
     invalid = dbmodels.BooleanField(default=False,
-                                    editable=settings.FULL_ADMIN)
+                                  editable=settings.FULL_ADMIN)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -65,13 +65,9 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     class Meta:
         db_table = 'atomic_groups'
 
-    class Admin:
-        list_display = ('name', 'description', 'max_number_of_machines')
-        # see Host.Admin
-        manager = model_logic.ValidObjectsManager()
 
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):
@@ -87,8 +83,8 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
               in the job_dependencies).
       atomic_group: The atomic group associated with this label.
     """
-    name = dbmodels.CharField(maxlength=255, unique=True)
-    kernel_config = dbmodels.CharField(maxlength=255, blank=True)
+    name = dbmodels.CharField(max_length=255, unique=True)
+    kernel_config = dbmodels.CharField(max_length=255, blank=True)
     platform = dbmodels.BooleanField(default=False)
     invalid = dbmodels.BooleanField(default=False,
                                     editable=settings.FULL_ADMIN)
@@ -116,13 +112,8 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     class Meta:
         db_table = 'labels'
 
-    class Admin:
-        list_display = ('name', 'kernel_config')
-        # see Host.Admin
-        manager = model_logic.ValidObjectsManager()
-
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class User(dbmodels.Model, model_logic.ModelExtensions):
@@ -137,7 +128,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     ACCESS_ADMIN = 1
     ACCESS_USER = 0
 
-    login = dbmodels.CharField(maxlength=255, unique=True)
+    login = dbmodels.CharField(max_length=255, unique=True)
     access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
     # user preferences
@@ -153,13 +144,13 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
 
-    def save(self):
+    def save(self, *args, **kwargs):
         # is this a new object being saved for the first time?
         first_time = (self.id is None)
         user = thread_local.get_user()
         if user and not user.is_superuser() and user.login != self.login:
             raise AclAccessViolation("You cannot modify user " + self.login)
-        super(User, self).save()
+        super(User, self).save(*args, **kwargs)
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.users.add(self)
@@ -172,12 +163,8 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'users'
 
-    class Admin:
-        list_display = ('login', 'access_level')
-        search_fields = ('login',)
-
-    def __str__(self):
-        return self.login
+    def __unicode__(self):
+        return unicode(self.login)
 
 
 class Host(model_logic.ModelWithInvalid, dbmodels.Model,
@@ -202,13 +189,12 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
                        'Repair Failed', 'Dead', 'Cleaning', 'Pending',
                        string_values=True)
 
-    hostname = dbmodels.CharField(maxlength=255, unique=True)
-    labels = dbmodels.ManyToManyField(Label, blank=True,
-                                      filter_interface=dbmodels.HORIZONTAL)
+    hostname = dbmodels.CharField(max_length=255, unique=True)
+    labels = dbmodels.ManyToManyField(Label, blank=True)
     locked = dbmodels.BooleanField(default=False)
     synch_id = dbmodels.IntegerField(blank=True, null=True,
                                      editable=settings.FULL_ADMIN)
-    status = dbmodels.CharField(maxlength=255, default=Status.READY,
+    status = dbmodels.CharField(max_length=255, default=Status.READY,
                                 choices=Status.choices(),
                                 editable=settings.FULL_ADMIN)
     invalid = dbmodels.BooleanField(default=False,
@@ -257,7 +243,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         self.labels.clear()
 
 
-    def save(self):
+    def save(self, *args, **kwargs):
         # extra spaces in the hostname can be a sneaky source of errors
         self.hostname = self.hostname.strip()
         # is this a new object being saved for the first time?
@@ -271,7 +257,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         elif not self.locked and self.locked_by:
             self.locked_by = None
             self.lock_time = None
-        super(Host, self).save()
+        super(Host, self).save(*args, **kwargs)
         if first_time:
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.hosts.add(self)
@@ -351,26 +337,15 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     class Meta:
         db_table = 'hosts'
 
-    class Admin:
-        # TODO(showard) - showing platform requires a SQL query for
-        # each row (since labels are many-to-many) - should we remove
-        # it?
-        list_display = ('hostname', 'platform', 'locked', 'status')
-        list_filter = ('labels', 'locked', 'protection')
-        search_fields = ('hostname', 'status')
-        # undocumented Django feature - if you set manager here, the
-        # admin code will use it, otherwise it'll use a default Manager
-        manager = model_logic.ValidObjectsManager()
-
-    def __str__(self):
-        return self.hostname
+    def __unicode__(self):
+        return unicode(self.hostname)
 
 
 class HostAttribute(dbmodels.Model):
     """Arbitrary keyvals associated with hosts."""
     host = dbmodels.ForeignKey(Host)
-    attribute = dbmodels.CharField(maxlength=90)
-    value = dbmodels.CharField(maxlength=300)
+    attribute = dbmodels.CharField(max_length=90)
+    value = dbmodels.CharField(max_length=300)
 
     objects = model_logic.ExtendedManager()
 
@@ -405,11 +380,11 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     # now they use opposite values)
     Types = enum.Enum('Client', 'Server', start_value=1)
 
-    name = dbmodels.CharField(maxlength=255, unique=True)
-    author = dbmodels.CharField(maxlength=255)
-    test_class = dbmodels.CharField(maxlength=255)
-    test_category = dbmodels.CharField(maxlength=255)
-    dependencies = dbmodels.CharField(maxlength=255, blank=True)
+    name = dbmodels.CharField(max_length=255, unique=True)
+    author = dbmodels.CharField(max_length=255)
+    test_class = dbmodels.CharField(max_length=255)
+    test_category = dbmodels.CharField(max_length=255)
+    dependencies = dbmodels.CharField(max_length=255, blank=True)
     description = dbmodels.TextField(blank=True)
     experimental = dbmodels.BooleanField(default=True)
     run_verify = dbmodels.BooleanField(default=True)
@@ -417,9 +392,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
                                            default=TestTime.MEDIUM)
     test_type = dbmodels.SmallIntegerField(choices=Types.choices())
     sync_count = dbmodels.IntegerField(default=1)
-    path = dbmodels.CharField(maxlength=255, unique=True)
-    dependency_labels = dbmodels.ManyToManyField(
-        Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
+    path = dbmodels.CharField(max_length=255, unique=True)
+    dependency_labels = dbmodels.ManyToManyField(Label, blank=True)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -428,19 +402,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'autotests'
 
-    class Admin:
-        fields = (
-            (None, {'fields' :
-                    ('name', 'author', 'test_category', 'test_class',
-                     'test_time', 'sync_count', 'test_type', 'path',
-                     'dependencies', 'experimental', 'run_verify',
-                     'description')}),
-            )
-        list_display = ('name', 'test_type', 'description', 'sync_count')
-        search_fields = ('name',)
-
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class Profiler(dbmodels.Model, model_logic.ModelExtensions):
@@ -452,7 +415,7 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
     Optional:
     description: arbirary text description
     """
-    name = dbmodels.CharField(maxlength=255, unique=True)
+    name = dbmodels.CharField(max_length=255, unique=True)
     description = dbmodels.TextField(blank=True)
 
     name_field = 'name'
@@ -462,12 +425,8 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'profilers'
 
-    class Admin:
-        list_display = ('name', 'description')
-        search_fields = ('name',)
-
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
@@ -478,12 +437,10 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     Optional:
     description: arbitrary description of group
     """
-    name = dbmodels.CharField(maxlength=255, unique=True)
-    description = dbmodels.CharField(maxlength=255, blank=True)
-    users = dbmodels.ManyToManyField(User, blank=True,
-                                     filter_interface=dbmodels.HORIZONTAL)
-    hosts = dbmodels.ManyToManyField(Host,
-                                     filter_interface=dbmodels.HORIZONTAL)
+    name = dbmodels.CharField(max_length=255, unique=True)
+    description = dbmodels.CharField(max_length=255, blank=True)
+    users = dbmodels.ManyToManyField(User, blank=True)
+    hosts = dbmodels.ManyToManyField(Host)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -519,7 +476,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             return
         not_owned = queue_entries.exclude(job__owner=user.login)
         # I do this using ID sets instead of just Django filters because
-        # filtering on M2M fields is broken in Django 0.96.  It's better in 1.0.
+        # filtering on M2M dbmodels is broken in Django 0.96. It's better in
+        # 1.0.
+        # TODO: Use Django filters, now that we're using 1.0.
         accessible_ids = set(
             entry.id for entry
             in not_owned.filter(host__aclgroup__users__login=user.login))
@@ -559,10 +518,13 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
         # find hosts in both Everyone and another ACL group, and remove them
         # from Everyone
-        hosts_in_everyone = Host.valid_objects.filter_custom_join(
-            '_everyone', aclgroup__name='Everyone')
-        acled_hosts = hosts_in_everyone.exclude(aclgroup__name='Everyone')
-        everyone.hosts.remove(*acled_hosts.distinct())
+        hosts_in_everyone = Host.valid_objects.filter(aclgroup__name='Everyone')
+        acled_hosts = set()
+        for host in hosts_in_everyone:
+            # Has an ACL group other than Everyone
+            if host.aclgroup_set.count() > 1:
+                acled_hosts.add(host)
+        everyone.hosts.remove(*acled_hosts)
 
 
     def delete(self):
@@ -586,14 +548,15 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         Custom manipulator to get notification when ACLs are changed through
         the admin interface.
         """
-        def save(self, new_data):
+        def save(self, new_data, *args, **kwargs):
             user = thread_local.get_user()
             if hasattr(self, 'original_object'):
                 if (not user.is_superuser()
                     and self.original_object.name == 'Everyone'):
                     raise AclAccessViolation("You cannot modify 'Everyone'!")
                 self.original_object.check_for_acl_violation_acl_group()
-            obj = super(AclGroup.Manipulator, self).save(new_data)
+            obj = super(AclGroup.Manipulator, self).save(new_data,
+                                                         *args, **kwargs)
             if not hasattr(self, 'original_object'):
                 obj.users.add(thread_local.get_user())
             obj.add_current_user_if_empty()
@@ -603,12 +566,8 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'acl_groups'
 
-    class Admin:
-        list_display = ('name', 'description')
-        search_fields = ('name',)
-
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class JobManager(model_logic.ExtendedManager):
@@ -671,8 +630,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
 
-    owner = dbmodels.CharField(maxlength=255)
-    name = dbmodels.CharField(maxlength=255)
+    owner = dbmodels.CharField(max_length=255)
+    name = dbmodels.CharField(max_length=255)
     priority = dbmodels.SmallIntegerField(choices=Priority.choices(),
                                           blank=True, # to allow 0
                                           default=Priority.MEDIUM)
@@ -684,9 +643,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     synch_count = dbmodels.IntegerField(null=True, default=1)
     timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
     run_verify = dbmodels.BooleanField(default=True)
-    email_list = dbmodels.CharField(maxlength=250, blank=True)
-    dependency_labels = dbmodels.ManyToManyField(
-        Label, blank=True, filter_interface=dbmodels.HORIZONTAL)
+    email_list = dbmodels.CharField(max_length=250, blank=True)
+    dependency_labels = dbmodels.ManyToManyField(Label, blank=True)
     reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
                                                blank=True,
                                                default=DEFAULT_REBOOT_BEFORE)
@@ -768,12 +726,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'jobs'
 
-    if settings.FULL_ADMIN:
-        class Admin:
-            list_display = ('id', 'owner', 'name', 'control_type')
-
-    def __str__(self):
-        return '%s (%s-%s)' % (self.name, self.id, self.owner)
+    def __unicode__(self):
+        return u'%s (%s-%s)' % (self.name, self.id, self.owner)
 
 
 class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
@@ -784,10 +738,6 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 
     class Meta:
         db_table = 'ineligible_host_queues'
-
-    if settings.FULL_ADMIN:
-        class Admin:
-            list_display = ('id', 'job', 'host')
 
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
@@ -801,13 +751,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
-    status = dbmodels.CharField(maxlength=255)
+    status = dbmodels.CharField(max_length=255)
     meta_host = dbmodels.ForeignKey(Label, blank=True, null=True,
                                     db_column='meta_host')
     active = dbmodels.BooleanField(default=False)
     complete = dbmodels.BooleanField(default=False)
     deleted = dbmodels.BooleanField(default=False)
-    execution_subdir = dbmodels.CharField(maxlength=255, blank=True, default='')
+    execution_subdir = dbmodels.CharField(max_length=255, blank=True,
+                                          default='')
     # If atomic_group is set, this is a virtual HostQueueEntry that will
     # be expanded into many actual hosts within the group at schedule time.
     atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
@@ -834,9 +785,9 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
                    atomic_group=atomic_group, status=status)
 
 
-    def save(self):
+    def save(self, *args, **kwargs):
         self._set_active_and_complete()
-        super(HostQueueEntry, self).save()
+        super(HostQueueEntry, self).save(*args, **kwargs)
         self._check_for_updated_attributes()
 
 
@@ -912,17 +863,12 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'host_queue_entries'
 
 
-    if settings.FULL_ADMIN:
-        class Admin:
-            list_display = ('id', 'job', 'host', 'status',
-                            'meta_host')
 
-
-    def __str__(self):
+    def __unicode__(self):
         hostname = None
         if self.host:
             hostname = self.host.hostname
-        return "%s/%d (%d)" % (hostname, self.job.id, self.id)
+        return u"%s/%d (%d)" % (hostname, self.job.id, self.id)
 
 
 class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
@@ -933,9 +879,9 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
 
-    def save(self):
+    def save(self, *args, **kwargs):
         self.aborted_on = datetime.now()
-        super(AbortedHostQueueEntry, self).save()
+        super(AbortedHostQueueEntry, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'aborted_host_queue_entries'
@@ -962,8 +908,8 @@ class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'recurring_run'
 
-    def __str__(self):
-        return 'RecurringRun(job %s, start %s, period %s, count %s)' % (
+    def __unicode__(self):
+        return u'RecurringRun(job %s, start %s, period %s, count %s)' % (
             self.job.id, self.start_date, self.loop_period, self.loop_count)
 
 
@@ -984,7 +930,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     Task = enum.Enum('Verify', 'Cleanup', 'Repair', string_values=True)
 
     host = dbmodels.ForeignKey(Host, blank=False, null=False)
-    task = dbmodels.CharField(maxlength=64, choices=Task.choices(),
+    task = dbmodels.CharField(max_length=64, choices=Task.choices(),
                               blank=False, null=False)
     time_requested = dbmodels.DateTimeField(auto_now_add=True, blank=False,
                                             null=False)
@@ -1049,8 +995,15 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
             if not hasattr(agent, 'TASK_TYPE'):
                 raise ValueError("Can only prepare special tasks for "
                                  "verify, cleanup, or repair")
-            task = cls.objects.create(host=agent.host, task=agent.TASK_TYPE,
-                                      queue_entry=agent.queue_entry)
+
+            host = Host.objects.get(id=agent.host.id)
+            queue_entry = None
+            if agent.queue_entry:
+                queue_entry = (
+                    HostQueueEntry.objects.get(id=agent.queue_entry.id))
+
+            task = cls.objects.create(host=host, task=agent.TASK_TYPE,
+                                      queue_entry=queue_entry)
 
         return task
 
@@ -1078,12 +1031,12 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     class Meta:
         db_table = 'special_tasks'
 
-    def __str__(self):
-        result = 'Special Task %s (host %s, task %s, time %s)' % (
+    def __unicode__(self):
+        result = u'Special Task %s (host %s, task %s, time %s)' % (
             self.id, self.host, self.task, self.time_requested)
         if self.is_complete:
-            result += ' (completed)'
+            result += u' (completed)'
         elif self.is_active:
-            result += ' (active)'
+            result += u' (active)'
 
         return result

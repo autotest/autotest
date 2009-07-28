@@ -2,7 +2,7 @@
 # that would clutter the main rpc_test
 
 # setup
->>> from frontend.afe import rpc_interface
+>>> from autotest_lib.frontend.afe import rpc_interface
 
 >>> rpc_interface.add_profiler(name='oprofile')
 1
@@ -14,7 +14,7 @@
 ...     tests=['sleeptest'],
 ...     profilers=['oprofile', 'iostat'])
 >>> cf_info['control_file']
-"def step_init():\n    job.next_step('step0')\n    job.next_step('step1')\n    job.next_step('step2')\n    job.next_step('step3')\n    job.next_step('step4')\n\ndef step0():\n    job.profilers.add('oprofile')\n\ndef step1():\n    job.profilers.add('iostat')\n\ndef step2():\n    job.run_test('testname')\n\ndef step3():\n    job.profilers.delete('oprofile')\n\ndef step4():\n    job.profilers.delete('iostat')"
+u"def step_init():\n    job.next_step('step0')\n    job.next_step('step1')\n    job.next_step('step2')\n    job.next_step('step3')\n    job.next_step('step4')\n\ndef step0():\n    job.profilers.add('oprofile')\n\ndef step1():\n    job.profilers.add('iostat')\n\ndef step2():\n    job.run_test('testname')\n\ndef step3():\n    job.profilers.delete('oprofile')\n\ndef step4():\n    job.profilers.delete('iostat')"
 
 # server-side control file generation
 >>> rpc_interface.modify_test('sleeptest', test_type='Server')

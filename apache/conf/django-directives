@@ -5,4 +5,4 @@
     ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
 </IfModule>
 
-Alias /media "/usr/lib/python2.4/site-packages/django/contrib/admin/media"
+Alias /media "/usr/local/autotest/site-packages/django/contrib/admin/media"
