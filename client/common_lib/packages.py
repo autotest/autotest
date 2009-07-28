@@ -361,7 +361,16 @@ class BasePackageManager(object):
 
         pkg_path = os.path.join(source_url, filename)
         try:
-            self._run_command(self._wget_cmd_pattern % (pkg_path, dest_path))
+            cmd = self._wget_cmd_pattern % (pkg_path, dest_path)
+            result = self._run_command(cmd)
+
+            file_exists = self._run_command('ls %s' % dest_path,
+                    _run_command_dargs={'ignore_status': True}).exit_status == 0
+            if not file_exists:
+                # wget failed but it did not reflect that in the exit status
+                logging.error('wget failed: %s', result)
+                raise error.CmdError(cmd, result)
+
             logging.debug("Successfully fetched %s from %s", filename,
                           source_url)
         except error.CmdError:
