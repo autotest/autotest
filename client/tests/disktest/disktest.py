@@ -21,7 +21,7 @@ class disktest(test.test):
 
     def test_one_disk_chunk(self, disk, chunk):
         logging.info("testing %d MB files on %s in %d MB memory",
-                     (self.chunk_mb, disk, self.memory_mb))
+                     self.chunk_mb, disk, self.memory_mb)
         cmd = "%s/disktest -m %d -f %s/testfile.%d -i -S" % \
                                 (self.srcdir, self.chunk_mb, disk, chunk)
         p = subprocess.Popen(cmd, shell=True)
