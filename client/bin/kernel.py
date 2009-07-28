@@ -687,7 +687,7 @@ class rpm_kernel(object):
             for rpm_pack in self.rpm_package:
                 vmlinux = utils.system_output(
                         'rpm -q -l -p %s | grep /boot/vmlinux' % rpm_pack)
-            utils.system('cd /; rpm2cpio %s | cpio -imuv .%s'
+            utils.system('cd /; rpm2cpio %s | cpio -imuv .%s 2>&1'
                          % (rpm_pack, vmlinux))
             if not os.path.exists(vmlinux):
                 raise error.TestError('%s does not exist after installing %s'
@@ -796,7 +796,7 @@ def _preprocess_path_dummy(path):
 
 
 # pull in some optional site-specific path pre-processing
-preprocess_path = utils.import_site_function(__file__, 
+preprocess_path = utils.import_site_function(__file__,
     "autotest_lib.client.bin.site_kernel", "preprocess_path",
     _preprocess_path_dummy)
 
@@ -816,9 +816,8 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     if kernel_paths[0].endswith('.rpm'):
         rpm_paths = []
         for kernel_path in kernel_paths:
-            if utils.is_url(kernel_path) or os.path.exists(kernel_path):
+            if os.path.exists(kernel_path):
                 rpm_paths.append(kernel_path)
-
             else:
                 # Fetch the rpm into the job's packages directory and pass it to
                 # rpm_kernel

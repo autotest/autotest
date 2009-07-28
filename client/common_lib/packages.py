@@ -107,6 +107,7 @@ def trim_custom_directories(repo, older_than_days=40):
 class BasePackageManager(object):
     _repo_exception = {}
     REPO_OK = object()
+    _wget_cmd_pattern = 'wget --connect-timeout=15 -nv %s -O %s'
 
     def __init__(self, pkgmgr_dir, hostname=None, repo_urls=None,
                  upload_paths=None, do_locking=True, run_function=utils.run,
@@ -326,7 +327,7 @@ class BasePackageManager(object):
                 return
             except (PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
-                logging.error('%s could not be fetched from %s', pkg_name, 
+                logging.error('%s could not be fetched from %s', pkg_name,
                                                                  location)
 
         # if we got here then that means the package is not found
@@ -353,14 +354,14 @@ class BasePackageManager(object):
         """
         Fetch the package using http protocol. Raises a PackageFetchError.
         """
-        logging.info("Fetching %s from %s to %s", filename, source_url, 
+        logging.info("Fetching %s from %s to %s", filename, source_url,
                      dest_path)
         # check to see if the source_url is reachable or not
         self.run_http_test(source_url, os.path.dirname(dest_path))
 
         pkg_path = os.path.join(source_url, filename)
         try:
-            self._run_command('wget -nv %s -O %s' % (pkg_path, dest_path))
+            self._run_command(self._wget_cmd_pattern % (pkg_path, dest_path))
             logging.debug("Successfully fetched %s from %s", filename,
                           source_url)
         except error.CmdError:
@@ -383,14 +384,14 @@ class BasePackageManager(object):
 
         # Get the http server name from the URL
         server_name = urlparse.urlparse(source_url)[1]
-        http_cmd = 'wget -nv %s -O %s' % (server_name, dest_file_path)
+        http_cmd = self._wget_cmd_pattern % (server_name, dest_file_path)
 
         # Following repo_exception optimization is disabled for now.
-        # Checksum files are optional.  The attempted download of a 
-        # missing checksum file erroneously causes the repos to be marked 
-        # dead, causing download of its custom kernels to fail.  
+        # Checksum files are optional.  The attempted download of a
+        # missing checksum file erroneously causes the repos to be marked
+        # dead, causing download of its custom kernels to fail.
         # It also stays dead until Autotest is restarted.
-        if server_name in BPM._repo_exception and False:  #  <--- TEMP 
+        if server_name in BPM._repo_exception and False:  #  <--- TEMP
             if BPM._repo_exception[server_name] == BPM.REPO_OK:
                 # This repository is fine. Simply return
                 return
@@ -489,14 +490,14 @@ class BasePackageManager(object):
                                           os.path.basename(file_path))
                     utils.run("ssh %s 'chmod 644 %s'" % (hostline, r_path))
                 except error.CmdError:
-                    logging.error("Error uploading to repository %s", 
+                    logging.error("Error uploading to repository %s",
                                   upload_path)
             else:
                 shutil.copy(file_path, upload_path)
                 os.chmod(os.path.join(upload_path,
                                       os.path.basename(file_path)), 0644)
         except (IOError, os.error), why:
-            logging.error("Upload of %s to %s failed: %s", file_path, 
+            logging.error("Upload of %s to %s failed: %s", file_path,
                           upload_path, why)
 
 
