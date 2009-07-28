@@ -650,6 +650,14 @@ def get_hqe_percentage_complete(**filter_data):
     return float(complete_count) / total_count
 
 
+# special tasks
+
+def get_special_tasks(**filter_data):
+    return rpc_utils.prepare_rows_as_nested_dicts(
+            models.SpecialTask.query_objects(filter_data),
+            ('host', 'queue_entry'))
+
+
 # support for host detail view
 
 def get_host_queue_entries_and_special_tasks(hostname, query_start=None,
