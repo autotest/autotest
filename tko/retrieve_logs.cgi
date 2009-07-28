@@ -16,9 +16,14 @@ Location: %s\r\n\r
 def _retrieve_logs_dummy(job_path):
     pass
 
-retrieve_logs = utils.import_site_function(__file__,
-    "autotest_lib.tko.site_retrieve_logs", "retrieve_logs",
+site_retrieve_logs = utils.import_site_function(__file__,
+    "autotest_lib.tko.site_retrieve_logs", "site_retrieve_logs",
     _retrieve_logs_dummy)
+
+site_find_repository_host = utils.import_site_function(__file__,
+    "autotest_lib.tko.site_retrieve_logs", "site_find_repository_host",
+    _retrieve_logs_dummy)
+
 
 form = cgi.FieldStorage(keep_blank_values=True)
 # determine if this is a JSON-RPC request.  we support both so that the new TKO
@@ -47,12 +52,15 @@ def find_repository_host(job_path):
         for drone in results_repos:
             http_path = 'http://%s%s' % (drone, job_path)
             try:
-                urllib2.urlopen(http_path)
+                utils.urlopen(http_path)
                 if drone == 'localhost':
                     return None
                 return drone
             except urllib2.URLError:
                 pass
+        site_host = site_find_repository_host(log_path)
+        if site_host:
+            return site_host
         # just return the results repo if we haven't found any
         return results_host
     else:
@@ -61,7 +69,11 @@ def find_repository_host(job_path):
 
 def get_full_url(host, path):
     if host:
-        prefix = 'http://' + utils.normalize_hostname(host)
+        if ':' in host:
+            host, port = host.split(':')
+            prefix = 'http://%s:%s' % (utils.normalize_hostname(host), port)
+        else:
+            prefix = 'http://%s' % utils.normalize_hostname(host)
     else:
         prefix = ''
 
@@ -73,6 +85,6 @@ def get_full_url(host, path):
 
 
 log_path = _get_requested_path()
-retrieve_logs(log_path)
 host = find_repository_host(log_path)
+site_retrieve_logs(log_path)
 print _PAGE % get_full_url(host, log_path)
