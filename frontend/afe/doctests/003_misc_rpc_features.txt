@@ -69,7 +69,7 @@ def step_init():
         # a suffix to the test name otherwise we cannot run the same test on
         # different kernel versions
         if len(kernel_list) > 1:
-            job.set_test_tag(kernel_host.get_kernel_ver())
+            job.set_test_tag_prefix(kernel_host.get_kernel_ver())
         step_test()
 <BLANKLINE>
 def step_test():
