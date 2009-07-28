@@ -399,7 +399,7 @@ class _Run(object):
 
 
     def get_base_cmd_args(self, section):
-        args = []
+        args = ['--verbose']
         if section > 0:
             args.append('-c')
         if self.tag:
