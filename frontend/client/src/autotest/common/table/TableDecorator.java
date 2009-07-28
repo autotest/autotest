@@ -10,7 +10,6 @@ import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.Widget;
 
 /**
@@ -39,8 +38,8 @@ public class TableDecorator extends Composite implements DynamicTableListener {
     
     public TableDecorator(DynamicTable dataTable) {
         this.dataTable = dataTable;
-        setRow(LayoutRows.TABLE, dataTable, false);
-        setRow(LayoutRows.FILTERS, filterTable, false);
+        setRow(LayoutRows.TABLE, dataTable);
+        setRow(LayoutRows.FILTERS, filterTable);
         initWidget(enclosingTable);
     }
     
@@ -49,10 +48,10 @@ public class TableDecorator extends Composite implements DynamicTableListener {
             Paginator p = new Paginator();
             dataTable.attachPaginator(p);
             if (i == 0) { // add at top
-                setRow(LayoutRows.TOP_PAGINATOR, p, true);
+                setRow(LayoutRows.TOP_PAGINATOR, p);
             }
             else { // add at bottom
-                setRow(LayoutRows.BOTTOM_PAGINATOR, p, true);
+                setRow(LayoutRows.BOTTOM_PAGINATOR, p);
             }
         }
     }
@@ -102,15 +101,11 @@ public class TableDecorator extends Composite implements DynamicTableListener {
     }
 
     public void setActionsWidget(Widget widget) {
-        setRow(LayoutRows.ACTIONS, widget, false);
+        setRow(LayoutRows.ACTIONS, widget);
     }
 
-    private void setRow(int row, Widget widget, boolean center) {
+    private void setRow(int row, Widget widget) {
         enclosingTable.setWidget(row, 0, widget);
-        if (center) {
-            enclosingTable.getCellFormatter().setHorizontalAlignment(
-                                 row, 0, HasHorizontalAlignment.ALIGN_CENTER);
-        }
     }
 
     public void onRowClicked(int rowIndex, JSONObject row) {}
