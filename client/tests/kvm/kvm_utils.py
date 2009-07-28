@@ -256,7 +256,7 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
 
     password_prompt_count = 0
 
-    logging.debug("Trying to login...")
+    logging.debug("Trying to login with command '%s'" % command)
 
     while True:
         (match, text) = sub.read_until_last_line_matches(
