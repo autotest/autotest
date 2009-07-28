@@ -312,8 +312,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     }
 
     public void setSqlCondition(String text) {
-        customSqlBox.setText(text);
-        updateStateFromView();
+        savedSqlCondition = text;
     }
 
     public void updateStateFromView() {
@@ -408,17 +407,18 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     public void handleHistoryArguments(Map<String, String> arguments) {
         setSqlCondition(arguments.get("condition"));
         savedShowInvalid = Boolean.valueOf(arguments.get("show_invalid"));
-        showInvalid.setChecked(savedShowInvalid);
 
-        filterList.clear();
+        savedFilters.clear();
         for (int index = 0; ; index++) {
             FilterData filterData = FilterData.dataFromHistory(
                     arguments, getListKey("filter", index));
             if (filterData == null) {
                 break;
             }
-            filterList.addWidget(filterFactory.getFilterWidgetFromData(filterData));
+            savedFilters.add(filterData);
         }
+
+        updateViewFromState();
     }
 
     public void addHistoryArguments(Map<String, String> arguments) {
