@@ -92,7 +92,21 @@ class profiler_proxy(object):
                            if not
                            (host.get_autodir() and
                             host.get_autodir().startswith(PROFILER_TMPDIR)))
-        profiler_hosts = set(self.installed_hosts.keys())
+        logging.debug('Hosts currently in use: %s', in_use_hosts)
+
+        # determine what valid host objects we already have installed
+        profiler_hosts = set()
+        for host, (at, profiler_dir) in self.installed_hosts.items():
+            if host.path_exists(profiler_dir):
+                profiler_hosts.add(host.hostname)
+            else:
+                # the profiler was wiped out somehow, drop this install
+                logging.warning('The profiler client on %s at %s was deleted',
+                                host.hostname, profiler_dir)
+                host.close()
+                del self.installed_hosts[host]
+        logging.debug('Hosts with profiler clients already installed: %s',
+                      profiler_hosts)
 
         # install autotest on any new hosts in use
         for hostname in in_use_hosts - profiler_hosts:
