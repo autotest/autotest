@@ -4,10 +4,8 @@ import autotest.common.JSONArrayList;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DataTable;
-import autotest.common.table.JSONObjectComparator;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableClickWidget;
-import autotest.common.table.DataSource.SortSpec;
 import autotest.common.table.DataTable.DataTableListener;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.SelectionManager.SelectionListener;
@@ -27,7 +25,6 @@ import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +114,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
     private boolean enabled = true;
     private TestSelectorListener listener;
     private StaticDataRepository staticData = StaticDataRepository.getRepository();
+    private List<JSONObject> selectedTests = new ArrayList<JSONObject>();
     
     public TestSelector() {
         testInfo.setStyleName("test-description");
@@ -187,11 +185,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
     }
     
     public Collection<JSONObject> getSelectedTests() {
-        List<JSONObject> selectedObjects = 
-            new ArrayList<JSONObject>(testSelection.getSelectedObjects());
-        SortSpec[] sorts = new SortSpec[] {new SortSpec("name")};
-        Collections.sort(selectedObjects, new JSONObjectComparator(sorts));
-        return selectedObjects;
+        return selectedTests;
     }
 
     public String getSelectedTestType() {
@@ -229,10 +223,12 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
     }
 
     public void onAdd(Collection<JSONObject> objects) {
+        selectedTests.addAll(objects);
         notifyListener();
     }
 
     public void onRemove(Collection<JSONObject> objects) {
+        selectedTests.removeAll(objects);
         notifyListener();
     }
 }
