@@ -2783,7 +2783,17 @@ class HostQueueEntry(DBObject):
         """
         self.set_status('Pending')
         self.get_host().set_status('Pending')
-        return self.job.run_if_ready(queue_entry=self)
+
+        # Some debug code here: sends an email if an asynchronous job does not
+        # immediately enter Starting.
+        # TODO: Remove this once we figure out why asynchronous jobs are getting
+        # stuck in Pending.
+        agent = self.job.run_if_ready(queue_entry=self)
+        if self.job.synch_count == 1 and agent is None:
+            subject = 'Job %s (id %s)' % (self.job.name, self.job.id)
+            message = 'Asynchronous job stuck in Pending'
+            email_manager.manager.enqueue_notify_email(subject, message)
+        return agent
 
 
     def abort(self, dispatcher):
@@ -2900,8 +2910,19 @@ class Job(DBObject):
         # started to avoid launching multiple copies of one atomic job.
         # Only possible if synch_count is less than than half the number of
         # machines in the atomic group.
-        return (self._pending_count() >= self.synch_count
-                and not self._atomic_and_has_started())
+        pending_count = self._pending_count()
+        atomic_and_has_started = self._atomic_and_has_started()
+        ready = (pending_count >= self.synch_count
+                 and not self._atomic_and_has_started())
+
+        if not ready:
+            logging.info(
+                    'Job %s not ready: %s pending, %s required '
+                    '(Atomic and started: %s)',
+                    self, pending_count, self.synch_count,
+                    atomic_and_has_started)
+
+        return ready
 
 
     def num_machines(self, clause = None):
@@ -3191,6 +3212,10 @@ class Job(DBObject):
             self._delay_ready_task.abort()
 
         return Agent(tasks, num_processes=len(queue_entries))
+
+
+    def __str__(self):
+        return '%s-%s' % (self.id, self.owner)
 
 
 if __name__ == '__main__':
