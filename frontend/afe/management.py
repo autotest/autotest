@@ -1,11 +1,10 @@
 # use some undocumented Django tricks to execute custom logic after syncdb
 
-from django.dispatch import dispatcher
 from django.db.models import signals
 from django.contrib import auth
 # In this file, it is critical that we import models *just like this*.  In
 # particular, we *cannot* do import common; from autotest_lib... import models.
-# This is becasue when we pass the models module to dispatcher.connect(), it
+# This is because when we pass the models module to signal.connect(), it
 # calls id() on the module, and the id() of a module can differ depending on how
 # it was imported.  For that reason, we must import models as Django does -- not
 # through the autotest_lib magic set up through common.py.  If you do that, the
@@ -43,5 +42,4 @@ def create_admin_group(app, created_models, verbosity, **kwargs):
         print 'Group "%s" already exists' % BASIC_ADMIN
 
 
-dispatcher.connect(create_admin_group, sender=models,
-                   signal=signals.post_syncdb)
+signals.post_syncdb.connect(create_admin_group, sender=models)

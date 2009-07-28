@@ -36,7 +36,7 @@ def cleanup_database_backup(backup_path):
 
 
 def run_syncdb(verbosity=0):
-    management.syncdb(verbosity, interactive=False)
+    management.call_command('syncdb', verbosity=verbosity, interactive=False)
 
 
 def destroy_test_database():

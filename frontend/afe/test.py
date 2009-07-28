@@ -1,7 +1,8 @@
 import common
 import os, doctest, glob, sys
-import django.test.utils, django.test.simple
 from django.conf import settings
+from django.db import connection
+import django.test.utils
 
 # doctest takes a copy+paste log of a Python interactive session, runs a Python
 # interpreter, and replays all the inputs from the log, checking that the
@@ -56,7 +57,7 @@ class DoctestRunner(object):
         total_errors = 0
         old_db = settings.DATABASE_NAME
         django.test.utils.setup_test_environment()
-        django.test.utils.create_test_db()
+        connection.creation.create_test_db()
         try:
             for module in modules:
                 failures, test_count = doctest.testmod(module)
@@ -68,7 +69,7 @@ class DoctestRunner(object):
                 print self._PRINT_AFTER % (test_count, path)
                 total_errors += failures
         finally:
-            django.test.utils.destroy_test_db(old_db)
+            connection.creation.destroy_test_db(old_db)
             django.test.utils.teardown_test_environment()
         print
         if total_errors == 0:

@@ -24,27 +24,34 @@ class TempManager(model_logic.ExtendedManager):
     def _get_group_query_sql(self, query, group_by, extra_select_fields):
         group_fields = self._get_field_names(group_by, extra_select_fields)
 
-        select_fields = [field for field in group_fields
-                         if field not in extra_select_fields]
-        for field_name, field_sql in extra_select_fields.iteritems():
-            field_sql = self._get_key_unless_is_function(field_sql)
-            select_fields.append(field_sql + ' AS ' + field_name)
-            # add the extra fields to the query selects, so they'll be sortable
-            # and Django won't mess with any of them
-            query._select[field_name] = field_sql
+        # Clone the queryset, so that we don't change the original
+        query = query.all()
 
-        _, where, params = query._get_sql_clause()
+        # In order to use query.extra(), we need to first clear the limits
+        # and then add them back in after the extra
+        low = query.query.low_mark
+        high = query.query.high_mark
+        query.query.clear_limits()
+
+        select_fields = dict(
+            (field_name, self._get_key_unless_is_function(field_sql))
+            for field_name, field_sql in extra_select_fields.iteritems())
+        query = query.extra(select=select_fields)
+
+        query.query.set_limits(low=low, high=high)
+
+        sql, params = query.query.as_sql()
 
         # insert GROUP BY clause into query
         group_by_clause = ' GROUP BY ' + ', '.join(group_fields)
-        group_by_position = where.rfind('ORDER BY')
+        group_by_position = sql.rfind('ORDER BY')
         if group_by_position == -1:
-            group_by_position = len(where)
-        where = (where[:group_by_position] +
-                 group_by_clause + ' ' +
-                 where[group_by_position:])
+            group_by_position = len(sql)
+        sql = (sql[:group_by_position] +
+               group_by_clause + ' ' +
+               sql[group_by_position:])
 
-        return ('SELECT ' + ', '.join(select_fields) + where), params
+        return sql, params
 
 
     def _get_column_names(self, cursor):
@@ -78,7 +85,7 @@ class TempManager(model_logic.ExtendedManager):
         Get the SQL to properly select a per-group count of unique matches for
         a grouped query.  Returns a tuple (field alias, field SQL)
         """
-        if query._distinct:
+        if query.query.distinct:
             pk_field = self.get_key_on_this_table()
             count_sql = 'COUNT(DISTINCT %s)' % pk_field
         else:
@@ -88,10 +95,12 @@ class TempManager(model_logic.ExtendedManager):
 
     def _get_num_groups_sql(self, query, group_by):
         group_fields = self._get_field_names(group_by)
-        query._order_by = None # this can mess up the query and isn't needed
-        _, where, params = query._get_sql_clause()
+        query = query.order_by() # this can mess up the query and isn't needed
+
+        sql, params = query.query.as_sql()
+        from_ = sql[sql.find(' FROM'):]
         return ('SELECT COUNT(DISTINCT %s) %s' % (','.join(group_fields),
-                                                  where),
+                                                  from_),
                 params)
 
 
@@ -108,9 +117,9 @@ class TempManager(model_logic.ExtendedManager):
 
 class Machine(dbmodels.Model):
     machine_idx = dbmodels.AutoField(primary_key=True)
-    hostname = dbmodels.CharField(unique=True, maxlength=300)
-    machine_group = dbmodels.CharField(blank=True, maxlength=240)
-    owner = dbmodels.CharField(blank=True, maxlength=240)
+    hostname = dbmodels.CharField(unique=True, max_length=300)
+    machine_group = dbmodels.CharField(blank=True, max_length=240)
+    owner = dbmodels.CharField(blank=True, max_length=240)
 
     class Meta:
         db_table = 'machines'
@@ -118,9 +127,9 @@ class Machine(dbmodels.Model):
 
 class Kernel(dbmodels.Model):
     kernel_idx = dbmodels.AutoField(primary_key=True)
-    kernel_hash = dbmodels.CharField(maxlength=105, editable=False)
-    base = dbmodels.CharField(maxlength=90)
-    printable = dbmodels.CharField(maxlength=300)
+    kernel_hash = dbmodels.CharField(max_length=105, editable=False)
+    base = dbmodels.CharField(max_length=90)
+    printable = dbmodels.CharField(max_length=300)
 
     class Meta:
         db_table = 'kernels'
@@ -128,9 +137,9 @@ class Kernel(dbmodels.Model):
 
 class Patch(dbmodels.Model):
     kernel = dbmodels.ForeignKey(Kernel, db_column='kernel_idx')
-    name = dbmodels.CharField(blank=True, maxlength=240)
-    url = dbmodels.CharField(blank=True, maxlength=900)
-    hash_ = dbmodels.CharField(blank=True, maxlength=105, db_column='hash')
+    name = dbmodels.CharField(blank=True, max_length=240)
+    url = dbmodels.CharField(blank=True, max_length=900)
+    the_hash = dbmodels.CharField(blank=True, max_length=105, db_column='hash')
 
     class Meta:
         db_table = 'patches'
@@ -138,7 +147,7 @@ class Patch(dbmodels.Model):
 
 class Status(dbmodels.Model):
     status_idx = dbmodels.AutoField(primary_key=True)
-    word = dbmodels.CharField(maxlength=30)
+    word = dbmodels.CharField(max_length=30)
 
     class Meta:
         db_table = 'status'
@@ -146,9 +155,9 @@ class Status(dbmodels.Model):
 
 class Job(dbmodels.Model):
     job_idx = dbmodels.AutoField(primary_key=True)
-    tag = dbmodels.CharField(unique=True, maxlength=300)
-    label = dbmodels.CharField(maxlength=300)
-    username = dbmodels.CharField(maxlength=240)
+    tag = dbmodels.CharField(unique=True, max_length=300)
+    label = dbmodels.CharField(max_length=300)
+    username = dbmodels.CharField(max_length=240)
     machine = dbmodels.ForeignKey(Machine, db_column='machine_idx')
     queued_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
@@ -162,11 +171,11 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
            model_logic.ModelWithAttributes):
     test_idx = dbmodels.AutoField(primary_key=True)
     job = dbmodels.ForeignKey(Job, db_column='job_idx')
-    test = dbmodels.CharField(maxlength=90)
-    subdir = dbmodels.CharField(blank=True, maxlength=180)
+    test = dbmodels.CharField(max_length=90)
+    subdir = dbmodels.CharField(blank=True, max_length=180)
     kernel = dbmodels.ForeignKey(Kernel, db_column='kernel_idx')
     status = dbmodels.ForeignKey(Status, db_column='status')
-    reason = dbmodels.CharField(blank=True, maxlength=3072)
+    reason = dbmodels.CharField(blank=True, max_length=3072)
     machine = dbmodels.ForeignKey(Machine, db_column='machine_idx')
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
@@ -195,8 +204,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
 
 class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
     test = dbmodels.ForeignKey(Test, db_column='test_idx')
-    attribute = dbmodels.CharField(maxlength=90)
-    value = dbmodels.CharField(blank=True, maxlength=300)
+    attribute = dbmodels.CharField(max_length=90)
+    value = dbmodels.CharField(blank=True, max_length=300)
     user_created = dbmodels.BooleanField(default=False)
 
     objects = model_logic.ExtendedManager()
@@ -210,8 +219,8 @@ class IterationAttribute(dbmodels.Model, model_logic.ModelExtensions):
     # and is harmless as long as we're careful
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
-    attribute = dbmodels.CharField(maxlength=90)
-    value = dbmodels.CharField(blank=True, maxlength=300)
+    attribute = dbmodels.CharField(max_length=90)
+    value = dbmodels.CharField(blank=True, max_length=300)
 
     objects = model_logic.ExtendedManager()
 
@@ -223,9 +232,9 @@ class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
     # see comment on IterationAttribute regarding primary_key=True
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
-    attribute = dbmodels.CharField(maxlength=90)
-    value = dbmodels.FloatField(null=True, max_digits=12, decimal_places=31,
-                              blank=True)
+    attribute = dbmodels.CharField(max_length=90)
+    value = dbmodels.DecimalField(null=True, max_digits=12, decimal_places=31,
+                                  blank=True)
 
     objects = model_logic.ExtendedManager()
 
@@ -234,10 +243,9 @@ class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class TestLabel(dbmodels.Model, model_logic.ModelExtensions):
-    name = dbmodels.CharField(maxlength=80, unique=True)
+    name = dbmodels.CharField(max_length=80, unique=True)
     description = dbmodels.TextField(blank=True)
-    tests = dbmodels.ManyToManyField(Test, blank=True,
-                                     filter_interface=dbmodels.HORIZONTAL)
+    tests = dbmodels.ManyToManyField(Test, blank=True)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -248,8 +256,8 @@ class TestLabel(dbmodels.Model, model_logic.ModelExtensions):
 
 class SavedQuery(dbmodels.Model, model_logic.ModelExtensions):
     # TODO: change this to foreign key once DBs are merged
-    owner = dbmodels.CharField(maxlength=80)
-    name = dbmodels.CharField(maxlength=100)
+    owner = dbmodels.CharField(max_length=80)
+    name = dbmodels.CharField(max_length=100)
     url_token = dbmodels.TextField()
 
     class Meta:
@@ -258,7 +266,7 @@ class SavedQuery(dbmodels.Model, model_logic.ModelExtensions):
 
 class EmbeddedGraphingQuery(dbmodels.Model, model_logic.ModelExtensions):
     url_token = dbmodels.TextField(null=False, blank=False)
-    graph_type = dbmodels.CharField(maxlength=16, null=False, blank=False)
+    graph_type = dbmodels.CharField(max_length=16, null=False, blank=False)
     params = dbmodels.TextField(null=False, blank=False)
     last_updated = dbmodels.DateTimeField(null=False, blank=False,
                                           editable=False)
@@ -295,8 +303,8 @@ class TestViewManager(TempManager):
 
     def _add_label_joins(self, query_set, suffix=''):
         query_set = self.add_join(query_set, 'test_labels_tests',
-                                   join_key='test_id', suffix=suffix,
-                                   force_left_join=True)
+                                  join_key='test_id', suffix=suffix,
+                                  force_left_join=True)
 
         second_join_alias = 'test_labels' + suffix
         second_join_condition = ('%s.id = %s.testlabel_id' %
@@ -305,9 +313,9 @@ class TestViewManager(TempManager):
         filter_object = self._CustomSqlQ()
         filter_object.add_join('test_labels',
                                second_join_condition,
-                               'LEFT JOIN',
+                               query_set.query.LOUTER,
                                alias=second_join_alias)
-        return query_set.filter(filter_object)
+        return self._add_customSqlQ(query_set, filter_object)
 
 
     def _add_attribute_join(self, query_set, join_condition='', suffix=None,
@@ -429,27 +437,27 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
 
     test_idx = dbmodels.IntegerField('test index', primary_key=True)
     job_idx = dbmodels.IntegerField('job index', null=True, blank=True)
-    test_name = dbmodels.CharField(blank=True, maxlength=90)
-    subdir = dbmodels.CharField('subdirectory', blank=True, maxlength=180)
+    test_name = dbmodels.CharField(blank=True, max_length=90)
+    subdir = dbmodels.CharField('subdirectory', blank=True, max_length=180)
     kernel_idx = dbmodels.IntegerField('kernel index')
     status_idx = dbmodels.IntegerField('status index')
-    reason = dbmodels.CharField(blank=True, maxlength=3072)
+    reason = dbmodels.CharField(blank=True, max_length=3072)
     machine_idx = dbmodels.IntegerField('host index')
     test_started_time = dbmodels.DateTimeField(null=True, blank=True)
     test_finished_time = dbmodels.DateTimeField(null=True, blank=True)
-    job_tag = dbmodels.CharField(blank=True, maxlength=300)
-    job_name = dbmodels.CharField(blank=True, maxlength=300)
-    job_owner = dbmodels.CharField('owner', blank=True, maxlength=240)
+    job_tag = dbmodels.CharField(blank=True, max_length=300)
+    job_name = dbmodels.CharField(blank=True, max_length=300)
+    job_owner = dbmodels.CharField('owner', blank=True, max_length=240)
     job_queued_time = dbmodels.DateTimeField(null=True, blank=True)
     job_started_time = dbmodels.DateTimeField(null=True, blank=True)
     job_finished_time = dbmodels.DateTimeField(null=True, blank=True)
-    hostname = dbmodels.CharField(blank=True, maxlength=300)
-    platform = dbmodels.CharField(blank=True, maxlength=240)
-    machine_owner = dbmodels.CharField(blank=True, maxlength=240)
-    kernel_hash = dbmodels.CharField(blank=True, maxlength=105)
-    kernel_base = dbmodels.CharField(blank=True, maxlength=90)
-    kernel = dbmodels.CharField(blank=True, maxlength=300)
-    status = dbmodels.CharField(blank=True, maxlength=30)
+    hostname = dbmodels.CharField(blank=True, max_length=300)
+    platform = dbmodels.CharField(blank=True, max_length=240)
+    machine_owner = dbmodels.CharField(blank=True, max_length=240)
+    kernel_hash = dbmodels.CharField(blank=True, max_length=105)
+    kernel_base = dbmodels.CharField(blank=True, max_length=90)
+    kernel = dbmodels.CharField(blank=True, max_length=300)
+    status = dbmodels.CharField(blank=True, max_length=30)
 
     objects = TestViewManager()
 

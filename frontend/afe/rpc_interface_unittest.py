@@ -22,6 +22,19 @@ class RpcInterfaceTest(unittest.TestCase,
         self._frontend_common_teardown()
 
 
+    def test_validation(self):
+        # non-number for a numeric field
+        self.assertRaises(model_logic.ValidationError,
+                          rpc_interface.add_atomic_group, name='foo',
+                          max_number_of_machines='bar')
+        # omit a required field
+        self.assertRaises(model_logic.ValidationError, rpc_interface.add_label,
+                          name=None)
+        # violate uniqueness constraint
+        self.assertRaises(model_logic.ValidationError, rpc_interface.add_host,
+                          hostname='host1')
+
+
     def test_multiple_platforms(self):
         platform2 = models.Label.objects.create(name='platform2', platform=True)
         self.assertRaises(model_logic.ValidationError,
@@ -34,6 +47,33 @@ class RpcInterfaceTest(unittest.TestCase,
             host__hostname__in=['host1', 'host2'], platform=True)
         self.assertEquals(len(platforms), 1)
         self.assertEquals(platforms[0]['name'], 'myplatform')
+
+
+    def _check_hostnames(self, hosts, expected_hostnames):
+        self.assertEquals(set(host['hostname'] for host in hosts),
+                          set(expected_hostnames))
+
+
+    def test_get_hosts(self):
+        hosts = rpc_interface.get_hosts()
+        self._check_hostnames(hosts, [host.hostname for host in self.hosts])
+
+        hosts = rpc_interface.get_hosts(hostname='host1')
+        self._check_hostnames(hosts, ['host1'])
+
+
+    def test_get_hosts_multiple_labels(self):
+        hosts = rpc_interface.get_hosts(
+                multiple_labels=['myplatform', 'label1'])
+        self._check_hostnames(hosts, ['host1'])
+
+
+    def test_get_hosts_exclude_only_if_needed(self):
+        self.hosts[0].labels.add(self.label3)
+
+        hosts = rpc_interface.get_hosts(hostname__in=['host1', 'host2'],
+                                        exclude_only_if_needed_labels=True)
+        self._check_hostnames(hosts, ['host2'])
 
 
     def test_get_jobs_summary(self):
@@ -52,9 +92,13 @@ class RpcInterfaceTest(unittest.TestCase,
                                                      'Failed': 2})
 
 
+    def _create_job_helper(self, **kwargs):
+        return rpc_interface.create_job('test', 'Medium', 'control file',
+                                        'Server', **kwargs)
+
+
     def test_one_time_hosts(self):
-        job = rpc_interface.create_job('test', 'Medium', 'control file',
-                                       'Server', one_time_hosts=['testhost'])
+        job = self._create_job_helper(one_time_hosts=['testhost'])
         host = models.Host.objects.get(hostname='testhost')
         self.assertEquals(host.invalid, True)
         self.assertEquals(host.labels.count(), 0)
@@ -139,6 +183,11 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(entry2['type'], 'Job')
         self.assertEquals(entry2['status'], 'Queued')
         self.assertEquals(entry2['started_on'], '2009-01-03 00:00:00')
+
+
+    def _create_job_helper(self, **kwargs):
+        return rpc_interface.create_job('test', 'Medium', 'control file',
+                                        'Server', **kwargs)
 
 
 if __name__ == '__main__':

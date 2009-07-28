@@ -24,7 +24,7 @@ from autotest_lib.frontend.afe import readonly_connection
 from autotest_lib.frontend.afe.model_logic import ValidationError
 from autotest_lib.frontend.afe.simplejson import encoder
 from autotest_lib.client.common_lib import global_config
-from new_tko.tko import models, tko_rpc_utils
+from autotest_lib.new_tko.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100
 _FIGURE_WIDTH_IN = 10

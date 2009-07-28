@@ -8,8 +8,8 @@
 #                             'http://hostname:8000/afe/server/noauth/rpc/')
 # )
 >>> if 'rpc_interface' not in globals():
-...   from frontend.afe import rpc_interface, models
-...   from frontend import thread_local
+...   from autotest_lib.frontend.afe import rpc_interface, models
+...   from autotest_lib.frontend import thread_local
 ...   # set up a user for us to "login" as
 ...   user = models.User(login='debug_user')
 ...   user.access_level = 100
@@ -210,27 +210,27 @@ True
 # check labels for hosts
 >>> data = rpc_interface.get_hosts(hostname='host1')
 >>> data[0]['labels']
-['label1']
+[u'label1']
 >>> data = rpc_interface.get_hosts(hostname='host2')
 >>> data[0]['labels']
-['label1', 'label2']
+[u'label1', u'label2']
 >>> data[0]['platform']
-'label2'
+u'label2'
 
 # check host lists for labels -- use double underscore to specify fields of
 # related objects
 >>> data = rpc_interface.get_hosts(labels__name='label1')
 >>> [host['hostname'] for host in data]
-['host1', 'host2']
+[u'host1', u'host2']
 >>> data = rpc_interface.get_hosts(labels__name='label2')
 >>> [host['hostname'] for host in data]
-['host2']
+[u'host2']
 
 # remove a host from a label
 >>> rpc_interface.host_remove_labels('host2', ['label2'])
 >>> data = rpc_interface.get_hosts(hostname='host1')
 >>> data[0]['labels']
-['label1']
+[u'label1']
 >>> rpc_interface.get_hosts(labels__name='label2')
 []
 
@@ -247,36 +247,36 @@ True
 # check labels for hosts
 >>> data = rpc_interface.get_hosts(hostname='host1')
 >>> data[0]['labels']
-['label1', 'label2']
+[u'label1', u'label2']
 >>> data = rpc_interface.get_hosts(hostname='host2')
 >>> data[0]['labels']
-['label2']
+[u'label2']
 >>> data[0]['platform']
-'label2'
+u'label2'
 
 # check host lists for labels -- use double underscore to specify fields of
 # related objects
 >>> data = rpc_interface.get_hosts(labels__name='label1')
 >>> [host['hostname'] for host in data]
-['host1']
+[u'host1']
 >>> data = rpc_interface.get_hosts(labels__name='label2')
 >>> [host['hostname'] for host in data]
-['host1', 'host2']
+[u'host1', u'host2']
 
 # remove a host from a label
 >>> rpc_interface.label_remove_hosts('label2', ['host2'])
 >>> data = rpc_interface.get_hosts(hostname='host1')
 >>> data[0]['labels']
-['label1', 'label2']
+[u'label1', u'label2']
 >>> data = rpc_interface.get_hosts(labels__name='label2')
 >>> [host['hostname'] for host in data]
-['host1']
+[u'host1']
 
 # Remove multiple hosts from a label
 >>> rpc_interface.label_add_hosts('label2', ['host2'])
 >>> data = rpc_interface.get_hosts(labels__name='label2')
 >>> [host['hostname'] for host in data]
-['host1', 'host2']
+[u'host1', u'host2']
 >>> rpc_interface.label_remove_hosts('label2', ['host2', 'host1'])
 >>> rpc_interface.get_hosts(labels__name='label2')
 []
@@ -288,7 +288,7 @@ True
 # other group
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
-['Everyone']
+[u'Everyone']
 
 >>> rpc_interface.add_user(login='showard', access_level=0)
 2
@@ -299,31 +299,31 @@ True
 >>> rpc_interface.acl_group_add_hosts('my_group', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='my_group')
 >>> data[0]['users']
-['debug_user', 'showard']
+[u'debug_user', u'showard']
 >>> data[0]['hosts']
-['host1']
+[u'host1']
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
-['Everyone', 'my_group']
+[u'Everyone', u'my_group']
 
 # note host has been automatically removed from 'Everyone'
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
-['my_group']
+[u'my_group']
 
 >>> rpc_interface.acl_group_remove_users('my_group', ['showard'])
 >>> rpc_interface.acl_group_remove_hosts('my_group', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='my_group')
 >>> data[0]['users'], data[0]['hosts']
-(['debug_user'], [])
+([u'debug_user'], [])
 >>> data = rpc_interface.get_acl_groups(users__login='showard')
 >>> [acl_group['name'] for acl_group in data]
-['Everyone']
+[u'Everyone']
 
 # note host has been automatically added back to 'Everyone'
 >>> data = rpc_interface.get_acl_groups(hosts__hostname='host1')
 >>> [acl_group['name'] for acl_group in data]
-['Everyone']
+[u'Everyone']
 
 
 # host attributes
@@ -331,7 +331,7 @@ True
 >>> rpc_interface.set_host_attribute('color', 'red', hostname='host1')
 >>> data = rpc_interface.get_hosts(hostname='host1')
 >>> data[0]['attributes']
-{'color': 'red'}
+{u'color': u'red'}
 
 >>> rpc_interface.set_host_attribute('color', None, hostname='host1')
 >>> data = rpc_interface.get_hosts(hostname='host1')
@@ -463,7 +463,7 @@ def step0():
 >>> data = rpc_interface.get_jobs()
 >>> data = data[0]
 >>> data['id'], data['owner'], data['name'], data['priority']
-(1, 'debug_user', 'my_job', 'Low')
+(1, u'debug_user', u'my_job', 'Low')
 >>> data['control_file'] == cf_info['control_file']
 True
 >>> data['control_type']
@@ -552,13 +552,13 @@ True
 >>> data = rpc_interface.get_jobs_summary()
 >>> counts = data[0]['status_counts']
 >>> counts
-{'Queued': 4}
+{u'Queued': 4}
 
 # abort the job
 >>> rpc_interface.abort_host_queue_entries(job__id=1)
 >>> data = rpc_interface.get_jobs_summary(id=1)
 >>> data[0]['status_counts']
-{'Aborted (Queued)': 4}
+{u'Aborted (Queued)': 4}
 
 # Remove the two hosts in my_label
 >>> rpc_interface.delete_host('my_label_host1')
@@ -572,15 +572,15 @@ True
 # paging and a sort_by argument to specify the sort column
 >>> data = rpc_interface.get_hosts(query_limit=1)
 >>> [host['hostname'] for host in data]
-['host1']
+[u'host1']
 >>> data = rpc_interface.get_hosts(query_start=1, query_limit=1)
 >>> [host['hostname'] for host in data]
-['host2']
+[u'host2']
 
 # sort_by = ['-hostname'] indicates sorting in descending order by hostname
 >>> data = rpc_interface.get_hosts(sort_by=['-hostname'])
 >>> [host['hostname'] for host in data]
-['host2', 'host1']
+[u'host2', u'host1']
 
 
 # cloning a job
@@ -620,7 +620,7 @@ True
 # get hosts ACL'd to a user
 >>> hosts = rpc_interface.get_hosts(aclgroup__users__login='debug_user')
 >>> sorted([host['hostname'] for host in hosts])
-['host1', 'host2']
+[u'host1', u'host2']
 
 >>> rpc_interface.add_acl_group(name='mygroup')
 3
@@ -628,22 +628,22 @@ True
 >>> rpc_interface.acl_group_add_hosts('mygroup', ['host1'])
 >>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
 >>> data['users'], data['hosts']
-(['debug_user', 'showard'], ['host2'])
+([u'debug_user', u'showard'], [u'host2'])
 >>> data = rpc_interface.get_acl_groups(name='mygroup')[0]
 >>> data['users'], data['hosts']
-(['debug_user'], ['host1'])
+([u'debug_user'], [u'host1'])
 
 >>> hosts = rpc_interface.get_hosts(aclgroup__users__login='debug_user')
 >>> sorted([host['hostname'] for host in hosts])
-['host1', 'host2']
+[u'host1', u'host2']
 >>> hosts = rpc_interface.get_hosts(aclgroup__users__login='showard')
 >>> [host['hostname'] for host in hosts]
-['host2']
+[u'host2']
 
 >>> rpc_interface.delete_acl_group('mygroup')
 >>> data = rpc_interface.get_acl_groups(name='Everyone')[0]
 >>> sorted(data['hosts'])
-['host1', 'host2']
+[u'host1', u'host2']
 
 # atomic groups
 # #############
@@ -702,11 +702,11 @@ DoesNotExist: AtomicGroup matching query does not exist.
 3
 >>> hosts_in_two = rpc_interface.get_hosts(multiple_labels=['two-label'])
 >>> list(sorted(h['hostname'] for h in hosts_in_two))
-['ah3-blue', 'ah4-blue', 'ahost1', 'ahost2']
+[u'ah3-blue', u'ah4-blue', u'ahost1', u'ahost2']
 >>> rpc_interface.atomic_group_remove_labels(mini_rack_group_id, ['red-label'])
 >>> ag_labels = rpc_interface.get_labels(atomic_group__name='mini rack')
 >>> sorted(label['name'] for label in ag_labels)
-['one-label', 'two-label']
+[u'one-label', u'two-label']
 
 >>> host_list = rpc_interface.get_hosts()
 >>> hosts_by_name = {}
@@ -715,12 +715,12 @@ DoesNotExist: AtomicGroup matching query does not exist.
 ...
 >>> hosts_by_name['host1']['atomic_group']
 >>> hosts_by_name['ahost1']['atomic_group']
-'mini rack'
+u'mini rack'
 >>> hosts_by_name['ah3-blue']['atomic_group']
-'mini rack'
+u'mini rack'
 >>> host_list = rpc_interface.get_hosts(labels__atomic_group__name='mini rack')
 >>> list(sorted(h['hostname'] for h in host_list))
-['ah3-blue', 'ah4-blue', 'ahost1', 'ahost2']
+[u'ah3-blue', u'ah4-blue', u'ahost1', u'ahost2']
 
 
 
@@ -797,7 +797,7 @@ ValidationError: {'hosts': 'only 2 hosts provided for job with synch_count = 3'}
 ...                          synch_count=2,
 ...                          atomic_group_name='mini rack')
 Traceback (most recent call last):
-ValidationError: {'hosts': 'Hosts "host1, host2" are not in Atomic Group "mini rack"'}
+ValidationError: {'hosts': u'Hosts "host1, host2" are not in Atomic Group "mini rack"'}
 
 # fail to create a job in an atomic group.  not enough hosts due to meta_hosts.
 >>> rpc_interface.create_job(name='my_atomic_job',
@@ -808,7 +808,7 @@ ValidationError: {'hosts': 'Hosts "host1, host2" are not in Atomic Group "mini r
 ...                          synch_count=4,
 ...                          atomic_group_name='mini rack')
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': 'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
+ValidationError: {'atomic_group_name': u'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
 
 # fail to create a job in an atomic group.  not enough hosts.
 >>> rpc_interface.create_job(name='my_atomic_job',
@@ -818,7 +818,7 @@ ValidationError: {'atomic_group_name': 'Insufficient hosts in Atomic Group "mini
 ...                          synch_count=5,
 ...                          atomic_group_name='mini rack')
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': 'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
+ValidationError: {'atomic_group_name': u'Insufficient hosts in Atomic Group "mini rack" with the supplied dependencies and meta_hosts.'}
 
 # fail to create a job in an atomic group.  Atomic Group not found.
 >>> rpc_interface.create_job(name='my_atomic_job',
@@ -851,7 +851,7 @@ DoesNotExist: AtomicGroup matching query does not exist.
 ...                          control_type='Client',
 ...                          hosts=['ahost1', 'ahost2'])
 Traceback (most recent call last):
-ValidationError: {'hosts': 'Host(s) "ahost1, ahost2" are atomic group hosts but no atomic group was specified for this job.'}
+ValidationError: {'hosts': u'Host(s) "ahost1, ahost2" are atomic group hosts but no atomic group was specified for this job.'}
 
 # Create a job using a label in an atomic group as the meta-host but forget
 # to specify the group.  The frontend should figure this out for us.
@@ -875,7 +875,7 @@ ValidationError: {'hosts': 'Host(s) "ahost1, ahost2" are atomic group hosts but 
 ...                          meta_hosts=['blue-label'],
 ...                          dependencies=['two-label'])
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': "Dependency 'two-label' requires an atomic group but no atomic_group_name or meta_host in an atomic group was specified for this job."}
+ValidationError: {'atomic_group_name': "Dependency u'two-label' requires an atomic group but no atomic_group_name or meta_host in an atomic group was specified for this job."}
 
 >>> invisible_group_id = rpc_interface.add_atomic_group(
 ...         name='invisible rack',
@@ -890,7 +890,7 @@ ValidationError: {'atomic_group_name': "Dependency 'two-label' requires an atomi
 ...                          meta_hosts=['two-label'],
 ...                          atomic_group_name='invisible rack')
 Traceback (most recent call last):
-ValidationError: {'atomic_group_name': "meta_hosts or dependency 'two-label' requires atomic group 'mini rack' instead of the supplied atomic_group_name='invisible rack'."}
+ValidationError: {'atomic_group_name': "meta_hosts or dependency u'two-label' requires atomic group u'mini rack' instead of the supplied atomic_group_name=u'invisible rack'."}
 
 # we're done testing atomic groups, clean up
 >>> rpc_interface.delete_atomic_group(invisible_group_id)
