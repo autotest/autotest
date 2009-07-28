@@ -581,8 +581,9 @@ class SetuptoolsPackage(ExternalPackage):
 class MySQLdbPackage(ExternalPackage):
     module_name = 'MySQLdb'
     version = '1.2.2'
-    urls = ('http://dl.sourceforge.net/sourceforge/mysql-python/'
-            'MySQL-python-%s.tar.gz' % (version,),)
+    urls = ('http://downloads.sourceforge.net/project/mysql-python/'
+            'mysql-python/%(version)s/MySQL-python-%(version)s.tar.gz'
+            % dict(version=version),)
     local_filename = 'MySQL-python-%s.tar.gz' % version
     hex_sum = '945a04773f30091ad81743f9eb0329a3ee3de383'
 
@@ -626,8 +627,8 @@ class DjangoPackage(ExternalPackage):
 class NumpyPackage(ExternalPackage):
     version = '1.2.1'
     local_filename = 'numpy-%s.tar.gz' % version
-    urls = ('http://dl.sourceforge.net/sourceforge/numpy/' +
-            local_filename,)
+    urls = ('http://downloads.sourceforge.net/project/numpy/NumPy/%(version)s/'
+            'numpy-%(version)s.tar.gz' % dict(version=version),)
     hex_sum = '1aa706e733aea18eaffa70d93c0105718acb66c5'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
@@ -638,11 +639,12 @@ class NumpyPackage(ExternalPackage):
 # This requires numpy so it must be declared after numpy to guarantee that it
 # is already installed.
 class MatplotlibPackage(ExternalPackage):
-    version = '0.98.5.2'
+    version = '0.98.5.3'
+    short_version = '0.98.5'
     local_filename = 'matplotlib-%s.tar.gz' % version
-    urls = ('http://dl.sourceforge.net/sourceforge/matplotlib/' +
-            local_filename,)
-    hex_sum = 'fbce043555de4f5a34e2a47e200527720a90b370'
+    urls = ('http://downloads.sourceforge.net/project/matplotlib/matplotlib/'
+            'matplotlib-%s/matplotlib-%s.tar.gz' % (short_version, version),)
+    hex_sum = '2f6c894cf407192b3b60351bcc6468c0385d47b6'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
     _build_and_install_current_dir = (
