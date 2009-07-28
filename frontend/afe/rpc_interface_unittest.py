@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 import datetime, unittest
 import common
@@ -61,13 +61,7 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(host.aclgroup_set.count(), 0)
 
 
-    def _common_entry_check(self, entry_dict):
-        self.assertEquals(entry_dict['host']['hostname'], 'host1')
-        self.assertEquals(entry_dict['job']['id'], 2)
-
-
-
-    def test_get_host_queue_entries_and_special_tasks(self):
+    def _setup_special_tasks(self):
         host = self.hosts[0]
 
         job1 = self._create_job(hosts=[1])
@@ -80,16 +74,49 @@ class RpcInterfaceTest(unittest.TestCase,
         entry2.update_object(started_on=datetime.datetime(2009, 1, 3),
                              execution_subdir='2-myuser/host1')
 
-        task1 = models.SpecialTask.objects.create(
+        self.task1 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY,
                 time_started=datetime.datetime(2009, 1, 1), # ran before job 1
                 is_complete=True)
-        task2 = models.SpecialTask.objects.create(
+        self.task2 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY,
                 queue_entry=entry2, # ran with job 2
                 is_active=True)
-        task3 = models.SpecialTask.objects.create(
+        self.task3 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY) # not yet run
+
+
+    def test_get_special_tasks(self):
+        self._setup_special_tasks()
+        tasks = rpc_interface.get_special_tasks(host__hostname='host1',
+                                                queue_entry__isnull=True)
+        self.assertEquals(len(tasks), 2)
+        self.assertEquals(tasks[0]['task'], models.SpecialTask.Task.VERIFY)
+        self.assertEquals(tasks[0]['is_active'], False)
+        self.assertEquals(tasks[0]['is_complete'], True)
+
+
+    def test_get_latest_special_task(self):
+        # a particular usage of get_special_tasks()
+        self._setup_special_tasks()
+        self.task2.time_started = datetime.datetime(2009, 1, 2)
+        self.task2.save()
+
+        tasks = rpc_interface.get_special_tasks(
+                host__hostname='host1', task=models.SpecialTask.Task.VERIFY,
+                time_started__isnull=False, sort_by=['-time_started'],
+                query_limit=1)
+        self.assertEquals(len(tasks), 1)
+        self.assertEquals(tasks[0]['id'], 2)
+
+
+    def _common_entry_check(self, entry_dict):
+        self.assertEquals(entry_dict['host']['hostname'], 'host1')
+        self.assertEquals(entry_dict['job']['id'], 2)
+
+
+    def test_get_host_queue_entries_and_special_tasks(self):
+        self._setup_special_tasks()
 
         entries_and_tasks = (
                 rpc_interface.get_host_queue_entries_and_special_tasks('host1'))
