@@ -459,6 +459,11 @@ class partition(object):
         else:
             tag = self.name
 
+        # If there's a 'suffix' argument, append it to the tag and remove it
+        suffix = dargs.pop('suffix', None)
+        if suffix:
+            tag = '%s.%s' % (tag, suffix)
+
         dargs['tag'] = test + '.' + tag
 
         def _make_partition_and_run_test(test_tag, dir=None, **dargs):
