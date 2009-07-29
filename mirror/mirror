@@ -1,255 +1,90 @@
 #!/usr/bin/python
-import email.Message, optparse, os, os.path, re, shutil, smtplib, sys, tempfile
-import time
-import rsync, trigger, common
 
-from autotest_lib.server import frontend
+import optparse, os, re
 
-excludes = ('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz')
+import common
+from autotest_lib.mirror import trigger
 
-default_clients_path = os.path.expanduser(
-                        os.path.join('~','.autotest_mirror_clients'))
 default_config_path = os.path.expanduser(
-                        os.path.join ('~', '.autotest_mirror_config'))
-options = optparse.Values(defaults={'email': None,
-                                        'clients': default_clients_path,
-                                        'config': default_config_path})
+    os.path.join(os.path.dirname(__file__), 'config.py'))
 
-PREAMBLE = """# autotest/mirror/mirror generated preamble
-kernel = %s
-config = %s
+options = optparse.Values()
 
-"""
 
-AUTOTEST_WRAPPER = """def step_init():
-        job.next_step([step_test])
-        testkernel = job.kernel(kernel)
-
-        if config:
-                testkernel.config(config)
-        else:
-                testkernel.config('', None, True)
-        testkernel.build()
-        testkernel.boot()
-
-def step_test():
-"""
-
-def test_kernel(hosts, control, kernel, config):
-    """Creates a control file for testing
-
-    Args:
-            hosts: A list of str of the autoteset client hostnames
-            control: A str filename of the control file to wrap as a
-                    kernel test or an open file to the same
-            kernel: A str of the kernel version (i.e. x.x.xx)
-            config: A str filename to the kernel config on the client
-
-    Returns:
-            The path to the new control file which may not be needed
-            since the control file will be created in the host's
-            queue automatically
+def import_config_file(path):
     """
-
-    is_autoserv_ctl = control.endswith('.srv')
-
-    # Create the control file in a string
-    c = ''
-
-    c += PREAMBLE % tuple([repr(s) for s in (kernel, config)])
-
-    if not is_autoserv_ctl:
-        c += AUTOTEST_WRAPPER
-
-    # Open the basis control file and pull its contents into this one
-    control = open(os.path.expanduser(control), "r")
-
-    # If is an AT file then we need to indent to match wrapper
-    # function level indentation, srv files don't need this indentation
-    indent = ('\t', '')[is_autoserv_ctl]
-    for line in control:
-        c += "%s%s" % (indent, line)
-
-    control_type = ('Client', 'Server')[is_autoserv_ctl]
-
-    afe = frontend.AFE()
-    afe.create_job(c, "kerntest-%s" % kernel, control_type=control_type,
-                   hosts=hosts)
-
-
-def load_conf(conf_path):
-    """Loads a configuration file in the form
-    hostname1.domain.tla /path/to/control ~/another_control
-    hostname2.domain.tla ~/another_control
-
-    Returns:
-            A dictionary keyed on hostname storing the args
-            Lines beginning with # are stripped from the conf file
+    Import the config file executing it as python code inside a class
+    instance namespace to isolate the defined names inside it and return
+    the the namespace (ie it emulates __import__ but does not require
+    proper packages to the path of the module to import, just a full filename).
     """
-    machine_controls = {}
-    if not os.path.exists(conf_path):
-        return machine_controls
-    conf_file = open(conf_path)
-    for line in conf_file.readlines():
-        if line.startswith('#'):
-            continue
-        elts = line.split()
-        # Ignore lines that aren't string doubles or more
-        if len(elts) < 2:
-            continue
-        control_file_paths = [os.path.expanduser(e) for e in elts[1:]]
-        machine_controls[elts[0]] = control_file_paths
-    return machine_controls
+    class namespace_type(object):
+        def __init__(self):
+            # hardcoded default values
+            self.filter_exprs = ()
+            self.trigger = trigger.trigger()
+            self.__file__ = os.path.abspath(path)
+
+    namespace = namespace_type()
+
+    # execute the file using the given namespace
+    execfile(path, namespace.__dict__)
+
+    return namespace
 
 
-def mail(from_address, to_addresses, subject, message_text):
-    # if passed a string for the to_addresses convert it to a tuple
-    if type(to_addresses) is str:
-        to_addresses = (to_addresses,)
+def filter_kernels(files, exprs):
+    # don't filter anything if no filtering expressions given
+    if not exprs:
+        return files
 
-    message = email.Message.Message()
-    message["To"] = ", ".join(to_addresses)
-    message["From"] = from_address
-    message["Subject"] = subject
-    message.set_payload(message_text)
+    compiled = [re.compile(r) for r in exprs]
 
-    try:
-        sendmail(message.as_string())
-    except SendmailException, e:
-        server = smtplib.SMTP("localhost")
-        server.sendmail(from_address, to_addresses, message.as_string())
-        server.quit()
+    def matches(fname):
+        for pattern in compiled:
+            match = pattern.match(fname)
+            if match:
+                return match.groupdict().get('arg', fname)
 
+        return None
 
-MAIL = "sendmail"
-
-class SendmailException(Exception):
-    pass
-
-
-def sendmail(message):
-    """Send an email using sendmail"""
-    # open a pipe to the mail program and
-    # write the data to the pipe
-    p = os.popen("%s -t" % MAIL, 'w')
-    p.write(message)
-    exitcode = p.close()
-    if exitcode:
-        raise SendmailException("Exit code: %s" % exitcode)
-
-
-def send_kernel_mail(kernel_list):
-    if not options.email:
-        return
-    if len(kernel_list) < 1:
-        return
-    message = "\n".join(kernel_list)
-    message = "Testing new kernel releases:\n%s" % message
-
-    mail("autotest-server@localhost", options.email, \
-            "autotest new kernel notification", message)
-
-encode_sep = re.compile('(\D+)')
-
-
-def kver_encode(version):
-    if 'rc' not in version:
-        version += '-rc99'
-    if 'git' not in version:
-        version += '-git99'
-    bits = encode_sep.split(version)
-    for n in range(0, len(bits), 2):
-        if len(bits[n]) < 2:
-            bits[n] = '0' + bits[n]
-    return ''.join(bits)
-
-
-def kver_cmp(a, b):
-    a, b = kver_encode(a), kver_encode(b)
-    return cmp(a, b)
-
-
-def closest_kver_leq(klist, kver):
-    """Return the closest kernel ver in the list that is leq kver unless
-    kver is the lowest, in which case return the lowest in klist"""
-    if kver in klist:
-        return kver
-    l = list(klist)
-    l.append(kver)
-    l.sort(cmp=kver_cmp)
-    i = l.index(kver)
-    if i == 0:
-        return l[1]
-    return l[i - 1]
-
-
-def perform_client_tests(kernel_list):
-    machines = load_conf(options.clients)
-    for kernel in kernel_list:
-        # Get a list of all the machines available for testing
-        # and the tests that each one is to execute and group them by
-        # control/kernel-config so we can run a single job for the same group
-
-        # dictionary of (control-file, kernel-config) -> <list-of-machines>
-        jobs = {}
-        for machine, controls in machines.items():
-            config_paths = load_conf(os.path.join(options.config, machine))
-            config = '/boot/config'
-            if len(config_paths) > 0:
-                kvers = config_paths.keys()
-                close =  closest_kver_leq(kvers, kernel)
-                config = config_paths[close][0]
-            for control in controls:
-                jobs.setdefault((control, config), [])
-                jobs[(control, config)].append(machine)
-
-        for (control, config), hosts in jobs.items():
-            test_kernel(hosts, control, kernel, config)
+    # return a sequence of (possibly transformed) matched filenames
+    return filter(None, map(matches, files))
 
 
 def main():
-    """Performs an rsync of kernel.org, sends email on new releases
-    and starts testing on them
-    """
-    source = 'rsync://rsync.kernel.org/pub/linux/kernel'
-    mirror = rsync.rsync(source, options.target, excludes)
+    # import configuration file
+    config = import_config_file(options.config)
 
-    mirror.sync('v2.6/patch-2.6.*.bz2', 'kernel/v2.6')
-    # for some reason 'linux-2.6.[0-9]*.tar.bz2' doesn't work
-    mirror.sync('v2.6/linux-2.6.[0-9].tar.bz2', 'kernel/v2.6')
-    mirror.sync('v2.6/linux-2.6.[0-9][0-9].tar.bz2', 'kernel/v2.6')
-    mirror.sync('v2.6/testing/patch*.bz2', 'kernel/v2.6/testing')
-    mirror.sync('v2.6/snapshots/*.bz2', 'kernel/v2.6/snapshots')
-    mirror.sync('people/akpm/patches/2.6/*', 'akpm')
+    new_files = config.source.get_new_files()
+    if options.verbose:
+        print 'Found %d new files...' % len(new_files)
 
-    trig = trigger.Trigger()
+    if not new_files:
+        return
 
-    trig.add_action(send_kernel_mail)
-    trig.add_action(perform_client_tests)
+    if not options.dry_run:
+        config.trigger.run(filter_kernels(new_files, config.filter_exprs))
 
-    trig.scan(mirror.tmpfile)
+    # commit the new files to the database
+    if options.verbose:
+        print 'Committing to the known files database...'
+    config.source.store_files(new_files)
 
 
 if __name__ == '__main__':
-    usage = "mirror [options] <mirrordir>"
+    usage = 'mirror [options]'
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-e", "--email", dest="email",
-                      help="Email address to alert for new kernels",
-                      metavar="EMAIL")
-    parser.add_option("-c", "--clients", dest="clients",
-                      help="Location of the file that describes which \
-                            control file to run on which clients; defaults \
-                            to %s" % default_clients_path,
-                      metavar="CLIENTS", default=default_clients_path)
-    parser.add_option("-f", "--config", dest="config",
-                      help="Location of the directory that describes which \
-                            config files to use on which clients; defaults \
-                            to %s" % default_config_path,
-                      metavar="CONFIG", default=default_config_path)
+    parser.add_option('-c', '--config-file', dest='config',
+                      help='Location of the configuration file; defaults \
+                      to %s' % default_config_path, default=default_config_path)
+    parser.add_option('-n', '--dry-run', dest='dry_run', action='store_true',
+                      default=False,
+                      help='Perform a dry run without scheduling jobs but \
+                      updating the known files database.')
+    parser.add_option('-q', '--quiet', dest='verbose', action='store_false',
+                      default=True,
+                      help='Do not print anything except errors.')
     (options, args) = parser.parse_args()
-    if len(args) < 1:
-        parser.print_help()
-        parser.error("A mirrordir must be specified")
-    options.target = args[0]
 
     main()
