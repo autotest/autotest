@@ -397,6 +397,17 @@ class VM:
                 self.destroy()
                 return False
 
+            # Get the output so far, to see if we have any problems with
+            # hugepage setup.
+            output = self.process.get_output()
+
+            if "alloc_mem_area" in output:
+                logging.error("Could not allocate hugepage memory; "
+                              "qemu command:\n%s" % qemu_command)
+                logging.error("Output:" + kvm_utils.format_str_for_message(
+                              self.process.get_output()))
+                return False
+
             logging.debug("VM appears to be alive with PID %d",
                           self.process.get_pid())
             return True
