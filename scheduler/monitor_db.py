@@ -96,7 +96,7 @@ def main_without_exception_handling():
     if not scheduler_enabled:
         msg = ("Scheduler not enabled, set enable_scheduler to true in the "
                "global_config's SCHEDULER section to enabled it. Exiting.")
-        print msg
+        logging.error(msg)
         sys.exit(1)
 
     global RESULTS_DIR
@@ -3061,7 +3061,7 @@ class Job(DBObject):
         may be used to run this Job (such as Cleanup & Verify).
 
         @returns A list of tasks to be done to the given queue_entry before
-                it should be considered be ready to run this job.  The last 
+                it should be considered be ready to run this job.  The last
                 task in the list calls HostQueueEntry.on_pending(), which
                 continues the flow of the job.
         """
