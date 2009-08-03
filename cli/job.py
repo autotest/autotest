@@ -241,6 +241,29 @@ class job_create_or_clone(action_common.atest_create, job):
                                default='')
 
 
+    def _parse_hosts(self, args):
+        """ Parses the arguments to generate a list of hosts and meta_hosts
+        A host is a regular name, a meta_host is n*label or *label.
+        These can be mixed on the CLI, and separated by either commas or
+        spaces, e.g.: 5*Machine_Label host0 5*Machine_Label2,host2 """
+
+        hosts = []
+        meta_hosts = []
+
+        for arg in args:
+            for host in arg.split(','):
+                if re.match('^[0-9]+[*]', host):
+                    num, host = host.split('*', 1)
+                    meta_hosts += int(num) * [host]
+                elif re.match('^[*](\w*)', host):
+                    meta_hosts += [re.match('^[*](\w*)', host).group(1)]
+                elif host != '' and host not in hosts:
+                    # Real hostname and not a duplicate
+                    hosts.append(host)
+
+        return (hosts, meta_hosts)
+
+
     def parse(self):
         host_info = topic_common.item_parse_info(attribute_name='hosts',
                                                  inline_option='machine',
@@ -276,7 +299,7 @@ class job_create_or_clone(action_common.atest_create, job):
         self.data['name'] = self.jobname
 
         (self.data['hosts'],
-         self.data['meta_hosts']) = self.parse_hosts(self.hosts)
+         self.data['meta_hosts']) = self._parse_hosts(self.hosts)
 
         self.data['email_list'] = options.email
 
@@ -505,11 +528,15 @@ class job_clone(job_create_or_clone):
         self.clone_id = options.id
         self.reuse_hosts = options.reuse_hosts
 
-        if ((not self.reuse_hosts) and
-            (len(self.hosts) == 0 and not self.one_time_hosts
-             and not options.labels)):
-            self.invalid_syntax('Must reuse or specify at least one machine '
-                                '(-r, -m, -M, -b or --one-time-hosts).')
+        host_specified = self.hosts or self.one_time_hosts or options.labels
+        if self.reuse_hosts and host_specified:
+            self.invalid_syntax('Cannot specify hosts and reuse the same '
+                                'ones as the cloned job.')
+
+        if not (self.reuse_hosts or host_specified):
+            self.invalid_syntax('Must reuse or specify at least one '
+                                'machine (-r, -m, -M, -b or '
+                                '--one-time-hosts).')
 
         return options, leftover
 
@@ -518,41 +545,22 @@ class job_clone(job_create_or_clone):
         clone_info = self.execute_rpc(op='get_info_for_clone',
                                       id=self.clone_id,
                                       preserve_metahosts=self.reuse_hosts)
-        # TODO(jmeurin) - Fixing the self.data is the actual bug
-        # I'll fix in the next CL, so some of this doesn't entirely
-        # makes sense (like calling parse_hosts() again)
-        # We really need to merge self.data and clone_info.
-        self.data = clone_info['job']
 
         # Remove fields from clone data that cannot be reused
-        unused_fields = ('name', 'created_on', 'id', 'owner')
-        for field in unused_fields:
-            del self.data[field]
+        for field in ('name', 'created_on', 'id', 'owner'):
+            del clone_info['job'][field]
 
         # Keyword args cannot be unicode strings
-        for key, val in self.data.iteritems():
-            del self.data[key]
-            self.data[str(key)] = val
+        self.data.update((str(key), val)
+                         for key, val in clone_info['job'].iteritems())
 
-        # Convert host list from clone info that can be used for job_create
-        host_list = []
-        if clone_info['meta_host_counts']:
-            # Creates a dictionary of meta_hosts, e.g.
-            # {u'label1': 3, u'label2': 2, u'label3': 5}
-            meta_hosts = clone_info['meta_host_counts']
-            # Create a list of formatted metahosts, e.g.
-            # [u'3*label1', u'2*label2', u'5*label3']
-            meta_host_list = ['%s*%s' % (str(val), key) for key,val in
-                              meta_hosts.items()]
-            host_list.extend(meta_host_list)
-        if clone_info['hosts']:
-            # Creates a list of hosts, e.g. [u'host1', u'host2']
-            hosts = [host['hostname'] for host in clone_info['hosts']]
-            host_list.extend(hosts)
+        if self.reuse_hosts:
+            # Convert host list from clone info that can be used for job_create
+            for label, qty in clone_info['meta_host_counts'].iteritems():
+                self.data['meta_hosts'].extend([label]*qty)
 
-        (self.data['hosts'],
-         self.data['meta_hosts']) = self.parse_hosts(host_list)
-        self.data['name'] = self.jobname
+            self.data['hosts'].extend(host['hostname']
+                                      for host in clone_info['hosts'])
 
         return self.create_job()
 
