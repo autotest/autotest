@@ -745,7 +745,12 @@ class Dispatcher(object):
         subject = 'Unrecovered orphan autoserv processes remain'
         message = '\n'.join(str(process) for process in orphans)
         email_manager.manager.enqueue_notify_email(subject, message)
-        raise RuntimeError(subject + '\n' + message)
+
+        die_on_orphans = global_config.global_config.get_config_value(
+            scheduler_config.CONFIG_SECTION, 'die_on_orphans', type=bool)
+
+        if die_on_orphans:
+            raise RuntimeError(subject + '\n' + message)
 
 
     def _recover_running_entries(self, orphans):
