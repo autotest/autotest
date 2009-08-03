@@ -274,7 +274,7 @@ class AbstractSSHHost(SiteHost):
                                   ignore_status=True).exit_status == 0
                 if is_dir:
                     cmd = "rm -rf %s && mkdir %s"
-                    cmd %= (remote_dest, remote_dest)
+                    cmd %= (dest, dest)
                     self.run(cmd)
 
             local_sources = self._make_rsync_compatible_source(source, True)
