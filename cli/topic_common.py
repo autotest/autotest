@@ -367,6 +367,11 @@ class atest(object):
                                              self.msg_items)
 
 
+    def backward_compatibility(self, action, argv):
+        """To be overidden by subclass if their syntax changed"""
+        return action
+
+
     def parse(self, parse_info=[], req_items=None):
         """parse_info is a list of item_parse_info objects
 
