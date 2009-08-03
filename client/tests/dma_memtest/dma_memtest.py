@@ -5,7 +5,7 @@ from autotest_lib.client.common_lib import error
 
 class dma_memtest(test.test):
     """
-    A test for the memory subsystem against heavy IO and DMA operations, 
+    A test for the memory subsystem against heavy IO and DMA operations,
     implemented based on the work of Doug Leford
     (http://people.redhat.com/dledford/memtest.shtml)
 
@@ -23,8 +23,8 @@ class dma_memtest(test.test):
         Downloads a copy of the linux kernel, calculate an estimated size of
         the uncompressed tarball, use this value to calculate the number of
         copies of the linux kernel that will be uncompressed.
-        
-            @param tarball_base: Name of the kernel tarball location that will 
+
+            @param tarball_base: Name of the kernel tarball location that will
             be looked up on the kernel.org mirrors.
             @param parallel: If we are going to uncompress the copies of the
             kernel in parallel or not
@@ -37,7 +37,7 @@ class dma_memtest(test.test):
         tarball_url = os.path.join(kernel_repo, tarball_base)
         tarball_md5 = '296a6d150d260144639c3664d127d174'
         logging.info('Downloading linux kernel tarball')
-        self.tarball = utils.unmap_url_cache(self.cachedir, tarball_url, 
+        self.tarball = utils.unmap_url_cache(self.cachedir, tarball_url,
                                              tarball_md5)
         size_tarball = os.path.getsize(self.tarball) / 1024 / 1024
         # Estimation of the tarball size after uncompression
@@ -119,7 +119,7 @@ class dma_memtest(test.test):
 
         logging.info('Comparing test copies with base copy')
         for j in range(self.sim_cps):
-            tmp_dir = 'linux.%s/%s' % (j, 
+            tmp_dir = 'linux.%s/%s' % (j,
                             os.path.basename(self.tarball).strip('.tar.bz2'))
             if self.parallel:
                 diff_cmd = ['diff', '-U3', '-rN', 'linux.orig', tmp_dir]

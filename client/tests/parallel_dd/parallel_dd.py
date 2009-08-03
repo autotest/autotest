@@ -123,7 +123,7 @@ class parallel_dd(test.test):
         start = time.time()
         self.fs_read()
         self.fs_read_rate = self.megabytes / (time.time() - start)
-        
+
         self.write_perf_keyval({
             'raw_write' : self.raw_write_rate,
             'raw_read'  : self.raw_read_rate,

@@ -58,7 +58,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
         for kernel in trimmed_kernels:
             runs = collect_testruns(job_table[kernel], regressed_platforms, test)
             if runs:
-                test_runs[kernel] = runs 
+                test_runs[kernel] = runs
 
 
     def collect_raw_scores(runs, metric):
@@ -66,15 +66,15 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
         #   arrange them by platform type
         platform_scores = {}  # platform --> list of perf scores
         for platform in runs:
-             vals = perf.get_metric_at_point(runs[platform], metric)
-             if vals:
-                 platform_scores[platform] = vals
+            vals = perf.get_metric_at_point(runs[platform], metric)
+            if vals:
+                platform_scores[platform] = vals
         return platform_scores
 
 
     def collect_scaled_scores(metric):
         # get scores of test runs for 1 test on some kernels and platforms
-        # optionally make relative to first kernel on that platform 
+        # optionally make relative to first kernel on that platform
         # arrange by plotline (ie platform) for gnuplot
         plot_data = {}  # platform --> (kernel --> list of perf scores)
         baseline = {}
@@ -134,7 +134,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
                                                  max_dev_kernels,
                                                  job_table, kernel_dates)
         kernels = sort_kernels(kernels)
-        return kernels  # sorted subset of kernels in job_table 
+        return kernels  # sorted subset of kernels in job_table
 
 
     def graph_1_test(test, metric, size):
@@ -144,10 +144,10 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
         title = test.capitalize() + suite_notes
         if regress:
             title += ', Regressions Only'
-        if relative: 
+        if relative:
             ylegend = 'Relative '
             ymin = 0.9
-        else:        
+        else:
             ylegend = ''
             ymin = None
         ylegend += metric.capitalize()
@@ -161,7 +161,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
     def table_for_1_test(test, metric):
         # generate detailed html page with graph plus numeric table for 1 benchmark
         print "Content-Type: text/html\n\n<html><body>"
-        heading = "%s %s:&nbsp %s%s" % (test_group, kernel_legend, 
+        heading = "%s %s:&nbsp %s%s" % (test_group, kernel_legend,
                                         test.capitalize(), suite_notes)
         if regress:
             heading += ", Regressions Only"
@@ -192,7 +192,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
                     if avg+std_dev < ref_thresholds[platform]:
                         print "bgcolor=pink",
                     print ( "> <a href='%s?test=%s&metric=%s"
-                            "&platforms=%s&runs&kernel=%s'>" 
+                            "&platforms=%s&runs&kernel=%s'>"
                             % (myself, test, metric, platform, kernel) )
                     print "<b>%.4g</b>" % avg, "</a><br>",
                     print "&nbsp; <small> %dr   </small>" % len(vals),
@@ -243,20 +243,20 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
                 print "%.4g" % v,
             print "</td>"
             row = get_testrun_context(testrunx)
-            print ( "<td> <a href='//%s/results/%s/%s/results'> %s </a></td>" 
+            print ( "<td> <a href='//%s/results/%s/%s/results'> %s </a></td>"
                     % (results_server, row[0], row[1], row[0]) )
             for v in row[1:]:
-                 print "<td> %s </td>" % v
+                print "<td> %s </td>" % v
             if show_attrs:
                 attrs = perf.get_test_attributes(testrunx)
                 print "<td>",
                 for attr in attrs:
-                     # if attr == "sysinfo-cmdline": continue
-                     # if attr[:4] == "svs-": continue
-                     val = attrs[attr]
-                     if len(val) > 40:
-                         val = val[:40-3] + "..."
-                     print "%s=%s" % (attr, val)
+                    # if attr == "sysinfo-cmdline": continue
+                    # if attr[:4] == "svs-": continue
+                    val = attrs[attr]
+                    if len(val) > 40:
+                        val = val[:40-3] + "..."
+                    print "%s=%s" % (attr, val)
                 print "</td>"
             print "</tr>\n"
         print "</table>"
@@ -319,7 +319,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
             metric = perf.benchmark_main_metric(test)
             assert metric, "no default metric for test %s" % test
         # perf.init()
-        perf.db_cur = db.db(host=tko_mysql_server, 
+        perf.db_cur = db.db(host=tko_mysql_server,
                             user='nobody', password='').cur
         kernels = select_dev_kernels()
         regressed_platforms = find_regressions(kernels, test, metric)
@@ -327,7 +327,7 @@ def nightly_views(suite_notes, kernel_legend, benchmarks,
         plot_data = collect_scaled_scores(metric)
         platforms = sorted(plot_data.keys())
         if 'runs' in form:
-            testrun_details_for_1_test_kernel_platform(test, metric, 
+            testrun_details_for_1_test_kernel_platform(test, metric,
                                                        platforms[0])
         elif 'table' in form:
             table_for_1_test(test, metric)
@@ -374,4 +374,3 @@ def survey_all_kernels_tested(db_cur, kernel_series, kname_prefix, smp,
         kernels.add(kernel)
     kernels = sort_kernels(kernels)[-maxkernels:]
     return kernels
-

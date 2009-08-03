@@ -2,7 +2,7 @@
 Sets up a subprocess to run sar from the sysstat suite
 
 Default options:
-sar -A -f 
+sar -A -f
 """
 
 

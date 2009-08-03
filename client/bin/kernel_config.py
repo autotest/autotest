@@ -129,12 +129,12 @@ class kernel_config(object):
         utils.system('yes "" | make oldconfig > /dev/null')
         if new_config:
             shutil.copyfile(self.build_config, new_config)
-    
+
     def config_record(self, name):
         #Copy the current .config file to the config.<name>[.<n>]
-        i = 1 
+        i = 1
         to = self.config_dir + '/config.%s' % name
         while os.path.exists(to):
             i += 1
             to = self.config_dir + '/config.%s.%d' % (name,i)
-        shutil.copyfile(self.build_dir + '/.config', to) 
+        shutil.copyfile(self.build_dir + '/.config', to)

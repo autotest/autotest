@@ -978,8 +978,8 @@ def write_pid(program_name):
     pid_path = os.path.abspath(os.path.join(my_path, "../.."))
     pidf = open(os.path.join(pid_path, "%s.pid" % program_name), "w")
     if pidf:
-      pidf.write("%s\n" % os.getpid())
-      pidf.close()
+        pidf.write("%s\n" % os.getpid())
+        pidf.close()
 
 
 def get_relative_path(path, reference):

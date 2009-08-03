@@ -10,7 +10,7 @@ def load_kvm_modules(module_dir):
     sub directory of module_dir. Function will walk through module_dir until
     it finds the modules.
 
-    @param module_dir: Directory where the KVM modules are located. 
+    @param module_dir: Directory where the KVM modules are located.
     """
     vendor = "intel"
     if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
@@ -112,7 +112,7 @@ class SourceDirInstaller:
         elif load_modules == 'no':
             self.load_modules = False
 
-        if install_mode == 'localsrc': 
+        if install_mode == 'localsrc':
             if not srcdir:
                 raise error.TestError("Install from source directory specified"
                                       "but no source directory provided on the"
@@ -144,7 +144,7 @@ class SourceDirInstaller:
             snapshot_date = params.get("snapshot_date")
             if not snapshot_date:
                 # Take yesterday's snapshot
-                d = (datetime.date.today() - 
+                d = (datetime.date.today() -
                      datetime.timedelta(1)).strftime("%Y%m%d")
             else:
                 d = snapshot_date

@@ -5,9 +5,9 @@ from autotest_lib.client.common_lib import error
 
 class cerberus(test.test):
     """
-    This autotest module runs CTCS (Cerberus Test Control System). This test 
-    suite was developed for the now extinct VA Linux's manufacturing system 
-    it has several hardware and software stress tests that can be run in 
+    This autotest module runs CTCS (Cerberus Test Control System). This test
+    suite was developed for the now extinct VA Linux's manufacturing system
+    it has several hardware and software stress tests that can be run in
     parallel. It does have a control file system that allows testers to specify
     the sorts of tests that they want to see executed. It's an excelent stress
     test for hardware and kernel.
@@ -24,7 +24,7 @@ class cerberus(test.test):
         self.nfail = 0
 
 
-    def setup(self, tarball='ctcs-1.3.1pre1.tar.bz2', length = '4h', 
+    def setup(self, tarball='ctcs-1.3.1pre1.tar.bz2', length = '4h',
               tcf_contents=None):
         """
         Builds the test suite, and sets up the control file that is going to
@@ -39,7 +39,7 @@ class cerberus(test.test):
         utils.extract_tarball_to_dir(cerberus_tarball, self.srcdir)
 
         os.chdir(self.srcdir)
-        # Apply patch to fix build problems on newer distros (absence of 
+        # Apply patch to fix build problems on newer distros (absence of
         # asm/page.h include.
         utils.system('patch -p1 < ../fix-ctcs-build.patch')
         utils.system('make')
@@ -80,7 +80,7 @@ class cerberus(test.test):
         # After we are done with this iterations, we move the log files to
         # the results dir
         log_base_path = os.path.join(self.srcdir, 'log')
-        log_dir = glob.glob(os.path.join(log_base_path, 
+        log_dir = glob.glob(os.path.join(log_base_path,
                                          'autotest.tcf.log.*'))[0]
         logging.debug('Copying %s log directory to results dir', log_dir)
         dst = os.path.join(self.resultsdir, os.path.basename(log_dir))

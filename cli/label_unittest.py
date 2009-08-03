@@ -109,7 +109,7 @@ class label_create_unittest(cli_mock.cli_unittest):
                             {'name': 'label1', 'platform': False,
                              'only_if_needed': False},
                             False,
-                            '''ValidationError: {'name': 
+                            '''ValidationError: {'name':
                             'This value must be unique (label0)'}''')],
                      out_words_ok=['Created', 'label0'],
                      out_words_no=['label1'],

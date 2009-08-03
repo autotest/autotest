@@ -21,13 +21,13 @@ afe_proxy = rpc.afe_comm(autotest_host, '/afe/server/noauth/rpc/')
 
 hosts = afe_proxy.run('get_hosts', hostname__in=leftover_args[1:])
 for host in hosts:
-  try:
-    afe_proxy.run('modify_host', host['id'], protection=protection_level)
-  except Exception, exc:
-    print 'For host %s:', host['hostname']
-    traceback.print_exc()
-  else:
-    print 'Host %s succeeded' % host['hostname']
+    try:
+        afe_proxy.run('modify_host', host['id'], protection=protection_level)
+    except Exception, exc:
+        print 'For host %s:', host['hostname']
+        traceback.print_exc()
+    else:
+        print 'Host %s succeeded' % host['hostname']
 
 print 'Invalid hosts:'
 print ','.join(set(leftover_args[1:]) - set(host['hostname'] for host in hosts))

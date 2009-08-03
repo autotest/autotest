@@ -146,7 +146,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir,
                            verbose=verbose)
-     
+
     profilers_path = os.path.join(autotest_dir, "client/profilers")
     if os.path.exists(profilers_path):
         if verbose:
@@ -157,7 +157,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                                description='NA')
     # Clean bad db entries
     db_clean_broken(autotest_dir, verbose)
- 
+
 
 def db_clean_broken(autotest_dir, verbose):
     """Remove tests from autotest_web that do not have valid control files
@@ -258,7 +258,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
             else:
                 control_name = "%s:%s"
                 control_name %= (test_new_test[-2],
-                                 test_new_test[-1]) 
+                                 test_new_test[-1])
                 new_test['name'] = control_name.replace('control.', '')
         # Experimental Check
         if not add_experimental:

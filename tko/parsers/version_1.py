@@ -58,7 +58,7 @@ class iteration(models.iteration):
     def parse_line_into_dicts(line, attr_dict, perf_dict):
         key, val_type, value = "", "", ""
 
-        # figure out what the key, value and keyval type are 
+        # figure out what the key, value and keyval type are
         typed_match = re.search("^([^=]*)\{(\w*)\}=(.*)$", line)
         if typed_match:
             key, val_type, value = typed_match.groups()

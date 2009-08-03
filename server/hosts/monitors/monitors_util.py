@@ -29,7 +29,7 @@ def prepend_timestamp(msg, format):
     elif callable(format):
         timestamp = str(format())
     else:
-      raise InvalidTimestampFormat
+        raise InvalidTimestampFormat
 
     return '%s\t%s' % (timestamp, msg)
 

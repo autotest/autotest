@@ -39,12 +39,12 @@ class lsb_dtk(test.test):
             # First, we download the LSB DTK manager package, worry about
             # installing it later
             dtk_manager_arch = self.config.get('dtk-manager', 'arch-%s' % self.arch)
-            dtk_manager_url = self.config.get('dtk-manager', 
+            dtk_manager_url = self.config.get('dtk-manager',
                                          'tarball_url') % dtk_manager_arch
             if not dtk_manager_url:
                 raise error.TestError('Could not get DTK manager URL from'
                                       ' configuration file')
-    
+
             dtk_md5 = self.config.get('dtk-manager', 'md5-%s' % self.arch)
             if dtk_md5:
                 logging.info('Caching LSB DTK manager RPM')
@@ -54,7 +54,7 @@ class lsb_dtk(test.test):
             else:
                 raise error.TestError('Could not find DTK manager package md5,'
                                       ' cannot cache DTK manager tarball')
-    
+
             # Get LSB tarball, cache it and uncompress under autotest srcdir
             if self.config.get('lsb', 'override_default_url') == 'no':
                 lsb_url = self.config.get('lsb', 'tarball_url') % self.arch
@@ -71,9 +71,9 @@ class lsb_dtk(test.test):
             else:
                 raise error.TestError('Could not find LSB package md5, cannot'
                                       ' cache LSB tarball')
-    
+
             utils.extract_tarball_to_dir(lsb_pkg, self.srcdir)
-    
+
             # Lets load a file that contains the list of RPMs
             os.chdir(self.srcdir)
             if not os.path.isfile('inst-config'):
@@ -92,7 +92,7 @@ class lsb_dtk(test.test):
                 except:
                     # If we don't get a match, no problem
                     pass
-    
+
             # Lets figure out the host distro
             distro_pkg_support = package.os_support()
             if os.path.isfile('/etc/debian_version') and \
@@ -111,7 +111,7 @@ class lsb_dtk(test.test):
             else:
                 logging.error('OS does not seem to be red hat or debian based')
                 raise EnvironmentError('Cannot handle LSB package installation')
-    
+
             # According to the host distro detection, we can install the packages
             # using the list previously assembled
             if distro_type == 'redhat-based':
@@ -130,7 +130,7 @@ class lsb_dtk(test.test):
                 for lsb_rpm in lsb_pkg_list:
                     lsb_dpkg = package.convert(lsb_rpm, 'dpkg')
                     package.install(lsb_dpkg, nodeps=True)
-    
+
             self.packages_installed = True
 
 
@@ -179,4 +179,3 @@ class lsb_dtk(test.test):
 
         logging.info('Executing LSB main test script')
         utils.system(cmd)
-

@@ -580,7 +580,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-             self.assertEquals(0,1)
+            self.assertEquals(0,1)
         self.god.check_playback()
 
         # catch exception on bond enabled
@@ -590,7 +590,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-             self.assertEquals(0,1)
+            self.assertEquals(0,1)
         self.god.check_playback()
 
         # check that setting tg3 and bnx2x driver have a sleep call
@@ -648,7 +648,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-             self.assertEquals(0,1)
+            self.assertEquals(0,1)
         self.god.check_playback()
 
         # catch exception on phyint and mac failures
@@ -664,7 +664,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-             self.assertEquals(0,1)
+            self.assertEquals(0,1)
         self.god.check_playback()
 
 
@@ -677,7 +677,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-             self.assertEquals(0,1)
+            self.assertEquals(0,1)
         self.god.check_playback()
 
         self.god.stub_function(net_utils.bonding, 'is_enabled')

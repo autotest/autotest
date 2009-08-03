@@ -709,7 +709,7 @@ class ethernet(object):
         """
         packet_len = len(raw_frame)
         if packet_len < ethernet.HDR_LEN:
-          return None
+            return None
 
         payload_len = packet_len - ethernet.HDR_LEN
         frame = {}
