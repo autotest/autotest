@@ -1,3 +1,7 @@
+"""
+Autotest profiler for blktrace
+blktrace - generate traces of the i/o traffic on block devices
+"""
 import os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import profiler, utils
