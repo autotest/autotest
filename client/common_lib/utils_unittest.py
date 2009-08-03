@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, StringIO, socket, urllib, urllib2, shutil
+import os, unittest, StringIO, socket, urllib2, shutil, subprocess
 
 import common
 from autotest_lib.client.common_lib import utils, autotemp
@@ -554,6 +554,75 @@ class test_get_relative_path(unittest.TestCase):
     def test_parallel_dir(self):
         self.assertEqual(utils.get_relative_path("/a/c/d", "/a/b/c/d"),
                          "../../../c/d")
+
+
+class test_sh_escape(unittest.TestCase):
+    def _test_in_shell(self, text):
+        escaped_text = utils.sh_escape(text)
+        proc = subprocess.Popen('echo "%s"' % escaped_text, shell=True,
+                                stdin=open(os.devnull, 'r'),
+                                stdout=subprocess.PIPE,
+                                stderr=open(os.devnull, 'w'))
+        stdout, _ = proc.communicate()
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(stdout[:-1], text)
+
+
+    def test_normal_string(self):
+        self._test_in_shell('abcd')
+
+
+    def test_spaced_string(self):
+        self._test_in_shell('abcd efgh')
+
+
+    def test_dollar(self):
+        self._test_in_shell('$')
+
+
+    def test_single_quote(self):
+        self._test_in_shell('\'')
+
+
+    def test_single_quoted_string(self):
+        self._test_in_shell('\'efgh\'')
+
+
+    def test_double_quote(self):
+        self._test_in_shell('"')
+
+
+    def test_double_quoted_string(self):
+        self._test_in_shell('"abcd"')
+
+
+    def test_backtick(self):
+        self._test_in_shell('`')
+
+
+    def test_backticked_string(self):
+        self._test_in_shell('`jklm`')
+
+
+    def test_backslash(self):
+        self._test_in_shell('\\')
+
+
+    def test_backslashed_special_characters(self):
+        self._test_in_shell('\\$')
+        self._test_in_shell('\\"')
+        self._test_in_shell('\\\'')
+        self._test_in_shell('\\`')
+
+
+    def test_backslash_codes(self):
+        self._test_in_shell('\\n')
+        self._test_in_shell('\\r')
+        self._test_in_shell('\\t')
+        self._test_in_shell('\\v')
+        self._test_in_shell('\\b')
+        self._test_in_shell('\\a')
+        self._test_in_shell('\\000')
 
 
 if __name__ == "__main__":
