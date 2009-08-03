@@ -944,8 +944,8 @@ class job_create_unittest(cli_mock.cli_unittest):
 
 
     def _test_parse_hosts(self, args, exp_hosts=[], exp_meta_hosts=[]):
-        testjob = job.job_create()
-        (hosts, meta_hosts) = testjob.parse_hosts(args)
+        testjob = job.job_create_or_clone()
+        (hosts, meta_hosts) = testjob._parse_hosts(args)
         self.assertEqualNoOrder(hosts, exp_hosts)
         self.assertEqualNoOrder(meta_hosts, exp_meta_hosts)
 
@@ -991,6 +991,40 @@ class job_clone_unittest(cli_mock.cli_unittest):
                     'synch_count': 1,
                     'timeout': 480}
 
+    local_hosts = [{u'acls': [u'acl0'],
+                    u'atomic_group': None,
+                    u'attributes': {},
+                    u'dirty': False,
+                    u'hostname': u'host0',
+                    u'id': 8,
+                    u'invalid': False,
+                    u'labels': [u'label0', u'label1'],
+                    u'lock_time': None,
+                    u'locked': False,
+                    u'locked_by': None,
+                    u'other_labels': u'label0, label1',
+                    u'platform': u'plat0',
+                    u'protection': u'Repair software only',
+                    u'status': u'Ready',
+                    u'synch_id': None},
+                   {u'acls': [u'acl0'],
+                    u'atomic_group': None,
+                    u'attributes': {},
+                    u'dirty': False,
+                    u'hostname': u'host1',
+                    u'id': 9,
+                    u'invalid': False,
+                    u'labels': [u'label0', u'label1'],
+                    u'lock_time': None,
+                    u'locked': False,
+                    u'locked_by': None,
+                    u'other_labels': u'label0, label1',
+                    u'platform': u'plat0',
+                    u'protection': u'Repair software only',
+                    u'status': u'Ready',
+                    u'synch_id': None}]
+
+
     def setUp(self):
         super(job_clone_unittest, self).setUp()
         self.job_data_clone_info = copy.deepcopy(self.job_data)
@@ -1035,30 +1069,50 @@ class job_clone_unittest(cli_mock.cli_unittest):
 
 
     def test_clone_reuse_hosts(self):
+        self.job_data_cloned['hosts'] = [u'host0', 'host1']
         self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
                            '-r', 'cloned'],
                      rpcs=[('get_info_for_clone', {'id': '42',
                                                    'preserve_metahosts': True},
                             True,
                             {u'atomic_group_name': None,
-                             u'hosts': [{u'acls': [u'acl0'],
-                                         u'atomic_group': None,
-                                         u'attributes': {},
-                                         u'dirty': False,
-                                         u'hostname': u'host0',
-                                         u'id': 4378,
-                                         u'invalid': False,
-                                         u'labels': [u'label0', u'label1'],
-                                         u'lock_time': None,
-                                         u'locked': False,
-                                         u'locked_by': None,
-                                         u'other_labels': u'label0, label1',
-                                         u'platform': u'plat0',
-                                         u'protection': u'Repair software only',
-                                         u'status': u'Ready',
-                                         u'synch_id': None}],
+                             u'hosts': self.local_hosts,
                              u'job': self.job_data_clone_info,
                              u'meta_host_counts': {}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
+
+
+    def test_clone_reuse_metahosts(self):
+        self.job_data_cloned['hosts'] = []
+        self.job_data_cloned['meta_hosts'] = ['type1']*4 +  ['type0']
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '-r', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': True},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': [],
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {u'type0': 1,
+                                                   u'type1': 4}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
+
+
+    def test_clone_reuse_both(self):
+        self.job_data_cloned['hosts'] = [u'host0', 'host1']
+        self.job_data_cloned['meta_hosts'] = ['type1']*4 +  ['type0']
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '-r', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': True},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': self.local_hosts,
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {u'type0': 1,
+                                                   u'type1': 4}}),
                            ('create_job', self.job_data_cloned, True, 43)],
                      out_words_ok=['Created job', '43'])
 
@@ -1070,7 +1124,43 @@ class job_clone_unittest(cli_mock.cli_unittest):
                      err_words_ok=['machine'])
 
 
-    # TODO(jmeurin) Add tests with hosts once the code is working
+    def test_clone_reuse_and_hosts(self):
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '-r', '-m', 'host5', 'cloned'],
+                     exit_code=1,
+                     out_words_ok=['usage'],
+                     err_words_ok=['specify'])
+
+
+    def test_clone_new_multiple_hosts(self):
+        self.job_data_cloned['hosts'] = [u'host5', 'host4', 'host3']
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '-m', 'host5,host4,host3', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': False},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': self.local_hosts,
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
+
+
+    def test_clone_oth(self):
+        self.job_data_cloned['hosts'] = []
+        self.job_data_cloned['one_time_hosts'] = [u'host5']
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '--one-time-hosts', 'host5', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': False},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': self.local_hosts,
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
 
 
 class job_abort_unittest(cli_mock.cli_unittest):
