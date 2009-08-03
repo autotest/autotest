@@ -22,4 +22,4 @@ class perfmon(test.test):
         cmd = self.srcdir + '/tests/pfm_tests' + args
         # self.results.append(utils.system_output(cmd, retain_output=True))
         if 'FAIL' in utils.system_output(cmd, retain_output=True):
-                raise error.TestError('some perfmon tests failed')
+            raise error.TestError('some perfmon tests failed')

@@ -46,7 +46,7 @@ class RpcClient(object):
     Abstract RPC class for communicating with the autotest frontend
     Inherited for both TKO and AFE uses.
 
-    All the constructors go in the afe / tko class. 
+    All the constructors go in the afe / tko class.
     Manipulating methods go in the object classes themselves
     """
     def __init__(self, path, user, server, print_log, debug, reply_debug):
@@ -114,7 +114,7 @@ class TKO(RpcClient):
 
     def get_status_counts(self, job, **data):
         entries = self.run('get_status_counts',
-                           group_by=['hostname', 'test_name', 'reason'], 
+                           group_by=['hostname', 'test_name', 'reason'],
                            job_tag__startswith='%s-' % job, **data)
         return [TestStatus(self, e) for e in entries['groups']]
 
@@ -130,7 +130,7 @@ class AFE(RpcClient):
                                   debug=debug,
                                   reply_debug=reply_debug)
 
-    
+
     def host_statuses(self, live=None):
         dead_statuses = ['Dead', 'Repair Failed', 'Repairing']
         statuses = self.run('get_static_data')['host_statuses']
@@ -257,9 +257,9 @@ class AFE(RpcClient):
                         email_to=None, timeout=168):
         """
         Run a list of test suites on a particular kernel.
-    
+
         Poll for them to complete, and return whether they worked or not.
-    
+
             pairings: list of MachineTestPairing objects to invoke
             kernel: name of the kernel to run
             kernel_label: label of the kernel to run
@@ -404,7 +404,7 @@ class AFE(RpcClient):
         """
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
-    
+
         Returns a list of job objects
         """
         job_name = '%s : %s' % (pairing.machine_label, kernel_label)
@@ -536,7 +536,7 @@ class AFE(RpcClient):
     def poll_job_results(self, tko, job, debug=False):
         """
         Analyse all job results by platform, return:
-    
+
             False: if any platform has more than one failure
             None:  if any platform has more than one machine not yet Good.
             True:  if all platforms have at least all-but-one machines Good.
@@ -560,7 +560,7 @@ class AFE(RpcClient):
             failed = len(platform_map[platform].get('Failed', []))
             aborted = len(platform_map[platform].get('Aborted', []))
 
-            # We set up what we want to record here, but don't actually do 
+            # We set up what we want to record here, but don't actually do
             # it yet, until we have a decisive answer for this platform
             if aborted or failed:
                 bad = aborted + failed
@@ -587,10 +587,10 @@ class AFE(RpcClient):
                     continue
                 detail.append('%s=%s' % (status,platform_map[platform][status]))
             if debug:
-                print '%20s %d/%d %s' % (platform, completed, total, 
+                print '%20s %d/%d %s' % (platform, completed, total,
                                          ' '.join(detail))
                 print
-    
+
         if len(aborted_platforms) > 0:
             if debug:
                 print 'Result aborted - platforms: ',

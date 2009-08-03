@@ -305,7 +305,7 @@ class DroneManager(object):
             drone.execute_queued_calls()
 
         try:
-             self._results_drone.execute_queued_calls()
+            self._results_drone.execute_queued_calls()
         except error.AutoservError:
             warning = ('Results repository failed to execute calls:\n' +
                        traceback.format_exc())

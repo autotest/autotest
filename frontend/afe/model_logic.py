@@ -18,14 +18,14 @@ class ValidationError(Exception):
 
 
 def _wrap_with_readonly(method):
-        def wrapper_method(*args, **kwargs):
-            readonly_connection.connection().set_django_connection()
-            try:
-                return method(*args, **kwargs)
-            finally:
-                readonly_connection.connection().unset_django_connection()
-        wrapper_method.__name__ = method.__name__
-        return wrapper_method
+    def wrapper_method(*args, **kwargs):
+        readonly_connection.connection().set_django_connection()
+        try:
+            return method(*args, **kwargs)
+        finally:
+            readonly_connection.connection().unset_django_connection()
+    wrapper_method.__name__ = method.__name__
+    return wrapper_method
 
 
 def _quote_name(name):

@@ -120,4 +120,3 @@ class iozone(test.test):
                             keylist[key_name] = result
 
         self.write_perf_keyval(keylist)
-

@@ -92,7 +92,7 @@ class lttng(profiler.profiler):
 
     def start(self, test):
         self.output = os.path.join(test.profdir, 'lttng')
-        utils.system('%s -n test -d -l %s/ltt -t %s' % 
+        utils.system('%s -n test -d -l %s/ltt -t %s' %
                                   (self.lttctl, self.mountpoint, self.output))
 
 

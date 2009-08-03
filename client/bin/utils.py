@@ -13,4 +13,3 @@ from autotest_lib.client.common_lib.utils import *
 from autotest_lib.client.bin.base_utils import *
 if os.path.exists(os.path.join(os.path.dirname(__file__), 'site_utils.py')):
     from autotest_lib.client.bin.site_utils import *
-

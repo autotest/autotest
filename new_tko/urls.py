@@ -24,6 +24,6 @@ debug_pattern_list = (
 )
 
 if settings.DEBUG:
-  pattern_list += debug_pattern_list
+    pattern_list += debug_pattern_list
 
 urlpatterns = patterns('', *pattern_list)

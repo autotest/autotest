@@ -6,16 +6,16 @@ import logging, os, sys, time
 logging.basicConfig(level=logging.DEBUG)
 
 class AllowBelowSeverity(logging.Filter):
-        """
-        Allows only records less severe than a given level (the opposite of what
-        the normal logging level filtering does.
-        """
-        def __init__(self, level):
-            self.level = level
+    """
+    Allows only records less severe than a given level (the opposite of what
+    the normal logging level filtering does.
+    """
+    def __init__(self, level):
+        self.level = level
 
 
-        def filter(self, record):
-            return record.levelno < self.level
+    def filter(self, record):
+        return record.levelno < self.level
 
 
 class LoggingConfig(object):
@@ -33,8 +33,8 @@ class LoggingConfig(object):
         datefmt='%H:%M:%S')
 
     def __init__(self):
-      self.logger = logging.getLogger()
-      self.global_level = logging.DEBUG
+        self.logger = logging.getLogger()
+        self.global_level = logging.DEBUG
 
 
     @classmethod

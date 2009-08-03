@@ -26,7 +26,7 @@ class tsc(test.test):
                               (result.exit_status, result.command))
             ## Analyze result.stdout to see if it is possible to form qualified
             ## reason of failure and to raise an appropriate exception.
-            ## For this test we qualify the reason of failure if the 
+            ## For this test we qualify the reason of failure if the
             ## following conditions are met:
             ## (i) result.exit_status = 1
             ## (ii) result.stdout ends with 'FAIL'
@@ -57,5 +57,3 @@ class tsc(test.test):
             ## If we are here, we failed to qualify the reason of test failre
             ## Consider it as a test error
             raise error.TestError(default_reason)
-
-

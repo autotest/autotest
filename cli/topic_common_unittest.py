@@ -252,7 +252,7 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
         class opt(object):
             flist_obj = cli_mock.create_file('a b c\nd,e\nf\ng, \n, ,,')
             flist = flist_obj.name
-            inline = 'a b,c,d h, ,  ,,	'
+            inline = 'a b,c,d h, ,  ,,  '
         self.__test_parsing_all_good(opt(), ['i','j,d'],
                                      ['a', 'b', 'c', 'd', 'e',
                                       'f', 'g', 'h', 'i', 'j'])

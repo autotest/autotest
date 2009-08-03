@@ -55,17 +55,17 @@ class IsRow(mock.argument_comparator):
 
 
 class IsAgentWithTask(mock.argument_comparator):
-        def __init__(self, task):
-            self._task = task
+    def __init__(self, task):
+        self._task = task
 
 
-        def is_satisfied_by(self, parameter):
-            if not isinstance(parameter, monitor_db.Agent):
-                return False
-            tasks = list(parameter.queue.queue)
-            if len(tasks) != 1:
-                return False
-            return tasks[0] == self._task
+    def is_satisfied_by(self, parameter):
+        if not isinstance(parameter, monitor_db.Agent):
+            return False
+        tasks = list(parameter.queue.queue)
+        if len(tasks) != 1:
+            return False
+        return tasks[0] == self._task
 
 
 def _set_host_and_qe_ids(agent_or_task, id_list=None):
@@ -1231,7 +1231,7 @@ class DelayedCallTaskTest(unittest.TestCase):
 
 
     def test_delayed_call(self):
-        test_time = self.god.create_mock_function('time') 
+        test_time = self.god.create_mock_function('time')
         test_time.expect_call().and_return(33)
         test_time.expect_call().and_return(34.01)
         test_time.expect_call().and_return(34.99)

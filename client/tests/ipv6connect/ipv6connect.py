@@ -32,6 +32,6 @@ class ipv6connect(test.test):
 
 
     def postprocess(self):
-       pattern = re.compile(r'\nTotal time = ([0-9.]+)s\n')
-       for duration in pattern.findall('\n'.join(self.results)):
-           self.write_perf_keyval({'time': duration})
+        pattern = re.compile(r'\nTotal time = ([0-9.]+)s\n')
+        for duration in pattern.findall('\n'.join(self.results)):
+            self.write_perf_keyval({'time': duration})

@@ -49,12 +49,12 @@ class UserCleanup(PeriodicCleanup):
 
 
     def _cleanup(self):
-            logging.info('Running periodic cleanup')
-            self._abort_timed_out_jobs()
-            self._abort_jobs_past_synch_start_timeout()
-            self._abort_jobs_past_max_runtime()
-            self._clear_inactive_blocks()
-            self._check_for_db_inconsistencies()
+        logging.info('Running periodic cleanup')
+        self._abort_timed_out_jobs()
+        self._abort_jobs_past_synch_start_timeout()
+        self._abort_jobs_past_max_runtime()
+        self._clear_inactive_blocks()
+        self._check_for_db_inconsistencies()
 
 
     def _abort_timed_out_jobs(self):
