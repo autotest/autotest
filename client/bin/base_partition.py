@@ -561,13 +561,15 @@ class partition(object):
                 args += ' -F'
             elif fstype == 'reiserfs':
                 args += ' -f'
+
+        # If there isn't already a '-t <type>' argument, add one.
+        if not "-t" in args:
+            args = "-t %s %s" % (fstype, args)
+
         args = args.strip()
 
         mkfs_cmd = "%s %s %s" % (self.mkfs_exec(fstype), args, self.device)
 
-        # If there isn't already a '-t <type>' argument, add one.
-        if not "-t" in args:
-            mkfs_cmd += " -t %s" % (fstype)
         sys.stdout.flush()
         try:
             # We throw away the output here - we only need it on error, in
