@@ -92,7 +92,7 @@ class barrier:
                     Hostname/IP address + optional tag of selected master
     """
 
-    def __init__(self, hostid, tag, timeout, port=63000):
+    def __init__(self, hostid, tag, timeout, port=11922):
         self.hostid = hostid
         self.tag = tag
         self.port = port

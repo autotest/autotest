@@ -20,11 +20,11 @@ class barrier_test(unittest.TestCase):
 
 
     def test_initialize(self):
-        b = barrier.barrier('127.0.0.1#', 'testtag', 100, 63001)
+        b = barrier.barrier('127.0.0.1#', 'testtag', 100, 11921)
         self.assertEqual(b.hostid, '127.0.0.1#')
         self.assertEqual(b.tag, 'testtag')
         self.assertEqual(b.timeout, 100)
-        self.assertEqual(b.port, 63001)
+        self.assertEqual(b.port, 11921)
 
 
     def test_get_host_from_id(self):
@@ -53,20 +53,20 @@ class barrier_test(unittest.TestCase):
 
     def test_rendezvous_basic(self):
         # Basic rendezvous testing
-        self.rendezvous_test(60, port=63100)
+        self.rendezvous_test(60, port=11920)
 
 
     def test_rendezvous_timeout(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=63101)
+                          self.rendezvous_test, 0, port=11921)
 
 
     def test_rendezvous_servers_basic(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
-        self.rendezvous_test(60, port=63001,
+        self.rendezvous_test(60, port=11921,
                             rendezvous_servers=True)
 
 
@@ -74,12 +74,12 @@ class barrier_test(unittest.TestCase):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=63002,
+                          self.rendezvous_test, 0, port=11922,
                           rendezvous_servers=True)
 
 
     # Internal utility function (not a unit test)
-    def rendezvous_test(self, timeout, port=63000, rendezvous_servers=False):
+    def rendezvous_test(self, timeout, port=11922, rendezvous_servers=False):
         def _rdv(addr):
             b1 = barrier.barrier(addr, "test_meeting", timeout, port)
             if not rendezvous_servers:
