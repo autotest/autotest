@@ -783,11 +783,11 @@ class rpm_kernel_suse(rpm_kernel):
 
 
 def rpm_kernel_vendor(job, rpm_package, subdir):
-        vendor = utils.get_os_vendor()
-        if vendor == "SUSE":
-            return rpm_kernel_suse(job, rpm_package, subdir)
-        else:
-            return rpm_kernel(job, rpm_package, subdir)
+    vendor = utils.get_os_vendor()
+    if vendor == "SUSE":
+        return rpm_kernel_suse(job, rpm_package, subdir)
+    else:
+        return rpm_kernel(job, rpm_package, subdir)
 
 
 # just make the preprocessor a nop
@@ -808,7 +808,7 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     """
     kernel_paths = [preprocess_path(path)]
     if kernel_paths[0].endswith('.list'):
-        # Fetch the list of packages to install
+    # Fetch the list of packages to install
         kernel_list = os.path.join(tmp_dir, 'kernel.list')
         utils.get_file(kernel_paths[0], kernel_list)
         kernel_paths = [p.strip() for p in open(kernel_list).readlines()]

@@ -20,5 +20,5 @@ class interbench(test.test):
     def run_once(self, args = ''):
         os.chdir(self.tmpdir)
         args += " -c"
-        utils.system("%s/interbench -m 'run #%s' %s" % (self.srcdir, 
+        utils.system("%s/interbench -m 'run #%s' %s" % (self.srcdir,
                                                         self.iteration, args))

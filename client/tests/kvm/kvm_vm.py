@@ -751,7 +751,7 @@ class VM:
             else:
                 self.send_key(char)
 
-    
+
     def get_uuid(self):
         """
         Catch UUID of the VM.

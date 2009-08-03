@@ -227,11 +227,11 @@ def check_abort_synchronous_jobs(host_queue_entries):
             continue
         execution_count = count_per_execution[_execution_key_for(queue_entry)]
         if execution_count < queue_entry.job.synch_count:
-          raise model_logic.ValidationError(
-              {'' : 'You cannot abort part of a synchronous job execution '
-                    '(%d/%s), %d included, %d expected'
-                    % (queue_entry.job.id, queue_entry.execution_subdir,
-                       execution_count, queue_entry.job.synch_count)})
+            raise model_logic.ValidationError(
+                {'' : 'You cannot abort part of a synchronous job execution '
+                      '(%d/%s), %d included, %d expected'
+                      % (queue_entry.job.id, queue_entry.execution_subdir,
+                         execution_count, queue_entry.job.synch_count)})
 
 
 def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,

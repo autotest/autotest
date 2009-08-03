@@ -355,4 +355,3 @@ def print_add_test_form(available_params, attributes, cleared):
     print '<input type="submit" name="clear" value="Clear all tests" />'
     print '<input type="submit" name="reset" value="Reset" />'
     print '</form>'
-

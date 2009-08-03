@@ -398,7 +398,7 @@ def _normalize(data_values, data_errors, base_values, base_errors):
             # Base is 0.0 so just simplify:
             #   If value < base: append -100.0;
             #   If value == base: append 0.0 (obvious); and
-            #   If value > base: append 100.0. 
+            #   If value > base: append 100.0.
             values.append(100 * float(cmp(value, base)))
 
     # Based on error for f(x,y) = 100 * (x - y) / y
@@ -476,8 +476,8 @@ def _create_image_html(figure, area_data, plot_info):
 
 def _find_plot_by_label(plots, label):
     for index, plot in enumerate(plots):
-            if plot['label'] == label:
-                return index
+        if plot['label'] == label:
+            return index
     raise ValueError('no plot labeled "%s" found' % label)
 
 

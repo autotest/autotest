@@ -21,7 +21,7 @@ class lmbench(test.test):
         utils.system('make')
 
 
-    def run_once(self, mem='', fastmem='NO', slowfs='NO', disks='', 
+    def run_once(self, mem='', fastmem='NO', slowfs='NO', disks='',
                 disks_desc='', mhz='', remote='', enough='5000',
                 sync_max='1', fsdir=None, file=None):
         if not fsdir:

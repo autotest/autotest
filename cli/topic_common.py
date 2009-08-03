@@ -285,7 +285,7 @@ class atest(object):
         # Build a dictionary with the 'what_failed' as keys.  The
         # values are dictionaries with the errmsg as keys and a set
         # of items as values.
-        # self.failed = 
+        # self.failed =
         # {'Operation delete_host_failed': {'AclAccessViolation:
         #                                        set('host0', 'host1')}}
         # Try to gather all the same error messages together,

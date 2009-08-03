@@ -51,7 +51,7 @@ class FrontendTestMixin(object):
 
         platform = models.Label.objects.create(name='myplatform', platform=True)
         for host in self.hosts:
-          host.labels.add(platform)
+            host.labels.add(platform)
 
         atomic_group1 = models.AtomicGroup.objects.create(
                 name='atomic1', max_number_of_machines=2)

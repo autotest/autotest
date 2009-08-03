@@ -53,7 +53,7 @@ class TestBaseAutotest(unittest.TestCase):
 
 
     def tearDown(self):
-       self.god.unstub_all()
+        self.god.unstub_all()
 
 
     def construct(self):

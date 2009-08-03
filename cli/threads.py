@@ -1,5 +1,5 @@
 #
-# Copyright 2008 Google Inc. 
+# Copyright 2008 Google Inc.
 # Released under the GPLv2
 
 import threading, Queue
