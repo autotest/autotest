@@ -66,8 +66,8 @@ def main():
 
     # If we have a syntax error now, it should
     # refer to the topic class.
-    syntax_class = getattr(topic_module, topic)
-    syntax_obj = syntax_class()
+    topic_class = getattr(topic_module, topic)
+    topic_obj = topic_class()
 
     if len(sys.argv) > 1:
         action = sys.argv.pop(1)
@@ -76,29 +76,32 @@ def main():
             action = 'help'
             sys.argv.insert(1, '-h')
     else:
-        syntax_obj.invalid_syntax('No action argument')
+        topic_obj.invalid_syntax('No action argument')
+
+    # Any backward compatibility changes?
+    action = topic_obj.backward_compatibility(action, sys.argv)
 
     # Instantiate a topic object
     try:
-        topic_class = getattr(topic_module, topic + '_' + action)
+        action_class = getattr(topic_module, topic + '_' + action)
     except AttributeError:
-        syntax_obj.invalid_syntax('Invalid action %s' % action)
+        topic_obj.invalid_syntax('Invalid action %s' % action)
 
-    topic_obj = topic_class()
+    action_obj = action_class()
 
-    topic_obj.parse()
+    action_obj.parse()
     try:
         try:
-            results = topic_obj.execute()
+            results = action_obj.execute()
         except topic_common.CliError:
             pass
         except Exception, err:
             traceback.print_exc()
-            topic_obj.generic_error("Unexpected exception: %s" % err)
+            action_obj.generic_error("Unexpected exception: %s" % err)
         else:
             try:
-                topic_obj.output(results)
+                action_obj.output(results)
             except Exception:
                 traceback.print_exc()
     finally:
-        return topic_obj.show_all_failures()
+        return action_obj.show_all_failures()

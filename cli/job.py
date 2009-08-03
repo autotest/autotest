@@ -22,8 +22,8 @@ from autotest_lib.cli import topic_common, action_common
 
 class job(topic_common.atest):
     """Job class
-    atest job [create|list|stat|abort] <options>"""
-    usage_action = '[create|list|stat|abort]'
+    atest job [create|clone|list|stat|abort] <options>"""
+    usage_action = '[create|clone|list|stat|abort]'
     topic = msg_topic = 'job'
     msg_items = '<job_ids>'
 
@@ -35,6 +35,16 @@ class job(topic_common.atest):
                       for key, val in result['status_counts'].iteritems()]
             status.sort()
             result['status_counts'] = ', '.join(status)
+
+
+    def backward_compatibility(self, action, argv):
+        """ 'job create --clone' became 'job clone --id' """
+        if action == 'create':
+            for option in ['-l', '--clone']:
+                if option in argv:
+                    argv[argv.index(option)] = '--id'
+                    action = 'clone'
+        return action
 
 
 class job_help(job):
@@ -203,7 +213,87 @@ class job_stat(job_list_stat):
         super(job_stat, self).output(results, keys)
 
 
-class job_create(action_common.atest_create, job):
+class job_create_or_clone(action_common.atest_create, job):
+    """Class containing the code common to the job create and clone actions"""
+    msg_items = 'job_name'
+
+    def __init__(self):
+        super(job_create_or_clone, self).__init__()
+        self.hosts = []
+        self.data_item_key = 'name'
+        self.parser.add_option('-p', '--priority', help='Job priority (low, '
+                               'medium, high, urgent), default=medium',
+                               type='choice', choices=('low', 'medium', 'high',
+                               'urgent'), default='medium')
+        self.parser.add_option('-b', '--labels',
+                               help='Comma separated list of labels '
+                               'to get machine list from.', default='')
+        self.parser.add_option('-m', '--machine', help='List of machines to '
+                               'run on')
+        self.parser.add_option('-M', '--mlist',
+                               help='File listing machines to use',
+                               type='string', metavar='MACHINE_FLIST')
+        self.parser.add_option('--one-time-hosts',
+                               help='List of one time hosts')
+        self.parser.add_option('-e', '--email',
+                               help='A comma seperated list of '
+                               'email addresses to notify of job completion',
+                               default='')
+
+
+    def parse(self):
+        host_info = topic_common.item_parse_info(attribute_name='hosts',
+                                                 inline_option='machine',
+                                                 filename_option='mlist')
+        job_info = topic_common.item_parse_info(attribute_name='jobname',
+                                                use_leftover=True)
+        oth_info = topic_common.item_parse_info(attribute_name='one_time_hosts',
+                                                inline_option='one_time_hosts')
+
+        options, leftover = super(job_create_or_clone,
+                                  self).parse([host_info, job_info, oth_info],
+                                              req_items='jobname')
+        self.data = {}
+        if len(self.jobname) > 1:
+            self.invalid_syntax('Too many arguments specified, only expected '
+                                'to receive job name: %s' % self.jobname)
+        self.jobname = self.jobname[0]
+
+        if options.priority:
+            self.data['priority'] = options.priority.capitalize()
+
+        if self.one_time_hosts:
+            self.data['one_time_hosts'] = self.one_time_hosts
+
+        if options.labels:
+            labels = options.labels.split(',')
+            labels = [label.strip() for label in labels if label.strip()]
+            label_hosts = self.execute_rpc(op='get_hosts',
+                                           multiple_labels=labels)
+            for host in label_hosts:
+                self.hosts.append(host['hostname'])
+
+        self.data['name'] = self.jobname
+
+        (self.data['hosts'],
+         self.data['meta_hosts']) = self.parse_hosts(self.hosts)
+
+        self.data['email_list'] = options.email
+
+        return options, leftover
+
+
+    def create_job(self):
+        job_id = self.execute_rpc(op='create_job', **self.data)
+        return ['%s (id %s)' % (self.jobname, job_id)]
+
+
+    def get_items(self):
+        return [self.jobname]
+
+
+
+class job_create(job_create_or_clone):
     """atest job create [--priority <Low|Medium|High|Urgent>]
     [--synch_count] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
@@ -220,17 +310,10 @@ class job_create(action_common.atest_create, job):
     so it only uses the __init__() and output() from its superclass.
     """
     op_action = 'create'
-    msg_items = 'job_name'
 
     def __init__(self):
         super(job_create, self).__init__()
-        self.hosts = []
         self.ctrl_file_data = {}
-        self.data_item_key = 'name'
-        self.parser.add_option('-p', '--priority', help='Job priority (low, '
-                               'medium, high, urgent), default=medium',
-                               type='choice', choices=('low', 'medium', 'high',
-                               'urgent'), default='medium')
         self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
                                     'execution')
@@ -243,24 +326,14 @@ class job_create(action_common.atest_create, job):
                                help='List of tests to run')
         self.parser.add_option('-k', '--kernel', help='Install kernel from this'
                                ' URL before beginning job')
+
         self.parser.add_option('-d', '--dependencies', help='Comma separated '
                                'list of labels this job is dependent on.',
                                default='')
-        self.parser.add_option('-b', '--labels', help='Comma separated list of '
-                               'labels to get machine list from.', default='')
         self.parser.add_option('-G', '--atomic_group', help='Name of an Atomic '
                                'Group to schedule this job on.',
                                default='')
-        self.parser.add_option('-m', '--machine', help='List of machines to '
-                               'run on')
-        self.parser.add_option('-M', '--mlist',
-                               help='File listing machines to use',
-                               type='string', metavar='MACHINE_FLIST')
-        self.parser.add_option('--one-time-hosts',
-                               help='List of one time hosts')
-        self.parser.add_option('-e', '--email', help='A comma seperated list '
-                               'of email addresses to notify of job completion',
-                               default='')
+
         self.parser.add_option('-B', '--reboot_before',
                                help='Whether or not to reboot the machine '
                                     'before the job (never/if dirty/always)',
@@ -273,18 +346,12 @@ class job_create(action_common.atest_create, job):
                                type='choice',
                                choices=('never', 'if all tests passed',
                                         'always'))
+
         self.parser.add_option('--parse-failed-repair',
                                help='Whether or not to parse failed repair '
                                     'results as part of the job',
                                type='choice',
                                choices=('true', 'false'))
-        self.parser.add_option('-l', '--clone', help='Clone an existing job.  '
-                               'This will discard all other options except '
-                               '--reuse-hosts.', default=False,
-                               metavar='JOB_ID')
-        self.parser.add_option('-r', '--reuse-hosts', help='Use the exact same '
-                               'hosts as cloned job.  Only for use with '
-                               '--clone.', action='store_true', default=False)
         self.parser.add_option('-n', '--noverify',
                                help='Do not run verify for job',
                                default=False, action='store_true')
@@ -295,32 +362,7 @@ class job_create(action_common.atest_create, job):
 
 
     def parse(self):
-        host_info = topic_common.item_parse_info(attribute_name='hosts',
-                                                 inline_option='machine',
-                                                 filename_option='mlist')
-        job_info = topic_common.item_parse_info(attribute_name='jobname',
-                                                use_leftover=True)
-        oth_info = topic_common.item_parse_info(attribute_name='one_time_hosts',
-                                                inline_option='one_time_hosts')
-
-        options, leftover = super(job_create,
-                                  self).parse([host_info, job_info, oth_info],
-                                              req_items='jobname')
-        self.data = {}
-        if len(self.jobname) > 1:
-            self.invalid_syntax('Too many arguments specified, only expected '
-                                'to receive job name: %s' % self.jobname)
-        self.jobname = self.jobname[0]
-
-        if options.reuse_hosts and not options.clone:
-            self.invalid_syntax('--reuse-hosts only to be used with --clone.')
-        # If cloning skip parse, parsing is done in execute
-        self.clone_id = options.clone
-        if options.clone:
-            self.op_action = 'clone'
-            self.msg_items = 'jobid'
-            self.reuse_hosts = options.reuse_hosts
-            return options, leftover
+        options, leftover = super(job_create, self).parse()
 
         if (len(self.hosts) == 0 and not self.one_time_hosts
             and not options.labels and not options.atomic_group):
@@ -365,8 +407,6 @@ class job_create(action_common.atest_create, job):
             self.ctrl_file_data['tests'] = tests
 
 
-        if options.priority:
-            self.data['priority'] = options.priority.capitalize()
         if options.reboot_before:
             self.data['reboot_before'] = options.reboot_before.capitalize()
         if options.reboot_after:
@@ -381,21 +421,6 @@ class job_create(action_common.atest_create, job):
         if options.max_runtime:
             self.data['max_runtime_hrs'] = options.max_runtime
 
-        if self.one_time_hosts:
-            self.data['one_time_hosts'] = self.one_time_hosts
-        if options.labels:
-            labels = options.labels.split(',')
-            labels = [label.strip() for label in labels if label.strip()]
-            label_hosts = self.execute_rpc(op='get_hosts',
-                                           multiple_labels=labels)
-            for host in label_hosts:
-                self.hosts.append(host['hostname'])
-
-        self.data['name'] = self.jobname
-
-        (self.data['hosts'],
-         self.data['meta_hosts']) = self.parse_hosts(self.hosts)
-
         if options.atomic_group:
             self.data['atomic_group_name'] = options.atomic_group
 
@@ -403,7 +428,6 @@ class job_create(action_common.atest_create, job):
         deps = [dep.strip() for dep in deps if dep.strip()]
         self.data['dependencies'] = deps
 
-        self.data['email_list'] = options.email
         if options.synch_count:
             self.data['synch_count'] = options.synch_count
         if options.server:
@@ -448,48 +472,89 @@ class job_create(action_common.atest_create, job):
         if 'synch_count' not in self.data:
             self.data['synch_count'] = 1
 
-        if self.clone_id:
-            clone_info = self.execute_rpc(op='get_info_for_clone',
-                                          id=self.clone_id,
-                                          preserve_metahosts=self.reuse_hosts)
-            self.data = clone_info['job']
-
-            # Remove fields from clone data that cannot be reused
-            unused_fields = ('name', 'created_on', 'id', 'owner')
-            for field in unused_fields:
-                del self.data[field]
-
-            # Keyword args cannot be unicode strings
-            for key, val in self.data.iteritems():
-                del self.data[key]
-                self.data[str(key)] = val
-
-            # Convert host list from clone info that can be used for job_create
-            host_list = []
-            if clone_info['meta_host_counts']:
-                # Creates a dictionary of meta_hosts, e.g.
-                # {u'label1': 3, u'label2': 2, u'label3': 5}
-                meta_hosts = clone_info['meta_host_counts']
-                # Create a list of formatted metahosts, e.g.
-                # [u'3*label1', u'2*label2', u'5*label3']
-                meta_host_list = ['%s*%s' % (str(val), key) for key,val in
-                                  meta_hosts.items()]
-                host_list.extend(meta_host_list)
-            if clone_info['hosts']:
-                # Creates a list of hosts, e.g. [u'host1', u'host2']
-                hosts = [host['hostname'] for host in clone_info['hosts']]
-                host_list.extend(hosts)
-
-            (self.data['hosts'],
-             self.data['meta_hosts']) = self.parse_hosts(host_list)
-            self.data['name'] = self.jobname
-
-        job_id = self.execute_rpc(op='create_job', **self.data)
-        return ['%s (id %s)' % (self.jobname, job_id)]
+        return self.create_job()
 
 
-    def get_items(self):
-        return [self.jobname]
+class job_clone(job_create_or_clone):
+    """atest job clone [--priority <Low|Medium|High|Urgent>]
+    [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
+    [--labels <list of labels of machines to run on>]
+    [--one-time-hosts <hosts>] [--email <email>]
+    job_name
+
+    Cloning a job is rather different from the other create operations,
+    so it only uses the __init__() and output() from its superclass.
+    """
+    op_action = 'clone'
+    usage_action = 'clone'
+
+    def __init__(self):
+        super(job_clone, self).__init__()
+        self.parser.add_option('-i', '--id', help='Job id to clone',
+                               default=False,
+                               metavar='JOB_ID')
+        self.parser.add_option('-r', '--reuse-hosts',
+                               help='Use the exact same hosts as the '
+                               'cloned job.',
+                               action='store_true', default=False)
+
+
+    def parse(self):
+        options, leftover = super(job_clone, self).parse()
+
+        self.clone_id = options.id
+        self.reuse_hosts = options.reuse_hosts
+
+        if ((not self.reuse_hosts) and
+            (len(self.hosts) == 0 and not self.one_time_hosts
+             and not options.labels)):
+            self.invalid_syntax('Must reuse or specify at least one machine '
+                                '(-r, -m, -M, -b or --one-time-hosts).')
+
+        return options, leftover
+
+
+    def execute(self):
+        clone_info = self.execute_rpc(op='get_info_for_clone',
+                                      id=self.clone_id,
+                                      preserve_metahosts=self.reuse_hosts)
+        # TODO(jmeurin) - Fixing the self.data is the actual bug
+        # I'll fix in the next CL, so some of this doesn't entirely
+        # makes sense (like calling parse_hosts() again)
+        # We really need to merge self.data and clone_info.
+        self.data = clone_info['job']
+
+        # Remove fields from clone data that cannot be reused
+        unused_fields = ('name', 'created_on', 'id', 'owner')
+        for field in unused_fields:
+            del self.data[field]
+
+        # Keyword args cannot be unicode strings
+        for key, val in self.data.iteritems():
+            del self.data[key]
+            self.data[str(key)] = val
+
+        # Convert host list from clone info that can be used for job_create
+        host_list = []
+        if clone_info['meta_host_counts']:
+            # Creates a dictionary of meta_hosts, e.g.
+            # {u'label1': 3, u'label2': 2, u'label3': 5}
+            meta_hosts = clone_info['meta_host_counts']
+            # Create a list of formatted metahosts, e.g.
+            # [u'3*label1', u'2*label2', u'5*label3']
+            meta_host_list = ['%s*%s' % (str(val), key) for key,val in
+                              meta_hosts.items()]
+            host_list.extend(meta_host_list)
+        if clone_info['hosts']:
+            # Creates a list of hosts, e.g. [u'host1', u'host2']
+            hosts = [host['hostname'] for host in clone_info['hosts']]
+            host_list.extend(hosts)
+
+        (self.data['hosts'],
+         self.data['meta_hosts']) = self.parse_hosts(host_list)
+        self.data['name'] = self.jobname
+
+        return self.create_job()
 
 
 class job_abort(job, action_common.atest_delete):

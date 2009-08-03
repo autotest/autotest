@@ -2,7 +2,6 @@
 #
 # Copyright 2008 Google Inc. All Rights Reserved.
 
-#TODO(rkubiak): Add unittest for job cloning
 
 """Tests for job."""
 
@@ -976,6 +975,102 @@ class job_create_unittest(cli_mock.cli_unittest):
         self._test_parse_hosts(['5*meta0', 'host0', '2*meta1', 'host1',
                                 '*meta2'], ['host0', 'host1'],
                                ['meta0']*5 + ['meta1']*2 + ['meta2'])
+
+
+class job_clone_unittest(cli_mock.cli_unittest):
+    job_data = {'control_file': u'NAME = \'Server Sleeptest\'\nAUTHOR = \'mbligh@google.com (Martin Bligh)\'\nTIME = \'SHORT\'\nTEST_CLASS = \'Software\'\nTEST_CATEGORY = \'Functional\'\nTEST_TYPE = \'server\'\nEXPERIMENTAL = \'False\'\n\nDOC = """\nruns sleep for one second on the list of machines.\n"""\n\ndef run(machine):\n    host = hosts.create_host(machine)\n    job.run_test(\'sleeptest\')\n\njob.parallel_simple(run, machines)\n',
+                    'control_type': u'Server',
+                    'dependencies': [],
+                    'email_list': u'',
+                    'max_runtime_hrs': 480,
+                    'parse_failed_repair': True,
+                    'priority': u'Medium',
+                    'reboot_after': u'Always',
+                    'reboot_before': u'If dirty',
+                    'run_verify': True,
+                    'synch_count': 1,
+                    'timeout': 480}
+
+    def setUp(self):
+        super(job_clone_unittest, self).setUp()
+        self.job_data_clone_info = copy.deepcopy(self.job_data)
+        self.job_data_clone_info['created_on'] = '2009-07-23 16:21:29'
+        self.job_data_clone_info['name'] = 'testing_clone'
+        self.job_data_clone_info['id'] = 42
+        self.job_data_clone_info['owner'] = 'user0'
+
+        self.job_data_cloned = copy.deepcopy(self.job_data)
+        self.job_data_cloned['name'] = 'cloned'
+        self.job_data_cloned['hosts'] = [u'host0']
+        self.job_data_cloned['meta_hosts'] = []
+
+
+    def test_backward_compat(self):
+        self.run_cmd(argv=['atest', 'job', 'create', '--clone', '42',
+                           '-r', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': True},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': [{u'acls': [u'acl0'],
+                                         u'atomic_group': None,
+                                         u'attributes': {},
+                                         u'dirty': False,
+                                         u'hostname': u'host0',
+                                         u'id': 4378,
+                                         u'invalid': False,
+                                         u'labels': [u'label0', u'label1'],
+                                         u'lock_time': None,
+                                         u'locked': False,
+                                         u'locked_by': None,
+                                         u'other_labels': u'label0, label1',
+                                         u'platform': u'plat0',
+                                         u'protection': u'Repair software only',
+                                         u'status': u'Ready',
+                                         u'synch_id': None}],
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
+
+
+    def test_clone_reuse_hosts(self):
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42',
+                           '-r', 'cloned'],
+                     rpcs=[('get_info_for_clone', {'id': '42',
+                                                   'preserve_metahosts': True},
+                            True,
+                            {u'atomic_group_name': None,
+                             u'hosts': [{u'acls': [u'acl0'],
+                                         u'atomic_group': None,
+                                         u'attributes': {},
+                                         u'dirty': False,
+                                         u'hostname': u'host0',
+                                         u'id': 4378,
+                                         u'invalid': False,
+                                         u'labels': [u'label0', u'label1'],
+                                         u'lock_time': None,
+                                         u'locked': False,
+                                         u'locked_by': None,
+                                         u'other_labels': u'label0, label1',
+                                         u'platform': u'plat0',
+                                         u'protection': u'Repair software only',
+                                         u'status': u'Ready',
+                                         u'synch_id': None}],
+                             u'job': self.job_data_clone_info,
+                             u'meta_host_counts': {}}),
+                           ('create_job', self.job_data_cloned, True, 43)],
+                     out_words_ok=['Created job', '43'])
+
+
+    def test_clone_no_hosts(self):
+        self.run_cmd(argv=['atest', 'job', 'clone', '--id', '42', 'cloned'],
+                     exit_code=1,
+                     out_words_ok=['usage'],
+                     err_words_ok=['machine'])
+
+
+    # TODO(jmeurin) Add tests with hosts once the code is working
 
 
 class job_abort_unittest(cli_mock.cli_unittest):
