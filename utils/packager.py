@@ -7,7 +7,8 @@ Utility to upload or remove the packages from the packages repository.
 import logging, os, sys, optparse, socket, tempfile, shutil
 import common
 from autotest_lib.client.common_lib import utils as client_utils
-from autotest_lib.client.common_lib import packages, global_config
+from autotest_lib.client.common_lib import global_config, error
+from autotest_lib.client.common_lib import base_packages, packages
 from autotest_lib.server import utils as server_utils
 
 c = global_config.global_config
@@ -93,11 +94,11 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
             try:
                 temp_dir = tempfile.mkdtemp()
                 try:
-                    packages.check_diskspace(temp_dir)
-                except packages.RepoDiskFull:
+                    base_packages.check_diskspace(temp_dir)
+                except error.RepoDiskFullError:
                     msg = ("Temporary directory for packages  does not have "
                            "enough space available")
-                    raise packages.RepoDiskFull(msg)
+                    raise error.RepoDiskFullError(msg)
                 tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
                                                   temp_dir, exclude_string)
                 pkgmgr.upload_pkg(tarball_path, repo_url, update_checksum=True)
@@ -146,8 +147,8 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
     # Directory where all are kept
     temp_dir = tempfile.mkdtemp()
     try:
-        packages.check_diskspace(temp_dir)
-    except packages.RepoDiskFull:
+        base_packages.check_diskspace(temp_dir)
+    except error.RepoDiskFullError:
         print ("Temp destination for packages is full %s, aborting upload"
                % temp_dir)
         os.rmdir(temp_dir)

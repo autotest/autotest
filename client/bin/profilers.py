@@ -1,7 +1,7 @@
 import os, sys
 import common
 
-from autotest_lib.client.common_lib import utils, packages, profiler_manager
+from autotest_lib.client.common_lib import utils, error, profiler_manager
 
 
 class profilers(profiler_manager.profiler_manager):
@@ -10,7 +10,7 @@ class profilers(profiler_manager.profiler_manager):
 
         try:
             self.job.install_pkg(profiler, "profiler", prof_dir)
-        except packages.PackageInstallError:
+        except error.PackageInstallError:
             pass
 
         if not os.path.exists(prof_dir):
