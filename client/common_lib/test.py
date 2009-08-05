@@ -19,7 +19,7 @@
 import fcntl, os, re, sys, shutil, tarfile, tempfile, time, traceback
 import warnings, logging
 
-from autotest_lib.client.common_lib import error, packages
+from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
 
@@ -584,7 +584,7 @@ def runtest(job, url, tag, args, dargs,
         if hasattr(job, 'install_pkg'):
             try:
                 job.install_pkg(testname, 'test', bindir)
-            except packages.PackageInstallError, e:
+            except error.PackageInstallError, e:
                 # continue as a fall back mechanism and see if the test code
                 # already exists on the machine
                 pass

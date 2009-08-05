@@ -268,6 +268,44 @@ class AutoservHardwareRepairRequestedError(AutoservError):
     pass
 
 
+# packaging system errors
+
+class PackagingError(AutotestError):
+    'Abstract error class for all packaging related errors.'
+
+
+class PackageUploadError(PackagingError):
+    'Raised when there is an error uploading the package'
+
+
+class PackageFetchError(PackagingError):
+    'Raised when there is an error fetching the package'
+
+
+class PackageRemoveError(PackagingError):
+    'Raised when there is an error removing the package'
+
+
+class PackageInstallError(PackagingError):
+    'Raised when there is an error installing the package'
+
+
+class RepoDiskFullError(PackagingError):
+    'Raised when the destination for packages is full'
+
+
+class RepoWriteError(PackagingError):
+    "Raised when packager cannot write to a repo's desitnation"
+
+
+class RepoUnknownError(PackagingError):
+    "Raised when packager cannot write to a repo's desitnation"
+
+
+class RepoError(PackagingError):
+    "Raised when a repo isn't working in some way"
+
+
 # This MUST remain at the end of the file.
 # Limit 'from error import *' to only import the exception instances.
 for _name, _thing in locals().items():

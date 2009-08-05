@@ -13,8 +13,8 @@ from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, test
 from autotest_lib.client.bin import partition as partition_lib
-from autotest_lib.client.common_lib import error, barrier, log
-from autotest_lib.client.common_lib import packages, logging_manager
+from autotest_lib.client.common_lib import error, barrier, log, logging_manager
+from autotest_lib.client.common_lib import base_packages, packages
 
 LAST_BOOT_TAG = object()
 NO_DEFAULT = object()
@@ -389,10 +389,10 @@ class base_job(object):
         # if we are not using the repos)
         try:
             checksum_file_path = os.path.join(self.pkgmgr.pkgmgr_dir,
-                                              packages.CHECKSUM_FILE)
-            self.pkgmgr.fetch_pkg(packages.CHECKSUM_FILE, checksum_file_path,
-                                  use_checksum=False)
-        except packages.PackageFetchError, e:
+                                              base_packages.CHECKSUM_FILE)
+            self.pkgmgr.fetch_pkg(base_packages.CHECKSUM_FILE,
+                                  checksum_file_path, use_checksum=False)
+        except error.PackageFetchError, e:
             # packaging system might not be working in this case
             # Silently fall back to the normal case
             pass
@@ -421,7 +421,7 @@ class base_job(object):
             # else check locally.
             try:
                 self.install_pkg(dep, 'dep', dep_dir)
-            except packages.PackageInstallError:
+            except error.PackageInstallError:
                 # see if the dep is there locally
                 pass
 
