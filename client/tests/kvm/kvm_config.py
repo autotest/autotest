@@ -83,8 +83,8 @@ class config:
         @param filter: A regular expression that defines the filter.
         @param dict: Dictionary that will be inspected.
         """
-        filter = re.compile("(\\.|^)" + filter + "(\\.|$)")
-        return filter.search(dict["name"]) != None
+        filter = re.compile(r"(\.|^)" + filter + r"(\.|$)")
+        return bool(filter.search(dict["name"]))
 
 
     def filter(self, filter, list=None):
@@ -94,13 +94,9 @@ class config:
         @param filter: A regular expression that will be used as a filter.
         @param list: A list of dictionaries that will be filtered.
         """
-        if list == None:
+        if list is None:
             list = self.list
-        filtered_list = []
-        for dict in list:
-            if self.match(filter, dict):
-                filtered_list.append(dict)
-        return filtered_list
+        return [dict for dict in list if self.match(filter, dict)]
 
 
     # Currently unused, will be removed if it remains unused
@@ -111,7 +107,7 @@ class config:
         @param filter: A regular expression that will filter the list.
         @param list: List which we want to know the indexes that match a filter.
         """
-        if list == None:
+        if list is None:
             list = self.list
         block_list = []
         prev_match = False
@@ -248,17 +244,22 @@ class config:
                 temp_list.append(new_dict)
 
             if subvariants:
-                # If we're parsing 'subvariants', we need to modify the list first
-                self.__modify_list_subvariants(temp_list, name, dep_list, add_to_shortname)
+                # If we're parsing 'subvariants', first modify the list
+                self.__modify_list_subvariants(temp_list, name, dep_list,
+                                               add_to_shortname)
                 temp_list = self.parse(file, temp_list,
                         restricted=True, prev_indent=indent)
             else:
-                # If we're parsing 'variants', we need to parse first and then modify the list
+                # If we're parsing 'variants', parse before modifying the list
                 if self.debug:
-                    self.__debug_print(indented_line, "Entering variant '%s' (variant inherits %d dicts)" % (name, len(list)))
+                    self.__debug_print(indented_line,
+                                       "Entering variant '%s' "
+                                       "(variant inherits %d dicts)" %
+                                       (name, len(list)))
                 temp_list = self.parse(file, temp_list,
                         restricted=False, prev_indent=indent)
-                self.__modify_list_variants(temp_list, name, dep_list, add_to_shortname)
+                self.__modify_list_variants(temp_list, name, dep_list,
+                                            add_to_shortname)
 
             new_list += temp_list
 
@@ -401,7 +402,7 @@ class config:
                     continue
                 if self.debug and not restricted:
                     self.__debug_print(indented_line,
-                                     "Entering file %s" % words[1])
+                                       "Entering file %s" % words[1])
                 if self.filename:
                     filename = os.path.join(os.path.dirname(self.filename),
                                             words[1])
@@ -440,7 +441,8 @@ class config:
                         # Everything inside an exception should be parsed in
                         # restricted mode
                         new_list += self.parse(file, list[index:index+1],
-                                restricted=True, prev_indent=indent)
+                                               restricted=True,
+                                               prev_indent=indent)
                     else:
                         new_list += list[index:index+1]
                 list = new_list
