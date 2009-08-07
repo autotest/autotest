@@ -406,17 +406,18 @@ class config:
                 if self.filename:
                     filename = os.path.join(os.path.dirname(self.filename),
                                             words[1])
-                    if not os.path.exists(filename):
-                        e_msg = "Cannot include %s -- file not found" % filename
-                        raise error.AutotestError(e_msg)
-                    new_file = open(filename, "r")
-                    list = self.parse(new_file, list, restricted)
-                    new_file.close()
-                    if self.debug and not restricted:
-                        self.__debug_print("", "Leaving file %s" % words[1])
+                    if os.path.exists(filename):
+                        new_file = open(filename, "r")
+                        list = self.parse(new_file, list, restricted)
+                        new_file.close()
+                        if self.debug and not restricted:
+                            self.__debug_print("", "Leaving file %s" % words[1])
+                    else:
+                        print ("WARNING: Cannot include %s -- "
+                               "file not found" % filename)
                 else:
-                    e_msg = "Cannot include anything because no file is open"
-                    raise error.AutotestError(e_msg)
+                    print ("WARNING: Cannot include %s because no file is "
+                           "currently open" % words[1])
 
             # Parse multi-line exceptions
             # (the block is parsed for each dict separately)
