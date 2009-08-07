@@ -167,7 +167,6 @@ class TestBaseAutotest(unittest.TestCase):
         pkgmgr = packages.PackageManager.expect_new('autotest',
                                                      repo_urls='repos',
                                                      hostname='hostname')
-        pkgmgr.repo_urls = 'repos'
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"

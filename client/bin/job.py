@@ -364,9 +364,8 @@ class base_job(object):
         install_dir : The directory in which the source is actually
                       untarred into. (ex: client/profilers/<name> for profilers)
         '''
-        if len(self.pkgmgr.repo_urls) > 0:
-            self.pkgmgr.install_pkg(name, pkg_type,
-                                    self.pkgdir, install_dir)
+        if self.pkgmgr.repositories:
+            self.pkgmgr.install_pkg(name, pkg_type, self.pkgdir, install_dir)
 
 
     def add_repository(self, repo_urls):
@@ -376,11 +375,9 @@ class base_job(object):
         needs to be a string list
         Ex: job.add_repository(['http://blah1','http://blah2'])
         '''
-        # TODO(aganti): Validate the list of the repository URLs.
-        repositories = repo_urls + self.pkgmgr.repo_urls
-        self.pkgmgr = packages.PackageManager(
-            self.autodir, repo_urls=repositories,
-            run_function_dargs={'timeout':1800})
+        for repo_url in repo_urls:
+            self.pkgmgr.add_repository(repo_url)
+
         # Fetch the packages' checksum file that contains the checksums
         # of all the packages if it is not already fetched. The checksum
         # is always fetched whenever a job is first started. This
@@ -392,7 +389,7 @@ class base_job(object):
                                               base_packages.CHECKSUM_FILE)
             self.pkgmgr.fetch_pkg(base_packages.CHECKSUM_FILE,
                                   checksum_file_path, use_checksum=False)
-        except error.PackageFetchError, e:
+        except error.PackageFetchError:
             # packaging system might not be working in this case
             # Silently fall back to the normal case
             pass

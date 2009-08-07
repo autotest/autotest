@@ -127,7 +127,7 @@ class BaseAutotest(installable_object.InstallableObject):
         except global_config.ConfigError, e:
             logging.error("Could not install autotest using the packaging "
                           "system: %s",  e)
-        except (packages.PackageInstallError, error.AutoservRunError), e:
+        except (error.PackageInstallError, error.AutoservRunError), e:
             logging.error("Could not install autotest from %s", repos)
 
         # try to install from file or directory
@@ -295,8 +295,7 @@ class BaseAutotest(installable_object.InstallableObject):
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
-            prologue_lines.append('job.add_repository(%s)\n'
-                                  % pkgmgr.repo_urls)
+            prologue_lines.append('job.add_repository(%s)\n' % repos)
         except global_config.ConfigError, e:
             pass
 
@@ -752,6 +751,8 @@ class client_logger(object):
     """
     status_parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
     test_complete_parser = re.compile(r"^AUTOTEST_TEST_COMPLETE:(.*)$")
+    fetch_package_parser = re.compile(
+        r"^AUTOTEST_FETCH_PACKAGE:([^:]*):([^:]*):(.*)$")
     extract_indent = re.compile(r"^(\t*).*$")
     extract_timestamp = re.compile(r".*\ttimestamp=(\d+)\t.*$")
 
@@ -844,6 +845,7 @@ class client_logger(object):
         messages."""
         status_match = self.status_parser.search(line)
         test_complete_match = self.test_complete_parser.search(line)
+        fetch_package_match = self.fetch_package_parser.search(line)
         if status_match:
             tag, line = status_match.groups()
             self._process_info_line(line)
@@ -853,6 +855,10 @@ class client_logger(object):
             fifo_path, = test_complete_match.groups()
             self.log_collector.collect_client_job_results()
             self.host.run("echo A > %s" % fifo_path)
+        elif fetch_package_match:
+            pkg_name, dest_path, fifo_path = fetch_package_match.groups()
+            # TODO: build package and copy it over
+            self.host.run("echo B > %s" % fifo_path)
         else:
             logging.info(line)
 
