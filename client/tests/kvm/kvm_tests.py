@@ -606,6 +606,45 @@ def run_timedrift(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
+    # Helper functions
+    def set_cpu_affinity(pid, mask):
+        """
+        Set the CPU affinity of all threads of the process with PID pid.
+
+        @param pid: The process ID.
+        @param mask: The CPU affinity mask.
+        @return: A dict containing the previous mask for each thread.
+        """
+        tids = commands.getoutput("ps -L --pid=%s -o lwp=" % pid).split()
+        prev_masks = {}
+        for tid in tids:
+            prev_mask = commands.getoutput("taskset -p %s" % tid).split()[-1]
+            prev_masks[tid] = prev_mask
+            commands.getoutput("taskset -p %s %s" % (mask, tid))
+        return prev_masks
+
+    def restore_cpu_affinity(prev_masks):
+        """
+        Restore the CPU affinity of several threads.
+
+        @param prev_masks: A dict containing TIDs as keys and masks as values.
+        """
+        for tid, mask in prev_masks.items():
+            commands.getoutput("taskset -p %s %s" % (mask, tid))
+
+    def get_time():
+        """
+        Returns the host time and guest time.
+
+        @return: A tuple containing the host time and guest time.
+        """
+        host_time = time.time()
+        session.sendline(time_command)
+        (match, s) = session.read_up_to_prompt()
+        s = re.findall(time_filter_re, s)[0]
+        guest_time = time.mktime(time.strptime(s, time_format))
+        return (host_time, guest_time)
+
     vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
     if not vm:
         raise error.TestError("VM object not found in environment")
@@ -643,19 +682,12 @@ def run_timedrift(test, params, env):
     guest_load_sessions = []
     host_load_sessions = []
 
-    # Remember the VM's previous CPU affinity
-    prev_cpu_mask = commands.getoutput("taskset -p %s" % vm.get_pid())
-    prev_cpu_mask = prev_cpu_mask.split()[-1]
     # Set the VM's CPU affinity
-    commands.getoutput("taskset -p %s %s" % (cpu_mask, vm.get_pid()))
+    prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
 
     try:
         # Get time before load
-        host_time_0 = time.time()
-        session.sendline(time_command)
-        (match, s) = session.read_up_to_prompt()
-        s = re.findall(time_filter_re, s)[0]
-        guest_time_0 = time.mktime(time.strptime(s, time_format))
+        (host_time_0, guest_time_0) = get_time()
 
         # Run some load on the guest
         logging.info("Starting load on guest...")
@@ -678,22 +710,18 @@ def run_timedrift(test, params, env):
                                       timeout=0.5))
             # Set the CPU affinity of the shell running the load process
             pid = host_load_sessions[-1].get_shell_pid()
-            commands.getoutput("taskset -p %s %s" % (cpu_mask, pid))
+            set_cpu_affinity(pid, cpu_mask)
             # Try setting the CPU affinity of the load process itself
             pid = host_load_sessions[-1].get_pid()
             if pid:
-                commands.getoutput("taskset -p %s %s" % (cpu_mask, pid))
+                set_cpu_affinity(pid, cpu_mask)
 
         # Sleep for a while (during load)
         logging.info("Sleeping for %s seconds..." % load_duration)
         time.sleep(load_duration)
 
         # Get time delta after load
-        host_time_1 = time.time()
-        session.sendline(time_command)
-        (match, s) = session.read_up_to_prompt()
-        s = re.findall(time_filter_re, s)[0]
-        guest_time_1 = time.mktime(time.strptime(s, time_format))
+        (host_time_1, guest_time_1) = get_time()
 
         # Report results
         host_delta = host_time_1 - host_time_0
@@ -706,7 +734,7 @@ def run_timedrift(test, params, env):
     finally:
         logging.info("Cleaning up...")
         # Restore the VM's CPU affinity
-        commands.getoutput("taskset -p %s %s" % (prev_cpu_mask, vm.get_pid()))
+        restore_cpu_affinity(prev_affinity)
         # Stop the guest load
         if guest_load_stop_command:
             session.get_command_output(guest_load_stop_command)
@@ -721,11 +749,7 @@ def run_timedrift(test, params, env):
     time.sleep(rest_duration)
 
     # Get time after rest
-    host_time_2 = time.time()
-    session.sendline(time_command)
-    (match, s) = session.read_up_to_prompt()
-    s = re.findall(time_filter_re, s)[0]
-    guest_time_2 = time.mktime(time.strptime(s, time_format))
+    (host_time_2, guest_time_2) = get_time()
 
     # Report results
     host_delta_total = host_time_2 - host_time_0
