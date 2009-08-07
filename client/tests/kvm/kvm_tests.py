@@ -759,11 +759,11 @@ def run_timedrift(test, params, env):
     logging.info("Total guest duration including rest: %.2f" % guest_delta_total)
     logging.info("Total drift after rest: %.2f%%" % drift_total)
 
+    session.close()
+
     # Fail the test if necessary
     if drift > drift_threshold:
         raise error.TestFail("Time drift too large: %.2f%%" % drift)
     if drift > drift_threshold_after_rest:
         raise error.TestFail("Time drift too large after rest period: %.2f%%"
                              % drift_total)
-
-    session.close()
