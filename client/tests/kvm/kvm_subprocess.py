@@ -214,6 +214,8 @@ class kvm_spawn:
             # Wait for the server to complete its initialization
             while not "Server %s ready" % self.id in sub.stdout.readline():
                 pass
+            # Remember the start time for is_alive()
+            self.start_time = time.time()
 
         # Open the reading pipes
         self.reader_fds = {}
@@ -379,6 +381,10 @@ class kvm_spawn:
         except:
             # If we couldn't find the file for some reason, skip the check
             return True
+        # If this process is new (less than 10 secs old) skip the check
+        if hasattr(self, "start_time") and time.time() < self.start_time + 10:
+            return True
+        # Perform the check
         if self.id in cmdline:
             return True
         return False
