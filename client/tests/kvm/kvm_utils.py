@@ -548,7 +548,9 @@ def format_str_for_message(str):
 
     @param str: string that will be formatted.
     """
-    num_lines = len(str.splitlines())
+    lines = str.splitlines()
+    num_lines = len(lines)
+    str = "\n".join(lines)
     if num_lines == 0:
         return ""
     elif num_lines == 1:
