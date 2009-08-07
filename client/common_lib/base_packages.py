@@ -81,6 +81,9 @@ def trim_custom_directories(repo, older_than_days=40):
 
 
 class RepositoryFetcher(object):
+    url = None
+
+
     def fetch_pkg_file(self, filename, dest_path):
         """ Fetch a package file from a package repository.
 
@@ -101,7 +104,7 @@ class HttpFetcher(RepositoryFetcher):
         @param repository_url: The base URL of the http repository
         """
         self.run_command = package_manager._run_command
-        self.repo_url = repository_url
+        self.url = repository_url
 
 
     def _quick_http_test(self):
@@ -114,7 +117,7 @@ class HttpFetcher(RepositoryFetcher):
 
         try:
             # build up a wget command using the server name
-            server_name = urlparse.urlparse(self.repo_url)[1]
+            server_name = urlparse.urlparse(self.url)[1]
             http_cmd = self.wget_cmd_pattern % (server_name, dest_file_path)
             try:
                 self.run_command(http_cmd, _run_command_dargs={'timeout': 30})
@@ -126,14 +129,14 @@ class HttpFetcher(RepositoryFetcher):
 
 
     def fetch_pkg_file(self, filename, dest_path):
-        logging.info('Fetching %s from %s to %s', filename, self.repo_url,
+        logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
 
         # do a quick test to verify the repo is reachable
         self._quick_http_test()
 
         # try to retrieve the package via http
-        package_url = os.path.join(self.repo_url, filename)
+        package_url = os.path.join(self.url, filename)
         try:
             cmd = self.wget_cmd_pattern % (package_url, dest_path)
             result = self.run_command(cmd)
@@ -155,13 +158,13 @@ class HttpFetcher(RepositoryFetcher):
 class LocalFilesystemFetcher(RepositoryFetcher):
     def __init__(self, package_manager, local_dir):
         self.run_command = package_manager._run_command
-        self.local_dir = local_dir
+        self.url = local_dir
 
 
     def fetch_pkg_file(self, filename, dest_path):
-        logging.info('Fetching %s from %s to %s', filename, self.local_dir,
+        logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
-        local_path = os.path.join(self.local_dir, filename)
+        local_path = os.path.join(self.url, filename)
         try:
             self.run_command('cp %s %s' % (local_path, dest_path))
             logging.debug('Successfully fetched %s from %s', filename,
@@ -169,7 +172,7 @@ class LocalFilesystemFetcher(RepositoryFetcher):
         except error.CmdError, e:
             raise error.PackageFetchError(
                 'Package %s could not be fetched from %s'
-                % (filename, self.local_dir), e)
+                % (filename, self.url), e)
 
 
 class BasePackageManager(object):
@@ -200,21 +203,7 @@ class BasePackageManager(object):
         self.pkgmgr_dir = pkgmgr_dir
         self.do_locking = do_locking
         self.hostname = hostname
-
-        # Process the repository URLs and the upload paths if specified
-        if not repo_urls:
-            self.repo_urls = []
-        else:
-            if hostname:
-                self.repo_urls = repo_urls
-                self.repo_urls = list(self.get_mirror_list())
-            else:
-                self.repo_urls = list(repo_urls)
-        if not upload_paths:
-            self.upload_paths = []
-        else:
-            self.upload_paths = list(upload_paths)
-
+        self.repositories = []
 
         # Create an internal function that is a simple wrapper of
         # run_function and takes in the args and dargs as arguments
@@ -235,6 +224,37 @@ class BasePackageManager(object):
                                 **new_dargs)
 
         self._run_command = _run_command
+
+        # Process the repository URLs
+        if not repo_urls:
+            repo_urls = []
+        elif hostname:
+            repo_urls = self.get_mirror_list(repo_urls)
+        for url in repo_urls:
+            self.add_repository(url)
+
+        # Process the upload URLs
+        if not upload_paths:
+            self.upload_paths = []
+        else:
+            self.upload_paths = list(upload_paths)
+
+
+    def add_repository(self, repo):
+        if isinstance(repo, basestring):
+            self.repositories.append(self.get_fetcher(repo))
+        elif isinstance(repo, RepositoryFetcher):
+            self.repositories.append(repo)
+        else:
+            raise TypeError("repo must be RepositoryFetcher or url string")
+
+
+    def get_fetcher(self, url):
+        if url.startswith('http://'):
+            return HttpFetcher(self, url)
+        else:
+            return LocalFilesystemFetcher(self, url)
+
 
     def repo_check(self, repo):
         '''
@@ -369,24 +389,24 @@ class BasePackageManager(object):
         # if a repository location is explicitly provided, fetch the package
         # from there and return
         if repo_url:
-            repo_url_list = [repo_url]
-        elif len(self.repo_urls) > 0:
-            repo_url_list = self.repo_urls
+            repositories = [self.get_fetcher(repo_url)]
+        elif self.repositories:
+            repositories = self.repositories
         else:
             raise error.PackageFetchError("No repository urls specified")
 
         error_msgs = {}
-        for location in repo_url_list:
+        for fetcher in repositories:
             try:
                 # Fetch the checksum if it not there
                 if not use_checksum:
-                    self.fetch_pkg_file(pkg_name, dest_path, location)
+                    fetcher.fetch_pkg_file(pkg_name, dest_path)
 
                 # Fetch the package if a) the pkg does not exist or
                 # b) if the checksum differs for the existing package
                 elif (not pkg_exists or
-                      not self.compare_checksum(dest_path, location)):
-                    self.fetch_pkg_file(pkg_name, dest_path, location)
+                      not self.compare_checksum(dest_path, fetcher.url)):
+                    fetcher.fetch_pkg_file(pkg_name, dest_path)
                     # Update the checksum of the package in the packages'
                     # checksum file
                     self.update_checksum(dest_path)
@@ -394,27 +414,15 @@ class BasePackageManager(object):
             except (error.PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
                 logging.error('%s could not be fetched from %s', pkg_name,
-                                                                 location)
+                              fetcher.url)
 
         # if we got here then that means the package is not found
         # in any of the repositories.
+        repo_url_list = [repo.url for repo in repositories]
         raise error.PackageFetchError("%s could not be fetched from any of"
                                       " the repos %s : %s " % (pkg_name,
                                                                repo_url_list,
                                                                error_msgs))
-
-
-    def fetch_pkg_file(self, filename, dest_path, source_url):
-        """
-        Fetch the file from source_url into dest_path. The package repository
-        url is parsed and the appropriate retrieval method is determined.
-
-        """
-        if source_url.startswith('http://'):
-            fetcher = HttpFetcher(self, source_url)
-            fetcher.fetch_pkg_file(filename, dest_path)
-        else:
-            raise error.PackageFetchError("Invalid location %s" % source_url)
 
 
     def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False):
@@ -581,14 +589,14 @@ class BasePackageManager(object):
                                            % (filename, pkg_dir, why))
 
 
-    def get_mirror_list(self):
+    def get_mirror_list(self, repo_urls):
         '''
             Stub function for site specific mirrors.
 
             Returns:
                 Priority ordered list
         '''
-        return self.repo_urls
+        return repo_urls
 
 
     def _get_checksum_file_path(self):
