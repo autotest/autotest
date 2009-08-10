@@ -396,7 +396,9 @@ class BasePackageManager(object):
             raise error.PackageFetchError("No repository urls specified")
 
         error_msgs = {}
-        for fetcher in repositories:
+        # install the package from the package repos, try the repos in
+        # reverse order, assuming that the 'newest' repos are most desirable
+        for fetcher in reversed(repositories):
             try:
                 # Fetch the checksum if it not there
                 if not use_checksum:
@@ -780,8 +782,31 @@ class BasePackageManager(object):
                           % (pkg_checksum, pkg_checksum_path))
 
 
-    def get_tarball_name(self, name, pkg_type):
-        return "%s-%s.tar.bz2" % (pkg_type, name)
+    @staticmethod
+    def get_tarball_name(name, pkg_type):
+        """Converts a package name and type into a tarball name.
+
+        @param name: The name of the package
+        @param pkg_type: The type of the package
+
+        @returns A tarball filename for that specific type of package
+        """
+        assert '-' not in pkg_type
+        return '%s-%s.tar.bz2' % (pkg_type, name)
+
+
+    @staticmethod
+    def parse_tarball_name(tarball_name):
+        """Coverts a package tarball name into a package name and type.
+
+        @param tarball_name: The filename of the tarball
+
+        @returns (name, pkg_type) where name is the package name and pkg_type
+            is the package type.
+        """
+        match = re.search(r'^([^-]*)-(.*)\.tar\.bz2$', tarball_name)
+        pkg_type, name = match.groups()
+        return name, pkg_type
 
 
     def is_url(self, url):
