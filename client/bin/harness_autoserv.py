@@ -1,6 +1,5 @@
-import os
-
-from autotest_lib.client.common_lib import autotemp
+import os, logging
+from autotest_lib.client.common_lib import autotemp, base_packages, error
 from autotest_lib.client.bin import harness
 
 
@@ -20,6 +19,12 @@ class harness_autoserv(harness.harness):
         """
         super(harness_autoserv, self).__init__(job)
         self.status = os.fdopen(3, 'w', 0)
+
+
+    def run_start(self):
+        # set up the package fetcher for direct-from-autoserv fetches
+        fetcher = AutoservFetcher(self.job.pkgmgr, self)
+        self.job.pkgmgr.add_repository(fetcher)
 
 
     def _send_and_wait(self, title, *args):
@@ -62,3 +67,29 @@ class harness_autoserv(harness.harness):
             msg = 'AUTOTEST_STATUS:%s:%s\n'
             msg %= (tag, line)
             self.status.write(msg)
+
+
+    def fetch_package(self, pkg_name, dest_path):
+        """Request a package from the remote autoserv.
+
+        @param pkg_name: The name of the package, as generally used by the
+                client.common_lib.packages infrastructure.
+        @param dest_path: The path the package should be copied to.
+        """
+        self._send_and_wait('AUTOTEST_FETCH_PACKAGE', pkg_name, dest_path)
+
+
+class AutoservFetcher(base_packages.RepositoryFetcher):
+    def __init__(self, package_manager, job_harness):
+        self.url = "autoserv://"
+        self.job_harness = job_harness
+
+
+    def fetch_pkg_file(self, filename, dest_path):
+        logging.info('Fetching %s from autoserv to %s', filename, dest_path)
+        self.job_harness.fetch_package(filename, dest_path)
+        if os.path.exists(dest_path):
+            logging.debug('Successfully fetched %s from autoserv', filename)
+        else:
+            raise error.PackageFetchError('%s not fetched from autoserv'
+                                          % filename)
