@@ -1,13 +1,21 @@
 #!/usr/bin/python
-import re, os, sys, StringIO
+import logging, re, os, sys, StringIO, optparse
 import common
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import logging_config, logging_manager
 
 """
 KVM configuration file utility functions.
 
 @copyright: Red Hat 2008-2009
 """
+
+
+class KvmLoggingConfig(logging_config.LoggingConfig):
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(KvmLoggingConfig, self).configure_logging(use_console=True,
+                                                        verbose=verbose)
+
 
 class config:
     """
@@ -22,22 +30,14 @@ class config:
         """
         Initialize the list and optionally parse filename.
 
-        @param filename: Path of the file that will be taken
+        @param filename: Path of the file that will be taken.
+        @param debug: Whether to turn debugging output.
         """
         self.list = [{"name": "", "shortname": "", "depend": []}]
         self.debug = debug
         self.filename = filename
         if filename:
             self.parse_file(filename)
-
-
-    def set_debug(self, debug=False):
-        """
-        Enable or disable debugging output.
-
-        @param debug: Whether debug is enabled (True) or disabled (False).
-        """
-        self.debug = debug
 
 
     def parse_file(self, filename):
@@ -413,11 +413,11 @@ class config:
                         if self.debug and not restricted:
                             self.__debug_print("", "Leaving file %s" % words[1])
                     else:
-                        print ("WARNING: Cannot include %s -- "
-                               "file not found" % filename)
+                        logging.warning("Cannot include %s -- file not found",
+                                        filename)
                 else:
-                    print ("WARNING: Cannot include %s because no file is "
-                           "currently open" % words[1])
+                    logging.warning("Cannot include %s because no file is "
+                                    "currently open", words[1])
 
             # Parse multi-line exceptions
             # (the block is parsed for each dict separately)
@@ -462,7 +462,7 @@ class config:
             str = "%-50s ---> %s" % (str1, str2)
         else:
             str = str1
-        print str
+        logging.debug(str)
 
 
     def __modify_list_variants(self, list, name, dep_list, add_to_shortname):
@@ -515,16 +515,30 @@ class config:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 2:
-        filename = sys.argv[1]
-    else:
+    parser = optparse.OptionParser()
+    parser.add_option('-f', '--file', dest="filename", action='store_true',
+                      help='path to a config file that will be parsed. '
+                           'If not specified, will parse kvm_tests.cfg '
+                           'located inside the kvm test dir.')
+    parser.add_option('--verbose', dest="debug", action='store_true',
+                      help='include debug messages in console output')
+
+    options, args = parser.parse_args()
+    filename = options.filename
+    debug = options.debug
+
+    if not filename:
         filename = os.path.join(os.path.dirname(sys.argv[0]), "kvm_tests.cfg")
-    list = config(filename, debug=True).get_list()
+
+    # Here we configure the stand alone program to use the autotest
+    # logging system.
+    logging_manager.configure_logging(KvmLoggingConfig(), verbose=debug)
+    list = config(filename, debug=debug).get_list()
     i = 0
     for dict in list:
-        print "Dictionary #%d:" % i
+        logging.info("Dictionary #%d:", i)
         keys = dict.keys()
         keys.sort()
         for key in keys:
-            print "    %s = %s" % (key, dict[key])
+            logging.info("    %s = %s", key, dict[key])
         i += 1
