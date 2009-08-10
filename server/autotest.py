@@ -2,7 +2,7 @@
 
 import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob, logging
 from autotest_lib.server import installable_object, utils
-from autotest_lib.client.common_lib import log, error
+from autotest_lib.client.common_lib import log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
 
@@ -293,6 +293,7 @@ class BaseAutotest(installable_object.InstallableObject):
         try:
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+            repos.reverse()  # high priority packages should be added last
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
             prologue_lines.append('job.add_repository(%s)\n' % repos)
@@ -857,10 +858,47 @@ class client_logger(object):
             self.host.run("echo A > %s" % fifo_path)
         elif fetch_package_match:
             pkg_name, dest_path, fifo_path = fetch_package_match.groups()
-            # TODO: build package and copy it over
+            serve_packages = global_config.global_config.get_config_value(
+                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+            if serve_packages and pkg_name.endswith(".tar.bz2"):
+                try:
+                    self._send_tarball(pkg_name, dest_path)
+                except Exception:
+                    msg = "Package tarball creation failed, continuing anyway"
+                    logging.exception(msg)
             self.host.run("echo B > %s" % fifo_path)
         else:
             logging.info(line)
+
+
+    def _send_tarball(self, pkg_name, remote_dest):
+        name, pkg_type = self.job.pkgmgr.parse_tarball_name(pkg_name)
+        src_dirs = []
+        if pkg_type == 'test':
+            src_dirs += [os.path.join(self.job.clientdir, 'site_tests', name),
+                         os.path.join(self.job.clientdir, 'tests', name)]
+        elif pkg_type == 'profiler':
+            src_dirs += [os.path.join(self.job.clientdir, 'profilers', name)]
+        elif pkg_type == 'dep':
+            src_dirs += [os.path.join(self.job.clientdir, 'deps', name)]
+        elif pkg_type == 'client':
+            return  # you must already have a client to hit this anyway
+        else:
+            return  # no other types are supported
+
+        # iterate over src_dirs until we find one that exists, then tar it
+        for src_dir in src_dirs:
+            if os.path.exists(src_dir):
+                try:
+                    logging.info('Bundling %s into %s', src_dir, pkg_name)
+                    temp_dir = autotemp.tempdir(unique_id='autoserv-packager',
+                                                dir=self.job.tmpdir)
+                    tarball_path = self.job.pkgmgr.tar_package(
+                        pkg_name, src_dir, temp_dir.name, ' .')
+                    self.host.send_file(tarball_path, remote_dest)
+                finally:
+                    temp_dir.clean()
+                return
 
 
     def _format_warnings(self, last_line, warnings):

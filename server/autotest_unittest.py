@@ -109,9 +109,9 @@ class TestBaseAutotest(unittest.TestCase):
                                   ignore_status=True)
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
-            'fetch_location', type=list).and_return('repos')
+            'fetch_location', type=list).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autodir',
-            repo_urls='repos', hostname='hostname', do_locking=False,
+            repo_urls=['repo'], hostname='hostname', do_locking=False,
             run_function=self.host.run, run_function_dargs=dict(timeout=600))
         pkg_dir = os.path.join('autodir', 'packages')
         cmd = ('cd autodir && ls | grep -v "^packages$"'
@@ -163,16 +163,16 @@ class TestBaseAutotest(unittest.TestCase):
 
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
-            'fetch_location', type=list).and_return('repos')
+            'fetch_location', type=list).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autotest',
-                                                     repo_urls='repos',
+                                                     repo_urls=['repo'],
                                                      hostname='hostname')
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"
         cfile_new = "job.default_boot_tag('Autotest')\n"
         cfile_new += "job.default_test_cleanup(True)\n"
-        cfile_new += "job.add_repository(repos)\n"
+        cfile_new += "job.add_repository(['repo'])\n"
         cfile_new += cfile_orig
 
         autotest.open.expect_call("temp").and_return(cfile)
