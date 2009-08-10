@@ -632,10 +632,16 @@ def run_timedrift(test, params, env):
         for tid, mask in prev_masks.items():
             commands.getoutput("taskset -p %s %s" % (mask, tid))
 
-    def get_time():
+    def get_time(session, time_command, time_filter_re, time_format):
         """
         Returns the host time and guest time.
 
+        @param session: A shell session.
+        @param time_command: Command to issue to get the current guest time.
+        @param time_filter_re: Regex filter to apply on the output of
+                time_command in order to get the current time.
+        @param time_format: Format string to pass to time.strptime() with the
+                result of the regex filter.
         @return: A tuple containing the host time and guest time.
         """
         host_time = time.time()
@@ -687,7 +693,8 @@ def run_timedrift(test, params, env):
 
     try:
         # Get time before load
-        (host_time_0, guest_time_0) = get_time()
+        (host_time_0, guest_time_0) = get_time(session, time_command,
+                                               time_filter_re, time_format)
 
         # Run some load on the guest
         logging.info("Starting load on guest...")
@@ -721,7 +728,8 @@ def run_timedrift(test, params, env):
         time.sleep(load_duration)
 
         # Get time delta after load
-        (host_time_1, guest_time_1) = get_time()
+        (host_time_1, guest_time_1) = get_time(session, time_command,
+                                               time_filter_re, time_format)
 
         # Report results
         host_delta = host_time_1 - host_time_0
@@ -749,7 +757,8 @@ def run_timedrift(test, params, env):
     time.sleep(rest_duration)
 
     # Get time after rest
-    (host_time_2, guest_time_2) = get_time()
+    (host_time_2, guest_time_2) = get_time(session, time_command,
+                                           time_filter_re, time_format)
 
     # Report results
     host_delta_total = host_time_2 - host_time_0
