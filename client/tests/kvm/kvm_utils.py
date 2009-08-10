@@ -142,8 +142,10 @@ def get_latest_kvm_release_tag(release_dir):
         f.close()
         rx = re.compile("kvm-(\d+).tar.gz", re.IGNORECASE)
         matches = rx.findall(data)
-        package_id = matches[0]
-        return matches[0] # the first match contains the latest release tag
+        # In all regexp matches to something that looks like a release tag,
+        # get the largest integer. That will be our latest release tag.
+        latest_tag = max(int(x) for x in matches)
+        return str(latest_tag)
     except Exception, e:
         message = "Could not fetch latest KVM release tag: %s" % str(e)
         logging.error(message)
