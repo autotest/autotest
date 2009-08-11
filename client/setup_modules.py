@@ -77,9 +77,13 @@ def _autotest_logging_handle_error(self, record):
     # out the original record causing the error so there is -some- idea
     # about which call caused the logging error.
     if logging.raiseExceptions:
+        # Avoid recursion as the below output can end up back in here when
+        # something has *seriously* gone wrong in autotest.
+        logging.raiseExceptions = 0
         sys.stderr.write('Exception occurred formatting message: '
                          '%r using args %r\n' % (record.msg, record.args))
         traceback.print_stack()
+        sys.stderr.write('Future logging formatting exceptions disabled.\n')
 
 
 def setup(base_path, root_module_name=""):
