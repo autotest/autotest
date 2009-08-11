@@ -112,11 +112,13 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                         transport.close()
                         raise paramiko.AuthenticationException()
                     return transport
-            logging.warn("SSH negotiation timed out, retrying")
+            logging.warn("SSH negotiation (%s:%d) timed out, retrying", 
+                         self.hostname, self.port)
             # HACK: we can't count on transport.join not hanging now, either
             transport.join = lambda: None
             transport.close()
-        logging.error("SSH negotation has timed out %s times, giving up",
+        logging.error("SSH negotation (%s:%d) has timed out %s times, "
+                      "giving up", self.hostname, self.port, 
                       self.CONNECT_TIMEOUT_RETRIES)
         raise error.AutoservSSHTimeout("SSH negotiation timed out")
 
