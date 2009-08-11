@@ -189,7 +189,10 @@ class ExternalPackage(object):
       @attribute module_name - The installed python module name to be used for
               for a version check.  Defaults to the lower case class name with
               the word Package stripped off.
-      @attribyte version - The desired minimum package version.
+      @attribute version - The desired minimum package version.
+      @attribute os_requirements - A dictionary mapping a file pathname on the
+              the OS distribution to a likely name of a package the user
+              needs to install on their system in order to get this file.
       @attribute name - Read only, the printable name of the package.
       @attribute subclasses - This class attribute holds a list of all defined
               subclasses.  It is constructed dynamically using the metaclass.
@@ -200,6 +203,7 @@ class ExternalPackage(object):
     hex_sum = None
     module_name = None
     version = None
+    os_requirements = None
 
 
     class __metaclass__(type):
@@ -273,7 +277,24 @@ class ExternalPackage(object):
         """
         if not self.verified_package:
             raise Error('Must call fetch() first.  - %s' % self.name)
+        self._check_os_requirements()
         return self._build_and_install(install_dir)
+
+
+    def _check_os_requirements(self):
+        if not self.os_requirements:
+            return
+        failed = False
+        for file_name, package_name in self.os_requirements.iteritems():
+            if not os.path.exists(file_name):
+                failed = True
+                logging.error('File %s not found, %s needs it.',
+                              file_name, self.name)
+                logging.error('Perhaps you need to install something similar '
+                              'to the %s package for OS first.', package_name)
+        if failed:
+            raise Error('Missing OS requirements for %s.  (see above)' %
+                        self.name)
 
 
     def _build_and_install_current_dir_setup_py(self, install_dir):
@@ -645,6 +666,8 @@ class MatplotlibPackage(ExternalPackage):
     urls = ('http://downloads.sourceforge.net/project/matplotlib/matplotlib/'
             'matplotlib-%s/matplotlib-%s.tar.gz' % (short_version, version),)
     hex_sum = '2f6c894cf407192b3b60351bcc6468c0385d47b6'
+    os_requirements = {'/usr/include/ft2build.h': 'libfreetype6-dev',
+                       '/usr/include/png.h': 'libpng12-dev'}
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
     _build_and_install_current_dir = (
