@@ -17,6 +17,8 @@ class LoggingErrorStderrTests(unittest.TestCase):
         self.god.stub_with(sys, 'stderr', self.test_stderr)
         self.old_root_logging_level = logging.root.level
         logging.basicConfig(level=logging.ERROR)
+        # _autotest_logging_handle_error unsets this after being called once.
+        logging.raiseExceptions = 1
 
 
     def tearDown(self):
@@ -42,11 +44,15 @@ class LoggingErrorStderrTests(unittest.TestCase):
         else:
             self.fail()
         self.assert_autotest_logging_handle_error_called()
-        self.assertTrue(('MESSAGE' in self.stderr_str), repr(self.stderr_str))
-        self.assertTrue(('ARGS' in self.stderr_str), repr(self.stderr_str))
-        self.assertTrue(('Exception' in self.stderr_str), repr(self.stderr_str))
+        stderr_repr = repr(self.stderr_str)
+        self.assertTrue(('MESSAGE' in self.stderr_str), stderr_repr)
+        self.assertTrue(('ARGS' in self.stderr_str), stderr_repr)
+        self.assertTrue(('Exception' in self.stderr_str), stderr_repr)
         self.assertTrue(('setup_modules_unittest.py' in self.stderr_str),
-                        repr(self.stderr_str))
+                        stderr_repr)
+        self.assertTrue(('disabled.\n' in self.stderr_str), stderr_repr)
+        # Make sure this was turned off by our handle_error.
+        self.assertFalse(logging.raiseExceptions)
 
 
     def test_logging_monkey_patch_wrong_number_of_args(self):
