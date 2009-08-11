@@ -904,12 +904,9 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
         if obj is cant_import:
             msg = ("unable to import site symbol '%s', using non-site "
                    "implementation") % name
+        logging.error(msg)
+        obj = dummy
     else:
-        msg = "unable to import site module '%s', using non-site implementation"
-        msg %= modulefile
-
-    if msg:
-        logging.info(msg)
         obj = dummy
 
     return obj
