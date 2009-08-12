@@ -1,7 +1,14 @@
-import sys, os, time, commands, re, logging, signal
+import sys, os, time, commands, re, logging, signal, glob
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 import kvm_vm, kvm_utils, kvm_subprocess
+try:
+    import PIL.Image
+except ImportError:
+    logging.warning('No python imaging library installed. PPM image '
+                    'conversion to JPEG disabled. In order to enable it, '
+                    'please install python-imaging or the equivalent for your '
+                    'distro.')
 
 
 def preprocess_image(test, params):
@@ -260,17 +267,19 @@ def postprocess(test, params, env):
     if params.get("convert_ppm_files_to_png") == "yes":
         logging.debug("'convert_ppm_files_to_png' specified; converting PPM"
                       " files to PNG format...")
-        mogrify_cmd = ("mogrify -format png %s" %
-                       os.path.join(test.debugdir, "*.ppm"))
-        kvm_subprocess.run_fg(mogrify_cmd, logging.debug, "(mogrify) ",
-                              timeout=30.0)
+        try:
+            for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
+                image = PIL.Image.open(f)
+                image.save(history_scrdump_filename, format = 'PNG')
+        except NameError:
+            pass
 
     # Should we keep the PPM files?
     if params.get("keep_ppm_files") != "yes":
         logging.debug("'keep_ppm_files' not specified; removing all PPM files"
                       " from debug dir...")
-        rm_cmd = "rm -vf %s" % os.path.join(test.debugdir, "*.ppm")
-        kvm_subprocess.run_fg(rm_cmd, logging.debug, "(rm) ", timeout=5.0)
+        for f in glob.glob(os.path.join(test.debugdir, '*.ppm')):
+            os.unlink(f)
 
     # Execute any post_commands
     if params.get("post_command"):
