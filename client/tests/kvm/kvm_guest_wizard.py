@@ -1,6 +1,13 @@
 import os, time, md5, re, shutil, logging
 from autotest_lib.client.common_lib import utils, error
 import kvm_utils, ppm_utils, kvm_subprocess
+try:
+    import PIL.Image
+except ImportError:
+    logging.warning('No python imaging library installed. PPM image '
+                    'conversion to JPEG disabled. In order to enable it, '
+                    'please install python-imaging or the equivalent for your '
+                    'distro.')
 
 """
 Utilities to perform automatic guest installation using step files.
@@ -110,9 +117,12 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
             history_scrdump_filename = os.path.join(history_dir,
                     "scrdump-step_%s-%s.jpg" % (current_step_num,
                                                 time.strftime("%Y%m%d-%H%M%S")))
-            kvm_subprocess.run_fg("convert -quality 30 %s %s" %
-                                  (scrdump_filename, history_scrdump_filename),
-                                  logging.debug, "(convert) ", timeout=30)
+            try:
+                image = PIL.Image.open(scrdump_filename)
+                image.save(history_scrdump_filename, format = 'JPEG',
+                           quality = 30)
+            except NameError:
+                pass
 
         # Compare md5sum of barrier region with the expected md5sum
         calced_md5sum = ppm_utils.get_region_md5sum(w, h, data, x1, y1, dx, dy,
@@ -120,8 +130,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         if calced_md5sum == md5sum:
             # Success -- remove screendump history unless requested not to
             if keep_screendump_history and not keep_all_history:
-                kvm_subprocess.run_fg("rm -rvf %s" % history_dir,
-                                      logging.debug, "(rm) ", timeout=30)
+                shutil.rmtree(history_dir)
             # Report success
             return True
 
