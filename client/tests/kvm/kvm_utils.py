@@ -46,6 +46,112 @@ def get_sub_dict_names(dict, keyword):
         return []
 
 
+# Functions related to MAC/IP addresses
+
+def mac_str_to_int(addr):
+    """
+    Convert MAC address string to integer.
+
+    @param addr: String representing the MAC address.
+    """
+    return sum(int(s, 16) * 256 ** i
+               for i, s in enumerate(reversed(addr.split(":"))))
+
+
+def mac_int_to_str(addr):
+    """
+    Convert MAC address integer to string.
+
+    @param addr: Integer representing the MAC address.
+    """
+    return ":".join("%02x" % (addr >> 8 * i & 0xFF)
+                    for i in reversed(range(6)))
+
+
+def ip_str_to_int(addr):
+    """
+    Convert IP address string to integer.
+
+    @param addr: String representing the IP address.
+    """
+    return sum(int(s) * 256 ** i
+               for i, s in enumerate(reversed(addr.split("."))))
+
+
+def ip_int_to_str(addr):
+    """
+    Convert IP address integer to string.
+
+    @param addr: Integer representing the IP address.
+    """
+    return ".".join(str(addr >> 8 * i & 0xFF)
+                    for i in reversed(range(4)))
+
+
+def offset_mac(base, offset):
+    """
+    Add offset to a given MAC address.
+
+    @param base: String representing a MAC address.
+    @param offset: Offset to add to base (integer)
+    @return: A string representing the offset MAC address.
+    """
+    return mac_int_to_str(mac_str_to_int(base) + offset)
+
+
+def offset_ip(base, offset):
+    """
+    Add offset to a given IP address.
+
+    @param base: String representing an IP address.
+    @param offset: Offset to add to base (integer)
+    @return: A string representing the offset IP address.
+    """
+    return ip_int_to_str(ip_str_to_int(base) + offset)
+
+
+def get_mac_ip_pair_from_dict(dict):
+    """
+    Fetch a MAC-IP address pair from dict and return it.
+
+    The parameters in dict are expected to conform to a certain syntax.
+    Typical usage may be:
+
+    address_ranges = r1 r2 r3
+
+    address_range_base_mac_r1 = 55:44:33:22:11:00
+    address_range_base_ip_r1 = 10.0.0.0
+    address_range_size_r1 = 16
+
+    address_range_base_mac_r2 = 55:44:33:22:11:40
+    address_range_base_ip_r2 = 10.0.0.60
+    address_range_size_r2 = 25
+
+    address_range_base_mac_r3 = 55:44:33:22:12:10
+    address_range_base_ip_r3 = 10.0.1.20
+    address_range_size_r3 = 230
+
+    address_index = 0
+
+    All parameters except address_index specify a MAC-IP address pool.  The
+    pool consists of several MAC-IP address ranges.
+    address_index specified the index of the desired MAC-IP pair from the pool.
+
+    @param dict: The dictionary from which to fetch the addresses.
+    """
+    index = int(dict.get("address_index", 0))
+    for mac_range_name in get_sub_dict_names(dict, "address_ranges"):
+        mac_range_params = get_sub_dict(dict, mac_range_name)
+        mac_base = mac_range_params.get("address_range_base_mac")
+        ip_base = mac_range_params.get("address_range_base_ip")
+        size = int(mac_range_params.get("address_range_size", 1))
+        if index < size:
+            return (mac_base and offset_mac(mac_base, index),
+                    ip_base and offset_ip(ip_base, index))
+        index -= size
+    return (None, None)
+
+
 # Functions for working with the environment (a dict-like object)
 
 def is_vm(obj):
