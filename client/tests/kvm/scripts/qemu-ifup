@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# The following expression selects the first bridge listed by 'brctl show'.
+# Modify it to suit your needs.
+switch=$(/usr/sbin/brctl show | awk 'NR==2 { print $1 }')
+
+/sbin/ifconfig $1 0.0.0.0 up
+/usr/sbin/brctl addif ${switch} $1
