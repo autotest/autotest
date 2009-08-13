@@ -541,8 +541,8 @@ def run_stress_boot(tests, params, env):
         raise error.TestFail("Could not log into first guest")
 
     num = 2
-    vms = []
     sessions = [session]
+    address_index = int(params.get("clone_address_index_base", 10))
 
     # boot the VMs
     while num <= int(params.get("max_vms")):
@@ -550,15 +550,12 @@ def run_stress_boot(tests, params, env):
             vm_name = "vm" + str(num)
 
             # clone vm according to the first one
-            vm_params = params.copy()
-            vm_params['image_snapshot'] = "yes"
-            vm_params['kill_vm'] = "yes"
-            vm_params['kill_vm_gracefully'] = "no"
+            vm_params = vm.get_params().copy()
+            vm_params["address_index"] = str(address_index)
             curr_vm = vm.clone(vm_name, vm_params)
             kvm_utils.env_register_vm(env, vm_name, curr_vm)
             params['vms'] += " " + vm_name
 
-            #vms.append(curr_vm)
             logging.info("Booting guest #%d" % num)
             if not curr_vm.create():
                 raise error.TestFail("Cannot create VM #%d" % num)
@@ -571,10 +568,11 @@ def run_stress_boot(tests, params, env):
             sessions.append(curr_vm_session)
 
             # check whether all previous ssh sessions are responsive
-            for i, vm_session in enumerate(sessions):
-                if vm_session.get_command_status(params.get("alive_test_cmd")):
+            for i, se in enumerate(sessions):
+                if se.get_command_status(params.get("alive_test_cmd")) != 0:
                     raise error.TestFail("Session #%d is not responsive" % i)
             num += 1
+            address_index += 1
 
         except (error.TestFail, OSError):
             for se in sessions:
