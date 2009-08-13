@@ -1,5 +1,5 @@
 import md5, thread, subprocess, time, string, random, socket, os, signal, pty
-import select, re, logging
+import select, re, logging, commands
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 import kvm_subprocess
@@ -150,6 +150,41 @@ def get_mac_ip_pair_from_dict(dict):
                     ip_base and offset_ip(ip_base, index))
         index -= size
     return (None, None)
+
+
+def verify_ip_address_ownership(ip, macs, timeout=3.0):
+    """
+    Connect to a given IP address and make sure its MAC address equals one of
+    the given MAC address.
+
+    @param ip: An IP address.
+    @param macs: A list or tuple of MAC addresses.
+    @return: True iff ip is assigned to a MAC address in macs.
+    """
+    def check_arp_cache(regex):
+        o = commands.getoutput("/sbin/arp -n")
+        return bool(re.search(regex, o, re.IGNORECASE))
+
+    mac_regex = "|".join("(%s)" % mac for mac in macs)
+    regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex))
+
+    if check_arp_cache(regex):
+        return True
+
+    s = socket.socket()
+    s.setblocking(False)
+    try:
+        s.connect((ip, 55555))
+    except socket.error:
+        pass
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        time.sleep(0.2)
+        if check_arp_cache(regex):
+            s.close()
+            return True
+    s.close()
+    return False
 
 
 # Functions for working with the environment (a dict-like object)

@@ -6,6 +6,14 @@
 # If you wish to use a static MAC-IP mapping, where each MAC address range is
 # mapped to a known corresponding IP address range, specify the bases of the IP
 # address ranges in this file.
+# If you specify a MAC address range without a corresponding IP address range,
+# the IP addresses for that range will be determined at runtime by listening
+# to DHCP traffic using tcpdump.
+# If you wish to determine IP addresses using tcpdump in any case, regardless
+# of any # IP addresses specified in this file, uncomment the following line:
+#always_use_tcpdump = yes
+# You may also specify this parameter for specific hosts by adding it in the
+# appropriate sections below.
 
 variants:
     # Rename host1 to an actual (short) hostname in the network that will be running the Autotest client
