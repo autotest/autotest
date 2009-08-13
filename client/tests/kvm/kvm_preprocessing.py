@@ -203,6 +203,26 @@ def preprocess(test, params, env):
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
+    # Start tcpdump if it isn't already running
+    if not env.has_key("address_cache"):
+        env["address_cache"] = {}
+    if env.has_key("tcpdump") and not env["tcpdump"].is_alive():
+        env["tcpdump"].close()
+        del env["tcpdump"]
+    if not env.has_key("tcpdump"):
+        command = "/usr/sbin/tcpdump -npvi any 'dst port 68'"
+        logging.debug("Starting tcpdump (%s)...", command)
+        env["tcpdump"] = kvm_subprocess.kvm_tail(
+            command=command,
+            output_func=_update_address_cache,
+            output_params=(env["address_cache"],))
+        if kvm_utils.wait_for(lambda: not env["tcpdump"].is_alive(),
+                              0.1, 0.1, 1.0):
+            logging.warn("Could not start tcpdump")
+            logging.warn("Status: %s" % env["tcpdump"].get_status())
+            logging.warn("Output:" + kvm_utils.format_str_for_message(
+                env["tcpdump"].get_output()))
+
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = kvm_utils.get_sub_dict_names(params, "vms")
     for key in env.keys():
@@ -289,6 +309,12 @@ def postprocess(test, params, env):
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
 
+    # Terminate tcpdump if no VMs are alive
+    living_vms = [vm for vm in kvm_utils.env_get_all_vms(env) if vm.is_alive()]
+    if not living_vms and env.has_key("tcpdump"):
+        env["tcpdump"].close()
+        del env["tcpdump"]
+
 
 def postprocess_on_error(test, params, env):
     """
@@ -299,3 +325,18 @@ def postprocess_on_error(test, params, env):
     @param env: The environment (a dict-like object).
     """
     params.update(kvm_utils.get_sub_dict(params, "on_error"))
+
+
+def _update_address_cache(address_cache, line):
+    if re.search("Your.IP", line, re.IGNORECASE):
+        matches = re.findall(r"\d*\.\d*\.\d*\.\d*", line)
+        if matches:
+            address_cache["last_seen"] = matches[0]
+    if re.search("Client.Ethernet.Address", line, re.IGNORECASE):
+        matches = re.findall(r"\w*:\w*:\w*:\w*:\w*:\w*", line)
+        if matches and address_cache.get("last_seen"):
+            mac_address = matches[0].lower()
+            logging.debug("(address cache) Adding cache entry: %s ---> %s",
+                          mac_address, address_cache.get("last_seen"))
+            address_cache[mac_address] = address_cache.get("last_seen")
+            del address_cache["last_seen"]
