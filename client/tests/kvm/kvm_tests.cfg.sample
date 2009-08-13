@@ -155,7 +155,7 @@ variants:
         variants:
             - Fedora:
                 no setup
-                ssh_prompt = "\[root@.{0,50}][\#\$] "
+                ssh_prompt = "^\[.*\][\#\$]\s*$"
 
                 variants:
                     - 8.32:
@@ -237,7 +237,7 @@ variants:
                     md5sum_1m = 768ca32503ef92c28f2d144f2a87e4d0
 
             - @Ubuntu:
-                ssh_prompt = "root@.{0,50}[\#\$] "
+                ssh_prompt = "^root@.*[\#\$]\s*$"
 
                 variants:
                     - Ubuntu-6.10-32:
@@ -269,7 +269,7 @@ variants:
 
             - RHEL:
                 no setup
-                ssh_prompt = "\[root@.{0,50}][\#\$] "
+                ssh_prompt = "^\[.*\][\#\$]\s*$"
 
                 variants:
                     - 5.3.i386:
@@ -331,7 +331,7 @@ variants:
         no autotest
         cmd_shutdown = shutdown /s /t 0
         cmd_reboot = shutdown /r /t 0
-        ssh_prompt = "C:\\.{0,50}>"
+        ssh_prompt = "^\w:\\.*>\s*$"
         ssh_status_test_command = echo %errorlevel%
         username = Administrator
         password = 123456
