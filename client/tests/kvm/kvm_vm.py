@@ -610,6 +610,14 @@ class VM:
         return not self.process or not self.process.is_alive()
 
 
+    def kill_tail_thread(self):
+        """
+        Stop the tailing thread which reports the output of qemu.
+        """
+        if self.process:
+            self.process.kill_tail_thread()
+
+
     def get_params(self):
         """
         Return the VM's params dict. Most modified params take effect only

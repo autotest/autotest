@@ -489,6 +489,7 @@ class kvm_tail(kvm_spawn):
         self.output_prefix = output_prefix
 
         # Start the thread in the background
+        self.__thread_kill_requested = False
         self.tail_thread = threading.Thread(None, self._tail)
         self.tail_thread.start()
 
@@ -551,6 +552,15 @@ class kvm_tail(kvm_spawn):
         self.output_prefix = output_prefix
 
 
+    def kill_tail_thread(self):
+        """
+        Stop the tailing thread which calls output_func() and
+        termination_func().
+        """
+        self.__thread_kill_requested = True
+        self._join_thread()
+
+
     def _tail(self):
         def print_line(text):
             # Pre-pend prefix and remove trailing whitespace
@@ -567,6 +577,8 @@ class kvm_tail(kvm_spawn):
         fd = self._get_fd("tail")
         buffer = ""
         while True:
+            if self.__thread_kill_requested:
+                return
             try:
                 # See if there's any data to read from the pipe
                 r, w, x = select.select([fd], [], [], 0.05)
