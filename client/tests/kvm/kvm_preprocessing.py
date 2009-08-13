@@ -53,6 +53,7 @@ def preprocess_vm(test, params, env, name):
     qemu_path = os.path.join(test.bindir, "qemu")
     image_dir = os.path.join(test.bindir, "images")
     iso_dir = os.path.join(test.bindir, "isos")
+    script_dir = os.path.join(test.bindir, "scripts")
 
     logging.debug("Preprocessing VM '%s'..." % name)
     vm = kvm_utils.env_get_vm(env, name)
@@ -60,7 +61,7 @@ def preprocess_vm(test, params, env, name):
         logging.debug("VM object found in environment")
     else:
         logging.debug("VM object does not exist; creating it")
-        vm = kvm_vm.VM(name, params, qemu_path, image_dir, iso_dir)
+        vm = kvm_vm.VM(name, params, qemu_path, image_dir, iso_dir, script_dir)
         kvm_utils.env_register_vm(env, name, vm)
 
     start_vm = False
@@ -81,14 +82,15 @@ def preprocess_vm(test, params, env, name):
         elif vm.make_qemu_command() != vm.make_qemu_command(name, params,
                                                             qemu_path,
                                                             image_dir,
-                                                            iso_dir):
+                                                            iso_dir,
+                                                            script_dir):
             logging.debug("VM's qemu command differs from requested one; "
                           "restarting it...")
             start_vm = True
 
     if start_vm:
         if not vm.create(name, params, qemu_path, image_dir, iso_dir,
-                         for_migration):
+                         script_dir, for_migration):
             message = "Could not start VM"
             logging.error(message)
             raise error.TestError(message)
