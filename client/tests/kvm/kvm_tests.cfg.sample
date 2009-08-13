@@ -117,7 +117,12 @@ variants:
     - stress_boot:  install setup
         type = stress_boot
         max_vms = 5    
-        alive_test_cmd = ps aux
+        alive_test_cmd = uname -a
+        clone_address_index_base = 10
+        kill_vm = yes
+        kill_vm_vm1 = no
+        kill_vm_gracefully = no
+        extra_params += " -snapshot"
 
     - shutdown:     install setup
         type = shutdown
