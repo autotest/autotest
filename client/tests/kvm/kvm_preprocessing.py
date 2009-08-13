@@ -292,8 +292,9 @@ def postprocess(test, params, env):
                       " files to PNG format...")
         try:
             for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
+                new_path = f.replace(".ppm", ".png")
                 image = PIL.Image.open(f)
-                image.save(history_scrdump_filename, format = 'PNG')
+                image.save(new_path, format = 'PNG')
         except NameError:
             pass
 
