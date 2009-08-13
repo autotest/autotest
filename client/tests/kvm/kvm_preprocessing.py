@@ -311,6 +311,10 @@ def postprocess(test, params, env):
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
 
+    # Kill the tailing threads of all VMs
+    for vm in kvm_utils.env_get_all_vms(env):
+        vm.kill_tail_thread()
+
     # Terminate tcpdump if no VMs are alive
     living_vms = [vm for vm in kvm_utils.env_get_all_vms(env) if vm.is_alive()]
     if not living_vms and env.has_key("tcpdump"):
