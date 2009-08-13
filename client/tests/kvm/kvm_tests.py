@@ -80,18 +80,20 @@ def run_shutdown(test, params, env):
     if not session:
         raise error.TestFail("Could not log into guest")
 
-    logging.info("Logged in")
+    try:
+        logging.info("Logged in")
 
-    # Send the VM's shutdown command
-    session.sendline(vm.get_params().get("cmd_shutdown"))
-    session.close()
+        # Send the VM's shutdown command
+        session.sendline(vm.get_params().get("cmd_shutdown"))
 
-    logging.info("Shutdown command sent; waiting for guest to go down...")
+        logging.info("Shutdown command sent; waiting for guest to go down...")
 
-    if not kvm_utils.wait_for(vm.is_dead, 240, 0, 1):
-        raise error.TestFail("Guest refuses to go down")
+        if not kvm_utils.wait_for(vm.is_dead, 240, 0, 1):
+            raise error.TestFail("Guest refuses to go down")
 
-    logging.info("Guest is down")
+        logging.info("Guest is down")
+    finally:
+        session.close()
 
 
 def run_migration(test, params, env):
