@@ -470,7 +470,9 @@ class kvm_tail(kvm_spawn):
     """
 
     def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, output_func=None, output_prefix=""):
+                 termination_func=None, termination_params=(),
+                 output_func=None, output_params=(),
+                 output_prefix=""):
         """
         Initialize the class and run command as a child process.
 
@@ -485,10 +487,14 @@ class kvm_tail(kvm_spawn):
                 child process by sendline().
         @param termination_func: Function to call when the process exits.  The
                 function must accept a single exit status parameter.
+        @param termination_params: Parameters to send to termination_func
+                before the exit status.
         @param output_func: Function to call whenever a line of output is
                 available from the STDOUT or STDERR streams of the process.
                 The function must accept a single string parameter.  The string
                 does not include the final newline.
+        @param output_params: Parameters to send to output_func before the
+                output line.
         @param output_prefix: String to prepend to lines sent to output_func.
         """
         # Add a reader and a close hook
@@ -500,7 +506,9 @@ class kvm_tail(kvm_spawn):
 
         # Remember some attributes
         self.termination_func = termination_func
+        self.termination_params = termination_params
         self.output_func = output_func
+        self.output_params = output_params
         self.output_prefix = output_prefix
 
         # Start the thread in the background
@@ -510,7 +518,9 @@ class kvm_tail(kvm_spawn):
 
     def __getinitargs__(self):
         return kvm_spawn.__getinitargs__(self) + (self.termination_func,
+                                                  self.termination_params,
                                                   self.output_func,
+                                                  self.output_params,
                                                   self.output_prefix)
 
 
@@ -524,6 +534,16 @@ class kvm_tail(kvm_spawn):
         self.termination_func = termination_func
 
 
+    def set_termination_params(self, termination_params):
+        """
+        Set the termination_params attribute. See __init__() for details.
+
+        @param termination_params: Parameters to send to termination_func
+                before the exit status.
+        """
+        self.termination_params = termination_params
+
+
     def set_output_func(self, output_func):
         """
         Set the output_func attribute. See __init__() for details.
@@ -532,6 +552,16 @@ class kvm_tail(kvm_spawn):
                 output from the process.  Must take a single string parameter.
         """
         self.output_func = output_func
+
+
+    def set_output_params(self, output_params):
+        """
+        Set the output_params attribute. See __init__() for details.
+
+        @param output_params: Parameters to send to output_func before the
+                output line.
+        """
+        self.output_params = output_params
 
 
     def set_output_prefix(self, output_prefix):
@@ -552,7 +582,8 @@ class kvm_tail(kvm_spawn):
             text = text.decode("utf-8", "replace")
             # Pass it to output_func
             try:
-                self.output_func(text)
+                params = self.output_params + (text,)
+                self.output_func(*params)
             except TypeError:
                 pass
 
@@ -593,7 +624,8 @@ class kvm_tail(kvm_spawn):
             return
         print_line("(Process terminated with status %s)" % status)
         try:
-            self.termination_func(status)
+            params = self.termination_params + (status,)
+            self.termination_func(*params)
         except TypeError:
             pass
 
@@ -613,7 +645,9 @@ class kvm_expect(kvm_tail):
     """
 
     def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, output_func=None, output_prefix=""):
+                 termination_func=None, termination_params=(),
+                 output_func=None, output_params=(),
+                 output_prefix=""):
         """
         Initialize the class and run command as a child process.
 
@@ -628,10 +662,14 @@ class kvm_expect(kvm_tail):
                 child process by sendline().
         @param termination_func: Function to call when the process exits.  The
                 function must accept a single exit status parameter.
+        @param termination_params: Parameters to send to termination_func
+                before the exit status.
         @param output_func: Function to call whenever a line of output is
                 available from the STDOUT or STDERR streams of the process.
                 The function must accept a single string parameter.  The string
                 does not include the final newline.
+        @param output_params: Parameters to send to output_func before the
+                output line.
         @param output_prefix: String to prepend to lines sent to output_func.
         """
         # Add a reader
@@ -639,7 +677,8 @@ class kvm_expect(kvm_tail):
 
         # Init the superclass
         kvm_tail.__init__(self, command, id, echo, linesep,
-                          termination_func, output_func, output_prefix)
+                          termination_func, termination_params,
+                          output_func, output_params, output_prefix)
 
 
     def __getinitargs__(self):
@@ -813,7 +852,9 @@ class kvm_shell_session(kvm_expect):
     """
 
     def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, output_func=None, output_prefix="",
+                 termination_func=None, termination_params=(),
+                 output_func=None, output_params=(),
+                 output_prefix="",
                  prompt=r"[\#\$]\s*$", status_test_command="echo $?"):
         """
         Initialize the class and run command as a child process.
@@ -829,10 +870,14 @@ class kvm_shell_session(kvm_expect):
                 child process by sendline().
         @param termination_func: Function to call when the process exits.  The
                 function must accept a single exit status parameter.
+        @param termination_params: Parameters to send to termination_func
+                before the exit status.
         @param output_func: Function to call whenever a line of output is
                 available from the STDOUT or STDERR streams of the process.
                 The function must accept a single string parameter.  The string
                 does not include the final newline.
+        @param output_params: Parameters to send to output_func before the
+                output line.
         @param output_prefix: String to prepend to lines sent to output_func.
         @param prompt: Regular expression describing the shell's prompt line.
         @param status_test_command: Command to be used for getting the last
@@ -841,7 +886,8 @@ class kvm_shell_session(kvm_expect):
         """
         # Init the superclass
         kvm_expect.__init__(self, command, id, echo, linesep,
-                            termination_func, output_func, output_prefix)
+                            termination_func, termination_params,
+                            output_func, output_params, output_prefix)
 
         # Remember some attributes
         self.prompt = prompt
