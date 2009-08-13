@@ -272,7 +272,6 @@ variants:
                         image_name = rhel5-32
                         install:
                             steps=RHEL-5.3-i386.steps
-                            cdkey=RHEL_INSTALL_NUMBER
                             cdrom=linux/RHEL-5.3-i386-DVD.iso
                             md5sum=371c62851611fd32ead440df6f24a296
                             md5sum_1m=242318dd44152210f6ff6cdda1bfbf51
@@ -282,7 +281,6 @@ variants:
                         image_name = rhel5-64
                         install:
                             steps=RHEL-5.3-x86_64.steps
-                            cdkey=RHEL_INSTALL_NUMBER
                             cdrom=linux/RHEL-5.3-x86_64-DVD.iso
                             md5sum=c5ed6b284410f4d8212cafc78fd7a8c5
                             md5sum_1m=b999f437583098ea5bbd56fb1de1d011
@@ -363,7 +361,6 @@ variants:
                     md5sum = dda6039f3a9173f0f6bfae40f5efdfea
                     md5sum_1m = dd28fba196d366d56fe774bd93df5527
                     user = user
-                    cdkey = WIN_2000_32_CDKEY
                 setup:
                     steps = Win2000-32-setupssh.steps
                     cdrom = windows/setupssh.iso
@@ -376,7 +373,6 @@ variants:
                     md5sum = 743450644b1d9fe97b3cf379e22dceb0
                     md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
                     user = user
-                    cdkey = WIN_XP_32_CDKEY
                 setup:
                     steps = WinXP-32-setupssh.steps
                     cdrom = windows/setupssh.iso
@@ -390,7 +386,6 @@ variants:
                     md5sum = 8d3f007ec9c2060cec8a50ee7d7dc512
                     md5sum_1m = e812363ff427effc512b7801ee70e513
                     user = user
-                    cdkey = WIN_XP_64_CDKEY
 
             - Win2003:
                 image_size = 20G
@@ -406,7 +401,6 @@ variants:
                             md5sum = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             user = user
-                            cdkey = WIN_2003_32_CDKEY
                         setup:
                             steps = Win2003-32-setupssh.steps
                             cdrom = windows/setupssh.iso
@@ -420,7 +414,6 @@ variants:
                             md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m = 439393c384116aa09e08a0ad047dcea8
                             user = user
-                            cdkey = WIN_2003_64_CDKEY
 
             - WinVista:
                 only install
@@ -622,6 +615,9 @@ variants:
     - @custom:
         only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
         only rtl8139
+
+
+include kvm_cdkeys.cfg
 
 
 # Choose your test list

@@ -1,0 +1,16 @@
+# Rename this file to kvm_cdkeys.cfg.
+# Replace the 'CDKEY' strings with real cdkeys where necessary.
+# Guests that do not require cdkeys by default are commented out.
+# You may uncomment them if necessary.
+
+RHEL.5.3.i386: cdkey = CDKEY
+RHEL.5.3.x86_64: cdkey = CDKEY
+Win2000: cdkey = CDKEY
+WinXP.32: cdkey = CDKEY
+WinXP.64: cdkey = CDKEY
+Win2003.32: cdkey = CDKEY
+Win2003.64: cdkey = CDKEY
+#WinVista.32: cdkey = CDKEY
+#WinVista.64: cdkey = CDKEY
+#Win2008.32: cdkey = CDKEY
+#Win2008.64: cdkey = CDKEY
