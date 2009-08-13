@@ -61,7 +61,8 @@ def preprocess_vm(test, params, env, name):
         logging.debug("VM object found in environment")
     else:
         logging.debug("VM object does not exist; creating it")
-        vm = kvm_vm.VM(name, params, qemu_path, image_dir, iso_dir, script_dir)
+        vm = kvm_vm.VM(name, params, qemu_path, image_dir, iso_dir, script_dir,
+                       env.get("address_cache"))
         kvm_utils.env_register_vm(env, name, vm)
 
     start_vm = False

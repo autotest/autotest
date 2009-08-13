@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import time, socket, os, logging, fcntl
+import time, socket, os, logging, fcntl, re, commands
 import kvm_utils, kvm_subprocess
 
 """
@@ -101,7 +101,7 @@ class VM:
     """
 
     def __init__(self, name, params, qemu_path, image_dir, iso_dir,
-                 script_dir):
+                 script_dir, address_cache):
         """
         Initialize the object and set a few attributes.
 
@@ -112,6 +112,7 @@ class VM:
         @param image_dir: The directory where images reside
         @param iso_dir: The directory where ISOs reside
         @param script_dir: The directory where -net tap scripts reside
+        @param address_cache: A dict that maps MAC addresses to IP addresses
         """
         self.process = None
         self.redirs = {}
@@ -124,6 +125,7 @@ class VM:
         self.image_dir = image_dir
         self.iso_dir = iso_dir
         self.script_dir = script_dir
+        self.address_cache = address_cache
 
         # Find available monitor filename
         while True:
@@ -137,7 +139,7 @@ class VM:
 
 
     def clone(self, name=None, params=None, qemu_path=None, image_dir=None,
-              iso_dir=None, script_dir=None):
+              iso_dir=None, script_dir=None, address_cache=None):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -150,6 +152,7 @@ class VM:
         @param image_dir: Optional new image dir
         @param iso_dir: Optional new iso directory
         @param script_dir: Optional new -net tap script directory
+        @param address_cache: A dict that maps MAC addresses to IP addresses
         """
         if name == None:
             name = self.name
@@ -163,7 +166,10 @@ class VM:
             iso_dir = self.iso_dir
         if script_dir == None:
             script_dir = self.script_dir
-        return VM(name, params, qemu_path, image_dir, iso_dir, script_dir)
+        if address_cache == None:
+            address_cache = self.address_cache
+        return VM(name, params, qemu_path, image_dir, iso_dir, script_dir,
+                  address_cache)
 
 
     def make_qemu_command(self, name=None, params=None, qemu_path=None,
@@ -621,25 +627,45 @@ class VM:
 
         @param index: Index of the NIC whose address is requested.
         """
-        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[index]
+        nics = kvm_utils.get_sub_dict_names(self.params, "nics")
+        nic_name = nics[index]
         nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
         if nic_params.get("nic_mode") == "tap":
             mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
+            if not mac:
+                logging.debug("MAC address unavailable")
+                return None
+            if not ip or nic_params.get("always_use_tcpdump") == "yes":
+                # Get the IP address from the cache
+                ip = self.address_cache.get(mac)
+                if not ip:
+                    logging.debug("Could not find IP address for MAC address: "
+                                  "%s" % mac)
+                    return None
+                # Make sure the IP address is assigned to this guest
+                nic_dicts = [kvm_utils.get_sub_dict(self.params, nic)
+                             for nic in nics]
+                macs = [kvm_utils.get_mac_ip_pair_from_dict(dict)[0]
+                        for dict in nic_dicts]
+                if not kvm_utils.verify_ip_address_ownership(ip, macs):
+                    logging.debug("Could not verify MAC-IP address mapping: "
+                                  "%s ---> %s" % (mac, ip))
+                    return None
             return ip
         else:
             return "localhost"
 
 
-    def get_port(self, port, index=0):
+    def get_port(self, port, nic_index=0):
         """
         Return the port in host space corresponding to port in guest space.
 
         @param port: Port number in host space.
-        @param index: Index of the NIC.
+        @param nic_index: Index of the NIC.
         @return: If port redirection is used, return the host port redirected
                 to guest port port. Otherwise return port.
         """
-        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[index]
+        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[nic_index]
         nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
         if nic_params.get("nic_mode") == "tap":
             return port
@@ -666,17 +692,19 @@ class VM:
         """
         address = self.get_address()
         port = self.get_port(int(self.params.get("ssh_port")))
-        if not port:
+        if not address or not port:
+            logging.debug("IP address or port unavailable")
             return False
         return kvm_utils.is_sshd_running(address, port, timeout=timeout)
 
 
-    def ssh_login(self, timeout=10):
+    def ssh_login(self, nic_index=0, timeout=10):
         """
         Log into the guest via SSH/Telnet.
         If timeout expires while waiting for output from the guest (e.g. a
         password prompt or a shell prompt) -- fail.
 
+        @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up logging into the
                 guest.
         @return: kvm_spawn object on success and None on failure.
@@ -685,9 +713,10 @@ class VM:
         password = self.params.get("password", "")
         prompt = self.params.get("ssh_prompt", "[\#\$]")
         use_telnet = self.params.get("use_telnet") == "yes"
-        address = self.get_address()
+        address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("ssh_port")))
-        if not port:
+        if not address or not port:
+            logging.debug("IP address or port unavailable")
             return None
 
         if use_telnet:
@@ -702,7 +731,7 @@ class VM:
         return session
 
 
-    def scp_to_remote(self, local_path, remote_path, timeout=300):
+    def scp_to_remote(self, local_path, remote_path, nic_index=0, timeout=300):
         """
         Transfer files to the guest via SCP.
 
@@ -713,15 +742,16 @@ class VM:
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
-        address = self.get_address()
+        address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("ssh_port")))
-        if not port:
+        if not address or not port:
+            logging.debug("IP address or port unavailable")
             return None
         return kvm_utils.scp_to_remote(address, port, username, password,
                                        local_path, remote_path, timeout)
 
 
-    def scp_from_remote(self, remote_path, local_path, timeout=300):
+    def scp_from_remote(self, remote_path, local_path, nic_index=0, timeout=300):
         """
         Transfer files from the guest via SCP.
 
@@ -732,9 +762,10 @@ class VM:
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
-        address = self.get_address()
+        address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("ssh_port")))
-        if not port:
+        if not address or not port:
+            logging.debug("IP address or port unavailable")
             return None
         return kvm_utils.scp_from_remote(address, port, username, password,
                                          remote_path, local_path, timeout)
@@ -749,7 +780,7 @@ class VM:
         @return: A tuple (status, output). status is 0 on success and 1 on
                 failure.
         """
-        session = self.ssh_login(timeout)
+        session = self.ssh_login(timeout=timeout)
         if not session:
             return (1, "")
 
