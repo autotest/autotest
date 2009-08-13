@@ -133,12 +133,27 @@ if not r:
 import kvm_config
 
 filename = os.path.join(pwd, "kvm_tests.cfg")
-list = kvm_config.config(filename).get_list()
+cfg = kvm_config.config(filename)
+
+# If desirable, make changes to the test configuration here.  For example:
+# cfg.parse_string("only fc8_quick")
+# cfg.parse_string("display = sdl")
+
+filename = os.path.join(pwd, "kvm_address_pools.cfg")
+if os.path.exists(filename):
+    cfg.parse_file(filename)
+    hostname = os.uname()[1].split(".")[0]
+    if cfg.filter("^" + hostname):
+        cfg.parse_string("only ^%s" % hostname)
+    else:
+        cfg.parse_string("only ^default_host")
+
+list = cfg.get_list()
 
 
-#  -------------
-#  Run the tests
-#  -------------
+# -------------
+# Run the tests
+# -------------
 status_dict = {}
 
 for dict in list:
@@ -153,7 +168,7 @@ for dict in list:
                 dependencies_satisfied = False
                 break
     if dependencies_satisfied:
-        test_iterations=int(dict.get("iterations", 1))
+        test_iterations = int(dict.get("iterations", 1))
         current_status = job.run_test("kvm", params=dict,
                                       tag=dict.get("shortname"),
                                       iterations=test_iterations)
