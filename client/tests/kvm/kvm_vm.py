@@ -100,7 +100,8 @@ class VM:
     This class handles all basic VM operations.
     """
 
-    def __init__(self, name, params, qemu_path, image_dir, iso_dir):
+    def __init__(self, name, params, qemu_path, image_dir, iso_dir,
+                 script_dir):
         """
         Initialize the object and set a few attributes.
 
@@ -110,6 +111,7 @@ class VM:
         @param qemu_path: The path of the qemu binary
         @param image_dir: The directory where images reside
         @param iso_dir: The directory where ISOs reside
+        @param script_dir: The directory where -net tap scripts reside
         """
         self.process = None
         self.redirs = {}
@@ -121,7 +123,7 @@ class VM:
         self.qemu_path = qemu_path
         self.image_dir = image_dir
         self.iso_dir = iso_dir
-
+        self.script_dir = script_dir
 
         # Find available monitor filename
         while True:
@@ -135,7 +137,7 @@ class VM:
 
 
     def clone(self, name=None, params=None, qemu_path=None, image_dir=None,
-              iso_dir=None):
+              iso_dir=None, script_dir=None):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -147,6 +149,7 @@ class VM:
         @param qemu_path: Optional new path to qemu
         @param image_dir: Optional new image dir
         @param iso_dir: Optional new iso directory
+        @param script_dir: Optional new -net tap script directory
         """
         if name == None:
             name = self.name
@@ -158,23 +161,24 @@ class VM:
             image_dir = self.image_dir
         if iso_dir == None:
             iso_dir = self.iso_dir
-        return VM(name, params, qemu_path, image_dir, iso_dir)
+        if script_dir == None:
+            script_dir = self.script_dir
+        return VM(name, params, qemu_path, image_dir, iso_dir, script_dir)
 
 
     def make_qemu_command(self, name=None, params=None, qemu_path=None,
-                          image_dir=None, iso_dir=None):
+                          image_dir=None, iso_dir=None, script_dir=None):
         """
         Generate a qemu command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
         class attributes is used.
-
 
         @param name: The name of the object
         @param params: A dict containing VM params
         @param qemu_path: The path of the qemu binary
         @param image_dir: The directory where images reside
         @param iso_dir: The directory where ISOs reside
-
+        @param script_dir: The directory where -net tap scripts reside
 
         @note: The params dict should contain:
                mem -- memory size in MBs
@@ -210,6 +214,8 @@ class VM:
             image_dir = self.image_dir
         if iso_dir == None:
             iso_dir = self.iso_dir
+        if script_dir == None:
+            script_dir = self.script_dir
 
         # Start constructing the qemu command
         qemu_cmd = ""
@@ -241,10 +247,30 @@ class VM:
         vlan = 0
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
+            # Handle the '-net nic' part
             qemu_cmd += " -net nic,vlan=%d" % vlan
             if nic_params.get("nic_model"):
                 qemu_cmd += ",model=%s" % nic_params.get("nic_model")
-            qemu_cmd += " -net user,vlan=%d" % vlan
+            if nic_params.has_key("address_index"):
+                mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
+                qemu_cmd += ",macaddr=%s" % mac
+            # Handle the '-net tap' or '-net user' part
+            mode = nic_params.get("nic_mode", "user")
+            qemu_cmd += " -net %s,vlan=%d" % (mode, vlan)
+            if mode == "tap":
+                if nic_params.get("nic_ifname"):
+                    qemu_cmd += ",ifname=%s" % nic_params.get("nic_ifname")
+                if nic_params.get("nic_script"):
+                    script_path = nic_params.get("nic_script")
+                    if not os.path.isabs(script_path):
+                        script_path = os.path.join(script_dir, script_path)
+                    qemu_cmd += ",script=%s" % script_path
+                if nic_params.get("nic_downscript"):
+                    script_path = nic_params.get("nic_downscript")
+                    if not os.path.isabs(script_path):
+                        script_path = os.path.join(script_dir, script_path)
+                    qemu_cmd += ",downscript=%s" % script_path
+            # Proceed to next NIC
             vlan += 1
 
         mem = params.get("mem")
@@ -263,7 +289,7 @@ class VM:
         for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
             redir_params = kvm_utils.get_sub_dict(params, redir_name)
             guest_port = int(redir_params.get("guest_port"))
-            host_port = self.get_port(guest_port)
+            host_port = self.redirs.get(guest_port)
             qemu_cmd += " -redir tcp:%s::%s" % (host_port, guest_port)
 
         if params.get("display") == "vnc":
@@ -282,7 +308,8 @@ class VM:
 
 
     def create(self, name=None, params=None, qemu_path=None, image_dir=None,
-               iso_dir=None, for_migration=False, timeout=5.0):
+               iso_dir=None, script_dir=None, for_migration=False,
+               timeout=5.0):
         """
         Start the VM by running a qemu command.
         All parameters are optional. The following applies to all parameters
@@ -295,6 +322,7 @@ class VM:
         @param qemu_path: The path of the qemu binary
         @param image_dir: The directory where images reside
         @param iso_dir: The directory where ISOs reside
+        @param script_dir: The directory where -net tap scripts reside
         @param for_migration: If True, start the VM with the -incoming
         option
         """
@@ -310,11 +338,14 @@ class VM:
             self.image_dir = image_dir
         if iso_dir != None:
             self.iso_dir = iso_dir
+        if script_dir != None:
+            self.script_dir = script_dir
         name = self.name
         params = self.params
         qemu_path = self.qemu_path
         image_dir = self.image_dir
         iso_dir = self.iso_dir
+        script_dir = self.script_dir
 
         # Verify the md5sum of the ISO image
         iso = params.get("cdrom")
@@ -325,14 +356,14 @@ class VM:
                 return False
             compare = False
             if params.get("md5sum_1m"):
-                logging.debug("Comparing expected MD5 sum with MD5 sum of first"
-                              "MB of ISO file...")
+                logging.debug("Comparing expected MD5 sum with MD5 sum of "
+                              "first MB of ISO file...")
                 actual_md5sum = kvm_utils.md5sum_file(iso, 1048576)
                 expected_md5sum = params.get("md5sum_1m")
                 compare = True
             elif params.get("md5sum"):
-                logging.debug("Comparing expected MD5 sum with MD5 sum of ISO"
-                              " file...")
+                logging.debug("Comparing expected MD5 sum with MD5 sum of ISO "
+                              "file...")
                 actual_md5sum = kvm_utils.md5sum_file(iso)
                 expected_md5sum = params.get("md5sum")
                 compare = True
@@ -581,32 +612,42 @@ class VM:
         return self.params
 
 
-    def get_address(self):
+    def get_address(self, index=0):
         """
-        Return the guest's address in host space.
+        Return the address of a NIC of the guest, in host space.
 
-        If port redirection is used, return 'localhost' (the guest has no IP
-        address of its own).  Otherwise return the guest's IP address.
+        If port redirection is used, return 'localhost' (the NIC has no IP
+        address of its own).  Otherwise return the NIC's IP address.
+
+        @param index: Index of the NIC whose address is requested.
         """
-        # Currently redirection is always used, so return 'localhost'
-        return "localhost"
+        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[index]
+        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        if nic_params.get("nic_mode") == "tap":
+            mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
+            return ip
+        else:
+            return "localhost"
 
 
-    def get_port(self, port):
+    def get_port(self, port, index=0):
         """
         Return the port in host space corresponding to port in guest space.
 
         @param port: Port number in host space.
+        @param index: Index of the NIC.
         @return: If port redirection is used, return the host port redirected
                 to guest port port. Otherwise return port.
         """
-        # Currently redirection is always used, so use the redirs dict
-        if self.redirs.has_key(port):
-            return self.redirs[port]
+        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[index]
+        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        if nic_params.get("nic_mode") == "tap":
+            return port
         else:
-            logging.debug("Warning: guest port %s requested but not"
-                          " redirected" % port)
-            return None
+            if not self.redirs.has_key(port):
+                logging.warn("Warning: guest port %s requested but not "
+                             "redirected" % port)
+            return self.redirs.get(port)
 
 
     def get_pid(self):
