@@ -90,7 +90,7 @@ class _sysinfo_logger(object):
                                           auto_monitor=False)
             tmp_dir = self.host.get_tmp_dir(parent="/tmp/sysinfo")
             self.autotest = autotest.Autotest(self.host)
-            self.autotest.install_base(autodir=tmp_dir)
+            self.autotest.install(autodir=tmp_dir)
             self.outputdir = self.host.get_tmp_dir()
         else:
             host = self.host
@@ -99,7 +99,7 @@ class _sysinfo_logger(object):
             # been removed by the test code)
             autodir = host.get_autodir()
             if not autodir or not host.path_exists(autodir):
-                self.autotest.install_base(autodir=autodir)
+                self.autotest.install(autodir=autodir)
 
             # if the output dir does not exist, recreate it
             if not host.path_exists(self.outputdir):

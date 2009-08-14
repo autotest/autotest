@@ -31,7 +31,6 @@ class BaseAutotest(installable_object.InstallableObject):
         self.host = host
         self.got = False
         self.installed = False
-        self.lightweight = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
 
@@ -63,14 +62,7 @@ class BaseAutotest(installable_object.InstallableObject):
         self._install(host=host, autodir=autodir)
 
 
-    def install_base(self, host=None, autodir=None):
-        """ Performs a lightweight autotest install. Useful for when you
-        want to run some client-side code but don't want to pay the cost
-        of a full installation. """
-        self._install(host=host, autodir=autodir, lightweight=True)
-
-
-    def _install(self, host=None, autodir=None, lightweight=False):
+    def _install(self, host=None, autodir=None):
         """
         Install autotest.  If get() was not called previously, an
         attempt will be made to install from the autotest svn
@@ -79,7 +71,6 @@ class BaseAutotest(installable_object.InstallableObject):
         Args:
             host: a Host instance on which autotest will be installed
             autodir: location on the remote host to install to
-            lightweight: exclude tests, deps and profilers, if possible
 
         Raises:
             AutoservError: if a tarball was not specified and
@@ -122,7 +113,6 @@ class BaseAutotest(installable_object.InstallableObject):
             pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
                                preserve_install_dir=True)
             self.installed = True
-            self.lightweight = lightweight
             return
         except global_config.ConfigError, e:
             logging.error("Could not install autotest using the packaging "
@@ -133,10 +123,13 @@ class BaseAutotest(installable_object.InstallableObject):
         # try to install from file or directory
         if self.source_material:
             if os.path.isdir(self.source_material):
+                c = global_config.global_config
+                supports_autoserv_packaging = c.get_config_value(
+                    "PACKAGES", "serve_packages_from_autoserv", type=bool)
                 # Copy autotest recursively
-                if lightweight:
+                if supports_autoserv_packaging:
                     dirs_to_exclude = set(["tests", "site_tests", "deps",
-                                           "tools", "profilers"])
+                                           "profilers"])
                     light_files = [os.path.join(self.source_material, f)
                                    for f in os.listdir(self.source_material)
                                    if f not in dirs_to_exclude]
@@ -158,7 +151,6 @@ class BaseAutotest(installable_object.InstallableObject):
                 raise NotImplementedError(e_msg)
             logging.info("Installation of autotest completed")
             self.installed = True
-            self.lightweight = lightweight
             return
 
         # if that fails try to install using svn
@@ -171,7 +163,6 @@ class BaseAutotest(installable_object.InstallableObject):
             host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
         logging.info("Installation of autotest completed")
         self.installed = True
-        self.lightweight = lightweight
 
 
     def uninstall(self, host=None):
@@ -301,7 +292,7 @@ class BaseAutotest(installable_object.InstallableObject):
             pass
 
         # on full-size installs, turn on any profilers the server is using
-        if not self.lightweight and not atrun.background:
+        if not atrun.background:
             running_profilers = host.job.profilers.add_log.iteritems()
             for profiler, (args, dargs) in running_profilers:
                 call_args = [repr(profiler)]
