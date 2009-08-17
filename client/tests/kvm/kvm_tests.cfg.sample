@@ -15,6 +15,8 @@ kill_vm = no
 kill_vm_gracefully = yes
 
 # Some default VM params
+qemu_binary = qemu
+qemu_img_binary = qemu-img
 mem = 512
 image_size = 10G
 shell_port = 22

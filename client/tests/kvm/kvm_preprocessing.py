@@ -19,7 +19,6 @@ def preprocess_image(test, params):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    qemu_img_path = os.path.join(test.bindir, "qemu-img")
     image_filename = kvm_vm.get_image_filename(params, test.bindir)
 
     create_image = False
@@ -27,13 +26,13 @@ def preprocess_image(test, params):
     if params.get("force_create_image") == "yes":
         logging.debug("'force_create_image' specified; creating image...")
         create_image = True
-    elif params.get("create_image") == "yes" and not \
-    os.path.exists(image_filename):
+    elif (params.get("create_image") == "yes" and not
+          os.path.exists(image_filename)):
         logging.debug("Creating image...")
         create_image = True
 
     if create_image:
-        if not kvm_vm.create_image(params, qemu_img_path, test.bindir):
+        if not kvm_vm.create_image(params, test.bindir):
             message = "Could not create image"
             logging.error(message)
             raise error.TestError(message)
@@ -49,16 +48,13 @@ def preprocess_vm(test, params, env, name):
     @param env: The environment (a dict-like object).
     @param name: The name of the VM object.
     """
-    qemu_path = os.path.join(test.bindir, "qemu")
-
     logging.debug("Preprocessing VM '%s'..." % name)
     vm = kvm_utils.env_get_vm(env, name)
     if vm:
         logging.debug("VM object found in environment")
     else:
         logging.debug("VM object does not exist; creating it")
-        vm = kvm_vm.VM(name, params, qemu_path, test.bindir,
-                       env.get("address_cache"))
+        vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         kvm_utils.env_register_vm(env, name, vm)
 
     start_vm = False
@@ -77,14 +73,13 @@ def preprocess_vm(test, params, env, name):
             logging.debug("VM is not alive; starting it...")
             start_vm = True
         elif vm.make_qemu_command() != vm.make_qemu_command(name, params,
-                                                            qemu_path,
                                                             test.bindir):
             logging.debug("VM's qemu command differs from requested one; "
                           "restarting it...")
             start_vm = True
 
     if start_vm:
-        if not vm.create(name, params, qemu_path, test.bindir, for_migration):
+        if not vm.create(name, params, test.bindir, for_migration):
             message = "Could not start VM"
             logging.error(message)
             raise error.TestError(message)
@@ -254,7 +249,8 @@ def preprocess(test, params, env):
 
     # Get the KVM userspace version and write it as a keyval
     logging.debug("Fetching KVM userspace version...")
-    qemu_path = os.path.join(test.bindir, "qemu")
+    qemu_path = kvm_utils.get_path(test.bindir, params.get("qemu_binary",
+                                                           "qemu"))
     version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
     exp = re.compile("[Vv]ersion .*?,")
     match = exp.search(version_line)
