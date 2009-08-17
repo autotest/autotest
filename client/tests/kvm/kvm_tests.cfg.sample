@@ -27,7 +27,7 @@ guest_port_remote_shell = 22
 # NIC parameters
 nic_mode = user
 #nic_mode = tap
-nic_script = qemu-ifup
+nic_script = scripts/qemu-ifup
 address_index = 0
 
 
@@ -632,6 +632,11 @@ variants:
 
 
 include kvm_cdkeys.cfg
+
+
+image_name.* ?<= images/
+cdrom.* ?<= isos/
+steps ?<= steps/
 
 
 # Choose your test list
