@@ -316,20 +316,32 @@ class config:
                 for filter in filters:
                     filtered_list = self.filter(filter, filtered_list)
                 # Apply the operation to the filtered list
-                for dict in filtered_list:
-                    if op_found == "=":
+                if op_found == "=":
+                    for dict in filtered_list:
                         dict[key] = value
-                    elif op_found == "+=":
+                elif op_found == "+=":
+                    for dict in filtered_list:
                         dict[key] = dict.get(key, "") + value
-                    elif op_found == "<=":
+                elif op_found == "<=":
+                    for dict in filtered_list:
                         dict[key] = value + dict.get(key, "")
-                    elif op_found.startswith("?") and dict.has_key(key):
-                        if op_found == "?=":
-                            dict[key] = value
-                        elif op_found == "?+=":
-                            dict[key] = dict.get(key, "") + value
-                        elif op_found == "?<=":
-                            dict[key] = value + dict.get(key, "")
+                elif op_found.startswith("?"):
+                    exp = re.compile("^(%s)$" % key)
+                    if op_found == "?=":
+                        for dict in filtered_list:
+                            for key in dict.keys():
+                                if exp.match(key):
+                                    dict[key] = value
+                    elif op_found == "?+=":
+                        for dict in filtered_list:
+                            for key in dict.keys():
+                                if exp.match(key):
+                                    dict[key] = dict.get(key, "") + value
+                    elif op_found == "?<=":
+                        for dict in filtered_list:
+                            for key in dict.keys():
+                                if exp.match(key):
+                                    dict[key] = value + dict.get(key, "")
 
             # Parse 'no' and 'only' statements
             elif words[0] == "no" or words[0] == "only":
