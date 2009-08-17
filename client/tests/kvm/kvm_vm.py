@@ -9,12 +9,12 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 """
 
 
-def get_image_filename(params, image_dir):
+def get_image_filename(params, root_dir):
     """
-    Generate an image path from params and image_dir.
+    Generate an image path from params and root_dir.
 
     @param params: Dictionary containing the test parameters.
-    @param image_dir: The directory where the image is to be located
+    @param root_dir: Base directory for relative filenames.
 
     @note: params should contain:
            image_name -- the name of the image file, without extension
@@ -23,17 +23,17 @@ def get_image_filename(params, image_dir):
     image_name = params.get("image_name", "image")
     image_format = params.get("image_format", "qcow2")
     image_filename = "%s.%s" % (image_name, image_format)
-    image_filename = os.path.join(image_dir, image_filename)
+    image_filename = kvm_utils.get_path(root_dir, image_filename)
     return image_filename
 
 
-def create_image(params, qemu_img_path, image_dir):
+def create_image(params, qemu_img_path, root_dir):
     """
     Create an image using qemu_image.
 
     @param params: Dictionary containing the test parameters.
     @param qemu_img_path: The path of the qemu-img binary
-    @param image_dir: The directory where the image is to be located
+    @param root_dir: Base directory for relative filenames.
 
     @note: params should contain:
            image_name -- the name of the image file, without extension
@@ -47,7 +47,7 @@ def create_image(params, qemu_img_path, image_dir):
     format = params.get("image_format", "qcow2")
     qemu_img_cmd += " -f %s" % format
 
-    image_filename = get_image_filename(params, image_dir)
+    image_filename = get_image_filename(params, root_dir)
     qemu_img_cmd += " %s" % image_filename
 
     size = params.get("image_size", "10G")
@@ -76,18 +76,18 @@ def create_image(params, qemu_img_path, image_dir):
     return image_filename
 
 
-def remove_image(params, image_dir):
+def remove_image(params, root_dir):
     """
     Remove an image file.
 
     @param params: A dict
-    @param image_dir: The directory where the image is to be located
+    @param root_dir: Base directory for relative filenames.
 
     @note: params should contain:
            image_name -- the name of the image file, without extension
            image_format -- the format of the image (qcow2, raw etc)
     """
-    image_filename = get_image_filename(params, image_dir)
+    image_filename = get_image_filename(params, root_dir)
     logging.debug("Removing image file %s..." % image_filename)
     if os.path.exists(image_filename):
         os.unlink(image_filename)
@@ -100,8 +100,7 @@ class VM:
     This class handles all basic VM operations.
     """
 
-    def __init__(self, name, params, qemu_path, image_dir, iso_dir,
-                 script_dir, address_cache):
+    def __init__(self, name, params, qemu_path, root_dir, address_cache):
         """
         Initialize the object and set a few attributes.
 
@@ -109,9 +108,7 @@ class VM:
         @param params: A dict containing VM params
                 (see method make_qemu_command for a full description)
         @param qemu_path: The path of the qemu binary
-        @param image_dir: The directory where images reside
-        @param iso_dir: The directory where ISOs reside
-        @param script_dir: The directory where -net tap scripts reside
+        @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
         self.process = None
@@ -122,9 +119,7 @@ class VM:
         self.name = name
         self.params = params
         self.qemu_path = qemu_path
-        self.image_dir = image_dir
-        self.iso_dir = iso_dir
-        self.script_dir = script_dir
+        self.root_dir = root_dir
         self.address_cache = address_cache
 
         # Find available monitor filename
@@ -138,8 +133,8 @@ class VM:
                 break
 
 
-    def clone(self, name=None, params=None, qemu_path=None, image_dir=None,
-              iso_dir=None, script_dir=None, address_cache=None):
+    def clone(self, name=None, params=None, qemu_path=None, root_dir=None,
+              address_cache=None):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -149,9 +144,7 @@ class VM:
         @param name: Optional new VM name
         @param params: Optional new VM creation parameters
         @param qemu_path: Optional new path to qemu
-        @param image_dir: Optional new image dir
-        @param iso_dir: Optional new iso directory
-        @param script_dir: Optional new -net tap script directory
+        @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
         if name == None:
@@ -160,20 +153,15 @@ class VM:
             params = self.params.copy()
         if qemu_path == None:
             qemu_path = self.qemu_path
-        if image_dir == None:
-            image_dir = self.image_dir
-        if iso_dir == None:
-            iso_dir = self.iso_dir
-        if script_dir == None:
-            script_dir = self.script_dir
+        if root_dir == None:
+            root_dir = self.root_dir
         if address_cache == None:
             address_cache = self.address_cache
-        return VM(name, params, qemu_path, image_dir, iso_dir, script_dir,
-                  address_cache)
+        return VM(name, params, qemu_path, root_dir, address_cache)
 
 
     def make_qemu_command(self, name=None, params=None, qemu_path=None,
-                          image_dir=None, iso_dir=None, script_dir=None):
+                          root_dir=None):
         """
         Generate a qemu command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
@@ -182,14 +170,11 @@ class VM:
         @param name: The name of the object
         @param params: A dict containing VM params
         @param qemu_path: The path of the qemu binary
-        @param image_dir: The directory where images reside
-        @param iso_dir: The directory where ISOs reside
-        @param script_dir: The directory where -net tap scripts reside
+        @param root_dir: Base directory for relative filenames
 
         @note: The params dict should contain:
                mem -- memory size in MBs
                cdrom -- ISO filename to use with the qemu -cdrom parameter
-               (iso_dir is pre-pended to the ISO filename)
                extra_params -- a string to append to the qemu command
                shell_port -- port of the remote shell daemon on the guest
                (SSH, Telnet or the home-made Remote Shell Server)
@@ -219,12 +204,8 @@ class VM:
             params = self.params
         if qemu_path == None:
             qemu_path = self.qemu_path
-        if image_dir == None:
-            image_dir = self.image_dir
-        if iso_dir == None:
-            iso_dir = self.iso_dir
-        if script_dir == None:
-            script_dir = self.script_dir
+        if root_dir == None:
+            root_dir = self.root_dir
 
         # Start constructing the qemu command
         qemu_cmd = ""
@@ -241,7 +222,7 @@ class VM:
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
             qemu_cmd += " -drive file=%s" % get_image_filename(image_params,
-                                                               image_dir)
+                                                               root_dir)
             if image_params.get("drive_format"):
                 qemu_cmd += ",if=%s" % image_params.get("drive_format")
             if image_params.get("drive_cache"):
@@ -269,15 +250,13 @@ class VM:
             if mode == "tap":
                 if nic_params.get("nic_ifname"):
                     qemu_cmd += ",ifname=%s" % nic_params.get("nic_ifname")
-                if nic_params.get("nic_script"):
-                    script_path = nic_params.get("nic_script")
-                    if not os.path.isabs(script_path):
-                        script_path = os.path.join(script_dir, script_path)
+                script_path = nic_params.get("nic_script")
+                if script_path:
+                    script_path = kvm_utils.get_path(root_dir, script_path)
                     qemu_cmd += ",script=%s" % script_path
-                if nic_params.get("nic_downscript"):
-                    script_path = nic_params.get("nic_downscript")
-                    if not os.path.isabs(script_path):
-                        script_path = os.path.join(script_dir, script_path)
+                script_path = nic_params.get("nic_downscript")
+                if script_path:
+                    script_path = kvm_utils.get_path(root_dir, script_path)
                     qemu_cmd += ",downscript=%s" % script_path
             # Proceed to next NIC
             vlan += 1
@@ -288,7 +267,7 @@ class VM:
 
         iso = params.get("cdrom")
         if iso:
-            iso = os.path.join(iso_dir, iso)
+            iso = kvm_utils.get_path(root_dir, iso)
             qemu_cmd += " -cdrom %s" % iso
 
         extra_params = params.get("extra_params")
@@ -316,9 +295,8 @@ class VM:
         return qemu_cmd
 
 
-    def create(self, name=None, params=None, qemu_path=None, image_dir=None,
-               iso_dir=None, script_dir=None, for_migration=False,
-               timeout=5.0):
+    def create(self, name=None, params=None, qemu_path=None, root_dir=None,
+               for_migration=False, timeout=5.0):
         """
         Start the VM by running a qemu command.
         All parameters are optional. The following applies to all parameters
@@ -329,9 +307,7 @@ class VM:
         @param name: The name of the object
         @param params: A dict containing VM params
         @param qemu_path: The path of the qemu binary
-        @param image_dir: The directory where images reside
-        @param iso_dir: The directory where ISOs reside
-        @param script_dir: The directory where -net tap scripts reside
+        @param root_dir: Base directory for relative filenames
         @param for_migration: If True, start the VM with the -incoming
         option
         """
@@ -343,23 +319,17 @@ class VM:
             self.params = params
         if qemu_path != None:
             self.qemu_path = qemu_path
-        if image_dir != None:
-            self.image_dir = image_dir
-        if iso_dir != None:
-            self.iso_dir = iso_dir
-        if script_dir != None:
-            self.script_dir = script_dir
+        if root_dir != None:
+            self.root_dir = root_dir
         name = self.name
         params = self.params
         qemu_path = self.qemu_path
-        image_dir = self.image_dir
-        iso_dir = self.iso_dir
-        script_dir = self.script_dir
+        root_dir = self.root_dir
 
         # Verify the md5sum of the ISO image
         iso = params.get("cdrom")
         if iso:
-            iso = os.path.join(iso_dir, iso)
+            iso = kvm_utils.get_path(root_dir, iso)
             if not os.path.exists(iso):
                 logging.error("ISO file not found: %s" % iso)
                 return False

@@ -20,8 +20,7 @@ def preprocess_image(test, params):
     @note: Currently this function just creates an image if requested.
     """
     qemu_img_path = os.path.join(test.bindir, "qemu-img")
-    image_dir = os.path.join(test.bindir, "images")
-    image_filename = kvm_vm.get_image_filename(params, image_dir)
+    image_filename = kvm_vm.get_image_filename(params, test.bindir)
 
     create_image = False
 
@@ -34,7 +33,7 @@ def preprocess_image(test, params):
         create_image = True
 
     if create_image:
-        if not kvm_vm.create_image(params, qemu_img_path, image_dir):
+        if not kvm_vm.create_image(params, qemu_img_path, test.bindir):
             message = "Could not create image"
             logging.error(message)
             raise error.TestError(message)
@@ -51,9 +50,6 @@ def preprocess_vm(test, params, env, name):
     @param name: The name of the VM object.
     """
     qemu_path = os.path.join(test.bindir, "qemu")
-    image_dir = os.path.join(test.bindir, "images")
-    iso_dir = os.path.join(test.bindir, "isos")
-    script_dir = os.path.join(test.bindir, "scripts")
 
     logging.debug("Preprocessing VM '%s'..." % name)
     vm = kvm_utils.env_get_vm(env, name)
@@ -61,7 +57,7 @@ def preprocess_vm(test, params, env, name):
         logging.debug("VM object found in environment")
     else:
         logging.debug("VM object does not exist; creating it")
-        vm = kvm_vm.VM(name, params, qemu_path, image_dir, iso_dir, script_dir,
+        vm = kvm_vm.VM(name, params, qemu_path, test.bindir,
                        env.get("address_cache"))
         kvm_utils.env_register_vm(env, name, vm)
 
@@ -82,16 +78,13 @@ def preprocess_vm(test, params, env, name):
             start_vm = True
         elif vm.make_qemu_command() != vm.make_qemu_command(name, params,
                                                             qemu_path,
-                                                            image_dir,
-                                                            iso_dir,
-                                                            script_dir):
+                                                            test.bindir):
             logging.debug("VM's qemu command differs from requested one; "
                           "restarting it...")
             start_vm = True
 
     if start_vm:
-        if not vm.create(name, params, qemu_path, image_dir, iso_dir,
-                         script_dir, for_migration):
+        if not vm.create(name, params, qemu_path, test.bindir, for_migration):
             message = "Could not start VM"
             logging.error(message)
             raise error.TestError(message)
@@ -108,10 +101,8 @@ def postprocess_image(test, params):
     @param test: An Autotest test object.
     @param params: A dict containing image postprocessing parameters.
     """
-    image_dir = os.path.join(test.bindir, "images")
-
     if params.get("remove_image") == "yes":
-        kvm_vm.remove_image(params, image_dir)
+        kvm_vm.remove_image(params, test.bindir)
 
 
 def postprocess_vm(test, params, env, name):
