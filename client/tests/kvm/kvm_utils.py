@@ -503,9 +503,9 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     """
     Copy files to a remote host (guest).
 
-    @param host: Hostname of the guest
-    @param username: User that will be used to copy the files
-    @param password: Host's password
+    @param host: Hostname or IP address
+    @param username: Username (if required)
+    @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
     @param timeout: Time in seconds that we will wait before giving up to
@@ -523,9 +523,9 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     """
     Copy files from a remote host (guest).
 
-    @param host: Hostname of the guest
-    @param username: User that will be used to copy the files
-    @param password: Host's password
+    @param host: Hostname or IP address
+    @param username: Username (if required)
+    @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
     @param timeout: Time in seconds that we will wait before giving up to copy
@@ -542,9 +542,10 @@ def ssh(host, port, username, password, prompt, timeout=10):
     """
     Log into a remote host (guest) using SSH.
 
-    @param host: Hostname of the guest
-    @param username: User that will be used to log into the host.
-    @param password: Host's password
+    @param host: Hostname or IP address
+    @param username: Username (if required)
+    @param password: Password (if required)
+    @param prompt: Shell prompt (regular expression)
     @timeout: Time in seconds that we will wait before giving up on logging
             into the host.
 
@@ -559,9 +560,10 @@ def telnet(host, port, username, password, prompt, timeout=10):
     """
     Log into a remote host (guest) using Telnet.
 
-    @param host: Hostname of the guest
-    @param username: User that will be used to log into the host.
-    @param password: Host's password
+    @param host: Hostname or IP address
+    @param username: Username (if required)
+    @param password: Password (if required)
+    @param prompt: Shell prompt (regular expression)
     @timeout: Time in seconds that we will wait before giving up on logging
             into the host.
 

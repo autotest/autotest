@@ -17,12 +17,12 @@ kill_vm_gracefully = yes
 # Some default VM params
 mem = 512
 image_size = 10G
-ssh_port = 22
+shell_port = 22
 display = vnc
 
 # Port redirections
-redirs = ssh
-guest_port_ssh = 22
+redirs = remote_shell
+guest_port_remote_shell = 22
 
 # NIC parameters
 nic_mode = user
@@ -146,16 +146,20 @@ variants:
     # Linux section
     - @Linux:
         no timedrift
-        cmd_shutdown = shutdown -h now
-        cmd_reboot = shutdown -r now
-        ssh_status_test_command = echo $?
+        shutdown_command = shutdown -h now
+        reboot_command = shutdown -r now
+        status_test_command = echo $?
         username = root
         password = 123456
+        shell_client = ssh
+        shell_port = 22
+        file_transfer_client = scp
+        file_transfer_port = 22
 
         variants:
             - Fedora:
                 no setup
-                ssh_prompt = "^\[.*\][\#\$]\s*$"
+                shell_prompt = "^\[.*\][\#\$]\s*$"
 
                 variants:
                     - 8.32:
@@ -237,7 +241,7 @@ variants:
                     md5sum_1m = 768ca32503ef92c28f2d144f2a87e4d0
 
             - @Ubuntu:
-                ssh_prompt = "^root@.*[\#\$]\s*$"
+                shell_prompt = "^root@.*[\#\$]\s*$"
 
                 variants:
                     - Ubuntu-6.10-32:
@@ -269,7 +273,7 @@ variants:
 
             - RHEL:
                 no setup
-                ssh_prompt = "^\[.*\][\#\$]\s*$"
+                shell_prompt = "^\[.*\][\#\$]\s*$"
 
                 variants:
                     - 5.3.i386:
@@ -329,12 +333,17 @@ variants:
     # Windows section
     - @Windows:
         no autotest
-        cmd_shutdown = shutdown /s /t 0
-        cmd_reboot = shutdown /r /t 0
-        ssh_prompt = "^\w:\\.*>\s*$"
-        ssh_status_test_command = echo %errorlevel%
+        shutdown_command = shutdown /s /t 0
+        reboot_command = shutdown /r /t 0
+        status_test_command = echo %errorlevel%
+        shell_prompt = "^\w:\\.*>\s*$"
         username = Administrator
         password = 123456
+        shell_client = ssh
+        shell_port = 22
+        file_transfer_client = scp
+        file_transfer_port = 22
+
         migrate:
             migration_test_command = ver && vol
         stress_boot:
@@ -394,8 +403,8 @@ variants:
 
             - Win2003:
                 image_size = 20G
-                cmd_shutdown = shutdown /s /f /t 0
-                cmd_reboot = shutdown /r /f /t 0
+                shutdown_command = shutdown /s /f /t 0
+                reboot_command = shutdown /r /f /t 0
 
                 variants:
                     - 32:
@@ -443,10 +452,10 @@ variants:
             - Win2008:
                 image_name = win2008
                 image_size = 20G
-                cmd_shutdown = shutdown /s /f /t 0
-                cmd_reboot = shutdown /r /f /t 0
-                ssh_port = 23
-                guest_port_ssh = 23
+                shutdown_command = shutdown /s /f /t 0
+                reboot_command = shutdown /r /f /t 0
+                shell_port = 23
+                guest_port_remote_shell = 23
                 use_telnet = yes
                 username = Administrator
                 password = 1q2w3eP

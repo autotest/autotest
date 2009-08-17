@@ -191,7 +191,10 @@ class VM:
                cdrom -- ISO filename to use with the qemu -cdrom parameter
                (iso_dir is pre-pended to the ISO filename)
                extra_params -- a string to append to the qemu command
-               ssh_port -- should be 22 for SSH, 23 for Telnet
+               shell_port -- port of the remote shell daemon on the guest
+               (SSH, Telnet or the home-made Remote Shell Server)
+               shell_client -- client program to use for connecting to the
+               remote shell daemon on the guest (ssh, telnet or nc)
                x11_display -- if specified, the DISPLAY environment variable
                will be be set to this value for the qemu process (useful for
                SDL rendering)
@@ -533,14 +536,13 @@ class VM:
         """
         Destroy the VM.
 
-        If gracefully is True, first attempt to kill the VM via SSH/Telnet
-        with a shutdown command. Then, attempt to destroy the VM via the
-        monitor with a 'quit' command. If that fails, send SIGKILL to the
-        qemu process.
+        If gracefully is True, first attempt to shutdown the VM with a shell
+        command.  Then, attempt to destroy the VM via the monitor with a 'quit'
+        command.  If that fails, send SIGKILL to the qemu process.
 
         @param gracefully: Whether an attempt will be made to end the VM
-                using monitor command before trying to kill the qemu process
-                or not.
+                using a shell command before trying to end the qemu process
+                with a 'quit' or a kill signal.
         """
         # Is it already dead?
         if self.is_dead():
@@ -551,18 +553,22 @@ class VM:
 
         logging.debug("Destroying VM with PID %d..." % self.process.get_pid())
 
-        if gracefully and self.params.get("cmd_shutdown"):
-            # Try to destroy with SSH command
-            logging.debug("Trying to shutdown VM with SSH command...")
-            (status, output) = self.ssh(self.params.get("cmd_shutdown"))
-            # Was the command sent successfully?
-            if status == 0:
-                logging.debug("Shutdown command sent; waiting for VM to go "
-                              "down...")
-                if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
-                    logging.debug("VM is down")
-                    self.process.close()
-                    return
+        if gracefully and self.params.get("shutdown_command"):
+            # Try to destroy with shell command
+            logging.debug("Trying to shutdown VM with shell command...")
+            session = self.remote_login()
+            if session:
+                try:
+                    # Send the shutdown command
+                    session.sendline(self.params.get("shutdown_command"))
+                    logging.debug("Shutdown command sent; waiting for VM to go "
+                                  "down...")
+                    if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
+                        logging.debug("VM is down")
+                        self.process.close()
+                        return
+                finally:
+                    session.close()
 
         # Try to destroy with a monitor command
         logging.debug("Trying to kill VM with monitor command...")
@@ -693,22 +699,22 @@ class VM:
 
     def is_sshd_running(self, timeout=10):
         """
-        Return True iff the guest's SSH port is responsive.
+        Return True iff the guest's remote shell port is responsive.
 
-        @param timeout: Time (seconds) before giving up checking the SSH daemon
+        @param timeout: Time (seconds) before giving up checking the daemon's
                 responsiveness.
         """
         address = self.get_address()
-        port = self.get_port(int(self.params.get("ssh_port")))
+        port = self.get_port(int(self.params.get("shell_port")))
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return False
         return kvm_utils.is_sshd_running(address, port, timeout=timeout)
 
 
-    def ssh_login(self, nic_index=0, timeout=10):
+    def remote_login(self, nic_index=0, timeout=10):
         """
-        Log into the guest via SSH/Telnet.
+        Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
         password prompt or a shell prompt) -- fail.
 
@@ -719,85 +725,76 @@ class VM:
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
-        prompt = self.params.get("ssh_prompt", "[\#\$]")
-        use_telnet = self.params.get("use_telnet") == "yes"
+        prompt = self.params.get("shell_prompt", "[\#\$]")
+        client = self.params.get("shell_client")
         address = self.get_address(nic_index)
-        port = self.get_port(int(self.params.get("ssh_port")))
+        port = self.get_port(int(self.params.get("shell_port")))
+
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
 
-        if use_telnet:
-            session = kvm_utils.telnet(address, port, username, password,
-                                       prompt, timeout)
-        else:
+        if client == "ssh":
             session = kvm_utils.ssh(address, port, username, password,
                                     prompt, timeout)
+        elif client == "telnet":
+            session = kvm_utils.telnet(address, port, username, password,
+                                       prompt, timeout)
+
         if session:
-            session.set_status_test_command(self.params.get("ssh_status_test_"
+            session.set_status_test_command(self.params.get("status_test_"
                                                             "command", ""))
         return session
 
 
-    def scp_to_remote(self, local_path, remote_path, nic_index=0, timeout=300):
+    def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=300):
         """
-        Transfer files to the guest via SCP.
+        Transfer files to the guest.
 
         @param local_path: Host path
         @param remote_path: Guest path
+        @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
+        client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
-        port = self.get_port(int(self.params.get("ssh_port")))
+        port = self.get_port(int(self.params.get("file_transfer_port")))
+
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
-        return kvm_utils.scp_to_remote(address, port, username, password,
-                                       local_path, remote_path, timeout)
+
+        if client == "scp":
+            return kvm_utils.scp_to_remote(address, port, username, password,
+                                           local_path, remote_path, timeout)
 
 
-    def scp_from_remote(self, remote_path, local_path, nic_index=0, timeout=300):
+    def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=300):
         """
-        Transfer files from the guest via SCP.
+        Transfer files from the guest.
 
         @param local_path: Guest path
         @param remote_path: Host path
+        @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
+        client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
-        port = self.get_port(int(self.params.get("ssh_port")))
+        port = self.get_port(int(self.params.get("file_transfer_port")))
+
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
-        return kvm_utils.scp_from_remote(address, port, username, password,
-                                         remote_path, local_path, timeout)
 
-
-    def ssh(self, command, timeout=10):
-        """
-        Login via SSH/Telnet and send a command.
-
-        @command: Command that will be sent.
-        @timeout: Time before giving up waiting on a status return.
-        @return: A tuple (status, output). status is 0 on success and 1 on
-                failure.
-        """
-        session = self.ssh_login(timeout=timeout)
-        if not session:
-            return (1, "")
-
-        logging.debug("Sending command: %s" % command)
-        session.sendline(command)
-        output = session.read_nonblocking(1.0)
-        session.close()
-
-        return (0, output)
+        if client == "scp":
+            return kvm_utils.scp_from_remote(address, port, username, password,
+                                             remote_path, local_path, timeout)
 
 
     def send_key(self, keystr):
