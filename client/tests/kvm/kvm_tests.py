@@ -29,7 +29,7 @@ def run_boot(test, params, env):
 
     logging.info("Waiting for guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -37,7 +37,7 @@ def run_boot(test, params, env):
 
     if params.get("reboot") == "yes":
         # Send the VM's reboot command
-        session.sendline(vm.get_params().get("cmd_reboot"))
+        session.sendline(vm.get_params().get("reboot_command"))
         logging.info("Reboot command sent; waiting for guest to go down...")
 
         if not kvm_utils.wait_for(lambda: not session.is_responsive(),
@@ -48,7 +48,7 @@ def run_boot(test, params, env):
 
         logging.info("Guest is down; waiting for it to go up again...")
 
-        session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+        session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
         if not session:
             raise error.TestFail("Could not log into guest after reboot")
 
@@ -76,7 +76,7 @@ def run_shutdown(test, params, env):
 
     logging.info("Waiting for guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -84,7 +84,7 @@ def run_shutdown(test, params, env):
         logging.info("Logged in")
 
         # Send the VM's shutdown command
-        session.sendline(vm.get_params().get("cmd_shutdown"))
+        session.sendline(vm.get_params().get("shutdown_command"))
 
         logging.info("Shutdown command sent; waiting for guest to go down...")
 
@@ -141,7 +141,7 @@ def run_migration(test, params, env):
     # Log into guest and get the output of migration_test_command
     logging.info("Waiting for guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -210,14 +210,14 @@ def run_migration(test, params, env):
 
     # Hack: it seems that the first attempt to communicate with the SSH port
     # following migration always fails (or succeeds after a very long time).
-    # So just connect to the port once so the following call to ssh_login
+    # So just connect to the port once so the following call to remote_login
     # succeeds.
     dest_vm.is_sshd_running(timeout=0.0)
 
     # Log into guest and get the output of migration_test_command
     logging.info("Logging into guest after migration...")
 
-    session = dest_vm.ssh_login()
+    session = dest_vm.remote_login()
     if not session:
         raise error.TestFail("Could not log into guest after migration")
 
@@ -254,7 +254,7 @@ def run_autotest(test, params, env):
 
     logging.info("Logging into guest...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -300,7 +300,7 @@ def run_autotest(test, params, env):
     if copy:
         logging.info("Copying autotest.tar.bz2 to guest"
                      " (file is missing or has a different size)...")
-        if not vm.scp_to_remote(tarred_autotest_path, ""):
+        if not vm.copy_files_to(tarred_autotest_path, ""):
             raise error.TestFail("Could not copy autotest.tar.bz2 to guest")
 
     # Check if we need to copy <test_name>.tar.bz2
@@ -316,7 +316,7 @@ def run_autotest(test, params, env):
     if copy:
         logging.info("Copying %s.tar.bz2 to guest (file is missing or has a"
                      " different size)..." % test_name)
-        if not vm.scp_to_remote(tarred_test_path, ""):
+        if not vm.copy_files_to(tarred_test_path, ""):
             raise error.TestFail("Could not copy %s.tar.bz2 to guest" %
                                  test_name)
 
@@ -342,7 +342,7 @@ def run_autotest(test, params, env):
     # test.bindir/autotest_control to the autotest dir
     control_file_path = os.path.join(test.bindir, "autotest_control",
                                      test_control_file)
-    if not vm.scp_to_remote(control_file_path, "autotest/control"):
+    if not vm.copy_files_to(control_file_path, "autotest/control"):
         raise error.TestFail("Could not copy the test control file to guest")
     # Run the test
     logging.info("Running test '%s'..." % test_name)
@@ -391,7 +391,7 @@ def run_autotest(test, params, env):
     guest_results_dir = os.path.join(test.outputdir, "guest_results")
     if not os.path.exists(guest_results_dir):
         os.mkdir(guest_results_dir)
-    if not vm.scp_from_remote("autotest/results/default/*", guest_results_dir):
+    if not vm.copy_files_from("autotest/results/default/*", guest_results_dir):
         logging.error("Could not copy results back from guest")
 
     # Fail the test if necessary
@@ -405,11 +405,11 @@ def internal_yum_update(session, command, prompt, timeout):
     """
     Helper function to perform the yum update test.
 
-    @param session: SSH session stablished to the host
-    @param command: Command to be sent to the SSH connection
+    @param session: shell session stablished to the host
+    @param command: Command to be sent to the shell session
     @param prompt: Machine prompt
     @param timeout: How long to wait until we get an appropriate output from
-            the SSH session.
+            the shell session.
     """
     session.sendline(command)
     end_time = time.time() + timeout
@@ -448,7 +448,7 @@ def run_yum_update(test, params, env):
 
     logging.info("Logging into guest...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         message = "Could not log into guest"
         logging.error(message)
@@ -456,9 +456,9 @@ def run_yum_update(test, params, env):
 
     logging.info("Logged in")
 
-    internal_yum_update(session, "yum update", params.get("ssh_prompt"), 600)
+    internal_yum_update(session, "yum update", params.get("shell_prompt"), 600)
     internal_yum_update(session, "yum update kernel",
-                        params.get("ssh_prompt"), 600)
+                        params.get("shell_prompt"), 600)
 
     session.close()
 
@@ -479,7 +479,7 @@ def run_linux_s3(test, params, env):
 
     logging.info("Waiting for guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -522,7 +522,7 @@ def run_stress_boot(tests, params, env):
     number of VMs successfully started:
     1) boot the first vm
     2) boot the second vm cloned from the first vm, check whether it boots up
-       and all booted vms can ssh-login
+       and all booted vms respond to shell commands
     3) go on until cannot create VM anymore or cannot allocate memory for VM
 
     @param test:   kvm test object
@@ -538,7 +538,7 @@ def run_stress_boot(tests, params, env):
 
     logging.info("Waiting for first guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into first guest")
 
@@ -562,14 +562,14 @@ def run_stress_boot(tests, params, env):
             if not curr_vm.create():
                 raise error.TestFail("Cannot create VM #%d" % num)
 
-            curr_vm_session = kvm_utils.wait_for(curr_vm.ssh_login, 240, 0, 2)
+            curr_vm_session = kvm_utils.wait_for(curr_vm.remote_login, 240, 0, 2)
             if not curr_vm_session:
                 raise error.TestFail("Could not log into guest #%d" % num)
 
             logging.info("Guest #%d boots up successfully" % num)
             sessions.append(curr_vm_session)
 
-            # check whether all previous ssh sessions are responsive
+            # check whether all previous shell sessions are responsive
             for i, se in enumerate(sessions):
                 if se.get_command_status(params.get("alive_test_cmd")) != 0:
                     raise error.TestFail("Session #%d is not responsive" % i)
@@ -659,7 +659,7 @@ def run_timedrift(test, params, env):
 
     logging.info("Waiting for guest to be up...")
 
-    session = kvm_utils.wait_for(vm.ssh_login, 240, 0, 2)
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
     if not session:
         raise error.TestFail("Could not log into guest")
 
@@ -699,7 +699,7 @@ def run_timedrift(test, params, env):
         # Run some load on the guest
         logging.info("Starting load on guest...")
         for i in range(guest_load_instances):
-            load_session = vm.ssh_login()
+            load_session = vm.remote_login()
             if not load_session:
                 raise error.TestFail("Could not log into guest")
             load_session.set_output_prefix("(guest load %d) " % i)
