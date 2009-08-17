@@ -27,12 +27,11 @@ def get_image_filename(params, root_dir):
     return image_filename
 
 
-def create_image(params, qemu_img_path, root_dir):
+def create_image(params, root_dir):
     """
     Create an image using qemu_image.
 
     @param params: Dictionary containing the test parameters.
-    @param qemu_img_path: The path of the qemu-img binary
     @param root_dir: Base directory for relative filenames.
 
     @note: params should contain:
@@ -41,7 +40,8 @@ def create_image(params, qemu_img_path, root_dir):
            image_size -- the requested size of the image (a string
            qemu-img can understand, such as '10G')
     """
-    qemu_img_cmd = qemu_img_path
+    qemu_img_cmd = kvm_utils.get_path(root_dir, params.get("qemu_img_binary",
+                                                           "qemu-img"))
     qemu_img_cmd += " create"
 
     format = params.get("image_format", "qcow2")
@@ -100,14 +100,13 @@ class VM:
     This class handles all basic VM operations.
     """
 
-    def __init__(self, name, params, qemu_path, root_dir, address_cache):
+    def __init__(self, name, params, root_dir, address_cache):
         """
         Initialize the object and set a few attributes.
 
         @param name: The name of the object
         @param params: A dict containing VM params
                 (see method make_qemu_command for a full description)
-        @param qemu_path: The path of the qemu binary
         @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
@@ -118,7 +117,6 @@ class VM:
 
         self.name = name
         self.params = params
-        self.qemu_path = qemu_path
         self.root_dir = root_dir
         self.address_cache = address_cache
 
@@ -133,8 +131,7 @@ class VM:
                 break
 
 
-    def clone(self, name=None, params=None, qemu_path=None, root_dir=None,
-              address_cache=None):
+    def clone(self, name=None, params=None, root_dir=None, address_cache=None):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -143,7 +140,6 @@ class VM:
 
         @param name: Optional new VM name
         @param params: Optional new VM creation parameters
-        @param qemu_path: Optional new path to qemu
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
@@ -151,17 +147,14 @@ class VM:
             name = self.name
         if params == None:
             params = self.params.copy()
-        if qemu_path == None:
-            qemu_path = self.qemu_path
         if root_dir == None:
             root_dir = self.root_dir
         if address_cache == None:
             address_cache = self.address_cache
-        return VM(name, params, qemu_path, root_dir, address_cache)
+        return VM(name, params, root_dir, address_cache)
 
 
-    def make_qemu_command(self, name=None, params=None, qemu_path=None,
-                          root_dir=None):
+    def make_qemu_command(self, name=None, params=None, root_dir=None):
         """
         Generate a qemu command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
@@ -169,7 +162,6 @@ class VM:
 
         @param name: The name of the object
         @param params: A dict containing VM params
-        @param qemu_path: The path of the qemu binary
         @param root_dir: Base directory for relative filenames
 
         @note: The params dict should contain:
@@ -202,8 +194,6 @@ class VM:
             name = self.name
         if params == None:
             params = self.params
-        if qemu_path == None:
-            qemu_path = self.qemu_path
         if root_dir == None:
             root_dir = self.root_dir
 
@@ -213,7 +203,8 @@ class VM:
         if params.get("x11_display"):
             qemu_cmd += "DISPLAY=%s " % params.get("x11_display")
         # Add the qemu binary
-        qemu_cmd += qemu_path
+        qemu_cmd += kvm_utils.get_path(root_dir, params.get("qemu_binary",
+                                                            "qemu"))
         # Add the VM's name
         qemu_cmd += " -name '%s'" % name
         # Add the monitor socket parameter
@@ -295,7 +286,7 @@ class VM:
         return qemu_cmd
 
 
-    def create(self, name=None, params=None, qemu_path=None, root_dir=None,
+    def create(self, name=None, params=None, root_dir=None,
                for_migration=False, timeout=5.0):
         """
         Start the VM by running a qemu command.
@@ -306,7 +297,6 @@ class VM:
 
         @param name: The name of the object
         @param params: A dict containing VM params
-        @param qemu_path: The path of the qemu binary
         @param root_dir: Base directory for relative filenames
         @param for_migration: If True, start the VM with the -incoming
         option
@@ -317,13 +307,10 @@ class VM:
             self.name = name
         if params != None:
             self.params = params
-        if qemu_path != None:
-            self.qemu_path = qemu_path
         if root_dir != None:
             self.root_dir = root_dir
         name = self.name
         params = self.params
-        qemu_path = self.qemu_path
         root_dir = self.root_dir
 
         # Verify the md5sum of the ISO image
