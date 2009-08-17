@@ -688,6 +688,21 @@ def find_free_ports(start_port, end_port, count):
 
 # The following are miscellaneous utility functions.
 
+def get_path(base_path, user_path):
+    """
+    Translate a user specified path to a real path.
+    If user_path is relative, append it to base_path.
+    If user_path is absolute, return it as is.
+
+    @param base_path: The base path of relative user specified paths.
+    @param user_path: The user specified path.
+    """
+    if os.path.isabs(user_path):
+        return user_path
+    else:
+        return os.path.join(base_path, user_path)
+
+
 def generate_random_string(length):
     """
     Return a random string using alphanumeric characters.
