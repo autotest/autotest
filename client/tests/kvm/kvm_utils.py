@@ -573,6 +573,23 @@ def telnet(host, port, username, password, prompt, timeout=10):
     return remote_login(command, password, prompt, "\r\n", timeout)
 
 
+def netcat(host, port, username, password, prompt, timeout=10):
+    """
+    Log into a remote host (guest) using Netcat.
+
+    @param host: Hostname or IP address
+    @param username: Username (if required)
+    @param password: Password (if required)
+    @param prompt: Shell prompt (regular expression)
+    @timeout: Time in seconds that we will wait before giving up on logging
+            into the host.
+
+    @return: kvm_spawn object on success and None on failure.
+    """
+    command = "nc %s %s" % (host, port)
+    return remote_login(command, password, prompt, "\n", timeout)
+
+
 # The following are utility functions related to ports.
 
 def is_sshd_running(host, port, timeout=10.0):

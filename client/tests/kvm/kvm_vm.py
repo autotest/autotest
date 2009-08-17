@@ -740,6 +740,9 @@ class VM:
         elif client == "telnet":
             session = kvm_utils.telnet(address, port, username, password,
                                        prompt, timeout)
+        elif client == "nc":
+            session = kvm_utils.netcat(address, port, username, password,
+                                       prompt, timeout)
 
         if session:
             session.set_status_test_command(self.params.get("status_test_"
