@@ -95,13 +95,14 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
             logging.error("Could not fetch screendump")
             continue
 
-        # Make sure image is valid
-        if not ppm_utils.image_verify_ppm_file(scrdump_filename):
-            failure_message = "got invalid screendump"
-            break
-
         # Read image file
         (w, h, data) = ppm_utils.image_read_from_ppm_file(scrdump_filename)
+
+        # Make sure image is valid
+        if not ppm_utils.image_verify_ppm_file(scrdump_filename):
+            logging.warn("Got invalid screendump: dimensions: %dx%d, "
+                         "data size: %d" % (w, h, len(data)))
+            continue
 
         # Compute md5sum of whole image
         whole_image_md5sum = ppm_utils.image_md5sum(w, h, data)
