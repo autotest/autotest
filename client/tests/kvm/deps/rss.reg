@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run]
+"Remote Shell Server"="C:\\rss.exe 22"
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\winlogon]
+"AutoAdminLogon"="1"
+"DefaultUserName"="Administrator"
+"DefaultPassword"="1q2w3eP"
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System]
+"EnableLUA"=dword:00000000
+
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows NT\Reliability]
+"ShutdownReasonOn"=dword:00000000
