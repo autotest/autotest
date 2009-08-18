@@ -73,5 +73,33 @@ key ret
 # --------------------------------
 step 1732.47
 screendump 20080101_000011_b8ee0f8e288f7dd443605e0cf5d91c61.ppm
-# Win2008 Finish
+# Desktop reached
 barrier_2 49 16 2 579 5bfe5b0a9fa7648373e9ad84d3119a5d 232
+# Sending keys: 0xdc-r
+key 0xdc-r
+# --------------------------------
+step 1732.47
+screendump 20090809_051015_fbb85586d6ae0a031d6eea173e3fd940.ppm
+# Shutdown (screendump taken from Win2008.32)
+barrier_2 38 35 312 430 684748292c757ae5eb7bf4299df70171 10
+# Sending keys: s h u t d o w n spc slash s spc slash f spc slash t spc 0 ret
+key s
+key h
+key u
+key t
+key d
+key o
+key w
+key n
+key spc
+key slash
+key s
+key spc
+key slash
+key f
+key spc
+key slash
+key t
+key spc
+key 0
+key ret
