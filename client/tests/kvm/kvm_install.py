@@ -168,9 +168,11 @@ class SourceDirInstaller:
 
     def __build(self):
         os.chdir(self.srcdir)
-        cfg = "./configure --prefix=%s" % self.prefix
+        # For testing purposes, it's better to build qemu binaries with
+        # debugging symbols, so we can extract more meaningful stack traces.
+        cfg = "./configure --disable-strip --prefix=%s" % self.prefix
         if self.repo_type == 1:
-            steps = [cfg, "make clean", "make -j %s" % utils.count_cpus()]
+            steps = [cfg, "make clean", "make -j %s" % (utils.count_cpus() + 1)]
             if not os.path.exists('qemu/pc-bios/bios.bin'):
                 steps.append("make -C bios")
                 steps.append("make -C extboot")
