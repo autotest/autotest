@@ -776,3 +776,69 @@ def run_timedrift(test, params, env):
     if drift > drift_threshold_after_rest:
         raise error.TestFail("Time drift too large after rest period: %.2f%%"
                              % drift_total)
+
+
+def run_autoit(test, params, env):
+    """
+    A wrapper for AutoIt scripts.
+
+    1) Log into a guest.
+    2) Run AutoIt script.
+    3) Wait for script execution to complete.
+    4) Pass/fail according to exit status of script.
+
+    @param test: KVM test object.
+    @param params: Dictionary with test parameters.
+    @param env: Dictionary with the test environment.
+    """
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    if not vm:
+        raise error.TestError("VM object not found in environment")
+    if not vm.is_alive():
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
+
+    logging.info("Waiting for guest to be up...")
+
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest")
+
+    try:
+        logging.info("Logged in; starting script...")
+
+        # Collect test parameters
+        binary = params.get("autoit_binary")
+        script = params.get("autoit_script")
+        script_params = params.get("autoit_script_params", "")
+        timeout = float(params.get("autoit_script_timeout", 600))
+
+        # Send AutoIt script to guest (this code will be replaced once we
+        # support sending files to Windows guests)
+        session.sendline("del script.au3")
+        file = open(kvm_utils.get_path(test.bindir, script))
+        for line in file.readlines():
+            # Insert a '^' before each character
+            line = "".join("^" + c for c in line.rstrip())
+            if line:
+                # Append line to the file
+                session.sendline("echo %s>>script.au3" % line)
+        file.close()
+
+        session.read_up_to_prompt()
+
+        command = "cmd /c %s script.au3 %s" % (binary, script_params)
+
+        logging.info("---------------- Script output ----------------")
+        status = session.get_command_status(command,
+                                            print_func=logging.info,
+                                            timeout=timeout)
+        logging.info("---------------- End of script output ----------------")
+
+        if status is None:
+            raise error.TestFail("Timeout expired before script execution "
+                                 "completed (or something weird happened)")
+        if status != 0:
+            raise error.TestFail("Script execution failed")
+
+    finally:
+        session.close()
