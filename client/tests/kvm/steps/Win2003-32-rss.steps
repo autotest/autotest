@@ -1,0 +1,49 @@
+# --------------------------------
+step 25.16
+screendump 20080101_000001_315f40a7863d9981afc999c525abd698.ppm
+barrier_2 48 13 425 231 4da32ca10d3191bc95eba6552c1e3d4d 180
+# Sending keys: ctrl-alt-delete
+key ctrl-alt-delete
+# --------------------------------
+step 27.98
+screendump 20080101_000002_9c888fc55dbcff4c54b2c8ca9abea561.ppm
+# login
+barrier_2 32 11 469 230 3b7b1974fe99ef2ceee9d49e2885253f 30
+# Sending keys: ret
+key ret
+# --------------------------------
+step 40.75
+screendump 20080101_000003_b29321f21ff99f7570213c9e53b2806a.ppm
+barrier_2 66 45 209 233 f8e61ca0d97b8af750fe7c3451401498 90
+# Sending keys: alt-f4
+key alt-f4
+# --------------------------------
+step 43.99
+screendump 20080101_000004_4e23508d4bf604e5939c9a715bde4e33.ppm
+# run command
+barrier_2 63 41 213 229 61e4e55ac2f0bc30a92d141363c1895a 16
+# Sending keys: 0xdc-r
+key 0xdc-r
+# --------------------------------
+step 49.52
+screendump 20080101_000006_f959391507e8a2eb9af10a802db56d7e.ppm
+# run "d:\setuprss"
+barrier_2 261 34 57 307 62d58248f633ce21c7330ab430e087eb 14
+# Sending keys: d shift-0x27 0x2b s e t u p r s s ret
+key d
+key shift-0x27
+key 0x2b
+key s
+key e
+key t
+key u
+key p
+key r
+key s
+key s
+key ret
+# --------------------------------
+step 88.35
+screendump 20080101_000015_dc5545b4db2a21f13918af699a9e1ffb.ppm
+# done
+barrier_2 62 41 208 229 0da402920a310728fb3cd78e4cbfc13a 90

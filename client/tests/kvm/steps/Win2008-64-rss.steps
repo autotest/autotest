@@ -1,0 +1,52 @@
+# --------------------------------
+step 40.51
+screendump 20080101_000001_7a0db57f6d01f839e830c034906e18ba.ppm
+# (screendump taken from Win2008.32)
+barrier_2 61 56 379 287 40a28652310261533c6018439c58fb15 203
+# Sending keys: ctrl-alt-delete
+key ctrl-alt-delete
+# --------------------------------
+step 44.89
+screendump 20080101_000002_b48665cc639417d1c0534b06eff5afdb.ppm
+# (screendump taken from Win2008.32)
+barrier_2 44 33 418 385 c68f71048c2fc84e82ed7fa84abe62a3 22
+# Sending keys: 1 q 2 w 3 e shift-p ret
+key 1
+key q
+key 2
+key w
+key 3
+key e
+key shift-p
+key ret
+# --------------------------------
+step unknown
+screendump 20080101_000003_50cdcf315b19d33afb9db50d372cceb6.ppm
+# (screendump taken from Win2008.32)
+barrier_2 46 45 375 290 b31d69288fc8d8b7661cfe5d5c93c117 292
+# Sending keys: 0xdc-r
+key 0xdc-r
+# --------------------------------
+step 132.34
+screendump 20080101_000010_fbb85586d6ae0a031d6eea173e3fd940.ppm
+# run "d:\setuprss" (screendump taken from Win2008.32)
+barrier_2 37 34 313 431 1a110a076ce7a418294c007fa9070eee 12
+# Sending keys: d shift-0x27 0x2b s e t u p r s s ret
+key d
+key shift-0x27
+key 0x2b
+key s
+key e
+key t
+key u
+key p
+key r
+key s
+key s
+key ret
+# --------------------------------
+step 175.40
+screendump 20080101_000003_50cdcf315b19d33afb9db50d372cceb6.ppm
+# all done! (screendump taken from Win2008.32)
+sleep 20
+barrier_2 53 48 369 289 17a327dc76e1e0b26a69350bbe31f2d6 90
