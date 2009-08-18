@@ -1,0 +1,52 @@
+# --------------------------------
+step 43.16
+screendump 20080101_000001_5b659c177604f5eefd34042a02463519.ppm
+# reached desktop; close "Getting Started" dialog
+barrier_2 86 12 120 58 deecf2363bbf8725264e9da8dd7a0c4e 216
+# Sending keys: alt-f4
+key alt-f4
+# --------------------------------
+step 45.98
+screendump 20080101_000002_e47965a8e2b13c234b2024caaf1cd8d2.ppm
+# open start menu
+barrier_2 83 62 283 219 34bb8f3f22754e871514abbc5a2d588a 14
+# Sending keys: ctrl-esc
+key ctrl-esc
+# --------------------------------
+step 47.91
+screendump 20080101_000003_b7fb19d51b89cb288639f2d528c6dd70.ppm
+# run...
+barrier_2 100 63 33 383 9f18731457b7d11c50ab92b81642c393 10
+# Sending keys: up up
+key up
+key up
+# --------------------------------
+step 49.98
+screendump 20080101_000004_e7a3f3fa3157129829c1526b0ad048e9.ppm
+barrier_2 43 19 63 389 32d9745c40deacbbed050934ecb22928 10
+# Sending keys: ret
+key ret
+# --------------------------------
+step 53.13
+screendump 20080101_000005_34cd11237ca61f9cf23dcacc4fd84826.ppm
+# run "d:\setuprss"
+barrier_2 53 75 254 306 9234a91426b8d28650cd6d2ddd60c0ff 16
+# Sending keys: d shift-0x27 0x2b s e t u p r s s ret
+key d
+key shift-0x27
+key 0x2b
+key s
+key e
+key t
+key u
+key p
+key r
+key s
+key s
+key ret
+# --------------------------------
+step unknown
+screendump 20080101_000014_e47965a8e2b13c234b2024caaf1cd8d2.ppm
+# make sure we're done
+sleep 20
+barrier_2 88 65 284 220 8ea5bd06fc592f91cdc322f4ed954469 120

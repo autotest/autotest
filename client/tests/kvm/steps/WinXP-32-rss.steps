@@ -1,0 +1,31 @@
+# --------------------------------
+step 24.72
+screendump 20080101_000001_5965948293222a6d6f3e545db40c23c1.ppm
+# desktop reached -- run command
+barrier_2 47 49 392 292 09453beafc5f60b6dcb9af1b27339ca1 124
+# Sending keys: 0xdc-r
+key 0xdc-r
+# --------------------------------
+step 29.87
+screendump 20080101_000003_3978b6f6e3cd2d7c4c4caaf6e1e35330.ppm
+# run "d:\setuprss"
+barrier_2 43 103 266 426 c5dc4e4ac4c50a90f35399cc126232ed 30
+# Sending keys: d shift-0x27 0x2b s e t u p r s s ret
+key d
+key shift-0x27
+key 0x2b
+key s
+key e
+key t
+key u
+key p
+key r
+key s
+key s
+key ret
+# --------------------------------
+step 64.82
+screendump 20080101_000012_eccf0a634b6fc479327cf9cc165da7ae.ppm
+# done
+sleep 20
+barrier_2 92 133 395 244 ccda184de1b1d68eb091e2950792cb2f 90
