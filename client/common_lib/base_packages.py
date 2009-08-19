@@ -400,18 +400,13 @@ class BasePackageManager(object):
         # reverse order, assuming that the 'newest' repos are most desirable
         for fetcher in reversed(repositories):
             try:
-                # Fetch the checksum if it not there
-                if not use_checksum:
+                # Fetch the package if it is not there, the checksum does
+                # not match, or checksums are disabled entirely
+                need_to_fetch = (
+                        not use_checksum or not pkg_exists
+                        or not self.compare_checksum(dest_path, fetcher.url))
+                if need_to_fetch:
                     fetcher.fetch_pkg_file(pkg_name, dest_path)
-
-                # Fetch the package if a) the pkg does not exist or
-                # b) if the checksum differs for the existing package
-                elif (not pkg_exists or
-                      not self.compare_checksum(dest_path, fetcher.url)):
-                    fetcher.fetch_pkg_file(pkg_name, dest_path)
-                    # Update the checksum of the package in the packages'
-                    # checksum file
-                    self.update_checksum(dest_path)
                 return
             except (error.PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
