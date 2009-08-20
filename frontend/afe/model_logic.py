@@ -276,10 +276,12 @@ class ExtendedManager(dbmodels.Manager):
         filter_data = {foreign_key_field.name + '__pk__in':
                        base_objects_by_id.keys()}
         for related_object in related_model.objects.filter(**filter_data):
-            fresh_base_object = getattr(related_object, foreign_key_field.name)
-            # lookup base object in the dict -- we need to return instances from
-            # the dict, not fresh instances of the same models
-            base_object = base_objects_by_id[fresh_base_object._get_pk_val()]
+            # lookup base object in the dict, rather than grabbing it from the
+            # related object.  we need to return instances from the dict, not
+            # fresh instances of the same models (and grabbing model instances
+            # from the related models incurs a DB query each time).
+            base_object_id = getattr(related_object, foreign_key_field.attname)
+            base_object = base_objects_by_id[base_object_id]
             yield base_object, related_object
 
 
