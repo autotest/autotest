@@ -813,7 +813,10 @@ class Dispatcher(object):
                                                   is_complete=False)
         # Use ordering to force NULL queue_entry_id's to the end of the list
         for task in tasks.order_by('-queue_entry__id'):
-            assert not self.host_has_agent(task.host)
+            if self.host_has_agent(task.host):
+                raise SchedulerError(
+                        "%s already has a host agent %s." % (
+                                task, self._host_agents.get(host.id)))
 
             host = Host(id=task.host.id)
             queue_entry = None
