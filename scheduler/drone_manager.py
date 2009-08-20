@@ -91,6 +91,8 @@ class DroneManager(object):
     All paths going into and out of this class are relative to the full results
     directory, except for those returns by absolute_path().
     """
+    # Age is measured as a count of refresh() calls.  Normally this is called
+    # on every monitor_db.Dispatcher.tick().
     _MAX_PIDFILE_AGE = 100
 
     def __init__(self):
@@ -184,6 +186,7 @@ class DroneManager(object):
     def _drop_old_pidfiles(self):
         for pidfile_id, age in self._pidfile_age.items():
             if age > self._MAX_PIDFILE_AGE:
+                logging.info('forgetting pidfile %s', pidfile_id)
                 del self._pidfile_age[pidfile_id]
             else:
                 self._pidfile_age[pidfile_id] += 1
@@ -466,6 +469,8 @@ class DroneManager(object):
         Indicate that the DroneManager should look for the given pidfile when
         refreshing.
         """
+        if pidfile_id not in self._pidfile_age:
+            logging.info('monitoring pidfile %s', pidfile_id)
         self._pidfile_age[pidfile_id] = 0
 
 
