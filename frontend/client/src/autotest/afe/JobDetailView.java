@@ -403,7 +403,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
         if (executionSubdir.equals("")) {
             // when executionSubdir == "", it's a job that hasn't yet run.
-            return new HTML("");
+            return null;
         }
 
         JSONObject jobObject = hostQueueEntry.get("job").isObject();
