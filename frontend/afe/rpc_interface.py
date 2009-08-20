@@ -165,16 +165,19 @@ def delete_host(id):
     models.Host.smart_get(id).delete()
 
 
-def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
-              **filter_data):
-    """\
-    multiple_labels: match hosts in all of the labels given.  Should be a
-    list of label names.
-    exclude_only_if_needed_labels: exclude hosts with at least one
-    "only_if_needed" label applied.
+def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
+              exclude_atomic_group_hosts=False, **filter_data):
+    """
+    @param multiple_labels: match hosts in all of the labels given.  Should
+            be a list of label names.
+    @param exclude_only_if_needed_labels: Exclude hosts with at least one
+            "only_if_needed" label applied.
+    @param exclude_atomic_group_hosts: Exclude hosts that have one or more
+            atomic group labels associated with them.
     """
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
+                                     exclude_atomic_group_hosts,
                                      filter_data)
     hosts = list(hosts)
     models.Host.objects.populate_relationships(hosts, models.Label,
@@ -196,10 +199,16 @@ def get_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
     return rpc_utils.prepare_for_serialization(host_dicts)
 
 
-def get_num_hosts(multiple_labels=[], exclude_only_if_needed_labels=False,
-                  **filter_data):
+def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
+                  exclude_atomic_group_hosts=False, **filter_data):
+    """
+    Same parameters as get_hosts().
+
+    @returns The number of matching hosts.
+    """
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
+                                     exclude_atomic_group_hosts,
                                      filter_data)
     return hosts.count()
 
