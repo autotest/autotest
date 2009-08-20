@@ -1490,7 +1490,6 @@ class AgentTasksTest(BaseSchedulerTest):
         agent.dispatcher = self._dispatcher
 
         self.host.set_status.expect_call('Repairing')
-        self.queue_entry.requeue.expect_call()
         self.setup_run_monitor(1, task_tag)
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.update_from_database.expect_call()
@@ -1525,6 +1524,16 @@ class AgentTasksTest(BaseSchedulerTest):
         self._test_repair_task_with_queue_entry_helper(False, '2-repair')
 
 
+    def _setup_prejob_task_failure(self, task_tag, use_queue_entry):
+        self.setup_run_monitor(1, task_tag)
+        if use_queue_entry:
+            if not self.queue_entry.meta_host:
+                self.queue_entry.set_execution_subdir.expect_call()
+                self.queue_entry.execution_path.expect_call().and_return('tag')
+                self._setup_move_logfile(include_destination=True)
+            self.queue_entry.requeue.expect_call()
+
+
     def setup_verify_expects(self, success, use_queue_entry, task_tag):
         if use_queue_entry:
             self.queue_entry.set_status.expect_call('Verifying')
@@ -1533,11 +1542,7 @@ class AgentTasksTest(BaseSchedulerTest):
             self.setup_run_monitor(0, task_tag)
             self.host.set_status.expect_call('Ready')
         else:
-            self.setup_run_monitor(1, task_tag)
-            if use_queue_entry and not self.queue_entry.meta_host:
-                self.queue_entry.set_execution_subdir.expect_call()
-                self.queue_entry.execution_path.expect_call().and_return('tag')
-                self._setup_move_logfile(include_destination=True)
+            self._setup_prejob_task_failure(task_tag, use_queue_entry)
 
 
     def _check_verify_failure_tasks(self, verify_task):
@@ -1809,11 +1814,7 @@ class AgentTasksTest(BaseSchedulerTest):
             self.host.set_status.expect_call('Ready')
             self.host.update_field.expect_call('dirty', 0)
         else:
-            self.setup_run_monitor(1, task_tag)
-            if use_queue_entry and not self.queue_entry.meta_host:
-                self.queue_entry.set_execution_subdir.expect_call()
-                self.queue_entry.execution_path.expect_call().and_return('tag')
-                self._setup_move_logfile(include_destination=True)
+            self._setup_prejob_task_failure(task_tag, use_queue_entry)
 
         if use_queue_entry:
             task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
