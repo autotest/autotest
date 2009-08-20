@@ -5,6 +5,7 @@ import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils
 from autotest_lib.frontend.afe import models
+from autotest_lib.frontend.afe import model_logic
 
 
 class AclGroupTest(unittest.TestCase,
@@ -82,6 +83,22 @@ class SpecialTaskUnittest(unittest.TestCase,
         task.finish()
         self.assertFalse(task.is_active)
         self.assertTrue(task.is_complete)
+
+
+    def test_prepare(self):
+        self.assertEqual(13, models.SpecialTask.prepare(agent=None, task=13))
+        class DummyAgentTask(object):
+            host = None
+            queue_entry = None
+        self.assertRaises(ValueError, models.SpecialTask.prepare,
+                          DummyAgentTask(), None)
+        DummyAgentTask.TASK_TYPE = models.SpecialTask.Task.VERIFY
+        DummyAgentTask.host = models.Host.objects.create(hostname='hi')
+        task1 = models.SpecialTask.prepare(DummyAgentTask(), None)
+        task1.activate()
+        DummyAgentTask.TASK_TYPE = models.SpecialTask.Task.REPAIR
+        self.assertRaises(model_logic.ValidationError,
+                          models.SpecialTask.prepare, DummyAgentTask(), None)
 
 
 if __name__ == '__main__':
