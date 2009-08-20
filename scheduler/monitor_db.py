@@ -1287,8 +1287,10 @@ class PidfileRunMonitor(object):
 
 
     def num_tests_failed(self):
+        """@returns The number of tests that failed or -1 if unknown."""
         self._get_pidfile_info()
-        assert self._state.num_tests_failed is not None
+        if self._state.num_tests_failed is None:
+            return -1
         return self._state.num_tests_failed
 
 
