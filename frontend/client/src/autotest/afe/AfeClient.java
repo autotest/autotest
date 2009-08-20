@@ -47,6 +47,12 @@ public class AfeClient implements EntryPoint {
         });
     }
     
+    private JobCreateListener jobCreateListener = new JobCreateListener() {
+        public void onJobCreated(int jobId) {
+            showJob(jobId);
+        }
+    };
+    
     protected void finishLoading() {
         SiteCommonClassFactory.globalInitialize();
 
@@ -79,21 +85,20 @@ public class AfeClient implements EntryPoint {
             }
         });
             
-        createJob = AfeUtils.factory.getCreateJobView(new JobCreateListener() {
-            public void onJobCreated(int jobId) {
-                showJob(jobId);
-            }
-        });
+        createJob = AfeUtils.factory.getCreateJobView(jobCreateListener);
+        
         hostListView = new HostListView(new HostListListener() {
             public void onHostSelected(String hostname) {
                 showHost(hostname);
             }
-        });
+        }, jobCreateListener);
+        
         hostDetailView = new HostDetailView(new HostDetailListener() {
             public void onJobSelected(int jobId) {
                 showJob(jobId);
             }
-        });
+        }, jobCreateListener);
+        
         userPreferencesView = new UserPreferencesView(new UserPreferencesListener() {
             public void onPreferencesChanged() {
                 createJob.onPreferencesChanged();
