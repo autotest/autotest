@@ -255,8 +255,9 @@ public class DataTable extends Composite implements TableListener {
     }
     
     public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
-        if(isClickableWidgetColumn(cell)) 
+        if (isClickableWidgetColumn(cell) && table.getWidget(row, cell) != null) {
             return;
+        }
         
         if (row != headerRow) {
             notifyListenersClicked(row - headerRow - 1);
