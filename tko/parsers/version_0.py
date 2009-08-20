@@ -22,31 +22,59 @@ class job(models.job):
 
         user = keyval.get("user", None)
         label = keyval.get("label", None)
-        host_group_name = keyval.get("host_group_name", None)
-        machine = keyval.get("hostname", None)
-        if not host_group_name and machine and "," in machine:
-            try:
-                machine = job.find_hostname(dir) # find a unique hostname
-            except NoHostnameError:
-                pass  # just use the comma-separated name
         queued_time = tko_utils.get_timestamp(keyval, "job_queued")
         started_time = tko_utils.get_timestamp(keyval, "job_started")
         finished_time = tko_utils.get_timestamp(keyval, "job_finished")
+        machine = cls.determine_hostname(keyval, dir)
+        machine_group = cls.determine_machine_group(machine, dir)
         machine_owner = keyval.get("owner", None)
 
         aborted_by = keyval.get("aborted_by", None)
         aborted_at = tko_utils.get_timestamp(keyval, "aborted_on")
 
-        tko_utils.dprint("MACHINE NAME: %s" % machine)
-        if host_group_name and ((machine and "," in machine) or not machine):
-            tko_utils.dprint("Using host_group_name %r instead of "
-                             "machine name." % host_group_name)
-            machine = host_group_name
-
         return {"user": user, "label": label, "machine": machine,
                 "queued_time": queued_time, "started_time": started_time,
                 "finished_time": finished_time, "machine_owner": machine_owner,
-                "aborted_by": aborted_by, "aborted_on": aborted_at}
+                "machine_group": machine_group, "aborted_by": aborted_by,
+                "aborted_on": aborted_at}
+
+
+    @classmethod
+    def determine_hostname(cls, keyval, job_dir):
+        host_group_name = keyval.get("host_group_name", None)
+        machine = keyval.get("hostname", "")
+        is_multimachine = "," in machine
+
+        # determine what hostname to use
+        if host_group_name:
+            if is_multimachine or not machine:
+                tko_utils.dprint("Using host_group_name %r instead of "
+                                 "machine name." % host_group_name)
+                machine = host_group_name
+        elif is_multimachine:
+            try:
+                machine = job.find_hostname(job_dir) # find a unique hostname
+            except NoHostnameError:
+                pass  # just use the comma-separated name
+
+        tko_utils.dprint("MACHINE NAME: %s" % machine)
+        return machine
+
+
+    @classmethod
+    def determine_machine_group(cls, hostname, job_dir):
+        machine_groups = set()
+        for individual_hostname in hostname.split(","):
+            host_keyval = models.test.parse_host_keyval(job_dir,
+                                                        individual_hostname)
+            if not host_keyval:
+                tko_utils.dprint('Unable to parse host keyval for %s'
+                                 % individual_hostname)
+            elif "platform" in host_keyval:
+                machine_groups.add(host_keyval["platform"])
+        machine_group = ",".join(sorted(machine_groups))
+        tko_utils.dprint("MACHINE GROUP: %s" % machine_group)
+        return machine_group
 
 
     @staticmethod
