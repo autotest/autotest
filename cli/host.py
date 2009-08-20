@@ -299,13 +299,13 @@ class host_jobs(host):
             print '-'*5
             print 'Hostname: %s' % host
             self.print_table(jobs, keys_header=['job_id',
-                                                 'job_owner',
-                                                 'job_name',
-                                                 'status'])
+                                                'job_owner',
+                                                'job_name',
+                                                'status'])
 
 
 class host_mod(host):
-    """atest host mod --lock|--unlock|--ready
+    """atest host mod --lock|--unlock|--protection
     --mlist <file>|<hosts>"""
     usage_action = 'mod'
 
@@ -314,9 +314,6 @@ class host_mod(host):
         self.data = {}
         self.messages = []
         super(host_mod, self).__init__()
-        self.parser.add_option('-y', '--ready',
-                               help='Mark this host ready',
-                               action='store_true')
         self.parser.add_option('-l', '--lock',
                                help='Lock hosts',
                                action='store_true')
@@ -337,12 +334,9 @@ class host_mod(host):
 
         self._parse_lock_options(options)
 
-        if options.ready:
-            self.data['status'] = 'Ready'
-            self.messages.append('Set status to Ready for host')
-
         if options.protection:
             self.data['protection'] = options.protection
+            self.messages.append('Protection set to "%s"' % options.protection)
 
         if len(self.data) == 0:
             self.invalid_syntax('No modification requested')
