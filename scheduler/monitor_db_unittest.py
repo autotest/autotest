@@ -1707,35 +1707,46 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def _setup_gather_logs_expects(self, autoserv_killed=True,
-                                   hqe_aborted=False):
+                                   hqe_aborted=False, has_process=True):
         self.god.stub_class(monitor_db, 'PidfileRunMonitor')
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self._setup_post_job_task_expects(not autoserv_killed, 'Gathering',
                                           hqe_aborted)
-        if hqe_aborted:
+        if hqe_aborted or not has_process:
             exit_code = None
         elif autoserv_killed:
             exit_code = 271
         else:
             exit_code = 0
         self.pidfile_monitor.exit_code.expect_call().and_return(exit_code)
-        if exit_code != 0:
-            self._setup_post_job_run_monitor('.collect_crashinfo_execute')
-        self.pidfile_monitor.has_process.expect_call().and_return(True)
-        self._expect_copy_results(monitor=self.pidfile_monitor,
-                                  queue_entry=self.queue_entry)
+
+        if has_process:
+            if exit_code != 0:
+                self._setup_post_job_run_monitor('.collect_crashinfo_execute')
+            self.pidfile_monitor.has_process.expect_call().and_return(True)
+            self._expect_copy_results(monitor=self.pidfile_monitor,
+                                      queue_entry=self.queue_entry)
+        else:
+            # The first has_process() is in GatherLogsTask.run(), and the second
+            # is in AgentTask._copy_results()
+            self.pidfile_monitor.has_process.expect_call().and_return(False)
+            self.pidfile_monitor.has_process.expect_call().and_return(False)
+
         parse_task = monitor_db.FinalReparseTask.expect_new([self.queue_entry])
         _set_host_and_qe_ids(parse_task)
         self._dispatcher.add_agent.expect_call(IsAgentWithTask(parse_task))
 
-        self.pidfile_monitor.num_tests_failed.expect_call().and_return(0)
+        self.pidfile_monitor.has_process.expect_call().and_return(has_process)
+
+        if has_process:
+            self.pidfile_monitor.num_tests_failed.expect_call().and_return(0)
 
 
-    def _run_gather_logs_task(self):
+    def _run_gather_logs_task(self, success=True):
         task = monitor_db.GatherLogsTask(self.job, [self.queue_entry])
         task.agent = DummyAgent()
         task.agent.dispatcher = self._dispatcher
-        self.run_task(task, True)
+        self.run_task(task, success)
         self.god.check_playback()
 
 
@@ -1778,6 +1789,14 @@ class AgentTasksTest(BaseSchedulerTest):
         self._setup_gather_task_cleanup_expects()
 
         self._run_gather_logs_task()
+
+
+    def test_gather_logs_no_process(self):
+        self._setup_gather_logs_expects(has_process=False)
+        self.job.reboot_after = models.RebootAfter.NEVER
+        self.host.set_status.expect_call('Ready')
+
+        self._run_gather_logs_task(success=False)
 
 
     def _test_cleanup_task_helper(self, success, task_tag,
