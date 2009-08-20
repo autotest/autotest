@@ -83,7 +83,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
     @Override
     protected void fetchData() {
-        pointToResults(NO_URL, NO_URL, NO_URL);
+        pointToResults(NO_URL, NO_URL, NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
@@ -126,7 +126,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 
                 String jobTag = AfeUtils.getJobTag(jobObject);
                 pointToResults(getResultsURL(jobId), getLogsURL(jobTag), 
-                               getOldResultsUrl(jobId));
+                               getOldResultsUrl(jobId), getTriageUrl(jobId));
                 
                 String jobTitle = "Job: " + name + " (" + jobTag + ")";
                 displayObjectData(jobTitle);
@@ -315,6 +315,12 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                Integer.toString(jobId) + "-%25%27&title=Report";
     }
     
+    private String getTriageUrl(int jobId) {
+        return "/new_tko/#tab_id=table_view&columns=Test+name%252CStatus%252CCount+in+group%252C" +
+               "Reason&sort=test_name%252Cstatus%252Creason&condition=job_tag+LIKE+%2527" + jobId +
+               "-%2525%2527+AND+status+%253C%253E+%2527GOOD%2527&show_invalid=false";
+    }
+    
     /**
      * Get the path for a job's raw result files.
      * @param jobLogsId id-owner, e.g. "172-showard"
@@ -323,10 +329,12 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         return Utils.getRetrieveLogsUrl(jobLogsId);
     }
     
-    protected void pointToResults(String resultsUrl, String logsUrl, String oldResultsUrl) {
+    protected void pointToResults(String resultsUrl, String logsUrl,
+                                  String oldResultsUrl, String triageUrl) {
         DOM.getElementById("results_link").setAttribute("href", resultsUrl);
         DOM.getElementById("old_results_link").setAttribute("href", oldResultsUrl);
         DOM.getElementById("raw_results_link").setAttribute("href", logsUrl);
+        DOM.getElementById("triage_failures_link").setAttribute("href", triageUrl);
         if (resultsUrl.equals(NO_URL)) {
             tkoResultsHtml.setHTML("");
             return;
