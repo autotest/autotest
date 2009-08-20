@@ -250,7 +250,10 @@ class LoggingManagerTest(unittest.TestCase):
 
 class MonkeyPatchTestCase(unittest.TestCase):
     def setUp(self):
-        self.expected_filename = os.path.split(__file__)[1]
+        filename = os.path.split(__file__)[1]
+        if filename.endswith('.pyc'):
+            filename = filename[:-1]
+        self.expected_filename = filename
 
 
     def check_filename(self, filename, expected=None):
