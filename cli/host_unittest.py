@@ -1231,26 +1231,34 @@ class host_mod_unittest(cli_mock.cli_unittest):
                      err_words_ok=['Host', 'matching', 'query', 'host1'])
 
 
-    def test_execute_ready_hosts(self):
+    def test_execute_protection_hosts(self):
         mfile = cli_mock.create_file('host0\nhost1,host2\nhost3 host4')
-        self.run_cmd(argv=['atest', 'host', 'mod', '--ready',
+        self.run_cmd(argv=['atest', 'host', 'mod', '--protection',
+                           'Do not repair',
                            'host5' ,'--mlist', mfile.name, 'host1', 'host6',
                            '--ignore_site_file'],
-                     rpcs=[('modify_host', {'id': 'host6', 'status': 'Ready'},
+                     rpcs=[('modify_host', {'id': 'host6',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host5', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host5',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host4', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host4',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host3', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host3',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host2', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host2',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host1', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host1',
+                                            'protection': 'Do not repair'},
                             True, None),
-                           ('modify_host', {'id': 'host0', 'status': 'Ready'},
+                           ('modify_host', {'id': 'host0',
+                                            'protection': 'Do not repair'},
                             True, None)],
-                     out_words_ok=['Ready', 'host0', 'host1', 'host2',
+                     out_words_ok=['Do not repair', 'host0', 'host1', 'host2',
                                    'host3', 'host4', 'host5', 'host6'])
         mfile.clean()
 
