@@ -20,6 +20,8 @@ from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
 
+BABYSITTER_PID_FILE_PREFIX = 'monitor_db_babysitter'
+PID_FILE_PREFIX = 'monitor_db'
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
@@ -67,12 +69,15 @@ def _site_init_monitor_db_dummy():
 
 def main():
     try:
-        main_without_exception_handling()
-    except SystemExit:
-        raise
-    except:
-        logging.exception('Exception escaping in monitor_db')
-        raise
+        try:
+            main_without_exception_handling()
+        except SystemExit:
+            raise
+        except:
+            logging.exception('Exception escaping in monitor_db')
+            raise
+    finally:
+        utils.delete_pid_file_if_exists(PID_FILE_PREFIX)
 
 
 def main_without_exception_handling():
@@ -182,7 +187,10 @@ def init():
     logging.info("%s> dispatcher starting", time.strftime("%X %x"))
     logging.info("My PID is %d", os.getpid())
 
-    utils.write_pid("monitor_db")
+    if utils.process_is_alive(PID_FILE_PREFIX):
+        logging.critical("monitor_db already running, aborting!")
+        sys.exit(1)
+    utils.write_pid(PID_FILE_PREFIX)
 
     if _testing_mode:
         global_config.global_config.override_config_value(

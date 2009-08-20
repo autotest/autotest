@@ -488,6 +488,45 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
     return True
 
 
+def pid_is_alive(pid):
+    """
+    True if process pid exists and is not yet stuck in Zombie state.
+    Zombies are impossible to move between cgroups, etc.
+    pid can be integer, or text of integer.
+    """
+    path = '/proc/%s/stat' % pid
+
+    try:
+        stat = read_one_line(path)
+    except IOError:
+        if not os.path.exists(path):
+            # file went away
+            return False
+        raise
+
+    return stat.split()[2] != 'Z'
+
+
+def signal_pid(pid, sig):
+    """
+    Sends a signal to a process id. Returns True if the process terminated
+    successfully, False otherwise.
+    """
+    try:
+        os.kill(pid, sig)
+    except OSError:
+        # The process may have died before we could kill it.
+        pass
+
+    for i in range(5):
+        if not pid_is_alive(pid):
+            return True
+        time.sleep(1)
+
+    # The process is still alive
+    return False
+
+
 def nuke_subprocess(subproc):
     # check if the subprocess is still alive, first
     if subproc.poll() is not None:
@@ -497,17 +536,9 @@ def nuke_subprocess(subproc):
     # kill it via an escalating series of signals.
     signal_queue = [signal.SIGTERM, signal.SIGKILL]
     for sig in signal_queue:
-        try:
-            os.kill(subproc.pid, sig)
-        # The process may have died before we could kill it.
-        except OSError:
-            pass
-
-        for i in range(5):
-            rc = subproc.poll()
-            if rc is not None:
-                return rc
-            time.sleep(1)
+        signal_pid(subproc.pid, sig)
+        if subproc.poll() is not None:
+            return subproc.poll()
 
 
 def nuke_pid(pid):
@@ -515,40 +546,11 @@ def nuke_pid(pid):
     # kill it via an escalating series of signals.
     signal_queue = [signal.SIGTERM, signal.SIGKILL]
     for sig in signal_queue:
-        try:
-            os.kill(pid, sig)
+        if signal_pid(pid, sig):
+            return
 
-        # The process may have died before we could kill it.
-        except OSError:
-            pass
-
-        try:
-            for i in range(5):
-                status = os.waitpid(pid, os.WNOHANG)[0]
-                if status == pid:
-                    return
-                time.sleep(1)
-
-            if status != pid:
-                raise error.AutoservRunError('Could not kill %d'
-                        % pid, None)
-
-        # the process died before we join it.
-        except OSError:
-            pass
-
-
-def pid_is_alive(pid):
-    """
-    True if process pid exists and is not yet stuck in Zombie state.
-    Zombies are impossible to move between cgroups, etc.
-    pid can be integer, or text of integer.
-    """
-    try:
-        stat = read_one_line('/proc/%s/stat' % pid)  # pid exists
-        return stat.split()[2] != 'Z'  # and is not in Zombie state
-    except Exception:
-        return False  # process no longer exists at all
+    # no signal successfully terminated the process
+    raise error.AutoservRunError('Could not kill %d' % pid, None)
 
 
 def system(command, timeout=None, ignore_status=False):
@@ -963,6 +965,12 @@ def import_site_function(path, module, funcname, dummy, modulefile=None):
     return import_site_symbol(path, module, funcname, dummy, modulefile)
 
 
+def _get_pid_path(program_name):
+    my_path = os.path.dirname(__file__)
+    return os.path.abspath(os.path.join(my_path, "..", "..",
+                                        "%s.pid" % program_name))
+
+
 def write_pid(program_name):
     """
     Try to drop <program_name>.pid in the main autotest directory.
@@ -970,13 +978,76 @@ def write_pid(program_name):
     Args:
       program_name: prefix for file name
     """
+    pidfile = open(_get_pid_path(program_name), "w")
+    try:
+        pidfile.write("%s\n" % os.getpid())
+    finally:
+        pidfile.close()
 
-    my_path = os.path.dirname(__file__)
-    pid_path = os.path.abspath(os.path.join(my_path, "../.."))
-    pidf = open(os.path.join(pid_path, "%s.pid" % program_name), "w")
-    if pidf:
-        pidf.write("%s\n" % os.getpid())
-        pidf.close()
+
+def delete_pid_file_if_exists(program_name):
+    """
+    Tries to remove <program_name>.pid from the main autotest directory.
+    """
+    pidfile_path = _get_pid_path(program_name)
+
+    try:
+        os.remove(pidfile_path)
+    except OSError:
+        if not os.path.exists(pidfile_path):
+            return
+        raise
+
+
+def get_pid_from_file(program_name):
+    """
+    Reads the pid from <program_name>.pid in the autotest directory.
+
+    @param program_name the name of the program
+    @return the pid if the file exists, None otherwise.
+    """
+    pidfile_path = _get_pid_path(program_name)
+    if not os.path.exists(pidfile_path):
+        return None
+
+    pidfile = open(_get_pid_path(program_name), 'r')
+
+    try:
+        try:
+            pid = int(pidfile.readline())
+        except IOError:
+            if not os.path.exists(pidfile_path):
+                return None
+            raise
+    finally:
+        pidfile.close()
+
+    return pid
+
+
+def process_is_alive(program_name):
+    """
+    Checks if the process is alive and not in Zombie state.
+
+    @param program_name the name of the program
+    @return True if still alive, False otherwise
+    """
+    pid = get_pid_from_file(program_name)
+    if pid is None:
+        return False
+    return pid_is_alive(pid)
+
+
+def signal_process(program_name, sig=signal.SIGTERM):
+    """
+    Sends a signal to the process listed in <program_name>.pid
+
+    @param program_name the name of the program
+    @param sig signal to send
+    """
+    pid = get_pid_from_file(program_name)
+    if pid:
+        signal_pid(pid, sig)
 
 
 def get_relative_path(path, reference):
