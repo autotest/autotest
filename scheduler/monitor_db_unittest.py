@@ -2043,6 +2043,15 @@ class JobTest(BaseSchedulerTest):
         # ...the over_max_threshold test should cause us to call run()
         self.assertEqual('Watermelon', job.run_with_ready_delay(pending_hqe))
 
+        # Now we're not over the max for the atomic group.  But all assigned
+        # hosts are in pending state.  over_max_threshold should make us run().
+        pending_hqe.atomic_group.max_number_of_machines += 1
+        pending_hqe.atomic_group.save()
+        job.run.expect_call(pending_hqe).and_return('Watermelon')
+        self.assertEqual('Watermelon', job.run_with_ready_delay(pending_hqe))
+        pending_hqe.atomic_group.max_number_of_machines -= 1
+        pending_hqe.atomic_group.save()
+
         other_hqe = monitor_db.HostQueueEntry(django_hqes[0].id)
         self.assertTrue(pending_hqe.job is other_hqe.job)
         # DBObject classes should reuse instances so these should be the same.
