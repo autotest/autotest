@@ -76,6 +76,23 @@ class RpcInterfaceTest(unittest.TestCase,
         self._check_hostnames(hosts, ['host2'])
 
 
+    def test_get_hosts_exclude_atomic_group_hosts(self):
+        hosts = rpc_interface.get_hosts(
+                exclude_atomic_group_hosts=True,
+                hostname__in=['host4', 'host5', 'host6'])
+        self._check_hostnames(hosts, ['host4'])
+
+
+    def test_get_hosts_exclude_both(self):
+        self.hosts[0].labels.add(self.label3)
+
+        hosts = rpc_interface.get_hosts(
+                hostname__in=['host1', 'host2', 'host5'],
+                exclude_only_if_needed_labels=True,
+                exclude_atomic_group_hosts=True)
+        self._check_hostnames(hosts, ['host2'])
+
+
     def test_get_jobs_summary(self):
         job = self._create_job(hosts=xrange(1, 4))
         entries = list(job.hostqueueentry_set.all())
