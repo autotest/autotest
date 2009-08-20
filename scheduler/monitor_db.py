@@ -1686,14 +1686,7 @@ class RepairTask(SpecialAgentTask, TaskWithJobKeyvals):
         protection = host_protections.Protection.get_attr_name(protection)
 
         self.host = host
-        self.queue_entry = None
-        # recovery code can pass a HQE that's already been requeued. for a
-        # metahost, that means the host has been unassigned. in that case,
-        # ignore the HQE.
-        hqe_still_assigned_to_this_host = (queue_entry and queue_entry.host
-                                           and queue_entry.host.id == host.id)
-        if hqe_still_assigned_to_this_host:
-            self.queue_entry = queue_entry
+        self.queue_entry = queue_entry
 
         super(RepairTask, self).__init__(
                 task, ['-R', '--host-protection', protection],
@@ -1708,8 +1701,6 @@ class RepairTask(SpecialAgentTask, TaskWithJobKeyvals):
         super(RepairTask, self).prolog()
         logging.info("repair_task starting")
         self.host.set_status('Repairing')
-        if self.queue_entry:
-            self.queue_entry.requeue()
 
 
     def _keyval_path(self):
@@ -1769,6 +1760,9 @@ class PreJobTask(SpecialAgentTask):
             _drone_manager.copy_to_results_repository(
                 self.monitor.get_process(), source,
                 destination_path=destination)
+
+        if not self.success and self.queue_entry:
+            self.queue_entry.requeue()
 
 
 class VerifyTask(PreJobTask):
