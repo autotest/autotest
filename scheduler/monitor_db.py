@@ -909,8 +909,7 @@ class Dispatcher(object):
 
     def _check_for_remaining_active_entries(self):
         queue_entries = HostQueueEntry.fetch(
-            where='active AND NOT complete AND '
-                  '(aborted OR status != "Pending")')
+            where='active AND NOT complete AND status != "Pending"')
 
         unrecovered_active_hqes = [entry for entry in queue_entries
                                    if not self.get_agents_for_entry(entry)]
