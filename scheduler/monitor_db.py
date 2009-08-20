@@ -912,12 +912,13 @@ class Dispatcher(object):
             where='active AND NOT complete AND '
                   '(aborted OR status != "Pending")')
 
-        message = '\n'.join(str(entry) for entry in queue_entries
-                            if not self.get_agents_for_entry(entry))
-        if message:
-            email_manager.manager.enqueue_notify_email(
-                'Unrecovered active host queue entries exist',
-                message)
+        unrecovered_active_hqes = [entry for entry in queue_entries
+                                   if not self.get_agents_for_entry(entry)]
+        if unrecovered_active_hqes:
+            message = '\n'.join(str(hqe) for hqe in unrecovered_active_hqes)
+            raise SchedulerError(
+                    '%d unrecovered active host queue entries:\n%s' %
+                    (len(unrecovered_active_hqes), message))
 
 
     def _find_reverify(self):
