@@ -6,7 +6,8 @@ from autotest_lib.tko import utils as tko_utils
 
 class job(object):
     def __init__(self, dir, user, label, machine, queued_time, started_time,
-                 finished_time, machine_owner, aborted_by, aborted_on):
+                 finished_time, machine_owner, machine_group, aborted_by,
+                 aborted_on):
         self.dir = dir
         self.tests = []
         self.user = user
@@ -16,6 +17,7 @@ class job(object):
         self.started_time = started_time
         self.finished_time = finished_time
         self.machine_owner = machine_owner
+        self.machine_group = machine_group
         self.aborted_by = aborted_by
         self.aborted_on = aborted_on
 
@@ -110,7 +112,9 @@ class test(object):
             attributes = {}
 
         # grab test+host attributes from the host keyval
-        attributes.update(cls.parse_host_keyval(job.dir, job.machine))
+        host_keyval = cls.parse_host_keyval(job.dir, job.machine)
+        attributes.update(dict(("host-%s" % k, v)
+                               for k, v in host_keyval.iteritems()))
 
         if existing_instance:
             def constructor(*args, **dargs):
@@ -155,8 +159,7 @@ class test(object):
         # the keyval is <job_dir>/host_keyvals/<hostname> if it exists
         keyval_path = os.path.join(job_dir, "host_keyvals", hostname)
         if os.path.isfile(keyval_path):
-            keyval = utils.read_keyval(keyval_path)
-            return dict(("host-%s" % k, v) for k, v in keyval.iteritems())
+            return utils.read_keyval(keyval_path)
         else:
             return {}
 
