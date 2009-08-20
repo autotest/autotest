@@ -1563,6 +1563,9 @@ class AgentTask(object):
         """
         @param execution_entries: list of objects with execution_path() method
         """
+        if use_monitor is not None and not use_monitor.has_process():
+            return
+
         assert len(execution_entries) > 0
         if use_monitor is None:
             assert self.monitor
@@ -1900,14 +1903,8 @@ class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
 
         self._write_job_finished()
 
-        # both of these conditionals can be true, iff the process ran, wrote a
-        # pid to its pidfile, and then exited without writing an exit code
-        if self.monitor.has_process():
-            gather_task = GatherLogsTask(self.job, self.queue_entries)
-            self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
-        else:
-            self._reboot_hosts(self.job, self.queue_entries,
-                               final_success=False, num_tests_failed=0)
+        gather_task = GatherLogsTask(self.job, self.queue_entries)
+        self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
 
         if self.monitor.lost_process:
             self._write_lost_process_error_file()
@@ -2078,13 +2075,18 @@ class GatherLogsTask(PostJobTask, CleanupHostsMixin):
 
     def epilog(self):
         super(GatherLogsTask, self).epilog()
-        if self._autoserv_monitor.has_process():
-            self._copy_and_parse_results(self._queue_entries,
-                                         use_monitor=self._autoserv_monitor)
 
-        final_success = (
-                self._final_status == models.HostQueueEntry.Status.COMPLETED)
-        num_tests_failed = self._autoserv_monitor.num_tests_failed()
+        self._copy_and_parse_results(self._queue_entries,
+                                     use_monitor=self._autoserv_monitor)
+
+        if self._autoserv_monitor.has_process():
+            final_success = (self._final_status ==
+                             models.HostQueueEntry.Status.COMPLETED)
+            num_tests_failed = self._autoserv_monitor.num_tests_failed()
+        else:
+            final_success = False
+            num_tests_failed = 0
+
         self._reboot_hosts(self._job, self._queue_entries, final_success,
                            num_tests_failed)
 
