@@ -2908,6 +2908,13 @@ class Job(DBObject):
         return started_entries.count() > 0
 
 
+    def _hosts_assigned_count(self):
+        """The number of HostQueueEntries assigned a Host for this job."""
+        entries = models.HostQueueEntry.objects.filter(job=self.id,
+                                                       host__isnull=False)
+        return entries.count()
+
+
     def _pending_count(self):
         """The number of HostQueueEntries for this job in the Pending state."""
         pending_entries = models.HostQueueEntry.objects.filter(
@@ -3172,7 +3179,8 @@ class Job(DBObject):
         assert queue_entry.job_id == self.id
         assert queue_entry.atomic_group
         delay = scheduler_config.config.secs_to_wait_for_atomic_group_hosts
-        pending_threshold = queue_entry.atomic_group.max_number_of_machines
+        pending_threshold = min(self._hosts_assigned_count(),
+                                queue_entry.atomic_group.max_number_of_machines)
         over_max_threshold = (self._pending_count() >= pending_threshold)
         delay_expired = (self._delay_ready_task and
                          time.time() >= self._delay_ready_task.end_time)
@@ -3189,6 +3197,8 @@ class Job(DBObject):
             logging.info('Job %s done waiting for extra hosts.', self.id)
             return self.run(queue_entry)
 
+        logging.info('Job %s waiting up to %s seconds for more hosts.',
+                     self.id, delay)
         self._delay_ready_task = DelayedCallTask(delay_seconds=delay,
                                                  callback=run_job_after_delay)
 
