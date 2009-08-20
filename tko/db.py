@@ -314,8 +314,10 @@ class db_sql(object):
     def insert_job(self, tag, job, commit = None):
         job.machine_idx = self.lookup_machine(job.machine)
         if not job.machine_idx:
-            job.machine_idx = self.insert_machine(job,
-                                                  commit=commit)
+            job.machine_idx = self.insert_machine(job, commit=commit)
+        else:
+            self.update_machine_information(job, commit=commit)
+
         self.insert('jobs', {'tag':tag,
                              'label': job.label,
                              'username': job.user,
@@ -375,28 +377,38 @@ class db_sql(object):
 
 
     def read_machine_map(self):
-        self.machine_group = {}
+        if self.machine_group or not self.machine_map:
+            return
         for line in open(self.machine_map, 'r').readlines():
             (machine, group) = line.split()
             self.machine_group[machine] = group
 
 
-    def insert_machine(self, job, group = None, commit = None):
+    def machine_info_dict(self, job):
         hostname = job.machine
-        if self.machine_map and not self.machine_group:
-            self.read_machine_map()
+        group = job.machine_group
+        owner = job.machine_owner
 
         if not group:
+            self.read_machine_map()
             group = self.machine_group.get(hostname, hostname)
-            if group == hostname and job.machine_owner:
-                group = job.machine_owner + '/' + hostname
+            if group == hostname and owner:
+                group = owner + '/' + hostname
 
-        self.insert('machines',
-                    { 'hostname' : hostname ,
-                      'machine_group' : group ,
-                      'owner' : job.machine_owner },
-                    commit=commit)
+        return {'hostname': hostname, 'machine_group': group, 'owner': owner}
+
+
+    def insert_machine(self, job, commit = None):
+        machine_info = self.machine_info_dict(job)
+        self.insert('machines', machine_info, commit=commit)
         return self.get_last_autonumber_value()
+
+
+    def update_machine_information(self, job, commit = None):
+        machine_info = self.machine_info_dict(job)
+        self.update('machines', machine_info,
+                    where={'hostname': machine_info['hostname']},
+                    commit=commit)
 
 
     def lookup_machine(self, hostname):

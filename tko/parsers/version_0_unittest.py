@@ -9,16 +9,6 @@ from autotest_lib.tko.parsers import version_0
 
 
 class test_job_load_from_dir(unittest.TestCase):
-    def setUp(self):
-        self.god = mock.mock_god()
-        self.god.stub_function(models.job, 'read_keyval')
-        self.god.stub_function(version_0.job, 'find_hostname')
-
-
-    def tearDown(self):
-        self.god.unstub_all()
-
-
     keyval_return = {'job_queued': 1234567890,
                      'job_started': 1234567891,
                      'job_finished': 1234567892,
@@ -27,37 +17,87 @@ class test_job_load_from_dir(unittest.TestCase):
                      'hostname': 'abc123'}
 
 
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(models.job, 'read_keyval')
+        self.god.stub_function(version_0.job, 'find_hostname')
+        self.god.stub_function(models.test, 'parse_host_keyval')
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def _expect_host_keyval(self, hostname, platform=None):
+        return_dict = {}
+        if platform:
+            return_dict['platform'] = platform
+            return_dict['labels'] = platform + ',other_label'
+        (models.test.parse_host_keyval.expect_call('.', hostname)
+                .and_return(return_dict))
+
+
     def test_load_from_dir_simple(self):
         models.job.read_keyval.expect_call('.').and_return(
                 dict(self.keyval_return))
+        self._expect_host_keyval('abc123', 'my_platform')
         job = version_0.job.load_from_dir('.')
         self.assertEqual('janet', job['user'])
         self.assertEqual('steeltown', job['label'])
         self.assertEqual('abc123', job['machine'])
+        self.assertEqual('my_platform', job['machine_group'])
         self.god.check_playback()
 
 
-    def test_load_from_dir_two_machine(self):
+    def _setup_two_machines(self):
         raw_keyval = dict(self.keyval_return)
         raw_keyval['hostname'] = 'easyas,abc123'
         models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+
+
+    def test_load_from_dir_two_machines(self):
+        self._setup_two_machines()
         version_0.job.find_hostname.expect_call('.').and_raises(
-                version_0.NoHostnameError('find_hostname stubbed out'))
+                    version_0.NoHostnameError('find_hostname stubbed out'))
+        self._expect_host_keyval('easyas', 'platform')
+        self._expect_host_keyval('abc123', 'platform')
+
         job = version_0.job.load_from_dir('.')
         self.assertEqual('easyas,abc123', job['machine'])
+        self.assertEqual('platform', job['machine_group'])
 
-        models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        self.god.check_playback()
+
+
+    def test_load_from_dir_two_machines_with_find_hostname(self):
+        self._setup_two_machines()
         version_0.job.find_hostname.expect_call('.').and_return('foo')
+        self._expect_host_keyval('foo')
+
         job = version_0.job.load_from_dir('.')
         self.assertEqual('foo', job['machine'])
 
         self.god.check_playback()
 
 
+    def test_load_from_dir_two_machines_different_platforms(self):
+        self._setup_two_machines()
+        version_0.job.find_hostname.expect_call('.').and_raises(
+                    version_0.NoHostnameError('find_hostname stubbed out'))
+        self._expect_host_keyval('easyas', 'platformZ')
+        self._expect_host_keyval('abc123', 'platformA')
+
+        job = version_0.job.load_from_dir('.')
+        self.assertEqual('easyas,abc123', job['machine'])
+        self.assertEqual('platformA,platformZ', job['machine_group'])
+
+        self.god.check_playback()
+
     def test_load_from_dir_one_machine_group_name(self):
         raw_keyval = dict(self.keyval_return)
         raw_keyval['host_group_name'] = 'jackson five'
         models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        self._expect_host_keyval('abc123')
         job = version_0.job.load_from_dir('.')
         self.assertEqual('janet', job['user'])
         self.assertEqual('abc123', job['machine'])
@@ -70,6 +110,7 @@ class test_job_load_from_dir(unittest.TestCase):
         raw_keyval['hostname'] = 'abc123,dancingmachine'
         raw_keyval['host_group_name'] = 'jackson five'
         models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        self._expect_host_keyval('jackson five')
         job = version_0.job.load_from_dir('.')
         self.assertEqual('michael', job['user'])
         # The host_group_name is used instead because machine appeared to be
@@ -83,6 +124,7 @@ class test_job_load_from_dir(unittest.TestCase):
         del raw_keyval['hostname']
         raw_keyval['host_group_name'] = 'jackson five'
         models.job.read_keyval.expect_call('.').and_return(raw_keyval)
+        self._expect_host_keyval('jackson five')
         job = version_0.job.load_from_dir('.')
         # The host_group_name is used because there is no machine.
         self.assertEqual('jackson five', job['machine'])
