@@ -6,10 +6,6 @@ class ServerLoggingConfig(logging_config.LoggingConfig):
     def add_debug_file_handlers(self, log_dir, log_name=None):
         if not log_name:
             log_name = 'autoserv'
-        self.add_file_handler(log_name + '.stdout', logging.DEBUG,
-                              log_dir=log_dir)
-        self.add_file_handler(log_name + '.stderr', self.stderr_level,
-                              log_dir=log_dir)
         self._add_file_handlers_for_all_levels(log_dir, log_name)
 
 
