@@ -972,7 +972,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def schedule_special_task(cls, hosts, task):
-        """\
+        """
         Schedules hosts for a special task, if the task is not already scheduled
         """
         for host in hosts:
@@ -985,23 +985,36 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def prepare(cls, agent, task):
-        """\
-        Creates a new special task if necessary, and prepares it to be run. Sets
-        as active, and sets the time started to the current time.
-
-        agent: scheduler agent that will be taking this task
-        task: task to prepare, or None if a new task should be created
         """
+        Creates a new special task if necessary and prepares it to be run.
+
+        @param agent: The scheduler.monitor_db.AgentTask handling this task.
+                It is expected to have a TASK_TYPE, host and queue_entry
+                attributes.
+        @param task: SpecialTask instance to prepare, or None if a new
+                SpecialTask should be created.
+
+        @returns task or the newly created SpecialTask.
+        """
+        # TODO(gps): This method really belongs in scheduler/monitor_db.py.
+        # It accesses scheduler specific instance internals!
         if not task:
             if not hasattr(agent, 'TASK_TYPE'):
-                raise ValueError("Can only prepare special tasks for "
-                                 "verify, cleanup, or repair")
+                raise ValueError('Can only prepare special tasks for '
+                                 'verify, cleanup, or repair')
 
             host = Host.objects.get(id=agent.host.id)
             queue_entry = None
             if agent.queue_entry:
                 queue_entry = (
                     HostQueueEntry.objects.get(id=agent.queue_entry.id))
+
+            active_tasks = cls.objects.filter(host=host, is_active=True)
+            if active_tasks.count():
+                raise model_logic.ValidationError(
+                        'Active SpecialTask already exists for host %s.  '
+                        'Task %s must not be created.  Existing tasks are: '
+                        '%s.' % (host, agent.TASK_TYPE, list(active_tasks)))
 
             task = cls.objects.create(host=host, task=agent.TASK_TYPE,
                                       queue_entry=queue_entry)
@@ -1010,8 +1023,8 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def activate(self):
-        """\
-        Sets a task as active.
+        """
+        Sets a task as active and sets the time started to the current time.
         """
         logging.info('Starting: %s', self)
         self.is_active = True
@@ -1020,7 +1033,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def finish(self):
-        """\
+        """
         Sets a task as completed
         """
         logging.info('Finished: %s', self)
@@ -1031,6 +1044,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
     class Meta:
         db_table = 'special_tasks'
+
 
     def __unicode__(self):
         result = u'Special Task %s (host %s, task %s, time %s)' % (
