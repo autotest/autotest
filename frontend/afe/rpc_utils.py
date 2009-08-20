@@ -112,7 +112,7 @@ def extra_job_filters(not_yet_run=False, running=False, finished=False):
     return {'where': where}
 
 
-def extra_host_filters(multiple_labels=[]):
+def extra_host_filters(multiple_labels=()):
     """\
     Generate SQL WHERE clauses for matching hosts in an intersection of
     labels.
@@ -126,19 +126,33 @@ def extra_host_filters(multiple_labels=[]):
     return extra_args
 
 
-def get_host_query(multiple_labels, exclude_only_if_needed_labels, filter_data):
+def get_host_query(multiple_labels, exclude_only_if_needed_labels,
+                   exclude_atomic_group_hosts, filter_data):
     query = models.Host.valid_objects.all()
     if exclude_only_if_needed_labels:
         only_if_needed_labels = models.Label.valid_objects.filter(
             only_if_needed=True)
         if only_if_needed_labels.count() > 0:
-            only_if_needed_ids = ','.join(str(label['id']) for label
-                                          in only_if_needed_labels.values('id'))
+            only_if_needed_ids = ','.join(
+                    str(label['id'])
+                    for label in only_if_needed_labels.values('id'))
             query = models.Host.objects.add_join(
                 query, 'hosts_labels', join_key='host_id',
-                join_condition='hosts_labels_exclude.label_id IN (%s)'
-                               % only_if_needed_ids,
-                suffix='_exclude', exclude=True)
+                join_condition=('hosts_labels_exclude_OIN.label_id IN (%s)'
+                                % only_if_needed_ids),
+                suffix='_exclude_OIN', exclude=True)
+    if exclude_atomic_group_hosts:
+        atomic_group_labels = models.Label.valid_objects.filter(
+                atomic_group__isnull=False)
+        if atomic_group_labels.count() > 0:
+            atomic_group_label_ids = ','.join(
+                    str(atomic_group['id'])
+                    for atomic_group in atomic_group_labels.values('id'))
+            query = models.Host.objects.add_join(
+                    query, 'hosts_labels', join_key='host_id',
+                    join_condition=('hosts_labels_exclude_AG.label_id IN (%s)'
+                                    % atomic_group_label_ids),
+                    suffix='_exclude_AG', exclude=True)
     filter_data['extra_args'] = (extra_host_filters(multiple_labels))
     return models.Host.query_objects(filter_data, initial_query=query)
 
