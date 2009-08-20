@@ -319,6 +319,21 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
                  (atomic_group.name,)})
 
 
+def check_modify_host(update_data):
+    """
+    Sanity check modify_host* requests.
+
+    @param update_data: A dictionary with the changes to make to a host
+            or hosts.
+    """
+    # Only the scheduler (monitor_db) is allowed to modify Host status.
+    # Otherwise race conditions happen as a hosts state is changed out from
+    # beneath tasks being run on a host.
+    if 'status' in update_data:
+        raise model_logic.ValidationError({
+                'status': 'Host status can not be modified by the frontend.'})
+
+
 def get_motd():
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, "..", "..", "motd.txt")

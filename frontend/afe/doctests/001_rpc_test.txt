@@ -88,7 +88,6 @@ True
 # hosts...
 >>> rpc_interface.add_host(hostname='ipaj1', locked=True)
 1
->>> rpc_interface.modify_host('ipaj1', status='Hello')
 >>> data = rpc_interface.get_hosts()
 
 # delete the lock_time field, since that can't be reliably checked
@@ -97,7 +96,7 @@ True
 ...           'hostname': 'ipaj1',
 ...           'locked': 1,
 ...           'synch_id': None,
-...           'status': 'Hello',
+...           'status': 'Ready',
 ...           'labels': [],
 ...           'atomic_group': None,
 ...           'acls': ['Everyone'],
@@ -108,7 +107,17 @@ True
 ...           'locked_by': 'debug_user',
 ...           'dirty': True}]
 True
->>> rpc_interface.delete_host('ipaj1')
+>>> rpc_interface.modify_host('ipaj1', status='Hello')
+Traceback (most recent call last):
+ValidationError: {'status': 'Host status can not be modified by the frontend.'}
+>>> rpc_interface.modify_host('ipaj1', hostname='ipaj1000')
+>>> rpc_interface.modify_hosts(
+...     host_filter_data={'hostname': 'ipaj1000'},
+...     update_data={'locked': False})
+>>> data = rpc_interface.get_hosts()
+>>> bool(data[0]['locked'])
+False
+>>> rpc_interface.delete_host('ipaj1000')
 >>> rpc_interface.get_hosts() == []
 True
 
