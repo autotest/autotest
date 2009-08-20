@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.afe.CreateJobView.JobCreateListener;
 import autotest.common.SimpleCallback;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.DynamicTable.DynamicTableListener;
@@ -22,10 +23,12 @@ public class HostListView extends TabView implements TableActionsListener {
         public void onHostSelected(String hostname);
     }
     
-    protected HostListListener listener = null;
+    protected HostListListener hostListListener = null;
+    private JobCreateListener jobCreateListener = null;
     
-    public HostListView(HostListListener listener) {
-        this.listener = listener;
+    public HostListView(HostListListener hostListListener, JobCreateListener jobCreateListener) {
+        this.hostListListener = hostListListener;
+        this.jobCreateListener = jobCreateListener;
     }
 
     @Override
@@ -52,7 +55,7 @@ public class HostListView extends TabView implements TableActionsListener {
         table.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row) {
                 String hostname = row.get("hostname").isString().stringValue();
-                listener.onHostSelected(hostname);
+                hostListListener.onHostSelected(hostname);
             }
             
             public void onTableRefreshed() {}
@@ -95,10 +98,31 @@ public class HostListView extends TabView implements TableActionsListener {
         });
     }
     
-    private JSONArray getSelectedHostIds() {
+    private void reinstallSelectedHosts() {
+        Set<JSONObject> selectedSet = getSelectedHosts();
+        if (selectedSet == null) {
+            return;
+        }
+        
+        JSONArray array = new JSONArray();
+        for (JSONObject host : selectedSet) {
+            array.set(array.size(), host.get("hostname"));
+        }
+        AfeUtils.scheduleReinstall(array, "Hosts", jobCreateListener);
+    }
+    
+    private Set<JSONObject> getSelectedHosts() {
         Set<JSONObject> selectedSet = selectionManager.getSelectedObjects();
         if (selectedSet.isEmpty()) {
             NotifyManager.getInstance().showError("No hosts selected");
+            return null;
+        }
+        return selectedSet;
+    }
+    
+    private JSONArray getSelectedHostIds() {
+        Set<JSONObject> selectedSet = getSelectedHosts();
+        if (selectedSet == null) {
             return null;
         }
         
@@ -126,7 +150,12 @@ public class HostListView extends TabView implements TableActionsListener {
             public void execute() {
                 changeLockStatus(false);
             }
-      });
+        });
+        menu.addItem("Reinstall hosts", new Command() {
+            public void execute() {
+                reinstallSelectedHosts();
+            }
+        });
         
         return menu;
     }

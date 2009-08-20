@@ -1,5 +1,6 @@
 package autotest.afe;
 
+import autotest.afe.CreateJobView.JobCreateListener;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
@@ -112,17 +113,21 @@ public class HostDetailView extends DetailView
     private DataSource hostDataSource = new HostDataSource();
     private HostJobsTable jobsTable = new HostJobsTable();
     private TableDecorator tableDecorator = new TableDecorator(jobsTable);
-    private HostDetailListener listener = null;
+    private HostDetailListener hostDetailListener = null;
+    private JobCreateListener jobCreateListener = null;
     private SelectionManager selectionManager;
     
     private JSONObject currentHostObject;
     
     private Button lockButton = new Button();
     private Button reverifyButton = new Button("Reverify");
+    private Button reinstallButton = new Button("Reinstall");
     private CheckBox showSpecialTasks = new CheckBox();
 
-    public HostDetailView(HostDetailListener listener) {
-        this.listener = listener;
+    public HostDetailView(HostDetailListener hostDetailListener,
+                          JobCreateListener jobCreateListener) {
+        this.hostDetailListener = hostDetailListener;
+        this.jobCreateListener = jobCreateListener;
     }
 
     @Override
@@ -208,7 +213,7 @@ public class HostDetailView extends DetailView
                 if (isJobRow(row)) {
                     JSONObject job = row.get("job").isObject();
                     int jobId = (int) job.get("id").isNumber().doubleValue();
-                    listener.onJobSelected(jobId);
+                    hostDetailListener.onJobSelected(jobId);
                 } else {
                     String resultsPath = Utils.jsonToString(row.get("execution_path"));
                     Utils.openUrlInNewWindow(Utils.getRetrieveLogsUrl(resultsPath));
@@ -253,6 +258,15 @@ public class HostDetailView extends DetailView
             }
         });
         RootPanel.get("view_host_reverify_button").add(reverifyButton);
+        
+        reinstallButton.addClickListener(new ClickListener() {
+            public void onClick(Widget sender) {
+                JSONArray array = new JSONArray();
+                array.set(0, new JSONString(hostname));
+                AfeUtils.scheduleReinstall(array, hostname, jobCreateListener);
+            }
+        });
+        RootPanel.get("view_host_reinstall_button").add(reinstallButton);
     }
 
     public void onError(JSONObject errorObject) {
