@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 
 """Unit Tests for autotest.client.common_lib.test"""
 
@@ -21,7 +21,7 @@ class TestTestCase(unittest.TestCase):
                     return False
             self.job = MockJob()
             self.job.profilers = MockProfilerManager()
-
+            self._new_keyval = False
             self.iteration = 0
             self.before_iteration_hooks = []
             self.after_iteration_hooks = []
@@ -64,12 +64,12 @@ class Test_base_test_execute(TestTestCase):
         after_hook.expect_call(self.test)
         self.test.postprocess_iteration.expect_call()
         self.test.analyze_perf_constraints.expect_call([])
-        self.test._call_run_once([], (1, 2), {'arg': 'val'})
+        self.test._call_run_once([], False, None, (1, 2), {'arg': 'val'})
         self.god.check_playback()
 
 
     def _expect_call_run_once(self):
-        self.test._call_run_once.expect_call((), (), {})
+        self.test._call_run_once.expect_call((), False, None, (), {})
 
 
     def test_execute_test_length(self):
@@ -119,8 +119,13 @@ class Test_base_test_execute(TestTestCase):
 
     def test_execute_profile_only(self):
         # test that profile_only=True works.  (same as iterations=0)
-        self._mock_calls_for_execute_no_iterations()
-
+        self.god.stub_function(self.test, 'drop_caches_between_iterations')
+        self.test.drop_caches_between_iterations.expect_call()
+        self.test.run_once_profiling.expect_call(None)
+        self.test.drop_caches_between_iterations.expect_call()
+        self.test.run_once_profiling.expect_call(None)
+        self.test.postprocess.expect_call()
+        self.test.process_failed_constraints.expect_call()
         self.test.execute(profile_only=True, iterations=2)
         self.god.check_playback()
 
@@ -129,7 +134,7 @@ class Test_base_test_execute(TestTestCase):
         # test that postprocess_profiled_run=False works
         self.god.stub_function(self.test, '_call_run_once')
 
-        self._expect_call_run_once()
+        self.test._call_run_once.expect_call((), False, False, (), {})
         self.test.run_once_profiling.expect_call(False)
         self.test.postprocess.expect_call()
         self.test.process_failed_constraints.expect_call()
@@ -142,7 +147,7 @@ class Test_base_test_execute(TestTestCase):
         # test that postprocess_profiled_run=True works
         self.god.stub_function(self.test, '_call_run_once')
 
-        self._expect_call_run_once()
+        self.test._call_run_once.expect_call((), False, True, (), {})
         self.test.run_once_profiling.expect_call(True)
         self.test.postprocess.expect_call()
         self.test.process_failed_constraints.expect_call()
