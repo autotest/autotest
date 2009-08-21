@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 """Unit Tests for autotest.client.common_lib.test"""
 
