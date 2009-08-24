@@ -677,10 +677,10 @@ class MatplotlibPackage(ExternalPackage):
 
 
 class ParamikoPackage(ExternalPackage):
-    version = '1.7.4'
+    version = '1.7.5'
     local_filename = 'paramiko-%s.tar.gz' % version
     urls = ('http://www.lag.net/paramiko/download/' + local_filename,)
-    hex_sum = 'a33e9c3fbd63f7e3a83278179a4d436e5b28347f'
+    hex_sum = '592be7a08290070b71da63a8e6f28a803399e5c5'
 
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
