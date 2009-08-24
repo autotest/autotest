@@ -3,7 +3,8 @@
 # This file contains the classes used for the known kernel versions persistent
 # storage
 
-import cPickle
+import cPickle, fcntl, os, tempfile
+
 
 class item(object):
     """Wrap a file item stored in a database."""
@@ -76,12 +77,27 @@ class dict_database(database):
             # no db file, considering as if empty dictionary
             res = {}
         else:
-            res = cPickle.load(fd)
+            try:
+                res = cPickle.load(fd)
+            finally:
+                fd.close()
 
         return res
 
 
-    def merge_dictionary(self, values, _open_func=open):
+    def _aquire_lock(self):
+        fd = os.open(self.path + '.lock', os.O_RDONLY | os.O_CREAT)
+        try:
+            # this may block
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        except Exception, err:
+            os.close(fd)
+            raise err
+
+        return fd
+
+
+    def merge_dictionary(self, values):
         """
         Merge the contents of "values" with the current contents of the
         database.
@@ -89,8 +105,33 @@ class dict_database(database):
         if not values:
             return
 
-        contents = self.get_dictionary()
-        contents.update(values)
-        # FIXME implement some kind of protection against full disk problem
-        cPickle.dump(contents, _open_func(self.path, 'wb'),
-                     protocol=cPickle.HIGHEST_PROTOCOL)
+        # use file locking to make the read/write of the file atomic
+        lock_fd = self._aquire_lock()
+
+        # make sure we release locks in case of exceptions (in case the
+        # process dies the OS will release them for us)
+        try:
+            contents = self.get_dictionary()
+            contents.update(values)
+
+            # use a tempfile/atomic-rename technique to not require
+            # synchronization for get_dictionary() calls and also protect
+            # against full disk file corruption situations
+            fd, fname = tempfile.mkstemp(prefix=os.path.basename(self.path),
+                                         dir=os.path.dirname(self.path))
+            write_file = os.fdopen(fd, 'wb')
+            try:
+                try:
+                    cPickle.dump(contents, write_file,
+                                 protocol=cPickle.HIGHEST_PROTOCOL)
+                finally:
+                    write_file.close()
+
+                # this is supposed to be atomic on POSIX systems
+                os.rename(fname, self.path)
+            except Exception:
+                os.unlink(fname)
+                raise
+        finally:
+            # close() releases any locks on that fd
+            os.close(lock_fd)
