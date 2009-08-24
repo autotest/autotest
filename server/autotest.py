@@ -9,6 +9,9 @@ from autotest_lib.client.common_lib import utils as client_utils
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
 
+# This should probably live in global_config.ini
+CLIENT_AUTODIR_PATHS = ('/usr/local/autotest', '/home/autotest')
+
 # Timeouts for powering down and up respectively
 HALT_TIME = 300
 BOOT_TIME = 1800
@@ -679,23 +682,13 @@ def _get_autodir(host):
     if autodir:
         logging.debug('Using existing host autodir: %s', autodir)
         return autodir
-    try:
-        # There's no clean way to do this. readlink may not exist
-        cmd = ("python -c '%s' /etc/autotest.conf 2> /dev/null"
-               % "import os,sys; print os.readlink(sys.argv[1])")
-        autodir = os.path.dirname(host.run(cmd).stdout)
-        if autodir:
-            logging.debug('Using autodir from /etc/autotest.conf: %s', autodir)
-            return autodir
-    except error.AutoservRunError:
-        pass
-    for path in ['/usr/local/autotest', '/home/autotest']:
+    for path in CLIENT_AUTODIR_PATHS:
         try:
-            host.run('ls %s > /dev/null 2>&1' % path)
+            host.run('test -d %s' % utils.sh_escape(path))
             logging.debug('Found autodir at %s', path)
             return path
         except error.AutoservRunError:
-            logging.debug('%s does not exist', path)
+            logging.debug('%s does not exist on %s', path, host.hostname)
     raise error.AutotestRunError('Cannot figure out autotest directory')
 
 
