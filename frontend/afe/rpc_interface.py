@@ -351,7 +351,8 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     Generates a client-side control file to load a kernel and run tests.
 
     @param tests List of tests to run.
-    @param kernel Kernel to install in generated control file.
+    @param kernel A list of kernel info dictionaries configuring which kernels
+        to boot for this job and other options for them
     @param label Name of label to grab kernel config from.
     @param profilers List of profilers to activate during the job.
     @param client_control_file The contents of a client-side control file to
@@ -379,7 +380,7 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
         rpc_utils.prepare_generate_control_file(tests, kernel, label,
                                                 profilers))
     cf_info['control_file'] = control_file.generate_control(
-        tests=test_objects, kernel=kernel, platform=label,
+        tests=test_objects, kernels=kernel, platform=label,
         profilers=profiler_objects, is_server=cf_info['is_server'],
         client_control_file=client_control_file)
     return cf_info
