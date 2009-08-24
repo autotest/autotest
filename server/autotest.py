@@ -397,6 +397,9 @@ class _Run(object):
             args.append('-t %s' % self.tag)
         if self.host.job.use_external_logging():
             args.append('-l')
+        if self.host.hostname:
+            args.append('--hostname=%s' % self.host.hostname)
+
         args.append(self.remote_control_file)
         return args
 
