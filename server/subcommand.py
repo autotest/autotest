@@ -1,6 +1,6 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, subprocess, traceback, time, signal, pickle, logging
+import sys, os, subprocess, time, signal, cPickle, logging
 
 from autotest_lib.client.common_lib import error, utils
 
@@ -20,7 +20,6 @@ def parallel(tasklist, timeout=None, return_results=False):
             on any error a list of the results|exceptions from the tasks is
             returned.  [default: False]
     """
-    pids = []
     run_error = False
     for task in tasklist:
         task.fork_start()
@@ -34,20 +33,23 @@ def parallel(tasklist, timeout=None, return_results=False):
         if timeout:
             remaining_timeout = max(endtime - time.time(), 1)
         try:
-            status = task.fork_waitfor(remaining_timeout)
+            status = task.fork_waitfor(timeout=remaining_timeout)
         except error.AutoservSubcommandError:
             run_error = True
         else:
             if status != 0:
                 run_error = True
 
-        results.append(pickle.load(task.result_pickle))
+        results.append(cPickle.load(task.result_pickle))
         task.result_pickle.close()
 
     if return_results:
         return results
     elif run_error:
-        raise error.AutoservError('One or more subcommands failed')
+        message = 'One or more subcommands failed:\n'
+        for task, result in zip(tasklist, results):
+            message += 'task: %s returned/raised: %r\n' % (task, result)
+        raise error.AutoservError(message)
 
 
 def parallel_simple(function, arglist, log=True, timeout=None,
@@ -75,8 +77,8 @@ def parallel_simple(function, arglist, log=True, timeout=None,
     @returns None or a list of results/exceptions.
     """
     if not arglist:
-        logging.warn("parallel_simple was called with an empty arglist, "
-                     "did you forget to pass in a list of machines?")
+        logging.warn('parallel_simple was called with an empty arglist, '
+                     'did you forget to pass in a list of machines?')
     # Bypass the multithreading if only one machine.
     if len(arglist) == 1:
         arg = arglist[0]
@@ -125,6 +127,11 @@ class subcommand(object):
         self.returncode = None
 
 
+    def __str__(self):
+        return str('subcommand(func=%s,  args=%s, subdir=%s)' %
+                   (self.func, self.args, self.subdir))
+
+
     @classmethod
     def register_fork_hook(cls, hook):
         """ Register a function to be called from the child process after
@@ -169,13 +176,14 @@ class subcommand(object):
             for hook in self.fork_hooks:
                 hook(self)
             result = self.lambda_function()
-            os.write(w, pickle.dumps(result))
-        except Exception, e:
-            traceback.print_exc()
-            exit_code = 1
-            os.write(w, pickle.dumps(e))
-        else:
+            os.write(w, cPickle.dumps(result, cPickle.HIGHEST_PROTOCOL))
             exit_code = 0
+        except Exception, e:
+            logging.exception('function failed')
+            exit_code = 1
+            os.write(w, cPickle.dumps(e, cPickle.HIGHEST_PROTOCOL))
+
+        os.close(w)
 
         try:
             for hook in self.join_hooks:
@@ -240,11 +248,11 @@ class subcommand(object):
         if not timeout:
             return self.wait()
         else:
-            start_time = time.time()
-            while time.time() <= start_time + timeout:
-                self.poll()
-                if self.returncode is not None:
-                    return self.returncode
+            end_time = time.time() + timeout
+            while time.time() <= end_time:
+                returncode = self.poll()
+                if returncode is not None:
+                    return returncode
                 time.sleep(1)
 
             utils.nuke_pid(self.pid)
