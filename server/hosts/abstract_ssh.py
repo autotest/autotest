@@ -294,7 +294,6 @@ class AbstractSSHHost(SiteHost):
     def ssh_ping(self, timeout=60):
         try:
             self.run("true", timeout=timeout, connect_timeout=timeout)
-            logging.info("Host (ssh) %s is alive", self.hostname)
         except error.AutoservSSHTimeout:
             msg = "Host (ssh) verify timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
@@ -403,6 +402,7 @@ class AbstractSSHHost(SiteHost):
 
         logging.info('Pinging host ' + self.hostname)
         self.ssh_ping()
+        logging.info("Host (ssh) %s is alive", self.hostname)
 
         if self.is_shutting_down():
             raise error.AutoservHostIsShuttingDownError("Host is shutting down")
