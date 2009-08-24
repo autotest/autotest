@@ -15,7 +15,7 @@ _DEFAULT_COMMANDS_TO_LOG_AFTER_ITERATION = []
 _DEFAULT_FILES_TO_LOG_PER_TEST = []
 _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/pci", "/proc/meminfo", "/proc/slabinfo", "/proc/version",
-    "/proc/cpuinfo", "/proc/modules", "/proc/interrupts",
+    "/proc/cpuinfo", "/proc/modules", "/proc/interrupts", "/proc/partitions",
     ]
 _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
     "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts"
