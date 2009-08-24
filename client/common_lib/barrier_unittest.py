@@ -8,6 +8,7 @@ import common
 from autotest_lib.client.common_lib import error, barrier
 from autotest_lib.client.common_lib.test_utils import mock
 
+
 class barrier_test(unittest.TestCase):
 
     def setUp(self):
@@ -49,6 +50,40 @@ class barrier_test(unittest.TestCase):
         b = barrier.barrier('127.0.0.1#', 'remain', 100)
         remain = b.remaining()
         self.assertEqual(remain, 100)
+
+
+    def test_master_welcome_garbage(self):
+        b = barrier.barrier('127.0.0.1#', 'garbage', 100)
+        waiting_before = dict(b.waiting)
+        seen_before = b.seen
+
+        receiver = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        receiver.bind('test_unix_socket.pid%d' % os.getpid())
+        receiver.listen(1)
+        try:
+            sender = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sender.connect(receiver.getsockname())
+            connection = receiver.accept()
+            sender.send('GET /foobar?p=-1 HTTP/1.0\r\n\r\n')
+            # This should not raise an exception.
+            b.master_welcome(connection)
+            sender.close()
+
+            self.assertEqual(waiting_before, b.waiting)
+            self.assertEqual(seen_before, b.seen)
+
+            sender = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sender.connect(receiver.getsockname())
+            connection = receiver.accept()
+            sender.send('abcdefg\x00\x01\x02\n'*5)
+            # This should not raise an exception.
+            b.master_welcome(connection)
+            sender.close()
+
+            self.assertEqual(waiting_before, b.waiting)
+            self.assertEqual(seen_before, b.seen)
+        finally:
+            receiver.close()
 
 
     def test_rendezvous_basic(self):
