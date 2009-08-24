@@ -313,6 +313,12 @@ class ExternalPackage(object):
         return self._install_from_egg(install_dir, egg_path)
 
 
+    def _build_and_install_current_dir_noegg(self, install_dir):
+        if not self._build_using_setup_py():
+            return False
+        return self._install_using_setup_py_and_rsync(install_dir)
+
+
     def _build_and_install_from_tar_gz(self, install_dir):
         """
         This method may be used as a _build_and_install() implementation
@@ -629,6 +635,8 @@ class DjangoPackage(ExternalPackage):
     hex_sum = 'f2d9088f17aff47ea17e5767740cab67b2a73b6b'
 
     _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install_current_dir = (
+            ExternalPackage._build_and_install_current_dir_noegg)
 
 
     def _get_installed_version_from_module(self, module):
@@ -637,12 +645,6 @@ class DjangoPackage(ExternalPackage):
         except AttributeError:
             return '0.9.6'
 
-
-    def _build_and_install_current_dir(self, install_dir):
-        if not self._build_using_setup_py():
-            return False
-        # unlike the others, django doesn't use an Egg.
-        return self._install_using_setup_py_and_rsync(install_dir)
 
 
 class NumpyPackage(ExternalPackage):
