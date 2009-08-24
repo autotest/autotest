@@ -1,0 +1,15 @@
+NAME='Sync Test'
+AUTHOR='Amrita Nayal <amritan@google.com>'
+TIME='SHORT'
+TEST_TYPE='client'
+TEST_CLASS='Kernel'
+TEST_CATEGORY='Functional'
+DOC='''\
+Test interrupting sync system call.
+Child process creates enough dirty data and issues fsync.
+In the meanwhile parent process issues kill.
+On success, child is killed immediately while data sync is on.
+IPC occurs through semaphore and shared memory.
+
+'''
+job.run_test('synctest' ,len='100', loop='10')
