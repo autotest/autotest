@@ -262,7 +262,7 @@ class ExternalPackage(object):
 
     def _build_and_install_current_dir(self, install_dir):
         """
-        Subclasses that use _build_and_install_from_tar_gz() MUST provide
+        Subclasses that use _build_and_install_from_package() MUST provide
         their own implementation of this method.
         """
         raise NotImplementedError
@@ -319,7 +319,7 @@ class ExternalPackage(object):
         return self._install_using_setup_py_and_rsync(install_dir)
 
 
-    def _build_and_install_from_tar_gz(self, install_dir):
+    def _build_and_install_from_package(self, install_dir):
         """
         This method may be used as a _build_and_install() implementation
         for subclasses if they implement _build_and_install_current_dir().
@@ -335,9 +335,18 @@ class ExternalPackage(object):
 
         @raises OSError If the expected extraction directory does not exist.
         """
-        self._extract_compressed_tar()
+        self._extract_compressed_package()
+        if self.verified_package.endswith('.tar.gz'):
+            extension = '.tar.gz'
+        elif self.verified_package.endswith('.tar.bz2'):
+            extension = '.tar.bz2'
+        elif self.verified_package.endswith('.zip'):
+            extension = '.zip'
+        else:
+            raise Error('Unexpected package file extension on %s' %
+                        self.verified_package)
         os.chdir(os.path.dirname(self.verified_package))
-        os.chdir(self.local_filename[:-len('.tar.gz')])
+        os.chdir(self.local_filename[:-len(extension)])
         extracted_dir = os.getcwd()
         try:
             return self._build_and_install_current_dir(install_dir)
@@ -346,8 +355,8 @@ class ExternalPackage(object):
             shutil.rmtree(extracted_dir)
 
 
-    def _extract_compressed_tar(self):
-        """Extract the fetched compressed tar file within its directory."""
+    def _extract_compressed_package(self):
+        """Extract the fetched compressed .tar or .zip within its directory."""
         if not self.verified_package:
             raise Error('Package must have been fetched first.')
         os.chdir(os.path.dirname(self.verified_package))
@@ -355,6 +364,8 @@ class ExternalPackage(object):
             status = system("tar -xzf '%s'" % self.verified_package)
         elif self.verified_package.endswith('bz2'):
             status = system("tar -xjf '%s'" % self.verified_package)
+        elif self.verified_package.endswith('zip'):
+            status = system("unzip '%s'" % self.verified_package)
         else:
             raise Error('Unknown compression suffix on %s.' %
                         self.verified_package)
@@ -566,7 +577,7 @@ class SetuptoolsPackage(ExternalPackage):
     def _build_and_install(self, install_dir):
         """Install setuptools on the system."""
         logging.info('NOTE: setuptools install does not use install_dir.')
-        return self._build_and_install_from_tar_gz(install_dir)
+        return self._build_and_install_from_package(install_dir)
 
 
     def _build_and_install_current_dir(self, install_dir):
@@ -624,7 +635,7 @@ class MySQLdbPackage(ExternalPackage):
             logging.error('On Ubuntu or Debian based systems use this: '
                           'sudo apt-get install mysqlclient15-dev')
             return False
-        return self._build_and_install_from_tar_gz(install_dir)
+        return self._build_and_install_from_package(install_dir)
 
 
 class DjangoPackage(ExternalPackage):
@@ -634,7 +645,7 @@ class DjangoPackage(ExternalPackage):
             % (version, local_filename),)
     hex_sum = 'f2d9088f17aff47ea17e5767740cab67b2a73b6b'
 
-    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
             ExternalPackage._build_and_install_current_dir_noegg)
 
@@ -654,7 +665,7 @@ class NumpyPackage(ExternalPackage):
             'numpy-%(version)s.tar.gz' % dict(version=version),)
     hex_sum = '1aa706e733aea18eaffa70d93c0105718acb66c5'
 
-    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
             ExternalPackage._build_and_install_current_dir_setupegg_py)
 
@@ -671,9 +682,20 @@ class MatplotlibPackage(ExternalPackage):
     os_requirements = {'/usr/include/ft2build.h': 'libfreetype6-dev',
                        '/usr/include/png.h': 'libpng12-dev'}
 
-    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
             ExternalPackage._build_and_install_current_dir_setupegg_py)
+
+
+class AtForkPackage(ExternalPackage):
+    version = '0.1'
+    local_filename = 'atfork-%s.zip' % version
+    urls = ('http://python-atfork.googlecode.com/files/' + local_filename,)
+    hex_sum = '4447597296255fe90d16af861e0f763cf2ea0d50'
+
+    _build_and_install = ExternalPackage._build_and_install_from_package
+    _build_and_install_current_dir = (
+            ExternalPackage._build_and_install_current_dir_noegg)
 
 
 class ParamikoPackage(ExternalPackage):
@@ -683,7 +705,7 @@ class ParamikoPackage(ExternalPackage):
     hex_sum = '592be7a08290070b71da63a8e6f28a803399e5c5'
 
 
-    _build_and_install = ExternalPackage._build_and_install_from_tar_gz
+    _build_and_install = ExternalPackage._build_and_install_from_package
 
 
     def _check_for_pycrypto(self):
@@ -732,7 +754,7 @@ class GwtPackage(ExternalPackage):
 
     def build_and_install(self, install_dir):
         os.chdir(install_dir)
-        self._extract_compressed_tar()
+        self._extract_compressed_package()
         extracted_dir = self.local_filename[:-len('.tar.bz2')]
         target_dir = os.path.join(install_dir, self.name)
         os.rename(extracted_dir, target_dir)
