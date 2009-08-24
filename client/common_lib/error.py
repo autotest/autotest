@@ -159,6 +159,26 @@ class AutotestTimeoutError(AutotestError):
     """
 
 
+class HostRunErrorMixIn(Exception):
+    """
+    Indicates a problem in the host run() function raised from client code.
+    Should always be constructed with a tuple of two args (error description
+    (str), run result object). This is a common class mixed in to create the
+    client and server side versions of it.
+    """
+    def __init__(self, description, result_obj):
+        self.description = description
+        self.result_obj = result_obj
+        Exception.__init__(self, description, result_obj)
+
+    def __str__(self):
+        return self.description + '\n' + repr(self.result_obj)
+
+
+class AutotestHostRunError(HostRunErrorMixIn, AutotestError):
+    pass
+
+
 # server-specific errors
 
 class AutoservError(Exception):
@@ -170,19 +190,8 @@ class AutoservSSHTimeout(AutoservError):
     pass
 
 
-class AutoservRunError(AutoservError):
-    """\
-    Errors raised by one of the run functions.  Should always be
-    constructed with a tuple of two args (error description (str),
-    run result object).
-    """
-    def __init__(self, description, result_obj):
-        self.description = description
-        self.result_obj = result_obj
-        AutoservError.__init__(self, description, result_obj)
-
-    def __str__(self):
-        return self.description + '\n' + repr(self.result_obj)
+class AutoservRunError(HostRunErrorMixIn, AutoservError):
+    pass
 
 
 class AutoservSshPermissionDeniedError(AutoservRunError):

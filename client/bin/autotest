@@ -40,6 +40,11 @@ parser.add_option("-l", "--external_logging", dest="log", action="store_true",
 parser.add_option('--verbose', action='store_true',
                   help='Include DEBUG messages in console output')
 
+parser.add_option('--hostname', dest='hostname', type='string',
+                  default=None, action='store',
+                  help='Take this as the hostname of this machine '
+                       '(given by autoserv)')
+
 def usage():
     parser.print_help()
     sys.exit(1)

@@ -200,23 +200,14 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             connect_timeout=30, verbose=True):
         """
         Run a command on the remote host.
+        @see common_lib.hosts.host.run()
 
-        Args:
-            command: the command line string
-            timeout: time limit in seconds before attempting to
-                     kill the running process. The run() function
-                     will take a few seconds longer than 'timeout'
-                     to complete if it has to kill the process.
-            ignore_status: do not raise an exception, no matter
-                           what the exit code of the command is.
+        @param connect_timeout: connection timeout (in seconds)
+        @param options: string with additional ssh command options
+        @param verbose: log the commands
 
-        Returns:
-            a utils.CmdResult object
-
-        Raises:
-            AutoservRunError: the exit code of the command
-                              execution was not 0
-            AutoservSSHTimeout: ssh connection has timed out
+        @raises AutoservRunError: if the command failed
+        @raises AutoservSSHTimeout: ssh connection has timed out
         """
 
         stdout = utils.get_stream_tee_file(

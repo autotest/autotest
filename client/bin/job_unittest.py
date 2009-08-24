@@ -67,6 +67,7 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(sysinfo, 'log_per_reboot_data')
 
         self.god.stub_class(config, 'config')
+        self.god.stub_class(job.local_host, 'LocalHost')
         self.god.stub_class(boottool, 'boottool')
         self.god.stub_class(sysinfo, 'sysinfo')
 
@@ -136,6 +137,7 @@ class TestBaseJob(unittest.TestCase):
                                                 'my_harness')
         harness.select.expect_call(None,
                                    self.job).and_return(my_harness)
+        job.local_host.LocalHost.expect_new(hostname='localhost')
         self.job.config_get.expect_call(
                 'boottool.executable').and_return(None)
         bootloader = boottool.boottool.expect_new(None)
@@ -160,6 +162,7 @@ class TestBaseJob(unittest.TestCase):
         options.harness = None
         options.log = False
         options.verbose = False
+        options.hostname = 'localhost'
         self.job.__init__(self.control, options,
                           extra_copy_cmdline=['more-blah'])
 

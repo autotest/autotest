@@ -11,7 +11,7 @@ import cPickle as pickle
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, boottool, harness
-from autotest_lib.client.bin import config, sysinfo, test
+from autotest_lib.client.bin import config, sysinfo, test, local_host
 from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import error, barrier, log, logging_manager
 from autotest_lib.client.common_lib import base_packages, packages
@@ -201,6 +201,7 @@ class base_job(object):
         self.config = config.config(self)
         self.harness = harness.select(options.harness, self)
         self.profilers = profilers.profilers(self)
+        self.host = local_host.LocalHost(hostname=options.hostname)
 
         try:
             tool = self.config_get('boottool.executable')
