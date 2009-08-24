@@ -225,7 +225,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             channel.exec_command(command)
         except (socket.error, paramiko.SSHException), e:
             # This has to match the string from paramiko *exactly*.
-            if e.msg != 'Channel closed.':
+            if str(e) != 'Channel closed.':
                 raise error.AutoservSSHTimeout("ssh failed: %s" % e)
 
         # pull in all the stdout, stderr until the command terminates
