@@ -46,6 +46,8 @@ import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class CreateJobView extends TabView 
                            implements TestSelectorListener, UserPreferencesListener {
@@ -157,6 +159,7 @@ public class CreateJobView extends TabView
     protected TextBox jobName = new TextBox();
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
+    protected TextBox kernel_cmdline = new TextBox();
     protected TextBox timeout = new TextBox();
     private TextBox maxRuntime = new TextBox();
     protected TextBox emailList = new TextBox();
@@ -302,6 +305,24 @@ public class CreateJobView extends TabView
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
     }
 
+
+    private JSONArray getKernelParams(String kernel_list, String cmdline) {
+        JSONArray result = new JSONArray();
+
+        for(String version: kernel_list.split(",")) {
+            Map<String, String> item = new HashMap<String, String>();
+
+            item.put("version", version);
+            // if there is a cmdline part, put it for all versions in the map
+            if (cmdline.length() > 0) {
+                item.put("cmdline", cmdline);
+            }
+
+            result.set(result.size(), Utils.mapToJsonObject(item));
+        }
+
+        return result;
+    }
     /**
      * Get parameters to submit to the generate_control_file RPC.
      * @param readyForSubmit are we getting a control file that's ready to submit for a job, or just
@@ -312,7 +333,7 @@ public class CreateJobView extends TabView
         
         String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
-            params.put("kernel", new JSONString(kernelString));
+            params.put("kernel", getKernelParams(kernelString, kernel_cmdline.getText()));
         }
         
         JSONArray tests = new JSONArray();
@@ -387,6 +408,7 @@ public class CreateJobView extends TabView
         profilersPanel.setEnabled(true);
         handleSkipVerify();
         kernel.setEnabled(true);
+        kernel_cmdline.setEnabled(true);
     }
 
     protected  boolean isClientTypeSelected() {
@@ -397,27 +419,35 @@ public class CreateJobView extends TabView
         testSelector.setEnabled(false);
         profilersPanel.setEnabled(false);
         kernel.setEnabled(false);
+        kernel_cmdline.setEnabled(false);
     }
     
     @Override
     public void initialize() {
         super.initialize();
         populatePriorities(staticData.getData("priorities").isArray());
-        
-        kernel.addFocusListener(new FocusListener() {
+
+        FocusListener kernelFocusListener = new FocusListener() {
             public void onFocus(Widget sender) {}
             public void onLostFocus(Widget sender) {
                 generateControlFile(false);
             }
-        });
-        kernel.addKeyboardListener(new KeyboardListener() {
+        };
+
+        kernel.addFocusListener(kernelFocusListener);
+        kernel_cmdline.addFocusListener(kernelFocusListener);
+
+        KeyboardListener kernelKeyboardListener = new KeyboardListener() {
             public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
             public void onKeyUp(Widget sender, char keyCode, int modifiers) {}
             public void onKeyPress(Widget sender, char keyCode, int modifiers) {
                 if (keyCode == KEY_ENTER)
                     generateControlFile(false);
             }
-        });
+        };
+
+        kernel.addKeyboardListener(kernelKeyboardListener);
+        kernel_cmdline.addKeyboardListener(kernelKeyboardListener);
 
         populatePriorities();
         
@@ -526,6 +556,7 @@ public class CreateJobView extends TabView
         
         RootPanel.get("create_job_name").add(jobName);
         RootPanel.get("create_kernel").add(kernel);
+        RootPanel.get("create_kernel_cmdline").add(kernel_cmdline);
         RootPanel.get("create_timeout").add(timeout);
         RootPanel.get("create_max_runtime").add(maxRuntime);
         RootPanel.get("create_email_list").add(emailList);
@@ -553,7 +584,8 @@ public class CreateJobView extends TabView
         rebootAfter.reset();
         parseFailedRepair.setChecked(
                 repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
-        kernel.setText("");        
+        kernel.setText("");
+        kernel_cmdline.setText("");
         timeout.setText(Utils.jsonToString(repository.getData("job_timeout_default")));
         maxRuntime.setText(Utils.jsonToString(repository.getData("job_max_runtime_hrs_default")));
         emailList.setText("");
