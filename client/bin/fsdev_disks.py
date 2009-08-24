@@ -238,7 +238,7 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
     if not fs_desc:
         return (None, '', None)
 
-    if not isinstance(fs_desc, TestFlags):
+    if not isinstance(fs_desc, partition.FsOptions):
         fs_desc = _legacy_str_to_test_flags(fs_desc)
 
     # If no disk list was given, we'll get it ourselves
