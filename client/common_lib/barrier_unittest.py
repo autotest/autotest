@@ -57,32 +57,24 @@ class barrier_test(unittest.TestCase):
         waiting_before = dict(b.waiting)
         seen_before = b.seen
 
-        receiver = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        receiver.bind('test_unix_socket.pid%d' % os.getpid())
-        receiver.listen(1)
+        sender, receiver = socket.socketpair()
         try:
-            sender = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sender.connect(receiver.getsockname())
-            connection = receiver.accept()
             sender.send('GET /foobar?p=-1 HTTP/1.0\r\n\r\n')
             # This should not raise an exception.
-            b.master_welcome(connection)
-            sender.close()
+            b.master_welcome((receiver, 'fakeaddr'))
 
             self.assertEqual(waiting_before, b.waiting)
             self.assertEqual(seen_before, b.seen)
 
-            sender = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            sender.connect(receiver.getsockname())
-            connection = receiver.accept()
+            sender, receiver = socket.socketpair()
             sender.send('abcdefg\x00\x01\x02\n'*5)
             # This should not raise an exception.
-            b.master_welcome(connection)
-            sender.close()
+            b.master_welcome((receiver, 'fakeaddr'))
 
             self.assertEqual(waiting_before, b.waiting)
             self.assertEqual(seen_before, b.seen)
         finally:
+            sender.close()
             receiver.close()
 
 
