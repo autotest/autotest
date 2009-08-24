@@ -49,7 +49,7 @@ def filter_kernels(files, exprs):
         return None
 
     # return a sequence of (possibly transformed) matched filenames
-    return filter(None, map(matches, files))
+    return set(filter(None, map(matches, files)))
 
 
 def main():
@@ -63,13 +63,13 @@ def main():
     if not new_files:
         return
 
-    if not options.dry_run:
-        config.trigger.run(filter_kernels(new_files, config.filter_exprs))
-
     # commit the new files to the database
     if options.verbose:
         print 'Committing to the known files database...'
     config.source.store_files(new_files)
+
+    if not options.dry_run:
+        config.trigger.run(filter_kernels(new_files, config.filter_exprs))
 
 
 if __name__ == '__main__':
