@@ -347,8 +347,13 @@ class job_create(job_create_or_clone):
                                action='store_true', default=False)
         self.parser.add_option('-t', '--test',
                                help='List of tests to run')
-        self.parser.add_option('-k', '--kernel', help='Install kernel from this'
-                               ' URL before beginning job')
+
+        self.parser.add_option('-k', '--kernel', help='A comma separated list'
+                               ' of kernel versions/URLs/filenames to run the'
+                               ' job on')
+        self.parser.add_option('--kernel-cmdline', help='A string that will be'
+                               ' given as cmdline to the booted kernel(s)'
+                               ' specified by the -k option')
 
         self.parser.add_option('-d', '--dependencies', help='Comma separated '
                                'list of labels this job is dependent on.',
@@ -384,6 +389,19 @@ class job_create(job_create_or_clone):
                                help='Job maximum runtime in hours')
 
 
+    @staticmethod
+    def _get_kernel_data(kernel_list, cmdline):
+        # the RPC supports cmdline per kernel version in a dictionary
+        kernels = []
+        for version in kernel_list.split(','):
+            kernel_info = {'version': version}
+            if cmdline:
+                kernel_info['cmdline'] = cmdline
+            kernels.append(kernel_info)
+
+        return kernels
+
+
     def parse(self):
         options, leftover = super(job_create, self).parse()
 
@@ -399,7 +417,8 @@ class job_create(job_create_or_clone):
             self.invalid_syntax('Can only specify one of --control-file or '
                                 '--test, not both.')
         if options.kernel:
-            self.ctrl_file_data['kernel'] = options.kernel
+            self.ctrl_file_data['kernel'] = self._get_kernel_data(
+                    options.kernel, options.kernel_cmdline)
             self.ctrl_file_data['do_push_packages'] = True
         if options.control_file:
             try:
