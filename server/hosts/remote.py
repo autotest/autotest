@@ -206,21 +206,12 @@ class RemoteHost(base_classes.Host):
         self.tmp_dirs.remove(tmpdir)
 
 
-    def ping(self):
-        """
-        Ping the remote system, and return whether it's available
-        """
-        fpingcmd = "%s -q %s" % ('/usr/bin/fping', self.hostname)
-        rc = utils.system(fpingcmd, ignore_status = 1)
-        return (rc == 0)
-
-
     def check_uptime(self):
         """
         Check that uptime is available and monotonically increasing.
         """
-        if not self.ping():
-            raise error.AutoservHostError('Client is not pingable')
+        if not self.is_up():
+            raise error.AutoservHostError('Client does not appear to be up')
         result = self.run("/bin/cat /proc/uptime", 30)
         return result.stdout.strip().split()[0]
 
