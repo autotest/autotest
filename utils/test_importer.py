@@ -51,7 +51,11 @@ def main(argv):
     parser.add_option('-A', '--add-all',
                       dest='add_all', action='store_true',
                       default=False,
-                      help='Add samples, site_tests, tests, and test_suites')
+                      help='Add site_tests, tests, and test_suites')
+    parser.add_option('-S', '--add-samples',
+                      dest='add_samples', action='store_true',
+                      default=False,
+                      help='Add samples.')
     parser.add_option('-E', '--add-experimental',
                       dest='add_experimental', action='store_true',
                       default=True,
@@ -93,6 +97,9 @@ def main(argv):
     if options.add_all:
         update_all(options.autotest_dir, options.add_noncompliant,
                    options.add_experimental, options.verbose)
+    if options.add_samples:
+        update_samples(options.autotest_dir, options.add_noncompliant,
+                       options.add_experimental, options.verbose)
     if options.clear_tests:
         db_clean_broken(options.autotest_dir, options.verbose)
     if options.tests_dir:
@@ -136,16 +143,6 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir,
                            verbose=verbose)
-    sample_path = os.path.join(autotest_dir, 'server/samples')
-    if os.path.exists(sample_path):
-        if verbose:
-            print "Scanning " + sample_path
-        tests = get_tests_from_fs(sample_path, '.*srv$',
-                                 add_noncompliant=add_noncompliant)
-        update_tests_in_db(tests, add_experimental=add_experimental,
-                           add_noncompliant=add_noncompliant,
-                           autotest_dir=autotest_dir,
-                           verbose=verbose)
 
     profilers_path = os.path.join(autotest_dir, "client/profilers")
     if os.path.exists(profilers_path):
@@ -157,6 +154,19 @@ def update_all(autotest_dir, add_noncompliant, add_experimental, verbose):
                                description='NA')
     # Clean bad db entries
     db_clean_broken(autotest_dir, verbose)
+
+
+def update_samples(autotest_dir, add_noncompliant, add_experimental, verbose):
+    sample_path = os.path.join(autotest_dir, 'server/samples')
+    if os.path.exists(sample_path):
+        if verbose:
+            print "Scanning " + sample_path
+        tests = get_tests_from_fs(sample_path, '.*srv$',
+                                  add_noncompliant=add_noncompliant)
+        update_tests_in_db(tests, add_experimental=add_experimental,
+                           add_noncompliant=add_noncompliant,
+                           autotest_dir=autotest_dir,
+                           verbose=verbose)
 
 
 def db_clean_broken(autotest_dir, verbose):
