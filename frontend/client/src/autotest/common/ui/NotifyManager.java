@@ -16,7 +16,7 @@ import com.google.gwt.user.client.ui.Widget;
  * the "loading..." box.
  */
 public class NotifyManager {
-    private static final String SPINNER_IMAGE = "mbligh_spinner.gif";
+    private static final String SPINNER_IMAGE = "spinner.gif";
     
     // singleton
     public static final NotifyManager theInstance = new NotifyManager();
