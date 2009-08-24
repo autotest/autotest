@@ -3,7 +3,7 @@ from time import time, sleep
 from autotest_lib.client.common_lib import error
 
 
-class barrier:
+class barrier(object):
     """ Multi-machine barrier support
 
     Provides multi-machine barrier mechanism.  Execution
@@ -100,6 +100,9 @@ class barrier:
         logging.info("tag=%s port=%d timeout=%d",
                      self.tag, self.port, self.timeout)
 
+        self.seen = 0
+        self.waiting = {}
+
 
     def get_host_from_id(self, hostid):
         # Remove any trailing local identifier following a #.
@@ -136,7 +139,7 @@ class barrier:
 
 
     def master_welcome(self, connection):
-        (client, addr) = connection
+        client, addr = connection
         name = None
 
         client.settimeout(5)
@@ -145,7 +148,13 @@ class barrier:
             intro = client.recv(1024)
             intro = intro.strip("\r\n")
 
-            (tag, name) = intro.split(' ')
+            intro_parts = intro.split(' ', 2)
+            if len(intro_parts) != 2:
+                logging.warn("Ignoring invalid data from %s: %r",
+                             client.getpeername(), intro)
+                client.close()
+                return
+            tag, name = intro_parts
 
             logging.info("new client tag=%s, name=%s", tag, name)
 
