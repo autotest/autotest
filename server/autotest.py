@@ -65,19 +65,24 @@ class BaseAutotest(installable_object.InstallableObject):
         self._install(host=host, autodir=autodir)
 
 
-    def _install(self, host=None, autodir=None):
+    def install_no_autoserv(self, host=None, autodir=None):
+        self._install(host=host, autodir=autodir, no_autoserv=True)
+
+
+    def _install(self, host=None, autodir=None, no_autoserv=True):
         """
         Install autotest.  If get() was not called previously, an
         attempt will be made to install from the autotest svn
         repository.
 
-        Args:
-            host: a Host instance on which autotest will be installed
-            autodir: location on the remote host to install to
+        @param host A Host instance on which autotest will be installed
+        @param autodir Location on the remote host to install to
+        @param autoserv Disable install modes that depend on the client
+            running with the autoserv harness
 
-        Raises:
-            AutoservError: if a tarball was not specified and
-                the target host does not have svn installed in its path"""
+        @exception AutoservError if a tarball was not specified and
+            the target host does not have svn installed in its path
+        """
         if not host:
             host = self.host
         if not self.got:
@@ -130,9 +135,13 @@ class BaseAutotest(installable_object.InstallableObject):
                 supports_autoserv_packaging = c.get_config_value(
                     "PACKAGES", "serve_packages_from_autoserv", type=bool)
                 # Copy autotest recursively
-                if supports_autoserv_packaging:
-                    dirs_to_exclude = set(["tests", "site_tests", "deps",
-                                           "profilers"])
+                if supports_autoserv_packaging and not no_autoserv:
+                    dirs_to_exclude = set(["tests", "site_tests", "deps"])
+                    profiler_dir = os.path.join(self.source_material,
+                                                "profilers")
+                    for f in os.listdir(profiler_dir):
+                        if os.path.isdir(os.path.join(profiler_dir, f)):
+                            dirs_to_exclude.add(f)
                     light_files = [os.path.join(self.source_material, f)
                                    for f in os.listdir(self.source_material)
                                    if f not in dirs_to_exclude]
@@ -881,7 +890,7 @@ class client_logger(object):
                     temp_dir = autotemp.tempdir(unique_id='autoserv-packager',
                                                 dir=self.job.tmpdir)
                     tarball_path = self.job.pkgmgr.tar_package(
-                        pkg_name, src_dir, temp_dir.name, ' .')
+                        pkg_name, src_dir, temp_dir.name, " .")
                     self.host.send_file(tarball_path, remote_dest)
                 finally:
                     temp_dir.clean()

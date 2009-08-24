@@ -113,7 +113,7 @@ class profiler_proxy(object):
             host = hosts.create_host(hostname, auto_monitor=False)
             tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
             at = autotest.Autotest(host)
-            at.install(autodir=tmp_dir)
+            at.install_no_autoserv(autodir=tmp_dir)
             self.installed_hosts[host] = (at, tmp_dir)
 
         # drop any installs from hosts no longer in job.hosts
