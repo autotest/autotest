@@ -653,3 +653,13 @@ def drop_caches():
     utils.system("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
     utils.system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
+
+
+def process_is_alive(name):
+    """
+    'pgrep name' misses all python processes and also long process names.
+    'pgrep -f name' gets all shell commands with name in args.
+    So look only for command whose first nonblank word ends with name.
+    """
+    return utils.system("pgrep -f '^[^ ]*%s\W'" % name,
+                        ignore_status=True) == 0
