@@ -773,7 +773,7 @@ def run_timedrift(test, params, env):
     # Fail the test if necessary
     if drift > drift_threshold:
         raise error.TestFail("Time drift too large: %.2f%%" % drift)
-    if drift > drift_threshold_after_rest:
+    if drift_total > drift_threshold_after_rest:
         raise error.TestFail("Time drift too large after rest period: %.2f%%"
                              % drift_total)
 
