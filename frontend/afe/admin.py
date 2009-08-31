@@ -1,5 +1,6 @@
 """Django 1.0 admin interface declarations."""
 
+from django import forms
 from django.contrib import admin
 from django.db import models as dbmodels
 
@@ -18,8 +19,31 @@ class SiteAdmin(admin.ModelAdmin):
         return field
 
 
+class ModelWithInvalidForm(forms.ModelForm):
+    def validate_unique(self):
+        # Don't validate name uniqueness if the duplicate model is invalid
+        model = self.Meta.model
+        filter_data = {
+                model.name_field : self.cleaned_data[model.name_field],
+                'invalid' : True
+                }
+        needs_remove = bool(self.Meta.model.objects.filter(**filter_data))
+        if needs_remove:
+            name_field = self.fields.pop(model.name_field)
+        super(ModelWithInvalidForm, self).validate_unique()
+        if needs_remove:
+            self.fields[model.name_field] = name_field
+
+
+class AtomicGroupForm(ModelWithInvalidForm):
+    class Meta:
+        model = models.AtomicGroup
+
+
 class AtomicGroupAdmin(SiteAdmin):
     list_display = ('name', 'description', 'max_number_of_machines')
+
+    form = AtomicGroupForm
 
     def queryset(self, request):
         return models.AtomicGroup.valid_objects
@@ -27,8 +51,15 @@ class AtomicGroupAdmin(SiteAdmin):
 admin.site.register(models.AtomicGroup, AtomicGroupAdmin)
 
 
+class LabelForm(ModelWithInvalidForm):
+    class Meta:
+        model = models.Label
+
+
 class LabelAdmin(SiteAdmin):
     list_display = ('name', 'kernel_config')
+
+    form = LabelForm
 
     def queryset(self, request):
         return models.Label.valid_objects
@@ -43,6 +74,11 @@ class UserAdmin(SiteAdmin):
 admin.site.register(models.User, UserAdmin)
 
 
+class HostForm(ModelWithInvalidForm):
+    class Meta:
+        model = models.Host
+
+
 class HostAdmin(SiteAdmin):
     # TODO(showard) - showing platform requires a SQL query for
     # each row (since labels are many-to-many) - should we remove
@@ -51,6 +87,8 @@ class HostAdmin(SiteAdmin):
     list_filter = ('labels', 'locked', 'protection')
     search_fields = ('hostname', 'status')
     filter_horizontal = ('labels',)
+
+    form = HostForm
 
     def queryset(self, request):
         return models.Host.valid_objects
@@ -92,10 +130,12 @@ if settings.FULL_ADMIN:
 
     admin.site.register(models.Job, JobAdmin)
 
+
     class IneligibleHostQueueAdmin(SiteAdmin):
         list_display = ('id', 'job', 'host')
 
     admin.site.register(models.IneligibleHostQueue, IneligibleHostQueueAdmin)
+
 
     class HostQueueEntryAdmin(SiteAdmin):
         list_display = ('id', 'job', 'host', 'status',
