@@ -20,7 +20,7 @@ body {
 }
 
 .data-row-header {
-  background: #AACCFF;
+  background: #b4b9cb;
   font-weight: bold;
 }
 
@@ -29,7 +29,7 @@ body {
 }
 
 .data-row-header-sortable td:hover {
-  background: #6699FF;
+  background: #f4f4f4;
 }
 
 .data-row {
@@ -37,7 +37,7 @@ body {
 }
 
 .data-row-alternate {
-  background: #CCDDFF;
+  background: #f4f4f4;
 }
 
 tr.data-row-clickable {
@@ -65,21 +65,21 @@ tr.data-row-clickable:hover {
 }
 
 .job-filter-links .gwt-TabBarItem-selected {
-  background: #AACCFF;
+  background: #f4f4f4;
 }
 
 .selected-link {
-  background-color: #AACCFF;
+  background-color: #f4f4f4;
 }
 
 .box {
-  border: 1px solid #CCDDFF;
+  border: 1px solid #55679e;
   padding: 0.2em;
   margin: 0.2em;
 }
 
 .box-full {
-  background: #CCDDFF;
+  background: #f4f4f4;
   padding: 0.2em;
   margin: 0.2em;
 }
@@ -140,14 +140,14 @@ tr.data-row-clickable:hover {
 
 .gwt-DialogBox {
   background: white;
-  border: 2px solid #AACCFF;
+  border: 2px solid #f4f4f4;
   width: 30em;
   text-align: center;
   cursor: default;
 }
 
 .gwt-DialogBox .Caption {
-  background: #AACCFF;
+  background: #f4f4f4;
   font-weight: bold;
   text-align: center;
 }
@@ -206,10 +206,11 @@ tr.data-row-clickable:hover {
 
 .gwt-HorizontalSplitPanel .hsplitter {
   cursor: move;
-  background: #91c0ef;
+  background: #55679e;
 }
 
 .radio-chooser .gwt-RadioButton {
   white-space: nowrap;
   margin-right: 1em;
 }
+

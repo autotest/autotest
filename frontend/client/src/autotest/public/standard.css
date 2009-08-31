@@ -85,7 +85,7 @@
   margin: 0;
   padding: 3px 5px;
   text-decoration: none;
-  background-color: #CCDDFF;
+  background-color: #f4f4f4;
 }
 .gwt-ToggleButton-up {
   border: 1px outset #ccc;
@@ -160,3 +160,4 @@
   height: 8px;
   zoom: 1;
 }
+
