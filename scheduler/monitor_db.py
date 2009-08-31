@@ -1301,6 +1301,18 @@ class PidfileRunMonitor(object):
         return self._state.num_tests_failed
 
 
+    def try_copy_results_on_drone(self, **kwargs):
+        if self.has_process():
+            # copy results logs into the normal place for job results
+            _drone_manager.copy_results_on_drone(self.get_process(), **kwargs)
+
+
+    def try_copy_to_results_repository(self, source, **kwargs):
+        if self.has_process():
+            _drone_manager.copy_to_results_repository(self.get_process(),
+                                                      source, **kwargs)
+
+
 class Agent(object):
     """
     An agent for use by the Dispatcher class to perform a sequence of tasks.
@@ -1531,9 +1543,8 @@ class AgentTask(object):
 
 
     def cleanup(self):
-        if self.monitor and self.monitor.has_process() and self.log_file:
-            _drone_manager.copy_to_results_repository(
-                self.monitor.get_process(), self.log_file)
+        if self.monitor and self.log_file:
+            self.monitor.try_copy_to_results_repository(self.log_file)
 
 
     def epilog(self):
@@ -1583,8 +1594,7 @@ class AgentTask(object):
         assert use_monitor.has_process()
         execution_path = self._get_consistent_execution_path(execution_entries)
         results_path = execution_path + '/'
-        _drone_manager.copy_to_results_repository(use_monitor.get_process(),
-                                                  results_path)
+        use_monitor.try_copy_to_results_repository(results_path)
 
 
     def _parse_results(self, queue_entries):
@@ -1729,11 +1739,10 @@ class RepairTask(SpecialAgentTask, TaskWithJobKeyvals):
             self.queue_entry.job)
         self._write_keyval_after_job(queued_key, queued_time)
         self._write_job_finished()
-        # copy results logs into the normal place for job results
-        _drone_manager.copy_results_on_drone(
-            self.monitor.get_process(),
-            source_path=self._working_directory + '/',
-            destination_path=self.queue_entry.execution_path() + '/')
+
+        self.monitor.try_copy_results_on_drone(
+                source_path=self._working_directory + '/',
+                destination_path=self.queue_entry.execution_path() + '/')
 
         self._copy_results([self.queue_entry])
         if self.queue_entry.job.parse_failed_repair:
@@ -1764,9 +1773,9 @@ class PreJobTask(SpecialAgentTask):
                                   'autoserv.DEBUG')
             destination = os.path.join(self.queue_entry.execution_path(),
                                        log_name)
-            _drone_manager.copy_to_results_repository(
-                self.monitor.get_process(), source,
-                destination_path=destination)
+
+            self.monitor.try_copy_to_results_repository(
+                    source, destination_path=destination)
 
         if not self.success and self.queue_entry:
             self.queue_entry.requeue()
