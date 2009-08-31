@@ -48,8 +48,8 @@ def run_banner_output(cmd):
 def kill_monitor():
     logging.info("Killing monitor_db")
     # try shutdown first
-    utils.signal_process(monitor_db.PID_FILE_PREFIX, sig=signal.SIGINT)
-    if utils.process_is_alive(monitor_db.PID_FILE_PREFIX): # was it killed?
+    utils.signal_program(monitor_db.PID_FILE_PREFIX, sig=signal.SIGINT)
+    if utils.program_is_alive(monitor_db.PID_FILE_PREFIX): # was it killed?
         # give it some time to shutdown
         time.sleep(30)
         # kill it
@@ -135,7 +135,7 @@ if os.getuid() == 0:
     logging.critical("running as root, aborting!")
     sys.exit(1)
 
-if utils.process_is_alive(monitor_db.BABYSITTER_PID_FILE_PREFIX):
+if utils.program_is_alive(monitor_db.BABYSITTER_PID_FILE_PREFIX):
     logging.critical("monitor_db_babysitter already running, aborting!")
     sys.exit(1)
 utils.write_pid(monitor_db.BABYSITTER_PID_FILE_PREFIX)
