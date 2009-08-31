@@ -1907,13 +1907,11 @@ class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
 
         self._write_job_finished()
 
-        gather_task = GatherLogsTask(self.job, self.queue_entries)
-        self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
-
         if self.monitor.lost_process:
             self._write_lost_process_error_file()
-            for queue_entry in self.queue_entries:
-                queue_entry.set_status(models.HostQueueEntry.Status.FAILED)
+
+        gather_task = GatherLogsTask(self.job, self.queue_entries)
+        self.agent.dispatcher.add_agent(Agent(tasks=[gather_task]))
 
 
     def _write_status_comment(self, comment):
