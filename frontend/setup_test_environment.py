@@ -60,3 +60,13 @@ def set_up():
 def tear_down():
     readonly_connection.ReadOnlyConnection.set_globally_disabled(False)
     destroy_test_database()
+
+
+def print_queries():
+    """
+    Print all SQL queries executed so far.  Useful for debugging failing tests -
+    you can call it from tearDown(), and then execute the single test case of
+    interest from the command line.
+    """
+    for query in connection.queries:
+        print query['sql'] + ';\n'
