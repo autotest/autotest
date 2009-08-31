@@ -8,6 +8,7 @@ import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
+import autotest.common.ui.TabView;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -16,7 +17,6 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.ListBox;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -56,7 +56,7 @@ public class HostSelector {
     
     protected SelectionManager availableSelection;
     
-    public HostSelector() {
+    public void initialize(TabView parent) {
         selectedTable.setClickable(true);
         selectedTable.setRowsPerPage(TABLE_SIZE);
         selectedDecorator.addPaginators();
@@ -113,8 +113,8 @@ public class HostSelector {
             public void onTableRefreshed() {}
         });
         
-        RootPanel.get("create_available_table").add(availableDecorator);
-        RootPanel.get("create_selected_table").add(selectedDecorator);
+        parent.addWidget(availableDecorator, "create_available_table");
+        parent.addWidget(selectedDecorator, "create_selected_table");
         
         final ListBox metaLabelSelect = new ListBox();
         populateLabels(metaLabelSelect);
@@ -140,9 +140,9 @@ public class HostSelector {
                 selectionRefresh();
             }
         });
-        RootPanel.get("create_meta_select").add(metaLabelSelect);
-        RootPanel.get("create_meta_number").add(metaNumber);
-        RootPanel.get("create_meta_button").add(metaButton);
+        parent.addWidget(metaLabelSelect, "create_meta_select");
+        parent.addWidget(metaNumber, "create_meta_number");
+        parent.addWidget(metaButton, "create_meta_button");
         
         final TextBox oneTimeHostField = new TextBox();
         final Button oneTimeHostButton = new Button("Add");
@@ -158,8 +158,8 @@ public class HostSelector {
                 selectionRefresh();
             }
         });
-        RootPanel.get("create_one_time_field").add(oneTimeHostField);
-        RootPanel.get("create_one_time_button").add(oneTimeHostButton);
+        parent.addWidget(oneTimeHostField, "create_one_time_field");
+        parent.addWidget(oneTimeHostButton, "create_one_time_button");
     }
     
     protected void selectMetaHost(String label, String number) {

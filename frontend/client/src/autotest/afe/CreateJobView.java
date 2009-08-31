@@ -38,16 +38,15 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 public class CreateJobView extends TabView 
                            implements TestSelectorListener, UserPreferencesListener {
@@ -533,6 +532,7 @@ public class CreateJobView extends TabView
         });
         
         hostSelector = new HostSelector();
+        hostSelector.initialize(this);
         
         submitJobButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -554,23 +554,23 @@ public class CreateJobView extends TabView
         
         reset();
         
-        RootPanel.get("create_job_name").add(jobName);
-        RootPanel.get("create_kernel").add(kernel);
-        RootPanel.get("create_kernel_cmdline").add(kernel_cmdline);
-        RootPanel.get("create_timeout").add(timeout);
-        RootPanel.get("create_max_runtime").add(maxRuntime);
-        RootPanel.get("create_email_list").add(emailList);
-        RootPanel.get("create_priority").add(priorityList);
-        RootPanel.get("create_skip_verify").add(skipVerify);
-        RootPanel.get("create_reboot_before").add(rebootBefore);
-        RootPanel.get("create_reboot_after").add(rebootAfter);
-        RootPanel.get("create_parse_failed_repair").add(parseFailedRepair);
-        RootPanel.get("create_tests").add(testSelector);
-        RootPanel.get("create_profilers").add(profilersPanel);
-        RootPanel.get("create_edit_control").add(controlFilePanel);
-        RootPanel.get("create_submit").add(submitJobButton);
-        RootPanel.get("create_template_job").add(createTemplateJobButton);
-        RootPanel.get("create_reset").add(resetButton);
+        addWidget(jobName, "create_job_name");
+        addWidget(kernel, "create_kernel");
+        addWidget(kernel_cmdline, "create_kernel_cmdline");
+        addWidget(timeout, "create_timeout");
+        addWidget(maxRuntime, "create_max_runtime");
+        addWidget(emailList, "create_email_list");
+        addWidget(priorityList, "create_priority");
+        addWidget(skipVerify, "create_skip_verify");
+        addWidget(rebootBefore, "create_reboot_before");
+        addWidget(rebootAfter, "create_reboot_after");
+        addWidget(parseFailedRepair, "create_parse_failed_repair");
+        addWidget(testSelector, "create_tests");
+        addWidget(profilersPanel, "create_profilers");
+        addWidget(controlFilePanel, "create_edit_control");
+        addWidget(submitJobButton, "create_submit");
+        addWidget(createTemplateJobButton, "create_template_job");
+        addWidget(resetButton, "create_reset");
         
         testSelector.setListener(this);
     }

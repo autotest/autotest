@@ -4,10 +4,13 @@ import autotest.common.CustomHistory;
 import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 
+import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.http.client.URL;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
@@ -22,18 +25,26 @@ import java.util.Map;
  */
 public abstract class TabView {
     private boolean initialized = false;
-    private ElementWidget tabElement;
+    private HTMLPanel htmlPanel;
     private String title;
     protected boolean visible;
     private Map<String, String> savedState;
 
     public Widget getWidget() {
-        return tabElement;
+        return htmlPanel;
     }
 
     public void attachToDocument() {
-        tabElement = new ElementWidget(getElementId());
-        title = tabElement.getElement().getAttribute("title");
+        title = Document.get().getElementById(getElementId()).getAttribute("title");
+        htmlPanel = Utils.divToPanel(getElementId());
+    }
+    
+    public void addWidget(Widget widget, String subElementId) {
+        htmlPanel.add(widget, subElementId);
+    }
+    
+    public Element getElementById(String subElementId) {
+        return htmlPanel.getElementById(subElementId);
     }
 
     // for subclasses to override

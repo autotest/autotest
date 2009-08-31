@@ -18,7 +18,6 @@ import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.Map;
 import java.util.Set;
@@ -119,15 +118,15 @@ public class JobListView extends TabView implements TableActionsListener {
         selectionManager = tableDecorator.addSelectionManager(false);
         jobTable.setWidgetFactory(selectionManager);
         tableDecorator.addTableActionsPanel(this, true);
-        RootPanel.get("job_table").add(tableDecorator);
+        addWidget(tableDecorator, "job_table");
         
         ownerFilter = AfeUtils.getUserFilter("owner");
         jobTable.addFilter(ownerFilter);
-        RootPanel.get("user_list").add(ownerFilter.getWidget());
+        addWidget(ownerFilter.getWidget(), "user_list");
         
         nameFilter = new SearchFilter("name", false);
         jobTable.addFilter(nameFilter);
-        RootPanel.get("jl_name_search").add(nameFilter.getWidget());
+        addWidget(nameFilter.getWidget(), "jl_name_search");
         
         jobStateFilter = new JobStateFilter();
         for (int i = 0; i < LINK_COUNT; i++)
@@ -143,7 +142,7 @@ public class JobListView extends TabView implements TableActionsListener {
         HorizontalPanel jobControls = new HorizontalPanel();
         jobControls.add(jobStateFilter.getWidget());
         
-        RootPanel.get("job_control_links").add(jobControls);
+        addWidget(jobControls, "job_control_links");
     }
 
     @Override

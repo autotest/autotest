@@ -22,8 +22,8 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
+import com.google.gwt.user.client.ui.SimplePanel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +42,7 @@ class TestDetailView extends DetailView {
     private RealHyperlink logLink = new RealHyperlink("(view all logs)");
     private RealHyperlink testLogLink = new RealHyperlink("(view test logs)");
     private Panel logPanel;
+    private Panel attributePanel = new SimplePanel();
     
     private class LogFileViewer extends Composite 
                                 implements DisclosureHandler, WindowResizeListener {
@@ -167,13 +168,14 @@ class TestDetailView extends DetailView {
     @Override
     public void initialize() {
         super.initialize();
-        
+
+        addWidget(attributePanel, "td_attributes");
         logPanel = new FlowPanel();
-        RootPanel.get("td_log_files").add(logPanel);
+        addWidget(logPanel, "td_log_files");
         testLogLink.setOpensNewWindow(true);
-        RootPanel.get("td_view_logs_link").add(testLogLink);
+        addWidget(testLogLink, "td_view_logs_link");
         logLink.setOpensNewWindow(true);
-        RootPanel.get("td_view_logs_link").add(logLink);
+        addWidget(logLink, "td_view_logs_link");
     }
 
     private void addLogViewers(String testName) {
@@ -291,7 +293,6 @@ class TestDetailView extends DetailView {
         showText(labelList, "td_test_labels");
         
         JSONObject attributes = test.get("attributes").isObject();
-        RootPanel attributePanel = RootPanel.get("td_attributes");
         attributePanel.clear();
         attributePanel.add(new AttributeTable(attributes));
         
