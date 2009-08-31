@@ -1306,6 +1306,10 @@ class AgentTasksTest(BaseSchedulerTest):
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'kill')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'get_process')
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor,
+                                   'try_copy_to_results_repository')
+        self.god.stub_class_method(monitor_db.PidfileRunMonitor,
+                                   'try_copy_results_on_drone')
         def mock_has_process(unused):
             return True
         self.god.stub_with(monitor_db.PidfileRunMonitor, 'has_process',
@@ -1395,20 +1399,19 @@ class AgentTasksTest(BaseSchedulerTest):
 
     def _setup_move_logfile(self, copy_on_drone=False,
                             include_destination=False):
-        monitor_db.PidfileRunMonitor.get_process.expect_call().and_return(
-            self.DUMMY_PROCESS)
+        monitor = monitor_db.PidfileRunMonitor
         if copy_on_drone:
             self.queue_entry.execution_path.expect_call().and_return('tag')
-            drone_manager.DroneManager.copy_results_on_drone.expect_call(
-                self.DUMMY_PROCESS, source_path=mock.is_string_comparator(),
+            monitor.try_copy_results_on_drone.expect_call(
+                source_path=mock.is_string_comparator(),
                 destination_path=mock.is_string_comparator())
         elif include_destination:
-            drone_manager.DroneManager.copy_to_results_repository.expect_call(
-                self.DUMMY_PROCESS, mock.is_string_comparator(),
+            monitor.try_copy_to_results_repository.expect_call(
+                mock.is_string_comparator(),
                 destination_path=mock.is_string_comparator())
         else:
-            drone_manager.DroneManager.copy_to_results_repository.expect_call(
-                self.DUMMY_PROCESS, mock.is_string_comparator())
+            monitor.try_copy_to_results_repository.expect_call(
+                mock.is_string_comparator())
 
 
     def _test_repair_task_helper(self, success, task_tag, queue_entry=None):
@@ -1651,12 +1654,10 @@ class AgentTasksTest(BaseSchedulerTest):
     def _expect_copy_results(self, monitor=None, queue_entry=None):
         if monitor is None:
             monitor = self.monitor
-        monitor.has_process.expect_call().and_return(True)
         if queue_entry:
             queue_entry.execution_path.expect_call().and_return('tag')
-        monitor.get_process.expect_call().and_return(self.DUMMY_PROCESS)
-        drone_manager.DroneManager.copy_to_results_repository.expect_call(
-                self.DUMMY_PROCESS, mock.is_string_comparator())
+        monitor.try_copy_to_results_repository.expect_call(
+                mock.is_string_comparator())
 
 
     def _test_final_reparse_task_helper(self, autoserv_success=True):
@@ -1728,6 +1729,7 @@ class AgentTasksTest(BaseSchedulerTest):
         if has_process:
             if exit_code != 0:
                 self._setup_post_job_run_monitor('.collect_crashinfo_execute')
+            self.pidfile_monitor.has_process.expect_call().and_return(True)
             self.pidfile_monitor.has_process.expect_call().and_return(True)
             self._expect_copy_results(monitor=self.pidfile_monitor,
                                       queue_entry=self.queue_entry)
@@ -1854,7 +1856,6 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.queue_entry.execution_path.expect_call().and_return('tag')
         run_monitor.kill.expect_call()
-        run_monitor.has_process.expect_call().and_return(True)
         monitor_db.QueueTask._log_abort.expect_call()
         monitor_db.QueueTask._finish_task.expect_call()
 
