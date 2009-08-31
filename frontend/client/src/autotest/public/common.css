@@ -1,5 +1,5 @@
 .gwt-TabBar .gwt-TabBarItem {
-  background: #CCDDFF;
+  background: #f4f4f4;
   margin-right: 2px;
   padding: 0.2em;
   padding-left: 0.4em;
@@ -9,13 +9,13 @@
 }
 
 .gwt-TabBar .gwt-TabBarItem-selected {
-  background: #003399;
+  background: #55679e;
   color: white;
   cursor: default;
 }
 
 .gwt-TabPanelBottom {
-  border: 2px solid #6699FF;
+  border: 2px solid #55679e;
   padding: 5px;
   width: 100%;
 }
@@ -35,3 +35,4 @@ body .menubar-hand-cursor .gwt-MenuItem {
   white-space: pre;
   font-family: Courier New, Courier, monospace;
 }
+
