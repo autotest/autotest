@@ -663,7 +663,8 @@ class BasePackageManager(object):
                                       checksum_dict.iteritems())
         # Write the checksum file back to disk
         self._run_command('echo "%s" > %s' % (checksum_contents,
-                                              checksum_path))
+                                              checksum_path),
+                          _run_command_dargs={'verbose': False})
 
 
     def compute_checksum(self, pkg_path):
