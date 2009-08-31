@@ -35,7 +35,7 @@ import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -77,7 +77,7 @@ public class SpreadsheetView extends ConditionTabView
     private SpreadsheetSelectionManager selectionManager = 
         new SpreadsheetSelectionManager(spreadsheet, null);
     private TableActionsPanel actionsPanel = new TableActionsPanel(false);
-    private RootPanel jobCompletionPanel;
+    private Panel jobCompletionPanel = new SimplePanel();
     private boolean currentShowIncomplete, currentShowOnlyLatest;
     private boolean notYetQueried = true;
     public SpreadsheetView(TableSwitchListener listener) {
@@ -146,15 +146,15 @@ public class SpreadsheetView extends ConditionTabView
         filterOptions.add(showIncomplete);
         filterOptions.add(showOnlyLatest);
         
-        RootPanel.get("ss_filter_options").add(filterOptions);
-        RootPanel.get("ss_row_select").add(rowSelect);
-        RootPanel.get("ss_column_select").add(columnSelect);
-        RootPanel.get("ss_additional_content").add(contentSelect);
-        RootPanel.get("ss_swap").add(swapLink);
-        RootPanel.get("ss_query_controls").add(queryButton);
-        RootPanel.get("ss_actions").add(actionsPanel);
-        RootPanel.get("ss_spreadsheet").add(spreadsheet);
-        jobCompletionPanel = RootPanel.get("ss_job_completion");
+        addWidget(filterOptions, "ss_filter_options");
+        addWidget(rowSelect, "ss_row_select");
+        addWidget(columnSelect, "ss_column_select");
+        addWidget(contentSelect, "ss_additional_content");
+        addWidget(swapLink, "ss_swap");
+        addWidget(queryButton, "ss_query_controls");
+        addWidget(actionsPanel, "ss_actions");
+        addWidget(spreadsheet, "ss_spreadsheet");
+        addWidget(jobCompletionPanel, "ss_job_completion");
         
         Window.addWindowResizeListener(new WindowResizeListener() {
             public void onWindowResized(int width, int height) {

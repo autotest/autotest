@@ -12,7 +12,6 @@ import autotest.common.ui.TableActionsPanel.TableActionsListener;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.Set;
 
@@ -61,7 +60,7 @@ public class HostListView extends TabView implements TableActionsListener {
             public void onTableRefreshed() {}
         });
         
-        RootPanel.get("hosts_list").add(hostTableDecorator);
+        addWidget(hostTableDecorator, "hosts_list");
     }
 
     @Override
