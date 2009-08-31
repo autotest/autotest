@@ -187,7 +187,7 @@ def init():
     logging.info("%s> dispatcher starting", time.strftime("%X %x"))
     logging.info("My PID is %d", os.getpid())
 
-    if utils.process_is_alive(PID_FILE_PREFIX):
+    if utils.program_is_alive(PID_FILE_PREFIX):
         logging.critical("monitor_db already running, aborting!")
         sys.exit(1)
     utils.write_pid(PID_FILE_PREFIX)

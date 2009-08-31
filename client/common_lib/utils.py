@@ -1025,7 +1025,7 @@ def get_pid_from_file(program_name):
     return pid
 
 
-def process_is_alive(program_name):
+def program_is_alive(program_name):
     """
     Checks if the process is alive and not in Zombie state.
 
@@ -1038,7 +1038,7 @@ def process_is_alive(program_name):
     return pid_is_alive(pid)
 
 
-def signal_process(program_name, sig=signal.SIGTERM):
+def signal_program(program_name, sig=signal.SIGTERM):
     """
     Sends a signal to the process listed in <program_name>.pid
 
