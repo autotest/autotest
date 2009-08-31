@@ -20,7 +20,7 @@ table.spreadsheet-headers {
 }
 
 .spreadsheet-headers td {
-  background: #CCDDFF;
+  background: #f4f4f4;
 }
 
 /* don't wrap cells automatically */
@@ -61,3 +61,4 @@ div.spreadsheet-cell-nonclickable {
 .test-attributes .header table {
   font-weight: bold;
 }
+
