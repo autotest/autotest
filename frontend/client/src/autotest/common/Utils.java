@@ -1,5 +1,7 @@
 package autotest.common;
 
+import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -7,6 +9,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.HTMLPanel;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -244,5 +247,16 @@ public class Utils {
 
     public static void openUrlInNewWindow(String url) {
         Window.open(url, "_blank", "");
+    }
+    
+    public static HTMLPanel divToPanel(String elementId) {
+        Element divElement = Document.get().getElementById(elementId);
+        divElement.getParentElement().removeChild(divElement);
+        return new HTMLPanel(divElement.getInnerHTML());
+    }
+    
+    public static void setElementVisible(String elementId, boolean visible) {
+        String display = visible ? "block" : "none";
+        Document.get().getElementById(elementId).getStyle().setProperty("display", display);
     }
 }

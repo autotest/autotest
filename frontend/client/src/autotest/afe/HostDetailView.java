@@ -26,7 +26,6 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 public class HostDetailView extends DetailView 
@@ -228,7 +227,7 @@ public class HostDetailView extends DetailView
         jobsTable.setWidgetFactory(selectionManager);
         tableDecorator.addTableActionsPanel(this, true);
         tableDecorator.addControl("Show verifies, repairs and cleanups", showSpecialTasks);
-        RootPanel.get("view_host_jobs_table").add(tableDecorator);
+        addWidget(tableDecorator, "view_host_jobs_table");
         
         showSpecialTasks.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -243,7 +242,7 @@ public class HostDetailView extends DetailView
                changeLock(!locked);
             } 
         });
-        RootPanel.get("view_host_lock_button").add(lockButton);
+        addWidget(lockButton, "view_host_lock_button");
         
         reverifyButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -257,7 +256,7 @@ public class HostDetailView extends DetailView
                 }, "Host " + hostname);
             }
         });
-        RootPanel.get("view_host_reverify_button").add(reverifyButton);
+        addWidget(reverifyButton, "view_host_reverify_button");
         
         reinstallButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
@@ -266,7 +265,7 @@ public class HostDetailView extends DetailView
                 AfeUtils.scheduleReinstall(array, hostname, jobCreateListener);
             }
         });
-        RootPanel.get("view_host_reinstall_button").add(reinstallButton);
+        addWidget(reinstallButton, "view_host_reinstall_button");
     }
 
     public void onError(JSONObject errorObject) {

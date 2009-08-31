@@ -5,11 +5,9 @@ import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.KeyboardListener;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -37,8 +35,8 @@ public abstract class DetailView extends TabView {
         super.initialize();
         resetPage();
         
-        RootPanel.get(getFetchControlsElementId()).add(idInput);
-        RootPanel.get(getFetchControlsElementId()).add(idFetchButton);
+        addWidget(idInput, getFetchControlsElementId());
+        addWidget(idFetchButton, getFetchControlsElementId());
         
         idInput.addKeyboardListener(new KeyboardListener() {
             public void onKeyPress(Widget sender, char keyCode, int modifiers) {
@@ -57,7 +55,7 @@ public abstract class DetailView extends TabView {
     }
 
     protected void showText(String text, String elementId) {
-        DOM.setInnerText(RootPanel.get(elementId).getElement(), text);
+        getElementById(elementId).setInnerText(text);
     }
 
     protected void showField(JSONObject object, String field, String elementId) {
@@ -67,7 +65,7 @@ public abstract class DetailView extends TabView {
 
     public void resetPage() {
         showText(getNoObjectText(), getTitleElementId());
-        RootPanel.get(getDataElementId()).setVisible(false);
+        Utils.setElementVisible(getDataElementId(), false);
     }
     
     public void updateObjectId(String id) {
@@ -97,7 +95,7 @@ public abstract class DetailView extends TabView {
     
     protected void displayObjectData(String title) {
         showText(title, getTitleElementId());
-        RootPanel.get(getDataElementId()).setVisible(true);
+        Utils.setElementVisible(getDataElementId(), true);
     }
     
     @Override

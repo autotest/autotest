@@ -7,7 +7,6 @@ import autotest.tko.TableView.TableSwitchListener;
 
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.DeckPanel;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
@@ -51,8 +50,8 @@ public class GraphingView extends TabView {
         controlPanel.add(existingGraphsFrontend);
         controlPanel.showWidget(0);
 
-        RootPanel.get("graphing_type").add(frontendSelection);
-        RootPanel.get("graphing_frontend").add(controlPanel);
+        addWidget(frontendSelection, "graphing_type");
+        addWidget(controlPanel, "graphing_frontend");
     }
 
     @Override

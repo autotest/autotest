@@ -18,7 +18,6 @@ import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -62,7 +61,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
         addOption("Show experimental tests", showExperimental);
         container.add(preferencesTable);
         container.add(saveButton);
-        RootPanel.get("user_preferences_table").add(container);
+        addWidget(container, "user_preferences_table");
     }
 
     @Override

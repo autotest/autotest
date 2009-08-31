@@ -32,7 +32,6 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -83,6 +82,7 @@ public class TableView extends ConditionTabView
     private CheckBox statusGroupCheckbox = 
         new CheckBox("Group by these columns and show pass rates");
     private Button queryButton = new Button("Query");
+    private Panel tablePanel = new SimplePanel();
 
     private List<String> columnNames = new ArrayList<String>();
     private List<SortSpec> tableSorts = new ArrayList<SortSpec>();
@@ -131,8 +131,9 @@ public class TableView extends ConditionTabView
         columnPanel.add(groupCheckbox);
         columnPanel.add(statusGroupCheckbox);
         
-        RootPanel.get("table_column_select").add(columnPanel);
-        RootPanel.get("table_query_controls").add(queryButton);
+        addWidget(columnPanel, "table_column_select");
+        addWidget(queryButton, "table_query_controls");
+        addWidget(tablePanel, "table_table");
     }
     
     private void selectColumns(String[] columns) {
@@ -177,7 +178,6 @@ public class TableView extends ConditionTabView
         tableDecorator.addPaginators();
         selectionManager = tableDecorator.addSelectionManager(false);
         tableDecorator.addTableActionsWithExportCsvListener(this);
-        Panel tablePanel = RootPanel.get("table_table");
         tablePanel.clear();
         tablePanel.add(tableDecorator);
         

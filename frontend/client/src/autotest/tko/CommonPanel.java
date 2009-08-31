@@ -1,7 +1,6 @@
 package autotest.tko;
 
 import autotest.common.Utils;
-import autotest.common.ui.ElementWidget;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TkoUtils.FieldInfo;
 import autotest.tko.WidgetList.ListWidgetFactory;
@@ -13,6 +12,7 @@ import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
@@ -242,6 +242,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         }
     }
 
+    private HTMLPanel htmlPanel;
     private TextArea customSqlBox = new TextArea();
     private CheckBox showInvalid = new CheckBox("Show invalidated tests");
     private SimpleHyperlink quickReferenceLink = new SimpleHyperlink(SHOW_QUICK_REFERENCE);
@@ -261,8 +262,8 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     }
 
     private CommonPanel() {
-        ElementWidget panelElement = new ElementWidget("common_panel");
-        initWidget(panelElement);
+        htmlPanel = Utils.divToPanel("common_panel");
+        initWidget(htmlPanel);
     }
 
     public void initialize() {
@@ -284,9 +285,9 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         commonFilterPanel.add(customSqlBox);
         commonFilterPanel.add(attributeFilters);
         commonFilterPanel.add(showInvalid);
-        RootPanel.get("common_filters").add(commonFilterPanel);
-        RootPanel.get("common_quick_reference").add(quickReferenceLink);
-        RootPanel.get("common_show_hide_controls").add(showHideControlsLink);
+        htmlPanel.add(commonFilterPanel, "common_filters");
+        htmlPanel.add(quickReferenceLink, "common_quick_reference");
+        htmlPanel.add(showHideControlsLink, "common_show_hide_controls");
         generateQuickReferencePopup();
     }
 
@@ -308,7 +309,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
     }
 
     public void setConditionVisible(boolean visible) {
-        RootPanel.get("common_condition_div").setVisible(visible);
+        Utils.setElementVisible("common_condition_div", visible);
     }
 
     public void setSqlCondition(String text) {

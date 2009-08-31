@@ -30,13 +30,11 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
-import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -180,35 +178,35 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         addTableFilters();
         selectionManager = tableDecorator.addSelectionManager(false);
         tableDecorator.addTableActionsPanel(this, true);
-        RootPanel.get("job_hosts_table").add(tableDecorator);
+        addWidget(tableDecorator, "job_hosts_table");
         
         abortButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 abortJob();
             }
         });
-        RootPanel.get("view_abort").add(abortButton);
+        addWidget(abortButton, "view_abort");
         
         cloneButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 cloneJob();
             } 
         });
-        RootPanel.get("view_clone").add(cloneButton);
+        addWidget(cloneButton, "view_clone");
         
         recurringButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 createRecurringJob();
             } 
         });
-        RootPanel.get("view_recurring").add(recurringButton);
+        addWidget(recurringButton, "view_recurring");
         
         tkoResultsScroller.setStyleName("results-frame");
-        RootPanel.get("tko_results").add(tkoResultsScroller);
+        addWidget(tkoResultsScroller, "tko_results");
         
         controlFile.addStyleName("code");
         controlFilePanel.setContent(controlFile);
-        RootPanel.get("view_control_file").add(controlFilePanel);
+        addWidget(controlFilePanel, "view_control_file");
     }
 
     
@@ -331,10 +329,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     
     protected void pointToResults(String resultsUrl, String logsUrl,
                                   String oldResultsUrl, String triageUrl) {
-        DOM.getElementById("results_link").setAttribute("href", resultsUrl);
-        DOM.getElementById("old_results_link").setAttribute("href", oldResultsUrl);
-        DOM.getElementById("raw_results_link").setAttribute("href", logsUrl);
-        DOM.getElementById("triage_failures_link").setAttribute("href", triageUrl);
+        getElementById("results_link").setAttribute("href", resultsUrl);
+        getElementById("old_results_link").setAttribute("href", oldResultsUrl);
+        getElementById("raw_results_link").setAttribute("href", logsUrl);
+        getElementById("triage_failures_link").setAttribute("href", triageUrl);
         if (resultsUrl.equals(NO_URL)) {
             tkoResultsHtml.setHTML("");
             return;

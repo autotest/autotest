@@ -23,7 +23,6 @@ import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasAlignment;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -89,16 +88,16 @@ public class RecurringView extends TabView implements TableActionsListener {
         selectionManager = tableDecorator.addSelectionManager(false);
         recurringTable.setWidgetFactory(selectionManager);
         tableDecorator.addTableActionsPanel(this, true);
-        RootPanel.get("recurring_table").add(tableDecorator);
+        addWidget(tableDecorator, "recurring_table");
 
 
         ownerFilter = AfeUtils.getUserFilter("owner__login");
         recurringTable.addFilter(ownerFilter);
-        RootPanel.get("recurring_user_list").add(ownerFilter.getWidget());
+        addWidget(ownerFilter.getWidget(), "recurring_user_list");
 
         initRecurringPanel();
 
-        RootPanel.get("recurring_create_panel").add(createRecurringPanel);
+        addWidget(createRecurringPanel, "recurring_create_panel");
     }
 
     public ContextMenu getActionMenu() {
