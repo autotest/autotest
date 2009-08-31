@@ -103,6 +103,7 @@ class RpcInterfaceTest(unittest.TestCase):
     def _create_initial_data(self):
         machine = models.Machine.objects.create(hostname='myhost')
 
+        # create basic objects
         kernel_name = 'mykernel1'
         kernel1 = models.Kernel.objects.create(kernel_hash=kernel_name,
                                                base=kernel_name,
@@ -134,6 +135,7 @@ class RpcInterfaceTest(unittest.TestCase):
                                                 status=good_status,
                                                 machine=machine)
 
+        # create test attributes, test labels, and iterations
         # like Noah's Ark, include two of each...just in case there's a bug with
         # multiple related items
         models.TestAttribute.objects.create(test=job1_test1, attribute='myattr',
@@ -148,11 +150,13 @@ class RpcInterfaceTest(unittest.TestCase):
                                    iteration=1, attribute='iattr2',
                                    value='ival2')
         self._add_iteration_keyval('iteration_result', test=job1_test1,
-                                   iteration=1, attribute='iresult',
-                                   value=1)
+                                   iteration=1, attribute='iresult', value=1)
         self._add_iteration_keyval('iteration_result', test=job1_test1,
-                                   iteration=1, attribute='iresult2',
-                                   value=2)
+                                   iteration=1, attribute='iresult2', value=2)
+        self._add_iteration_keyval('iteration_result', test=job1_test1,
+                                   iteration=2, attribute='iresult', value=3)
+        self._add_iteration_keyval('iteration_result', test=job1_test1,
+                                   iteration=2, attribute='iresult2', value=4)
 
         label1 = models.TestLabel.objects.create(name='testlabel1')
         label2 = models.TestLabel.objects.create(name='testlabel2')
@@ -187,7 +191,10 @@ class RpcInterfaceTest(unittest.TestCase):
         self.assertEquals(test['iterations'], [{'attr': {'iattr': 'ival',
                                                          'iattr2': 'ival2'},
                                                 'perf': {'iresult': 1,
-                                                         'iresult2': 2}}])
+                                                         'iresult2': 2}},
+                                               {'attr': {},
+                                                'perf': {'iresult': 3,
+                                                         'iresult2': 4}}])
         self.assertEquals(test['labels'], ['testlabel1', 'testlabel2'])
 
 
@@ -366,6 +373,35 @@ class RpcInterfaceTest(unittest.TestCase):
 
         self._check_for_get_test_labels(label1, 1)
         self._check_for_get_test_labels(label2, 2)
+
+
+    def test_get_iteration_views(self):
+        iterations = rpc_interface.get_iteration_views(['iresult', 'iresult2'],
+                                                       job_name='myjob1',
+                                                       test_name='mytest1')
+        self.assertEquals(len(iterations), 2)
+        for index, iteration in enumerate(iterations):
+            self._check_for_get_test_views(iterations[index])
+            # iterations a one-indexed, not zero-indexed
+            self.assertEquals(iteration['iteration_index'], index + 1)
+
+        self.assertEquals(iterations[0]['iresult'], 1)
+        self.assertEquals(iterations[0]['iresult2'], 2)
+        self.assertEquals(iterations[1]['iresult'], 3)
+        self.assertEquals(iterations[1]['iresult2'], 4)
+
+        self.assertEquals(
+                [], rpc_interface.get_iteration_views(['iresult'],
+                                                      hostname='fakehost'))
+        self.assertEquals(
+                [], rpc_interface.get_iteration_views(['fake']))
+
+
+    def test_get_num_iteration_views(self):
+        self.assertEquals(
+                rpc_interface.get_num_iteration_views(['iresult', 'iresult2']),
+                2)
+        self.assertEquals(rpc_interface.get_num_iteration_views(['fake']), 0)
 
 
 if __name__ == '__main__':
