@@ -151,6 +151,39 @@ def get_job_ids(**filter_data):
     return list(job_ids)
 
 
+# iteration support
+
+def get_iteration_views(result_keys, **test_filter_data):
+    """
+    Similar to get_test_views, but returns a dict for each iteration rather
+    than for each test.  Accepts the same filter data as get_test_views.
+
+    @param result_keys: list of iteration result keys to include.  Only
+            iterations contains all these keys will be included.
+    @returns a list of dicts, one for each iteration.  Each dict contains:
+            * all the same information as get_test_views()
+            * all the keys specified in result_keys
+            * an additional key 'iteration_index'
+    """
+    iteration_views = tko_rpc_utils.get_iteration_view_query(result_keys,
+                                                             test_filter_data)
+
+    final_filter_data = tko_rpc_utils.extract_presentation_params(
+            test_filter_data)
+    final_filter_data['no_distinct'] = True
+    fields = (models.TestView.get_field_dict().keys() + result_keys +
+              ['iteration_index'])
+    iteration_dicts = models.TestView.list_objects(
+            final_filter_data, initial_query=iteration_views, fields=fields)
+    return rpc_utils.prepare_for_serialization(iteration_dicts)
+
+
+def get_num_iteration_views(result_keys, **test_filter_data):
+    iteration_views = tko_rpc_utils.get_iteration_view_query(result_keys,
+                                                             test_filter_data)
+    return iteration_views.count()
+
+
 # test detail view
 
 def _attributes_to_dict(attribute_list):

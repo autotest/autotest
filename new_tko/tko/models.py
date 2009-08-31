@@ -424,6 +424,58 @@ class TestViewManager(TempManager):
         return sql.replace('test_idx', self.get_key_on_this_table('test_idx'))
 
 
+    def _join_one_iteration_key(self, query_set, result_key, index):
+        suffix = '_%s' % index
+        table_name = IterationResult._meta.db_table
+        alias = table_name + suffix
+        condition_parts = ["%s.attribute = '%s'" %
+                           (alias, self.escape_user_sql(result_key))]
+        if index > 0:
+            # after the first join, we need to match up iteration indices,
+            # otherwise each join will expand the query by the number of
+            # iterations and we'll have extraneous rows
+            first_alias = table_name + '_0'
+            condition_parts.append('%s.iteration = %s.iteration' %
+                                   (alias, first_alias))
+
+        condition = ' and '.join(condition_parts)
+        # add a join to IterationResult
+        query_set = self.add_join(query_set, table_name, join_key='test_idx',
+                                  join_condition=condition, suffix=suffix)
+        # select the iteration value for this join
+        query_set = query_set.extra(select={result_key: '%s.value' % alias})
+        if index == 0:
+            # pull the iteration index from the first join
+            query_set = query_set.extra(
+                    select={'iteration_index': '%s.iteration' % alias})
+
+        return query_set
+
+
+    def join_iterations(self, test_view_query_set, result_keys):
+        """
+        Join the given TestView QuerySet to IterationResult.  The resulting
+        query looks like a TestView query but has one row per iteration.  Each
+        row includes all the attributes of TestView, an attribute for each key
+        in result_keys and an iteration_index attribute.
+
+        We accomplish this by joining the TestView query to IterationResult
+        once per result key.  Each join is restricted on the result key (and on
+        the test index, like all one-to-many joins).  For the first join, this
+        is the only restriction, so each TestView row expands to a row per
+        iteration (per iteration that includes the key, of course).  For each
+        subsequent join, we also restrict the iteration index to match that of
+        the initial join.  This makes each subsequent join produce exactly one
+        result row for each input row.  (This assumes each iteration contains
+        the same set of keys.)
+        """
+        query_set = test_view_query_set
+        for index, result_key in enumerate(result_keys):
+            query_set = self._join_one_iteration_key(query_set, result_key,
+                                                     index)
+        return query_set
+
+
 class TestView(dbmodels.Model, model_logic.ModelExtensions):
     extra_fields = {
             'DATE(job_queued_time)': 'job queued day',
