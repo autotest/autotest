@@ -169,8 +169,8 @@ class ExtendedManager(dbmodels.Manager):
         @param suffix suffix to add to join_table for the join alias
         @param exclude if true, exclude rows that match this join (will use a
         LEFT OUTER JOIN and an appropriate WHERE condition)
-        @param force_left_join - if true, a LEFT OUTER JOIN will be used instead of an
-        INNER JOIN regardless of other options
+        @param force_left_join - if true, a LEFT OUTER JOIN will be used
+        instead of an INNER JOIN regardless of other options
         """
         join_from_table = self.model._meta.db_table
         join_from_key = self.model._meta.pk.name
@@ -194,7 +194,7 @@ class ExtendedManager(dbmodels.Manager):
             filter_object.add_where(full_join_key + ' IS NULL')
 
         query_set = self._add_customSqlQ(query_set, filter_object)
-        return query_set.distinct()
+        return query_set
 
 
     def _get_quoted_field(self, table, field):
@@ -632,7 +632,7 @@ class ModelExtensions(object):
         if query_start and not query_limit:
             raise ValueError('Cannot pass query_start without '
                              'query_limit')
-        sort_by = filter_data.pop('sort_by', [])
+        sort_by = filter_data.pop('sort_by', None)
         extra_args = filter_data.pop('extra_args', {})
         extra_where = filter_data.pop('extra_where', None)
         if extra_where:
@@ -656,8 +656,9 @@ class ModelExtensions(object):
             query = query._clone(klass=ReadonlyQuerySet)
 
         # sorting + paging
-        assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
-        query = query.order_by(*sort_by)
+        if sort_by:
+            assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
+            query = query.order_by(*sort_by)
         if query_start is not None and query_limit is not None:
             query_limit += query_start
         return query[query_start:query_limit]

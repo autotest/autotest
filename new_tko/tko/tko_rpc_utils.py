@@ -223,3 +223,24 @@ class GroupDataProcessor(object):
     def get_info_dict(self):
         return {'groups' : self._group_dicts,
                 'header_values' : self._header_values}
+
+
+def extract_presentation_params(test_filter_data):
+    """
+    Extract presentation-related parameters from test_filter_data -- pagination
+    limits and sorting.
+    """
+    extracted_data = {}
+    for key in ('query_start', 'query_limit', 'sort_by'):
+        extracted_data[key] = test_filter_data.pop(key, None)
+    return extracted_data
+
+
+def get_iteration_view_query(result_keys, test_filter_data):
+    filter_data = dict(test_filter_data) # copy, don't mutate
+    extract_presentation_params(filter_data)
+    test_ids = models.TestView.objects.query_test_ids(filter_data)
+    test_views = models.TestView.objects.filter(pk__in=test_ids)
+    iteration_views = models.TestView.objects.join_iterations(test_views,
+                                                              result_keys)
+    return iteration_views
