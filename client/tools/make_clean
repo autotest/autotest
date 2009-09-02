@@ -2,6 +2,8 @@
 import os
 
 def purge_src(top_dir):
+    if not os.path.exists(top_dir):
+        return
     for dir in os.listdir(top_dir):
         if dir.startswith('.'):
             continue
@@ -23,5 +25,5 @@ def purge_src(top_dir):
 
 os.system('cd tmp && ls -A | xargs rm -rf')
 
-for dir in ['tests', 'profilers', 'deps']:
+for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps']:
     purge_src(dir)
