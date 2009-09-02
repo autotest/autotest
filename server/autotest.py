@@ -123,7 +123,7 @@ class BaseAutotest(installable_object.InstallableObject):
             self.installed = True
             return
         except global_config.ConfigError, e:
-            logging.error("Could not install autotest using the packaging "
+            logging.info("Could not install autotest using the packaging "
                           "system: %s",  e)
         except (error.PackageInstallError, error.AutoservRunError), e:
             logging.error("Could not install autotest from %s", repos)
