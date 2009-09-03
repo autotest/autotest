@@ -46,6 +46,9 @@ class bonnie(test.test):
         if not dir:
             dir = self.tmpdir
 
+        # if the user specified a -n we will use that
+        if '-n' not in extra_args:
+            extra_args += ' -n 2048'
         args = '-d ' + dir + ' -u ' + user + ' ' + extra_args
         cmd = self.srcdir + '/bonnie++ ' + args
 
