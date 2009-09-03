@@ -9,9 +9,6 @@ from autotest_lib.client.common_lib import utils as client_utils
 AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
 
-# This should probably live in global_config.ini
-CLIENT_AUTODIR_PATHS = ('/usr/local/autotest', '/home/autotest')
-
 # Timeouts for powering down and up respectively
 HALT_TIME = 300
 BOOT_TIME = 1800
@@ -688,7 +685,10 @@ def _get_autodir(host):
     if autodir:
         logging.debug('Using existing host autodir: %s', autodir)
         return autodir
-    for path in CLIENT_AUTODIR_PATHS:
+    client_autodir_paths = global_config.global_config.get_config_value(
+            'AUTOSERV', 'client_autodir_paths', type=list,
+            default=['/usr/local/autotest', '/home/autotest'])
+    for path in client_autodir_paths:
         try:
             host.run('test -d %s' % utils.sh_escape(path))
             logging.debug('Found autodir at %s', path)
