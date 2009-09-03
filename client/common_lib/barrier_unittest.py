@@ -90,11 +90,25 @@ class barrier_test(unittest.TestCase):
                           self.rendezvous_test, 0, port=11921)
 
 
+    def test_rendezvous_abort_ok(self):
+        # Test with abort flag set to not abort.
+        self.rendezvous_test(60, port=11920,
+                             test_abort=True, abort=False)
+
+
+    def test_rendezvous_abort(self):
+        # The rendezvous should abort here and throw a
+        # BarrierError since we are asking to abort
+        self.assertRaises(error.BarrierError,
+                          self.rendezvous_test, 0, port=11921,
+                          test_abort=True, abort=True)
+
+
     def test_rendezvous_servers_basic(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.rendezvous_test(60, port=11921,
-                            rendezvous_servers=True)
+                             rendezvous_servers=True)
 
 
     def test_rendezvous_servers_timeout(self):
@@ -105,14 +119,39 @@ class barrier_test(unittest.TestCase):
                           rendezvous_servers=True)
 
 
+    def test_rendezvous_servers_abort_ok(self):
+        # Test with abort flag set to not abort.
+        self.rendezvous_test(60, port=11920, rendezvous_servers=True,
+                             test_abort=True, abort=False)
+
+
+    def test_rendezvous_servers_abort(self):
+        # The rendezvous should abort here and throw a
+        # BarrierError since we are asking to abort
+        self.assertRaises(error.BarrierError,
+                          self.rendezvous_test, 0, port=11922,
+                          rendezvous_servers=True,
+                          test_abort=True, abort=True)
+
+
     # Internal utility function (not a unit test)
-    def rendezvous_test(self, timeout, port=11922, rendezvous_servers=False):
+    def rendezvous_test(self, timeout, port=11922,
+                        rendezvous_servers=False, test_abort=False,
+                        abort=False):
         def _rdv(addr):
             b1 = barrier.barrier(addr, "test_meeting", timeout, port)
             if not rendezvous_servers:
-                b1.rendezvous('127.0.0.1#0', '127.0.0.1#1')
+                if test_abort:
+                    b1.rendezvous('127.0.0.1#0', '127.0.0.1#1', abort=abort)
+                else:
+                    b1.rendezvous('127.0.0.1#0', '127.0.0.1#1')
             else:
-                b1.rendezvous_servers('127.0.0.1#0', '127.0.0.1#1')
+                if test_abort:
+                    b1.rendezvous_servers('127.0.0.1#0', '127.0.0.1#1',
+                                          abort=abort)
+                else:
+                    b1.rendezvous_servers('127.0.0.1#0', '127.0.0.1#1')
+
 
         def _thread_rdv(addr):
             # We need to ignore the exception on one side.

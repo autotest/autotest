@@ -71,6 +71,11 @@ class barrier(object):
         if ME == SERVER:
             server stop
 
+
+    Any client can also request an abort of the job by setting
+    abort=True in the rendezvous arguments.
+
+
     Properties:
             hostid
                     My hostname/IP address + optional tag
@@ -236,7 +241,8 @@ class barrier(object):
     def master_release(self):
         # Check everyone is still there, that they have not
         # crashed or disconnected in the meantime.
-        allpresent = 1
+        allpresent = True
+        abort = self.abort
         for name in self.waiting:
             (client, addr) = self.waiting[name]
 
@@ -251,24 +257,34 @@ class barrier(object):
                 logging.warn("ping/pong timeout: %s", name)
                 pass
 
-            if reply != "pong":
-                allpresent = 0
+            if reply == 'abrt':
+                abort = True
+            elif reply != "pong":
+                allpresent = False
 
         if not allpresent:
             raise error.BarrierError("master lost client")
+
+        if abort:
+            logging.info("Aborting the clients")
+            msg = 'abrt'
+        else:
+            logging.info("Releasing clients")
+            msg = 'rlse'
 
         # If every ones checks in then commit the release.
         for name in self.waiting:
             (client, addr) = self.waiting[name]
 
-            logging.info("releasing client: %s", name)
-
             client.settimeout(5)
             try:
-                client.send("rlse")
+                client.send(msg)
             except socket.timeout:
                 logging.warn("release timeout: %s", name)
                 pass
+
+        if abort:
+            raise error.BarrierError("Client requested abort")
 
 
     def waiting_close(self):
@@ -287,8 +303,7 @@ class barrier(object):
 
     def run_server(self, is_master):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET,
-                                                socket.SO_REUSEADDR, 1)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind(('', self.port))
         self.server.listen(10)
 
@@ -398,11 +413,15 @@ class barrier(object):
                 # ping/pong/rlse cyle to complete normally.
                 self.update_timeout(10 + 10 * len(self.members))
 
-                logging.info("pong")
+                if self.abort:
+                    msg = "abrt"
+                else:
+                    msg = "pong"
+                logging.info(msg)
                 remote.settimeout(self.remaining())
-                remote.send("pong")
+                remote.send(msg)
 
-            elif reply == "rlse":
+            elif reply == "rlse" or reply == "abrt":
                 # Ensure we have sufficient time for the
                 # ping/pong/rlse cyle to complete normally.
                 self.update_timeout(10 + 10 * len(self.members))
@@ -419,15 +438,20 @@ class barrier(object):
             raise error.BarrierError("master abort -- incorrect tag")
         elif mode == "!dup":
             raise error.BarrierError("master abort -- duplicate client")
+        elif mode == "abrt":
+            raise error.BarrierError("Client requested abort")
         else:
             raise error.BarrierError("master handshake failure: " + mode)
 
 
-    def rendezvous(self, *hosts):
+    def rendezvous(self, *hosts, **dargs):
+        # if called with abort=True, this will raise an exception
+        # on all the clients.
         self.start = time()
         self.members = list(hosts)
         self.members.sort()
         self.masterid = self.members.pop(0)
+        self.abort = dargs.get('abort', False)
 
         logging.info("masterid: %s", self.masterid)
         if not len(self.members):
@@ -447,11 +471,14 @@ class barrier(object):
             self.run_client(is_master=False)
 
 
-    def rendezvous_servers(self, masterid, *hosts):
+    def rendezvous_servers(self, masterid, *hosts, **dargs):
+        # if called with abort=True, this will raise an exception
+        # on all the clients.
         self.start = time()
         self.members = list(hosts)
         self.members.sort()
         self.masterid = masterid
+        self.abort = dargs.get('abort', False)
 
         logging.info("masterid: %s", self.masterid)
         if not len(self.members):
