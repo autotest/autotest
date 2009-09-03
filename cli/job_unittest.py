@@ -737,8 +737,8 @@ class job_create_unittest(cli_mock.cli_unittest):
                            ('create_job', data, True, 180)],
                      # This is actually 8 spaces,
                      # the tab has been converted by print.
-                     out_words_ok=['test job        with  spaces', 'Created',
-                                   'id', '180'])
+                     out_words_ok=["test job       with  spaces", "Created",
+                                   "id", "180"])
 
 
     def test_execute_create_job_no_args(self):
