@@ -10,14 +10,26 @@ import sys, os, re, traceback, signal, time, logging
 
 import common
 
-# Fix the Python standard library for threading+fork safety with its
-# internal locks.  http://code.google.com/p/python-atfork/
-import warnings
-warnings.filterwarnings('ignore', 'logging module already imported')
-import atfork
-atfork.monkeypatch_os_fork_functions()
-import atfork.stdlib_fixer
-atfork.stdlib_fixer.fix_logging_module()
+from autotest_lib.client.common_lib.global_config import global_config
+require_atfork = global_config.get_config_value(
+        'AUTOSERV', 'require_atfork_module', type=bool, default=True)
+
+try:
+    import atfork
+    atfork.monkeypatch_os_fork_functions()
+    import atfork.stdlib_fixer
+    # Fix the Python standard library for threading+fork safety with its
+    # internal locks.  http://code.google.com/p/python-atfork/
+    import warnings
+    warnings.filterwarnings('ignore', 'logging module already imported')
+    atfork.stdlib_fixer.fix_logging_module()
+except ImportError, e:
+    from autotest_lib.client.common_lib import global_config
+    if global_config.global_config.get_config_value(
+            'AUTOSERV', 'require_atfork_module', type=bool, default=False):
+        print >>sys.stderr, 'Please run utils/build_externals.py'
+        print e
+        sys.exit(1)
 
 from autotest_lib.server import server_logging_config
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
