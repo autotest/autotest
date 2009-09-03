@@ -160,8 +160,9 @@ class atest_create_or_delete(topic_common.atest):
 
     def output(self, results):
         if results:
-            self.print_wrapped ("%s %s" % (self.msg_done, self.msg_topic),
-                                results)
+            results = ["'%s'" % r for r in results]
+            self.print_wrapped("%s %s" % (self.msg_done, self.msg_topic),
+                               results)
 
 
 class atest_create(atest_create_or_delete):
@@ -262,6 +263,8 @@ class atest_add_or_remove(topic_common.atest):
     def output(self, results):
         for thing, single_thing in self.add_remove_things.iteritems():
             things_ok = results[thing]
+            # Enclose each of the elements in a single quote.
+            things_ok = ["'%s'" % t for t in things_ok]
             if things_ok:
                 self.print_wrapped("%s %s %s %s" % (self.msg_done,
                                                     self.msg_topic,
