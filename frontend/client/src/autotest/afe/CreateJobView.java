@@ -308,7 +308,7 @@ public class CreateJobView extends TabView
     private JSONArray getKernelParams(String kernel_list, String cmdline) {
         JSONArray result = new JSONArray();
 
-        for(String version: kernel_list.split(",")) {
+        for(String version: kernel_list.split("[, ]+")) {
             Map<String, String> item = new HashMap<String, String>();
 
             item.put("version", version);
