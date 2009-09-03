@@ -69,7 +69,7 @@ class BaseAutotest(installable_object.InstallableObject):
         self._install(host=host, autodir=autodir, no_autoserv=True)
 
 
-    def _install(self, host=None, autodir=None, no_autoserv=True):
+    def _install(self, host=None, autodir=None, no_autoserv=False):
         """
         Install autotest.  If get() was not called previously, an
         attempt will be made to install from the autotest svn
