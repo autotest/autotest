@@ -136,12 +136,8 @@ class BaseAutotest(installable_object.InstallableObject):
                     "PACKAGES", "serve_packages_from_autoserv", type=bool)
                 # Copy autotest recursively
                 if supports_autoserv_packaging and not no_autoserv:
-                    dirs_to_exclude = set(["tests", "site_tests", "deps"])
-                    profiler_dir = os.path.join(self.source_material,
-                                                "profilers")
-                    for f in os.listdir(profiler_dir):
-                        if os.path.isdir(os.path.join(profiler_dir, f)):
-                            dirs_to_exclude.add(f)
+                    dirs_to_exclude = set(["tests", "site_tests", "deps",
+                                           "profilers"])
                     light_files = [os.path.join(self.source_material, f)
                                    for f in os.listdir(self.source_material)
                                    if f not in dirs_to_exclude]
@@ -153,6 +149,7 @@ class BaseAutotest(installable_object.InstallableObject):
                         abs_path = os.path.join(autodir, path)
                         abs_path = utils.sh_escape(abs_path)
                         commands.append("mkdir -p '%s'" % abs_path)
+                        commands.append("touch '%s'/__init__.py" % abs_path)
                     host.run(';'.join(commands))
                 else:
                     host.send_file(self.source_material, autodir,
