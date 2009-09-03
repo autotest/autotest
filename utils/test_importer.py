@@ -368,6 +368,10 @@ def add_label_dependencies(tests, cursor):
     Look at the DEPENDENCIES field for each test and add the proper many-to-many
     relationships.
     """
+    # tests may be empty so nothing to do
+    if not tests:
+        return
+
     label_name_to_id = get_id_map(cursor, 'labels', 'name')
     test_path_to_id = get_id_map(cursor, 'autotests', 'path')
 
