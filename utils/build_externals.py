@@ -633,7 +633,7 @@ class MySQLdbPackage(ExternalPackage):
         if not os.path.exists('/usr/bin/mysql_config'):
             logging.error('You need to install /usr/bin/mysql_config')
             logging.error('On Ubuntu or Debian based systems use this: '
-                          'sudo apt-get install mysqlclient15-dev')
+                          'sudo apt-get install libmysqlclient15-dev')
             return False
         return self._build_and_install_from_package(install_dir)
 
