@@ -258,6 +258,7 @@ class barrier(object):
                 pass
 
             if reply == 'abrt':
+                logging.warn("Client %s requested abort", name)
                 abort = True
             elif reply != "pong":
                 allpresent = False
@@ -454,6 +455,8 @@ class barrier(object):
         self.abort = dargs.get('abort', False)
 
         logging.info("masterid: %s", self.masterid)
+        if self.abort:
+            logging.debug("%s is aborting", self.hostid)
         if not len(self.members):
             logging.info("No other members listed.")
             return
