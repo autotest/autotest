@@ -10,6 +10,7 @@ from autotest_lib.client.common_lib import log, utils, test as common_test
 
 class test(common_test.base_test):
     disable_sysinfo_install_cache = False
+    host_parameter = None
 
 
 _sysinfo_before_test_script = """\
@@ -222,6 +223,17 @@ def runtest(job, url, tag, args, dargs):
     else:
         logger = None
         logging_args = [None, None, None, None]
+
+    # add in a hook that calls host.log_kernel if we can
+    def log_kernel_hook(mytest, existing_hook=logging_args[0]):
+        if mytest.host_parameter:
+            host = dargs[mytest.host_parameter]
+            if host:
+                host.log_kernel()
+        # chain this call with any existing hook
+        if existing_hook:
+            existing_hook(mytest)
+    logging_args[0] = log_kernel_hook
 
     try:
         common_test.runtest(job, url, tag, args, dargs, locals(), globals(),
