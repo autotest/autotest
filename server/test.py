@@ -89,10 +89,21 @@ class _sysinfo_logger(object):
             from autotest_lib.server import hosts, autotest
             self.host = hosts.create_host(self.job.machines[0],
                                           auto_monitor=False)
-            tmp_dir = self.host.get_tmp_dir(parent="/tmp/sysinfo")
-            self.autotest = autotest.Autotest(self.host)
-            self.autotest.install(autodir=tmp_dir)
-            self.outputdir = self.host.get_tmp_dir()
+            try:
+                tmp_dir = self.host.get_tmp_dir(parent="/tmp/sysinfo")
+                self.autotest = autotest.Autotest(self.host)
+                self.autotest.install(autodir=tmp_dir)
+                self.outputdir = self.host.get_tmp_dir()
+            except:
+                # if installation fails roll back the host
+                try:
+                    self.host.close()
+                except:
+                    logging.exception("Unable to close host %s",
+                                      self.host.hostname)
+                self.host = None
+                self.autotest = None
+                raise
         else:
             host = self.host
 
@@ -182,7 +193,6 @@ class _sysinfo_logger(object):
 
         # get the new sysinfo state from the client
         self._pull_pickle(host, outputdir)
-        self._pull_sysinfo_keyval(host, outputdir, mytest)
 
 
     @log.log_and_ignore_errors("post-test server sysinfo error:")
