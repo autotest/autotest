@@ -134,11 +134,4 @@ def setup(base_path, root_module_name=""):
         # may use libraries other than those available as system packages.
         sys.path.insert(0, os.path.join(base_path, "site-packages"))
 
-    # Fix the Python standard library for threading+fork safety with its
-    # internal locks.  http://code.google.com/p/python-atfork/
-    import atfork
-    atfork.monkeypatch_os_fork_functions()
-    import atfork.stdlib_fixer
-    atfork.stdlib_fixer.fix_logging_module()
-
     _monkeypatch_logging_handle_error()

@@ -9,6 +9,16 @@ Run an control file through the server side engine
 import sys, os, re, traceback, signal, time, logging
 
 import common
+
+# Fix the Python standard library for threading+fork safety with its
+# internal locks.  http://code.google.com/p/python-atfork/
+import warnings
+warnings.filterwarnings('ignore', 'logging module already imported')
+import atfork
+atfork.monkeypatch_os_fork_functions()
+import atfork.stdlib_fixer
+atfork.stdlib_fixer.fix_logging_module()
+
 from autotest_lib.server import server_logging_config
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
 from autotest_lib.client.common_lib import pidfile, logging_manager
