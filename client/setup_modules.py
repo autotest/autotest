@@ -10,7 +10,7 @@ import check_version
 sys.path.pop(0)
 check_version.check_python_version()
 
-import new, glob, logging, traceback
+import new, glob, traceback
 
 
 def _create_module(name):
@@ -76,6 +76,7 @@ def _autotest_logging_handle_error(self, record):
     # The same as the default logging.Handler.handleError but also prints
     # out the original record causing the error so there is -some- idea
     # about which call caused the logging error.
+    import logging
     if logging.raiseExceptions:
         # Avoid recursion as the below output can end up back in here when
         # something has *seriously* gone wrong in autotest.
@@ -84,6 +85,22 @@ def _autotest_logging_handle_error(self, record):
                          '%r using args %r\n' % (record.msg, record.args))
         traceback.print_stack()
         sys.stderr.write('Future logging formatting exceptions disabled.\n')
+
+
+def _monkeypatch_logging_handle_error():
+    # Hack out logging.py*
+    logging_py = os.path.join(os.path.dirname(__file__), "common_lib",
+                              "logging.py*")
+    if glob.glob(logging_py):
+        os.system("rm -f %s" % logging_py)
+
+    # Monkey patch our own handleError into the logging module's StreamHandler.
+    # A nicer way of doing this -might- be to have our own logging module define
+    # an autotest Logger instance that added our own Handler subclass with this
+    # handleError method in it.  But that would mean modifying tons of code.
+    import logging
+    assert callable(logging.Handler.handleError)
+    logging.Handler.handleError = _autotest_logging_handle_error
 
 
 def setup(base_path, root_module_name=""):
@@ -97,21 +114,8 @@ def setup(base_path, root_module_name=""):
     library.
 
     The setup must be different if you are running on an Autotest server
-    or on a test manchine that just has the client directories installed.
+    or on a test machine that just has the client directories installed.
     """
-    # Hack out logging.py*
-    logging_py = os.path.join(os.path.dirname(__file__), "common_lib",
-                              "logging.py*")
-    if glob.glob(logging_py):
-        os.system("rm -f %s" % logging_py)
-
-    # Monkey patch our own handleError into the logging module's StreamHandler.
-    # A nicer way of doing this -might- be to have our own logging module define
-    # an autotest Logger instance that added our own Handler subclass with this
-    # handleError method in it.  But that would mean modifying tons of code.
-    assert callable(logging.Handler.handleError)
-    logging.Handler.handleError = _autotest_logging_handle_error
-
     # Hack... Any better ideas?
     if (root_module_name == 'autotest_lib.client' and
         os.path.exists(os.path.join(os.path.dirname(__file__),
@@ -129,3 +133,12 @@ def setup(base_path, root_module_name=""):
         # This is primarily for the benefit of frontend and tko so that they
         # may use libraries other than those available as system packages.
         sys.path.insert(0, os.path.join(base_path, "site-packages"))
+
+    # Fix the Python standard library for threading+fork safety with its
+    # internal locks.  http://code.google.com/p/python-atfork/
+    import atfork
+    atfork.monkeypatch_os_fork_functions()
+    import atfork.stdlib_fixer
+    atfork.stdlib_fixer.fix_logging_module()
+
+    _monkeypatch_logging_handle_error()
