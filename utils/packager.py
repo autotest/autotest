@@ -91,8 +91,8 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
         pkg_name = pkgmgr.get_tarball_name(name, pkg_type)
         if not remove:
             # Tar the source and upload
+            temp_dir = tempfile.mkdtemp()
             try:
-                temp_dir = tempfile.mkdtemp()
                 try:
                     base_packages.check_diskspace(temp_dir)
                 except error.RepoDiskFullError:
@@ -135,7 +135,6 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
         tarballs.append(tarball_path)
 
     return tarballs
-
 
 
 def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
@@ -199,10 +198,6 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
                              remove=remove)
 
 
-
-
-
-
 # Get the list of sub directories present in a directory
 def get_subdir_list(name, client_dir):
     dir_name = os.path.join(client_dir, name)
@@ -224,10 +219,6 @@ def get_test_dir(name, client_dir):
         sys.exit(0)
     return src_dir
 
-
-# Given the name of the test the following function
-# returns the directory in which the test files are present
-# in (tests or site_tests)
 
 def main():
     # get options and args
