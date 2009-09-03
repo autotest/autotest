@@ -393,7 +393,9 @@ class job_create(job_create_or_clone):
     def _get_kernel_data(kernel_list, cmdline):
         # the RPC supports cmdline per kernel version in a dictionary
         kernels = []
-        for version in kernel_list.split(','):
+        for version in re.split(r'[, ]+', kernel_list):
+            if not version:
+                continue
             kernel_info = {'version': version}
             if cmdline:
                 kernel_info['cmdline'] = cmdline
