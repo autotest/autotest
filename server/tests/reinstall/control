@@ -13,4 +13,4 @@ def run(machine):
     host = hosts.create_host(machine, initialize=False)
     job.run_test('reinstall', host=host)
 
-parallel_simple(run, machines)
+job.parallel_simple(run, machines)
