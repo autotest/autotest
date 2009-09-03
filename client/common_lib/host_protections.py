@@ -1,3 +1,4 @@
+import logging
 from autotest_lib.client.common_lib import enum, global_config
 
 # Changing this file has consequences that need to be understood.
@@ -21,8 +22,19 @@ Protection = enum.Enum('No protection',          # Repair can do anything to
                                                  # this host
                        )
 
-default = Protection.get_value(
-    global_config.global_config.get_config_value(
-        'HOSTS', 'default_protection'))
+try:
+    _bad_value = object()
+    default = Protection.get_value(
+        global_config.global_config.get_config_value(
+            'HOSTS', 'default_protection', default=_bad_value))
+    if default == _bad_value:
+        raise global_config.ConfigError(
+            'No HOSTS.default_protection defined in global_config.ini')
+except global_config.ConfigError:
+    # can happen if no global_config.ini exists at all, but this can actually
+    # happen in reasonable cases (e.g. on a standalone clinet) where it's
+    # safe to ignore
+    logging.debug('No global_config.ini exists so host_protection.default '
+                  'will not be defined')
 
 choices = Protection.choices()
