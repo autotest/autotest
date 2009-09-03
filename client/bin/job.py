@@ -110,22 +110,41 @@ class base_job(object):
                 copy from the running kernel to all the installed kernels with
                 this job
         """
+        self._pre_record_init(control, options)
+        try:
+            self._post_record_init(control, options, drop_caches,
+                                   extra_copy_cmdline)
+        except Exception, err:
+            self.record(
+                    'ABORT', None, None,'client.bin.job.__init__ failed: %s' %
+                    str(err))
+            raise
+
+
+    def _pre_record_init(self, control, options):
+        """
+        Initialization function that should peform ONLY the required
+        setup so that the self.record() method works.
+
+        As of now self.record() needs self.resultdir, self.group_level,
+        self.log_filename, self.harness.
+        """
         self.autodir = os.environ['AUTODIR']
-        self.bindir = os.path.join(self.autodir, 'bin')
-        self.libdir = os.path.join(self.autodir, 'lib')
-        self.testdir = os.path.join(self.autodir, 'tests')
-        self.configdir = os.path.join(self.autodir, 'config')
-        self.site_testdir = os.path.join(self.autodir, 'site_tests')
-        self.profdir = os.path.join(self.autodir, 'profilers')
-        self.tmpdir = os.path.join(self.autodir, 'tmp')
-        self.toolsdir = os.path.join(self.autodir, 'tools')
         self.resultdir = os.path.join(self.autodir, 'results', options.tag)
+        self.tmpdir = os.path.join(self.autodir, 'tmp')
 
         if not os.path.exists(self.resultdir):
             os.makedirs(self.resultdir)
 
         if not options.cont:
             self._cleanup_results_dir()
+            # Don't cleanup the tmp dir (which contains the lockfile)
+            # in the constructor, this would be a problem for multiple
+            # jobs starting at the same time on the same client. Instead
+            # do the delete at the server side. We simply create the tmp
+            # directory here if it does not already exist.
+            if not os.path.exists(self.tmpdir):
+                os.mkdir(self.tmpdir)
 
         logging_manager.configure_logging(
                 client_logging_config.ClientLoggingConfig(),
@@ -133,12 +152,9 @@ class base_job(object):
                 verbose=options.verbose)
         logging.info('Writing results to %s', self.resultdir)
 
-        self.drop_caches_between_iterations = False
-        self.drop_caches = drop_caches
-        if self.drop_caches:
-            logging.debug("Dropping caches")
-            utils.drop_caches()
+        self.log_filename = self.DEFAULT_LOG_FILENAME
 
+        # init_group_level needs the state
         self.control = os.path.realpath(control)
         self._is_continuation = options.cont
         self.state_file = self.control + '.state'
@@ -146,11 +162,29 @@ class base_job(object):
         self.next_step_index = 0
         self.testtag = ''
         self._test_tag_prefix = ''
-
         self._load_state()
-        self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':3600})
-        self.pkgdir = os.path.join(self.autodir, 'packages')
+
+        self._init_group_level()
+
+        self.harness = harness.select(options.harness, self)
+
+
+    def _post_record_init(self, control, options, drop_caches,
+                          extra_copy_cmdline):
+        """
+        Perform job initialization not required by self.record().
+        """
+        self.bindir = os.path.join(self.autodir, 'bin')
+        self.libdir = os.path.join(self.autodir, 'lib')
+        self.testdir = os.path.join(self.autodir, 'tests')
+        self.configdir = os.path.join(self.autodir, 'config')
+        self.site_testdir = os.path.join(self.autodir, 'site_tests')
+        self.profdir = os.path.join(self.autodir, 'profilers')
+        self.toolsdir = os.path.join(self.autodir, 'tools')
+
+        self._init_drop_caches(drop_caches)
+
+        self._init_packages()
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
 
@@ -161,16 +195,6 @@ class base_job(object):
         self.tag = self.get_state("__job_tag", default=None)
 
         if not options.cont:
-            """
-            Don't cleanup the tmp dir (which contains the lockfile)
-            in the constructor, this would be a problem for multiple
-            jobs starting at the same time on the same client. Instead
-            do the delete at the server side. We simply create the tmp
-            directory here if it does not already exist.
-            """
-            if not os.path.exists(self.tmpdir):
-                os.mkdir(self.tmpdir)
-
             if not os.path.exists(self.pkgdir):
                 os.mkdir(self.pkgdir)
 
@@ -190,24 +214,16 @@ class base_job(object):
 
         self.control = control
         self.jobtag = options.tag
-        self.log_filename = self.DEFAULT_LOG_FILENAME
 
         self.logging = logging_manager.get_logging_manager(
                 manage_stdout_and_stderr=True, redirect_fds=True)
         self.logging.start_logging()
 
-        self._init_group_level()
-
         self.config = config.config(self)
-        self.harness = harness.select(options.harness, self)
         self.profilers = profilers.profilers(self)
         self.host = local_host.LocalHost(hostname=options.hostname)
 
-        try:
-            tool = self.config_get('boottool.executable')
-            self.bootloader = boottool.boottool(tool)
-        except:
-            pass
+        self._init_bootloader()
 
         self.sysinfo.log_per_reboot_data()
 
@@ -223,6 +239,44 @@ class base_job(object):
         # load the max disk usage rate - default to no monitoring
         self.max_disk_usage_rate = self.get_state('__monitor_disk', default=0.0)
 
+        self._init_cmdline(extra_copy_cmdline)
+
+
+    def _init_drop_caches(self, drop_caches):
+        """
+        Perform the drop caches initialization.
+        """
+        self.drop_caches_between_iterations = False
+        self.drop_caches = drop_caches
+        if self.drop_caches:
+            logging.debug("Dropping caches")
+            utils.drop_caches()
+
+
+    def _init_bootloader(self):
+        """
+        Perform boottool initialization.
+        """
+        try:
+            tool = self.config_get('boottool.executable')
+            self.bootloader = boottool.boottool(tool)
+        except:
+            pass
+
+
+    def _init_packages(self):
+        """
+        Perform the packages support initialization.
+        """
+        self.pkgmgr = packages.PackageManager(
+            self.autodir, run_function_dargs={'timeout':3600})
+        self.pkgdir = os.path.join(self.autodir, 'packages')
+
+
+    def _init_cmdline(self, extra_copy_cmdline):
+        """
+        Initialize default cmdline for booted kernels in this job.
+        """
         copy_cmdline = set(['console'])
         if extra_copy_cmdline is not None:
             copy_cmdline.update(extra_copy_cmdline)

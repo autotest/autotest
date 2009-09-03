@@ -79,13 +79,32 @@ class TestBaseJob(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def construct_job(self, cont):
-        # will construct class instance using __new__
-        self.job = job.base_job.__new__(job.base_job)
-
-        # now some specific stubs
-        self.god.stub_function(self.job, '_load_state')
+    def _setup_pre_record_init(self, cont):
         self.god.stub_function(self.job, '_init_group_level')
+        self.god.stub_function(self.job, '_load_state')
+
+        resultdir = os.path.join(self.autodir, 'results', self.jobtag)
+        tmpdir = os.path.join(self.autodir, 'tmp')
+        os.path.exists.expect_call(resultdir).and_return(False)
+        os.makedirs.expect_call(resultdir)
+        if not cont:
+            job.base_job._cleanup_results_dir.expect_call()
+            os.path.exists.expect_call(tmpdir).and_return(False)
+            os.mkdir.expect_call(tmpdir)
+
+        self.job._load_state.expect_call()
+        self.job._init_group_level.expect_call()
+
+        my_harness = self.god.create_mock_class(harness.harness,
+                                                'my_harness')
+        harness.select.expect_call(None,
+                                   self.job).and_return(my_harness)
+
+        return resultdir, my_harness
+
+
+    def _setup_post_record_init(self, cont, resultdir, my_harness):
+        # now some specific stubs
         self.god.stub_function(self.job, 'config_get')
         self.god.stub_function(self.job, 'config_set')
         self.god.stub_function(self.job, 'record')
@@ -95,20 +114,11 @@ class TestBaseJob(unittest.TestCase):
         self.god.stub_function(self.job, 'set_state')
 
         # other setup
-        tmpdir = os.path.join(self.autodir, 'tmp')
         results = os.path.join(self.autodir, 'results')
         download = os.path.join(self.autodir, 'tests', 'download')
-        resultdir = os.path.join(self.autodir, 'results', self.jobtag)
         pkgdir = os.path.join(self.autodir, 'packages')
 
-        # record
-        os.path.exists.expect_call(resultdir).and_return(False)
-        os.makedirs.expect_call(resultdir)
-        if not cont:
-            job.base_job._cleanup_results_dir.expect_call()
-
         utils.drop_caches.expect_call()
-        self.job._load_state.expect_call()
         self.job.get_state.expect_call("__run_test_cleanup",
                                        default=True).and_return(True)
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
@@ -119,8 +129,6 @@ class TestBaseJob(unittest.TestCase):
         self.job.get_state.expect_call("__job_tag",
                                        default=None).and_return('1337-gps')
         if not cont:
-            os.path.exists.expect_call(tmpdir).and_return(False)
-            os.mkdir.expect_call(tmpdir)
             os.path.exists.expect_call(pkgdir).and_return(False)
             os.mkdir.expect_call(pkgdir)
             os.path.exists.expect_call(results).and_return(False)
@@ -131,12 +139,7 @@ class TestBaseJob(unittest.TestCase):
             shutil.copyfile.expect_call(mock.is_string_comparator(),
                                  os.path.join(resultdir, 'control'))
 
-        self.job._init_group_level.expect_call()
         self.config = config.config.expect_new(self.job)
-        my_harness = self.god.create_mock_class(harness.harness,
-                                                'my_harness')
-        harness.select.expect_call(None,
-                                   self.job).and_return(my_harness)
         job.local_host.LocalHost.expect_new(hostname='localhost')
         self.job.config_get.expect_call(
                 'boottool.executable').and_return(None)
@@ -155,6 +158,16 @@ class TestBaseJob(unittest.TestCase):
             'blah more-blah root=lala IDENT=81234567 blah-again console=tty1')
         self.job.config_set.expect_call('boot.default_args',
                                         'more-blah console=tty1')
+
+
+    def construct_job(self, cont):
+        # will construct class instance using __new__
+        self.job = job.base_job.__new__(job.base_job)
+
+        # record
+        resultdir, my_harness = self._setup_pre_record_init(cont)
+        self._setup_post_record_init(cont, resultdir, my_harness)
+
         # finish constructor
         options = Dummy()
         options.tag = self.jobtag
@@ -180,8 +193,44 @@ class TestBaseJob(unittest.TestCase):
         return mock
 
 
-    def test_constructor(self):
+    def test_constructor_first_run(self):
         self.construct_job(False)
+
+
+    def test_constructor_continuation(self):
+        self.construct_job(True)
+
+
+    def test_constructor_post_record_failure(self):
+        """
+        Test post record initialization failure.
+        """
+        self.job = job.base_job.__new__(job.base_job)
+        options = Dummy()
+        options.tag = self.jobtag
+        options.cont = False
+        options.harness = None
+        options.log = False
+        options.verbose = False
+        options.hostname = 'localhost'
+        error = Exception('fail')
+
+        self.god.stub_function(self.job, '_post_record_init')
+        self.god.stub_function(self.job, 'record')
+
+        self._setup_pre_record_init(False)
+        self.job._post_record_init.expect_call(
+                self.control, options, True, ['more-blah']).and_raises(error)
+        self.job.record.expect_call(
+                'ABORT', None, None,'client.bin.job.__init__ failed: %s' %
+                str(error))
+
+        self.assertRaises(
+                Exception, self.job.__init__, self.control, options,
+                drop_caches=True, extra_copy_cmdline=['more-blah'])
+
+        # check
+        self.god.check_playback()
 
 
     def test_monitor_disk_usage(self):
