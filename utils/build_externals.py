@@ -688,10 +688,10 @@ class MatplotlibPackage(ExternalPackage):
 
 
 class AtForkPackage(ExternalPackage):
-    version = '0.1'
+    version = '0.1.2'
     local_filename = 'atfork-%s.zip' % version
     urls = ('http://python-atfork.googlecode.com/files/' + local_filename,)
-    hex_sum = '4447597296255fe90d16af861e0f763cf2ea0d50'
+    hex_sum = '5baa64c73e966b57fa797040585c760c502dc70b'
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
