@@ -13,7 +13,7 @@ maintainable. (Obviously using C or whatever for writing tests is fine).
 
 Base coding style
 
-When writing python code, unless otherwise stated, stick to the python style 
+When writing python code, unless otherwise stated, stick to the python style
 guide (http://www.python.org/dev/peps/pep-0008/).
 
 
@@ -31,7 +31,7 @@ function end markers, and we need help.
 
 Variable names and UpPeR cAsE
 
-Use descriptive variable names where possible - it helps to make the code 
+Use descriptive variable names where possible - it helps to make the code
 self documenting.
 
 Don't use CamelCaps style in most places - use underscores to separate parts
@@ -67,7 +67,7 @@ from common_lib import error
 Testing None
 
 Use "is None" rather than "== None" and "is not None" rather than "!= None".
-This way you'll never run into a case where someone's __eq__ or __ne__ 
+This way you'll never run into a case where someone's __eq__ or __ne__
 method do the wrong thing
 
 
@@ -78,7 +78,7 @@ We can figure out how from the code itself (or if not, your code needs fixing).
 
 Try to describle the intent of a function and what it does in a triple-quoted
 (multiline) string just after the def line. We've tried to do that in most
-places, though undoubtedly we're not perfect. A high level overview is 
+places, though undoubtedly we're not perfect. A high level overview is
 incredibly helpful in understanding code.
 
 
@@ -93,13 +93,14 @@ has multiple lines, put two levels of indentation before proceeding with text,
 so it reads something like:
 
 def foo(param1, param2):
-"""
-Long description of method foo.
+    """
+    Long description of method foo.
 
-@param param1: A thing called param1 that is used for a bunch of stuff
-        that has methods bar() and baz() which raise SpamError if·····
-        something goes awry.
-"""
+    @param param1: A thing called param1 that is used for a bunch of stuff
+            that has methods bar() and baz() which raise SpamError if
+            something goes awry.
+    ...
+    """
 
 The tags that you can put inside your docstring are tags recognized by systems
 like doxygen. Not all places need all tags defined, so choose them wisely while
@@ -120,10 +121,10 @@ Simple code
 Keep it simple; this is not the right place to show how smart you are. We
 have plenty of system failures to deal with without having to spend ages
 figuring out your code, thanks ;-) Readbility, readability, readability.
-I really don't care if other things are more compact. 
+I really don't care if other things are more compact.
 
 "Debugging is twice as hard as writing the code in the first place. Therefore,
-if you write the code as cleverly as possible, you are, by definition, not 
+if you write the code as cleverly as possible, you are, by definition, not
 smart enough to debug it."  Brian Kernighan
 
 
@@ -157,7 +158,7 @@ Submitting patches
 
 Generate universal diffs. Email them to autotest@test.kernel.org.
 Most mailers now break lines and/or changes tabs to spaces. If you know how
-to avoid that - great, put your patches inline. If you're not sure, just 
+to avoid that - great, put your patches inline. If you're not sure, just
 attatch them, I don't care much. Please base them off the current version.
 
 Don't worry about submitting patches to a public list - everybody makes
