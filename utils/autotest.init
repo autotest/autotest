@@ -1,0 +1,65 @@
+#!/bin/sh
+# autotest control init script, intended for Debian/Ubuntu type boxes.
+#
+# copy this to /etc/init.d/autotest, then run this:
+#
+# update-rc.d autotest start 95 2 3 4 5 . stop 90 0 1 6 .
+
+BASE_DIR=/usr/local/autotest
+BECOME_USER=autotest
+
+if (test -r /lib/lsb/init-functions)
+then
+  . /lib/lsb/init-functions
+else
+  echo "This script requires /lib/lsb/init-functions"
+  exit 1
+fi
+
+# ---
+
+autotest_start() {
+  cd /tmp
+
+  log_daemon_msg "Starting tcpserver"
+  start-stop-daemon --start --quiet --chuid $BECOME_USER \
+    --background --exec $BASE_DIR/tcpserver/run_server.py
+
+  log_daemon_msg "Starting monitor_db_babysitter"
+  start-stop-daemon --start --quiet --chuid $BECOME_USER \
+    --background --exec $BASE_DIR/scheduler/monitor_db_babysitter
+}
+
+stop_daemon() {
+  PID_NAME=$1
+  DAEMON_NAME=$2
+  log_daemon_msg "Stopping $DAEMON_NAME"
+  start-stop-daemon --stop --quiet --pidfile $BASE_DIR/$PID_NAME.pid
+}
+
+autotest_stop() {
+  stop_daemon monitor_db_babysitter babysitter
+  stop_daemon monitor_db scheduler
+  stop_daemon run_server tcpserver
+}
+
+case "$1" in
+  start)
+    autotest_start
+    ;;
+
+  stop)
+    autotest_stop
+    ;;
+
+  restart)
+    autotest_stop
+    sleep 2
+    autotest_start
+    ;;
+
+  *)
+    echo "Usage: $0 start|stop|restart"
+    exit 1
+
+esac
