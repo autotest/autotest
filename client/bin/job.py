@@ -222,6 +222,7 @@ class base_job(object):
         self.config = config.config(self)
         self.profilers = profilers.profilers(self)
         self.host = local_host.LocalHost(hostname=options.hostname)
+        self.autoserv_user = options.autoserv_user
 
         self._init_bootloader()
 

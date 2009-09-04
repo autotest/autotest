@@ -405,6 +405,7 @@ class _Run(object):
             args.append('-l')
         if self.host.hostname:
             args.append('--hostname=%s' % self.host.hostname)
+        args.append('--user=%s' % os.environ['LOGNAME'])
 
         args.append(self.remote_control_file)
         return args
