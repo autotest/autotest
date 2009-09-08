@@ -120,6 +120,19 @@ class AclGroupAdmin(SiteAdmin):
     search_fields = ('name',)
     filter_horizontal = ('users', 'hosts')
 
+    def queryset(self, request):
+        return models.AclGroup.objects.exclude(name='Everyone')
+
+    def save_model(self, request, obj, form, change):
+        super(AclGroupAdmin, self).save_model(request, obj, form, change)
+        _orig_save_m2m = form.save_m2m
+
+        def save_m2m():
+            _orig_save_m2m()
+            obj.perform_after_save(change)
+
+        form.save_m2m = save_m2m
+
 admin.site.register(models.AclGroup, AclGroupAdmin)
 
 
