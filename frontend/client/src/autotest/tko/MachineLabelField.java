@@ -26,7 +26,7 @@ public class MachineLabelField extends HeaderField {
         return new MachineLabelField(numberString);
     }
     
-    public static MachineLabelField fromFieldName(String fieldName) {
+    public static MachineLabelField fromFieldSqlName(String fieldName) {
         assert fieldName.startsWith(BASE_SQL_NAME);
         String numberString = fieldName.substring(BASE_SQL_NAME.length());
         int number;

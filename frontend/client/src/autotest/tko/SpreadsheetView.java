@@ -64,7 +64,9 @@ public class SpreadsheetView extends ConditionTabView
     private Map<String, HeaderField> headerFieldMap = new HashMap<String, HeaderField>();
     
     private HeaderSelect rowSelect = new HeaderSelect();
+    private HeaderSelectorView rowSelectDisplay = new HeaderSelectorView();
     private HeaderSelect columnSelect = new HeaderSelect();
+    private HeaderSelectorView columnSelectDisplay = new HeaderSelectorView();
     private ContentSelect contentSelect = new ContentSelect();
     private CheckBox showIncomplete = new CheckBox("Show incomplete tests");
     private CheckBox showOnlyLatest = new CheckBox("Show only latest test per cell");
@@ -99,6 +101,9 @@ public class SpreadsheetView extends ConditionTabView
         actionsPanel.setActionsWithCsvListener(this);
         actionsPanel.setSelectionListener(this);
         actionsPanel.setVisible(false);
+        
+        rowSelect.bindDisplay(rowSelectDisplay);
+        columnSelect.bindDisplay(columnSelectDisplay);
 
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("group_fields")) {
             HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
@@ -147,8 +152,8 @@ public class SpreadsheetView extends ConditionTabView
         filterOptions.add(showOnlyLatest);
         
         addWidget(filterOptions, "ss_filter_options");
-        addWidget(rowSelect, "ss_row_select");
-        addWidget(columnSelect, "ss_column_select");
+        addWidget(rowSelectDisplay, "ss_row_select");
+        addWidget(columnSelectDisplay, "ss_column_select");
         addWidget(contentSelect, "ss_additional_content");
         addWidget(swapLink, "ss_swap");
         addWidget(queryButton, "ss_query_controls");
