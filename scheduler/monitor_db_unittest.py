@@ -18,18 +18,15 @@ _DEBUG = False
 
 
 class DummyAgent(object):
-    _is_running = False
+    started = False
     _is_done = False
     num_processes = 1
     host_ids = []
     queue_entry_ids = []
 
-    def is_running(self):
-        return self._is_running
-
 
     def tick(self):
-        self._is_running = True
+        self.started = True
 
 
     def is_done(self):
@@ -38,7 +35,6 @@ class DummyAgent(object):
 
     def set_done(self, done):
         self._is_done = done
-        self._is_running = not done
 
 
 class IsRow(mock.argument_comparator):
@@ -197,14 +193,14 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def _set_monitor_stubs(self):
         super(DispatcherSchedulingTest, self)._set_monitor_stubs()
 
-        def hqe__do_run_pre_job_tasks_stub(queue_entry):
-            """Return a test dummy.  Called by HostQueueEntry.run()."""
+        def hqe__do_schedule_pre_job_tasks_stub(queue_entry):
+            """Called by HostQueueEntry.run()."""
             self._record_job_scheduled(queue_entry.job.id, queue_entry.host.id)
             queue_entry.set_status('Starting')
-            return DummyAgent()
 
-        self.god.stub_with(monitor_db.HostQueueEntry, '_do_run_pre_job_tasks',
-                           hqe__do_run_pre_job_tasks_stub)
+        self.god.stub_with(monitor_db.HostQueueEntry,
+                           '_do_schedule_pre_job_tasks',
+                           hqe__do_schedule_pre_job_tasks_stub)
 
         def hqe_queue_log_record_stub(self, log_line):
             """No-Op to avoid calls down to the _drone_manager during tests."""
@@ -457,9 +453,9 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._dispatcher._refresh_pending_queue_entries()
 
         atomic_hqe = monitor_db.HostQueueEntry.fetch(where='job_id=%d' %
-                                                     atomic_job.id).next()
+                                                     atomic_job.id)[0]
         normal_hqe = monitor_db.HostQueueEntry.fetch(where='job_id=%d' %
-                                                     normal_job.id).next()
+                                                     normal_job.id)[0]
 
         host_scheduler = self._dispatcher._host_scheduler
         self.assertTrue(host_scheduler._check_atomic_group_labels(
@@ -478,7 +474,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_HostScheduler_get_host_atomic_group_id(self):
         job = self._create_job(metahosts=[self.label6.id])
         queue_entry = monitor_db.HostQueueEntry.fetch(
-                where='job_id=%d' % job.id).next()
+                where='job_id=%d' % job.id)[0]
         # Indirectly initialize the internal state of the host scheduler.
         self._dispatcher._refresh_pending_queue_entries()
 
@@ -774,7 +770,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         def fake_max_runnable_processes(fake_self):
             running = sum(agent.num_processes
                           for agent in self._agents
-                          if agent.is_running())
+                          if agent.started and not agent.is_done())
             return self._MAX_RUNNING - running
         self.god.stub_with(drone_manager.DroneManager, 'max_runnable_processes',
                            fake_max_runnable_processes)
@@ -792,7 +788,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
 
     def _assert_agents_started(self, indexes, is_started=True):
         for i in indexes:
-            self.assert_(self._agents[i].is_running() == is_started,
+            self.assert_(self._agents[i].started == is_started,
                          'Agent %d %sstarted' %
                          (i, is_started and 'not ' or ''))
 
@@ -853,29 +849,25 @@ class FindAbortTest(BaseSchedulerTest):
     """
     def _check_host_agent(self, agent, host_id):
         self.assert_(isinstance(agent, monitor_db.Agent))
-        tasks = list(agent.queue.queue)
-        self.assertEquals(len(tasks), 2)
-        cleanup, verify = tasks
+        self.assert_(agent.task)
+        cleanup = agent.task
 
         self.assert_(isinstance(cleanup, monitor_db.CleanupTask))
         self.assertEquals(cleanup.host.id, host_id)
 
-        self.assert_(isinstance(verify, monitor_db.VerifyTask))
-        self.assertEquals(verify.host.id, host_id)
-
 
     def _check_agents(self, agents):
         agents = list(agents)
-        self.assertEquals(len(agents), 3)
-        self.assertEquals(agents[0], self._agent)
-        self._check_host_agent(agents[1], 1)
-        self._check_host_agent(agents[2], 2)
+        self.assertEquals(len(agents), 2)
+        self._check_host_agent(agents[0], 1)
+        self._check_host_agent(agents[1], 2)
 
 
     def _common_setup(self):
         self._create_job(hosts=[1, 2])
         self._update_hqe(set='aborted=1')
         self._agent = self.god.create_mock_class(monitor_db.Agent, 'old_agent')
+        self._agent.started = True
         _set_host_and_qe_ids(self._agent, [1, 2])
         self._agent.abort.expect_call()
         self._agent.abort.expect_call() # gets called once for each HQE
@@ -892,8 +884,11 @@ class FindAbortTest(BaseSchedulerTest):
         self._common_setup()
         self._update_hqe(set='active=1, status="Verifying"')
 
+        self._agent.tick.expect_call()
+        self._agent.is_done.expect_call().and_return(True)
         self._dispatcher._find_aborting()
-
+        self._dispatcher._handle_agents()
+        self._dispatcher._schedule_special_tasks()
         self._check_agents(self._dispatcher._agents)
         self.god.check_playback()
 
@@ -1128,8 +1123,8 @@ class AgentTest(unittest.TestCase):
         _set_host_and_qe_ids(task)
         return task
 
-    def _create_agent(self, tasks):
-        agent = monitor_db.Agent(tasks)
+    def _create_agent(self, task):
+        agent = monitor_db.Agent(task)
         agent.dispatcher = self._dispatcher
         return agent
 
@@ -1139,63 +1134,18 @@ class AgentTest(unittest.TestCase):
             agent.tick()
 
 
-    def test_agent(self):
-        task1 = self._create_mock_task('task1')
-        task2 = self._create_mock_task('task2')
-        task3 = self._create_mock_task('task3')
-        task1.poll.expect_call()
-        task1.is_done.expect_call().and_return(False)
-        task1.poll.expect_call()
-        task1.is_done.expect_call().and_return(True)
-        task1.is_done.expect_call().and_return(True)
-        task1.success = True
+    def test_agent_abort(self):
+        task = self._create_mock_task('task')
+        task.poll.expect_call()
+        task.is_done.expect_call().and_return(False)
+        task.abort.expect_call()
+        task.aborted = True
 
-        task2.poll.expect_call()
-        task2.is_done.expect_call().and_return(True)
-        task2.is_done.expect_call().and_return(True)
-        task2.success = False
-        task2.failure_tasks = [task3]
-
-        self._dispatcher.add_agent.expect_call(IsAgentWithTask(task3))
-
-        agent = self._create_agent([task1, task2])
-        self._finish_agent(agent)
-        self.god.check_playback()
-
-
-    def _test_agent_abort_helper(self, ignore_abort=False):
-        task1 = self._create_mock_task('task1')
-        task2 = self._create_mock_task('task2')
-        task1.poll.expect_call()
-        task1.is_done.expect_call().and_return(False)
-        task1.abort.expect_call()
-        if ignore_abort:
-            task1.aborted = False # task ignores abort; execution continues
-
-            task1.poll.expect_call()
-            task1.is_done.expect_call().and_return(True)
-            task1.is_done.expect_call().and_return(True)
-            task1.success = True
-
-            task2.poll.expect_call()
-            task2.is_done.expect_call().and_return(True)
-            task2.is_done.expect_call().and_return(True)
-            task2.success = True
-        else:
-            task1.aborted = True
-            task2.abort.expect_call()
-            task2.aborted = True
-
-        agent = self._create_agent([task1, task2])
+        agent = self._create_agent(task)
         agent.tick()
         agent.abort()
         self._finish_agent(agent)
         self.god.check_playback()
-
-
-    def test_agent_abort(self):
-        self._test_agent_abort_helper()
-        self._test_agent_abort_helper(True)
 
 
     def _test_agent_abort_before_started_helper(self, ignore_abort=False):
@@ -1205,12 +1155,11 @@ class AgentTest(unittest.TestCase):
             task.aborted = False
             task.poll.expect_call()
             task.is_done.expect_call().and_return(True)
-            task.is_done.expect_call().and_return(True)
             task.success = True
         else:
             task.aborted = True
 
-        agent = self._create_agent([task])
+        agent = self._create_agent(task)
         agent.abort()
         self._finish_agent(agent)
         self.god.check_playback()
@@ -1243,8 +1192,8 @@ class DelayedCallTaskTest(unittest.TestCase):
                 delay_seconds=2, callback=test_callback,
                 now_func=test_time)  # time 33
         self.assertEqual(35, delay_task.end_time)
-        agent = monitor_db.Agent([delay_task], num_processes=0)
-        self.assert_(not agent.active_task)
+        agent = monitor_db.Agent(delay_task, num_processes=0)
+        self.assert_(not agent.started)
         agent.tick()  # activates the task and polls it once, time 34.01
         self.assertEqual(0, test_callback.calls, "callback called early")
         agent.tick()  # time 34.99
@@ -1261,7 +1210,7 @@ class DelayedCallTaskTest(unittest.TestCase):
     def test_delayed_call_abort(self):
         delay_task = monitor_db.DelayedCallTask(
                 delay_seconds=987654, callback=lambda : None)
-        agent = monitor_db.Agent([delay_task], num_processes=0)
+        agent = monitor_db.Agent(delay_task, num_processes=0)
         agent.abort()
         agent.tick()
         self.assert_(agent.is_done())
@@ -1348,6 +1297,17 @@ class AgentTasksTest(BaseSchedulerTest):
                                             host=host, meta_host=None)
         queue_entry.save()
 
+        self.task = models.SpecialTask(id=1, host=host,
+                                       task=models.SpecialTask.Task.CLEANUP,
+                                       is_active=False, is_complete=False,
+                                       time_requested=datetime.datetime.now(),
+                                       time_started=None,
+                                       queue_entry=queue_entry)
+        self.task.save()
+        self.god.stub_function(self.task, 'activate')
+        self.god.stub_function(self.task, 'finish')
+        self.god.stub_function(models.SpecialTask.objects, 'create')
+
         self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
                                                       'dispatcher')
 
@@ -1393,6 +1353,8 @@ class AgentTasksTest(BaseSchedulerTest):
             monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
                     exit_status)
 
+        self.task.finish.expect_call()
+
         if copy_log_file:
             self._setup_move_logfile()
 
@@ -1414,7 +1376,24 @@ class AgentTasksTest(BaseSchedulerTest):
                 mock.is_string_comparator())
 
 
-    def _test_repair_task_helper(self, success, task_tag, queue_entry=None):
+    def _setup_special_task(self, task_id, task_type, use_queue_entry):
+        self.task.id = task_id
+        self.task.task = task_type
+        if use_queue_entry:
+            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+        else:
+            queue_entry = None
+        self.task.queue_entry = queue_entry
+        self.task.save()
+
+
+    def _test_repair_task_helper(self, success, task_id, use_queue_entry=False):
+        self._setup_special_task(task_id, models.SpecialTask.Task.REPAIR,
+                                 use_queue_entry)
+        task_tag = '%d-repair' % task_id
+
+        self.task.activate.expect_call()
+
         self.host.set_status.expect_call('Repairing')
         if success:
             self.setup_run_monitor(0, task_tag)
@@ -1423,8 +1402,11 @@ class AgentTasksTest(BaseSchedulerTest):
             self.setup_run_monitor(1, task_tag)
             self.host.set_status.expect_call('Repair Failed')
 
-        task = monitor_db.RepairTask(self.host, queue_entry=queue_entry)
-        self.assertEquals(task.failure_tasks, [])
+        task = monitor_db.RepairTask(task=self.task)
+        task.host = self.host
+        if use_queue_entry:
+            task.queue_entry = self.queue_entry
+
         self.run_task(task, success)
 
         expected_protection = host_protections.Protection.get_string(
@@ -1441,8 +1423,8 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def test_repair_task(self):
-        self._test_repair_task_helper(True, '1-repair')
-        self._test_repair_task_helper(False, '2-repair')
+        self._test_repair_task_helper(True, 1)
+        self._test_repair_task_helper(False, 2)
 
 
     def test_repair_task_with_hqe_already_requeued(self):
@@ -1450,8 +1432,7 @@ class AgentTasksTest(BaseSchedulerTest):
         # already been requeued.  ensure it leaves the HQE alone in that case.
         self.queue_entry.meta_host = 1
         self.queue_entry.host = None
-        self._test_repair_task_helper(False, '1-repair',
-                                      queue_entry=self.queue_entry)
+        self._test_repair_task_helper(False, 1, True)
 
 
     def test_recovery_repair_task_working_directory(self):
@@ -1460,31 +1441,38 @@ class AgentTasksTest(BaseSchedulerTest):
         class MockSpecialTask(object):
             def execution_path(self):
                 return '/my/path'
+            host = models.Host(id=self.host.id)
+            queue_entry = None
 
-        special_task = MockSpecialTask()
-        task = monitor_db.RepairTask(self.host, task=special_task)
+        task = monitor_db.RepairTask(task=MockSpecialTask())
 
         self.assertEquals(task._working_directory, '/my/path')
 
 
     def test_repair_task_aborted(self):
+        self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
+
+        self.task.activate.expect_call()
         self.host.set_status.expect_call('Repairing')
         self.setup_run_monitor(0, '1-repair', aborted=True)
 
-        task = monitor_db.RepairTask(self.host)
+        task = monitor_db.RepairTask(task=self.task)
+        task.host = self.host
         task.agent = object()
+
         task.poll()
         task.abort()
 
         self.assertTrue(task.done)
         self.assertTrue(task.aborted)
-        self.assertTrue(task.task.is_complete)
-        self.assertFalse(task.task.is_active)
         self.god.check_playback()
 
 
     def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair,
-                                                  task_tag):
+                                                  task_id):
+        self._setup_special_task(task_id, models.SpecialTask.Task.REPAIR, True)
+        task_tag = '%d-repair' % task_id
+
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self.god.stub_class(monitor_db, 'Agent')
         self.god.stub_class_method(monitor_db.TaskWithJobKeyvals,
@@ -1492,10 +1480,13 @@ class AgentTasksTest(BaseSchedulerTest):
         agent = DummyAgent()
         agent.dispatcher = self._dispatcher
 
+        self.task.activate.expect_call()
+
         self.host.set_status.expect_call('Repairing')
         self.setup_run_monitor(1, task_tag)
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.update_from_database.expect_call()
+        self.queue_entry.status = 'Queued'
         self.queue_entry.set_execution_subdir.expect_call()
         monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
             'job_queued', mock.is_instance_comparator(int))
@@ -1505,26 +1496,29 @@ class AgentTasksTest(BaseSchedulerTest):
         self.queue_entry.execution_path.expect_call().and_return('tag')
         self._setup_move_logfile()
         self.job.parse_failed_repair = parse_failed_repair
-        if parse_failed_repair:
-            reparse_task = monitor_db.FinalReparseTask.expect_new(
-                [self.queue_entry])
-            reparse_agent = monitor_db.Agent.expect_new([reparse_task],
-                                                        num_processes=0)
-            self._dispatcher.add_agent.expect_call(reparse_agent)
         self.queue_entry.handle_host_failure.expect_call()
+        if parse_failed_repair:
+            self.queue_entry.set_status.expect_call('Parsing')
+        self.queue_entry.execution_path.expect_call().and_return('tag')
+        drone_manager.DroneManager.get_pidfile_id_from.expect_call(
+                'tag', pidfile_name=monitor_db._AUTOSERV_PID_FILE).and_return(
+                        self.PIDFILE_ID)
 
-        task = monitor_db.RepairTask(self.host, self.queue_entry)
+        task = monitor_db.RepairTask(task=self.task)
         task.agent = agent
+        task.host = self.host
+        task.queue_entry = self.queue_entry
         self.queue_entry.status = 'Queued'
         self.job.created_on = datetime.datetime(2009, 1, 1)
+
         self.run_task(task, False)
         self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
         self.god.check_playback()
 
 
     def test_repair_task_with_queue_entry(self):
-        self._test_repair_task_with_queue_entry_helper(True, '1-repair')
-        self._test_repair_task_with_queue_entry_helper(False, '2-repair')
+        self._test_repair_task_with_queue_entry_helper(True, 1)
+        self._test_repair_task_with_queue_entry_helper(False, 2)
 
 
     def _setup_prejob_task_failure(self, task_tag, use_queue_entry):
@@ -1535,40 +1529,43 @@ class AgentTasksTest(BaseSchedulerTest):
                 self.queue_entry.execution_path.expect_call().and_return('tag')
                 self._setup_move_logfile(include_destination=True)
             self.queue_entry.requeue.expect_call()
+            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+        else:
+            queue_entry = None
+        models.SpecialTask.objects.create.expect_call(
+                host=models.Host(id=self.host.id),
+                task=models.SpecialTask.Task.REPAIR,
+                queue_entry=queue_entry)
 
 
     def setup_verify_expects(self, success, use_queue_entry, task_tag):
+        self.task.activate.expect_call()
+
         if use_queue_entry:
             self.queue_entry.set_status.expect_call('Verifying')
         self.host.set_status.expect_call('Verifying')
         if success:
             self.setup_run_monitor(0, task_tag)
-            self.host.set_status.expect_call('Ready')
+            if use_queue_entry:
+                self.queue_entry.on_pending.expect_call()
+            else:
+                self.host.set_status.expect_call('Ready')
         else:
             self._setup_prejob_task_failure(task_tag, use_queue_entry)
 
 
-    def _check_verify_failure_tasks(self, verify_task):
-        self.assertEquals(len(verify_task.failure_tasks), 1)
-        repair_task = verify_task.failure_tasks[0]
-        self.assert_(isinstance(repair_task, monitor_db.RepairTask))
-        self.assertEquals(verify_task.host, repair_task.host)
-        if verify_task.queue_entry:
-            self.assertEquals(repair_task.queue_entry,
-                              verify_task.queue_entry)
-        else:
-            self.assertEquals(repair_task.queue_entry, None)
-
-
-    def _test_verify_task_helper(self, success, task_tag, use_queue_entry=False,
+    def _test_verify_task_helper(self, success, task_id, use_queue_entry=False,
                                  use_meta_host=False):
+        self._setup_special_task(task_id, models.SpecialTask.Task.VERIFY,
+                                 use_queue_entry)
+        task_tag = '%d-verify' % task_id
         self.setup_verify_expects(success, use_queue_entry, task_tag)
 
+        task = monitor_db.VerifyTask(task=self.task)
+        task.host = self.host
         if use_queue_entry:
-            task = monitor_db.VerifyTask(queue_entry=self.queue_entry)
-        else:
-            task = monitor_db.VerifyTask(host=self.host)
-        self._check_verify_failure_tasks(task)
+            task.queue_entry = self.queue_entry
+
         self.run_task(task, success)
         self.assertTrue(set(task.cmd) >=
                         set([monitor_db._autoserv_path, '-p', '-v', '-m',
@@ -1580,13 +1577,13 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def test_verify_task_with_host(self):
-        self._test_verify_task_helper(True, '1-verify')
-        self._test_verify_task_helper(False, '2-verify')
+        self._test_verify_task_helper(True, 1)
+        self._test_verify_task_helper(False, 2)
 
 
     def test_verify_task_with_queue_entry(self):
-        self._test_verify_task_helper(True, '1-verify', use_queue_entry=True)
-        self._test_verify_task_helper(False, '2-verify', use_queue_entry=True)
+        self._test_verify_task_helper(True, 1, use_queue_entry=True)
+        self._test_verify_task_helper(False, 2, use_queue_entry=True)
 
 
     def test_verify_task_with_metahost(self):
@@ -1595,13 +1592,15 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def test_specialtask_abort_before_prolog(self):
-        task = monitor_db.RepairTask(self.host)
+        self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
+        task = monitor_db.RepairTask(task=self.task)
+        self.task.finish.expect_call()
         task.abort()
         self.assertTrue(task.aborted)
 
 
     def _setup_post_job_task_expects(self, autoserv_success, hqe_status=None,
-                                     hqe_aborted=False):
+                                     hqe_aborted=False, host_status=None):
         self.queue_entry.execution_path.expect_call().and_return('tag')
         self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
         self.pidfile_monitor.pidfile_id = self.PIDFILE_ID
@@ -1616,7 +1615,9 @@ class AgentTasksTest(BaseSchedulerTest):
             self.pidfile_monitor.exit_code.expect_call().and_return(code)
 
         if hqe_status:
-            self.queue_entry.set_status.expect_call(hqe_status)
+            self.queue_entry.status = hqe_status
+        if host_status:
+            self.host.status = host_status
 
 
     def _setup_pre_parse_expects(self, autoserv_success):
@@ -1717,7 +1718,7 @@ class AgentTasksTest(BaseSchedulerTest):
         self.god.stub_class(monitor_db, 'PidfileRunMonitor')
         self.god.stub_class(monitor_db, 'FinalReparseTask')
         self._setup_post_job_task_expects(not autoserv_killed, 'Gathering',
-                                          hqe_aborted)
+                                          hqe_aborted, host_status='Running')
         if hqe_aborted or not has_process:
             exit_code = None
         elif autoserv_killed:
@@ -1739,10 +1740,7 @@ class AgentTasksTest(BaseSchedulerTest):
             self.pidfile_monitor.has_process.expect_call().and_return(False)
             self.pidfile_monitor.has_process.expect_call().and_return(False)
 
-        parse_task = monitor_db.FinalReparseTask.expect_new([self.queue_entry])
-        _set_host_and_qe_ids(parse_task)
-        self._dispatcher.add_agent.expect_call(IsAgentWithTask(parse_task))
-
+        self.queue_entry.set_status.expect_call('Parsing')
         self.pidfile_monitor.has_process.expect_call().and_return(has_process)
 
         if has_process:
@@ -1776,10 +1774,9 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def _setup_gather_task_cleanup_expects(self):
-        self.god.stub_class(monitor_db, 'CleanupTask')
-        cleanup_task = monitor_db.CleanupTask.expect_new(host=self.host)
-        _set_host_and_qe_ids(cleanup_task)
-        self._dispatcher.add_agent.expect_call(IsAgentWithTask(cleanup_task))
+        models.SpecialTask.objects.create.expect_call(
+                host=models.Host(id=self.host.id),
+                task=models.SpecialTask.Task.CLEANUP)
 
 
     def test_gather_logs_reboot_hosts(self):
@@ -1806,27 +1803,36 @@ class AgentTasksTest(BaseSchedulerTest):
         self._run_gather_logs_task(success=False)
 
 
-    def _test_cleanup_task_helper(self, success, task_tag,
+    def _test_cleanup_task_helper(self, success, task_id,
                                   use_queue_entry=False):
-        if use_queue_entry:
-            self.queue_entry.get_host.expect_call().and_return(self.host)
+        self._setup_special_task(task_id, models.SpecialTask.Task.CLEANUP,
+                                 use_queue_entry)
+        task_tag = '%d-cleanup' % task_id
+
+        self.task.activate.expect_call()
         self.host.set_status.expect_call('Cleaning')
+
+        if use_queue_entry:
+            self.queue_entry.set_status.expect_call('Verifying')
+
         if success:
             self.setup_run_monitor(0, task_tag)
-            self.host.set_status.expect_call('Ready')
             self.host.update_field.expect_call('dirty', 0)
+            if use_queue_entry:
+                queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+                models.SpecialTask.objects.create.expect_call(
+                        host=models.Host(id=self.host.id),
+                        task=models.SpecialTask.Task.VERIFY,
+                        queue_entry=queue_entry)
+            else:
+                self.host.set_status.expect_call('Ready')
         else:
             self._setup_prejob_task_failure(task_tag, use_queue_entry)
 
+        task = monitor_db.CleanupTask(task=self.task)
+        task.host = self.host
         if use_queue_entry:
-            task = monitor_db.CleanupTask(queue_entry=self.queue_entry)
-        else:
-            task = monitor_db.CleanupTask(host=self.host)
-        self.assertEquals(len(task.failure_tasks), 1)
-        repair_task = task.failure_tasks[0]
-        self.assert_(isinstance(repair_task, monitor_db.RepairTask))
-        if use_queue_entry:
-            self.assertEquals(repair_task.queue_entry, self.queue_entry)
+            task.queue_entry = self.queue_entry
 
         self.run_task(task, success)
 
@@ -1839,12 +1845,12 @@ class AgentTasksTest(BaseSchedulerTest):
             self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
 
     def test_cleanup_task(self):
-        self._test_cleanup_task_helper(True, '1-cleanup')
-        self._test_cleanup_task_helper(False, '2-cleanup')
+        self._test_cleanup_task_helper(True, 1)
+        self._test_cleanup_task_helper(False, 2)
 
 
     def test_cleanup_task_with_queue_entry(self):
-        self._test_cleanup_task_helper(False, '1-cleanup', True)
+        self._test_cleanup_task_helper(False, 1, use_queue_entry=True)
 
 
     def test_recovery_queue_task_aborted_early(self):
@@ -1854,6 +1860,7 @@ class AgentTasksTest(BaseSchedulerTest):
         run_monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
                                                  'run_monitor')
 
+        self.queue_entry.get_group_name.expect_call().and_return('')
         self.queue_entry.execution_path.expect_call().and_return('tag')
         run_monitor.kill.expect_call()
         monitor_db.QueueTask._log_abort.expect_call()
@@ -1945,20 +1952,22 @@ class JobTest(BaseSchedulerTest):
             mock.mock_function('attach_file_to_execution',
                                default_return_val='/test/path/tmp/foo'))
 
+        def _mock_create(**kwargs):
+            task = models.SpecialTask(**kwargs)
+            task.save()
+            self._task = task
+        self.god.stub_with(models.SpecialTask.objects, 'create', _mock_create)
+
 
     def _test_pre_job_tasks_helper(self):
         """
-        Calls HQE._do_pre_run_job_tasks() and returns the task list after
-        confirming that the last task is the SetEntryPendingTask.
+        Calls HQE._do_schedule_pre_job_tasks() and returns the created special
+        task
         """
-        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
-        pre_job_agent = queue_entry._do_run_pre_job_tasks()
-        self.assert_(isinstance(pre_job_agent, monitor_db.Agent))
-        pre_job_tasks = list(pre_job_agent.queue.queue)
-        self.assertTrue(isinstance(pre_job_tasks[-1],
-                                   monitor_db.SetEntryPendingTask))
-
-        return pre_job_tasks
+        self._task = None
+        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1')[0]
+        queue_entry._do_schedule_pre_job_tasks()
+        return self._task
 
 
     def _test_run_helper(self, expect_agent=True, expect_starting=False,
@@ -1969,12 +1978,17 @@ class JobTest(BaseSchedulerTest):
             expected_status = models.HostQueueEntry.Status.PENDING
         else:
             expected_status = models.HostQueueEntry.Status.VERIFYING
-        job = monitor_db.Job.fetch('id = 1').next()
-        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
+        job = monitor_db.Job.fetch('id = 1')[0]
+        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1')[0]
         assert queue_entry.job is job
-        agent = job.run_if_ready(queue_entry)
+        job.run_if_ready(queue_entry)
 
         self.god.check_playback()
+
+        self._dispatcher._schedule_delay_tasks()
+        self._dispatcher._schedule_running_host_queue_entries()
+        agent = self._dispatcher._agents[0]
+
         actual_status = models.HostQueueEntry.smart_get(1).status
         self.assertEquals(expected_status, actual_status)
 
@@ -1983,18 +1997,8 @@ class JobTest(BaseSchedulerTest):
             return
 
         self.assert_(isinstance(agent, monitor_db.Agent))
-        tasks = list(agent.queue.queue)
-        return tasks
-
-
-    def _check_verify_task(self, verify_task):
-        self.assert_(isinstance(verify_task, monitor_db.VerifyTask))
-        self.assertEquals(verify_task.queue_entry.id, 1)
-
-
-    def _check_pending_task(self, pending_task):
-        self.assert_(isinstance(pending_task, monitor_db.SetEntryPendingTask))
-        self.assertEquals(pending_task._queue_entry.id, 1)
+        self.assert_(agent.task)
+        return agent.task
 
 
     def test_run_if_ready_delays(self):
@@ -2022,63 +2026,78 @@ class JobTest(BaseSchedulerTest):
                            'secs_to_wait_for_atomic_group_hosts', 123456)
 
         # Get the pending one as a monitor_db.HostQueueEntry object.
-        pending_hqe = monitor_db.HostQueueEntry(django_hqes[1].id)
+        hqe = monitor_db.HostQueueEntry(django_hqes[1].id)
         self.assert_(not job._delay_ready_task)
         self.assertTrue(job.is_ready())
 
         # Ready with one pending, one verifying and an atomic group should
         # result in a DelayCallTask to re-check if we're ready a while later.
-        agent = job.run_if_ready(pending_hqe)
+        job.run_if_ready(hqe)
+        self.assertEquals('Waiting', hqe.status)
+        self._dispatcher._schedule_delay_tasks()
+        self.assertEquals('Pending', hqe.status)
+        agent = self._dispatcher._agents[0]
         self.assert_(job._delay_ready_task)
         self.assert_(isinstance(agent, monitor_db.Agent))
-        tasks = list(agent.queue.queue)
-        self.assertEqual(1, len(tasks))
-        self.assert_(isinstance(tasks[0], monitor_db.DelayedCallTask))
-        delay_task = tasks[0]
+        self.assert_(agent.task)
+        delay_task = agent.task
+        self.assert_(isinstance(delay_task, monitor_db.DelayedCallTask))
         self.assert_(not delay_task.is_done())
+
+        self.god.stub_function(delay_task, 'abort')
 
         self.god.stub_function(job, 'run')
 
         # Test that the DelayedCallTask's callback queued up above does the
         # correct thing and returns the Agent returned by job.run().
-        job.run.expect_call(pending_hqe).and_return('Fake Agent')
-        self.assertEqual('Fake Agent', delay_task._callback())
-
-        # A delay already exists, this must do nothing.
-        self.assertEqual(None, job.run_with_ready_delay(pending_hqe))
+        job.run.expect_call(hqe)
+        delay_task._callback()
+        self.god.check_playback()
 
         # Adjust the delay deadline so that enough time has passed.
         job._delay_ready_task.end_time = time.time() - 111111
-        job.run.expect_call(pending_hqe).and_return('Forty two')
+        job.run.expect_call(hqe)
         # ...the delay_expired condition should cause us to call run()
-        self.assertEqual('Forty two', job.run_with_ready_delay(pending_hqe))
+        self._dispatcher._handle_agents()
+        self.god.check_playback()
+        delay_task.success = False
 
         # Adjust the delay deadline back so that enough time has not passed.
         job._delay_ready_task.end_time = time.time() + 111111
-        self.assertEqual(None, job.run_with_ready_delay(pending_hqe))
+        self._dispatcher._handle_agents()
+        self.god.check_playback()
 
-        set_hqe_status(django_hqes[0], models.HostQueueEntry.Status.PENDING)
         # Now max_number_of_machines HQEs are in pending state.  Remaining
         # delay will now be ignored.
-        job.run.expect_call(pending_hqe).and_return('Watermelon')
+        other_hqe = monitor_db.HostQueueEntry(django_hqes[0].id)
+        self.god.unstub(job, 'run')
         # ...the over_max_threshold test should cause us to call run()
-        self.assertEqual('Watermelon', job.run_with_ready_delay(pending_hqe))
+        delay_task.abort.expect_call()
+        other_hqe.on_pending()
+        self.assertEquals('Starting', other_hqe.status)
+        self.assertEquals('Starting', hqe.status)
+        self.god.stub_function(job, 'run')
+        self.god.unstub(delay_task, 'abort')
 
+        hqe.set_status('Pending')
+        other_hqe.set_status('Pending')
         # Now we're not over the max for the atomic group.  But all assigned
         # hosts are in pending state.  over_max_threshold should make us run().
-        pending_hqe.atomic_group.max_number_of_machines += 1
-        pending_hqe.atomic_group.save()
-        job.run.expect_call(pending_hqe).and_return('Watermelon')
-        self.assertEqual('Watermelon', job.run_with_ready_delay(pending_hqe))
-        pending_hqe.atomic_group.max_number_of_machines -= 1
-        pending_hqe.atomic_group.save()
+        hqe.atomic_group.max_number_of_machines += 1
+        hqe.atomic_group.save()
+        job.run.expect_call(hqe)
+        hqe.on_pending()
+        self.god.check_playback()
+        hqe.atomic_group.max_number_of_machines -= 1
+        hqe.atomic_group.save()
 
         other_hqe = monitor_db.HostQueueEntry(django_hqes[0].id)
-        self.assertTrue(pending_hqe.job is other_hqe.job)
+        self.assertTrue(hqe.job is other_hqe.job)
         # DBObject classes should reuse instances so these should be the same.
         self.assertEqual(job, other_hqe.job)
-        self.assertEqual(other_hqe.job, pending_hqe.job)
+        self.assertEqual(other_hqe.job, hqe.job)
         # Be sure our delay was not lost during the other_hqe construction.
+        self.assertEqual(job._delay_ready_task, delay_task)
         self.assert_(job._delay_ready_task)
         self.assertFalse(job._delay_ready_task.is_done())
         self.assertFalse(job._delay_ready_task.aborted)
@@ -2088,7 +2107,7 @@ class JobTest(BaseSchedulerTest):
 
         # We pass in the other HQE this time the same way it would happen
         # for real when one host finishes verifying and enters pending.
-        agent = job.run_if_ready(other_hqe)
+        job.run_if_ready(other_hqe)
 
         # The delayed task must be aborted by the actual run() call above.
         self.assertTrue(job._delay_ready_task.aborted)
@@ -2096,9 +2115,11 @@ class JobTest(BaseSchedulerTest):
         self.assertTrue(job._delay_ready_task.is_done())
 
         # Check that job run() and _finish_run() were called by the above:
-        tasks = list(agent.queue.queue)
-        self.assertEqual(1, len(tasks))
-        self.assert_(isinstance(tasks[0], monitor_db.QueueTask))
+        self._dispatcher._schedule_running_host_queue_entries()
+        agent = self._dispatcher._agents[0]
+        self.assert_(agent.task)
+        task = agent.task
+        self.assert_(isinstance(task, monitor_db.QueueTask))
         # Requery these hqes in order to verify the status from the DB.
         django_hqes = list(models.HostQueueEntry.objects.filter(job=job.id))
         for entry in django_hqes:
@@ -2108,12 +2129,15 @@ class JobTest(BaseSchedulerTest):
         # We're already running, but more calls to run_with_ready_delay can
         # continue to come in due to straggler hosts enter Pending.  Make
         # sure we don't do anything.
-        self.assertEqual(None, job.run_with_ready_delay(pending_hqe))
+        self.god.stub_function(job, 'run')
+        job.run_with_ready_delay(hqe)
+        self.god.check_playback()
+        self.god.unstub(job, 'run')
 
 
     def test__atomic_and_has_started__on_atomic(self):
         self._create_job(hosts=[5, 6], atomic_group=1)
-        job = monitor_db.Job.fetch('id = 1').next()
+        job = monitor_db.Job.fetch('id = 1')[0]
         self.assertFalse(job._atomic_and_has_started())
 
         self._update_hqe("status='Pending'")
@@ -2135,21 +2159,25 @@ class JobTest(BaseSchedulerTest):
 
     def test__atomic_and_has_started__not_atomic(self):
         self._create_job(hosts=[1, 2])
-        job = monitor_db.Job.fetch('id = 1').next()
+        job = monitor_db.Job.fetch('id = 1')[0]
         self.assertFalse(job._atomic_and_has_started())
         self._update_hqe("status='Starting'")
         self.assertFalse(job._atomic_and_has_started())
 
 
+    def _check_special_task(self, task, task_type, queue_entry_id=None):
+        self.assertEquals(task.task, task_type)
+        self.assertEquals(task.host.id, 1)
+        if queue_entry_id:
+            self.assertEquals(task.queue_entry.id, queue_entry_id)
+
+
     def test_run_asynchronous(self):
         self._create_job(hosts=[1, 2])
 
-        tasks = self._test_pre_job_tasks_helper()
+        task = self._test_pre_job_tasks_helper()
 
-        self.assertEquals(len(tasks), 2)
-        verify_task, pending_task = tasks
-        self._check_verify_task(verify_task)
-        self._check_pending_task(pending_task)
+        self._check_special_task(task, models.SpecialTask.Task.VERIFY, 1)
 
 
     def test_run_asynchronous_skip_verify(self):
@@ -2157,21 +2185,17 @@ class JobTest(BaseSchedulerTest):
         job.run_verify = False
         job.save()
 
-        tasks = self._test_pre_job_tasks_helper()
+        task = self._test_pre_job_tasks_helper()
 
-        self.assertEquals(len(tasks), 1)
-        pending_task = tasks[0]
-        self._check_pending_task(pending_task)
+        self.assertEquals(task, None)
 
 
     def test_run_synchronous_verify(self):
         self._create_job(hosts=[1, 2], synchronous=True)
 
-        tasks = self._test_pre_job_tasks_helper()
-        self.assertEquals(len(tasks), 2)
-        verify_task, pending_task = tasks
-        self._check_verify_task(verify_task)
-        self._check_pending_task(pending_task)
+        task = self._test_pre_job_tasks_helper()
+
+        self._check_special_task(task, models.SpecialTask.Task.VERIFY, 1)
 
 
     def test_run_synchronous_skip_verify(self):
@@ -2179,18 +2203,16 @@ class JobTest(BaseSchedulerTest):
         job.run_verify = False
         job.save()
 
-        tasks = self._test_pre_job_tasks_helper()
-        self.assertEquals(len(tasks), 1)
-        self._check_pending_task(tasks[0])
+        task = self._test_pre_job_tasks_helper()
+
+        self.assertEquals(task, None)
 
 
     def test_run_synchronous_ready(self):
         self._create_job(hosts=[1, 2], synchronous=True)
         self._update_hqe("status='Pending', execution_subdir=''")
 
-        tasks = self._test_run_helper(expect_starting=True)
-        self.assertEquals(len(tasks), 1)
-        queue_task = tasks[0]
+        queue_task = self._test_run_helper(expect_starting=True)
 
         self.assert_(isinstance(queue_task, monitor_db.QueueTask))
         self.assertEquals(queue_task.job.id, 1)
@@ -2202,8 +2224,8 @@ class JobTest(BaseSchedulerTest):
         self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
         self._update_hqe("status='Starting', execution_subdir=''")
 
-        job = monitor_db.Job.fetch('id = 1').next()
-        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1').next()
+        job = monitor_db.Job.fetch('id = 1')[0]
+        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1')[0]
         assert queue_entry.job is job
         self.assertEqual(None, job.run(queue_entry))
 
@@ -2214,9 +2236,7 @@ class JobTest(BaseSchedulerTest):
         self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
         self._update_hqe("status='Pending', execution_subdir=''")
 
-        tasks = self._test_run_helper(expect_starting=True)
-        self.assertEquals(len(tasks), 1)
-        queue_task = tasks[0]
+        queue_task = self._test_run_helper(expect_starting=True)
 
         self.assert_(isinstance(queue_task, monitor_db.QueueTask))
         # Atomic group jobs that do not depend on a specific label in the
@@ -2229,9 +2249,7 @@ class JobTest(BaseSchedulerTest):
         job.dependency_labels.add(self.label4)
         self._update_hqe("status='Pending', execution_subdir=''")
 
-        tasks = self._test_run_helper(expect_starting=True)
-        self.assertEquals(len(tasks), 1)
-        queue_task = tasks[0]
+        queue_task = self._test_run_helper(expect_starting=True)
 
         self.assert_(isinstance(queue_task, monitor_db.QueueTask))
         # Atomic group jobs that also specify a label in the atomic group
@@ -2244,11 +2262,9 @@ class JobTest(BaseSchedulerTest):
         job.reboot_before = models.RebootBefore.ALWAYS
         job.save()
 
-        tasks = self._test_pre_job_tasks_helper()
-        self.assertEquals(len(tasks), 3)
-        cleanup_task = tasks[0]
-        self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
-        self.assertEquals(cleanup_task.host.id, 1)
+        task = self._test_pre_job_tasks_helper()
+
+        self._check_special_task(task, models.SpecialTask.Task.CLEANUP)
 
 
     def _test_reboot_before_if_dirty_helper(self, expect_reboot):
@@ -2256,12 +2272,12 @@ class JobTest(BaseSchedulerTest):
         job.reboot_before = models.RebootBefore.IF_DIRTY
         job.save()
 
-        tasks = self._test_pre_job_tasks_helper()
-        self.assertEquals(len(tasks), expect_reboot and 3 or 2)
+        task = self._test_pre_job_tasks_helper()
         if expect_reboot:
-            cleanup_task = tasks[0]
-            self.assert_(isinstance(cleanup_task, monitor_db.CleanupTask))
-            self.assertEquals(cleanup_task.host.id, 1)
+            task_type = models.SpecialTask.Task.CLEANUP
+        else:
+            task_type = models.SpecialTask.Task.VERIFY
+        self._check_special_task(task, task_type)
 
 
     def test_reboot_before_if_dirty(self):
