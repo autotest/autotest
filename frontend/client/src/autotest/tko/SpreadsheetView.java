@@ -49,6 +49,7 @@ public class SpreadsheetView extends ConditionTabView
     private static final String HISTORY_ONLY_LATEST = "show_only_latest";
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
+    public static final String DEFAULT_DRILLDOWN = "job_tag";
     
     private static final String HISTORY_SHOW_INCOMPLETE = "show_incomplete";
     private static final String HISTORY_COLUMN = "column";
@@ -191,16 +192,13 @@ public class SpreadsheetView extends ConditionTabView
     protected void setupDrilldownMap() {
         drilldownMap.put("platform", new String[] {"hostname", "test_name"});
         drilldownMap.put("hostname", new String[] {"job_tag", "status"});
-        drilldownMap.put("job_tag", new String[] {"job_tag"});
         
         drilldownMap.put("kernel", new String[] {"test_name", "status"});
         drilldownMap.put("test_name", new String[] {"job_name", "job_tag"});
         
         drilldownMap.put("status", new String[] {"reason", "job_tag"});
-        drilldownMap.put("reason", new String[] {"job_tag"});
         
         drilldownMap.put("job_owner", new String[] {"job_name", "job_tag"});
-        drilldownMap.put("job_name", new String[] {"job_tag"});
         
         drilldownMap.put("test_finished_time", new String[] {"status", "job_tag"});
         drilldownMap.put("DATE(test_finished_time)", 
@@ -489,7 +487,10 @@ public class SpreadsheetView extends ConditionTabView
                 // treat machine label fields like platform, for the purpose of default drilldown
                 lastFieldName = "platform";
             }
-            return drilldownMap.get(lastFieldName);
+            if (drilldownMap.containsKey(lastFieldName)) {
+                return drilldownMap.get(lastFieldName);
+            }
+            return new String[] {DEFAULT_DRILLDOWN};
         }
     }
 
