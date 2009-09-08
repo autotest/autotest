@@ -10,7 +10,7 @@ class ClientCompilationTest(unittest.TestCase):
         full_path = os.path.join(COMPILE_SCRIPT_DIR, compile_script)
         temp_dir = tempfile.mkdtemp('.client_compilation_unittest')
         try:
-            result = os.system(full_path + ' -validateOnly -out ' + temp_dir)
+            result = os.system(full_path + ' -validateOnly -war ' + temp_dir)
         finally:
             shutil.rmtree(temp_dir)
         self.assertEquals(result, 0)

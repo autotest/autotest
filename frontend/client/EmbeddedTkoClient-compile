@@ -4,5 +4,5 @@ GWTDIR=`$APPDIR/gwt_dir`;
 java  -Xmx512M \
   -cp "$APPDIR/src:$APPDIR/bin:$GWTDIR/gwt-user.jar:$GWTDIR/gwt-dev-linux.jar" \
   -Djava.awt.headless=true \
-  com.google.gwt.dev.GWTCompiler -out "$APPDIR/www" "$@" \
+  com.google.gwt.dev.Compiler -war "$APPDIR/www" "$@" \
   autotest.EmbeddedTkoClient
