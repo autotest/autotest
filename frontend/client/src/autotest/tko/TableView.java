@@ -14,9 +14,10 @@ import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DoubleListSelector;
+import autotest.common.ui.MultiListSelectPresenter;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RightClickTable;
-import autotest.common.ui.DoubleListSelector.Item;
+import autotest.common.ui.MultiListSelectPresenter.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TkoUtils.FieldInfo;
@@ -27,7 +28,6 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
@@ -44,12 +44,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 // TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsWithExportCsvListener, 
                                   ClickListener, TableWidgetFactory, CommonPanelListener, 
-                                  ChangeListener {
+                                  MultiListSelectPresenter.GeneratorHandler {
     private static final int ROWS_PER_PAGE = 30;
     private static final String COUNT_NAME = "Count in group";
     private static final String STATUS_COUNTS_NAME = "Test pass rate";
@@ -77,7 +78,8 @@ public class TableView extends ConditionTabView
     private TestGroupDataSource groupDataSource = TestGroupDataSource.getTestGroupDataSource();
     private RpcDataSource currentDataSource;
 
-    private DoubleListSelector columnSelect = new DoubleListSelector();
+    private DoubleListSelector columnSelectDisplay = new DoubleListSelector();
+    private MultiListSelectPresenter columnSelect = new MultiListSelectPresenter();
     private CheckBox groupCheckbox = new CheckBox("Group by these columns and show counts");
     private CheckBox statusGroupCheckbox = 
         new CheckBox("Group by these columns and show pass rates");
@@ -110,24 +112,27 @@ public class TableView extends ConditionTabView
     @Override
     public void initialize() {
         super.initialize();
+
+        columnSelect.setGeneratorHandler(this);
+        columnSelect.bindDisplay(columnSelectDisplay);
+
         for (FieldInfo fieldInfo : TkoUtils.getFieldList("all_fields")) {
             namesToFields.put(fieldInfo.name, fieldInfo.field);
             fieldsToNames.put(fieldInfo.field, fieldInfo.name);
-            columnSelect.addItem(fieldInfo.name, fieldInfo.field);
+            columnSelect.addItem(Item.createItem(fieldInfo.name, fieldInfo.field));
         }
         namesToFields.put(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD);
         namesToFields.put(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
         
         selectColumns(DEFAULT_COLUMNS);
         updateViewFromState();
-        
-        columnSelect.setListener(this);
+
         queryButton.addClickListener(this);
         groupCheckbox.addClickListener(this);
         statusGroupCheckbox.addClickListener(this);
         
         Panel columnPanel = new VerticalPanel();
-        columnPanel.add(columnSelect);
+        columnPanel.add(columnSelectDisplay);
         columnPanel.add(groupCheckbox);
         columnPanel.add(statusGroupCheckbox);
         
@@ -223,16 +228,14 @@ public class TableView extends ConditionTabView
     }
 
     private void selectColumnsInView() {
-        columnSelect.deselectAll();
         for(String columnName : columnNames) {
             if (columnName.equals(COUNT_NAME)) {
                 addSpecialItem(COUNT_NAME);
             } else if (columnName.equals(STATUS_COUNTS_NAME)) {
                 addSpecialItem(STATUS_COUNTS_NAME);
-            } else {
-                columnSelect.selectItem(columnName);
             }
         }
+        columnSelect.setSelectedItemsByName(columnNames);
         updateCheckboxesFromFields();
     }
 
@@ -289,7 +292,7 @@ public class TableView extends ConditionTabView
     }
 
     public void doQuery() {
-        if (columnSelect.getSelectedItemCount() == 0) {
+        if (columnSelect.getSelectedItems().isEmpty()) {
             NotifyManager.getInstance().showError("You must select columns");
             return;
         }
@@ -407,14 +410,16 @@ public class TableView extends ConditionTabView
     }
     
     private void updateCheckboxesFromFields() {
-        groupCheckbox.setChecked(false);
-        statusGroupCheckbox.setChecked(false);
-        
-        if (columnSelect.isItemSelected(COUNT_NAME)) {
-            groupCheckbox.setChecked(true);
+        groupCheckbox.setValue(false);
+        statusGroupCheckbox.setValue(false);
+
+        Set<String> selectedNames = 
+            MultiListSelectPresenter.getItemNameSet(columnSelect.getSelectedItems());
+        if (selectedNames.contains(COUNT_NAME)) {
+            groupCheckbox.setValue(true);
         } 
-        if (columnSelect.isItemSelected(STATUS_COUNTS_NAME)) {
-            statusGroupCheckbox.setChecked(true);
+        if (selectedNames.contains(STATUS_COUNTS_NAME)) {
+            statusGroupCheckbox.setValue(true);
         }
         
         setCheckboxesEnabled();
@@ -428,8 +433,7 @@ public class TableView extends ConditionTabView
         } else { // STATUS_COUNT_NAME
             fieldName = DataTable.WIDGET_COLUMN;
         }
-        columnSelect.addItem(itemName, fieldName);
-        columnSelect.selectItem(itemName);
+        columnSelect.addItem(Item.createGeneratedItem(itemName, fieldName));
     }
     
     private boolean isSpecialColumnName(String columnName) {
@@ -438,7 +442,7 @@ public class TableView extends ConditionTabView
 
     private void ensureItemRemoved(String itemName) {
         try {
-            columnSelect.removeItem(itemName);
+            columnSelect.removeItemByName(itemName);
         } catch (IllegalArgumentException exc) {}
     }
 
@@ -500,6 +504,17 @@ public class TableView extends ConditionTabView
         }
     }
 
+    @Override
+    public Item generateItem(Item generatorItem) {
+        // no generators here
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void onRemoveGeneratedItem(Item generatedItem) {
+        updateCheckboxesFromFields();
+    }
+
     private boolean isAnyGroupingEnabled() {
         return getActiveGrouping() != GroupingType.NO_GROUPING;
     }
@@ -533,11 +548,6 @@ public class TableView extends ConditionTabView
 
     public void onSetControlsVisible(boolean visible) {
         TkoUtils.setElementVisible("table_all_controls", visible);
-    }
-
-    public void onChange(Widget sender) {
-        assert sender == columnSelect;
-        updateCheckboxesFromFields();
     }
 
     public void onExportCsv() {
