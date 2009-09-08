@@ -876,7 +876,7 @@ class ModelWithAttributes(object):
             attribute)
         try:
             attribute_model.objects.get(**get_args).delete()
-        except HostAttribute.DoesNotExist:
+        except attribute_model.DoesNotExist:
             pass
 
 
