@@ -620,8 +620,8 @@ variants:
 
 
 variants:
-    - @kvm_smallpages:
-    - kvm_hugepages:
+    - @smallpages:
+    - hugepages:
         pre_command = "/usr/bin/python scripts/hugepage.py /mnt/kvm_hugepage"
         extra_params += " -mem-path /mnt/kvm_hugepage"
 
@@ -638,7 +638,7 @@ variants:
         only Fedora.8.32
         only install setup boot shutdown
         only rtl8139
-        only kvm_hugepages
+        only hugepages
     - @sample1:
         only qcow2
         only ide
