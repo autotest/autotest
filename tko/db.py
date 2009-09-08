@@ -318,13 +318,20 @@ class db_sql(object):
         else:
             self.update_machine_information(job, commit=commit)
 
+        afe_job_id = None
+        pattern = re.compile('^([0-9]+)-.+/.+$')
+        match = pattern.match(tag)
+        if match:
+            afe_job_id = match.group(1)
+
         self.insert('jobs', {'tag':tag,
                              'label': job.label,
                              'username': job.user,
                              'machine_idx': job.machine_idx,
                              'queued_time': job.queued_time,
                              'started_time': job.started_time,
-                             'finished_time': job.finished_time},
+                             'finished_time': job.finished_time,
+                             'afe_job_id': afe_job_id},
                              commit=commit)
         job.index = self.get_last_autonumber_value()
         for test in job.tests:

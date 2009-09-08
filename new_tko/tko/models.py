@@ -162,6 +162,7 @@ class Job(dbmodels.Model):
     queued_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
+    afe_job_id = dbmodels.IntegerField(null=True, default=None)
 
     class Meta:
         db_table = 'jobs'
@@ -515,6 +516,7 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
     job_queued_time = dbmodels.DateTimeField(null=True, blank=True)
     job_started_time = dbmodels.DateTimeField(null=True, blank=True)
     job_finished_time = dbmodels.DateTimeField(null=True, blank=True)
+    afe_job_id = dbmodels.IntegerField(null=True)
     hostname = dbmodels.CharField(blank=True, max_length=300)
     platform = dbmodels.CharField(blank=True, max_length=240)
     machine_owner = dbmodels.CharField(blank=True, max_length=240)

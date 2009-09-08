@@ -303,7 +303,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     
     private String getResultsURL(int jobId) {
         return "/new_tko/#tab_id=spreadsheet_view&row=hostname&column=test_name&" +
-               "condition=job_tag+LIKE+'" + Integer.toString(jobId) + "-%2525'&" +
+               "condition=afe_job_id+%253d+" + Integer.toString(jobId) + "&" +
                "show_incomplete=true";
     }
     
