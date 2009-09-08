@@ -742,7 +742,8 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
                        'Gathering', 'Parsing', 'Aborted', 'Completed',
-                       'Failed', 'Stopped', 'Template', string_values=True)
+                       'Failed', 'Stopped', 'Template', 'Waiting',
+                       string_values=True)
     ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
                        Status.RUNNING, Status.GATHERING)
     COMPLETE_STATUSES = (Status.ABORTED, Status.COMPLETED, Status.FAILED,
@@ -981,45 +982,6 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
                                               is_complete=False):
                 special_task = SpecialTask(host=host, task=task)
                 special_task.save()
-
-
-    @classmethod
-    def prepare(cls, agent, task):
-        """
-        Creates a new special task if necessary and prepares it to be run.
-
-        @param agent: The scheduler.monitor_db.AgentTask handling this task.
-                It is expected to have a TASK_TYPE, host and queue_entry
-                attributes.
-        @param task: SpecialTask instance to prepare, or None if a new
-                SpecialTask should be created.
-
-        @returns task or the newly created SpecialTask.
-        """
-        # TODO(gps): This method really belongs in scheduler/monitor_db.py.
-        # It accesses scheduler specific instance internals!
-        if not task:
-            if not hasattr(agent, 'TASK_TYPE'):
-                raise ValueError('Can only prepare special tasks for '
-                                 'verify, cleanup, or repair')
-
-            host = Host.objects.get(id=agent.host.id)
-            queue_entry = None
-            if agent.queue_entry:
-                queue_entry = (
-                    HostQueueEntry.objects.get(id=agent.queue_entry.id))
-
-            active_tasks = cls.objects.filter(host=host, is_active=True)
-            if active_tasks.count():
-                raise model_logic.ValidationError(
-                        'Active SpecialTask already exists for host %s.  '
-                        'Task %s must not be created.  Existing tasks are: '
-                        '%s.' % (host, agent.TASK_TYPE, list(active_tasks)))
-
-            task = cls.objects.create(host=host, task=agent.TASK_TYPE,
-                                      queue_entry=queue_entry)
-
-        return task
 
 
     def activate(self):
