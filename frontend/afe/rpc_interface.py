@@ -807,7 +807,8 @@ def get_static_data():
                                    "Stopped": "Other host(s) failed verify",
                                    "Parsing": "Awaiting parse of final results",
                                    "Gathering": "Gathering log files",
-                                   "Template": "Template job for recurring run"}
+                                   "Template": "Template job for recurring run",
+                                   "Waiting": "Waiting for scheduler action"}
     return result
 
 

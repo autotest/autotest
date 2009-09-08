@@ -85,21 +85,5 @@ class SpecialTaskUnittest(unittest.TestCase,
         self.assertTrue(task.is_complete)
 
 
-    def test_prepare(self):
-        self.assertEqual(13, models.SpecialTask.prepare(agent=None, task=13))
-        class DummyAgentTask(object):
-            host = None
-            queue_entry = None
-        self.assertRaises(ValueError, models.SpecialTask.prepare,
-                          DummyAgentTask(), None)
-        DummyAgentTask.TASK_TYPE = models.SpecialTask.Task.VERIFY
-        DummyAgentTask.host = models.Host.objects.create(hostname='hi')
-        task1 = models.SpecialTask.prepare(DummyAgentTask(), None)
-        task1.activate()
-        DummyAgentTask.TASK_TYPE = models.SpecialTask.Task.REPAIR
-        self.assertRaises(model_logic.ValidationError,
-                          models.SpecialTask.prepare, DummyAgentTask(), None)
-
-
 if __name__ == '__main__':
     unittest.main()
