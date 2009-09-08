@@ -438,8 +438,8 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     """
     name = dbmodels.CharField(max_length=255, unique=True)
     description = dbmodels.CharField(max_length=255, blank=True)
-    users = dbmodels.ManyToManyField(User, blank=True)
-    hosts = dbmodels.ManyToManyField(Host)
+    users = dbmodels.ManyToManyField(User, blank=False)
+    hosts = dbmodels.ManyToManyField(Host, blank=True)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -498,7 +498,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     def check_for_acl_violation_acl_group(self):
         user = thread_local.get_user()
         if user.is_superuser():
-            return None
+            return
+        if self.name == 'Everyone':
+            raise AclAccessViolation("You cannot modify 'Everyone'!")
         if not user in self.users.all():
             raise AclAccessViolation("You do not have access to %s"
                                      % self.name)
@@ -539,28 +541,21 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             self.users.add(thread_local.get_user())
 
 
-    # if you have a model attribute called "Manipulator", Django will
-    # automatically insert it into the beginning of the superclass list
-    # for the model's manipulators
-    class Manipulator(object):
-        """
-        Custom manipulator to get notification when ACLs are changed through
-        the admin interface.
-        """
-        def save(self, new_data, *args, **kwargs):
-            user = thread_local.get_user()
-            if hasattr(self, 'original_object'):
-                if (not user.is_superuser()
-                    and self.original_object.name == 'Everyone'):
-                    raise AclAccessViolation("You cannot modify 'Everyone'!")
-                self.original_object.check_for_acl_violation_acl_group()
-            obj = super(AclGroup.Manipulator, self).save(new_data,
-                                                         *args, **kwargs)
-            if not hasattr(self, 'original_object'):
-                obj.users.add(thread_local.get_user())
-            obj.add_current_user_if_empty()
-            obj.on_host_membership_change()
-            return obj
+    def perform_after_save(self, change):
+        if not change:
+            self.users.add(thread_local.get_user())
+        self.add_current_user_if_empty()
+        self.on_host_membership_change()
+
+
+    def save(self, *args, **kwargs):
+        change = bool(self.id)
+        if change:
+            # Check the original object for an ACL violation
+            AclGroup.objects.get(id=self.id).check_for_acl_violation_acl_group()
+        super(AclGroup, self).save(*args, **kwargs)
+        self.perform_after_save(change)
+
 
     class Meta:
         db_table = 'acl_groups'
