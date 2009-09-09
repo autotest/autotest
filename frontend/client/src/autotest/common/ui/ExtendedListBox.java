@@ -2,8 +2,7 @@ package autotest.common.ui;
 
 import com.google.gwt.user.client.ui.ListBox;
 
-// TODO(showard): make DoubleListSelector use this class so we can eliminate duplicate logic
-public class ExtendedListBox extends ListBox {
+public class ExtendedListBox extends ListBox implements SimplifiedList {
     private int findItemByName(String name) {
         for (int i = 0; i < getItemCount(); i++) {
             if (getItemText(i).equals(name)) {

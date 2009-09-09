@@ -5,9 +5,26 @@ defined in rpc_interface.py.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import traceback, pydoc, re, urllib
+import traceback, pydoc, re, urllib, logging, logging.handlers
 from autotest_lib.frontend.afe.json_rpc import serviceHandler
 from autotest_lib.frontend.afe import rpc_utils
+from autotest_lib.frontend import thread_local
+from autotest_lib.client.common_lib import global_config
+from autotest_lib.frontend.afe import rpcserver_logging
+
+_LOGGING_ENABLED = global_config.global_config.get_config_value('SERVER',
+                                                                'rpc_logging')
+LOGGING_REGEXPS = [r'.*add_.*',
+                   r'delete_.*',
+                   r'.*_remove_.*',
+                   r'modify_.*',
+                   r'create.*']
+FULL_REGEXP = '(' + '|'.join(LOGGING_REGEXPS) + ')'
+COMPILED_REGEXP = re.compile(FULL_REGEXP)
+
+
+def should_log_message(name):
+    return COMPILED_REGEXP.match(name)
 
 
 class RpcMethodHolder(object):
@@ -52,9 +69,30 @@ class RpcHandler(object):
         return self._dispatcher.dispatchRequest(decoded_request)
 
 
+    def log_request(self, user, decoded_request, decoded_result,
+                    log_all=False):
+        if log_all or should_log_message(decoded_request['method']):
+            msg = '%s:%s %s'  % (decoded_request['method'], user,
+                                 decoded_request['params'])
+            if decoded_result['err']:
+                msg += '\n' + decoded_result['err_traceback']
+                rpcserver_logging.rpc_logger.error(msg)
+            else:
+                rpcserver_logging.rpc_logger.info(msg)
+
+
+    def encode_result(self, results):
+        return self._dispatcher.translateResult(results)
+
+
     def handle_rpc_request(self, request):
+        user = thread_local.get_user()
         json_request = self.raw_request_data(request)
-        result = self.execute_request(json_request)
+        decoded_request = self.decode_request(json_request)
+        decoded_result = self.dispatch_request(decoded_request)
+        result = self.encode_result(decoded_result)
+        if _LOGGING_ENABLED:
+            self.log_request(user, decoded_request, decoded_result)
         return rpc_utils.raw_http_response(result)
 
 

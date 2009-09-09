@@ -1,28 +1,33 @@
 package autotest.afe;
 
+import autotest.common.JSONArrayList;
 import autotest.common.Utils;
 import autotest.common.table.ArrayDataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
+import autotest.common.table.DataSource.DefaultDataCallback;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
-import autotest.common.ui.TabView;
+import autotest.common.ui.SimplifiedList;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.ListBox;
-import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A widget to facilitate selection of a group of hosts for running a job.  The
@@ -33,30 +38,43 @@ import java.util.List;
  * convenience controls (such as one to remove all selected hosts) and a special
  * section for adding meta-host entries.
  */
-public class HostSelector {
-    public static final int TABLE_SIZE = 10;
+public class HostSelector implements ClickHandler {
+    private static final int TABLE_SIZE = 10;
     public static final String META_PREFIX = "Any ";
     public static final String ONE_TIME = "(one-time host)";
     
-    static class HostSelection {
+    public static class HostSelection {
         public List<String> hosts = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
         public List<String> oneTimeHosts = new ArrayList<String>();
     }
     
-    protected ArrayDataSource<JSONObject> selectedHostData =
+    public interface Display {
+        public HasText getHostnameField();
+        public HasClickHandlers getAddByHostnameButton();
+        public SimplifiedList getLabelList();
+        public HasText getLabelNumberField();
+        public HasClickHandlers getAddByLabelButton();
+
+        // a temporary measure until the table code gets refactored to support Passive View
+        public void addTables(Widget availableTable, Widget selectedTable);
+    }
+    
+    private ArrayDataSource<JSONObject> selectedHostData =
         new ArrayDataSource<JSONObject>(new String[] {"hostname", "platform"});
     
-    protected HostTable availableTable = new HostTable(new HostDataSource());
-    protected HostTableDecorator availableDecorator = 
+    private Display display;
+    private HostDataSource hostDataSource = new HostDataSource();
+    // availableTable needs its own data source
+    private HostTable availableTable = new HostTable(new HostDataSource());
+    private HostTableDecorator availableDecorator = 
         new HostTableDecorator(availableTable, TABLE_SIZE);
-    protected HostTable selectedTable = new HostTable(selectedHostData);
-    protected TableDecorator selectedDecorator = 
-        new TableDecorator(selectedTable);
+    private HostTable selectedTable = new HostTable(selectedHostData);
+    private TableDecorator selectedDecorator = new TableDecorator(selectedTable);
     
-    protected SelectionManager availableSelection;
+    private SelectionManager availableSelection;
     
-    public void initialize(TabView parent) {
+    public void initialize() {
         selectedTable.setClickable(true);
         selectedTable.setRowsPerPage(TABLE_SIZE);
         selectedDecorator.addPaginators();
@@ -112,57 +130,97 @@ public class HostSelector {
             
             public void onTableRefreshed() {}
         });
-        
-        parent.addWidget(availableDecorator, "create_available_table");
-        parent.addWidget(selectedDecorator, "create_selected_table");
-        
-        final ListBox metaLabelSelect = new ListBox();
-        populateLabels(metaLabelSelect);
-        final TextBox metaNumber = new TextBox();
-        metaNumber.setVisibleLength(4);
-        final Button metaButton = new Button("Add");
-        metaButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                int selected = metaLabelSelect.getSelectedIndex();
-                String labelName = metaLabelSelect.getItemText(selected);
-                String label = AfeUtils.decodeLabelName(labelName);
-                String number = metaNumber.getText();
-                try {
-                    Integer.parseInt(number);
-                }
-                catch (NumberFormatException exc) {
-                    String error = "Invalid number " + number;
-                    NotifyManager.getInstance().showError(error);
-                    return;
-                }
-                
-                selectMetaHost(label, number);
-                selectionRefresh();
-            }
-        });
-        parent.addWidget(metaLabelSelect, "create_meta_select");
-        parent.addWidget(metaNumber, "create_meta_number");
-        parent.addWidget(metaButton, "create_meta_button");
-        
-        final TextBox oneTimeHostField = new TextBox();
-        final Button oneTimeHostButton = new Button("Add");
-        oneTimeHostButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
-                List<String> hosts = Utils.splitListWithSpaces(oneTimeHostField.getText());
-                for (String hostname : hosts) {
-                    JSONObject oneTimeObject = new JSONObject();
-                    oneTimeObject.put("hostname", new JSONString(hostname));
-                    oneTimeObject.put("platform", new JSONString(ONE_TIME));
-                    selectRow(oneTimeObject);
-                }
-                selectionRefresh();
-            }
-        });
-        parent.addWidget(oneTimeHostField, "create_one_time_field");
-        parent.addWidget(oneTimeHostButton, "create_one_time_button");
     }
     
-    protected void selectMetaHost(String label, String number) {
+    public void bindDisplay(Display display) {
+        this.display = display;
+        display.getAddByHostnameButton().addClickHandler(this);
+        display.getAddByLabelButton().addClickHandler(this);
+        display.addTables(availableDecorator, selectedDecorator);
+        
+        populateLabels(display.getLabelList());
+    }
+    
+    @Override
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == display.getAddByLabelButton()) {
+            onAddByLabel();
+        } else if (event.getSource() == display.getAddByHostnameButton()) {
+            onAddByHostname();
+        }
+    }
+
+    private void onAddByHostname() {
+        List<String> hosts = Utils.splitListWithSpaces(display.getHostnameField().getText());
+        setSelectedHostnames(hosts);
+    }
+
+    public void setSelectedHostnames(final List<String> hosts) {
+        // figure out which hosts exist in the system and which should be one-time hosts
+        JSONObject params = new JSONObject();
+        params.put("hostname__in", Utils.stringsToJSON(hosts));
+        hostDataSource.updateData(params, new DefaultDataCallback () {
+            @Override
+            public void onGotData(int totalCount) {
+                hostDataSource.getPage(null, null, null, this);
+            }
+
+            @Override
+            public void handlePage(JSONArray data) {
+                processAddByHostname(hosts, data);
+            }
+        });
+    }
+    
+    private void processAddByHostname(final List<String> hosts, JSONArray data) {
+        // deselect existing non-metahost hosts
+        // iterate over copy to allow modification
+        for (JSONObject host : new ArrayList<JSONObject>(selectedHostData.getItems())) {
+            if (isOneTimeHost(host)) {
+                selectedHostData.removeItem(host);
+            }
+        }
+        availableSelection.deselectAll();
+
+        // add existing hosts
+        JSONArrayList<JSONObject> existingHostObjects = new JSONArrayList<JSONObject>(data);
+        Set<String> existingHosts = new HashSet<String>();
+        for (JSONObject host : existingHostObjects) {
+            existingHosts.add(Utils.jsonToString(host.get("hostname")));
+        }
+
+        // add one-time hosts
+        for (String hostname : hosts) {
+            if (!existingHosts.contains(hostname)) {
+                JSONObject oneTimeObject = new JSONObject();
+                oneTimeObject.put("hostname", new JSONString(hostname));
+                oneTimeObject.put("platform", new JSONString(ONE_TIME));
+                selectRow(oneTimeObject);
+            }
+        }
+
+        availableSelection.selectObjects(existingHostObjects); // this refreshes the selection
+    }
+
+    private void onAddByLabel() {
+        SimplifiedList labelList = display.getLabelList();
+        String labelName = labelList.getSelectedName();
+        String label = AfeUtils.decodeLabelName(labelName);
+        String number = display.getLabelNumberField().getText();
+        try {
+            Integer.parseInt(number);
+        }
+        catch (NumberFormatException exc) {
+            String error = "Invalid number " + number;
+            NotifyManager.getInstance().showError(error);
+            return;
+        }
+        
+        addMetaHosts(label, number);
+        selectionRefresh();
+    }
+
+    public void addMetaHosts(String label, String number) {
         JSONObject metaObject = new JSONObject();
         metaObject.put("hostname", new JSONString(META_PREFIX + number));
         metaObject.put("platform", new JSONString(label));
@@ -172,41 +230,41 @@ public class HostSelector {
         selectRow(metaObject);
     }
     
-    protected void selectRow(JSONObject row) {
+    private void selectRow(JSONObject row) {
         selectedHostData.addItem(row);
     }
     
-    protected void deselectRow(JSONObject row) {
+    private void deselectRow(JSONObject row) {
         selectedHostData.removeItem(row);
     }
     
-    protected void deselectAll() {
+    private void deselectAll() {
         availableSelection.deselectAll();
         // get rid of leftover meta-host entries
         selectedHostData.clear();
         selectionRefresh();
     }
     
-    protected void populateLabels(ListBox list) {
+    private void populateLabels(SimplifiedList list) {
         String[] labelNames = AfeUtils.getLabelStrings();
         for(int i = 0; i < labelNames.length; i++) {
-            list.addItem(labelNames[i]);
+            list.addItem(labelNames[i], "");
         }
     }
     
-    protected String getHostname(JSONObject row) {
+    private String getHostname(JSONObject row) {
         return row.get("hostname").isString().stringValue();
     }
     
-    protected boolean isMetaEntry(JSONObject row) {
+    private boolean isMetaEntry(JSONObject row) {
         return getHostname(row).startsWith(META_PREFIX);
     }
     
-    protected int getMetaNumber(JSONObject row) {
+    private int getMetaNumber(JSONObject row) {
         return Integer.parseInt(getHostname(row).substring(META_PREFIX.length()));
     }
     
-    protected boolean isOneTimeHost(JSONObject row) {
+    private boolean isOneTimeHost(JSONObject row) {
         JSONString platform = row.get("platform").isString();
         if (platform == null) {
             return false;
@@ -219,8 +277,7 @@ public class HostSelector {
      */
     public HostSelection getSelectedHosts() {
         HostSelection selection = new HostSelection();
-        List<JSONObject> selectionArray = selectedHostData.getItems();
-        for(JSONObject row : selectionArray ) {
+        for (JSONObject row : selectedHostData.getItems() ) {
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
                 String platform = row.get("platform").isString().stringValue();
@@ -252,10 +309,23 @@ public class HostSelector {
     /**
      * Refresh as necessary for selection change, but don't make any RPCs.
      */
-    protected void selectionRefresh() {
+    private void selectionRefresh() {
         selectedTable.refresh();
+        updateHostnameList();
     }
     
+    private void updateHostnameList() {
+        List<String> hostnames = new ArrayList<String>();
+        for (JSONObject hostObject : selectedHostData.getItems()) {
+            if (!isMetaEntry(hostObject)) {
+                hostnames.add(Utils.jsonToString(hostObject.get("hostname")));
+            }
+        }
+        
+        String hostList = Utils.joinStrings(", ", hostnames);
+        display.getHostnameField().setText(hostList);
+    }
+
     public void refresh() {
         availableTable.refresh();
         selectionRefresh();

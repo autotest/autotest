@@ -59,6 +59,7 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         String tabDeckClass = tabDeck.getStyleName();
         tabDeck.setStyleName("");
         bottom.setStyleName(tabDeckClass);
+        bottom.setWidth("100%");
         
         refreshButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {

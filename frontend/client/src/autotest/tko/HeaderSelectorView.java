@@ -3,11 +3,10 @@ package autotest.tko;
 import autotest.common.ui.DoubleListSelector;
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.MultiListSelectPresenter;
+import autotest.common.ui.SimplifiedList;
 import autotest.common.ui.ToggleControl;
 import autotest.common.ui.ToggleLink;
 import autotest.common.ui.MultiListSelectPresenter.DoubleListDisplay;
-import autotest.common.ui.MultiListSelectPresenter.SimplifiedList;
-import autotest.common.ui.MultiListSelectPresenter.SimplifiedListWrapper;
 import autotest.common.ui.MultiListSelectPresenter.ToggleDisplay;
 import autotest.tko.HeaderSelect.MachineLabelDisplay;
 
@@ -47,7 +46,6 @@ public class HeaderSelectorView extends Composite
     static final String USE_FIXED_VALUES = "Fixed values...";
 
     private ExtendedListBox listBox = new ExtendedListBox();
-    private SimplifiedList listWrapper = new SimplifiedListWrapper(listBox);
     private ToggleLink fixedValuesToggle = new ToggleLink(USE_FIXED_VALUES, CANCEL_FIXED_VALUES);
     private TextArea fixedValues = new TextArea();
     private DoubleListSelector doubleListDisplay = new DoubleListSelector();
@@ -95,7 +93,7 @@ public class HeaderSelectorView extends Composite
 
     @Override
     public SimplifiedList getSingleSelector() {
-        return listWrapper;
+        return listBox;
     }
 
     @Override

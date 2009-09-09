@@ -117,11 +117,11 @@
           <tr><td class="field-name">Kernel "cmdline":</td>
               <td id="create_kernel_cmdline"></td></tr>
           <tr><td class="field-name">Timeout (hours):</td>
-              <td id="create_timeout"></td></td></td></tr>
+              <td id="create_timeout"></td><td></td></tr>
           <tr><td class="field-name">Max runtime (hours):</td>
-              <td id="create_max_runtime"></td></td></td></tr>
+              <td id="create_max_runtime"></td><td></td></tr>
           <tr><td class="field-name">Email List:</td>
-              <td id="create_email_list"></td></td></td></tr>
+              <td id="create_email_list"></td><td></td></tr>
           <tr><td class="field-name">Skip verify:</td>
               <td id="create_skip_verify"></td><td></td></tr>
           <tr><td class="field-name">Reboot before:</td>
@@ -139,32 +139,7 @@
               Add profile_only=True to job.run_test() in the control file
               if you do not want this.</td></tr>
           <tr><td colspan="3" id="create_edit_control"></td></tr>
-          <tr>
-            <td colspan="3" class="box">
-              <table><tr>
-                <td>
-                  <div>
-                  <span class="field-name">One-time host(s):</span>
-                  <span id="create_one_time_field"></span>
-                  <span id="create_one_time_button"></span>
-                  </div>
-                  <div class="box-full">
-                    Run on any <span id="create_meta_select"></span><br>
-                    Number: <span id="create_meta_number"></span>
-                    <span id="create_meta_button"></span>
-                  </div>
-                  <span class="field-name">Available hosts: </span>
-                  <span class="help">(Click on a host to add it)</span>
-                  <div id="create_available_table"></div>
-                </td>
-                <td>
-                  <span class="field-name">Selected hosts:</span>
-                  <span class="help">(Click on a host to remove it)</span>
-                  <div id="create_selected_table"></div>
-                </td>
-              </tr></table>
-            </td>
-          </tr>
+          <tr><td colspan="3" id="create_host_selector"></td></tr>
           <tr>
             <td id="create_submit"></td>
             <td id="create_template_job"></td>
