@@ -254,8 +254,9 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
 
     def _check_for_multiple_atomic_group_hosts(self):
         rows = self._db.execute("""
-            SELECT hosts.id, hostname, COUNT(1) AS atomic_group_count,
-                   GROUP_CONCAT(labels.name), GROUP_CONCAT(atomic_groups.name)
+            SELECT hosts.id, hostname, COUNT(DISTINCT atomic_groups.name) AS
+                   atomic_group_count, GROUP_CONCAT(labels.name),
+                   GROUP_CONCAT(atomic_groups.name)
             FROM hosts
             INNER JOIN hosts_labels ON hosts.id = hosts_labels.host_id
             INNER JOIN labels ON hosts_labels.label_id = labels.id
