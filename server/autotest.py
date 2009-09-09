@@ -1,6 +1,7 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
 import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob, logging
+import getpass
 from autotest_lib.server import installable_object, utils
 from autotest_lib.client.common_lib import log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
@@ -405,7 +406,7 @@ class _Run(object):
             args.append('-l')
         if self.host.hostname:
             args.append('--hostname=%s' % self.host.hostname)
-        args.append('--user=%s' % os.environ['LOGNAME'])
+        args.append('--user=%s' % getpass.getuser())
 
         args.append(self.remote_control_file)
         return args
