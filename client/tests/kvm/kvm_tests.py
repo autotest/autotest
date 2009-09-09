@@ -578,6 +578,7 @@ def run_timedrift(test, params, env):
     def set_cpu_affinity(pid, mask):
         """
         Set the CPU affinity of all threads of the process with PID pid.
+        Do this recursively for all child processes as well.
 
         @param pid: The process ID.
         @param mask: The CPU affinity mask.
@@ -589,6 +590,9 @@ def run_timedrift(test, params, env):
             prev_mask = commands.getoutput("taskset -p %s" % tid).split()[-1]
             prev_masks[tid] = prev_mask
             commands.getoutput("taskset -p %s %s" % (mask, tid))
+        children = commands.getoutput("ps --ppid=%s -o pid=" % pid).split()
+        for child in children:
+            prev_masks.update(set_cpu_affinity(child, mask))
         return prev_masks
 
     def restore_cpu_affinity(prev_masks):
@@ -683,13 +687,9 @@ def run_timedrift(test, params, env):
                                       output_func=logging.debug,
                                       output_prefix="(host load %d) " % i,
                                       timeout=0.5))
-            # Set the CPU affinity of the shell running the load process
+            # Set the CPU affinity of the load process
             pid = host_load_sessions[-1].get_shell_pid()
             set_cpu_affinity(pid, cpu_mask)
-            # Try setting the CPU affinity of the load process itself
-            pid = host_load_sessions[-1].get_pid()
-            if pid:
-                set_cpu_affinity(pid, cpu_mask)
 
         # Sleep for a while (during load)
         logging.info("Sleeping for %s seconds..." % load_duration)
