@@ -133,8 +133,16 @@ variants:
         sleep_before_reset = 20
         kill_vm_on_error = yes
 
+    - system_powerdown: install setup
+        type = shutdown
+        shutdown_method = system_powerdown
+        sleep_before_powerdown = 20
+        kill_vm = yes
+        kill_vm_gracefully = no
+
     - shutdown:     install setup
         type = shutdown
+        shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
 
