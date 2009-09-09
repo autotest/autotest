@@ -1232,6 +1232,7 @@ class AgentTasksTest(BaseSchedulerTest):
     JOB_OWNER = 'test_owner'
     JOB_NAME = 'test_job_name'
     JOB_AUTOSERV_PARAMS = set(['-u', JOB_OWNER, '-l', JOB_NAME])
+    PLATFORM = 'test_platform'
 
     def setUp(self):
         super(AgentTasksTest, self).setUp()
@@ -1245,11 +1246,17 @@ class AgentTasksTest(BaseSchedulerTest):
                                'copy_to_results_repository')
         self.god.stub_function(drone_manager.DroneManager,
                                'get_pidfile_id_from')
+        self.god.stub_function(drone_manager.DroneManager,
+                               'attach_file_to_execution')
 
         def dummy_absolute_path(drone_manager_self, path):
             return self.ABSPATH_BASE + path
         self.god.stub_with(drone_manager.DroneManager, 'absolute_path',
                            dummy_absolute_path)
+
+        def dummy_abspath(path):
+            return self.ABSPATH_BASE + path
+        self.god.stub_with(os.path, 'abspath', dummy_abspath)
 
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'run')
         self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
@@ -1387,12 +1394,25 @@ class AgentTasksTest(BaseSchedulerTest):
         self.task.save()
 
 
+    def _setup_write_host_keyvals_expects(self, task_tag):
+        self.host.platform_and_labels.expect_call().and_return(
+                (self.PLATFORM, (self.PLATFORM,)))
+
+        execution_path = os.path.join(self.BASE_TASK_DIR, task_tag)
+        file_contents = ('platform=%(platform)s\nlabels=%(platform)s\n'
+                         % dict(platform=self.PLATFORM))
+        file_path = os.path.join(execution_path, 'host_keyvals', self.HOSTNAME)
+        drone_manager.DroneManager.attach_file_to_execution.expect_call(
+                execution_path, file_contents, file_path=file_path)
+
+
     def _test_repair_task_helper(self, success, task_id, use_queue_entry=False):
         self._setup_special_task(task_id, models.SpecialTask.Task.REPAIR,
                                  use_queue_entry)
         task_tag = '%d-repair' % task_id
 
         self.task.activate.expect_call()
+        self._setup_write_host_keyvals_expects(task_tag)
 
         self.host.set_status.expect_call('Repairing')
         if success:
@@ -1451,10 +1471,13 @@ class AgentTasksTest(BaseSchedulerTest):
 
     def test_repair_task_aborted(self):
         self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
+        task_tag = '1-repair'
 
         self.task.activate.expect_call()
+        self._setup_write_host_keyvals_expects(task_tag)
+
         self.host.set_status.expect_call('Repairing')
-        self.setup_run_monitor(0, '1-repair', aborted=True)
+        self.setup_run_monitor(0, task_tag, aborted=True)
 
         task = monitor_db.RepairTask(task=self.task)
         task.host = self.host
@@ -1481,6 +1504,7 @@ class AgentTasksTest(BaseSchedulerTest):
         agent.dispatcher = self._dispatcher
 
         self.task.activate.expect_call()
+        self._setup_write_host_keyvals_expects(task_tag)
 
         self.host.set_status.expect_call('Repairing')
         self.setup_run_monitor(1, task_tag)
@@ -1540,6 +1564,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
     def setup_verify_expects(self, success, use_queue_entry, task_tag):
         self.task.activate.expect_call()
+        self._setup_write_host_keyvals_expects(task_tag)
 
         if use_queue_entry:
             self.queue_entry.set_status.expect_call('Verifying')
@@ -1810,6 +1835,8 @@ class AgentTasksTest(BaseSchedulerTest):
         task_tag = '%d-cleanup' % task_id
 
         self.task.activate.expect_call()
+        self._setup_write_host_keyvals_expects(task_tag)
+
         self.host.set_status.expect_call('Cleaning')
 
         if use_queue_entry:

@@ -293,7 +293,7 @@ class DroneManager(object):
 
 
     def _extract_execution_tag(self, command):
-        match = re.match(r'.* -P (\S+) ', command)
+        match = re.match(r'.* -P (\S+)', command)
         if not match:
             return None
         return match.group(1)
@@ -433,13 +433,13 @@ class DroneManager(object):
                 already-executed process; the new process will execute on the
                 same drone as the previous process.
         """
-        working_directory = self.absolute_path(working_directory)
+        abs_working_directory = self.absolute_path(working_directory)
         if not log_file:
             log_file = self.get_temporary_path('execute')
         log_file = self.absolute_path(log_file)
 
         self._substitute_working_directory_into_command(command,
-                                                        working_directory)
+                                                        abs_working_directory)
 
         if paired_with_pidfile:
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
@@ -448,11 +448,11 @@ class DroneManager(object):
             drone = self._choose_drone_for_execution(num_processes)
         logging.info("command = %s" % command)
         logging.info('log file = %s:%s' % (drone.hostname, log_file))
-        self._write_attached_files(command, drone)
-        drone.queue_call('execute_command', command, working_directory,
+        self._write_attached_files(working_directory, drone)
+        drone.queue_call('execute_command', command, abs_working_directory,
                          log_file, pidfile_name)
 
-        pidfile_path = self.absolute_path(os.path.join(working_directory,
+        pidfile_path = self.absolute_path(os.path.join(abs_working_directory,
                                                        pidfile_name))
         pidfile_id = PidfileId(pidfile_path)
         self.register_pidfile(pidfile_id)
@@ -541,24 +541,23 @@ class DroneManager(object):
         self._copy_results_helper(process, source_path, destination_path)
 
 
-    def _write_attached_files(self, command, drone):
-        execution_tag = self._extract_execution_tag(' '.join(command))
-        attached_files = self._attached_files.pop(execution_tag, {})
+    def _write_attached_files(self, results_dir, drone):
+        attached_files = self._attached_files.pop(results_dir, {})
         for file_path, contents in attached_files.iteritems():
             drone.queue_call('write_to_file', self.absolute_path(file_path),
                              contents)
 
 
-    def attach_file_to_execution(self, execution_tag, file_contents,
+    def attach_file_to_execution(self, results_dir, file_contents,
                                  file_path=None):
         """
-        When the process for execution_tag is executed, the given file contents
-        will be placed in a file on the drone.  Returns the path at which the
-        file will be placed.
+        When the process for the results directory is executed, the given file
+        contents will be placed in a file on the drone.  Returns the path at
+        which the file will be placed.
         """
         if not file_path:
             file_path = self.get_temporary_path('attach')
-        files_for_execution = self._attached_files.setdefault(execution_tag, {})
+        files_for_execution = self._attached_files.setdefault(results_dir, {})
         assert file_path not in files_for_execution
         files_for_execution[file_path] = file_contents
         return file_path
