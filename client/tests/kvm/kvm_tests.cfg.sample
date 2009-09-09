@@ -63,18 +63,9 @@ variants:
 
     - migrate:      install setup
         type = migration
-        vms += " dst"
         migration_test_command = help
         kill_vm_on_error = yes
-        variants:
-            - 1:
-                start_vm_for_migration_dst = yes
-                migration_src = vm1
-                migration_dst = dst
-            - 2: 1
-                start_vm_for_migration_vm1 = yes
-                migration_src = dst
-                migration_dst = vm1
+        iterations = 2
 
     - autotest:     install setup
         type = autotest
