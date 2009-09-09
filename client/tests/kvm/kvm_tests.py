@@ -688,7 +688,7 @@ def run_timedrift(test, params, env):
                                       output_prefix="(host load %d) " % i,
                                       timeout=0.5))
             # Set the CPU affinity of the load process
-            pid = host_load_sessions[-1].get_shell_pid()
+            pid = host_load_sessions[-1].get_pid()
             set_cpu_affinity(pid, cpu_mask)
 
         # Sleep for a while (during load)
