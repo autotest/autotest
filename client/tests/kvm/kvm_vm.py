@@ -654,21 +654,6 @@ class VM:
         return self.process.get_pid()
 
 
-    def is_sshd_running(self, timeout=10):
-        """
-        Return True iff the guest's remote shell port is responsive.
-
-        @param timeout: Time (seconds) before giving up checking the daemon's
-                responsiveness.
-        """
-        address = self.get_address()
-        port = self.get_port(int(self.params.get("shell_port")))
-        if not address or not port:
-            logging.debug("IP address or port unavailable")
-            return False
-        return kvm_utils.is_sshd_running(address, port, timeout=timeout)
-
-
     def remote_login(self, nic_index=0, timeout=10):
         """
         Log into the guest via SSH/Telnet/Netcat.
