@@ -152,39 +152,35 @@ def get_mac_ip_pair_from_dict(dict):
     return (None, None)
 
 
-def verify_ip_address_ownership(ip, macs, timeout=3.0):
+def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
-    Connect to a given IP address and make sure its MAC address equals one of
-    the given MAC address.
+    Use arping and the ARP cache to make sure a given IP address belongs to one
+    of the given MAC addresses.
 
     @param ip: An IP address.
     @param macs: A list or tuple of MAC addresses.
     @return: True iff ip is assigned to a MAC address in macs.
     """
-    def check_arp_cache(regex):
-        o = commands.getoutput("/sbin/arp -n")
-        return bool(re.search(regex, o, re.IGNORECASE))
-
+    # Compile a regex that matches the given IP address and any of the given
+    # MAC addresses
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex))
 
-    if check_arp_cache(regex):
+    # Check the ARP cache
+    o = commands.getoutput("/sbin/arp -n")
+    if re.search(regex, o, re.IGNORECASE):
         return True
 
-    s = socket.socket()
-    s.setblocking(False)
-    try:
-        s.connect((ip, 55555))
-    except socket.error:
-        pass
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        time.sleep(0.2)
-        if check_arp_cache(regex):
-            s.close()
-            return True
-    s.close()
-    return False
+    # Get the name of the bridge device for arping
+    o = commands.getoutput("/sbin/ip route get %s" % ip)
+    dev = re.findall("dev\s+\S+", o, re.IGNORECASE)
+    if not dev:
+        return False
+    dev = dev[0].split()[-1]
+
+    # Send an ARP request
+    o = commands.getoutput("/sbin/arping -f -c 3 -I %s %s" % (dev, ip))
+    return bool(re.search(regex, o, re.IGNORECASE))
 
 
 # Functions for working with the environment (a dict-like object)
