@@ -870,6 +870,29 @@ class run_randomly:
             fn(*args, **dargs)
 
 
+def import_site_module(path, module, dummy=None, modulefile=None):
+    """
+    Try to import the site specific module if it exists.
+
+    @param path full filename of the source file calling this (ie __file__)
+    @param module full module name
+    @param dummy dummy value to return in case there is no symbol to import
+    @param modulefile module filename
+
+    @return site specific module or dummy
+
+    @raises ImportError if the site file exists but imports fails
+    """
+    short_module = module[module.rfind(".") + 1:]
+
+    if not modulefile:
+        modulefile = short_module + ".py"
+
+    if os.path.exists(os.path.join(os.path.dirname(path), modulefile)):
+        return __import__(module, {}, {}, [short_module])
+    return dummy
+
+
 def import_site_symbol(path, module, name, dummy=None, modulefile=None):
     """
     Try to import site specific symbol from site specific file if it exists
@@ -882,34 +905,20 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
 
     @return site specific symbol or dummy
 
-    @exception ImportError if the site file exists but imports fails
+    @raises ImportError if the site file exists but imports fails
     """
-    short_module = module[module.rfind(".") + 1:]
+    module = import_site_module(path, module, modulefile=modulefile)
+    if not module:
+        return dummy
 
-    if not modulefile:
-        modulefile = short_module + ".py"
+    # special unique value to tell us if the symbol can't be imported
+    cant_import = object()
 
-    try:
-        site_exists = os.path.getsize(os.path.join(os.path.dirname(path),
-                                                   modulefile))
-    except os.error:
-        site_exists = False
-
-    msg = None
-    if site_exists:
-        # special unique value to tell us if the symbol can't be imported
-        cant_import = object()
-
-        # return the object from the imported module
-        obj = getattr(__import__(module, {}, {}, [short_module]), name,
-                      cant_import)
-        if obj is cant_import:
-            msg = ("unable to import site symbol '%s', using non-site "
-                   "implementation") % name
-        logging.error(msg)
-        obj = dummy
-    else:
-        obj = dummy
+    obj = getattr(module, name, cant_import)
+    if obj is cant_import:
+        logging.error("unable to import site symbol '%s', using non-site "
+                      "implementation", name)
+        return dummy
 
     return obj
 
