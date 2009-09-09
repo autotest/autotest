@@ -740,16 +740,34 @@ class ParamikoPackage(ExternalPackage):
 class GwtPackage(ExternalPackage):
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
-    version = '1.6.4'
+    version = '1.7.0'
     local_filename = 'gwt-linux-%s.tar.bz2' % version
     urls = ('http://google-web-toolkit.googlecode.com/files/' + local_filename,)
-    hex_sum = '480882f630993da727eaae464341a5ff86f9b7d7'
+    hex_sum = 'accb39506e1fa719ba166cf54451c91dafd9d456'
     name = 'gwt'
+    about_filename = 'about.txt'
     module_name = None  # Not a Python module.
 
 
     def is_needed(self, install_dir):
-        return not os.path.exists(os.path.join(install_dir, self.name))
+        gwt_dir = os.path.join(install_dir, self.name)
+        about_file = os.path.join(install_dir, self.name, self.about_filename)
+
+        if not os.path.exists(gwt_dir) or not os.path.exists(about_file):
+            logging.info('gwt not installed for autotest')
+            return True
+
+        f = open(about_file, 'r')
+        version_line = f.readline()
+        f.close()
+
+        match = re.match(r'Google Web Toolkit (.*)', version_line)
+        if not match:
+            logging.info('did not find gwt version')
+            return True
+
+        logging.info('found gwt version %s', match.group(1))
+        return match.group(1) != self.version
 
 
     def build_and_install(self, install_dir):
@@ -757,6 +775,8 @@ class GwtPackage(ExternalPackage):
         self._extract_compressed_package()
         extracted_dir = self.local_filename[:-len('.tar.bz2')]
         target_dir = os.path.join(install_dir, self.name)
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
         os.rename(extracted_dir, target_dir)
         return True
 
