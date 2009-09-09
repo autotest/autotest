@@ -1633,6 +1633,28 @@ class TaskWithJobKeyvals(object):
         self._write_keyval_after_job("job_finished", int(time.time()))
 
 
+    def _write_keyvals_before_job_helper(self, keyval_dict, keyval_path):
+        keyval_contents = '\n'.join(self._format_keyval(key, value)
+                                    for key, value in keyval_dict.iteritems())
+        # always end with a newline to allow additional keyvals to be written
+        keyval_contents += '\n'
+        _drone_manager.attach_file_to_execution(self._working_directory,
+                                                keyval_contents,
+                                                file_path=keyval_path)
+
+
+    def _write_keyvals_before_job(self, keyval_dict):
+        self._write_keyvals_before_job_helper(keyval_dict, self._keyval_path())
+
+
+    def _write_host_keyvals(self, host):
+        keyval_path = os.path.join(self._working_directory, 'host_keyvals',
+                                   host.hostname)
+        platform, all_labels = host.platform_and_labels()
+        keyval_dict = dict(platform=platform, labels=','.join(all_labels))
+        self._write_keyvals_before_job_helper(keyval_dict, keyval_path)
+
+
 class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
     """
     Subclass for AgentTasks that correspond to a SpecialTask entry in the DB.
@@ -1652,8 +1674,7 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
             self.queue_entry = HostQueueEntry(id=task.queue_entry.id)
 
         self.task = task
-        if task:
-            kwargs['working_directory'] = task.execution_path()
+        kwargs['working_directory'] = task.execution_path()
         self._extra_command_args = extra_command_args
         super(SpecialAgentTask, self).__init__(**kwargs)
 
@@ -1669,6 +1690,7 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
                                           queue_entry=self.queue_entry)
         self._working_directory = self.task.execution_path()
         self.task.activate()
+        self._write_host_keyvals(self.host)
 
 
     def _fail_queue_entry(self):
@@ -1869,28 +1891,6 @@ class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
 
     def _keyval_path(self):
         return os.path.join(self._execution_path(), self._KEYVAL_FILE)
-
-
-    def _write_keyvals_before_job_helper(self, keyval_dict, keyval_path):
-        keyval_contents = '\n'.join(self._format_keyval(key, value)
-                                    for key, value in keyval_dict.iteritems())
-        # always end with a newline to allow additional keyvals to be written
-        keyval_contents += '\n'
-        _drone_manager.attach_file_to_execution(self._execution_path(),
-                                                keyval_contents,
-                                                file_path=keyval_path)
-
-
-    def _write_keyvals_before_job(self, keyval_dict):
-        self._write_keyvals_before_job_helper(keyval_dict, self._keyval_path())
-
-
-    def _write_host_keyvals(self, host):
-        keyval_path = os.path.join(self._execution_path(), 'host_keyvals',
-                                   host.hostname)
-        platform, all_labels = host.platform_and_labels()
-        keyval_dict = dict(platform=platform, labels=','.join(all_labels))
-        self._write_keyvals_before_job_helper(keyval_dict, keyval_path)
 
 
     def _execution_path(self):
@@ -3080,9 +3080,9 @@ class Job(DBObject):
         return '%sgroup%d' % (group_name, next_id)
 
 
-    def _write_control_file(self, execution_tag):
+    def _write_control_file(self, execution_path):
         control_path = _drone_manager.attach_file_to_execution(
-                execution_tag, self.control_file)
+                execution_path, self.control_file)
         return control_path
 
 
@@ -3095,11 +3095,12 @@ class Job(DBObject):
 
     def get_autoserv_params(self, queue_entries):
         assert queue_entries
-        execution_tag = queue_entries[0].execution_tag()
-        control_path = self._write_control_file(execution_tag)
+        execution_path = queue_entries[0].execution_path()
+        control_path = self._write_control_file(execution_path)
         hostnames = ','.join([entry.get_host().hostname
                               for entry in queue_entries])
 
+        execution_tag = queue_entries[0].execution_tag()
         params = _autoserv_command_line(
             hostnames,
             ['-P', execution_tag, '-n',
