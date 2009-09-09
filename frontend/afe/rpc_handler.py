@@ -127,6 +127,8 @@ class RpcHandler(object):
 
     def _grab_methods_from(self, module):
         for name in dir(module):
+            if name.startswith('_'):
+                continue
             attribute = getattr(module, name)
             if not callable(attribute):
                 continue
