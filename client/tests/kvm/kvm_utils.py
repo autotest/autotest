@@ -265,6 +265,23 @@ def safe_kill(pid, signal):
         return False
 
 
+def kill_process_tree(pid, sig=signal.SIGKILL):
+    """Signal a process and all of its children.
+
+    If the process does not exist -- return.
+
+    @param pid: The pid of the process to signal.
+    @param sig: The signal to send to the processes.
+    """
+    if not safe_kill(pid, signal.SIGSTOP):
+        return
+    children = commands.getoutput("ps --ppid=%d -o pid=" % pid).split()
+    for child in children:
+        kill_process_tree(int(child), sig)
+    safe_kill(pid, sig)
+    safe_kill(pid, signal.SIGCONT)
+
+
 def get_latest_kvm_release_tag(release_dir):
     """
     Fetches the latest release tag for KVM.
