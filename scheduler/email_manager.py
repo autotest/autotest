@@ -33,7 +33,10 @@ class EmailNotificationManager(object):
             try:
                 mailer.sendmail(self._from_address, to_list, msg)
             finally:
-                mailer.quit()
+                try:
+                    mailer.quit()
+                except:
+                    logging.exception('mailer.quit() failed:')
         except Exception:
             logging.exception('Sending email failed:')
 
