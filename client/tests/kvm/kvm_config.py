@@ -99,33 +99,6 @@ class config:
         return [dict for dict in list if self.match(filter, dict)]
 
 
-    # Currently unused, will be removed if it remains unused
-    def get_match_block_indices(self, filter, list=None):
-        """
-        Get the indexes of a list that match a given filter.
-
-        @param filter: A regular expression that will filter the list.
-        @param list: List which we want to know the indexes that match a filter.
-        """
-        if list is None:
-            list = self.list
-        block_list = []
-        prev_match = False
-        for index in range(len(list)):
-            dict = list[index]
-            if self.match(filter, dict):
-                if not prev_match:
-                    block_list.append([index])
-                prev_match = True
-            else:
-                if prev_match:
-                    block_list[-1].append(index)
-                prev_match = False
-        if prev_match:
-            block_list[-1].append(len(list))
-        return block_list
-
-
     def split_and_strip(self, str, sep="="):
         """
         Split str and strip quotes from the resulting parts.
