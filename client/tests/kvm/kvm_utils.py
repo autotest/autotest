@@ -605,52 +605,6 @@ def netcat(host, port, username, password, prompt, timeout=10):
 
 # The following are utility functions related to ports.
 
-def is_sshd_running(host, port, timeout=10.0):
-    """
-    Connect to the given host and port and wait for output.
-    Return True if the given host and port are responsive.
-
-    @param host: Host's hostname
-    @param port: Host's port
-    @param timeout: Time (seconds) before we giving up on checking the SSH
-            daemon.
-
-    @return: If output is available, return True. If timeout expires and no
-            output was available, return False.
-    """
-    try:
-        # Try to connect
-        #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s = socket.socket()
-        s.connect((host, port))
-    except socket.error:
-        # Can't connect -- return False
-        s.close()
-        logging.debug("Could not connect")
-        return False
-    s.setblocking(False)
-    # Wait up to 'timeout' seconds
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        try:
-            time.sleep(0.1)
-            # Try to receive some text
-            str = s.recv(1024)
-            if len(str) > 0:
-                s.shutdown(socket.SHUT_RDWR)
-                s.close()
-                logging.debug("Success! got string %r" % str)
-                return True
-        except socket.error:
-            # No text was available; try again
-            pass
-    # Timeout elapsed and no text was received
-    s.shutdown(socket.SHUT_RDWR)
-    s.close()
-    logging.debug("Timeout")
-    return False
-
-
 def is_port_free(port):
     """
     Return True if the given port is available for use.
