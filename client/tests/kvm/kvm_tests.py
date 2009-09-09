@@ -1,6 +1,6 @@
 import time, os, logging, re, commands
 from autotest_lib.client.common_lib import utils, error
-import kvm_utils, kvm_subprocess, ppm_utils, scan_results
+import kvm_utils, kvm_subprocess, ppm_utils, scan_results, kvm_test_utils
 
 """
 KVM test definitions.
@@ -21,21 +21,10 @@ def run_boot(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
-
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     try:
-        logging.info("Logged in")
-
         if params.get("reboot_method") == "shell":
             # Send a reboot command to the guest's shell
             session.sendline(vm.get_params().get("reboot_command"))
@@ -81,21 +70,10 @@ def run_shutdown(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
-
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     try:
-        logging.info("Logged in")
-
         if params.get("shutdown_method") == "shell":
             # Send a shutdown command to the guest's shell
             session.sendline(vm.get_params().get("shutdown_command"))
@@ -134,32 +112,22 @@ def run_migration(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
 
     # See if migration is supported
     s, o = vm.send_monitor_cmd("help info")
     if not "info migrate" in o:
         raise error.TestError("Migration is not supported")
 
+    # Log into guest and get the output of migration_test_command
+    session = kvm_test_utils.wait_for_login(vm)
+    migration_test_command = params.get("migration_test_command")
+    reference_output = session.get_command_output(migration_test_command)
+    session.close()
+
+    # Clone the main VM and ask it to wait for incoming migration
     dest_vm = vm.clone()
     dest_vm.create(for_migration=True)
-
-    # Log into guest and get the output of migration_test_command
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
-
-    logging.info("Logged in")
-
-    reference_output = session.get_command_output(params.get("migration_test_"
-                                                             "command"))
-    session.close()
 
     # Define the migration command
     cmd = "migrate -d tcp:localhost:%d" % dest_vm.migration_port
@@ -211,7 +179,7 @@ def run_migration(test, params, env):
 
     logging.info("Logged in after migration")
 
-    output = session.get_command_output(params.get("migration_test_command"))
+    output = session.get_command_output(migration_test_command)
     session.close()
 
     # Compare output to reference output
@@ -225,6 +193,7 @@ def run_migration(test, params, env):
         raise error.TestFail("Command produced different output before and "
                              "after migration")
 
+    # Replace the main VM with the new cloned VM
     kvm_utils.env_register_vm(env, params.get("main_vm"), dest_vm)
 
 
@@ -236,19 +205,8 @@ def run_autotest(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
-
-    logging.info("Logging into guest...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
-
-    logging.info("Logged in")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     # Collect some info
     test_name = params.get("test_name")
@@ -426,25 +384,8 @@ def run_yum_update(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        message = "VM object not found in environment"
-        logging.error(message)
-        raise error.TestError(message)
-    if not vm.is_alive():
-        message = "VM seems to be dead; Test requires a living VM"
-        logging.error(message)
-        raise error.TestError(message)
-
-    logging.info("Logging into guest...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        message = "Could not log into guest"
-        logging.error(message)
-        raise error.TestFail(message)
-
-    logging.info("Logged in")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     internal_yum_update(session, "yum update", params.get("shell_prompt"), 600)
     internal_yum_update(session, "yum update kernel",
@@ -461,21 +402,10 @@ def run_linux_s3(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
-
-    logging.info("Logged in")
     logging.info("Checking that VM supports S3")
-
     status = session.get_command_status("grep -q mem /sys/power/state")
     if status == None:
         logging.error("Failed to check if S3 exists")
@@ -520,11 +450,7 @@ def run_stress_boot(tests, params, env):
     @param env:    Dictionary with test environment.
     """
     # boot the first vm
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
 
     logging.info("Waiting for first guest to be up...")
 
@@ -645,19 +571,8 @@ def run_timedrift(test, params, env):
         guest_time = time.mktime(time.strptime(s, time_format))
         return (host_time, guest_time)
 
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
-
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
-
-    logging.info("Logged in")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     # Collect test parameters:
     # Command to run to get the current time
@@ -781,20 +696,11 @@ def run_autoit(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
-    if not vm:
-        raise error.TestError("VM object not found in environment")
-    if not vm.is_alive():
-        raise error.TestError("VM seems to be dead; Test requires a living VM")
-
-    logging.info("Waiting for guest to be up...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest")
+    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    session = kvm_test_utils.wait_for_login(vm)
 
     try:
-        logging.info("Logged in; starting script...")
+        logging.info("Starting script...")
 
         # Collect test parameters
         binary = params.get("autoit_binary")
