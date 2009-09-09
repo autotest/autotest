@@ -290,44 +290,18 @@ class kvm_spawn:
         return self.id
 
 
-    def get_shell_pid(self):
+    def get_pid(self):
         """
-        Return the PID of the subshell process, or None if not available.
-        The subshell is the shell that runs the command.
+        Return the PID of the process.
+
+        Note: this may be the PID of the shell process running the user given
+        command.
         """
         try:
             file = open(self.shell_pid_filename, "r")
             pid = int(file.read())
             file.close()
             return pid
-        except:
-            return None
-
-
-    def get_pid(self, index=0):
-        """
-        Try to get and return the PID of a child process of the subshell.
-        This is usually the PID of the process executed in the subshell.
-        There are 3 exceptions:
-            - If the subshell couldn't start the process for some reason, no
-              PID can be returned.
-            - If the subshell is running several processes in parallel,
-              multiple PIDs can be returned.  Use the index parameter in this
-              case.
-            - Before starting the process, after the process has terminated,
-              or while running shell code that doesn't start any processes --
-              no PID can be returned.
-
-        @param index: The index of the child process whose PID is requested.
-                Normally this should remain 0.
-        @return: The PID of the child process, or None if none could be found.
-        """
-        parent_pid = self.get_shell_pid()
-        if not parent_pid:
-            return None
-        pids = commands.getoutput("ps --ppid %d -o pid=" % parent_pid).split()
-        try:
-            return int(pids[index])
         except:
             return None
 
@@ -375,7 +349,7 @@ class kvm_spawn:
         """
         # Kill it if it's alive
         if self.is_alive():
-            kvm_utils.kill_process_tree(self.get_shell_pid(), sig)
+            kvm_utils.kill_process_tree(self.get_pid(), sig)
         # Wait for the server to exit
         _wait(self.lock_server_running_filename)
         # Call all cleanup routines
