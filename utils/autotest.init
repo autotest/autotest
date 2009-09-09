@@ -21,10 +21,6 @@ fi
 autotest_start() {
   cd /tmp
 
-  log_daemon_msg "Starting tcpserver"
-  start-stop-daemon --start --quiet --chuid $BECOME_USER \
-    --background --exec $BASE_DIR/tcpserver/run_server.py
-
   log_daemon_msg "Starting monitor_db_babysitter"
   start-stop-daemon --start --quiet --chuid $BECOME_USER \
     --background --exec $BASE_DIR/scheduler/monitor_db_babysitter
@@ -40,7 +36,6 @@ stop_daemon() {
 autotest_stop() {
   stop_daemon monitor_db_babysitter babysitter
   stop_daemon monitor_db scheduler
-  stop_daemon run_server tcpserver
 }
 
 case "$1" in
