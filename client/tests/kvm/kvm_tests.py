@@ -99,44 +99,32 @@ def run_shutdown(test, params, env):
 def run_migration(test, params, env):
     """
     KVM migration test:
-
-    1) Get two live VMs. One will be the 'source', the other will be the
-    'destination'.
-    2) Verify if the source VM supports migration. If it does, proceed with
-    the test
-    3) Send a migration command to the source vm and wait until it's finished.
-    4) Kill off the source vm
-    3) Log into the destination vm after the migration is finished.
+    1) Get a live VM and clone it.
+    2) Verify that the source VM supports migration.  If it does, proceed with
+            the test.
+    3) Send a migration command to the source VM and wait until it's finished.
+    4) Kill off the source VM.
+    3) Log into the destination VM after the migration is finished.
     4) Compare the output of a reference command executed on the source with
-    the output of the same command on the destination machine
+            the output of the same command on the destination machine.
 
     @param test: kvm test object.
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    src_vm_name = params.get("migration_src")
-    vm = kvm_utils.env_get_vm(env, src_vm_name)
+    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
     if not vm:
-        raise error.TestError("VM '%s' not found in environment" % src_vm_name)
+        raise error.TestError("VM object not found in environment")
     if not vm.is_alive():
-        raise error.TestError("VM '%s' seems to be dead; Test requires a"
-                              " living VM" % src_vm_name)
-
-    dest_vm_name = params.get("migration_dst")
-    dest_vm = kvm_utils.env_get_vm(env, dest_vm_name)
-    if not dest_vm:
-        raise error.TestError("VM '%s' not found in environment" % dest_vm_name)
-    if not dest_vm.is_alive():
-        raise error.TestError("VM '%s' seems to be dead; Test requires a"
-                              " living VM" % dest_vm_name)
-
-    pre_scrdump_filename = os.path.join(test.debugdir, "migration_pre.ppm")
-    post_scrdump_filename = os.path.join(test.debugdir, "migration_post.ppm")
+        raise error.TestError("VM seems to be dead; Test requires a living VM")
 
     # See if migration is supported
     s, o = vm.send_monitor_cmd("help info")
     if not "info migrate" in o:
         raise error.TestError("Migration is not supported")
+
+    dest_vm = vm.clone()
+    dest_vm.create(for_migration=True)
 
     # Log into guest and get the output of migration_test_command
     logging.info("Waiting for guest to be up...")
@@ -165,54 +153,32 @@ def run_migration(test, params, env):
     # Define some helper functions
     def mig_finished():
         s, o = vm.send_monitor_cmd("info migrate")
-        if s:
-            return False
-        if "Migration status: active" in o:
-            return False
-        return True
+        return s == 0 and not "Migration status: active" in o
 
     def mig_succeeded():
         s, o = vm.send_monitor_cmd("info migrate")
-        if s == 0 and "Migration status: completed" in o:
-            return True
-        return False
+        return s == 0 and "Migration status: completed" in o
 
     def mig_failed():
         s, o = vm.send_monitor_cmd("info migrate")
-        if s == 0 and "Migration status: failed" in o:
-            return True
-        return False
+        return s == 0 and "Migration status: failed" in o
 
     # Wait for migration to finish
     if not kvm_utils.wait_for(mig_finished, 90, 2, 2,
                               "Waiting for migration to finish..."):
-        raise error.TestFail("Timeout elapsed while waiting for migration to"
+        raise error.TestFail("Timeout elapsed while waiting for migration to "
                              "finish")
 
     # Report migration status
     if mig_succeeded():
         logging.info("Migration finished successfully")
+    elif mig_failed():
+        raise error.TestFail("Migration failed")
     else:
-        if mig_failed():
-            message = "Migration failed"
-        else:
-            message = "Migration ended with unknown status"
-        raise error.TestFail(message)
-
-    # Get 'post' screendump
-    dest_vm.send_monitor_cmd("screendump %s" % post_scrdump_filename)
-
-    # Get 'pre' screendump
-    vm.send_monitor_cmd("screendump %s" % pre_scrdump_filename)
+        raise error.TestFail("Migration ended with unknown status")
 
     # Kill the source VM
-    vm.send_monitor_cmd("quit", block=False)
-
-    # Hack: it seems that the first attempt to communicate with the SSH port
-    # following migration always fails (or succeeds after a very long time).
-    # So just connect to the port once so the following call to remote_login
-    # succeeds.
-    dest_vm.is_sshd_running(timeout=0.0)
+    vm.destroy(gracefully=False)
 
     # Log into guest and get the output of migration_test_command
     logging.info("Logging into guest after migration...")
@@ -228,14 +194,16 @@ def run_migration(test, params, env):
 
     # Compare output to reference output
     if output != reference_output:
-        logging.info("Command output before migration differs from command"
-                     " output after migration")
+        logging.info("Command output before migration differs from command "
+                     "output after migration")
         logging.info("Command: %s" % params.get("migration_test_command"))
         logging.info("Output before:" +
                      kvm_utils.format_str_for_message(reference_output))
         logging.info("Output after:" + kvm_utils.format_str_for_message(output))
-        raise error.TestFail("Command produced different output before and"
-                             " after migration")
+        raise error.TestFail("Command produced different output before and "
+                             "after migration")
+
+    kvm_utils.env_register_vm(env, params.get("main_vm"), dest_vm)
 
 
 def run_autotest(test, params, env):
