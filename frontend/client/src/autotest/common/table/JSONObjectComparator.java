@@ -21,9 +21,16 @@ public class JSONObjectComparator implements Comparator<JSONObject> {
             String key1 = arg1.get(sortSpec.getField()).toString().toLowerCase();
             compareValue = key0.compareTo(key1) * sortSpec.getDirectionMultiplier();
             if (compareValue != 0) {
-                break;
+                return compareValue;
             }
         }
-        return compareValue;
+        
+        // the given sort keys were all equal, but we'll ensure we're consistent with 
+        // JSONObject.equals()
+        if (arg0.equals(arg1)) {
+            return 0;
+        }
+        // arbitrary (but consistent) ordering in this case
+        return arg0.hashCode() > arg1.hashCode() ? 1 : -1;
     }
 }

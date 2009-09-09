@@ -8,9 +8,7 @@ import com.google.gwt.event.dom.client.DoubleClickEvent;
 import com.google.gwt.event.dom.client.DoubleClickHandler;
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.event.shared.GwtEvent;
-import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.event.shared.HandlerRegistration;
-import com.google.gwt.user.client.ui.ListBox;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,67 +18,6 @@ import java.util.Set;
 
 
 public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandler, ChangeHandler {
-    /* Simplified ListBox interface used in this class */
-    public interface SimplifiedList {
-        public void clear();
-        public void addItem(String name, String value);
-        public String getSelectedName();
-        public void selectByName(String name);
-        public HandlerRegistration addChangeHandler(ChangeHandler handler);
-    }
-
-    public static class SimplifiedListWrapper implements SimplifiedList, ChangeHandler {
-        private ListBox list;
-        private HandlerManager handlers = new HandlerManager(this);
-
-        public SimplifiedListWrapper(ListBox list) {
-            this.list = list;
-            list.addChangeHandler(this);
-        }
-
-        @Override
-        public void onChange(ChangeEvent event) {
-            // re-fire event with this wrapper as the source
-            handlers.fireEvent(event);
-        }
-
-        @Override
-        public HandlerRegistration addChangeHandler(ChangeHandler handler) {
-            return handlers.addHandler(ChangeEvent.getType(), handler);
-        }
-
-        @Override
-        public void addItem(String name, String value) {
-            list.addItem(name, value);
-        }
-
-        @Override
-        public void clear() {
-            list.clear();
-        }
-
-        @Override
-        public String getSelectedName() {
-            int selectedIndex = list.getSelectedIndex();
-            if (selectedIndex == -1) {
-                return null;
-            }
-            return list.getItemText(selectedIndex);
-        }
-
-        @Override
-        public void selectByName(String name) {
-            for (int i = 0; i < list.getItemCount(); i++) {
-                if (list.getItemText(i).equals(name)) {
-                    list.setSelectedIndex(i);
-                    return;
-                }
-            }
-            
-            throw new IllegalArgumentException("Item " + name + " not found");
-        }
-    }
-
     /* Simple display showing two list boxes, one of available items and one of selected items */
     public interface DoubleListDisplay {
         public HasClickHandlers getAddAllButton();

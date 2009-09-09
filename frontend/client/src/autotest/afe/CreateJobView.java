@@ -234,22 +234,18 @@ public class CreateJobView extends TabView
         controlReadyForSubmit = true;
         
         JSONArray hostInfo = cloneObject.get("hosts").isArray();
-        List<JSONObject> hosts = new JSONArrayList<JSONObject>(hostInfo);
-        for (JSONObject host : hosts) {
-            // One-time hosts will already have the locked_text field set by the RPC. Other hosts
-            // will need to create their locked_text fields.
-            if (host.get("locked_text") == null) {
-                host.put("locked_text", AfeUtils.getLockedText(host));
-            }
+        List<String> hostnames = new ArrayList<String>();
+        for (JSONObject host : new JSONArrayList<JSONObject>(hostInfo)) {
+            hostnames.add(Utils.jsonToString(host.get("hostname")));
         }
-        hostSelector.availableSelection.selectObjects(hosts);
+        hostSelector.setSelectedHostnames(hostnames);
         
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
         
         for (String label : metaHostCounts.keySet()) {
             String number = Integer.toString(
                 (int) metaHostCounts.get(label).isNumber().doubleValue());
-            hostSelector.selectMetaHost(label, number);
+            hostSelector.addMetaHosts(label, number);
         }
         
         hostSelector.refresh();
@@ -532,8 +528,10 @@ public class CreateJobView extends TabView
         });
         
         hostSelector = new HostSelector();
-        hostSelector.initialize(this);
-        
+        HostSelectorDisplay hostSelectorDisplay = new HostSelectorDisplay();
+        hostSelector.initialize();
+        hostSelector.bindDisplay(hostSelectorDisplay);
+
         submitJobButton.addClickListener(new ClickListener() {
             public void onClick(Widget sender) {
                 submitJob(false);
@@ -568,6 +566,7 @@ public class CreateJobView extends TabView
         addWidget(testSelector, "create_tests");
         addWidget(profilersPanel, "create_profilers");
         addWidget(controlFilePanel, "create_edit_control");
+        addWidget(hostSelectorDisplay, "create_host_selector");
         addWidget(submitJobButton, "create_submit");
         addWidget(createTemplateJobButton, "create_template_job");
         addWidget(resetButton, "create_reset");

@@ -72,15 +72,33 @@ class ServiceHandler(object):
         self.service=service
 
     def dispatchRequest(self, request):
+        """
+        Invoke a json RPC call from a decoded json request.
+        @param request: a decoded json_request
+        @returns a dictionary with keys id, result, err and err_traceback
+        """
+        results = {}
+        results['id'] = None
+        results['result'] = None
+        results['err'] = None
+        results['err_traceback'] = None
+
         try:
+            results['id'] = self._getRequestId(request)
             methName = request['method']
             args = request['params']
         except KeyError:
             raise BadServiceRequest(request)
 
-        meth = self.findServiceEndpoint(methName)
-        result = self.invokeServiceEndpoint(meth, args)
-        return result
+        try:
+            meth = self.findServiceEndpoint(methName)
+            results['result'] = self.invokeServiceEndpoint(meth, args)
+        except Exception, err:
+            results['err_traceback'] = traceback.format_exc()
+            results['err'] = err
+
+        return results
+
 
     def _getRequestId(self, request):
         try:
@@ -88,21 +106,12 @@ class ServiceHandler(object):
         except KeyError:
             raise BadServiceRequest(request)
 
+
     def handleRequest(self, jsonRequest):
-        id_ = None
-        result = None
-        err = None
-        err_traceback = None
-
         request = self.translateRequest(jsonRequest)
+        results = self.dispatchRequest(request)
+        return self.translateResult(results)
 
-        try:
-            id_ = self._getRequestId(request)
-            result = self.dispatchRequest(request)
-        except Exception, err:
-            err_traceback = traceback.format_exc()
-
-        return self.translateResult(result, err, err_traceback, id_)
 
     @staticmethod
     def translateRequest(data):
@@ -124,20 +133,31 @@ class ServiceHandler(object):
         return meth(*args)
 
     @staticmethod
-    def translateResult(rslt, err, err_traceback, id_):
-        if err is not None:
-            err = {"name": err.__class__.__name__, "message":str(err),
-                   "traceback": err_traceback}
-            rslt = None
+    def translateResult(result_dict):
+        """
+        @param result_dict: a dictionary containing the result, error, traceback
+                            and id.
+        @returns translated json result
+        """
+        if result_dict['err'] is not None:
+            error_name = result_dict['err'].__class__.__name__
+            result_dict['err'] = {'name': error_name,
+                                  'message': str(result_dict['err']),
+                                  'traceback': result_dict['err_traceback']}
+            result_dict['result'] = None
 
         try:
-            data = json_encoder.encode({"result":rslt,"id":id_,"error":err})
+            json_dict = {'result': result_dict['result'],
+                         'id': result_dict['id'],
+                         'error': result_dict['err'] }
+            data = json_encoder.encode(json_dict)
         except TypeError, e:
             err_traceback = traceback.format_exc()
             print err_traceback
             err = {"name" : "JSONEncodeException",
                    "message" : "Result Object Not Serializable",
                    "traceback" : err_traceback}
-            data = json_encoder.encode({"result":None, "id":id_,"error":err})
+            data = json_encoder.encode({"result":None, "id":result_dict['id'],
+                                        "error":err})
 
         return data
