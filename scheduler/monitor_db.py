@@ -1750,38 +1750,50 @@ class RepairTask(SpecialAgentTask):
 
 
 class PreJobTask(SpecialAgentTask):
+    def _copy_to_results_repository(self):
+        if not self.queue_entry or self.queue_entry.meta_host:
+            return
+
+        self.queue_entry.set_execution_subdir()
+        log_name = os.path.basename(self.task.execution_path())
+        source = os.path.join(self.task.execution_path(), 'debug',
+                              'autoserv.DEBUG')
+        destination = os.path.join(
+                self.queue_entry.execution_path(), log_name)
+
+        self.monitor.try_copy_to_results_repository(
+                source, destination_path=destination)
+
+
     def epilog(self):
         super(PreJobTask, self).epilog()
-        should_copy_results = (self.queue_entry and not self.success
-                               and not self.queue_entry.meta_host)
-        if should_copy_results:
-            self.queue_entry.set_execution_subdir()
-            log_name = os.path.basename(self.task.execution_path())
-            source = os.path.join(self.task.execution_path(), 'debug',
-                                  'autoserv.DEBUG')
-            destination = os.path.join(self.queue_entry.execution_path(),
-                                       log_name)
 
-            self.monitor.try_copy_to_results_repository(
-                    source, destination_path=destination)
+        if self.success:
+            return
 
-        if not self.success:
-            if self.queue_entry:
-                self.queue_entry.requeue()
-                if models.SpecialTask.objects.filter(
-                        task=models.SpecialTask.Task.REPAIR,
-                        queue_entry__id=self.queue_entry.id):
-                    self.host.set_status(models.Host.Status.REPAIR_FAILED)
-                    self._fail_queue_entry()
-                    return
-                queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
-            else:
-                queue_entry = None
+        self._copy_to_results_repository()
 
-            models.SpecialTask.objects.create(
-                    host=models.Host(id=self.host.id),
+        if self.host.protection == host_protections.Protection.DO_NOT_VERIFY:
+            return
+
+        if self.queue_entry:
+            self.queue_entry.requeue()
+
+            if models.SpecialTask.objects.filter(
                     task=models.SpecialTask.Task.REPAIR,
-                    queue_entry=queue_entry)
+                    queue_entry__id=self.queue_entry.id):
+                self.host.set_status(models.Host.Status.REPAIR_FAILED)
+                self._fail_queue_entry()
+                return
+
+            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+        else:
+            queue_entry = None
+
+        models.SpecialTask.objects.create(
+                host=models.Host(id=self.host.id),
+                task=models.SpecialTask.Task.REPAIR,
+                queue_entry=queue_entry)
 
 
 class VerifyTask(PreJobTask):
@@ -2150,12 +2162,21 @@ class CleanupTask(PreJobTask):
             self.queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
 
 
-    def _should_run_verify(self):
-        do_not_verify = (self.host.protection ==
-                         host_protections.Protection.DO_NOT_VERIFY)
-        if do_not_verify:
-            return False
-        return self.queue_entry and self.queue_entry.job.run_verify
+    def _finish_epilog(self):
+        if not self.queue_entry:
+            return
+
+        if self.host.protection == host_protections.Protection.DO_NOT_VERIFY:
+            self.queue_entry.on_pending()
+        elif self.success:
+            if self.queue_entry.job.run_verify:
+                entry = models.HostQueueEntry(id=self.queue_entry.id)
+                models.SpecialTask.objects.create(
+                        host=models.Host(id=self.host.id),
+                        queue_entry=entry,
+                        task=models.SpecialTask.Task.VERIFY)
+            else:
+                self.queue_entry.on_pending()
 
 
     def epilog(self):
@@ -2163,21 +2184,9 @@ class CleanupTask(PreJobTask):
 
         if self.success:
             self.host.update_field('dirty', 0)
+            self.host.set_status(models.Host.Status.READY)
 
-            if self.queue_entry:
-                queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
-            else:
-                queue_entry = None
-
-            if self._should_run_verify():
-                models.SpecialTask.objects.create(
-                        host=models.Host(id=self.host.id),
-                        queue_entry=queue_entry,
-                        task=models.SpecialTask.Task.VERIFY)
-            elif self.queue_entry:
-                self.queue_entry.on_pending()
-            else:
-                self.host.set_status(models.Host.Status.READY)
+        self._finish_epilog()
 
 
 class FinalReparseTask(PostJobTask):
