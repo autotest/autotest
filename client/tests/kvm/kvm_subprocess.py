@@ -367,7 +367,7 @@ class kvm_spawn:
         return _locked(self.lock_server_running_filename)
 
 
-    def close(self, sig=signal.SIGTERM):
+    def close(self, sig=signal.SIGKILL):
         """
         Kill the child process if it's alive and remove temporary files.
 
@@ -375,10 +375,7 @@ class kvm_spawn:
         """
         # Kill it if it's alive
         if self.is_alive():
-            try:
-                os.kill(self.get_shell_pid(), sig)
-            except:
-                pass
+            kvm_utils.kill_process_tree(self.get_shell_pid(), sig)
         # Wait for the server to exit
         _wait(self.lock_server_running_filename)
         # Call all cleanup routines

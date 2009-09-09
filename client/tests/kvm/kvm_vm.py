@@ -541,7 +541,7 @@ class VM:
         # If the VM isn't dead yet...
         logging.debug("Cannot quit normally; sending a kill to close the "
                       "deal...")
-        kvm_utils.safe_kill(self.process.get_pid(), 9)
+        kvm_utils.kill_process_tree(self.process.get_pid(), 9)
         # Wait for the VM to be really dead
         if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
             logging.debug("VM is down")
