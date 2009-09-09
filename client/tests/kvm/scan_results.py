@@ -51,28 +51,30 @@ def print_result(result):
         print '%-48s\t\t%s\t%s\t%s' % tuple(map(str, result))
 
 
-def main(resfile):
-    print_result(('test', 'status', 'seconds', 'info'))
+def main(resfiles):
+    print_result(('Test', 'Status', 'Seconds', 'Info'))
     print_result(('----', '------', '-------', '----'))
 
-    f = file(resfile)
-    text = f.read()
-    f.close()
-
-    results = parse_results(text)
-    map(print_result, results)
+    for resfile in resfiles:
+        print '        (Result file: %s)' % resfile
+        try:
+            f = file(resfile)
+            text = f.read()
+            f.close()
+        except IOError:
+            print 'Bad result file: %s' % resfile
+            return
+        results = parse_results(text)
+        map(print_result, results)
 
 
 if __name__ == '__main__':
-    import sys, os
+    import sys, os, glob
 
-    resfile = '../../results/default/status'
-    if len(sys.argv) == 2:
-        resfile = sys.argv[1]
-    if resfile == '-h' or resfile == '--help' or len(sys.argv) > 2:
-        print 'usage: %s [ <resfile> ]' % sys.argv[0]
-        sys.exit(0)
-    if not os.path.exists(resfile):
-        print 'Bad result file: %s' % resfile
-        sys.exit(1)
-    main(resfile)
+    resfiles = glob.glob('../../results/default/status*')
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+            print 'Usage: %s [result files]' % sys.argv[0]
+            sys.exit(0)
+        resfiles = sys.argv[1:]
+    main(resfiles)
