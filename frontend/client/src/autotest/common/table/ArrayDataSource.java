@@ -9,14 +9,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Data source that operates from a local array.  Does not support any 
  * filtering.
  */
 public class ArrayDataSource<T extends JSONObject> implements DataSource {
-    protected List<T> data = new ArrayList<T>();
-    protected JSONObjectComparator comparator;
+    protected SortedSet<T> data;
     
     /**
      * @param sortKeys keys that will be used to keep items sorted internally. We
@@ -27,32 +28,27 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
         for (int i = 0; i < sortKeys.length; i++) {
             sortSpecs[i] = new SortSpec(sortKeys[i]);
         }
-        comparator = new JSONObjectComparator(sortSpecs);
+        data = new TreeSet<T>(new JSONObjectComparator(sortSpecs));
     }
     
     public void addItem(T item) {
-        // insert in sorted order
-        int insertPosition = Collections.binarySearch(data, item, comparator);
-        if (insertPosition < 0)
-            insertPosition = -insertPosition - 1; // see binarySearch() docs
-        data.add(insertPosition, item);
+        data.add(item);
     }
     
     public void removeItem(T item) {
-        int position = Collections.binarySearch(data, item, comparator);
-        assert position >= 0;
-        data.remove(position);
+        boolean wasPresent = data.remove(item);
+        assert wasPresent;
     }
     
     public void clear() {
         data.clear();
     }
     
-    public List<T> getItems() {
-        return data;
+    public Collection<T> getItems() {
+        return Collections.unmodifiableCollection(data);
     }
     
-    protected JSONArray createJSONArray(Collection<T> objects) {
+    private JSONArray createJSONArray(Collection<T> objects) {
         JSONArray result = new JSONArray();
         int count = 0;
         for (T object : objects) {
@@ -64,7 +60,7 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
     
     public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn,
                         DataCallback callback) {
-        List<T> sortedData = data;
+        List<T> sortedData = new ArrayList<T>(data);
         if (sortOn != null) {
             Collections.sort(sortedData, new JSONObjectComparator(sortOn));
         }

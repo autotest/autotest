@@ -1,8 +1,5 @@
 package autotest.common.ui;
 
-import autotest.common.ui.MultiListSelectPresenter.SimplifiedList;
-import autotest.common.ui.MultiListSelectPresenter.SimplifiedListWrapper;
-
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.event.dom.client.DoubleClickEvent;
@@ -13,7 +10,6 @@ import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
@@ -23,16 +19,15 @@ public class DoubleListSelector extends Composite
     private static final int VISIBLE_ITEMS = 10;
 
     private Panel container = new HorizontalPanel();
-    private ListBox availableBox = new ListBox(), selectedBox = new ListBox();
-    private SimplifiedList availableWrapper = new SimplifiedListWrapper(availableBox);
-    private SimplifiedList selectedWrapper = new SimplifiedListWrapper(selectedBox);
+    private ExtendedListBox availableBox = new ExtendedListBox();
+    private ExtendedListBox selectedBox = new ExtendedListBox();
     private Button addButton = new Button("Add >"), addAllButton = new Button("Add all >");
     private Button removeButton = new Button("< Remove"), 
                    removeAllButton = new Button("< Remove all");
     private Button moveUpButton = new Button("Move up"), moveDownButton = new Button("Move down");
 
-    private HandlerManager availableListHandlerManager = new HandlerManager(availableWrapper);
-    private HandlerManager selectedListHandlerManager = new HandlerManager(selectedWrapper);
+    private HandlerManager availableListHandlerManager = new HandlerManager(availableBox);
+    private HandlerManager selectedListHandlerManager = new HandlerManager(selectedBox);
 
     public DoubleListSelector() {
         availableBox.setVisibleItemCount(VISIBLE_ITEMS);
@@ -83,11 +78,11 @@ public class DoubleListSelector extends Composite
     }
 
     public SimplifiedList getAvailableList() {
-        return availableWrapper;
+        return availableBox;
     }
 
     public SimplifiedList getSelectedList() {
-        return selectedWrapper;
+        return selectedBox;
     }
 
     @Override
