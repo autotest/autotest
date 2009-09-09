@@ -31,11 +31,8 @@ def preprocess_image(test, params):
         logging.debug("Creating image...")
         create_image = True
 
-    if create_image:
-        if not kvm_vm.create_image(params, test.bindir):
-            message = "Could not create image"
-            logging.error(message)
-            raise error.TestError(message)
+    if create_image and not kvm_vm.create_image(params, test.bindir):
+        raise error.TestError("Could not create image")
 
 
 def preprocess_vm(test, params, env, name):
@@ -78,11 +75,8 @@ def preprocess_vm(test, params, env, name):
                           "restarting it...")
             start_vm = True
 
-    if start_vm:
-        if not vm.create(name, params, test.bindir, for_migration):
-            message = "Could not start VM"
-            logging.error(message)
-            raise error.TestError(message)
+    if start_vm and not vm.create(name, params, test.bindir, for_migration):
+        raise error.TestError("Could not start VM")
 
     scrdump_filename = os.path.join(test.debugdir, "pre_%s.ppm" % name)
     vm.send_monitor_cmd("screendump %s" % scrdump_filename)
