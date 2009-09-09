@@ -58,7 +58,7 @@ variants:
 
     - reboot:       install setup
         type = boot
-        reboot = yes
+        reboot_method = shell
         kill_vm_on_error = yes
 
     - migrate:      install setup
@@ -126,6 +126,12 @@ variants:
         variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
+
+    - system_reset: install setup
+        type = boot
+        reboot_method = system_reset
+        sleep_before_reset = 20
+        kill_vm_on_error = yes
 
     - shutdown:     install setup
         type = shutdown
