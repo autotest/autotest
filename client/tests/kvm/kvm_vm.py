@@ -234,7 +234,8 @@ class VM:
                 qemu_cmd += ",model=%s" % nic_params.get("nic_model")
             if nic_params.has_key("address_index"):
                 mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
-                qemu_cmd += ",macaddr=%s" % mac
+                if mac:
+                    qemu_cmd += ",macaddr=%s" % mac
             # Handle the '-net tap' or '-net user' part
             mode = nic_params.get("nic_mode", "user")
             qemu_cmd += " -net %s,vlan=%d" % (mode, vlan)
