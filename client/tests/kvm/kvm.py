@@ -38,6 +38,9 @@ class kvm(test.test):
     @author: David Huff (dhuff@redhat.com)
     @author: Alexey Eromenko (aeromenk@redhat.com)
     @author: Mike Burns (mburns@redhat.com)
+
+    @see: http://www.linux-kvm.org/page/KVM-Autotest/Client_Install
+            (Online doc - Getting started with KVM testing)
     """
     version = 1
     def initialize(self):
