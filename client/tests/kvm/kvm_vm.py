@@ -1,12 +1,12 @@
 #!/usr/bin/python
-import time, socket, os, logging, fcntl, re, commands
-import kvm_utils, kvm_subprocess
-
 """
 Utility classes and functions to handle Virtual Machine creation using qemu.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
+
+import time, socket, os, logging, fcntl, re, commands
+import kvm_utils, kvm_subprocess
 
 
 def get_image_filename(params, root_dir):

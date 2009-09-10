@@ -1,14 +1,14 @@
 #!/usr/bin/python
-import logging, re, os, sys, StringIO, optparse
-import common
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import logging_config, logging_manager
-
 """
 KVM configuration file utility functions.
 
 @copyright: Red Hat 2008-2009
 """
+
+import logging, re, os, sys, StringIO, optparse
+import common
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import logging_config, logging_manager
 
 
 class KvmLoggingConfig(logging_config.LoggingConfig):
