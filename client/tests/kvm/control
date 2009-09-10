@@ -16,6 +16,8 @@ DOC = """
 Executes the KVM test framework on a given host. This module is separated in
 minor functions, that execute different tests for doing Quality Assurance on
 KVM (both kernelspace and userspace) code.
+
+For online docs, please refer to http://www.linux-kvm.org/page/KVM-Autotest
 """
 
 
