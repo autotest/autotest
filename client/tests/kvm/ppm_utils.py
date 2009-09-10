@@ -1,10 +1,11 @@
-import md5, os, struct, time, re
-
 """
 Utility functions to deal with ppm (qemu screendump format) files.
 
 @copyright: Red Hat 2008-2009
 """
+
+import md5, os, struct, time, re
+
 
 # Some directory/filename utils, for consistency
 

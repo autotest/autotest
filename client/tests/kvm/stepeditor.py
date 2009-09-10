@@ -1,8 +1,4 @@
 #!/usr/bin/python
-import pygtk, gtk, os, glob, shutil, sys, logging
-import common, ppm_utils
-pygtk.require('2.0')
-
 """
 Step file creator/editor.
 
@@ -10,6 +6,10 @@ Step file creator/editor.
 @author: mgoldish@redhat.com (Michael Goldish)
 @version: "20090401"
 """
+
+import pygtk, gtk, os, glob, shutil, sys, logging
+import common, ppm_utils
+pygtk.require('2.0')
 
 
 # General utilities

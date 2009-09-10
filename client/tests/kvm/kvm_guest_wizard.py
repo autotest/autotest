@@ -1,3 +1,9 @@
+"""
+Utilities to perform automatic guest installation using step files.
+
+@copyright: Red Hat 2008-2009
+"""
+
 import os, time, md5, re, shutil, logging
 from autotest_lib.client.common_lib import utils, error
 import kvm_utils, ppm_utils, kvm_subprocess
@@ -8,12 +14,6 @@ except ImportError:
                     'conversion to JPEG disabled. In order to enable it, '
                     'please install python-imaging or the equivalent for your '
                     'distro.')
-
-"""
-Utilities to perform automatic guest installation using step files.
-
-@copyright: Red Hat 2008-2009
-"""
 
 
 def handle_var(vm, params, varname):

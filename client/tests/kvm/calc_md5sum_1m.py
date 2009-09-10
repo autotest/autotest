@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-import os, sys
-import kvm_utils
-
+#!/usr/bin/python
 """
 Program that calculates the md5sum for the first megabyte of a file.
 It's faster than calculating the md5sum for the whole ISO image.
@@ -9,6 +6,9 @@ It's faster than calculating the md5sum for the whole ISO image.
 @copyright: Red Hat 2008-2009
 @author: Uri Lublin (uril@redhat.com)
 """
+
+import os, sys
+import kvm_utils
 
 
 if len(sys.argv) < 2:
