@@ -1102,10 +1102,11 @@ def _server_main():
 
         # Read from child and write to files/pipes
         while True:
+            check_termination = False
             # Make a list of reader pipes whose buffers are not empty
             fds = [fd for (i, fd) in enumerate(reader_fds) if buffers[i]]
             # Wait until there's something to do
-            r, w, x = select.select([shell_fd, inpipe_fd], fds, [])
+            r, w, x = select.select([shell_fd, inpipe_fd], fds, [], 0.5)
             # If a reader pipe is ready for writing --
             for (i, fd) in enumerate(reader_fds):
                 if fd in w:
@@ -1116,7 +1117,9 @@ def _server_main():
                 try:
                     data = os.read(shell_fd, 16384)
                 except OSError:
-                    break
+                    data = ""
+                if not data:
+                    check_termination = True
                 # Remove carriage returns from the data -- they often cause
                 # trouble and are normally not needed
                 data = data.replace("\r", "")
@@ -1124,14 +1127,18 @@ def _server_main():
                 output_file.flush()
                 for i in range(len(readers)):
                     buffers[i] += data
+            # If os.read() raised an exception or there was nothing to read --
+            if check_termination or shell_fd not in r:
+                pid, status = os.waitpid(shell_pid, os.WNOHANG)
+                if pid:
+                    status = os.WEXITSTATUS(status)
+                    break
             # If there's data to read from the client --
             if inpipe_fd in r:
                 data = os.read(inpipe_fd, 1024)
                 os.write(shell_fd, data)
 
-        # Wait for the shell process to exit and get its exit status
-        status = os.waitpid(shell_pid, 0)[1]
-        status = os.WEXITSTATUS(status)
+        # Write the exit status to a file
         file = open(status_filename, "w")
         file.write(str(status))
         file.close()
