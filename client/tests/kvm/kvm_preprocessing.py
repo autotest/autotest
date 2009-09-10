@@ -1,7 +1,7 @@
 import sys, os, time, commands, re, logging, signal, glob
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
-import kvm_vm, kvm_utils, kvm_subprocess
+import kvm_vm, kvm_utils, kvm_subprocess, ppm_utils
 try:
     import PIL.Image
 except ImportError:
@@ -273,9 +273,10 @@ def postprocess(test, params, env):
                       " files to PNG format...")
         try:
             for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
-                new_path = f.replace(".ppm", ".png")
-                image = PIL.Image.open(f)
-                image.save(new_path, format = 'PNG')
+                if ppm_utils.image_verify_ppm_file(f):
+                    new_path = f.replace(".ppm", ".png")
+                    image = PIL.Image.open(f)
+                    image.save(new_path, format='PNG')
         except NameError:
             pass
 
