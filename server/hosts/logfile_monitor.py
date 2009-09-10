@@ -230,7 +230,7 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
 
         # Create a new lastlines_dirpath on the remote host if not already set.
         if not self._lastlines_dirpath:
-            self._lastlines_dirpath = self.get_tmp_dir(parent='/var/log')
+            self._lastlines_dirpath = self.get_tmp_dir(parent='/var/tmp')
 
         # Launch followfiles on target
         try:
