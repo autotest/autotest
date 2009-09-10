@@ -1,14 +1,14 @@
-import md5, thread, subprocess, time, string, random, socket, os, signal, pty
-import select, re, logging, commands
-from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
-import kvm_subprocess
-
 """
 KVM test utility functions.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
+
+import md5, thread, subprocess, time, string, random, socket, os, signal, pty
+import select, re, logging, commands
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib import error
+import kvm_subprocess
 
 
 def get_sub_dict(dict, name):

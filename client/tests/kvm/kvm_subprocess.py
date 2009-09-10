@@ -1,13 +1,13 @@
 #!/usr/bin/python
-import sys, subprocess, pty, select, os, time, signal, re, termios, fcntl
-import threading, logging, commands
-import common, kvm_utils
-
 """
 A class and functions used for running and controlling child processes.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
+
+import sys, subprocess, pty, select, os, time, signal, re, termios, fcntl
+import threading, logging, commands
+import common, kvm_utils
 
 
 def run_bg(command, termination_func=None, output_func=None, output_prefix="",

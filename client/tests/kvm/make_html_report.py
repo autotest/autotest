@@ -1,7 +1,4 @@
 #!/usr/bin/python
-import os, sys, re, getopt, time, datetime, commands
-import common
-
 """
 Script used to parse the test results and generate an HTML report.
 
@@ -9,6 +6,9 @@ Script used to parse the test results and generate an HTML report.
 @copyright: Red Hat 2008-2009
 @author: Dror Russo (drusso@redhat.com)
 """
+
+import os, sys, re, getopt, time, datetime, commands
+import common
 
 
 format_css="""
@@ -178,7 +178,6 @@ font-size: 13px;}
 */
 }
 """
-
 
 
 table_js="""
@@ -1374,13 +1373,6 @@ function processList(ul) {
   }
 }
 """
-
-
-
-
-
-
-
 
 
 #################################################################

@@ -1,13 +1,13 @@
 #!/usr/bin/python
-import shutil, os, sys
-import common
-
 """
 Program that replaces the CD keys present on a KVM autotest configuration file.
 
 @copyright: Red Hat 2008-2009
 @author: uril@redhat.com (Uri Lublin)
 """
+
+import shutil, os, sys
+import common
 
 
 def file_to_lines(filename):

@@ -1,12 +1,12 @@
-import time, os, logging, re, commands
-from autotest_lib.client.common_lib import utils, error
-import kvm_utils, kvm_subprocess, ppm_utils, scan_results, kvm_test_utils
-
 """
 KVM test definitions.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
+
+import time, os, logging, re, commands
+from autotest_lib.client.common_lib import utils, error
+import kvm_utils, kvm_subprocess, ppm_utils, scan_results, kvm_test_utils
 
 
 def run_boot(test, params, env):
