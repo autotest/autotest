@@ -271,12 +271,14 @@ class GitInstaller:
             utils.system('make -j %s' % utils.count_cpus())
             logging.info('Building KVM userspace code')
             os.chdir(self.userspace_srcdir)
-            utils.system('./configure --prefix=%s' % self.prefix)
+            utils.system('./configure --disable-strip --prefix=%s' %
+                         self.prefix)
             utils.system('make clean')
             utils.system('make -j %s' % utils.count_cpus())
         else:
             os.chdir(self.userspace_srcdir)
-            utils.system('./configure --prefix=%s' % self.prefix)
+            utils.system('./configure --disable-strip --prefix=%s' %
+                         self.prefix)
             logging.info('Building KVM modules')
             utils.system('make clean')
             utils.system('make -C kernel LINUX=%s sync' % self.kernel_srcdir)
