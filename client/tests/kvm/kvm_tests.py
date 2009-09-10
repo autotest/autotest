@@ -205,10 +205,44 @@ def run_autotest(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
+    # Helper functions
+    def copy_if_size_differs(vm, local_path, remote_path):
+        """
+        Copy a file to a guest if it doesn't exist or if its size differs.
+
+        @param vm: VM object
+        @param local_path: Local path
+        @param remote_path: Remote path
+        """
+        copy = False
+        output = session.get_command_output("ls -l %s" % remote_path)
+        if ("such file" in output or
+            int(output.split()[4]) != os.path.getsize(local_path)):
+            basename = os.path.basename(local_path)
+            logging.info("Copying %s to guest (file is missing or has a "
+                         "different size)..." % basename)
+            if not vm.copy_files_to(local_path, remote_path):
+                raise error.TestFail("Could not copy %s to guest" % basename)
+
+    def extract(vm, remote_path, dest_dir="."):
+        """
+        Extract a .tar.bz2 file on the guest.
+
+        @param vm: VM object
+        @param remote_path: Remote file path
+        @param dest_dir: Destination dir for the contents
+        """
+        basename = os.path.basename(remote_path)
+        logging.info("Extracting %s..." % basename)
+        status = session.get_command_status("tar xfj %s -C %s" %
+                                            (remote_path, dest_dir))
+        if status != 0:
+            raise error.TestFail("Could not extract %s" % basename)
+
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm)
 
-    # Collect some info
+    # Collect test parameters
     test_name = params.get("test_name")
     test_timeout = int(params.get("test_timeout", 300))
     test_control_file = params.get("test_control_file", "control")
@@ -235,104 +269,47 @@ def run_autotest(test, params, env):
                           (os.path.join(test.bindir, "autotest", "tests"),
                            tarred_test_path, test_name), timeout=30)
 
-    # Check if we need to copy autotest.tar.bz2
-    copy = False
-    output = session.get_command_output("ls -l autotest.tar.bz2")
-    if "such file" in output:
-        copy = True
-    else:
-        size = int(output.split()[4])
-        if size != os.path.getsize(tarred_autotest_path):
-            copy = True
-    # Perform the copy
-    if copy:
-        logging.info("Copying autotest.tar.bz2 to guest"
-                     " (file is missing or has a different size)...")
-        if not vm.copy_files_to(tarred_autotest_path, ""):
-            raise error.TestFail("Could not copy autotest.tar.bz2 to guest")
+    # Copy autotest.tar.bz2
+    copy_if_size_differs(vm, tarred_autotest_path, "autotest.tar.bz2")
 
-    # Check if we need to copy <test_name>.tar.bz2
-    copy = False
-    output = session.get_command_output("ls -l %s.tar.bz2" % test_name)
-    if "such file" in output:
-        copy = True
-    else:
-        size = int(output.split()[4])
-        if size != os.path.getsize(tarred_test_path):
-            copy = True
-    # Perform the copy
-    if copy:
-        logging.info("Copying %s.tar.bz2 to guest (file is missing or has a"
-                     " different size)..." % test_name)
-        if not vm.copy_files_to(tarred_test_path, ""):
-            raise error.TestFail("Could not copy %s.tar.bz2 to guest" %
-                                 test_name)
+    # Copy <test_name>.tar.bz2
+    copy_if_size_differs(vm, tarred_test_path, test_name + ".tar.bz2")
 
     # Extract autotest.tar.bz2
-    logging.info("Extracting autotest.tar.bz2...")
-    status = session.get_command_status("tar xvfj autotest.tar.bz2")
-    if status != 0:
-        raise error.TestFail("Could not extract autotest.tar.bz2")
+    extract(vm, "autotest.tar.bz2")
 
     # mkdir autotest/tests
     session.sendline("mkdir autotest/tests")
 
     # Extract <test_name>.tar.bz2 into autotest/tests
-    logging.info("Extracting %s.tar.bz2..." % test_name)
-    status = session.get_command_status("tar xvfj %s.tar.bz2 -C "
-                                        "autotest/tests" % test_name)
-    if status != 0:
-        raise error.TestFail("Could not extract %s.tar.bz2" % test_name)
+    extract(vm, test_name + ".tar.bz2", "autotest/tests")
 
-    # Cleaning up old remaining results
-    session.sendline("rm -rf autotest/results/*")
-    # Copying the selected control file (located inside
-    # test.bindir/autotest_control to the autotest dir
+    # Copy the selected control file (located inside
+    # test.bindir/autotest_control) to the autotest dir
     control_file_path = os.path.join(test.bindir, "autotest_control",
                                      test_control_file)
     if not vm.copy_files_to(control_file_path, "autotest/control"):
         raise error.TestFail("Could not copy the test control file to guest")
+
     # Run the test
     logging.info("Running test '%s'..." % test_name)
     session.sendline("cd autotest")
     session.sendline("rm -f control.state")
+    session.sendline("rm -rf results/*")
     session.read_up_to_prompt()
-    session.sendline("bin/autotest control")
     logging.info("---------------- Test output ----------------")
-    match = session.read_up_to_prompt(timeout=test_timeout,
-                                      print_func=logging.info)[0]
+    status = session.get_command_status("bin/autotest control",
+                                        timeout=test_timeout,
+                                        print_func=logging.info)
     logging.info("---------------- End of test output ----------------")
-    if not match:
+    if status is None:
         raise error.TestFail("Timeout elapsed while waiting for test to "
                              "complete")
+
     # Get the results generated by autotest
     output = session.get_command_output("cat results/*/status")
-
-    # Parse test results
-    result_list = scan_results.parse_results(output)
-
-    # Report test results and check for FAIL/ERROR status
-    logging.info("Results (test, status, duration, info):")
-    status_error = False
-    status_fail = False
-    if result_list == []:
-        status_fail = True
-        message_fail = ("Test '%s' did not produce any recognizable "
-                        "results" % test_name)
-    for result in result_list:
-        logging.info(str(result))
-        if result[1] == "FAIL":
-            status_fail = True
-            message_fail = ("Test '%s' ended with FAIL "
-                            "(info: '%s')" % (result[0], result[3]))
-        if result[1] == "ERROR":
-            status_error = True
-            message_error = ("Test '%s' ended with ERROR "
-                             "(info: '%s')" % (result[0], result[3]))
-        if result[1] == "ABORT":
-            status_error = True
-            message_error = ("Test '%s' ended with ABORT "
-                             "(info: '%s')" % (result[0], result[3]))
+    results = scan_results.parse_results(output)
+    session.close
 
     # Copy test results to the local bindir/guest_results
     logging.info("Copying results back from guest...")
@@ -342,11 +319,25 @@ def run_autotest(test, params, env):
     if not vm.copy_files_from("autotest/results/default/*", guest_results_dir):
         logging.error("Could not copy results back from guest")
 
+    # Report test results
+    logging.info("Results (test, status, duration, info):")
+    for result in results:
+        logging.info(str(result))
+
+    # Make a list of FAIL/ERROR/ABORT results (make sure FAIL results appear
+    # before ERROR results, and ERROR results appear before ABORT results)
+    bad_results = [r for r in results if r[1] == "FAIL"]
+    bad_results += [r for r in results if r[1] == "ERROR"]
+    bad_results += [r for r in results if r[1] == "ABORT"]
+
     # Fail the test if necessary
-    if status_fail:
-        raise error.TestFail(message_fail)
-    elif status_error:
-        raise error.TestError(message_error)
+    if not results:
+        raise error.TestFail("Test '%s' did not produce any recognizable "
+                             "results" % test_name)
+    if bad_results:
+        result = bad_results[0]
+        raise error.TestFail("Test '%s' ended with %s (reason: '%s')"
+                             % (result[0], result[1], result[3]))
 
 
 def internal_yum_update(session, command, prompt, timeout):
