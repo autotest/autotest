@@ -3,38 +3,194 @@
 import sys, optparse, pwd
 import common
 from autotest_lib.cli import rpc, host
+from autotest_lib.client.common_lib import host_queue_entry_states
 
 parser = optparse.OptionParser(
-    usage= 'usage: %prog [options] <job id> <hostname>')
+    usage='Usage: %prog [options] <job id> [<hostname>]\n\n'
+          'Describes why the given job on the given host has not started.')
 parser.add_option('-w', '--web',
                   help='Autotest server to use (i.e. "autotest")')
 options, args = parser.parse_args()
 
-if len(args) != 2:
-    parser.print_usage()
+if len(args) < 1:
+    parser.print_help()
     sys.exit(1)
 
 job_id = int(args[0])
-hostname = args[1]
 
 autotest_host = rpc.get_autotest_server(options.web)
 proxy = rpc.afe_comm(autotest_host)
-
-# host exists?
-hosts = proxy.run('get_hosts', hostname=hostname)
-if not hosts:
-    print 'No such host', hostname
-    sys.exit(1)
-host = hosts[0]
 
 # job exists?
 jobs = proxy.run('get_jobs', id=job_id)
 if not jobs:
     print 'No such job', job_id
     sys.exit(1)
+job = jobs[0]
+owner = job['owner']
+
+RUNNING_HQE_STATUSES = host_queue_entry_states.ACTIVE_STATUSES
 
 # any entry eligible for this host?
 queue_entries = proxy.run('get_host_queue_entries', job__id=job_id)
+
+### Divine why an atomic group job is or is not running.
+if queue_entries and queue_entries[0]['atomic_group']:
+    if queue_entries[0]['status'] in RUNNING_HQE_STATUSES:
+        print 'Job %d appears to have started (status: %s).' % (
+                job_id, queue_entries[0]['status'])
+        sys.exit(0)
+    if len(queue_entries) > 1:
+        print 'This script does not support multi-group atomic group jobs.'
+        print
+        print 'Jobs scheduled in that state are typically unintentional.'
+        print
+        print 'Did you perhaps schedule the job via the web frontend and ask'
+        print 'that it run on more than 1 (atomic group) of hosts via the '
+        print '"Run on any" box?  If so, always enter 1 there when scheduling'
+        print 'jobs on anything marked "(atomic group)".'
+        print
+        print len(queue_entries), 'non-started atomic group HostQueueEntries',
+        print 'found for job', job_id
+        sys.exit(1)
+    atomic_group_name = queue_entries[0]['atomic_group']['name']
+    # Get the list of labels associated with this atomic group.
+    atomic_labels = proxy.run('get_labels',
+                              atomic_group__name=atomic_group_name)
+
+    job_sync_count = job['synch_count']
+    # Ugh! This is returned as a comma separated str of label names.
+    if job.get('dependencies'):
+        job_dependency_label_names = job['dependencies'].split(',')
+    else:
+        job_dependency_label_names = []
+
+    meta_host_id = queue_entries[0]['meta_host']
+    if meta_host_id:
+        meta_host = proxy.run('get_labels', id=meta_host)[0]
+        meta_host_name = meta_host['name']
+    else:
+        meta_host = None
+        meta_host_name = None
+
+    # A mapping from label name -> a list of hostnames usable for this job.
+    runnable_atomic_label_names = {}
+
+    # A mapping from label name -> a host_exclude_reasons map as described
+    # within the loop below.  Any atomic group labels in this map are not
+    # ready to run the job for the reasons contained within.
+    atomic_label_exclude_reasons = {}
+
+    for label in atomic_labels:
+        label_name = label['name']
+        if meta_host and meta_host_name != label_name:
+            print 'Cannot run on atomic label %s due to meta_host %s.' % (
+                    label_name, meta_host_name)
+            continue
+        for dep_name in job_dependency_label_names:
+            if dep_name != label_name:
+                print 'Not checking hosts in atomic label %s against' % (
+                        label_name,)
+                print 'job dependency label %s.  There may be less hosts' % (
+                        dep_name,)
+                print 'than examined below available to run this job.'
+
+        # Get the list of hosts associated with this atomic group label.
+        atomic_hosts = proxy.run('get_hosts', multiple_labels=[label_name])
+
+        # A map of hostname -> A list of reasons it can't be used.
+        host_exclude_reasons = {}
+
+        atomic_hostnames = [h['hostname'] for h in atomic_hosts]
+
+        # Map hostnames to a list of ACL names on that host.
+        acl_groups = proxy.run('get_acl_groups',
+                               hosts__hostname__in=atomic_hostnames)
+        hostname_to_acl_name_list = {}
+        for acl in acl_groups:
+            for hostname in acl['hosts']:
+                hostname_to_acl_name_list.setdefault(hostname, []).append(
+                        acl['name'])
+
+        # Exclude any hosts that ACLs deny us access to.
+        accessible_hosts = proxy.run('get_hosts', hostname__in=atomic_hostnames,
+                                     aclgroup__users__login=owner)
+        assert len(accessible_hosts) <= len(atomic_hosts)
+        if len(accessible_hosts) != len(atomic_hosts):
+            accessible_hostnames = set(h['hostname'] for h in accessible_hosts)
+            acl_excluded_hostnames = (set(atomic_hostnames) -
+                                      accessible_hostnames)
+            for hostname in acl_excluded_hostnames:
+                acls = ','.join(hostname_to_acl_name_list[hostname])
+                host_exclude_reasons.setdefault(hostname, []).append(
+                        'User %s does not have ACL access. ACLs: %s' % (
+                                owner, acls))
+
+        # Exclude any hosts that are not Ready.
+        usable_atomic_hostnames = []
+        for host in atomic_hosts:
+            hostname = host['hostname']
+            if host['status'] != 'Ready':
+                message = 'Status is %s' % host['status']
+                if host['status'] in ('Verifying', 'Pending', 'Running'):
+                    running_hqes = proxy.run(
+                            'get_host_queue_entries', host__hostname=hostname,
+                            status__in=RUNNING_HQE_STATUSES)
+                    if not running_hqes:
+                        message += ' (unknown job)'
+                    else:
+                        message += ' (job %d)' % running_hqes[0]['job']['id']
+                host_exclude_reasons.setdefault(hostname, []).append(message)
+            if hostname not in host_exclude_reasons:
+                usable_atomic_hostnames.append(hostname)
+
+        # If we don't have enough usable hosts, this group cannot run the job.
+        if len(usable_atomic_hostnames) < job_sync_count:
+            atomic_label_exclude_reasons[label_name] = (
+                    '%d hosts are required but only %d are available.' % (
+                            job_sync_count, len(usable_atomic_hostnames)),
+                    host_exclude_reasons)
+        else:
+            runnable_atomic_label_names[label_name] = usable_atomic_hostnames
+
+    for label_name, reason_tuple in atomic_label_exclude_reasons.iteritems():
+        job_reason, hosts_reasons = reason_tuple
+        print 'Atomic group "%s" via label "%s" CANNOT run job %d because:' % (
+                atomic_group_name, label_name, job_id)
+        print job_reason
+        for hostname in sorted(hosts_reasons.keys()):
+            for reason in hosts_reasons[hostname]:
+                print '%s\t%s' % (hostname, reason)
+        print
+
+    for label_name, host_list in runnable_atomic_label_names.iteritems():
+        print 'Atomic group "%s" via label "%s" is READY to run job %d on:' % (
+                atomic_group_name, label_name, job_id)
+        print ', '.join(host_list)
+        # TODO: we should check if the hosts are locked and print the culprit
+        # here.
+        print 'Are the hosts Locked?'
+        print 'Is the autotest job scheduler healthy?'
+        print
+
+    sys.exit(0)
+
+
+### Not an atomic group synchronous job:
+
+if len(args) != 2:
+    parser.print_help()
+    print '\nERROR: A hostname associated with the job is required.'
+    sys.exit(1)
+
+# host exists?
+hostname = args[1]
+hosts = proxy.run('get_hosts', hostname=hostname)
+if not hosts:
+    print 'No such host', hostname
+    sys.exit(1)
+host = hosts[0]
+
 entries_for_this_host = [entry for entry in queue_entries
                          if entry['host']
                          and entry['host']['hostname'] == hostname]
@@ -79,8 +235,6 @@ if host['locked']:
     sys.exit(0)
 
 # acl accessible?
-job = jobs[0]
-owner = job['owner']
 accessible = proxy.run('get_hosts', hostname=hostname,
                        aclgroup__users__login=owner)
 if not accessible:
@@ -120,8 +274,13 @@ host_atomic_group_labels = [label for label in host_labels
                             if label['atomic_group']]
 host_atomic_group_name = None
 if host_atomic_group_labels:
-    assert len(host_atomic_group_labels) == 1, (
-        'Host has more than one atomic group label!')
+    atomic_groups = set()
+    for label in host_atomic_group_labels:
+        atomic_groups.add(label['atomic_group']['name'])
+    if len(atomic_groups) != 1:
+        print 'Host has more than one atomic group!'
+        print list(atomic_groups)
+        sys.exit(1)
     host_atomic_group_label = host_atomic_group_labels[0]
     host_atomic_group_name = host_atomic_group_label['atomic_group']['name']
 
