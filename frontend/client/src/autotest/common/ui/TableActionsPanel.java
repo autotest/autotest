@@ -3,16 +3,16 @@ package autotest.common.ui;
 
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 
-import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.PopupListener;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.ToggleButton;
-import com.google.gwt.user.client.ui.Widget;
 
-public class TableActionsPanel extends Composite implements ClickListener, PopupListener {
+public class TableActionsPanel extends Composite implements ClickHandler, PopupListener {
     public static interface TableActionsListener {
         public ContextMenu getActionMenu();
     }
@@ -29,8 +29,8 @@ public class TableActionsPanel extends Composite implements ClickListener, Popup
     
     public TableActionsPanel(boolean wantSelectVisible) {
         selectionPanel = new TableSelectionPanel(wantSelectVisible);
-        actionsButton.addClickListener(this);
-        exportCsvLink.addClickListener(this);
+        actionsButton.addClickHandler(this);
+        exportCsvLink.addClickHandler(this);
         exportCsvLink.setVisible(false);
         exportCsvLink.getElement().getStyle().setProperty("marginLeft", "1em");
 
@@ -58,12 +58,12 @@ public class TableActionsPanel extends Composite implements ClickListener, Popup
         selectionPanel.setListener(listener);
     }
     
-    public void onClick(Widget sender) {
-        if (sender == exportCsvLink) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == exportCsvLink) {
             assert csvListener != null;
             csvListener.onExportCsv();
         } else {
-            assert sender == actionsButton;
+            assert event.getSource() == actionsButton;
             ContextMenu menu = listener.getActionMenu();
             menu.addPopupListener(this);
             menu.showAt(actionsButton.getAbsoluteLeft(), 

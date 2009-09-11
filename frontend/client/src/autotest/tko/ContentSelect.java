@@ -4,11 +4,12 @@ import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.ChangeListener;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
@@ -43,8 +44,8 @@ public class ContentSelect extends Composite {
         
         initWidget(panel);
         
-        addLink.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        addLink.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 if (contentSelect.isVisible()) {
                     addLink.setText(ADD_ADDITIONAL_CONTENT);
                     contentSelect.setVisible(false);

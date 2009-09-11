@@ -4,17 +4,17 @@ import autotest.common.JSONArrayList;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-class AbortSynchronousDialog extends DialogBox implements ClickListener {
+class AbortSynchronousDialog extends DialogBox implements ClickHandler {
     private SimpleCallback abortAsynchronousEntries;
     private JSONArray synchronousJobArgs;
     private Button abortAll, abortAsynchronous, cancel;
@@ -46,11 +46,11 @@ class AbortSynchronousDialog extends DialogBox implements ClickListener {
         contents.add(jobListLabel);
         
         abortAll = new Button("Abort full jobs");
-        abortAll.addClickListener(this);
+        abortAll.addClickHandler(this);
         abortAsynchronous = new Button("Abort asynchronous only");
-        abortAsynchronous.addClickListener(this);
+        abortAsynchronous.addClickHandler(this);
         cancel = new Button("Cancel");
-        cancel.addClickListener(this);
+        cancel.addClickHandler(this);
         
         Panel buttons = new HorizontalPanel();
         buttons.add(abortAll);
@@ -91,13 +91,13 @@ class AbortSynchronousDialog extends DialogBox implements ClickListener {
         return Utils.joinStrings(", ", groupTagList);
     }
 
-    public void onClick(Widget sender) {
-        if (sender == abortAll) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == abortAll) {
             for (JSONObject groupParams : new JSONArrayList<JSONObject>(synchronousJobArgs)) {
                 AfeUtils.callAbort(groupParams, null, false);
             }
             abortAsynchronousEntries.doCallback(this);
-        } else if (sender == abortAsynchronous) {
+        } else if (event.getSource() == abortAsynchronous) {
             abortAsynchronousEntries.doCallback(this);
         }
         

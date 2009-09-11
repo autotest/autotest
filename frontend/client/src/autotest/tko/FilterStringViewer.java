@@ -2,11 +2,12 @@ package autotest.tko;
 
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
@@ -41,8 +42,8 @@ public class FilterStringViewer extends Composite {
     private ArrayList<EditListener> listeners = new ArrayList<EditListener>();
     
     public FilterStringViewer() {
-        edit.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        edit.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 changeEditable(true);
             }
         });

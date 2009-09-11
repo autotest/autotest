@@ -1,9 +1,10 @@
 package autotest.common.table;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.Panel;
@@ -26,8 +27,8 @@ public class SearchFilter extends FieldFilter {
         if (!isIncremental) {
             searchButton = new Button("Search");
             container.add(searchButton);
-            searchButton.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
+            searchButton.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     notifyListeners();
                 }
             });

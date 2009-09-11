@@ -1,13 +1,13 @@
 package autotest.common.ui;
 
-import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.Widget;
 
-public class TableSelectionPanel extends Composite implements ClickListener {
+public class TableSelectionPanel extends Composite implements ClickHandler {
     public static interface SelectionPanelListener {
         public void onSelectAll(boolean visibleOnly);
         public void onSelectNone();
@@ -19,8 +19,8 @@ public class TableSelectionPanel extends Composite implements ClickListener {
     private SimpleHyperlink selectNone = new SimpleHyperlink("none");
     
     public TableSelectionPanel(boolean wantSelectVisible) {
-        selectAll.addClickListener(this);
-        selectNone.addClickListener(this);
+        selectAll.addClickHandler(this);
+        selectNone.addClickHandler(this);
         
         Panel selectPanel = new HorizontalPanel();
         selectPanel.add(new HTML("Select:&nbsp;"));
@@ -28,7 +28,7 @@ public class TableSelectionPanel extends Composite implements ClickListener {
         selectPanel.add(new HTML(",&nbsp;"));
         if (wantSelectVisible) {
             selectVisible = new SimpleHyperlink("visible");
-            selectVisible.addClickListener(this);
+            selectVisible.addClickHandler(this);
             selectPanel.add(selectVisible);
             selectPanel.add(new HTML(",&nbsp;"));
         }
@@ -41,13 +41,13 @@ public class TableSelectionPanel extends Composite implements ClickListener {
         this.listener = listener;
     }
 
-    public void onClick(Widget sender) {
-        if (sender == selectAll) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == selectAll) {
             listener.onSelectAll(false);
-        } else if (sender == selectVisible) {
+        } else if (event.getSource() == selectVisible) {
             listener.onSelectAll(true);
         } else {
-            assert sender == selectNone;
+            assert event.getSource() == selectNone;
             listener.onSelectNone();
         }
     }

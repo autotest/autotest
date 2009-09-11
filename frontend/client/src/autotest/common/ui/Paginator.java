@@ -2,14 +2,14 @@ package autotest.common.ui;
 
 import autotest.common.SimpleCallback;
 
-import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,13 +39,9 @@ public class Paginator extends Composite {
             link.setVisible(enabled);
             label.setVisible(!enabled);
         }
-
-        public void addClickListener(ClickListener listener) {
-            link.addClickListener(listener);
-        }
-
-        public void removeClickListener(ClickListener listener) {
-            link.removeClickListener(listener);
+        
+        public void addClickHandler(ClickHandler handler) {
+            link.addClickHandler(handler);
         }
     }
 
@@ -61,29 +57,29 @@ public class Paginator extends Composite {
 
     public Paginator() {
         prevControl = new LinkWithDisable("< Previous");
-        prevControl.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        prevControl.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 currentStart -= Paginator.this.resultsPerPage;
                 notifyListeners();
             }
         });
         nextControl = new LinkWithDisable("Next >");
-        nextControl.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        nextControl.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 currentStart += Paginator.this.resultsPerPage;
                 notifyListeners();
             }
         });
         firstControl = new LinkWithDisable("<< First");
-        firstControl.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        firstControl.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 currentStart = 0;
                 notifyListeners();
             } 
         });
         lastControl = new LinkWithDisable("Last >>");
-        lastControl.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        lastControl.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 currentStart = getLastPageStart();
                 notifyListeners();
             } 

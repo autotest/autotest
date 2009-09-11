@@ -19,6 +19,8 @@ import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
 import autotest.tko.TkoUtils.FieldInfo;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -31,7 +33,6 @@ import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.Panel;
@@ -129,8 +130,8 @@ public class SpreadsheetView extends ConditionTabView
         
         updateViewFromState();
 
-        queryButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        queryButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 doQuery();
                 updateHistory();
             } 
@@ -140,8 +141,8 @@ public class SpreadsheetView extends ConditionTabView
         spreadsheet.setListener(this);
         
         SimpleHyperlink swapLink = new SimpleHyperlink("swap");
-        swapLink.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        swapLink.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 List<HeaderField> newRows = columnSelect.getSelectedItems();
                 setSelectedHeader(columnSelect, rowSelect.getSelectedItems());
                 setSelectedHeader(rowSelect, newRows);

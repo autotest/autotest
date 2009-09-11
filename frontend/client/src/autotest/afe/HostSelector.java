@@ -19,7 +19,6 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -80,8 +79,8 @@ public class HostSelector implements ClickHandler {
         selectedDecorator.addPaginators();
 
         SimpleHyperlink clearSelection = new SimpleHyperlink("Clear selection");
-        clearSelection.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        clearSelection.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 deselectAll();
             } 
         });

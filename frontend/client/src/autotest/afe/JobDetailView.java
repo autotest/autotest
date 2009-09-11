@@ -18,6 +18,8 @@ import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
@@ -31,7 +33,6 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
@@ -180,22 +181,22 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         tableDecorator.addTableActionsPanel(this, true);
         addWidget(tableDecorator, "job_hosts_table");
         
-        abortButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        abortButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 abortJob();
             }
         });
         addWidget(abortButton, "view_abort");
         
-        cloneButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        cloneButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 cloneJob();
             } 
         });
         addWidget(cloneButton, "view_clone");
         
-        recurringButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        recurringButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 createRecurringJob();
             } 
         });

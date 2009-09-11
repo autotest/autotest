@@ -11,6 +11,8 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -19,7 +21,6 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasAlignment;
 import com.google.gwt.user.client.ui.Label;
@@ -136,20 +137,20 @@ public class RecurringView extends TabView implements TableActionsListener {
         createRecurringPanel.add(createLbl);
         createRecurringPanel.add(createRecurTable);
 
-        resetBtn.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        resetBtn.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 resetCreate();
             }
         });
 
-        createBtn.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        createBtn.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 submitRecurringJob();
             }
         });
 
-        cancelBtn.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        cancelBtn.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 createRecurringPanel.setVisible(false);
             }
         });

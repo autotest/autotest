@@ -5,13 +5,13 @@ import autotest.common.Utils;
 import autotest.common.ui.SimpleDialog;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.Widget;
 
 class MetricsPlot extends Plot {
     public MetricsPlot() {
@@ -48,8 +48,8 @@ class MetricsPlot extends Plot {
                     String yValue = Utils.jsonToString(row.get(1));
 
                     SimpleHyperlink link = new SimpleHyperlink(yValue);
-                    link.addClickListener(new ClickListener() {
-                        public void onClick(Widget sender) {
+                    link.addClickHandler(new ClickHandler() {
+                        public void onClick(ClickEvent event) {
                             drill.hide();
                             listener.onSelectTest(testId);
                         }

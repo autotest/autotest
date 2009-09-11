@@ -8,20 +8,21 @@ import autotest.common.StaticDataRepository.FinishedCallback;
 import autotest.common.ui.RadioChooser;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-public class UserPreferencesView extends TabView implements ClickListener {
+public class UserPreferencesView extends TabView implements ClickHandler {
     private static final StaticDataRepository staticData = StaticDataRepository.getRepository();
     private static final JsonRpcProxy proxy = JsonRpcProxy.getProxy();
     
@@ -54,7 +55,7 @@ public class UserPreferencesView extends TabView implements ClickListener {
         AfeUtils.populateRadioChooser(rebootBefore, "reboot_before");
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
 
-        saveButton.addClickListener(this);
+        saveButton.addClickHandler(this);
 
         addOption("Reboot before", rebootBefore);
         addOption("Reboot after", rebootAfter);
@@ -87,8 +88,8 @@ public class UserPreferencesView extends TabView implements ClickListener {
         return Utils.jsonToString(user.get(key));
     }
 
-    public void onClick(Widget sender) {
-        assert sender == saveButton;
+    public void onClick(ClickEvent event) {
+        assert event.getSource() == saveButton;
         saveValues();
     }
 

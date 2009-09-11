@@ -1,12 +1,12 @@
 package autotest.common.table;
 
-import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FocusWidget;
-import com.google.gwt.user.client.ui.Widget;
 
 
-public class TableClickWidget extends Composite implements ClickListener {
+public class TableClickWidget extends Composite implements ClickHandler {
     
     private FocusWidget widget;
     private TableWidgetClickListener listener;
@@ -25,10 +25,10 @@ public class TableClickWidget extends Composite implements ClickListener {
         this.listener = listener;
  
         initWidget(widget);
-        widget.addClickListener(this);
+        widget.addClickHandler(this);
     }
     
-    public void onClick(Widget sender) {
+    public void onClick(ClickEvent event) {
         listener.onClick(this);
     }
     
