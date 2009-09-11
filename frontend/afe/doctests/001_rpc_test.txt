@@ -16,6 +16,7 @@
 ...   user.save()
 ...   thread_local.set_user(user)
 ...
+>>> from autotest_lib.frontend.afe import model_logic
 
 # get directory of this test file; we'll need it later
 >>> import common
@@ -117,6 +118,18 @@ ValidationError: {'status': 'Host status can not be modified by the frontend.'}
 >>> data = rpc_interface.get_hosts()
 >>> bool(data[0]['locked'])
 False
+
+# test already locked/unlocked failures
+>>> rpc_interface.modify_host('ipaj1000', locked=False)
+Traceback (most recent call last):
+ValidationError: {'locked': 'Host already unlocked.'}
+>>> rpc_interface.modify_host('ipaj1000', locked=True)
+>>> try:
+...     rpc_interface.modify_host('ipaj1000', locked=True)
+... except model_logic.ValidationError, err:
+...     pass
+>>> assert ('locked' in err.args[0]
+...         and err.args[0]['locked'].startswith('Host already locked'))
 >>> rpc_interface.delete_host('ipaj1000')
 >>> rpc_interface.get_hosts() == []
 True

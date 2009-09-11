@@ -334,6 +334,25 @@ def check_modify_host(update_data):
                 'status': 'Host status can not be modified by the frontend.'})
 
 
+def check_modify_host_locking(host, update_data):
+    """
+    Checks when locking/unlocking has been requested if the host is already
+    locked/unlocked.
+
+    @param host: models.Host object to be modified
+    @param update_data: A dictionary with the changes to make to the host.
+    """
+    locked = update_data.get('locked', None)
+    if locked is not None:
+        if locked and host.locked:
+            raise model_logic.ValidationError({
+                    'locked': 'Host already locked by %s on %s.' %
+                    (host.locked_by, host.lock_time)})
+        if not locked and not host.locked:
+            raise model_logic.ValidationError({
+                    'locked': 'Host already unlocked.'})
+
+
 def get_motd():
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, "..", "..", "motd.txt")
