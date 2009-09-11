@@ -5,6 +5,7 @@ import common
 from autotest_lib.frontend.afe import model_logic
 from autotest_lib.frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
+from autotest_lib.client.common_lib import host_queue_entry_states
 
 # job options and user preferences
 RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
@@ -458,8 +459,8 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                          and not host.invalid
                          and int(host.id) not in accessible_host_ids)
             if no_access:
-                raise AclAccessViolation("You do not have access to %s"
-                                         % str(host))
+                raise AclAccessViolation("%s does not have access to %s" %
+                                         (str(user), str(host)))
 
 
     @staticmethod
@@ -735,14 +736,9 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
-    Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Running',
-                       'Gathering', 'Parsing', 'Aborted', 'Completed',
-                       'Failed', 'Stopped', 'Template', 'Waiting',
-                       string_values=True)
-    ACTIVE_STATUSES = (Status.STARTING, Status.VERIFYING, Status.PENDING,
-                       Status.RUNNING, Status.GATHERING)
-    COMPLETE_STATUSES = (Status.ABORTED, Status.COMPLETED, Status.FAILED,
-                         Status.STOPPED, Status.TEMPLATE)
+    Status = host_queue_entry_states.Status
+    ACTIVE_STATUSES = host_queue_entry_states.ACTIVE_STATUSES
+    COMPLETE_STATUSES = host_queue_entry_states.COMPLETE_STATUSES 
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
