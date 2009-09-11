@@ -115,7 +115,9 @@ def add_host(hostname, status=None, locked=None, protection=None):
 
 def modify_host(id, **data):
     rpc_utils.check_modify_host(data)
-    models.Host.smart_get(id).update_object(data)
+    host = models.Host.smart_get(id)
+    rpc_utils.check_modify_host_locking(host, data)
+    host.update_object(data)
 
 
 def modify_hosts(host_filter_data, update_data):
