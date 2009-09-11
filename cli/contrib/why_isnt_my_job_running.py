@@ -40,7 +40,22 @@ if queue_entries and queue_entries[0]['atomic_group']:
         print 'Job %d appears to have started (status: %s).' % (
                 job_id, queue_entries[0]['status'])
         sys.exit(0)
-    if len(queue_entries) > 1:
+    # Hosts in Repairing or Repair Failed will have Queued queue entries.
+    # We shouldn't consider those queue entries as a multi-group job.
+    repair_hostnames = []
+    for queue_entry in queue_entries:
+        if queue_entry['host'] and queue_entry['host']['status']:
+            if queue_entry['host']['status'].startswith('Repair'):
+                repair_hostnames.append(queue_entry['host']['hostname'])
+        if queue_entry['status'] in ('Completed', 'Stopped'):
+            print 'This job has already finished.'
+            sys.exit(0)
+    if len(queue_entries) > 1 and not repair_hostnames:
+        # We test repair_hostnames so that this message is not printed when
+        # the script is run on an atomic group job which has hosts assigned
+        # but is not running because too many of them are in Repairing or will
+        # never run because hosts have exited Repairing into the Repair Failed
+        # dead end.
         print 'This script does not support multi-group atomic group jobs.'
         print
         print 'Jobs scheduled in that state are typically unintentional.'
@@ -126,8 +141,22 @@ if queue_entries and queue_entries[0]['atomic_group']:
                         'User %s does not have ACL access. ACLs: %s' % (
                                 owner, acls))
 
-        # Exclude any hosts that are not Ready.
-        usable_atomic_hostnames = []
+        # Check for locked hosts.
+        locked_hosts = [h for h in atomic_hosts if h['locked']]
+        lock_user_ids = [host['locked_by'] for host in locked_hosts]
+        user_id_to_login = {}
+        if lock_user_ids:
+            lock_owners = proxy.run('get_users', id__in=lock_user_ids)
+            for lock_owner in lock_owners:
+                user_id_to_login[lock_owner['id']] = lock_owner['login']
+        for host in locked_hosts:
+            locked_by = host.get('locked_by')
+            locker = user_id_to_login.get(locked_by, 'UNKNOWN')
+            msg = 'Locked by user %s on %s.  No jobs will schedule on it.' % (
+                    locker, host.get('lock_time'))
+            host_exclude_reasons.setdefault(host['hostname'], []).append(msg)
+
+        # Exclude hosts that are not Ready.
         for host in atomic_hosts:
             hostname = host['hostname']
             if host['status'] != 'Ready':
@@ -141,17 +170,17 @@ if queue_entries and queue_entries[0]['atomic_group']:
                     else:
                         message += ' (job %d)' % running_hqes[0]['job']['id']
                 host_exclude_reasons.setdefault(hostname, []).append(message)
-            if hostname not in host_exclude_reasons:
-                usable_atomic_hostnames.append(hostname)
 
         # If we don't have enough usable hosts, this group cannot run the job.
-        if len(usable_atomic_hostnames) < job_sync_count:
-            atomic_label_exclude_reasons[label_name] = (
-                    '%d hosts are required but only %d are available.' % (
-                            job_sync_count, len(usable_atomic_hostnames)),
-                    host_exclude_reasons)
+        usable_hostnames = [host['hostname'] for host in atomic_hosts
+                            if host['hostname'] not in host_exclude_reasons]
+        if len(usable_hostnames) < job_sync_count:
+            message = ('%d hosts are required but only %d available.' %
+                       (job_sync_count, len(usable_hostnames)))
+            atomic_label_exclude_reasons[label_name] = (message,
+                                                        host_exclude_reasons)
         else:
-            runnable_atomic_label_names[label_name] = usable_atomic_hostnames
+            runnable_atomic_label_names[label_name] = usable_hostnames
 
     for label_name, reason_tuple in atomic_label_exclude_reasons.iteritems():
         job_reason, hosts_reasons = reason_tuple
@@ -167,10 +196,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
         print 'Atomic group "%s" via label "%s" is READY to run job %d on:' % (
                 atomic_group_name, label_name, job_id)
         print ', '.join(host_list)
-        # TODO: we should check if the hosts are locked and print the culprit
-        # here.
-        print 'Are the hosts Locked?'
-        print 'Is the autotest job scheduler healthy?'
+        print 'Is the job scheduler healthy?'
         print
 
     sys.exit(0)
@@ -179,17 +205,22 @@ if queue_entries and queue_entries[0]['atomic_group']:
 ### Not an atomic group synchronous job:
 
 if len(args) != 2:
-    parser.print_help()
-    print '\nERROR: A hostname associated with the job is required.'
-    sys.exit(1)
+    if len(queue_entries) == 1 and queue_entries[0]['host']:
+        hostname = queue_entries[0]['host']['hostname']
+    else:
+        parser.print_help()
+        print '\nERROR: A hostname associated with the job is required.'
+        sys.exit(1)
+else:
+    hostname = args[1]
 
 # host exists?
-hostname = args[1]
 hosts = proxy.run('get_hosts', hostname=hostname)
 if not hosts:
     print 'No such host', hostname
     sys.exit(1)
 host = hosts[0]
+
 
 entries_for_this_host = [entry for entry in queue_entries
                          if entry['host']
@@ -231,7 +262,7 @@ if host['status'] != 'Ready':
 
 # host locked?
 if host['locked']:
-    print 'Host is locked'
+    print 'Host is locked by', host['locked_by'], 'no jobs will schedule on it.'
     sys.exit(0)
 
 # acl accessible?
