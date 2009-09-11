@@ -5,17 +5,17 @@ import autotest.common.ui.TabView;
 import autotest.tko.PreconfigSelector.PreconfigHandler;
 import autotest.tko.TableView.TableSwitchListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
 
 public abstract class DynamicGraphingFrontend extends GraphingFrontend 
-                                              implements ClickListener, PreconfigHandler {
+                                              implements ClickHandler, PreconfigHandler {
     protected PreconfigSelector preconfig;
     protected Button graphButton = new Button("Graph");
     protected Plot plot;
@@ -26,13 +26,13 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
         this.plot = plot;
         plot.setDrilldownTrigger();
         preconfig = new PreconfigSelector(preconfigType, this);
-        graphButton.addClickListener(this);
+        graphButton.addClickHandler(this);
     }
 
     @Override
-    public void onClick(Widget sender) {
-        if (sender != graphButton) {
-            super.onClick(sender);
+    public void onClick(ClickEvent event) {
+        if (event.getSource() != graphButton) {
+            super.onClick(event);
             return;
         }
         

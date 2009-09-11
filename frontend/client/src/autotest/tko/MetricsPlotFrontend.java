@@ -6,10 +6,11 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
 import autotest.tko.SeriesSelector.Series;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.ChangeListener;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
@@ -21,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MetricsPlotFrontend extends DynamicGraphingFrontend implements ClickListener {
+public class MetricsPlotFrontend extends DynamicGraphingFrontend implements ClickHandler {
     
     public static final String NORMALIZE_SINGLE = "single";
     public static final String NORMALIZE_FIRST = "first";
@@ -51,11 +52,11 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
 
         noNormalizeSingle.setChecked(true);
 
-        noNormalizeMultiple.addClickListener(this);
-        noNormalizeSingle.addClickListener(this);
-        normalizeFirst.addClickListener(this);
-        normalizeSeries.addClickListener(this);
-        normalizeX.addClickListener(this);
+        noNormalizeMultiple.addClickHandler(this);
+        noNormalizeSingle.addClickHandler(this);
+        normalizeFirst.addClickHandler(this);
+        normalizeSeries.addClickHandler(this);
+        normalizeX.addClickHandler(this);
 
         normalizeSeriesSelect.setEnabled(false);
         normalizeXSelect.setEnabled(false);
@@ -92,19 +93,19 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     }
 
     @Override
-    public void onClick(Widget sender) {
-        if (sender != noNormalizeSingle && sender != noNormalizeMultiple 
-                && sender != normalizeSeries && sender != normalizeX) {
-            super.onClick(sender);
+    public void onClick(ClickEvent event) {
+        if (event.getSource() != noNormalizeSingle && event.getSource() != noNormalizeMultiple 
+                && event.getSource() != normalizeSeries && event.getSource() != normalizeX) {
+            super.onClick(event);
             return;
         }
 
         normalizeSeriesSelect.setEnabled(false);
         normalizeXSelect.setEnabled(false);
-        if (sender == normalizeSeries) {
+        if (event.getSource() == normalizeSeries) {
             normalizeSeriesSelect.setEnabled(true);
             refreshSeries();
-        } else if (sender == normalizeX) {
+        } else if (event.getSource() == normalizeX) {
             normalizeXSelect.setEnabled(true);
         }
 

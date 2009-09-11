@@ -5,11 +5,9 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.DomEvent;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.Event;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.Widget;
 
-public class ToggleLink extends Composite implements ClickListener, ToggleControl {
+public class ToggleLink extends Composite implements ClickHandler, ToggleControl {
     private String activateText;
     private String deactivateText;
     private SimpleHyperlink link;
@@ -19,7 +17,7 @@ public class ToggleLink extends Composite implements ClickListener, ToggleContro
         this.deactivateText = deactivateText;
         
         link = new SimpleHyperlink(activateText);
-        link.addClickListener(this);
+        link.addClickHandler(this);
         initWidget(link);
     }
 
@@ -37,7 +35,7 @@ public class ToggleLink extends Composite implements ClickListener, ToggleContro
     }
 
     @Override
-    public void onClick(Widget source) {
+    public void onClick(ClickEvent event) {
         setActive(!isActive());
         // re-fire the event with this as the source
         DomEvent.fireNativeEvent(Event.getCurrentEvent(), this);

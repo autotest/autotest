@@ -4,9 +4,10 @@ import autotest.common.Utils;
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
@@ -46,8 +47,8 @@ public class SeriesSelector extends Composite {
         
         private Series(int aRow) {
             this.row = aRow;
-            deleteLink.addClickListener(new ClickListener() {
-                public void onClick(Widget w) {
+            deleteLink.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     if (enabled) {
                         deleteSeries(row);
                     }
@@ -154,8 +155,8 @@ public class SeriesSelector extends Composite {
     public SeriesSelector(ChangeListener listener) {
         this.listener = listener;
         
-        addLink.addClickListener(new ClickListener() {
-            public void onClick(Widget w) {
+        addLink.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 if (enabled) {
                     addSeries();
                 }

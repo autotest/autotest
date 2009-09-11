@@ -11,12 +11,13 @@ import autotest.common.ui.SimpleDialog;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TableView.TableSwitchListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasVerticalAlignment;
@@ -26,7 +27,7 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Map;
 
 public abstract class GraphingFrontend extends Composite 
-                                       implements CustomHistoryListener, ClickListener {
+                                       implements CustomHistoryListener, ClickHandler {
     public static final String HISTORY_TOKEN = "embedded_query";
     
     protected FlexTable table = new FlexTable();
@@ -51,11 +52,11 @@ public abstract class GraphingFrontend extends Composite
     
     protected GraphingFrontend() {
         CustomHistory.addHistoryListener(this);
-        embeddingLink.addClickListener(this);
+        embeddingLink.addClickHandler(this);
     }
     
-    public void onClick(Widget sender) {
-        assert sender == embeddingLink;
+    public void onClick(ClickEvent event) {
+        assert event.getSource() == embeddingLink;
         JSONObject params = new JSONObject();
         params.put("url_token", new JSONString(CustomHistory.getLastHistoryToken().toString()));
         addAdditionalEmbeddingParams(params);

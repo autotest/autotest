@@ -2,7 +2,8 @@ package autotest.tko;
 
 import autotest.common.ui.SimpleHyperlink;
 
-import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
@@ -14,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 
-class WidgetList<T extends Widget> extends Composite implements ClickListener {
+class WidgetList<T extends Widget> extends Composite implements ClickHandler {
     public interface ListWidgetFactory<S extends Widget> {
         public List<String> getWidgetTypes();
         public S getNewWidget(String type);
@@ -31,7 +32,7 @@ class WidgetList<T extends Widget> extends Composite implements ClickListener {
         addLinksPanel.setSpacing(10);
         for (String type : factory.getWidgetTypes()) {
             SimpleHyperlink addLink = new SimpleHyperlink(type);
-            addLink.addClickListener(this);
+            addLink.addClickHandler(this);
             addLinksPanel.add(addLink);
         }
             
@@ -51,10 +52,10 @@ class WidgetList<T extends Widget> extends Composite implements ClickListener {
         widgetPanel.remove(widget);
     }
 
-    public void onClick(Widget sender) {
-        assert (sender instanceof SimpleHyperlink);
+    public void onClick(ClickEvent event) {
+        assert (event.getSource() instanceof SimpleHyperlink);
       
-        SimpleHyperlink addLink = (SimpleHyperlink) sender;
+        SimpleHyperlink addLink = (SimpleHyperlink) event.getSource();
         T widget = factory.getNewWidget(addLink.getText());
         addWidget(widget);
     }

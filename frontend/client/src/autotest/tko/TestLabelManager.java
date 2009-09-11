@@ -8,11 +8,12 @@ import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -21,9 +22,8 @@ import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.StackPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
-public class TestLabelManager implements ClickListener {
+public class TestLabelManager implements ClickHandler {
     public static final String INVALIDATED_LABEL = "invalidated";
     private static final String ADD_TEXT = "Add label";
     private static final String REMOVE_TEXT = "Remove label";
@@ -48,17 +48,17 @@ public class TestLabelManager implements ClickListener {
     private TestLabelManager() {
         createLabelLink = new SimpleHyperlink("Create new label");
         cancelCreateLink = new SimpleHyperlink("Cancel create label");
-        ClickListener linkListener = new ClickListener() {
-            public void onClick(Widget sender) {
-                if (sender == createLabelLink) {
+        ClickHandler linkListener = new ClickHandler() {
+            public void onClick(ClickEvent event) {
+                if (event.getSource() == createLabelLink) {
                     stack.showStack(STACK_CREATE);
                 } else {
                     stack.showStack(STACK_SELECT);
                 }
             }  
         };
-        createLabelLink.addClickListener(linkListener);
-        cancelCreateLink.addClickListener(linkListener);
+        createLabelLink.addClickHandler(linkListener);
+        cancelCreateLink.addClickHandler(linkListener);
         
         Panel selectPanel = new VerticalPanel();
         selectPanel.add(new HTML("Select label:"));
@@ -81,8 +81,8 @@ public class TestLabelManager implements ClickListener {
         dialogPanel.add(buttonPanel);
         selectLabelDialog.add(dialogPanel);
         
-        submitButton.addClickListener(this);
-        cancelButton.addClickListener(this);
+        submitButton.addClickHandler(this);
+        cancelButton.addClickHandler(this);
     }
     
     public static TestLabelManager getManager() {
@@ -143,10 +143,10 @@ public class TestLabelManager implements ClickListener {
         }
     }
 
-    public void onClick(Widget sender) {
+    public void onClick(ClickEvent event) {
         selectLabelDialog.hide();
         
-        if (sender == cancelButton) {
+        if (event.getSource() == cancelButton) {
             return;
         }
         

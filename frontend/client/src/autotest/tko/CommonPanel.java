@@ -5,10 +5,11 @@ import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TkoUtils.FieldInfo;
 import autotest.tko.WidgetList.ListWidgetFactory;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTML;
@@ -32,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class CommonPanel extends Composite implements ClickListener, PositionCallback {
+class CommonPanel extends Composite implements ClickHandler, PositionCallback {
     private static final String WIKI_URL = "http://autotest.kernel.org/wiki/TkoHowTo";
     private static final String SHOW_QUICK_REFERENCE = "Show quick reference";
     private static final String HIDE_QUICK_REFERENCE = "Hide quick reference";
@@ -137,7 +138,7 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
       }
     }
 
-    private abstract class TestFilterWidget extends Composite implements ClickListener {
+    private abstract class TestFilterWidget extends Composite implements ClickHandler {
         protected ListBox includeOrExclude = new ListBox();
 
         protected boolean isInclude() {
@@ -157,13 +158,13 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
             }
 
             SimpleHyperlink deleteLink = new SimpleHyperlink("[X]");
-            deleteLink.addClickListener(this);
+            deleteLink.addClickHandler(this);
             panel.add(deleteLink);
 
             initWidget(panel);
         }
 
-        public void onClick(Widget sender) {
+        public void onClick(ClickEvent event) {
             filterList.deleteWidget(this);
         }
 
@@ -268,8 +269,8 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
 
     public void initialize() {
         customSqlBox.setSize("50em", "5em");
-        quickReferenceLink.addClickListener(this);
-        showHideControlsLink.addClickListener(this);
+        quickReferenceLink.addClickHandler(this);
+        showHideControlsLink.addClickHandler(this);
 
         filterList = new WidgetList<TestFilterWidget>(filterFactory);
         Panel titlePanel = new HorizontalPanel();
@@ -437,11 +438,11 @@ class CommonPanel extends Composite implements ClickListener, PositionCallback {
         Utils.setDefaultValue(arguments, "show_invalid", Boolean.toString(savedShowInvalid));
     }
 
-    public void onClick(Widget sender) {
-        if (sender == quickReferenceLink) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == quickReferenceLink) {
             handleQuickReferenceClick();
         } else {
-            assert sender == showHideControlsLink;
+            assert event.getSource() == showHideControlsLink;
             handleShowHideControlsClick();
         }
     }
