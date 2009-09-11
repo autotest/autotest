@@ -71,17 +71,18 @@ class ServiceHandler(object):
     def __init__(self, service):
         self.service=service
 
+
+    @classmethod
+    def blank_result_dict(cls):
+        return {'id': None, 'result': None, 'err': None, 'err_traceback': None}
+
     def dispatchRequest(self, request):
         """
         Invoke a json RPC call from a decoded json request.
         @param request: a decoded json_request
         @returns a dictionary with keys id, result, err and err_traceback
         """
-        results = {}
-        results['id'] = None
-        results['result'] = None
-        results['err'] = None
-        results['err_traceback'] = None
+        results = self.blank_result_dict()
 
         try:
             results['id'] = self._getRequestId(request)
