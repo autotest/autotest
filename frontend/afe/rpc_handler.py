@@ -12,8 +12,6 @@ from autotest_lib.frontend import thread_local
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.frontend.afe import rpcserver_logging
 
-_LOGGING_ENABLED = global_config.global_config.get_config_value('SERVER',
-                                                                'rpc_logging')
 LOGGING_REGEXPS = [r'.*add_.*',
                    r'delete_.*',
                    r'.*_remove_.*',
@@ -91,7 +89,7 @@ class RpcHandler(object):
         decoded_request = self.decode_request(json_request)
         decoded_result = self.dispatch_request(decoded_request)
         result = self.encode_result(decoded_result)
-        if _LOGGING_ENABLED:
+        if rpcserver_logging.LOGGING_ENABLED:
             self.log_request(user, decoded_request, decoded_result)
         return rpc_utils.raw_http_response(result)
 
