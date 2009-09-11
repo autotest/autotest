@@ -13,6 +13,8 @@ import autotest.common.ui.RadioChooser;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONNumber;
@@ -24,7 +26,6 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosureEvent;
 import com.google.gwt.user.client.ui.DisclosureHandler;
@@ -116,13 +117,13 @@ public class CreateJobView extends TabView
             client.setChecked(true); // client is default
             initWidget(panel);
             
-            client.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
+            client.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     onChanged();
                 }
             });
-            server.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
+            server.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     onChanged();
                 }
             });
@@ -285,8 +286,8 @@ public class CreateJobView extends TabView
         for(JSONObject profiler : new JSONArrayList<JSONObject>(tests)) {
             String name = profiler.get("name").isString().stringValue();
             CheckBox checkbox = new CheckBox(name);
-            checkbox.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
+            checkbox.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     generateControlFile(false);
                     setInputsEnabled();
                 }
@@ -475,8 +476,8 @@ public class CreateJobView extends TabView
         controlFilePanel.setHeader(controlHeaderPanel);
         controlFilePanel.add(controlEditPanel);
         
-        editControlButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        editControlButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 DOM.eventCancelBubble(DOM.eventGetCurrentEvent(), true);
                 
                 if (editControlButton.getText().equals(EDIT_CONTROL_STRING)) {
@@ -532,20 +533,20 @@ public class CreateJobView extends TabView
         hostSelector.initialize();
         hostSelector.bindDisplay(hostSelectorDisplay);
 
-        submitJobButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        submitJobButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 submitJob(false);
             }
         });
         
-        createTemplateJobButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        createTemplateJobButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 submitJob(true);
             }
         });
         
-        resetButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        resetButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 reset();
             }
         });

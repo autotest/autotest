@@ -4,9 +4,10 @@ import autotest.common.JsonRpcProxy;
 import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -47,8 +48,8 @@ public abstract class DetailView extends TabView {
             public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
             public void onKeyUp(Widget sender, char keyCode, int modifiers) {}
         });
-        idFetchButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        idFetchButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 fetchById(idInput.getText());
             }
         });

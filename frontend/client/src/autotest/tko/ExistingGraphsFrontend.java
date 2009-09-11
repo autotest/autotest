@@ -6,13 +6,14 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
@@ -41,8 +42,8 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     private Button graphButton = new Button("Graph");
 
     public ExistingGraphsFrontend(final TabView parent) {
-        normalize.addClickListener(new ClickListener() {
-            public void onClick(Widget w) {
+        normalize.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 normalizeClicked();
             }
         });
@@ -64,8 +65,8 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
 
         benchmark.addItem("(Please select a hostname first)");
         
-        graphButton.addClickListener(new ClickListener() {
-            public void onClick(Widget w) {
+        graphButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 parent.updateHistory();
                 showGraph();
             }

@@ -22,6 +22,8 @@ import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TkoUtils.FieldInfo;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Command;
@@ -29,7 +31,6 @@ import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SimplePanel;
@@ -49,7 +50,7 @@ import java.util.Set;
 // TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsWithExportCsvListener, 
-                                  ClickListener, TableWidgetFactory, CommonPanelListener, 
+                                  ClickHandler, TableWidgetFactory, CommonPanelListener, 
                                   MultiListSelectPresenter.GeneratorHandler {
     private static final int ROWS_PER_PAGE = 30;
     private static final String COUNT_NAME = "Count in group";
@@ -127,9 +128,9 @@ public class TableView extends ConditionTabView
         selectColumns(DEFAULT_COLUMNS);
         updateViewFromState();
 
-        queryButton.addClickListener(this);
-        groupCheckbox.addClickListener(this);
-        statusGroupCheckbox.addClickListener(this);
+        queryButton.addClickHandler(this);
+        groupCheckbox.addClickHandler(this);
+        statusGroupCheckbox.addClickHandler(this);
         
         Panel columnPanel = new VerticalPanel();
         columnPanel.add(columnSelectDisplay);
@@ -495,11 +496,11 @@ public class TableView extends ConditionTabView
         }
     }
 
-    public void onClick(Widget sender) {
-        if (sender == queryButton) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == queryButton) {
             doQuery();
             updateHistory();
-        } else if (sender == groupCheckbox || sender == statusGroupCheckbox) {
+        } else if (event.getSource() == groupCheckbox || event.getSource() == statusGroupCheckbox) {
             updateFieldsFromCheckboxes();
         }
     }

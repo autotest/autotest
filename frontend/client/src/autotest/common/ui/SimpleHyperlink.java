@@ -1,9 +1,11 @@
 package autotest.common.ui;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.DomEvent;
+import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Event;
-import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.ClickListenerCollection;
 import com.google.gwt.user.client.ui.Hyperlink;
 
 /**
@@ -13,8 +15,6 @@ import com.google.gwt.user.client.ui.Hyperlink;
  *
  */
 public class SimpleHyperlink extends Hyperlink {
-    private ClickListenerCollection clickListeners;
-
     public SimpleHyperlink(String text, boolean asHtml) {
         super(text, asHtml, "");
         setStyle();
@@ -28,29 +28,17 @@ public class SimpleHyperlink extends Hyperlink {
     private void setStyle() {
         setStyleName("SimpleHyperlink");        
     }
-
+    
     @Override
     public void onBrowserEvent(Event event) {
         if (DOM.eventGetType(event) == Event.ONCLICK) {
-            if (clickListeners != null) {
-                clickListeners.fireClick(this);
-            }
+            DomEvent.fireNativeEvent(event, this);
             DOM.eventPreventDefault(event);
         }
     }
 
     @Override
-    public void addClickListener(ClickListener listener) {
-        if (clickListeners == null) {
-            clickListeners = new ClickListenerCollection();
-        }
-        clickListeners.add(listener);
-    }
-
-    @Override
-    public void removeClickListener(ClickListener listener) {
-        if (clickListeners != null) {
-            clickListeners.remove(listener);
-        }
+    public HandlerRegistration addClickHandler(ClickHandler handler) {
+        return addDomHandler(handler, ClickEvent.getType());
     }
 }

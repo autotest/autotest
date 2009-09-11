@@ -19,14 +19,14 @@ import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TableActionsPanel.TableActionsListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.Widget;
 
 public class HostDetailView extends DetailView 
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
@@ -229,23 +229,23 @@ public class HostDetailView extends DetailView
         tableDecorator.addControl("Show verifies, repairs and cleanups", showSpecialTasks);
         addWidget(tableDecorator, "view_host_jobs_table");
         
-        showSpecialTasks.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        showSpecialTasks.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 jobsTable.setSpecialTasksEnabled(showSpecialTasks.isChecked());
                 jobsTable.refresh();
             }
         });
         
-        lockButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        lockButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                boolean locked = currentHostObject.get("locked").isBoolean().booleanValue();
                changeLock(!locked);
             } 
         });
         addWidget(lockButton, "view_host_lock_button");
         
-        reverifyButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        reverifyButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 JSONObject params = new JSONObject();
                 
                 params.put("id", currentHostObject.get("id"));
@@ -258,8 +258,8 @@ public class HostDetailView extends DetailView
         });
         addWidget(reverifyButton, "view_host_reverify_button");
         
-        reinstallButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        reinstallButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 JSONArray array = new JSONArray();
                 array.set(0, new JSONString(hostname));
                 AfeUtils.scheduleReinstall(array, hostname, jobCreateListener);

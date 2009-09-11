@@ -9,6 +9,8 @@ import autotest.common.CustomHistory.CustomHistoryListener;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.NotifyManager;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -17,7 +19,6 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -31,7 +32,7 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Map;
 
 class SavedQueriesControl extends Composite 
-                          implements ChangeListener, ClickListener, CustomHistoryListener {
+                          implements ChangeListener, ClickHandler, CustomHistoryListener {
     public static final String HISTORY_TOKEN = "saved_query";
     
     private static final String ADD_QUERY = "Save current...";
@@ -66,8 +67,8 @@ class SavedQueriesControl extends Composite
             dialogPanel.add(buttonPanel);
             add(dialogPanel);
             
-            cancelButton.addClickListener(new ClickListener() {
-                public void onClick(Widget sender) {
+            cancelButton.addClickHandler(new ClickHandler() {
+                public void onClick(ClickEvent event) {
                     hide();
                 }
             });
@@ -81,10 +82,10 @@ class SavedQueriesControl extends Composite
         
         addQueryDialog = new QueryActionDialog<TextBox>(new TextBox(),
                                                         "Enter query name:", "Save query");
-        addQueryDialog.actionButton.addClickListener(this);
+        addQueryDialog.actionButton.addClickHandler(this);
         deleteQueryDialog = new QueryActionDialog<ListBox>(new ListBox(),
                                                            "Select query:", "Delete query");
-        deleteQueryDialog.actionButton.addClickListener(this);
+        deleteQueryDialog.actionButton.addClickHandler(this);
         
         CustomHistory.addHistoryListener(this);
     }
@@ -139,8 +140,8 @@ class SavedQueriesControl extends Composite
         History.newItem(HISTORY_TOKEN + "=" + idString);
     }
 
-    public void onClick(Widget sender) {
-        if (sender == addQueryDialog.actionButton) {
+    public void onClick(ClickEvent event) {
+        if (event.getSource() == addQueryDialog.actionButton) {
             addQueryDialog.hide();
             JSONObject args = new JSONObject();
             args.put("name", new JSONString(addQueryDialog.widget.getText()));
@@ -153,7 +154,7 @@ class SavedQueriesControl extends Composite
                 }
             });
         } else {
-            assert sender == deleteQueryDialog.actionButton;
+            assert event.getSource() == deleteQueryDialog.actionButton;
             deleteQueryDialog.hide();
             String idString = 
                 deleteQueryDialog.widget.getValue(deleteQueryDialog.widget.getSelectedIndex());

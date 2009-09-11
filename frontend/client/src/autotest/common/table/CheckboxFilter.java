@@ -3,19 +3,20 @@
 package autotest.common.table;
 
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Widget;
 
-public abstract class CheckboxFilter extends FieldFilter implements ClickListener {
+public abstract class CheckboxFilter extends FieldFilter implements ClickHandler {
     private CheckBox checkBox = new CheckBox();
     
     public CheckboxFilter(String fieldName) {
         super(fieldName);
-        checkBox.addClickListener(this);
+        checkBox.addClickHandler(this);
     }
     
-    public void onClick(Widget sender) {
+    public void onClick(ClickEvent event) {
         notifyListeners();
     }
 

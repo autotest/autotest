@@ -3,8 +3,9 @@ package autotest.common.ui;
 import autotest.common.CustomHistory;
 import autotest.common.CustomHistory.CustomHistoryListener;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DeckPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -13,7 +14,6 @@ import com.google.gwt.user.client.ui.SourcesTabEvents;
 import com.google.gwt.user.client.ui.TabListener;
 import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,8 +61,8 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         bottom.setStyleName(tabDeckClass);
         bottom.setWidth("100%");
         
-        refreshButton.addClickListener(new ClickListener() {
-            public void onClick(Widget sender) {
+        refreshButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
                 getSelectedTabView().refresh();
             } 
         });
