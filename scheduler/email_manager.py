@@ -4,6 +4,8 @@ from autotest_lib.client.common_lib import global_config
 
 CONFIG_SECTION = 'SCHEDULER'
 
+CONFIG_SECTION_SMTP = 'SERVER'
+
 class EmailNotificationManager(object):
     def __init__(self):
         self._emails = []
@@ -14,6 +16,17 @@ class EmailNotificationManager(object):
         self._notify_address = global_config.global_config.get_config_value(
             CONFIG_SECTION, "notify_email", default='')
 
+        self._smtp_server = global_config.global_config.get_config_value(
+            CONFIG_SECTION_SMTP, "smtp_server", default='localhost')
+
+        self._smtp_port = global_config.global_config.get_config_value(
+            CONFIG_SECTION_SMTP, "smtp_port", default=None)
+
+        self._smtp_user = global_config.global_config.get_config_value(
+            CONFIG_SECTION_SMTP, "smtp_user", default='')
+
+        self._smtp_password = global_config.global_config.get_config_value(
+            CONFIG_SECTION_SMTP, "smtp_password", default='')
 
     def send_email(self, to_string, subject, body):
         """Mails out emails to the addresses listed in to_string.
@@ -29,8 +42,10 @@ class EmailNotificationManager(object):
         msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
             self._from_address, ', '.join(to_list), subject, body)
         try:
-            mailer = smtplib.SMTP('localhost')
+            mailer = smtplib.SMTP(self._smtp_server, self._smtp_port)
             try:
+                if self._smtp_user:
+                    mailer.login(self._smtp_user, self._smtp_password)
                 mailer.sendmail(self._from_address, to_list, msg)
             finally:
                 try:
