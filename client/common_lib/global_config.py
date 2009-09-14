@@ -24,6 +24,8 @@ class ConfigValueError(ConfigError):
 
 
 class global_config(object):
+    _NO_DEFAULT_SPECIFIED = object()
+
     config = None
     config_file = DEFAULT_CONFIG_FILE
     shadow_file = DEFAULT_SHADOW_FILE
@@ -37,7 +39,7 @@ class global_config(object):
 
 
     def _handle_no_value(self, section, key, default):
-        if default is None:
+        if default is self._NO_DEFAULT_SPECIFIED:
             msg = ("Value '%s' not found in section '%s'" %
                    (key, section))
             raise ConfigError(msg)
@@ -45,8 +47,8 @@ class global_config(object):
             return default
 
 
-    def get_config_value(self, section, key, type=str, default=None,
-                         allow_blank=False):
+    def get_config_value(self, section, key, type=str,
+                         default=_NO_DEFAULT_SPECIFIED, allow_blank=False):
         self._ensure_config_parsed()
 
         try:
@@ -57,7 +59,7 @@ class global_config(object):
         if not val.strip() and not allow_blank:
             return self._handle_no_value(section, key, default)
 
-        return self.convert_value(key, section, val, type, default)
+        return self._convert_value(key, section, val, type)
 
 
     def override_config_value(self, section, key, new_value):
@@ -114,7 +116,7 @@ class global_config(object):
     # the values that are pulled from ini
     # are strings.  But we should attempt to
     # convert them to other types if needed.
-    def convert_value(self, key, section, value, value_type, default):
+    def _convert_value(self, key, section, value, value_type):
         # strip off leading and trailing white space
         sval = value.strip()
 
