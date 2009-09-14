@@ -17,40 +17,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class HeaderSelect implements ClickHandler, MultiListSelectPresenter.GeneratorHandler {
+class HeaderSelect implements ClickHandler {
     public static final String HISTORY_FIXED_VALUES = "_fixed_values";
-    
-    private final static HeaderField MACHINE_LABELS_FIELD = 
-        new SimpleHeaderField("Machine labels...", "");
-    
+
     public interface Display {
         public MultiListSelectPresenter.DoubleListDisplay getDoubleListDisplay();
         public MultiListSelectPresenter.ToggleDisplay getToggleDisplay();
+        public ParameterizedFieldListPresenter.Display getParameterizedFieldDisplay();
 
         public HasText getFixedValuesInput();
         public void setFixedValuesVisible(boolean visible);
         public ToggleControl getFixedValuesToggle();
-
-        public MachineLabelDisplay addMachineLabelDisplay(String name);
-        public void removeMachineLabelDisplay(MachineLabelDisplay display);
-    }
-
-    public interface MachineLabelDisplay {
-        public HasText getLabelInput();
     }
 
     private Map<String, HeaderField> headerMap = new HashMap<String, HeaderField>();
-    private Map<MachineLabelField, MachineLabelDisplay> machineLabelInputMap = 
-        new HashMap<MachineLabelField, MachineLabelDisplay>();
     
     private List<HeaderField> savedSelectedFields;
     private String savedFixedValues;
 
     private Display display;
     private MultiListSelectPresenter multiListSelect = new MultiListSelectPresenter();
+    private ParameterizedFieldListPresenter parameterizedFieldPresenter = 
+        new ParameterizedFieldListPresenter(); 
 
     public HeaderSelect() {
-        multiListSelect.setGeneratorHandler(this);
+        multiListSelect.setGeneratorHandler(parameterizedFieldPresenter);
     }
 
     public void bindDisplay(Display display) {
@@ -59,38 +50,38 @@ class HeaderSelect implements ClickHandler, MultiListSelectPresenter.GeneratorHa
         display.setFixedValuesVisible(false);
         multiListSelect.bindDisplay(display.getDoubleListDisplay());
         multiListSelect.bindToggleDisplay(display.getToggleDisplay());
+        parameterizedFieldPresenter.bindDisplay(display.getParameterizedFieldDisplay());
 
-        addFieldToMap(MACHINE_LABELS_FIELD);
-        multiListSelect.addItem(Item.createGenerator(MACHINE_LABELS_FIELD.getName(), 
-                                                     MACHINE_LABELS_FIELD.getSqlName()));
+        multiListSelect.addItem(ParameterizedField.getGenerator(MachineLabelField.BASE_SQL_NAME));
     }
 
     public void addItem(HeaderField headerField) {
-        addFieldToMap(headerField);
-        multiListSelect.addItem(Item.createItem(headerField.getName(), headerField.getSqlName()));
-    }
-
-    private void addFieldToMap(HeaderField headerField) {
         headerMap.put(headerField.getSqlName(), headerField);
-    }
-
-    private void removeFieldFromMap(HeaderField header) {
-        HeaderField mappedHeader = headerMap.remove(header.getSqlName());
-        assert mappedHeader == header;
+        multiListSelect.addItem(Item.createItem(headerField.getName(), headerField.getSqlName()));
     }
 
     public void updateStateFromView() {
         savedSelectedFields = getSelectedItemsFromView();
         savedFixedValues = getFixedValuesText();
-        updateMachineLabelsFromView();
+        parameterizedFieldPresenter.updateStateFromView();
     }
     
     private List<HeaderField> getSelectedItemsFromView() {
         List<HeaderField> selectedFields = new ArrayList<HeaderField>();
         for (Item item : multiListSelect.getSelectedItems()) {
-            selectedFields.add(headerMap.get(item.value));
+            selectedFields.add(getFieldBySqlName(item.value));
         }
         return selectedFields;
+    }
+
+    private HeaderField getFieldBySqlName(String sqlName) {
+        HeaderField field;
+        if (headerMap.containsKey(sqlName)) {
+            field = headerMap.get(sqlName);
+        } else {
+            field = parameterizedFieldPresenter.getField(sqlName);
+        }
+        return field;
     }
     
     private String getFixedValuesText() {
@@ -109,15 +100,7 @@ class HeaderSelect implements ClickHandler, MultiListSelectPresenter.GeneratorHa
         selectItemsInView(savedSelectedFields);
         display.getFixedValuesInput().setText(savedFixedValues);
         display.getFixedValuesToggle().setActive(!savedFixedValues.equals(""));
-        updateViewFromMachineLabels();
-    }
-
-    private void updateViewFromMachineLabels() {
-        for (MachineLabelField field : machineLabelInputMap.keySet()) {
-            MachineLabelDisplay display = machineLabelInputMap.get(field);
-            String labelString = Utils.joinStrings(",", field.getLabelList());
-            display.getLabelInput().setText(labelString);
-        }
+        parameterizedFieldPresenter.updateViewFromState();
     }
 
     private void selectItemsInView(List<HeaderField> fields) {
@@ -154,9 +137,8 @@ class HeaderSelect implements ClickHandler, MultiListSelectPresenter.GeneratorHa
             arguments.put(name + HISTORY_FIXED_VALUES, display.getFixedValuesInput().getText());
         }
         
-        for (MachineLabelField field : machineLabelInputMap.keySet()) {
-            String labels = Utils.joinStrings(",", field.getLabelList());
-            arguments.put(field.getSqlName(), labels);
+        for (ParameterizedField field : parameterizedFieldPresenter.getFields()) {
+            arguments.put(field.getSqlName(), field.getValue());
         }
     }
 
@@ -166,70 +148,41 @@ class HeaderSelect implements ClickHandler, MultiListSelectPresenter.GeneratorHa
     }
 
     public void handleHistoryArguments(Map<String, String> arguments, String name) {
-        List<HeaderField> headerFields = getHeaderFieldsFromValues(arguments, name);
+        String[] fields = arguments.get(name).split(",");
+        addParameterizedFields(fields, arguments);
+        List<HeaderField> headerFields = getHeaderFieldsFromValues(fields);
         selectItems(headerFields);
         String fixedValuesText = arguments.get(name + HISTORY_FIXED_VALUES);
         savedFixedValues = fixedValuesText;
     }
-
-    private List<HeaderField> getHeaderFieldsFromValues(Map<String, String> arguments, 
-                                                        String name) {
-        String[] fields = arguments.get(name).split(",");
-        List<HeaderField> headerFields = new ArrayList<HeaderField>();
-        for (String field : fields) {
-            if (field.startsWith(MachineLabelField.BASE_SQL_NAME)) {
-                MachineLabelField machineLabelField = MachineLabelField.fromFieldSqlName(field);
-                List<String> labels = Utils.splitList(arguments.get(field));
-                machineLabelField.setLabels(labels);
-                Item machineLabelItem = addMachineLabelField(machineLabelField);
-                multiListSelect.addItem(machineLabelItem);
+    
+    private void addParameterizedFields(String[] fields, Map<String, String> arguments) {
+        for (String sqlName : fields) {
+            if (!headerMap.containsKey(sqlName)) {
+                ParameterizedField parameterizedField = 
+                    parameterizedFieldPresenter.addFieldBySqlName(sqlName);
+                String value = arguments.get(sqlName);
+                assert value != null;
+                parameterizedField.setValue(value);
+                Item item = parameterizedFieldPresenter.getItemForField(parameterizedField);
+                multiListSelect.addItem(item);
             }
+        }
+    }
 
-            headerFields.add(headerMap.get(field));
+    private List<HeaderField> getHeaderFieldsFromValues(String[] fields) {
+        List<HeaderField> headerFields = new ArrayList<HeaderField>();
+        for (String sqlName : fields) {
+            headerFields.add(getFieldBySqlName(sqlName));
         }
         return headerFields;
     }
 
-    private Item addMachineLabelField(MachineLabelField field) {
-        addFieldToMap(field);
-        MachineLabelDisplay machineLabelDisplay = display.addMachineLabelDisplay(field.getName());
-        machineLabelInputMap.put(field, machineLabelDisplay);
-        return Item.createGeneratedItem(field.getName(), field.getSqlName());
-    }
-
-    @Override
-    public Item generateItem(Item generatorItem) {
-        assert generatorItem.name.equals(MACHINE_LABELS_FIELD.getName());
-        return addMachineLabelField(MachineLabelField.newInstance());
-    }
-
-    @Override
-    public void onRemoveGeneratedItem(Item generatedItem) {
-        HeaderField field = headerMap.get(generatedItem.value);
-        assert field instanceof MachineLabelField;
-        removeFieldFromMap(field);
-        MachineLabelDisplay machineLabelDisplay = machineLabelInputMap.remove(field);
-        display.removeMachineLabelDisplay(machineLabelDisplay);
-    }
-
-    private void updateMachineLabelsFromView() {
-        for (MachineLabelField field : machineLabelInputMap.keySet()) {
-            MachineLabelDisplay display = machineLabelInputMap.get(field);
-            String labelString = display.getLabelInput().getText();
-            field.setLabels(Utils.splitListWithSpaces(labelString));
-        }
-    }
-    
     /**
      * @return true if all machine label header inputs are not empty.
      */
     public boolean checkMachineLabelHeaders() {
-        for (MachineLabelDisplay display : machineLabelInputMap.values()) {
-            if (display.getLabelInput().getText().isEmpty()) {
-                return false;
-            }
-        }
-        return true;
+        return parameterizedFieldPresenter.areAllInputsFilled();
     }
 
     public void addQueryParameters(JSONObject parameters) {
