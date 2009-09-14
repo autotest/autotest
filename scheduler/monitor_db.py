@@ -2683,7 +2683,20 @@ class HostQueueEntry(DBObject):
 
 
     def __str__(self):
-        return "%s/%d (%d)" % (self._get_hostname(), self.job.id, self.id)
+        flags = []
+        if self.active:
+            flags.append('active')
+        if self.complete:
+            flags.append('complete')
+        if self.deleted:
+            flags.append('deleted')
+        if self.aborted:
+            flags.append('aborted')
+        flags_str = ','.join(flags)
+        if flags_str:
+            flags_str = ' [%s]' % flags_str
+        return "%s/%d (%d) %s%s" % (self._get_hostname(), self.job.id, self.id,
+                                    self.status, flags_str)
 
 
     def set_status(self, status):
@@ -3193,7 +3206,13 @@ class Job(DBObject):
             chosen_entries += pending_entries[:num_entries_wanted]
 
         # Sanity check.  We'll only ever be called if this can be met.
-        assert len(chosen_entries) >= self.synch_count
+        if len(chosen_entries) < self.synch_count:
+            message = ('job %s got less than %s chosen entries: %s' % (
+                    self.id, self.synch_count, chosen_entries))
+            logging.error(message)
+            email_manager.manager.enqueue_notify_email(
+                    'Job not started, too few chosen entries', message)
+            return []
 
         group_name = include_queue_entry.get_group_name()
 
@@ -3271,7 +3290,8 @@ class Job(DBObject):
                           'with HQE %s.', self.id, queue_entry)
             return
         queue_entries = self._choose_group_to_run(queue_entry)
-        self._finish_run(queue_entries)
+        if queue_entries:
+            self._finish_run(queue_entries)
 
 
     def _finish_run(self, queue_entries):
