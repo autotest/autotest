@@ -3,8 +3,8 @@ package autotest.tko;
 import com.google.gwt.json.client.JSONObject;
 
 abstract class HeaderField implements Comparable<HeaderField> {
-    private String name;
-    private String sqlName;
+    protected String name;
+    protected String sqlName;
     
     protected HeaderField(String name, String sqlName) {
         this.name = name;
