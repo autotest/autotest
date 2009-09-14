@@ -313,7 +313,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
                 }
             }
             refreshSingleSelector();
-        } // todo: hide generator when one is generated in single mode
+        }
     }
 
     private Item getFirstNonGenerator() {
@@ -349,8 +349,9 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
                 selectItem(item);
             }
         }
+
         Set<String> selectedNames = new HashSet<String>(names);
-        for (Item item : items) {
+        for (Item item : getItemsCopy()) {
             if (item.isSelected() && !selectedNames.contains(item.name)) {
                 deselectItem(item);
             }
@@ -457,9 +458,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         assert event.getSource() == selector;
         // events should only come from the single selector when it's active
         assert !toggleDisplay.getToggleMultipleLink().isActive();
-        
-        // iterate over copy since generator/generated items may cause addition/removal within the 
-        // loop
+
         for (Item item : getItemsCopy()) {
             if (item.isSelected()) {
                 deselectItem(item);
