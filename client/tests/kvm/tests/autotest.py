@@ -1,6 +1,6 @@
 import os, logging
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_utils, scan_results
+import kvm_subprocess, kvm_utils, kvm_test_utils, scan_results
 
 
 def run_autotest(test, params, env):

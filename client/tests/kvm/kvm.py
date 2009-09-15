@@ -1,13 +1,7 @@
-import sys, os, time, shelve, resource, logging, cPickle
+import sys, os, time, logging
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
-
-
-class test_routine:
-    def __init__(self, module_name, routine_name):
-        self.module_name = module_name
-        self.routine_name = routine_name
-        self.routine = None
+import kvm_utils, kvm_preprocessing
 
 
 class kvm(test.test):
@@ -28,36 +22,12 @@ class kvm(test.test):
     """
     version = 1
     def initialize(self):
-        # Define the test routines corresponding to different values
-        # of the 'type' field
-        self.test_routines = {
-                # type                       module name            routine
-                "build":        test_routine("build", "run_build"),
-                "steps":        test_routine("steps", "run_steps"),
-                "stepmaker":    test_routine("stepmaker", "run_stepmaker"),
-                "boot":         test_routine("kvm_tests", "run_boot"),
-                "shutdown":     test_routine("kvm_tests", "run_shutdown"),
-                "migration":    test_routine("kvm_tests", "run_migration"),
-                "yum_update":   test_routine("kvm_tests", "run_yum_update"),
-                "autotest":     test_routine("kvm_tests", "run_autotest"),
-                "linux_s3":     test_routine("kvm_tests", "run_linux_s3"),
-                "stress_boot":  test_routine("kvm_tests", "run_stress_boot"),
-                "timedrift":    test_routine("kvm_tests", "run_timedrift"),
-                "autoit":       test_routine("kvm_tests", "run_autoit"),
-                }
-
         # Make it possible to import modules from the test's bindir
         sys.path.append(self.bindir)
+        self.subtest_dir = os.path.join(self.bindir, 'tests')
 
 
     def run_once(self, params):
-        import logging
-        import kvm_utils
-        import kvm_preprocessing
-
-        # Enable core dumps
-        resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
-
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
         keys = params.keys()
@@ -75,25 +45,22 @@ class kvm(test.test):
             try:
                 # Get the test routine corresponding to the specified test type
                 type = params.get("type")
-                routine_obj = self.test_routines.get(type)
-                # If type could not be found in self.test_routines...
-                if not routine_obj:
-                    message = "Unsupported test type: %s" % type
-                    logging.error(message)
-                    raise error.TestError(message)
-                # If we don't have the test routine yet...
-                if not routine_obj.routine:
-                    # Dynamically import the module
-                    module = __import__(routine_obj.module_name)
-                    # Get the needed routine
-                    routine_name = "module." + routine_obj.routine_name
-                    routine_obj.routine = eval(routine_name)
+                # Verify if we have the correspondent source file for it
+                module_path = os.path.join(self.subtest_dir, '%s.py' % type)
+                if not os.path.isfile(module_path):
+                    raise error.TestError("No %s.py test file found" % type)
+                # Load the tests directory (which was turned into a py module)
+                try:
+                    test_module = __import__("tests.%s" % type)
+                except ImportError, e:
+                    raise error.TestError("Failed to import test %s: %s" %
+                                          (type, e))
 
                 # Preprocess
                 kvm_preprocessing.preprocess(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
                 # Run the test function
-                routine_obj.routine(self, params, env)
+                eval("test_module.%s.run_%s(self, params, env)" % (type, type))
                 kvm_utils.dump_env(env, env_filename)
 
             except Exception, e:
