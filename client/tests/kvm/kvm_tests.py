@@ -44,18 +44,17 @@ def run_boot(test, params, env):
                                   120, 0, 1):
             raise error.TestFail("Guest refuses to go down")
 
-        session.close()
-
-        logging.info("Guest is down; waiting for it to go up again...")
-
-        session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-        if not session:
-            raise error.TestFail("Could not log into guest after reboot")
-
-        logging.info("Guest is up again")
-
     finally:
         session.close()
+
+    logging.info("Guest is down; waiting for it to go up again...")
+
+    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest after reboot")
+    session.close()
+
+    logging.info("Guest is up again")
 
 
 def run_shutdown(test, params, env):
