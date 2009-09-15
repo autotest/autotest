@@ -93,7 +93,9 @@ params = {
     ## specify a release tag. If you omit it, the test will get the latest
     ## release tag available.
     #"release_tag": '84',
-    "release_dir": 'http://downloads.sourceforge.net/kvm/',
+    "release_dir": 'http://downloads.sourceforge.net/project/kvm/',
+    # This is the place that contains the sourceforge project list of files
+    "release_listing": 'http://sourceforge.net/projects/kvm/files/',
 
     ## Install from a kvm snapshot location ("mode": "snapshot"). You can
     ## optionally specify a snapshot date. If you omit it, the test will get
