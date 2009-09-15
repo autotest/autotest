@@ -282,18 +282,17 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
     safe_kill(pid, signal.SIGCONT)
 
 
-def get_latest_kvm_release_tag(release_dir):
+def get_latest_kvm_release_tag(release_listing):
     """
     Fetches the latest release tag for KVM.
 
-    @param release_dir: KVM source forge download location.
+    @param release_listing: URL that contains a list of the Source Forge
+            KVM project files.
     """
     try:
-        page_url = os.path.join(release_dir, "showfiles.php")
-        local_web_page = utils.unmap_url("/", page_url, "/tmp")
-        f = open(local_web_page, "r")
-        data = f.read()
-        f.close()
+        release_page = utils.urlopen(release_listing)
+        data = release_page.read()
+        release_page.close()
         rx = re.compile("kvm-(\d+).tar.gz", re.IGNORECASE)
         matches = rx.findall(data)
         # In all regexp matches to something that looks like a release tag,
