@@ -11,6 +11,32 @@ from autotest_lib.client.common_lib import error
 import kvm_subprocess
 
 
+def dump_env(obj, filename):
+    """
+    Dump KVM test environment to a file.
+
+    @param filename: Path to a file where the environment will be dumped to.
+    """
+    file = open(filename, "w")
+    cPickle.dump(obj, file)
+    file.close()
+
+
+def load_env(filename, default=None):
+    """
+    Load KVM test environment from an environment file.
+
+    @param filename: Path to a file where the environment was dumped to.
+    """
+    try:
+        file = open(filename, "r")
+    except:
+        return default
+    obj = cPickle.load(file)
+    file.close()
+    return obj
+
+
 def get_sub_dict(dict, name):
     """
     Return a "sub-dict" corresponding to a specific object.
