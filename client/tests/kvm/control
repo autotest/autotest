@@ -72,9 +72,9 @@ link_if_not_exist(pwd, qemu_img, 'qemu-img')
 # Params that will be passed to the KVM install/build test
 # --------------------------------------------------------
 params = {
-    "name": "kvm_install",
-    "shortname": "kvm_install",
-    "type": "kvm_install",
+    "name": "build",
+    "shortname": "build",
+    "type": "build",
     "mode": "release",
     #"mode": "snapshot",
     #"mode": "localtar",

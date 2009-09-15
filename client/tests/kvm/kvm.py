@@ -48,14 +48,14 @@ class kvm(test.test):
         # of the 'type' field
         self.test_routines = {
                 # type                       module name            routine
-                "steps":        test_routine("kvm_guest_wizard", "run_steps"),
+                "build":        test_routine("build", "run_build"),
+                "steps":        test_routine("steps", "run_steps"),
                 "stepmaker":    test_routine("stepmaker", "run_stepmaker"),
                 "boot":         test_routine("kvm_tests", "run_boot"),
                 "shutdown":     test_routine("kvm_tests", "run_shutdown"),
                 "migration":    test_routine("kvm_tests", "run_migration"),
                 "yum_update":   test_routine("kvm_tests", "run_yum_update"),
                 "autotest":     test_routine("kvm_tests", "run_autotest"),
-                "kvm_install":  test_routine("kvm_install", "run_kvm_install"),
                 "linux_s3":     test_routine("kvm_tests", "run_linux_s3"),
                 "stress_boot":  test_routine("kvm_tests", "run_stress_boot"),
                 "timedrift":    test_routine("kvm_tests", "run_timedrift"),

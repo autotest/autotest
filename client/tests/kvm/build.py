@@ -306,7 +306,7 @@ class GitInstaller:
             self.__load_modules()
 
 
-def run_kvm_install(test, params, env):
+def run_build(test, params, env):
     """
     Installs KVM using the selected install mode. Most install methods will
     take kvm source code, build it and install it to a given location.
