@@ -676,10 +676,11 @@ def generate_random_string(length):
 
     @length: length of the string that will be generated.
     """
+    r = random.SystemRandom()
     str = ""
     chars = string.letters + string.digits
     while length > 0:
-        str += random.choice(chars)
+        str += r.choice(chars)
         length -= 1
     return str
 
