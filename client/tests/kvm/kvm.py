@@ -1,4 +1,4 @@
-import sys, os, time, shelve, random, resource, logging, cPickle
+import sys, os, time, shelve, resource, logging, cPickle
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 
@@ -70,9 +70,6 @@ class kvm(test.test):
         import logging
         import kvm_utils
         import kvm_preprocessing
-
-        # Seed the random number generator
-        random.seed()
 
         # Enable core dumps
         resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
