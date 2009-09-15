@@ -502,55 +502,55 @@ class VM:
                 using a shell command before trying to end the qemu process
                 with a 'quit' or a kill signal.
         """
-        # Is it already dead?
-        if self.is_dead():
-            logging.debug("VM is already down")
-            if self.process:
-                self.process.close()
-            return
+        try:
+            # Is it already dead?
+            if self.is_dead():
+                logging.debug("VM is already down")
+                return
 
-        logging.debug("Destroying VM with PID %d..." % self.process.get_pid())
+            logging.debug("Destroying VM with PID %d..." %
+                          self.process.get_pid())
 
-        if gracefully and self.params.get("shutdown_command"):
-            # Try to destroy with shell command
-            logging.debug("Trying to shutdown VM with shell command...")
-            session = self.remote_login()
-            if session:
-                try:
-                    # Send the shutdown command
-                    session.sendline(self.params.get("shutdown_command"))
-                    logging.debug("Shutdown command sent; waiting for VM to go "
-                                  "down...")
-                    if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
-                        logging.debug("VM is down")
-                        self.process.close()
-                        return
-                finally:
-                    session.close()
+            if gracefully and self.params.get("shutdown_command"):
+                # Try to destroy with shell command
+                logging.debug("Trying to shutdown VM with shell command...")
+                session = self.remote_login()
+                if session:
+                    try:
+                        # Send the shutdown command
+                        session.sendline(self.params.get("shutdown_command"))
+                        logging.debug("Shutdown command sent; waiting for VM "
+                                      "to go down...")
+                        if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
+                            logging.debug("VM is down")
+                            return
+                    finally:
+                        session.close()
 
-        # Try to destroy with a monitor command
-        logging.debug("Trying to kill VM with monitor command...")
-        (status, output) = self.send_monitor_cmd("quit", block=False)
-        # Was the command sent successfully?
-        if status == 0:
+            # Try to destroy with a monitor command
+            logging.debug("Trying to kill VM with monitor command...")
+            status, output = self.send_monitor_cmd("quit", block=False)
+            # Was the command sent successfully?
+            if status == 0:
+                # Wait for the VM to be really dead
+                if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
+                    logging.debug("VM is down")
+                    return
+
+            # If the VM isn't dead yet...
+            logging.debug("Cannot quit normally; sending a kill to close the "
+                          "deal...")
+            kvm_utils.kill_process_tree(self.process.get_pid(), 9)
             # Wait for the VM to be really dead
             if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                 logging.debug("VM is down")
-                self.process.close()
                 return
 
-        # If the VM isn't dead yet...
-        logging.debug("Cannot quit normally; sending a kill to close the "
-                      "deal...")
-        kvm_utils.kill_process_tree(self.process.get_pid(), 9)
-        # Wait for the VM to be really dead
-        if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
-            logging.debug("VM is down")
-            self.process.close()
-            return
+            logging.error("Process %s is a zombie!" % self.process.get_pid())
 
-        logging.error("Process %s is a zombie!" % self.process.get_pid())
-        self.process.close()
+        finally:
+            if self.process:
+                self.process.close()
 
 
     def is_alive(self):
