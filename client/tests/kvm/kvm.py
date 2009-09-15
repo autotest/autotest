@@ -10,22 +10,6 @@ class test_routine:
         self.routine = None
 
 
-def dump_env(obj, filename):
-    file = open(filename, "w")
-    cPickle.dump(obj, file)
-    file.close()
-
-
-def load_env(filename, default=None):
-    try:
-        file = open(filename, "r")
-    except:
-        return default
-    obj = cPickle.load(file)
-    file.close()
-    return obj
-
-
 class kvm(test.test):
     """
     Suite of KVM virtualization functional tests.
@@ -84,7 +68,7 @@ class kvm(test.test):
 
         # Open the environment file
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
-        env = load_env(env_filename, {})
+        env = kvm_utils.load_env(env_filename, {})
         logging.debug("Contents of environment: %s" % str(env))
 
         try:
@@ -107,20 +91,20 @@ class kvm(test.test):
 
                 # Preprocess
                 kvm_preprocessing.preprocess(self, params, env)
-                dump_env(env, env_filename)
+                kvm_utils.dump_env(env, env_filename)
                 # Run the test function
                 routine_obj.routine(self, params, env)
-                dump_env(env, env_filename)
+                kvm_utils.dump_env(env, env_filename)
 
             except Exception, e:
                 logging.error("Test failed: %s", e)
                 logging.debug("Postprocessing on error...")
                 kvm_preprocessing.postprocess_on_error(self, params, env)
-                dump_env(env, env_filename)
+                kvm_utils.dump_env(env, env_filename)
                 raise
 
         finally:
             # Postprocess
             kvm_preprocessing.postprocess(self, params, env)
             logging.debug("Contents of environment: %s", str(env))
-            dump_env(env, env_filename)
+            kvm_utils.dump_env(env, env_filename)
