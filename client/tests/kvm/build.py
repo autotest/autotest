@@ -134,7 +134,8 @@ class SourceDirInstaller:
             if not release_tag:
                 release_tag = kvm_utils.get_latest_kvm_release_tag(
                                                                 release_listing)
-            tarball = os.path.join(release_dir, "kvm-%s.tar.gz" % release_tag)
+            tarball = os.path.join(release_dir,"kvm", release_tag,
+                                   "kvm-%s.tar.gz" % release_tag)
             logging.info("Retrieving release kvm-%s" % release_tag)
             tarball = utils.unmap_url("/", tarball, "/tmp")
 
