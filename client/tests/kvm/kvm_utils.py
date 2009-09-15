@@ -5,7 +5,7 @@ KVM test utility functions.
 """
 
 import md5, thread, subprocess, time, string, random, socket, os, signal, pty
-import select, re, logging, commands
+import select, re, logging, commands, cPickle
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 import kvm_subprocess
