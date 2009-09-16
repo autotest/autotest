@@ -207,5 +207,28 @@ class RpcInterfaceTest(unittest.TestCase,
                                         'Server', **kwargs)
 
 
+    def test_view_invalid_host(self):
+        # RPCs used by View Host page should work for invalid hosts
+        self._create_job_helper(hosts=[1])
+        self.hosts[0].delete()
+
+        self.assertEquals(1, rpc_interface.get_num_hosts(hostname='host1',
+                                                         valid_only=False))
+        data = rpc_interface.get_hosts(hostname='host1', valid_only=False)
+        self.assertEquals(1, len(data))
+
+        self.assertEquals(1, rpc_interface.get_num_host_queue_entries(
+                host__hostname='host1'))
+        data = rpc_interface.get_host_queue_entries(host__hostname='host1')
+        self.assertEquals(1, len(data))
+
+        count = rpc_interface.get_num_host_queue_entries_and_special_tasks(
+                hostname='host1')
+        self.assertEquals(1, count)
+        data = rpc_interface.get_host_queue_entries_and_special_tasks(
+                hostname='host1')
+        self.assertEquals(1, len(data))
+
+
 if __name__ == '__main__':
     unittest.main()
