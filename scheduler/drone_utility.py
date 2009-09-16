@@ -1,14 +1,20 @@
 #!/usr/bin/python
 
 import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
-import datetime, traceback, tempfile
+import datetime, traceback, tempfile, itertools, logging
 import common
 from autotest_lib.client.common_lib import utils, global_config, error
 from autotest_lib.server import hosts, subcommand
 from autotest_lib.scheduler import email_manager, scheduler_config
 
+# An environment variable we add to the environment to enable us to
+# distinguish processes we started from those that were started by
+# something else during recovery.  Name credit goes to showard. ;)
+DARK_MARK_ENVIRONMENT_VAR = 'AUTOTEST_SCHEDULER_DARK_MARK'
+
 _TEMPORARY_DIRECTORY = 'drone_tmp'
 _TRANSFER_FAILED_FILE = '.transfer_failed'
+
 
 class _MethodCall(object):
     def __init__(self, method, args, kwargs):
@@ -40,10 +46,12 @@ class DroneUtility(object):
 
     All paths going into and out of this class are absolute.
     """
-    _PS_ARGS = ['pid', 'pgid', 'ppid', 'comm', 'args']
     _WARNING_DURATION = 60
 
     def __init__(self):
+        # Tattoo ourselves so that all of our spawn bears our mark.
+        os.putenv(DARK_MARK_ENVIRONMENT_VAR, str(os.getpid()))
+
         self.warnings = []
         self._subcommands = []
 
@@ -59,20 +67,51 @@ class DroneUtility(object):
         self.warnings.append(warning)
 
 
-    def _refresh_processes(self, command_name):
+    @staticmethod
+    def _check_pid_for_dark_mark(pid, open=open):
+        try:
+            env_file = open('/proc/%s/environ' % pid, 'rb')
+        except EnvironmentError:
+            return False
+        try:
+            env_data = env_file.read()
+        finally:
+            env_file.close()
+        return DARK_MARK_ENVIRONMENT_VAR in env_data
+
+
+    _PS_ARGS = ('pid', 'pgid', 'ppid', 'comm', 'args')
+
+
+    @classmethod
+    def _get_process_info(cls):
+        """
+        @returns A generator of dicts with cls._PS_ARGS as keys and
+                string values each representing a running process.
+        """
         ps_proc = subprocess.Popen(
-            ['/bin/ps', 'x', '-o', ','.join(self._PS_ARGS)],
+            ['/bin/ps', 'x', '-o', ','.join(cls._PS_ARGS)],
             stdout=subprocess.PIPE)
         ps_output = ps_proc.communicate()[0]
 
         # split each line into the columns output by ps
         split_lines = [line.split(None, 4) for line in ps_output.splitlines()]
-        process_infos = [dict(zip(self._PS_ARGS, line_components))
-                         for line_components in split_lines]
+        return (dict(itertools.izip(cls._PS_ARGS, line_components))
+                for line_components in split_lines)
 
+
+    def _refresh_processes(self, command_name, open=open):
+        # The open argument is used for test injection.
+        check_mark = global_config.global_config.get_config_value(
+            'SCHEDULER', 'check_processes_for_dark_mark', bool, False)
         processes = []
-        for info in process_infos:
+        for info in self._get_process_info():
             if info['comm'] == command_name:
+                if (check_mark and not
+                        self._check_pid_for_dark_mark(info['pid'], open=open)):
+                    self._warn('%(comm)s process pid %(pid)s has no '
+                               'dark mark; ignoring.' % info)
+                    continue
                 processes.append(info)
 
         return processes
