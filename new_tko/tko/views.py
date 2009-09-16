@@ -16,7 +16,7 @@ def handle_jsonp_rpc(request):
 def handle_csv(request):
     request_data = rpc_handler_obj.raw_request_data(request)
     decoded_request = rpc_handler_obj.decode_request(request_data)
-    result = rpc_handler_obj.dispatch_request(decoded_request)
+    result = rpc_handler_obj.dispatch_request(decoded_request)['result']
     encoder = csv_encoder.encoder(decoded_request, result)
     return encoder.encode()
 
