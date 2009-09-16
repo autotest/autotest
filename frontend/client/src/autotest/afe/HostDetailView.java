@@ -22,6 +22,7 @@ import autotest.common.ui.TableActionsPanel.TableActionsListener;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Command;
@@ -170,6 +171,7 @@ public class HostDetailView extends DetailView
     protected void fetchData() {
         JSONObject params = new JSONObject();
         params.put("hostname", new JSONString(hostname));
+        params.put("valid_only", JSONBoolean.getInstance(false));
         hostDataSource.updateData(params, this);
     }
     

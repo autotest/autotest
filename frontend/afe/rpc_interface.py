@@ -170,7 +170,7 @@ def delete_host(id):
 
 
 def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
-              exclude_atomic_group_hosts=False, **filter_data):
+              exclude_atomic_group_hosts=False, valid_only=True, **filter_data):
     """
     @param multiple_labels: match hosts in all of the labels given.  Should
             be a list of label names.
@@ -182,7 +182,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
                                      exclude_atomic_group_hosts,
-                                     filter_data)
+                                     valid_only, filter_data)
     hosts = list(hosts)
     models.Host.objects.populate_relationships(hosts, models.Label,
                                                'label_list')
@@ -204,7 +204,8 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
 
 
 def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
-                  exclude_atomic_group_hosts=False, **filter_data):
+                  exclude_atomic_group_hosts=False, valid_only=True,
+                  **filter_data):
     """
     Same parameters as get_hosts().
 
@@ -213,7 +214,7 @@ def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
                                      exclude_atomic_group_hosts,
-                                     filter_data)
+                                     valid_only, filter_data)
     return hosts.count()
 
 
