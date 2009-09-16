@@ -127,8 +127,12 @@ def extra_host_filters(multiple_labels=()):
 
 
 def get_host_query(multiple_labels, exclude_only_if_needed_labels,
-                   exclude_atomic_group_hosts, filter_data):
-    query = models.Host.valid_objects.all()
+                   exclude_atomic_group_hosts, valid_only, filter_data):
+    if valid_only:
+        query = models.Host.valid_objects.all()
+    else:
+        query = models.Host.objects.all()
+
     if exclude_only_if_needed_labels:
         only_if_needed_labels = models.Label.valid_objects.filter(
             only_if_needed=True)
@@ -141,6 +145,7 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels,
                 join_condition=('hosts_labels_exclude_OIN.label_id IN (%s)'
                                 % only_if_needed_ids),
                 suffix='_exclude_OIN', exclude=True)
+
     if exclude_atomic_group_hosts:
         atomic_group_labels = models.Label.valid_objects.filter(
                 atomic_group__isnull=False)
@@ -153,7 +158,9 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels,
                     join_condition=('hosts_labels_exclude_AG.label_id IN (%s)'
                                     % atomic_group_label_ids),
                     suffix='_exclude_AG', exclude=True)
-    filter_data['extra_args'] = (extra_host_filters(multiple_labels))
+
+    assert 'extra_args' not in filter_data
+    filter_data['extra_args'] = extra_host_filters(multiple_labels)
     return models.Host.query_objects(filter_data, initial_query=query)
 
 
