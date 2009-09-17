@@ -90,7 +90,7 @@ public class CreateJobView extends TabView
         public List<T> getChecked() {
             List<T> result = new ArrayList<T>();
             for(T checkBox : testBoxes) {
-                if (checkBox.isChecked())
+                if (checkBox.getValue())
                     result.add(checkBox);
             }
             return result;
@@ -104,7 +104,7 @@ public class CreateJobView extends TabView
 
         public void reset() {
             for (T thisBox : testBoxes) {
-                thisBox.setChecked(false);
+                thisBox.setValue(false);
             }
         }
     }
@@ -119,7 +119,7 @@ public class CreateJobView extends TabView
             server = new RadioButton(RADIO_GROUP, TestSelector.SERVER_TYPE);
             panel.add(client);
             panel.add(server);
-            client.setChecked(true); // client is default
+            client.setValue(true); // client is default
             initWidget(panel);
             
             client.addClickHandler(new ClickHandler() {
@@ -135,16 +135,16 @@ public class CreateJobView extends TabView
         }
         
         public String getControlType() {
-            if (client.isChecked())
+            if (client.getValue())
                 return client.getText();
             return server.getText();
         }
         
         public void setControlType(String type) {
             if (client.getText().equals(type))
-                client.setChecked(true);
+                client.setValue(true);
             else if (server.getText().equals(type))
-                server.setChecked(true);
+                server.setValue(true);
             else
                 throw new IllegalArgumentException("Invalid control type");
             onChanged();
@@ -225,10 +225,10 @@ public class CreateJobView extends TabView
         emailList.setText(
                 jobObject.get("email_list").isString().stringValue());
 
-        skipVerify.setChecked(!jobObject.get("run_verify").isBoolean().booleanValue());
+        skipVerify.setValue(!jobObject.get("run_verify").isBoolean().booleanValue());
         rebootBefore.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_before")));
         rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
-        parseFailedRepair.setChecked(
+        parseFailedRepair.setValue(
                 jobObject.get("parse_failed_repair").isBoolean().booleanValue());
 
         controlTypeSelect.setControlType(
@@ -397,7 +397,7 @@ public class CreateJobView extends TabView
         }
         
         if (shouldSkipVerify) {
-            skipVerify.setChecked(true);
+            skipVerify.setValue(true);
             skipVerify.setEnabled(false);
         } else {
             skipVerify.setEnabled(true);
@@ -586,7 +586,7 @@ public class CreateJobView extends TabView
         resetPriorityToDefault();
         rebootBefore.reset();
         rebootAfter.reset();
-        parseFailedRepair.setChecked(
+        parseFailedRepair.setValue(
                 repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
         kernel.setText("");
         kernel_cmdline.setText("");
@@ -594,7 +594,7 @@ public class CreateJobView extends TabView
         maxRuntime.setText(Utils.jsonToString(repository.getData("job_max_runtime_hrs_default")));
         emailList.setText("");
         testSelector.reset();
-        skipVerify.setChecked(false);
+        skipVerify.setValue(false);
         profilersPanel.reset();
         setInputsEnabled();
         controlTypeSelect.setControlType(TestSelector.CLIENT_TYPE);
@@ -637,13 +637,13 @@ public class CreateJobView extends TabView
                 args.put("timeout", new JSONNumber(timeoutValue));
                 args.put("max_runtime_hrs", new JSONNumber(maxRuntimeValue));
                 args.put("email_list", new JSONString(emailList.getText()));
-                args.put("run_verify", JSONBoolean.getInstance(!skipVerify.isChecked()));
+                args.put("run_verify", JSONBoolean.getInstance(!skipVerify.getValue()));
                 args.put("is_template", JSONBoolean.getInstance(isTemplate));
                 args.put("dependencies", getSelectedDependencies());
                 args.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
                 args.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
                 args.put("parse_failed_repair",
-                         JSONBoolean.getInstance(parseFailedRepair.isChecked()));
+                         JSONBoolean.getInstance(parseFailedRepair.getValue()));
 
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));

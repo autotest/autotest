@@ -319,7 +319,7 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
 
     public void updateStateFromView() {
         savedSqlCondition = customSqlBox.getText().trim();
-        savedShowInvalid = showInvalid.isChecked();
+        savedShowInvalid = showInvalid.getValue();
 
         savedFilters.clear();
         for (TestFilterWidget filter : filterList.getWidgets()) {
@@ -329,7 +329,7 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
 
     public void updateViewFromState() {
         customSqlBox.setText(savedSqlCondition);
-        showInvalid.setChecked(savedShowInvalid);
+        showInvalid.setValue(savedShowInvalid);
 
         filterList.clear();
         for (FilterData filterData : savedFilters) {

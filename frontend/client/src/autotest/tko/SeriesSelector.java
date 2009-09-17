@@ -69,7 +69,7 @@ public class SeriesSelector extends Composite {
                         errorBars.setEnabled(true);
                     } else {
                         errorBars.setEnabled(false);
-                        errorBars.setChecked(false);
+                        errorBars.setValue(false);
                     }
                 }
             });
@@ -113,7 +113,7 @@ public class SeriesSelector extends Composite {
         }
         
         public boolean wantErrorBars() {
-            return errorBars.isChecked();
+            return errorBars.getValue();
         }
         
         public String getName() {
@@ -125,7 +125,7 @@ public class SeriesSelector extends Composite {
         }
         
         public void setInverted(boolean isInverted) {
-            invert.setChecked(isInverted);
+            invert.setValue(isInverted);
         }
         
         public void addToHistory(Map<String, String> args, int index) {
@@ -147,7 +147,7 @@ public class SeriesSelector extends Composite {
 
             boolean errorBarsChecked = 
                 Boolean.parseBoolean(args.get(parameterString("errorBars", index)));
-            errorBars.setChecked(errorBarsChecked);
+            errorBars.setValue(errorBarsChecked);
 
             filter.handleHistoryArguments(args, parameterString("seriesFilters", index));
         }
@@ -186,7 +186,7 @@ public class SeriesSelector extends Composite {
     public List<String> getInverted() {
         List<String> inverted = new ArrayList<String>();
         for (Series s : series) {
-            if (s.invert.isChecked()) {
+            if (s.invert.getValue()) {
                 inverted.add(s.getName());
             }
         }
@@ -197,7 +197,7 @@ public class SeriesSelector extends Composite {
         for (Series s : series) {
             s.invert.setEnabled(invertible);
             if (!invertible) {
-                s.invert.setChecked(false);
+                s.invert.setValue(false);
             }
         }
         this.invertible = invertible;

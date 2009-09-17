@@ -50,7 +50,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     public MetricsPlotFrontend(final TabView parent) {
         super(parent, new MetricsPlot(), "metrics");
 
-        noNormalizeSingle.setChecked(true);
+        noNormalizeSingle.setValue(true);
 
         noNormalizeMultiple.addClickHandler(this);
         noNormalizeSingle.addClickHandler(this);
@@ -114,14 +114,14 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     
     private void addNormalizeParameter(String plotType, Map<String, String> parameters) {
         String normalizationType = null;
-        if (plotType.equals("Line") && noNormalizeSingle.isChecked()) {
+        if (plotType.equals("Line") && noNormalizeSingle.getValue()) {
             normalizationType = NORMALIZE_SINGLE;
-        } else if (normalizeFirst.isChecked()) {
+        } else if (normalizeFirst.getValue()) {
             normalizationType = NORMALIZE_FIRST;
-        } else if (normalizeSeries.isChecked()) {
+        } else if (normalizeSeries.getValue()) {
             String series = normalizeSeriesSelect.getSelectedValue();
             normalizationType = NORMALIZE_SERIES_PREFIX + series;
-        } else if (normalizeX.isChecked()) {
+        } else if (normalizeX.getValue()) {
             String baseline = normalizeXSelect.getText();
             normalizationType = NORMALIZE_X_PREFIX + baseline;
         }
@@ -160,17 +160,17 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
         seriesSelector.handleHistoryArguments(args);
         
         refreshSeries();
-        noNormalizeMultiple.setChecked(true);
+        noNormalizeMultiple.setValue(true);
         normalizeSeriesSelect.setEnabled(false);
         normalizeXSelect.setEnabled(false);
         String normalizeString = args.get("normalize");
         if (normalizeString != null) {
             if (normalizeString.equals(NORMALIZE_SINGLE)) {
-                noNormalizeSingle.setChecked(true);
+                noNormalizeSingle.setValue(true);
             } else if (normalizeString.equals(NORMALIZE_FIRST)) {
-                normalizeFirst.setChecked(true);
+                normalizeFirst.setValue(true);
             } else if (normalizeString.startsWith(NORMALIZE_SERIES_PREFIX)) {
-                normalizeSeries.setChecked(true);
+                normalizeSeries.setValue(true);
                 String series = normalizeString.substring(NORMALIZE_SERIES_PREFIX.length());
                 for (int i = 0; i < normalizeSeriesSelect.getItemCount(); i++) {
                     if (normalizeSeriesSelect.getValue(i).equals(series)) {
@@ -180,7 +180,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
                 }
                 normalizeSeriesSelect.setEnabled(true);
             } else if (normalizeString.startsWith(NORMALIZE_X_PREFIX)) {
-                normalizeX.setChecked(true);
+                normalizeX.setValue(true);
                 normalizeXSelect.setText(normalizeString.substring(NORMALIZE_X_PREFIX.length()));
                 normalizeXSelect.setEnabled(true);
             }
@@ -214,8 +214,8 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
             noNormalizeMultiple.setEnabled(true);
         } else {
             noNormalizeMultiple.setEnabled(false);
-            if (noNormalizeMultiple.isChecked()) {
-                noNormalizeSingle.setChecked(true);
+            if (noNormalizeMultiple.getValue()) {
+                noNormalizeSingle.setValue(true);
             }
         }
     }
@@ -311,8 +311,8 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     
     // Disable the "Invert y-axis" checkboxes if inversion doesn't make sense
     private void checkInvertible() {
-        boolean invertible = noNormalizeMultiple.isChecked() || normalizeFirst.isChecked()
-                             || normalizeX.isChecked();
+        boolean invertible = noNormalizeMultiple.getValue() || normalizeFirst.getValue()
+                             || normalizeX.getValue();
         seriesSelector.setInvertible(invertible);
     }
     

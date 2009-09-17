@@ -27,10 +27,10 @@ public abstract class CheckboxFilter extends FieldFilter implements ClickHandler
 
     @Override
     public boolean isActive() {
-        return checkBox.isChecked();
+        return checkBox.getValue();
     }
     
     public void setActive(boolean active) {
-        checkBox.setChecked(active);
+        checkBox.setValue(active);
     }
 }
