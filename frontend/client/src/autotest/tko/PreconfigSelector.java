@@ -6,12 +6,12 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.ExtendedListBox;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,8 +35,8 @@ public class PreconfigSelector extends Composite {
         
         initializePreconfigList(preconfigType);
         
-        selector.addChangeListener(new ChangeListener() {
-            public void onChange(Widget sender) {
+        selector.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
                 loadSelectedPreconfig();
             }
         });

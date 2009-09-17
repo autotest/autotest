@@ -4,17 +4,21 @@ import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.HasValueChangeHandlers;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
+import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ContentSelect extends Composite {
+public class ContentSelect extends Composite implements HasValueChangeHandlers<Boolean> {
     
     public static final String HISTORY_OPENED = "_opened";
     
@@ -32,9 +36,7 @@ public class ContentSelect extends Composite {
   
     private SimpleHyperlink addLink = new SimpleHyperlink(ADD_ADDITIONAL_CONTENT);
     private ListBox contentSelect = new ListBox(true);
-    
-    private ChangeListener listener;
-    
+        
     public ContentSelect() {
         Panel panel = new VerticalPanel();
         contentSelect.setVisible(false);
@@ -49,38 +51,36 @@ public class ContentSelect extends Composite {
                 if (contentSelect.isVisible()) {
                     addLink.setText(ADD_ADDITIONAL_CONTENT);
                     contentSelect.setVisible(false);
-                    notifyListener();
+                    notifyHandlers();
                 } else {
                     openContentSelect();
                 }
             }
         });
         
-        contentSelect.addChangeListener(new ChangeListener() {
-            public void onChange(Widget sender) {
-                notifyListener();
+        contentSelect.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
+                notifyHandlers();
             }
         });
     }
     
-    private void notifyListener() {
-        if (listener != null) {
-            listener.onChange(this);
-        }
+    private void notifyHandlers() {
+        ValueChangeEvent.fire(this, hasSelection());
     }
     
     private void openContentSelect() {
         addLink.setText(CANCEL_ADDITIONAL_CONTENT);
         contentSelect.setVisible(true);
-        notifyListener();
+        notifyHandlers();
     }
     
     public void addItem(HeaderField field) {
         contentSelect.addItem(field.getName(), field.getSqlName());
     }
     
-    public void setChangeListener(ChangeListener listener) {
-        this.listener = listener;
+    public HandlerRegistration addValueChangeHandler(ValueChangeHandler<Boolean> handler) {
+        return addHandler(handler, ValueChangeEvent.getType());
     }
     
     public boolean hasSelection() {

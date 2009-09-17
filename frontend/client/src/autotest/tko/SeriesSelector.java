@@ -4,9 +4,10 @@ import autotest.common.Utils;
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -31,7 +32,7 @@ public class SeriesSelector extends Composite {
     private SimpleHyperlink addLink = new SimpleHyperlink("[Add Series]");
     private boolean enabled = true;
     private boolean invertible = false;
-    private final ChangeListener listener;
+    private final ChangeHandler handler;
     
     public class Series extends Composite {
         
@@ -55,15 +56,15 @@ public class SeriesSelector extends Composite {
                 }
             });
             
-            name.addChangeListener(listener);
+            name.addChangeHandler(handler);
             
             aggregation.addItem("AVG", "AVG(");
             aggregation.addItem("COUNT (DISTINCT)", "COUNT(DISTINCT ");
             aggregation.addItem("MIN", "MIN(");
             aggregation.addItem("MAX", "MAX(");
             aggregation.setSelectedIndex(0);
-            aggregation.addChangeListener(new ChangeListener() {
-                public void onChange(Widget w) {
+            aggregation.addChangeHandler(new ChangeHandler() {
+                public void onChange(ChangeEvent event) {
                     if (getAggregation().equals("AVG(")) {
                         errorBars.setEnabled(true);
                     } else {
@@ -152,8 +153,8 @@ public class SeriesSelector extends Composite {
         }
     }
     
-    public SeriesSelector(ChangeListener listener) {
-        this.listener = listener;
+    public SeriesSelector(ChangeHandler handler) {
+        this.handler = handler;
         
         addLink.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
