@@ -179,7 +179,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
 
         CheckBox checkBox = new CheckBox();
         if(selectedObjects.contains(rowObject)) {
-            checkBox.setChecked(true);
+            checkBox.setValue(true);
         }
         return new TableClickWidget(checkBox, this, row, cell);
     }

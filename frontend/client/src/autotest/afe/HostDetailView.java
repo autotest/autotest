@@ -233,7 +233,7 @@ public class HostDetailView extends DetailView
         
         showSpecialTasks.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
-                jobsTable.setSpecialTasksEnabled(showSpecialTasks.isChecked());
+                jobsTable.setSpecialTasksEnabled(showSpecialTasks.getValue());
                 jobsTable.refresh();
             }
         });

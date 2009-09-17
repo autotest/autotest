@@ -81,7 +81,7 @@ public class UserPreferencesView extends TabView implements ClickHandler {
     private void updateValues() {
         rebootBefore.setSelectedChoice(getValue("reboot_before"));
         rebootAfter.setSelectedChoice(getValue("reboot_after"));
-        showExperimental.setChecked(user.get("show_experimental").isBoolean().booleanValue());
+        showExperimental.setValue(user.get("show_experimental").isBoolean().booleanValue());
     }
     
     private String getValue(String key) {
@@ -98,7 +98,7 @@ public class UserPreferencesView extends TabView implements ClickHandler {
         values.put("id", user.get("id"));
         values.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
         values.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
-        values.put("show_experimental", JSONBoolean.getInstance(showExperimental.isChecked()));
+        values.put("show_experimental", JSONBoolean.getInstance(showExperimental.getValue()));
         proxy.rpcCall("modify_user", values, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
