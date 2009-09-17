@@ -2,6 +2,8 @@ package autotest.tko;
 
 import autotest.common.ui.SimpleHyperlink;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.CloseEvent;
@@ -11,13 +13,11 @@ import com.google.gwt.event.logical.shared.OpenHandler;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.TextArea;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -52,8 +52,8 @@ public class FilterStringViewer extends Composite {
         
         queries.setSize("35em", "10em");
         queries.setReadOnly(true);
-        queries.addChangeListener(new ChangeListener() {
-            public void onChange(Widget w) {
+        queries.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
                 filterEdited = true;
             }
         });

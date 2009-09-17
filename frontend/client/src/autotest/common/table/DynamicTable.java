@@ -158,7 +158,7 @@ public class DynamicTable extends DataTable
     public void attachPaginator(Paginator paginator) {
         assert rowsPerPage != null;
         paginators.add(paginator);
-        paginator.addChangeListener(new SimpleCallback() {
+        paginator.addCallback(new SimpleCallback() {
             public void doCallback(Object source) {
                 setPaginatorStart(((Paginator) source).getStart());
                 refresh();
@@ -205,7 +205,7 @@ public class DynamicTable extends DataTable
     
     public void addFilter(Filter filter) {
         filters.add(filter);
-        filter.addListener(new SimpleCallback() {
+        filter.addCallback(new SimpleCallback() {
             public void doCallback(Object source) {
                 setPaginatorStart(0);
                 refresh();

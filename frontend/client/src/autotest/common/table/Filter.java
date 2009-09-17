@@ -9,24 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Filter {
-    protected List<SimpleCallback> changeListeners =
-        new ArrayList<SimpleCallback>();
+    protected List<SimpleCallback> callbacks = new ArrayList<SimpleCallback>();
     
     public abstract void addParams(JSONObject params);
     public abstract boolean isActive();
     public abstract Widget getWidget();
     
-    public void addListener(SimpleCallback listener) {
-        changeListeners.add(listener);
+    public void addCallback(SimpleCallback callback) {
+        callbacks.add(callback);
     }
     
-    public void removeListener(SimpleCallback listener) {
-        changeListeners.remove(listener);
+    public void removeCallback(SimpleCallback callback) {
+        callbacks.remove(callback);
     }
     
     protected void notifyListeners() {
-        for (SimpleCallback listener : changeListeners) {
-            listener.doCallback(this);
+        for (SimpleCallback callback : callbacks) {
+            callback.doCallback(this);
         }
     }
 }

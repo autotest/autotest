@@ -23,6 +23,8 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -32,14 +34,12 @@ import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.HashMap;
 import java.util.List;
@@ -118,9 +118,9 @@ public class SpreadsheetView extends ConditionTabView
         rowSelect.selectItem(headerFieldMap.get(DEFAULT_ROW));
         columnSelect.selectItem(headerFieldMap.get(DEFAULT_COLUMN));
         
-        contentSelect.setChangeListener(new ChangeListener() {
-            public void onChange(Widget sender) {
-                if (contentSelect.hasSelection()) {
+        contentSelect.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
+            public void onValueChange(ValueChangeEvent<Boolean> event) {                
+                if (event.getValue()) {
                     showOnlyLatest.setChecked(true);
                     showOnlyLatest.setEnabled(false);
                 } else {

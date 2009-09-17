@@ -10,9 +10,10 @@ import autotest.common.table.DataTable.DataTableListener;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.SelectionManager.SelectionListener;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -29,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class TestSelector extends Composite implements DataTableListener, ChangeListener, 
+class TestSelector extends Composite implements DataTableListener, ChangeHandler, 
                                                 TableWidgetFactory, SelectionListener {
     // control file types
     static final String SERVER_TYPE = "Server";
@@ -121,7 +122,7 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         
         testTypeSelect.addItem(CLIENT_TYPE);
         testTypeSelect.addItem(SERVER_TYPE);
-        testTypeSelect.addChangeListener(this);
+        testTypeSelect.addChangeHandler(this);
         
         testTable.fillParent();
         testTable.setWidgetFactory(this);
@@ -178,8 +179,9 @@ class TestSelector extends Composite implements DataTableListener, ChangeListene
         TestInfoBuilder builder = new TestInfoBuilder(row);
         testInfo.setHTML(builder.getInfo());
     }
-
-    public void onChange(Widget sender) {
+    
+    @Override
+    public void onChange(ChangeEvent event) {
         populateTests();
         notifyListener();
     }

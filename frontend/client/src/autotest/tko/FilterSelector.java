@@ -5,9 +5,10 @@ import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.FilterStringViewer.EditListener;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
@@ -16,7 +17,6 @@ import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class FilterSelector extends Composite {
     
-    public class DatabaseFilter extends Composite implements ChangeListener {
+    public class DatabaseFilter extends Composite implements ChangeHandler {
         
         private ExtendedListBox dbColumnSelector = new DBColumnSelector(dbView);
         private TextBox condition = new TextBox();
@@ -32,8 +32,8 @@ public class FilterSelector extends Composite {
         private SimpleHyperlink deleteLink = new SimpleHyperlink("[X]");
         
         private DatabaseFilter() {
-            dbColumnSelector.addChangeListener(this);
-            condition.addChangeListener(this);
+            dbColumnSelector.addChangeHandler(this);
+            condition.addChangeHandler(this);
             
             deleteLink.addClickHandler(new ClickHandler() {
                 public void onClick(ClickEvent event) {
@@ -50,8 +50,9 @@ public class FilterSelector extends Composite {
             
             initWidget(flexTable);
         }
-
-        public void onChange(Widget sender) {
+        
+        @Override
+        public void onChange(ChangeEvent event) {
             buildFilterString();
         }
         

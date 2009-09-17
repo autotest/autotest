@@ -46,8 +46,7 @@ public class Paginator extends Composite {
     }
 
     protected int resultsPerPage, numTotalResults;
-    protected List<SimpleCallback> changeListeners =
-        new ArrayList<SimpleCallback>();
+    protected List<SimpleCallback> callbacks = new ArrayList<SimpleCallback>();
     protected int currentStart = 0;
 
     protected HorizontalPanel mainPanel = new HorizontalPanel();
@@ -60,28 +59,28 @@ public class Paginator extends Composite {
         prevControl.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 currentStart -= Paginator.this.resultsPerPage;
-                notifyListeners();
+                notifyCallbacks();
             }
         });
         nextControl = new LinkWithDisable("Next >");
         nextControl.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 currentStart += Paginator.this.resultsPerPage;
-                notifyListeners();
+                notifyCallbacks();
             }
         });
         firstControl = new LinkWithDisable("<< First");
         firstControl.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 currentStart = 0;
-                notifyListeners();
+                notifyCallbacks();
             } 
         });
         lastControl = new LinkWithDisable("Last >>");
         lastControl.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 currentStart = getLastPageStart();
-                notifyListeners();
+                notifyCallbacks();
             } 
         });
         
@@ -165,17 +164,17 @@ public class Paginator extends Composite {
                             " of " + numTotalResults); 
     }
     
-    public void addChangeListener(SimpleCallback listener) {
-        changeListeners.add(listener);
+    public void addCallback(SimpleCallback callback) {
+        callbacks.add(callback);
     }
     
-    public void removeChangeListener(SimpleCallback listener) {
-        changeListeners.remove(listener);
+    public void removeCallback(SimpleCallback callback) {
+        callbacks.remove(callback);
     }
     
-    protected void notifyListeners() {
-        for (SimpleCallback listener : changeListeners) {
-            listener.doCallback(this);
+    protected void notifyCallbacks() {
+        for (SimpleCallback callback : callbacks) {
+            callback.doCallback(this);
         }
     }
 }

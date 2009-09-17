@@ -6,17 +6,17 @@ import autotest.common.ui.NotifyManager;
 import autotest.common.ui.TabView;
 import autotest.tko.SeriesSelector.Series;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.RadioButton;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,8 +41,8 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
     private ExtendedListBox normalizeSeriesSelect = new ExtendedListBox();
     private RadioButton normalizeX = new RadioButton("normalize", "Specified X-axis value:");
     private TextBox normalizeXSelect = new TextBox();
-    private SeriesSelector seriesSelector = new SeriesSelector(new ChangeListener() {
-        public void onChange(Widget w) {
+    private SeriesSelector seriesSelector = new SeriesSelector(new ChangeHandler() {
+        public void onChange(ChangeEvent event) {
             refreshSeries();
         }
     });
@@ -63,8 +63,8 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
 
         plotSelector.addItem("Line");
         plotSelector.addItem("Bar");
-        plotSelector.addChangeListener(new ChangeListener() {
-            public void onChange(Widget sender) {
+        plotSelector.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
                 checkNormalizeInput();
             }
         });

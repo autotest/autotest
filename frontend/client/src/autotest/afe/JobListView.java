@@ -133,7 +133,7 @@ public class JobListView extends TabView implements TableActionsListener {
             jobStateFilter.addLink(linkLabels[i]);
         // all jobs is selected by default
         jobStateFilter.setSelectedLink(DEFAULT_LINK);
-        jobStateFilter.addListener(new SimpleCallback() {
+        jobStateFilter.addCallback(new SimpleCallback() {
             public void doCallback(Object source) {
                 updateHistory();
             } 

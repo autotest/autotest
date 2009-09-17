@@ -1,8 +1,9 @@
 package autotest.common.table;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -13,8 +14,8 @@ public class ListFilter extends FieldFilter {
     public ListFilter(String fieldName) {
         super(fieldName);
         select.setStylePrimaryName("filter-box");
-        select.addChangeListener(new ChangeListener() {
-            public void onChange(Widget sender) {
+        select.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
                 notifyListeners();
             } 
         });
