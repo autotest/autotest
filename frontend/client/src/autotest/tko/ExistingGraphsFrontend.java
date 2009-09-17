@@ -6,22 +6,23 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.event.dom.client.BlurEvent;
+import com.google.gwt.event.dom.client.BlurHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
 import com.google.gwt.user.client.ui.SuggestBox;
-import com.google.gwt.user.client.ui.SuggestionEvent;
-import com.google.gwt.user.client.ui.SuggestionHandler;
+import com.google.gwt.user.client.ui.SuggestOracle;
 import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,17 +49,13 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
             }
         });
         
-        hostnameSuggest.addFocusListener(new FocusListener() {
-            public void onLostFocus(Widget w) {
+        hostnameSuggest.getTextBox().addBlurHandler(new BlurHandler() {
+            public void onBlur(BlurEvent event) {
                 refreshTests();
             }
-            
-            public void onFocus(Widget w) {
-                // Don't do anything
-            }
         });
-        hostnameSuggest.addEventHandler(new SuggestionHandler() {
-            public void onSuggestionSelected(SuggestionEvent s) {
+        hostnameSuggest.addSelectionHandler(new SelectionHandler<SuggestOracle.Suggestion>() {
+            public void onSelection(SelectionEvent<SuggestOracle.Suggestion> event) {
                 refreshTests();
             }
         });

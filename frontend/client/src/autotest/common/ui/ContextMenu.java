@@ -1,10 +1,10 @@
 package autotest.common.ui;
 
+import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.MenuItem;
-import com.google.gwt.user.client.ui.PopupListener;
 import com.google.gwt.user.client.ui.PopupPanel;
 
 
@@ -65,8 +65,8 @@ public class ContextMenu {
         showAt(left + Window.getScrollLeft(), top + Window.getScrollTop());
     }
 
-    public void addPopupListener(PopupListener popupListener) {
-        popup.addPopupListener(popupListener);
+    public void addCloseHandler(CloseHandler<PopupPanel> closeHandler) {
+        popup.addCloseHandler(closeHandler);
     }
 
 }
