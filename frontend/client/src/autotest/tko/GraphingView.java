@@ -5,9 +5,9 @@ import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.TabView;
 import autotest.tko.TableView.TableSwitchListener;
 
-import com.google.gwt.user.client.ui.ChangeListener;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.user.client.ui.DeckPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
 
@@ -38,8 +38,8 @@ public class GraphingView extends TabView {
                                   machineQualHistogramFrontend.getFrontendId());
         frontendSelection.addItem("Existing Graphs", existingGraphsFrontend.getFrontendId());
 
-        frontendSelection.addChangeListener(new ChangeListener() {
-            public void onChange(Widget w) {
+        frontendSelection.addChangeHandler(new ChangeHandler() {
+            public void onChange(ChangeEvent event) {
                 showSelectedView();
                 updateHistory();
             }

@@ -9,6 +9,8 @@ import autotest.common.CustomHistory.CustomHistoryListener;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.NotifyManager;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONArray;
@@ -18,7 +20,6 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -32,7 +33,7 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.Map;
 
 class SavedQueriesControl extends Composite 
-                          implements ChangeListener, ClickHandler, CustomHistoryListener {
+                          implements ChangeHandler, ClickHandler, CustomHistoryListener {
     public static final String HISTORY_TOKEN = "saved_query";
     
     private static final String ADD_QUERY = "Save current...";
@@ -76,7 +77,7 @@ class SavedQueriesControl extends Composite
     }
     
     public SavedQueriesControl() {
-        queryList.addChangeListener(this);
+        queryList.addChangeHandler(this);
         populateMainList();
         initWidget(queryList);
         
@@ -113,8 +114,9 @@ class SavedQueriesControl extends Composite
             }
         });
     }
-
-    public void onChange(Widget sender) {
+    
+    @Override
+    public void onChange(ChangeEvent event) {
         int selected = queryList.getSelectedIndex();
         queryList.setSelectedIndex(0); // set it back to the default
         

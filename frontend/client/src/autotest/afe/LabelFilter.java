@@ -2,10 +2,11 @@ package autotest.afe;
 
 import autotest.common.table.MultipleListFilter;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -26,8 +27,8 @@ public class LabelFilter extends MultipleListFilter {
         platform.addItem(platformString);
       }
       platform.setStylePrimaryName("filter-box");
-      platform.addChangeListener(new ChangeListener() {
-        public void onChange(Widget sender) {
+      platform.addChangeHandler(new ChangeHandler() {
+        public void onChange(ChangeEvent event) {
             notifyListeners();
         }
     });
