@@ -5,13 +5,15 @@ import autotest.common.CustomHistory.CustomHistoryListener;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.BeforeSelectionEvent;
+import com.google.gwt.event.logical.shared.BeforeSelectionHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DeckPanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.SourcesTabEvents;
-import com.google.gwt.user.client.ui.TabListener;
 import com.google.gwt.user.client.ui.TabPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
@@ -20,7 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class CustomTabPanel extends Composite implements CustomHistoryListener, TabListener {
+public class CustomTabPanel extends Composite implements CustomHistoryListener,
+                                                         BeforeSelectionHandler<Integer>,
+                                                         SelectionHandler<Integer> {
     protected TabPanel tabPanel = new TabPanel();
     protected Panel otherWidgetsPanel = new HorizontalPanel();
     private Panel commonAreaPanel = new VerticalPanel();
@@ -53,7 +57,8 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
         bottom.add(tabDeck);
         bottom.setCellHeight(tabDeck, "100%");
         
-        tabPanel.addTabListener(this);
+        tabPanel.addBeforeSelectionHandler(this);
+        tabPanel.addSelectionHandler(this);
         
         // transfer the DeckPanel's class to the entire bottom panel
         String tabDeckClass = tabDeck.getStyleName();
@@ -150,22 +155,23 @@ public class CustomTabPanel extends Composite implements CustomHistoryListener, 
             }
         }
     }
-
-    public boolean onBeforeTabSelected(SourcesTabEvents sender, int tabIndex) {
+    
+    @Override
+    public void onBeforeSelection(BeforeSelectionEvent<Integer> event) {
         // do nothing if the user clicks the selected tab
-        if (tabPanel.getTabBar().getSelectedTab() == tabIndex)
-            return false;
+        if (tabPanel.getTabBar().getSelectedTab() == event.getItem())
+            event.cancel();
         TabView selectedTabView = getSelectedTabView();
         if (selectedTabView != null) {
             selectedTabView.hide();
         }
-        tabViews.get(tabIndex).ensureInitialized();
-        tabViews.get(tabIndex).display();
-        return true;
+        tabViews.get(event.getItem()).ensureInitialized();
+        tabViews.get(event.getItem()).display();
     }
-
-    public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
+    
+    @Override
+    public void onSelection(SelectionEvent<Integer> event) {
         if (doUpdateHistory)
-            tabViews.get(tabIndex).updateHistory();
+            tabViews.get(event.getSelectedItem()).updateHistory();
     }
 }

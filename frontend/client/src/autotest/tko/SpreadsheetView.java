@@ -21,6 +21,8 @@ import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.ResizeEvent;
+import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -29,7 +31,6 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -163,8 +164,8 @@ public class SpreadsheetView extends ConditionTabView
         addWidget(spreadsheet, "ss_spreadsheet");
         addWidget(jobCompletionPanel, "ss_job_completion");
         
-        Window.addWindowResizeListener(new WindowResizeListener() {
-            public void onWindowResized(int width, int height) {
+        Window.addResizeHandler(new ResizeHandler() {
+            public void onResize(ResizeEvent event) {
                 if(spreadsheet.isVisible())
                     spreadsheet.fillWindow(true);
             } 

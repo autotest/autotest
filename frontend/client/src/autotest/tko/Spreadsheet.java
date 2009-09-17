@@ -5,6 +5,8 @@ import autotest.common.Utils;
 import autotest.common.ui.RightClickTable;
 
 import com.google.gwt.dom.client.Element;
+import com.google.gwt.event.dom.client.ScrollEvent;
+import com.google.gwt.event.dom.client.ScrollHandler;
 import com.google.gwt.user.client.DeferredCommand;
 import com.google.gwt.user.client.IncrementalCommand;
 import com.google.gwt.user.client.Window;
@@ -12,7 +14,6 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.ScrollListener;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.SourcesTableEvents;
@@ -25,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Spreadsheet extends Composite implements ScrollListener, TableListener {
+public class Spreadsheet extends Composite implements ScrollHandler, TableListener {
     private static final int MIN_TABLE_SIZE_PX = 90;
     private static final int WINDOW_BORDER_PX = 15;
     private static final int SCROLLBAR_FUDGE = 16;
@@ -175,7 +176,7 @@ public class Spreadsheet extends Composite implements ScrollListener, TableListe
         
         scrollPanel.setStyleName("spreadsheet-scroller");
         scrollPanel.setAlwaysShowScrollBars(true);
-        scrollPanel.addScrollListener(this);
+        scrollPanel.addScrollHandler(this);
         
         parentTable.setStyleName("spreadsheet-parent");
         killPaddingAndSpacing(parentTable);
@@ -482,7 +483,11 @@ public class Spreadsheet extends Composite implements ScrollListener, TableListe
     /**
      * Update floating headers.
      */
-    public void onScroll(Widget widget, int scrollLeft, int scrollTop) {
+    @Override
+    public void onScroll(ScrollEvent event) {
+        int scrollLeft = scrollPanel.getHorizontalScrollPosition();
+        int scrollTop = scrollPanel.getScrollPosition();
+        
         setColumnHeadersOffset(-scrollLeft);
         setRowHeadersOffset(-scrollTop);
     }

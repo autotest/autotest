@@ -2,11 +2,13 @@ package autotest.common.table;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyUpEvent;
+import com.google.gwt.event.dom.client.KeyUpHandler;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -34,11 +36,9 @@ public class SearchFilter extends FieldFilter {
             });
         }
 
-        searchBox.addKeyboardListener(new KeyboardListener() {
-            public void onKeyPress(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyUp(Widget sender, char keyCode, int modifiers) {
-                if (keyCode == KEY_ENTER || isIncremental) {
+        searchBox.addKeyUpHandler (new KeyUpHandler() {
+            public void onKeyUp(KeyUpEvent event) {
+                if (event.getNativeKeyCode() == KeyCodes.KEY_ENTER || isIncremental) {
                     notifyListeners();
                 }
             }

@@ -1,17 +1,17 @@
 package autotest.common.table;
 
-import com.google.gwt.user.client.ui.SourcesTabEvents;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.ui.TabBar;
-import com.google.gwt.user.client.ui.TabListener;
 import com.google.gwt.user.client.ui.Widget;
 
-public abstract class LinkSetFilter extends Filter implements TabListener {
+public abstract class LinkSetFilter extends Filter implements SelectionHandler<Integer> {
     protected TabBar linkBar = new TabBar();
     protected boolean enableNotification = true;
     
     public LinkSetFilter() {
         linkBar.setStyleName("job-filter-links");
-        linkBar.addTabListener(this);
+        linkBar.addSelectionHandler(this);
     }
     
     public void addLink(String text) {
@@ -34,13 +34,10 @@ public abstract class LinkSetFilter extends Filter implements TabListener {
             enableNotification = true;
         }
     }
-
-    public void onTabSelected(SourcesTabEvents sender, int tabIndex) {
+    
+    @Override
+    public void onSelection(SelectionEvent<Integer> event) {
         if (enableNotification)
             notifyListeners();
-    }
-
-    public boolean onBeforeTabSelected(SourcesTabEvents sender, int tabIndex) {
-        return true;
     }
 }

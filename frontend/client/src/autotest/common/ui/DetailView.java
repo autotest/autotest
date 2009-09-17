@@ -6,11 +6,12 @@ import autotest.common.CustomHistory.HistoryToken;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.Widget;
 
 import java.util.Map;
 
@@ -39,14 +40,11 @@ public abstract class DetailView extends TabView {
         addWidget(idInput, getFetchControlsElementId());
         addWidget(idFetchButton, getFetchControlsElementId());
         
-        idInput.addKeyboardListener(new KeyboardListener() {
-            public void onKeyPress(Widget sender, char keyCode, int modifiers) {
-                if (keyCode == (char) KEY_ENTER)
+        idInput.addKeyPressHandler(new KeyPressHandler() {
+            public void onKeyPress (KeyPressEvent event) {
+                if (event.getCharCode() == (char) KeyCodes.KEY_ENTER)
                     fetchById(idInput.getText());
             }
-
-            public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyUp(Widget sender, char keyCode, int modifiers) {}
         });
         idFetchButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
