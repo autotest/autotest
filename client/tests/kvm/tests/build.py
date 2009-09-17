@@ -4,6 +4,27 @@ from autotest_lib.client.common_lib import error
 import kvm_utils
 
 
+def check_configure_options(script_path):
+    """
+    Return the list of available options (flags) of a given kvm configure build
+    script.
+
+    @param script: Path to the configure script
+    """
+    abspath = os.path.abspath(script_path)
+    help_raw = utils.system_output('%s --help' % abspath, ignore_status=True)
+    help_output = help_raw.split("\n")
+    option_list = []
+    for line in help_output:
+        cleaned_line = line.lstrip()
+        if cleaned_line.startswith("--"):
+            option = cleaned_line.split()[0]
+            option = option.split("=")[0]
+            option_list.append(option)
+
+    return option_list
+
+
 def load_kvm_modules(module_dir):
     """
     Unload previously loaded kvm modules, then load modules present on any
@@ -134,7 +155,8 @@ class SourceDirInstaller:
             if not release_tag:
                 release_tag = kvm_utils.get_latest_kvm_release_tag(
                                                                 release_listing)
-            tarball = os.path.join(release_dir, "kvm-%s.tar.gz" % release_tag)
+            tarball = os.path.join(release_dir, 'kvm', release_tag,
+                                   "kvm-%s.tar.gz" % release_tag)
             logging.info("Retrieving release kvm-%s" % release_tag)
             tarball = utils.unmap_url("/", tarball, "/tmp")
 
@@ -166,13 +188,17 @@ class SourceDirInstaller:
         os.chdir(srcdir)
         self.srcdir = os.path.join(srcdir, utils.extract_tarball(tarball))
         self.repo_type = kvm_utils.check_kvm_source_dir(self.srcdir)
+        configure_script = os.path.join(self.srcdir, 'configure')
+        self.configure_options = check_configure_options(configure_script)
 
 
     def __build(self):
         os.chdir(self.srcdir)
         # For testing purposes, it's better to build qemu binaries with
         # debugging symbols, so we can extract more meaningful stack traces.
-        cfg = "./configure --disable-strip --prefix=%s" % self.prefix
+        cfg = "./configure --prefix=%s" % self.prefix
+        if "--disable-strip" in self.configure_options:
+            cfg += " --disable-strip"
         steps = [cfg, "make clean", "make -j %s" % (utils.count_cpus() + 1)]
         logging.info("Building KVM")
         for step in steps:
@@ -262,6 +288,9 @@ class GitInstaller:
                                      lbranch)
             self.kmod_srcdir = kmod_srcdir
 
+        configure_script = os.path.join(self.userspace_srcdir, 'configure')
+        self.configure_options = check_configure_options(configure_script)
+
 
     def __build(self):
         if self.kmod_srcdir:
@@ -273,14 +302,18 @@ class GitInstaller:
             utils.system('make -j %s' % utils.count_cpus())
             logging.info('Building KVM userspace code')
             os.chdir(self.userspace_srcdir)
-            utils.system('./configure --disable-strip --prefix=%s' %
-                         self.prefix)
+            cfg = './configure --prefix=%s' % self.prefix
+            if "--disable-strip" in self.configure_options:
+                cfg += ' --disable-strip'
+            utils.system(cfg)
             utils.system('make clean')
             utils.system('make -j %s' % utils.count_cpus())
         else:
             os.chdir(self.userspace_srcdir)
-            utils.system('./configure --disable-strip --prefix=%s' %
-                         self.prefix)
+            cfg = './configure --prefix=%s' % self.prefix
+            if "--disable-strip" in self.configure_options:
+                cfg += ' --disable-strip'
+            utils.system(cfg)
             logging.info('Building KVM modules')
             utils.system('make clean')
             utils.system('make -C kernel LINUX=%s sync' % self.kernel_srcdir)
