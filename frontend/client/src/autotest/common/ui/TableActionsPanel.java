@@ -5,14 +5,15 @@ import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.CloseEvent;
+import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.PopupListener;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.ToggleButton;
 
-public class TableActionsPanel extends Composite implements ClickHandler, PopupListener {
+public class TableActionsPanel extends Composite implements ClickHandler, CloseHandler<PopupPanel>{
     public static interface TableActionsListener {
         public ContextMenu getActionMenu();
     }
@@ -65,13 +66,14 @@ public class TableActionsPanel extends Composite implements ClickHandler, PopupL
         } else {
             assert event.getSource() == actionsButton;
             ContextMenu menu = listener.getActionMenu();
-            menu.addPopupListener(this);
+            menu.addCloseHandler(this);
             menu.showAt(actionsButton.getAbsoluteLeft(), 
                         actionsButton.getAbsoluteTop() + actionsButton.getOffsetHeight());
         }
     }
-
-    public void onPopupClosed(PopupPanel sender, boolean autoClosed) {
+    
+    @Override
+    public void onClose(CloseEvent<PopupPanel> event) {
         actionsButton.setDown(false);
     }
 }

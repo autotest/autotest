@@ -4,13 +4,15 @@ import autotest.common.ui.SimpleHyperlink;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.CloseEvent;
+import com.google.gwt.event.logical.shared.CloseHandler;
+import com.google.gwt.event.logical.shared.OpenEvent;
+import com.google.gwt.event.logical.shared.OpenHandler;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DisclosureEvent;
-import com.google.gwt.user.client.ui.DisclosureHandler;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
@@ -63,12 +65,13 @@ public class FilterStringViewer extends Composite {
         queriesPanel.setHeader(viewerHeaderPanel);
         queriesPanel.add(queries);
         
-        queriesPanel.addEventHandler(new DisclosureHandler() {
-            public void onClose(DisclosureEvent e) {
+        queriesPanel.addCloseHandler(new CloseHandler<DisclosurePanel>() {
+            public void onClose(CloseEvent<DisclosurePanel> e) {
                 view.setText(VIEW_FILTER_STRING);
             }
-            
-            public void onOpen(DisclosureEvent e) {
+        });
+        queriesPanel.addOpenHandler(new OpenHandler<DisclosurePanel>() {
+            public void onOpen(OpenEvent<DisclosurePanel> e) {
                 view.setText(HIDE_FILTER_STRING);
             }
         });

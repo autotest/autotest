@@ -13,8 +13,17 @@ import autotest.common.ui.RadioChooser;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 
+import com.google.gwt.event.dom.client.BlurEvent;
+import com.google.gwt.event.dom.client.BlurHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.KeyCodes;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
+import com.google.gwt.event.logical.shared.CloseEvent;
+import com.google.gwt.event.logical.shared.CloseHandler;
+import com.google.gwt.event.logical.shared.OpenEvent;
+import com.google.gwt.event.logical.shared.OpenHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONNumber;
@@ -27,14 +36,10 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.ChangeListener;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DisclosureEvent;
-import com.google.gwt.user.client.ui.DisclosureHandler;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Hyperlink;
-import com.google.gwt.user.client.ui.KeyboardListener;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
@@ -423,27 +428,24 @@ public class CreateJobView extends TabView
         super.initialize();
         populatePriorities(staticData.getData("priorities").isArray());
 
-        FocusListener kernelFocusListener = new FocusListener() {
-            public void onFocus(Widget sender) {}
-            public void onLostFocus(Widget sender) {
+        BlurHandler kernelBlurHandler = new BlurHandler() {
+            public void onBlur(BlurEvent event) {
                 generateControlFile(false);
             }
         };
 
-        kernel.addFocusListener(kernelFocusListener);
-        kernel_cmdline.addFocusListener(kernelFocusListener);
+        kernel.addBlurHandler(kernelBlurHandler);
+        kernel_cmdline.addBlurHandler(kernelBlurHandler);
 
-        KeyboardListener kernelKeyboardListener = new KeyboardListener() {
-            public void onKeyDown(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyUp(Widget sender, char keyCode, int modifiers) {}
-            public void onKeyPress(Widget sender, char keyCode, int modifiers) {
-                if (keyCode == KEY_ENTER)
+        KeyPressHandler kernelKeyPressHandler = new KeyPressHandler() {
+            public void onKeyPress(KeyPressEvent event) {
+                if (event.getCharCode() == (char) KeyCodes.KEY_ENTER)
                     generateControlFile(false);
             }
         };
 
-        kernel.addKeyboardListener(kernelKeyboardListener);
-        kernel_cmdline.addKeyboardListener(kernelKeyboardListener);
+        kernel.addKeyPressHandler(kernelKeyPressHandler);
+        kernel_cmdline.addKeyPressHandler(kernelKeyPressHandler);
 
         populatePriorities();
         
@@ -518,12 +520,14 @@ public class CreateJobView extends TabView
             } 
         });
         
-        controlFilePanel.addEventHandler(new DisclosureHandler() {
-            public void onClose(DisclosureEvent event) {
+        controlFilePanel.addCloseHandler(new CloseHandler<DisclosurePanel>() {
+            public void onClose(CloseEvent<DisclosurePanel> event) {
                 viewLink.setText(VIEW_CONTROL_STRING);
             }
-
-            public void onOpen(DisclosureEvent event) {
+        });
+        
+        controlFilePanel.addOpenHandler(new OpenHandler<DisclosurePanel>() {
+            public void onOpen(OpenEvent<DisclosurePanel> event) {
                 viewLink.setText(HIDE_CONTROL_STRING);
             }
         });

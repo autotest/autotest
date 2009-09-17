@@ -8,15 +8,16 @@ import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RealHyperlink;
 
+import com.google.gwt.event.logical.shared.OpenEvent;
+import com.google.gwt.event.logical.shared.OpenHandler;
+import com.google.gwt.event.logical.shared.ResizeEvent;
+import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.WindowResizeListener;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.DisclosureEvent;
-import com.google.gwt.user.client.ui.DisclosureHandler;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -45,7 +46,7 @@ class TestDetailView extends DetailView {
     private Panel attributePanel = new SimplePanel();
     
     private class LogFileViewer extends Composite 
-                                implements DisclosureHandler, WindowResizeListener {
+                                implements OpenHandler<DisclosurePanel>, ResizeHandler {
         private DisclosurePanel panel;
         private ScrollPanel scroller; // ScrollPanel wrapping log contents
         private String logFilePath;
@@ -70,14 +71,15 @@ class TestDetailView extends DetailView {
         public LogFileViewer(String logFilePath, String logFileName) {
             this.logFilePath = logFilePath;
             panel = new DisclosurePanel(logFileName);
-            panel.addEventHandler(this);
+            panel.addOpenHandler(this);
             panel.addStyleName("log-file-panel");
             initWidget(panel);
             
-            Window.addWindowResizeListener(this);
+            Window.addResizeHandler(this);
         }
         
-        public void onOpen(DisclosureEvent event) {
+        @Override
+        public void onOpen(OpenEvent<DisclosurePanel> event) {
             JSONObject params = new JSONObject();
             params.put("path", new JSONString(getLogUrl()));
             logLoadingProxy.rpcCall("dummy", params, rpcCallback);
@@ -118,8 +120,9 @@ class TestDetailView extends DetailView {
             NotifyManager.getInstance().log(targetWidthPx + "px");
             scroller.setWidth(targetWidthPx + "px");
         }
-
-        public void onWindowResized(int width, int height) {
+        
+        @Override
+        public void onResize(ResizeEvent event) {
             if (panel.isOpen()) {
                 setScrollerWidth();
             }
@@ -129,8 +132,6 @@ class TestDetailView extends DetailView {
             panel.clear();
             panel.add(new HTML("<i>" + status + "</i>"));
         }
-
-        public void onClose(DisclosureEvent event) {}
     }
     
     private static class AttributeTable extends Composite {
