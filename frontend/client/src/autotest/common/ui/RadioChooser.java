@@ -31,7 +31,7 @@ public class RadioChooser extends Composite {
         if (radioButtons.isEmpty()) {
             // first button in this group
             defaultButton = button;
-            button.setChecked(true);
+            button.setValue(true);
         }
         radioButtons.add(button);
         container.add(button);
@@ -39,7 +39,7 @@ public class RadioChooser extends Composite {
     
     public String getSelectedChoice() {
         for (RadioButton button : radioButtons) {
-            if (button.isChecked()) {
+            if (button.getValue()) {
                 return button.getText();
             }
         }
@@ -48,7 +48,7 @@ public class RadioChooser extends Composite {
     
     public void reset() {
         if (defaultButton != null) {
-            defaultButton.setChecked(true);
+            defaultButton.setValue(true);
         }
     }
 
@@ -57,7 +57,7 @@ public class RadioChooser extends Composite {
     }
 
     public void setSelectedChoice(String choice) {
-        findButtonForChoice(choice).setChecked(true);
+        findButtonForChoice(choice).setValue(true);
     }
     
     private RadioButton findButtonForChoice(String choice) {

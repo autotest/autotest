@@ -109,7 +109,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
 
     @Override
     public void addToHistory(Map<String, String> args) {
-        args.put("normalize", String.valueOf(normalize.isChecked()));
+        args.put("normalize", String.valueOf(normalize.getValue()));
         args.put("hostname", hostname.getText());
 
         // Add the selected benchmarks
@@ -128,7 +128,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     @Override
     public void handleHistoryArguments(final Map<String, String> args) {
         hostname.setText(args.get("hostname"));
-        normalize.setChecked(Boolean.parseBoolean(args.get("normalize")));
+        normalize.setValue(Boolean.parseBoolean(args.get("normalize")));
         normalizeClicked();
         kernel.setText(args.get("kernel"));
 
@@ -152,7 +152,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
 
     // Change the state of the page based on the status of the "normalize" checkbox
     private void normalizeClicked() {
-        benchmark.setMultipleSelect(normalize.isChecked());
+        benchmark.setMultipleSelect(normalize.getValue());
         // when switching to single-select, we need to manually force the selection to a single item
         int selectedIndex = benchmark.getSelectedIndex();
         for (int i = 0; i < benchmark.getItemCount(); i++) {
@@ -204,7 +204,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         HashMap<String, String> args = new HashMap<String, String>();
         args.put("kernel", kernel.getText());
         
-        if (normalize.isChecked()) {
+        if (normalize.getValue()) {
             url = "/tko/machine_aggr.cgi?";
             final JSONArray tests = new JSONArray();
             for (int i = 0; i < benchmark.getItemCount(); i++) {

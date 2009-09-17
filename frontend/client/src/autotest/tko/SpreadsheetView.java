@@ -121,7 +121,7 @@ public class SpreadsheetView extends ConditionTabView
         contentSelect.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
             public void onValueChange(ValueChangeEvent<Boolean> event) {                
                 if (event.getValue()) {
-                    showOnlyLatest.setChecked(true);
+                    showOnlyLatest.setValue(true);
                     showOnlyLatest.setEnabled(false);
                 } else {
                     showOnlyLatest.setEnabled(true);
@@ -270,8 +270,8 @@ public class SpreadsheetView extends ConditionTabView
     private void updateStateFromView() {
         rowSelect.updateStateFromView();
         columnSelect.updateStateFromView();
-        currentShowIncomplete = showIncomplete.isChecked();
-        currentShowOnlyLatest = showOnlyLatest.isChecked();
+        currentShowIncomplete = showIncomplete.getValue();
+        currentShowOnlyLatest = showOnlyLatest.getValue();
         commonPanel.updateStateFromView();
     }
 
@@ -509,8 +509,8 @@ public class SpreadsheetView extends ConditionTabView
     private void updateViewFromState() {
         rowSelect.updateViewFromState();
         columnSelect.updateViewFromState();
-        showIncomplete.setChecked(currentShowIncomplete);
-        showOnlyLatest.setChecked(currentShowOnlyLatest);
+        showIncomplete.setValue(currentShowIncomplete);
+        showOnlyLatest.setValue(currentShowOnlyLatest);
         commonPanel.updateViewFromState();
     }
 
@@ -522,7 +522,7 @@ public class SpreadsheetView extends ConditionTabView
             columnSelect.addHistoryArguments(arguments, HISTORY_COLUMN);
             contentSelect.addHistoryArguments(arguments, HISTORY_CONTENT);
             arguments.put(HISTORY_SHOW_INCOMPLETE, Boolean.toString(currentShowIncomplete));
-            arguments.put(HISTORY_ONLY_LATEST, Boolean.toString(showOnlyLatest.isChecked()));
+            arguments.put(HISTORY_ONLY_LATEST, Boolean.toString(showOnlyLatest.getValue()));
             commonPanel.addHistoryArguments(arguments);
         }
         return arguments;

@@ -96,7 +96,7 @@ public class FilterSelector extends Composite {
         };
         all.addClickHandler(booleanOpListener);
         any.addClickHandler(booleanOpListener);
-        all.setChecked(true);
+        all.setValue(true);
 
         addLink.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -154,7 +154,7 @@ public class FilterSelector extends Composite {
         }
         
         // Get whether the filter should be "all" or "any"
-        args.put(prefix + "_all", Boolean.toString(all.isChecked()));
+        args.put(prefix + "_all", Boolean.toString(all.getValue()));
         
         viewer.addToHistory(args, prefix);
     }
@@ -180,9 +180,9 @@ public class FilterSelector extends Composite {
         // Restore the "all" or "any" selection
         boolean allChecked = Boolean.parseBoolean(args.get(prefix + "_all"));
         if (allChecked) {
-            all.setChecked(true);
+            all.setValue(true);
         } else {
-            any.setChecked(true);
+            any.setValue(true);
         }
         
         buildFilterString();
@@ -224,7 +224,7 @@ public class FilterSelector extends Composite {
             }
         }
 
-        String joiner = all.isChecked() ? " AND " : " OR ";
+        String joiner = all.getValue() ? " AND " : " OR ";
         String fullFilterString = Utils.joinStrings(joiner, filterParts);
         viewer.setText(fullFilterString);
     }

@@ -387,12 +387,12 @@ public class TableView extends ConditionTabView
     }
     
     private void setCheckboxesEnabled() {
-        assert !(groupCheckbox.isChecked() && statusGroupCheckbox.isChecked());
+        assert !(groupCheckbox.getValue() && statusGroupCheckbox.getValue());
         groupCheckbox.setEnabled(true);
         statusGroupCheckbox.setEnabled(true);
-        if (groupCheckbox.isChecked()) {
+        if (groupCheckbox.getValue()) {
             statusGroupCheckbox.setEnabled(false);
-        } else if (statusGroupCheckbox.isChecked()) {
+        } else if (statusGroupCheckbox.getValue()) {
             groupCheckbox.setEnabled(false);
         }
     }
@@ -401,9 +401,9 @@ public class TableView extends ConditionTabView
         ensureItemRemoved(COUNT_NAME);
         ensureItemRemoved(STATUS_COUNTS_NAME);
         
-        if (groupCheckbox.isChecked()) {
+        if (groupCheckbox.getValue()) {
             addSpecialItem(COUNT_NAME);
-        } else if (statusGroupCheckbox.isChecked()) {
+        } else if (statusGroupCheckbox.getValue()) {
             addSpecialItem(STATUS_COUNTS_NAME);
         }
         
