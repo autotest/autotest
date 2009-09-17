@@ -7,6 +7,7 @@ import autotest.common.Utils;
 import autotest.common.table.RpcDataSource;
 
 import com.google.gwt.dom.client.Element;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -107,8 +108,8 @@ public class TkoUtils {
         if (extraParams != null) {
             Utils.updateObject(request, extraParams);
         }
-
-        String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + request.toString();
+        
+        String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + URL.encode(request.toString());
         Utils.openUrlInNewWindow(url);
     }
     
