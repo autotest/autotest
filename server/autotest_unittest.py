@@ -44,6 +44,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "remove")
         self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
+        self.god.stub_function(os.path, "isdir")
         self.god.stub_function(utils, "sh_escape")
         self.god.stub_function(autotest, "open")
         self.god.stub_function(autotest.global_config.global_config,
@@ -65,6 +66,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         # create the autotest object
         self.base_autotest = autotest.BaseAutotest(self.host)
+        self.god.stub_function(self.base_autotest, "_install_using_send_file")
 
         # stub out abspath
         self.god.stub_function(os.path, "abspath")
@@ -73,14 +75,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_constructor(self):
-        self.construct()
-
-        # we should check the calls
-        self.god.check_playback()
-
-
-    def test_install(self):
+    def record_install_prologue(self):
         self.construct()
 
         # setup
@@ -107,8 +102,55 @@ class TestBaseAutotest(unittest.TestCase):
             "autodir/results")
         self.host.run.expect_call('rm -rf autodir/results/*',
                                   ignore_status=True)
+
+
+    def test_constructor(self):
+        self.construct()
+
+        # we should check the calls
+        self.god.check_playback()
+
+
+    def test_full_client_install(self):
+        self.record_install_prologue()
+
+        os.path.isdir.expect_call('source_material').and_return(True)
         c = autotest.global_config.global_config
-        c.get_config_value.expect_call("PACKAGES",
+        c.get_config_value.expect_call('PACKAGES',
+                                       'serve_packages_from_autoserv',
+                                       type=bool).and_return(False)
+        self.host.send_file.expect_call('source_material', 'autodir',
+                                        delete_dest=True)
+
+        # run and check
+        self.base_autotest.install_full_client()
+        self.god.check_playback()
+
+
+    def test_autoserv_install(self):
+        self.record_install_prologue()
+
+        c = autotest.global_config.global_config
+        c.get_config_value.expect_call('PACKAGES',
+            'fetch_location', type=list).and_return([])
+
+        os.path.isdir.expect_call('source_material').and_return(True)
+        c.get_config_value.expect_call('PACKAGES',
+                                       'serve_packages_from_autoserv',
+                                       type=bool).and_return(True)
+        self.base_autotest._install_using_send_file.expect_call(self.host,
+                                                                'autodir')
+
+        # run and check
+        self.base_autotest.install()
+        self.god.check_playback()
+
+
+    def test_packaging_install(self):
+        self.record_install_prologue()
+
+        c = autotest.global_config.global_config
+        c.get_config_value.expect_call('PACKAGES',
             'fetch_location', type=list).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autodir',
             repo_urls=['repo'], hostname='hostname', do_locking=False,
