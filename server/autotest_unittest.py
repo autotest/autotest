@@ -132,7 +132,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         c = autotest.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
-            'fetch_location', type=list).and_return([])
+            'fetch_location', type=list, default=[]).and_return([])
 
         os.path.isdir.expect_call('source_material').and_return(True)
         c.get_config_value.expect_call('PACKAGES',
@@ -151,7 +151,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         c = autotest.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
-            'fetch_location', type=list).and_return(['repo'])
+            'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autodir',
             repo_urls=['repo'], hostname='hostname', do_locking=False,
             run_function=self.host.run, run_function_dargs=dict(timeout=600))

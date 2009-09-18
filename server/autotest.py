@@ -75,7 +75,9 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def _install_using_packaging(self, host, autodir):
         c = global_config.global_config
-        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
+                                   default=[])
+        repos.reverse()
         if not repos:
             raise error.PackageInstallError("No repos to install an "
                                             "autotest client from")
