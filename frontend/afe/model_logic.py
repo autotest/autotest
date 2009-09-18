@@ -533,6 +533,11 @@ class ModelExtensions(object):
                 continue
 
             value = getattr(self, field_name)
+            if value is None and field_obj.auto_created:
+                # don't bother checking autoincrement fields about to be
+                # generated
+                continue
+
             existing_objs = manager.filter(**{field_name : value})
             num_existing = existing_objs.count()
 
