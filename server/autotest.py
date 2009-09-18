@@ -692,7 +692,8 @@ def _get_autodir(host):
             default=['/usr/local/autotest', '/home/autotest'])
     for path in client_autodir_paths:
         try:
-            host.run('test -d %s' % utils.sh_escape(path))
+            autotest_binary = os.path.join(path, 'bin', 'autotest')
+            host.run('test -x %s' % utils.sh_escape(autotest_binary))
             logging.debug('Found autodir at %s', path)
             return path
         except error.AutoservRunError:
