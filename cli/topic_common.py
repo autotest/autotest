@@ -495,6 +495,11 @@ class atest(object):
                 print msg + 's: '
 
         values.sort()
+
+        if 'AUTOTEST_CLI_NO_WRAP' in os.environ:
+            print '\n'.join(values)
+            return
+
         twrap = textwrap.TextWrapper(initial_indent='\t',
                                      subsequent_indent='\t')
         print twrap.fill(', '.join(values))
