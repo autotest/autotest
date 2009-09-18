@@ -1,5 +1,7 @@
 package autotest.tko;
 
+import java.util.Map;
+
 import autotest.common.ui.MultiListSelectPresenter.Item;
 
 public abstract class ParameterizedField extends HeaderField {
@@ -17,7 +19,7 @@ public abstract class ParameterizedField extends HeaderField {
     public static ParameterizedField fromSqlName(String sqlName) {
         ParameterizedField prototype = getPrototype(sqlName);
         ParameterizedField newField = prototype.freshInstance();
-        newField.initializedFromSqlName(sqlName);
+        newField.initializeFromSqlName(sqlName);
         return newField;
     }
     
@@ -31,7 +33,7 @@ public abstract class ParameterizedField extends HeaderField {
         throw new IllegalArgumentException("Failed to parse header " + sqlName);
     }
 
-    private void initializedFromSqlName(String sqlName) {
+    private void initializeFromSqlName(String sqlName) {
         assert sqlName.startsWith(getBaseSqlName());
 
         String numberString = sqlName.substring(getBaseSqlName().length());
@@ -49,9 +51,22 @@ public abstract class ParameterizedField extends HeaderField {
         return fieldNumber;
     }
 
+    /**
+     * Parameterized fields create generated items rather than regular items.
+     */
+    @Override
+    public Item getItem() {
+        return Item.createGeneratedItem(getName(), getSqlName());
+    }
+
     public static Item getGenerator(String baseSqlName) {
         ParameterizedField prototype = getPrototype(baseSqlName);
         return Item.createGenerator(prototype.getBaseName() + "...", prototype.getBaseSqlName());
+    }
+
+    @Override
+    public void addHistoryArguments(Map<String, String> arguments) {
+        arguments.put(getSqlName(), getValue());
     }
 
     public abstract String getBaseSqlName();

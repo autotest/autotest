@@ -418,7 +418,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         } else if (source == display.getRemoveButton() && isItemSelectedOnRight) {
             doDeselect();
         } else if (source == display.getRemoveAllButton()) {
-            removeAll();
+            deselectAll();
         } else if ((source == display.getMoveUpButton() || source == display.getMoveDownButton())
                    && isItemSelectedOnRight) {
             reorderItem(source == display.getMoveUpButton());
@@ -494,7 +494,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         }
     }
 
-    private void removeAll() {
+    public void deselectAll() {
         for (Item item : getItemsCopy()) {
             if (item.isSelected()) {
                 deselectItem(item);

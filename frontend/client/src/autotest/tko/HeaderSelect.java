@@ -13,7 +13,6 @@ import com.google.gwt.user.client.ui.HasText;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,17 +29,18 @@ class HeaderSelect implements ClickHandler {
         public ToggleControl getFixedValuesToggle();
     }
 
-    private Map<String, HeaderField> headerMap = new HashMap<String, HeaderField>();
+    private HeaderFieldCollection headerFields;
     
     private List<HeaderField> savedSelectedFields;
     private String savedFixedValues;
 
     private Display display;
     private MultiListSelectPresenter multiListSelect = new MultiListSelectPresenter();
-    private ParameterizedFieldListPresenter parameterizedFieldPresenter = 
-        new ParameterizedFieldListPresenter(); 
+    private ParameterizedFieldListPresenter parameterizedFieldPresenter; 
 
-    public HeaderSelect() {
+    public HeaderSelect(HeaderFieldCollection headerFields) {
+        this.headerFields = headerFields;
+        parameterizedFieldPresenter = new ParameterizedFieldListPresenter(headerFields);
         multiListSelect.setGeneratorHandler(parameterizedFieldPresenter);
     }
 
@@ -52,12 +52,10 @@ class HeaderSelect implements ClickHandler {
         multiListSelect.bindToggleDisplay(display.getToggleDisplay());
         parameterizedFieldPresenter.bindDisplay(display.getParameterizedFieldDisplay());
 
+        for (HeaderField field : headerFields) {
+            multiListSelect.addItem(field.getItem());
+        }
         multiListSelect.addItem(ParameterizedField.getGenerator(MachineLabelField.BASE_SQL_NAME));
-    }
-
-    public void addItem(HeaderField headerField) {
-        headerMap.put(headerField.getSqlName(), headerField);
-        multiListSelect.addItem(Item.createItem(headerField.getName(), headerField.getSqlName()));
     }
 
     public void updateStateFromView() {
@@ -69,21 +67,11 @@ class HeaderSelect implements ClickHandler {
     private List<HeaderField> getSelectedItemsFromView() {
         List<HeaderField> selectedFields = new ArrayList<HeaderField>();
         for (Item item : multiListSelect.getSelectedItems()) {
-            selectedFields.add(getFieldBySqlName(item.value));
+            selectedFields.add(headerFields.getFieldBySqlName(item.value));
         }
         return selectedFields;
     }
 
-    private HeaderField getFieldBySqlName(String sqlName) {
-        HeaderField field;
-        if (headerMap.containsKey(sqlName)) {
-            field = headerMap.get(sqlName);
-        } else {
-            field = parameterizedFieldPresenter.getField(sqlName);
-        }
-        return field;
-    }
-    
     private String getFixedValuesText() {
         if (!isFixedValuesActive()) {
             return "";
@@ -136,9 +124,9 @@ class HeaderSelect implements ClickHandler {
         if (isFixedValuesActive()) {
             arguments.put(name + HISTORY_FIXED_VALUES, display.getFixedValuesInput().getText());
         }
-        
-        for (ParameterizedField field : parameterizedFieldPresenter.getFields()) {
-            arguments.put(field.getSqlName(), field.getValue());
+
+        for (HeaderField field : headerFields) {
+            field.addHistoryArguments(arguments);
         }
     }
 
@@ -158,24 +146,24 @@ class HeaderSelect implements ClickHandler {
     
     private void addParameterizedFields(String[] fields, Map<String, String> arguments) {
         for (String sqlName : fields) {
-            if (!headerMap.containsKey(sqlName)) {
+            if (!headerFields.containsSqlName(sqlName)) {
                 ParameterizedField parameterizedField = 
                     parameterizedFieldPresenter.addFieldBySqlName(sqlName);
                 String value = arguments.get(sqlName);
                 assert value != null;
                 parameterizedField.setValue(value);
-                Item item = parameterizedFieldPresenter.getItemForField(parameterizedField);
+                Item item = parameterizedField.getItem();
                 multiListSelect.addItem(item);
             }
         }
     }
 
-    private List<HeaderField> getHeaderFieldsFromValues(String[] fields) {
-        List<HeaderField> headerFields = new ArrayList<HeaderField>();
-        for (String sqlName : fields) {
-            headerFields.add(getFieldBySqlName(sqlName));
+    private List<HeaderField> getHeaderFieldsFromValues(String[] fieldSqlNames) {
+        List<HeaderField> fields = new ArrayList<HeaderField>();
+        for (String sqlName : fieldSqlNames) {
+            fields.add(headerFields.getFieldBySqlName(sqlName));
         }
-        return headerFields;
+        return fields;
     }
 
     /**

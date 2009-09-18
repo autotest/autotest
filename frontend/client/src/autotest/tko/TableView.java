@@ -20,7 +20,6 @@ import autotest.common.ui.RightClickTable;
 import autotest.common.ui.MultiListSelectPresenter.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
-import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -40,14 +39,12 @@ import com.google.gwt.user.client.ui.Widget;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-// TODO(showard): make TableView use HeaderFields
 public class TableView extends ConditionTabView 
                        implements DynamicTableListener, TableActionsWithExportCsvListener, 
                                   ClickHandler, TableWidgetFactory, CommonPanelListener, 
@@ -69,6 +66,25 @@ public class TableView extends ConditionTabView
 
     private static enum GroupingType {NO_GROUPING, TEST_GROUPING, STATUS_COUNTS}
 
+    /**
+     * HeaderField representing a grouped count of some kind.
+     */
+    private static class GroupCountField extends HeaderField {
+        public GroupCountField(String name, String sqlName) {
+            super(name, sqlName);
+        }
+
+        @Override
+        public Item getItem() {
+            return Item.createGeneratedItem(getName(), getSqlName());
+        }
+
+        @Override
+        public String getSqlCondition(String value) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
     private TestSelectionListener listener;
     
     private DynamicTable table;
@@ -79,19 +95,23 @@ public class TableView extends ConditionTabView
     private TestGroupDataSource groupDataSource = TestGroupDataSource.getTestGroupDataSource();
     private RpcDataSource currentDataSource;
 
-    private DoubleListSelector columnSelectDisplay = new DoubleListSelector();
+    private HeaderFieldCollection headerFields = new HeaderFieldCollection();
     private MultiListSelectPresenter columnSelect = new MultiListSelectPresenter();
+    private ParameterizedFieldListPresenter parameterizedFieldPresenter =
+        new ParameterizedFieldListPresenter(headerFields);
+
+    private DoubleListSelector columnSelectDisplay = new DoubleListSelector();
+    private ParameterizedFieldListDisplay parameterizedFieldDisplay =
+        new ParameterizedFieldListDisplay();
     private CheckBox groupCheckbox = new CheckBox("Group by these columns and show counts");
     private CheckBox statusGroupCheckbox = 
         new CheckBox("Group by these columns and show pass rates");
     private Button queryButton = new Button("Query");
     private Panel tablePanel = new SimplePanel();
 
-    private List<String> columnNames = new ArrayList<String>();
+    private List<HeaderField> savedColumns = new ArrayList<HeaderField>();
     private List<SortSpec> tableSorts = new ArrayList<SortSpec>();
-    private Map<String, String> namesToFields = new HashMap<String, String>();
-    private Map<String, String> fieldsToNames = new HashMap<String, String>();
-    
+
     public enum TableViewConfig {
         DEFAULT, PASS_RATE, TRIAGE
     }
@@ -117,15 +137,17 @@ public class TableView extends ConditionTabView
         columnSelect.setGeneratorHandler(this);
         columnSelect.bindDisplay(columnSelectDisplay);
 
-        for (FieldInfo fieldInfo : TkoUtils.getFieldList("all_fields")) {
-            namesToFields.put(fieldInfo.name, fieldInfo.field);
-            fieldsToNames.put(fieldInfo.field, fieldInfo.name);
-            columnSelect.addItem(Item.createItem(fieldInfo.name, fieldInfo.field));
+        headerFields.populateFromList("all_fields");
+        parameterizedFieldPresenter.bindDisplay(parameterizedFieldDisplay);
+
+        for (HeaderField field : headerFields) {
+            columnSelect.addItem(field.getItem());
         }
-        namesToFields.put(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD);
-        namesToFields.put(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
-        
-        selectColumns(DEFAULT_COLUMNS);
+
+        headerFields.add(new GroupCountField(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD));
+        headerFields.add(new GroupCountField(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN));
+
+        selectColumnsByName(DEFAULT_COLUMNS);
         updateViewFromState();
 
         queryButton.addClickHandler(this);
@@ -134,6 +156,7 @@ public class TableView extends ConditionTabView
         
         Panel columnPanel = new VerticalPanel();
         columnPanel.add(columnSelectDisplay);
+        columnPanel.add(parameterizedFieldDisplay);
         columnPanel.add(groupCheckbox);
         columnPanel.add(statusGroupCheckbox);
         
@@ -142,19 +165,22 @@ public class TableView extends ConditionTabView
         addWidget(tablePanel, "table_table");
     }
     
-    private void selectColumns(String[] columns) {
-        columnNames = new ArrayList<String>(Arrays.asList(columns));
+    private void selectColumnsByName(String[] columnNames) {
+        savedColumns.clear();
+        for (String name : columnNames) {
+            savedColumns.add(headerFields.getFieldByName(name));
+        }
         cleanupSortsForNewColumns();
     }
     
     public void setupDefaultView() {
         tableSorts.clear();
-        selectColumns(DEFAULT_COLUMNS);
+        selectColumnsByName(DEFAULT_COLUMNS);
         updateViewFromState();
     }
 
     public void setupJobTriage() {
-        selectColumns(TRIAGE_GROUP_COLUMNS);
+        selectColumnsByName(TRIAGE_GROUP_COLUMNS);
         // need to copy it so we can mutate it
         tableSorts = new ArrayList<SortSpec>(Arrays.asList(TRIAGE_SORT_SPECS));
         updateViewFromState();
@@ -162,7 +188,7 @@ public class TableView extends ConditionTabView
 
     public void setupPassRate() {
         tableSorts.clear();
-        selectColumns(PASS_RATE_GROUP_COLUMNS);
+        selectColumnsByName(PASS_RATE_GROUP_COLUMNS);
         updateViewFromState();
     }
 
@@ -191,12 +217,13 @@ public class TableView extends ConditionTabView
     }
 
     private String[][] buildColumnSpecs() {
-        int numColumns = columnNames.size();
+        int numColumns = savedColumns.size();
         String[][] columns = new String[numColumns][2];
-        for (int i = 0; i < numColumns; i++) {
-            String columnName = columnNames.get(i);
-            columns[i][0] = namesToFields.get(columnName);
-            columns[i][1] = columnName;
+        int i = 0;
+        for (HeaderField field : savedColumns) {
+            columns[i][0] = field.getSqlName();
+            columns[i][1] = field.getName();
+            i++;
         }
         return columns;
     }
@@ -217,9 +244,9 @@ public class TableView extends ConditionTabView
 
     private void updateStateFromView() {
         commonPanel.updateStateFromView();
-        columnNames.clear();
+        savedColumns.clear();
         for (Item item : columnSelect.getSelectedItems()) {
-            columnNames.add(item.name);
+            savedColumns.add(headerFields.getFieldBySqlName(item.value));
         }
     }
     
@@ -229,26 +256,31 @@ public class TableView extends ConditionTabView
     }
 
     private void selectColumnsInView() {
-        for(String columnName : columnNames) {
-            if (columnName.equals(COUNT_NAME)) {
-                addSpecialItem(COUNT_NAME);
-            } else if (columnName.equals(STATUS_COUNTS_NAME)) {
-                addSpecialItem(STATUS_COUNTS_NAME);
+        columnSelect.deselectAll();
+        for(HeaderField field : savedColumns) {
+            Item item = field.getItem();
+            if (item.isGeneratedItem) {
+                columnSelect.addItem(item);
+            } else {
+                columnSelect.selectItemByName(field.getName());
             }
         }
-        columnSelect.setSelectedItemsByName(columnNames);
         updateCheckboxesFromFields();
     }
 
     private void updateGroupColumns() {
         List<String> groupFields = new ArrayList<String>();
-        for (String columnName : columnNames) {
-            if (!isSpecialColumnName(columnName)) {
-                groupFields.add(namesToFields.get(columnName));
+        for (HeaderField field : savedColumns) {
+            if (!isGroupField(field)) {
+                groupFields.add(field.getSqlName());
             }
         }
 
         groupDataSource.setGroupColumns(groupFields.toArray(new String[0]));
+    }
+
+    private boolean isGroupField(HeaderField field) {
+        return field instanceof GroupCountField;
     }
     
     private void saveTableSorting() {
@@ -269,15 +301,16 @@ public class TableView extends ConditionTabView
     private void cleanupSortsForNewColumns() {
         // remove sorts on columns that we no longer have
         for (Iterator<SortSpec> i = tableSorts.iterator(); i.hasNext();) {
-            String columnName = fieldsToNames.get(i.next().getField());
-            if (!columnNames.contains(columnName)) {
+            String sqlName = i.next().getField();
+            HeaderField field = headerFields.getFieldBySqlName(sqlName);
+            if (!savedColumns.contains(field)) {
                 i.remove();
             }
         }
 
         if (tableSorts.isEmpty()) {
             // default to sorting on the first column
-            SortSpec sortSpec = new SortSpec(namesToFields.get(columnNames.get(0)), 
+            SortSpec sortSpec = new SortSpec(savedColumns.get(0).getSqlName(), 
                                              SortDirection.ASCENDING);
             tableSorts = new ArrayList<SortSpec>();
             tableSorts.add(sortSpec);
@@ -345,7 +378,7 @@ public class TableView extends ConditionTabView
     private HistoryToken getDrilldownHistoryToken(TestSet testSet) {
         saveHistoryState();
         commonPanel.refineCondition(testSet);
-        selectColumns(DEFAULT_COLUMNS);
+        selectColumnsByName(DEFAULT_COLUMNS);
         HistoryToken historyToken = getHistoryArguments();
         restoreHistoryState();
         return historyToken;
@@ -361,13 +394,13 @@ public class TableView extends ConditionTabView
         }
 
         ConditionTestSet testSet = new ConditionTestSet(commonPanel.getConditionArgs());
-        for (String columnName : columnNames) {
-            if (isSpecialColumnName(columnName)) {
+        for (HeaderField field : savedColumns) {
+            if (isGroupField(field)) {
                 continue;
             }
 
-            String field = namesToFields.get(columnName);
-            testSet.setField(field, Utils.jsonToString(row.get(field)));
+            String value = Utils.jsonToString(row.get(field.getSqlName()));
+            testSet.addCondition(field.getSqlCondition(value));
         }
         return testSet;
     }
@@ -425,20 +458,11 @@ public class TableView extends ConditionTabView
         
         setCheckboxesEnabled();
     }
-    
+
     private void addSpecialItem(String itemName) {
-        assert isSpecialColumnName(itemName);
-        String fieldName;
-        if (itemName.equals(COUNT_NAME)) {
-            fieldName = TestGroupDataSource.GROUP_COUNT_FIELD;
-        } else { // STATUS_COUNT_NAME
-            fieldName = DataTable.WIDGET_COLUMN;
-        }
-        columnSelect.addItem(Item.createGeneratedItem(itemName, fieldName));
-    }
-    
-    private boolean isSpecialColumnName(String columnName) {
-        return columnName.equals(COUNT_NAME) || columnName.equals(STATUS_COUNTS_NAME);
+        HeaderField field = headerFields.getFieldByName(itemName);
+        assert isGroupField(field);
+        columnSelect.addItem(field.getItem());
     }
 
     private void ensureItemRemoved(String itemName) {
@@ -465,25 +489,34 @@ public class TableView extends ConditionTabView
     public HistoryToken getHistoryArguments() {
         HistoryToken arguments = super.getHistoryArguments();
         if (table != null) {
-            arguments.put("columns", Utils.joinStrings(",", columnNames));
+            arguments.put("columns", Utils.joinStrings(",", getSavedColumnNames()));
             arguments.put("sort", Utils.joinStrings(",", tableSorts));
             commonPanel.addHistoryArguments(arguments);
         }
         return arguments;
     }
 
+    private List<String> getSavedColumnNames() {
+        List<String> names = new ArrayList<String>();
+        for (HeaderField field : savedColumns) {
+            names.add(field.getName());
+        }
+        return names;
+    }
+
     @Override
     public void handleHistoryArguments(Map<String, String> arguments) {
         super.handleHistoryArguments(arguments);
         String[] columns = arguments.get("columns").split(",");
-        selectColumns(columns);
+        selectColumnsByName(columns);
         handleSortString(arguments.get("sort"));
         updateViewFromState();
     }
 
     @Override
     protected void fillDefaultHistoryValues(Map<String, String> arguments) {
-        Utils.setDefaultValue(arguments, "sort", namesToFields.get(DEFAULT_COLUMNS[0]));
+        HeaderField defaultSortField = headerFields.getFieldByName(DEFAULT_COLUMNS[0]);
+        Utils.setDefaultValue(arguments, "sort", defaultSortField.getSqlName());
         Utils.setDefaultValue(arguments, "columns", 
                         Utils.joinStrings(",", Arrays.asList(DEFAULT_COLUMNS)));
     }
@@ -507,13 +540,17 @@ public class TableView extends ConditionTabView
 
     @Override
     public Item generateItem(Item generatorItem) {
-        // no generators here
-        throw new UnsupportedOperationException();
+        return parameterizedFieldPresenter.generateItem(generatorItem);
     }
 
     @Override
     public void onRemoveGeneratedItem(Item generatedItem) {
-        updateCheckboxesFromFields();
+        HeaderField field = headerFields.getFieldBySqlName(generatedItem.value);
+        if (isGroupField(field)) {
+            updateCheckboxesFromFields();
+        } else {
+            parameterizedFieldPresenter.onRemoveGeneratedItem(generatedItem);
+        }
     }
 
     private boolean isAnyGroupingEnabled() {
@@ -521,11 +558,11 @@ public class TableView extends ConditionTabView
     }
     
     private GroupingType getActiveGrouping() {
-        for (String columnName : columnNames) {
-            if (columnName.equals(COUNT_NAME)) {
+        for (HeaderField field : savedColumns) {
+            if (field.getName().equals(COUNT_NAME)) {
                 return GroupingType.TEST_GROUPING;
             }
-            if (columnName.equals(STATUS_COUNTS_NAME)) {
+            if (field.getName().equals(STATUS_COUNTS_NAME)) {
                 return GroupingType.STATUS_COUNTS;
             }
         }
