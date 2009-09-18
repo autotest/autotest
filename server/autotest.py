@@ -63,11 +63,58 @@ class BaseAutotest(installable_object.InstallableObject):
         self._install(host=host, autodir=autodir)
 
 
+    @log.record
+    def install_full_client(self, host=None, autodir=None):
+        self._install(host=host, autodir=autodir, use_autoserv=False,
+                      use_packaging=False)
+
+
     def install_no_autoserv(self, host=None, autodir=None):
-        self._install(host=host, autodir=autodir, no_autoserv=True)
+        self._install(host=host, autodir=autodir, use_autoserv=False)
 
 
-    def _install(self, host=None, autodir=None, no_autoserv=False):
+    def _install_using_packaging(self, host, autodir):
+        c = global_config.global_config
+        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
+        if not repos:
+            raise error.PackageInstallError("No repos to install an "
+                                            "autotest client from")
+        pkgmgr = packages.PackageManager(autodir, hostname=host.hostname,
+                                         repo_urls=repos,
+                                         do_locking=False,
+                                         run_function=host.run,
+                                         run_function_dargs=dict(timeout=600))
+        # The packages dir is used to store all the packages that
+        # are fetched on that client. (for the tests,deps etc.
+        # too apart from the client)
+        pkg_dir = os.path.join(autodir, 'packages')
+        # clean up the autodir except for the packages directory
+        host.run('cd %s && ls | grep -v "^packages$"'
+                 ' | xargs rm -rf && rm -rf .[^.]*' % autodir)
+        pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
+                           preserve_install_dir=True)
+        self.installed = True
+
+
+    def _install_using_send_file(self, host, autodir):
+        dirs_to_exclude = set(["tests", "site_tests", "deps", "profilers"])
+        light_files = [os.path.join(self.source_material, f)
+                       for f in os.listdir(self.source_material)
+                       if f not in dirs_to_exclude]
+        host.send_file(light_files, autodir, delete_dest=True)
+
+        # create empty dirs for all the stuff we excluded
+        commands = []
+        for path in dirs_to_exclude:
+            abs_path = os.path.join(autodir, path)
+            abs_path = utils.sh_escape(abs_path)
+            commands.append("mkdir -p '%s'" % abs_path)
+            commands.append("touch '%s'/__init__.py" % abs_path)
+        host.run(';'.join(commands))
+
+
+    def _install(self, host=None, autodir=None, use_autoserv=True,
+                 use_packaging=True):
         """
         Install autotest.  If get() was not called previously, an
         attempt will be made to install from the autotest svn
@@ -75,8 +122,9 @@ class BaseAutotest(installable_object.InstallableObject):
 
         @param host A Host instance on which autotest will be installed
         @param autodir Location on the remote host to install to
-        @param autoserv Disable install modes that depend on the client
+        @param use_autoserv Enable install modes that depend on the client
             running with the autoserv harness
+        @param use_packaging Enable install modes that use the packaging system
 
         @exception AutoservError if a tarball was not specified and
             the target host does not have svn installed in its path
@@ -101,30 +149,15 @@ class BaseAutotest(installable_object.InstallableObject):
                  ignore_status=True)
 
         # Fetch the autotest client from the nearest repository
-        try:
-            c = global_config.global_config
-            repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
-            pkgmgr = packages.PackageManager(autodir, hostname=host.hostname,
-                          repo_urls=repos,
-                          do_locking=False,
-                          run_function=host.run,
-                          run_function_dargs=dict(timeout=600))
-            # The packages dir is used to store all the packages that
-            # are fetched on that client. (for the tests,deps etc.
-            # too apart from the client)
-            pkg_dir = os.path.join(autodir, 'packages')
-            # clean up the autodir except for the packages directory
-            host.run('cd %s && ls | grep -v "^packages$"'
-                     ' | xargs rm -rf && rm -rf .[^.]*' % autodir)
-            pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
-                               preserve_install_dir=True)
-            self.installed = True
-            return
-        except global_config.ConfigError, e:
-            logging.info("Could not install autotest using the packaging "
-                          "system: %s",  e)
-        except (error.PackageInstallError, error.AutoservRunError), e:
-            logging.error("Could not install autotest from %s", repos)
+        if use_packaging:
+            try:
+                self._install_using_packaging(host, autodir)
+                return
+            except global_config.ConfigError, e:
+                logging.info("Could not install autotest using the packaging "
+                             "system: %s",  e)
+            except (error.PackageInstallError, error.AutoservRunError), e:
+                logging.error("Could not install autotest from repos")
 
         # try to install from file or directory
         if self.source_material:
@@ -133,22 +166,8 @@ class BaseAutotest(installable_object.InstallableObject):
                 supports_autoserv_packaging = c.get_config_value(
                     "PACKAGES", "serve_packages_from_autoserv", type=bool)
                 # Copy autotest recursively
-                if supports_autoserv_packaging and not no_autoserv:
-                    dirs_to_exclude = set(["tests", "site_tests", "deps",
-                                           "profilers"])
-                    light_files = [os.path.join(self.source_material, f)
-                                   for f in os.listdir(self.source_material)
-                                   if f not in dirs_to_exclude]
-                    host.send_file(light_files, autodir, delete_dest=True)
-
-                    # create empty dirs for all the stuff we excluded
-                    commands = []
-                    for path in dirs_to_exclude:
-                        abs_path = os.path.join(autodir, path)
-                        abs_path = utils.sh_escape(abs_path)
-                        commands.append("mkdir -p '%s'" % abs_path)
-                        commands.append("touch '%s'/__init__.py" % abs_path)
-                    host.run(';'.join(commands))
+                if supports_autoserv_packaging and use_autoserv:
+                    self._install_using_send_file(host, autodir)
                 else:
                     host.send_file(self.source_material, autodir,
                                    delete_dest=True)
