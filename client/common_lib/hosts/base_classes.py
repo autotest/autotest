@@ -18,6 +18,7 @@ stutsman@google.com (Ryan Stutsman)
 import os, re, time, cStringIO, logging
 
 from autotest_lib.client.common_lib import global_config, error, utils
+from autotest_lib.client.common_lib import host_protections
 from autotest_lib.client.bin import partition
 
 
@@ -362,6 +363,31 @@ class Host(object):
                 logging.info('Hardware problem found, '
                              'requesting hardware repairs')
                 self._call_repair_func(err, self.request_hardware_repair)
+
+
+    def repair_with_protection(self, protection_level):
+        """Perform the maximal amount of repair within the specified
+        protection level.
+
+        @param protection_level: the protection level to use for limiting
+                                 repairs, a host_protections.Protection
+        """
+        protection = host_protections.Protection
+        if protection_level == protection.DO_NOT_REPAIR:
+            logging.info('Protection is "Do not repair" so just verifying')
+            self.verify()
+        elif protection_level == protection.REPAIR_FILESYSTEM_ONLY:
+            logging.info('Attempting filesystem-only repair')
+            self.repair_filesystem_only()
+        elif protection_level == protection.REPAIR_SOFTWARE_ONLY:
+            logging.info('Attempting software repair only')
+            self.repair_software_only()
+        elif protection_level == protection.NO_PROTECTION:
+            logging.info('Attempting full repair')
+            self.repair_full()
+        else:
+            raise NotImplementedError('Unknown host protection level %s'
+                                      % protection_level)
 
 
     def cleanup(self):
