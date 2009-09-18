@@ -403,16 +403,16 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
 
 
     def test_execute_add_or_remove_uh_to_topic_acl_good_users_bad_hosts(self):
-        acl_addrm = self._create_add_remove('acl0',
+        acl_addrm = self._create_add_remove('acl0 with space',
                                         users=['user0', 'user1'],
                                         hosts=['host0', 'host1'])
         self.mock_rpcs([('acl_group_add_users',
-                         {'id': 'acl0',
+                         {'id': 'acl0 with space',
                           'users': ['user0', 'user1']},
                          True,
                          None),
                         ('acl_group_add_hosts',
-                         {'id': 'acl0',
+                         {'id': 'acl0 with space',
                           'hosts': ['host0', 'host1']},
                          False,
                          'DoesNotExist: The following hosts do not exist: '
@@ -420,10 +420,10 @@ class atest_add_or_remove_unittest(cli_mock.cli_unittest):
 
         execute_result = acl_addrm.execute()
         self.god.check_playback()
-        self.assertEqual(['acl0'], execute_result['users'])
+        self.assertEqual(['acl0 with space'], execute_result['users'])
         self.assertEqual([], execute_result['hosts'])
         self.assertOutput(acl_addrm, execute_result,
-                          out_words_ok=["Added to ACL 'acl0' users:",
+                          out_words_ok=["Added to ACL 'acl0 with space' users:",
                                         "user0", "user1"],
                           err_words_ok=['DoesNotExist',
                                         'acl_group_add_hosts',
