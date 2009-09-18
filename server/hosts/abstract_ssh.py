@@ -1,4 +1,4 @@
-import os, time, types, socket, shutil, glob, logging
+import os, time, types, socket, shutil, glob, logging, traceback
 from autotest_lib.client.common_lib import error, logging_manager
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import remote
@@ -397,8 +397,8 @@ class AbstractSSHHost(SiteHost):
     AUTOTEST_GB_DISKSPACE_REQUIRED = 20
 
 
-    def verify(self):
-        super(AbstractSSHHost, self).verify_hardware()
+    def verify_connectivity(self):
+        super(AbstractSSHHost, self).verify_connectivity()
 
         logging.info('Pinging host ' + self.hostname)
         self.ssh_ping()
@@ -407,8 +407,9 @@ class AbstractSSHHost(SiteHost):
         if self.is_shutting_down():
             raise error.AutoservHostIsShuttingDownError("Host is shutting down")
 
-        super(AbstractSSHHost, self).verify_software()
 
+    def verify_software(self):
+        super(AbstractSSHHost, self).verify_software()
         try:
             autodir = autotest._get_autodir(self)
             if autodir:
@@ -417,4 +418,6 @@ class AbstractSSHHost(SiteHost):
         except error.AutoservHostError:
             raise           # only want to raise if it's a space issue
         except Exception:
-            pass            # autotest dir may not exist, etc. ignore
+            # autotest dir may not exist, etc. ignore
+            logging.debug('autodir space check exception, this is probably '
+                          'safe to ignore\n' + traceback.format_exc())
