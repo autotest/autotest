@@ -235,6 +235,8 @@ def get_cpu_arch():
         return 'power5'
     elif list_grep(cpuinfo, '^cpu.*POWER6'):
         return 'power6'
+    elif list_grep(cpuinfo, '^cpu.*POWER7'):
+        return 'power7'
     elif list_grep(cpuinfo, '^cpu.*PPC970'):
         return 'power970'
     elif list_grep(cpuinfo, '^flags.*:.* lm .*'):
