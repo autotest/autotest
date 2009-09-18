@@ -67,6 +67,10 @@ def find_and_run_tests(start, options):
     for dirpath, subdirs, filenames in os.walk(start):
         # Only look in and below subdirectories that are python modules.
         if '__init__.py' not in filenames:
+            if options.full:
+                for filename in filenames:
+                    if filename.endswith('.pyc'):
+                        os.unlink(os.path.join(dirpath, filename))
             # Skip all subdirectories below this one, it is not a module.
             del subdirs[:]
             if options.debug:
