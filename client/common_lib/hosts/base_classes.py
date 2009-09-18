@@ -177,10 +177,16 @@ class Host(object):
 
 
     def verify(self):
-        pass
+        self.verify_hardware()
+        self.verify_connectivity()
+        self.verify_software()
 
 
     def verify_hardware(self):
+        pass
+
+
+    def verify_connectivity(self):
         pass
 
 
