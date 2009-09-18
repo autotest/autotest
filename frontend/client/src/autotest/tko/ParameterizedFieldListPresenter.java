@@ -5,9 +5,6 @@ import autotest.common.ui.MultiListSelectPresenter.Item;
 
 import com.google.gwt.user.client.ui.HasText;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,9 +16,17 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
 
     private int nameCounter;
     private Display display;
-    private Map<String, ParameterizedField> fieldMap = new HashMap<String, ParameterizedField>();
+    private HeaderFieldCollection headerFields;
     private Map<ParameterizedField, HasText> fieldInputMap = 
         new HashMap<ParameterizedField, HasText>();
+
+    /**
+     * @param headerFields Generated ParameterizedFields will be added to this (and removed when
+     * they're deleted) 
+     */
+    public ParameterizedFieldListPresenter(HeaderFieldCollection headerFields) {
+        this.headerFields = headerFields;
+    }
 
     public void bindDisplay(Display display) {
         this.display = display;
@@ -32,12 +37,12 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
         String sqlName = generatorItem.value + Integer.toString(nameCounter);
         nameCounter++;
         ParameterizedField field = addFieldBySqlName(sqlName);
-        return getItemForField(field);
+        return field.getItem();
     }
 
     public ParameterizedField addFieldBySqlName(String sqlName) {
         ParameterizedField field = ParameterizedField.fromSqlName(sqlName);
-        fieldMap.put(field.getSqlName(), field);
+        headerFields.add(field);
 
         // ensure name counter never overlaps this field name
         if (nameCounter <= field.getFieldNumber()) {
@@ -50,23 +55,13 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
         return field;
     }
 
-    public Item getItemForField(ParameterizedField field) {
-        return Item.createGeneratedItem(field.getName(), field.getSqlName());
-    }
-
     @Override
     public void onRemoveGeneratedItem(Item generatedItem) {
-        // iterate over copy so we can mutate
-        for (ParameterizedField field : new ArrayList<ParameterizedField>(fieldInputMap.keySet())) {
-            if (field.getSqlName().equals(generatedItem.value)) {
-                HasText fieldInput = fieldInputMap.remove(field);
-                display.removeFieldInput(fieldInput);
-                fieldMap.remove(field.getSqlName());
-                return;
-            }
-        }
-        
-        throw new IllegalArgumentException("Field " + generatedItem.value + " not found");
+        HeaderField field = headerFields.getFieldBySqlName(generatedItem.value);
+        assert field != null;
+        HasText fieldInput = fieldInputMap.remove(field);
+        display.removeFieldInput(fieldInput);
+        headerFields.remove(field);
     }
 
     public void updateStateFromView() {
@@ -82,10 +77,6 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
         }
     }
 
-    public Collection<ParameterizedField> getFields() {
-        return Collections.unmodifiableCollection(fieldInputMap.keySet());
-    }
-
     public boolean areAllInputsFilled() {
         for (HasText fieldInput : fieldInputMap.values()) {
             if (fieldInput.getText().isEmpty()) {
@@ -93,10 +84,5 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
             }
         }
         return true;
-    }
-
-    public HeaderField getField(String sqlName) {
-        assert fieldMap.containsKey(sqlName);
-        return fieldMap.get(sqlName);
     }
 }
