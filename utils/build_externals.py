@@ -14,6 +14,8 @@ Usage?  Just run it.
 
 import compileall, logging, os, sha, shutil, sys, tempfile, time, urllib2
 import subprocess, re
+import common
+from autotest_lib.client.common_lib import logging_config, logging_manager
 
 # Where package source be fetched to relative to the top of the autotest tree.
 PACKAGE_DIR = 'ExternalSource'
@@ -33,6 +35,12 @@ _READ_SIZE = 64*1024
 _MAX_PACKAGE_SIZE = 100*1024*1024
 
 
+class BuildExternalsLoggingConfig(logging_config.LoggingConfig):
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(BuildExternalsLoggingConfig, self).configure_logging(
+                                                               use_console=True,
+                                                               verbose=verbose)
+
 class Error(Exception):
     """Local exception to be raised by code in this file."""
 
@@ -45,7 +53,8 @@ def main():
     Find all ExternalPackage classes defined in this file and ask them to
     fetch, build and install themselves.
     """
-    _configure_logging()
+    logging_manager.configure_logging(BuildExternalsLoggingConfig(),
+                                      verbose=True)
     os.umask(022)
 
     top_of_tree = _find_top_of_autotest_tree()
@@ -80,19 +89,6 @@ def main():
         print >>sys.stderr, error_msg
 
     return len(errors)
-
-
-def _configure_logging(level=logging.INFO):
-    """Setup familiar looking console log message output."""
-    root_logger = logging.getLogger()
-    root_logger.setLevel(level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    console_formatter = logging.Formatter(
-            fmt='[%(asctime)s %(levelname)-5.5s] %(message)s',
-            datefmt='%H:%M:%S')
-    console_handler.setFormatter(console_formatter)
-    root_logger.addHandler(console_handler)
 
 
 def fetch_necessary_packages(dest_dir, install_dir):
