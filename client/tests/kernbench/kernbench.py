@@ -7,6 +7,7 @@ class kernbench(test.test):
 
     def initialize(self):
         self.job.require_gcc()
+        self.job.drop_caches_between_iterations = False
 
 
     def __init_tree(self, version=None):

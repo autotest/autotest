@@ -247,7 +247,7 @@ class base_job(object):
         """
         Perform the drop caches initialization.
         """
-        self.drop_caches_between_iterations = False
+        self.drop_caches_between_iterations = True
         self.drop_caches = drop_caches
         if self.drop_caches:
             logging.debug("Dropping caches")
