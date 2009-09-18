@@ -17,7 +17,6 @@ import autotest.tko.Spreadsheet.Header;
 import autotest.tko.Spreadsheet.SpreadsheetListener;
 import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
-import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -64,11 +63,11 @@ public class SpreadsheetView extends ConditionTabView
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
     private TableSwitchListener listener;
     protected Map<String,String[]> drilldownMap = new HashMap<String,String[]>();
-    private Map<String, HeaderField> headerFieldMap = new HashMap<String, HeaderField>();
+    private HeaderFieldCollection headerFields = new HeaderFieldCollection();
     
-    private HeaderSelect rowSelect = new HeaderSelect();
+    private HeaderSelect rowSelect = new HeaderSelect(headerFields);
     private HeaderSelectorView rowSelectDisplay = new HeaderSelectorView();
-    private HeaderSelect columnSelect = new HeaderSelect();
+    private HeaderSelect columnSelect = new HeaderSelect(headerFields);
     private HeaderSelectorView columnSelectDisplay = new HeaderSelectorView();
     private ContentSelect contentSelect = new ContentSelect();
     private CheckBox showIncomplete = new CheckBox("Show incomplete tests");
@@ -104,20 +103,14 @@ public class SpreadsheetView extends ConditionTabView
         actionsPanel.setActionsWithCsvListener(this);
         actionsPanel.setSelectionListener(this);
         actionsPanel.setVisible(false);
-        
-        rowSelect.bindDisplay(rowSelectDisplay);
-        columnSelect.bindDisplay(columnSelectDisplay);
 
-        for (FieldInfo fieldInfo : TkoUtils.getFieldList("group_fields")) {
-            HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
-            headerFieldMap.put(fieldInfo.field, field);
-            rowSelect.addItem(field);
-            columnSelect.addItem(field);
+        headerFields.populateFromList("group_fields");
+        setupHeaderSelect(rowSelect, rowSelectDisplay, DEFAULT_ROW);
+        setupHeaderSelect(columnSelect, columnSelectDisplay, DEFAULT_COLUMN);
+
+        for (HeaderField field : headerFields) {
             contentSelect.addItem(field);
         }
-        rowSelect.selectItem(headerFieldMap.get(DEFAULT_ROW));
-        columnSelect.selectItem(headerFieldMap.get(DEFAULT_COLUMN));
-        
         contentSelect.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
             public void onValueChange(ValueChangeEvent<Boolean> event) {                
                 if (event.getValue()) {
@@ -172,6 +165,12 @@ public class SpreadsheetView extends ConditionTabView
         });
         
         setupDrilldownMap();
+    }
+
+    private void setupHeaderSelect(HeaderSelect headerSelect, HeaderSelectorView display, 
+                                           String defaultField) {
+        headerSelect.bindDisplay(display);
+        headerSelect.selectItem(headerFields.getFieldBySqlName(defaultField));
     }
 
     protected TestSet getWholeTableTestSet() {
@@ -418,11 +417,11 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private HistoryToken getDrilldownHistoryToken(TestSet tests, String newRowField, 
-                                            String newColumnField) {
+                                                  String newColumnField) {
         saveHistoryState();
         commonPanel.refineCondition(tests);
-        rowSelect.selectItem(headerFieldMap.get(newRowField));
-        columnSelect.selectItem(headerFieldMap.get(newColumnField));
+        rowSelect.selectItem(headerFields.getFieldBySqlName(newRowField));
+        columnSelect.selectItem(headerFields.getFieldBySqlName(newColumnField));
         HistoryToken historyArguments = getHistoryArguments();
         restoreHistoryState();
         return historyArguments;
