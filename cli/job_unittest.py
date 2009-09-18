@@ -735,10 +735,13 @@ class job_create_unittest(cli_mock.cli_unittest):
                              'is_server' : False,
                              'dependencies' : []}),
                            ('create_job', data, True, 180)],
-                     # This is actually 8 spaces,
-                     # the tab has been converted by print.
-                     out_words_ok=["test job       with  spaces", "Created",
-                                   "id", "180"])
+                     # This is actually 7 spaces, the extra single quote that
+                     # gets displayed before "test" causes the tab completion
+                     # to move to the next 8 char boundary which is 7 characters
+                     # away. Hence the 7 spaces in out_words_ok.
+                     # The tab has been converted by print.
+                     out_words_ok=['test job       with  spaces', 'Created',
+                                   'id', '180'])
 
 
     def test_execute_create_job_no_args(self):
