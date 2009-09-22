@@ -81,6 +81,7 @@ params = {
     #"mode": "localsrc",
     #"mode": "git",
     #"mode": "noinstall",
+    #"mode": "koji",
 
     ## Are we going to load modules built by this test?
     ## Defaults to 'yes', so if you are going to provide only userspace code to
@@ -109,6 +110,22 @@ params = {
     ## Install from a local source code dir ("mode": "localsrc")
     #"srcdir": "/path/to/source-dir"
 
+    ## Install from koji build server ("mode": "koji")
+    ## Koji is the Fedora Project buildserver. It is possible to install
+    ## packages right from Koji if you provide a release tag or a build.
+    ## Tag (if available)
+    #"koji_tag": 'dist-f11',
+    ## Build (if available, is going to override tag).
+    #"koji_build": 'qemu-0.10-16.fc11',
+    ## Command to interact with the build server
+    #"koji_cmd": '/usr/bin/koji',
+    ## The name of the source package that's being built
+    #"src_pkg": 'qemu',
+    ## Name of the rpms we need installed
+    #"pkg_list": ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img'],
+    ## Paths of the qemu relevant executables that should be checked
+    #"qemu_bin_paths": ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img'],
+
     ## Install from git ("mode": "git")
     ## If you provide only "git_repo" and "user_git_repo", the build test
     ## will assume it will perform all build from the userspace dir, building
@@ -116,8 +133,17 @@ params = {
     ## we need 3 git repos, "git_repo" (linux sources), "user_git_repo" and 
     ## "kmod_repo" to build KVM userspace + kernel modules.
     #"git_repo": 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git',
+    #"kernel_branch": 'kernel_branch_name',
+    #"kernel_lbranch": 'kernel_lbranch_name',
+    #"kernel_tag": 'kernel_tag_name',
     #"user_git_repo": 'git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git',
-    #"kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git'
+    #"user_branch": 'user_branch_name',
+    #"user_lbranch": 'user_lbranch_name',
+    #"user_tag": 'user_tag_name',
+    #"kmod_repo": 'git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git',
+    #"kmod_branch": 'kmod_branch_name',
+    #"kmod_lbranch": 'kmod_lbranch_name',
+    #"kmod_tag": 'kmod_tag_name',
 }
 
 # If you don't want to execute the build stage, just use 'noinstall' as the
