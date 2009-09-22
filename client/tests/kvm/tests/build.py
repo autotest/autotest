@@ -1,5 +1,5 @@
-import time, os, sys, urllib, re, signal, logging, datetime
-from autotest_lib.client.bin import utils, test
+import time, os, sys, urllib, re, signal, logging, datetime, glob
+from autotest_lib.client.bin import utils, test, os_dep
 from autotest_lib.client.common_lib import error
 import kvm_utils
 
@@ -25,64 +25,93 @@ def check_configure_options(script_path):
     return option_list
 
 
-def load_kvm_modules(module_dir):
+def kill_qemu_processes():
+    """
+    Kills all qemu processes, also kills all processes holding /dev/kvm down.
+    """
+    logging.debug("Killing any qemu processes that might be left behind")
+    utils.system("pkill qemu", ignore_status=True)
+    # Let's double check to see if some other process is holding /dev/kvm
+    if os.path.isfile("/dev/kvm"):
+        if utils.system_output("lsof /dev/kvm"):
+            utils.system("fuser -k /dev/kvm")
+
+
+def load_kvm_modules(module_dir=None, load_stock=False, extra_modules=None):
     """
     Unload previously loaded kvm modules, then load modules present on any
     sub directory of module_dir. Function will walk through module_dir until
     it finds the modules.
 
     @param module_dir: Directory where the KVM modules are located.
+    @param load_stock: Whether we are going to load system kernel modules.
+    @param extra_modules: List of extra modules to load.
     """
     vendor = "intel"
     if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
         vendor = "amd"
     logging.debug("Detected CPU vendor as '%s'" %(vendor))
 
-    logging.debug("Killing any qemu processes that might be left behind")
-    utils.system("pkill qemu", ignore_status=True)
+    kill_qemu_processes()
 
     logging.info("Unloading previously loaded KVM modules")
     kvm_utils.unload_module("kvm")
-    if utils.module_is_loaded("kvm"):
-        message = "Failed to remove old KVM modules"
-        logging.error(message)
-        raise error.TestError(message)
+    if extra_modules:
+        for module in extra_modules:
+            kvm_utils.unload_module(module)
 
-    logging.info("Loading new KVM modules...")
-    kvm_module_path = None
-    kvm_vendor_module_path = None
-    # Search for the built KVM modules
-    for folder, subdirs, files in os.walk(module_dir):
-        if "kvm.ko" in files:
-            kvm_module_path = os.path.join(folder, "kvm.ko")
-            kvm_vendor_module_path = os.path.join(folder, "kvm-%s.ko" % vendor)
-    abort = False
-    if not kvm_module_path:
-        logging.error("Need a directory containing both kernel module and "
-                      "userspace sources.")
-        logging.error("If you are trying to build only KVM userspace and use "
-                      "the KVM modules you have already loaded, put "
-                      "'load_modules': 'no' on the control file 'params' "
-                      "dictionary.")
-        raise error.TestError("Could not find a built kvm.ko module on the "
-                              "source dir.")
-    elif not os.path.isfile(kvm_vendor_module_path):
-        logging.error("Could not find KVM (%s) module that was supposed to be"
-                      " built on the source dir", vendor)
-        abort = True
-    if abort:
-        raise error.TestError("Could not load KVM modules.")
-    utils.system("/sbin/insmod %s" % kvm_module_path)
-    time.sleep(1)
-    utils.system("/sbin/insmod %s" % kvm_vendor_module_path)
+    if module_dir:
+        logging.info("Loading the built KVM modules...")
+        kvm_module_path = None
+        kvm_vendor_module_path = None
+        abort = False
 
-    if not utils.module_is_loaded("kvm"):
-        message = "Failed to load the KVM modules built for the test"
-        logging.error(message)
-        raise error.TestError(message)
+        for folder, subdirs, files in os.walk(module_dir):
+            if "kvm.ko" in files:
+                kvm_module_path = os.path.join(folder, "kvm.ko")
+                kvm_vendor_module_path = os.path.join(folder, "kvm-%s.ko" %
+                                                      vendor)
+                if extra_modules:
+                    extra_module_list = []
+                    for module in extra_modules:
+                        extra_module_list.append(os.path.join(folder,
+                                                              "%s.ko" % module))
+
+        if not kvm_module_path:
+            logging.error("Could not find kvm.ko inside the source dir")
+            abort = True
+        if not kvm_vendor_module_path:
+            logging.error("Could not find kvm-%s.ko inside the source dir")
+            abort = True
+
+        if abort:
+            logging.error("KVM modules not found. If you don't want to use the "
+                          "modules built by this test, make sure the option "
+                          "load_modules: 'no' is marked on the test control "
+                          "file.")
+            raise error.TestFail("Could not find one KVM test modules on %s "
+                                 "source dir" % module_dir)
+
+        try:
+            utils.system('insmod %s' % kvm_module_path)
+            utils.system('insmod %s' % kvm_vendor_module_path)
+            if extra_module_list:
+                for module in extra_module_list:
+                    utils.system('insmod %s' % module)
+
+        except Exception, e:
+            raise error.TestFail("Failed to load KVM modules: %s" % e)
+
+    if load_stock:
+        logging.info("Loading current system KVM modules...")
+        utils.system("modprobe kvm")
+        utils.system("modprobe kvm-%s" % vendor)
+        if extra_modules:
+            for module in extra_modules:
+                utils.system("modprobe %s" % module)
 
 
-def create_symlinks(test_bindir, prefix):
+def create_symlinks(test_bindir, prefix=None, bin_list=None):
     """
     Create symbolic links for the appropriate qemu and qemu-img commands on
     the kvm test bindir.
@@ -96,14 +125,174 @@ def create_symlinks(test_bindir, prefix):
         os.unlink(qemu_path)
     if os.path.lexists(qemu_img_path):
         os.unlink(qemu_img_path)
-    kvm_qemu = os.path.join(prefix, "bin", "qemu-system-x86_64")
-    if not os.path.isfile(kvm_qemu):
-        raise error.TestError('Invalid qemu path')
-    kvm_qemu_img = os.path.join(prefix, "bin", "qemu-img")
-    if not os.path.isfile(kvm_qemu_img):
-        raise error.TestError('Invalid qemu-img path')
-    os.symlink(kvm_qemu, qemu_path)
-    os.symlink(kvm_qemu_img, qemu_img_path)
+
+    logging.debug("Linking qemu binaries")
+
+    if bin_list:
+        for bin in bin_list:
+            if os.path.basename(bin) == 'qemu-kvm':
+                os.symlink(bin, qemu_path)
+            elif os.path.basename(bin) == 'qemu-img':
+                os.symlink(bin, qemu_img_path)
+
+    elif prefix:
+        kvm_qemu = os.path.join(prefix, "bin", "qemu-system-x86_64")
+        if not os.path.isfile(kvm_qemu):
+            raise error.TestError('Invalid qemu path')
+        kvm_qemu_img = os.path.join(prefix, "bin", "qemu-img")
+        if not os.path.isfile(kvm_qemu_img):
+            raise error.TestError('Invalid qemu-img path')
+        os.symlink(kvm_qemu, qemu_path)
+        os.symlink(kvm_qemu_img, qemu_img_path)
+
+
+class KojiInstaller:
+    """
+    Class that handles installing KVM from the fedora build service, koji.
+    It uses yum to install and remove packages.
+    """
+    def __init__(self, test, params):
+        """
+        Class constructor. Sets default paths, and sets up class attributes
+
+        @param test: kvm test object
+        @param params: Dictionary with test arguments
+        """
+        default_koji_cmd = '/usr/bin/koji'
+        default_src_pkg = 'qemu'
+        default_pkg_list = ['qemu-kvm', 'qemu-kvm-tools']
+        default_qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
+        default_extra_modules = None
+
+        self.koji_cmd = params.get("koji_cmd", default_koji_cmd)
+
+        if not os_dep.command("rpm"):
+            raise error.TestError("RPM package manager not available. Are "
+                                  "you sure you are using an RPM based system?")
+        if not os_dep.command("yum"):
+            raise error.TestError("Yum package manager not available. Yum is "
+                                  "necessary to handle package install and "
+                                  "update.")
+        if not os_dep.command(self.koji_cmd):
+            raise error.TestError("Build server command %s not available. "
+                                  "You need to install the appropriate package "
+                                  "(usually koji and koji-tools)" %
+                                  self.koji_cmd)
+
+        self.src_pkg = params.get("src_pkg", default_src_pkg)
+        self.pkg_list = params.get("pkg_list", default_pkg_list)
+        self.qemu_bin_paths = params.get("qemu_bin_paths",
+                                         default_qemu_bin_paths)
+        self.tag = params.get("koji_tag", None)
+        self.build = params.get("koji_build", None)
+        if self.tag and self.build:
+            logging.info("Both tag and build parameters provided, ignoring tag "
+                         "parameter...")
+        if self.tag and not self.build:
+            self.build = self.__get_build()
+        if not self.tag and not self.build:
+            raise error.TestError("Koji install selected but neither koji_tag "
+                                  "nor koji_build parameters provided. Please "
+                                  "provide an appropriate tag or build name.")
+        # Are we going to load modules?
+        load_modules = params.get('load_modules')
+        if not load_modules:
+            self.load_modules = True
+        elif load_modules == 'yes':
+            self.load_modules = True
+        elif load_modules == 'no':
+            self.load_modules = False
+        self.extra_modules = params.get("extra_modules", default_extra_modules)
+
+        self.srcdir = test.srcdir
+        self.test_bindir = test.bindir
+
+
+    def __get_build(self):
+        """
+        Get the source package build name, according to the appropriate tag.
+        """
+        latest_cmd = "%s latest-pkg %s %s" % (self.koji_cmd, self.tag,
+                                              self.src_pkg)
+        latest_raw = utils.system_output(latest_cmd,
+                                         ignore_status=True).split("\n")
+        for line in latest_raw:
+            if line.startswith(self.src_pkg):
+                build_name = line.split()[0]
+        return build_name
+
+
+    def __clean_previous_installs(self):
+        """
+        Remove all rpms previously installed.
+        """
+        kill_qemu_processes()
+        removable_packages = ""
+        for pkg in self.pkg_list:
+            removable_packages += " %s" % pkg
+
+        utils.system("yum remove -y %s" % removable_packages)
+
+
+    def __get_packages(self):
+        """
+        Downloads the entire build for the specific build name. It's
+        inefficient, but it saves the need of having an NFS share set.
+
+        @todo: Do selective package download using the koji library.
+        """
+        if not os.path.isdir(self.srcdir):
+            os.makedirs(self.srcdir)
+        os.chdir(self.srcdir)
+        download_cmd = "%s download-build %s" % (self.koji_cmd, self.build)
+        utils.system(download_cmd)
+
+
+    def __install_packages(self):
+        """
+        Install all relevant packages from the build that was just downloaded.
+        """
+        os.chdir(self.srcdir)
+        installable_packages = ""
+        rpm_list = glob.glob("*.rpm")
+        arch = utils.get_arch()
+        for rpm in rpm_list:
+            for pkg in self.pkg_list:
+                # Pass to yum only appropriate packages (ie, non-source and
+                # compatible with the machine's architecture)
+                if (rpm.startswith(pkg) and
+                    rpm.endswith(".%s.rpm" % arch) and not
+                    rpm.endswith(".src.rpm")):
+                    installable_packages += " %s" % rpm
+
+        utils.system("yum install --nogpgcheck -y %s" % installable_packages)
+
+
+    def __check_installed_binaries(self):
+        """
+        Make sure the relevant binaries installed actually come from the build
+        that was installed.
+        """
+        source_rpm = "%s.src.rpm" % self.build
+        for bin in self.qemu_bin_paths:
+            origin_source_rpm = utils.system_output(
+                        "rpm -qf --queryformat '%{sourcerpm}' " + bin)
+            if origin_source_rpm != source_rpm:
+                raise error.TestError("File %s comes from source package %s. "
+                                      "It doesn't come from build %s, "
+                                      "aborting." % (bin, origin_source_rpm,
+                                                     self.build))
+
+
+    def install(self):
+        self.__clean_previous_installs()
+        self.__get_packages()
+        self.__install_packages()
+        self.__check_installed_binaries()
+        create_symlinks(test_bindir=self.test_bindir,
+                        bin_list=self.qemu_bin_paths)
+        if self.load_modules:
+            load_kvm_modules(load_stock=True, extra_modules=self.extra_modules)
 
 
 class SourceDirInstaller:
@@ -256,12 +445,17 @@ class GitInstaller:
         user_repo = params.get("user_git_repo")
         kmod_repo = params.get("kmod_repo")
 
-        branch = params.get("git_branch", "master")
-        lbranch = params.get("lbranch")
+        kernel_branch = params.get("kernel_branch", "master")
+        user_branch = params.get("user_branch", "master")
+        kmod_branch = params.get("kmod_branch", "master")
 
-        tag = params.get("git_tag", "HEAD")
-        user_tag = params.get("user_git_tag", "HEAD")
-        kmod_tag = params.get("kmod_git_tag", "HEAD")
+        kernel_lbranch = params.get("kernel_lbranch", "master")
+        user_lbranch = params.get("user_lbranch", "master")
+        kmod_lbranch = params.get("kmod_lbranch", "master")
+
+        kernel_tag = params.get("kernel_tag", "HEAD")
+        user_tag = params.get("user_tag", "HEAD")
+        kmod_tag = params.get("kmod_tag", "HEAD")
 
         if not kernel_repo:
             message = "KVM git repository path not specified"
@@ -273,19 +467,19 @@ class GitInstaller:
             raise error.TestError(message)
 
         kernel_srcdir = os.path.join(srcdir, "kvm")
-        kvm_utils.get_git_branch(kernel_repo, branch, kernel_srcdir, tag,
-                                 lbranch)
+        kvm_utils.get_git_branch(kernel_repo, kernel_branch, kernel_srcdir,
+                                 kernel_tag, kernel_lbranch)
         self.kernel_srcdir = kernel_srcdir
 
         userspace_srcdir = os.path.join(srcdir, "kvm_userspace")
-        kvm_utils.get_git_branch(user_repo, branch, userspace_srcdir, user_tag,
-                                 lbranch)
+        kvm_utils.get_git_branch(user_repo, user_branch, userspace_srcdir,
+                                 user_tag, user_lbranch)
         self.userspace_srcdir = userspace_srcdir
 
         if kmod_repo:
             kmod_srcdir = os.path.join (srcdir, "kvm_kmod")
-            kvm_utils.get_git_branch(kmod_repo, branch, kmod_srcdir, user_tag,
-                                     lbranch)
+            kvm_utils.get_git_branch(kmod_repo, kmod_branch, kmod_srcdir,
+                                     kmod_tag, kmod_lbranch)
             self.kmod_srcdir = kmod_srcdir
 
         configure_script = os.path.join(self.userspace_srcdir, 'configure')
@@ -361,6 +555,8 @@ def run_build(test, params, env):
         installer = SourceDirInstaller(test, params)
     elif install_mode == 'git':
         installer = GitInstaller(test, params)
+    elif install_mode == 'koji':
+        installer = KojiInstaller(test, params)
     else:
         raise error.TestError('Invalid or unsupported'
                               ' install mode: %s' % install_mode)
