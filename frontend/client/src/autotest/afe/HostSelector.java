@@ -20,6 +20,7 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.HasText;
+import com.google.gwt.user.client.ui.HasValue;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class HostSelector implements ClickHandler {
     
     public interface Display {
         public HasText getHostnameField();
+        public HasValue<Boolean> getAllowOneTimeHostsField();
         public HasClickHandlers getAddByHostnameButton();
         public SimplifiedList getLabelList();
         public HasText getLabelNumberField();
@@ -151,10 +153,11 @@ public class HostSelector implements ClickHandler {
 
     private void onAddByHostname() {
         List<String> hosts = Utils.splitListWithSpaces(display.getHostnameField().getText());
-        setSelectedHostnames(hosts);
+        boolean allowOneTimeHosts = display.getAllowOneTimeHostsField().getValue();
+        setSelectedHostnames(hosts, allowOneTimeHosts);
     }
 
-    public void setSelectedHostnames(final List<String> hosts) {
+    public void setSelectedHostnames(final List<String> hosts, final boolean allowOneTimeHosts) {
         // figure out which hosts exist in the system and which should be one-time hosts
         JSONObject params = new JSONObject();
         params.put("hostname__in", Utils.stringsToJSON(hosts));
@@ -166,12 +169,38 @@ public class HostSelector implements ClickHandler {
 
             @Override
             public void handlePage(JSONArray data) {
-                processAddByHostname(hosts, data);
+                processAddByHostname(hosts, new JSONArrayList<JSONObject>(data), allowOneTimeHosts);
             }
         });
     }
     
-    private void processAddByHostname(final List<String> hosts, JSONArray data) {
+    private List<String> findOneTimeHosts(List<String> requestedHostnames, 
+                                          List<JSONObject> foundHosts) {
+        Set<String> existingHosts = new HashSet<String>();
+        for (JSONObject host : foundHosts) {
+            existingHosts.add(Utils.jsonToString(host.get("hostname")));
+        }
+        
+        List<String> oneTimeHostnames = new ArrayList<String>();
+        for (String hostname : requestedHostnames) {
+            if (!existingHosts.contains(hostname)) {
+                oneTimeHostnames.add(hostname);
+            }
+        }
+        
+        return oneTimeHostnames;
+    }
+
+    private void processAddByHostname(final List<String> requestedHostnames, 
+                                      List<JSONObject> foundHosts, 
+                                      boolean allowOneTimeHosts) {
+        List<String> oneTimeHostnames = findOneTimeHosts(requestedHostnames, foundHosts);
+        if (!allowOneTimeHosts && !oneTimeHostnames.isEmpty()) {
+            NotifyManager.getInstance().showError("Hosts not found: " + 
+                                                  Utils.joinStrings(", ", oneTimeHostnames));
+            return;
+        }
+
         // deselect existing non-metahost hosts
         // iterate over copy to allow modification
         for (JSONObject host : new ArrayList<JSONObject>(selectedHostData.getItems())) {
@@ -181,24 +210,16 @@ public class HostSelector implements ClickHandler {
         }
         availableSelection.deselectAll();
 
-        // add existing hosts
-        JSONArrayList<JSONObject> existingHostObjects = new JSONArrayList<JSONObject>(data);
-        Set<String> existingHosts = new HashSet<String>();
-        for (JSONObject host : existingHostObjects) {
-            existingHosts.add(Utils.jsonToString(host.get("hostname")));
-        }
-
         // add one-time hosts
-        for (String hostname : hosts) {
-            if (!existingHosts.contains(hostname)) {
-                JSONObject oneTimeObject = new JSONObject();
-                oneTimeObject.put("hostname", new JSONString(hostname));
-                oneTimeObject.put("platform", new JSONString(ONE_TIME));
-                selectRow(oneTimeObject);
-            }
+        for (String hostname : oneTimeHostnames) {
+            JSONObject oneTimeObject = new JSONObject();
+            oneTimeObject.put("hostname", new JSONString(hostname));
+            oneTimeObject.put("platform", new JSONString(ONE_TIME));
+            selectRow(oneTimeObject);
         }
 
-        availableSelection.selectObjects(existingHostObjects); // this refreshes the selection
+        // add existing hosts
+        availableSelection.selectObjects(foundHosts); // this refreshes the selection
     }
 
     private void onAddByLabel() {
