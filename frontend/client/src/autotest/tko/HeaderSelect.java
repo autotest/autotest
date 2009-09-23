@@ -55,7 +55,7 @@ class HeaderSelect implements ClickHandler {
         for (HeaderField field : headerFields) {
             multiListSelect.addItem(field.getItem());
         }
-        multiListSelect.addItem(ParameterizedField.getGenerator(MachineLabelField.BASE_SQL_NAME));
+        multiListSelect.addItem(ParameterizedField.getGenerator(MachineLabelField.BASE_NAME));
     }
 
     public void updateStateFromView() {
@@ -125,9 +125,7 @@ class HeaderSelect implements ClickHandler {
             arguments.put(name + HISTORY_FIXED_VALUES, display.getFixedValuesInput().getText());
         }
 
-        for (HeaderField field : headerFields) {
-            field.addHistoryArguments(arguments);
-        }
+        headerFields.addHistoryArguments(arguments);
     }
 
     private boolean isFixedValuesActive() {
@@ -137,23 +135,20 @@ class HeaderSelect implements ClickHandler {
 
     public void handleHistoryArguments(Map<String, String> arguments, String name) {
         String[] fields = arguments.get(name).split(",");
-        addParameterizedFields(fields, arguments);
-        List<HeaderField> headerFields = getHeaderFieldsFromValues(fields);
-        selectItems(headerFields);
+        addParameterizedFields(fields);
+        headerFields.handleHistoryArguments(arguments);
+        List<HeaderField> selectedFields = getHeaderFieldsFromValues(fields);
+        selectItems(selectedFields);
         String fixedValuesText = arguments.get(name + HISTORY_FIXED_VALUES);
         savedFixedValues = fixedValuesText;
     }
-    
-    private void addParameterizedFields(String[] fields, Map<String, String> arguments) {
-        for (String sqlName : fields) {
+
+    private void addParameterizedFields(String[] sqlNames) {
+        for (String sqlName : sqlNames) {
             if (!headerFields.containsSqlName(sqlName)) {
-                ParameterizedField parameterizedField = 
-                    parameterizedFieldPresenter.addFieldBySqlName(sqlName);
-                String value = arguments.get(sqlName);
-                assert value != null;
-                parameterizedField.setValue(value);
-                Item item = parameterizedField.getItem();
-                multiListSelect.addItem(item);
+                ParameterizedField field = ParameterizedField.fromSqlName(sqlName);
+                parameterizedFieldPresenter.addField(field);
+                multiListSelect.addItem(field.getItem());
             }
         }
     }

@@ -3,16 +3,20 @@ package autotest.tko;
 import autotest.tko.TkoUtils.FieldInfo;
 
 import java.util.AbstractCollection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
- * A modifiable Collection of HeaderFields indexed by both field name and field SQL name.
+ * A modifiable, ordered Collection of unique HeaderFields indexed by both field name and field SQL 
+ * name.
  */
 public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
     private Map<String, HeaderField> fieldsByName = new HashMap<String, HeaderField>();
     private Map<String, HeaderField> fieldsBySqlName = new HashMap<String, HeaderField>();
+    private List<HeaderField> orderedFields = new ArrayList<HeaderField>();
 
     public void populateFromList(String fieldListName) {
         for (FieldInfo fieldInfo : TkoUtils.getFieldList(fieldListName)) {
@@ -27,13 +31,29 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
             return false;
         }
 
-        fieldsByName.put(field.name, field);
-        fieldsBySqlName.put(field.sqlName, field);
+        orderedFields.add(field);
+        fieldsByName.put(field.getName(), field);
+        fieldsBySqlName.put(field.getSqlName(), field);
+        assert checkConsistency();
         return true;
     }
 
     /**
-     * We perform strict consistency checking here, and both add() and remove() use this.
+     * Called only within an assertion.
+     */
+    public boolean checkConsistency() {
+        assert fieldsByName.size() == fieldsBySqlName.size();
+        assert fieldsByName.size() == orderedFields.size();
+        for (HeaderField field : fieldsByName.values()) {
+            assert fieldsByName.get(field.getName()) == field;
+            assert fieldsBySqlName.get(field.getSqlName()) == field;
+            assert orderedFields.contains(field);
+        }
+        return true;
+    }
+
+    /**
+     * We perform strict input checking here, and both add() and remove() use this.
      */
     @Override
     public boolean contains(Object o) {
@@ -46,7 +66,6 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
         boolean containsSqlName = fieldsBySqlName.containsKey(field.getSqlName());
 
         if (containsName && containsSqlName) {
-            assert fieldsByName.get(field.getName()) == fieldsBySqlName.get(field.getSqlName());
             return true;
         }
         if (!containsName && containsSqlName) {
@@ -62,7 +81,7 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
 
     @Override
     public Iterator<HeaderField> iterator() {
-        final Iterator<HeaderField> baseIterator = fieldsByName.values().iterator();
+        final Iterator<HeaderField> baseIterator = orderedFields.iterator();
         return new Iterator<HeaderField>() {
             HeaderField lastElement;
 
@@ -80,7 +99,9 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
             @Override
             public void remove() {
                 baseIterator.remove();
-                fieldsBySqlName.remove(lastElement.getName());
+                fieldsByName.remove(lastElement.getName());
+                fieldsBySqlName.remove(lastElement.getSqlName());
+                assert checkConsistency();
             }
         };
     }
@@ -99,11 +120,18 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
         assert fieldsBySqlName.containsKey(sqlName) : sqlName;
         return fieldsBySqlName.get(sqlName);
     }
+
+    public boolean containsName(String name) {
+        return fieldsByName.containsKey(name);
+    }
     
     public boolean containsSqlName(String sqlName) {
         return fieldsBySqlName.containsKey(sqlName);
     }
 
+    /**
+     * Note this is O(n).
+     */
     @Override
     public boolean remove(Object o) {
         if (!contains(o)) {
@@ -111,8 +139,21 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
         }
 
         HeaderField field = (HeaderField) o;
+        orderedFields.remove(field);
         fieldsByName.remove(field.getName());
         fieldsBySqlName.remove(field.getSqlName());
         return true;
+    }
+
+    void addHistoryArguments(Map<String, String> arguments) {
+        for (HeaderField field : this) {
+            field.addHistoryArguments(arguments);
+        }
+    }
+
+    public void handleHistoryArguments(Map<String, String> arguments) {
+        for (HeaderField field : this) {
+            field.handleHistoryArguments(arguments);
+        }
     }
 }
