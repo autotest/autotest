@@ -95,7 +95,7 @@ def load_kvm_modules(module_dir=None, load_stock=False, extra_modules=None):
         try:
             utils.system('insmod %s' % kvm_module_path)
             utils.system('insmod %s' % kvm_vendor_module_path)
-            if extra_module_list:
+            if extra_modules:
                 for module in extra_module_list:
                     utils.system('insmod %s' % module)
 
