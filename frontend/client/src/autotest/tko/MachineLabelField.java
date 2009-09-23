@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 public class MachineLabelField extends ParameterizedField {
-    public static final String BASE_SQL_NAME = "machine_labels_";
+    public static final String BASE_NAME = "Machine labels";
     private static final String MACHINE_LABEL_HEADERS = "machine_label_headers";
 
     private List<String> labels = new ArrayList<String>();
@@ -50,12 +50,12 @@ public class MachineLabelField extends ParameterizedField {
 
     @Override
     public String getBaseSqlName() {
-        return BASE_SQL_NAME;
+        return "machine_labels_";
     }
 
     @Override
     protected String getBaseName() {
-        return "Machine labels";
+        return BASE_NAME;
     }
 
     @Override

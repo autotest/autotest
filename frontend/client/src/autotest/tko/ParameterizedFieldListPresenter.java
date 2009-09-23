@@ -36,12 +36,12 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
     public Item generateItem(Item generatorItem) {
         String sqlName = generatorItem.value + Integer.toString(nameCounter);
         nameCounter++;
-        ParameterizedField field = addFieldBySqlName(sqlName);
+        ParameterizedField field = ParameterizedField.fromSqlName(sqlName);
+        addField(field);
         return field.getItem();
     }
 
-    public ParameterizedField addFieldBySqlName(String sqlName) {
-        ParameterizedField field = ParameterizedField.fromSqlName(sqlName);
+    public void addField(ParameterizedField field) {
         headerFields.add(field);
 
         // ensure name counter never overlaps this field name
@@ -51,13 +51,11 @@ public class ParameterizedFieldListPresenter implements MultiListSelectPresenter
 
         HasText fieldInput = display.addFieldInput(field.getName());
         fieldInputMap.put(field, fieldInput);
-
-        return field;
     }
 
     @Override
     public void onRemoveGeneratedItem(Item generatedItem) {
-        HeaderField field = headerFields.getFieldBySqlName(generatedItem.value);
+        HeaderField field = headerFields.getFieldByName(generatedItem.name);
         assert field != null;
         HasText fieldInput = fieldInputMap.remove(field);
         display.removeFieldInput(fieldInput);
