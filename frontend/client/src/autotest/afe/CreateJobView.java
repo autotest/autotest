@@ -244,7 +244,7 @@ public class CreateJobView extends TabView
         for (JSONObject host : new JSONArrayList<JSONObject>(hostInfo)) {
             hostnames.add(Utils.jsonToString(host.get("hostname")));
         }
-        hostSelector.setSelectedHostnames(hostnames);
+        hostSelector.setSelectedHostnames(hostnames, true);
         
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
         
