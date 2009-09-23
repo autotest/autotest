@@ -282,7 +282,7 @@ class host_jobs(host):
             queue_entries = self.execute_rpc('get_host_queue_entries',
                                              host__hostname=host,
                                              query_limit=self.max_queries,
-                                             sort_by=['-job_id'])
+                                             sort_by=['-job__id'])
             jobs = []
             for entry in queue_entries:
                 job = {'job_id': entry['job']['id'],
