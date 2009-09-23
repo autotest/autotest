@@ -481,6 +481,8 @@ class GitInstaller:
             kvm_utils.get_git_branch(kmod_repo, kmod_branch, kmod_srcdir,
                                      kmod_tag, kmod_lbranch)
             self.kmod_srcdir = kmod_srcdir
+        else:
+            self.kmod_srcdir = None
 
         configure_script = os.path.join(self.userspace_srcdir, 'configure')
         self.configure_options = check_configure_options(configure_script)
