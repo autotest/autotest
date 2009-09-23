@@ -47,6 +47,15 @@ abstract class HeaderField implements Comparable<HeaderField> {
         return sqlName;
     }
 
+    /**
+     * Get the attribute name of this field on a result object.  This should always be the same as 
+     * sqlName, but due to some current flaws in the design, it's necessary as a separate item.
+     * TODO: Get rid of this and fix up the design.
+     */
+    public String getAttributeName() {
+        return getSqlName();
+    }
+
     @Override
     public String toString() {
         return "HeaderField<" + getName() + ", " + getSqlName() + ">";
@@ -69,5 +78,11 @@ abstract class HeaderField implements Comparable<HeaderField> {
      * Add necessary parameters to history state.  Does nothing by default.
      * @param arguments history arguments
      */
-    public void addHistoryArguments(Map<String, String> arguments) {} 
+    public void addHistoryArguments(Map<String, String> arguments) {}
+
+    /**
+     * Parse information as necessary from history state.
+     * @param arguments history arguments
+     */
+    public void handleHistoryArguments(Map<String, String> arguments) {} 
 }
