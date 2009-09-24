@@ -287,7 +287,7 @@ class MonkeyPatchTestCase(unittest.TestCase):
         self._0_test_non_reported_find_caller()
 
 
-    @logging_manager._do_not_report_as_logging_caller
+    @logging_manager.do_not_report_as_logging_caller
     def test_non_reported_find_caller(self):
         self._1_test_non_reported_find_caller()
 

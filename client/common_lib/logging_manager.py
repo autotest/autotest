@@ -45,7 +45,7 @@ def _current_handlers():
 _caller_code_to_skip_in_logging_stack = set()
 
 
-def _do_not_report_as_logging_caller(func):
+def do_not_report_as_logging_caller(func):
     """Decorator to annotate functions we will tell logging not to log."""
     # These are not the droids you are looking for.
     # You may go about your business.
@@ -103,7 +103,7 @@ class LoggingFile(object):
         self._buffer = []
 
 
-    @_do_not_report_as_logging_caller
+    @do_not_report_as_logging_caller
     def write(self, data):
         """"
         Writes data only if it constitutes a whole line. If it's not the case,
@@ -121,7 +121,7 @@ class LoggingFile(object):
             self._buffer.append(data_lines[-1])
 
 
-    @_do_not_report_as_logging_caller
+    @do_not_report_as_logging_caller
     def _log_line(self, line):
         """
         Passes lines of output to the logging module.
@@ -129,14 +129,14 @@ class LoggingFile(object):
         logging.log(self._level, self._prefix + line)
 
 
-    @_do_not_report_as_logging_caller
+    @do_not_report_as_logging_caller
     def _flush_buffer(self):
         if self._buffer:
             self._log_line(''.join(self._buffer))
             self._buffer = []
 
 
-    @_do_not_report_as_logging_caller
+    @do_not_report_as_logging_caller
     def flush(self):
         self._flush_buffer()
 
