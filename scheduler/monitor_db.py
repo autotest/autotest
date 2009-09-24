@@ -2109,8 +2109,8 @@ class GatherLogsTask(PostJobTask, CleanupHostsMixin):
                                      'non-gathering entry: %s' % queue_entry)
             if queue_entry.host.status != models.Host.Status.RUNNING:
                 raise SchedulerError('Gather task attempting to start on queue '
-                                     'entry with non-running host: '
-                                     '%s' % queue_entry)
+                                     'entry with non-running host status %s: %s'
+                                     % (queue_entry.host.status, queue_entry))
 
         super(GatherLogsTask, self).prolog()
 
