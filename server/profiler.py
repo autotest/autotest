@@ -76,6 +76,9 @@ class profiler_proxy(object):
     def __init__(self, job, profiler_name):
         self.job = job
         self.name = profiler_name
+        # maps hostname to (host object, autotest.Autotest object, Autotest
+        # install dir), where the host object is the one created specifically
+        # for profiling
         self.installed_hosts = {}
         self.current_test = None
 
@@ -89,14 +92,14 @@ class profiler_proxy(object):
     def _install(self):
         """ Install autotest on any current job hosts. """
         in_use_hosts = set(host.hostname for host in self.job.hosts
-                           if not
+                           if not # exclude hosts created here for profiling
                            (host.get_autodir() and
                             host.get_autodir().startswith(PROFILER_TMPDIR)))
         logging.debug('Hosts currently in use: %s', in_use_hosts)
 
         # determine what valid host objects we already have installed
         profiler_hosts = set()
-        for host, (at, profiler_dir) in self.installed_hosts.items():
+        for host, at, profiler_dir in self.installed_hosts.values():
             if host.path_exists(profiler_dir):
                 profiler_hosts.add(host.hostname)
             else:
@@ -104,7 +107,7 @@ class profiler_proxy(object):
                 logging.warning('The profiler client on %s at %s was deleted',
                                 host.hostname, profiler_dir)
                 host.close()
-                del self.installed_hosts[host]
+                del self.installed_hosts[host.hostname]
         logging.debug('Hosts with profiler clients already installed: %s',
                       profiler_hosts)
 
@@ -114,15 +117,15 @@ class profiler_proxy(object):
             tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
             at = autotest.Autotest(host)
             at.install_no_autoserv(autodir=tmp_dir)
-            self.installed_hosts[host] = (at, tmp_dir)
+            self.installed_hosts[host.hostname] = (host, at, tmp_dir)
 
         # drop any installs from hosts no longer in job.hosts
         hostnames_to_drop = profiler_hosts - in_use_hosts
-        hosts_to_drop = [host for host in self.installed_hosts.iterkeys()
-                         if host.hostname in hostnames_to_drop]
+        hosts_to_drop = [self.installed_hosts[hostname][0]
+                         for hostname in hostnames_to_drop]
         for host in hosts_to_drop:
             host.close()
-            del self.installed_hosts[host]
+            del self.installed_hosts[host.hostname]
 
 
     def initialize(self, *args, **dargs):
@@ -155,15 +158,18 @@ class profiler_proxy(object):
 
 
     def _get_hosts(self, host=None):
-        """ Returns a dictionary of Host->Autotest mappings currently
-        supported by this profiler. If 'host' is not None, all entries
-        not matching that host object are filtered out of the dictionary."""
+        """
+        Returns a list of (Host, Autotest, install directory) tuples for hosts
+        currently supported by this profiler. The returned Host object is always
+        the one created by this profiler, regardless of what's passed in. If
+        'host' is not None, all entries not matching that host object are
+        filtered out of the list.
+        """
         if host is None:
-            return self.installed_hosts
-        elif host in self.installed_hosts:
-            return {host: self.installed_hosts[host]}
-        else:
-            return {}
+            return self.installed_hosts.values()
+        if host.hostname in self.installed_hosts:
+            return [self.installed_hosts[host.hostname]]
+        return []
 
 
     def _get_failure_logs(self, autodir, test, host):
@@ -188,7 +194,7 @@ class profiler_proxy(object):
         self._install()
         encoded_args = encode_args(self.name, self.args, self.dargs)
         control_script = run_profiler_control % (encoded_args, self.name)
-        for host, (at, autodir) in self._get_hosts(host).iteritems():
+        for host, at, autodir in self._get_hosts(host):
             fifo_pattern = os.path.join(autodir, "profiler.*")
             host.run("rm -f %s" % fifo_pattern)
             host.run("mkfifo %s" % os.path.join(autodir, "profiler.ready"))
@@ -209,7 +215,7 @@ class profiler_proxy(object):
 
     def stop(self, test, host=None):
         assert self.current_test == test
-        for host, (at, autodir) in self._get_hosts(host).iteritems():
+        for host, at, autodir in self._get_hosts(host):
             try:
                 self._signal_client(host, autodir, "stop")
             except:
@@ -223,7 +229,7 @@ class profiler_proxy(object):
 
         # signal to all the clients that they should report
         if wait_on_client:
-            for host, (at, autodir) in self._get_hosts(host).iteritems():
+            for host, at, autodir in self._get_hosts(host):
                 try:
                     self._signal_client(host, autodir, "report")
                 except:
@@ -231,7 +237,7 @@ class profiler_proxy(object):
                     raise
 
         # pull back all the results
-        for host, (at, autodir) in self._get_hosts(host).iteritems():
+        for host, at, autodir in self._get_hosts(host):
             if wait_on_client:
                 self._wait_on_client(host, autodir, "finished")
             results_dir = get_profiler_results_dir(autodir)
