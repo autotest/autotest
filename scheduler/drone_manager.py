@@ -7,6 +7,7 @@ from autotest_lib.scheduler import scheduler_config
 
 WORKING_DIRECTORY = object() # see execute_command()
 
+
 class DroneManagerError(Exception):
     pass
 
@@ -91,10 +92,6 @@ class DroneManager(object):
     All paths going into and out of this class are relative to the full results
     directory, except for those returns by absolute_path().
     """
-    # Age is measured as a count of refresh() calls.  Normally this is called
-    # on every monitor_db.Dispatcher.tick().
-    _MAX_PIDFILE_AGE = 100
-
     def __init__(self):
         self._results_dir = None
         self._processes = {}
@@ -141,6 +138,18 @@ class DroneManager(object):
             drone.shutdown()
 
 
+    def _get_max_pidfile_refreshes(self):
+        """
+        Normally refresh() is called on every monitor_db.Dispatcher.tick().
+
+        @returns: The number of refresh() calls before we forget a pidfile.
+        """
+        pidfile_timeout = global_config.global_config.get_config_value(
+                scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
+                type=int, default=2000)
+        return pidfile_timeout
+
+
     def _add_drone(self, hostname):
         logging.info('Adding drone %s' % hostname)
         drone = drones.get_drone(hostname)
@@ -185,7 +194,7 @@ class DroneManager(object):
 
     def _drop_old_pidfiles(self):
         for pidfile_id, age in self._pidfile_age.items():
-            if age > self._MAX_PIDFILE_AGE:
+            if age > self._get_max_pidfile_refreshes():
                 logging.info('forgetting pidfile %s', pidfile_id)
                 del self._pidfile_age[pidfile_id]
             else:
