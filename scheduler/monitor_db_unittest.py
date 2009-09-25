@@ -946,6 +946,8 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.god.stub_with(monitor_db, '_drone_manager',
                            self.mock_drone_manager)
         self.god.stub_function(email_manager.manager, 'enqueue_notify_email')
+        self.god.stub_with(monitor_db, '_get_pidfile_timeout_secs',
+                           self._mock_get_pidfile_timeout_secs)
 
         self.pidfile_id = object()
 
@@ -961,6 +963,10 @@ class PidfileRunMonitorTest(unittest.TestCase):
 
     def tearDown(self):
         self.god.unstub_all()
+
+
+    def _mock_get_pidfile_timeout_secs(self):
+        return 300
 
 
     def setup_pidfile(self, pid=None, exit_code=None, tests_failed=None,
@@ -1102,7 +1108,8 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.set_not_yet_run()
         email_manager.manager.enqueue_notify_email.expect_call(
             mock.is_string_comparator(), mock.is_string_comparator())
-        self.monitor._start_time = time.time() - monitor_db.PIDFILE_TIMEOUT - 1
+        self.monitor._start_time = (time.time() -
+                                    monitor_db._get_pidfile_timeout_secs() - 1)
         self._test_get_pidfile_info_helper(None, 1, 0)
         self.assertTrue(self.monitor.lost_process)
 

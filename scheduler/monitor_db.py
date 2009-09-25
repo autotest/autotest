@@ -36,9 +36,6 @@ AUTOTEST_TKO_DIR = os.path.join(AUTOTEST_PATH, 'tko')
 if AUTOTEST_SERVER_DIR not in sys.path:
     sys.path.insert(0, AUTOTEST_SERVER_DIR)
 
-# how long to wait for autoserv to write a pidfile
-PIDFILE_TIMEOUT = 5 * 60 # 5 min
-
 _AUTOSERV_PID_FILE = '.autoserv_execute'
 _CRASHINFO_PID_FILE = '.collect_crashinfo_execute'
 _PARSER_PID_FILE = '.parser_execute'
@@ -61,6 +58,13 @@ _testing_mode = False
 _base_url = None
 _notify_email_statuses = []
 _drone_manager = drone_manager.DroneManager()
+
+
+def _get_pidfile_timeout_secs():
+    """@returns How long to wait for autoserv to write pidfile."""
+    pidfile_timeout_mins = global_config.global_config.get_config_value(
+            scheduler_config.CONFIG_SECTION, 'pidfile_timeout_mins', type=int)
+    return pidfile_timeout_mins * 60
 
 
 def _site_init_monitor_db_dummy():
@@ -1305,7 +1309,7 @@ class PidfileRunMonitor(object):
         Called when no pidfile is found or no pid is in the pidfile.
         """
         message = 'No pid found at %s' % self.pidfile_id
-        if time.time() - self._start_time > PIDFILE_TIMEOUT:
+        if time.time() - self._start_time > _get_pidfile_timeout_secs():
             email_manager.manager.enqueue_notify_email(
                 'Process has failed to write pidfile', message)
             self.on_lost_process()
