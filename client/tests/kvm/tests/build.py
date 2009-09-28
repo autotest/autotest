@@ -33,8 +33,7 @@ def kill_qemu_processes():
     utils.system("pkill qemu", ignore_status=True)
     # Let's double check to see if some other process is holding /dev/kvm
     if os.path.isfile("/dev/kvm"):
-        if utils.system_output("lsof /dev/kvm"):
-            utils.system("fuser -k /dev/kvm")
+        utils.system("fuser -k /dev/kvm", ignore_status=True)
 
 
 def load_kvm_modules(module_dir=None, load_stock=False, extra_modules=None):
@@ -66,41 +65,40 @@ def load_kvm_modules(module_dir=None, load_stock=False, extra_modules=None):
         kvm_vendor_module_path = None
         abort = False
 
+        list_modules = ['kvm.ko', 'kvm-%s.ko' % vendor]
+        if extra_modules:
+            for extra_module in extra_modules:
+                list_modules.append('%s.ko' % extra_module)
+
+        list_module_paths = []
         for folder, subdirs, files in os.walk(module_dir):
-            if "kvm.ko" in files:
-                kvm_module_path = os.path.join(folder, "kvm.ko")
-                kvm_vendor_module_path = os.path.join(folder, "kvm-%s.ko" %
-                                                      vendor)
-                if extra_modules:
-                    extra_module_list = []
-                    for module in extra_modules:
-                        extra_module_list.append(os.path.join(folder,
-                                                              "%s.ko" % module))
+            for module in list_modules:
+                if module in files:
+                    module_path = os.path.join(folder, module)
+                    list_module_paths.append(module_path)
 
-        if not kvm_module_path:
-            logging.error("Could not find kvm.ko inside the source dir")
-            abort = True
-        if not kvm_vendor_module_path:
-            logging.error("Could not find kvm-%s.ko inside the source dir")
-            abort = True
+        # We might need to arrange the modules in the correct order
+        # to avoid module load problems
+        list_modules_load = []
+        for module in list_modules:
+            for module_path in list_module_paths:
+                if os.path.basename(module_path) == module:
+                    list_modules_load.append(module_path)
 
-        if abort:
+        if len(list_module_paths) != len(list_modules):
             logging.error("KVM modules not found. If you don't want to use the "
                           "modules built by this test, make sure the option "
                           "load_modules: 'no' is marked on the test control "
                           "file.")
-            raise error.TestFail("Could not find one KVM test modules on %s "
-                                 "source dir" % module_dir)
+            raise error.TestError("The modules %s were requested to be loaded, "
+                                  "but the only modules found were %s" %
+                                  (list_modules, list_module_paths))
 
-        try:
-            utils.system('insmod %s' % kvm_module_path)
-            utils.system('insmod %s' % kvm_vendor_module_path)
-            if extra_modules:
-                for module in extra_module_list:
-                    utils.system('insmod %s' % module)
-
-        except Exception, e:
-            raise error.TestFail("Failed to load KVM modules: %s" % e)
+        for module_path in list_modules_load:
+            try:
+                utils.system("insmod %s" % module_path)
+            except Exception, e:
+                raise error.TestFail("Failed to load KVM modules: %s" % e)
 
     if load_stock:
         logging.info("Loading current system KVM modules...")
@@ -166,18 +164,10 @@ class KojiInstaller:
 
         self.koji_cmd = params.get("koji_cmd", default_koji_cmd)
 
-        if not os_dep.command("rpm"):
-            raise error.TestError("RPM package manager not available. Are "
-                                  "you sure you are using an RPM based system?")
-        if not os_dep.command("yum"):
-            raise error.TestError("Yum package manager not available. Yum is "
-                                  "necessary to handle package install and "
-                                  "update.")
-        if not os_dep.command(self.koji_cmd):
-            raise error.TestError("Build server command %s not available. "
-                                  "You need to install the appropriate package "
-                                  "(usually koji and koji-tools)" %
-                                  self.koji_cmd)
+        # Checking if all required dependencies are available
+        os_dep.command("rpm")
+        os_dep.command("yum")
+        os_dep.command(self.koji_cmd)
 
         self.src_pkg = params.get("src_pkg", default_src_pkg)
         self.pkg_list = params.get("pkg_list", default_pkg_list)
@@ -377,18 +367,20 @@ class SourceDirInstaller:
         os.chdir(srcdir)
         self.srcdir = os.path.join(srcdir, utils.extract_tarball(tarball))
         self.repo_type = kvm_utils.check_kvm_source_dir(self.srcdir)
+        self.extra_modules = params.get('extra_modules', None)
         configure_script = os.path.join(self.srcdir, 'configure')
         self.configure_options = check_configure_options(configure_script)
 
 
     def __build(self):
+        make_jobs = utils.count_cpus()
         os.chdir(self.srcdir)
         # For testing purposes, it's better to build qemu binaries with
         # debugging symbols, so we can extract more meaningful stack traces.
         cfg = "./configure --prefix=%s" % self.prefix
         if "--disable-strip" in self.configure_options:
             cfg += " --disable-strip"
-        steps = [cfg, "make clean", "make -j %s" % (utils.count_cpus() + 1)]
+        steps = [cfg, "make clean", "make -j %s" % make_jobs]
         logging.info("Building KVM")
         for step in steps:
             utils.system(step)
@@ -405,7 +397,8 @@ class SourceDirInstaller:
 
 
     def __load_modules(self):
-        load_kvm_modules(self.srcdir)
+        load_kvm_modules(module_dir=self.srcdir,
+                         extra_modules=self.extra_modules)
 
 
     def install(self):
@@ -432,6 +425,13 @@ class GitInstaller:
         self.test_bindir = test.bindir
         prefix = os.path.join(test.bindir, 'build')
         self.prefix = os.path.abspath(prefix)
+        # Current host kernel directory
+        default_host_kernel_source = '/lib/modules/%s/build' % os.uname()[2]
+        self.host_kernel_srcdir = params.get('host_kernel_source',
+                                             default_host_kernel_source)
+        # Extra parameters that can be passed to the configure script
+        self.extra_configure_options = params.get('extra_configure_options',
+                                                  None)
         # Are we going to load modules?
         load_modules = params.get('load_modules')
         if not load_modules:
@@ -440,6 +440,8 @@ class GitInstaller:
             self.load_modules = True
         elif load_modules == 'no':
             self.load_modules = False
+
+        self.extra_modules = params.get("extra_modules", None)
 
         kernel_repo = params.get("git_repo")
         user_repo = params.get("user_git_repo")
@@ -489,32 +491,46 @@ class GitInstaller:
 
 
     def __build(self):
+        # Number of concurrent build tasks
+        make_jobs = utils.count_cpus()
         if self.kmod_srcdir:
             logging.info('Building KVM modules')
             os.chdir(self.kmod_srcdir)
             utils.system('./configure')
             utils.system('make clean')
             utils.system('make sync LINUX=%s' % self.kernel_srcdir)
-            utils.system('make -j %s' % utils.count_cpus())
+            utils.system('make -j %s' % make_jobs)
+
             logging.info('Building KVM userspace code')
             os.chdir(self.userspace_srcdir)
             cfg = './configure --prefix=%s' % self.prefix
             if "--disable-strip" in self.configure_options:
                 cfg += ' --disable-strip'
+            if self.extra_configure_options:
+                cfg = ' %s' % self.extra_configure_options
             utils.system(cfg)
             utils.system('make clean')
-            utils.system('make -j %s' % utils.count_cpus())
+            utils.system('make -j %s' % make_jobs)
         else:
+            logging.info('Building KVM modules')
             os.chdir(self.userspace_srcdir)
-            cfg = './configure --prefix=%s' % self.prefix
+            cfg = './configure --kerneldir=%s' % self.host_kernel_srcdir
+            utils.system(cfg)
+            utils.system('make clean')
+            utils.system('make -j %s -C kernel LINUX=%s sync' %
+                         (make_jobs, self.kernel_srcdir))
+
+            logging.info('Building KVM userspace code')
+            # This build method (no kvm-kmod) requires that we execute
+            # configure again, but now let's use the full command line.
+            cfg += ' --prefix=%s' % self.prefix
             if "--disable-strip" in self.configure_options:
                 cfg += ' --disable-strip'
-            utils.system(cfg)
-            logging.info('Building KVM modules')
-            utils.system('make clean')
-            utils.system('make -C kernel LINUX=%s sync' % self.kernel_srcdir)
-            logging.info('Building KVM userspace code')
-            utils.system('make -j %s' % utils.count_cpus())
+            if self.extra_configure_options:
+                cfg += ' %s' % self.extra_configure_options
+            steps = [cfg, 'make -j %s' % make_jobs]
+            for step in steps:
+                utils.system(step)
 
 
     def __install(self):
@@ -525,9 +541,11 @@ class GitInstaller:
 
     def __load_modules(self):
         if self.kmod_srcdir:
-            load_kvm_modules(self.kmod_srcdir)
+            load_kvm_modules(module_dir=self.kmod_srcdir,
+                             extra_modules=self.extra_modules)
         else:
-            load_kvm_modules(self.userspace_srcdir)
+            load_kvm_modules(module_dir=self.userspace_srcdir,
+                             extra_modules=self.extra_modules)
 
 
     def install(self):
