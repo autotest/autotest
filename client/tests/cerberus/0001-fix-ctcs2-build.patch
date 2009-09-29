@@ -1,0 +1,174 @@
+diff --git a/runin/src/chartst.c b/runin/src/chartst.c
+index 4a20b38..63b1a5a 100644
+--- a/runin/src/chartst.c
++++ b/runin/src/chartst.c
+@@ -9,6 +9,7 @@
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <signal.h>
++#include <string.h>
+ 
+ void handler(int i) {
+ 	exit (0);
+diff --git a/runin/src/memtst.src/maxalloc.c b/runin/src/memtst.src/maxalloc.c
+index 5c48356..4863791 100755
+--- a/runin/src/memtst.src/maxalloc.c
++++ b/runin/src/memtst.src/maxalloc.c
+@@ -10,9 +10,6 @@
+ 
+ #if defined(__BSD__)
+ 	static const size_t PAGE_SIZE = 4096;
+-#else
+-/* this is horribly architecture specific */
+-	#include <asm/page.h>
+ #endif
+ 
+ 
+diff --git a/runin/src/memtst.src/memtst.c b/runin/src/memtst.src/memtst.c
+index f086f28..538f770 100755
+--- a/runin/src/memtst.src/memtst.c
++++ b/runin/src/memtst.src/memtst.c
+@@ -10,8 +10,6 @@
+ 
+ #if defined(__BSD__)
+ 	static const size_t PAGE_SIZE = 4096;
+-#else
+-	#include <asm/page.h>
+ #endif
+ 
+ /* The verbose global from memtst_main.c */
+@@ -331,6 +329,12 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 	int kmem_file;
+ 	int d;
+ 
++	/* Newer linux distributions don't have asm/page.h therefore
++	 * we are going to get the page size using the value of
++	 * _SC_PAGESIZE instead.
++	 */
++	u_long page_size = sysconf(_SC_PAGESIZE);
++
+ 	/* window manipulation, iterator, read retval, etc */
+ 	int low, high, foo;
+       	int rd;
+@@ -353,7 +357,7 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 
+ 	/* Now compute the offset (in chars) of the error from the page
+ 	   boundary. */
+-	fail_page_offset = ((int) (&nbuf[offset])) % PAGE_SIZE;
++	fail_page_offset = ((int) (&nbuf[offset])) % page_size;
+ 
+ 	kmem_file = open("/proc/kcore",0);
+ 	if (kmem_file < 0) {
+@@ -370,7 +374,7 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 	 * window.
+ 	 */
+ 	fail_page_offset -= ((offset - low) * sizeof(int));
+-	if (fail_page_offset < 0) fail_page_offset+=PAGE_SIZE;
++	if (fail_page_offset < 0) fail_page_offset+=page_size;
+ 
+ 	printf("%d %x fail_page_offset\n",fail_page_offset,fail_page_offset);
+ 
+@@ -382,8 +386,8 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 	 */     #include <sys/types.h>
+      #include <sys/sysctl.h>
+ 
+-	lseek(kmem_file,pages*PAGE_SIZE+fail_page_offset,SEEK_SET);
+-	phys_addr=pages*PAGE_SIZE+fail_page_offset;
++	lseek(kmem_file,pages*page_size+fail_page_offset,SEEK_SET);
++	phys_addr=pages*page_size+fail_page_offset;
+ 
+ 	/* We now use lseeks to (hugely) improve the performance of this
+ 	   thing.  Large memory systems were extremely painful before. 
+@@ -396,8 +400,8 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 			foo = low;	
+ 			/* Every time we miss, skip to the next page. */
+ 			++pages;
+-			lseek(kmem_file,pages*PAGE_SIZE+fail_page_offset,SEEK_SET);
+-			phys_addr=pages*PAGE_SIZE+fail_page_offset;
++			lseek(kmem_file,pages*page_size+fail_page_offset,SEEK_SET);
++			phys_addr=pages*page_size+fail_page_offset;
+ 			continue;
+ 		}
+ 		/* If foo made it to high, we've found it. */
+@@ -410,7 +414,7 @@ void kmemscan (int *nbuf, int block_size, int offset) {
+ 			fprintf(stderr, "Possible location of memory failure: %p (%dM) on page %d\n",
+ 				(void *) failure,
+ 				(int) (failure/1024/1024),
+-				(int) (failure/PAGE_SIZE));
++				(int) (failure/page_size));
+ 			close(kmem_file);
+ 			return;
+ 		} 
+diff --git a/runin/src/memtst.src/sizeofint.c b/runin/src/memtst.src/sizeofint.c
+index d1f9cfe..8d0404f 100755
+--- a/runin/src/memtst.src/sizeofint.c
++++ b/runin/src/memtst.src/sizeofint.c
+@@ -1,6 +1,7 @@
+ /* Jason continues to not use autoconf despite the fact he should. */
+ 
+ #include <stdio.h>
++#include <stdlib.h>
+ 
+ main ()
+ {
+diff --git a/runin/src/pi_fftc6/Makefile_64bit b/runin/src/pi_fftc6/Makefile_64bit
+index de06626..57fe30c 100644
+--- a/runin/src/pi_fftc6/Makefile_64bit
++++ b/runin/src/pi_fftc6/Makefile_64bit
+@@ -1,7 +1,7 @@
+ # ---- for GNU gcc ----
+-#CC = gcc
+-#OFLAGS_FFT = -O6 -ffast-math
+-#OFLAGS_PI = -O6 -ffast-math
++CC = gcc
++OFLAGS_FFT = -O6 -ffast-math
++OFLAGS_PI = -O6 -ffast-math
+ 
+ # ---- for SUN WS cc ----
+ #CC = cc
+@@ -9,9 +9,9 @@
+ #OFLAGS_PI = -fast -xO5
+ 
+ # ---- for DEC cc ----
+-CC = cc
+-OFLAGS_FFT = -fast -O6
+-OFLAGS_PI = -fast -O6
++#CC = cc
++#OFLAGS_FFT = -fast -O6
++#OFLAGS_PI = -fast -O6
+ 
+ 
+ # ---- use POSIX Thread ----
+diff --git a/runin/src/pi_fftc6/config.h b/runin/src/pi_fftc6/config.h
+index ecdf0cb..5b4cb3c 100644
+--- a/runin/src/pi_fftc6/config.h
++++ b/runin/src/pi_fftc6/config.h
+@@ -16,7 +16,7 @@
+ #ifndef dgt_int
+ #ifdef USE_DGT_LONG_INT
+ #define dgt_int long long int /* 64 bit int */
+-#define DGT_INT_MAX LLONG_MAX /* 64 bit int max */
++#define DGT_INT_MAX LONG_MAX /* 64 bit int max */
+ #else
+ #ifdef USE_DGT_NORMAL_INT
+ #define dgt_int int           /* 32 bit int */
+@@ -31,7 +31,7 @@
+ #ifndef fft_int
+ #ifdef USE_FFT_LONG_INT
+ #define fft_int long long int /* 64 bit int */
+-#define FFT_INT_MAX LLONG_MAX /* 64 bit int max */
++#define FFT_INT_MAX LONG_MAX /* 64 bit int max */
+ #else
+ #define fft_int int           /* 32 bit int */
+ #define FFT_INT_MAX INT_MAX   /* 32 bit int max */
+diff --git a/runin/src/sort.src/error.c b/runin/src/sort.src/error.c
+index 9e23046..141e05d 100644
+--- a/runin/src/sort.src/error.c
++++ b/runin/src/sort.src/error.c
+@@ -1,5 +1,6 @@
+ /* Fatal error unrelated to system call
+  * Print message and terminate */
++#include <string.h>
+ #include "sort.h"
+ #define MAXLINE	120
+ #define LOG_ERR	120

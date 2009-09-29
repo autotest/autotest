@@ -90,6 +90,12 @@ variants:
             - disktest:
                 test_name = disktest
                 test_control_file = disktest.control
+            - ctcs2:
+                test_name = cerberus
+                # If you think this is too lengthy, please change the cerberus
+                # control file and set this timeout appropriately.
+                test_timeout = 3900
+                test_control_file = cerberus.control
 
     - linux_s3:     install setup
         type = linux_s3

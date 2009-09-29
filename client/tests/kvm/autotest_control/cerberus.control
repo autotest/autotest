@@ -9,7 +9,7 @@ TEST_CLASS = "HARDWARE"
 TEST_CATEGORY = "BENCHMARK"
 TIME = "MEDIUM"
 DOC = """\
-Executes the cerberus2 test for a period of time specified. You
+Executes the cerberus test for a period of time specified. You
 can also provide a cerberus test control file of your own, trough the parameter
 tcf_contents.
 
