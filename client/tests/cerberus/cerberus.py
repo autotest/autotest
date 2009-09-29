@@ -2,21 +2,26 @@ import os, shutil, glob, logging
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 
-
 class cerberus(test.test):
     """
-    This autotest module runs CTCS (Cerberus Test Control System). This test
-    suite was developed for the now extinct VA Linux's manufacturing system
-    it has several hardware and software stress tests that can be run in
-    parallel. It does have a control file system that allows testers to specify
-    the sorts of tests that they want to see executed. It's an excelent stress
-    test for hardware and kernel.
+    This autotest module runs CTCS2 (Cerberus Test Control System 2), which
+    intents to revive the original CTCS project.
 
-        @author Manas Kumar Nayak (maknayak@in.ibm.com) (original code)
-        @author Lucas Meneghel Rodrigues (lucasmr@br.ibm.com) (rewrite)
+    The original test suite (Cerberus Test Control System) was developed for
+    the now extinct VA Linux's manufacturing system it has several hardware
+    and software stress tests that can be run in parallel. It does have a
+    control file system that allows testers to specify the sorts of tests that
+    they want to see executed. It's an excelent stress test for hardware and
+    kernel.
+
+    @author Manas Kumar Nayak (maknayak@in.ibm.com) (original code)
+    @author Lucas Meneghel Rodrigues (lucasmr@br.ibm.com) (rewrite - ctcs)
+    @author Cao, Chen (kcao@redhat.com) (use ctcs2 and port it to 64)
+    @see: http://sourceforge.net/projects/ctcs2
+    @see: http://sourceforge.net/projects/va-ctcs
     """
 
-    version = 1
+    version = 2
     def initialize(self):
         """
         Sets the overall failure counter for the test.
@@ -24,24 +29,29 @@ class cerberus(test.test):
         self.nfail = 0
 
 
-    def setup(self, tarball='ctcs-1.3.1pre1.tar.bz2', length = '4h',
+    def setup(self, tarball='ctcs2.tar.bz2', length='4h', tc_opt='-k',
               tcf_contents=None):
         """
         Builds the test suite, and sets up the control file that is going to
-        be processed by the ctcs engine.
-            @param tarball: CTCS tarball
-            @param length: The amount of time we'll run the test suite
-            @param tcf_contents: If the user wants to specify the contents of
-            the CTCS control file, he could do so trough this parameter. If
-            this parameter is provided, length is ignored.
+        be processed by the ctcs2 engine.
+        @param tarball: CTCS2 tarball
+        @param length: The amount of time we'll run the test suite
+        @param tcf_contents: If the user wants to specify the contents of
+                the CTCS2 control file, he could do so trough this parameter. If
+                this parameter is provided, length is ignored.
         """
-        cerberus_tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        utils.extract_tarball_to_dir(cerberus_tarball, self.srcdir)
+        cerberus2_tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
+        utils.extract_tarball_to_dir(cerberus2_tarball, self.srcdir)
 
         os.chdir(self.srcdir)
         # Apply patch to fix build problems on newer distros (absence of
-        # asm/page.h include.
-        utils.system('patch -p1 < ../fix-ctcs-build.patch')
+        # asm/page.h include, and platform(32/64bit) related issues.
+        utils.system('patch -p1 < ../0001-fix-ctcs2-build.patch')
+
+        output = os.popen('uname -i').read()
+        if output.find('x86_64') != -1:
+            utils.system('patch -p1 < ../0002-compile-on-64bit.patch')
+
         utils.system('make')
 
         # Here we define the cerberus suite control file that will be used.
@@ -53,7 +63,8 @@ class cerberus(test.test):
             # Note about the control file generation command - we are creating
             # a control file with the default tests, except for the kernel
             # compilation test (flag -k).
-            g_cmd = './newburn-generator -k %s> %s' % (length, self.tcf_path)
+            g_cmd = './newburn-generator %s %s> %s' % \
+                                            (tc_opt, length, self.tcf_path)
             utils.system(g_cmd)
         else:
             logging.debug('TCF file contents supplied, ignoring test length'
@@ -62,7 +73,7 @@ class cerberus(test.test):
             tcf.write(tcf_contents)
 
         logging.debug('Contents of the control file that will be passed to'
-                      ' ctcs:')
+                      ' CTCS 2:')
         tcf = open(self.tcf_path, 'r')
         buf = tcf.read()
         logging.debug(buf)
