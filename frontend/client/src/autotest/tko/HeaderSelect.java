@@ -94,6 +94,10 @@ class HeaderSelect implements ClickHandler {
     private void selectItemsInView(List<HeaderField> fields) {
         List<String> fieldNames = new ArrayList<String>();
         for (HeaderField field : fields) {
+            Item item = field.getItem();
+            if (item.isGeneratedItem) {
+                multiListSelect.addItem(item);
+            }
             fieldNames.add(field.getName());
         }
         multiListSelect.setSelectedItemsByName(fieldNames);
@@ -148,7 +152,6 @@ class HeaderSelect implements ClickHandler {
             if (!headerFields.containsSqlName(sqlName)) {
                 ParameterizedField field = ParameterizedField.fromSqlName(sqlName);
                 parameterizedFieldPresenter.addField(field);
-                multiListSelect.addItem(field.getItem());
             }
         }
     }
