@@ -237,6 +237,8 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     public void addItem(Item item) {
         if (item.isGenerator) {
             assert generatorHandler != null : "generator items require a GeneratorHandler";
+        } else if (item.isGeneratedItem && isItemPresent(item)) {
+            return;
         }
         items.add(item);
         Collections.sort(items);
@@ -245,6 +247,10 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         }
         assert verifyConsistency();
         refresh();
+    }
+
+    private boolean isItemPresent(Item item) {
+        return Collections.binarySearch(items, item) >= 0;
     }
     
     private void removeItem(Item item) {
