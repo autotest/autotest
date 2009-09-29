@@ -212,6 +212,8 @@ class VM:
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
+            if image_params.get("boot_drive") == "no":
+                continue
             qemu_cmd += " -drive file=%s" % get_image_filename(image_params,
                                                                root_dir)
             if image_params.get("drive_format"):

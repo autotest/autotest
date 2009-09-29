@@ -126,6 +126,53 @@ variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
 
+    - nic_hotplug:
+        type = pci_hotplug
+        pci_type = nic
+        modprobe_acpiphp = no
+        reference_cmd = lspci
+        find_pci_cmd = 'lspci | tail -n1'
+        pci_test_cmd = 'nslookup www.redhat.com'
+        wait_secs_for_hook_up = 3
+        variants:
+            - nic_8139:
+                pci_model = rtl8139
+                match_string = "8139"
+            - nic_virtio:
+                pci_model = virtio
+                match_string = "Virtio network device"
+            - nic_e1000:
+                pci_model = e1000
+                match_string = "Gigabit Ethernet Controller"
+
+    - block_hotplug:
+        type = pci_hotplug
+        pci_type = block
+        reference_cmd = lspci
+        find_pci_cmd = 'lspci | tail -n1'
+        images += " stg"
+        boot_drive_stg = no
+        image_name_stg = storage
+        image_size_stg = 1G
+        remove_image_stg = yes
+        force_create_image_stg = yes
+        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[sv]d[a-z] doesn/ {print $2}'`"
+        wait_secs_for_hook_up = 3
+        kill_vm_on_error = yes
+        variants:
+            - block_virtio:
+                pci_model = virtio
+                match_string = "Virtio block device"
+            - block_scsi:
+                pci_model = scsi
+                match_string = "SCSI"
+        variants:
+            - fmt_qcow2:
+                image_format_stg = qcow2
+            - fmt_raw:
+                image_format_stg = raw
+                only Fedora Ubuntu Windows
+
     - system_reset: install setup
         type = boot
         reboot_method = system_reset
@@ -144,7 +191,6 @@ variants:
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
-
 
 # NICs
 variants:
@@ -290,6 +336,10 @@ variants:
             - RHEL:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"
+                nic_hotplug:
+                    modprobe_module = acpiphp
+                block_hotplug:
+                    modprobe_module = acpiphp
 
                 variants:
                     - 5.3.i386:
@@ -382,6 +432,22 @@ variants:
             # Alternative host load:
             #host_load_command = "dd if=/dev/urandom of=/dev/null"
             host_load_instances = 8
+        nic_hotplug:
+            reference_cmd = ipconfig /all
+            find_pci_cmd = ipconfig /all | find "Description"
+            wait_secs_for_hook_up = 10
+            nic_e1000:
+                match_string = "Intel(R) PRO/1000 MT Network Connection"
+            nic_virtio:
+                match_string = "VirtIO Ethernet"
+        block_hotplug:
+            use_telnet = yes
+            ssh_port = 23
+            guest_port_ssh = 23
+            wait_secs_for_hook_up = 10
+            reference_cmd = wmic diskdrive list brief
+            find_pci_cmd = wmic diskdrive list brief
+            pci_test_cmd = echo select disk 1 > dt && echo online disk >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
 
         variants:
             - Win2000:
