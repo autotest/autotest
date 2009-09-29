@@ -277,6 +277,10 @@ public class TableView extends ConditionTabView
     private void selectColumnsInView() {
         List<String> fieldNames = new ArrayList<String>();
         for (HeaderField field : savedColumns) {
+            Item item = field.getItem();
+            if (item.isGeneratedItem) {
+                columnSelect.addItem(item);
+            }
             fieldNames.add(field.getName());
         }
         columnSelect.setSelectedItemsByName(fieldNames);
@@ -554,24 +558,18 @@ public class TableView extends ConditionTabView
     public void handleHistoryArguments(Map<String, String> arguments) {
         super.handleHistoryArguments(arguments);
         String[] columns = arguments.get("columns").split(",");
-        addGeneratedFields(columns);
+        addParameterizedFields(columns);
         selectColumnsByName(columns);
         savedColumns.handleHistoryArguments(arguments);
         handleSortString(arguments.get("sort"));
         updateViewFromState();
     }
 
-    private void addGeneratedFields(String[] columns) {
+    private void addParameterizedFields(String[] columns) {
         for (String name : columns) {
             if (!headerFields.containsName(name)) {
                 ParameterizedField field = ParameterizedField.fromName(name);
                 parameterizedFieldPresenter.addField(field);
-                columnSelect.addItem(field.getItem());
-            } else {
-                HeaderField field = headerFields.getFieldByName(name);
-                if (isGroupField(field)) {
-                    columnSelect.addItem(field.getItem());
-                }
             }
         }
     }
