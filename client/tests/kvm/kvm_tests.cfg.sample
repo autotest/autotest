@@ -22,6 +22,10 @@ image_size = 10G
 shell_port = 22
 display = vnc
 
+# Default scheduler params
+used_cpus = 1
+used_mem = 512
+
 # Port redirections
 redirs = remote_shell
 guest_port_remote_shell = 22
@@ -66,6 +70,7 @@ variants:
         migration_test_command = help
         kill_vm_on_error = yes
         iterations = 2
+        used_mem = 1024
 
     - autotest:     install setup
         type = autotest
@@ -112,6 +117,9 @@ variants:
         drift_threshold = 50
         # Fail if the drift after the rest period is higher than 10%
         drift_threshold_after_rest = 10
+        # For now, make sure this test is executed alone
+        used_cpus = 100
+
 
     - stress_boot:  install setup
         type = stress_boot
@@ -122,6 +130,9 @@ variants:
         kill_vm_vm1 = no
         kill_vm_gracefully = no
         extra_params += " -snapshot"
+        used_cpus = 5
+        used_mem = 2560
+
 
     - autoit:       install setup
         type = autoit
@@ -132,7 +143,7 @@ variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
 
-    - nic_hotplug:
+    - nic_hotplug:       install setup
         type = pci_hotplug
         pci_type = nic
         modprobe_acpiphp = no
@@ -151,7 +162,7 @@ variants:
                 pci_model = e1000
                 match_string = "Gigabit Ethernet Controller"
 
-    - block_hotplug:
+    - block_hotplug:       install setup
         type = pci_hotplug
         pci_type = block
         reference_cmd = lspci
@@ -641,6 +652,9 @@ variants:
     - @up:
     - smp2:
         extra_params += " -smp 2"
+        used_cpus = 2
+        stress_boot: used_cpus = 10
+        timedrift: used_cpus = 100
 
 
 variants:

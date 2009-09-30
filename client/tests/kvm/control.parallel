@@ -16,12 +16,10 @@ DOC = """
 Executes the KVM test framework on a given host. This module is separated in
 minor functions, that execute different tests for doing Quality Assurance on
 KVM (both kernelspace and userspace) code.
-
-For online docs, please refer to http://www.linux-kvm.org/page/KVM-Autotest
 """
 
 
-import sys, os
+import sys, os, commands, re
 
 #-----------------------------------------------------------------------------
 # set English environment (command output might be localized, need to be safe)
@@ -178,33 +176,27 @@ if os.path.exists(filename):
     else:
         cfg.parse_string("only ^default_host")
 
-list = cfg.get_list()
+tests = cfg.get_list()
 
 
 # -------------
 # Run the tests
 # -------------
-status_dict = {}
+import kvm_scheduler
+from autotest_lib.client.bin import utils
 
-for dict in list:
-    if dict.get("skip") == "yes":
-        continue
-    dependencies_satisfied = True
-    for dep in dict.get("depend"):
-        for test_name in status_dict.keys():
-            if not dep in test_name:
-                continue
-            if not status_dict[test_name]:
-                dependencies_satisfied = False
-                break
-    if dependencies_satisfied:
-        test_iterations = int(dict.get("iterations", 1))
-        current_status = job.run_test("kvm", params=dict,
-                                      tag=dict.get("shortname"),
-                                      iterations=test_iterations)
-    else:
-        current_status = False
-    status_dict[dict.get("name")] = current_status
+# total_cpus defaults to the number of CPUs reported by /proc/cpuinfo
+total_cpus = utils.count_cpus()
+# total_mem defaults to 3/4 of the total memory reported by 'free'
+total_mem = int(commands.getoutput("free -m").splitlines()[1].split()[1]) * 3/4
+# We probably won't need more workers than CPUs
+num_workers = total_cpus
+
+# Start the scheduler and workers
+s = kvm_scheduler.scheduler(tests, num_workers, total_cpus, total_mem, pwd)
+job.parallel([s.scheduler],
+             *[(s.worker, i, job.run_test) for i in range(num_workers)])
+
 
 # create the html report in result dir
 reporter = os.path.join(pwd, 'make_html_report.py')
