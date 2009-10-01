@@ -109,6 +109,47 @@ class RpcInterfaceTest(unittest.TestCase,
                                                      'Failed': 2})
 
 
+    def test_get_jobs_filters(self):
+        HqeStatus = models.HostQueueEntry.Status
+        def create_two_host_job():
+            return self._create_job(hosts=[1, 2])
+        def set_hqe_statuses(job, first_status, second_status):
+            entries = job.hostqueueentry_set.all()
+            entries[0].update_object(status=first_status)
+            entries[1].update_object(status=second_status)
+
+        queued = create_two_host_job()
+
+        queued_and_running = create_two_host_job()
+        set_hqe_statuses(queued_and_running, HqeStatus.QUEUED,
+                           HqeStatus.RUNNING)
+
+        running_and_complete = create_two_host_job()
+        set_hqe_statuses(running_and_complete, HqeStatus.RUNNING,
+                           HqeStatus.COMPLETED)
+
+        complete = create_two_host_job()
+        set_hqe_statuses(complete, HqeStatus.COMPLETED, HqeStatus.COMPLETED)
+
+        started_but_inactive = create_two_host_job()
+        set_hqe_statuses(started_but_inactive, HqeStatus.QUEUED,
+                           HqeStatus.COMPLETED)
+
+        parsing = create_two_host_job()
+        set_hqe_statuses(parsing, HqeStatus.PARSING, HqeStatus.PARSING)
+
+        def check_job_ids(actual_job_dicts, expected_jobs):
+            self.assertEquals(
+                    set(job_dict['id'] for job_dict in actual_job_dicts),
+                    set(job.id for job in expected_jobs))
+
+        check_job_ids(rpc_interface.get_jobs(not_yet_run=True), [queued])
+        check_job_ids(rpc_interface.get_jobs(running=True),
+                      [queued_and_running, running_and_complete,
+                       started_but_inactive, parsing])
+        check_job_ids(rpc_interface.get_jobs(finished=True), [complete])
+
+
     def _create_job_helper(self, **kwargs):
         return rpc_interface.create_job('test', 'Medium', 'control file',
                                         'Server', **kwargs)
