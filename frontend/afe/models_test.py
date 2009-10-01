@@ -39,6 +39,32 @@ class AclGroupTest(unittest.TestCase,
         self._check_acls(host2, ['my_acl'])
 
 
+class HostTest(unittest.TestCase,
+               frontend_test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_add_host_previous_one_time_host(self):
+        # ensure that when adding a host which was previously used as a one-time
+        # host, the status isn't reset, since this can interfere with the
+        # scheduler.
+        host = models.Host.create_one_time_host('othost')
+        self.assertEquals(host.invalid, True)
+        self.assertEquals(host.status, models.Host.Status.READY)
+
+        host.status = models.Host.Status.RUNNING
+        host.save()
+
+        host2 = models.Host.add_object(hostname='othost')
+        self.assertEquals(host2.id, host.id)
+        self.assertEquals(host2.status, models.Host.Status.RUNNING)
+
+
 class SpecialTaskUnittest(unittest.TestCase,
                           frontend_test_utils.FrontendTestMixin):
     def setUp(self):
