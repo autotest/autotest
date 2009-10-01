@@ -227,9 +227,14 @@ class AFE(RpcClient):
         """
         assert ('hosts' in dargs or
                 'atomic_group_name' in dargs and 'synch_count' in dargs)
-        control_file = self.generate_control_file(tests=tests, kernel=kernel,
-                                                  use_container=use_container,
-                                                  do_push_packages=True)
+        if kernel:
+            kernel_list =  re.split('[\s,]+', kernel.strip())
+            kernel_info = [{'version': version} for version in kernel_list]
+        else:
+            kernel_info = None
+        control_file = self.generate_control_file(
+                tests=tests, kernel=kernel_info, use_container=use_container,
+                do_push_packages=True)
         if control_file.is_server:
             dargs['control_type'] = 'Server'
         else:
