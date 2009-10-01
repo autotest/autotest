@@ -812,7 +812,7 @@ class ModelWithInvalid(ModelExtensions):
             filters = {self.name_field : my_name, 'invalid' : True}
             try:
                 old_object = self.__class__.objects.get(**filters)
-                self.id = old_object.id
+                self.resurrect_object(old_object)
             except self.DoesNotExist:
                 # no existing object
                 pass
@@ -820,11 +820,22 @@ class ModelWithInvalid(ModelExtensions):
         super(ModelWithInvalid, self).save(*args, **kwargs)
 
 
+    def resurrect_object(self, old_object):
+        """
+        Called when self is about to be saved for the first time and is actually
+        "undeleting" a previously deleted object.  Can be overridden by
+        subclasses to copy data as desired from the deleted entry (but this
+        superclass implementation must normally be called).
+        """
+        self.id = old_object.id
+
+
     def clean_object(self):
         """
         This method is called when an object is marked invalid.
         Subclasses should override this to clean up relationships that
-        should no longer exist if the object were deleted."""
+        should no longer exist if the object were deleted.
+        """
         pass
 
 
