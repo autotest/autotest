@@ -238,6 +238,13 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         return host
 
 
+    def resurrect_object(self, old_object):
+        super(Host, self).resurrect_object(old_object)
+        # invalid hosts can be in use by the scheduler (as one-time hosts), so
+        # don't change the status
+        self.status = old_object.status
+
+
     def clean_object(self):
         self.aclgroup_set.clear()
         self.labels.clear()
