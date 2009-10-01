@@ -91,22 +91,25 @@ def extra_job_filters(not_yet_run=False, running=False, finished=False):
     Generate a SQL WHERE clause for job status filtering, and return it in
     a dict of keyword args to pass to query.extra().  No more than one of
     the parameters should be passed as True.
+    * not_yet_run: all HQEs are Queued
+    * finished: all HQEs are complete
+    * running: everything else
     """
     assert not ((not_yet_run and running) or
                 (not_yet_run and finished) or
                 (running and finished)), ('Cannot specify more than one '
                                           'filter to this function')
+
+    not_queued = ('(SELECT job_id FROM host_queue_entries WHERE status != "%s")'
+                  % models.HostQueueEntry.Status.QUEUED)
+    not_finished = '(SELECT job_id FROM host_queue_entries WHERE not complete)'
+
     if not_yet_run:
-        where = ['id NOT IN (SELECT job_id FROM host_queue_entries '
-                 'WHERE active OR complete)']
+        where = ['id NOT IN ' + not_queued]
     elif running:
-        where = ['(id IN (SELECT job_id FROM host_queue_entries '
-                  'WHERE active OR complete)) AND '
-                 '(id IN (SELECT job_id FROM host_queue_entries '
-                  'WHERE not complete OR active))']
+        where = ['(id IN %s) AND (id IN %s)' % (not_queued, not_finished)]
     elif finished:
-        where = ['id NOT IN (SELECT job_id FROM host_queue_entries '
-                 'WHERE not complete OR active)']
+        where = ['id NOT IN ' + not_finished]
     else:
         return {}
     return {'where': where}
