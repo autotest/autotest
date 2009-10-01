@@ -4,7 +4,9 @@ Alias /results "/usr/local/autotest/results/"
     AllowOverride None
     Order allow,deny
     Allow from all
-    ForceType text/plain
+    <FilesMatch "\.log$">
+        ForceType "text/plain; authoritative=true"
+    </FilesMatch>
 </Directory>
 
 Alias /tko "/usr/local/autotest/tko/"
