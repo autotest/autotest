@@ -72,6 +72,9 @@ if queue_entries and queue_entries[0]['atomic_group']:
     # Get the list of labels associated with this atomic group.
     atomic_labels = proxy.run('get_labels',
                               atomic_group__name=atomic_group_name)
+    if len(atomic_labels) < 1:
+        print 'Job requests atomic group %s but no labels' % atomic_group_name
+        print '(and thus no hosts) are associated with that atomic group.'
 
     job_sync_count = job['synch_count']
     # Ugh! This is returned as a comma separated str of label names.
