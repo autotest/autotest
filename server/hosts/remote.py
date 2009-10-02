@@ -118,10 +118,8 @@ class RemoteHost(base_classes.Host):
         self.reboot_setup(label=label, kernel_args=kernel_args, **dargs)
 
         if label or kernel_args:
-            self.bootloader.install_boottool()
             if not label:
-                default = int(self.bootloader.get_default())
-                label = self.bootloader.get_titles()[default]
+                label = self.bootloader.get_default_title()
             self.bootloader.boot_once(label)
             if kernel_args:
                 self.bootloader.add_args(label, kernel_args)

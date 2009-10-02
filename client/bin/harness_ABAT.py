@@ -94,15 +94,10 @@ class harness_ABAT(harness.harness):
 
         # Search the boot loader configuration for the autobench entry,
         # and extract its args.
-        entry_args = None
         args = None
-        for line in self.job.bootloader.info('all').split('\n'):
-            if line.startswith('args'):
-                entry_args = line.split(None, 2)[2]
-            if line.startswith('title'):
-                title = line.split()[2]
-                if title == 'autobench':
-                    args = entry_args
+        for entry in self.job.bootloader.get_entries().itervalues():
+            if entry['title'].startswith('autobench'):
+                args = entry.get('args')
 
         if args:
             args = re.sub(r'autobench_args:.*', '', args)
