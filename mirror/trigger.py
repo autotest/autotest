@@ -83,7 +83,7 @@ def step_test():
             self.kernel_configs = kernel_configs
 
 
-    def __init__(self, control_map, jobname_pattern):
+    def __init__(self, control_map, jobname_pattern, job_owner='autotest'):
         """
         Instantiate a map_action.
 
@@ -91,6 +91,7 @@ def step_test():
         """
         self._control_map = control_map
         self._jobname_pattern = jobname_pattern
+        self._job_owner = job_owner
 
 
     def __call__(self, kernel_list):
@@ -222,11 +223,10 @@ def step_test():
         return c
 
 
-    @staticmethod
-    def _schedule_job(jobname, control, hosts, is_server_test):
+    def _schedule_job(self, jobname, control, hosts, is_server_test):
         control_type = ('Client', 'Server')[is_server_test]
 
-        afe = frontend.AFE()
+        afe = frontend.AFE(user=self._job_owner)
         afe.create_job(control, jobname, control_type=control_type, hosts=hosts)
 
 
