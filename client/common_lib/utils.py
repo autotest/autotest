@@ -331,34 +331,36 @@ def get_stderr_level(stderr_is_expected):
 
 def run(command, timeout=None, ignore_status=False,
         stdout_tee=None, stderr_tee=None, verbose=True, stdin=None,
-        stderr_is_expected=None):
+        stderr_is_expected=None, args=()):
     """
     Run a command on the host.
 
-    Args:
-            command: the command line string
-            timeout: time limit in seconds before attempting to
-                    kill the running process. The run() function
-                    will take a few seconds longer than 'timeout'
-                    to complete if it has to kill the process.
-            ignore_status: do not raise an exception, no matter what
-                    the exit code of the command is.
-            stdout_tee: optional file-like object to which stdout data
-                        will be written as it is generated (data will still
-                        be stored in result.stdout)
-            stderr_tee: likewise for stderr
-            verbose: if True, log the command being run
-            stdin: stdin to pass to the executed process
+    @param command: the command line string.
+    @param timeout: time limit in seconds before attempting to kill the
+            running process. The run() function will take a few seconds
+            longer than 'timeout' to complete if it has to kill the process.
+    @param ignore_status: do not raise an exception, no matter what the exit
+            code of the command is.
+    @param stdout_tee: optional file-like object to which stdout data
+            will be written as it is generated (data will still be stored
+            in result.stdout).
+    @param stderr_tee: likewise for stderr.
+    @param verbose: if True, log the command being run.
+    @param stdin: stdin to pass to the executed process.
+    @param args: sequence of strings of arguments to be given to the command
+            inside " quotes after they have been escaped for that; each
+            element in the sequence will be given as a separate command
+            argument
 
-    Returns:
-            a CmdResult object
+    @return a CmdResult object
 
-    Raises:
-            CmdError: the exit code of the command
-                    execution was not 0
+    @raise CmdError: the exit code of the command execution was not 0
     """
+    for arg in args:
+        command += ' "%s"' % sh_escape(arg)
     if stderr_is_expected is None:
         stderr_is_expected = ignore_status
+
     bg_job = join_bg_jobs(
         (BgJob(command, stdout_tee, stderr_tee, verbose, stdin=stdin,
                stderr_level=get_stderr_level(stderr_is_expected)),),
@@ -568,13 +570,34 @@ def system_parallel(commands, timeout=None, ignore_status=False):
 
 
 def system_output(command, timeout=None, ignore_status=False,
-                  retain_output=False):
+                  retain_output=False, args=()):
+    """
+    Run a command and return the stdout output.
+
+    @param command: command string to execute.
+    @param timeout: time limit in seconds before attempting to kill the
+            running process. The function will take a few seconds longer
+            than 'timeout' to complete if it has to kill the process.
+    @param ignore_status: do not raise an exception, no matter what the exit
+            code of the command is.
+    @param retain_output: set to True to make stdout/stderr of the command
+            output to be also sent to the logging system
+    @param args: sequence of strings of arguments to be given to the command
+            inside " quotes after they have been escaped for that; each
+            element in the sequence will be given as a separate command
+            argument
+
+    @return a string with the stdout output of the command.
+    """
     if retain_output:
         out = run(command, timeout=timeout, ignore_status=ignore_status,
-                  stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS).stdout
+                  stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS,
+                  args=args).stdout
     else:
-        out = run(command, timeout=timeout, ignore_status=ignore_status).stdout
-    if out[-1:] == '\n': out = out[:-1]
+        out = run(command, timeout=timeout, ignore_status=ignore_status,
+                  args=args).stdout
+    if out[-1:] == '\n':
+        out = out[:-1]
     return out
 
 
