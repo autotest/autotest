@@ -434,9 +434,8 @@ class kernel(object):
         args = ' '.join(arglist)
 
         # add the kernel entry
-        # add_kernel(image, title='autotest', initrd='')
-        self.job.bootloader.add_kernel(self.image, tag, self.initrd, \
-                                        args = args, root = root)
+        self.job.bootloader.add_kernel(self.image, tag, initrd=self.initrd,
+                                       args=args, root=root)
 
 
     def get_kernel_build_arch(self, arch=None):
@@ -719,8 +718,8 @@ class rpm_kernel(object):
         args = ' '.join(arglist)
 
         # add the kernel entry
-        self.job.bootloader.add_kernel(self.image, tag, self.initrd,
-                                       args = args, root = root)
+        self.job.bootloader.add_kernel(self.image, tag, initrd=self.initrd,
+                                       args=args, root=root)
 
 
     def boot(self, args='', ident=True):

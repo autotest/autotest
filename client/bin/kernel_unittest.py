@@ -487,8 +487,9 @@ class TestKernel(unittest.TestCase):
         self.job.config_get.expect_call(
             'boot.default_args').and_return('baseargs')
         args = 'baseargs' + " " + args
-        self.job.bootloader.add_kernel.expect_call('image', 'autotest',
-            'initrd', args='baseargs', root=None)
+        self.job.bootloader.add_kernel.expect_call(
+                'image', 'autotest', initrd='initrd', args='baseargs',
+                root=None)
 
         # run and check
         self.kernel.add_to_bootloader()
