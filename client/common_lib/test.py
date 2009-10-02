@@ -240,6 +240,10 @@ class base_test:
             hook(self)
 
         if profile_only:
+            if not self.job.profilers.present():
+                self.job.record('WARN', None, None, 'No profilers have been '
+                                'added but profile_only is set - nothing '
+                                'will be run')
             self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
         else:
             self.run_once(*args, **dargs)

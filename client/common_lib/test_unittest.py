@@ -19,6 +19,8 @@ class TestTestCase(unittest.TestCase):
             class MockProfilerManager(object):
                 def active(self):
                     return False
+                def present(self):
+                    return True
             self.job = MockJob()
             self.job.profilers = MockProfilerManager()
             self._new_keyval = False
@@ -118,7 +120,7 @@ class Test_base_test_execute(TestTestCase):
 
 
     def test_execute_profile_only(self):
-        # test that profile_only=True works.  (same as iterations=0)
+        # test that profile_only=True works.
         self.god.stub_function(self.test, 'drop_caches_between_iterations')
         self.test.drop_caches_between_iterations.expect_call()
         self.test.run_once_profiling.expect_call(None)
