@@ -140,8 +140,9 @@ class xen(kernel.kernel):
         self.job.bootloader.remove_kernel(tag)
 
         # add xen and xen kernel
-        self.job.bootloader.add_kernel(self.kjob.image, tag,
-                                       self.kjob.initrd, self.xen_image)
+        self.job.bootloader.add_kernel(
+                self.kjob.image, tag, initrd=self.kjob.initrd,
+                xen_hypervisor=self.xen_image)
 
         # if no args passed, populate from /proc/cmdline
         if not args:
