@@ -5,8 +5,187 @@ A class and functions used for running and controlling child processes.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import sys, subprocess, pty, select, os, time, signal, re, termios, fcntl
-import threading, logging, commands
+import os, sys, pty, select, termios, fcntl
+
+
+# The following helper functions are shared by the server and the client.
+
+def _lock(filename):
+    if not os.path.exists(filename):
+        open(filename, "w").close()
+    fd = os.open(filename, os.O_RDWR)
+    fcntl.lockf(fd, fcntl.LOCK_EX)
+    return fd
+
+
+def _unlock(fd):
+    fcntl.lockf(fd, fcntl.LOCK_UN)
+    os.close(fd)
+
+
+def _locked(filename):
+    try:
+        fd = os.open(filename, os.O_RDWR)
+    except:
+        return False
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except:
+        os.close(fd)
+        return True
+    fcntl.lockf(fd, fcntl.LOCK_UN)
+    os.close(fd)
+    return False
+
+
+def _wait(filename):
+    fd = _lock(filename)
+    _unlock(fd)
+
+
+def _get_filenames(base_dir, id):
+    return [os.path.join(base_dir, s + id) for s in
+            "shell-pid-", "status-", "output-", "inpipe-",
+            "lock-server-running-", "lock-client-starting-"]
+
+
+def _get_reader_filename(base_dir, id, reader):
+    return os.path.join(base_dir, "outpipe-%s-%s" % (reader, id))
+
+
+# The following is the server part of the module.
+
+if __name__ == "__main__":
+    id = sys.stdin.readline().strip()
+    echo = sys.stdin.readline().strip() == "True"
+    readers = sys.stdin.readline().strip().split(",")
+    command = sys.stdin.readline().strip() + " && echo %s > /dev/null" % id
+
+    # Define filenames to be used for communication
+    base_dir = "/tmp/kvm_spawn"
+    (shell_pid_filename,
+     status_filename,
+     output_filename,
+     inpipe_filename,
+     lock_server_running_filename,
+     lock_client_starting_filename) = _get_filenames(base_dir, id)
+
+    # Populate the reader filenames list
+    reader_filenames = [_get_reader_filename(base_dir, id, reader)
+                        for reader in readers]
+
+    # Set $TERM = dumb
+    os.putenv("TERM", "dumb")
+
+    (shell_pid, shell_fd) = pty.fork()
+    if shell_pid == 0:
+        # Child process: run the command in a subshell
+        os.execv("/bin/sh", ["/bin/sh", "-c", command])
+    else:
+        # Parent process
+        lock_server_running = _lock(lock_server_running_filename)
+
+        # Set terminal echo on/off and disable pre- and post-processing
+        attr = termios.tcgetattr(shell_fd)
+        attr[0] &= ~termios.INLCR
+        attr[0] &= ~termios.ICRNL
+        attr[0] &= ~termios.IGNCR
+        attr[1] &= ~termios.OPOST
+        if echo:
+            attr[3] |= termios.ECHO
+        else:
+            attr[3] &= ~termios.ECHO
+        termios.tcsetattr(shell_fd, termios.TCSANOW, attr)
+
+        # Open output file
+        output_file = open(output_filename, "w")
+        # Open input pipe
+        os.mkfifo(inpipe_filename)
+        inpipe_fd = os.open(inpipe_filename, os.O_RDWR)
+        # Open output pipes (readers)
+        reader_fds = []
+        for filename in reader_filenames:
+            os.mkfifo(filename)
+            reader_fds.append(os.open(filename, os.O_RDWR))
+
+        # Write shell PID to file
+        file = open(shell_pid_filename, "w")
+        file.write(str(shell_pid))
+        file.close()
+
+        # Print something to stdout so the client can start working
+        print "Server %s ready" % id
+        sys.stdout.flush()
+
+        # Initialize buffers
+        buffers = ["" for reader in readers]
+
+        # Read from child and write to files/pipes
+        while True:
+            check_termination = False
+            # Make a list of reader pipes whose buffers are not empty
+            fds = [fd for (i, fd) in enumerate(reader_fds) if buffers[i]]
+            # Wait until there's something to do
+            r, w, x = select.select([shell_fd, inpipe_fd], fds, [], 0.5)
+            # If a reader pipe is ready for writing --
+            for (i, fd) in enumerate(reader_fds):
+                if fd in w:
+                    bytes_written = os.write(fd, buffers[i])
+                    buffers[i] = buffers[i][bytes_written:]
+            # If there's data to read from the child process --
+            if shell_fd in r:
+                try:
+                    data = os.read(shell_fd, 16384)
+                except OSError:
+                    data = ""
+                if not data:
+                    check_termination = True
+                # Remove carriage returns from the data -- they often cause
+                # trouble and are normally not needed
+                data = data.replace("\r", "")
+                output_file.write(data)
+                output_file.flush()
+                for i in range(len(readers)):
+                    buffers[i] += data
+            # If os.read() raised an exception or there was nothing to read --
+            if check_termination or shell_fd not in r:
+                pid, status = os.waitpid(shell_pid, os.WNOHANG)
+                if pid:
+                    status = os.WEXITSTATUS(status)
+                    break
+            # If there's data to read from the client --
+            if inpipe_fd in r:
+                data = os.read(inpipe_fd, 1024)
+                os.write(shell_fd, data)
+
+        # Write the exit status to a file
+        file = open(status_filename, "w")
+        file.write(str(status))
+        file.close()
+
+        # Wait for the client to finish initializing
+        _wait(lock_client_starting_filename)
+
+        # Delete FIFOs
+        for filename in reader_filenames + [inpipe_filename]:
+            try:
+                os.unlink(filename)
+            except OSError:
+                pass
+
+        # Close all files and pipes
+        output_file.close()
+        os.close(inpipe_fd)
+        for fd in reader_fds:
+            os.close(fd)
+
+        _unlock(lock_server_running)
+        exit(0)
+
+
+# The following is the client part of the module.
+
+import subprocess, time, signal, re, threading, logging
 import common, kvm_utils
 
 
@@ -75,49 +254,6 @@ def run_fg(command, output_func=None, output_prefix="", timeout=1.0):
         status = process.get_status()
     process.close()
     return (status, output)
-
-
-def _lock(filename):
-    if not os.path.exists(filename):
-        open(filename, "w").close()
-    fd = os.open(filename, os.O_RDWR)
-    fcntl.lockf(fd, fcntl.LOCK_EX)
-    return fd
-
-
-def _unlock(fd):
-    fcntl.lockf(fd, fcntl.LOCK_UN)
-    os.close(fd)
-
-
-def _locked(filename):
-    try:
-        fd = os.open(filename, os.O_RDWR)
-    except:
-        return False
-    try:
-        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except:
-        os.close(fd)
-        return True
-    fcntl.lockf(fd, fcntl.LOCK_UN)
-    os.close(fd)
-    return False
-
-
-def _wait(filename):
-    fd = _lock(filename)
-    _unlock(fd)
-
-
-def _get_filenames(base_dir, id):
-    return [os.path.join(base_dir, s + id) for s in
-            "shell-pid-", "status-", "output-", "inpipe-",
-            "lock-server-running-", "lock-client-starting-"]
-
-
-def _get_reader_filename(base_dir, id, reader):
-    return os.path.join(base_dir, "outpipe-%s-%s" % (reader, id))
 
 
 class kvm_spawn:
@@ -1031,136 +1167,3 @@ class kvm_shell_session(kvm_expect):
                                                           internal_timeout,
                                                           print_func)
         return output
-
-
-# The following is the server part of the module.
-
-def _server_main():
-    id = sys.stdin.readline().strip()
-    echo = sys.stdin.readline().strip() == "True"
-    readers = sys.stdin.readline().strip().split(",")
-    command = sys.stdin.readline().strip() + " && echo %s > /dev/null" % id
-
-    # Define filenames to be used for communication
-    base_dir = "/tmp/kvm_spawn"
-    (shell_pid_filename,
-     status_filename,
-     output_filename,
-     inpipe_filename,
-     lock_server_running_filename,
-     lock_client_starting_filename) = _get_filenames(base_dir, id)
-
-    # Populate the reader filenames list
-    reader_filenames = [_get_reader_filename(base_dir, id, reader)
-                        for reader in readers]
-
-    # Set $TERM = dumb
-    os.putenv("TERM", "dumb")
-
-    (shell_pid, shell_fd) = pty.fork()
-    if shell_pid == 0:
-        # Child process: run the command in a subshell
-        os.execv("/bin/sh", ["/bin/sh", "-c", command])
-    else:
-        # Parent process
-        lock_server_running = _lock(lock_server_running_filename)
-
-        # Set terminal echo on/off and disable pre- and post-processing
-        attr = termios.tcgetattr(shell_fd)
-        attr[0] &= ~termios.INLCR
-        attr[0] &= ~termios.ICRNL
-        attr[0] &= ~termios.IGNCR
-        attr[1] &= ~termios.OPOST
-        if echo:
-            attr[3] |= termios.ECHO
-        else:
-            attr[3] &= ~termios.ECHO
-        termios.tcsetattr(shell_fd, termios.TCSANOW, attr)
-
-        # Open output file
-        output_file = open(output_filename, "w")
-        # Open input pipe
-        os.mkfifo(inpipe_filename)
-        inpipe_fd = os.open(inpipe_filename, os.O_RDWR)
-        # Open output pipes (readers)
-        reader_fds = []
-        for filename in reader_filenames:
-            os.mkfifo(filename)
-            reader_fds.append(os.open(filename, os.O_RDWR))
-
-        # Write shell PID to file
-        file = open(shell_pid_filename, "w")
-        file.write(str(shell_pid))
-        file.close()
-
-        # Print something to stdout so the client can start working
-        print "Server %s ready" % id
-        sys.stdout.flush()
-
-        # Initialize buffers
-        buffers = ["" for reader in readers]
-
-        # Read from child and write to files/pipes
-        while True:
-            check_termination = False
-            # Make a list of reader pipes whose buffers are not empty
-            fds = [fd for (i, fd) in enumerate(reader_fds) if buffers[i]]
-            # Wait until there's something to do
-            r, w, x = select.select([shell_fd, inpipe_fd], fds, [], 0.5)
-            # If a reader pipe is ready for writing --
-            for (i, fd) in enumerate(reader_fds):
-                if fd in w:
-                    bytes_written = os.write(fd, buffers[i])
-                    buffers[i] = buffers[i][bytes_written:]
-            # If there's data to read from the child process --
-            if shell_fd in r:
-                try:
-                    data = os.read(shell_fd, 16384)
-                except OSError:
-                    data = ""
-                if not data:
-                    check_termination = True
-                # Remove carriage returns from the data -- they often cause
-                # trouble and are normally not needed
-                data = data.replace("\r", "")
-                output_file.write(data)
-                output_file.flush()
-                for i in range(len(readers)):
-                    buffers[i] += data
-            # If os.read() raised an exception or there was nothing to read --
-            if check_termination or shell_fd not in r:
-                pid, status = os.waitpid(shell_pid, os.WNOHANG)
-                if pid:
-                    status = os.WEXITSTATUS(status)
-                    break
-            # If there's data to read from the client --
-            if inpipe_fd in r:
-                data = os.read(inpipe_fd, 1024)
-                os.write(shell_fd, data)
-
-        # Write the exit status to a file
-        file = open(status_filename, "w")
-        file.write(str(status))
-        file.close()
-
-        # Wait for the client to finish initializing
-        _wait(lock_client_starting_filename)
-
-        # Delete FIFOs
-        for filename in reader_filenames + [inpipe_filename]:
-            try:
-                os.unlink(filename)
-            except OSError:
-                pass
-
-        # Close all files and pipes
-        output_file.close()
-        os.close(inpipe_fd)
-        for fd in reader_fds:
-            os.close(fd)
-
-        _unlock(lock_server_running)
-
-
-if __name__ == "__main__":
-    _server_main()
