@@ -30,22 +30,27 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         logging.error("Bad barrier_2 command line")
         return False
 
+    # Parse barrier command line
     cmd, dx, dy, x1, y1, md5sum, timeout = words[:7]
     dx, dy, x1, y1, timeout = map(int, [dx, dy, x1, y1, timeout])
 
+    # Define some paths
     scrdump_filename = os.path.join(debug_dir, "scrdump.ppm")
     cropped_scrdump_filename = os.path.join(debug_dir, "cropped_scrdump.ppm")
     expected_scrdump_filename = os.path.join(debug_dir, "scrdump_expected.ppm")
     expected_cropped_scrdump_filename = os.path.join(debug_dir,
                                                  "cropped_scrdump_expected.ppm")
     comparison_filename = os.path.join(debug_dir, "comparison.ppm")
+    history_dir = os.path.join(debug_dir, "barrier_history")
+
+    # Collect a few parameters
+    timeout_multiplier = float(params.get("timeout_multiplier") or 1)
+    fail_if_stuck_for = float(params.get("fail_if_stuck_for") or 1e308)
+    stuck_detection_history = int(params.get("stuck_detection_history") or 2)
+    keep_screendump_history = params.get("keep_screendump_history") == "yes"
+    keep_all_history = params.get("keep_all_history") == "yes"
 
     # Multiply timeout by the timeout multiplier
-    timeout_multiplier = params.get("timeout_multiplier")
-    if timeout_multiplier:
-        timeout_multiplier = float(timeout_multiplier)
-    else:
-        timeout_multiplier = 1.0
     timeout *= timeout_multiplier
 
     # Timeout/5 is the time it took stepmaker to complete this step.
@@ -55,23 +60,6 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
     sleep_duration = float(timeout) / 50.0
     if sleep_duration < 1.0: sleep_duration = 1.0
     if sleep_duration > 10.0: sleep_duration = 10.0
-
-    fail_if_stuck_for = params.get("fail_if_stuck_for")
-    if fail_if_stuck_for:
-        fail_if_stuck_for = float(fail_if_stuck_for)
-    else:
-        fail_if_stuck_for = 1e308
-
-    stuck_detection_history = params.get("stuck_detection_history")
-    if stuck_detection_history:
-        stuck_detection_history = int(stuck_detection_history)
-    else:
-        stuck_detection_history = 2
-
-    keep_screendump_history = params.get("keep_screendump_history") == "yes"
-    if keep_screendump_history:
-        keep_all_history = params.get("keep_all_history") == "yes"
-        history_dir = os.path.join(debug_dir, "barrier_history")
 
     end_time = time.time() + timeout
     end_time_stuck = time.time() + fail_if_stuck_for
