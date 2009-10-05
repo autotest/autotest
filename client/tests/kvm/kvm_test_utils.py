@@ -52,7 +52,7 @@ def wait_for_login(vm, nic_index=0, timeout=240):
     @param timeout: Time to wait before giving up.
     @return: A shell session object.
     """
-    logging.info("Waiting for guest '%s' to be up..." % vm.name)
+    logging.info("Try to login to guest '%s'..." % vm.name)
     session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
                                  timeout, 0, 2)
     if not session:
