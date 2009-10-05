@@ -85,7 +85,7 @@ def run_autotest(test, params, env):
     extract(vm, "autotest.tar.bz2")
 
     # mkdir autotest/tests
-    session.sendline("mkdir autotest/tests")
+    session.get_command_output("mkdir autotest/tests")
 
     # Extract <test_name>.tar.bz2 into autotest/tests
     extract(vm, test_name + ".tar.bz2", "autotest/tests")
@@ -99,10 +99,9 @@ def run_autotest(test, params, env):
 
     # Run the test
     logging.info("Running test '%s'..." % test_name)
-    session.sendline("cd autotest")
-    session.sendline("rm -f control.state")
-    session.sendline("rm -rf results/*")
-    session.read_up_to_prompt()
+    session.get_command_output("cd autotest")
+    session.get_command_output("rm -f control.state")
+    session.get_command_output("rm -rf results/*")
     logging.info("---------------- Test output ----------------")
     status = session.get_command_status("bin/autotest control",
                                         timeout=test_timeout,

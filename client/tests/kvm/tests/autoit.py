@@ -30,17 +30,16 @@ def run_autoit(test, params, env):
 
         # Send AutoIt script to guest (this code will be replaced once we
         # support sending files to Windows guests)
-        session.sendline("del script.au3")
+        session.get_command_output("del script.au3", internal_timeout=0)
         file = open(kvm_utils.get_path(test.bindir, script))
         for line in file.readlines():
             # Insert a '^' before each character
             line = "".join("^" + c for c in line.rstrip())
             if line:
                 # Append line to the file
-                session.sendline("echo %s>>script.au3" % line)
+                session.get_command_output("echo %s>>script.au3" % line,
+                                           internal_timeout=0)
         file.close()
-
-        session.read_up_to_prompt()
 
         command = "cmd /c %s script.au3 %s" % (binary, script_params)
 
