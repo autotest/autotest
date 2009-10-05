@@ -166,6 +166,7 @@ filename = os.path.join(pwd, "kvm_tests.cfg")
 cfg = kvm_config.config(filename)
 
 # If desirable, make changes to the test configuration here.  For example:
+# cfg.parse_string("install|setup: timeout_multiplier = 2")
 # cfg.parse_string("only fc8_quick")
 # cfg.parse_string("display = sdl")
 
