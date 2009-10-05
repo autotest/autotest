@@ -422,6 +422,7 @@ variants:
         shell_prompt = "^\w:\\.*>\s*$"
         username = Administrator
         password = 123456
+        shell_linesep = "\r\n"
         shell_client = nc
         shell_port = 22
         # File transfers are currently unsupported
