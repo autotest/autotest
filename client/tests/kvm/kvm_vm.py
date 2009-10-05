@@ -671,6 +671,7 @@ class VM:
         username = self.params.get("username", "")
         password = self.params.get("password", "")
         prompt = self.params.get("shell_prompt", "[\#\$]")
+        linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("shell_port")))
@@ -681,13 +682,13 @@ class VM:
 
         if client == "ssh":
             session = kvm_utils.ssh(address, port, username, password,
-                                    prompt, timeout)
+                                    prompt, linesep, timeout)
         elif client == "telnet":
             session = kvm_utils.telnet(address, port, username, password,
-                                       prompt, timeout)
+                                       prompt, linesep, timeout)
         elif client == "nc":
             session = kvm_utils.netcat(address, port, username, password,
-                                       prompt, timeout)
+                                       prompt, linesep, timeout)
 
         if session:
             session.set_status_test_command(self.params.get("status_test_"
