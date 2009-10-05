@@ -576,7 +576,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     return remote_scp(command, password, timeout)
 
 
-def ssh(host, port, username, password, prompt, timeout=10):
+def ssh(host, port, username, password, prompt, linesep="\n", timeout=10):
     """
     Log into a remote host (guest) using SSH.
 
@@ -591,10 +591,10 @@ def ssh(host, port, username, password, prompt, timeout=10):
     """
     command = ("ssh -o UserKnownHostsFile=/dev/null -p %s %s@%s" %
                (port, username, host))
-    return remote_login(command, password, prompt, "\n", timeout)
+    return remote_login(command, password, prompt, linesep, timeout)
 
 
-def telnet(host, port, username, password, prompt, timeout=10):
+def telnet(host, port, username, password, prompt, linesep="\n", timeout=10):
     """
     Log into a remote host (guest) using Telnet.
 
@@ -608,10 +608,10 @@ def telnet(host, port, username, password, prompt, timeout=10):
     @return: kvm_spawn object on success and None on failure.
     """
     command = "telnet -l %s %s %s" % (username, host, port)
-    return remote_login(command, password, prompt, "\r\n", timeout)
+    return remote_login(command, password, prompt, linesep, timeout)
 
 
-def netcat(host, port, username, password, prompt, timeout=10):
+def netcat(host, port, username, password, prompt, linesep="\n", timeout=10):
     """
     Log into a remote host (guest) using Netcat.
 
@@ -625,7 +625,7 @@ def netcat(host, port, username, password, prompt, timeout=10):
     @return: kvm_spawn object on success and None on failure.
     """
     command = "nc %s %s" % (host, port)
-    return remote_login(command, password, prompt, "\n", timeout)
+    return remote_login(command, password, prompt, linesep, timeout)
 
 
 # The following are utility functions related to ports.
