@@ -55,7 +55,7 @@ def create_image(params, root_dir):
 
     logging.debug("Running qemu-img command:\n%s" % qemu_img_cmd)
     (status, output) = kvm_subprocess.run_fg(qemu_img_cmd, logging.debug,
-                                             "(qemu-img) ", timeout=30)
+                                             "(qemu-img) ", timeout=120)
 
     if status is None:
         logging.error("Timeout elapsed while waiting for qemu-img command "
