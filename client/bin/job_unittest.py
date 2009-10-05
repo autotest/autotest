@@ -176,6 +176,7 @@ class TestBaseJob(unittest.TestCase):
         options.log = False
         options.verbose = False
         options.hostname = 'localhost'
+        options.autoserv_user = 'my_user'
         self.job.__init__(self.control, options,
                           extra_copy_cmdline=['more-blah'])
 
@@ -213,6 +214,7 @@ class TestBaseJob(unittest.TestCase):
         options.log = False
         options.verbose = False
         options.hostname = 'localhost'
+        options.autoserv_user = 'my_user'
         error = Exception('fail')
 
         self.god.stub_function(self.job, '_post_record_init')
