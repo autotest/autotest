@@ -848,8 +848,12 @@ class kvm_expect(kvm_tail):
         match = None
         data = ""
 
+        fd = self._get_fd("expect")
         end_time = time.time() + timeout
-        while time.time() < end_time:
+        while True:
+            r, w, x = select.select([fd], [], [],
+                                    max(0, end_time - time.time()))
+            if fd not in r: break
             # Read data from child
             newdata = self.read_nonblocking(internal_timeout)
             # Print it if necessary
@@ -868,7 +872,8 @@ class kvm_expect(kvm_tail):
                 done = True
             # Check if child has died
             if not self.is_alive():
-                logging.debug("Process terminated with status %s" % self.get_status())
+                logging.debug("Process terminated with status %s" %
+                              self.get_status())
                 done = True
             # Are we done?
             if done: break
