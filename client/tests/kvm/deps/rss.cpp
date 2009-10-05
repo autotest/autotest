@@ -22,9 +22,9 @@ struct client_info {
     SOCKET socket;
     sockaddr_in addr;
     int pid;
+    HWND hwnd;
     HANDLE hJob;
     HANDLE hChildOutputRead;
-    HANDLE hChildInputWrite;
     HANDLE hThreadChildToSocket;
 };
 
@@ -161,15 +161,10 @@ DWORD WINAPI SocketToChild(LPVOID client_info_ptr)
         sprintf(message, "Client (%s) entered text: \"%s\"\r\n",
                 client_info_str, formatted_buffer);
         AppendMessage(message);
-        // Write the data to the child's STDIN
-        WriteFile(ci.hChildInputWrite, buffer, bytes_received,
-                  &bytes_written, NULL);
-        // Make sure all the data was written
-        if (bytes_written != bytes_received) {
-            sprintf(message,
-                    "SocketToChild: bytes received (%d) != bytes written (%d)",
-                    bytes_received, bytes_written);
-            ExitOnError(message, 1);
+        // Send the data as a series of WM_CHAR messages to the console window
+        for (int i=0; i<bytes_received; i++) {
+            SendMessage(ci.hwnd, WM_CHAR, (WPARAM)buffer[i], 0);
+            SendMessage(ci.hwnd, WM_SETFOCUS, 0, 0);
         }
     }
 
@@ -194,7 +189,6 @@ DWORD WINAPI SocketToChild(LPVOID client_info_ptr)
     CloseHandle(ci.hJob);
     CloseHandle(ci.hThreadChildToSocket);
     CloseHandle(ci.hChildOutputRead);
-    CloseHandle(ci.hChildInputWrite);
 
     AppendMessage("SocketToChild thread exited\r\n");
 
@@ -203,18 +197,25 @@ DWORD WINAPI SocketToChild(LPVOID client_info_ptr)
 
 void PrepAndLaunchRedirectedChild(client_info *ci,
                                   HANDLE hChildStdOut,
-                                  HANDLE hChildStdIn,
                                   HANDLE hChildStdErr)
 {
     PROCESS_INFORMATION pi;
     STARTUPINFO si;
+
+    // Allocate a new console for the child
+    HWND hwnd = GetForegroundWindow();
+    FreeConsole();
+    AllocConsole();
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+    if (hwnd)
+        SetForegroundWindow(hwnd);
 
     // Set up the start up info struct.
     ZeroMemory(&si, sizeof(STARTUPINFO));
     si.cb = sizeof(STARTUPINFO);
     si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
     si.hStdOutput = hChildStdOut;
-    si.hStdInput  = hChildStdIn;
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
     si.hStdError  = hChildStdErr;
     // Use this if you want to hide the child:
     si.wShowWindow = SW_HIDE;
@@ -223,7 +224,7 @@ void PrepAndLaunchRedirectedChild(client_info *ci,
 
     // Launch the process that you want to redirect.
     if (!CreateProcess(NULL, "cmd.exe", NULL, NULL, TRUE,
-                       CREATE_NEW_CONSOLE, NULL, "C:\\", &si, &pi))
+                       0, NULL, "C:\\", &si, &pi))
         ExitOnError("CreateProcess failed");
 
     // Close any unnecessary handles.
@@ -235,12 +236,16 @@ void PrepAndLaunchRedirectedChild(client_info *ci,
     // Assign the process to a newly created JobObject
     ci->hJob = CreateJobObject(NULL, NULL);
     AssignProcessToJobObject(ci->hJob, pi.hProcess);
+    // Keep the console window's handle
+    ci->hwnd = GetConsoleWindow();
+
+    // Detach from the child's console
+    FreeConsole();
 }
 
 void SpawnSession(client_info *ci)
 {
     HANDLE hOutputReadTmp, hOutputRead, hOutputWrite;
-    HANDLE hInputWriteTmp, hInputRead, hInputWrite;
     HANDLE hErrorWrite;
     SECURITY_ATTRIBUTES sa;
 
@@ -261,10 +266,6 @@ void SpawnSession(client_info *ci)
                          TRUE, DUPLICATE_SAME_ACCESS))
         ExitOnError("DuplicateHandle failed");
 
-    // Create the child input pipe.
-    if (!CreatePipe(&hInputRead, &hInputWriteTmp, &sa, 0))
-        ExitOnError("CreatePipe failed");
-
     // Create new output read handle and the input write handles. Set
     // the Properties to FALSE. Otherwise, the child inherits the
     // properties and, as a result, non-closeable handles to the pipes
@@ -276,29 +277,20 @@ void SpawnSession(client_info *ci)
                          DUPLICATE_SAME_ACCESS))
         ExitOnError("DuplicateHandle failed");
 
-    if (!DuplicateHandle(GetCurrentProcess(), hInputWriteTmp,
-                         GetCurrentProcess(),
-                         &hInputWrite, // Address of new handle.
-                         0, FALSE, // Make it uninheritable.
-                         DUPLICATE_SAME_ACCESS))
-        ExitOnError("DuplicateHandle failed");
-
     // Close inheritable copies of the handles you do not want to be
     // inherited.
-    if (!CloseHandle(hOutputReadTmp)) ExitOnError("CloseHandle failed");
-    if (!CloseHandle(hInputWriteTmp)) ExitOnError("CloseHandle failed");
+    if (!CloseHandle(hOutputReadTmp))
+        ExitOnError("CloseHandle failed");
 
-    PrepAndLaunchRedirectedChild(ci, hOutputWrite, hInputRead, hErrorWrite);
+    PrepAndLaunchRedirectedChild(ci, hOutputWrite, hErrorWrite);
 
     ci->hChildOutputRead = hOutputRead;
-    ci->hChildInputWrite = hInputWrite;
 
     // Close pipe handles (do not continue to modify the parent).
     // You need to make sure that no handles to the write end of the
     // output pipe are maintained in this process or else the pipe will
     // not close when the child process exits and the ReadFile will hang.
     if (!CloseHandle(hOutputWrite)) ExitOnError("CloseHandle failed");
-    if (!CloseHandle(hInputRead )) ExitOnError("CloseHandle failed");
     if (!CloseHandle(hErrorWrite)) ExitOnError("CloseHandle failed");
 }
 
