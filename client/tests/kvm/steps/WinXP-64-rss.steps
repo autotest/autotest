@@ -5,7 +5,7 @@
 step 45.95
 screendump 20090808_220900_04a6bdc48c7e7b21c40da156b3c5e39a.ppm
 # desktop reached
-barrier_2 68 20 10 455 84c2097166d61662c0da0f522ba6a860 230
+barrier_2 80 67 286 217 857ee08ee09b52e69e70189853da5b95 230
 # Sending keys: 0xdc-r
 key 0xdc-r
 # --------------------------------
