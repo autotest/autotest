@@ -43,7 +43,7 @@ def get_living_vm(env, vm_name):
     return vm
 
 
-def wait_for_login(vm, nic_index=0, timeout=240):
+def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2):
     """
     Try logging into a VM repeatedly.  Stop on success or when timeout expires.
 
@@ -54,8 +54,8 @@ def wait_for_login(vm, nic_index=0, timeout=240):
     """
     logging.info("Try to login to guest '%s'..." % vm.name)
     session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
-                                 timeout, 0, 2)
+                                 timeout, start, step)
     if not session:
         raise error.TestFail("Could not log into guest '%s'" % vm.name)
-    logging.info("Logged in")
+    logging.info("Logged in '%s'" % vm.name)
     return session
