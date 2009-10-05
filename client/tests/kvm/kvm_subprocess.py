@@ -1028,7 +1028,7 @@ class kvm_shell_session(kvm_expect):
         """
         # Read all output that's waiting to be read, to make sure the output
         # we read next is in response to the newline sent
-        self.read_nonblocking(timeout=0.1)
+        self.read_nonblocking(timeout=0)
         # Send a newline
         self.sendline()
         # Wait up to timeout seconds for some output from the child
@@ -1095,7 +1095,7 @@ class kvm_shell_session(kvm_expect):
         logging.debug("Sending command: %s" % command)
 
         # Read everything that's waiting to be read
-        self.read_nonblocking(0.1)
+        self.read_nonblocking(timeout=0)
 
         # Send the command and get its output
         self.sendline(command)
