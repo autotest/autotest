@@ -33,6 +33,21 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
     cmd, dx, dy, x1, y1, md5sum, timeout = words[:7]
     dx, dy, x1, y1, timeout = map(int, [dx, dy, x1, y1, timeout])
 
+    scrdump_filename = os.path.join(debug_dir, "scrdump.ppm")
+    cropped_scrdump_filename = os.path.join(debug_dir, "cropped_scrdump.ppm")
+    expected_scrdump_filename = os.path.join(debug_dir, "scrdump_expected.ppm")
+    expected_cropped_scrdump_filename = os.path.join(debug_dir,
+                                                 "cropped_scrdump_expected.ppm")
+    comparison_filename = os.path.join(debug_dir, "comparison.ppm")
+
+    # Multiply timeout by the timeout multiplier
+    timeout_multiplier = params.get("timeout_multiplier")
+    if timeout_multiplier:
+        timeout_multiplier = float(timeout_multiplier)
+    else:
+        timeout_multiplier = 1.0
+    timeout *= timeout_multiplier
+
     # Timeout/5 is the time it took stepmaker to complete this step.
     # Divide that number by 10 to poll 10 times, just in case
     # current machine is stronger then the "stepmaker machine".
@@ -40,13 +55,6 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
     sleep_duration = float(timeout) / 50.0
     if sleep_duration < 1.0: sleep_duration = 1.0
     if sleep_duration > 10.0: sleep_duration = 10.0
-
-    scrdump_filename = os.path.join(debug_dir, "scrdump.ppm")
-    cropped_scrdump_filename = os.path.join(debug_dir, "cropped_scrdump.ppm")
-    expected_scrdump_filename = os.path.join(debug_dir, "scrdump_expected.ppm")
-    expected_cropped_scrdump_filename = os.path.join(debug_dir,
-                                                 "cropped_scrdump_expected.ppm")
-    comparison_filename = os.path.join(debug_dir, "comparison.ppm")
 
     fail_if_stuck_for = params.get("fail_if_stuck_for")
     if fail_if_stuck_for:
