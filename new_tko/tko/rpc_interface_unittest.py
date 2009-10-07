@@ -90,6 +90,8 @@ def fix_iteration_tables():
 class RpcInterfaceTest(unittest.TestCase):
     def setUp(self):
         self._god = mock.mock_god()
+        self._god.stub_with(models.TempManager, '_get_column_names',
+                            self._get_column_names_for_sqlite3)
         setup_test_environment.set_up()
         fix_iteration_tables()
         setup_test_view()
@@ -281,9 +283,6 @@ class RpcInterfaceTest(unittest.TestCase):
 
 
     def test_get_group_counts(self):
-        self._god.stub_with(models.TempManager, '_get_column_names',
-                            self._get_column_names_for_sqlite3)
-
         self.assertEquals(rpc_interface.get_num_groups(['job_name']), 2)
 
         counts = rpc_interface.get_group_counts(['job_name'])
@@ -403,6 +402,30 @@ class RpcInterfaceTest(unittest.TestCase):
                 rpc_interface.get_num_iteration_views(['iresult', 'iresult2']),
                 2)
         self.assertEquals(rpc_interface.get_num_iteration_views(['fake']), 0)
+
+
+    def test_get_test_attributes(self):
+        tests = rpc_interface.get_test_views(
+                test_attributes=['myattr', 'myattr2'])
+        self.assertEquals(len(tests), 3)
+
+        self.assertEquals(tests[0]['attribute_myattr'], 'myval')
+        self.assertEquals(tests[0]['attribute_myattr2'], 'myval2')
+
+        for index in (1, 2):
+            self.assertEquals(tests[index]['attribute_myattr'], None)
+            self.assertEquals(tests[index]['attribute_myattr2'], None)
+
+
+    def test_grouping_with_test_attributes(self):
+        counts = rpc_interface.get_group_counts(['attribute_myattr'],
+                                                test_attributes=['myattr'])
+        groups = counts['groups']
+        self.assertEquals(len(groups), 2)
+        self.assertEquals(groups[0]['attribute_myattr'], None)
+        self.assertEquals(groups[0]['group_count'], 2)
+        self.assertEquals(groups[1]['attribute_myattr'], 'myval')
+        self.assertEquals(groups[1]['group_count'], 1)
 
 
 if __name__ == '__main__':

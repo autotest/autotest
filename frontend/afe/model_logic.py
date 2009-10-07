@@ -617,8 +617,52 @@ class ModelExtensions(object):
         self.save()
 
 
+    # see query_objects()
+    _SPECIAL_FILTER_KEYS = ('query_start', 'query_limit', 'sort_by',
+                            'extra_args', 'extra_where', 'no_distinct')
+
+
     @classmethod
-    def query_objects(cls, filter_data, valid_only=True, initial_query=None):
+    def _extract_special_params(cls, filter_data):
+        """
+        @returns a tuple of dicts (special_params, regular_filters), where
+        special_params contains the parameters we handle specially and
+        regular_filters is the remaining data to be handled by Django.
+        """
+        regular_filters = dict(filter_data)
+        special_params = {}
+        for key in cls._SPECIAL_FILTER_KEYS:
+            if key in regular_filters:
+                special_params[key] = regular_filters.pop(key)
+        return special_params, regular_filters
+
+
+    @classmethod
+    def apply_presentation(cls, query, filter_data):
+        """
+        Apply presentation parameters -- sorting and paging -- to the given
+        query.
+        @returns new query with presentation applied
+        """
+        special_params, _ = cls._extract_special_params(filter_data)
+        sort_by = special_params.get('sort_by', None)
+        if sort_by:
+            assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
+            query = query.order_by(*sort_by)
+
+        query_start = special_params.get('query_start', None)
+        query_limit = special_params.get('query_limit', None)
+        if query_start is not None:
+            if query_limit is None:
+                raise ValueError('Cannot pass query_start without query_limit')
+            # query_limit is passed as a page size
+            query = query[query_start:(query_start + query_limit)]
+        return query
+
+
+    @classmethod
+    def query_objects(cls, filter_data, valid_only=True, initial_query=None,
+                      apply_presentation=True):
         """\
         Returns a QuerySet object for querying the given model_class
         with the given filter_data.  Optional special arguments in
@@ -630,43 +674,37 @@ class ModelExtensions(object):
         -extra_args: keyword args to pass to query.extra() (see Django
          DB layer documentation)
         -extra_where: extra WHERE clause to append
+        -no_distinct: if True, a DISTINCT will not be added to the SELECT
         """
-        filter_data = dict(filter_data) # copy so we don't mutate the original
-        query_start = filter_data.pop('query_start', None)
-        query_limit = filter_data.pop('query_limit', None)
-        if query_start and not query_limit:
-            raise ValueError('Cannot pass query_start without '
-                             'query_limit')
-        sort_by = filter_data.pop('sort_by', None)
-        extra_args = filter_data.pop('extra_args', {})
-        extra_where = filter_data.pop('extra_where', None)
-        if extra_where:
-            # escape %'s
-            extra_where = cls.objects.escape_user_sql(extra_where)
-            extra_args.setdefault('where', []).append(extra_where)
-        use_distinct = not filter_data.pop('no_distinct', False)
+        special_params, regular_filters = cls._extract_special_params(
+                filter_data)
 
         if initial_query is None:
             if valid_only:
                 initial_query = cls.get_valid_manager()
             else:
                 initial_query = cls.objects
-        query = initial_query.filter(**filter_data)
+
+        query = initial_query.filter(**regular_filters)
+
+        use_distinct = not special_params.get('no_distinct', False)
         if use_distinct:
             query = query.distinct()
 
-        # other arguments
+        extra_args = special_params.get('extra_args', {})
+        extra_where = special_params.get('extra_where', None)
+        if extra_where:
+            # escape %'s
+            extra_where = cls.objects.escape_user_sql(extra_where)
+            extra_args.setdefault('where', []).append(extra_where)
         if extra_args:
             query = query.extra(**extra_args)
             query = query._clone(klass=ReadonlyQuerySet)
 
-        # sorting + paging
-        if sort_by:
-            assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
-            query = query.order_by(*sort_by)
-        if query_start is not None and query_limit is not None:
-            query_limit += query_start
-        return query[query_start:query_limit]
+        if apply_presentation:
+            query = cls.apply_presentation(query, filter_data)
+
+        return query
 
 
     @classmethod
@@ -695,12 +733,13 @@ class ModelExtensions(object):
 
 
     @classmethod
-    def list_objects(cls, filter_data, initial_query=None, fields=None):
+    def list_objects(cls, filter_data, initial_query=None):
         """\
         Like query_objects, but return a list of dictionaries.
         """
         query = cls.query_objects(filter_data, initial_query=initial_query)
-        field_dicts = [model_object.get_object_dict(fields)
+        extra_fields = query.query.extra_select.keys()
+        field_dicts = [model_object.get_object_dict(extra_fields=extra_fields)
                        for model_object in query]
         return field_dicts
 
@@ -741,12 +780,15 @@ class ModelExtensions(object):
         return result_objects
 
 
-    def get_object_dict(self, fields=None):
+    def get_object_dict(self, extra_fields=None):
         """\
-        Return a dictionary mapping fields to this object's values.
+        Return a dictionary mapping fields to this object's values.  @param
+        extra_fields: list of extra attribute names to include, in addition to
+        the fields defined on this object.
         """
-        if fields is None:
-            fields = self.get_field_dict().iterkeys()
+        fields = self.get_field_dict().keys()
+        if extra_fields:
+            fields += extra_fields
         object_dict = dict((field_name, getattr(self, field_name))
                            for field_name in fields)
         self.clean_object_dicts([object_dict])
