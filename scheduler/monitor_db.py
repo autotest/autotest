@@ -1036,14 +1036,16 @@ class Dispatcher(object):
             return
 
         for queue_entry in queue_entries:
-            if (queue_entry.atomic_group_id is None or
-                queue_entry.host_id is not None):
+            is_unassigned_atomic_group = (
+                    queue_entry.atomic_group_id is not None
+                    and queue_entry.host_id is None)
+            if is_unassigned_atomic_group:
+                self._schedule_atomic_group(queue_entry)
+            else:
                 assigned_host = self._host_scheduler.find_eligible_host(
                         queue_entry)
                 if assigned_host:
                     self._run_queue_entry(queue_entry, assigned_host)
-            else:
-                self._schedule_atomic_group(queue_entry)
 
 
     def _schedule_running_host_queue_entries(self):
