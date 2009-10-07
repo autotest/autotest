@@ -17,8 +17,8 @@ def get_num_test_views(**filter_data):
     return models.TestView.query_count(filter_data)
 
 
-def get_group_counts(group_by, header_groups=[], fixed_headers={},
-                     machine_label_headers={}, extra_select_fields={},
+def get_group_counts(group_by, header_groups=None, fixed_headers=None,
+                     machine_label_headers=None, extra_select_fields=None,
                      **filter_data):
     """
     Queries against TestView grouping by the specified fields and computings
@@ -48,21 +48,23 @@ def get_group_counts(group_by, header_groups=[], fixed_headers={},
       The keys for the extra_select_fields are determined by the "AS" alias of
       the field.
     """
-    extra_select_fields = dict(extra_select_fields)
     query = models.TestView.objects.get_query_set_with_joins(
         filter_data, include_host_labels=bool(machine_label_headers))
-    query = models.TestView.query_objects(filter_data, initial_query=query)
+    # don't apply presentation yet, since we have extra selects to apply
+    query = models.TestView.query_objects(filter_data, initial_query=query,
+                                          apply_presentation=False)
     count_alias, count_sql = models.TestView.objects.get_count_sql(query)
-    extra_select_fields[count_alias] = count_sql
-    if 'test_idx' not in group_by:
-        extra_select_fields['test_idx'] = 'test_idx'
-    tko_rpc_utils.add_machine_label_headers(machine_label_headers,
-                                            extra_select_fields)
+    query = query.extra(select={count_alias: count_sql})
+    if extra_select_fields:
+        query = query.extra(select=extra_select_fields)
+    if machine_label_headers:
+        query = tko_rpc_utils.add_machine_label_headers(machine_label_headers,
+                                                        query)
+    query = models.TestView.apply_presentation(query, filter_data)
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
-                                                       header_groups,
-                                                       fixed_headers,
-                                                       extra_select_fields)
+                                                       header_groups or [],
+                                                       fixed_headers or {})
     group_processor.process_group_dicts()
     return rpc_utils.prepare_for_serialization(group_processor.get_info_dict())
 
@@ -102,17 +104,19 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     # find latest test per group
     query = models.TestView.objects.get_query_set_with_joins(
         filter_data, include_host_labels=bool(machine_label_headers))
-    query = models.TestView.query_objects(filter_data, initial_query=query)
+    query = models.TestView.query_objects(filter_data, initial_query=query,
+                                          apply_presentation=False)
     query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
-    extra_fields = {'latest_test_idx' : 'MAX(%s)' %
-                    models.TestView.objects.get_key_on_this_table('test_idx')}
-    tko_rpc_utils.add_machine_label_headers(machine_label_headers,
-                                            extra_fields)
+    query = query.extra(
+            select={'latest_test_idx' : 'MAX(%s)' %
+                    models.TestView.objects.get_key_on_this_table('test_idx')})
+    query = tko_rpc_utils.add_machine_label_headers(machine_label_headers,
+                                                    query)
+    query = models.TestView.apply_presentation(query, filter_data)
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
                                                        header_groups,
-                                                       fixed_headers,
-                                                       extra_fields)
+                                                       fixed_headers)
     group_processor.process_group_dicts()
     info = group_processor.get_info_dict()
 
@@ -167,14 +171,10 @@ def get_iteration_views(result_keys, **test_filter_data):
     """
     iteration_views = tko_rpc_utils.get_iteration_view_query(result_keys,
                                                              test_filter_data)
-
-    final_filter_data = tko_rpc_utils.extract_presentation_params(
-            test_filter_data)
-    final_filter_data['no_distinct'] = True
-    fields = (models.TestView.get_field_dict().keys() + result_keys +
-              ['iteration_index'])
+    iteration_views = models.TestView.apply_presentation(iteration_views,
+                                                         test_filter_data)
     iteration_dicts = models.TestView.list_objects(
-            final_filter_data, initial_query=iteration_views, fields=fields)
+            {}, initial_query=iteration_views)
     return rpc_utils.prepare_for_serialization(iteration_dicts)
 
 
