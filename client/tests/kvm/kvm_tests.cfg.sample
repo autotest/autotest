@@ -101,6 +101,10 @@ variants:
                 # control file and set this timeout appropriately.
                 test_timeout = 3900
                 test_control_file = cerberus.control
+            - npb:
+                test_name = npb
+                test_control_file = npb.control
+
 
     - linux_s3:     install setup
         type = linux_s3
@@ -651,6 +655,7 @@ linux_s3:
 
 variants:
     - @up:
+        no autotest.npb
     - smp2:
         extra_params += " -smp 2"
         used_cpus = 2
