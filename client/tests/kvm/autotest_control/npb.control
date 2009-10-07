@@ -1,0 +1,28 @@
+NAME = "NAS Parallel Benchmarks"
+AUTHOR = "Cao, Chen <kcao@redhat.com>"
+TEST_TYPE = "CLIENT"
+TEST_CLASS = "HARDWARE"
+TEST_CATEGORY = "BENCHMARK"
+TIME = "MEDIUM"
+DOC = """\
+Using NPB, OpenMP implementation.
+
+See http://www.nas.nasa.gov/Software/NPB/
+"""
+
+# Supported tests (benchmarks):
+#   bt.A bt.B bt.C bt.D bt.E bt.S bt.W
+#   cg.A cg.B cg.C cg.S cg.W
+#   dc.A dc.B dc.S dc.W
+#   ep.A ep.B ep.C ep.D ep.E ep.S ep.W
+#   ft.A ft.B ft.S ft.W
+#   is.A is.B is.C is.S is.W
+#   lu.A lu.B lu.C lu.S lu.W
+#   mg.A mg.B mg.S mg.W
+#   sp.A sp.B sp.C sp.D sp.E sp.S sp.W
+#   ua.A ua.B ua.C ua.S ua.W
+#
+# Please refer to npb.py for more infomation about
+# the arguments.
+job.run_test(url='npb', tests='ep.A ep.B')
+
