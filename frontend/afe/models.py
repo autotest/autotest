@@ -761,7 +761,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     # be expanded into many actual hosts within the group at schedule time.
     atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
     aborted = dbmodels.BooleanField(default=False)
-    started_on = dbmodels.DateTimeField(null=True)
+    started_on = dbmodels.DateTimeField(null=True, blank=True)
 
     objects = model_logic.ExtendedManager()
 
