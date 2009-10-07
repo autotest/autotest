@@ -195,8 +195,8 @@ class DroneManager(object):
     def _drop_old_pidfiles(self):
         for pidfile_id, age in self._pidfile_age.items():
             if age > self._get_max_pidfile_refreshes():
-                logging.info('forgetting pidfile %s', pidfile_id)
-                del self._pidfile_age[pidfile_id]
+                logging.warning('dropping leaked pidfile %s', pidfile_id)
+                self.unregister_pidfile(pidfile_id)
             else:
                 self._pidfile_age[pidfile_id] += 1
 
@@ -481,6 +481,12 @@ class DroneManager(object):
         if pidfile_id not in self._pidfile_age:
             logging.info('monitoring pidfile %s', pidfile_id)
         self._pidfile_age[pidfile_id] = 0
+
+
+    def unregister_pidfile(self, pidfile_id):
+        if pidfile_id in self._pidfile_age:
+            logging.info('forgetting pidfile %s', pidfile_id)
+            del self._pidfile_age[pidfile_id]
 
 
     def get_pidfile_contents(self, pidfile_id, use_second_read=False):

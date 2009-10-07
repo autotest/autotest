@@ -1732,8 +1732,11 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
     def cleanup(self):
         super(SpecialAgentTask, self).cleanup()
         self.task.finish()
-        if self.monitor and self.monitor.has_process():
-            self._copy_results([self.task])
+        if self.monitor:
+            if self.monitor.has_process():
+                self._copy_results([self.task])
+            if self.monitor.pidfile_id is not None:
+                _drone_manager.unregister_pidfile(self.monitor.pidfile_id)
 
 
 class RepairTask(SpecialAgentTask):
@@ -2727,6 +2730,7 @@ class HostQueueEntry(DBObject):
                       models.HostQueueEntry.Status.ABORTED):
             self.update_field('complete', True)
             self.update_field('active', False)
+            self._on_complete()
 
         should_email_status = (status.lower() in _notify_email_statuses or
                                'all' in _notify_email_statuses)
@@ -2734,6 +2738,16 @@ class HostQueueEntry(DBObject):
             self._email_on_status(status)
 
         self._email_on_job_complete()
+
+
+    def _on_complete(self):
+        if not self.execution_subdir:
+            return
+        # unregister any possible pidfiles associated with this queue entry
+        for pidfile_name in _ALL_PIDFILE_NAMES:
+            pidfile_id = _drone_manager.get_pidfile_id_from(
+                    self.execution_path(), pidfile_name=pidfile_name)
+            _drone_manager.unregister_pidfile(pidfile_id)
 
 
     def _email_on_status(self, status):
