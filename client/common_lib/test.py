@@ -161,13 +161,19 @@ class base_test:
         if not self._new_keyval:
             return
 
+        # create a dict from the keyvals suitable as an environment for eval
+        keyval_env = self._keyvals[-1]['perf'].copy()
+        keyval_env['__builtins__'] = None
         self._new_keyval = False
         failures = []
+
+        # evaluate each constraint using the current keyvals
         for constraint in constraints:
-            print "___________________ constraint = %s" % constraint
-            print "___________________ keyvals = %s" % self._keyvals[-1]['perf']
+            logging.info('___________________ constraint = %s', constraint)
+            logging.info('___________________ keyvals = %s', keyval_env)
+
             try:
-                if not eval(constraint, self._keyvals[-1]['perf']):
+                if not eval(constraint, keyval_env):
                     failures.append('%s: constraint was not met' % constraint)
             except:
                 failures.append('could not evaluate constraint: %s'
