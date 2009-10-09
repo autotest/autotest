@@ -49,6 +49,14 @@ variants:
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
 
+    - unattended_install:
+        type = unattended_install
+        kill_vm_on_error = yes
+        force_create_image = yes
+        pre_command = scripts/unattended.py
+        floppy = "floppy.img"
+        extra_params = "-boot d"
+
     - setup:        install
         type = steps
         fail_if_stuck_for = 300
@@ -279,6 +287,39 @@ variants:
                             md5sum = 05b2ebeed273ec54d6f9ed3d61ea4c96
                             md5sum_1m = 9822ab5097e37e8fe306ef2192727db4
 
+                    - 11.32:
+                        image_name = fc11-32
+                        install:
+                            steps = Fedora-11-32.steps
+                            cdrom = linux/Fedora-11-i386-DVD.iso
+                            md5sum = e3b1e2d1ba42aa4705fa5f41771b3927
+                            md5sum_1m = dc8ddf90648c247339c721395aa49714
+                        unattended_install:
+                            cdrom = linux/Fedora-11-i386-DVD.iso
+                            md5sum = e3b1e2d1ba42aa4705fa5f41771b3927
+                            md5sum_1m = dc8ddf90648c247339c721395aa49714
+                            tftp = "images/tftpboot"
+                            extra_params = "-bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/Fedora-11.ks
+
+                    - 11.64:
+                        image_name = fc11-64
+                        install:
+                            cdrom = linux/Fedora-11-x86_64-DVD.iso
+                            md5sum = 9d419844adeb93120215fe7505c9bce8
+                            md5sum_1m = 405ee05e2387a2e4328b008d5bcbdd1e
+                            type = steps
+                            steps = Fedora-11-64.steps
+                        unattended_install:
+                            cdrom = linux/Fedora-11-x86_64-DVD.iso
+                            md5sum = 9d419844adeb93120215fe7505c9bce8
+                            md5sum_1m = 405ee05e2387a2e4328b008d5bcbdd1e
+                            tftp = "images/tftpboot"
+                            extra_params = "-bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/Fedora-11.ks
+
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
                 image_name = dsl-4.2.5
@@ -489,10 +530,16 @@ variants:
                 image_name = winXP-32
                 install:
                     steps = WinXP-32.steps
+                    user = user
                     cdrom = windows/WindowsXP-sp2-vlk.iso
                     md5sum = 743450644b1d9fe97b3cf379e22dceb0
                     md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
-                    user = user
+                unattended_install:
+                    cdrom = windows/WindowsXP-sp2-vlk.iso
+                    md5sum = 743450644b1d9fe97b3cf379e22dceb0
+                    md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
+                    unattended_file = unattended/winxp32.sif
+                    finish_program = deps/finish.exe
                 setup:
                     steps = WinXP-32-rss.steps
 
@@ -738,6 +785,27 @@ variants:
     - @custom:
         only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
         only rtl8139
+    - @winXP_32_unattended:
+        only qcow2
+        only ide
+        only default
+        only up
+        only WinXP.32
+        no install setup
+        no kvm_hugepages
+        only unattended_install boot shutdown
+        only rtl8139
+    - @fc11_kickstart:
+        only qcow2
+        only ide
+        only default
+        only up
+        only Fedora.11.64
+        no install setup
+        no kvm_hugepages
+        only unattended_install boot shutdown
+        only rtl8139
+
 
 
 include kvm_cdkeys.cfg
@@ -749,4 +817,4 @@ steps ?<= steps/
 
 
 # Choose your test list
-only fc8_quick
+only fc11_kickstart
