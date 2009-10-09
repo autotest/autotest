@@ -264,6 +264,18 @@ class VM:
             iso = kvm_utils.get_path(root_dir, iso)
             qemu_cmd += " -cdrom %s" % iso
 
+        # We may want to add {floppy_otps} parameter for -fda
+        # {fat:floppy:}/path/. However vvfat is not usually recommended
+        floppy = params.get("floppy")
+        if floppy:
+            floppy = os.path.join(root_dir, floppy)
+            qemu_cmd += " -fda %s" % floppy
+
+        tftp = params.get("tftp")
+        if tftp:
+            tftp = os.path.join(root_dir, tftp)
+            qemu_cmd += " -tftp %s" % tftp
+
         extra_params = params.get("extra_params")
         if extra_params:
             qemu_cmd += " %s" % extra_params
