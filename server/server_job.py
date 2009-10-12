@@ -68,6 +68,8 @@ class base_server_job(object):
                     the control file for this job
             drop_caches_between_iterations
                     drop the pagecache between each iteration
+            default_profile_only
+                    default value for the test.execute profile_only parameter
     """
 
     STATUS_VERSION = 1
@@ -130,6 +132,7 @@ class base_server_job(object):
         self.ssh_port = ssh_port
         self.ssh_pass = ssh_pass
         self.tag = tag
+        self.default_profile_only = False
         self.run_test_cleanup = True
         self.last_boot_tag = None
         self.hosts = set()
