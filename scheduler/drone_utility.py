@@ -154,16 +154,9 @@ class DroneUtility(object):
         return results
 
 
-    def _is_process_running(self, process):
-        # TODO: enhance this to check the process args
-        proc_path = os.path.join('/proc', str(process.pid))
-        return os.path.exists(proc_path)
-
-
     def kill_process(self, process):
-        if self._is_process_running(process):
-            os.kill(process.pid, signal.SIGCONT)
-            os.kill(process.pid, signal.SIGTERM)
+        signal_queue = (signal.SIGCONT, signal.SIGTERM, signal.SIGKILL)
+        utils.nuke_pid(process.pid, signal_queue=signal_queue)
 
 
     def _convert_old_host_log(self, log_path):
