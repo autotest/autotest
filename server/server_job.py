@@ -310,6 +310,11 @@ class base_server_job(object):
         pass
 
 
+    def set_default_profile_only(self, val):
+        """ Set the default_profile_only mode. """
+        self.default_profile_only = val
+
+
     def enable_test_cleanup(self):
         """
         By default tests run test.cleanup

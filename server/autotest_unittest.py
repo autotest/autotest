@@ -213,7 +213,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"
-        cfile_new = "job.default_profile_only = False\n"
+        cfile_new = "job.set_default_profile_only(False)\n"
         cfile_new += "job.default_boot_tag('Autotest')\n"
         cfile_new += "job.default_test_cleanup(True)\n"
         cfile_new += "job.add_repository(['repo'])\n"
