@@ -129,6 +129,16 @@ class DBObjectTest(BaseSchedulerTest):
                          host._compare_fields_in_row(row_data))
 
 
+    def test_compare_fields_in_row_datetime_ignores_microseconds(self):
+        datetime_with_us = datetime.datetime(2009, 10, 07, 12, 34, 56, 7890)
+        datetime_without_us = datetime.datetime(2009, 10, 07, 12, 34, 56, 0)
+        class TestTable(monitor_db.DBObject):
+            _table_name = 'test_table'
+            _fields = ('id', 'test_datetime')
+        tt = TestTable(row=[1, datetime_without_us])
+        self.assertEqual({}, tt._compare_fields_in_row([1, datetime_with_us]))
+
+
     def test_always_query(self):
         host_a = monitor_db.Host(id=2)
         self.assertEqual(host_a.hostname, 'host2')
