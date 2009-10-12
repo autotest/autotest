@@ -261,7 +261,7 @@ class base_test:
         self.analyze_perf_constraints(constraints)
 
 
-    def execute(self, iterations=None, test_length=None, profile_only=False,
+    def execute(self, iterations=None, test_length=None, profile_only=None,
                 _get_time=time.time, postprocess_profiled_run=None,
                 constraints=(), *args, **dargs):
         """
@@ -279,8 +279,8 @@ class base_test:
             be silently ignored if you specify both.
 
         @param profile_only: If true run X iterations with profilers enabled.
-            Otherwise run X iterations and one with profiling if profiles are
-            enabled.
+            If false run X iterations and one with profiling if profiles are
+            enabled. If None, default to the value of job.default_profile_only.
 
         @param _get_time: [time.time] Used for unit test time injection.
 
@@ -295,6 +295,8 @@ class base_test:
         profilers = self.job.profilers
         if profilers.active():
             profilers.stop(self)
+        if profile_only is None:
+            profile_only = self.job.default_profile_only
         # If the user called this test in an odd way (specified both iterations
         # and test_length), let's warn them.
         if iterations and test_length:
