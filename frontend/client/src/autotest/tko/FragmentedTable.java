@@ -2,6 +2,7 @@ package autotest.tko;
 
 import autotest.common.ui.RightClickTable;
 
+import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Event;
@@ -68,7 +69,12 @@ class FragmentedTable extends RightClickTable {
     private int getFragmentIndex(int row) {
         return row / rowsPerFragment;
     }
-
+    
+    @Override
+    public HTMLTable.Cell getCellForEvent(ClickEvent event) {
+        return getCellForDomEvent(event);
+    }
+    
     @Override
     protected RowColumn getCellPosition(Element td) {
         Element tr = DOM.getParent(td);

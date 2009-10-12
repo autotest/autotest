@@ -107,8 +107,9 @@ public class TableDecorator extends Composite implements DynamicTableListener {
     private void setRow(int row, Widget widget) {
         enclosingTable.setWidget(row, 0, widget);
     }
-
-    public void onRowClicked(int rowIndex, JSONObject row) {}
+    
+    @Override
+    public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {}
 
     public void onTableRefreshed() {
         assert selectionManager != null;

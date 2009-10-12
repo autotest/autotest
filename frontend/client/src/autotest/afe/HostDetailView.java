@@ -210,7 +210,7 @@ public class HostDetailView extends DetailView
         jobsTable.setRowsPerPage(JOBS_PER_PAGE);
         jobsTable.setClickable(true);
         jobsTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 if (isJobRow(row)) {
                     JSONObject job = row.get("job").isObject();
                     int jobId = (int) job.get("id").isNumber().doubleValue();

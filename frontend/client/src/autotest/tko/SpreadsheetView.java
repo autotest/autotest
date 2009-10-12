@@ -6,7 +6,6 @@ import autotest.common.Utils;
 import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.RightClickTable;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
@@ -340,12 +339,13 @@ public class SpreadsheetView extends ConditionTabView
     private boolean isJobFilteringCondition(JSONObject condition) {
         return TkoUtils.getSqlCondition(condition).indexOf("job_tag") != -1;
     }
-
-    public void onCellClicked(CellInfo cellInfo) {
+    
+    @Override
+    public void onCellClicked(CellInfo cellInfo, boolean isRightClick) {
         Event event = Event.getCurrentEvent();
         TestSet testSet = getTestSet(cellInfo);
         DrilldownType drilldownType = getDrilldownType(cellInfo);
-        if (RightClickTable.isRightClick(event)) {
+        if (isRightClick) {
             if (!selectionManager.isEmpty()) {
                 testSet = getTestSet(selectionManager.getSelectedCells());
                 drilldownType = DrilldownType.DRILLDOWN_BOTH;

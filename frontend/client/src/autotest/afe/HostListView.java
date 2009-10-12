@@ -52,7 +52,7 @@ public class HostListView extends TabView implements TableActionsListener {
         
         table.setClickable(true);
         table.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 String hostname = row.get("hostname").isString().stringValue();
                 hostListListener.onHostSelected(hostname);
             }
