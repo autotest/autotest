@@ -54,7 +54,7 @@ variants:
         kill_vm_on_error = yes
         force_create_image = yes
         pre_command = scripts/unattended.py
-        floppy = "floppy.img"
+        floppy = "images/floppy.img"
         extra_params = "-boot d"
 
     - setup:        install
@@ -793,7 +793,7 @@ variants:
         only WinXP.32
         no install setup
         no kvm_hugepages
-        only unattended_install boot shutdown
+        only unattended_install setup boot shutdown
         only rtl8139
     - @fc11_kickstart:
         only qcow2
