@@ -5,7 +5,7 @@ import common
 from autotest_lib.client.common_lib import enum, global_config
 from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import frontend_test_utils
+from autotest_lib.frontend.afe import frontend_test_utils, models
 from autotest_lib.scheduler import drone_manager, email_manager, monitor_db
 
 # translations necessary for scheduler queries to work with SQLite
@@ -146,7 +146,6 @@ class MockDroneManager(NullMethodObject):
 
     def execute_command(self, command, working_directory, pidfile_name,
                         log_file=None, paired_with_pidfile=None):
-        # TODO: record this
         pidfile_id = object() # PidfileIds are opaque to monitor_db
         self._future_pidfiles.append(pidfile_id)
         self._initialize_pidfile(pidfile_id)
@@ -214,8 +213,6 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
         logging.basicConfig(level=logging.DEBUG)
 
-        self._initialize_test()
-
 
     def tearDown(self):
         self._frontend_common_teardown()
@@ -255,14 +252,33 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def test_idle(self):
+        self._initialize_test()
         self._run_dispatcher()
 
 
+    def _assert_process_executed(self, working_directory, pidfile_name):
+        process_was_executed = self.mock_drone_manager.was_process_executed(
+                'hosts/host1/1-verify', monitor_db._AUTOSERV_PID_FILE)
+        self.assert_(process_was_executed,
+                     '%s/%s not executed' % (working_directory, pidfile_name))
+
+
     def test_simple_job(self):
-        self._create_job(hosts=[1])
+        self._initialize_test()
+        job, queue_entry = self._make_job_and_queue_entry()
         self._run_dispatcher() # launches verify
         self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
         self._run_dispatcher() # launches job
+        self._finish_job()
+
+        # update from DB
+        queue_entry = models.HostQueueEntry.objects.get(id=queue_entry.id)
+        self.assertEquals(queue_entry.status,
+                          models.HostQueueEntry.Status.COMPLETED)
+        self.assertEquals(queue_entry.host.status, models.Host.Status.READY)
+
+
+    def _finish_job(self):
         self.mock_drone_manager.finish_process(_PidfileType.JOB)
         self._run_dispatcher() # launches parsing + cleanup
         self._finish_parsing_and_cleanup()
@@ -275,6 +291,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def test_job_abort_in_verify(self):
+        self._initialize_test()
         job = self._create_job(hosts=[1])
         self._run_dispatcher() # launches verify
         job.hostqueueentry_set.update(aborted=True)
@@ -286,6 +303,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def test_job_abort(self):
+        self._initialize_test()
         job = self._create_job(hosts=[1])
         job.run_verify = False
         job.save()
@@ -301,6 +319,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def test_no_pidfile_leaking(self):
+        self._initialize_test()
         self.test_simple_job()
         self.assertEquals(self.mock_drone_manager._pidfiles, {})
 
@@ -309,6 +328,72 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
         self.test_job_abort()
         self.assertEquals(self.mock_drone_manager._pidfiles, {})
+
+
+    def _make_job_and_queue_entry(self):
+        job = self._create_job(hosts=[1])
+        queue_entry = job.hostqueueentry_set.all()[0]
+        return job, queue_entry
+
+
+    def test_recover_running_no_process(self):
+        # recovery should re-execute a Running HQE if no process is found
+        _, queue_entry = self._make_job_and_queue_entry()
+        queue_entry.status = models.HostQueueEntry.Status.RUNNING
+        queue_entry.execution_subdir = '1-myuser/host1'
+        queue_entry.save()
+        queue_entry.host.status = models.Host.Status.RUNNING
+        queue_entry.host.save()
+
+        self._initialize_test()
+        self._run_dispatcher()
+        self._finish_job()
+
+
+    def test_recover_verifying_hqe_no_special_task(self):
+        # recovery should fail on a Verifing HQE with no corresponding
+        # Verify or Cleanup SpecialTask
+        _, queue_entry = self._make_job_and_queue_entry()
+        queue_entry.status = models.HostQueueEntry.Status.VERIFYING
+        queue_entry.save()
+
+        # make some dummy SpecialTasks that shouldn't count
+        models.SpecialTask.objects.create(host=queue_entry.host,
+                                          task=models.SpecialTask.Task.VERIFY)
+        models.SpecialTask.objects.create(host=queue_entry.host,
+                                          task=models.SpecialTask.Task.CLEANUP,
+                                          queue_entry=queue_entry,
+                                          is_complete=True)
+
+        self.assertRaises(monitor_db.SchedulerError, self._initialize_test)
+
+
+    def _test_recover_verifying_hqe_helper(self, task, pidfile_type):
+        _, queue_entry = self._make_job_and_queue_entry()
+        queue_entry.status = models.HostQueueEntry.Status.VERIFYING
+        queue_entry.save()
+
+        special_task = models.SpecialTask.objects.create(
+                host=queue_entry.host, task=task, queue_entry=queue_entry)
+
+        self._initialize_test()
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_process(pidfile_type)
+        self._run_dispatcher()
+        # don't bother checking the rest of the job execution, as long as the
+        # SpecialTask ran
+
+
+    def test_recover_verifying_hqe_with_cleanup(self):
+        # recover an HQE that was in pre-job cleanup
+        self._test_recover_verifying_hqe_helper(models.SpecialTask.Task.CLEANUP,
+                                                _PidfileType.CLEANUP)
+
+
+    def test_recover_verifying_hqe_with_verify(self):
+        # recover an HQE that was in pre-job verify
+        self._test_recover_verifying_hqe_helper(models.SpecialTask.Task.VERIFY,
+                                                _PidfileType.VERIFY)
 
 
 if __name__ == '__main__':
