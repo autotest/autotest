@@ -13,8 +13,76 @@
 >>> cf_info = rpc_interface.generate_control_file(
 ...     tests=['sleeptest'],
 ...     profilers=['oprofile', 'iostat'])
->>> cf_info['control_file']
-u"def step_init():\n    job.next_step('step0')\n    job.next_step('step1')\n    job.next_step('step2')\n    job.next_step('step3')\n    job.next_step('step4')\n\ndef step0():\n    job.profilers.add('oprofile')\n\ndef step1():\n    job.profilers.add('iostat')\n\ndef step2():\n    job.run_test('testname')\n\ndef step3():\n    job.profilers.delete('oprofile')\n\ndef step4():\n    job.profilers.delete('iostat')"
+>>> print cf_info['control_file']
+def step_init():
+    job.next_step('step0')
+    job.next_step('step1')
+    job.next_step('step2')
+    job.next_step('step3')
+    job.next_step('step4')
+<BLANKLINE>
+def step0():
+    job.profilers.add('oprofile')
+<BLANKLINE>
+def step1():
+    job.profilers.add('iostat')
+<BLANKLINE>
+def step2():
+    job.run_test('testname')
+<BLANKLINE>
+def step3():
+    job.profilers.delete('oprofile')
+<BLANKLINE>
+def step4():
+    job.profilers.delete('iostat')
+
+# profile_only=False support in control file generation
+>>> cf_info = rpc_interface.generate_control_file(
+...     tests=['sleeptest'],
+...     profilers=['oprofile'],
+...     profile_only=False)
+>>> print cf_info['control_file']
+def step_init():
+    job.next_step('step0')
+    job.next_step('step1')
+    job.next_step('step2')
+    job.next_step('step3')
+<BLANKLINE>
+def step0():
+    job.set_default_profile_only(False)
+<BLANKLINE>
+def step1():
+    job.profilers.add('oprofile')
+<BLANKLINE>
+def step2():
+    job.run_test('testname')
+<BLANKLINE>
+def step3():
+    job.profilers.delete('oprofile')
+
+# profile_only=True support in control file generation
+>>> cf_info = rpc_interface.generate_control_file(
+...     tests=['sleeptest'],
+...     profilers=['iostat'],
+...     profile_only=True)
+>>> print cf_info['control_file']
+def step_init():
+    job.next_step('step0')
+    job.next_step('step1')
+    job.next_step('step2')
+    job.next_step('step3')
+<BLANKLINE>
+def step0():
+    job.set_default_profile_only(True)
+<BLANKLINE>
+def step1():
+    job.profilers.add('iostat')
+<BLANKLINE>
+def step2():
+    job.run_test('testname')
+<BLANKLINE>
+def step3():
+    job.profilers.delete('iostat')
 
 # server-side control file generation
 >>> rpc_interface.modify_test('sleeptest', test_type='Server')

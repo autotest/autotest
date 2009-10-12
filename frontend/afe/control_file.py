@@ -249,8 +249,10 @@ def indent_text(text, indent):
     return '\n'.join(res)
 
 
-def _get_profiler_commands(profilers, is_server):
+def _get_profiler_commands(profilers, is_server, profile_only):
     prepend, append = [], []
+    if profile_only is not None:
+        prepend.append("job.set_default_profile_only(%r)" % profile_only)
     for profiler in profilers:
         prepend.append("job.profilers.add('%s')" % profiler.name)
         append.append("job.profilers.delete('%s')" % profiler.name)
@@ -289,7 +291,7 @@ def _sanity_check_generate_control(is_server, client_control_file, kernels):
 
 
 def generate_control(tests, kernels=None, platform=None, is_server=False,
-                     profilers=(), client_control_file=''):
+                     profilers=(), client_control_file='', profile_only=None):
     """
     Generate a control file for a sequence of tests.
 
@@ -301,6 +303,8 @@ def generate_control(tests, kernels=None, platform=None, is_server=False,
     @param profilers A list of profiler objects to enable during the tests.
     @param client_control_file Contents of a client control file to run as the
             last test after everything in tests.  Requires is_server=False.
+    @param profile_only bool, should this control file run all tests in
+            profile_only mode by default
 
     @returns The control file text as a string.
     """
@@ -314,7 +318,7 @@ def generate_control(tests, kernels=None, platform=None, is_server=False,
     else:
         control_file_text = EMPTY_TEMPLATE
 
-    prepend, append = _get_profiler_commands(profilers, is_server)
+    prepend, append = _get_profiler_commands(profilers, is_server, profile_only)
 
     control_file_text += get_tests_stanza(tests, is_server, prepend, append,
                                           client_control_file)
