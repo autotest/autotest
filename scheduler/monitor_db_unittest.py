@@ -2045,6 +2045,30 @@ class JobTest(BaseSchedulerTest):
         return agent.task
 
 
+    def test_schedule_running_host_queue_entries_fail(self):
+        self._create_job(hosts=[2])
+        self._update_hqe("status='%s', execution_subdir=''" %
+                         models.HostQueueEntry.Status.PENDING)
+        job = monitor_db.Job.fetch('id = 1')[0]
+        queue_entry = monitor_db.HostQueueEntry.fetch('id = 1')[0]
+        assert queue_entry.job is job
+        job.run_if_ready(queue_entry)
+        self.assertEqual(queue_entry.status,
+                         models.HostQueueEntry.Status.STARTING)
+        self.assert_(queue_entry.execution_subdir)
+        self.god.check_playback()
+
+        class dummy_test_agent(object):
+            task = 'dummy_test_agent'
+        self._dispatcher._register_agent_for_ids(
+                self._dispatcher._host_agents, [queue_entry.host.id],
+                dummy_test_agent)
+
+        # Attempted to schedule on a host that already has an agent.
+        self.assertRaises(monitor_db.SchedulerError,
+                          self._dispatcher._schedule_running_host_queue_entries)
+
+
     def test_run_if_ready_delays(self):
         # Also tests Job.run_with_ready_delay() on atomic group jobs.
         django_job = self._create_job(hosts=[5, 6], atomic_group=1)

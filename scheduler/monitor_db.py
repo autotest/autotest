@@ -1056,9 +1056,11 @@ class Dispatcher(object):
 
 
     def _schedule_running_host_queue_entries(self):
-        entries = HostQueueEntry.fetch(
-                where="status IN "
-                      "('Starting', 'Running', 'Gathering', 'Parsing')")
+        status_enum = models.HostQueueEntry.Status
+        running_statuses = (status_enum.STARTING, status_enum.RUNNING,
+                            status_enum.GATHERING, status_enum.PARSING)
+        sql_statuses = ', '.join(('"%s"' % s for s in running_statuses))
+        entries = HostQueueEntry.fetch(where="status IN (%s)" % sql_statuses)
         for entry in entries:
             if self.get_agents_for_entry(entry):
                 continue
@@ -1067,7 +1069,7 @@ class Dispatcher(object):
             for task_entry in task_entries:
                 if (task_entry.status != models.HostQueueEntry.Status.PARSING
                         and self.host_has_agent(task_entry.host)):
-                    agent = self._host_agents.get(task_entry.host.id)[0]
+                    agent = tuple(self._host_agents.get(task_entry.host.id))[0]
                     raise SchedulerError('Attempted to schedule on host that '
                                          'already has agent: %s (previous '
                                          'agent task: %s)'
@@ -3146,6 +3148,14 @@ class Job(DBObject):
 
 
     def get_group_entries(self, queue_entry_from_group):
+        """
+        @param queue_entry_from_group: A HostQueueEntry instance to find other
+                group entries on this job for.
+
+        @returns A list of HostQueueEntry objects all executing this job as
+                part of the same group as the one supplied (having the same
+                execution_subdir).
+        """
         execution_subdir = queue_entry_from_group.execution_subdir
         return list(HostQueueEntry.fetch(
             where='job_id=%s AND execution_subdir=%s',
@@ -3268,10 +3278,11 @@ class Job(DBObject):
 
     def run_if_ready(self, queue_entry):
         """
-        @returns An Agent instance to ultimately run this job if enough hosts
-                are ready for it to run.
-        @returns None and potentially cleans up excess hosts if this Job
-                is not ready to run.
+        Run this job by kicking its HQEs into status='Starting' if enough
+        hosts are ready for it to run.
+
+        Cleans up by kicking HQEs into status='Stopped' if this Job is not
+        ready to run.
         """
         if not self.is_ready():
             self.stop_if_necessary()
