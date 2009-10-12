@@ -87,6 +87,8 @@ class base_job(object):
                     the job configuration for this job
             drop_caches_between_iterations
                     drop the pagecache between each iteration
+            default_profile_only
+                    default value for the test.execute profile_only paramete
     """
 
     DEFAULT_LOG_FILENAME = "status"
@@ -185,6 +187,7 @@ class base_job(object):
         self._init_drop_caches(drop_caches)
 
         self._init_packages()
+        self.default_profile_only = False
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
 

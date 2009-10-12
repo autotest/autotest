@@ -28,6 +28,7 @@ class TestBaseAutotest(unittest.TestCase):
             profilers.profilers, "profilers")
         self.host.job.profilers.add_log = {}
         self.host.job.tmpdir = "/job/tmp"
+        self.host.job.default_profile_only = False
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
@@ -212,7 +213,8 @@ class TestBaseAutotest(unittest.TestCase):
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"
-        cfile_new = "job.default_boot_tag('Autotest')\n"
+        cfile_new = "job.default_profile_only = False\n"
+        cfile_new += "job.default_boot_tag('Autotest')\n"
         cfile_new += "job.default_test_cleanup(True)\n"
         cfile_new += "job.add_repository(['repo'])\n"
         cfile_new += cfile_orig

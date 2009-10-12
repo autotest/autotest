@@ -301,6 +301,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # build up the initialization prologue for the control file
         prologue_lines = []
+        prologue_lines.append("job.default_profile_only = %r\n"
+                              % host.job.default_profile_only)
         prologue_lines.append("job.default_boot_tag(%r)\n"
                               % host.job.last_boot_tag)
         prologue_lines.append("job.default_test_cleanup(%r)\n"
