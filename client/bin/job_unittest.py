@@ -119,6 +119,8 @@ class TestBaseJob(unittest.TestCase):
         pkgdir = os.path.join(self.autodir, 'packages')
 
         utils.drop_caches.expect_call()
+        self.job.get_state.expect_call("__default_profile_only",
+                                       default=False).and_return(False)
         self.job.get_state.expect_call("__run_test_cleanup",
                                        default=True).and_return(True)
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
