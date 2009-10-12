@@ -543,10 +543,9 @@ def nuke_subprocess(subproc):
             return subproc.poll()
 
 
-def nuke_pid(pid):
+def nuke_pid(pid, signal_queue=(signal.SIGTERM, signal.SIGKILL)):
     # the process has not terminated within timeout,
     # kill it via an escalating series of signals.
-    signal_queue = [signal.SIGTERM, signal.SIGKILL]
     for sig in signal_queue:
         if signal_pid(pid, sig):
             return
