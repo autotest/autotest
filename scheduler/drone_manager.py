@@ -110,7 +110,7 @@ class DroneManager(object):
                    results_repository_hostname):
         self._results_dir = base_results_dir
         drones.set_temporary_directory(os.path.join(
-            base_results_dir, drone_utility._TEMPORARY_DIRECTORY))
+            drones.AUTOTEST_INSTALL_DIR, drone_utility._TEMPORARY_DIRECTORY))
 
         for hostname in drone_hostnames:
             drone = self._add_drone(hostname)
@@ -461,8 +461,7 @@ class DroneManager(object):
         drone.queue_call('execute_command', command, abs_working_directory,
                          log_file, pidfile_name)
 
-        pidfile_path = self.absolute_path(os.path.join(abs_working_directory,
-                                                       pidfile_name))
+        pidfile_path = os.path.join(abs_working_directory, pidfile_name)
         pidfile_id = PidfileId(pidfile_path)
         self.register_pidfile(pidfile_id)
         return pidfile_id
@@ -520,14 +519,19 @@ class DroneManager(object):
                             '%s.%s' % (base_name, self._temporary_path_counter))
 
 
-    def absolute_path(self, path):
-        return os.path.join(self._results_dir, path)
+    def absolute_path(self, path, on_results_repository=False):
+        if on_results_repository:
+            base_dir = self._results_dir
+        else:
+            base_dir = drones.AUTOTEST_INSTALL_DIR
+        return os.path.join(base_dir, path)
 
 
     def _copy_results_helper(self, process, source_path, destination_path,
                              to_results_repository=False):
         full_source = self.absolute_path(source_path)
-        full_destination = self.absolute_path(destination_path)
+        full_destination = self.absolute_path(
+                destination_path, on_results_repository=to_results_repository)
         source_drone = self._get_drone_for_process(process)
         if to_results_repository:
             source_drone.send_file_to(self._results_drone, full_source,
@@ -585,10 +589,13 @@ class DroneManager(object):
         running the given Process.  Otherwise, the file will be written to the
         results repository.
         """
-        full_path = os.path.join(self._results_dir, file_path)
         file_contents = '\n'.join(lines) + '\n'
         if paired_with_process:
             drone = self._get_drone_for_process(paired_with_process)
+            on_results_repository = False
         else:
             drone = self._results_drone
+            on_results_repository = True
+        full_path = self.absolute_path(
+                file_path, on_results_repository=on_results_repository)
         drone.queue_call('write_to_file', full_path, file_contents)
