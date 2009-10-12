@@ -349,7 +349,8 @@ def get_acl_groups(**filter_data):
 # jobs
 
 def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
-                          client_control_file='', use_container=False):
+                          client_control_file='', use_container=False,
+                          profile_only=None):
     """
     Generates a client-side control file to load a kernel and run tests.
 
@@ -367,6 +368,9 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
         control file.
     @param use_container unused argument today.  TODO: Enable containers
         on the host during a client side test.
+    @param profile_only A boolean that indicates what default profile_only
+        mode to use in the control file. Passing None will generate a
+        control file that does not explcitly set the default mode at all.
 
     @returns a dict with the following keys:
         control_file: str, The control file text.
@@ -385,7 +389,7 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     cf_info['control_file'] = control_file.generate_control(
         tests=test_objects, kernels=kernel, platform=label,
         profilers=profiler_objects, is_server=cf_info['is_server'],
-        client_control_file=client_control_file)
+        client_control_file=client_control_file, profile_only=profile_only)
     return cf_info
 
 
