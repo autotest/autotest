@@ -818,6 +818,7 @@ class Dispatcher(object):
     def _recover_pending_entries(self):
         for entry in self._get_unassigned_entries(
                 models.HostQueueEntry.Status.PENDING):
+            logging.info('Recovering Pending entry %s', entry)
             entry.on_pending()
 
 
@@ -2718,9 +2719,9 @@ class HostQueueEntry(DBObject):
 
 
     def set_status(self, status):
-        self.update_field('status', status)
+        logging.info("%s -> %s", self, status)
 
-        logging.info("%s -> %s", self, self.status)
+        self.update_field('status', status)
 
         if status in (models.HostQueueEntry.Status.QUEUED,
                       models.HostQueueEntry.Status.PARSING):
