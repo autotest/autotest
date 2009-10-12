@@ -711,7 +711,7 @@ class Dispatcher(object):
         _drone_manager.refresh()
         self._recover_all_recoverable_entries()
         self._recover_pending_entries()
-        self._check_for_remaining_active_entries()
+        self._check_for_unrecovered_verifying_entries()
         self._reverify_remaining_hosts()
         # reinitialize drones after killing orphaned processes, since they can
         # leave around files when they die
@@ -899,20 +899,24 @@ class Dispatcher(object):
         return CleanupTask(task=task, recover_run_monitor=run_monitor)
 
 
-    def _check_for_remaining_active_entries(self):
+    def _check_for_unrecovered_verifying_entries(self):
         queue_entries = HostQueueEntry.fetch(
-                where='active AND NOT complete AND status NOT IN '
-                      '("Starting", "Gathering", "Pending")')
+                where='status = "%s"' % models.HostQueueEntry.Status.VERIFYING)
+        unrecovered_hqes = []
+        for queue_entry in queue_entries:
+            special_tasks = models.SpecialTask.objects.filter(
+                    task__in=(models.SpecialTask.Task.CLEANUP,
+                              models.SpecialTask.Task.VERIFY),
+                    queue_entry__id=queue_entry.id,
+                    is_complete=False)
+            if special_tasks.count() == 0:
+                unrecovered_hqes.append(queue_entry)
 
-        unrecovered_active_hqes = [entry for entry in queue_entries
-                                   if not self.get_agents_for_entry(entry) and
-                                      not self._host_has_scheduled_special_task(
-                                              entry.host)]
-        if unrecovered_active_hqes:
-            message = '\n'.join(str(hqe) for hqe in unrecovered_active_hqes)
+        if unrecovered_hqes:
+            message = '\n'.join(str(hqe) for hqe in unrecovered_hqes)
             raise SchedulerError(
                     '%d unrecovered active host queue entries:\n%s' %
-                    (len(unrecovered_active_hqes), message))
+                    (len(unrecovered_hqes), message))
 
 
     def _schedule_special_tasks(self):
