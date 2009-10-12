@@ -187,7 +187,8 @@ class base_job(object):
         self._init_drop_caches(drop_caches)
 
         self._init_packages()
-        self.default_profile_only = False
+        self.default_profile_only = self.get_state("__default_profile_only",
+                                                   default=False)
         self.run_test_cleanup = self.get_state("__run_test_cleanup",
                                                 default=True)
 
@@ -811,6 +812,12 @@ class base_job(object):
 
     def disable_external_logging(self):
         pass
+
+
+    def set_default_profile_only(self, val):
+        """ Set the default_profile_only mode. """
+        self.set_state("__default_profile_only", val)
+        self.default_profile_only = val
 
 
     def enable_test_cleanup(self):

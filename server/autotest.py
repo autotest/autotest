@@ -301,7 +301,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # build up the initialization prologue for the control file
         prologue_lines = []
-        prologue_lines.append("job.default_profile_only = %r\n"
+        prologue_lines.append("job.set_default_profile_only(%r)\n"
                               % host.job.default_profile_only)
         prologue_lines.append("job.default_boot_tag(%r)\n"
                               % host.job.last_boot_tag)
@@ -634,6 +634,10 @@ class _Run(object):
 
         logging.debug("Persistent state variables pulled back from %s: %s",
                       self.host.hostname, state_dict)
+
+        if "__default_profile_only" in state_dict:
+            self.host.job.default_profile_only = (
+                state_dict["__default_profile_only"])
 
         if "__run_test_cleanup" in state_dict:
             if state_dict["__run_test_cleanup"]:
