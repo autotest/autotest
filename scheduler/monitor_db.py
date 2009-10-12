@@ -744,7 +744,9 @@ class Dispatcher(object):
 
     def _get_unassigned_entries(self, status):
         for entry in HostQueueEntry.fetch(where="status = '%s'" % status):
-            if not self.get_agents_for_entry(entry):
+            if entry.status == status and not self.get_agents_for_entry(entry):
+                # The status can change during iteration, e.g., if job.run()
+                # sets a group of queue entries to Starting
                 yield entry
 
 
