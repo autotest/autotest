@@ -2363,8 +2363,9 @@ class DBObject(object):
 
     def _compare_fields_in_row(self, row):
         """
-        Given a row as returned by a SELECT query, compare it to our existing
-        in memory fields.
+        Given a row as returned by a SELECT query, compare it to our existing in
+        memory fields.  Fractional seconds are stripped from datetime values
+        before comparison.
 
         @param row - A sequence of values corresponding to fields named in
                 The class attribute _fields.
@@ -2374,8 +2375,13 @@ class DBObject(object):
         """
         self._assert_row_length(row)
         differences = {}
+        datetime_cmp_fmt = '%Y-%m-%d %H:%M:%S'  # Leave off the microseconds.
         for field, row_value in itertools.izip(self._fields, row):
             current_value = getattr(self, field)
+            if (isinstance(current_value, datetime.datetime)
+                and isinstance(row_value, datetime.datetime)):
+                current_value = current_value.strftime(datetime_cmp_fmt)
+                row_value = row_value.strftime(datetime_cmp_fmt)
             if current_value != row_value:
                 differences[field] = (current_value, row_value)
         return differences
