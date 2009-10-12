@@ -656,8 +656,8 @@ class ModelExtensions(object):
             if query_limit is None:
                 raise ValueError('Cannot pass query_start without query_limit')
             # query_limit is passed as a page size
-            query = query[query_start:(query_start + query_limit)]
-        return query
+            query_limit += query_start
+        return query[query_start:query_limit]
 
 
     @classmethod
