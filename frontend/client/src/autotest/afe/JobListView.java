@@ -105,7 +105,7 @@ public class JobListView extends TabView implements TableActionsListener {
         jobTable.setRowsPerPage(JOBS_PER_PAGE);
         jobTable.setClickable(true);
         jobTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 int jobId = (int) row.get("id").isNumber().doubleValue();
                 selectListener.onJobSelected(jobId);
             }

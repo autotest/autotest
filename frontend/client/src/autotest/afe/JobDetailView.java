@@ -165,7 +165,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         hostsTable.setRowsPerPage(HOSTS_PER_PAGE);
         hostsTable.setClickable(true);
         hostsTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 JSONObject host = row.get("host").isObject();
                 String hostname = host.get("hostname").isString().stringValue();
                 listener.onHostSelected(hostname);

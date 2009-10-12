@@ -16,7 +16,6 @@ import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DoubleListSelector;
 import autotest.common.ui.MultiListSelectPresenter;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.RightClickTable;
 import autotest.common.ui.MultiListSelectPresenter.Item;
 import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
@@ -368,11 +367,12 @@ public class TableView extends ConditionTabView
         updateStateFromView();
         refresh();
     }
-
-    public void onRowClicked(int rowIndex, JSONObject row) {
+    
+    @Override
+    public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
         Event event = Event.getCurrentEvent();
         TestSet testSet = getTestSet(row);
-        if (RightClickTable.isRightClick(event)) {
+        if (isRightClick) {
             if (selectionManager.getSelectedObjects().size() > 0) {
                 testSet = getTestSet(selectionManager.getSelectedObjects());
             }

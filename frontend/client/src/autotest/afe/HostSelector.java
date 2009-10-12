@@ -96,7 +96,7 @@ public class HostSelector implements ClickHandler {
         availableDecorator.addSelectionPanel(true);
         
         availableTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 availableSelection.toggleSelected(row);
             } 
             
@@ -120,7 +120,7 @@ public class HostSelector implements ClickHandler {
         });
 
         selectedTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 if (isMetaEntry(row) || isOneTimeHost(row)) {
                     deselectRow(row);
                     selectionRefresh();

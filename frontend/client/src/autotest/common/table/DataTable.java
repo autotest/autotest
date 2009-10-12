@@ -3,12 +3,16 @@ package autotest.common.table;
 
 import autotest.common.ui.RightClickTable;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.ContextMenuEvent;
+import com.google.gwt.event.dom.client.ContextMenuHandler;
+import com.google.gwt.event.dom.client.DomEvent;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.SourcesTableEvents;
-import com.google.gwt.user.client.ui.TableListener;
+import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -27,7 +31,7 @@ import java.util.List;
  * <li>.data-row-one/.data-row-two - data row styles.  These two are alternated.
  * </ul>
  */
-public class DataTable extends Composite implements TableListener {
+public class DataTable extends Composite implements ClickHandler, ContextMenuHandler {
     public static final String HEADER_STYLE = "data-row-header";
     public static final String CLICKABLE_STYLE = "data-row-clickable";
     public static final String HIGHLIGHTED_STYLE = "data-row-highlighted";
@@ -39,7 +43,7 @@ public class DataTable extends Composite implements TableListener {
     public static final int COL_NAME = 0, COL_TITLE = 1;
     
     public static interface DataTableListener {
-        public void onRowClicked(int rowIndex, JSONObject row);
+        public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick);
     }
     
     protected RightClickTable table;
@@ -84,7 +88,7 @@ public class DataTable extends Composite implements TableListener {
         }
 
         table.getRowFormatter().setStylePrimaryName(0, HEADER_STYLE);
-        table.addTableListener(this);
+        table.addClickHandler(this);
     }
     
     /**
@@ -251,16 +255,34 @@ public class DataTable extends Composite implements TableListener {
     }
     
     public void sinkRightClickEvents() {
-        table.sinkRightClickEvents();
+        table.addContextMenuHandler(this);
     }
     
-    public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
+    @Override
+    public void onClick(ClickEvent event) {
+        onCellClicked(event, false);
+    }
+    
+    @Override
+    public void onContextMenu(ContextMenuEvent event) {
+        onCellClicked(event, true);
+    }
+    
+    private void onCellClicked(DomEvent<?> event, boolean isRightClick) {
+        HTMLTable.Cell tableCell = table.getCellForDomEvent(event);
+        int row = tableCell.getRowIndex();
+        int cell = tableCell.getCellIndex();
+        
         if (isClickableWidgetColumn(cell) && table.getWidget(row, cell) != null) {
             return;
         }
         
+        onCellClicked(row, cell, isRightClick);
+    }
+    
+    protected void onCellClicked(int row, int cell, boolean isRightClick) {
         if (row != headerRow) {
-            notifyListenersClicked(row - headerRow - 1);
+            notifyListenersClicked(row - headerRow - 1, isRightClick);
         }
     }
     
@@ -272,10 +294,10 @@ public class DataTable extends Composite implements TableListener {
         listeners.remove(listener);
     }
     
-    protected void notifyListenersClicked(int rowIndex) {
+    protected void notifyListenersClicked(int rowIndex, boolean isRightClick) {
         JSONObject row = getRow(rowIndex);
         for (DataTableListener listener : listeners) {
-            listener.onRowClicked(rowIndex, row);
+            listener.onRowClicked(rowIndex, row, isRightClick);
         }
     }
     
