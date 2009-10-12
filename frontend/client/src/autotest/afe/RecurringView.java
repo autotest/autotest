@@ -75,7 +75,7 @@ public class RecurringView extends TabView implements TableActionsListener {
         recurringTable.setRowsPerPage(RECURRINGRUN_PER_PAGE);
         recurringTable.setClickable(true);
         recurringTable.addListener(new DynamicTableListener() {
-            public void onRowClicked(int rowIndex, JSONObject row) {
+            public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 JSONObject job = row.get("job").isObject();
                 int jobId = (int) job.get("id").isNumber().doubleValue();
                 selectListener.onRecurringSelected(jobId);

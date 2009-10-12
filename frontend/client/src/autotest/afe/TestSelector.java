@@ -174,8 +174,9 @@ class TestSelector extends Composite implements DataTableListener, ChangeHandler
         JSONObject user = staticData.getData("current_user").isObject();
         return user.get("show_experimental").isBoolean().booleanValue();
     }
-
-    public void onRowClicked(int rowIndex, JSONObject row) {
+    
+    @Override
+    public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
         TestInfoBuilder builder = new TestInfoBuilder(row);
         testInfo.setHTML(builder.getInfo());
     }

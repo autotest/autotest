@@ -11,8 +11,6 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.SourcesTableEvents;
-import com.google.gwt.user.client.ui.TableListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,8 +20,7 @@ import java.util.List;
 /**
  * Extended DataTable supporting sorting, filtering and pagination.
  */
-public class DynamicTable extends DataTable 
-                          implements DataCallback, TableListener {
+public class DynamicTable extends DataTable implements DataCallback {
     public static final int NO_COLUMN = -1;
     public static final String SORT_UP_IMAGE = "arrow_up.png",
                                SORT_DOWN_IMAGE = "arrow_down.png";
@@ -276,8 +273,8 @@ public class DynamicTable extends DataTable
     // INPUT
     
     @Override
-    public void onCellClicked(SourcesTableEvents sender, int row, int cell) {
-        if (clientSortable && row == headerRow) {
+    protected void onCellClicked(int row, int cell, boolean isRightClick) {
+        if (row == headerRow) {
             if (isWidgetColumn(cell)) {
                 // ignore sorting on widget columns
                 return;
@@ -295,7 +292,7 @@ public class DynamicTable extends DataTable
             return;
         }
         
-        super.onCellClicked(sender, row, cell);
+        super.onCellClicked(row, cell, isRightClick);
     }
     
     private SortDirection invertSortDirection(SortDirection direction) {

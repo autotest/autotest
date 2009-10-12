@@ -5,6 +5,11 @@ import autotest.common.Utils;
 import autotest.common.ui.RightClickTable;
 
 import com.google.gwt.dom.client.Element;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.ContextMenuEvent;
+import com.google.gwt.event.dom.client.ContextMenuHandler;
+import com.google.gwt.event.dom.client.DomEvent;
 import com.google.gwt.event.dom.client.ScrollEvent;
 import com.google.gwt.event.dom.client.ScrollHandler;
 import com.google.gwt.user.client.DeferredCommand;
@@ -16,8 +21,6 @@ import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
-import com.google.gwt.user.client.ui.SourcesTableEvents;
-import com.google.gwt.user.client.ui.TableListener;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -26,7 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Spreadsheet extends Composite implements ScrollHandler, TableListener {
+public class Spreadsheet extends Composite
+      implements ScrollHandler, ClickHandler, ContextMenuHandler {
+    
     private static final int MIN_TABLE_SIZE_PX = 90;
     private static final int WINDOW_BORDER_PX = 15;
     private static final int SCROLLBAR_FUDGE = 16;
@@ -54,7 +59,7 @@ public class Spreadsheet extends Composite implements ScrollHandler, TableListen
     private SpreadsheetListener listener;
     
     public interface SpreadsheetListener {
-        public void onCellClicked(CellInfo cellInfo);
+        public void onCellClicked(CellInfo cellInfo, boolean isRightClick);
     }
     
     public static interface Header extends List<String> {}
@@ -192,8 +197,8 @@ public class Spreadsheet extends Composite implements ScrollHandler, TableListen
     }
 
     private void setupTableInput(RightClickTable table) {
-        table.sinkRightClickEvents();
-        table.addTableListener(this);
+        table.addContextMenuHandler(this);
+        table.addClickHandler(this);
     }
 
     protected void killPaddingAndSpacing(HTMLTable table) {
@@ -499,27 +504,43 @@ public class Spreadsheet extends Composite implements ScrollHandler, TableListen
     protected void setColumnHeadersOffset(int offset) {
         columnHeaders.getElement().getStyle().setPropertyPx("left", offset);
     }
-
-    public void onCellClicked(SourcesTableEvents sender, int row, int column) {
+    
+    @Override
+    public void onClick(ClickEvent event) {
+        handleEvent(event, false);
+    }
+    
+    @Override
+    public void onContextMenu(ContextMenuEvent event) {
+        handleEvent(event, true);
+    }
+    
+    private void handleEvent(DomEvent<?> event, boolean isRightClick) {
         if (listener == null)
             return;
         
+        assert event.getSource() instanceof RightClickTable;
+        HTMLTable.Cell tableCell = ((RightClickTable) event.getSource()).getCellForDomEvent(event);
+        int row = tableCell.getRowIndex();
+        int column = tableCell.getCellIndex();
+        
         CellInfo[][] cells;
-        if (sender == rowHeaders) {
+        if (event.getSource() == rowHeaders) {
             cells = rowHeaderCells;
             column = adjustRowHeaderColumnIndex(row, column);
         }
-        else if (sender == columnHeaders) {
+        else if (event.getSource() == columnHeaders) {
             cells = columnHeaderCells;
         }
         else {
-            assert sender == dataTable;
+            assert event.getSource() == dataTable;
             cells = dataCells;
         }
         CellInfo cell = cells[row][column];
         if (cell == null || cell.isEmpty())
             return; // don't report clicks on empty cells
-        listener.onCellClicked(cell);
+        
+        listener.onCellClicked(cell, isRightClick);
     }
 
     /**
