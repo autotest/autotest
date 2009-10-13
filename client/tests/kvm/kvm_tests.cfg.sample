@@ -118,20 +118,26 @@ variants:
         type = linux_s3
 
     - timedrift:    install setup
-        type = timedrift
         extra_params += " -rtc-td-hack"
-        # Pin the VM and host load to CPU #0
-        cpu_mask = 0x1
-        # Set the load and rest durations
-        load_duration = 20
-        rest_duration = 20
-        # Fail if the drift after load is higher than 50%
-        drift_threshold = 50
-        # Fail if the drift after the rest period is higher than 10%
-        drift_threshold_after_rest = 10
-        # For now, make sure this test is executed alone
-        used_cpus = 100
-
+        variants:
+            - with_load:
+                type = timedrift
+                # Pin the VM and host load to CPU #0
+                cpu_mask = 0x1
+                # Set the load and rest durations
+                load_duration = 20
+                rest_duration = 20
+                # Fail if the drift after load is higher than 50%
+                drift_threshold = 50
+                # Fail if the drift after the rest period is higher than 10%
+                drift_threshold_after_rest = 10
+                # For now, make sure this test is executed alone
+                used_cpus = 100
+            - with_migration:
+                type = timedrift_with_migration
+                migration_iterations = 3
+                drift_threshold = 10
+                drift_threshold_single = 3
 
     - stress_boot:  install setup
         type = stress_boot
@@ -727,7 +733,7 @@ variants:
         extra_params += " -smp 2"
         used_cpus = 2
         stress_boot: used_cpus = 10
-        timedrift: used_cpus = 100
+        timedrift.with_load: used_cpus = 100
 
 
 variants:
