@@ -10,6 +10,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
     KEEPALIVE_TIMEOUT_SECONDS = 30
     CONNECT_TIMEOUT_SECONDS = 30
     CONNECT_TIMEOUT_RETRIES = 3
+    BUFFSIZE = 2**16
 
     def _initialize(self, hostname, *args, **dargs):
         super(ParamikoHost, self)._initialize(hostname=hostname, *args, **dargs)
@@ -112,13 +113,13 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                         transport.close()
                         raise paramiko.AuthenticationException()
                     return transport
-            logging.warn("SSH negotiation (%s:%d) timed out, retrying", 
+            logging.warn("SSH negotiation (%s:%d) timed out, retrying",
                          self.hostname, self.port)
             # HACK: we can't count on transport.join not hanging now, either
             transport.join = lambda: None
             transport.close()
         logging.error("SSH negotation (%s:%d) has timed out %s times, "
-                      "giving up", self.hostname, self.port, 
+                      "giving up", self.hostname, self.port,
                       self.CONNECT_TIMEOUT_RETRIES)
         raise error.AutoservSSHTimeout("SSH negotiation timed out")
 
@@ -183,11 +184,11 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         self._close_transport()
 
 
-    @staticmethod
-    def _exhaust_stream(tee, output_list, recvfunc):
+    @classmethod
+    def _exhaust_stream(cls, tee, output_list, recvfunc):
         while True:
             try:
-                output_list.append(recvfunc(2**16))
+                output_list.append(recvfunc(cls.BUFFSIZE))
             except socket.timeout:
                 return
             tee.write(output_list[-1])
@@ -195,9 +196,26 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 return
 
 
+    @classmethod
+    def __send_stdin(cls, channel, stdin):
+        if not stdin or not channel.send_ready():
+            # nothing more to send or just no space to send now
+            return
+
+        sent = channel.send(stdin[:cls.BUFFSIZE])
+        if not sent:
+            logging.warn('Could not send a single stdin byte.')
+        else:
+            stdin = stdin[sent:]
+            if not stdin:
+                # no more stdin input, close output direction
+                channel.shutdown_write()
+        return stdin
+
+
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
-            connect_timeout=30, verbose=True):
+            connect_timeout=30, stdin=None, verbose=True, args=()):
         """
         Run a command on the remote host.
         @see common_lib.hosts.host.run()
@@ -214,6 +232,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 stdout_tee, utils.DEFAULT_STDOUT_LEVEL)
         stderr = utils.get_stream_tee_file(
                 stderr_tee, utils.get_stderr_level(ignore_status))
+
+        for arg in args:
+            command += ' "%s"' % utils.sh_escape(arg)
 
         if verbose:
             logging.debug("Running (ssh-paramiko) '%s'" % command)
@@ -233,15 +254,17 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         timed_out = False
         while not channel.exit_status_ready():
             if channel.recv_ready():
-                raw_stdout.append(channel.recv(2**16))
+                raw_stdout.append(channel.recv(self.BUFFSIZE))
                 stdout.write(raw_stdout[-1])
             if channel.recv_stderr_ready():
-                raw_stderr.append(channel.recv_stderr(2**16))
+                raw_stderr.append(channel.recv_stderr(self.BUFFSIZE))
                 stderr.write(raw_stderr[-1])
             if timeout and time.time() - start_time > timeout:
                 timed_out = True
                 break
+            stdin = self.__send_stdin(channel, stdin)
             time.sleep(1)
+
         if timed_out:
             exit_status = -signal.SIGTERM
         else:

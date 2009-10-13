@@ -75,7 +75,7 @@ class Host(object):
 
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
-            stdin=None):
+            stdin=None, args=()):
         """
         Run a command on this host.
 
@@ -87,8 +87,9 @@ class Host(object):
         @param ignore_status: do not raise an exception, no matter
                 what the exit code of the command is.
         @param stdout_tee/stderr_tee: where to tee the stdout/stderr
-        @param stdin: stdin to pass to the executed process (can be a string,
-                a file descriptor or a file object of a real file)
+        @param stdin: stdin to pass (a string) to the executed command
+        @param args: sequence of strings to pass as arguments to command by
+                quoting them in " and escaping their contents if necessary
 
         @return a utils.CmdResult object
 

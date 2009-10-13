@@ -57,13 +57,15 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
     def _run(self, command, timeout, ignore_status, stdout, stderr,
-             connect_timeout, env, options, stdin=None):
+             connect_timeout, env, options, stdin, args):
         """Helper function for run()."""
         ssh_cmd = self.ssh_command(connect_timeout, options)
         if not env.strip():
             env = ""
         else:
             env = "export %s;" % env
+        for arg in args:
+            command += ' "%s"' % utils.sh_escape(arg)
         full_cmd = '%s "%s %s"' % (ssh_cmd, env, utils.sh_escape(command))
         result = utils.run(full_cmd, timeout, True, stdout, stderr,
                            verbose=False, stdin=stdin,
@@ -90,7 +92,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
-            connect_timeout=30, options='', stdin=None, verbose=True):
+            connect_timeout=30, options='', stdin=None, verbose=True, args=()):
         """
         Run a command on the remote host.
         @see common_lib.hosts.host.run()
@@ -108,7 +110,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         try:
             return self._run(command, timeout, ignore_status, stdout_tee,
                              stderr_tee, connect_timeout, env, options,
-                             stdin=stdin)
+                             stdin, args)
         except error.CmdError, cmderr:
             # We get a CmdError here only if there is timeout of that command.
             # Catch that and stuff it into AutoservRunError and raise it.
