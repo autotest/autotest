@@ -87,7 +87,8 @@ class Host(object):
         @param ignore_status: do not raise an exception, no matter
                 what the exit code of the command is.
         @param stdout_tee/stderr_tee: where to tee the stdout/stderr
-        @param stdin: stdin to pass to the executed process
+        @param stdin: stdin to pass to the executed process (can be a string,
+                a file descriptor or a file object of a real file)
 
         @return a utils.CmdResult object
 

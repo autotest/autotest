@@ -1,4 +1,4 @@
-import pickle, os, tempfile, logging
+import cPickle, os, tempfile, logging
 import common
 from autotest_lib.scheduler import drone_utility, email_manager
 from autotest_lib.client.common_lib import error, global_config
@@ -108,23 +108,14 @@ class _RemoteDrone(_AbstractDrone):
 
 
     def _execute_calls_impl(self, calls):
-        calls_fd, calls_filename = tempfile.mkstemp(suffix='.pickled_calls')
-        calls_file = os.fdopen(calls_fd, 'w+')
-        pickle.dump(calls, calls_file)
-        calls_file.flush()
-        calls_file.seek(0)
+        logging.info("Running drone_utility on %s", self.hostname)
+        result = self._host.run(
+                'python %s' % self._drone_utility_path,
+                stdin=cPickle.dumps(calls), connect_timeout=300)
 
         try:
-            logging.info("Running drone_utility on %s", self.hostname)
-            result = self._host.run('python %s' % self._drone_utility_path,
-                                    stdin=calls_file, connect_timeout=300)
-        finally:
-            calls_file.close()
-            os.remove(calls_filename)
-
-        try:
-            return pickle.loads(result.stdout)
-        except Exception: # pickle.loads can throw all kinds of exceptions
+            return cPickle.loads(result.stdout)
+        except Exception: # cPickle.loads can throw all kinds of exceptions
             logging.critical('Invalid response:\n---\n%s\n---', result.stdout)
             raise
 
