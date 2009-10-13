@@ -116,9 +116,12 @@ def postprocess_vm(test, params, env, name):
     vm.send_monitor_cmd("screendump %s" % scrdump_filename)
 
     if params.get("kill_vm") == "yes":
-        if not kvm_utils.wait_for(vm.is_dead,
-                float(params.get("kill_vm_timeout", 0)), 0.0, 1.0,
-                "Waiting for VM to kill itself..."):
+        kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
+        if kill_vm_timeout:
+            logging.debug("'kill_vm' specified; waiting for VM to shut down "
+                          "before killing it...")
+            kvm_utils.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
+        else:
             logging.debug("'kill_vm' specified; killing VM...")
         vm.destroy(gracefully = params.get("kill_vm_gracefully") == "yes")
 
