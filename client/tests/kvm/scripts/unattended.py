@@ -33,7 +33,7 @@ class UnattendedInstall(object):
 
         try:
             tftp_root = os.environ['KVM_TEST_tftp']
-            self.tftp_root = os.path.join(images_dir, tftp_root)
+            self.tftp_root = os.path.join(kvm_test_dir, tftp_root)
             if not os.path.isdir(self.tftp_root):
                 os.makedirs(self.tftp_root)
         except KeyError:
