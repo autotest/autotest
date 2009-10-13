@@ -59,3 +59,75 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2):
         raise error.TestFail("Could not log into guest '%s'" % vm.name)
     logging.info("Logged in '%s'" % vm.name)
     return session
+
+
+def migrate(vm, env=None):
+    """
+    Migrate a VM locally and re-register it in the environment.
+
+    @param vm: The VM to migrate.
+    @param env: The environment dictionary.  If omitted, the migrated VM will
+            not be registered.
+    @return: The post-migration VM.
+    """
+    # Helper functions
+    def mig_finished():
+        s, o = vm.send_monitor_cmd("info migrate")
+        return s == 0 and not "Migration status: active" in o
+
+    def mig_succeeded():
+        s, o = vm.send_monitor_cmd("info migrate")
+        return s == 0 and "Migration status: completed" in o
+
+    def mig_failed():
+        s, o = vm.send_monitor_cmd("info migrate")
+        return s == 0 and "Migration status: failed" in o
+
+    # See if migration is supported
+    s, o = vm.send_monitor_cmd("help info")
+    if not "info migrate" in o:
+        raise error.TestError("Migration is not supported")
+
+    # Clone the source VM and ask the clone to wait for incoming migration
+    dest_vm = vm.clone()
+    dest_vm.create(for_migration=True)
+
+    try:
+        # Define the migration command
+        cmd = "migrate -d tcp:localhost:%d" % dest_vm.migration_port
+        logging.debug("Migrating with command: %s" % cmd)
+
+        # Migrate
+        s, o = vm.send_monitor_cmd(cmd)
+        if s:
+            logging.error("Migration command failed (command: %r, output: %r)"
+                          % (cmd, o))
+            raise error.TestFail("Migration command failed")
+
+        # Wait for migration to finish
+        if not kvm_utils.wait_for(mig_finished, 90, 2, 2,
+                                  "Waiting for migration to finish..."):
+            raise error.TestFail("Timeout elapsed while waiting for migration "
+                                 "to finish")
+
+        # Report migration status
+        if mig_succeeded():
+            logging.info("Migration finished successfully")
+        elif mig_failed():
+            raise error.TestFail("Migration failed")
+        else:
+            raise error.TestFail("Migration ended with unknown status")
+
+        # Kill the source VM
+        vm.destroy(gracefully=False)
+
+        # Replace the source VM with the new cloned VM
+        if env is not None:
+            kvm_utils.env_register_vm(env, vm.name, dest_vm)
+
+        # Return the new cloned VM
+        return dest_vm
+
+    except:
+        dest_vm.destroy()
+        raise
