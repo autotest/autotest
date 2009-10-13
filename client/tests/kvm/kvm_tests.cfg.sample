@@ -138,6 +138,11 @@ variants:
                 migration_iterations = 3
                 drift_threshold = 10
                 drift_threshold_single = 3
+            - with_reboot:
+                type = timedrift_with_reboot
+                reboot_iterations = 1
+                drift_threshold = 10
+                drift_threshold_single = 3
 
     - stress_boot:  install setup
         type = stress_boot
