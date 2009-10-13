@@ -293,6 +293,18 @@ def postprocess(test, params, env):
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
 
+    # Kill all unresponsive VMs
+    if params.get("kill_unresponsive_vms") == "yes":
+        logging.debug("'kill_unresponsive_vms' specified; killing all VMs "
+                      "that fail to respond to a remote login request...")
+        for vm in kvm_utils.env_get_all_vms(env):
+            if vm.is_alive():
+                session = vm.remote_login()
+                if session:
+                    session.close()
+                else:
+                    vm.destroy(gracefully=False)
+
     # Kill the tailing threads of all VMs
     for vm in kvm_utils.env_get_all_vms(env):
         vm.kill_tail_thread()
