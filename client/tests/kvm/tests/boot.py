@@ -19,33 +19,14 @@ def run_boot(test, params, env):
     session = kvm_test_utils.wait_for_login(vm)
 
     try:
-        if params.get("reboot_method") == "shell":
-            # Send a reboot command to the guest's shell
-            session.sendline(vm.get_params().get("reboot_command"))
-            logging.info("Reboot command sent; waiting for guest to go "
-                         "down...")
-        elif params.get("reboot_method") == "system_reset":
-            # Sleep for a while -- give the guest a chance to finish booting
-            time.sleep(float(params.get("sleep_before_reset", 10)))
-            # Send a system_reset monitor command
-            vm.send_monitor_cmd("system_reset")
-            logging.info("system_reset monitor command sent; waiting for "
-                         "guest to go down...")
-        else: return
+        if not params.get("reboot_method"):
+            return
 
-        # Wait for the session to become unresponsive
-        if not kvm_utils.wait_for(lambda: not session.is_responsive(),
-                                  120, 0, 1):
-            raise error.TestFail("Guest refuses to go down")
+        # Reboot the VM
+        session = kvm_test_utils.reboot(vm, session,
+                                        params.get("reboot_method"),
+                                        float(params.get("sleep_before_reset",
+                                                         10)))
 
     finally:
         session.close()
-
-    logging.info("Guest is down; waiting for it to go up again...")
-
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest after reboot")
-    session.close()
-
-    logging.info("Guest is up again")
