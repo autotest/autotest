@@ -625,5 +625,85 @@ class test_sh_escape(unittest.TestCase):
         self._test_in_shell('\\000')
 
 
+class test_run(unittest.TestCase):
+    """
+    Test the utils.run() function.
+
+    Note: This test runs simple external commands to test the utils.run()
+    API without assuming implementation details.
+    """
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(utils.logging, 'warn')
+        self.god.stub_function(utils.logging, 'debug')
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def __check_result(self, result, command, exit_status=0, stdout='',
+                       stderr=''):
+        self.assertEquals(result.command, command)
+        self.assertEquals(result.exit_status, exit_status)
+        self.assertEquals(result.stdout, stdout)
+        self.assertEquals(result.stderr, stderr)
+
+
+    def test_default_simple(self):
+        cmd = 'echo "hello world"'
+        # expect some king of logging.debug() call but don't care about args
+        utils.logging.debug.expect_any_call()
+        self.__check_result(utils.run(cmd), cmd, stdout='hello world\n')
+
+
+    def test_default_failure(self):
+        cmd = 'exit 11'
+        try:
+            utils.run(cmd, verbose=False)
+        except utils.error.CmdError, err:
+            self.__check_result(err.result_obj, cmd, exit_status=11)
+
+
+    def test_ignore_status(self):
+        cmd = 'echo error >&2 && exit 11'
+        self.__check_result(utils.run(cmd, ignore_status=True, verbose=False),
+                            cmd, exit_status=11, stderr='error\n')
+
+
+    def test_timeout(self):
+        # we expect a logging.warn() message, don't care about the contents
+        utils.logging.warn.expect_any_call()
+        try:
+            utils.run('echo -n output && sleep 10', timeout=1, verbose=False)
+        except utils.error.CmdError, err:
+            self.assertEquals(err.result_obj.stdout, 'output')
+
+
+    def test_stdout_stderr_tee(self):
+        cmd = 'echo output && echo error >&2'
+        stdout_tee = StringIO.StringIO()
+        stderr_tee = StringIO.StringIO()
+
+        self.__check_result(utils.run(
+                cmd, stdout_tee=stdout_tee, stderr_tee=stderr_tee,
+                verbose=False), cmd, stdout='output\n', stderr='error\n')
+        self.assertEqual(stdout_tee.getvalue(), 'output\n')
+        self.assertEqual(stderr_tee.getvalue(), 'error\n')
+
+
+    def test_stdin_string(self):
+        cmd = 'cat'
+        self.__check_result(utils.run(cmd, verbose=False, stdin='hi!\n'),
+                            cmd, stdout='hi!\n')
+
+
+    def test_safe_args(self):
+        cmd = 'echo "hello \\"world" "again"'
+        self.__check_result(utils.run(
+                'echo', verbose=False, args=('hello "world', 'again')), cmd,
+                stdout='hello "world again\n')
+
+
 if __name__ == "__main__":
     unittest.main()
