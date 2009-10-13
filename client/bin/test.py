@@ -18,7 +18,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<testname.tag>
 
-import os, traceback, sys, shutil
+import os, traceback, sys, shutil, logging, resource, glob
 
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.common_lib import test as common_test
@@ -26,7 +26,66 @@ from autotest_lib.client.bin import sysinfo
 
 
 class test(common_test.base_test):
-    pass
+    # Segmentation fault handling is something that is desirable only for
+    # client side tests.
+    def configure_crash_handler(self):
+        """
+        Configure the crash handler by:
+         * Setting up core size to unlimited
+         * Putting an appropriate crash handler on /proc/sys/kernel/core_pattern
+         * Create files that the crash handler will use to figure which tests
+           are active at a given moment
+
+        The crash handler will pick up the core file and write it to
+        self.debugdir, and perform analysis on it to generate a report. The
+        program also outputs some results to syslog.
+
+        If multiple tests are running, an attempt to verify if we still have
+        the old PID on the system process table to determine whether it is a
+        parent of the current test execution. If we can't determine it, the
+        core file and the report file will be copied to all test debug dirs.
+        """
+        self.pattern_file = '/proc/sys/kernel/core_pattern'
+        try:
+            # Enable core dumps
+            resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
+            # Trying to backup core pattern and register our script
+            self.core_pattern_backup = open(self.pattern_file, 'r').read()
+            pattern_file = open(self.pattern_file, 'w')
+            tools_dir = os.path.join(self.autodir, 'tools')
+            crash_handler_path = os.path.join(tools_dir, 'crash_handler.py')
+            pattern_file.write('|' + crash_handler_path + ' %p %t %u %s %h %e')
+            # Writing the files that the crash handler is going to use
+            self.debugdir_tmp_file = ('/tmp/autotest_results_dir.%s' %
+                                      os.getpid())
+            utils.open_write_close(self.debugdir_tmp_file, self.debugdir + "\n")
+        except Exception, e:
+            self.crash_handling_enabled = False
+            logging.error('Crash handling system disabled: %s' % e)
+        else:
+            self.crash_handling_enabled = True
+            logging.debug('Crash handling system enabled.')
+
+
+    def crash_handler_report(self):
+        """
+        If core dumps are found on the debugdir after the execution of the
+        test, let the user know.
+        """
+        if self.crash_handling_enabled:
+            core_dirs = glob.glob('%s/crash.*' % self.debugdir)
+            if core_dirs:
+                logging.warning('Programs crashed during test execution:')
+                for dir in core_dirs:
+                    logging.warning('Please verify %s for more info', dir)
+            # Remove the debugdir info file
+            os.unlink(self.debugdir_tmp_file)
+            # Restore the core pattern backup
+            try:
+                utils.open_write_close(self.pattern_file,
+                                       self.core_pattern_backup)
+            except EnvironmentError:
+                pass
 
 
 def runtest(job, url, tag, args, dargs):
