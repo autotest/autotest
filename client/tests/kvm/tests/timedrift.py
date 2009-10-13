@@ -52,25 +52,6 @@ def run_timedrift(test, params, env):
         for tid, mask in prev_masks.items():
             commands.getoutput("taskset -p %s %s" % (mask, tid))
 
-    def get_time(session, time_command, time_filter_re, time_format):
-        """
-        Returns the host time and guest time.
-
-        @param session: A shell session.
-        @param time_command: Command to issue to get the current guest time.
-        @param time_filter_re: Regex filter to apply on the output of
-                time_command in order to get the current time.
-        @param time_format: Format string to pass to time.strptime() with the
-                result of the regex filter.
-        @return: A tuple containing the host time and guest time.
-        """
-        host_time = time.time()
-        session.sendline(time_command)
-        (match, s) = session.read_up_to_prompt()
-        s = re.findall(time_filter_re, s)[0]
-        guest_time = time.mktime(time.strptime(s, time_format))
-        return (host_time, guest_time)
-
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm)
 
@@ -97,83 +78,92 @@ def run_timedrift(test, params, env):
     guest_load_sessions = []
     host_load_sessions = []
 
-    # Set the VM's CPU affinity
-    prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
-
     try:
-        # Get time before load
-        (host_time_0, guest_time_0) = get_time(session, time_command,
-                                               time_filter_re, time_format)
+        # Set the VM's CPU affinity
+        prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
 
-        # Run some load on the guest
-        logging.info("Starting load on guest...")
-        for i in range(guest_load_instances):
-            load_session = vm.remote_login()
-            if not load_session:
-                raise error.TestFail("Could not log into guest")
-            load_session.set_output_prefix("(guest load %d) " % i)
-            load_session.set_output_func(logging.debug)
-            load_session.sendline(guest_load_command)
-            guest_load_sessions.append(load_session)
+        # Get time before load 
+        # (ht stands for host time, gt stands for guest time)
+        (ht0, gt0) = kvm_test_utils.get_time(session,
+                                             time_command,
+                                             time_filter_re,
+                                             time_format)
 
-        # Run some load on the host
-        logging.info("Starting load on host...")
-        for i in range(host_load_instances):
-            host_load_sessions.append(
-                kvm_subprocess.run_bg(host_load_command,
-                                      output_func=logging.debug,
-                                      output_prefix="(host load %d) " % i,
-                                      timeout=0.5))
-            # Set the CPU affinity of the load process
-            pid = host_load_sessions[-1].get_pid()
-            set_cpu_affinity(pid, cpu_mask)
+        try:
+            # Run some load on the guest
+            logging.info("Starting load on guest...")
+            for i in range(guest_load_instances):
+                load_session = vm.remote_login()
+                if not load_session:
+                    raise error.TestFail("Could not log into guest")
+                load_session.set_output_prefix("(guest load %d) " % i)
+                load_session.set_output_func(logging.debug)
+                load_session.sendline(guest_load_command)
+                guest_load_sessions.append(load_session)
 
-        # Sleep for a while (during load)
-        logging.info("Sleeping for %s seconds..." % load_duration)
-        time.sleep(load_duration)
+            # Run some load on the host
+            logging.info("Starting load on host...")
+            for i in range(host_load_instances):
+                host_load_sessions.append(
+                    kvm_subprocess.run_bg(host_load_command,
+                                          output_func=logging.debug,
+                                          output_prefix="(host load %d) " % i,
+                                          timeout=0.5))
+                # Set the CPU affinity of the load process
+                pid = host_load_sessions[-1].get_pid()
+                set_cpu_affinity(pid, cpu_mask)
 
-        # Get time delta after load
-        (host_time_1, guest_time_1) = get_time(session, time_command,
-                                               time_filter_re, time_format)
+            # Sleep for a while (during load)
+            logging.info("Sleeping for %s seconds..." % load_duration)
+            time.sleep(load_duration)
 
-        # Report results
-        host_delta = host_time_1 - host_time_0
-        guest_delta = guest_time_1 - guest_time_0
-        drift = 100.0 * (host_delta - guest_delta) / host_delta
-        logging.info("Host duration: %.2f" % host_delta)
-        logging.info("Guest duration: %.2f" % guest_delta)
-        logging.info("Drift: %.2f%%" % drift)
+            # Get time delta after load
+            (ht1, gt1) = kvm_test_utils.get_time(session,
+                                                 time_command,
+                                                 time_filter_re,
+                                                 time_format)
+
+            # Report results
+            host_delta = ht1 - ht0
+            guest_delta = gt1 - gt0
+            drift = 100.0 * (host_delta - guest_delta) / host_delta
+            logging.info("Host duration: %.2f" % host_delta)
+            logging.info("Guest duration: %.2f" % guest_delta)
+            logging.info("Drift: %.2f%%" % drift)
+
+        finally:
+            logging.info("Cleaning up...")
+            # Restore the VM's CPU affinity
+            restore_cpu_affinity(prev_affinity)
+            # Stop the guest load
+            if guest_load_stop_command:
+                session.get_command_output(guest_load_stop_command)
+            # Close all load shell sessions
+            for load_session in guest_load_sessions:
+                load_session.close()
+            for load_session in host_load_sessions:
+                load_session.close()
+
+        # Sleep again (rest)
+        logging.info("Sleeping for %s seconds..." % rest_duration)
+        time.sleep(rest_duration)
+
+        # Get time after rest
+        (ht2, gt2) = kvm_test_utils.get_time(session,
+                                             time_command,
+                                             time_filter_re,
+                                             time_format)
 
     finally:
-        logging.info("Cleaning up...")
-        # Restore the VM's CPU affinity
-        restore_cpu_affinity(prev_affinity)
-        # Stop the guest load
-        if guest_load_stop_command:
-            session.get_command_output(guest_load_stop_command)
-        # Close all load shell sessions
-        for load_session in guest_load_sessions:
-            load_session.close()
-        for load_session in host_load_sessions:
-            load_session.close()
-
-    # Sleep again (rest)
-    logging.info("Sleeping for %s seconds..." % rest_duration)
-    time.sleep(rest_duration)
-
-    # Get time after rest
-    (host_time_2, guest_time_2) = get_time(session, time_command,
-                                           time_filter_re, time_format)
+        session.close()
 
     # Report results
-    host_delta_total = host_time_2 - host_time_0
-    guest_delta_total = guest_time_2 - guest_time_0
+    host_delta_total = ht2 - ht0
+    guest_delta_total = gt2 - gt0
     drift_total = 100.0 * (host_delta_total - guest_delta_total) / host_delta
     logging.info("Total host duration including rest: %.2f" % host_delta_total)
     logging.info("Total guest duration including rest: %.2f" % guest_delta_total)
     logging.info("Total drift after rest: %.2f%%" % drift_total)
-
-    session.close()
 
     # Fail the test if necessary
     if drift > drift_threshold:
