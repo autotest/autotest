@@ -43,7 +43,7 @@ class test_local_host_class(unittest.TestCase):
 
         (local_host.utils.run.expect_call(result.command, timeout=123,
                 ignore_status=True, stdout_tee=local_host.utils.TEE_TO_LOGS,
-                stderr_tee=local_host.utils.TEE_TO_LOGS, stdin=None)
+                stderr_tee=local_host.utils.TEE_TO_LOGS, stdin=None, args=())
                 .and_return(result))
 
         return host

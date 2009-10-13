@@ -26,12 +26,14 @@ class LocalHost(hosts.Host):
 
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
-            stdin=None):
+            stdin=None, args=()):
         """
         @see common_lib.hosts.Host.run()
         """
-        result = utils.run(command, timeout=timeout, ignore_status=True,
-                stdout_tee=stdout_tee, stderr_tee=stderr_tee, stdin=stdin)
+        result = utils.run(
+                command, timeout=timeout, ignore_status=True,
+                stdout_tee=stdout_tee, stderr_tee=stderr_tee, stdin=stdin,
+                args=args)
 
         if not ignore_status and result.exit_status > 0:
             raise error.AutotestHostRunError('command execution error', result)
