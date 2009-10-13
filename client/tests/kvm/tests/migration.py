@@ -21,79 +21,21 @@ def run_migration(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
 
-    # See if migration is supported
-    s, o = vm.send_monitor_cmd("help info")
-    if not "info migrate" in o:
-        raise error.TestError("Migration is not supported")
-
     # Log into guest and get the output of migration_test_command
     session = kvm_test_utils.wait_for_login(vm)
     migration_test_command = params.get("migration_test_command")
     reference_output = session.get_command_output(migration_test_command)
     session.close()
 
-    # Clone the main VM and ask it to wait for incoming migration
-    dest_vm = vm.clone()
-    dest_vm.create(for_migration=True)
-
-    try:
-        # Define the migration command
-        cmd = "migrate -d tcp:localhost:%d" % dest_vm.migration_port
-        logging.debug("Migration command: %s" % cmd)
-
-        # Migrate
-        s, o = vm.send_monitor_cmd(cmd)
-        if s:
-            logging.error("Migration command failed (command: %r, output: %r)"
-                          % (cmd, o))
-            raise error.TestFail("Migration command failed")
-
-        # Define some helper functions
-        def mig_finished():
-            s, o = vm.send_monitor_cmd("info migrate")
-            return s == 0 and not "Migration status: active" in o
-
-        def mig_succeeded():
-            s, o = vm.send_monitor_cmd("info migrate")
-            return s == 0 and "Migration status: completed" in o
-
-        def mig_failed():
-            s, o = vm.send_monitor_cmd("info migrate")
-            return s == 0 and "Migration status: failed" in o
-
-        # Wait for migration to finish
-        if not kvm_utils.wait_for(mig_finished, 90, 2, 2,
-                                  "Waiting for migration to finish..."):
-            raise error.TestFail("Timeout elapsed while waiting for migration "
-                                 "to finish")
-
-        # Report migration status
-        if mig_succeeded():
-            logging.info("Migration finished successfully")
-        elif mig_failed():
-            raise error.TestFail("Migration failed")
-        else:
-            raise error.TestFail("Migration ended with unknown status")
-
-        # Kill the source VM
-        vm.destroy(gracefully=False)
-
-        # Replace the source VM with the new cloned VM
-        kvm_utils.env_register_vm(env, params.get("main_vm"), dest_vm)
-
-    except:
-        dest_vm.destroy(gracefully=False)
-        raise
+    # Migrate the VM
+    dest_vm = kvm_test_utils.migrate(vm, env)
 
     # Log into guest and get the output of migration_test_command
     logging.info("Logging into guest after migration...")
-
     session = dest_vm.remote_login()
     if not session:
         raise error.TestFail("Could not log into guest after migration")
-
     logging.info("Logged in after migration")
-
     output = session.get_command_output(migration_test_command)
     session.close()
 
