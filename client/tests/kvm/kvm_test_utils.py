@@ -131,3 +131,30 @@ def migrate(vm, env=None):
     except:
         dest_vm.destroy()
         raise
+
+
+def get_time(session, time_command, time_filter_re, time_format):
+    """
+    Return the host time and guest time.  If the guest time cannot be fetched
+    a TestError exception is raised.
+
+    Note that the shell session should be ready to receive commands
+    (i.e. should "display" a command prompt and should be done with all
+    previous commands).
+
+    @param session: A shell session.
+    @param time_command: Command to issue to get the current guest time.
+    @param time_filter_re: Regex filter to apply on the output of
+            time_command in order to get the current time.
+    @param time_format: Format string to pass to time.strptime() with the
+            result of the regex filter.
+    @return: A tuple containing the host time and guest time.
+    """
+    host_time = time.time()
+    session.sendline(time_command)
+    (match, s) = session.read_up_to_prompt()
+    if not match:
+        raise error.TestError("Could not get guest time")
+    s = re.findall(time_filter_re, s)[0]
+    guest_time = time.mktime(time.strptime(s, time_format))
+    return (host_time, guest_time)
