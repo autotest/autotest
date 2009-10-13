@@ -83,7 +83,7 @@ def run_pci_hotplug(test, params, env):
 
     # Test the newly added device
     s, o = session.get_command_status_output(params.get("pci_test_cmd"))
-    if s:
+    if s != 0:
         raise error.TestFail("Check for %s device failed after PCI hotplug. "
                              "Output: %s" % (test_type, o))
 
