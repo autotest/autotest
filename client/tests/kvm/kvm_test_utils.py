@@ -61,6 +61,50 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2):
     return session
 
 
+def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
+           timeout=240):
+    """
+    Reboot the VM and wait for it to come back up by trying to log in until
+    timeout expires.
+
+    @param vm: VM object.
+    @param session: A shell session object.
+    @param method: Reboot method.  Can be "shell" (send a shell reboot
+            command) or "system_reset" (send a system_reset monitor command).
+    @param nic_index: Index of NIC to access in the VM, when logging in after
+            rebooting.
+    @param timeout: Time to wait before giving up (after rebooting).
+    @return: A new shell session object.
+    """
+    if method == "shell":
+        # Send a reboot command to the guest's shell
+        session.sendline(vm.get_params().get("reboot_command"))
+        logging.info("Reboot command sent; waiting for guest to go down...")
+    elif method == "system_reset":
+        # Sleep for a while before sending the command
+        time.sleep(sleep_before_reset)
+        # Send a system_reset monitor command
+        vm.send_monitor_cmd("system_reset")
+        logging.info("system_reset monitor command sent; waiting for guest to "
+                     "go down...")
+    else:
+        logging.error("Unknown reboot method: %s" % method)
+
+    # Wait for the session to become unresponsive and close it
+    if not kvm_utils.wait_for(lambda: not session.is_responsive(), 120, 0, 1):
+        raise error.TestFail("Guest refuses to go down")
+    session.close()
+
+    # Try logging into the guest until timeout expires
+    logging.info("Guest is down; waiting for it to go up again...")
+    session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
+                                 timeout, 0, 2)
+    if not session:
+        raise error.TestFail("Could not log into guest after reboot")
+    logging.info("Guest is up again")
+    return session
+
+
 def migrate(vm, env=None):
     """
     Migrate a VM locally and re-register it in the environment.
