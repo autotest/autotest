@@ -938,7 +938,7 @@ class base_job(object):
         """Clean up and exit"""
         # We are about to exit 'complete' so clean up the control file.
         dest = os.path.join(self.resultdir, os.path.basename(self.state_file))
-        os.rename(self.state_file, dest)
+        shutil.move(self.state_file, dest)
 
         self.harness.run_complete()
         self.disable_external_logging()
