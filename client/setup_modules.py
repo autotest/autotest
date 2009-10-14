@@ -84,6 +84,8 @@ def _autotest_logging_handle_error(self, record):
         sys.stderr.write('Exception occurred formatting message: '
                          '%r using args %r\n' % (record.msg, record.args))
         traceback.print_stack()
+        sys.stderr.write('-' * 50 + '\n')
+        traceback.print_exc()
         sys.stderr.write('Future logging formatting exceptions disabled.\n')
 
 
