@@ -490,7 +490,7 @@ class kvm_spawn:
         _wait(self.lock_server_running_filename)
         # Call all cleanup routines
         for hook in self.close_hooks:
-            hook()
+            hook(self)
         # Close reader file descriptors
         for fd in self.reader_fds.values():
             try:
@@ -583,7 +583,7 @@ class kvm_tail(kvm_spawn):
         """
         # Add a reader and a close hook
         self._add_reader("tail")
-        self._add_close_hook(self._join_thread)
+        self._add_close_hook(kvm_tail._join_thread)
 
         # Init the superclass
         kvm_spawn.__init__(self, command, id, echo, linesep)
