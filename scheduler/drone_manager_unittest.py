@@ -3,7 +3,7 @@
 import os, unittest
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.scheduler import drone_manager, drones
+from autotest_lib.scheduler import drone_manager, drone_utility, drones
 
 class MockDrone(drones._AbstractDrone):
     def __init__(self, name, active_processes, max_processes):
@@ -18,6 +18,11 @@ class MockDrone(drones._AbstractDrone):
 
     def queue_call(self, method, *args, **kwargs):
         self._recorded_calls['queue_call'].append((method, args, kwargs))
+
+
+    def call(self, method, *args, **kwargs):
+        # don't bother differentiating between call() and queue_call()
+        return self.queue_call(method, *args, **kwargs)
 
 
     def send_file_to(self, drone, source_path, destination_path,
@@ -53,6 +58,7 @@ class DroneManager(unittest.TestCase):
     _RESULTS_DIR = '/results/dir'
     _SOURCE_PATH = 'source/path'
     _DESTINATION_PATH = 'destination/path'
+    _WORKING_DIRECTORY = 'working/directory'
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -60,6 +66,9 @@ class DroneManager(unittest.TestCase):
                            self._DRONE_INSTALL_DIR)
         self.manager = drone_manager.DroneManager()
         self.god.stub_with(self.manager, '_results_dir', self._RESULTS_DIR)
+
+        # we don't want this to ever actually get called
+        self.god.stub_function(drones, 'get_drone')
 
         # set up some dummy drones
         self.mock_drone = MockDrone('mock_drone', 0, 10)
@@ -102,27 +111,61 @@ class DroneManager(unittest.TestCase):
         self.assertEquals(drone.name, 1)
 
 
+    def test_initialize(self):
+        self.god.stub_function(drones, 'set_temporary_directory')
+        results_hostname = 'results_repo'
+
+        drones.set_temporary_directory.expect_call(
+                os.path.join(self._DRONE_RESULTS_DIR,
+                             drone_utility._TEMPORARY_DIRECTORY))
+        (drones.get_drone.expect_call(self.mock_drone.name)
+         .and_return(self.mock_drone))
+        drones.get_drone.expect_call(results_hostname).and_return(object())
+
+        self.manager.initialize(base_results_dir=self._RESULTS_DIR,
+                                drone_hostnames=[self.mock_drone.name],
+                                results_repository_hostname=results_hostname)
+
+        self.assert_(self.mock_drone.was_call_queued(
+                'initialize', self._DRONE_RESULTS_DIR + '/'))
+
+
     def test_execute_command(self):
         self.manager._enqueue_drone(self.mock_drone)
 
-        working_directory = 'working/directory'
         pidfile_name = 'my_pidfile'
         log_file = 'log_file'
 
         pidfile_id = self.manager.execute_command(
                 command=['test', drone_manager.WORKING_DIRECTORY],
-                working_directory=working_directory,
+                working_directory=self._WORKING_DIRECTORY,
                 pidfile_name=pidfile_name,
                 log_file=log_file)
 
         full_working_directory = os.path.join(self._DRONE_RESULTS_DIR,
-                                              working_directory)
+                                              self._WORKING_DIRECTORY)
         self.assertEquals(pidfile_id.path,
                           os.path.join(full_working_directory, pidfile_name))
         self.assert_(self.mock_drone.was_call_queued(
                 'execute_command', ['test', full_working_directory],
                 full_working_directory,
                 os.path.join(self._DRONE_RESULTS_DIR, log_file), pidfile_name))
+
+
+    def test_attach_file_to_execution(self):
+        self.manager._enqueue_drone(self.mock_drone)
+
+        contents = 'my\ncontents'
+        attached_path = self.manager.attach_file_to_execution(
+                self._WORKING_DIRECTORY, contents)
+        self.manager.execute_command(command=['test'],
+                                     working_directory=self._WORKING_DIRECTORY,
+                                     pidfile_name='mypidfile')
+
+        self.assert_(self.mock_drone.was_call_queued(
+                'write_to_file',
+                os.path.join(self._DRONE_RESULTS_DIR, attached_path),
+                contents))
 
 
     def test_copy_results_on_drone(self):
