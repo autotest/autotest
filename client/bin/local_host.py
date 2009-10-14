@@ -30,10 +30,14 @@ class LocalHost(hosts.Host):
         """
         @see common_lib.hosts.Host.run()
         """
-        result = utils.run(
+        try:
+            result = utils.run(
                 command, timeout=timeout, ignore_status=True,
                 stdout_tee=stdout_tee, stderr_tee=stderr_tee, stdin=stdin,
                 args=args)
+        except error.CmdError, e:
+            # this indicates a timeout exception
+            raise error.AutotestHostRunError('command timed out', e.result_obj)
 
         if not ignore_status and result.exit_status > 0:
             raise error.AutotestHostRunError('command execution error', result)
