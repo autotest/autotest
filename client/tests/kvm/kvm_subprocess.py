@@ -1010,6 +1010,10 @@ class kvm_shell_session(kvm_expect):
                                                    self.status_test_command)
 
 
+    def __del__(self):
+        self.close()
+
+
     def set_prompt(self, prompt):
         """
         Set the prompt attribute for later use by read_up_to_prompt.
