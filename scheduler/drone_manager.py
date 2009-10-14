@@ -129,6 +129,7 @@ class DroneManager(object):
         logging.info('Using results repository on %s',
                      results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
+        self._results_drone.set_autotest_install_dir(base_results_dir)
         # don't initialize() the results drone - we don't want to clear out any
         # directories and we don't need ot kill any processes
 
