@@ -596,9 +596,10 @@ class kvm_tail(kvm_spawn):
         self.output_prefix = output_prefix
 
         # Start the thread in the background
+        self.tail_thread = None
         self.__thread_kill_requested = False
-        self.tail_thread = threading.Thread(None, self._tail)
-        self.tail_thread.start()
+        if termination_func or output_func:
+            self._start_thread()
 
 
     def __getinitargs__(self):
@@ -617,6 +618,8 @@ class kvm_tail(kvm_spawn):
                 Must take a single parameter -- the exit status.
         """
         self.termination_func = termination_func
+        if termination_func and not self.tail_thread:
+            self._start_thread()
 
 
     def set_termination_params(self, termination_params):
@@ -637,6 +640,8 @@ class kvm_tail(kvm_spawn):
                 output from the process.  Must take a single string parameter.
         """
         self.output_func = output_func
+        if output_func and not self.tail_thread:
+            self._start_thread()
 
 
     def set_output_params(self, output_params):
@@ -724,6 +729,11 @@ class kvm_tail(kvm_spawn):
             self.termination_func(*params)
         except TypeError:
             pass
+
+
+    def _start_thread(self):
+        self.tail_thread = threading.Thread(None, self._tail)
+        self.tail_thread.start()
 
 
     def _join_thread(self):
