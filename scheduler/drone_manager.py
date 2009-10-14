@@ -113,12 +113,12 @@ class DroneManager(object):
     def initialize(self, base_results_dir, drone_hostnames,
                    results_repository_hostname):
         self._results_dir = base_results_dir
-        drones.set_temporary_directory(os.path.join(
-            drones.AUTOTEST_INSTALL_DIR, drone_utility._TEMPORARY_DIRECTORY))
+        drones.set_temporary_directory(
+                self.absolute_path(drone_utility._TEMPORARY_DIRECTORY))
 
         for hostname in drone_hostnames:
             drone = self._add_drone(hostname)
-            drone.call('initialize', base_results_dir)
+            drone.call('initialize', self.absolute_path(''))
 
         if not self._drones:
             # all drones failed to initialize
