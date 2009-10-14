@@ -86,9 +86,7 @@ class _RemoteDrone(_AbstractDrone):
         super(_RemoteDrone, self).__init__()
         self.hostname = hostname
         self._host = drone_utility.create_host(hostname)
-        self._drone_utility_path = os.path.join(AUTOTEST_INSTALL_DIR,
-                                                'scheduler',
-                                                'drone_utility.py')
+        self._autotest_install_dir = AUTOTEST_INSTALL_DIR
 
         try:
             self._host.run('mkdir -p ' + self._temporary_directory,
@@ -102,6 +100,10 @@ class _RemoteDrone(_AbstractDrone):
         cls._temporary_directory = temporary_directory
 
 
+    def set_autotest_install_dir(self, path):
+        self._autotest_install_dir = path
+
+
     def shutdown(self):
         super(_RemoteDrone, self).shutdown()
         self._host.close()
@@ -109,9 +111,10 @@ class _RemoteDrone(_AbstractDrone):
 
     def _execute_calls_impl(self, calls):
         logging.info("Running drone_utility on %s", self.hostname)
-        result = self._host.run(
-                'python %s' % self._drone_utility_path,
-                stdin=cPickle.dumps(calls), connect_timeout=300)
+        drone_utility_path = os.path.join(self._autotest_install_dir,
+                                          'scheduler', 'drone_utility.py')
+        result = self._host.run('python %s' % drone_utility_path,
+                                stdin=cPickle.dumps(calls), connect_timeout=300)
 
         try:
             return cPickle.loads(result.stdout)

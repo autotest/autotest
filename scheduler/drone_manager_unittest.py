@@ -6,7 +6,7 @@ from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.scheduler import drone_manager, drone_utility, drones
 
 class MockDrone(drones._AbstractDrone):
-    def __init__(self, name, active_processes, max_processes):
+    def __init__(self, name, active_processes=0, max_processes=10):
         super(MockDrone, self).__init__()
         self.name = name
         self.active_processes = active_processes
@@ -71,7 +71,7 @@ class DroneManager(unittest.TestCase):
         self.god.stub_function(drones, 'get_drone')
 
         # set up some dummy drones
-        self.mock_drone = MockDrone('mock_drone', 0, 10)
+        self.mock_drone = MockDrone('mock_drone')
         self.manager._drones[self.mock_drone.name] = self.mock_drone
         self.results_drone = MockDrone('results_drone', 0, 10)
         self.manager._results_drone = self.results_drone
@@ -120,7 +120,11 @@ class DroneManager(unittest.TestCase):
                              drone_utility._TEMPORARY_DIRECTORY))
         (drones.get_drone.expect_call(self.mock_drone.name)
          .and_return(self.mock_drone))
-        drones.get_drone.expect_call(results_hostname).and_return(object())
+
+        results_drone = MockDrone('results_drone')
+        self.god.stub_function(results_drone, 'set_autotest_install_dir')
+        drones.get_drone.expect_call(results_hostname).and_return(results_drone)
+        results_drone.set_autotest_install_dir.expect_call(self._RESULTS_DIR)
 
         self.manager.initialize(base_results_dir=self._RESULTS_DIR,
                                 drone_hostnames=[self.mock_drone.name],
