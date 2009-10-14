@@ -49,6 +49,7 @@ class MockDrone(drones._AbstractDrone):
 
 class DroneManager(unittest.TestCase):
     _DRONE_INSTALL_DIR = '/drone/install/dir'
+    _DRONE_RESULTS_DIR = os.path.join(_DRONE_INSTALL_DIR, 'results')
     _RESULTS_DIR = '/results/dir'
     _SOURCE_PATH = 'source/path'
     _DESTINATION_PATH = 'destination/path'
@@ -114,14 +115,14 @@ class DroneManager(unittest.TestCase):
                 pidfile_name=pidfile_name,
                 log_file=log_file)
 
-        full_working_directory = os.path.join(self._DRONE_INSTALL_DIR,
+        full_working_directory = os.path.join(self._DRONE_RESULTS_DIR,
                                               working_directory)
         self.assertEquals(pidfile_id.path,
                           os.path.join(full_working_directory, pidfile_name))
         self.assert_(self.mock_drone.was_call_queued(
                 'execute_command', ['test', full_working_directory],
                 full_working_directory,
-                os.path.join(self._DRONE_INSTALL_DIR, log_file), pidfile_name))
+                os.path.join(self._DRONE_RESULTS_DIR, log_file), pidfile_name))
 
 
     def test_copy_results_on_drone(self):
@@ -130,8 +131,8 @@ class DroneManager(unittest.TestCase):
                                            self._DESTINATION_PATH)
         self.assert_(self.mock_drone.was_call_queued(
                 'copy_file_or_directory',
-                os.path.join(self._DRONE_INSTALL_DIR, self._SOURCE_PATH),
-                os.path.join(self._DRONE_INSTALL_DIR, self._DESTINATION_PATH)))
+                os.path.join(self._DRONE_RESULTS_DIR, self._SOURCE_PATH),
+                os.path.join(self._DRONE_RESULTS_DIR, self._DESTINATION_PATH)))
 
 
     def test_copy_to_results_repository(self):
@@ -139,7 +140,7 @@ class DroneManager(unittest.TestCase):
                                                 self._SOURCE_PATH)
         self.assert_(self.mock_drone.was_file_sent(
                 self.results_drone,
-                os.path.join(self._DRONE_INSTALL_DIR, self._SOURCE_PATH),
+                os.path.join(self._DRONE_RESULTS_DIR, self._SOURCE_PATH),
                 os.path.join(self._RESULTS_DIR, self._SOURCE_PATH)))
 
 
@@ -159,7 +160,7 @@ class DroneManager(unittest.TestCase):
                 file_path, lines, paired_with_process=self.mock_drone_process)
         self.assert_(self.mock_drone.was_call_queued(
                 'write_to_file',
-                os.path.join(self._DRONE_INSTALL_DIR, file_path), written_data))
+                os.path.join(self._DRONE_RESULTS_DIR, file_path), written_data))
 
 
 if __name__ == '__main__':
