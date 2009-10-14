@@ -5,6 +5,10 @@ from autotest_lib.scheduler import email_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
 
 
+# results on drones will be placed under the drone_installation_directory in a
+# directory with this name
+_DRONE_RESULTS_DIR_SUFFIX = 'results'
+
 WORKING_DIRECTORY = object() # see execute_command()
 
 
@@ -523,7 +527,8 @@ class DroneManager(object):
         if on_results_repository:
             base_dir = self._results_dir
         else:
-            base_dir = drones.AUTOTEST_INSTALL_DIR
+            base_dir = os.path.join(drones.AUTOTEST_INSTALL_DIR,
+                                    _DRONE_RESULTS_DIR_SUFFIX)
         return os.path.join(base_dir, path)
 
 
