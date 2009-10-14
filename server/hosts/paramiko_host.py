@@ -284,6 +284,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             msg = "ssh connection unexpectedly terminated"
             raise error.AutoservRunError(msg, result)
         if timed_out:
+            logging.warn('Paramiko command timed out after %s sec: %s', timeout,
+                         command)
             raise error.AutoservRunError("command timed out", result)
         if not ignore_status and exit_status:
             raise error.AutoservRunError(command, result)
