@@ -330,7 +330,7 @@ text-align: left
     print '&nbsp&nbsp&nbsp'
     print '<a href="machine_benchmark.cgi">Performance</a>'
     print '&nbsp&nbsp&nbsp'
-    print '<a href="http://crackerjack.good-day.net/cjk/compare_results?col=!d&row=!d">Crackerjack</a>'
+    print '<a href="http://ossipedia.ipa.go.jp/crackerjack/compare_results.html">Crackerjack</a>'
     print '&nbsp&nbsp&nbsp'
     print '<a href="http://autotest.kernel.org">[About Page]</a>'
     print '</h2><p>'
