@@ -175,6 +175,8 @@ public class CreateJobView extends TabView
     protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
+    private CheckBox runNonProfiledIteration =
+        new CheckBox("Run each test without profilers first");
     protected TextArea controlFile = new TextArea();
     protected DisclosurePanel controlFilePanel = new DisclosurePanel();
     protected ControlTypeSelect controlTypeSelect;
@@ -285,7 +287,7 @@ public class CreateJobView extends TabView
         }
     }
     
-    protected void populatePriorities() {
+    protected void populateProfilers() {
         JSONArray tests = staticData.getData("profilers").isArray();
         
         for(JSONObject profiler : new JSONArrayList<JSONObject>(tests)) {
@@ -293,14 +295,29 @@ public class CreateJobView extends TabView
             CheckBox checkbox = new CheckBox(name);
             checkbox.addClickHandler(new ClickHandler() {
                 public void onClick(ClickEvent event) {
+                    updateNonProfiledRunControl();
                     generateControlFile(false);
                     setInputsEnabled();
                 }
             });
             profilersPanel.add(checkbox);
         }
+        
+        runNonProfiledIteration.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                generateControlFile(false);
+            }
+        });
+        // default to checked -- run a non-profiled iteration by default
+        runNonProfiledIteration.setValue(true);
     }
     
+    private void updateNonProfiledRunControl() {
+        boolean anyProfilersChecked = !profilersPanel.getChecked().isEmpty();
+        runNonProfiledIteration.setVisible(anyProfilersChecked);
+    }
+
     private void populateRebootChoices() {
         AfeUtils.populateRadioChooser(rebootBefore, "reboot_before");
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
@@ -349,6 +366,12 @@ public class CreateJobView extends TabView
         
         params.put("tests", tests);
         params.put("profilers", profilers);
+
+        if (runNonProfiledIteration.isVisible()) {
+            boolean profileOnly = !runNonProfiledIteration.getValue();
+            params.put("profile_only", JSONBoolean.getInstance(profileOnly));
+        }
+
         return params;
     }
     
@@ -447,13 +470,17 @@ public class CreateJobView extends TabView
         kernel.addKeyPressHandler(kernelKeyPressHandler);
         kernel_cmdline.addKeyPressHandler(kernelKeyPressHandler);
 
-        populatePriorities();
-        
+        populateProfilers();
+        Panel profilerControls = new VerticalPanel();
+        profilerControls.add(profilersPanel);
+        profilerControls.add(runNonProfiledIteration);
+        updateNonProfiledRunControl();
+
         testSelector = new TestSelector();
         
         populateRebootChoices();
         onPreferencesChanged();
-        
+
         controlFile.setSize("50em", "30em");
         controlTypeSelect = new ControlTypeSelect();
         HorizontalPanel controlOptionsPanel = new HorizontalPanel();
@@ -569,7 +596,7 @@ public class CreateJobView extends TabView
         addWidget(rebootAfter, "create_reboot_after");
         addWidget(parseFailedRepair, "create_parse_failed_repair");
         addWidget(testSelector, "create_tests");
-        addWidget(profilersPanel, "create_profilers");
+        addWidget(profilerControls, "create_profilers");
         addWidget(controlFilePanel, "create_edit_control");
         addWidget(hostSelectorDisplay, "create_host_selector");
         addWidget(submitJobButton, "create_submit");
