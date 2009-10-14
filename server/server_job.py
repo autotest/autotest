@@ -452,10 +452,13 @@ class base_server_job(object):
         collect_crashinfo = True
         temp_control_file_dir = None
         try:
-            if install_before and machines:
-                self._execute_code(INSTALL_CONTROL_FILE, namespace)
+            try:
+                if install_before and machines:
+                    self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
-            if not only_collect_crashinfo:
+                if only_collect_crashinfo:
+                    return
+
                 # determine the dir to write the control files to
                 cfd_specified = (control_file_dir
                                  and control_file_dir is not self.USE_TEMP_DIR)
@@ -482,6 +485,13 @@ class base_server_job(object):
 
                 # no error occured, so we don't need to collect crashinfo
                 collect_crashinfo = False
+            except:
+                try:
+                    logging.exception(
+                            'Exception escaped control file, job aborting:')
+                except:
+                    pass # don't let logging exceptions here interfere
+                raise
         finally:
             if temp_control_file_dir:
                 # Clean up temp directory used for copies of the control files
