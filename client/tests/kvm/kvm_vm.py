@@ -465,7 +465,7 @@ class VM:
             end_time = time.time() + timeout
             while time.time() < end_time:
                 try:
-                    o += s.recv(16384)
+                    o += s.recv(1024)
                     if o.splitlines()[-1].split()[-1] == "(qemu)":
                         return (True, o)
                 except:
@@ -481,27 +481,32 @@ class VM:
         except:
             logging.debug("Could not connect to monitor socket")
             return (1, "")
-        status, data = read_up_to_qemu_prompt(s, timeout)
-        if not status:
-            s.close()
-            logging.debug("Could not find (qemu) prompt; output so far:" \
-                    + kvm_utils.format_str_for_message(data))
-            return (1, "")
-        # Send command
-        s.sendall(command + "\n")
-        # Receive command output
-        data = ""
-        if block:
+
+        # Send the command and get the resulting output
+        try:
             status, data = read_up_to_qemu_prompt(s, timeout)
-            data = "\n".join(data.splitlines()[1:])
             if not status:
-                s.close()
-                logging.debug("Could not find (qemu) prompt after command;"
-                              " output so far: %s",
-                               kvm_utils.format_str_for_message(data))
-                return (1, data)
-        s.close()
-        return (0, data)
+                logging.debug("Could not find (qemu) prompt; output so far:" +
+                              kvm_utils.format_str_for_message(data))
+                return (1, "")
+            # Send command
+            s.sendall(command + "\n")
+            # Receive command output
+            data = ""
+            if block:
+                status, data = read_up_to_qemu_prompt(s, timeout)
+                data = "\n".join(data.splitlines()[1:])
+                if not status:
+                    logging.debug("Could not find (qemu) prompt after command; "
+                                  "output so far:" +
+                                  kvm_utils.format_str_for_message(data))
+                    return (1, data)
+            return (0, data)
+
+        # Clean up before exiting
+        finally:
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
 
 
     def destroy(self, gracefully=True):
