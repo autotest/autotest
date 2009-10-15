@@ -118,15 +118,6 @@ variants:
     - linux_s3:     install setup
         type = linux_s3
 
-    - guest_s4:
-        type = guest_s4
-        check_s4_support_cmd = grep -q disk /sys/power/state
-        test_s4_cmd = "cd /tmp/;nohup tcpdump -q -t ip host localhost"
-        check_s4_cmd = pgrep tcpdump
-        set_s4_cmd = echo disk > /sys/power/state
-        kill_test_s4_cmd = pkill tcpdump
-        services_up_timeout = 30
-
     - timedrift:    install setup
         extra_params += " -rtc-td-hack"
         variants:
@@ -166,7 +157,6 @@ variants:
         used_cpus = 5
         used_mem = 2560
 
-
     - autoit:       install setup
         type = autoit
         autoit_binary = D:\AutoIt3.exe
@@ -175,6 +165,15 @@ variants:
         variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
+
+    - guest_s4:
+        type = guest_s4
+        check_s4_support_cmd = grep -q disk /sys/power/state
+        test_s4_cmd = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        check_s4_cmd = pgrep tcpdump
+        set_s4_cmd = echo disk > /sys/power/state
+        kill_test_s4_cmd = pkill tcpdump
+        services_up_timeout = 30
 
     - nic_hotplug:       install setup
         type = pci_hotplug
@@ -518,8 +517,8 @@ variants:
             host_load_instances = 8
         guest_s4:
             check_s4_support_cmd = powercfg /hibernate on
-            test_s4_cmd = start /B ping -n 3000 localhost
-            check_s4_cmd = tasklist | find /I "ping"
+            test_s4_cmd = start ping -t localhost
+            check_s4_cmd = tasklist | find /I "ping.exe"
             set_s4_cmd = rundll32.exe PowrProf.dll, SetSuspendState
             kill_test_s4_cmd = taskkill /IM ping.exe /F
             services_up_timeout = 30
