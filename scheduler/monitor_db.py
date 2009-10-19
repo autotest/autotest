@@ -915,7 +915,7 @@ class Dispatcher(object):
         if unrecovered_hqes:
             message = '\n'.join(str(hqe) for hqe in unrecovered_hqes)
             raise SchedulerError(
-                    '%d unrecovered active host queue entries:\n%s' %
+                    '%d unrecovered verifying host queue entries:\n%s' %
                     (len(unrecovered_hqes), message))
 
 
