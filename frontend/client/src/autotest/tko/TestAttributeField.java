@@ -6,12 +6,12 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 
-public class IterationResultField extends StringParameterizedField {
-    public static final String BASE_NAME = "Iteration result";
+public class TestAttributeField extends StringParameterizedField {
+    public static final String BASE_NAME = "Test attribute";
 
     @Override
     protected ParameterizedField freshInstance() {
-        return new IterationResultField();
+        return new TestAttributeField();
     }
 
     @Override
@@ -21,25 +21,24 @@ public class IterationResultField extends StringParameterizedField {
 
     @Override
     public String getBaseSqlName() {
-        return "iteration_result_";
+        return "attribute_";
     }
 
     @Override
     public String getAttributeName() {
-        return getValue();
+        return "attribute_" + getValue();
     }
 
     @Override
     public void addQueryParameters(JSONObject parameters) {
-        JSONArray iterationKeys = 
-            Utils.setDefaultValue(parameters, "result_keys", new JSONArray()).isArray();
-        iterationKeys.set(iterationKeys.size(), new JSONString(getValue()));
+        JSONArray testAttributes = 
+            Utils.setDefaultValue(parameters, "test_attributes", new JSONArray()).isArray();
+        testAttributes.set(testAttributes.size(), new JSONString(getValue()));
     }
 
     @Override
     public String getSqlCondition(String value) {
-        // TODO: when grouping on iteration results is added, this will be necessary
-        throw new UnsupportedOperationException();
+        return getSimpleSqlCondition(getAttributeName(), value);
     }
 
 }

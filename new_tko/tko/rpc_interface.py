@@ -73,7 +73,8 @@ def get_num_groups(group_by, **filter_data):
     """
     Gets the count of unique groups with the given grouping fields.
     """
-    query = models.TestView.query_objects(filter_data)
+    query = models.TestView.objects.get_query_set_with_joins(filter_data)
+    query = models.TestView.query_objects(filter_data, initial_query=query)
     return models.TestView.objects.get_num_groups(query, group_by)
 
 
