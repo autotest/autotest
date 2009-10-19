@@ -715,8 +715,8 @@ def _get_autodir(host):
         logging.debug('Using existing host autodir: %s', autodir)
         return autodir
     client_autodir_paths = global_config.global_config.get_config_value(
-            'AUTOSERV', 'client_autodir_paths', type=list,
-            default=['/usr/local/autotest', '/home/autotest'])
+            'AUTOSERV', 'client_autodir_paths', type=list)
+
     for path in client_autodir_paths:
         try:
             autotest_binary = os.path.join(path, 'bin', 'autotest')
