@@ -13,7 +13,8 @@ rpc_logger = None
 def configure_logging():
     MAX_LOG_SIZE = config.get_config_value('SERVER', 'rpc_max_log_size_mb',
                                            type=int)
-    NUMBER_OF_OLD_LOGS = config.get_config_value('SERVER', 'rpc_num_old_logs')
+    NUMBER_OF_OLD_LOGS = config.get_config_value('SERVER', 'rpc_num_old_logs',
+                                                 type=int)
     log_path = config.get_config_value('SERVER', 'rpc_log_path')
 
     formatter = logging.Formatter(
