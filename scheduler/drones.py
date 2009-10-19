@@ -58,6 +58,10 @@ class _AbstractDrone(object):
         self.clear_call_queue()
 
 
+    def set_autotest_install_dir(self, path):
+        pass
+
+
 class _LocalDrone(_AbstractDrone):
     def __init__(self):
         super(_LocalDrone, self).__init__()
@@ -80,24 +84,11 @@ class _LocalDrone(_AbstractDrone):
 
 
 class _RemoteDrone(_AbstractDrone):
-    _temporary_directory = None
-
     def __init__(self, hostname):
         super(_RemoteDrone, self).__init__()
         self.hostname = hostname
         self._host = drone_utility.create_host(hostname)
         self._autotest_install_dir = AUTOTEST_INSTALL_DIR
-
-        try:
-            self._host.run('mkdir -p ' + self._temporary_directory,
-                           timeout=10)
-        except error.AutoservError:
-            pass
-
-
-    @classmethod
-    def set_temporary_directory(cls, temporary_directory):
-        cls._temporary_directory = temporary_directory
 
 
     def set_autotest_install_dir(self, path):
@@ -134,10 +125,6 @@ class _RemoteDrone(_AbstractDrone):
         else:
             self.queue_call('send_file_to', drone.hostname, source_path,
                             destination_path, can_fail)
-
-
-def set_temporary_directory(temporary_directory):
-    _RemoteDrone.set_temporary_directory(temporary_directory)
 
 
 def get_drone(hostname):

@@ -113,8 +113,6 @@ class DroneManager(object):
     def initialize(self, base_results_dir, drone_hostnames,
                    results_repository_hostname):
         self._results_dir = base_results_dir
-        drones.set_temporary_directory(
-                self.absolute_path(drone_utility._TEMPORARY_DIRECTORY))
 
         for hostname in drone_hostnames:
             drone = self._add_drone(hostname)
@@ -129,7 +127,12 @@ class DroneManager(object):
         logging.info('Using results repository on %s',
                      results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
-        self._results_drone.set_autotest_install_dir(base_results_dir)
+        results_installation_dir = global_config.global_config.get_config_value(
+                scheduler_config.CONFIG_SECTION,
+                'results_host_installation_directory', default=None)
+        if results_installation_dir:
+            self._results_drone.set_autotest_install_dir(
+                    results_installation_dir)
         # don't initialize() the results drone - we don't want to clear out any
         # directories and we don't need ot kill any processes
 

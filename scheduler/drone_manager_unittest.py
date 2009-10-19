@@ -2,8 +2,10 @@
 
 import os, unittest
 import common
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.scheduler import drone_manager, drone_utility, drones
+from autotest_lib.scheduler import scheduler_config
 
 class MockDrone(drones._AbstractDrone):
     def __init__(self, name, active_processes=0, max_processes=10):
@@ -69,6 +71,10 @@ class DroneManager(unittest.TestCase):
 
         # we don't want this to ever actually get called
         self.god.stub_function(drones, 'get_drone')
+        # we don't want the DroneManager to go messing with global config
+        def do_nothing():
+            pass
+        self.god.stub_with(self.manager, 'refresh_drone_configs', do_nothing)
 
         # set up some dummy drones
         self.mock_drone = MockDrone('mock_drone')
@@ -112,19 +118,19 @@ class DroneManager(unittest.TestCase):
 
 
     def test_initialize(self):
-        self.god.stub_function(drones, 'set_temporary_directory')
         results_hostname = 'results_repo'
+        results_install_dir = '/results/install'
+        global_config.global_config.override_config_value(
+                scheduler_config.CONFIG_SECTION,
+                'results_host_installation_directory', results_install_dir)
 
-        drones.set_temporary_directory.expect_call(
-                os.path.join(self._DRONE_RESULTS_DIR,
-                             drone_utility._TEMPORARY_DIRECTORY))
         (drones.get_drone.expect_call(self.mock_drone.name)
          .and_return(self.mock_drone))
 
         results_drone = MockDrone('results_drone')
         self.god.stub_function(results_drone, 'set_autotest_install_dir')
         drones.get_drone.expect_call(results_hostname).and_return(results_drone)
-        results_drone.set_autotest_install_dir.expect_call(self._RESULTS_DIR)
+        results_drone.set_autotest_install_dir.expect_call(results_install_dir)
 
         self.manager.initialize(base_results_dir=self._RESULTS_DIR,
                                 drone_hostnames=[self.mock_drone.name],
@@ -132,6 +138,7 @@ class DroneManager(unittest.TestCase):
 
         self.assert_(self.mock_drone.was_call_queued(
                 'initialize', self._DRONE_RESULTS_DIR + '/'))
+        self.god.check_playback()
 
 
     def test_execute_command(self):
