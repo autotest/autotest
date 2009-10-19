@@ -15,7 +15,7 @@ class TempManager(model_logic.ExtendedManager):
         field_names = []
         for field in fields:
             if field in extra_select_fields:
-                field_names.append(field)
+                field_names.append(extra_select_fields[field][0])
             else:
                 field_names.append(self._get_key_unless_is_function(field))
         return field_names
@@ -74,14 +74,19 @@ class TempManager(model_logic.ExtendedManager):
 
 
     def _get_num_groups_sql(self, query, group_by):
-        group_fields = self._get_field_names(group_by)
+        group_fields = self._get_field_names(group_by, query.query.extra_select)
         query = query.order_by() # this can mess up the query and isn't needed
 
         sql, params = query.query.as_sql()
         from_ = sql[sql.find(' FROM'):]
-        return ('SELECT COUNT(DISTINCT %s) %s' % (','.join(group_fields),
+        return ('SELECT DISTINCT %s %s' % (','.join(group_fields),
                                                   from_),
                 params)
+
+
+    def _cursor_rowcount(self, cursor):
+        """To be stubbed by tests"""
+        return cursor.rowcount
 
 
     def get_num_groups(self, query, group_by):
@@ -92,7 +97,7 @@ class TempManager(model_logic.ExtendedManager):
         sql, params = self._get_num_groups_sql(query, group_by)
         cursor = readonly_connection.connection().cursor()
         cursor.execute(sql, params)
-        return cursor.fetchone()[0]
+        return self._cursor_rowcount(cursor)
 
 
 class Machine(dbmodels.Model):

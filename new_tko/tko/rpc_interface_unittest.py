@@ -92,10 +92,16 @@ class RpcInterfaceTest(unittest.TestCase):
         self._god = mock.mock_god()
         self._god.stub_with(models.TempManager, '_get_column_names',
                             self._get_column_names_for_sqlite3)
+        self._god.stub_with(models.TempManager, '_cursor_rowcount',
+                            self._cursor_rowcount_for_sqlite3)
         setup_test_environment.set_up()
         fix_iteration_tables()
         setup_test_view()
         self._create_initial_data()
+
+
+    def _cursor_rowcount_for_sqlite3(self, cursor):
+        return len(cursor.fetchall())
 
 
     def tearDown(self):
@@ -418,10 +424,14 @@ class RpcInterfaceTest(unittest.TestCase):
 
 
     def test_grouping_with_test_attributes(self):
+        num_groups = rpc_interface.get_num_groups(['attribute_myattr'],
+                                                test_attributes=['myattr'])
+        self.assertEquals(num_groups, 2)
+
         counts = rpc_interface.get_group_counts(['attribute_myattr'],
                                                 test_attributes=['myattr'])
         groups = counts['groups']
-        self.assertEquals(len(groups), 2)
+        self.assertEquals(len(groups), num_groups)
         self.assertEquals(groups[0]['attribute_myattr'], None)
         self.assertEquals(groups[0]['group_count'], 2)
         self.assertEquals(groups[1]['attribute_myattr'], 'myval')
