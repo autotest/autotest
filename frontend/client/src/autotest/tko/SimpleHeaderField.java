@@ -1,6 +1,5 @@
 package autotest.tko;
 
-import autotest.common.Utils;
 
 class SimpleHeaderField extends HeaderField {
     public SimpleHeaderField(String name, String sqlName) {
@@ -9,10 +8,6 @@ class SimpleHeaderField extends HeaderField {
 
     @Override
     public String getSqlCondition(String value) {
-        if (value.equals(Utils.JSON_NULL)) {
-          return getSqlName() + " is null";
-        } else {
-          return getSqlName() + " = '" + TkoUtils.escapeSqlValue(value) + "'";
-        }
+        return getSimpleSqlCondition(getSqlName(), value);
     }
 }

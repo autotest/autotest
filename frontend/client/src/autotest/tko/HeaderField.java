@@ -1,5 +1,6 @@
 package autotest.tko;
 
+import autotest.common.Utils;
 import autotest.common.ui.MultiListSelectPresenter.Item;
 
 import com.google.gwt.json.client.JSONObject;
@@ -26,6 +27,17 @@ abstract class HeaderField implements Comparable<HeaderField> {
     
     public int compareTo(HeaderField other) {
         return name.compareTo(other.name);
+    }
+
+    /**
+     * A common helper for SQL conditions.
+     */
+    protected String getSimpleSqlCondition(String field, String value) {
+        if (value.equals(Utils.JSON_NULL)) {
+          return field + " is null";
+        } else {
+          return field + " = '" + TkoUtils.escapeSqlValue(value) + "'";
+        }
     }
 
     /**

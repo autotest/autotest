@@ -9,6 +9,7 @@ public abstract class ParameterizedField extends HeaderField {
         // add all ParameterizedField subclasses here.  these instances should never escape. 
         new MachineLabelField(),
         new IterationResultField(),
+        new TestAttributeField(),
     };
 
     private int fieldNumber;
