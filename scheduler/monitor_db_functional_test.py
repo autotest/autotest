@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import logging, unittest
+import logging, os, unittest
 import common
 from autotest_lib.client.common_lib import enum, global_config
 from autotest_lib.database import database_connection
@@ -16,6 +16,9 @@ _DB_TRANSLATORS = (
         # it arises in an important query
         _re_translator(r'GROUP_CONCAT\((.*?)\)', r'\1'),
 )
+
+HqeStatus = models.HostQueueEntry.Status
+HostStatus = models.Host.Status
 
 class NullMethodObject(object):
     _NULL_METHODS = ()
@@ -51,8 +54,21 @@ _PidfileType = enum.Enum('verify', 'cleanup', 'repair', 'job', 'gather',
 
 
 class MockDroneManager(NullMethodObject):
-    _NULL_METHODS = ('refresh', 'reinitialize_drones',
-                     'copy_to_results_repository')
+    _NULL_METHODS = ('reinitialize_drones', 'copy_to_results_repository',
+                     'copy_results_on_drone')
+
+    class _DummyPidfileId(object):
+        """
+        Object to represent pidfile IDs that is opaque to the scheduler code but
+        still debugging-friendly for us.
+        """
+        def __init__(self, debug_string):
+            self._debug_string = debug_string
+
+
+        def __str__(self):
+            return self._debug_string
+
 
     def __init__(self):
         super(MockDroneManager, self).__init__()
@@ -70,6 +86,9 @@ class MockDroneManager(NullMethodObject):
         self._process_index = {}
         # tracks pidfiles of processes that have been killed
         self._killed_pidfiles = set()
+        # pidfile IDs that have just been unregistered (so will disappear on the
+        # next cycle)
+        self._unregistered_pidfiles = set()
 
 
     # utility APIs for use by the test
@@ -91,6 +110,13 @@ class MockDroneManager(NullMethodObject):
         return pidfile_id in self._killed_pidfiles
 
 
+    def running_pidfile_ids(self):
+        return [str(pidfile_id) for pidfile_id, pidfile_contents
+                in self._pidfiles.iteritems()
+                if pidfile_contents.process is not None
+                and pidfile_contents.exit_status is None]
+
+
     # DroneManager emulation APIs for use by monitor_db
 
     def get_orphaned_autoserv_processes(self):
@@ -103,6 +129,13 @@ class MockDroneManager(NullMethodObject):
 
     def max_runnable_processes(self):
         return 100
+
+
+    def refresh(self):
+        for pidfile_id in self._unregistered_pidfiles:
+            # intentionally handle non-registered pidfiles silently
+            self._pidfiles.pop(pidfile_id, None)
+        self._unregistered_pidfiles = set()
 
 
     def execute_actions(self):
@@ -146,7 +179,8 @@ class MockDroneManager(NullMethodObject):
 
     def execute_command(self, command, working_directory, pidfile_name,
                         log_file=None, paired_with_pidfile=None):
-        pidfile_id = object() # PidfileIds are opaque to monitor_db
+        pidfile_id = self._DummyPidfileId(
+                self._get_pidfile_debug_string(working_directory, pidfile_name))
         self._future_pidfiles.append(pidfile_id)
         self._initialize_pidfile(pidfile_id)
         self._pidfile_index[(working_directory, pidfile_name)] = pidfile_id
@@ -154,9 +188,14 @@ class MockDroneManager(NullMethodObject):
         return pidfile_id
 
 
+    def _get_pidfile_debug_string(self, working_directory, pidfile_name):
+        return os.path.join(working_directory, pidfile_name)
+
+
     def get_pidfile_contents(self, pidfile_id, use_second_read=False):
-        return self._pidfiles.get(pidfile_id,
-                                           drone_manager.PidfileContents())
+        if pidfile_id not in self._pidfiles:
+            print 'Request for nonexistent pidfile %s' % pidfile_id
+        return self._pidfiles.get(pidfile_id, drone_manager.PidfileContents())
 
 
     def is_process_running(self, process):
@@ -168,8 +207,7 @@ class MockDroneManager(NullMethodObject):
 
 
     def unregister_pidfile(self, pidfile_id):
-        # intentionally handle non-registered pidfiles silently
-        self._pidfiles.pop(pidfile_id, None)
+        self._unregistered_pidfiles.add(pidfile_id)
 
 
     def absolute_path(self, path):
@@ -182,7 +220,11 @@ class MockDroneManager(NullMethodObject):
 
 
     def get_pidfile_id_from(self, execution_tag, pidfile_name):
-        return self._pidfile_index.get((execution_tag, pidfile_name), object())
+        debug_string = ('Nonexistent pidfile: '
+                        + self._get_pidfile_debug_string(execution_tag,
+                                                         pidfile_name))
+        return self._pidfile_index.get((execution_tag, pidfile_name),
+                                       self._DummyPidfileId(debug_string))
 
 
     def kill_process(self, process):
@@ -263,24 +305,136 @@ class SchedulerFunctionalTest(unittest.TestCase,
                      '%s/%s not executed' % (working_directory, pidfile_name))
 
 
+    def _check_statuses(self, queue_entry, queue_entry_status, host_status):
+        # update from DB
+        queue_entry = models.HostQueueEntry.objects.get(id=queue_entry.id)
+        self.assertEquals(queue_entry.status, queue_entry_status)
+        self.assertEquals(queue_entry.host.status, host_status)
+
+
+    def _run_pre_job_verify(self, queue_entry):
+        self._run_dispatcher() # launches verify
+        self._check_statuses(queue_entry, HqeStatus.VERIFYING,
+                             HostStatus.VERIFYING)
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+
+
     def test_simple_job(self):
         self._initialize_test()
         job, queue_entry = self._make_job_and_queue_entry()
-        self._run_dispatcher() # launches verify
-        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_pre_job_verify(queue_entry)
         self._run_dispatcher() # launches job
-        self._finish_job()
-
-        # update from DB
-        queue_entry = models.HostQueueEntry.objects.get(id=queue_entry.id)
-        self.assertEquals(queue_entry.status,
-                          models.HostQueueEntry.Status.COMPLETED)
-        self.assertEquals(queue_entry.host.status, models.Host.Status.READY)
+        self._check_statuses(queue_entry, HqeStatus.RUNNING, HostStatus.RUNNING)
+        self._finish_job(queue_entry)
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED, HostStatus.READY)
+        self._assert_nothing_is_running()
 
 
-    def _finish_job(self):
+    def _setup_for_pre_job_cleanup(self):
+        self._initialize_test()
+        job, queue_entry = self._make_job_and_queue_entry()
+        job.reboot_before = models.RebootBefore.ALWAYS
+        job.save()
+        return queue_entry
+
+
+    def _run_pre_job_cleanup_job(self, queue_entry):
+        self._run_dispatcher() # cleanup
+        self._check_statuses(queue_entry, HqeStatus.VERIFYING,
+                             HostStatus.CLEANING)
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
+        self._run_dispatcher() # verify
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher() # job
+        self._finish_job(queue_entry)
+
+
+    def test_pre_job_cleanup(self):
+        queue_entry = self._setup_for_pre_job_cleanup()
+        self._run_pre_job_cleanup_job(queue_entry)
+
+
+    def _run_pre_job_cleanup_one_failure(self):
+        queue_entry = self._setup_for_pre_job_cleanup()
+        self._run_dispatcher() # cleanup
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
+                                               exit_status=256)
+        self._run_dispatcher() # repair
+        self._check_statuses(queue_entry, HqeStatus.QUEUED,
+                             HostStatus.REPAIRING)
+        self.mock_drone_manager.finish_process(_PidfileType.REPAIR)
+        return queue_entry
+
+
+    def test_pre_job_cleanup_failure(self):
+        queue_entry = self._run_pre_job_cleanup_one_failure()
+        # from here the job should run as normal
+        self._run_pre_job_cleanup_job(queue_entry)
+
+
+    def test_pre_job_cleanup_double_failure(self):
+        # TODO (showard): this test isn't perfect.  in reality, when the second
+        # cleanup fails, it copies its results over to the job directory using
+        # copy_results_on_drone() and then parses them.  since we don't handle
+        # that, there appear to be no results at the job directory.  the
+        # scheduler handles this gracefully, parsing gets effectively skipped,
+        # and this test passes as is.  but we ought to properly test that
+        # behavior.
+        queue_entry = self._run_pre_job_cleanup_one_failure()
+        self._run_dispatcher() # second cleanup
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
+                                               exit_status=256)
+        self._run_dispatcher()
+        self._check_statuses(queue_entry, HqeStatus.FAILED,
+                             HostStatus.REPAIR_FAILED)
+        # nothing else should run
+        self._assert_nothing_is_running()
+
+
+    def _assert_nothing_is_running(self):
+        self.assertEquals(self.mock_drone_manager.running_pidfile_ids(), [])
+
+
+    def _run_post_job_cleanup_failure_up_to_repair(self):
+        self._initialize_test()
+        job, queue_entry = self._make_job_and_queue_entry()
+        job.reboot_after = models.RebootAfter.ALWAYS
+        job.save()
+
+        self._run_pre_job_verify(queue_entry)
+        self._run_dispatcher() # job
+        self.mock_drone_manager.finish_process(_PidfileType.JOB)
+        self._run_dispatcher() # parsing + cleanup
+        self.mock_drone_manager.finish_process(_PidfileType.PARSE)
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
+                                               exit_status=256)
+        self._run_dispatcher() # repair, HQE unaffected
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
+                             HostStatus.REPAIRING)
+        return queue_entry
+
+
+    def test_post_job_cleanup_failure(self):
+        queue_entry = self._run_post_job_cleanup_failure_up_to_repair()
+        self.mock_drone_manager.finish_process(_PidfileType.REPAIR)
+        self._run_dispatcher()
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED, HostStatus.READY)
+
+
+    def test_post_job_cleanup_failure_repair_failure(self):
+        queue_entry = self._run_post_job_cleanup_failure_up_to_repair()
+        self.mock_drone_manager.finish_process(_PidfileType.REPAIR,
+                                               exit_status=256)
+        self._run_dispatcher()
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
+                             HostStatus.REPAIR_FAILED)
+
+
+    def _finish_job(self, queue_entry):
         self.mock_drone_manager.finish_process(_PidfileType.JOB)
         self._run_dispatcher() # launches parsing + cleanup
+        self._check_statuses(queue_entry, HqeStatus.PARSING,
+                             HostStatus.CLEANING)
         self._finish_parsing_and_cleanup()
 
 
@@ -339,22 +493,22 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def test_recover_running_no_process(self):
         # recovery should re-execute a Running HQE if no process is found
         _, queue_entry = self._make_job_and_queue_entry()
-        queue_entry.status = models.HostQueueEntry.Status.RUNNING
+        queue_entry.status = HqeStatus.RUNNING
         queue_entry.execution_subdir = '1-myuser/host1'
         queue_entry.save()
-        queue_entry.host.status = models.Host.Status.RUNNING
+        queue_entry.host.status = HostStatus.RUNNING
         queue_entry.host.save()
 
         self._initialize_test()
         self._run_dispatcher()
-        self._finish_job()
+        self._finish_job(queue_entry)
 
 
     def test_recover_verifying_hqe_no_special_task(self):
         # recovery should fail on a Verifing HQE with no corresponding
         # Verify or Cleanup SpecialTask
         _, queue_entry = self._make_job_and_queue_entry()
-        queue_entry.status = models.HostQueueEntry.Status.VERIFYING
+        queue_entry.status = HqeStatus.VERIFYING
         queue_entry.save()
 
         # make some dummy SpecialTasks that shouldn't count
@@ -370,7 +524,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def _test_recover_verifying_hqe_helper(self, task, pidfile_type):
         _, queue_entry = self._make_job_and_queue_entry()
-        queue_entry.status = models.HostQueueEntry.Status.VERIFYING
+        queue_entry.status = HqeStatus.VERIFYING
         queue_entry.save()
 
         special_task = models.SpecialTask.objects.create(
