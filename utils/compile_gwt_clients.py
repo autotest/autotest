@@ -102,7 +102,7 @@ def compile_and_install_client(project_client, extra_args='',
     print 'Compiling client %s' % project_client
     try:
         utils.run(cmd, verbose=True)
-        if not install_client:
+        if install_client:
             return install_completed_client(java_args['compile_dir'],
                                             project_client)
         return True
