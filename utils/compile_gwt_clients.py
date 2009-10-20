@@ -150,8 +150,8 @@ def main():
                       dest='extra_args', action='store',
                       default='',
                       help='Extra arguments to pass to java')
-    parser.add_option('-d', '--no-install', dest='no_install',
-                      action='store_true', default=False,
+    parser.add_option('-d', '--no-install', dest='install_client',
+                      action='store_false', default=True,
                       help='Do not install the clients just compile them')
     options, args = parser.parse_args()
 
@@ -172,7 +172,7 @@ def main():
     elif options.compile_list:
         for client in options.compile_list.split():
             if not compile_and_install_client(client, options.extra_args,
-                                              options.no_install):
+                                              options.install_client):
                 failed_clients.append(client)
 
     if os.path.exists(_TMP_COMPILE_DIR):
