@@ -16,6 +16,10 @@ BOOT_TIME = 1800
 CRASH_RECOVERY_TIME = 9000
 
 
+class AutodirNotFoundError(Exception):
+    """No Autotest installation could be found."""
+
+
 class BaseAutotest(installable_object.InstallableObject):
     """
     This class represents the Autotest program.
@@ -45,17 +49,66 @@ class BaseAutotest(installable_object.InstallableObject):
         cls.install_in_tmpdir = flag
 
 
-    def _get_install_dir(self, host):
-        """ Determines the location where autotest should be installed on
+    @classmethod
+    def get_client_autodir_paths(cls, host):
+        return global_config.global_config.get_config_value(
+                'AUTOSERV', 'client_autodir_paths', type=list)
+
+
+    @classmethod
+    def get_installed_autodir(cls, host):
+        """
+        Find where the Autotest client is installed on the host.
+        @returns an absolute path to an installed Autotest client root.
+        @raises AutodirNotFoundError if no Autotest installation can be found.
+        """
+        autodir = host.get_autodir()
+        if autodir:
+            logging.debug('Using existing host autodir: %s', autodir)
+            return autodir
+
+        for path in Autotest.get_client_autodir_paths(host):
+            try:
+                autotest_binary = os.path.join(path, 'bin', 'autotest')
+                host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                logging.debug('Found existing autodir at %s', path)
+                return path
+            except error.AutoservRunError:
+                logging.debug('%s does not exist on %s', autotest_binary,
+                              host.hostname)
+        raise AutodirNotFoundError
+
+
+    @classmethod
+    def get_install_dir(cls, host):
+        """
+        Determines the location where autotest should be installed on
         host. If self.install_in_tmpdir is set, it will return a unique
-        temporary directory that autotest can be installed in. """
+        temporary directory that autotest can be installed in. Otherwise, looks
+        for an existing installation to use; if none is found, looks for a
+        usable directory in the global config client_autodir_paths.
+        """
+        if cls.install_in_tmpdir:
+            return host.get_tmp_dir(parent=autodir)
+
         try:
-            autodir = _get_autodir(host)
-        except error.AutotestRunError:
-            autodir = '/usr/local/autotest'
-        if self.install_in_tmpdir:
-            autodir = host.get_tmp_dir(parent=autodir)
-        return autodir
+            return cls.get_installed_autodir(host)
+        except AutodirNotFoundError:
+            return cls._find_installable_dir(host)
+
+
+    @classmethod
+    def _find_installable_dir(cls, host):
+        client_autodir_paths = cls.get_client_autodir_paths(host)
+        for path in client_autodir_paths:
+            try:
+                host.run('mkdir -p %s' % utils.sh_escape(path))
+                return path
+            except error.AutoservRunError:
+                logging.debug('Failed to create %s', path)
+        raise error.AutoservInstallError(
+                'Unable to find a place to install Autotest; tried %s',
+                ', '.join(client_autodir_paths))
 
 
     @log.record
@@ -141,7 +194,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # set up the autotest directory on the remote machine
         if not autodir:
-            autodir = self._get_install_dir(host)
+            autodir = self.get_install_dir(host)
+        logging.info('Using installation dir %s', autodir)
         host.set_autodir(autodir)
         host.run('mkdir -p %s' % utils.sh_escape(autodir))
 
@@ -397,7 +451,7 @@ class _Run(object):
         self.tag = tag
         self.parallel_flag = parallel_flag
         self.background = background
-        self.autodir = _get_autodir(self.host)
+        self.autodir = Autotest.get_installed_autodir(self.host)
         control = os.path.join(self.autodir, 'control')
         if tag:
             control += '.' + tag
@@ -709,25 +763,6 @@ class _Run(object):
         raise error.AutotestTimeoutError()
 
 
-def _get_autodir(host):
-    autodir = host.get_autodir()
-    if autodir:
-        logging.debug('Using existing host autodir: %s', autodir)
-        return autodir
-    client_autodir_paths = global_config.global_config.get_config_value(
-            'AUTOSERV', 'client_autodir_paths', type=list)
-
-    for path in client_autodir_paths:
-        try:
-            autotest_binary = os.path.join(path, 'bin', 'autotest')
-            host.run('test -x %s' % utils.sh_escape(autotest_binary))
-            logging.debug('Found autodir at %s', path)
-            return path
-        except error.AutoservRunError:
-            logging.debug('%s does not exist on %s', path, host.hostname)
-    raise error.AutotestRunError('Cannot figure out autotest directory')
-
-
 class log_collector(object):
     def __init__(self, host, client_tag, results_dir):
         self.host = host
@@ -1005,6 +1040,7 @@ class client_logger(object):
 SiteAutotest = client_utils.import_site_class(
     __file__, "autotest_lib.server.site_autotest", "SiteAutotest",
     BaseAutotest)
+
 
 class Autotest(SiteAutotest):
     pass
