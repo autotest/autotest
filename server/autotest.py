@@ -276,8 +276,10 @@ class BaseAutotest(installable_object.InstallableObject):
         # can cause problems. Try giving it a quick clean first.
         cwd = os.getcwd()
         os.chdir(location)
-        os.system('tools/make_clean')
-        os.chdir(cwd)
+        try:
+            utils.system('tools/make_clean', ignore_status=True)
+        finally:
+            os.chdir(cwd)
         super(BaseAutotest, self).get(location)
         self.got = True
 

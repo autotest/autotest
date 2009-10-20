@@ -37,6 +37,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(utils, "get")
         self.god.stub_function(utils, "read_keyval")
         self.god.stub_function(utils, "write_keyval")
+        self.god.stub_function(utils, "system")
         self.god.stub_function(tempfile, "mkstemp")
         self.god.stub_function(tempfile, "mktemp")
         self.god.stub_function(os, "getcwd")
@@ -88,7 +89,7 @@ class TestBaseAutotest(unittest.TestCase):
         # record
         os.getcwd.expect_call().and_return('cwd')
         os.chdir.expect_call(os.path.join(self.serverdir, '../client'))
-        os.system.expect_call('tools/make_clean')
+        utils.system.expect_call('tools/make_clean', ignore_status=True)
         os.chdir.expect_call('cwd')
         utils.get.expect_call(os.path.join(self.serverdir,
             '../client')).and_return('source_material')
