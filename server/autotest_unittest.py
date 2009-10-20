@@ -7,6 +7,7 @@ import common
 from autotest_lib.server import autotest, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
+from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -46,7 +47,6 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
         self.god.stub_function(os.path, "isdir")
-        self.god.stub_function(utils, "sh_escape")
         self.god.stub_function(autotest, "open")
         self.god.stub_function(autotest.global_config.global_config,
                                "get_config_value")
@@ -97,10 +97,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.setup.expect_call()
         self.host.get_autodir.expect_call().and_return("autodir")
         self.host.set_autodir.expect_call("autodir")
-        utils.sh_escape.expect_call("autodir").and_return("autodir")
         self.host.run.expect_call('mkdir -p autodir')
-        utils.sh_escape.expect_call("autodir/results").and_return(
-            "autodir/results")
         self.host.run.expect_call('rm -rf autodir/results/*',
                                   ignore_status=True)
 
@@ -247,6 +244,40 @@ class TestBaseAutotest(unittest.TestCase):
         # run and check output
         self.base_autotest.run(control, timeout=30)
         self.god.check_playback()
+
+
+    def _stub_get_client_autodir_paths(self):
+        def mock_get_client_autodir_paths(cls, host):
+            return ['/some/path', '/another/path']
+        self.god.stub_with(autotest.Autotest, 'get_client_autodir_paths',
+                           classmethod(mock_get_client_autodir_paths))
+
+
+    def _expect_failed_run(self, command):
+        (self.host.run.expect_call(command)
+         .and_raises(error.AutoservRunError('dummy', object())))
+
+
+    def test_get_installed_autodir(self):
+        self._stub_get_client_autodir_paths()
+        self.host.get_autodir.expect_call().and_return(None)
+        self._expect_failed_run('test -x /some/path/bin/autotest')
+        self.host.run.expect_call('test -x /another/path/bin/autotest')
+
+        autodir = autotest.Autotest.get_installed_autodir(self.host)
+        self.assertEquals(autodir, '/another/path')
+
+
+    def test_get_install_dir(self):
+        self._stub_get_client_autodir_paths()
+        self.host.get_autodir.expect_call().and_return(None)
+        self._expect_failed_run('test -x /some/path/bin/autotest')
+        self._expect_failed_run('test -x /another/path/bin/autotest')
+        self._expect_failed_run('mkdir -p /some/path')
+        self.host.run.expect_call('mkdir -p /another/path')
+
+        install_dir = autotest.Autotest.get_install_dir(self.host)
+        self.assertEquals(install_dir, '/another/path')
 
 
 if __name__ == "__main__":
