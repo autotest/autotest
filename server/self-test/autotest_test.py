@@ -45,13 +45,13 @@ class AutotestTestCase(unittest.TestCase):
 
         host = MockInstallHost()
         self.assertEqual('/stuff/autotest',
-                         autotest._get_autodir(host))
+                         autotest.Autotest.get_installed_autodir(host))
         host.result = "autodir=/stuff/autotest\n"
         self.assertEqual('/stuff/autotest',
-                         autotest._get_autodir(host))
+                         autotest.Autotest.get_installed_autodir(host))
         host.result = 'autodir="/stuff/auto test"\n'
         self.assertEqual('/stuff/auto test',
-                         autotest._get_autodir(host))
+                         autotest.Autotest.get_installed_autodir(host))
 
 
     def testInstallFromDir(self):
