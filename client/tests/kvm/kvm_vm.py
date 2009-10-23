@@ -339,20 +339,26 @@ class VM:
             if params.get("md5sum_1m"):
                 logging.debug("Comparing expected MD5 sum with MD5 sum of "
                               "first MB of ISO file...")
-                actual_md5sum = kvm_utils.md5sum_file(iso, 1048576)
-                expected_md5sum = params.get("md5sum_1m")
+                actual_hash = kvm_utils.hash_file(iso, 1048576, method="md5")
+                expected_hash = params.get("md5sum_1m")
                 compare = True
             elif params.get("md5sum"):
                 logging.debug("Comparing expected MD5 sum with MD5 sum of ISO "
                               "file...")
-                actual_md5sum = kvm_utils.md5sum_file(iso)
-                expected_md5sum = params.get("md5sum")
+                actual_hash = kvm_utils.md5sum_file(iso, method="md5")
+                expected_hash = params.get("md5sum")
+                compare = True
+            elif params.get("sha1sum"):
+                logging.debug("Comparing expected SHA1 sum with SHA1 sum of "
+                              "ISO file...")
+                actual_hash = kvm_utils.md5sum_file(iso, method="sha1")
+                expected_hash = params.get("md5sum")
                 compare = True
             if compare:
-                if actual_md5sum == expected_md5sum:
-                    logging.debug("MD5 sums match")
+                if actual_hash == expected_hash:
+                    logging.debug("Hashes match")
                 else:
-                    logging.error("Actual MD5 sum differs from expected one")
+                    logging.error("Actual hash differs from expected one")
                     return False
 
         # Make sure the following code is not executed by more than one thread
