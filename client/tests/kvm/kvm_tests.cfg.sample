@@ -772,10 +772,8 @@ variants:
 variants:
     - @ide:
         drive_format=ide
-        image_boot=yes
     - scsi:
         drive_format=scsi
-        image_boot=yes
     - virtio_blk:
         drive_format=virtio
         image_boot=yes
