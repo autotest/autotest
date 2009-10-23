@@ -61,13 +61,16 @@ def main():
     package_dir = os.path.join(top_of_tree, PACKAGE_DIR)
     install_dir = os.path.join(top_of_tree, INSTALL_DIR)
 
+    # Make sure the install_dir is in our python module search path
+    # as well as the PYTHONPATH being used by all our setup.py
+    # install subprocesses.
     if install_dir not in sys.path:
-        # Make sure the install_dir is in our python module search path
-        # as well as the PYTHONPATH being used by all our setup.py
-        # install subprocesses.
         sys.path.insert(0, install_dir)
-        os.environ['PYTHONPATH'] = ':'.join([
-            install_dir, os.environ.get('PYTHONPATH', '')])
+    env_python_path_varname = 'PYTHONPATH'
+    env_python_path = os.environ.get(env_python_path_varname, '')
+    if install_dir+':' not in env_python_path:
+        os.environ[env_python_path_varname] = ':'.join([
+            install_dir, env_python_path])
 
     fetched_packages, fetch_errors = fetch_necessary_packages(package_dir,
                                                               install_dir)
