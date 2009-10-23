@@ -252,6 +252,8 @@ class VM:
                 if script_path:
                     script_path = kvm_utils.get_path(root_dir, script_path)
                     qemu_cmd += ",downscript=%s" % script_path
+                else:
+                    qemu_cmd += ",downscript=no"
             # Proceed to next NIC
             vlan += 1
 
