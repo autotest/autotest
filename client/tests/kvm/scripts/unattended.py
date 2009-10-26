@@ -136,8 +136,8 @@ class UnattendedInstall(object):
         pxe_dest = os.path.join(self.tftp_root, 'pxelinux.0')
         shutil.copyfile(pxe_file, pxe_dest)
 
-        m_cmd = 'mount -t iso9660 -v -o loop %s %s' % (self.cdrom_iso,
-                                                       self.cdrom_mount)
+        m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_iso,
+                                                          self.cdrom_mount)
         if os.system(m_cmd):
             raise SetupError('Could not mount CD image %s.' % self.cdrom_iso)
 
