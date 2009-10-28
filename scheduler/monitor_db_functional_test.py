@@ -54,6 +54,11 @@ _PidfileType = enum.Enum('verify', 'cleanup', 'repair', 'job', 'gather',
 
 
 class MockDroneManager(NullMethodObject):
+    """
+    Public attributes:
+    max_runnable_processes_value: value returned by max_runnable_processes().
+            tests can change this to activate throttling.
+    """
     _NULL_METHODS = ('reinitialize_drones', 'copy_to_results_repository',
                      'copy_results_on_drone')
 
@@ -72,6 +77,8 @@ class MockDroneManager(NullMethodObject):
 
     def __init__(self):
         super(MockDroneManager, self).__init__()
+        self.max_runnable_processes_value = 100
+
         # maps result_dir to set of tuples (file_path, file_contents)
         self._attached_files = {}
         # maps pidfile IDs to PidfileContents
@@ -96,6 +103,11 @@ class MockDroneManager(NullMethodObject):
     def finish_process(self, pidfile_type, exit_status=0):
         pidfile_id = self._last_pidfile_id[pidfile_type]
         self._set_pidfile_exit_status(pidfile_id, exit_status)
+
+
+    def finish_specific_process(self, working_directory, pidfile_name):
+        pidfile_id = self._pidfile_index[(working_directory, pidfile_name)]
+        self._set_pidfile_exit_status(pidfile_id, 0)
 
 
     def _set_pidfile_exit_status(self, pidfile_id, exit_status):
@@ -128,7 +140,7 @@ class MockDroneManager(NullMethodObject):
 
 
     def max_runnable_processes(self):
-        return 100
+        return self.max_runnable_processes_value
 
 
     def refresh(self):
@@ -650,6 +662,133 @@ class SchedulerFunctionalTest(unittest.TestCase,
         # recover an HQE that was in pre-job verify
         self._test_recover_verifying_hqe_helper(models.SpecialTask.Task.VERIFY,
                                                 _PidfileType.VERIFY)
+
+
+    def test_job_scheduled_just_after_abort(self):
+        # test a pretty obscure corner case where a job is aborted while queued,
+        # another job is ready to run, and throttling is active. the post-abort
+        # cleanup must not be pre-empted by the second job.
+        job1, queue_entry1 = self._make_job_and_queue_entry()
+        job2, queue_entry2 = self._make_job_and_queue_entry()
+
+        self.mock_drone_manager.max_runnable_processes_value = 0
+        self._run_dispatcher() # schedule job1, but won't start verify
+        job1.hostqueueentry_set.update(aborted=True)
+        self.mock_drone_manager.max_runnable_processes_value = 100
+        self._run_dispatcher() # cleanup must run here, not verify for job2
+        self._check_statuses(queue_entry1, HqeStatus.ABORTED,
+                             HostStatus.CLEANING)
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
+        self._run_dispatcher() # now verify starts for job2
+        self._check_statuses(queue_entry2, HqeStatus.VERIFYING,
+                             HostStatus.VERIFYING)
+
+
+    def _test_job_scheduled_just_after_abort_2(self):
+        # test a pretty obscure corner case where a job is aborted while queued,
+        # another job is ready to run, and throttling is active. the post-abort
+        # cleanup must not be pre-empted by the second job.
+        job1, _ = self._make_job_and_queue_entry()
+        job2 = self._create_job(hosts=[1,2])
+        job2.synch_count = 2
+        job2.save()
+
+        self.mock_drone_manager.max_runnable_processes_value = 0
+        self._run_dispatcher() # schedule job1, but won't start verify
+        job1.hostqueueentry_set.update(aborted=True)
+        self.mock_drone_manager.max_runnable_processes_value = 100
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_specific_process(
+                'hosts/host2/2-verify', monitor_db._AUTOSERV_PID_FILE)
+        self._run_dispatcher()
+
+
+    def test_reverify_interrupting_pre_job(self):
+        # ensure things behave sanely if a reverify is scheduled in the middle
+        # of pre-job actions
+        _, queue_entry = self._make_job_and_queue_entry()
+
+        self._run_dispatcher() # pre-job verify
+        self._create_reverify_request()
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY,
+                                               exit_status=256)
+        self._run_dispatcher() # repair
+        self.mock_drone_manager.finish_process(_PidfileType.REPAIR)
+        self._run_dispatcher() # reverify runs now
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher() # pre-job verify
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher() # and job runs...
+        self._check_statuses(queue_entry, HqeStatus.RUNNING, HostStatus.RUNNING)
+        self._finish_job(queue_entry) # reverify has been deleted
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
+                             HostStatus.READY)
+        self._assert_nothing_is_running()
+
+
+    def test_reverify_while_job_running(self):
+        # once a job is running, a reverify must not be allowed to preempt
+        # Gathering
+        _, queue_entry = self._make_job_and_queue_entry()
+        self._run_pre_job_verify(queue_entry)
+        self._run_dispatcher() # job runs
+        self._create_reverify_request()
+        # make job end with a signal, so gathering will run
+        self.mock_drone_manager.finish_process(_PidfileType.JOB,
+                                               exit_status=271)
+        self._run_dispatcher() # gathering must start
+        self.mock_drone_manager.finish_process(_PidfileType.GATHER)
+        self._run_dispatcher() # parsing and cleanup
+        self._finish_parsing_and_cleanup()
+        self._run_dispatcher() # now reverify runs
+        self._check_statuses(queue_entry, HqeStatus.FAILED,
+                             HostStatus.VERIFYING)
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self._check_host_status(queue_entry.host, HostStatus.READY)
+
+
+    def test_reverify_while_host_pending(self):
+        # ensure that if a reverify is scheduled while a host is in Pending, it
+        # won't run until the host is actually free
+        job = self._create_job(hosts=[1,2])
+        queue_entry = job.hostqueueentry_set.get(host__hostname='host1')
+        job.synch_count = 2
+        job.save()
+
+        host2 = self.hosts[1]
+        host2.locked = True
+        host2.save()
+
+        self._run_dispatcher() # verify host1
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher() # host1 Pending
+        self._check_statuses(queue_entry, HqeStatus.PENDING, HostStatus.PENDING)
+        self._create_reverify_request()
+        self._run_dispatcher() # nothing should happen here
+        self._check_statuses(queue_entry, HqeStatus.PENDING, HostStatus.PENDING)
+
+        # now let the job run
+        host2.locked = False
+        host2.save()
+        self._run_dispatcher() # verify host2
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher() # run job
+        self._finish_job(queue_entry)
+        # need to explicitly finish host1's post-job cleanup
+        self.mock_drone_manager.finish_specific_process(
+                'hosts/host1/4-cleanup', monitor_db._AUTOSERV_PID_FILE)
+        self._run_dispatcher()
+        # the reverify should now be running
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
+                             HostStatus.VERIFYING)
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self._check_host_status(queue_entry.host, HostStatus.READY)
 
 
 if __name__ == '__main__':
