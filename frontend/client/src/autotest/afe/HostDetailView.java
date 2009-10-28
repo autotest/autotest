@@ -189,11 +189,18 @@ public class HostDetailView extends DetailView
             return;
         }
         
+        String lockedText = Utils.jsonToString(currentHostObject.get(HostDataSource.LOCKED_TEXT));
+        if (currentHostObject.get("locked").isBoolean().booleanValue()) {
+            String lockedBy = Utils.jsonToString(currentHostObject.get("locked_by"));
+            String lockedTime = Utils.jsonToString(currentHostObject.get("lock_time"));
+            lockedText += ", by " + lockedBy + " on " + lockedTime;
+        }
+        
         showField(currentHostObject, "status", "view_host_status");
         showField(currentHostObject, "platform", "view_host_platform");
         showField(currentHostObject, HostDataSource.HOST_ACLS, "view_host_acls");
         showField(currentHostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
-        showField(currentHostObject, HostDataSource.LOCKED_TEXT, "view_host_locked");
+        showText(lockedText, "view_host_locked");
         showField(currentHostObject, "protection", "view_host_protection");
         String pageTitle = "Host " + hostname;
         updateLockButton();
