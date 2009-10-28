@@ -40,12 +40,12 @@ class AbstractSSHHost(SiteHost):
         self.password = password
 
 
-    def _encode_remote_paths(self, paths):
+    def _encode_remote_paths(self, paths, escape=True):
         """ Given a list of file paths, encodes it as a single remote path, in
         the style used by rsync and scp. """
-        escaped_paths = [utils.scp_remote_escape(path) for path in paths]
-        return '%s@%s:"%s"' % (self.user, self.hostname,
-                               " ".join(escaped_paths))
+        if escape:
+            paths = [utils.scp_remote_escape(path) for path in paths]
+        return '%s@%s:"%s"' % (self.user, self.hostname, " ".join(paths))
 
 
     def _make_rsync_cmd(self, sources, dest, delete_dest, preserve_symlinks):
@@ -89,24 +89,26 @@ class AbstractSSHHost(SiteHost):
 
         # make a function to test if a pattern matches any files
         if is_local:
-            def glob_matches_files(path):
-                return len(glob.glob(path)) > 0
+            def glob_matches_files(path, pattern):
+                return len(glob.glob(path + pattern)) > 0
         else:
-            def glob_matches_files(path):
-                result = self.run("ls \"%s\"" % utils.sh_escape(path),
-                                  ignore_status=True)
+            def glob_matches_files(path, pattern):
+                result = self.run("ls \"%s\"%s" % (utils.sh_escape(path),
+                                                   pattern),
+                                  stdout_tee=None, ignore_status=True)
                 return result.exit_status == 0
 
         # take a set of globs that cover all files, and see which are needed
         patterns = ["*", ".[!.]*"]
-        patterns = [p for p in patterns if glob_matches_files(path + p)]
+        patterns = [p for p in patterns if glob_matches_files(path, p)]
 
         # convert them into a set of paths suitable for the commandline
-        path = utils.sh_escape(path)
         if is_local:
-            return ["\"%s\"%s" % (path, pattern) for pattern in patterns]
+            return ["\"%s\"%s" % (utils.sh_escape(path), pattern)
+                    for pattern in patterns]
         else:
-            return ["\"%s\"" % (path + pattern) for pattern in patterns]
+            return [utils.scp_remote_escape(path) + pattern
+                    for pattern in patterns]
 
 
     def _make_rsync_compatible_source(self, source, is_local):
@@ -210,7 +212,9 @@ class AbstractSSHHost(SiteHost):
 
             remote_source = self._make_rsync_compatible_source(source, False)
             if remote_source:
-                remote_source = self._encode_remote_paths(remote_source)
+                # _make_rsync_compatible_source() already did the escaping
+                remote_source = self._encode_remote_paths(remote_source,
+                                                          escape=False)
                 local_dest = utils.sh_escape(dest)
                 scp = self._make_scp_cmd([remote_source], local_dest)
                 try:
