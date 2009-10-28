@@ -146,15 +146,8 @@ if queue_entries and queue_entries[0]['atomic_group']:
 
         # Check for locked hosts.
         locked_hosts = [h for h in atomic_hosts if h['locked']]
-        lock_user_ids = [host['locked_by'] for host in locked_hosts]
-        user_id_to_login = {}
-        if lock_user_ids:
-            lock_owners = proxy.run('get_users', id__in=lock_user_ids)
-            for lock_owner in lock_owners:
-                user_id_to_login[lock_owner['id']] = lock_owner['login']
         for host in locked_hosts:
-            locked_by = host.get('locked_by')
-            locker = user_id_to_login.get(locked_by, 'UNKNOWN')
+            locker = host.get('locked_by') or 'UNKNOWN'
             msg = 'Locked by user %s on %s.  No jobs will schedule on it.' % (
                     locker, host.get('lock_time'))
             host_exclude_reasons.setdefault(host['hostname'], []).append(msg)
