@@ -190,11 +190,11 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
     # Compile a regex that matches the given IP address and any of the given
     # MAC addresses
     mac_regex = "|".join("(%s)" % mac for mac in macs)
-    regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex))
+    regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.IGNORECASE)
 
     # Check the ARP cache
     o = commands.getoutput("/sbin/arp -n")
-    if re.search(regex, o, re.IGNORECASE):
+    if regex.search(o):
         return True
 
     # Get the name of the bridge device for arping
@@ -206,7 +206,7 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
 
     # Send an ARP request
     o = commands.getoutput("/sbin/arping -f -c 3 -I %s %s" % (dev, ip))
-    return bool(re.search(regex, o, re.IGNORECASE))
+    return bool(regex.search(o))
 
 
 # Functions for working with the environment (a dict-like object)
