@@ -1815,6 +1815,8 @@ class PreJobTask(SpecialAgentTask):
         self._copy_to_results_repository()
 
         if self.host.protection == host_protections.Protection.DO_NOT_VERIFY:
+            # effectively ignore failure for these hosts
+            self.success = True
             return
 
         if self.queue_entry:
@@ -2182,20 +2184,21 @@ class CleanupTask(PreJobTask):
 
 
     def _finish_epilog(self):
-        if not self.queue_entry:
+        if not self.queue_entry or not self.success:
             return
 
-        if self.host.protection == host_protections.Protection.DO_NOT_VERIFY:
+        do_not_verify_protection = host_protections.Protection.DO_NOT_VERIFY
+        should_run_verify = (
+                self.queue_entry.job.run_verify
+                and self.host.protection != do_not_verify_protection)
+        if should_run_verify:
+            entry = models.HostQueueEntry(id=self.queue_entry.id)
+            models.SpecialTask.objects.create(
+                    host=models.Host(id=self.host.id),
+                    queue_entry=entry,
+                    task=models.SpecialTask.Task.VERIFY)
+        else:
             self.queue_entry.on_pending()
-        elif self.success:
-            if self.queue_entry.job.run_verify:
-                entry = models.HostQueueEntry(id=self.queue_entry.id)
-                models.SpecialTask.objects.create(
-                        host=models.Host(id=self.host.id),
-                        queue_entry=entry,
-                        task=models.SpecialTask.Task.VERIFY)
-            else:
-                self.queue_entry.on_pending()
 
 
     def epilog(self):
