@@ -2,7 +2,7 @@
 
 import logging, os, unittest
 import common
-from autotest_lib.client.common_lib import enum, global_config
+from autotest_lib.client.common_lib import enum, global_config, host_protections
 from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils, models
@@ -312,6 +312,12 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.assertEquals(queue_entry.host.status, host_status)
 
 
+    def _check_host_status(self, host, status):
+        # update from DB
+        host = models.Host.objects.get(id=host.id)
+        self.assertEquals(host.status, status)
+
+
     def _run_pre_job_verify(self, queue_entry):
         self._run_dispatcher() # launches verify
         self._check_statuses(queue_entry, HqeStatus.VERIFYING,
@@ -395,13 +401,18 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.assertEquals(self.mock_drone_manager.running_pidfile_ids(), [])
 
 
-    def _run_post_job_cleanup_failure_up_to_repair(self):
+    def _setup_for_post_job_cleanup(self):
         self._initialize_test()
         job, queue_entry = self._make_job_and_queue_entry()
         job.reboot_after = models.RebootAfter.ALWAYS
         job.save()
+        return queue_entry
 
-        self._run_pre_job_verify(queue_entry)
+
+    def _run_post_job_cleanup_failure_up_to_repair(self, queue_entry,
+                                                   include_verify=True):
+        if include_verify:
+            self._run_pre_job_verify(queue_entry)
         self._run_dispatcher() # job
         self.mock_drone_manager.finish_process(_PidfileType.JOB)
         self._run_dispatcher() # parsing + cleanup
@@ -409,20 +420,22 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
                                                exit_status=256)
         self._run_dispatcher() # repair, HQE unaffected
-        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
-                             HostStatus.REPAIRING)
         return queue_entry
 
 
     def test_post_job_cleanup_failure(self):
-        queue_entry = self._run_post_job_cleanup_failure_up_to_repair()
+        queue_entry = self._setup_for_post_job_cleanup()
+        self._run_post_job_cleanup_failure_up_to_repair(queue_entry)
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED,
+                             HostStatus.REPAIRING)
         self.mock_drone_manager.finish_process(_PidfileType.REPAIR)
         self._run_dispatcher()
         self._check_statuses(queue_entry, HqeStatus.COMPLETED, HostStatus.READY)
 
 
     def test_post_job_cleanup_failure_repair_failure(self):
-        queue_entry = self._run_post_job_cleanup_failure_up_to_repair()
+        queue_entry = self._setup_for_post_job_cleanup()
+        self._run_post_job_cleanup_failure_up_to_repair(queue_entry)
         self.mock_drone_manager.finish_process(_PidfileType.REPAIR,
                                                exit_status=256)
         self._run_dispatcher()
@@ -442,6 +455,95 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
         self.mock_drone_manager.finish_process(_PidfileType.PARSE)
         self._run_dispatcher()
+
+
+    def _create_reverify_request(self):
+        host = self.hosts[0]
+        models.SpecialTask.objects.create(host=host,
+                                          task=models.SpecialTask.Task.VERIFY)
+        return host
+
+
+    def test_requested_reverify(self):
+        host = self._create_reverify_request()
+        self._run_dispatcher()
+        self._check_host_status(host, HostStatus.VERIFYING)
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self._check_host_status(host, HostStatus.READY)
+
+
+    def test_requested_reverify_failure(self):
+        host = self._create_reverify_request()
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY,
+                                               exit_status=256)
+        self._run_dispatcher() # repair
+        self._check_host_status(host, HostStatus.REPAIRING)
+        self.mock_drone_manager.finish_process(_PidfileType.REPAIR)
+        self._run_dispatcher()
+        self._check_host_status(host, HostStatus.READY)
+
+
+    def _setup_for_do_not_verify(self):
+        self._initialize_test()
+        job, queue_entry = self._make_job_and_queue_entry()
+        queue_entry.host.protection = host_protections.Protection.DO_NOT_VERIFY
+        queue_entry.host.save()
+        return queue_entry
+
+
+    def test_do_not_verify_job(self):
+        queue_entry = self._setup_for_do_not_verify()
+        self._run_dispatcher() # runs job directly
+        self._finish_job(queue_entry)
+
+
+    def test_do_not_verify_job_with_cleanup(self):
+        queue_entry = self._setup_for_do_not_verify()
+        queue_entry.job.reboot_before = models.RebootBefore.ALWAYS
+        queue_entry.job.save()
+
+        self._run_dispatcher() # cleanup
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
+        self._run_dispatcher() # job
+        self._finish_job(queue_entry)
+
+
+    def test_do_not_verify_pre_job_cleanup_failure(self):
+        queue_entry = self._setup_for_do_not_verify()
+        queue_entry.job.reboot_before = models.RebootBefore.ALWAYS
+        queue_entry.job.save()
+
+        self._run_dispatcher() # cleanup
+        self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
+                                               exit_status=256)
+        self._run_dispatcher() # failure ignored; job runs
+        self._finish_job(queue_entry)
+
+
+    def test_do_not_verify_post_job_cleanup_failure(self):
+        queue_entry = self._setup_for_do_not_verify()
+
+        self._run_post_job_cleanup_failure_up_to_repair(queue_entry,
+                                                        include_verify=False)
+        # failure ignored, host still set to Ready
+        self._check_statuses(queue_entry, HqeStatus.COMPLETED, HostStatus.READY)
+        self._run_dispatcher() # nothing else runs
+        self._assert_nothing_is_running()
+
+
+    def test_do_not_verify_requested_reverify_failure(self):
+        host = self._create_reverify_request()
+        host.protection = host_protections.Protection.DO_NOT_VERIFY
+        host.save()
+
+        self._run_dispatcher()
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY,
+                                               exit_status=256)
+        self._run_dispatcher()
+        self._check_host_status(host, HostStatus.READY) # ignore failure
+        self._assert_nothing_is_running()
 
 
     def test_job_abort_in_verify(self):
