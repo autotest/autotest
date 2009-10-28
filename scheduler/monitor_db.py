@@ -646,9 +646,9 @@ class Dispatcher(object):
         self._find_aborting()
         self._process_recurring_runs()
         self._schedule_delay_tasks()
-        self._schedule_new_jobs()
         self._schedule_running_host_queue_entries()
         self._schedule_special_tasks()
+        self._schedule_new_jobs()
         self._handle_agents()
         _drone_manager.execute_actions()
         email_manager.manager.send_queued_emails()
@@ -836,11 +836,9 @@ class Dispatcher(object):
         Recovers all special tasks that have started running but have not
         completed.
         """
-
         tasks = models.SpecialTask.objects.filter(is_active=True,
                                                   is_complete=False)
-        # Use ordering to force NULL queue_entry_id's to the end of the list
-        for task in tasks.order_by('-queue_entry__id'):
+        for task in tasks:
             if self.host_has_agent(task.host):
                 raise SchedulerError(
                         "%s already has a host agent %s." % (
@@ -850,53 +848,7 @@ class Dispatcher(object):
                     task.execution_path(), _AUTOSERV_PID_FILE, orphans)
 
             logging.info('Recovering %s %s', task, process_string)
-            self._recover_special_task(task, run_monitor)
-
-
-    def _recover_special_task(self, task, run_monitor):
-        """\
-        Recovers a single special task.
-        """
-        if task.task == models.SpecialTask.Task.VERIFY:
-            agent_task = self._recover_verify(task, run_monitor)
-        elif task.task == models.SpecialTask.Task.REPAIR:
-            agent_task = self._recover_repair(task, run_monitor)
-        elif task.task == models.SpecialTask.Task.CLEANUP:
-            agent_task = self._recover_cleanup(task, run_monitor)
-        else:
-            # Should never happen
-            logging.error(
-                "Special task id %d had invalid task %s", (task.id, task.task))
-
-        self.add_agent(Agent(agent_task))
-
-
-    def _recover_verify(self, task, run_monitor):
-        """\
-        Recovers a verify task.
-        No associated queue entry: Verify host
-        With associated queue entry: Verify host, and run associated queue
-                                     entry
-        """
-        return VerifyTask(task=task, recover_run_monitor=run_monitor)
-
-
-    def _recover_repair(self, task, run_monitor):
-        """\
-        Recovers a repair task.
-        Always repair host
-        """
-        return RepairTask(task=task, recover_run_monitor=run_monitor)
-
-
-    def _recover_cleanup(self, task, run_monitor):
-        """\
-        Recovers a cleanup task.
-        No associated queue entry: Clean host
-        With associated queue entry: Clean host, verify host if needed, and
-                                     run associated queue entry
-        """
-        return CleanupTask(task=task, recover_run_monitor=run_monitor)
+            self._run_or_recover_special_task(task, run_monitor=run_monitor)
 
 
     def _check_for_unrecovered_verifying_entries(self):
@@ -919,31 +871,61 @@ class Dispatcher(object):
                     (len(unrecovered_hqes), message))
 
 
-    def _schedule_special_tasks(self):
-        tasks = models.SpecialTask.objects.filter(is_active=False,
-                                                  is_complete=False,
-                                                  host__locked=False)
-        # We want lower ids to come first, but the NULL queue_entry_ids need to
-        # come last
-        tasks = tasks.extra(select={'isnull' : 'queue_entry_id IS NULL'})
-        tasks = tasks.extra(order_by=['isnull', 'id'])
+    def _get_prioritized_special_tasks(self):
+        """
+        Returns all queued SpecialTasks prioritized for repair first, then
+        cleanup, then verify.
+        """
+        queued_tasks = models.SpecialTask.objects.filter(is_active=False,
+                                                         is_complete=False,
+                                                         host__locked=False)
+        # exclude hosts with active queue entries unless the SpecialTask is for
+        # that queue entry
+        queued_tasks = models.Host.objects.add_join(
+                queued_tasks, 'host_queue_entries', 'host_id',
+                join_condition='host_queue_entries.active',
+                force_left_join=True)
+        queued_tasks = queued_tasks.extra(
+                where=['(host_queue_entries.id IS NULL OR '
+                       'host_queue_entries.id = special_tasks.queue_entry_id)'])
 
-        for task in tasks:
+        # reorder tasks by priority
+        task_priority_order = [models.SpecialTask.Task.REPAIR,
+                               models.SpecialTask.Task.CLEANUP,
+                               models.SpecialTask.Task.VERIFY]
+        def task_priority_key(task):
+            return task_priority_order.index(task.task)
+        return sorted(queued_tasks, key=task_priority_key)
+
+
+    def _run_or_recover_special_task(self, special_task, run_monitor=None):
+        """
+        Construct an AgentTask class to run the given SpecialTask and add it
+        to this dispatcher.
+        @param special_task: a models.SpecialTask instance
+        @run_monitor: if given, a running SpecialTask will be recovered with
+                this monitor.
+        """
+        special_agent_task_classes = (CleanupTask, VerifyTask, RepairTask)
+        for agent_task_class in special_agent_task_classes:
+            if agent_task_class.TASK_TYPE == special_task.task:
+                agent_task = agent_task_class(task=special_task,
+                                              recover_run_monitor=run_monitor)
+                self.add_agent(Agent(agent_task))
+                return
+
+        email_manager.manager.enqueue_notify_email(
+                'No AgentTask class for task', str(special_task))
+
+
+    def _schedule_special_tasks(self):
+        """
+        Execute queued SpecialTasks that are ready to run on idle hosts.
+        """
+        for task in self._get_prioritized_special_tasks():
             if self.host_has_agent(task.host):
                 continue
-
-            if task.task == models.SpecialTask.Task.CLEANUP:
-                    agent_task = CleanupTask(task=task)
-            elif task.task == models.SpecialTask.Task.VERIFY:
-                    agent_task = VerifyTask(task=task)
-            elif task.task == models.SpecialTask.Task.REPAIR:
-                agent_task = RepairTask(task=task)
-            else:
-                email_manager.manager.enqueue_notify_email(
-                        'Special task with invalid task', task)
-                continue
-
-            self.add_agent(Agent(agent_task))
+            self._run_or_recover_special_task(task)
 
 
     def _reverify_remaining_hosts(self):
@@ -1051,7 +1033,7 @@ class Dispatcher(object):
             else:
                 assigned_host = self._host_scheduler.find_eligible_host(
                         queue_entry)
-                if assigned_host:
+                if assigned_host and not self.host_has_agent(assigned_host):
                     self._run_queue_entry(queue_entry, assigned_host)
 
 
