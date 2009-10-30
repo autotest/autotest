@@ -22,9 +22,9 @@ class kvm(test.test):
     """
     version = 1
     def initialize(self):
-        # Make it possible to import modules from the test's bindir
-        sys.path.append(self.bindir)
+        # Make it possible to import modules from the subtest dir
         self.subtest_dir = os.path.join(self.bindir, 'tests')
+        sys.path.append(self.subtest_dir)
 
 
     def run_once(self, params):
@@ -51,7 +51,7 @@ class kvm(test.test):
                     raise error.TestError("No %s.py test file found" % type)
                 # Load the tests directory (which was turned into a py module)
                 try:
-                    test_module = __import__("tests.%s" % type)
+                    test_module = __import__(type)
                 except ImportError, e:
                     raise error.TestError("Failed to import test %s: %s" %
                                           (type, e))
@@ -60,7 +60,8 @@ class kvm(test.test):
                 kvm_preprocessing.preprocess(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
                 # Run the test function
-                eval("test_module.%s.run_%s(self, params, env)" % (type, type))
+                run_func = getattr(test_module, "run_%s" % type)
+                run_func(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
 
             except Exception, e:
