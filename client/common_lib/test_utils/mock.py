@@ -386,6 +386,16 @@ class mock_god:
     def stub_with(self, namespace, symbol, new_attribute):
         original_attribute = getattr(namespace, symbol,
                                      self.NONEXISTENT_ATTRIBUTE)
+
+        # You only want to save the original attribute in cases where it is
+        # directly associated with the object in question. In cases where
+        # the attribute is actually inherited via some sort of hierarchy
+        # you want to delete the stub (restoring the original structure)
+        attribute_is_inherited = (hasattr(namespace, '__dict__') and
+                                  symbol not in namespace.__dict__)
+        if attribute_is_inherited:
+            original_attribute = self.NONEXISTENT_ATTRIBUTE
+
         newstub = (namespace, symbol, original_attribute, new_attribute)
         self._stubs.append(newstub)
         setattr(namespace, symbol, new_attribute)
