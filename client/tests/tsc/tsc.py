@@ -18,6 +18,8 @@ class tsc(test.test):
 
     def run_once(self, args = '-t 650'):
         result = utils.run(self.srcdir + '/checktsc ' + args,
+                           stdout_tee=open(os.path.join(self.resultsdir,
+                                                        'checktsc.log'), 'w'),
                            ignore_status=True)
         if result.exit_status != 0:
             logging.error('Program checktsc exit status is %s',
