@@ -501,7 +501,7 @@ class config:
 
 if __name__ == "__main__":
     parser = optparse.OptionParser()
-    parser.add_option('-f', '--file', dest="filename", action='store_true',
+    parser.add_option('-f', '--file', dest="filename", action='store',
                       help='path to a config file that will be parsed. '
                            'If not specified, will parse kvm_tests.cfg '
                            'located inside the kvm test dir.')
