@@ -664,6 +664,19 @@ class SchedulerFunctionalTest(unittest.TestCase,
                                                 _PidfileType.VERIFY)
 
 
+    def test_recover_pending_hqes_with_group(self):
+        # recover a group of HQEs that are in Pending, in the same group (e.g.,
+        # in a job with atomic hosts)
+        job = self._create_job(hosts=[1,2], atomic_group=1)
+        job.save()
+
+        job.hostqueueentry_set.all().update(status=HqeStatus.PENDING)
+
+        self._initialize_test()
+        for queue_entry in job.hostqueueentry_set.all():
+            self.assertEquals(queue_entry.status, HqeStatus.STARTING)
+
+
     def test_job_scheduled_just_after_abort(self):
         # test a pretty obscure corner case where a job is aborted while queued,
         # another job is ready to run, and throttling is active. the post-abort
