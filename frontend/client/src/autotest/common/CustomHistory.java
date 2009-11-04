@@ -1,7 +1,8 @@
 package autotest.common;
 
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.user.client.History;
-import com.google.gwt.user.client.HistoryListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +14,7 @@ import java.util.Map;
  * programmatically-generated history items.
  *
  */
-public class CustomHistory implements HistoryListener {
+public class CustomHistory implements ValueChangeHandler<String> {
     private static final CustomHistory theInstance = new CustomHistory();
     
     public static class HistoryToken extends HashMap<String, String> {
@@ -37,7 +38,7 @@ public class CustomHistory implements HistoryListener {
     }
     
     private CustomHistory() {
-        History.addHistoryListener(this);
+        History.addValueChangeHandler(this);
     }
     
     /**
@@ -45,27 +46,32 @@ public class CustomHistory implements HistoryListener {
      * URL.
      */
     public static void simulateHistoryToken(HistoryToken token) {
-        theInstance.onHistoryChanged(token.toString());
+        theInstance.processHistoryTokenString(token.toString());
     }
     
     public static void processInitialToken() {
-        theInstance.onHistoryChanged(History.getToken());
+        theInstance.processHistoryTokenString(History.getToken());
     }
     
-    public void onHistoryChanged(String historyTokenString) {
+    @Override
+    public void onValueChange(ValueChangeEvent<String> event) {
+        processHistoryTokenString(event.getValue());
+    }
+    
+    private void processHistoryTokenString(String historyTokenString) {
         HistoryToken token;
         try {
             token = HistoryToken.fromString(historyTokenString);
         } catch (IllegalArgumentException exc) {
             return;
         }
-
+  
         if (token.equals(lastHistoryToken)) {
             return;
         }
-
+  
         lastHistoryToken = token;
-
+  
         for (CustomHistoryListener listener : listeners) {
             listener.onHistoryChanged(token);
         }
