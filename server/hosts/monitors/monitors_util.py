@@ -74,7 +74,33 @@ def make_alert(warnfile, msg_type, msg_template, timestamp_format=None):
     return alert
 
 
-def build_alert_hooks(patterns_file, warnfile):
+def _assert_is_all_blank_lines(lines, source_file):
+    if sum(len(line.strip()) for line in lines) > 0:
+        raise ValueError('warning patterns are not separated by blank lines '
+                         'in %s' % source_file)
+
+
+def _read_overrides(overrides_file):
+    """
+    Read pattern overrides from overrides_file, which may be None.  Overrides
+    files are expected to have the format:
+    <old regex> <newline> <new regex> <newline> <newline>
+            old regex = a regex from the patterns file
+            new regex = the regex to replace it
+    Lines beginning with # are ignored.
+
+    Returns a dict mapping old regexes to their replacements.
+    """
+    if not overrides_file:
+        return {}
+    overrides_lines = [line for line in overrides_file.readlines()
+                       if not line.startswith('#')]
+    overrides_pairs = zip(overrides_lines[0::3], overrides_lines[1::3])
+    _assert_is_all_blank_lines(overrides_lines[2::3], overrides_file)
+    return dict(overrides_pairs)
+
+
+def build_alert_hooks(patterns_file, warnfile, overrides_file=None):
     """Parse data in patterns file and transform into alert_hook list.
 
     Args:
@@ -96,18 +122,41 @@ def build_alert_hooks(patterns_file, warnfile):
     #             be the result of (alert % match.groups())
     patterns = zip(pattern_lines[0::4], pattern_lines[1::4],
                    pattern_lines[2::4])
+    _assert_is_all_blank_lines(pattern_lines[3::4], patterns_file)
 
-    # assert that the patterns are separated by empty lines
-    if sum(len(line.strip()) for line in pattern_lines[3::4]) > 0:
-        raise ValueError('warning patterns are not separated by blank lines')
+    overrides_map = _read_overrides(overrides_file)
 
     hooks = []
     for msgtype, regex, alert in patterns:
+        regex = overrides_map.get(regex, regex)
         regex = re.compile(regex.rstrip('\n'))
         alert_function = make_alert(warnfile, msgtype.rstrip('\n'),
                                     alert.rstrip('\n'))
         hooks.append((regex, alert_function))
     return hooks
+
+
+def build_alert_hooks_from_path(patterns_path, warnfile):
+    """
+    Same as build_alert_hooks, but accepts a path to a patterns file and
+    automatically finds the corresponding site overrides file if one exists.
+    """
+    dirname, basename = os.path.split(patterns_path)
+    site_overrides_basename = 'site_' + basename + '_overrides'
+    site_overrides_path = os.path.join(dirname, site_overrides_basename)
+    site_overrides_file = None
+    patterns_file = open(patterns_path)
+    try:
+        if site_overrides_path:
+            site_overrides_file = open(site_overrides_path)
+        try:
+            return build_alert_hooks(patterns_file, warnfile,
+                                     overrides_file=site_overrides_file)
+        finally:
+            if site_overrides_file:
+                site_overrides_file.close()
+    finally:
+        patterns_file.close()
 
 
 def process_input(
