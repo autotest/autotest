@@ -215,7 +215,6 @@ class base_job(object):
             shutil.copyfile(self.control,
                             os.path.join(self.resultdir, 'control'))
 
-
         self.control = control
         self.jobtag = options.tag
 
@@ -225,10 +224,11 @@ class base_job(object):
 
         self.config = config.config(self)
         self.profilers = profilers.profilers(self)
-        self.host = local_host.LocalHost(hostname=options.hostname)
-        self.autoserv_user = options.autoserv_user
 
         self._init_bootloader()
+        self.host = local_host.LocalHost(hostname=options.hostname,
+                                         bootloader=self.bootloader)
+        self.autoserv_user = options.autoserv_user
 
         self.sysinfo.log_per_reboot_data()
 
@@ -262,11 +262,8 @@ class base_job(object):
         """
         Perform boottool initialization.
         """
-        try:
-            tool = self.config_get('boottool.executable')
-            self.bootloader = boottool.boottool(tool)
-        except:
-            pass
+        tool = self.config_get('boottool.executable')
+        self.bootloader = boottool.boottool(tool)
 
 
     def _init_packages(self):
