@@ -69,17 +69,18 @@ _common_kernel_config = {
     '2.6.29': 'http://somesite/configs/2.6.29.conf',
     }
 
-# a mapping of machine -> machine_info (containing list a of control filenames
-# and kernel version association to kernel config filenames)
-_control_map = {
+# a mapping of machine -> machine_info (containing list a of test names as
+# they are named in the frontend database and kernel version association to
+# kernel config filenames)
+_tests_map = {
     'mach1': trigger_module.map_action.machine_info(
-            ('/path/to/control1', '~/control2.srv'), _common_kernel_config),
+            ('test1', 'server test2'), _common_kernel_config),
     'mach2': trigger_module.map_action.machine_info(
-            ('/path/to/control1',), _common_kernel_config),
+            ('test1',), _common_kernel_config),
     'mach3': trigger_module.map_action.machine_info(
-            ('/path/to/control3',), _common_kernel_config),
+            ('test3',), _common_kernel_config),
     'mach4': trigger_module.map_action.machine_info(
-            ('/path/to/control4',), _common_kernel_config),
+            ('test4',), _common_kernel_config),
     }
 
 # no need to instantiate trigger_module.trigger() as it's already done so
@@ -87,5 +88,5 @@ _control_map = {
 
 # now register some trigger actions otherwise nothing will be done for the new
 # kernel versions
-trigger.add_action(trigger_module.map_action(_control_map, 'kerntest-%s'))
+trigger.add_action(trigger_module.map_action(_tests_map, 'kerntest-%s'))
 trigger.add_action(trigger_module.email_action('test@test.com'))
