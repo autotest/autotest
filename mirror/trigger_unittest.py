@@ -18,42 +18,51 @@ class map_action_unittest(unittest.TestCase):
 
 
     def test_machine_info_api(self):
-        controls = object()
+        tests = object()
         configs = object()
 
-        info = trigger.map_action.machine_info(controls, configs)
-        self.assertEquals(controls, info.control_files)
+        info = trigger.map_action.machine_info(tests, configs)
+        self.assertEquals(tests, info.tests)
         self.assertEquals(configs, info.kernel_configs)
 
 
+    @staticmethod
+    def _make_control_dict(contents, is_server=False, synch_count=1,
+                           dependencies=()):
+        return dict(control_file=contents, is_server=is_server,
+                    synch_count=synch_count, dependencies=dependencies)
+
+
     def test_job_grouping(self):
-        control_map = {
+        tests_map = {
             'mach1': trigger.map_action.machine_info(
-                    ('control1', 'control2'), {'2.6.20': 'config1'}),
+                    ('test1', 'test2'), {'2.6.20': 'config1'}),
             'mach2': trigger.map_action.machine_info(
-                    ('control3',), {'2.6.10': 'config2', '2.6.20': 'config1'}),
+                    ('test3',), {'2.6.10': 'config2', '2.6.20': 'config1'}),
             'mach3': trigger.map_action.machine_info(
-                    ('control2', 'control3'), {'2.6.20': 'config1'}),
+                    ('test2', 'test3'), {'2.6.20': 'config1'}),
             }
-        action = trigger.map_action(control_map, 'jobname %s')
+        action = trigger.map_action(tests_map, 'jobname %s')
 
         self.god.stub_function(action, '_generate_control')
         self.god.stub_function(action, '_schedule_job')
 
-        (action._generate_control.expect_call('control2', '2.6.21', 'config1')
-                .and_return('control contents2'))
-        action._schedule_job.expect_call('jobname 2.6.21', 'control contents2',
-                                         ['mach1', 'mach3'], False)
+        control2 = self._make_control_dict('control contents2')
+        (action._generate_control.expect_call('test2', '2.6.21', 'config1')
+                .and_return(control2))
+        action._schedule_job.expect_call('jobname 2.6.21', control2,
+                                         ['mach1', 'mach3'])
 
-        (action._generate_control.expect_call('control3', '2.6.21', 'config1')
-                .and_return('control contents3'))
-        action._schedule_job.expect_call('jobname 2.6.21', 'control contents3',
-                                         ['mach2', 'mach3'], False)
+        control3 = self._make_control_dict('control contents3')
+        (action._generate_control.expect_call('test3', '2.6.21', 'config1')
+                .and_return(control3))
+        action._schedule_job.expect_call('jobname 2.6.21', control3,
+                                         ['mach2', 'mach3'])
 
-        (action._generate_control.expect_call('control1', '2.6.21', 'config1')
-                .and_return('control contents1'))
-        action._schedule_job.expect_call('jobname 2.6.21', 'control contents1',
-                                         ['mach1'], False)
+        control1 = self._make_control_dict('control contents1')
+        (action._generate_control.expect_call('test1', '2.6.21', 'config1')
+                .and_return(control1))
+        action._schedule_job.expect_call('jobname 2.6.21', control1, ['mach1'])
 
         action(['2.6.21'])
         self.god.check_playback()
