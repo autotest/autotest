@@ -118,17 +118,12 @@ for i in 1 2; do
   )
 done
 
-# --- compile AfeClient 
+# --- compile GWT
 
-print_status "Compiling AfeClient"
-( cd $BASE_DIR/frontend/client && 
-  su $BECOME_USER -c ./AfeClient-compile ) || fatal
-
-# --- compile TkoClient
-
-print_status "Compiling TkoClient"
-( cd $BASE_DIR/frontend/client &&
-  su $BECOME_USER -c ./TkoClient-compile ) || fatal
+print_status "Compiling GWT code."
+( cd $BASE_DIR &&
+  su $BECOME_USER -c "$BASE_DIR/utils/compile_gwt_clients.py -a" || fatal
+)
 
 # --- fix gwt permissions
 
