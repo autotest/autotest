@@ -656,11 +656,12 @@ def drop_caches():
     utils.system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
 
 
-def process_is_alive(name):
+def process_is_alive(name_pattern):
     """
     'pgrep name' misses all python processes and also long process names.
     'pgrep -f name' gets all shell commands with name in args.
-    So look only for command whose first nonblank word ends with name.
+    So look only for command whose initial pathname ends with name.
+    Name itself is an egrep pattern, so it can use | etc for variations.
     """
-    return utils.system("pgrep -f '^[^ ]*%s\W'" % name,
+    return utils.system("pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
                         ignore_status=True) == 0
