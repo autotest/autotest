@@ -34,6 +34,7 @@ def boot_kernel(kernel_info):
     testkernel = job.kernel(kernel_info['version'])
     if kernel_info['config_file']:
         testkernel.config(kernel_info['config_file'])
+    testkernel.build()
     testkernel.install()
 
     cmdline = ' '.join((kernel_info.get('cmdline', ''), '%(kernel_args)s'))
