@@ -93,6 +93,16 @@ def _CmpToKey(mycmp):
             return mycmp(self.obj, other.obj) == -1
     return K
 
+def _EmulateWith(context, func):
+    context.__enter__()
+    try:
+        func()
+    except:
+        if not context.__exit__(sys.exc_type, sys.exc_value, sys.exc_traceback):
+            raise
+    else:
+        context.__exit__(None, None, None)
+
 ##############################################################################
 # Test framework core
 ##############################################################################
@@ -546,11 +556,7 @@ class TestCase(object):
         # XXX (garrcoop): `with context' isn't supported lexigram with 2.4/2.5,
         # even though PEP 343 (sort of) implies that based on the publishing
         # date. There may be another PEP which changed the syntax...
-        context.__enter__()
-        try:
-            callableObj(*args, **kwargs)
-        finally:
-            context.__exit__()
+        _EmulateWith(context, lambda: callableObj(*args, **kwargs))
 
     def _getAssertEqualityFunc(self, first, second):
         """Get a detailed comparison function for the types of the two args.
@@ -963,11 +969,7 @@ class TestCase(object):
         if callable_obj is None:
             return context
         # XXX (garrcoop): See comment above about `with context'.
-        context.__enter__()
-        try:
-            callable_obj(*args, **kwargs)
-        finally:
-            context.__exit__()
+        _EmulateWith(context, lambda: callable_obj(*args, **kwargs))
 
     def assertRegexpMatches(self, text, expected_regex, msg=None):
         if isinstance(expected_regex, basestring):
