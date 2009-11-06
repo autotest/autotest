@@ -485,7 +485,7 @@ class _Run(object):
             args.append('-l')
         if self.host.hostname:
             args.append('--hostname=%s' % self.host.hostname)
-        args.append('--user=%s' % getpass.getuser())
+        args.append('--user=%s' % self.host.job.user)
 
         args.append(self.remote_control_file)
         return args
@@ -540,15 +540,14 @@ class _Run(object):
         full_cmd = self.get_background_cmd(section)
         devnull = open(os.devnull, "w")
 
-        old_resultdir = self.host.job.resultdir
+        self.host.job.push_execution_context(self.results_dir)
         try:
-            self.host.job.resultdir = self.results_dir
             result = self.host.run(full_cmd, ignore_status=True,
                                    timeout=timeout,
                                    stdout_tee=devnull,
                                    stderr_tee=devnull)
         finally:
-            self.host.job.resultdir = old_resultdir
+            self.host.job.pop_execution_context()
 
         return result
 
@@ -573,9 +572,8 @@ class _Run(object):
         client_log = self.get_client_log(section)
 
         stdout_read = stderr_read = 0
-        old_resultdir = self.host.job.resultdir
+        self.host.job.push_execution_context(self.results_dir)
         try:
-            self.host.job.resultdir = self.results_dir
             self.host.run(daemon_cmd, ignore_status=True, timeout=timeout)
             disconnect_warnings = []
             while True:
@@ -609,7 +607,7 @@ class _Run(object):
                     raise error.AutoservSSHTimeout(
                         "client was disconnected, reconnect timed out")
         finally:
-            self.host.job.resultdir = old_resultdir
+            self.host.job.pop_execution_context()
 
 
     def execute_section(self, section, timeout, stderr_redirector,
