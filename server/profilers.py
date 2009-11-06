@@ -25,7 +25,8 @@ class profilers(profiler_manager.profiler_manager):
 
     def delete(self, profiler):
         super(profilers, self).delete(profiler)
-        del self.add_log[profiler]
+        if profiler in self.add_log:
+            del self.add_log[profiler]
 
 
     def handle_reboot(self, host):
