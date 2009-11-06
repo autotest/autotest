@@ -142,10 +142,11 @@ class TestBaseJob(unittest.TestCase):
                                  os.path.join(resultdir, 'control'))
 
         self.config = config.config.expect_new(self.job)
-        job.local_host.LocalHost.expect_new(hostname='localhost')
         self.job.config_get.expect_call(
                 'boottool.executable').and_return(None)
         bootloader = boottool.boottool.expect_new(None)
+        job.local_host.LocalHost.expect_new(hostname='localhost',
+                                            bootloader=bootloader)
         job_sysinfo.log_per_reboot_data.expect_call()
         if not cont:
             self.job.record.expect_call('START', None, None)

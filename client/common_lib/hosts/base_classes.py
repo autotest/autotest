@@ -15,7 +15,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import os, re, time, cStringIO, logging
+import cPickle, cStringIO, logging, os, re, time
 
 from autotest_lib.client.common_lib import global_config, error, utils
 from autotest_lib.client.common_lib import host_protections
@@ -512,3 +512,114 @@ class Host(object):
         try to wait until the machine is repaired and then return normally.
         """
         raise NotImplementedError("request_hardware_repair not implemented")
+
+
+    def list_files_glob(self, glob):
+        """
+        Get a list of files on a remote host given a glob pattern path.
+        """
+        SCRIPT = ("python -c 'import cPickle, glob, sys;"
+                  "cPickle.dump(glob.glob(sys.argv[1]), sys.stdout, 0)'")
+        output = self.run(SCRIPT, args=(glob,), stdout_tee=None,
+                          timeout=60).stdout
+        return cPickle.loads(output)
+
+
+    def symlink_closure(self, paths):
+        """
+        Given a sequence of path strings, return the set of all paths that
+        can be reached from the initial set by following symlinks.
+
+        @param paths: sequence of path strings.
+        @return: a sequence of path strings that are all the unique paths that
+                can be reached from the given ones after following symlinks.
+        """
+        SCRIPT = ("python -c 'import cPickle, os, sys\n"
+                  "paths = cPickle.load(sys.stdin)\n"
+                  "closure = {}\n"
+                  "while paths:\n"
+                  "    path = paths.keys()[0]\n"
+                  "    del paths[path]\n"
+                  "    if not os.path.exists(path):\n"
+                  "        continue\n"
+                  "    closure[path] = None\n"
+                  "    if os.path.islink(path):\n"
+                  "        link_to = os.path.join(os.path.dirname(path),\n"
+                  "                               os.readlink(path))\n"
+                  "        if link_to not in closure.keys():\n"
+                  "            paths[link_to] = None\n"
+                  "cPickle.dump(closure.keys(), sys.stdout, 0)'")
+        input_data = cPickle.dumps(dict((path, None) for path in paths), 0)
+        output = self.run(SCRIPT, stdout_tee=None, stdin=input_data,
+                          timeout=60).stdout
+        return cPickle.loads(output)
+
+
+    def cleanup_kernels(self, boot_dir='/boot'):
+        """
+        Remove any kernel image and associated files (vmlinux, system.map,
+        modules) for any image found in the boot directory that is not
+        referenced by entries in the bootloader configuration.
+
+        @param boot_dir: boot directory path string, default '/boot'
+        """
+        # find all the vmlinuz images referenced by the bootloader
+        vmlinuz_prefix = os.path.join(boot_dir, 'vmlinuz-')
+        boot_info = self.bootloader.get_entries()
+        used_kernver = [boot['kernel'][len(vmlinuz_prefix):]
+                        for boot in boot_info.itervalues()]
+
+        # find all the unused vmlinuz images in /boot
+        all_vmlinuz = self.list_files_glob(vmlinuz_prefix + '*')
+        used_vmlinuz = self.symlink_closure(vmlinuz_prefix + kernver
+                                            for kernver in used_kernver)
+        unused_vmlinuz = set(all_vmlinuz) - set(used_vmlinuz)
+
+        # find all the unused vmlinux images in /boot
+        vmlinux_prefix = os.path.join(boot_dir, 'vmlinux-')
+        all_vmlinux = self.list_files_glob(vmlinux_prefix + '*')
+        used_vmlinux = self.symlink_closure(vmlinux_prefix + kernver
+                                            for kernver in used_kernver)
+        unused_vmlinux = set(all_vmlinux) - set(used_vmlinux)
+
+        # find all the unused System.map files in /boot
+        systemmap_prefix = os.path.join(boot_dir, 'System.map-')
+        all_system_map = self.list_files_glob(systemmap_prefix + '*')
+        used_system_map = self.symlink_closure(
+            systemmap_prefix + kernver for kernver in used_kernver)
+        unused_system_map = set(all_system_map) - set(used_system_map)
+
+        # find all the module directories associated with unused kernels
+        modules_prefix = '/lib/modules/'
+        all_moddirs = [dir for dir in self.list_files_glob(modules_prefix + '*')
+                       if re.match(modules_prefix + r'\d+\.\d+\.\d+.*', dir)]
+        used_moddirs = self.symlink_closure(modules_prefix + kernver
+                                            for kernver in used_kernver)
+        unused_moddirs = set(all_moddirs) - set(used_moddirs)
+
+        # remove all the vmlinuz files we don't use
+        # TODO: if needed this should become package manager agnostic
+        for vmlinuz in unused_vmlinuz:
+            # try and get an rpm package name
+            rpm = self.run('rpm -qf', args=(vmlinuz,),
+                           ignore_status=True, timeout=120)
+            if rpm.exit_status == 0:
+                packages = set(line.strip() for line in
+                               rpm.stdout.splitlines())
+                # if we found some package names, try to remove them
+                for package in packages:
+                    self.run('rpm -e', args=(package,),
+                             ignore_status=True, timeout=120)
+            # remove the image files anyway, even if rpm didn't
+            self.run('rm -f', args=(vmlinuz,),
+                     ignore_status=True, timeout=120)
+
+        # remove all the vmlinux and System.map files left over
+        for f in (unused_vmlinux | unused_system_map):
+            self.run('rm -f', args=(f,),
+                     ignore_status=True, timeout=120)
+
+        # remove all unused module directories
+        # the regex match should keep us safe from removing the wrong files
+        for moddir in unused_moddirs:
+            self.run('rm -fr', args=(moddir,), ignore_status=True)
