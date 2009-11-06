@@ -150,14 +150,33 @@ class job_stat(job_list_stat):
         self.parser.add_option('-f', '--control-file',
                                help='Display the control file',
                                action='store_true', default=False)
+        self.parser.add_option('-N', '--list-hosts',
+                               help='Display only a list of hosts',
+                               action='store_true')
+        self.parser.add_option('-s', '--list-hosts-status',
+                               help='Display only the hosts in these statuses '
+                               'for a job.', action='store')
 
 
     def parse(self):
-        options, leftover = super(job_stat, self).parse(req_items='jobs')
+        status_list = topic_common.item_parse_info(
+                attribute_name='status_list',
+                inline_option='list_hosts_status')
+        options, leftover = super(job_stat, self).parse([status_list],
+                                                        req_items='jobs')
+
         if not self.jobs:
             self.invalid_syntax('Must specify at least one job.')
 
         self.show_control_file = options.control_file
+        self.list_hosts = options.list_hosts
+
+        if self.list_hosts and self.status_list:
+            self.invalid_syntax('--list-hosts is implicit when using '
+                                '--list-hosts-status.')
+        if len(self.jobs) > 1 and (self.list_hosts or self.status_list):
+            self.invalid_syntax('--list-hosts and --list-hosts-status should '
+                                'only be used on a single job.')
 
         return options, leftover
 
@@ -176,11 +195,23 @@ class job_stat(job_list_stat):
             job_id = job['id']
             if hosts_status.has_key(job_id):
                 this_job = hosts_status[job_id]
-                host_per_status = ['%s=%s' %(status, ','.join(host))
+                job['hosts'] = ' '.join(' '.join(host) for host in
+                                        this_job.itervalues())
+                host_per_status = ['%s="%s"' %(status, ' '.join(host))
                                    for status, host in this_job.iteritems()]
                 job['hosts_status'] = ', '.join(host_per_status)
+                if self.status_list:
+                    statuses = set(s.lower() for s in self.status_list)
+                    all_hosts = [s for s in host_per_status if s.split('=',
+                                 1)[0].lower() in statuses]
+                    job['hosts_selected_status'] = '\n'.join(all_hosts)
             else:
                 job['hosts_status'] = ''
+
+            if not job.get('hosts'):
+                self.generic_error('Job has unassigned meta-hosts, '
+                                   'try again shortly.')
+
         return summary
 
 
@@ -199,7 +230,11 @@ class job_stat(job_list_stat):
 
 
     def output(self, results):
-        if not self.verbose:
+        if self.list_hosts:
+            keys = ['hosts']
+        elif self.status_list:
+            keys = ['hosts_selected_status']
+        elif not self.verbose:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status']
         else:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status',
@@ -433,10 +468,6 @@ class job_create(job_create_or_clone):
                 self.generic_error('Unable to read from specified '
                                    'control-file: %s' % options.control_file)
             if options.kernel:
-                if options.server:
-                    self.invalid_syntax(
-                            'A control file and a kernel may only be specified'
-                            ' together on client side jobs.')
                 # execute() will pass this to the AFE server to wrap this
                 # control file up to include the kernel installation steps.
                 self.ctrl_file_data['client_control_file'] = control_file_data
