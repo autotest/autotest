@@ -28,6 +28,9 @@ def step_init():
 
 
 def boot_kernel(kernel_info):
+    # remove kernels (and associated data) not referenced by the bootloader
+    job.host.cleanup_kernels()
+
     testkernel = job.kernel(kernel_info['version'])
     if kernel_info['config_file']:
         testkernel.config(kernel_info['config_file'])

@@ -12,9 +12,6 @@ class boottool(common_boottool.boottool):
             autodir = os.environ['AUTODIR']
             self._boottool_exec = autodir + '/tools/boottool'
 
-        if not self._boottool_exec:
-            raise error.AutotestError('Failed to set boottool_exec')
-
 
     def _run_boottool(self, *options):
         return utils.system_output(self._boottool_exec, args=options)
