@@ -95,9 +95,9 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
             try:
                 try:
                     base_packages.check_diskspace(temp_dir)
-                except error.RepoDiskFullError:
-                    msg = ("Temporary directory for packages  does not have "
-                           "enough space available")
+                except error.RepoDiskFullError, e:
+                    msg = ("Temporary directory for packages %s does not have "
+                           "enough space available: %s" % (temp_dir, e))
                     raise error.RepoDiskFullError(msg)
                 tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
                                                   temp_dir, exclude_string)
@@ -147,9 +147,9 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
     temp_dir = tempfile.mkdtemp()
     try:
         base_packages.check_diskspace(temp_dir)
-    except error.RepoDiskFullError:
-        print ("Temp destination for packages is full %s, aborting upload"
-               % temp_dir)
+    except error.RepoDiskFullError, e:
+        print ("Temp destination for packages is full %s, aborting upload: %s"
+               % (temp_dir, e))
         os.rmdir(temp_dir)
         sys.exit(1)
 

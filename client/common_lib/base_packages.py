@@ -60,7 +60,8 @@ def check_diskspace(repo, min_free=None):
     except Exception, e:
         raise error.RepoUnknownError('Unknown Repo Error: %s' % e)
     if free_space_gb < min_free:
-        raise error.RepoDiskFullError('Not enough disk space available')
+        raise error.RepoDiskFullError('Not enough disk space available '
+                                      '%sg < %sg' % (free_space_gb, min_free))
 
 
 def check_write(repo):
