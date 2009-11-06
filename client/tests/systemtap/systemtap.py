@@ -19,18 +19,26 @@ class systemtap(test.test):
             self.systemtap_dir = os.path.join(self.autodir,
                 'deps/systemtap/systemtap')
 
-    def setup(self, tarball='systemtap-0.9.5.tar.gz', local=False):
+    def setup(self, local=False, tarball_systemtap='systemtap-0.9.5.tar.gz', tarball_elfutils='elfutils-0.140.tar.bz2'):
+        depdir = os.path.join(self.autodir, 'deps/systemtap')
+        tarball_systemtap = utils.unmap_url(depdir, tarball_systemtap, self.tmpdir)
+        tarball_elfutils = utils.unmap_url(depdir, tarball_elfutils, self.tmpdir)
+        srcdir = os.path.join(depdir, 'src')
+        utils.extract_tarball_to_dir(tarball_systemtap, srcdir)
+        elfdir = os.path.join(srcdir, 'elfutils')
+        utils.extract_tarball_to_dir(tarball_elfutils, elfdir)
+
         self.job.setup_dep(['dejagnu'])
         if local == False:
             self.job.setup_dep(['systemtap'])
 
         # Try grabbing the systemtap tarball out of the deps directory
         depdir = os.path.join(self.autodir, 'deps/systemtap')
-        if os.path.exists(os.path.join(depdir, tarball)):
-            tarball = utils.unmap_url(depdir, tarball, self.tmpdir)
+        if os.path.exists(os.path.join(depdir, tarball_systemtap)):
+            tarball = utils.unmap_url(depdir, tarball_systemtap, self.tmpdir)
         else:
-            tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        utils.extract_tarball_to_dir(tarball, self.srcdir)
+            tarball = utils.unmap_url(self.bindir, tarball_systemtap, self.tmpdir)
+        utils.extract_tarball_to_dir(tarball_systemtap, self.srcdir)
 
         testsuite = os.path.join(self.srcdir, 'testsuite')
         os.chdir(testsuite)
