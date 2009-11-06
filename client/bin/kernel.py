@@ -625,7 +625,8 @@ class kernel(object):
 
 
 class rpm_kernel(object):
-    """ Class for installing rpm kernel package
+    """
+    Class for installing a binary rpm kernel package
     """
 
     def __init__(self, job, rpm_package, subdir):
@@ -637,6 +638,13 @@ class rpm_kernel(object):
             utils.system('rm -rf ' + self.log_dir)
         os.mkdir(self.log_dir)
         self.installed_as = None
+
+
+    def build(self, *args, **dargs):
+        """
+        Dummy function, binary kernel so nothing to build.
+        """
+        pass
 
 
     @log.record
