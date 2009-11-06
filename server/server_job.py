@@ -10,6 +10,7 @@ import getpass, os, sys, re, stat, tempfile, time, select, subprocess
 import traceback, shutil, warnings, fcntl, pickle, logging
 import itertools
 from autotest_lib.client.bin import sysinfo
+from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server import test, subcommand, profilers
@@ -47,32 +48,21 @@ get_site_job_data = utils.import_site_function(__file__,
     _get_site_job_data_dummy)
 
 
-class base_server_job(object):
-    """
-    The actual job against which we do everything.
+class base_server_job(base_job.base_job):
+    """The server-side concrete implementation of base_job.
 
-    Properties:
-            autodir
-                    The top level autotest directory (/usr/local/autotest).
-            serverdir
-                    <autodir>/server/
-            clientdir
-                    <autodir>/client/
-            conmuxdir
-                    <autodir>/conmux/
-            testdir
-                    <autodir>/server/tests/
-            site_testdir
-                    <autodir>/server/site_tests/
-            control
-                    the control file for this job
-            drop_caches_between_iterations
-                    drop the pagecache between each iteration
-            default_profile_only
-                    default value for the test.execute profile_only parameter
+    Optional properties provided by this implementation:
+        serverdir
+        conmuxdir
+
+        num_tests_run
+        num_tests_failed
+
+        warning_manager
+        warning_loggers
     """
 
-    STATUS_VERSION = 1
+    _STATUS_VERSION = 1
 
     def __init__(self, control, args, resultdir, label, user, machines,
                  client=False, parse_job='',
@@ -96,102 +86,98 @@ class base_server_job(object):
                 host_group_name in the keyvals file for the parser.
         @param tag: The job execution tag from the scheduler.  [optional]
         """
-        path = os.path.dirname(__file__)
-        self.autodir = os.path.abspath(os.path.join(path, '..'))
-        self.serverdir = os.path.join(self.autodir, 'server')
-        self.testdir   = os.path.join(self.serverdir, 'tests')
-        self.site_testdir = os.path.join(self.serverdir, 'site_tests')
-        self.tmpdir    = os.path.join(self.serverdir, 'tmp')
-        self.conmuxdir = os.path.join(self.autodir, 'conmux')
-        self.clientdir = os.path.join(self.autodir, 'client')
-        self.toolsdir = os.path.join(self.autodir, 'client/tools')
-        if control:
-            self.control = self._load_control_file(control)
-        else:
-            self.control = ''
-        self.resultdir = resultdir
-        self.uncollected_log_file = None
-        if resultdir:
-            self.uncollected_log_file = os.path.join(resultdir,
-                                                     'uncollected_logs')
-            self.debugdir = os.path.join(resultdir, 'debug')
+        super(base_server_job, self).__init__(resultdir=resultdir)
 
-            if not os.path.exists(resultdir):
-                os.mkdir(resultdir)
-            if not os.path.exists(self.debugdir):
-                os.mkdir(self.debugdir)
-        self.label = label
-        self.user = user
-        self.args = args
+        path = os.path.dirname(__file__)
+        self.control = control
+        self._uncollected_log_file = os.path.join(self.resultdir,
+                                                  'uncollected_logs')
+        debugdir = os.path.join(self.resultdir, 'debug')
+        if not os.path.exists(debugdir):
+            os.mkdir(debugdir)
+
+        if user:
+            self.user = user
+        else:
+            self.user = getpass.getuser()
+
+        self._args = args
         self.machines = machines
-        self.client = client
-        self.record_prefix = ''
+        self._client = client
+        self._record_prefix = ''
         self.warning_loggers = set()
         self.warning_manager = warning_manager()
-        self.ssh_user = ssh_user
-        self.ssh_port = ssh_port
-        self.ssh_pass = ssh_pass
+        self._ssh_user = ssh_user
+        self._ssh_port = ssh_port
+        self._ssh_pass = ssh_pass
         self.tag = tag
         self.default_profile_only = False
         self.run_test_cleanup = True
         self.last_boot_tag = None
         self.hosts = set()
+        self.drop_caches = False
         self.drop_caches_between_iterations = False
 
         self.logging = logging_manager.get_logging_manager(
                 manage_stdout_and_stderr=True, redirect_fds=True)
         subcommand.logging_manager_object = self.logging
 
-        if resultdir:
-            self.sysinfo = sysinfo.sysinfo(self.resultdir)
+        self.sysinfo = sysinfo.sysinfo(self.resultdir)
         self.profilers = profilers.profilers(self)
-
-        if not os.access(self.tmpdir, os.W_OK):
-            try:
-                os.makedirs(self.tmpdir, 0700)
-            except os.error, e:
-                # Thrown if the directory already exists, which it may.
-                pass
-
-        if not (os.access(self.tmpdir, os.W_OK) and os.path.isdir(self.tmpdir)):
-            self.tmpdir = os.path.join(tempfile.gettempdir(),
-                                       'autotest-' + getpass.getuser())
-            try:
-                os.makedirs(self.tmpdir, 0700)
-            except os.error, e:
-                # Thrown if the directory already exists, which it may.
-                # If the problem was something other than the
-                # directory already existing, this chmod should throw as well
-                # exception.
-                os.chmod(self.tmpdir, stat.S_IRWXU)
 
         job_data = {'label' : label, 'user' : user,
                     'hostname' : ','.join(machines),
-                    'status_version' : str(self.STATUS_VERSION),
+                    'status_version' : str(self._STATUS_VERSION),
                     'job_started' : str(int(time.time()))}
         if group_name:
             job_data['host_group_name'] = group_name
-        if self.resultdir:
-            # only write these keyvals out on the first job in a resultdir
-            if 'job_started' not in utils.read_keyval(self.resultdir):
-                job_data.update(get_site_job_data(self))
-                utils.write_keyval(self.resultdir, job_data)
 
-        self.parse_job = parse_job
-        if self.parse_job and len(machines) == 1:
-            self.using_parser = True
-            self.init_parser(resultdir)
+        # only write these keyvals out on the first job in a resultdir
+        if 'job_started' not in utils.read_keyval(self.resultdir):
+            job_data.update(get_site_job_data(self))
+            utils.write_keyval(self.resultdir, job_data)
+
+        self._parse_job = parse_job
+        if self._parse_job and len(machines) == 1:
+            self._using_parser = True
+            self.init_parser(self.resultdir)
         else:
-            self.using_parser = False
-        self.pkgmgr = packages.PackageManager(self.autodir,
-                                             run_function_dargs={'timeout':600})
-        self.pkgdir = os.path.join(self.autodir, 'packages')
-
+            self._using_parser = False
+        self.pkgmgr = packages.PackageManager(
+            self.autodir, run_function_dargs={'timeout':600})
         self.num_tests_run = 0
         self.num_tests_failed = 0
 
         self._register_subcommand_hooks()
         self._test_tag_prefix = None
+
+        # these components aren't usable on the server
+        self.bootloader = None
+        self.harness = None
+
+
+    @classmethod
+    def _find_base_directories(cls):
+        """
+        Determine locations of autodir, clientdir and serverdir. Assumes
+        that this file is located within serverdir and uses __file__ along
+        with relative paths to resolve the location.
+        """
+        serverdir = os.path.abspath(os.path.dirname(__file__))
+        autodir = os.path.normpath(os.path.join(serverdir, '..'))
+        clientdir = os.path.join(autodir, 'client')
+        return autodir, clientdir, serverdir
+
+
+    def _find_resultdir(self, resultdir):
+        """
+        Determine the location of resultdir. For server jobs we expect one to
+        always be explicitly passed in to __init__, so just return that.
+        """
+        if resultdir:
+            return os.path.normpath(resultdir)
+        else:
+            return None
 
 
     @staticmethod
@@ -231,14 +217,14 @@ class base_server_job(object):
         tko_utils.redirect_parser_debugging(parse_log)
         # create a job model object and set up the db
         self.results_db = tko_db.db(autocommit=True)
-        self.parser = status_lib.parser(self.STATUS_VERSION)
+        self.parser = status_lib.parser(self._STATUS_VERSION)
         self.job_model = self.parser.make_job(resultdir)
         self.parser.start(self.job_model)
         # check if a job already exists in the db and insert it if
         # it does not
-        job_idx = self.results_db.find_job(self.parse_job)
+        job_idx = self.results_db.find_job(self._parse_job)
         if job_idx is None:
-            self.results_db.insert_job(self.parse_job, self.job_model)
+            self.results_db.insert_job(self._parse_job, self.job_model)
         else:
             machine_idx = self.results_db.lookup_machine(self.job_model.machine)
             self.job_model.index = job_idx
@@ -251,12 +237,12 @@ class base_server_job(object):
         to carry out any remaining cleanup (e.g. flushing any
         remaining test results to the results db)
         """
-        if not self.using_parser:
+        if not self._using_parser:
             return
         final_tests = self.parser.end()
         for test in final_tests:
             self.__insert_test(test)
-        self.using_parser = False
+        self._using_parser = False
 
 
     def verify(self):
@@ -266,9 +252,9 @@ class base_server_job(object):
             os.chdir(self.resultdir)
         try:
             namespace = {'machines' : self.machines, 'job' : self,
-                         'ssh_user' : self.ssh_user,
-                         'ssh_port' : self.ssh_port,
-                         'ssh_pass' : self.ssh_pass}
+                         'ssh_user' : self._ssh_user,
+                         'ssh_port' : self._ssh_port,
+                         'ssh_pass' : self._ssh_pass}
             self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n' + traceback.format_exc())
@@ -282,8 +268,8 @@ class base_server_job(object):
         if self.resultdir:
             os.chdir(self.resultdir)
         namespace = {'machines': self.machines, 'job': self,
-                     'ssh_user': self.ssh_user, 'ssh_port': self.ssh_port,
-                     'ssh_pass': self.ssh_pass,
+                     'ssh_user': self._ssh_user, 'ssh_port': self._ssh_port,
+                     'ssh_pass': self._ssh_pass,
                      'protection_level': host_protection}
 
         self._execute_code(REPAIR_CONTROL_FILE, namespace, protect=False)
@@ -339,12 +325,12 @@ class base_server_job(object):
     def _make_parallel_wrapper(self, function, machines, log):
         """Wrap function as appropriate for calling by parallel_simple."""
         is_forking = not (len(machines) == 1 and self.machines == machines)
-        if self.parse_job and is_forking and log:
+        if self._parse_job and is_forking and log:
             def wrapper(machine):
-                self.parse_job += "/" + machine
-                self.using_parser = True
+                self._parse_job += "/" + machine
+                self._using_parser = True
                 self.machines = [machine]
-                self.resultdir = os.path.join(self.resultdir, machine)
+                self.push_execution_context(machine)
                 os.chdir(self.resultdir)
                 utils.write_keyval(self.resultdir, {"hostname": machine})
                 self.init_parser(self.resultdir)
@@ -353,10 +339,10 @@ class base_server_job(object):
                 return result
         elif len(machines) > 1 and log:
             def wrapper(machine):
-                self.resultdir = os.path.join(self.resultdir, machine)
+                self.push_execution_context(machine)
                 os.chdir(self.resultdir)
                 machine_data = {'hostname' : machine,
-                                'status_version' : str(self.STATUS_VERSION)}
+                                'status_version' : str(self._STATUS_VERSION)}
                 utils.write_keyval(self.resultdir, machine_data)
                 result = function(machine)
                 return result
@@ -408,13 +394,13 @@ class base_server_job(object):
         return success_machines
 
 
-    USE_TEMP_DIR = object()
+    _USE_TEMP_DIR = object()
     def run(self, cleanup=False, install_before=False, install_after=False,
             collect_crashdumps=True, namespace={}, control=None,
             control_file_dir=None, only_collect_crashinfo=False):
         # for a normal job, make sure the uncollected logs file exists
         # for a crashinfo-only run it should already exist, bail out otherwise
-        if self.resultdir and not os.path.exists(self.uncollected_log_file):
+        if self.resultdir and not os.path.exists(self._uncollected_log_file):
             if only_collect_crashinfo:
                 # if this is a crashinfo-only run, and there were no existing
                 # uncollected logs, just bail out early
@@ -422,7 +408,7 @@ class base_server_job(object):
                              "skipping crashinfo collection")
                 return
             else:
-                log_file = open(self.uncollected_log_file, "w")
+                log_file = open(self._uncollected_log_file, "w")
                 pickle.dump([], log_file)
                 log_file.close()
 
@@ -430,17 +416,17 @@ class base_server_job(object):
         namespace = namespace.copy()
         machines = self.machines
         if control is None:
-            control = self.control
+            control = self._load_control_file(self.control)
         if control_file_dir is None:
             control_file_dir = self.resultdir
 
         self.aborted = False
         namespace['machines'] = machines
-        namespace['args'] = self.args
+        namespace['args'] = self._args
         namespace['job'] = self
-        namespace['ssh_user'] = self.ssh_user
-        namespace['ssh_port'] = self.ssh_port
-        namespace['ssh_pass'] = self.ssh_pass
+        namespace['ssh_user'] = self._ssh_user
+        namespace['ssh_port'] = self._ssh_port
+        namespace['ssh_pass'] = self._ssh_pass
         test_start_time = int(time.time())
 
         if self.resultdir:
@@ -461,7 +447,7 @@ class base_server_job(object):
 
                 # determine the dir to write the control files to
                 cfd_specified = (control_file_dir
-                                 and control_file_dir is not self.USE_TEMP_DIR)
+                                 and control_file_dir is not self._USE_TEMP_DIR)
                 if cfd_specified:
                     temp_control_file_dir = None
                 else:
@@ -472,7 +458,7 @@ class base_server_job(object):
                                                    SERVER_CONTROL_FILENAME)
                 client_control_file = os.path.join(control_file_dir,
                                                    CLIENT_CONTROL_FILENAME)
-                if self.client:
+                if self._client:
                     namespace['control'] = control
                     utils.open_write_close(client_control_file, control)
                     shutil.copyfile(CLIENT_WRAPPER_CONTROL_FILE,
@@ -508,8 +494,8 @@ class base_server_job(object):
                     self._execute_code(CRASHINFO_CONTROL_FILE, namespace)
                 else:
                     self._execute_code(CRASHDUMPS_CONTROL_FILE, namespace)
-            if self.uncollected_log_file:
-                os.remove(self.uncollected_log_file)
+            if self._uncollected_log_file:
+                os.remove(self._uncollected_log_file)
             self.disable_external_logging()
             if cleanup and machines:
                 self._execute_code(CLEANUP_CONTROL_FILE, namespace)
@@ -581,14 +567,14 @@ class base_server_job(object):
         Underlying method for running something inside of a group.
         """
         result, exc_info = None, None
-        old_record_prefix = self.record_prefix
+        old_record_prefix = self._record_prefix
         try:
             self.record('START', subdir, name)
-            self.record_prefix += '\t'
+            self._record_prefix += '\t'
             try:
                 result = function(*args, **dargs)
             finally:
-                self.record_prefix = old_record_prefix
+                self._record_prefix = old_record_prefix
         except error.TestBaseException, e:
             self.record("END %s" % e.exit_status, subdir, name)
             exc_info = sys.exc_info()
@@ -633,19 +619,19 @@ class base_server_job(object):
         representing the kernel version.
         """
 
-        old_record_prefix = self.record_prefix
+        old_record_prefix = self._record_prefix
         try:
             self.record('START', None, 'reboot')
-            self.record_prefix += '\t'
+            self._record_prefix += '\t'
             reboot_func()
         except Exception, e:
-            self.record_prefix = old_record_prefix
+            self._record_prefix = old_record_prefix
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END FAIL', None, 'reboot', err_msg)
             raise
         else:
             kernel = get_kernel_func()
-            self.record_prefix = old_record_prefix
+            self._record_prefix = old_record_prefix
             self.record('END GOOD', None, 'reboot',
                         optional_fields={"kernel": kernel})
 
@@ -656,7 +642,7 @@ class base_server_job(object):
         not for running the top-level job control file."""
         path = os.path.join(self.autodir, path)
         control_file = self._load_control_file(path)
-        self.run(control=control_file, control_file_dir=self.USE_TEMP_DIR)
+        self.run(control=control_file, control_file_dir=self._USE_TEMP_DIR)
 
 
     def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
@@ -700,7 +686,7 @@ class base_server_job(object):
         ------------------------------------------------------------
 
         Initial tabs indicate indent levels for grouping, and is
-        governed by self.record_prefix
+        governed by self._record_prefix
 
         multiline messages have secondary lines prefaced by a double
         space ('  ')
@@ -710,14 +696,14 @@ class base_server_job(object):
         """
         # poll all our warning loggers for new warnings
         warnings = self._read_warnings()
-        old_record_prefix = self.record_prefix
+        old_record_prefix = self._record_prefix
         try:
             if status_code.startswith("END "):
-                self.record_prefix += "\t"
+                self._record_prefix += "\t"
             for timestamp, msg in warnings:
                 self._record("WARN", None, None, msg, timestamp)
         finally:
-            self.record_prefix = old_record_prefix
+            self._record_prefix = old_record_prefix
 
         # write out the actual status log line
         self._record(status_code, subdir, operation, status,
@@ -800,8 +786,8 @@ class base_server_job(object):
         @param update_func - a function that updates the list of uncollected
             logs. Should take one parameter, the list to be updated.
         """
-        if self.uncollected_log_file:
-            log_file = open(self.uncollected_log_file, "r+")
+        if self._uncollected_log_file:
+            log_file = open(self._uncollected_log_file, "r+")
             fcntl.flock(log_file, fcntl.LOCK_EX)
         try:
             uncollected_logs = pickle.load(log_file)
@@ -841,6 +827,20 @@ class base_server_job(object):
         self._update_uncollected_logs_list(update_func)
 
 
+    def get_client_logs(self):
+        """Retrieves the list of uncollected logs, if it exists.
+
+        @returns A list of (host, remote_path, local_path) tuples. Returns
+                 an empty list if no uncollected logs file exists.
+        """
+        log_exists = (self._uncollected_log_file and
+                      os.path.exists(self._uncollected_log_file))
+        if log_exists:
+            return pickle.load(open(self._uncollected_log_file))
+        else:
+            return []
+
+
     def _render_record(self, status_code, subdir, operation, status='',
                        epoch_time=None, record_prefix=None,
                        optional_fields=None):
@@ -866,7 +866,7 @@ class base_server_job(object):
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
-        status = re.sub(r"\n", "\n" + self.record_prefix + "  ", status)
+        status = re.sub(r"\n", "\n" + self._record_prefix + "  ", status)
 
         if not optional_fields:
             optional_fields = {}
@@ -884,7 +884,7 @@ class base_server_job(object):
         fields.append(status)
 
         if record_prefix is None:
-            record_prefix = self.record_prefix
+            record_prefix = self._record_prefix
 
         msg = '\t'.join(str(x) for x in fields)
         return record_prefix + msg + '\n'
@@ -902,7 +902,7 @@ class base_server_job(object):
         status_file = self.get_status_log_path()
         status_log = open(status_file, 'a')
         for line in msg.splitlines():
-            line = self.record_prefix + line + '\n'
+            line = self._record_prefix + line + '\n'
             lines.append(line)
             status_log.write(line)
         status_log.close()
@@ -1048,7 +1048,7 @@ class base_server_job(object):
 
 
     def __parse_status(self, new_lines):
-        if not self.using_parser:
+        if not self._using_parser:
             return
         new_tests = self.parser.process_lines(new_lines)
         for test in new_tests:

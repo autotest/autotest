@@ -123,12 +123,9 @@ def collect_uncollected_logs(host):
 
     @param host: The RemoteHost to collect from
     """
-    if not host.job.uncollected_log_file:
-        host.job.uncollected_log_file = ''
-
-    if host.job and os.path.exists(host.job.uncollected_log_file):
+    if host.job:
         try:
-            logs = pickle.load(open(host.job.uncollected_log_file))
+            logs = host.job.get_client_logs()
             for hostname, remote_path, local_path in logs:
                 if hostname == host.hostname:
                     logging.info("Retrieving logs from %s:%s into %s",
