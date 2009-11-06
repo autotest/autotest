@@ -42,73 +42,53 @@ class map_action(base_action):
     the AFE.
     """
 
-    _PREAMBLE = """# autotest/mirror/mirror generated preamble
-kernel = %s
-config = %s
-
-"""
-
-    _AUTOTEST_WRAPPER = """def step_init():
-    job.next_step([step_test])
-    testkernel = job.kernel(kernel)
-
-    if config:
-        testkernel.config(config)
-    else:
-        testkernel.config('', None, True)
-    testkernel.build()
-    testkernel.boot()
-
-def step_test():
-"""
-
     _encode_sep = re.compile('(\D+)')
 
     class machine_info(object):
         """
         Class to organize the machine associated information for this action.
         """
-        def __init__(self, control_files, kernel_configs):
+        def __init__(self, tests, kernel_configs):
             """
             Instantiate a machine_info object.
 
-            @param control_files: a sequence of control file names to run for
-                    this host ("~" inside the filename will be expanded)
+            @param tests: a sequence of test names (as named in the frontend
+                    database) to run for this host
             @param kernel_configs: a dictionary of
                     kernel_version -> config_filename associating kernel
                     versions with corresponding kernel configuration files
                     ("~" inside the filename will be expanded)
             """
-            self.control_files = control_files
+            self.tests = tests
             self.kernel_configs = kernel_configs
 
 
-    def __init__(self, control_map, jobname_pattern, job_owner='autotest'):
+    def __init__(self, tests_map, jobname_pattern, job_owner='autotest'):
         """
         Instantiate a map_action.
 
-        @param control_map: a dictionary of hostname -> machine_info
+        @param tests_map: a dictionary of hostname -> machine_info
         """
-        self._control_map = control_map
+        self._tests_map = tests_map
         self._jobname_pattern = jobname_pattern
-        self._job_owner = job_owner
+        self._afe = frontend.AFE(user=job_owner)
 
 
     def __call__(self, kernel_list):
         """
         Schedule jobs to run on the given list of kernel versions using
-        the configured machines -> machine_info mapping for control file
+        the configured machines -> machine_info mapping for test name
         selection and kernel config file selection.
         """
         for kernel in kernel_list:
             # Get a list of all the machines available for testing
             # and the tests that each one is to execute and group them by
-            # control/kernel-config so we can run a single job for the same
+            # test/kernel-config so we can run a single job for the same
             # group
 
-            # dictionary of (control-file,kernel-config)-><list-of-machines>
+            # dictionary of (test-name,kernel-config)-><list-of-machines>
             jobs = {}
-            for machine, info in self._control_map.iteritems():
+            for machine, info in self._tests_map.iteritems():
                 config_paths = info.kernel_configs
                 kernel_config = '/boot/config'
 
@@ -117,14 +97,13 @@ def step_test():
                     close =  self._closest_kver_leq(kvers, kernel)
                     kernel_config = config_paths[close]
 
-                for control in info.control_files:
-                    jobs.setdefault((control, kernel_config), [])
-                    jobs[(control, kernel_config)].append(machine)
+                for test in info.tests:
+                    jobs.setdefault((test, kernel_config), [])
+                    jobs[(test, kernel_config)].append(machine)
 
-            for (control, kernel_config), hosts in jobs.iteritems():
-                c = self._generate_control(control, kernel, kernel_config)
-                self._schedule_job(self._jobname_pattern % kernel, c,
-                                   hosts, control.endswith('.srv'))
+            for (test, kernel_config), hosts in jobs.iteritems():
+                c = self._generate_control(test, kernel, kernel_config)
+                self._schedule_job(self._jobname_pattern % kernel, c, hosts)
 
 
     @classmethod
@@ -188,46 +167,31 @@ def step_test():
         return l[i - 1]
 
 
-    def _generate_control(self, control, kernel, kernel_config):
+    def _generate_control(self, test, kernel, kernel_config):
         """
-        Wraps a given control file with the proper code to run it on a given
-        kernel version.
+        Uses generate_control_file RPC to generate a control file given
+        a test name and kernel information.
 
-        @param control: A str filename of the control file to wrap as a
-                kernel test or an open file to the same
+        @param test: The test name string as it's named in the frontend
+                database.
         @param kernel: A str of the kernel version (i.e. x.x.xx)
         @param kernel_config: A str filename to the kernel config on the
                 client
 
-        @returns a string of the generated control file
+        @returns a dict representing a control file as described by
+                frontend.afe.rpc_interface.generate_control_file
         """
-        # Create the control file in a string
-        c = ''
-
-        c += self._PREAMBLE % (repr(kernel),
-                               repr(os.path.expanduser(kernel_config)))
-
-        is_autoserv_ctl = control.endswith('.srv')
-        if not is_autoserv_ctl:
-            c += self._AUTOTEST_WRAPPER
-
-        # Open the basis control file and pull its contents into this one
-        control = open(os.path.expanduser(control), 'r')
-
-        # If is an AT file then we need to indent to match wrapper
-        # function level indentation, srv files don't need this indentation
-        indent = (4 * ' ', '')[is_autoserv_ctl]
-        for line in control:
-            c += '%s%s' % (indent, line)
-
-        return c
+        kernel_info = dict(version=kernel,
+                           config_file=os.path.expanduser(kernel_config))
+        return self._afe.generate_control_file(tests=[test],
+                                               kernel=[kernel_info])
 
 
-    def _schedule_job(self, jobname, control, hosts, is_server_test):
-        control_type = ('Client', 'Server')[is_server_test]
+    def _schedule_job(self, jobname, control, hosts):
+        control_type = ('Client', 'Server')[control.is_server]
 
-        afe = frontend.AFE(user=self._job_owner)
-        afe.create_job(control, jobname, control_type=control_type, hosts=hosts)
+        self._afe.create_job(control.control_file, jobname,
+                             control_type=control_type, hosts=hosts)
 
 
 class email_action(base_action):
