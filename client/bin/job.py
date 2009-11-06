@@ -6,13 +6,14 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
-import logging
+import logging, getpass
 import cPickle as pickle
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, boottool, harness
 from autotest_lib.client.bin import config, sysinfo, test, local_host
 from autotest_lib.client.bin import partition as partition_lib
+from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, barrier, log, logging_manager
 from autotest_lib.client.common_lib import base_packages, packages
 
@@ -39,7 +40,7 @@ def _run_test_complete_on_exit(f):
         try:
             return f(self, *args, **dargs)
         finally:
-            if self.log_filename == self.DEFAULT_LOG_FILENAME:
+            if self._log_filename == self._DEFAULT_LOG_FILENAME:
                 self.harness.run_test_complete()
                 if self.drop_caches:
                     logging.debug("Dropping caches")
@@ -50,49 +51,17 @@ def _run_test_complete_on_exit(f):
     return wrapped
 
 
-class base_job(object):
-    """The actual job against which we do everything.
+class base_client_job(base_job.base_job):
+    """The client-side concrete implementation of base_job.
 
-    Properties:
-            autodir
-                    The top level autotest directory (/usr/local/autotest).
-                    Comes from os.environ['AUTODIR'].
-            bindir
-                    <autodir>/bin/
-            libdir
-                    <autodir>/lib/
-            testdir
-                    <autodir>/tests/
-            configdir
-                    <autodir>/config/
-            site_testdir
-                    <autodir>/site_tests/
-            profdir
-                    <autodir>/profilers/
-            tmpdir
-                    <autodir>/tmp/
-            pkgdir
-                    <autodir>/packages/
-            resultdir
-                    <autodir>/results/<jobtag>
-            toolsdir
-                    <autodir>/tools/
-            logging
-                    logging_manager.LoggingManager object
-            profilers
-                    the profilers object for this job
-            harness
-                    the server harness object for this job
-            config
-                    the job configuration for this job
-            drop_caches_between_iterations
-                    drop the pagecache between each iteration
-            default_profile_only
-                    default value for the test.execute profile_only paramete
+    Optional properties provided by this implementation:
+        control
+        bootloader
+        harness
     """
 
-    DEFAULT_LOG_FILENAME = "status"
-    WARNING_DISABLE_DELAY = 5
+    _DEFAULT_LOG_FILENAME = "status"
+    _WARNING_DISABLE_DELAY = 5
 
     def __init__(self, control, options, drop_caches=True,
                  extra_copy_cmdline=None):
@@ -112,6 +81,7 @@ class base_job(object):
                 copy from the running kernel to all the installed kernels with
                 this job
         """
+        super(base_client_job, self).__init__(options=options)
         self._pre_record_init(control, options)
         try:
             self._post_record_init(control, options, drop_caches,
@@ -123,30 +93,40 @@ class base_job(object):
             raise
 
 
+    @classmethod
+    def _get_environ_autodir(cls):
+        return os.environ['AUTODIR']
+
+
+    @classmethod
+    def _find_base_directories(cls):
+        """
+        Determine locations of autodir and clientdir (which are the same)
+        using os.environ. Serverdir does not exist in this context.
+        """
+        autodir = clientdir = cls._get_environ_autodir()
+        return autodir, clientdir, None
+
+
+    def _find_resultdir(self, options):
+        """
+        Determine the directory for storing results. On a client this is
+        always <autodir>/results/<tag>, where tag is passed in on the command
+        line as an option.
+        """
+        return os.path.join(self.autodir, 'results', options.tag)
+
+
     def _pre_record_init(self, control, options):
         """
         Initialization function that should peform ONLY the required
         setup so that the self.record() method works.
 
-        As of now self.record() needs self.resultdir, self.group_level,
-        self.log_filename, self.harness.
+        As of now self.record() needs self.resultdir, self._group_level,
+        self._log_filename, self.harness.
         """
-        self.autodir = os.environ['AUTODIR']
-        self.resultdir = os.path.join(self.autodir, 'results', options.tag)
-        self.tmpdir = os.path.join(self.autodir, 'tmp')
-
-        if not os.path.exists(self.resultdir):
-            os.makedirs(self.resultdir)
-
         if not options.cont:
             self._cleanup_results_dir()
-            # Don't cleanup the tmp dir (which contains the lockfile)
-            # in the constructor, this would be a problem for multiple
-            # jobs starting at the same time on the same client. Instead
-            # do the delete at the server side. We simply create the tmp
-            # directory here if it does not already exist.
-            if not os.path.exists(self.tmpdir):
-                os.mkdir(self.tmpdir)
 
         logging_manager.configure_logging(
                 client_logging_config.ClientLoggingConfig(),
@@ -154,15 +134,15 @@ class base_job(object):
                 verbose=options.verbose)
         logging.info('Writing results to %s', self.resultdir)
 
-        self.log_filename = self.DEFAULT_LOG_FILENAME
+        self._log_filename = self._DEFAULT_LOG_FILENAME
 
         # init_group_level needs the state
         self.control = os.path.realpath(control)
         self._is_continuation = options.cont
-        self.state_file = self.control + '.state'
-        self.current_step_ancestry = []
-        self.next_step_index = 0
-        self.testtag = ''
+        self._state_file = self.control + '.state'
+        self._current_step_ancestry = []
+        self._next_step_index = 0
+        self._testtag = ''
         self._test_tag_prefix = ''
         self._load_state()
 
@@ -176,14 +156,6 @@ class base_job(object):
         """
         Perform job initialization not required by self.record().
         """
-        self.bindir = os.path.join(self.autodir, 'bin')
-        self.libdir = os.path.join(self.autodir, 'lib')
-        self.testdir = os.path.join(self.autodir, 'tests')
-        self.configdir = os.path.join(self.autodir, 'config')
-        self.site_testdir = os.path.join(self.autodir, 'site_tests')
-        self.profdir = os.path.join(self.autodir, 'profilers')
-        self.toolsdir = os.path.join(self.autodir, 'tools')
-
         self._init_drop_caches(drop_caches)
 
         self._init_packages()
@@ -199,13 +171,6 @@ class base_job(object):
         self.tag = self.get_state("__job_tag", default=None)
 
         if not options.cont:
-            if not os.path.exists(self.pkgdir):
-                os.mkdir(self.pkgdir)
-
-            results = os.path.join(self.autodir, 'results')
-            if not os.path.exists(results):
-                os.mkdir(results)
-
             download = os.path.join(self.testdir, 'download')
             if not os.path.exists(download):
                 os.mkdir(download)
@@ -216,19 +181,24 @@ class base_job(object):
                             os.path.join(self.resultdir, 'control'))
 
         self.control = control
-        self.jobtag = options.tag
 
         self.logging = logging_manager.get_logging_manager(
                 manage_stdout_and_stderr=True, redirect_fds=True)
         self.logging.start_logging()
 
-        self.config = config.config(self)
+        self._config = config.config(self)
         self.profilers = profilers.profilers(self)
 
         self._init_bootloader()
-        self.host = local_host.LocalHost(hostname=options.hostname,
-                                         bootloader=self.bootloader)
-        self.autoserv_user = options.autoserv_user
+
+        self.machines = [options.hostname]
+        self.hosts = set([local_host.LocalHost(hostname=options.hostname,
+                                               bootloader=self.bootloader)])
+
+        if options.user:
+            self.user = options.user
+        else:
+            self.user = getpass.getuser()
 
         self.sysinfo.log_per_reboot_data()
 
@@ -242,9 +212,16 @@ class base_job(object):
             self.enable_external_logging()
 
         # load the max disk usage rate - default to no monitoring
-        self.max_disk_usage_rate = self.get_state('__monitor_disk', default=0.0)
+        self._max_disk_usage_rate = self.get_state('__monitor_disk',
+                                                   default=0.0)
 
         self._init_cmdline(extra_copy_cmdline)
+
+        self.num_tests_run = None
+        self.num_tests_failed = None
+
+        self.warning_loggers = None
+        self.warning_manager = None
 
 
     def _init_drop_caches(self, drop_caches):
@@ -272,7 +249,6 @@ class base_job(object):
         """
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':3600})
-        self.pkgdir = os.path.join(self.autodir, 'packages')
 
 
     def _init_cmdline(self, extra_copy_cmdline):
@@ -310,11 +286,11 @@ class base_job(object):
         self.record("INFO", None, None,
                     "disabling %s warnings" % warning_type,
                     {"warnings.disable": warning_type})
-        time.sleep(self.WARNING_DISABLE_DELAY)
+        time.sleep(self._WARNING_DISABLE_DELAY)
 
 
     def enable_warnings(self, warning_type):
-        time.sleep(self.WARNING_DISABLE_DELAY)
+        time.sleep(self._WARNING_DISABLE_DELAY)
         self.record("INFO", None, None,
                     "enabling %s warnings" % warning_type,
                     {"warnings.enable": warning_type})
@@ -332,7 +308,7 @@ class base_job(object):
                         no limit.
         """
         self.set_state('__monitor_disk', max_rate)
-        self.max_disk_usage_rate = max_rate
+        self._max_disk_usage_rate = max_rate
 
 
     def relative_path(self, path):
@@ -356,11 +332,11 @@ class base_job(object):
 
 
     def config_set(self, name, value):
-        self.config.set(name, value)
+        self._config.set(name, value)
 
 
     def config_get(self, name):
-        return self.config.get(name)
+        return self._config.get(name)
 
 
     def setup_dirs(self, results_dir, tmp_dir):
@@ -531,8 +507,8 @@ class base_job(object):
             testname += '.' + platform.release()
         if self._test_tag_prefix:
             testname += '.' + self._test_tag_prefix
-        if self.testtag:  # job-level tag is included in reported test name
-            testname += '.' + self.testtag
+        if self._testtag:  # job-level tag is included in reported test name
+            testname += '.' + self._testtag
         subdir = testname
         sdtag = dargs.pop('subdir_tag', None)
         if sdtag:  # subdir-only tag is not included in reports
@@ -551,7 +527,7 @@ class base_job(object):
 
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
-        @disk_usage_monitor.watch(log_warning, "/", self.max_disk_usage_rate)
+        @disk_usage_monitor.watch(log_warning, "/", self._max_disk_usage_rate)
         def group_func():
             try:
                 self._runtest(url, tag, args, dargs)
@@ -667,7 +643,7 @@ class base_job(object):
 
     def set_test_tag(self, tag=''):
         """Set tag to be added to test name of all following run_test steps."""
-        self.testtag = tag
+        self._testtag = tag
 
 
     def set_test_tag_prefix(self, prefix):
@@ -891,10 +867,10 @@ class base_job(object):
         """Run tasks in parallel"""
 
         pids = []
-        old_log_filename = self.log_filename
+        old_log_filename = self._log_filename
         for i, task in enumerate(tasklist):
             assert isinstance(task, (tuple, list))
-            self.log_filename = old_log_filename + (".%d" % i)
+            self._log_filename = old_log_filename + (".%d" % i)
             task_func = lambda: task[0](*task[1:])
             pids.append(parallel.fork_start(self.resultdir, task_func))
 
@@ -917,7 +893,7 @@ class base_job(object):
                 os.remove(new_log_path)
         old_log.close()
 
-        self.log_filename = old_log_filename
+        self._log_filename = old_log_filename
 
         # handle any exceptions raised by the parallel tasks
         if exceptions:
@@ -934,8 +910,8 @@ class base_job(object):
     def complete(self, status):
         """Clean up and exit"""
         # We are about to exit 'complete' so clean up the control file.
-        dest = os.path.join(self.resultdir, os.path.basename(self.state_file))
-        shutil.move(self.state_file, dest)
+        dest = os.path.join(self.resultdir, os.path.basename(self._state_file))
+        shutil.move(self._state_file, dest)
 
         self.harness.run_complete()
         self.disable_external_logging()
@@ -947,7 +923,7 @@ class base_job(object):
         # without it being re-written.  Perf wise, deep copies
         # are overshadowed by pickling/loading.
         self.state[var] = copy.deepcopy(val)
-        outfile = open(self.state_file, 'wb')
+        outfile = open(self._state_file, 'wb')
         try:
             pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
         finally:
@@ -961,9 +937,9 @@ class base_job(object):
         infile = None
         try:
             try:
-                infile = open(self.state_file, 'rb')
+                infile = open(self._state_file, 'rb')
                 self.state = pickle.load(infile)
-                logging.info('Loaded state from %s', self.state_file)
+                logging.info('Loaded state from %s', self._state_file)
             except IOError:
                 self.state = {}
                 initialize = True
@@ -1005,7 +981,7 @@ class base_job(object):
         if not isinstance(fn, types.StringTypes):
             raise StepError("Next steps must be functions or "
                             "strings containing the function name")
-        ancestry = copy.copy(self.current_step_ancestry)
+        ancestry = copy.copy(self._current_step_ancestry)
         return (ancestry, fn, args, dargs)
 
 
@@ -1021,9 +997,9 @@ class base_job(object):
         while running the current step but before any steps added in
         previous steps"""
         steps = self.get_state('__steps')
-        steps.insert(self.next_step_index,
+        steps.insert(self._next_step_index,
                      self.__create_step_tuple(fn, args, dargs))
-        self.next_step_index += 1
+        self._next_step_index += 1
         self.set_state('__steps', steps)
 
 
@@ -1031,7 +1007,7 @@ class base_job(object):
         """Insert a new step, executing first"""
         steps = self.get_state('__steps')
         steps.insert(0, self.__create_step_tuple(fn, args, dargs))
-        self.next_step_index += 1
+        self._next_step_index += 1
         self.set_state('__steps', steps)
 
 
@@ -1099,7 +1075,7 @@ class base_job(object):
             callable(local_vars['step_init'])):
             # The init step is a child of the function
             # we were just running.
-            self.current_step_ancestry.append(current_function)
+            self._current_step_ancestry.append(current_function)
             self.next_step_prepend('step_init')
 
 
@@ -1139,9 +1115,9 @@ class base_job(object):
             (ancestry, fn_name, args, dargs) = steps.pop(0)
             self.set_state('__steps', steps)
 
-            self.next_step_index = 0
+            self._next_step_index = 0
             ret = self._create_frame(global_control_vars, ancestry, fn_name)
-            local_vars, self.current_step_ancestry = ret
+            local_vars, self._current_step_ancestry = ret
             local_vars = self._run_step_fn(local_vars, fn_name, args, dargs)
             self._add_step_init(local_vars, fn_name)
 
@@ -1175,17 +1151,17 @@ class base_job(object):
 
 
     def _init_group_level(self):
-        self.group_level = self.get_state("__group_level", default=0)
+        self._group_level = self.get_state("__group_level", default=0)
 
 
     def _increment_group_level(self):
-        self.group_level += 1
-        self.set_state("__group_level", self.group_level)
+        self._group_level += 1
+        self.set_state("__group_level", self._group_level)
 
 
     def _decrement_group_level(self):
-        self.group_level -= 1
-        self.set_state("__group_level", self.group_level)
+        self._group_level -= 1
+        self.set_state("__group_level", self._group_level)
 
 
     def record(self, status_code, subdir, operation, status = '',
@@ -1243,7 +1219,7 @@ class base_job(object):
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
-        status = re.sub(r"\n", "\n" + "\t" * self.group_level + "  ", status)
+        status = re.sub(r"\n", "\n" + "\t" * self._group_level + "  ", status)
 
         # Generate timestamps for inclusion in the logs
         epoch_time = int(time.time())  # seconds since epoch, in UTC
@@ -1257,28 +1233,27 @@ class base_job(object):
         fields.append(status)
 
         msg = '\t'.join(str(x) for x in fields)
-        msg = '\t' * self.group_level + msg
+        msg = '\t' * self._group_level + msg
 
         msg_tag = ""
-        if "." in self.log_filename:
-            msg_tag = self.log_filename.split(".", 1)[1]
+        if "." in self._log_filename:
+            msg_tag = self._log_filename.split(".", 1)[1]
 
         self.harness.test_status_detail(status_code, substr, operation, status,
                                         msg_tag)
         self.harness.test_status(msg, msg_tag)
 
         # log to stdout (if enabled)
-        #if self.log_filename == self.DEFAULT_LOG_FILENAME:
         logging.info(msg)
 
         # log to the "root" status log
-        status_file = os.path.join(self.resultdir, self.log_filename)
+        status_file = os.path.join(self.resultdir, self._log_filename)
         open(status_file, "a").write(msg + "\n")
 
         # log to the subdir status log (if subdir is set)
         if subdir:
             dir = os.path.join(self.resultdir, subdir)
-            status_file = os.path.join(dir, self.DEFAULT_LOG_FILENAME)
+            status_file = os.path.join(dir, self._DEFAULT_LOG_FILENAME)
             open(status_file, "a").write(msg + "\n")
 
 
@@ -1386,8 +1361,8 @@ def runjob(control, options):
                 myjob.record('ABORT', None, command, instance.args[0])
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, instance.args[0])
-            assert (myjob.group_level == 0), ('myjob.group_level must be 0,'
-                                              ' not %d' % myjob.group_level)
+            assert (myjob._group_level == 0), ('myjob._group_level must be 0,'
+                                               ' not %d' % myjob._group_level)
             myjob.complete(1)
         else:
             sys.exit(1)
@@ -1400,7 +1375,7 @@ def runjob(control, options):
         if myjob:
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, msg)
-            assert(myjob.group_level == 0)
+            assert(myjob._group_level == 0)
             myjob.complete(1)
         else:
             sys.exit(1)
@@ -1408,13 +1383,13 @@ def runjob(control, options):
     # If we get here, then we assume the job is complete and good.
     myjob._decrement_group_level()
     myjob.record('END GOOD', None, None)
-    assert(myjob.group_level == 0)
+    assert(myjob._group_level == 0)
 
     myjob.complete(0)
 
 
 site_job = utils.import_site_class(
-    __file__, "autotest_lib.client.bin.site_job", "site_job", base_job)
+    __file__, "autotest_lib.client.bin.site_job", "site_job", base_client_job)
 
 class job(site_job):
     pass
