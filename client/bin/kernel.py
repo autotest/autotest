@@ -473,7 +473,9 @@ class kernel(object):
 
         for f in [self.build_dir + "/include/linux/version.h",
                   self.build_dir + "/include/linux/utsrelease.h",
-                  self.build_dir + "/include/linux/compile.h"]:
+                  self.build_dir + "/include/linux/compile.h",
+                  self.build_dir + "/include/generated/utsrelease.h",
+                  self.build_dir + "/include/generated/compile.h"]:
             if os.path.exists(f):
                 fd = open(f, 'r')
                 for line in fd.readlines():
