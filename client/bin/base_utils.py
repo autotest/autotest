@@ -652,7 +652,6 @@ def ping_default_gateway():
 def drop_caches():
     """Writes back all dirty pages to disk and clears all the caches."""
     utils.system("sync")
-    utils.system("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
     utils.system("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True)
 
