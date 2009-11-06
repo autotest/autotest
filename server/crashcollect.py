@@ -42,6 +42,10 @@ def wait_for_machine_to_recover(host, hours_to_wait=4.0):
     @returns: True if the machine comes back up, False otherwise
     """
     current_time = time.strftime("%b %d %H:%M:%S", time.localtime())
+    if host.is_up():
+        logging.info("%s already up, collecting crash info", host.hostname)
+        return True
+
     logging.info("Waiting four hours for %s to come up (%s)",
                  host.hostname, current_time)
     if not host.wait_up(timeout=hours_to_wait * 3600):
