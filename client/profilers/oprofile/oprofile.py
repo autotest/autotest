@@ -12,7 +12,7 @@ Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 import os, shutil, time
 from autotest_lib.client.bin import utils, profiler
 from autotest_lib.client.common_lib import error
-
+import logging
 
 class oprofile(profiler.profiler):
     version = 7
@@ -139,21 +139,17 @@ class oprofile(profiler.profiler):
             report = self.opreport + ' -l ' + self.vmlinux
             if os.path.exists(utils.get_modules_dir()):
                 report += ' -p ' + utils.get_modules_dir()
-            utils.system("echo 'Starting oprofile: %s' > %s" % (self.start_time,
-                                                                reportfile))
-            utils.system(report + ' >> ' + reportfile)
-            utils.system("echo 'Ending oprofile: %s' >> %s" % (self.stop_time,
-                                                               reportfile))
+            logging.info("Starting oprofile: %s" % self.start_time
+            utils.system(report + ' > ' + reportfile)
+            logging.info("Ending oprofile: %s" % self.stop_time
 
         else:
             utils.system("echo 'no vmlinux found.' > %s" % reportfile)
 
         # output profile summary report
         reportfile = test.profdir + '/oprofile.user'
-        utils.system("echo 'Starting oprofile: %s' > %s" % (self.start_time,
-                                                            reportfile))
+        logging.info("Starting oprofile: %s" % self.start_time
         utils.system(self.opreport + ' --long-filenames ' + ' >> ' + reportfile)
-        utils.system("echo 'Ending oprofile: %s' >> %s" % (self.stop_time,
-                                                           reportfile))
+        logging.info("Ending oprofile: %s" % self.stop_time
 
         utils.system(self.opcontrol + ' --shutdown')
