@@ -53,11 +53,10 @@ import difflib
 try:
     import functools
 except ImportError:
-    # Most likely using 2.4.x
-    raise ImportError("Failed to import functools (most likely because you're "
-                      "using 2.4.x. Please go to "
-                      "http://pypi.python.org/simple/functools/ to get the "
-                      "package")
+    # we put a local copy of this in our repository
+    #  http://pypi.python.org/simple/functools/
+    import functools_24
+    functools = functools_24
 
 import os
 import pprint
