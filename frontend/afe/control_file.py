@@ -128,8 +128,13 @@ def get_kernel_stanza(kernel_list, platform=None, kernel_args='',
     # add 'config_file' keys to the kernel_info dictionaries
     new_kernel_list = []
     for kernel_info in kernel_list:
-        config_file = kernel_config_file(kernel_info['version'], platform)
-        new_kernel_info = dict(kernel_info, config_file=config_file)
+        if kernel_info.get('config_file'):
+            # already got a config file from the user
+            new_kernel_info = kernel_info
+        else:
+            config_file = kernel_config_file(kernel_info['version'], platform)
+            new_kernel_info = dict(kernel_info, config_file=config_file)
+
         new_kernel_list.append(new_kernel_info)
 
     if is_server:
