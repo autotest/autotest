@@ -350,7 +350,7 @@ def get_acl_groups(**filter_data):
 
 def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
                           client_control_file='', use_container=False,
-                          profile_only=None):
+                          profile_only=None, upload_kernel_config=False):
     """
     Generates a client-side control file to load a kernel and run tests.
 
@@ -371,6 +371,10 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     @param profile_only A boolean that indicates what default profile_only
         mode to use in the control file. Passing None will generate a
         control file that does not explcitly set the default mode at all.
+    @param upload_kernel_config: if enabled it will generate server control
+            file code that uploads the kernel config file to the client and
+            tells the client of the new (local) path when compiling the kernel;
+            the tests must be server side tests
 
     @returns a dict with the following keys:
         control_file: str, The control file text.
@@ -389,7 +393,8 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     cf_info['control_file'] = control_file.generate_control(
         tests=test_objects, kernels=kernel, platform=label,
         profilers=profiler_objects, is_server=cf_info['is_server'],
-        client_control_file=client_control_file, profile_only=profile_only)
+        client_control_file=client_control_file, profile_only=profile_only,
+        upload_kernel_config=upload_kernel_config)
     return cf_info
 
 

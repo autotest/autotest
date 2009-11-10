@@ -114,6 +114,13 @@ def step_test(kernel_version):
 def step0():
     job.run_test('testname')
 
+# upload_kernel_config requires server side test
+>>> rpc_interface.generate_control_file(tests=['sleeptest'],
+...        kernel=[{'version': '2.6.18', 'config_file': 'foo/bar'}],
+...        upload_kernel_config=True)
+Traceback (most recent call last):
+ValidationError: {'upload_kernel_config': 'Cannot use upload_kernel_config with client side tests'}
+
 # server-side control file generation
 >>> rpc_interface.modify_test('sleeptest', test_type='Server')
 >>> cf_info = rpc_interface.generate_control_file(tests=['sleeptest'],
@@ -188,6 +195,103 @@ def step0():
 step_init()
 >>> cf_info['is_server']
 True
+
+# server-side control file generation with kernel config upload code
+>>> cf_info = rpc_interface.generate_control_file(tests=['sleeptest'],
+...        kernel=[{'version': '2.6.18', 'config_file': 'foo/bar'}],
+...        upload_kernel_config=True)
+>>> print cf_info['control_file'] #doctest: +NORMALIZE_WHITESPACE
+kernel_list = [{'version': '2.6.18', 'config_file': 'foo/bar'}]
+kernel_install_control = """
+kernel_list = %(client_kernel_list)s
+def step_init():
+    for kernel_info in kernel_list:
+        job.next_step(boot_kernel, kernel_info)
+        job.next_step(step_test, kernel_info['version'])
+    if len(kernel_list) > 1:
+        job.set_run_number(1)  # Include run numbers in output directory names.
+        job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
+def boot_kernel(kernel_info):
+    # remove kernels (and associated data) not referenced by the bootloader
+    job.host.cleanup_kernels()
+    testkernel = job.kernel(kernel_info['version'])
+    if kernel_info['config_file']:
+        testkernel.config(kernel_info['config_file'])
+    testkernel.build()
+    testkernel.install()
+    cmdline = ' '.join((kernel_info.get('cmdline', ''), ''))
+    testkernel.boot(args=cmdline)
+def step_test(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
+    pass
+"""
+from autotest_lib.client.common_lib import error
+at = autotest.Autotest()
+def upload_kernel_config(host, kernel_info):
+    """
+    If the kernel_info['config_file'] is a URL it will be downloaded
+    locally and then uploaded to the client and a copy of the original
+    dictionary with the new path to the config file will be returned.
+    If the config file is not a URL the function returns the original
+    dictionary.
+    """
+    import os
+    from autotest_lib.client.common_lib import autotemp, utils
+    config_orig = kernel_info.get('config_file')
+    # if the file is not an URL then we assume it's a local client path
+    if not config_orig or not utils.is_url(config_orig):
+        return kernel_info
+    # download it locally (on the server) and send it to the client
+    config_tmp = autotemp.tempfile('kernel_config_upload', dir=job.tmpdir)
+    try:
+        utils.urlretrieve(config_orig, config_tmp.name)
+        config_new = os.path.join(host.get_autodir(), 'tmp',
+                                  os.path.basename(config_orig))
+        host.send_file(config_tmp.name, config_new)
+    finally:
+        config_tmp.clean()
+    return dict(kernel_info, config_file=config_new)
+def install_kernel(machine, kernel_info):
+    host = hosts.create_host(machine)
+    at.install(host=host)
+    kernel_info = upload_kernel_config(host, kernel_info)
+    at.run(kernel_install_control %
+           {'client_kernel_list': repr([kernel_info])}, host=host)
+num_machines_required = len(machines)
+if len(machines) > 4:
+    # Allow a large multi-host tests to proceed despite a couple of hosts
+    # failing to properly install the desired kernel (exclude those hosts).
+    # TODO(gps): Figure out how to get and use SYNC_COUNT here.  It is defined
+    # within some control files and will end up inside of stepN functions below.
+    num_machines_required = len(machines) - 2
+def step_init():
+    # a host object we use solely for the purpose of finding out the booted
+    # kernel version, we use machines[0] since we already check that the same
+    # kernel has been booted on all machines
+    if len(kernel_list) > 1:
+        kernel_host = hosts.create_host(machines[0])
+    for kernel_info in kernel_list:
+        func = lambda machine: install_kernel(machine, kernel_info)
+        good_machines = job.parallel_on_machines(func, machines)
+        if len(good_machines) < num_machines_required:
+            raise error.TestError(
+                    "kernel installed on only %d of %d machines."
+                    % (len(good_machines), num_machines_required))
+        # Replace the machines list that step_test() will use with the
+        # ones that successfully installed the kernel.
+        machines[:] = good_machines
+        # have server_job.run_test() automatically add the kernel version as
+        # a suffix to the test name otherwise we cannot run the same test on
+        # different kernel versions
+        if len(kernel_list) > 1:
+            job.set_test_tag_prefix(kernel_host.get_kernel_ver())
+        step_test()
+def step_test():
+    step0()
+def step0():
+    job.run_test('testname')
+step_init()
 
 # test that multiline quoted strings are not indented
 >>> import common
