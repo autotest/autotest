@@ -102,7 +102,7 @@ class TempManager(model_logic.ExtendedManager):
 
 class Machine(dbmodels.Model):
     machine_idx = dbmodels.AutoField(primary_key=True)
-    hostname = dbmodels.CharField(unique=True, max_length=300)
+    hostname = dbmodels.CharField(unique=True, max_length=255)
     machine_group = dbmodels.CharField(blank=True, max_length=240)
     owner = dbmodels.CharField(blank=True, max_length=240)
 
@@ -140,7 +140,7 @@ class Status(dbmodels.Model):
 
 class Job(dbmodels.Model):
     job_idx = dbmodels.AutoField(primary_key=True)
-    tag = dbmodels.CharField(unique=True, max_length=300)
+    tag = dbmodels.CharField(unique=True, max_length=100)
     label = dbmodels.CharField(max_length=300)
     username = dbmodels.CharField(max_length=240)
     machine = dbmodels.ForeignKey(Machine, db_column='machine_idx')
