@@ -903,46 +903,6 @@ class FindAbortTest(BaseSchedulerTest):
         self.god.check_playback()
 
 
-class JobTimeoutTest(BaseSchedulerTest):
-    def _test_synch_start_timeout_helper(self, expect_abort,
-                                         set_created_on=True, set_active=True,
-                                         set_acl=True):
-        scheduler_config.config.synch_job_start_timeout_minutes = 60
-        job = self._create_job(hosts=[1, 2])
-        if set_active:
-            hqe = job.hostqueueentry_set.filter(host__id=1)[0]
-            hqe.status = 'Pending'
-            hqe.active = 1
-            hqe.save()
-
-        everyone_acl = models.AclGroup.smart_get('Everyone')
-        host1 = models.Host.smart_get(1)
-        if set_acl:
-            everyone_acl.hosts.add(host1)
-        else:
-            everyone_acl.hosts.remove(host1)
-
-        job.created_on = datetime.datetime.now()
-        if set_created_on:
-            job.created_on -= datetime.timedelta(minutes=100)
-        job.save()
-
-        cleanup = self._dispatcher._periodic_cleanup
-        cleanup._abort_jobs_past_synch_start_timeout()
-
-        for hqe in job.hostqueueentry_set.all():
-            self.assertEquals(hqe.aborted, expect_abort)
-
-
-    def test_synch_start_timeout_helper(self):
-        # no abort if any of the condition aren't met
-        self._test_synch_start_timeout_helper(False, set_created_on=False)
-        self._test_synch_start_timeout_helper(False, set_active=False)
-        self._test_synch_start_timeout_helper(False, set_acl=False)
-        # abort if all conditions are met
-        self._test_synch_start_timeout_helper(True)
-
-
 class PidfileRunMonitorTest(unittest.TestCase):
     execution_tag = 'test_tag'
     pid = 12345
