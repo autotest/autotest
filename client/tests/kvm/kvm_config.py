@@ -83,7 +83,7 @@ class config:
         @param filter: A regular expression that defines the filter.
         @param dict: Dictionary that will be inspected.
         """
-        filter = re.compile(r"(\.|^)" + filter + r"(\.|$)")
+        filter = re.compile(r"(\.|^)(%s)(\.|$)" % filter)
         return bool(filter.search(dict["name"]))
 
 
