@@ -51,7 +51,6 @@ class UserCleanup(PeriodicCleanup):
     def _cleanup(self):
         logging.info('Running periodic cleanup')
         self._abort_timed_out_jobs()
-        self._abort_jobs_past_synch_start_timeout()
         self._abort_jobs_past_max_runtime()
         self._clear_inactive_blocks()
         self._check_for_db_inconsistencies()
@@ -65,28 +64,6 @@ class UserCleanup(PeriodicCleanup):
         for job in query.distinct():
             logging.warning('Aborting job %d due to job timeout', job.id)
             job.abort(None)
-
-
-    def _abort_jobs_past_synch_start_timeout(self):
-        """
-        Abort synchronous jobs that are past the start timeout (from global
-        config) and are holding a machine that's in everyone.
-        """
-        msg = 'Aborting synchronous jobs that are past the start timeout'
-        logging.info(msg)
-        timeout_delta = datetime.timedelta(
-            minutes=scheduler_config.config.synch_job_start_timeout_minutes)
-        timeout_start = datetime.datetime.now() - timeout_delta
-        query = models.Job.objects.filter(
-            created_on__lt=timeout_start,
-            hostqueueentry__status='Pending',
-            hostqueueentry__host__aclgroup__name='Everyone')
-        for job in query.distinct():
-            logging.warning('Aborting job %d due to start timeout', job.id)
-            entries_to_abort = job.hostqueueentry_set.exclude(
-                status=models.HostQueueEntry.Status.RUNNING)
-            for queue_entry in entries_to_abort:
-                queue_entry.abort(None)
 
 
     def _abort_jobs_past_max_runtime(self):
