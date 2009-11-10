@@ -143,13 +143,13 @@ class VM:
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
-        if name == None:
+        if name is None:
             name = self.name
-        if params == None:
+        if params is None:
             params = self.params.copy()
-        if root_dir == None:
+        if root_dir is None:
             root_dir = self.root_dir
-        if address_cache == None:
+        if address_cache is None:
             address_cache = self.address_cache
         return VM(name, params, root_dir, address_cache)
 
@@ -190,11 +190,11 @@ class VM:
                nic_model -- string to pass as 'model' parameter for this
                NIC (e.g. e1000)
         """
-        if name == None:
+        if name is None:
             name = self.name
-        if params == None:
+        if params is None:
             params = self.params
-        if root_dir == None:
+        if root_dir is None:
             root_dir = self.root_dir
 
         # Start constructing the qemu command
@@ -324,11 +324,11 @@ class VM:
         """
         self.destroy()
 
-        if name != None:
+        if name is not None:
             self.name = name
-        if params != None:
+        if params is not None:
             self.params = params
-        if root_dir != None:
+        if root_dir is not None:
             self.root_dir = root_dir
         name = self.name
         params = self.params
