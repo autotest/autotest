@@ -78,6 +78,9 @@ variants:
     - migrate:      install setup
         type = migration
         migration_test_command = help
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_check_command = pgrep tcpdump
+        migration_bg_kill_command = pkill tcpdump
         kill_vm_on_error = yes
         iterations = 2
         used_mem = 1024
@@ -500,6 +503,9 @@ variants:
 
         migrate:
             migration_test_command = ver && vol
+            migration_bg_command = start ping -t localhost
+            migration_bg_check_command = tasklist | find /I "ping.exe"
+            migration_bg_kill_command = taskkill /IM ping.exe /F
         stress_boot:
             alive_test_cmd = systeminfo
         timedrift:
