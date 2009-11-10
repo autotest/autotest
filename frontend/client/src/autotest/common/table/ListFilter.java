@@ -8,17 +8,26 @@ import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
 
 public class ListFilter extends FieldFilter {
-    protected ListBox select = new ListBox();
+    protected ListBox select;
     protected String allValuesText = "All values";
     
     public ListFilter(String fieldName) {
         super(fieldName);
+        select = new ListBox(isMultipleSelect());
         select.setStylePrimaryName("filter-box");
         select.addChangeHandler(new ChangeHandler() {
             public void onChange(ChangeEvent event) {
                 notifyListeners();
             } 
         });
+    }
+    
+    /**
+     * Subclasses should override this if they wish to use a multi-select listbox
+     * @return true if and only if the listbox should be multiple select
+     */
+    protected boolean isMultipleSelect() {
+        return false;
     }
     
     /**

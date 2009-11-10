@@ -10,7 +10,11 @@ public class MultipleListFilter extends ListFilter {
     public MultipleListFilter(String fieldName, int maxVisibleSize) {
         super(fieldName);
         this.maxVisibleSize = maxVisibleSize;
-        select.setMultipleSelect(true);
+    }
+    
+    @Override
+    protected boolean isMultipleSelect() {
+        return true;
     }
 
     @Override
