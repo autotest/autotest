@@ -59,23 +59,23 @@ variants:
         floppy = "images/floppy.img"
         extra_params += " -boot d"
 
-    - setup:        install
+    - setup:        install unattended_install
         type = steps
         fail_if_stuck_for = 300
         stuck_detection_history = 2
         kill_vm_on_error = yes
         keep_screendump_history = yes
 
-    - boot:         install setup
+    - boot:         install setup unattended_install
         type = boot
         kill_vm_on_error = yes
 
-    - reboot:       install setup
+    - reboot:       install setup unattended_install
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
 
-    - migrate:      install setup
+    - migrate:      install setup unattended_install
         type = migration
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
@@ -85,7 +85,7 @@ variants:
         iterations = 2
         used_mem = 1024
 
-    - autotest:     install setup
+    - autotest:     install setup unattended_install
         type = autotest
         test_timeout = 720
         variants:
@@ -119,10 +119,10 @@ variants:
                 test_control_file = npb.control
 
 
-    - linux_s3:     install setup
+    - linux_s3:     install setup unattended_install
         type = linux_s3
 
-    - timedrift:    install setup
+    - timedrift:    install setup unattended_install
         extra_params += " -rtc-td-hack"
         variants:
             - with_load:
@@ -149,7 +149,7 @@ variants:
                 drift_threshold = 10
                 drift_threshold_single = 3
 
-    - stress_boot:  install setup
+    - stress_boot:  install setup unattended_install
         type = stress_boot
         max_vms = 5    
         alive_test_cmd = uname -a
@@ -161,7 +161,7 @@ variants:
         used_cpus = 5
         used_mem = 2560
 
-    - autoit:       install setup
+    - autoit:       install setup unattended_install
         type = autoit
         autoit_binary = D:\AutoIt3.exe
         autoit_script_timeout = 600
@@ -170,7 +170,7 @@ variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
 
-    - guest_s4:
+    - guest_s4:     install setup unattended_install
         type = guest_s4
         check_s4_support_cmd = grep -q disk /sys/power/state
         test_s4_cmd = "cd /tmp; nohup tcpdump -q -t ip host localhost"
@@ -179,7 +179,7 @@ variants:
         kill_test_s4_cmd = pkill tcpdump
         services_up_timeout = 30
 
-    - nic_hotplug:       install setup
+    - nic_hotplug:  install setup unattended_install
         type = pci_hotplug
         pci_type = nic
         modprobe_acpiphp = no
@@ -198,7 +198,7 @@ variants:
                 pci_model = e1000
                 match_string = "Gigabit Ethernet Controller"
 
-    - block_hotplug:       install setup
+    - block_hotplug: install setup unattended_install
         type = pci_hotplug
         pci_type = block
         reference_cmd = lspci
@@ -226,24 +226,25 @@ variants:
                 image_format_stg = raw
                 only Fedora Ubuntu Windows
 
-    - system_reset: install setup
+    - system_reset: install setup unattended_install
         type = boot
         reboot_method = system_reset
         sleep_before_reset = 20
         kill_vm_on_error = yes
 
-    - system_powerdown: install setup
+    - system_powerdown: install setup unattended_install
         type = shutdown
         shutdown_method = system_powerdown
         sleep_before_powerdown = 20
         kill_vm = yes
         kill_vm_gracefully = no
 
-    - shutdown:     install setup
+    - shutdown:     install setup unattended_install
         type = shutdown
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
+
 
 # NICs
 variants:
