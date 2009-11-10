@@ -582,6 +582,10 @@ class VM:
         finally:
             if self.process:
                 self.process.close()
+            try:
+                os.unlink(self.monitor_file_name)
+            except OSError:
+                pass
 
 
     def is_alive(self):
