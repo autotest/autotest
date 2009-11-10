@@ -128,7 +128,7 @@ public class FilterStringViewer extends Composite {
     // Change the viewer's editable state
     private void changeEditable(boolean clicked) {
         if (clicked) {
-            DOM.eventGetCurrentEvent().cancelBubble(true);
+            DOM.eventGetCurrentEvent().stopPropagation();
         }
         
         if (viewerEditable) {
