@@ -49,7 +49,7 @@ def run_timedrift_with_migration(test, params, env):
             vm = kvm_test_utils.migrate(vm, env)
             # Log in
             logging.info("Logging in after migration...")
-            session = vm.remote_login()
+            session = kvm_utils.wait_for(vm.remote_login, 30, 0, 2)
             if not session:
                 raise error.TestFail("Could not log in after migration")
             logging.info("Logged in after migration")
@@ -93,4 +93,3 @@ def run_timedrift_with_migration(test, params, env):
     if drift > drift_threshold:
         raise error.TestFail("Time drift too large after %d migrations: "
                              "%.2f seconds" % (migration_iterations, drift))
-
