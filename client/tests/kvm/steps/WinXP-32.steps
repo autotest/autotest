@@ -156,14 +156,14 @@ step 2279.61
 screendump 20090416_150641_b72ad5c48ec2dbc9814d569e38cbb4cc.ppm
 # Win XP Start Menu (closed)
 sleep 20
-barrier_2 104 41 0 559 a7cc02cecff2cb495f300aefbb99d9ae 5 optional
+barrier_2 35 41 83 559 7a10415169663ceb4c1bbad9c966810d 5 optional
 # Sending keys: ctrl-esc
 key ctrl-esc
 # --------------------------------
 step 2279.61
 screendump 20080101_000024_51acae003d73d0f4a4c58fa0a053b471.ppm
 # Win XP Start Menu (open)
-barrier_2 189 67 0 533 69a5571c58bdf9e0acee8337883bec43 20
+barrier_2 244 39 90 511 e8634eb8712f6d0b4ca4a65289c1ac01 20
 # Sending keys: u
 key u
 # --------------------------------
