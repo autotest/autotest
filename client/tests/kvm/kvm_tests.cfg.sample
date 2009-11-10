@@ -18,6 +18,7 @@ kill_unresponsive_vms = yes
 # Some default VM params
 qemu_binary = qemu
 qemu_img_binary = qemu-img
+smp = 1
 mem = 512
 image_size = 10G
 shell_port = 22
@@ -751,7 +752,7 @@ variants:
     - @up:
         no autotest.npb
     - smp2:
-        extra_params += " -smp 2"
+        smp = 2
         used_cpus = 2
         stress_boot: used_cpus = 10
         timedrift.with_load: used_cpus = 100

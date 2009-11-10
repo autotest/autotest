@@ -261,6 +261,10 @@ class VM:
         if mem:
             qemu_cmd += " -m %s" % mem
 
+        smp = params.get("smp")
+        if smp:
+            qemu_cmd += " -smp %s" % smp
+
         iso = params.get("cdrom")
         if iso:
             iso = kvm_utils.get_path(root_dir, iso)
