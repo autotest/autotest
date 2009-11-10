@@ -351,14 +351,14 @@ class VM:
             elif params.get("md5sum"):
                 logging.debug("Comparing expected MD5 sum with MD5 sum of ISO "
                               "file...")
-                actual_hash = kvm_utils.md5sum_file(iso, method="md5")
+                actual_hash = kvm_utils.hash_file(iso, method="md5")
                 expected_hash = params.get("md5sum")
                 compare = True
             elif params.get("sha1sum"):
                 logging.debug("Comparing expected SHA1 sum with SHA1 sum of "
                               "ISO file...")
-                actual_hash = kvm_utils.md5sum_file(iso, method="sha1")
-                expected_hash = params.get("md5sum")
+                actual_hash = kvm_utils.hash_file(iso, method="sha1")
+                expected_hash = params.get("sha1sum")
                 compare = True
             if compare:
                 if actual_hash == expected_hash:
