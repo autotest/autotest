@@ -274,12 +274,12 @@ class VM:
         # {fat:floppy:}/path/. However vvfat is not usually recommended
         floppy = params.get("floppy")
         if floppy:
-            floppy = os.path.join(root_dir, floppy)
+            floppy = kvm_utils.get_path(root_dir, floppy)
             qemu_cmd += " -fda %s" % floppy
 
         tftp = params.get("tftp")
         if tftp:
-            tftp = os.path.join(root_dir, tftp)
+            tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += " -tftp %s" % tftp
 
         extra_params = params.get("extra_params")
