@@ -84,6 +84,36 @@ def step2():
 def step3():
     job.profilers.delete('iostat')
 
+# test preserving of the kernel config file setting
+>>> cf_info = rpc_interface.generate_control_file(
+...     tests=['sleeptest'],
+...     kernel=[{'version': '2.6.18', 'config_file': 'foo/bar'}])
+>>> print cf_info['control_file'] #doctest: +NORMALIZE_WHITESPACE
+kernel_list = [{'version': '2.6.18', 'config_file': 'foo/bar'}]
+def step_init():
+    for kernel_info in kernel_list:
+        job.next_step(boot_kernel, kernel_info)
+        job.next_step(step_test, kernel_info['version'])
+    if len(kernel_list) > 1:
+        job.set_run_number(1)  # Include run numbers in output directory names.
+        job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
+def boot_kernel(kernel_info):
+    # remove kernels (and associated data) not referenced by the bootloader
+    job.host.cleanup_kernels()
+    testkernel = job.kernel(kernel_info['version'])
+    if kernel_info['config_file']:
+        testkernel.config(kernel_info['config_file'])
+    testkernel.build()
+    testkernel.install()
+    cmdline = ' '.join((kernel_info.get('cmdline', ''), ''))
+    testkernel.boot(args=cmdline)
+def step_test(kernel_version):
+    global kernel
+    kernel = kernel_version  # Set the global in case anyone is using it.
+    job.next_step('step0')
+def step0():
+    job.run_test('testname')
+
 # server-side control file generation
 >>> rpc_interface.modify_test('sleeptest', test_type='Server')
 >>> cf_info = rpc_interface.generate_control_file(tests=['sleeptest'],
