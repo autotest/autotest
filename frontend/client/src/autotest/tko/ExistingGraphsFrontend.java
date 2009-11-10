@@ -18,8 +18,10 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SuggestBox;
 import com.google.gwt.user.client.ui.SuggestOracle;
 import com.google.gwt.user.client.ui.TextBox;
@@ -37,10 +39,13 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
     private MultiWordSuggestOracle oracle = new MultiWordSuggestOracle();
     private TextBox hostname = new TextBox();
     private SuggestBox hostnameSuggest = new SuggestBox(oracle, hostname);
-    private ListBox benchmark = new ListBox();
+    private Panel benchmarkWrapper = new HorizontalPanel();
     private TextBox kernel = new TextBox();
     private JSONObject hostsAndTests = null;
     private Button graphButton = new Button("Graph");
+    
+    private ListBox singleBenchmark = new ListBox(false);
+    private ListBox multiBenchmark = new ListBox(true);
 
     public ExistingGraphsFrontend(final TabView parent) {
         normalize.addClickHandler(new ClickHandler() {
@@ -60,7 +65,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
             }
         });
 
-        benchmark.addItem("(Please select a hostname first)");
+        addBenchmarkItem("(Please select a hostname first)");
         
         graphButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -73,14 +78,23 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         
         table.setWidget(0, 0, normalize);
         table.getFlexCellFormatter().setColSpan(0, 0, 2);
+        benchmarkWrapper.add(singleBenchmark);
+        benchmarkWrapper.add(multiBenchmark);
+        multiBenchmark.setVisible(false);
+        
         addControl("Hostname:", hostnameSuggest);
-        addControl("Benchmark:", benchmark);
+        addControl("Benchmark:", benchmarkWrapper);
         addControl("Kernel:", kernel);
         table.setWidget(table.getRowCount(), 1, graphButton);
 
         table.getColumnFormatter().setWidth(0, "1px");
         
         initWidget(table);
+    }
+    
+    private void addBenchmarkItem(String item) {
+        singleBenchmark.addItem(item);
+        multiBenchmark.addItem(item);
     }
 
     private void getHostsAndTests(final SimpleCallback onFinished) {
@@ -114,6 +128,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
 
         // Add the selected benchmarks
         StringBuilder benchmarks = new StringBuilder();
+        ListBox benchmark = getVisibleBenchmark();
         for (int i = 0; i < benchmark.getItemCount(); i++) {
             if (benchmark.isItemSelected(i)) {
                 benchmarks.append(benchmark.getValue(i));
@@ -135,7 +150,8 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         getHostsAndTests(new SimpleCallback() {
             public void doCallback(Object source) {
                 refreshTests();
-
+                
+                ListBox benchmark = getVisibleBenchmark();
                 Set<String> benchmarks =
                     new HashSet<String>(Arrays.asList(args.get("benchmark").split(",")));
                 for (int i = 0; i < benchmark.getItemCount(); i++) {
@@ -143,6 +159,17 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
                 }
             } 
         });
+    }
+    
+    private ListBox getVisibleBenchmark() {
+        boolean multiVisible = normalize.getValue();
+        if (multiVisible) {
+            assert multiBenchmark.isVisible();
+            return multiBenchmark;
+        } else {
+            assert singleBenchmark.isVisible();
+            return singleBenchmark;
+        }
     }
 
     @Override
@@ -152,18 +179,30 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
 
     // Change the state of the page based on the status of the "normalize" checkbox
     private void normalizeClicked() {
-        benchmark.setMultipleSelect(normalize.getValue());
-        // when switching to single-select, we need to manually force the selection to a single item
-        int selectedIndex = benchmark.getSelectedIndex();
-        for (int i = 0; i < benchmark.getItemCount(); i++) {
-            benchmark.setItemSelected(i, i == selectedIndex);
+        boolean multiVisible = normalize.getValue();
+        ListBox dest;
+        ListBox src;
+        
+        if (multiVisible) {
+            dest = multiBenchmark;
+            src = singleBenchmark;
+        } else {
+            dest = singleBenchmark;
+            src = multiBenchmark;
         }
+        
+        dest.setVisible(true);
+        src.setVisible(false);
+        
+        dest.setSelectedIndex(src.getSelectedIndex());
+        src.setSelectedIndex(-1);
     }
 
     private void setEnabled(boolean enabled) {
         normalize.setEnabled(enabled);
         hostname.setEnabled(enabled);
-        benchmark.setEnabled(enabled);
+        singleBenchmark.setEnabled(enabled);
+        multiBenchmark.setEnabled(enabled);
         kernel.setEnabled(enabled);
         graphButton.setEnabled(enabled);
     }
@@ -175,6 +214,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         }
 
         HashSet<String> selectedTests = new HashSet<String>();
+        ListBox benchmark = getVisibleBenchmark();
         for (int i = 0; i < benchmark.getItemCount(); i++) {
             if (benchmark.isItemSelected(i)) {
                 selectedTests.add(benchmark.getValue(i));
@@ -182,10 +222,11 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         }
         
         JSONArray tests = value.isObject().get("tests").isArray();
-        benchmark.clear();
+        singleBenchmark.clear();
+        multiBenchmark.clear();
         for (int i = 0; i < tests.size(); i++) {
             String test = Utils.jsonToString(tests.get(i));
-            benchmark.addItem(test);
+            addBenchmarkItem(test);
             if (selectedTests.contains(test)) {
                 benchmark.setItemSelected(i, true);
             }
@@ -207,9 +248,9 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
         if (normalize.getValue()) {
             url = "/tko/machine_aggr.cgi?";
             final JSONArray tests = new JSONArray();
-            for (int i = 0; i < benchmark.getItemCount(); i++) {
-                if (benchmark.isItemSelected(i)) {
-                    tests.set(tests.size(), new JSONString(benchmark.getValue(i)));
+            for (int i = 0; i < multiBenchmark.getItemCount(); i++) {
+                if (multiBenchmark.isItemSelected(i)) {
+                    tests.set(tests.size(), new JSONString(multiBenchmark.getValue(i)));
                 }
             }
             
@@ -228,7 +269,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
             }
             args.put("benchmark_key", arg.toString());
         } else {
-            int benchmarkIndex = benchmark.getSelectedIndex();
+            int benchmarkIndex = singleBenchmark.getSelectedIndex();
             if (benchmarkIndex == -1) {
                 return;
             }
@@ -237,7 +278,7 @@ public class ExistingGraphsFrontend extends GraphingFrontend {
             
             JSONObject hostObject = value.isObject();
             String machine = Utils.jsonToString(hostObject.get("id"));
-            String benchmarkStr = benchmark.getValue(benchmarkIndex);
+            String benchmarkStr = singleBenchmark.getValue(benchmarkIndex);
             
             args.put("machine", machine);
             args.put("benchmark", benchmarkStr);
