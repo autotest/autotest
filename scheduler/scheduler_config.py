@@ -10,8 +10,6 @@ class SchedulerConfig(object):
     FIELDS = {'max_processes_per_drone' : 'max_processes_per_drone',
               'max_processes_started_per_cycle' : 'max_jobs_started_per_cycle',
               'clean_interval' : 'clean_interval_minutes',
-              'synch_job_start_timeout_minutes' :
-                  'synch_job_start_timeout_minutes',
               'max_parse_processes' : 'max_parse_processes',
               'tick_pause_sec' : 'tick_pause_sec',
               'max_transfer_processes' : 'max_transfer_processes',
