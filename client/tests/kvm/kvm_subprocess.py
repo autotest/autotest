@@ -497,6 +497,7 @@ class kvm_spawn:
                 os.close(fd)
             except:
                 pass
+        self.reader_fds = {}
         # Remove all used files
         for filename in (_get_filenames("/tmp/kvm_spawn", self.id) +
                          self.reader_filenames.values()):
@@ -861,9 +862,13 @@ class kvm_expect(kvm_tail):
         fd = self._get_fd("expect")
         end_time = time.time() + timeout
         while True:
-            r, w, x = select.select([fd], [], [],
-                                    max(0, end_time - time.time()))
-            if fd not in r: break
+            try:
+                r, w, x = select.select([fd], [], [],
+                                        max(0, end_time - time.time()))
+            except (select.error, TypeError):
+                break
+            if fd not in r:
+                break
             # Read data from child
             newdata = self.read_nonblocking(internal_timeout)
             # Print it if necessary
