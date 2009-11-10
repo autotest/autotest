@@ -182,7 +182,6 @@ variants:
     - nic_hotplug:  install setup unattended_install
         type = pci_hotplug
         pci_type = nic
-        modprobe_acpiphp = no
         reference_cmd = lspci
         find_pci_cmd = 'lspci | tail -n1'
         pci_test_cmd = 'nslookup www.redhat.com'
@@ -224,7 +223,6 @@ variants:
                 image_format_stg = qcow2
             - fmt_raw:
                 image_format_stg = raw
-                only Fedora Ubuntu Windows
 
     - system_reset: install setup unattended_install
         type = boot
@@ -539,13 +537,10 @@ variants:
             nic_virtio:
                 match_string = "VirtIO Ethernet"
         block_hotplug:
-            use_telnet = yes
-            ssh_port = 23
-            guest_port_ssh = 23
             wait_secs_for_hook_up = 10
             reference_cmd = wmic diskdrive list brief
             find_pci_cmd = wmic diskdrive list brief
-            pci_test_cmd = echo select disk 1 > dt && echo online disk >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
+            pci_test_cmd = echo select disk 1 > dt && echo online >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
 
         variants:
             - Win2000:
