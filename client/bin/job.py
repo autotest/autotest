@@ -16,8 +16,6 @@ from autotest_lib.client.bin import partition as partition_lib
 from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, barrier, log, logging_manager
 from autotest_lib.client.common_lib import base_packages, packages
-from autotest_lib.client.common_lib import global_config
-
 
 LAST_BOOT_TAG = object()
 NO_DEFAULT = object()
@@ -230,10 +228,7 @@ class base_client_job(base_job.base_job):
         """
         Perform the drop caches initialization.
         """
-        self.drop_caches_between_iterations = (
-                       global_config.global_config.get_config_value('CLIENT',
-                                            'drop_caches_between_iterations',
-                                            type=bool))
+        self.drop_caches_between_iterations = True
         self.drop_caches = drop_caches
         if self.drop_caches:
             logging.debug("Dropping caches")
@@ -1316,7 +1311,7 @@ class disk_usage_monitor:
         return decorator
 
 
-def runjob(control, drop_caches, options):
+def runjob(control, options):
     """
     Run a job using the given control file.
 
@@ -1344,7 +1339,7 @@ def runjob(control, drop_caches, options):
         if options.cont and not os.path.exists(state):
             raise error.JobComplete("all done")
 
-        myjob = job(control=control, drop_caches=drop_caches, options=options)
+        myjob = job(control, options)
 
         # Load in the users control file, may do any one of:
         #  1) execute in toto
