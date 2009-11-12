@@ -41,8 +41,6 @@ class base_test:
         os.mkdir(self.debugdir)
         self.configure_crash_handler()
         self.bindir = bindir
-        if hasattr(job, 'libdir'):
-            self.libdir = job.libdir
         self.srcdir = os.path.join(self.bindir, 'src')
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)

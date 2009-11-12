@@ -41,7 +41,7 @@ class test_init(unittest.TestCase):
         PUBLIC_ATTRIBUTES = set([
             # standard directories
             'autodir', 'clientdir', 'serverdir', 'resultdir', 'pkgdir',
-            'tmpdir', 'testdir', 'site_testdir', 'bindir', 'libdir',
+            'tmpdir', 'testdir', 'site_testdir', 'bindir',
             'configdir', 'profdir', 'toolsdir', 'conmuxdir',
 
             # other special attributes
@@ -134,7 +134,6 @@ class test_initialize_dir_properties(unittest.TestCase):
 
         # check all the always-client dir properties
         self.assertEqual(self.cjob.bindir, self.sjob.bindir)
-        self.assertEqual(self.cjob.libdir, self.sjob.libdir)
         self.assertEqual(self.cjob.configdir, self.sjob.configdir)
         self.assertEqual(self.cjob.profdir, self.sjob.profdir)
         self.assertEqual(self.cjob.pkgdir, self.sjob.pkgdir)

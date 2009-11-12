@@ -138,8 +138,6 @@ class base_job(object):
 
         bindir
             The client bin/ directory.
-        libdir
-            The client lib/ directory.
         configdir
             The client config/ directory.
         profdir
@@ -220,7 +218,6 @@ class base_job(object):
     testdir = job_directory.property_factory('testdir')
     site_testdir = job_directory.property_factory('site_testdir')
     bindir = job_directory.property_factory('bindir')
-    libdir = job_directory.property_factory('libdir')
     configdir = job_directory.property_factory('configdir')
     profdir = job_directory.property_factory('profdir')
     toolsdir = job_directory.property_factory('toolsdir')
@@ -266,7 +263,6 @@ class base_job(object):
 
         # various client-specific directories
         self._bindir = readonly_dir(self.clientdir, 'bin')
-        self._libdir = readonly_dir(self.clientdir, 'lib')
         self._configdir = readonly_dir(self.clientdir, 'config')
         self._profdir = readonly_dir(self.clientdir, 'profilers')
         self._pkgdir = readwrite_dir(self.clientdir, 'packages')
