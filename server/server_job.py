@@ -416,7 +416,10 @@ class base_server_job(base_job.base_job):
         namespace = namespace.copy()
         machines = self.machines
         if control is None:
-            control = self._load_control_file(self.control)
+            if self.control is None:
+                control = ''
+            else:
+                control = self._load_control_file(self.control)
         if control_file_dir is None:
             control_file_dir = self.resultdir
 
