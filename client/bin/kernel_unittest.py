@@ -527,8 +527,10 @@ class TestKernel(unittest.TestCase):
             mock_file.readlines.expect_call().and_return("Some lines")
             mock_file.close.expect_call()
 
-        f = self.build_dir + "/include/linux/compile.h"
-        os.path.exists.expect_call(f).and_return(False)
+        for f in [self.build_dir + "/include/linux/compile.h",
+                  self.build_dir + "/include/generated/utsrelease.h",
+                  self.build_dir + "/include/generated/compile.h"]:
+            os.path.exists.expect_call(f).and_return(False)
 
         # run and test
         self.kernel.get_kernel_build_release()
