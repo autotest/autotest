@@ -1,6 +1,7 @@
 package autotest.afe;
 
 import autotest.afe.CreateJobView.JobCreateListener;
+import autotest.common.JSONArrayList;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
@@ -26,6 +27,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -43,9 +45,25 @@ public class HostDetailView extends DetailView
         public void onJobSelected(int jobId);
     }
     
-    static class HostJobsTable extends DynamicTable {
-        private static final DataSource normalDataSource = 
-            new RpcDataSource("get_host_queue_entries", "get_num_host_queue_entries");
+    private static class HostQueueEntryDataSource extends RpcDataSource {
+        public HostQueueEntryDataSource() {
+            super("get_host_queue_entries", "get_num_host_queue_entries");
+        }
+
+        @Override
+        protected JSONArray handleJsonResult(JSONValue result) {
+            JSONArray resultArray = super.handleJsonResult(result);
+            for (JSONObject row : new JSONArrayList<JSONObject>(resultArray)) {
+                // get_host_queue_entries() doesn't return type, so fill it in for consistency with
+                // get_host_queue_entries_and_special_tasks()
+                row.put("type", new JSONString("Job"));
+            }
+            return resultArray;
+        }
+    }
+    
+    private static class HostJobsTable extends DynamicTable {
+        private static final DataSource normalDataSource = new HostQueueEntryDataSource();
         private static final DataSource dataSourceWithSpecialTasks = 
             new RpcDataSource("get_host_queue_entries_and_special_tasks",
                               "get_num_host_queue_entries_and_special_tasks");
@@ -102,11 +120,6 @@ public class HostDetailView extends DetailView
             row.put("job__id", jobId);
             row.put("job_owner", owner);
             row.put("job_name", name);
-
-            // get_host_queue_entries() doesn't return type, so fill it in for consistency
-            if (!row.containsKey("type")) {
-                row.put("type", new JSONString("Job"));
-            }
         }
     }
     
