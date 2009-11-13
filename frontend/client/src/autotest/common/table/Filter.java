@@ -14,7 +14,12 @@ public abstract class Filter {
     public abstract void addParams(JSONObject params);
     public abstract boolean isActive();
     public abstract Widget getWidget();
-    
+
+    // is this filter controlled by a user-facing widget?
+    public boolean isUserControlled() {
+        return getWidget() != null;
+    }
+
     public void addCallback(SimpleCallback callback) {
         callbacks.add(callback);
     }
