@@ -94,7 +94,6 @@ public class TableView extends ConditionTabView
     private RpcDataSource testDataSource = new TestViewDataSource();
     private RpcDataSource iterationDataSource = new IterationDataSource();
     private TestGroupDataSource groupDataSource = TestGroupDataSource.getTestGroupDataSource();
-    private RpcDataSource currentDataSource;
 
     private HeaderFieldCollection headerFields = new HeaderFieldCollection();
     private MultiListSelectPresenter columnSelect = new MultiListSelectPresenter();
@@ -198,9 +197,8 @@ public class TableView extends ConditionTabView
 
     private void createTable() {
         String[][] columns = buildColumnSpecs();
-        currentDataSource = getDataSource();
 
-        table = new DynamicTable(columns, currentDataSource);
+        table = new DynamicTable(columns, getDataSource());
         table.addFilter(sqlConditionFilter);
         table.setRowsPerPage(ROWS_PER_PAGE);
         table.makeClientSortable();
@@ -655,7 +653,8 @@ public class TableView extends ConditionTabView
     public void onExportCsv() {
         JSONObject extraParams = new JSONObject();
         extraParams.put("columns", buildCsvColumnSpecs());
-        TkoUtils.doCsvRequest(currentDataSource, extraParams);
+        TkoUtils.doCsvRequest((RpcDataSource) table.getDataSource(), table.getCurrentQuery(), 
+                              extraParams);
     }
     
     private JSONArray buildCsvColumnSpecs() {

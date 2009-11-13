@@ -11,6 +11,7 @@ import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -143,8 +144,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     }
     
     public Set<JSONObject> getSelectedObjects() {
-        // TODO: return a copy or an unmodifiable view
-        return selectedObjects;
+        return Collections.unmodifiableSet(selectedObjects);
     }
     
     public boolean isEmpty() {

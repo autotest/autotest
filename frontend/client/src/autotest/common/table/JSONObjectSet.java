@@ -3,6 +3,7 @@ package autotest.common.table;
 import com.google.gwt.json.client.JSONObject;
 
 import java.util.AbstractSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -13,6 +14,15 @@ import java.util.Map;
  */
 public class JSONObjectSet<T extends JSONObject> extends AbstractSet<T> {
     protected Map<String, T> backingMap = new HashMap<String, T>();
+    
+    public JSONObjectSet() {
+        super();
+    }
+    
+    public JSONObjectSet(Collection<T> items) {
+        super();
+        addAll(items);
+    }
     
     protected String getKey(Object obj) {
         return ((JSONObject) obj).get("id").toString();

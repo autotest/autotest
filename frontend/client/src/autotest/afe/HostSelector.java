@@ -6,6 +6,7 @@ import autotest.common.table.ArrayDataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DefaultDataCallback;
+import autotest.common.table.DataSource.Query;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.NotifyManager;
@@ -161,10 +162,10 @@ public class HostSelector implements ClickHandler {
         // figure out which hosts exist in the system and which should be one-time hosts
         JSONObject params = new JSONObject();
         params.put("hostname__in", Utils.stringsToJSON(hosts));
-        hostDataSource.updateData(params, new DefaultDataCallback () {
+        hostDataSource.query(params, new DefaultDataCallback () {
             @Override
-            public void onGotData(int totalCount) {
-                hostDataSource.getPage(null, null, null, this);
+            public void onQueryReady(Query query) {
+                query.getPage(null, null, null, this);
             }
 
             @Override

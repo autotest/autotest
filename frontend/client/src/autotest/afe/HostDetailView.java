@@ -11,6 +11,7 @@ import autotest.common.table.SelectionManager;
 import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.Query;
 import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectableRowFilter;
@@ -172,13 +173,17 @@ public class HostDetailView extends DetailView
         JSONObject params = new JSONObject();
         params.put("hostname", new JSONString(hostname));
         params.put("valid_only", JSONBoolean.getInstance(false));
-        hostDataSource.updateData(params, this);
+        hostDataSource.query(params, this);
     }
-    
-    public void onGotData(int totalCount) {
-        hostDataSource.getPage(null, null, null, this);
+
+    @Override
+    public void handleTotalResultCount(int totalCount) {}
+
+    @Override
+    public void onQueryReady(Query query) {
+        query.getPage(null, null, null, this);
     }
-    
+
     public void handlePage(JSONArray data) {
         try {
             currentHostObject = Utils.getSingleValueFromArray(data).isObject();

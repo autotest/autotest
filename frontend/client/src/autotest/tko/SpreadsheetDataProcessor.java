@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.Query;
 import autotest.common.ui.NotifyManager;
 import autotest.tko.Spreadsheet.CellInfo;
 import autotest.tko.Spreadsheet.Header;
@@ -29,6 +30,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private Header rowFields, columnFields;
     private Command onFinished;
     private Duration timer;
+    private Query currentQuery;
     
     public static class TooManyCellsError extends Exception {
         public int cellCount;
@@ -140,11 +142,12 @@ public class SpreadsheetDataProcessor implements DataCallback {
     public void refresh(JSONObject condition, Command onFinished) {
         timer = new Duration();
         this.onFinished = onFinished;
-        dataSource.updateData(condition, this);
+        dataSource.query(condition, this);
     }
     
-    public void onGotData(int totalCount) {
-        dataSource.getPage(null, null, null, this);
+    public void onQueryReady(Query query) {
+        currentQuery = query;
+        query.getPage(null, null, null, this);
     }
 
     public void handlePage(JSONArray data) {
@@ -157,7 +160,9 @@ public class SpreadsheetDataProcessor implements DataCallback {
 
         DeferredCommand.addCommand(new ProcessDataCommand(data));
     }
-    
+
+    public void handleTotalResultCount(int totalCount) {}
+
     private void logTimer(String message) {
         notifyManager.log(message + ": " + timer.elapsedMillis() + " ms");
         timer = new Duration();
@@ -207,5 +212,9 @@ public class SpreadsheetDataProcessor implements DataCallback {
 
     public TestGroupDataSource getDataSource() {
         return dataSource;
+    }
+    
+    public Query getCurrentQuery() {
+        return currentQuery;
     }
 }

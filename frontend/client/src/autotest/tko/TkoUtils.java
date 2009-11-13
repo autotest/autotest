@@ -5,6 +5,7 @@ import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.RpcDataSource;
+import autotest.common.table.DataSource.Query;
 
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.http.client.URL;
@@ -97,9 +98,9 @@ public class TkoUtils {
         return row;
     }
     
-    static void doCsvRequest(RpcDataSource dataSource, JSONObject extraParams) {
+    static void doCsvRequest(RpcDataSource dataSource, Query query, JSONObject extraParams) {
         String rpcMethodName = dataSource.getDataMethodName();
-        JSONObject arguments = dataSource.getLastRequestParams();
+        JSONObject arguments = query.getParams();
         // remove pagination arguments, since the user will want to export all results
         arguments.put("query_start", null);
         arguments.put("query_limit", null);
@@ -111,9 +112,5 @@ public class TkoUtils {
         
         String url = JsonRpcProxy.TKO_BASE_URL + "csv/?" + URL.encode(request.toString());
         Utils.openUrlInNewWindow(url);
-    }
-    
-    static void doCsvRequest(RpcDataSource dataSource) {
-        doCsvRequest(dataSource, null);
     }
 }

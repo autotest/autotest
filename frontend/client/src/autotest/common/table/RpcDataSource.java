@@ -14,10 +14,65 @@ import com.google.gwt.json.client.JSONValue;
  * Data source that retrieves results via RPC requests to the server.
  */
 public class RpcDataSource implements DataSource {
+    private class RpcQuery extends DefaultQuery {
+        public RpcQuery(JSONObject params) {
+            super(params);
+        }
+
+        @Override
+        public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn,
+                            final DataCallback callback) {
+            JSONObject pageParams = Utils.copyJSONObject(params);
+            if (start != null) {
+                pageParams.put("query_start", new JSONNumber(start.intValue()));
+            }
+            if (maxCount != null) {
+                pageParams.put("query_limit", new JSONNumber(maxCount.intValue()));
+            }
+            if (sortOn != null) {
+                JSONArray sortList = new JSONArray();
+                for (SortSpec sortSpec : sortOn) {
+                    sortList.set(sortList.size(), new JSONString(sortSpec.toString()));
+                }
+                pageParams.put("sort_by", sortList);
+            }
+
+            JsonRpcProxy.getProxy().rpcCall(dataMethodName, pageParams, 
+                                            new JsonRpcCallback() {
+                @Override
+                public void onSuccess(JSONValue result) {
+                    JSONArray resultData = handleJsonResult(result);
+                    callback.handlePage(resultData);
+                }
+
+                @Override
+                public void onError(JSONObject errorObject) {
+                    super.onError(errorObject);
+                    callback.onError(errorObject);
+                }
+            });
+        }
+
+        @Override
+        public void getTotalResultCount(final DataCallback callback) {
+            JsonRpcProxy.getProxy().rpcCall(countMethodName, params, 
+                                            new JsonRpcCallback() {
+                @Override
+                public void onSuccess(JSONValue result) {
+                    int count = (int) result.isNumber().doubleValue();
+                    callback.handleTotalResultCount(count);
+                }
+
+                @Override
+                public void onError(JSONObject errorObject) {
+                    super.onError(errorObject);
+                    callback.onError(errorObject);
+                }
+            });
+        }
+    }
+
     private String dataMethodName, countMethodName;
-    protected JSONObject filterParams;
-    private JSONObject lastRequestParams;
-    protected Integer numResults = null;
     
     public RpcDataSource(String dataMethodName, String countMethodName) {
         this.dataMethodName = dataMethodName;
@@ -32,72 +87,13 @@ public class RpcDataSource implements DataSource {
     protected JSONArray handleJsonResult(JSONValue result) {
         return result.isArray();
     }
-    
-    public void updateData(JSONObject params, final DataCallback callback) {
-        filterParams = params;
-        JsonRpcProxy.getProxy().rpcCall(countMethodName, params, 
-                                        new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
-                int count = (int) result.isNumber().doubleValue();
-                numResults = Integer.valueOf(count);
-                callback.onGotData(count);
-            }
 
-            @Override
-            public void onError(JSONObject errorObject) {
-                super.onError(errorObject);
-                callback.onError(errorObject);
-            }
-        });
-    }
-    
-    public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn, 
-                        final DataCallback callback) {
-        JSONObject params;
-        if (filterParams == null)
-            params = new JSONObject();
-        else
-            params = Utils.copyJSONObject(filterParams);
-        if (start != null)
-            params.put("query_start", new JSONNumber(start.intValue()));
-        if (maxCount != null)
-            params.put("query_limit", new JSONNumber(maxCount.intValue()));
-        if (sortOn != null) {
-            JSONArray sortList = new JSONArray();
-            for (SortSpec sortSpec : sortOn) {
-                sortList.set(sortList.size(), new JSONString(sortSpec.toString()));
-            }
-            params.put("sort_by", sortList);
-        }
-        
-        lastRequestParams = params;
-        JsonRpcProxy.getProxy().rpcCall(dataMethodName, params, 
-                                        new JsonRpcCallback() {
-            @Override
-            public void onSuccess(JSONValue result) {
-                JSONArray resultData = handleJsonResult(result);
-                callback.handlePage(resultData);
-            }
-
-            @Override
-            public void onError(JSONObject errorObject) {
-                super.onError(errorObject);
-                callback.onError(errorObject);
-            }
-        });
-    }
-
-    public int getNumResults() {
-        assert numResults != null;
-        return numResults.intValue();
+    @Override
+    public void query(JSONObject params, DataCallback callback) {
+        callback.onQueryReady(new RpcQuery(params));
     }
 
     public String getDataMethodName() {
         return dataMethodName;
-    }
-
-    public JSONObject getLastRequestParams() {
-        return Utils.copyJSONObject(lastRequestParams);
     }
 }
