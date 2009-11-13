@@ -26,7 +26,6 @@ class TestGroupDataSource extends RpcDataSource {
     private JSONArray groupByFields;
     private JSONArray headerGroups;
     private JSONArray headerGroupValues;
-    private boolean skipNumResults = false;
     private JSONObject queryParameters;
     
     public static TestGroupDataSource getTestGroupDataSource() {
@@ -47,21 +46,8 @@ class TestGroupDataSource extends RpcDataSource {
     }
 
     @Override
-    public void updateData(JSONObject params, DataCallback callback) {
-        JSONObject fullParams = Utils.copyJSONObject(params);
-        Utils.updateObject(fullParams, queryParameters);
-        fullParams.put("group_by", groupByFields);
-        if (headerGroups != null) {
-            fullParams.put("header_groups", headerGroups);
-        }
-
-        if (skipNumResults) {
-            filterParams = fullParams;
-            numResults = 0;
-            callback.onGotData(numResults);
-        } else {
-            super.updateData(fullParams, callback);
-        }
+    public void query(JSONObject params, DataCallback callback) {
+        super.query(getFullRequestParams(params), callback);
     }
 
     public JSONObject getFullRequestParams(JSONObject conditionParams) {
@@ -114,10 +100,6 @@ class TestGroupDataSource extends RpcDataSource {
             headerValueList.add(Arrays.asList(Utils.JSONtoStrings(header)));
         }
         return headerValueList;
-    }
-
-    public void setSkipNumResults(boolean skipNumResults) {
-        this.skipNumResults = skipNumResults;
     }
 
     public void setQueryParameters(JSONObject queryParameters) {

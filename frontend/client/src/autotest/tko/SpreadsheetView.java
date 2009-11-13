@@ -96,9 +96,7 @@ public class SpreadsheetView extends ConditionTabView
     @Override
     public void initialize() {
         super.initialize();
-        normalDataSource.setSkipNumResults(true);
-        latestDataSource.setSkipNumResults(true);
-        
+
         actionsPanel.setActionsWithCsvListener(this);
         actionsPanel.setSelectionListener(this);
         actionsPanel.setVisible(false);
@@ -579,7 +577,8 @@ public class SpreadsheetView extends ConditionTabView
     public void onExportCsv() {
         JSONObject params = new JSONObject();
         contentSelect.addToCondition(params);
-        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource(), params);
+        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource(), 
+                              spreadsheetProcessor.getCurrentQuery(), params);
     }
 
     public void onSelectAll(boolean ignored) {

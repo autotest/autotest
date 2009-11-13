@@ -2,6 +2,7 @@ package autotest.common.table;
 
 import autotest.common.SimpleCallback;
 import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.Query;
 import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataSource.SortSpec;
 import autotest.common.ui.Paginator;
@@ -50,6 +51,7 @@ public class DynamicTable extends DataTable implements DataCallback {
     }
     
     protected DataSource dataSource;
+    private Query currentQuery;
     
     private boolean clientSortable = false;
     private SortIndicator[] sortIndicators;
@@ -158,7 +160,7 @@ public class DynamicTable extends DataTable implements DataCallback {
         paginator.addCallback(new SimpleCallback() {
             public void doCallback(Object source) {
                 setPaginatorStart(((Paginator) source).getStart());
-                refresh();
+                fetchPage();
             } 
         });
         paginator.setResultsPerPage(rowsPerPage.intValue());
@@ -218,30 +220,53 @@ public class DynamicTable extends DataTable implements DataCallback {
         }
     }
     
+    public boolean isAnyUserFilterActive() {
+        for (Filter filter : filters) {
+            if (filter.isUserControlled() && filter.isActive()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
     
     // DATA MANAGEMENT
     
     public void refresh() {
         JSONObject params = new JSONObject();
         addFilterParams(params);
-        dataSource.updateData(params, this);
+        dataSource.query(params, this);
     }
-    
-    public void onGotData(int totalCount) {
+
+    @Override
+    public void onQueryReady(Query query) {
+        currentQuery = query;
+        if (!paginators.isEmpty()) {
+            query.getTotalResultCount(this);
+        }
+        fetchPage();
+    }
+
+    private void fetchPage() {
         Integer start = null, limit = null;
         SortSpec[] sortOn = null;
         if (!paginators.isEmpty()) {
-            updatePaginatorTotalResults(totalCount);
             Paginator p = paginators.get(0);
             start = Integer.valueOf(p.getStart());
             limit = Integer.valueOf(p.getResultsPerPage());
         }
-        
+
         if (!sortColumns.isEmpty()) {
             sortOn = new SortSpec[sortColumns.size()];
             sortColumns.toArray(sortOn);
         }
-        dataSource.getPage(start, limit, sortOn, this); 
+        currentQuery.getPage(start, limit, sortOn, this);
+    }
+
+    @Override
+    public void handleTotalResultCount(int totalCount) {
+        updatePaginatorTotalResults(totalCount);
     }
 
     public void handlePage(JSONArray data) {
@@ -250,7 +275,7 @@ public class DynamicTable extends DataTable implements DataCallback {
         refreshPaginators();
         notifyListenersRefreshed();
     }
-    
+
     public String[] getRowData(int row) {
         String[] data = new String[columns.length];
         for (int i = 0; i < columns.length; i++) {
@@ -267,6 +292,10 @@ public class DynamicTable extends DataTable implements DataCallback {
     
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+    
+    public Query getCurrentQuery() {
+        return currentQuery;
     }
     
     

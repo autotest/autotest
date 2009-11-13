@@ -9,7 +9,11 @@ import java.util.AbstractList;
  * Wraps a JSONArray in a handy-dandy java.util.List interface.
  */
 public class JSONArrayList<T extends JSONValue> extends AbstractList<T> {
-    protected JSONArray backingArray;
+    private JSONArray backingArray;
+    
+    public JSONArrayList() {
+        backingArray = new JSONArray();
+    }
     
     public JSONArrayList(JSONArray array) {
         backingArray = array;
@@ -35,5 +39,9 @@ public class JSONArrayList<T extends JSONValue> extends AbstractList<T> {
     @Override
     public int size() {
         return backingArray.size();
+    }
+    
+    public JSONArray getBackingArray() {
+        return backingArray;
     }
 }

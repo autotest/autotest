@@ -1,12 +1,39 @@
 package autotest.common.table;
 
 import autotest.common.JSONArrayList;
-import autotest.common.table.DataSource.DataCallback;
+import autotest.common.table.DataSource.DefaultDataCallback;
+import autotest.common.table.DataSource.Query;
 
 import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 
+import java.util.List;
+import java.util.Set;
+
 public class DynamicTableSelectionManager extends SelectionManager {
+    /**
+     * see deselectFiltered()
+     */
+    private final DefaultDataCallback deselectFilteredCallback = new DefaultDataCallback() {
+        @Override
+        public void onQueryReady(Query query) {
+            query.getPage(null, null, null, this);
+        }
+
+        @Override
+        public void handlePage(JSONArray data) {
+            // use set intersection to get objects from the selected object set, rather than using
+            // the objects returned by the server.  we have to do this because ArrayDataSource uses
+            // object identity and not value equality of JSONObjects.
+            List<JSONObject> dataList = new JSONArrayList<JSONObject>(data);
+            Set<JSONObject> filteredRows = new JSONObjectSet<JSONObject>(dataList);
+            Set<JSONObject> rowsToRemove = new JSONObjectSet<JSONObject>(getSelectedObjects());
+            rowsToRemove.retainAll(filteredRows);
+            deselectObjects(rowsToRemove);
+        }
+    };
+
     private DynamicTable attachedDynamicTable;
 
     public DynamicTableSelectionManager(DynamicTable table, boolean selectOnlyOne) {
@@ -20,14 +47,40 @@ public class DynamicTableSelectionManager extends SelectionManager {
      * Select all objects covering all pages, not just the currently displayed page in the table.
      */
     public void selectAll() {
-        DataSource dataSource = attachedDynamicTable.getDataSource();
-        dataSource.getPage(null, null, null, new DataCallback() {
+        attachedDynamicTable.getCurrentQuery().getPage(null, null, null, new DefaultDataCallback() {
+            @Override
             public void handlePage(JSONArray data) {
                 selectObjects(new JSONArrayList<JSONObject>(data));
             }
-
-            public void onGotData(int totalCount) {}
-            public void onError(JSONObject errorObject) {}
         });
+    }
+
+    @Override
+    public void onSelectNone() {
+        deselectFiltered();
+    }
+
+    /**
+     * Only deselect items included in the current filters.
+     */
+    private void deselectFiltered() {
+        if (!attachedDynamicTable.isAnyUserFilterActive()) {
+            deselectAll();
+            return;
+        }
+        
+        JSONObject params = attachedDynamicTable.getCurrentQuery().getParams();
+        params.put("id__in", selectedIdList());
+        attachedDynamicTable.getDataSource().query(params, deselectFilteredCallback);
+    }
+
+    private JSONArray selectedIdList() {
+        JSONArrayList<JSONNumber> idList = new JSONArrayList<JSONNumber>();
+        for (JSONObject object : getSelectedObjects()) {
+            JSONNumber id = object.get("id").isNumber();
+            assert id != null;
+            idList.add(id);
+        }
+        return idList.getBackingArray();
     }
 }
