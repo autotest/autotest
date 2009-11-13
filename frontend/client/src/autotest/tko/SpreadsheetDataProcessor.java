@@ -43,10 +43,10 @@ public class SpreadsheetDataProcessor implements DataCallback {
     
     private class ProcessDataCommand implements IncrementalCommand {
         private int state = 0;
-        private JSONArray counts;
+        private List<JSONObject> counts;
         private int currentRow = 0;
         
-        public ProcessDataCommand(JSONArray counts) {
+        public ProcessDataCommand(List<JSONObject> counts) {
             this.counts = counts;
         }
         
@@ -150,7 +150,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
         query.getPage(null, null, null, this);
     }
 
-    public void handlePage(JSONArray data) {
+    public void handlePage(List<JSONObject> data) {
         logTimer("Server response");
         if (data.size() == 0) {
             notifyManager.showMessage("No results for query");

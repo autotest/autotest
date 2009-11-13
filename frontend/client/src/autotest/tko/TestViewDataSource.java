@@ -1,11 +1,11 @@
 package autotest.tko;
 
-import com.google.gwt.json.client.JSONArray;
+import autotest.common.table.RpcDataSource;
+
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 
-import autotest.common.JSONArrayList;
-import autotest.common.table.RpcDataSource;
+import java.util.List;
 
 class TestViewDataSource extends RpcDataSource {
     public TestViewDataSource() {
@@ -16,9 +16,9 @@ class TestViewDataSource extends RpcDataSource {
      * Add 'id' field, needed by SelectionManager.
      */
     @Override
-    protected JSONArray handleJsonResult(JSONValue result) {
-        JSONArray objects = super.handleJsonResult(result);
-        for (JSONObject object : new JSONArrayList<JSONObject>(objects)) {
+    protected List<JSONObject> handleJsonResult(JSONValue result) {
+        List<JSONObject> objects = super.handleJsonResult(result);
+        for (JSONObject object : objects) {
             object.put("id", object.get("test_idx"));
         }
         return objects;
