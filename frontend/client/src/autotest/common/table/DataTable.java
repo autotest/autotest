@@ -8,7 +8,6 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.ContextMenuEvent;
 import com.google.gwt.event.dom.client.ContextMenuHandler;
 import com.google.gwt.event.dom.client.DomEvent;
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
@@ -203,11 +202,8 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
      * @throws IllegalArgumentException if any other type of JSONValue is in the
      * array.
      */
-    public void addRows(JSONArray rows) {
-        for (int i = 0; i < rows.size(); i++) {
-            JSONObject row = rows.get(i).isObject();
-            if (row == null)
-                throw new IllegalArgumentException("rows must be JSONObjects");
+    public void addRows(List<JSONObject> rows) {
+        for (JSONObject row : rows) {
             addRow(row);
         }
     }

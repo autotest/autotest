@@ -10,6 +10,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -42,13 +43,11 @@ class JobStatusDataSource extends RpcDataSource {
     }
     
     @Override
-    protected JSONArray handleJsonResult(JSONValue result) {
-        JSONArray rows = new JSONArray();
+    protected List<JSONObject> handleJsonResult(JSONValue result) {
+        List<JSONObject> queueEntries = super.handleJsonResult(result);
+        List<JSONObject> rows = new ArrayList<JSONObject>();
         Map<List<String>, JSONObject> metaHostEntries= new HashMap<List<String>, JSONObject>();
-        JSONArray queueEntries = result.isArray();
-        for(int i = 0; i < queueEntries.size(); i++) {
-            JSONObject queueEntry = queueEntries.get(i).isObject();
-            
+        for(JSONObject queueEntry : queueEntries) {
             // translate status
             String status = queueEntry.get("status").isString().stringValue();
             String translation = translateStatus(status);
@@ -63,7 +62,7 @@ class JobStatusDataSource extends RpcDataSource {
             
             // non-metahost
             processHostData(queueEntry);
-            rows.set(rows.size(), queueEntry);
+            rows.add(queueEntry);
         }
         
         addMetaHostRows(metaHostEntries, rows);
@@ -107,7 +106,8 @@ class JobStatusDataSource extends RpcDataSource {
         return Arrays.asList(new String[] {label, status});
     }
     
-    private void addMetaHostRows(Map<List<String>, JSONObject> metaHostEntries, JSONArray rows) {
+    private void addMetaHostRows(Map<List<String>, JSONObject> metaHostEntries,
+                                 List<JSONObject> rows) {
         for (JSONObject entry : metaHostEntries.values()) {
             String label = Utils.jsonToString(entry.get("meta_host"));
             String status = Utils.jsonToString(entry.get("status"));
@@ -115,7 +115,7 @@ class JobStatusDataSource extends RpcDataSource {
             
             entry.put("hostname", new JSONString(label + " (label)"));
             entry.put("status", new JSONString(Integer.toString(count) + " " + status));
-            rows.set(rows.size(), entry);
+            rows.add(entry);
         }
     }
 }

@@ -75,15 +75,19 @@ public class Utils {
     }
 
     /**
-     * Get a value out of an array of size 1.
-     * @return array[0]
-     * @throws IllegalArgumentException if the array is not of size 1
+     * Get a value out of a JSONObject list of size 1.
+     * @return list[0]
+     * @throws IllegalArgumentException if the list is not of size 1
      */
-    public static JSONValue getSingleValueFromArray(JSONArray array) {
-        if(array.size() != 1) {
-            throw new IllegalArgumentException("Array is not of size 1");
+    public static JSONObject getSingleObjectFromList(List<JSONObject> list) {
+        if(list.size() != 1) {
+            throw new IllegalArgumentException("List is not of size 1");
         }
-        return array.get(0);
+        return list.get(0);
+    }
+    
+    public static JSONObject getSingleObjectFromArray(JSONArray array) {
+        return getSingleObjectFromList(new JSONArrayList<JSONObject>(array));
     }
 
     public static JSONObject copyJSONObject(JSONObject source) {

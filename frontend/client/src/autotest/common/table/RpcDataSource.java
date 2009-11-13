@@ -1,5 +1,6 @@
 package autotest.common.table;
 
+import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.Utils;
@@ -9,6 +10,8 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+
+import java.util.List;
 
 /**
  * Data source that retrieves results via RPC requests to the server.
@@ -41,7 +44,7 @@ public class RpcDataSource implements DataSource {
                                             new JsonRpcCallback() {
                 @Override
                 public void onSuccess(JSONValue result) {
-                    JSONArray resultData = handleJsonResult(result);
+                    List<JSONObject> resultData = handleJsonResult(result);
                     callback.handlePage(resultData);
                 }
 
@@ -80,12 +83,12 @@ public class RpcDataSource implements DataSource {
     }
     
     /**
-     * Process the JSON result returned by the server into an array of result 
+     * Process the JSON result returned by the server into an list of result 
      * objects.  This default implementation assumes the result itself is an array.
-     * Subclasses may override this to construct an array from the JSON result.
+     * Subclasses may override this to construct a list from the JSON result in a customized way.
      */
-    protected JSONArray handleJsonResult(JSONValue result) {
-        return result.isArray();
+    protected List<JSONObject> handleJsonResult(JSONValue result) {
+        return new JSONArrayList<JSONObject>(result.isArray());
     }
 
     @Override
