@@ -938,6 +938,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     is_complete = dbmodels.BooleanField(default=False, blank=False, null=False)
     time_started = dbmodels.DateTimeField(null=True, blank=True)
     queue_entry = dbmodels.ForeignKey(HostQueueEntry, blank=True, null=True)
+    success = dbmodels.BooleanField(default=False, blank=False, null=False)
 
     objects = model_logic.ExtendedManager()
 
@@ -957,7 +958,9 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         present similar statuses.
         """
         if self.is_complete:
-            return HostQueueEntry.Status.COMPLETED
+            if self.success:
+                return HostQueueEntry.Status.COMPLETED
+            return HostQueueEntry.Status.FAILED
         if self.is_active:
             return HostQueueEntry.Status.RUNNING
         return HostQueueEntry.Status.QUEUED
@@ -992,13 +995,14 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         self.save()
 
 
-    def finish(self):
+    def finish(self, success):
         """
         Sets a task as completed
         """
         logging.info('Finished: %s', self)
         self.is_active = False
         self.is_complete = True
+        self.success = success
         self.save()
 
 

@@ -1322,7 +1322,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def setup_run_monitor(self, exit_status, task_tag, copy_log_file=True,
-                          aborted=False):
+                          aborted=False, special_task_success=True):
         monitor_db.PidfileRunMonitor.run.expect_call(
             mock.is_instance_comparator(list),
             self.BASE_TASK_DIR + task_tag,
@@ -1337,7 +1337,7 @@ class AgentTasksTest(BaseSchedulerTest):
             monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
                     exit_status)
 
-        self.task.finish.expect_call()
+        self.task.finish.expect_call(special_task_success)
 
         if copy_log_file:
             self._setup_move_logfile()
@@ -1393,10 +1393,10 @@ class AgentTasksTest(BaseSchedulerTest):
 
         self.host.set_status.expect_call('Repairing')
         if success:
-            self.setup_run_monitor(0, task_tag)
+            self.setup_run_monitor(0, task_tag, special_task_success=True)
             self.host.set_status.expect_call('Ready')
         else:
-            self.setup_run_monitor(1, task_tag)
+            self.setup_run_monitor(1, task_tag, special_task_success=False)
             self.host.set_status.expect_call('Repair Failed')
 
         task = monitor_db.RepairTask(task=self.task)
@@ -1454,7 +1454,8 @@ class AgentTasksTest(BaseSchedulerTest):
         self._setup_write_host_keyvals_expects(task_tag)
 
         self.host.set_status.expect_call('Repairing')
-        self.setup_run_monitor(0, task_tag, aborted=True)
+        self.setup_run_monitor(0, task_tag, aborted=True,
+                               special_task_success=False)
 
         task = monitor_db.RepairTask(task=self.task)
         task.host = self.host
@@ -1484,7 +1485,7 @@ class AgentTasksTest(BaseSchedulerTest):
         self._setup_write_host_keyvals_expects(task_tag)
 
         self.host.set_status.expect_call('Repairing')
-        self.setup_run_monitor(1, task_tag)
+        self.setup_run_monitor(1, task_tag, special_task_success=False)
         self.host.set_status.expect_call('Repair Failed')
         self.queue_entry.update_from_database.expect_call()
         self.queue_entry.status = 'Queued'
@@ -1523,7 +1524,7 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def _setup_prejob_task_failure(self, task_tag, use_queue_entry):
-        self.setup_run_monitor(1, task_tag)
+        self.setup_run_monitor(1, task_tag, special_task_success=False)
         if use_queue_entry:
             if not self.queue_entry.meta_host:
                 self.queue_entry.set_execution_subdir.expect_call()
@@ -1596,7 +1597,7 @@ class AgentTasksTest(BaseSchedulerTest):
     def test_specialtask_abort_before_prolog(self):
         self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
         task = monitor_db.RepairTask(task=self.task)
-        self.task.finish.expect_call()
+        self.task.finish.expect_call(False)
         task.abort()
         self.assertTrue(task.aborted)
 

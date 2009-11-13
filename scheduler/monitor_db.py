@@ -1725,7 +1725,10 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
 
     def cleanup(self):
         super(SpecialAgentTask, self).cleanup()
-        self.task.finish()
+
+        # We will consider an aborted task to be "Failed"
+        self.task.finish(bool(self.success))
+
         if self.monitor:
             if self.monitor.has_process():
                 self._copy_results([self.task])
