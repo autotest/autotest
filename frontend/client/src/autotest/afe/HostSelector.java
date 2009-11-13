@@ -1,6 +1,5 @@
 package autotest.afe;
 
-import autotest.common.JSONArrayList;
 import autotest.common.Utils;
 import autotest.common.table.ArrayDataSource;
 import autotest.common.table.SelectionManager;
@@ -63,7 +62,7 @@ public class HostSelector implements ClickHandler {
     }
     
     private ArrayDataSource<JSONObject> selectedHostData =
-        new ArrayDataSource<JSONObject>(new String[] {"hostname", "platform"});
+        new ArrayDataSource<JSONObject>(new String[] {"hostname"});
     
     private Display display;
     private HostDataSource hostDataSource = new HostDataSource();
@@ -169,8 +168,8 @@ public class HostSelector implements ClickHandler {
             }
 
             @Override
-            public void handlePage(JSONArray data) {
-                processAddByHostname(hosts, new JSONArrayList<JSONObject>(data), allowOneTimeHosts);
+            public void handlePage(List<JSONObject> data) {
+                processAddByHostname(hosts, data, allowOneTimeHosts);
             }
         });
     }

@@ -7,7 +7,6 @@ import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataSource.SortSpec;
 import autotest.common.ui.Paginator;
 
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTMLPanel;
@@ -269,7 +268,7 @@ public class DynamicTable extends DataTable implements DataCallback {
         updatePaginatorTotalResults(totalCount);
     }
 
-    public void handlePage(JSONArray data) {
+    public void handlePage(List<JSONObject> data) {
         clear();
         addRows(data);
         refreshPaginators();

@@ -2,7 +2,6 @@ package autotest.common.table;
 
 import autotest.common.UnmodifiableSublistView;
 
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 
 import java.util.ArrayList;
@@ -25,16 +24,16 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
         @Override
         public void getPage(Integer start, Integer maxCount, SortSpec[] sortOn,
                             DataCallback callback) {
-            List<T> sortedData = new ArrayList<T>(data);
+            List<JSONObject> sortedData = new ArrayList<JSONObject>(data);
             if (sortOn != null) {
                 Collections.sort(sortedData, new JSONObjectComparator(sortOn));
             }
             int startInt = start != null ? start.intValue() : 0;
             int maxCountInt = maxCount != null ? maxCount.intValue() : data.size();
             int size = Math.min(maxCountInt, data.size() - startInt);
-            List<T> subList =
-                new UnmodifiableSublistView<T>(sortedData, startInt, size);
-            callback.handlePage(createJSONArray(subList));
+            List<JSONObject> subList =
+                new UnmodifiableSublistView<JSONObject>(sortedData, startInt, size);
+            callback.handlePage(subList);
         }
 
         @Override
@@ -73,16 +72,6 @@ public class ArrayDataSource<T extends JSONObject> implements DataSource {
     
     public Collection<T> getItems() {
         return Collections.unmodifiableCollection(data);
-    }
-    
-    private JSONArray createJSONArray(Collection<T> objects) {
-        JSONArray result = new JSONArray();
-        int count = 0;
-        for (T object : objects) {
-            result.set(count, object);
-            count++;
-        }
-        return result;
     }
 
     @Override

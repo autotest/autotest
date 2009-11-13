@@ -203,7 +203,7 @@ class TestDetailView extends DetailView {
             public void onSuccess(JSONValue result) {
                 JSONObject test;
                 try {
-                    test = Utils.getSingleValueFromArray(result.isArray()).isObject();
+                    test = Utils.getSingleObjectFromArray(result.isArray());
                 }
                 catch (IllegalArgumentException exc) {
                     NotifyManager.getInstance().showError("No such job found");

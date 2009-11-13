@@ -90,7 +90,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
             public void onSuccess(JSONValue result) {
                 JSONObject jobObject;
                 try {
-                    jobObject = Utils.getSingleValueFromArray(result.isArray()).isObject();
+                    jobObject = Utils.getSingleObjectFromArray(result.isArray());
                 }
                 catch (IllegalArgumentException exc) {
                     NotifyManager.getInstance().showError("No such job found");

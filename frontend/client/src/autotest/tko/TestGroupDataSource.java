@@ -64,10 +64,10 @@ class TestGroupDataSource extends RpcDataSource {
     /**
      * Process the groups, which come simply as lists, into JSONObjects.
      */
-    protected JSONArray handleJsonResult(JSONValue result) {
+    protected List<JSONObject> handleJsonResult(JSONValue result) {
         JSONObject resultObject = result.isObject();
         headerGroupValues = resultObject.get("header_values").isArray();
-        return resultObject.get("groups").isArray();
+        return new JSONArrayList<JSONObject>(resultObject.get("groups").isArray());
     }
     
     public void setGroupColumns(String[] columns) {

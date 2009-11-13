@@ -1,7 +1,6 @@
 package autotest.afe;
 
 import autotest.afe.CreateJobView.JobCreateListener;
-import autotest.common.JSONArrayList;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
@@ -32,6 +31,8 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 
+import java.util.List;
+
 public class HostDetailView extends DetailView 
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
@@ -51,9 +52,9 @@ public class HostDetailView extends DetailView
         }
 
         @Override
-        protected JSONArray handleJsonResult(JSONValue result) {
-            JSONArray resultArray = super.handleJsonResult(result);
-            for (JSONObject row : new JSONArrayList<JSONObject>(resultArray)) {
+        protected List<JSONObject> handleJsonResult(JSONValue result) {
+            List<JSONObject> resultArray = super.handleJsonResult(result);
+            for (JSONObject row : resultArray) {
                 // get_host_queue_entries() doesn't return type, so fill it in for consistency with
                 // get_host_queue_entries_and_special_tasks()
                 row.put("type", new JSONString("Job"));
@@ -197,9 +198,9 @@ public class HostDetailView extends DetailView
         query.getPage(null, null, null, this);
     }
 
-    public void handlePage(JSONArray data) {
+    public void handlePage(List<JSONObject> data) {
         try {
-            currentHostObject = Utils.getSingleValueFromArray(data).isObject();
+            currentHostObject = Utils.getSingleObjectFromList(data);
         }
         catch (IllegalArgumentException exc) {
             NotifyManager.getInstance().showError("No such host found");

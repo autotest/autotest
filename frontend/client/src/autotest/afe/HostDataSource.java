@@ -1,13 +1,17 @@
 package autotest.afe;
 
+import autotest.afe.models.Host;
+import autotest.common.JSONArrayList;
+import autotest.common.Utils;
+import autotest.common.table.RpcDataSource;
+
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-import autotest.common.JSONArrayList;
-import autotest.common.Utils;
-import autotest.common.table.RpcDataSource;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HostDataSource extends RpcDataSource {
     protected static final String LOCKED_TEXT = "locked_text";
@@ -19,10 +23,16 @@ public class HostDataSource extends RpcDataSource {
     }
 
     @Override
-    protected JSONArray handleJsonResult(JSONValue result) {
-        JSONArray hosts = super.handleJsonResult(result);
-        for (int i = 0; i < hosts.size(); i++) {
-            processHost(hosts.get(i).isObject());
+    /**
+     * Convert the raw JSONObjects to Hosts.
+     */
+    protected List<JSONObject> handleJsonResult(JSONValue result) {
+        List<JSONObject> resultList = super.handleJsonResult(result);
+        List<JSONObject> hosts = new ArrayList<JSONObject>();
+        for (JSONObject row : resultList) {
+            Host host = Host.fromJsonObject(row);
+            processHost(host);
+            hosts.add(host);
         }
         return hosts;
     }
@@ -51,6 +61,4 @@ public class HostDataSource extends RpcDataSource {
         String aclString = Utils.joinStrings(",", aclsList);
         host.put(HOST_ACLS, new JSONString(aclString));
     }
-    
-    
 }

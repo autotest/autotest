@@ -22,12 +22,11 @@ public class DynamicTableSelectionManager extends SelectionManager {
         }
 
         @Override
-        public void handlePage(JSONArray data) {
+        public void handlePage(List<JSONObject> data) {
             // use set intersection to get objects from the selected object set, rather than using
             // the objects returned by the server.  we have to do this because ArrayDataSource uses
             // object identity and not value equality of JSONObjects.
-            List<JSONObject> dataList = new JSONArrayList<JSONObject>(data);
-            Set<JSONObject> filteredRows = new JSONObjectSet<JSONObject>(dataList);
+            Set<JSONObject> filteredRows = new JSONObjectSet<JSONObject>(data);
             Set<JSONObject> rowsToRemove = new JSONObjectSet<JSONObject>(getSelectedObjects());
             rowsToRemove.retainAll(filteredRows);
             deselectObjects(rowsToRemove);
@@ -49,8 +48,8 @@ public class DynamicTableSelectionManager extends SelectionManager {
     public void selectAll() {
         attachedDynamicTable.getCurrentQuery().getPage(null, null, null, new DefaultDataCallback() {
             @Override
-            public void handlePage(JSONArray data) {
-                selectObjects(new JSONArrayList<JSONObject>(data));
+            public void handlePage(List<JSONObject> data) {
+                selectObjects(data);
             }
         });
     }

@@ -2,8 +2,9 @@ package autotest.common.table;
 
 import autotest.common.Utils;
 
-import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
+
+import java.util.List;
 
 public interface DataSource {
     public static enum SortDirection {ASCENDING, DESCENDING}
@@ -98,13 +99,13 @@ public interface DataSource {
 
     public interface DataCallback {
         public void onQueryReady(Query query);
-        public void handlePage(JSONArray data);
+        public void handlePage(List<JSONObject> data);
         public void handleTotalResultCount(int totalCount);
         public void onError(JSONObject errorObject);
     }
 
     public static class DefaultDataCallback implements DataCallback {
-        public void handlePage(JSONArray data) {}
+        public void handlePage(List<JSONObject> data) {}
         public void handleTotalResultCount(int totalCount) {}
         public void onQueryReady(Query query) {}
         public void onError(JSONObject errorObject) {}
