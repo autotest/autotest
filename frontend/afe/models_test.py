@@ -92,8 +92,11 @@ class SpecialTaskUnittest(unittest.TestCase,
         task.update_object(is_active=True)
         self.assertEquals(task.status, 'Running')
 
-        task.update_object(is_active=False, is_complete=True)
+        task.update_object(is_active=False, is_complete=True, success=True)
         self.assertEquals(task.status, 'Completed')
+
+        task.update_object(success=False)
+        self.assertEquals(task.status, 'Failed')
 
 
     def test_activate(self):
@@ -106,9 +109,10 @@ class SpecialTaskUnittest(unittest.TestCase,
     def test_finish(self):
         task = self._create_task()
         task.activate()
-        task.finish()
+        task.finish(True)
         self.assertFalse(task.is_active)
         self.assertTrue(task.is_complete)
+        self.assertTrue(task.success)
 
 
 if __name__ == '__main__':
