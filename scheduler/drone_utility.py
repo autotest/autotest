@@ -251,7 +251,7 @@ class DroneUtility(object):
         contents of the directory are copied; otherwise, the directory iself is
         copied.
         """
-        if source_path.rstrip('/') == destination_path.rstrip('/'):
+        if self._same_file(source_path, destination_path):
             return
         self._ensure_directory_exists(os.path.dirname(destination_path))
         if source_path.endswith('/'):
@@ -270,6 +270,17 @@ class DroneUtility(object):
             os.symlink(link_to, destination_path)
         else:
             shutil.copy(source_path, destination_path)
+
+
+    def _same_file(self, source_path, destination_path):
+        """Checks if the source and destination are the same
+
+        Returns True if the destination is the same as the source, False
+        otherwise. Also returns False if the destination does not exist.
+        """
+        if not os.path.exists(destination_path):
+            return False
+        return os.path.samefile(source_path, destination_path)
 
 
     def wait_for_all_async_commands(self):
