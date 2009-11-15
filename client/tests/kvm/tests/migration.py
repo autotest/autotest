@@ -74,9 +74,10 @@ def run_migration(test, params, env):
 
     finally:
         # Kill the background process
-        if session2.is_alive():
-            session2.get_command_output(params.get("migration_bg_kill_command",
-                                                   ""))
+        if session2:
+            if session2.is_alive():
+                session2.get_command_output(
+                                    params.get("migration_bg_kill_command", ""))
 
     session2.close()
     session.close()
