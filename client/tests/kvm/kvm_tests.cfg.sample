@@ -840,7 +840,7 @@ variants:
         only up
         only WinXP.32
         no install setup
-        no kvm_hugepages
+        no hugepages
         only unattended_install setup boot shutdown
         only rtl8139
     - @fc11_kickstart:
@@ -850,7 +850,7 @@ variants:
         only up
         only Fedora.11.64
         no install setup
-        no kvm_hugepages
+        no hugepages
         only unattended_install boot shutdown
         only rtl8139
 
