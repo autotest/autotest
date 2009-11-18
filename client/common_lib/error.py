@@ -185,11 +185,6 @@ class AutoservError(Exception):
     pass
 
 
-class AutoservInstallError(Exception):
-    """Autoserv failed in installing autotest on a client machine"""
-    pass
-
-
 class AutoservSSHTimeout(AutoservError):
     """SSH experienced a connection timeout"""
     pass
@@ -279,6 +274,11 @@ class AutoservHardwareRepairRequestedError(AutoservError):
     repair fails but it successfully managed to request a hardware repair (by
     notifying the staff, sending mail, etc)
     """
+    pass
+
+
+class AutoservInstallError(AutoservError):
+    """Error occured while installing autotest on a host"""
     pass
 
 
