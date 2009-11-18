@@ -22,19 +22,23 @@ Protection = enum.Enum('No protection',          # Repair can do anything to
                                                  # this host
                        )
 
+running_client = global_config.global_config.check_stand_alone_client_run()
+
 try:
     _bad_value = object()
-    default = Protection.get_value(
-        global_config.global_config.get_config_value(
-            'HOSTS', 'default_protection', default=_bad_value))
-    if default == _bad_value:
-        raise global_config.ConfigError(
-            'No HOSTS.default_protection defined in global_config.ini')
+    default_protection = global_config.global_config.get_config_value(
+                            'HOSTS', 'default_protection', default=_bad_value)
+    if default_protection == _bad_value:
+        if running_client:
+            logging.debug('Client stand alone run detected. '
+                          'host_protection.default will not be set.')
+        else:
+            raise global_config.ConfigError(
+                'No HOSTS.default_protection defined in global_config.ini')
+    else:
+        default = Protection.get_value(default_protection)
+
 except global_config.ConfigError:
-    # can happen if no global_config.ini exists at all, but this can actually
-    # happen in reasonable cases (e.g. on a standalone clinet) where it's
-    # safe to ignore
-    logging.debug('No global_config.ini exists so host_protection.default '
-                  'will not be defined')
+    raise global_config.ConfigError('No global_config.ini exists, aborting')
 
 choices = Protection.choices()

@@ -8,12 +8,6 @@ __author__ = 'raphtee@google.com (Travis Miller)'
 import os, sys, ConfigParser
 from autotest_lib.client.common_lib import error
 
-dirname = os.path.dirname(sys.modules[__name__].__file__)
-DEFAULT_CONFIG_FILE = os.path.abspath(os.path.join(dirname,
-                                                "../../global_config.ini"))
-DEFAULT_SHADOW_FILE = os.path.abspath(os.path.join(dirname,
-                                                "../../shadow_config.ini"))
-
 
 class ConfigError(error.AutotestError):
     pass
@@ -23,12 +17,50 @@ class ConfigValueError(ConfigError):
     pass
 
 
+
+common_lib_dir = os.path.dirname(sys.modules[__name__].__file__)
+client_dir = os.path.dirname(common_lib_dir)
+root_dir = os.path.dirname(client_dir)
+
+# Check if the config files are at autotest's root dir
+# This will happen if client is executing inside a full autotest tree, or if
+# other entry points are being executed
+global_config_path_root = os.path.join(root_dir, 'global_config.ini')
+shadow_config_path_root = os.path.join(root_dir, 'shadow_config.ini')
+config_in_root = (os.path.exists(global_config_path_root) and
+                  os.path.exists(shadow_config_path_root))
+
+# Check if the config files are at autotest's client dir
+# This will happen if a client stand alone execution is happening
+global_config_path_client = os.path.join(client_dir, 'global_config.ini')
+config_in_client = os.path.exists(global_config_path_client)
+
+if config_in_root:
+    DEFAULT_CONFIG_FILE = global_config_path_root
+    DEFAULT_SHADOW_FILE = shadow_config_path_root
+    RUNNING_STAND_ALONE_CLIENT = False
+elif config_in_client:
+    DEFAULT_CONFIG_FILE = global_config_path_client
+    DEFAULT_SHADOW_FILE = None
+    RUNNING_STAND_ALONE_CLIENT = True
+else:
+    raise ConfigError("Could not find configuration files "
+                      "needed for this program to function. Please refer to "
+                      "http://autotest.kernel.org/wiki/GlobalConfig "
+                      "for more info.")
+
+
 class global_config(object):
     _NO_DEFAULT_SPECIFIED = object()
 
     config = None
     config_file = DEFAULT_CONFIG_FILE
     shadow_file = DEFAULT_SHADOW_FILE
+    running_stand_alone_client = RUNNING_STAND_ALONE_CLIENT
+
+
+    def check_stand_alone_client_run(self):
+        return self.running_stand_alone_client
 
 
     def set_config_files(self, config_file=DEFAULT_CONFIG_FILE,
@@ -45,6 +77,21 @@ class global_config(object):
             raise ConfigError(msg)
         else:
             return default
+
+
+    def get_section_values(self, section):
+        """
+        Return a config parser object containing a single section of the
+        global configuration, that can be later written to a file object.
+
+        @param section: Section we want to turn into a config parser object.
+        @return: ConfigParser() object containing all the contents of section.
+        """
+        cfgparser = ConfigParser.ConfigParser()
+        cfgparser.add_section(section)
+        for option, value in self.config.items(section):
+            cfgparser.set(section, option, value)
+        return cfgparser
 
 
     def get_config_value(self, section, key, type=str,
@@ -106,7 +153,7 @@ class global_config(object):
         # now also read the shadow file if there is one
         # this will overwrite anything that is found in the
         # other config
-        if os.path.exists(self.shadow_file):
+        if self.shadow_file and os.path.exists(self.shadow_file):
             shadow_config = ConfigParser.ConfigParser()
             shadow_config.read(self.shadow_file)
             # now we merge shadow into global
