@@ -391,6 +391,12 @@ class BaseAutotest(installable_object.InstallableObject):
         cfile += open(tmppath).read()
         open(tmppath, "w").write(cfile)
 
+        # Create and copy configuration file based on the state of the
+        # client configuration
+        client_config_file = self._create_client_config_file(host.job)
+        host.send_file(client_config_file, atrun.config_file)
+        os.remove(client_config_file)
+
         # Create and copy state file to remote_control_file + '.state'
         sysinfo_state = {"__sysinfo": host.job.sysinfo.serialize()}
         state_file = self._create_state_file(host.job, sysinfo_state)
@@ -408,12 +414,47 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def _create_state_file(self, job, state_dict):
-        """ Create a state file from a dictionary. Returns the path of the
-        state file. """
+        """
+        Create a temporary file with the state described by state_dict.
+
+        @param job: Autotest job.
+        @param state_dict: Dictionary containing the state we want to write to
+                the temporary file
+        @return: Path of the temporary file generated.
+        """
+        return self._create_aux_file(job, pickle.dump, state_dict)
+
+
+    def _create_client_config_file(self, job):
+        """
+        Create a temporary file with the [CLIENT] section configuration values
+        taken from the server global_config.ini.
+
+        @param job: Autotest job.
+        @return: Path of the temporary file generated.
+        """
+        client_config = global_config.global_config.get_section_values("CLIENT")
+        return self._create_aux_file(job, client_config.write)
+
+
+    def _create_aux_file(self, job, func, *args):
+        """
+        Creates a temporary file and writes content to it according to a content
+        creation function. The file object is appended to *args, which is then
+        passed to the content creation function
+
+        @param job: Autotest job instance.
+        @param func: Function that will be used to write content to the
+                temporary file.
+        @param *args: List of parameters that func takes.
+        @return: Path to the temporary file that was created.
+        """
         fd, path = tempfile.mkstemp(dir=job.tmpdir)
-        state_file = os.fdopen(fd, "w")
-        pickle.dump(state_dict, state_file)
-        state_file.close()
+        aux_file = os.fdopen(fd, "w")
+        list_args = list(args)
+        list_args.append(aux_file)
+        func(*list_args)
+        aux_file.close()
         return path
 
 
@@ -459,6 +500,7 @@ class _Run(object):
             control += '.' + tag
         self.manual_control_file = control
         self.remote_control_file = control + '.autoserv'
+        self.config_file = os.path.join(self.autodir, 'global_config.ini')
 
 
     def verify_machine(self):
