@@ -435,7 +435,14 @@ variants:
                             cdrom=linux/RHEL-5.3-i386-DVD.iso
                             md5sum=371c62851611fd32ead440df6f24a296
                             md5sum_1m=242318dd44152210f6ff6cdda1bfbf51
-
+                        unattended_install:
+                            cdrom=linux/RHEL-5.3-i386-DVD.iso
+                            md5sum=371c62851611fd32ead440df6f24a296
+                            md5sum_1m=242318dd44152210f6ff6cdda1bfbf51
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-5-series.ks
                     - 5.3.x86_64:
                         no setup
                         image_name = rhel5-64
@@ -444,7 +451,14 @@ variants:
                             cdrom=linux/RHEL-5.3-x86_64-DVD.iso
                             md5sum=c5ed6b284410f4d8212cafc78fd7a8c5
                             md5sum_1m=b999f437583098ea5bbd56fb1de1d011
-
+                        unattended_install:
+                            cdrom=linux/RHEL-5.3-x86_64-DVD.iso
+                            md5sum=c5ed6b284410f4d8212cafc78fd7a8c5
+                            md5sum_1m=b999f437583098ea5bbd56fb1de1d011
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-5-series.ks
                     - 4.7.i386:
                         no setup autotest
                         image_name = rhel4-32
@@ -453,7 +467,14 @@ variants:
                             cdrom=linux/RHEL-4.7-i386-DVD.iso
                             md5sum=ee5092653732a88ddbaf8eef2484c500
                             md5sum_1m=127081cbed825d7232331a2083975528
-
+                        unattended_install:
+                            cdrom=linux/RHEL-4.7-i386-DVD.iso
+                            md5sum=ee5092653732a88ddbaf8eef2484c500
+                            md5sum_1m=127081cbed825d7232331a2083975528
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-4-series.ks
                     - 4.7.x86_64:
                         no setup autotest
                         image_name = rhel4-64
@@ -462,7 +483,14 @@ variants:
                             cdrom=linux/RHEL-4.7-x86_64-DVD.iso
                             md5sum=ea9dae16dd86f7d94092d0e672333292
                             md5sum_1m=58fa63eaee68e269f4cb1d2edf479792
-
+                        unattended_install:
+                            cdrom=linux/RHEL-4.7-x86_64-DVD.iso
+                            md5sum=ea9dae16dd86f7d94092d0e672333292
+                            md5sum_1m=58fa63eaee68e269f4cb1d2edf479792
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-4-series.ks
                     - 3.9.i386:
                         no setup autotest linux_s3
                         image_name = rhel3-32
@@ -471,7 +499,14 @@ variants:
                             cdrom=linux/RHEL-3.9-i386-DVD.iso
                             md5sum=ddd11a1cb104119039b0fa05df6d52b8
                             md5sum_1m=5f10c9417c7b8372b3456c1b5f3f9ed0
-
+                        unattended_install:
+                            cdrom=linux/RHEL-3.9-i386-DVD.iso
+                            md5sum=ddd11a1cb104119039b0fa05df6d52b8
+                            md5sum_1m=5f10c9417c7b8372b3456c1b5f3f9ed0
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-3-series.ks
                     - 3.9.x86_64:
                         no setup autotest linux_s3
                         image_name = rhel3-64
@@ -480,7 +515,14 @@ variants:
                             cdrom=linux/RHEL-3.9-x86_64-DVD.iso
                             md5sum=bf4635e4a4bd3b43838e72bc8c329d55
                             md5sum_1m=18ecd37b639109f1b2af05cfb57dfeaf
-
+                        unattended_install:
+                            cdrom=linux/RHEL-3.9-x86_64-DVD.iso
+                            md5sum=bf4635e4a4bd3b43838e72bc8c329d55
+                            md5sum_1m=18ecd37b639109f1b2af05cfb57dfeaf
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/RHEL-3-series.ks
     # Windows section
     - @Windows:
         no autotest linux_s3
