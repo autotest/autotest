@@ -185,6 +185,11 @@ class AutoservError(Exception):
     pass
 
 
+class AutoservInstallError(Exception):
+    """Autoserv failed in installing autotest on a client machine"""
+    pass
+
+
 class AutoservSSHTimeout(AutoservError):
     """SSH experienced a connection timeout"""
     pass
