@@ -163,6 +163,11 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(host.aclgroup_set.count(), 0)
 
 
+    def test_create_job_duplicate_hosts(self):
+        self.assertRaises(model_logic.ValidationError, self._create_job_helper,
+                          hosts=[1, 1])
+
+
     def _setup_special_tasks(self):
         host = self.hosts[0]
 
@@ -241,11 +246,6 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(entry2['type'], 'Job')
         self.assertEquals(entry2['status'], 'Queued')
         self.assertEquals(entry2['started_on'], '2009-01-03 00:00:00')
-
-
-    def _create_job_helper(self, **kwargs):
-        return rpc_interface.create_job('test', 'Medium', 'control file',
-                                        'Server', **kwargs)
 
 
     def test_view_invalid_host(self):

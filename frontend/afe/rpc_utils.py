@@ -430,6 +430,20 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
     return info
 
 
+def check_for_duplicate_hosts(host_objects):
+    host_ids = set()
+    duplicate_hostnames = set()
+    for host in host_objects:
+        if host.id in host_ids:
+            duplicate_hostnames.add(host.hostname)
+        host_ids.add(host.id)
+
+    if duplicate_hostnames:
+        raise model_logic.ValidationError(
+                {'hosts' : 'Duplicate hosts: %s'
+                 % ', '.join(duplicate_hostnames)})
+
+
 def create_new_job(owner, options, host_objects, metahost_objects,
                    atomic_group=None):
     labels_by_name = dict((label.name, label)
@@ -468,6 +482,7 @@ def create_new_job(owner, options, host_objects, metahost_objects,
                      'atomic group was specified for this job.' %
                      (', '.join(unusable_host_names),)})
 
+    check_for_duplicate_hosts(host_objects)
 
     check_job_dependencies(host_objects, dependencies)
     options['dependencies'] = [labels_by_name[label_name]
