@@ -271,5 +271,17 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(1, len(data))
 
 
+    def test_reverify_hosts(self):
+        rpc_interface.reverify_hosts(id__in=[1, 2])
+        tasks = rpc_interface.get_special_tasks()
+        self.assertEquals(len(tasks), 2)
+        self.assertEquals(set(task['host']['id'] for task in tasks),
+                          set([1, 2]))
+
+        task = tasks[0]
+        self.assertEquals(task['task'], models.SpecialTask.Task.VERIFY)
+        self.assertEquals(task['requested_by'], 'my_user')
+
+
 if __name__ == '__main__':
     unittest.main()

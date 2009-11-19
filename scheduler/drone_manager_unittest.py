@@ -8,11 +8,13 @@ from autotest_lib.scheduler import drone_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
 
 class MockDrone(drones._AbstractDrone):
-    def __init__(self, name, active_processes=0, max_processes=10):
+    def __init__(self, name, active_processes=0, max_processes=10,
+                 allowed_users=None):
         super(MockDrone, self).__init__()
         self.name = name
         self.active_processes = active_processes
         self.max_processes = max_processes
+        self.allowed_users = allowed_users
         # maps method names list of tuples containing method arguments
         self._recorded_calls = {'queue_call': [],
                                 'send_file_to': []}
@@ -61,6 +63,7 @@ class DroneManager(unittest.TestCase):
     _SOURCE_PATH = 'source/path'
     _DESTINATION_PATH = 'destination/path'
     _WORKING_DIRECTORY = 'working/directory'
+    _USERNAME = 'my_user'
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -96,7 +99,8 @@ class DroneManager(unittest.TestCase):
             self.manager._enqueue_drone(MockDrone(index, active_processes,
                                                   max_processes))
 
-        return self.manager._choose_drone_for_execution(requested_processes)
+        return self.manager._choose_drone_for_execution(requested_processes,
+                                                        self._USERNAME)
 
 
     def test_choose_drone_for_execution(self):
@@ -115,6 +119,21 @@ class DroneManager(unittest.TestCase):
         drone = self._test_choose_drone_for_execution_helper([(2, 1), (3, 2)],
                                                              1)
         self.assertEquals(drone.name, 1)
+
+
+    def test_user_restrictions(self):
+        # this drone is restricted to a different user
+        self.manager._enqueue_drone(MockDrone(1, max_processes=10,
+                                              allowed_users=['fakeuser']))
+        # this drone is allowed but has lower capacity
+        self.manager._enqueue_drone(MockDrone(2, max_processes=2,
+                                              allowed_users=[self._USERNAME]))
+
+        self.assertEquals(2,
+                          self.manager.max_runnable_processes(self._USERNAME))
+        drone = self.manager._choose_drone_for_execution(
+                1, username=self._USERNAME)
+        self.assertEquals(drone.name, 2)
 
 
     def test_initialize(self):

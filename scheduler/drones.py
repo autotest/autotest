@@ -8,12 +8,18 @@ AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value('SCHEDULER',
                                                  'drone_installation_directory')
 
 class _AbstractDrone(object):
+    """
+    Attributes:
+    * allowed_users: set of usernames allowed to use this drone.  if None,
+            any user can use this drone.
+    """
     def __init__(self):
         self._calls = []
         self.hostname = None
         self.enabled = True
         self.max_processes = 0
         self.active_processes = 0
+        self.allowed_users = None
 
 
     def shutdown(self):
@@ -24,6 +30,12 @@ class _AbstractDrone(object):
         if self.max_processes == 0:
             return 1.0
         return float(self.active_processes) / self.max_processes
+
+
+    def usable_by(self, user):
+        if self.allowed_users is None:
+            return True
+        return user in self.allowed_users
 
 
     def _execute_calls_impl(self, calls):

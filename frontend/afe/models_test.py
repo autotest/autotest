@@ -115,5 +115,13 @@ class SpecialTaskUnittest(unittest.TestCase,
         self.assertTrue(task.success)
 
 
+    def test_requested_by_from_queue_entry(self):
+        job = self._create_job(hosts=[0])
+        task = models.SpecialTask.objects.create(
+                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
+                queue_entry=job.hostqueueentry_set.all()[0])
+        self.assertEquals(task.requested_by.login, 'my_user')
+
+
 if __name__ == '__main__':
     unittest.main()
