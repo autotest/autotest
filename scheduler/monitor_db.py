@@ -952,7 +952,7 @@ class Dispatcher(object):
                 logging.info(print_message, host.hostname)
             models.SpecialTask.objects.create(
                     task=models.SpecialTask.Task.CLEANUP,
-                    host=models.Host(id=host.id))
+                    host=models.Host.objects.get(id=host.id))
 
 
     def _recover_hosts(self):
@@ -1105,7 +1105,9 @@ class Dispatcher(object):
         if have_reached_limit:
             return False
         # total process throttling
-        if agent.num_processes > _drone_manager.max_runnable_processes():
+        max_runnable_processes = _drone_manager.max_runnable_processes(
+                agent.task.username)
+        if agent.num_processes > max_runnable_processes:
             return False
         # if a single agent exceeds the per-cycle throttling, still allow it to
         # run when it's the first agent in the cycle
@@ -1209,14 +1211,15 @@ class PidfileRunMonitor(object):
 
 
     def run(self, command, working_directory, nice_level=None, log_file=None,
-            pidfile_name=None, paired_with_pidfile=None):
+            pidfile_name=None, paired_with_pidfile=None, username=None):
         assert command is not None
         if nice_level is not None:
             command = ['nice', '-n', str(nice_level)] + command
         self._set_start_time()
         self.pidfile_id = _drone_manager.execute_command(
             command, working_directory, pidfile_name=pidfile_name,
-            log_file=log_file, paired_with_pidfile=paired_with_pidfile)
+            log_file=log_file, paired_with_pidfile=paired_with_pidfile,
+            username=username)
 
 
     def attach_to_existing_process(self, execution_path,
@@ -1390,18 +1393,19 @@ class Agent(object):
         self.host_ids = task.host_ids
 
         self.started = False
+        self.finished = False
 
 
     def tick(self):
         self.started = True
-        if self.task:
+        if not self.finished:
             self.task.poll()
             if self.task.is_done():
-                self.task = None
+                self.finished = True
 
 
     def is_done(self):
-        return self.task is None
+        return self.finished
 
 
     def abort(self):
@@ -1409,7 +1413,7 @@ class Agent(object):
             self.task.abort()
             if self.task.aborted:
                 # tasks can choose to ignore aborts
-                self.task = None
+                self.finished = True
 
 
 class DelayedCallTask(object):
@@ -1468,11 +1472,14 @@ class DelayedCallTask(object):
 
 class AgentTask(object):
     def __init__(self, cmd=None, working_directory=None,
-                 pidfile_name=None, paired_with_pidfile=None,
-                 recover_run_monitor=None):
+                 recover_run_monitor=None, username=None):
+        """
+        username: login of user responsible for this task.  may be None.
+        """
         self.done = False
         self.cmd = cmd
         self._working_directory = working_directory
+        self.username = username
         self.agent = None
         self.monitor = recover_run_monitor
         self.started = bool(recover_run_monitor)
@@ -1599,7 +1606,8 @@ class AgentTask(object):
                              nice_level=AUTOSERV_NICE_LEVEL,
                              log_file=self.log_file,
                              pidfile_name=pidfile_name,
-                             paired_with_pidfile=paired_with_pidfile)
+                             paired_with_pidfile=paired_with_pidfile,
+                             username=self.username)
 
 
 class TaskWithJobKeyvals(object):
@@ -1673,6 +1681,8 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
 
         self.task = task
         kwargs['working_directory'] = task.execution_path()
+        if task.requested_by:
+            kwargs['username'] = task.requested_by.login
         self._extra_command_args = extra_command_args
         super(SpecialAgentTask, self).__init__(**kwargs)
 
@@ -1814,14 +1824,16 @@ class PreJobTask(SpecialAgentTask):
                 self._fail_queue_entry()
                 return
 
-            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+            queue_entry = models.HostQueueEntry.objects.get(
+                    id=self.queue_entry.id)
         else:
             queue_entry = None
 
         models.SpecialTask.objects.create(
-                host=models.Host(id=self.host.id),
+                host=models.Host.objects.get(id=self.host.id),
                 task=models.SpecialTask.Task.REPAIR,
-                queue_entry=queue_entry)
+                queue_entry=queue_entry,
+                requested_by=self.task.requested_by)
 
 
 class VerifyTask(PreJobTask):
@@ -1862,36 +1874,15 @@ class VerifyTask(PreJobTask):
                 self.host.set_status(models.Host.Status.READY)
 
 
-class CleanupHostsMixin(object):
-    def _reboot_hosts(self, job, queue_entries, final_success,
-                      num_tests_failed):
-        reboot_after = job.reboot_after
-        do_reboot = (
-                # always reboot after aborted jobs
-                self._final_status == models.HostQueueEntry.Status.ABORTED
-                or reboot_after == models.RebootAfter.ALWAYS
-                or (reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED
-                    and final_success and num_tests_failed == 0))
-
-        for queue_entry in queue_entries:
-            if do_reboot:
-                # don't pass the queue entry to the CleanupTask. if the cleanup
-                # fails, the job doesn't care -- it's over.
-                models.SpecialTask.objects.create(
-                        host=models.Host(id=queue_entry.host.id),
-                        task=models.SpecialTask.Task.CLEANUP)
-            else:
-                queue_entry.host.set_status(models.Host.Status.READY)
-
-
-class QueueTask(AgentTask, TaskWithJobKeyvals, CleanupHostsMixin):
+class QueueTask(AgentTask, TaskWithJobKeyvals):
     def __init__(self, job, queue_entries, cmd=None, recover_run_monitor=None):
         self.job = job
         self.queue_entries = queue_entries
         self.group_name = queue_entries[0].get_group_name()
         super(QueueTask, self).__init__(
-                cmd, self._execution_path(),
-                recover_run_monitor=recover_run_monitor)
+                cmd=cmd, working_directory=self._execution_path(),
+                recover_run_monitor=recover_run_monitor,
+                username=job.owner)
         self._set_ids(queue_entries=queue_entries)
 
 
@@ -2021,7 +2012,8 @@ class PostJobTask(AgentTask):
 
         super(PostJobTask, self).__init__(
                 cmd=command, working_directory=self._execution_path,
-                recover_run_monitor=recover_run_monitor)
+                recover_run_monitor=recover_run_monitor,
+                username=queue_entries[0].job.owner)
 
         self.log_file = os.path.join(self._execution_path, logfile_name)
         self._final_status = self._determine_final_status()
@@ -2084,7 +2076,7 @@ class PostJobTask(AgentTask):
         pass
 
 
-class GatherLogsTask(PostJobTask, CleanupHostsMixin):
+class GatherLogsTask(PostJobTask):
     """
     Task responsible for
     * gathering uncollected logs (if Autoserv crashed hard or was killed)
@@ -2126,7 +2118,10 @@ class GatherLogsTask(PostJobTask, CleanupHostsMixin):
 
         self._copy_and_parse_results(self._queue_entries,
                                      use_monitor=self._autoserv_monitor)
+        self._reboot_hosts()
 
+
+    def _reboot_hosts(self):
         if self._autoserv_monitor.has_process():
             final_success = (self._final_status ==
                              models.HostQueueEntry.Status.COMPLETED)
@@ -2135,8 +2130,24 @@ class GatherLogsTask(PostJobTask, CleanupHostsMixin):
             final_success = False
             num_tests_failed = 0
 
-        self._reboot_hosts(self._job, self._queue_entries, final_success,
-                           num_tests_failed)
+        reboot_after = self._job.reboot_after
+        do_reboot = (
+                # always reboot after aborted jobs
+                self._final_status == models.HostQueueEntry.Status.ABORTED
+                or reboot_after == models.RebootAfter.ALWAYS
+                or (reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED
+                    and final_success and num_tests_failed == 0))
+
+        for queue_entry in self._queue_entries:
+            if do_reboot:
+                # don't pass the queue entry to the CleanupTask. if the cleanup
+                # fails, the job doesn't care -- it's over.
+                models.SpecialTask.objects.create(
+                        host=models.Host.objects.get(id=queue_entry.host.id),
+                        task=models.SpecialTask.Task.CLEANUP,
+                        requested_by=self._job.owner_model())
+            else:
+                queue_entry.host.set_status(models.Host.Status.READY)
 
 
     def run(self):
@@ -2177,9 +2188,9 @@ class CleanupTask(PreJobTask):
                 self.queue_entry.job.run_verify
                 and self.host.protection != do_not_verify_protection)
         if should_run_verify:
-            entry = models.HostQueueEntry(id=self.queue_entry.id)
+            entry = models.HostQueueEntry.objects.get(id=self.queue_entry.id)
             models.SpecialTask.objects.create(
-                    host=models.Host(id=self.host.id),
+                    host=models.Host.objects.get(id=self.host.id),
                     queue_entry=entry,
                     task=models.SpecialTask.Task.VERIFY)
         else:
@@ -2900,7 +2911,8 @@ class HostQueueEntry(DBObject):
         elif self.status == Status.VERIFYING:
             models.SpecialTask.objects.create(
                     task=models.SpecialTask.Task.CLEANUP,
-                    host=models.Host(id=self.host.id))
+                    host=models.Host.objects.get(id=self.host.id),
+                    requested_by=self.job.owner_model())
 
         self.set_status(Status.ABORTED)
         self.job.abort_delay_ready_task()
@@ -2955,6 +2967,15 @@ class Job(DBObject):
     def __init__(self, id=None, row=None, **kwargs):
         assert id or row
         super(Job, self).__init__(id=id, row=row, **kwargs)
+        self._owner_model = None # caches model instance of owner
+
+
+    def owner_model(self):
+        # work around the fact that the Job owner field is a string, not a
+        # foreign key
+        if not self._owner_model:
+            self._owner_model = models.User.objects.get(login=self.owner)
+        return self._owner_model
 
 
     def is_server_job(self):
@@ -3204,10 +3225,10 @@ class Job(DBObject):
             queue_entry.on_pending()
             return
 
+        queue_entry = models.HostQueueEntry.objects.get(id=queue_entry.id)
         models.SpecialTask.objects.create(
-                host=models.Host(id=queue_entry.host_id),
-                queue_entry=models.HostQueueEntry(id=queue_entry.id),
-                task=task)
+                host=models.Host.objects.get(id=queue_entry.host_id),
+                queue_entry=queue_entry, task=task)
 
 
     def _assign_new_group(self, queue_entries, group_name=''):
