@@ -18,6 +18,11 @@ import java.util.Map;
 
 class HeaderSelect implements ClickHandler {
     public static final String HISTORY_FIXED_VALUES = "_fixed_values";
+    
+    public static class State {
+        private List<HeaderField> selectedFields;
+        private String fixedValues;
+    }
 
     public interface Display {
         public MultiListSelectPresenter.DoubleListDisplay getDoubleListDisplay();
@@ -28,11 +33,9 @@ class HeaderSelect implements ClickHandler {
         public void setFixedValuesVisible(boolean visible);
         public ToggleControl getFixedValuesToggle();
     }
-
-    private HeaderFieldCollection headerFields;
     
-    private List<HeaderField> savedSelectedFields;
-    private String savedFixedValues;
+    private HeaderFieldCollection headerFields;
+    private State savedState = new State();
 
     private Display display;
     private MultiListSelectPresenter multiListSelect = new MultiListSelectPresenter();
@@ -59,9 +62,19 @@ class HeaderSelect implements ClickHandler {
     }
 
     public void updateStateFromView() {
-        savedSelectedFields = getSelectedItemsFromView();
-        savedFixedValues = getFixedValuesText();
+        saveToState(savedState);
         parameterizedFieldPresenter.updateStateFromView();
+    }
+
+    private void saveToState(State state) {
+        state.selectedFields = getSelectedItemsFromView();
+        state.fixedValues = getFixedValuesText();
+    }
+    
+    public State getStateFromView() {
+        State state = new State();
+        saveToState(state);
+        return state;
     }
     
     private List<HeaderField> getSelectedItemsFromView() {
@@ -81,14 +94,18 @@ class HeaderSelect implements ClickHandler {
     }
     
     public List<HeaderField> getSelectedItems() {
-        return Collections.unmodifiableList(savedSelectedFields);
+        return Collections.unmodifiableList(savedState.selectedFields);
     }
     
     public void updateViewFromState() {
-        selectItemsInView(savedSelectedFields);
-        display.getFixedValuesInput().setText(savedFixedValues);
-        display.getFixedValuesToggle().setActive(!savedFixedValues.equals(""));
+        loadFromState(savedState);
         parameterizedFieldPresenter.updateViewFromState();
+    }
+
+    public void loadFromState(State state) {
+        selectItemsInView(state.selectedFields);
+        display.getFixedValuesInput().setText(state.fixedValues);
+        display.getFixedValuesToggle().setActive(!state.fixedValues.equals(""));
     }
 
     private void selectItemsInView(List<HeaderField> fields) {
@@ -104,8 +121,8 @@ class HeaderSelect implements ClickHandler {
     }
 
     public void selectItems(List<HeaderField> fields) {
-        savedSelectedFields = new ArrayList<HeaderField>(fields);
-        savedFixedValues = "";
+        savedState.selectedFields = new ArrayList<HeaderField>(fields);
+        savedState.fixedValues = "";
     }
     
     public void selectItem(HeaderField field) {
@@ -144,7 +161,7 @@ class HeaderSelect implements ClickHandler {
         List<HeaderField> selectedFields = getHeaderFieldsFromValues(fields);
         selectItems(selectedFields);
         String fixedValuesText = arguments.get(name + HISTORY_FIXED_VALUES);
-        savedFixedValues = fixedValuesText;
+        savedState.fixedValues = fixedValuesText;
     }
 
     private void addParameterizedFields(String[] sqlNames) {
@@ -186,7 +203,7 @@ class HeaderSelect implements ClickHandler {
     }
 
     private List<String> getFixedValues() {
-        String valueText = savedFixedValues.trim();
+        String valueText = savedState.fixedValues.trim();
         if (valueText.equals("")) {
             return null;
         }
