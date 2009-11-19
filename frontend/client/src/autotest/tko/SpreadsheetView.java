@@ -134,9 +134,9 @@ public class SpreadsheetView extends ConditionTabView
         SimpleHyperlink swapLink = new SimpleHyperlink("swap");
         swapLink.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
-                List<HeaderField> newRows = columnSelect.getSelectedItems();
-                setSelectedHeader(columnSelect, rowSelect.getSelectedItems());
-                setSelectedHeader(rowSelect, newRows);
+                HeaderSelect.State rowState = rowSelect.getStateFromView();
+                rowSelect.loadFromState(columnSelect.getStateFromView());
+                columnSelect.loadFromState(rowState);
             } 
         });
         
@@ -165,7 +165,7 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private void setupHeaderSelect(HeaderSelect headerSelect, HeaderSelectorView display, 
-                                           String defaultField) {
+                                   String defaultField) {
         headerSelect.bindDisplay(display);
         headerSelect.selectItem(headerFields.getFieldBySqlName(defaultField));
     }
