@@ -8,7 +8,6 @@ import autotest.common.SimpleCallback;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.JSONObjectSet;
-import autotest.common.table.ListFilter;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RadioChooser;
 
@@ -29,7 +28,6 @@ import java.util.Set;
  */
 public class AfeUtils {
     public static final String PLATFORM_SUFFIX = " (platform)";
-    private static final String ALL_USERS = "All Users";
     public static final String ATOMIC_GROUP_SUFFIX = " (atomic group)";
     public static final String REINSTALL_TEST_NAME = "Re-install Machine";
     
@@ -342,18 +340,5 @@ public class AfeUtils {
             date = date.substring(0, date.length() - 3);
         }
         row.put(targetFieldName, new JSONString(date));
-    }
-
-    public static ListFilter getUserFilter(String field) {
-        ListFilter userFilter = new ListFilter(field);
-        userFilter.setMatchAllText(ALL_USERS);
-
-        JSONArray userArray = staticData.getData("users").isArray();
-        String[] userStrings = Utils.JSONObjectsToStrings(userArray, "login");
-        userFilter.setChoices(userStrings);
-        String currentUser = staticData.getCurrentUserLogin();
-        userFilter.setSelectedChoice(currentUser);
-
-        return userFilter;
     }
 }
