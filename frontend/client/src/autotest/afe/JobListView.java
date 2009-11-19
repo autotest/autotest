@@ -2,8 +2,8 @@ package autotest.afe;
 
 import autotest.common.SimpleCallback;
 import autotest.common.CustomHistory.HistoryToken;
+import autotest.common.table.Filter;
 import autotest.common.table.LinkSetFilter;
-import autotest.common.table.ListFilter;
 import autotest.common.table.SearchFilter;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.TableDecorator;
@@ -41,7 +41,7 @@ public class JobListView extends TabView implements TableActionsListener {
     private JobTable jobTable;
     private TableDecorator tableDecorator;
     private JobStateFilter jobStateFilter;
-    private ListFilter ownerFilter;
+    private Filter ownerFilter;
     private SearchFilter nameFilter;
     private SelectionManager selectionManager;
     
@@ -120,7 +120,7 @@ public class JobListView extends TabView implements TableActionsListener {
         tableDecorator.addTableActionsPanel(this, true);
         addWidget(tableDecorator, "job_table");
         
-        ownerFilter = AfeUtils.getUserFilter("owner");
+        ownerFilter = new JobOwnerFilter("owner");
         jobTable.addFilter(ownerFilter);
         addWidget(ownerFilter.getWidget(), "user_list");
         
