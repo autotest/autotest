@@ -107,6 +107,7 @@ class DroneManager(object):
         self._drones = {}
         self._results_drone = None
         self._attached_files = {}
+        # heapq of tuples (used_capacity, drone)
         self._drone_queue = []
 
 
@@ -178,12 +179,17 @@ class DroneManager(object):
         config.parse_config_file()
         for hostname, drone in self._drones.iteritems():
             disabled = config.get_config_value(
-                section, '%s_disabled' % hostname, default='')
+                    section, '%s_disabled' % hostname, default='')
             drone.enabled = not bool(disabled)
 
             drone.max_processes = config.get_config_value(
-                section, '%s_max_processes' % hostname, type=int,
-                default=scheduler_config.config.max_processes_per_drone)
+                    section, '%s_max_processes' % hostname, type=int,
+                    default=scheduler_config.config.max_processes_per_drone)
+
+            allowed_users = config.get_config_value(
+                    section, '%s_users' % hostname, default=None)
+            if allowed_users is not None:
+                drone.allowed_users = set(allowed_users)
 
 
     def get_drones(self):
@@ -377,16 +383,18 @@ class DroneManager(object):
         return sum(drone.active_processes for drone in self.get_drones())
 
 
-    def max_runnable_processes(self):
+    def max_runnable_processes(self, username):
         """
         Return the maximum number of processes that can be run (in a single
         execution) given the current load on drones.
+        @param username: login of user to run a process.  may be None.
         """
         if not self._drone_queue:
             # all drones disabled
             return 0
         return max(drone.max_processes - drone.active_processes
-                   for _, drone in self._drone_queue)
+                   for _, drone in self._drone_queue
+                   if drone.usable_by(username))
 
 
     def _least_loaded_drone(self, drones):
@@ -397,7 +405,7 @@ class DroneManager(object):
         return drone_to_use
 
 
-    def _choose_drone_for_execution(self, num_processes):
+    def _choose_drone_for_execution(self, num_processes, username):
         # cycle through drones is order of increasing used capacity until
         # we find one that can handle these processes
         checked_drones = []
@@ -405,6 +413,8 @@ class DroneManager(object):
         while self._drone_queue:
             used_capacity, drone = heapq.heappop(self._drone_queue)
             checked_drones.append(drone)
+            if not drone.usable_by(username):
+                continue
             if drone.active_processes + num_processes <= drone.max_processes:
                 drone_to_use = drone
                 break
@@ -435,7 +445,8 @@ class DroneManager(object):
 
 
     def execute_command(self, command, working_directory, pidfile_name,
-                        log_file=None, paired_with_pidfile=None):
+                        log_file=None, paired_with_pidfile=None,
+                        username=None):
         """
         Execute the given command, taken as an argv list.
 
@@ -449,6 +460,8 @@ class DroneManager(object):
         @param paired_with_pidfile (optional): a PidfileId for an
                 already-executed process; the new process will execute on the
                 same drone as the previous process.
+        @param username (optional): login of the user responsible for this
+                process.
         """
         abs_working_directory = self.absolute_path(working_directory)
         if not log_file:
@@ -462,7 +475,7 @@ class DroneManager(object):
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
         else:
             num_processes = self._extract_num_processes(command)
-            drone = self._choose_drone_for_execution(num_processes)
+            drone = self._choose_drone_for_execution(num_processes, username)
         logging.info("command = %s" % command)
         logging.info('log file = %s:%s' % (drone.hostname, log_file))
         self._write_attached_files(working_directory, drone)

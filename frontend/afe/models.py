@@ -932,6 +932,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     host = dbmodels.ForeignKey(Host, blank=False, null=False)
     task = dbmodels.CharField(max_length=64, choices=Task.choices(),
                               blank=False, null=False)
+    requested_by = dbmodels.ForeignKey(User, blank=True, null=True)
     time_requested = dbmodels.DateTimeField(auto_now_add=True, blank=False,
                                             null=False)
     is_active = dbmodels.BooleanField(default=False, blank=False, null=False)
@@ -941,6 +942,13 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     success = dbmodels.BooleanField(default=False, blank=False, null=False)
 
     objects = model_logic.ExtendedManager()
+
+
+    def save(self, **kwargs):
+        if self.queue_entry:
+            self.requested_by = User.objects.get(
+                    login=self.queue_entry.job.owner)
+        super(SpecialTask, self).save(**kwargs)
 
 
     def execution_path(self):
@@ -981,7 +989,8 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
             if not SpecialTask.objects.filter(host__id=host.id, task=task,
                                               is_active=False,
                                               is_complete=False):
-                special_task = SpecialTask(host=host, task=task)
+                special_task = SpecialTask(host=host, task=task,
+                                           requested_by=thread_local.get_user())
                 special_task.save()
 
 

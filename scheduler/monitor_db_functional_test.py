@@ -139,7 +139,7 @@ class MockDroneManager(NullMethodObject):
         return 0
 
 
-    def max_runnable_processes(self):
+    def max_runnable_processes(self, username):
         return self.max_runnable_processes_value
 
 
@@ -190,7 +190,8 @@ class MockDroneManager(NullMethodObject):
 
 
     def execute_command(self, command, working_directory, pidfile_name,
-                        log_file=None, paired_with_pidfile=None):
+                        log_file=None, paired_with_pidfile=None,
+                        username=None):
         pidfile_id = self._DummyPidfileId(
                 self._get_pidfile_debug_string(working_directory, pidfile_name))
         self._future_pidfiles.append(pidfile_id)
@@ -472,7 +473,8 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def _create_reverify_request(self):
         host = self.hosts[0]
         models.SpecialTask.objects.create(host=host,
-                                          task=models.SpecialTask.Task.VERIFY)
+                                          task=models.SpecialTask.Task.VERIFY,
+                                          requested_by=self.user)
         return host
 
 

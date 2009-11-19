@@ -17,10 +17,15 @@ from autotest_lib.scheduler import scheduler_config
 _DEBUG = False
 
 
+class DummyAgentTask(object):
+    username = 'my_user'
+
+
 class DummyAgent(object):
     started = False
     _is_done = False
     num_processes = 1
+    task = DummyAgentTask()
     host_ids = []
     queue_entry_ids = []
 
@@ -777,7 +782,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         scheduler_config.config.max_processes_started_per_cycle = (
             self._MAX_STARTED)
 
-        def fake_max_runnable_processes(fake_self):
+        def fake_max_runnable_processes(fake_self, username):
             running = sum(agent.num_processes
                           for agent in self._agents
                           if agent.started and not agent.is_done())
@@ -1206,9 +1211,8 @@ class AgentTasksTest(BaseSchedulerTest):
     DUMMY_PROCESS = object()
     HOST_PROTECTION = host_protections.default
     PIDFILE_ID = object()
-    JOB_OWNER = 'test_owner'
     JOB_NAME = 'test_job_name'
-    JOB_AUTOSERV_PARAMS = set(['-u', JOB_OWNER, '-l', JOB_NAME])
+    JOB_AUTOSERV_PARAMS = set(['-u', 'my_user', '-l', JOB_NAME])
     PLATFORM = 'test_platform'
 
     def setUp(self):
@@ -1263,7 +1267,7 @@ class AgentTasksTest(BaseSchedulerTest):
         host.save()
 
         self.job = self.god.create_mock_class(monitor_db.Job, 'job')
-        self.job.owner = self.JOB_OWNER
+        self.job.owner = self.user.login
         self.job.name = self.JOB_NAME
         self.job.id = 1337
         self.job.tag = lambda: 'fake-job-tag'
@@ -1329,7 +1333,8 @@ class AgentTasksTest(BaseSchedulerTest):
             nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
             log_file=mock.anything_comparator(),
             pidfile_name=monitor_db._AUTOSERV_PID_FILE,
-            paired_with_pidfile=None)
+            paired_with_pidfile=None,
+            username=self.user.login)
         monitor_db.PidfileRunMonitor.exit_code.expect_call()
         if aborted:
             monitor_db.PidfileRunMonitor.kill.expect_call()
@@ -1364,7 +1369,8 @@ class AgentTasksTest(BaseSchedulerTest):
         self.task.id = task_id
         self.task.task = task_type
         if use_queue_entry:
-            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+            queue_entry = models.HostQueueEntry.objects.get(
+                    id=self.queue_entry.id)
         else:
             queue_entry = None
         self.task.queue_entry = queue_entry
@@ -1438,8 +1444,9 @@ class AgentTasksTest(BaseSchedulerTest):
         class MockSpecialTask(object):
             def execution_path(self):
                 return '/my/path'
-            host = models.Host(id=self.host.id)
+            host = models.Host.objects.get(id=self.host.id)
             queue_entry = None
+            requested_by = self.user
 
         task = monitor_db.RepairTask(task=MockSpecialTask())
 
@@ -1531,13 +1538,15 @@ class AgentTasksTest(BaseSchedulerTest):
                 self.queue_entry.execution_path.expect_call().and_return('tag')
                 self._setup_move_logfile(include_destination=True)
             self.queue_entry.requeue.expect_call()
-            queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+            queue_entry = models.HostQueueEntry.objects.get(
+                    id=self.queue_entry.id)
         else:
             queue_entry = None
         models.SpecialTask.objects.create.expect_call(
-                host=models.Host(id=self.host.id),
+                host=models.Host.objects.get(id=self.host.id),
                 task=models.SpecialTask.Task.REPAIR,
-                queue_entry=queue_entry)
+                queue_entry=queue_entry,
+                requested_by=self.user)
 
 
     def setup_verify_expects(self, success, use_queue_entry, task_tag):
@@ -1651,7 +1660,8 @@ class AgentTasksTest(BaseSchedulerTest):
             nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
             log_file=mock.anything_comparator(),
             pidfile_name=pidfile_name,
-            paired_with_pidfile=self.PIDFILE_ID)
+            paired_with_pidfile=self.PIDFILE_ID,
+            username=self.user.login)
         self._expect_execute_run_monitor()
 
 
@@ -1777,9 +1787,11 @@ class AgentTasksTest(BaseSchedulerTest):
 
 
     def _setup_gather_task_cleanup_expects(self):
+        self.job.owner_model.expect_call().and_return(self.user)
         models.SpecialTask.objects.create.expect_call(
-                host=models.Host(id=self.host.id),
-                task=models.SpecialTask.Task.CLEANUP)
+                host=models.Host.objects.get(id=self.host.id),
+                task=models.SpecialTask.Task.CLEANUP,
+                requested_by=self.user)
 
 
     def test_gather_logs_reboot_hosts(self):
@@ -1824,9 +1836,10 @@ class AgentTasksTest(BaseSchedulerTest):
             self.setup_run_monitor(0, task_tag)
             self.host.update_field.expect_call('dirty', 0)
             if use_queue_entry:
-                queue_entry = models.HostQueueEntry(id=self.queue_entry.id)
+                queue_entry = models.HostQueueEntry.objects.get(
+                        id=self.queue_entry.id)
                 models.SpecialTask.objects.create.expect_call(
-                        host=models.Host(id=self.host.id),
+                        host=models.Host.objects.get(id=self.host.id),
                         task=models.SpecialTask.Task.VERIFY,
                         queue_entry=queue_entry)
             else:
