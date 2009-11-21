@@ -11,6 +11,6 @@ autotest_lib.server.hosts.Host.machine_install()."""
 
 def run(machine):
     host = hosts.create_host(machine, initialize=False)
-    job.run_test('reinstall', host=host)
+    job.run_test('reinstall', host=host, disable_sysinfo=True)
 
 job.parallel_simple(run, machines)
