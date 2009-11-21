@@ -139,17 +139,17 @@ class oprofile(profiler.profiler):
             report = self.opreport + ' -l ' + self.vmlinux
             if os.path.exists(utils.get_modules_dir()):
                 report += ' -p ' + utils.get_modules_dir()
-            logging.info("Starting oprofile: %s" % self.start_time
+            logging.info('Starting oprofile: %s' % self.start_time)
             utils.system(report + ' > ' + reportfile)
-            logging.info("Ending oprofile: %s" % self.stop_time
+            logging.info('Ending oprofile: %s' % self.stop_time)
 
         else:
             utils.system("echo 'no vmlinux found.' > %s" % reportfile)
 
         # output profile summary report
         reportfile = test.profdir + '/oprofile.user'
-        logging.info("Starting oprofile: %s" % self.start_time
+        logging.info('Starting oprofile: %s' % self.start_time)
         utils.system(self.opreport + ' --long-filenames ' + ' >> ' + reportfile)
-        logging.info("Ending oprofile: %s" % self.stop_time
+        logging.info('Ending oprofile: %s' % self.stop_time)
 
         utils.system(self.opcontrol + ' --shutdown')
