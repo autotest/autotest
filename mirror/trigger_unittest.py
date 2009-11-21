@@ -43,26 +43,38 @@ class map_action_unittest(unittest.TestCase):
                     ('test2', 'test3'), {'2.6.20': 'config1'}),
             }
         action = trigger.map_action(tests_map, 'jobname %s')
-
-        self.god.stub_function(action, '_generate_control')
-        self.god.stub_function(action, '_schedule_job')
+        self.assertTrue(isinstance(action._afe, trigger.frontend.AFE))
+        action._afe = self.god.create_mock_class(trigger.frontend.AFE, 'AFE')
 
         control2 = self._make_control_dict('control contents2')
-        (action._generate_control.expect_call('test2', '2.6.21', 'config1')
+        (action._afe.generate_control_file.expect_call(
+                tests=['test2'],
+                kernel=[dict(version='2.6.21', config_file='config1')],
+                upload_kernel_config=False)
                 .and_return(control2))
-        action._schedule_job.expect_call('jobname 2.6.21', control2,
-                                         ['mach1', 'mach3'])
+        action._afe.create_job.expect_call(
+                control2['control_file'], 'jobname 2.6.21',
+                control_type='Client', hosts=['mach1', 'mach3'])
 
-        control3 = self._make_control_dict('control contents3')
-        (action._generate_control.expect_call('test3', '2.6.21', 'config1')
+        control3 = self._make_control_dict('control contents3', is_server=True)
+        (action._afe.generate_control_file.expect_call(
+                tests=['test3'],
+                kernel=[dict(version='2.6.21', config_file='config1')],
+                upload_kernel_config=False)
                 .and_return(control3))
-        action._schedule_job.expect_call('jobname 2.6.21', control3,
-                                         ['mach2', 'mach3'])
+        action._afe.create_job.expect_call(
+                control3['control_file'], 'jobname 2.6.21',
+                control_type='Server', hosts=['mach2', 'mach3'])
 
         control1 = self._make_control_dict('control contents1')
-        (action._generate_control.expect_call('test1', '2.6.21', 'config1')
+        (action._afe.generate_control_file.expect_call(
+                tests=['test1'],
+                kernel=[dict(version='2.6.21', config_file='config1')],
+                upload_kernel_config=False)
                 .and_return(control1))
-        action._schedule_job.expect_call('jobname 2.6.21', control1, ['mach1'])
+        action._afe.create_job.expect_call(
+                control1['control_file'], 'jobname 2.6.21',
+                control_type='Client', hosts=['mach1'])
 
         action(['2.6.21'])
         self.god.check_playback()
@@ -83,6 +95,31 @@ class map_action_unittest(unittest.TestCase):
         check_cmp('2.6.20', '2.6.21')
         check_cmp('2.6.20', '2.6.21-rc2')
         check_cmp('2.6.20-rc2-git2', '2.6.20-rc2')
+
+
+    def test_upload_kernel_config(self):
+        tests_map = {
+            'mach1': trigger.map_action.machine_info(
+                    ('test1',), {'2.6.20': 'config1'})
+            }
+
+        action = trigger.map_action(tests_map, 'jobname %s',
+                                    upload_kernel_config=True)
+        self.assertTrue(isinstance(action._afe, trigger.frontend.AFE))
+        action._afe = self.god.create_mock_class(trigger.frontend.AFE, 'AFE')
+
+        control = self._make_control_dict('control contents', is_server=True)
+        (action._afe.generate_control_file.expect_call(
+                tests=['test1'],
+                kernel=[dict(version='2.6.21', config_file='config1')],
+                upload_kernel_config=True)
+                .and_return(control))
+        action._afe.create_job.expect_call(
+                control['control_file'], 'jobname 2.6.21',
+                control_type='Server', hosts=['mach1', 'mach3'])
+
+        action(['2.6.21'])
+        self.god.check_playback()
 
 
 if __name__ == "__main__":
