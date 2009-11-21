@@ -165,6 +165,9 @@ class base_sysinfo(object):
         self.test_loggables.add(command("dmesg -c", logf="dmesg"))
         self.boot_loggables.add(logfile("/proc/cmdline",
                                              log_in_keyval=True))
+        # log /proc/mounts but with custom filename since we already
+        # log the output of the "mount" command as the filename "mount"
+        self.boot_loggables.add(logfile('/proc/mounts', logf='proc_mounts'))
         self.boot_loggables.add(command("uname -a", logf="uname",
                                              log_in_keyval=True))
 
