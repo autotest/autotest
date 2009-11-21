@@ -63,15 +63,25 @@ class map_action(base_action):
             self.kernel_configs = kernel_configs
 
 
-    def __init__(self, tests_map, jobname_pattern, job_owner='autotest'):
+    def __init__(self, tests_map, jobname_pattern, job_owner='autotest',
+                 upload_kernel_config=False):
         """
         Instantiate a map_action.
 
         @param tests_map: a dictionary of hostname -> machine_info
+        @param jobname_pattern: a string pattern used to make the job name
+                containing a single "%s" that will be replaced with the kernel
+                version
+        @param job_owner: the user used to talk with the RPC server
+        @param upload_kernel_config: specify if the generate control file
+                should contain code that downloads and sends to the client the
+                kernel config file (in case it is an URL); this requires that
+                the tests_map refers only to server side tests
         """
         self._tests_map = tests_map
         self._jobname_pattern = jobname_pattern
         self._afe = frontend.AFE(user=job_owner)
+        self._upload_kernel_config = upload_kernel_config
 
 
     def __call__(self, kernel_list):
@@ -183,14 +193,15 @@ class map_action(base_action):
         """
         kernel_info = dict(version=kernel,
                            config_file=os.path.expanduser(kernel_config))
-        return self._afe.generate_control_file(tests=[test],
-                                               kernel=[kernel_info])
+        return self._afe.generate_control_file(
+                tests=[test], kernel=[kernel_info],
+                upload_kernel_config=self._upload_kernel_config)
 
 
     def _schedule_job(self, jobname, control, hosts):
-        control_type = ('Client', 'Server')[control.is_server]
+        control_type = ('Client', 'Server')[control['is_server']]
 
-        self._afe.create_job(control.control_file, jobname,
+        self._afe.create_job(control['control_file'], jobname,
                              control_type=control_type, hosts=hosts)
 
 
