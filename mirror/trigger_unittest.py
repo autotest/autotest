@@ -29,8 +29,14 @@ class map_action_unittest(unittest.TestCase):
     @staticmethod
     def _make_control_dict(contents, is_server=False, synch_count=1,
                            dependencies=()):
-        return dict(control_file=contents, is_server=is_server,
-                    synch_count=synch_count, dependencies=dependencies)
+        class ControlFile(object):
+            def __init__(self, contents, is_server, synch_count, dependencies):
+                self.control_file = contents
+                self.is_server = is_server
+                self.synch_count = synch_count
+                self.dependencies = dependencies
+
+        return ControlFile(contents, is_server, synch_count, dependencies)
 
 
     def test_job_grouping(self):
@@ -53,7 +59,7 @@ class map_action_unittest(unittest.TestCase):
                 upload_kernel_config=False)
                 .and_return(control2))
         action._afe.create_job.expect_call(
-                control2['control_file'], 'jobname 2.6.21',
+                control2.control_file, 'jobname 2.6.21',
                 control_type='Client', hosts=['mach1', 'mach3'])
 
         control3 = self._make_control_dict('control contents3', is_server=True)
@@ -63,7 +69,7 @@ class map_action_unittest(unittest.TestCase):
                 upload_kernel_config=False)
                 .and_return(control3))
         action._afe.create_job.expect_call(
-                control3['control_file'], 'jobname 2.6.21',
+                control3.control_file, 'jobname 2.6.21',
                 control_type='Server', hosts=['mach2', 'mach3'])
 
         control1 = self._make_control_dict('control contents1')
@@ -73,7 +79,7 @@ class map_action_unittest(unittest.TestCase):
                 upload_kernel_config=False)
                 .and_return(control1))
         action._afe.create_job.expect_call(
-                control1['control_file'], 'jobname 2.6.21',
+                control1.control_file, 'jobname 2.6.21',
                 control_type='Client', hosts=['mach1'])
 
         action(['2.6.21'])
@@ -115,7 +121,7 @@ class map_action_unittest(unittest.TestCase):
                 upload_kernel_config=True)
                 .and_return(control))
         action._afe.create_job.expect_call(
-                control['control_file'], 'jobname 2.6.21',
+                control.control_file, 'jobname 2.6.21',
                 control_type='Server', hosts=['mach1', 'mach3'])
 
         action(['2.6.21'])
