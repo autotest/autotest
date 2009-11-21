@@ -22,10 +22,15 @@ class BaseRpcClientTest(unittest.TestCase):
         self.god = mock.mock_god()
         self.god.mock_up(rpc_client_lib, 'rpc_client_lib')
         self.god.stub_function(utils, 'send_email')
+        self._saved_environ = dict(os.environ)
+        if 'AUTOTEST_WEB' in os.environ:
+            del os.environ['AUTOTEST_WEB']
 
 
     def tearDown(self):
         self.god.unstub_all()
+        os.environ.clear()
+        os.environ.update(self._saved_environ)
 
 
 class RpcClientTest(BaseRpcClientTest):
