@@ -199,9 +199,9 @@ class map_action(base_action):
 
 
     def _schedule_job(self, jobname, control, hosts):
-        control_type = ('Client', 'Server')[control['is_server']]
+        control_type = ('Client', 'Server')[control.is_server]
 
-        self._afe.create_job(control['control_file'], jobname,
+        self._afe.create_job(control.control_file, jobname,
                              control_type=control_type, hosts=hosts)
 
 
