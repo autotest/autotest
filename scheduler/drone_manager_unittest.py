@@ -170,6 +170,7 @@ class DroneManager(unittest.TestCase):
                 command=['test', drone_manager.WORKING_DIRECTORY],
                 working_directory=self._WORKING_DIRECTORY,
                 pidfile_name=pidfile_name,
+                num_processes=1,
                 log_file=log_file)
 
         full_working_directory = os.path.join(self._DRONE_RESULTS_DIR,
@@ -190,7 +191,8 @@ class DroneManager(unittest.TestCase):
                 self._WORKING_DIRECTORY, contents)
         self.manager.execute_command(command=['test'],
                                      working_directory=self._WORKING_DIRECTORY,
-                                     pidfile_name='mypidfile')
+                                     pidfile_name='mypidfile',
+                                     num_processes=1)
 
         self.assert_(self.mock_drone.was_call_queued(
                 'write_to_file',

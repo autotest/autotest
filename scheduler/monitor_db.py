@@ -785,8 +785,7 @@ class Dispatcher(object):
         def recover_entries(job, queue_entries, run_monitor):
             queue_task = QueueTask(job=job, queue_entries=queue_entries,
                                    recover_run_monitor=run_monitor)
-            self.add_agent(Agent(task=queue_task,
-                                 num_processes=len(queue_entries)))
+            self.add_agent(Agent(task=queue_task))
 
         self._recover_entries_with_status(models.HostQueueEntry.Status.RUNNING,
                                           orphans, _AUTOSERV_PID_FILE,
@@ -808,7 +807,7 @@ class Dispatcher(object):
         def recover_entries(job, queue_entries, run_monitor):
             reparse_task = FinalReparseTask(queue_entries,
                                             recover_run_monitor=run_monitor)
-            self.add_agent(Agent(reparse_task, num_processes=0))
+            self.add_agent(Agent(reparse_task))
 
         self._recover_entries_with_status(models.HostQueueEntry.Status.PARSING,
                                           orphans, _PARSER_PID_FILE,
@@ -1072,7 +1071,7 @@ class Dispatcher(object):
                                      'entry with invalid status %s: %s'
                                      % (entry.status, entry))
 
-            self.add_agent(Agent(agent_task, num_processes=len(task_entries)))
+            self.add_agent(Agent(agent_task))
 
 
     def _schedule_delay_tasks(self):
@@ -1080,7 +1079,7 @@ class Dispatcher(object):
                                           models.HostQueueEntry.Status.WAITING):
             task = entry.job.schedule_delayed_callback_task(entry)
             if task:
-                self.add_agent(Agent(task, num_processes=0))
+                self.add_agent(Agent(task))
 
 
     def _run_queue_entry(self, queue_entry, host):
@@ -1210,16 +1209,17 @@ class PidfileRunMonitor(object):
         self._start_time = time.time()
 
 
-    def run(self, command, working_directory, nice_level=None, log_file=None,
-            pidfile_name=None, paired_with_pidfile=None, username=None):
+    def run(self, command, working_directory, num_processes, nice_level=None,
+            log_file=None, pidfile_name=None, paired_with_pidfile=None,
+            username=None):
         assert command is not None
         if nice_level is not None:
             command = ['nice', '-n', str(nice_level)] + command
         self._set_start_time()
         self.pidfile_id = _drone_manager.execute_command(
             command, working_directory, pidfile_name=pidfile_name,
-            log_file=log_file, paired_with_pidfile=paired_with_pidfile,
-            username=username)
+            num_processes=num_processes, log_file=log_file,
+            paired_with_pidfile=paired_with_pidfile, username=username)
 
 
     def attach_to_existing_process(self, execution_path,
@@ -1375,7 +1375,7 @@ class Agent(object):
     """
 
 
-    def __init__(self, task, num_processes=1):
+    def __init__(self, task):
         """
         @param task: A task as described in the class docstring.
         @param num_processes: The number of subprocesses the Agent represents.
@@ -1387,7 +1387,7 @@ class Agent(object):
 
         # This is filled in by Dispatcher.add_agent()
         self.dispatcher = None
-        self.num_processes = num_processes
+        self.num_processes = task.num_processes
 
         self.queue_entry_ids = task.queue_entry_ids
         self.host_ids = task.host_ids
@@ -1452,6 +1452,7 @@ class DelayedCallTask(object):
         self.host_ids = ()
         self.success = False
         self.queue_entry_ids = ()
+        self.num_processes = 0
         # This is filled in by Agent.add_task().
         self.agent = None
 
@@ -1472,14 +1473,18 @@ class DelayedCallTask(object):
 
 class AgentTask(object):
     def __init__(self, cmd=None, working_directory=None,
-                 recover_run_monitor=None, username=None):
+                 recover_run_monitor=None, username=None, num_processes=1):
         """
-        username: login of user responsible for this task.  may be None.
+        @param username: login of user responsible for this task.  may be None.
+        @param num_processes: number of autoserv processes launched by this
+                AgentTask.  this includes forking the autoserv process may do.
+                it may be only approximate.
         """
         self.done = False
         self.cmd = cmd
         self._working_directory = working_directory
         self.username = username
+        self.num_processes = num_processes
         self.agent = None
         self.monitor = recover_run_monitor
         self.started = bool(recover_run_monitor)
@@ -1603,6 +1608,7 @@ class AgentTask(object):
         if self.cmd:
             self.monitor = PidfileRunMonitor()
             self.monitor.run(self.cmd, self._working_directory,
+                             num_processes=self.num_processes,
                              nice_level=AUTOSERV_NICE_LEVEL,
                              log_file=self.log_file,
                              pidfile_name=pidfile_name,
@@ -1882,7 +1888,7 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
         super(QueueTask, self).__init__(
                 cmd=cmd, working_directory=self._execution_path(),
                 recover_run_monitor=recover_run_monitor,
-                username=job.owner)
+                username=job.owner, num_processes=len(queue_entries))
         self._set_ids(queue_entries=queue_entries)
 
 
@@ -1993,7 +1999,7 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
 
 class PostJobTask(AgentTask):
-    def __init__(self, queue_entries, pidfile_name, logfile_name,
+    def __init__(self, queue_entries, pidfile_name, logfile_name, num_processes,
                  recover_run_monitor=None):
         self._queue_entries = queue_entries
         self._pidfile_name = pidfile_name
@@ -2013,7 +2019,8 @@ class PostJobTask(AgentTask):
         super(PostJobTask, self).__init__(
                 cmd=command, working_directory=self._execution_path,
                 recover_run_monitor=recover_run_monitor,
-                username=queue_entries[0].job.owner)
+                username=queue_entries[0].job.owner,
+                num_processes=num_processes)
 
         self.log_file = os.path.join(self._execution_path, logfile_name)
         self._final_status = self._determine_final_status()
@@ -2089,6 +2096,7 @@ class GatherLogsTask(PostJobTask):
         super(GatherLogsTask, self).__init__(
             queue_entries, pidfile_name=_CRASHINFO_PID_FILE,
             logfile_name='.collect_crashinfo.log',
+            num_processes=len(queue_entries),
             recover_run_monitor=recover_run_monitor)
         self._set_ids(queue_entries=queue_entries)
 
@@ -2214,6 +2222,7 @@ class FinalReparseTask(PostJobTask):
         super(FinalReparseTask, self).__init__(
                 queue_entries, pidfile_name=_PARSER_PID_FILE,
                 logfile_name='.parse.log',
+                num_processes=0, # don't include parser processes in accounting
                 recover_run_monitor=recover_run_monitor)
         # don't use _set_ids, since we don't want to set the host_ids
         self.queue_entry_ids = [entry.id for entry in queue_entries]
