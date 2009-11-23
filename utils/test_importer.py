@@ -26,8 +26,8 @@ Most options should be fairly self explanatory, use --help to display them.
 """
 
 
-import logging, time, re, os, MySQLdb, sys, optparse, compiler
 import common
+import logging, time, re, os, MySQLdb, sys, optparse, compiler
 from autotest_lib.client.common_lib import control_data, test, global_config
 from autotest_lib.client.common_lib import utils
 
