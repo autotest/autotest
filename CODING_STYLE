@@ -87,13 +87,17 @@ Docstrings
 Docstrings are important to keep our code self documenting. While it's not
 necessary to overdo documentation, we ask you to be sensible and document any
 nontrivial function. When creating docstrings, please add a newline at the
-beginning of your triple quoted string and another newline at the end of it.
-Please capitalize and punctuate accordingly the sentences. If the description
-has multiple lines, put two levels of indentation before proceeding with text,
-so it reads something like:
+beginning of your triple quoted string and another newline at the end of it. If
+the docstring has multiple lines, please include a short summary line followed
+by a blank line before continuing with the rest of the description. Please
+capitalize and punctuate accordingly the sentences. If the description has
+multiple lines, put two levels of indentation before proceeding with text. An
+example docstring:
 
 def foo(param1, param2):
     """
+    Summary line.
+
     Long description of method foo.
 
     @param param1: A thing called param1 that is used for a bunch of stuff
