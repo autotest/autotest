@@ -88,6 +88,20 @@ class InvalidPidfile(object):
         return self.error
 
 
+class _DroneHeapWrapper(object):
+    """Wrapper to compare drones based on used_capacity().
+
+    These objects can be used to keep a heap of drones by capacity.
+    """
+    def __init__(self, drone):
+        self.drone = drone
+
+
+    def __cmp__(self, other):
+        assert isinstance(other, _DroneHeapWrapper)
+        return cmp(self.drone.used_capacity(), other.drone.used_capacity())
+
+
 class DroneManager(object):
     """
     This class acts as an interface from the scheduler to drones, whether it be
@@ -107,7 +121,7 @@ class DroneManager(object):
         self._drones = {}
         self._results_drone = None
         self._attached_files = {}
-        # heapq of tuples (used_capacity, drone)
+        # heapq of _DroneHeapWrappers
         self._drone_queue = []
 
 
@@ -190,6 +204,8 @@ class DroneManager(object):
                     section, '%s_users' % hostname, default=None)
             if allowed_users is not None:
                 drone.allowed_users = set(allowed_users)
+
+        self._reorder_drone_queue() # max_processes may have changed
 
 
     def get_drones(self):
@@ -278,7 +294,11 @@ class DroneManager(object):
 
 
     def _enqueue_drone(self, drone):
-        heapq.heappush(self._drone_queue, (drone.used_capacity(), drone))
+        heapq.heappush(self._drone_queue, _DroneHeapWrapper(drone))
+
+
+    def _reorder_drone_queue(self):
+        heapq.heapify(self._drone_queue)
 
 
     def refresh(self):
@@ -369,16 +389,6 @@ class DroneManager(object):
             os.makedirs(path)
 
 
-    def _extract_num_processes(self, command):
-        try:
-            machine_list_index = command.index('-m') + 1
-        except ValueError:
-            return 1
-        assert machine_list_index < len(command)
-        machine_list = command[machine_list_index].split(',')
-        return len(machine_list)
-
-
     def total_running_processes(self):
         return sum(drone.active_processes for drone in self.get_drones())
 
@@ -392,9 +402,9 @@ class DroneManager(object):
         if not self._drone_queue:
             # all drones disabled
             return 0
-        return max(drone.max_processes - drone.active_processes
-                   for _, drone in self._drone_queue
-                   if drone.usable_by(username))
+        return max(wrapper.drone.max_processes - wrapper.drone.active_processes
+                   for wrapper in self._drone_queue
+                   if wrapper.drone.usable_by(username))
 
 
     def _least_loaded_drone(self, drones):
@@ -411,7 +421,7 @@ class DroneManager(object):
         checked_drones = []
         drone_to_use = None
         while self._drone_queue:
-            used_capacity, drone = heapq.heappop(self._drone_queue)
+            drone = heapq.heappop(self._drone_queue).drone
             checked_drones.append(drone)
             if not drone.usable_by(username):
                 continue
@@ -428,8 +438,6 @@ class DroneManager(object):
                           num_processes, drone_summary)
             drone_to_use = self._least_loaded_drone(checked_drones)
 
-        drone_to_use.active_processes += num_processes
-
         # refill _drone_queue
         for drone in checked_drones:
             self._enqueue_drone(drone)
@@ -445,7 +453,7 @@ class DroneManager(object):
 
 
     def execute_command(self, command, working_directory, pidfile_name,
-                        log_file=None, paired_with_pidfile=None,
+                        num_processes, log_file=None, paired_with_pidfile=None,
                         username=None):
         """
         Execute the given command, taken as an argv list.
@@ -474,13 +482,14 @@ class DroneManager(object):
         if paired_with_pidfile:
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
         else:
-            num_processes = self._extract_num_processes(command)
             drone = self._choose_drone_for_execution(num_processes, username)
         logging.info("command = %s" % command)
         logging.info('log file = %s:%s' % (drone.hostname, log_file))
         self._write_attached_files(working_directory, drone)
         drone.queue_call('execute_command', command, abs_working_directory,
                          log_file, pidfile_name)
+        drone.active_processes += num_processes
+        self._reorder_drone_queue()
 
         pidfile_path = os.path.join(abs_working_directory, pidfile_name)
         pidfile_id = PidfileId(pidfile_path)

@@ -1102,6 +1102,7 @@ class AgentTest(unittest.TestCase):
 
     def _create_mock_task(self, name):
         task = self.god.create_mock_class(monitor_db.AgentTask, name)
+        task.num_processes = 1
         _set_host_and_qe_ids(task)
         return task
 
@@ -1174,7 +1175,7 @@ class DelayedCallTaskTest(unittest.TestCase):
                 delay_seconds=2, callback=test_callback,
                 now_func=test_time)  # time 33
         self.assertEqual(35, delay_task.end_time)
-        agent = monitor_db.Agent(delay_task, num_processes=0)
+        agent = monitor_db.Agent(delay_task)
         self.assert_(not agent.started)
         agent.tick()  # activates the task and polls it once, time 34.01
         self.assertEqual(0, test_callback.calls, "callback called early")
@@ -1192,7 +1193,7 @@ class DelayedCallTaskTest(unittest.TestCase):
     def test_delayed_call_abort(self):
         delay_task = monitor_db.DelayedCallTask(
                 delay_seconds=987654, callback=lambda : None)
-        agent = monitor_db.Agent(delay_task, num_processes=0)
+        agent = monitor_db.Agent(delay_task)
         agent.abort()
         agent.tick()
         self.assert_(agent.is_done())
@@ -1330,6 +1331,7 @@ class AgentTasksTest(BaseSchedulerTest):
         monitor_db.PidfileRunMonitor.run.expect_call(
             mock.is_instance_comparator(list),
             self.BASE_TASK_DIR + task_tag,
+            num_processes=1,
             nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
             log_file=mock.anything_comparator(),
             pidfile_name=monitor_db._AUTOSERV_PID_FILE,
@@ -1650,13 +1652,14 @@ class AgentTasksTest(BaseSchedulerTest):
         self._expect_copy_results()
 
 
-    def _setup_post_job_run_monitor(self, pidfile_name):
+    def _setup_post_job_run_monitor(self, pidfile_name, num_processes=1):
         self.pidfile_monitor.has_process.expect_call().and_return(True)
         autoserv_pidfile_id = object()
         self.monitor = monitor_db.PidfileRunMonitor.expect_new()
         self.monitor.run.expect_call(
             mock.is_instance_comparator(list),
             'tag',
+            num_processes=num_processes,
             nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
             log_file=mock.anything_comparator(),
             pidfile_name=pidfile_name,
@@ -1676,7 +1679,8 @@ class AgentTasksTest(BaseSchedulerTest):
 
     def _test_final_reparse_task_helper(self, autoserv_success=True):
         self._setup_pre_parse_expects(autoserv_success)
-        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE)
+        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE,
+                                         num_processes=0)
         self._setup_post_parse_expects(autoserv_success)
 
         task = monitor_db.FinalReparseTask([self.queue_entry])
@@ -1704,7 +1708,8 @@ class AgentTasksTest(BaseSchedulerTest):
             False)
         monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
             True)
-        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE)
+        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE,
+                                         num_processes=0)
         self._setup_post_parse_expects(True)
 
         task = monitor_db.FinalReparseTask([self.queue_entry])
