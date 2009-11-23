@@ -351,7 +351,8 @@ public class TableView extends ConditionTabView
         sqlConditionFilter.setAllParameters(condition);
         table.refresh();
     }
-
+    
+    @Override
     public void doQuery() {
         if (columnSelect.getSelectedItems().isEmpty()) {
             NotifyManager.getInstance().showError("You must select columns");
@@ -590,7 +591,7 @@ public class TableView extends ConditionTabView
 
     public void onClick(ClickEvent event) {
         if (event.getSource() == queryButton) {
-            doQuery();
+            doQueryWithCommonPanelCheck();
             updateHistory();
         } else if (event.getSource() == groupCheckbox || event.getSource() == statusGroupCheckbox) {
             updateFieldsFromCheckboxes();

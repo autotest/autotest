@@ -1,6 +1,7 @@
 package autotest.tko;
 
 import autotest.common.Utils;
+import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TkoUtils.FieldInfo;
 import autotest.tko.WidgetList.ListWidgetFactory;
@@ -315,6 +316,15 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
 
     public void setSqlCondition(String text) {
         savedSqlCondition = text;
+    }
+    
+    public boolean isViewReadyForQuery() {
+        if (customSqlBox.getText().trim().equals("")) {
+            NotifyManager.getInstance().showError("Global filter cannot be empty");
+            return false;
+        }
+        
+        return true;
     }
 
     public void updateStateFromView() {
