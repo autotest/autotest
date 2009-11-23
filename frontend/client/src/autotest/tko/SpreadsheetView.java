@@ -123,7 +123,7 @@ public class SpreadsheetView extends ConditionTabView
 
         queryButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
-                doQuery();
+                doQueryWithCommonPanelCheck();
                 updateHistory();
             } 
         });
@@ -270,7 +270,8 @@ public class SpreadsheetView extends ConditionTabView
         currentShowOnlyLatest = showOnlyLatest.getValue();
         commonPanel.updateStateFromView();
     }
-
+    
+    @Override
     public void doQuery() {
         List<HeaderField> rows = rowSelect.getSelectedItems();
         List<HeaderField> columns = columnSelect.getSelectedItems();

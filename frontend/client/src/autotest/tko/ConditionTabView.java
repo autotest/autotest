@@ -46,4 +46,14 @@ abstract class ConditionTabView extends TabView {
     static boolean isSelectEvent(Event event) {
         return event.getShiftKey();
     }
+    
+    protected abstract void doQuery();
+    
+    protected void doQueryWithCommonPanelCheck() {
+        if (!commonPanel.isViewReadyForQuery()) {
+            return;
+        }
+        
+        doQuery();
+    }
 }
