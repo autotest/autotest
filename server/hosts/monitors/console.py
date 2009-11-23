@@ -32,7 +32,7 @@ def main():
     alert_hooks = []
     for patterns_path in options.pattern_paths.split(','):
         alert_hooks.extend(monitors_util.build_alert_hooks_from_path(
-                patterns_path, warnfile)
+                patterns_path, warnfile))
 
     monitors_util.process_input(
         sys.stdin, logfile, options.log_timestamp_format, alert_hooks)
