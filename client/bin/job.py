@@ -686,7 +686,8 @@ class base_client_job(base_job.base_job):
         Function to perform post boot checks such as if the mounted
         partition list has changed across reboots.
         """
-        partition_list = partition_lib.get_partition_list(self)
+        partition_list = partition_lib.get_partition_list(self,
+                                                          exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
         old_mount_info = self.get_state("__mount_info")
         if mount_info != old_mount_info:
@@ -832,7 +833,8 @@ class base_client_job(base_job.base_job):
     def reboot_setup(self):
         # save the partition list and their mount point and compare it
         # after reboot
-        partition_list = partition_lib.get_partition_list(self)
+        partition_list = partition_lib.get_partition_list(self,
+                                                          exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
         self.set_state("__mount_info", mount_info)
 
