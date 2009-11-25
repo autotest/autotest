@@ -1,4 +1,4 @@
-import os
+import errno, os
 
 from autotest_lib.client.common_lib import autotemp, error
 
@@ -77,15 +77,15 @@ class job_directory(object):
         @raises UncreatableDirectoryException raised if is_writable=True, the
             directory does not exist and it cannot be created
         """
-        # check to ensure that the directory exists
-        if not os.path.isdir(self.path):
-            if is_writable:
-                try:
-                    os.makedirs(self.path)
-                except OSError, e:
+        # ensure the directory exists
+        if is_writable:
+            try:
+                os.makedirs(self.path)
+            except OSError, e:
+                if e.errno != errno.EEXIST:
                     raise self.UncreatableDirectoryException(self.path, e)
-            else:
-                raise self.MissingDirectoryException(self.path)
+        elif not os.path.isdir(self.path):
+            raise self.MissingDirectoryException(self.path)
 
         # if is_writable=True, also check that the directory is writable
         if is_writable and not os.access(self.path, os.W_OK):
