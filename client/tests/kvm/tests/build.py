@@ -568,10 +568,7 @@ def run_build(test, params, env):
     srcdir = params.get("srcdir", test.srcdir)
     params["srcdir"] = srcdir
 
-    if install_mode == 'noinstall':
-        logging.info("Skipping installation")
-        return
-    elif install_mode in ['localsrc', 'localtar', 'release', 'snapshot']:
+    if install_mode in ['localsrc', 'localtar', 'release', 'snapshot']:
         installer = SourceDirInstaller(test, params)
     elif install_mode == 'git':
         installer = GitInstaller(test, params)
