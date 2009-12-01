@@ -61,7 +61,8 @@ if len(args) != 1:
 
 drop_caches = global_config.global_config.get_config_value('CLIENT',
                                                            'drop_caches',
-                                                           type=bool)
+                                                           type=bool,
+                                                           default=True)
 
 # JOB: run the specified job control file.
 job.runjob(os.path.realpath(args[0]), drop_caches, options)

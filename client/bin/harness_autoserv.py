@@ -1,5 +1,6 @@
-import os, logging
+import os, logging, ConfigParser
 from autotest_lib.client.common_lib import autotemp, base_packages, error
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.bin import harness
 
 
@@ -19,6 +20,18 @@ class harness_autoserv(harness.harness):
         """
         super(harness_autoserv, self).__init__(job)
         self.status = os.fdopen(3, 'w', 0)
+
+        # If a bug on the client run code prevents global_config.ini
+        # from being copied to the client machine, the client will run
+        # without a global config, relying only on the defaults of the
+        # config items. To avoid that happening silently, the check below
+        # was written.
+        try:
+            cfg = global_config.global_config.get_section_values("CLIENT")
+        except ConfigParser.NoSectionError:
+            logging.error("Empty CLIENT configuration session. "
+                          "global_config.ini missing. This probably means "
+                          "a bug on the server code. Please verify.")
 
 
     def run_start(self):

@@ -29,16 +29,15 @@ try:
     default_protection = global_config.global_config.get_config_value(
                             'HOSTS', 'default_protection', default=_bad_value)
     if default_protection == _bad_value:
-        if running_client:
-            logging.debug('Client stand alone run detected. '
-                          'host_protection.default will not be set.')
-        else:
+        if not running_client:
             raise global_config.ConfigError(
                 'No HOSTS.default_protection defined in global_config.ini')
     else:
         default = Protection.get_value(default_protection)
 
+# It is OK to have an empty global configuration object (stand alone client)
+# so we trap this exception.
 except global_config.ConfigError:
-    raise global_config.ConfigError('No global_config.ini exists, aborting')
+    pass
 
 choices = Protection.choices()
