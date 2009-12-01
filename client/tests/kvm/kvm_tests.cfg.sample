@@ -255,6 +255,10 @@ variants:
         kill_vm_gracefully_vm2 = no
         address_index_vm2 = 1
 
+    - physical_resources_check: install setup unattended_install
+        type = physical_resources_check
+        catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
+
 # NICs
 variants:
     - @rtl8139:
@@ -280,6 +284,8 @@ variants:
         shell_port = 22
         file_transfer_client = scp
         file_transfer_port = 22
+        mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
+        cpu_chk_cmd = grep -c processor /proc/cpuinfo
 
         variants:
             - Fedora:
@@ -553,6 +559,9 @@ variants:
         # This ISO will be used for all tests except install:
         cdrom = windows/winutils.iso
 
+        cpu_chk_cmd = echo %NUMBER_OF_PROCESSORS%
+        mem_chk_cmd = wmic memphysical
+
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
@@ -594,6 +603,8 @@ variants:
             reference_cmd = wmic diskdrive list brief
             find_pci_cmd = wmic diskdrive list brief
             pci_test_cmd = echo select disk 1 > dt && echo online >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
+        physical_resources_check:
+            catch_uuid_cmd = 
 
         variants:
             - Win2000:
