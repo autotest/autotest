@@ -5,7 +5,7 @@ provides access to global configuration file
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
-import os, sys, ConfigParser
+import os, sys, ConfigParser, logging
 from autotest_lib.client.common_lib import error
 
 
@@ -44,11 +44,9 @@ elif config_in_client:
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 else:
-    raise ConfigError("Could not find configuration files "
-                      "needed for this program to function. Please refer to "
-                      "http://autotest.kernel.org/wiki/GlobalConfig "
-                      "for more info.")
-
+    DEFAULT_CONFIG_FILE = None
+    DEFAULT_SHADOW_FILE = None
+    RUNNING_STAND_ALONE_CLIENT = True
 
 class global_config(object):
     _NO_DEFAULT_SPECIFIED = object()
@@ -145,10 +143,11 @@ class global_config(object):
 
 
     def parse_config_file(self):
-        if not os.path.exists(self.config_file):
-            raise ConfigError('%s not found' % (self.config_file))
         self.config = ConfigParser.ConfigParser()
-        self.config.read(self.config_file)
+        if self.config_file and os.path.exists(self.config_file):
+            self.config.read(self.config_file)
+        else:
+            raise ConfigError('%s not found' % (self.config_file))
 
         # now also read the shadow file if there is one
         # this will overwrite anything that is found in the

@@ -233,7 +233,7 @@ class base_client_job(base_job.base_job):
         self.drop_caches_between_iterations = (
                        global_config.global_config.get_config_value('CLIENT',
                                             'drop_caches_between_iterations',
-                                            type=bool))
+                                            type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
             logging.debug("Dropping caches")
