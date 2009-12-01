@@ -243,6 +243,17 @@ variants:
         kill_vm = yes
         kill_vm_gracefully = no
 
+    - vlan_tag:  install setup unattended_install
+        type = vlan_tag
+        # subnet should not be used by host
+        subnet = 192.168.123
+        vlans = "10 20"
+        nic_mode = tap
+        vms += " vm2"
+        extra_params_vm1 += " -snapshot"
+        extra_params_vm2 += " -snapshot"
+        kill_vm_gracefully_vm2 = no
+        address_index_vm2 = 1
 
 # NICs
 variants:
@@ -525,7 +536,7 @@ variants:
                             unattended_file = unattended/RHEL-3-series.ks
     # Windows section
     - @Windows:
-        no autotest linux_s3
+        no autotest linux_s3 vlan_tag
         shutdown_command = shutdown /s /t 0
         reboot_command = shutdown /r /t 0
         status_test_command = echo %errorlevel%
