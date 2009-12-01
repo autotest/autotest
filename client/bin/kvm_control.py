@@ -30,16 +30,23 @@ def load_kvm():
     """
     Loads the appropriate KVM kernel modules
     """
-    utils.system('modprobe kvm')
-    utils.system("modprobe " + kvm_arch)
-
+    kvm_status = utils.system('modprobe kvm')
+    kvm_amdintel_status = utils.system("modprobe " + kvm_arch)
+    if kvm_status:
+        return kvm_status
+    else:
+        return kvm_amdintel_status
 
 def unload_kvm():
     """
     Unloads the appropriate KVM kernel modules
     """
-    utils.system("rmmod " + kvm_arch)
-    utils.system('rmmod kvm')
+    kvm_amdintel_status = utils.system("rmmod " + kvm_arch)
+    kvm_status = utils.system('rmmod kvm')
+    if kvm_status:
+        return kvm_status
+    else:
+        return kvm_amdintel_status
 
 
 kvm_arch = get_kvm_arch()
