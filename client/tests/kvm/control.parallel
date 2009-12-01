@@ -73,12 +73,12 @@ params = {
     "name": "build",
     "shortname": "build",
     "type": "build",
-    "mode": "release",
+    #"mode": "release",
     #"mode": "snapshot",
     #"mode": "localtar",
     #"mode": "localsrc",
     #"mode": "git",
-    #"mode": "noinstall",
+    "mode": "noinstall",
     #"mode": "koji",
 
     ## Are we going to load modules built by this test?
@@ -86,15 +86,15 @@ params = {
     ## be built by this test, please set load_modules to 'no', and make sure
     ## the kvm and kvm-[vendor] module is already loaded by the time you start
     ## it.
-    "load_modules": "no",
+    #"load_modules": "no",
 
     ## Install from a kvm release ("mode": "release"). You can optionally
     ## specify a release tag. If you omit it, the test will get the latest
     ## release tag available.
     #"release_tag": '84',
-    "release_dir": 'http://downloads.sourceforge.net/project/kvm/',
+    #"release_dir": 'http://downloads.sourceforge.net/project/kvm/',
     # This is the place that contains the sourceforge project list of files
-    "release_listing": 'http://sourceforge.net/projects/kvm/files/',
+    #"release_listing": 'http://sourceforge.net/projects/kvm/files/',
 
     ## Install from a kvm snapshot location ("mode": "snapshot"). You can
     ## optionally specify a snapshot date. If you omit it, the test will get
@@ -149,11 +149,11 @@ params = {
 # /tmp/kvm-autotest-root/qemu is a link to your existing executable. Note that
 # if kvm_install is chose to run, it overwrites existing qemu and qemu-img
 # links to point to the newly built executables.
-r = True
-r = job.run_test("kvm", params=params, tag=params.get("shortname"))
-if not r:
-    print 'kvm_installation failed ... exiting'
-    sys.exit(1)
+
+if not params.get("mode") == "noinstall":
+    if not job.run_test("kvm", params=params, tag=params.get("shortname")):
+        print 'kvm_installation failed ... exiting'
+        sys.exit(1)
 
 # ----------------------------------------------------------
 # Get test set (dictionary list) from the configuration file
