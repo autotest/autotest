@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """Service launcher that creates pidfiles and can redirect output to a file."""
-import subprocess, sys, os, optparse, signal
+import subprocess, sys, os, optparse, signal, pwd
 
 
 def stop_service(pidfile):
@@ -13,16 +13,23 @@ def stop_service(pidfile):
     os.kill(pid, signal.SIGTERM)
 
 
-def start_service(cmd, pidfile, logfile=os.devnull, chdir=None):
+def start_service(cmd, pidfile, logfile=os.devnull, chdir=None, chuid=None):
     """Start cmd in the background and write the pid to pidfile.
        @param cmd: command to run with arguments
        @param pidfile: pidfile to write the pid to
        @param logfile: file to write stderr/stdout to
        @param chdir: Directory to change to before starting the application
+       @param chuid: Change the user id the program is run under
     """
+    if chuid:
+        # Set environment for programs that use those to find running user
+        for name in ('LOGNAME', 'USER', 'LNAME', 'USERNAME'):
+            os.environ[name] = chuid
+        uid = pwd.getpwnam(chuid)[2]
+        os.setuid(uid)
+        os.seteuid(uid)
     logfh = open(logfile, 'a')
     pidfh = open(pidfile, 'w')
-
     proc = subprocess.Popen(cmd, stdout=logfh, stderr=logfh, cwd=chdir)
     pidfh.write(str(proc.pid))
     pidfh.close()
@@ -46,6 +53,11 @@ def main():
     parser.add_option('-p', '--pidfile', action='store',
                       default=None,
                       help='Pid file location (Required)')
+    parser.add_option('-u', '--chuid', action='store',
+                      default=None,
+                      help='UID to run process as')
+
+
 
     options, args = parser.parse_args()
 
@@ -55,7 +67,8 @@ def main():
         sys.exit(1)
 
     if options.start_service:
-        start_service(args, options.pidfile, options.logfile, options.chdir)
+        start_service(args, options.pidfile, options.logfile, options.chdir,
+                      options.chuid)
     elif options.stop_service:
         stop_service(options.pidfile)
     else:
