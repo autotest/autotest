@@ -22,9 +22,7 @@ class kvm(test.test):
     """
     version = 1
     def initialize(self):
-        # Make it possible to import modules from the subtest dir
         self.subtest_dir = os.path.join(self.bindir, 'tests')
-        sys.path.append(self.subtest_dir)
 
 
     def run_once(self, params):
@@ -44,23 +42,20 @@ class kvm(test.test):
         try:
             try:
                 # Get the test routine corresponding to the specified test type
-                type = params.get("type")
+                t_type = params.get("type")
                 # Verify if we have the correspondent source file for it
-                module_path = os.path.join(self.subtest_dir, '%s.py' % type)
+                module_path = os.path.join(self.subtest_dir, '%s.py' % t_type)
                 if not os.path.isfile(module_path):
-                    raise error.TestError("No %s.py test file found" % type)
-                # Load the tests directory (which was turned into a py module)
-                try:
-                    test_module = __import__(type)
-                except ImportError, e:
-                    raise error.TestError("Failed to import test %s: %s" %
-                                          (type, e))
-
+                    raise error.TestError("No %s.py test file found" % t_type)
+                # Load the test module
+                # (KVM test dir was appended to sys.path in the control file)
+                __import__("tests.%s" % t_type)
+                test_module = sys.modules["tests.%s" % t_type]
                 # Preprocess
                 kvm_preprocessing.preprocess(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
                 # Run the test function
-                run_func = getattr(test_module, "run_%s" % type)
+                run_func = getattr(test_module, "run_%s" % t_type)
                 run_func(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
 
