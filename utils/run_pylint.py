@@ -50,7 +50,12 @@ imports.ImportsChecker = CustomImportsChecker
 blacklist = ['/contrib/*', '/frontend/afe/management.py']
 
 # only show errors
+# there are two major sources of E1101/E1103 false positives:
+# * common_lib.enum.Enum objects
+# * DB model objects (scheduler models are the worst, but Django models also
+#   generate some errors)
 pylint_base_opts = ['--disable-msg-cat=warning,refactor,convention',
+                    '--disable-msg=E1101,E1103',
                     '--reports=no',
                     '--include-ids=y']
 
