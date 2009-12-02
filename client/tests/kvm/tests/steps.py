@@ -225,7 +225,8 @@ def run_steps(test, params, env):
         elif skip_current_step:
             continue
         elif words[0] == "sleep":
-            time.sleep(float(words[1]))
+            timeout_multiplier = float(params.get("timeout_multiplier") or 1)
+            time.sleep(float(words[1]) * timeout_multiplier)
         elif words[0] == "key":
             vm.send_key(words[1])
         elif words[0] == "var":
