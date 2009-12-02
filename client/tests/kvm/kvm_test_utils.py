@@ -91,7 +91,8 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
         logging.error("Unknown reboot method: %s" % method)
 
     # Wait for the session to become unresponsive and close it
-    if not kvm_utils.wait_for(lambda: not session.is_responsive(), 120, 0, 1):
+    if not kvm_utils.wait_for(lambda: not session.is_responsive(timeout=30),
+                              120, 0, 1):
         raise error.TestFail("Guest refuses to go down")
     session.close()
 
