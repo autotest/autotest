@@ -139,14 +139,14 @@ class SerialHost(SiteHost):
                     try:
                         self.wait_for_restart(timeout, log_failure=False)
                     except error.AutoservShutdownError:
-                        logging.warning(warning_msg, attempt, num_attempts)
+                        logging.warning(warning_msg, attempt+1, num_attempts)
                     else:
                         break
                 else:
                     # Run on num_attempts=1 or last retry
                     try:
                         self.wait_for_restart(timeout)
-                    except error.AutoservShutdwonError:
+                    except error.AutoservShutdownError:
                         logging.warning(warning_msg, num_attempts, num_attempts)
                         msg = "Host did not shutdown"
                         raise error.AutoservShutdownError(msg)
