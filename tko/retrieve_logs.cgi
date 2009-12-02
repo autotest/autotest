@@ -46,25 +46,28 @@ def find_repository_host(job_path):
     config = global_config.global_config
     drones = config.get_config_value('SCHEDULER', 'drones')
     results_host = config.get_config_value('SCHEDULER', 'results_host')
-    drone_list = [hostname.strip() for hostname in drones.split(',')]
-    results_repos = [results_host] + drone_list
-    if results_repos != ['localhost']:
-        for drone in results_repos:
-            http_path = 'http://%s%s' % (drone, job_path)
-            try:
-                utils.urlopen(http_path)
-                if drone == 'localhost':
-                    return None
-                return drone
-            except urllib2.URLError:
-                pass
-        site_host = site_find_repository_host(log_path)
-        if site_host:
-            return site_host
-        # just return the results repo if we haven't found any
-        return results_host
-    else:
-        return None
+    archive_host = config.get_config_value('SCHEDULER', 'archive_host',
+                                            default='')
+    results_repos = [results_host]
+    for drone in drones.split(','):
+        drone = drone.strip()
+        if drone not in results_repos:
+            results_repos.append(drone)
+
+    if archive_host and archive_host not in results_repos:
+        results_repos.append(archive_host)
+
+    for drone in results_repos:
+        if drone == 'localhost':
+            continue
+        http_path = 'http://%s%s' % (drone, job_path)
+        try:
+            utils.urlopen(http_path)
+            return drone
+        except urllib2.URLError:
+            pass
+
+    return site_find_repository_host(log_path)
 
 
 def get_full_url(host, path):
