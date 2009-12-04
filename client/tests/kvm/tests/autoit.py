@@ -25,23 +25,40 @@ def run_autoit(test, params, env):
         # Collect test parameters
         binary = params.get("autoit_binary")
         script = params.get("autoit_script")
+        autoit_entry = params.get("autoit_entry", "script.au3")
         script_params = params.get("autoit_script_params", "")
         timeout = float(params.get("autoit_script_timeout", 600))
 
-        # Send AutoIt script to guest (this code will be replaced once we
-        # support sending files to Windows guests)
-        session.get_command_output("del script.au3", internal_timeout=0)
-        file = open(kvm_utils.get_path(test.bindir, script))
-        for line in file.readlines():
-            # Insert a '^' before each character
-            line = "".join("^" + c for c in line.rstrip())
-            if line:
-                # Append line to the file
-                session.get_command_output("echo %s>>script.au3" % line,
-                                           internal_timeout=0)
-        file.close()
+        # Download the script resource from a remote server, or
+        # prepare the script using rss?
+        if params.get("download") == "yes":
+            download_cmd = params.get("download_cmd")
+            rsc_server = params.get("rsc_server")
+            dst_rsc_dir = params.get("dst_rsc_dir")
 
-        command = "cmd /c %s script.au3 %s" % (binary, script_params)
+            # Change dir to dst_rsc_dir, and remove 'autoit' there, then
+            # download the resource.
+            rsc_cmd = "cd %s && (rmdir /s /q autoit || del /s /q autoit) && " \
+                      "%s %s" % (dst_rsc_dir, download_cmd, rsc_server)
+
+            if session.get_command_status(rsc_cmd, timeout=timeout) != 0:
+                raise error.TestFail("Download test resource failed.")
+            logging.info("Download resource finished.")
+        else:
+            # Send AutoIt script to guest (this code will be replaced once we
+            # support sending files to Windows guests)
+            session.get_command_output("del script.au3", internal_timeout=0)
+            file = open(kvm_utils.get_path(test.bindir, script))
+            for line in file.readlines():
+                # Insert a '^' before each character
+                line = "".join("^" + c for c in line.rstrip())
+                if line:
+                    # Append line to the file
+                    session.get_command_output("echo %s>>script.au3" % line,
+                                               internal_timeout=0)
+            file.close()
+
+        command = "cmd /c %s %s %s" % (binary, autoit_entry, script_params)
 
         logging.info("---------------- Script output ----------------")
         status = session.get_command_status(command,
