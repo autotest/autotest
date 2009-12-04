@@ -169,6 +169,12 @@ variants:
         variants:
             - notepad:
                 autoit_script = autoit/notepad1.au3
+            - stub:
+                download = yes
+                download_cmd = "git clone"
+                rsc_server = "git://the.resource.server/autoit"
+                dst_rsc_dir = "C:\"
+                autoit_entry = "C:\autoit\stub\stub.au3"
 
     - guest_s4:     install setup unattended_install
         type = guest_s4
