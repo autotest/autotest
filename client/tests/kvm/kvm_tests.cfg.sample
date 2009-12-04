@@ -117,6 +117,9 @@ variants:
             - npb:
                 test_name = npb
                 test_control_file = npb.control
+            - hackbench:
+                test_name = hackbench
+                test_control_file = hackbench.control
 
 
     - linux_s3:     install setup unattended_install
