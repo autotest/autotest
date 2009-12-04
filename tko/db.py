@@ -324,16 +324,20 @@ class db_sql(object):
         if match:
             afe_job_id = match.group(1)
 
-        self.insert('jobs', {'tag':tag,
-                             'label': job.label,
-                             'username': job.user,
-                             'machine_idx': job.machine_idx,
-                             'queued_time': job.queued_time,
-                             'started_time': job.started_time,
-                             'finished_time': job.finished_time,
-                             'afe_job_id': afe_job_id},
-                             commit=commit)
-        job.index = self.get_last_autonumber_value()
+        data = {'tag':tag,
+                'label': job.label,
+                'username': job.user,
+                'machine_idx': job.machine_idx,
+                'queued_time': job.queued_time,
+                'started_time': job.started_time,
+                'finished_time': job.finished_time,
+                'afe_job_id': afe_job_id}
+        is_update = hasattr(job, 'index')
+        if is_update:
+            self.update('jobs', data, {'job_idx': job.index}, commit=commit)
+        else:
+            self.insert('jobs', data, commit=commit)
+            job.index = self.get_last_autonumber_value()
         for test in job.tests:
             self.insert_test(job, test, commit=commit)
 
@@ -353,6 +357,7 @@ class db_sql(object):
             where = {'test_idx': test_idx}
             self.delete('iteration_result', where)
             self.delete('iteration_attributes', where)
+            where['user_created'] = 0
             self.delete('test_attributes', where)
         else:
             self.insert('tests', data, commit=commit)
