@@ -1,0 +1,13 @@
+AUTHOR = "Sudhir Kumar <skumar@linux.vnet.ibm.com>"
+NAME = "Hackbench"
+TIME = "SHORT"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Benchmark"
+TEST_TYPE = "client"
+
+DOC = """
+Hackbench is a benchmark which measures the performance, overhead and
+scalability of the Linux scheduler.
+
+"""
+job.run_test('hackbench')
