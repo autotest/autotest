@@ -101,14 +101,23 @@ class _SqliteBackend(_GenericBackend):
 
 class _DjangoBackend(_GenericBackend):
     def __init__(self):
-        from django.db import backend
+        from django.db import backend, connection, transaction
         super(_DjangoBackend, self).__init__(backend.Database)
+        self._django_connection = connection
+        self._django_transaction = transaction
 
 
     def connect(self, host=None, username=None, password=None, db_name=None):
-        from django.db import connection
-        self._connection = connection
+        self._connection = self._django_connection
         self._cursor = self._connection.cursor()
+
+
+    def execute(self, query, parameters=None):
+        try:
+            return super(_DjangoBackend, self).execute(query,
+                                                       parameters=parameters)
+        finally:
+            self._django_transaction.commit_unless_managed()
 
 
 _BACKEND_MAP = {

@@ -203,7 +203,7 @@ def init():
     os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
     global _db
     _db = database_connection.DatabaseConnection(DB_CONFIG_SECTION)
-    _db.connect()
+    _db.connect(db_type='django')
 
     # ensure Django connection is in autocommit
     setup_django_environment.enable_autocommit()
