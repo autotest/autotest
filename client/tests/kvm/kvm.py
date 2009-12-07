@@ -1,4 +1,4 @@
-import sys, os, time, logging
+import sys, os, time, logging, imp
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 import kvm_utils, kvm_preprocessing
@@ -21,10 +21,6 @@ class kvm(test.test):
             (Online doc - Getting started with KVM testing)
     """
     version = 1
-    def initialize(self):
-        self.subtest_dir = os.path.join(self.bindir, 'tests')
-
-
     def run_once(self, params):
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
@@ -44,13 +40,15 @@ class kvm(test.test):
                 # Get the test routine corresponding to the specified test type
                 t_type = params.get("type")
                 # Verify if we have the correspondent source file for it
-                module_path = os.path.join(self.subtest_dir, '%s.py' % t_type)
+                subtest_dir = os.path.join(self.bindir, "tests")
+                module_path = os.path.join(subtest_dir, "%s.py" % t_type)
                 if not os.path.isfile(module_path):
                     raise error.TestError("No %s.py test file found" % t_type)
                 # Load the test module
-                # (KVM test dir was appended to sys.path in the control file)
-                __import__("tests.%s" % t_type)
-                test_module = sys.modules["tests.%s" % t_type]
+                f, p, d = imp.find_module(t_type, [subtest_dir])
+                test_module = imp.load_module(t_type, f, p, d)
+                f.close()
+
                 # Preprocess
                 kvm_preprocessing.preprocess(self, params, env)
                 kvm_utils.dump_env(env, env_filename)
