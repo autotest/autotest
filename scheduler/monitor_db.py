@@ -3048,15 +3048,20 @@ class Job(DBObject):
         return pending_entries.count()
 
 
-    def _pending_threshold(self, atomic_group):
+    def _max_hosts_needed_to_run(self, atomic_group):
         """
         @param atomic_group: The AtomicGroup associated with this job that we
-                are using to bound the threshold.
-        @returns The minimum number of HostQueueEntries assigned a Host before
+                are using to set an upper bound on the threshold.
+        @returns The maximum number of HostQueueEntries assigned a Host before
                 this job can run.
         """
         return min(self._hosts_assigned_count(),
                    atomic_group.max_number_of_machines)
+
+
+    def _min_hosts_needed_to_run(self):
+        """Return the minumum number of hsots needed to run this job."""
+        return self.synch_count
 
 
     def is_ready(self):
@@ -3325,7 +3330,7 @@ class Job(DBObject):
         assert queue_entry.atomic_group
         delay = scheduler_config.config.secs_to_wait_for_atomic_group_hosts
         over_max_threshold = (self._pending_count() >=
-                              self._pending_threshold(queue_entry.atomic_group))
+                self._max_hosts_needed_to_run(queue_entry.atomic_group))
         delay_expired = (self._delay_ready_task and
                          time.time() >= self._delay_ready_task.end_time)
 
@@ -3334,6 +3339,13 @@ class Job(DBObject):
             self.run(queue_entry)
         else:
             queue_entry.set_status(models.HostQueueEntry.Status.WAITING)
+
+
+    def request_abort(self):
+        """Request that this Job be aborted on the next scheduler cycle."""
+        queue_entries = HostQueueEntry.fetch(where="job_id=%s" % self.id)
+        for hqe in queue_entries:
+            hqe.update_field('aborted', True)
 
 
     def schedule_delayed_callback_task(self, queue_entry):
@@ -3348,10 +3360,10 @@ class Job(DBObject):
             logging.info('Job %s done waiting for extra hosts.', self)
             # Check to see if the job is still relevant.  It could have aborted
             # while we were waiting or hosts could have disappearred, etc.
-            threshold = self._pending_threshold(queue_entry.atomic_group)
-            if self._pending_count() < threshold:
+            if self._pending_count() < self._min_hosts_needed_to_run():
                 logging.info('Job %s had too few Pending hosts after waiting '
                              'for extras.  Not running.', self)
+                self.request_abort()
                 return
             return self.run(queue_entry)
 

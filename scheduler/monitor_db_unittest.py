@@ -2048,6 +2048,15 @@ class JobTest(BaseSchedulerTest):
                           self._dispatcher._schedule_running_host_queue_entries)
 
 
+    def test_job_request_abort(self):
+        django_job = self._create_job(hosts=[5, 6], atomic_group=1)
+        job = monitor_db.Job(django_job.id)
+        job.request_abort()
+        django_hqes = list(models.HostQueueEntry.objects.filter(job=job.id))
+        for hqe in django_hqes:
+            self.assertTrue(hqe.aborted)
+
+
     def test_run_if_ready_delays(self):
         # Also tests Job.run_with_ready_delay() on atomic group jobs.
         django_job = self._create_job(hosts=[5, 6], atomic_group=1)
@@ -2096,26 +2105,26 @@ class JobTest(BaseSchedulerTest):
         self.god.stub_function(job, 'run')
 
         self.god.stub_function(job, '_pending_count')
-        self.god.stub_function(job, '_pending_threshold')
+        self.god.stub_with(job, 'synch_count', 9)
+        self.god.stub_function(job, 'request_abort')
 
         # Test that the DelayedCallTask's callback queued up above does the
         # correct thing and does not call run if there are not enough hosts
         # in pending after the delay.
-        job._pending_threshold.expect_call(hqe.atomic_group).and_return(9)
         job._pending_count.expect_call().and_return(0)
+        job.request_abort.expect_call()
         delay_task._callback()
         self.god.check_playback()
 
         # Test that the DelayedCallTask's callback queued up above does the
         # correct thing and returns the Agent returned by job.run() if
         # there are still enough hosts pending after the delay.
-        job._pending_threshold.expect_call(hqe.atomic_group).and_return(4)
+        job.synch_count = 4
         job._pending_count.expect_call().and_return(4)
         job.run.expect_call(hqe)
         delay_task._callback()
         self.god.check_playback()
 
-        job._pending_threshold.expect_call(hqe.atomic_group).and_return(4)
         job._pending_count.expect_call().and_return(4)
 
         # Adjust the delay deadline so that enough time has passed.
@@ -2136,7 +2145,8 @@ class JobTest(BaseSchedulerTest):
         other_hqe = monitor_db.HostQueueEntry(django_hqes[0].id)
         self.god.unstub(job, 'run')
         self.god.unstub(job, '_pending_count')
-        self.god.unstub(job, '_pending_threshold')
+        self.god.unstub(job, 'synch_count')
+        self.god.unstub(job, 'request_abort')
         # ...the over_max_threshold test should cause us to call run()
         delay_task.abort.expect_call()
         other_hqe.on_pending()
