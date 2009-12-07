@@ -114,7 +114,8 @@ class SerialHost(SiteHost):
 
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
-                  conmux_command='hardreset', num_attempts=1):
+                  conmux_command='hardreset', num_attempts=1,
+                  **wait_for_restart_kwargs):
         """
         Reach out and slap the box in the power switch.
         @params conmux_command: The command to run via the conmux interface
@@ -123,6 +124,8 @@ class SerialHost(SiteHost):
         @params wait: Whether or not to wait for the machine to reboot
         @params num_attempts: Number of times to attempt hard reset erroring
                               on the last attempt.
+        @params **wait_for_restart_kwargs: keyword arguments passed to
+                wait_for_restart()
         """
         conmux_command = "'~$%s'" % conmux_command
         def reboot():
@@ -137,7 +140,8 @@ class SerialHost(SiteHost):
                                'attempt (%s/%s)')
                 for attempt in xrange(num_attempts-1):
                     try:
-                        self.wait_for_restart(timeout, log_failure=False)
+                        self.wait_for_restart(timeout, log_failure=False,
+                                              **wait_for_restart_kwargs)
                     except error.AutoservShutdownError:
                         logging.warning(warning_msg, attempt+1, num_attempts)
                     else:
@@ -145,7 +149,8 @@ class SerialHost(SiteHost):
                 else:
                     # Run on num_attempts=1 or last retry
                     try:
-                        self.wait_for_restart(timeout)
+                        self.wait_for_restart(timeout,
+                                              **wait_for_restart_kwargs)
                     except error.AutoservShutdownError:
                         logging.warning(warning_msg, num_attempts, num_attempts)
                         msg = "Host did not shutdown"
