@@ -11,3 +11,4 @@ under a specified load. Instances in which this is useful include those in which
 a system administrator wishes to perform tuning activities, a kernel or libc
 programmer wishes to evaluate denial of service possibilities, etc.
 '''
+job.run_test('stress')
