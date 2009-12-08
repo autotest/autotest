@@ -1,4 +1,4 @@
-import logging
+import logging, os
 from datetime import datetime
 from django.db import models as dbmodels, connection
 import common
@@ -725,6 +725,10 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             queue_entry.abort(aborted_by)
 
 
+    def tag(self):
+        return '%s-%s' % (self.id, self.owner)
+
+
     class Meta:
         db_table = 'jobs'
 
@@ -793,7 +797,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         """
         Path to this entry's results (relative to the base results directory).
         """
-        return self.execution_subdir
+        return os.path.join(self.job.tag(), self.execution_subdir)
 
 
     def host_or_metahost_name(self):
