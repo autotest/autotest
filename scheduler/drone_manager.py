@@ -66,6 +66,11 @@ class PidfileId(CustomEquals):
         return str(self.path)
 
 
+class _PidfileInfo(object):
+    age = 0
+    num_processes = None
+
+
 class PidfileContents(object):
     process = None
     exit_status = None
@@ -75,6 +80,10 @@ class PidfileContents(object):
         return False
 
 
+    def is_running(self):
+        return self.process and not self.exit_status
+
+
 class InvalidPidfile(object):
     def __init__(self, error):
         self.error = error
@@ -82,6 +91,10 @@ class InvalidPidfile(object):
 
     def is_invalid(self):
         return True
+
+
+    def is_running(self):
+        return False
 
 
     def __str__(self):
@@ -111,15 +124,22 @@ class DroneManager(object):
     directory, except for those returns by absolute_path().
     """
     def __init__(self):
+        # absolute path of base results dir
         self._results_dir = None
-        self._processes = {}
+        # holds Process objects
         self._process_set = set()
+        # maps PidfileId to PidfileContents
         self._pidfiles = {}
+        # same as _pidfiles
         self._pidfiles_second_read = {}
-        self._pidfile_age = {}
+        # maps PidfileId to _PidfileInfo
+        self._registered_pidfile_info = {}
+        # used to generate unique temporary paths
         self._temporary_path_counter = 0
+        # maps hostname to Drone object
         self._drones = {}
         self._results_drone = None
+        # maps results dir to dict mapping file path to contents
         self._attached_files = {}
         # heapq of _DroneHeapWrappers
         self._drone_queue = []
@@ -149,7 +169,7 @@ class DroneManager(object):
             self._results_drone.set_autotest_install_dir(
                     results_installation_dir)
         # don't initialize() the results drone - we don't want to clear out any
-        # directories and we don't need ot kill any processes
+        # directories and we don't need to kill any processes
 
 
     def reinitialize_drones(self):
@@ -223,16 +243,15 @@ class DroneManager(object):
 
 
     def _drop_old_pidfiles(self):
-        for pidfile_id, age in self._pidfile_age.items():
-            if age > self._get_max_pidfile_refreshes():
+        for pidfile_id, info in self._registered_pidfile_info.iteritems():
+            if info.age > self._get_max_pidfile_refreshes():
                 logging.warning('dropping leaked pidfile %s', pidfile_id)
                 self.unregister_pidfile(pidfile_id)
             else:
-                self._pidfile_age[pidfile_id] += 1
+                info.age += 1
 
 
     def _reset(self):
-        self._processes = {}
         self._process_set = set()
         self._pidfiles = {}
         self._pidfiles_second_read = {}
@@ -280,7 +299,6 @@ class DroneManager(object):
         process = Process(drone.hostname, int(process_info['pid']),
                           int(process_info['ppid']))
         self._process_set.add(process)
-        return process
 
 
     def _add_autoserv_process(self, drone, process_info):
@@ -288,9 +306,7 @@ class DroneManager(object):
         # only root autoserv processes have pgid == pid
         if process_info['pgid'] != process_info['pid']:
             return
-        process = self._add_process(drone, process_info)
-        execution_tag = self._execution_tag_for_process(drone, process_info)
-        self._processes[execution_tag] = process
+        self._add_process(drone, process_info)
 
 
     def _enqueue_drone(self, drone):
@@ -301,6 +317,18 @@ class DroneManager(object):
         heapq.heapify(self._drone_queue)
 
 
+    def _compute_active_processes(self, drone):
+        drone.active_processes = 0
+        for pidfile_id, contents in self._pidfiles.iteritems():
+            is_running = contents.exit_status is None
+            on_this_drone = (contents.process
+                             and contents.process.hostname == drone.hostname)
+            if is_running and on_this_drone:
+                info = self._registered_pidfile_info[pidfile_id]
+                if info.num_processes is not None:
+                    drone.active_processes += info.num_processes
+
+
     def refresh(self):
         """
         Called at the beginning of a scheduler cycle to refresh all process
@@ -308,14 +336,12 @@ class DroneManager(object):
         """
         self._reset()
         self._drop_old_pidfiles()
-        pidfile_paths = [pidfile_id.path for pidfile_id in self._pidfile_age]
+        pidfile_paths = [pidfile_id.path
+                         for pidfile_id in self._registered_pidfile_info]
         all_results = self._call_all_drones('refresh', pidfile_paths)
 
         for drone, results_list in all_results.iteritems():
             results = results_list[0]
-            drone.active_processes = len(results['autoserv_processes'])
-            if drone.enabled:
-                self._enqueue_drone(drone)
 
             for process_info in results['autoserv_processes']:
                 self._add_autoserv_process(drone, process_info)
@@ -326,20 +352,9 @@ class DroneManager(object):
             self._process_pidfiles(drone, results['pidfiles_second_read'],
                                    self._pidfiles_second_read)
 
-
-    def _execution_tag_for_process(self, drone, process_info):
-        execution_tag = self._extract_execution_tag(process_info['args'])
-        if not execution_tag:
-            # this process has no execution tag - just make up something unique
-            return '%s.%s' % (drone, process_info['pid'])
-        return execution_tag
-
-
-    def _extract_execution_tag(self, command):
-        match = re.match(r'.* -P (\S+)', command)
-        if not match:
-            return None
-        return match.group(1)
+            self._compute_active_processes(drone)
+            if drone.enabled:
+                self._enqueue_drone(drone)
 
 
     def execute_actions(self):
@@ -366,13 +381,6 @@ class DroneManager(object):
         """
         return set(process for process in self._process_set
                    if process.ppid == 1)
-
-
-    def get_process_for(self, execution_tag):
-        """
-        Return the process object for the given execution tag.
-        """
-        return self._processes.get(execution_tag, None)
 
 
     def kill_process(self, process):
@@ -463,6 +471,8 @@ class DroneManager(object):
                 will be substituted for it.
         @param working_directory: directory in which the pidfile will be written
         @param pidfile_name: name of the pidfile this process will write
+        @param num_processes: number of processes to account for from this
+                execution
         @param log_file (optional): path (in the results repository) to hold
                 command output.
         @param paired_with_pidfile (optional): a PidfileId for an
@@ -494,6 +504,7 @@ class DroneManager(object):
         pidfile_path = os.path.join(abs_working_directory, pidfile_name)
         pidfile_id = PidfileId(pidfile_path)
         self.register_pidfile(pidfile_id)
+        self._registered_pidfile_info[pidfile_id].num_processes = num_processes
         return pidfile_id
 
 
@@ -507,15 +518,20 @@ class DroneManager(object):
         Indicate that the DroneManager should look for the given pidfile when
         refreshing.
         """
-        if pidfile_id not in self._pidfile_age:
+        if pidfile_id not in self._registered_pidfile_info:
             logging.info('monitoring pidfile %s', pidfile_id)
-        self._pidfile_age[pidfile_id] = 0
+            self._registered_pidfile_info[pidfile_id] = _PidfileInfo()
+        self._registered_pidfile_info[pidfile_id].age = 0
 
 
     def unregister_pidfile(self, pidfile_id):
-        if pidfile_id in self._pidfile_age:
+        if pidfile_id in self._registered_pidfile_info:
             logging.info('forgetting pidfile %s', pidfile_id)
-            del self._pidfile_age[pidfile_id]
+            del self._registered_pidfile_info[pidfile_id]
+
+
+    def declare_process_count(self, pidfile_id, num_processes):
+        self._registered_pidfile_info[pidfile_id].num_processes = num_processes
 
 
     def get_pidfile_contents(self, pidfile_id, use_second_read=False):
