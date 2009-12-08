@@ -88,13 +88,14 @@ class BaseAutotest(installable_object.InstallableObject):
         for an existing installation to use; if none is found, looks for a
         usable directory in the global config client_autodir_paths.
         """
-        if cls.install_in_tmpdir:
-            return host.get_tmp_dir(parent=autodir)
-
         try:
-            return cls.get_installed_autodir(host)
+            install_dir = cls.get_installed_autodir(host)
         except AutodirNotFoundError:
-            return cls._find_installable_dir(host)
+            install_dir = cls._find_installable_dir(host)
+
+        if cls.install_in_tmpdir:
+            return host.get_tmp_dir(parent=install_dir)
+        return install_dir
 
 
     @classmethod
