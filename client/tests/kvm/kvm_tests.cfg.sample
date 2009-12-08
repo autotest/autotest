@@ -266,6 +266,7 @@ variants:
 
     - physical_resources_check: install setup unattended_install
         type = physical_resources_check
+        nic_mode = tap
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
 # NICs
