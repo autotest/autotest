@@ -217,7 +217,7 @@ variants:
         image_size_stg = 1G
         remove_image_stg = yes
         force_create_image_stg = yes
-        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[sv]d[a-z] doesn/ {print $2}'`"
+        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[hsv]d[a-z] doesn/ {print $2}'`"
         wait_secs_for_hook_up = 3
         kill_vm_on_error = yes
         variants:
