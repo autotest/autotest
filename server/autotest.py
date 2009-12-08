@@ -508,7 +508,8 @@ class _Run(object):
         try:
             self.host.run('ls %s > /dev/null 2>&1' % binary)
         except:
-            raise "Autotest does not appear to be installed"
+            raise error.AutoservInstallError(
+                "Autotest does not appear to be installed")
 
         if not self.parallel_flag:
             tmpdir = os.path.join(self.autodir, 'tmp')
