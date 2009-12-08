@@ -18,16 +18,18 @@ _DEBUG = False
 
 
 class DummyAgentTask(object):
-    username = 'my_user'
+    num_processes = 1
+    owner_username = 'my_user'
 
 
 class DummyAgent(object):
     started = False
     _is_done = False
-    num_processes = 1
-    task = DummyAgentTask()
-    host_ids = []
-    queue_entry_ids = []
+    host_ids = ()
+    queue_entry_ids = ()
+
+    def __init__(self):
+        self.task = DummyAgentTask()
 
 
     def tick(self):
@@ -783,7 +785,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
             self._MAX_STARTED)
 
         def fake_max_runnable_processes(fake_self, username):
-            running = sum(agent.num_processes
+            running = sum(agent.task.num_processes
                           for agent in self._agents
                           if agent.started and not agent.is_done())
             return self._MAX_RUNNING - running
@@ -828,7 +830,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
 
     def test_throttle_with_synchronous(self):
         self._setup_some_agents(2)
-        self._agents[0].num_processes = 3
+        self._agents[0].task.num_processes = 3
         self._run_a_few_cycles()
         self._assert_agents_started([0])
         self._assert_agents_not_started([1])
@@ -839,7 +841,7 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         Ensure large agents don't get starved by lower-priority agents.
         """
         self._setup_some_agents(3)
-        self._agents[1].num_processes = 3
+        self._agents[1].task.num_processes = 3
         self._run_a_few_cycles()
         self._assert_agents_started([0])
         self._assert_agents_not_started([1, 2])
@@ -852,60 +854,10 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
 
     def test_zero_process_agent(self):
         self._setup_some_agents(5)
-        self._agents[4].num_processes = 0
+        self._agents[4].task.num_processes = 0
         self._run_a_few_cycles()
         self._assert_agents_started([0, 1, 2, 4])
         self._assert_agents_not_started([3])
-
-
-class FindAbortTest(BaseSchedulerTest):
-    """
-    Test the dispatcher abort functionality.
-    """
-    def _check_host_agent(self, agent, host_id):
-        self.assert_(isinstance(agent, monitor_db.Agent))
-        self.assert_(agent.task)
-        cleanup = agent.task
-
-        self.assert_(isinstance(cleanup, monitor_db.CleanupTask))
-        self.assertEquals(cleanup.host.id, host_id)
-
-
-    def _check_agents(self, agents):
-        agents = list(agents)
-        self.assertEquals(len(agents), 2)
-        self._check_host_agent(agents[0], 1)
-        self._check_host_agent(agents[1], 2)
-
-
-    def _common_setup(self):
-        self._create_job(hosts=[1, 2])
-        self._update_hqe(set='aborted=1')
-        self._agent = self.god.create_mock_class(monitor_db.Agent, 'old_agent')
-        self._agent.started = True
-        _set_host_and_qe_ids(self._agent, [1, 2])
-        self._agent.abort.expect_call()
-        self._agent.abort.expect_call() # gets called once for each HQE
-        self._dispatcher.add_agent(self._agent)
-
-
-    def test_find_aborting(self):
-        self._common_setup()
-        self._dispatcher._find_aborting()
-        self.god.check_playback()
-
-
-    def test_find_aborting_verifying(self):
-        self._common_setup()
-        self._update_hqe(set='active=1, status="Verifying"')
-
-        self._agent.tick.expect_call()
-        self._agent.is_done.expect_call().and_return(True)
-        self._dispatcher._find_aborting()
-        self._dispatcher._handle_agents()
-        self._dispatcher._schedule_special_tasks()
-        self._check_agents(self._dispatcher._agents)
-        self.god.check_playback()
 
 
 class PidfileRunMonitorTest(unittest.TestCase):
@@ -930,11 +882,9 @@ class PidfileRunMonitorTest(unittest.TestCase):
              .expect_call(self.execution_tag,
                           pidfile_name=monitor_db._AUTOSERV_PID_FILE)
              .and_return(self.pidfile_id))
-        self.mock_drone_manager.register_pidfile.expect_call(self.pidfile_id)
 
         self.monitor = monitor_db.PidfileRunMonitor()
         self.monitor.attach_to_existing_process(self.execution_tag)
-
 
     def tearDown(self):
         self.god.unstub_all()
@@ -1200,699 +1150,6 @@ class DelayedCallTaskTest(unittest.TestCase):
         self.assert_(delay_task.aborted)
         self.assert_(delay_task.is_done())
         self.assert_(not delay_task.success)
-        self.god.check_playback()
-
-
-
-class AgentTasksTest(BaseSchedulerTest):
-    ABSPATH_BASE = '/abspath/'
-    HOSTNAME = 'myhost'
-    BASE_TASK_DIR = 'hosts/%s/' % HOSTNAME
-    RESULTS_DIR = '/results/dir'
-    DUMMY_PROCESS = object()
-    HOST_PROTECTION = host_protections.default
-    PIDFILE_ID = object()
-    JOB_NAME = 'test_job_name'
-    JOB_AUTOSERV_PARAMS = set(['-u', 'my_user', '-l', JOB_NAME])
-    PLATFORM = 'test_platform'
-
-    def setUp(self):
-        super(AgentTasksTest, self).setUp()
-        self.god = mock.mock_god()
-        self.god.stub_with(drone_manager.DroneManager, 'get_temporary_path',
-                           mock.mock_function('get_temporary_path',
-                                              default_return_val='tempdir'))
-        self.god.stub_function(drone_manager.DroneManager,
-                               'copy_results_on_drone')
-        self.god.stub_function(drone_manager.DroneManager,
-                               'copy_to_results_repository')
-        self.god.stub_function(drone_manager.DroneManager,
-                               'get_pidfile_id_from')
-        self.god.stub_function(drone_manager.DroneManager,
-                               'attach_file_to_execution')
-
-        def dummy_absolute_path(drone_manager_self, path):
-            return self.ABSPATH_BASE + path
-        self.god.stub_with(drone_manager.DroneManager, 'absolute_path',
-                           dummy_absolute_path)
-
-        def dummy_abspath(path):
-            return self.ABSPATH_BASE + path
-        self.god.stub_with(os.path, 'abspath', dummy_abspath)
-
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'run')
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'exit_code')
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'kill')
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor, 'get_process')
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor,
-                                   'try_copy_to_results_repository')
-        self.god.stub_class_method(monitor_db.PidfileRunMonitor,
-                                   'try_copy_results_on_drone')
-        def mock_has_process(unused):
-            return True
-        self.god.stub_with(monitor_db.PidfileRunMonitor, 'has_process',
-                           mock_has_process)
-
-        self.host = self.god.create_mock_class(monitor_db.Host, 'host')
-        self.host.id = 1
-        self.host.hostname = self.HOSTNAME
-        self.host.protection = self.HOST_PROTECTION
-
-        # For this (and other model creations), we must create the entry this
-        # way; otherwise, if an entry matching the id already exists, Django 1.0
-        # will raise an exception complaining about a duplicate primary key.
-        # This way, Django performs an UPDATE query if an entry matching the id
-        # already exists.
-        host = models.Host(id=self.host.id, hostname=self.host.hostname,
-                           protection=self.host.protection)
-        host.save()
-
-        self.job = self.god.create_mock_class(monitor_db.Job, 'job')
-        self.job.owner = self.user.login
-        self.job.name = self.JOB_NAME
-        self.job.id = 1337
-        self.job.tag = lambda: 'fake-job-tag'
-        job = models.Job(id=self.job.id, owner=self.job.owner,
-                         name=self.job.name, created_on=datetime.datetime.now())
-        job.save()
-
-        self.queue_entry = self.god.create_mock_class(
-            monitor_db.HostQueueEntry, 'queue_entry')
-        self.queue_entry.id = 1
-        self.queue_entry.job = self.job
-        self.queue_entry.host = self.host
-        self.queue_entry.meta_host = None
-        queue_entry = models.HostQueueEntry(id=self.queue_entry.id, job=job,
-                                            host=host, meta_host=None)
-        queue_entry.save()
-
-        self.task = models.SpecialTask(id=1, host=host,
-                                       task=models.SpecialTask.Task.CLEANUP,
-                                       is_active=False, is_complete=False,
-                                       time_requested=datetime.datetime.now(),
-                                       time_started=None,
-                                       queue_entry=queue_entry)
-        self.task.save()
-        self.god.stub_function(self.task, 'activate')
-        self.god.stub_function(self.task, 'finish')
-        self.god.stub_function(models.SpecialTask.objects, 'create')
-
-        self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
-                                                      'dispatcher')
-
-
-    def tearDown(self):
-        super(AgentTasksTest, self).tearDown()
-        self.god.unstub_all()
-
-
-    def run_task(self, task, success):
-        """
-        Do essentially what an Agent would do, but protect againt
-        infinite looping from test errors.
-        """
-        if not getattr(task, 'agent', None):
-            task.agent = object()
-        count = 0
-        while not task.is_done():
-            count += 1
-            if count > 10:
-                print 'Task failed to finish'
-                # in case the playback has clues to why it
-                # failed
-                self.god.check_playback()
-                self.fail()
-            task.poll()
-        self.assertEquals(task.success, success)
-
-
-    def setup_run_monitor(self, exit_status, task_tag, copy_log_file=True,
-                          aborted=False, special_task_success=True):
-        monitor_db.PidfileRunMonitor.run.expect_call(
-            mock.is_instance_comparator(list),
-            self.BASE_TASK_DIR + task_tag,
-            num_processes=1,
-            nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
-            log_file=mock.anything_comparator(),
-            pidfile_name=monitor_db._AUTOSERV_PID_FILE,
-            paired_with_pidfile=None,
-            username=self.user.login)
-        monitor_db.PidfileRunMonitor.exit_code.expect_call()
-        if aborted:
-            monitor_db.PidfileRunMonitor.kill.expect_call()
-        else:
-            monitor_db.PidfileRunMonitor.exit_code.expect_call().and_return(
-                    exit_status)
-
-        self.task.finish.expect_call(special_task_success)
-
-        if copy_log_file:
-            self._setup_move_logfile()
-
-
-    def _setup_move_logfile(self, copy_on_drone=False,
-                            include_destination=False):
-        monitor = monitor_db.PidfileRunMonitor
-        if copy_on_drone:
-            self.queue_entry.execution_path.expect_call().and_return('tag')
-            monitor.try_copy_results_on_drone.expect_call(
-                source_path=mock.is_string_comparator(),
-                destination_path=mock.is_string_comparator())
-        elif include_destination:
-            monitor.try_copy_to_results_repository.expect_call(
-                mock.is_string_comparator(),
-                destination_path=mock.is_string_comparator())
-        else:
-            monitor.try_copy_to_results_repository.expect_call(
-                mock.is_string_comparator())
-
-
-    def _setup_special_task(self, task_id, task_type, use_queue_entry):
-        self.task.id = task_id
-        self.task.task = task_type
-        if use_queue_entry:
-            queue_entry = models.HostQueueEntry.objects.get(
-                    id=self.queue_entry.id)
-        else:
-            queue_entry = None
-        self.task.queue_entry = queue_entry
-        self.task.save()
-
-
-    def _setup_write_host_keyvals_expects(self, task_tag):
-        self.host.platform_and_labels.expect_call().and_return(
-                (self.PLATFORM, (self.PLATFORM,)))
-
-        execution_path = os.path.join(self.BASE_TASK_DIR, task_tag)
-        file_contents = ('platform=%(platform)s\nlabels=%(platform)s\n'
-                         % dict(platform=self.PLATFORM))
-        file_path = os.path.join(execution_path, 'host_keyvals', self.HOSTNAME)
-        drone_manager.DroneManager.attach_file_to_execution.expect_call(
-                execution_path, file_contents, file_path=file_path)
-
-
-    def _test_repair_task_helper(self, success, task_id, use_queue_entry=False):
-        self._setup_special_task(task_id, models.SpecialTask.Task.REPAIR,
-                                 use_queue_entry)
-        task_tag = '%d-repair' % task_id
-
-        self.task.activate.expect_call()
-        self._setup_write_host_keyvals_expects(task_tag)
-
-        self.host.set_status.expect_call('Repairing')
-        if success:
-            self.setup_run_monitor(0, task_tag, special_task_success=True)
-            self.host.set_status.expect_call('Ready')
-        else:
-            self.setup_run_monitor(1, task_tag, special_task_success=False)
-            self.host.set_status.expect_call('Repair Failed')
-
-        task = monitor_db.RepairTask(task=self.task)
-        task.host = self.host
-        if use_queue_entry:
-            task.queue_entry = self.queue_entry
-
-        self.run_task(task, success)
-
-        expected_protection = host_protections.Protection.get_string(
-            host_protections.default)
-        expected_protection = host_protections.Protection.get_attr_name(
-            expected_protection)
-
-        self.assertTrue(set(task.cmd) >=
-                        set([monitor_db._autoserv_path, '-p', '-R', '-m',
-                             self.HOSTNAME, '-r',
-                             drone_manager.WORKING_DIRECTORY,
-                             '--host-protection', expected_protection]))
-        self.god.check_playback()
-
-
-    def test_repair_task(self):
-        self._test_repair_task_helper(True, 1)
-        self._test_repair_task_helper(False, 2)
-
-
-    def test_repair_task_with_hqe_already_requeued(self):
-        # during recovery, a RepairTask can be passed a queue entry that has
-        # already been requeued.  ensure it leaves the HQE alone in that case.
-        self.queue_entry.meta_host = 1
-        self.queue_entry.host = None
-        self._test_repair_task_helper(False, 1, True)
-
-
-    def test_recovery_repair_task_working_directory(self):
-        # ensure that a RepairTask recovering an existing SpecialTask picks up
-        # the working directory immediately
-        class MockSpecialTask(object):
-            def execution_path(self):
-                return '/my/path'
-            host = models.Host.objects.get(id=self.host.id)
-            queue_entry = None
-            requested_by = self.user
-
-        task = monitor_db.RepairTask(task=MockSpecialTask())
-
-        self.assertEquals(task._working_directory, '/my/path')
-
-
-    def test_repair_task_aborted(self):
-        self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
-        task_tag = '1-repair'
-
-        self.task.activate.expect_call()
-        self._setup_write_host_keyvals_expects(task_tag)
-
-        self.host.set_status.expect_call('Repairing')
-        self.setup_run_monitor(0, task_tag, aborted=True,
-                               special_task_success=False)
-
-        task = monitor_db.RepairTask(task=self.task)
-        task.host = self.host
-        task.agent = object()
-
-        task.poll()
-        task.abort()
-
-        self.assertTrue(task.done)
-        self.assertTrue(task.aborted)
-        self.god.check_playback()
-
-
-    def _test_repair_task_with_queue_entry_helper(self, parse_failed_repair,
-                                                  task_id):
-        self._setup_special_task(task_id, models.SpecialTask.Task.REPAIR, True)
-        task_tag = '%d-repair' % task_id
-
-        self.god.stub_class(monitor_db, 'FinalReparseTask')
-        self.god.stub_class(monitor_db, 'Agent')
-        self.god.stub_class_method(monitor_db.TaskWithJobKeyvals,
-                                   '_write_keyval_after_job')
-        agent = DummyAgent()
-        agent.dispatcher = self._dispatcher
-
-        self.task.activate.expect_call()
-        self._setup_write_host_keyvals_expects(task_tag)
-
-        self.host.set_status.expect_call('Repairing')
-        self.setup_run_monitor(1, task_tag, special_task_success=False)
-        self.host.set_status.expect_call('Repair Failed')
-        self.queue_entry.update_from_database.expect_call()
-        self.queue_entry.status = 'Queued'
-        self.queue_entry.set_execution_subdir.expect_call()
-        monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
-            'job_queued', mock.is_instance_comparator(int))
-        monitor_db.TaskWithJobKeyvals._write_keyval_after_job.expect_call(
-            'job_finished', mock.is_instance_comparator(int))
-        self._setup_move_logfile(copy_on_drone=True)
-        self.queue_entry.execution_path.expect_call().and_return('tag')
-        self._setup_move_logfile()
-        self.job.parse_failed_repair = parse_failed_repair
-        self.queue_entry.handle_host_failure.expect_call()
-        if parse_failed_repair:
-            self.queue_entry.set_status.expect_call('Parsing')
-        self.queue_entry.execution_path.expect_call().and_return('tag')
-        drone_manager.DroneManager.get_pidfile_id_from.expect_call(
-                'tag', pidfile_name=monitor_db._AUTOSERV_PID_FILE).and_return(
-                        self.PIDFILE_ID)
-
-        task = monitor_db.RepairTask(task=self.task)
-        task.agent = agent
-        task.host = self.host
-        task.queue_entry = self.queue_entry
-        self.queue_entry.status = 'Queued'
-        self.job.created_on = datetime.datetime(2009, 1, 1)
-
-        self.run_task(task, False)
-        self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
-        self.god.check_playback()
-
-
-    def test_repair_task_with_queue_entry(self):
-        self._test_repair_task_with_queue_entry_helper(True, 1)
-        self._test_repair_task_with_queue_entry_helper(False, 2)
-
-
-    def _setup_prejob_task_failure(self, task_tag, use_queue_entry):
-        self.setup_run_monitor(1, task_tag, special_task_success=False)
-        if use_queue_entry:
-            if not self.queue_entry.meta_host:
-                self.queue_entry.set_execution_subdir.expect_call()
-                self.queue_entry.execution_path.expect_call().and_return('tag')
-                self._setup_move_logfile(include_destination=True)
-            self.queue_entry.requeue.expect_call()
-            queue_entry = models.HostQueueEntry.objects.get(
-                    id=self.queue_entry.id)
-        else:
-            queue_entry = None
-        models.SpecialTask.objects.create.expect_call(
-                host=models.Host.objects.get(id=self.host.id),
-                task=models.SpecialTask.Task.REPAIR,
-                queue_entry=queue_entry,
-                requested_by=self.user)
-
-
-    def setup_verify_expects(self, success, use_queue_entry, task_tag):
-        self.task.activate.expect_call()
-        self._setup_write_host_keyvals_expects(task_tag)
-
-        if use_queue_entry:
-            self.queue_entry.set_status.expect_call('Verifying')
-        self.host.set_status.expect_call('Verifying')
-        if success:
-            self.setup_run_monitor(0, task_tag)
-            if use_queue_entry:
-                self.queue_entry.on_pending.expect_call()
-            else:
-                self.host.set_status.expect_call('Ready')
-        else:
-            self._setup_prejob_task_failure(task_tag, use_queue_entry)
-
-
-    def _test_verify_task_helper(self, success, task_id, use_queue_entry=False,
-                                 use_meta_host=False):
-        self._setup_special_task(task_id, models.SpecialTask.Task.VERIFY,
-                                 use_queue_entry)
-        task_tag = '%d-verify' % task_id
-        self.setup_verify_expects(success, use_queue_entry, task_tag)
-
-        task = monitor_db.VerifyTask(task=self.task)
-        task.host = self.host
-        if use_queue_entry:
-            task.queue_entry = self.queue_entry
-
-        self.run_task(task, success)
-        self.assertTrue(set(task.cmd) >=
-                        set([monitor_db._autoserv_path, '-p', '-v', '-m',
-                             self.HOSTNAME, '-r',
-                             drone_manager.WORKING_DIRECTORY]))
-        if use_queue_entry:
-            self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
-        self.god.check_playback()
-
-
-    def test_verify_task_with_host(self):
-        self._test_verify_task_helper(True, 1)
-        self._test_verify_task_helper(False, 2)
-
-
-    def test_verify_task_with_queue_entry(self):
-        self._test_verify_task_helper(True, 1, use_queue_entry=True)
-        self._test_verify_task_helper(False, 2, use_queue_entry=True)
-
-
-    def test_verify_task_with_metahost(self):
-        self.queue_entry.meta_host = 1
-        self.test_verify_task_with_queue_entry()
-
-
-    def test_specialtask_abort_before_prolog(self):
-        self._setup_special_task(1, models.SpecialTask.Task.REPAIR, False)
-        task = monitor_db.RepairTask(task=self.task)
-        self.task.finish.expect_call(False)
-        task.abort()
-        self.assertTrue(task.aborted)
-
-
-    def _setup_post_job_task_expects(self, autoserv_success, hqe_status=None,
-                                     hqe_aborted=False, host_status=None):
-        self.queue_entry.execution_path.expect_call().and_return('tag')
-        self.pidfile_monitor = monitor_db.PidfileRunMonitor.expect_new()
-        self.pidfile_monitor.pidfile_id = self.PIDFILE_ID
-        self.pidfile_monitor.attach_to_existing_process.expect_call('tag')
-        if autoserv_success:
-            code = 0
-        else:
-            code = 1
-        self.queue_entry.update_from_database.expect_call()
-        self.queue_entry.aborted = hqe_aborted
-        if not hqe_aborted:
-            self.pidfile_monitor.exit_code.expect_call().and_return(code)
-
-        if hqe_status:
-            self.queue_entry.status = hqe_status
-        if host_status:
-            self.host.status = host_status
-
-
-    def _setup_pre_parse_expects(self, autoserv_success):
-        self._setup_post_job_task_expects(autoserv_success, 'Parsing')
-
-
-    def _setup_post_parse_expects(self, autoserv_success):
-        if autoserv_success:
-            status = 'Completed'
-        else:
-            status = 'Failed'
-        self.queue_entry.set_status.expect_call(status)
-
-
-    def _expect_execute_run_monitor(self):
-        self.monitor.exit_code.expect_call()
-        self.monitor.exit_code.expect_call().and_return(0)
-        self._expect_copy_results()
-
-
-    def _setup_post_job_run_monitor(self, pidfile_name, num_processes=1):
-        self.pidfile_monitor.has_process.expect_call().and_return(True)
-        autoserv_pidfile_id = object()
-        self.monitor = monitor_db.PidfileRunMonitor.expect_new()
-        self.monitor.run.expect_call(
-            mock.is_instance_comparator(list),
-            'tag',
-            num_processes=num_processes,
-            nice_level=monitor_db.AUTOSERV_NICE_LEVEL,
-            log_file=mock.anything_comparator(),
-            pidfile_name=pidfile_name,
-            paired_with_pidfile=self.PIDFILE_ID,
-            username=self.user.login)
-        self._expect_execute_run_monitor()
-
-
-    def _expect_copy_results(self, monitor=None, queue_entry=None):
-        if monitor is None:
-            monitor = self.monitor
-        if queue_entry:
-            queue_entry.execution_path.expect_call().and_return('tag')
-        monitor.try_copy_to_results_repository.expect_call(
-                mock.is_string_comparator())
-
-
-    def _test_final_reparse_task_helper(self, autoserv_success=True):
-        self._setup_pre_parse_expects(autoserv_success)
-        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE,
-                                         num_processes=0)
-        self._setup_post_parse_expects(autoserv_success)
-
-        task = monitor_db.FinalReparseTask([self.queue_entry])
-        self.run_task(task, True)
-
-        self.god.check_playback()
-        cmd = [monitor_db._parser_path, '--write-pidfile', '-l', '2', '-r',
-               '-o', '-P', '/abspath/tag']
-        self.assertEquals(task.cmd, cmd)
-
-
-    def test_final_reparse_task(self):
-        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
-        self._test_final_reparse_task_helper()
-        self._test_final_reparse_task_helper(autoserv_success=False)
-
-
-    def test_final_reparse_throttling(self):
-        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
-        self.god.stub_function(monitor_db.FinalReparseTask,
-                               '_can_run_new_parse')
-
-        self._setup_pre_parse_expects(True)
-        monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
-            False)
-        monitor_db.FinalReparseTask._can_run_new_parse.expect_call().and_return(
-            True)
-        self._setup_post_job_run_monitor(monitor_db._PARSER_PID_FILE,
-                                         num_processes=0)
-        self._setup_post_parse_expects(True)
-
-        task = monitor_db.FinalReparseTask([self.queue_entry])
-        self.run_task(task, True)
-        self.god.check_playback()
-
-
-    def test_final_reparse_recovery(self):
-        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
-        self.monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
-                                                  'run_monitor')
-        self._setup_post_job_task_expects(True)
-        self._expect_execute_run_monitor()
-        self._setup_post_parse_expects(True)
-
-        task = monitor_db.FinalReparseTask([self.queue_entry],
-                                           recover_run_monitor=self.monitor)
-        self.run_task(task, True)
-        self.god.check_playback()
-
-
-    def _setup_gather_logs_expects(self, autoserv_killed=True,
-                                   hqe_aborted=False, has_process=True):
-        self.god.stub_class(monitor_db, 'PidfileRunMonitor')
-        self.god.stub_class(monitor_db, 'FinalReparseTask')
-        self._setup_post_job_task_expects(not autoserv_killed, 'Gathering',
-                                          hqe_aborted, host_status='Running')
-        if hqe_aborted or not has_process:
-            exit_code = None
-        elif autoserv_killed:
-            exit_code = 271
-        else:
-            exit_code = 0
-        self.pidfile_monitor.exit_code.expect_call().and_return(exit_code)
-
-        if has_process:
-            if exit_code != 0:
-                self._setup_post_job_run_monitor('.collect_crashinfo_execute')
-            self.pidfile_monitor.has_process.expect_call().and_return(True)
-            self.pidfile_monitor.has_process.expect_call().and_return(True)
-            self._expect_copy_results(monitor=self.pidfile_monitor,
-                                      queue_entry=self.queue_entry)
-        else:
-            # The first has_process() is in GatherLogsTask.run(), and the second
-            # is in AgentTask._copy_results()
-            self.pidfile_monitor.has_process.expect_call().and_return(False)
-            self.pidfile_monitor.has_process.expect_call().and_return(False)
-
-        self.queue_entry.set_status.expect_call('Parsing')
-        self.pidfile_monitor.has_process.expect_call().and_return(has_process)
-
-        if has_process:
-            self.pidfile_monitor.num_tests_failed.expect_call().and_return(0)
-
-
-    def _run_gather_logs_task(self, success=True):
-        task = monitor_db.GatherLogsTask(self.job, [self.queue_entry])
-        task.agent = DummyAgent()
-        task.agent.dispatcher = self._dispatcher
-        self.run_task(task, success)
-        self.god.check_playback()
-
-
-    def test_gather_logs_task(self):
-        self._setup_gather_logs_expects()
-        # no rebooting for this basic test
-        self.job.reboot_after = models.RebootAfter.NEVER
-        self.host.set_status.expect_call('Ready')
-
-        self._run_gather_logs_task()
-
-
-    def test_gather_logs_task_successful_autoserv(self):
-        # When Autoserv exits successfully, no collect_crashinfo stage runs
-        self._setup_gather_logs_expects(autoserv_killed=False)
-        self.job.reboot_after = models.RebootAfter.NEVER
-        self.host.set_status.expect_call('Ready')
-
-        self._run_gather_logs_task()
-
-
-    def _setup_gather_task_cleanup_expects(self):
-        self.job.owner_model.expect_call().and_return(self.user)
-        models.SpecialTask.objects.create.expect_call(
-                host=models.Host.objects.get(id=self.host.id),
-                task=models.SpecialTask.Task.CLEANUP,
-                requested_by=self.user)
-
-
-    def test_gather_logs_reboot_hosts(self):
-        self._setup_gather_logs_expects()
-        self.job.reboot_after = models.RebootAfter.ALWAYS
-        self._setup_gather_task_cleanup_expects()
-
-        self._run_gather_logs_task()
-
-
-    def test_gather_logs_reboot_on_abort(self):
-        self._setup_gather_logs_expects(hqe_aborted=True)
-        self.job.reboot_after = models.RebootAfter.NEVER
-        self._setup_gather_task_cleanup_expects()
-
-        self._run_gather_logs_task()
-
-
-    def test_gather_logs_no_process(self):
-        self._setup_gather_logs_expects(has_process=False)
-        self.job.reboot_after = models.RebootAfter.NEVER
-        self.host.set_status.expect_call('Ready')
-
-        self._run_gather_logs_task(success=False)
-
-
-    def _test_cleanup_task_helper(self, success, task_id,
-                                  use_queue_entry=False):
-        self._setup_special_task(task_id, models.SpecialTask.Task.CLEANUP,
-                                 use_queue_entry)
-        task_tag = '%d-cleanup' % task_id
-
-        self.task.activate.expect_call()
-        self._setup_write_host_keyvals_expects(task_tag)
-
-        self.host.set_status.expect_call('Cleaning')
-
-        if use_queue_entry:
-            self.queue_entry.set_status.expect_call('Verifying')
-
-        if success:
-            self.setup_run_monitor(0, task_tag)
-            self.host.update_field.expect_call('dirty', 0)
-            if use_queue_entry:
-                queue_entry = models.HostQueueEntry.objects.get(
-                        id=self.queue_entry.id)
-                models.SpecialTask.objects.create.expect_call(
-                        host=models.Host.objects.get(id=self.host.id),
-                        task=models.SpecialTask.Task.VERIFY,
-                        queue_entry=queue_entry)
-            else:
-                self.host.set_status.expect_call('Ready')
-        else:
-            self._setup_prejob_task_failure(task_tag, use_queue_entry)
-
-        task = monitor_db.CleanupTask(task=self.task)
-        task.host = self.host
-        if use_queue_entry:
-            task.queue_entry = self.queue_entry
-
-        self.run_task(task, success)
-
-        self.god.check_playback()
-        self.assert_(set(task.cmd) >=
-                     set([monitor_db._autoserv_path, '-p', '--cleanup', '-m',
-                          self.HOSTNAME, '-r',
-                          drone_manager.WORKING_DIRECTORY]))
-        if use_queue_entry:
-            self.assertTrue(set(task.cmd) >= self.JOB_AUTOSERV_PARAMS)
-
-    def test_cleanup_task(self):
-        self._test_cleanup_task_helper(True, 1)
-        self._test_cleanup_task_helper(False, 2)
-
-
-    def test_cleanup_task_with_queue_entry(self):
-        self._test_cleanup_task_helper(False, 1, use_queue_entry=True)
-
-
-    def test_recovery_queue_task_aborted_early(self):
-        # abort a recovery QueueTask right after it's created
-        self.god.stub_class_method(monitor_db.QueueTask, '_log_abort')
-        self.god.stub_class_method(monitor_db.QueueTask, '_finish_task')
-        run_monitor = self.god.create_mock_class(monitor_db.PidfileRunMonitor,
-                                                 'run_monitor')
-
-        self.queue_entry.get_group_name.expect_call().and_return('')
-        self.queue_entry.execution_path.expect_call().and_return('tag')
-        run_monitor.kill.expect_call()
-        monitor_db.QueueTask._log_abort.expect_call()
-        monitor_db.QueueTask._finish_task.expect_call()
-
-        task = monitor_db.QueueTask(self.job, [self.queue_entry],
-                                    recover_run_monitor=run_monitor)
-        task.abort()
-        self.assert_(task.aborted)
         self.god.check_playback()
 
 
@@ -2317,7 +1574,8 @@ class JobTest(BaseSchedulerTest):
         self.assert_(isinstance(queue_task, monitor_db.QueueTask))
         # Atomic group jobs that do not depend on a specific label in the
         # atomic group will use the atomic group name as their group name.
-        self.assertEquals(queue_task.group_name, 'atomic1')
+        self.assertEquals(queue_task.queue_entries[0].get_group_name(),
+                          'atomic1')
 
 
     def test_run_synchronous_atomic_group_with_label_ready(self):
@@ -2330,7 +1588,8 @@ class JobTest(BaseSchedulerTest):
         self.assert_(isinstance(queue_task, monitor_db.QueueTask))
         # Atomic group jobs that also specify a label in the atomic group
         # will use the label name as their group name.
-        self.assertEquals(queue_task.group_name, 'label4')
+        self.assertEquals(queue_task.queue_entries[0].get_group_name(),
+                          'label4')
 
 
     def test_reboot_before_always(self):

@@ -176,10 +176,10 @@ class RpcInterfaceTest(unittest.TestCase,
 
         entry1 = job1.hostqueueentry_set.all()[0]
         entry1.update_object(started_on=datetime.datetime(2009, 1, 2),
-                             execution_subdir='1-myuser/host1')
+                             execution_subdir='host1')
         entry2 = job2.hostqueueentry_set.all()[0]
         entry2.update_object(started_on=datetime.datetime(2009, 1, 3),
-                             execution_subdir='2-myuser/host1')
+                             execution_subdir='host1')
 
         self.task1 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY,
@@ -230,9 +230,9 @@ class RpcInterfaceTest(unittest.TestCase,
 
         paths = [entry['execution_path'] for entry in entries_and_tasks]
         self.assertEquals(paths, ['hosts/host1/3-verify',
-                                  '2-myuser/host1',
+                                  '2-my_user/host1',
                                   'hosts/host1/2-verify',
-                                  '1-myuser/host1',
+                                  '1-my_user/host1',
                                   'hosts/host1/1-verify'])
 
         verify2 = entries_and_tasks[2]
