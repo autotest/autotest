@@ -19,11 +19,6 @@ SiteHost = utils.import_site_class(
     remote.RemoteHost)
 
 
-# this constant can be passed to run() to tee stdout/stdout to the logging
-# module.
-TEE_TO_LOGS = object()
-
-
 class AbstractSSHHost(SiteHost):
     """ This class represents a generic implementation of most of the
     framework necessary for controlling a host via ssh. It implements

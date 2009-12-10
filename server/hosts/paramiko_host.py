@@ -229,9 +229,11 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         """
 
         stdout = utils.get_stream_tee_file(
-                stdout_tee, utils.DEFAULT_STDOUT_LEVEL)
+                stdout_tee, utils.DEFAULT_STDOUT_LEVEL,
+                prefix=utils.STDOUT_PREFIX)
         stderr = utils.get_stream_tee_file(
-                stderr_tee, utils.get_stderr_level(ignore_status))
+                stderr_tee, utils.get_stderr_level(ignore_status),
+                prefix=utils.STDERR_PREFIX)
 
         for arg in args:
             command += ' "%s"' % utils.sh_escape(arg)
