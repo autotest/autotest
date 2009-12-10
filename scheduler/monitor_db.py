@@ -2897,9 +2897,9 @@ class HostQueueEntry(DBObject):
             else:
                 assert assigned_host.id == self.host_id
 
-        logging.info("%s/%s/%s scheduled on %s, status=%s",
+        logging.info("%s/%s/%s (job %s, entry %s) scheduled on %s, status=%s",
                      self.job.name, self.meta_host, self.atomic_group_id,
-                     self.host.hostname, self.status)
+                     self.job.id, self.id, self.host.hostname, self.status)
 
         self._do_schedule_pre_job_tasks()
 
