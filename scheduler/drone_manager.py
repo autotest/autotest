@@ -243,7 +243,8 @@ class DroneManager(object):
 
 
     def _drop_old_pidfiles(self):
-        for pidfile_id, info in self._registered_pidfile_info.iteritems():
+        # use items() since the dict is modified in unregister_pidfile()
+        for pidfile_id, info in self._registered_pidfile_info.items():
             if info.age > self._get_max_pidfile_refreshes():
                 logging.warning('dropping leaked pidfile %s', pidfile_id)
                 self.unregister_pidfile(pidfile_id)
