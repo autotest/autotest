@@ -238,5 +238,15 @@ class DroneManager(unittest.TestCase):
                 os.path.join(self._DRONE_RESULTS_DIR, file_path), written_data))
 
 
+    def test_pidfile_expiration(self):
+        self.god.stub_with(self.manager, '_get_max_pidfile_refreshes',
+                           lambda: 0)
+        pidfile_id = self.manager.get_pidfile_id_from('tag', 'name')
+        self.manager.register_pidfile(pidfile_id)
+        self.manager._drop_old_pidfiles()
+        self.manager._drop_old_pidfiles()
+        self.assertFalse(self.manager._registered_pidfile_info)
+
+
 if __name__ == '__main__':
     unittest.main()
