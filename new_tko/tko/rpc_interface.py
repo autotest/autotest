@@ -107,7 +107,7 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
         filter_data, include_host_labels=bool(machine_label_headers))
     query = models.TestView.query_objects(filter_data, initial_query=query,
                                           apply_presentation=False)
-    query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
+    query = query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
     query = query.extra(
             select={'latest_test_idx' : 'MAX(%s)' %
                     models.TestView.objects.get_key_on_this_table('test_idx')})
