@@ -45,9 +45,9 @@ class FrontendTestMixin(object):
         acl_group.hosts = self.hosts
         models.AclGroup.smart_get('Everyone').hosts = []
 
-        labels = [models.Label.objects.create(name=name) for name in
-                  ('label1', 'label2', 'label3', 'label4', 'label5', 'label6',
-                   'label7', 'label8')]
+        self.labels = [models.Label.objects.create(name=name) for name in
+                       ('label1', 'label2', 'label3', 'label4', 'label5',
+                        'label6', 'label7', 'label8')]
 
         platform = models.Label.objects.create(name='myplatform', platform=True)
         for host in self.hosts:
@@ -58,20 +58,20 @@ class FrontendTestMixin(object):
         atomic_group2 = models.AtomicGroup.objects.create(
                 name='atomic2', max_number_of_machines=2)
 
-        self.label3 = labels[2]
+        self.label3 = self.labels[2]
         self.label3.only_if_needed = True
         self.label3.save()
-        self.label4 = labels[3]
+        self.label4 = self.labels[3]
         self.label4.atomic_group = atomic_group1
         self.label4.save()
-        self.label5 = labels[4]
+        self.label5 = self.labels[4]
         self.label5.atomic_group = atomic_group1
         self.label5.save()
-        self.hosts[0].labels.add(labels[0])  # label1
-        self.hosts[1].labels.add(labels[1])  # label2
-        self.label6 = labels[5]
-        self.label7 = labels[6]
-        self.label8 = labels[7]
+        self.hosts[0].labels.add(self.labels[0])  # label1
+        self.hosts[1].labels.add(self.labels[1])  # label2
+        self.label6 = self.labels[5]
+        self.label7 = self.labels[6]
+        self.label8 = self.labels[7]
         self.label8.atomic_group = atomic_group2
         self.label8.save()
         for hostnum in xrange(4,7):  # host5..host7

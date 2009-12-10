@@ -935,5 +935,34 @@ class SchedulerFunctionalTest(unittest.TestCase,
         # rest of job proceeds normally
 
 
+    def test_simple_metahost_assignment(self):
+        job = self._create_job(metahosts=[1])
+        self._run_dispatcher()
+        entry = job.hostqueueentry_set.all()[0]
+        self.assertEquals(entry.host.hostname, 'host1')
+        self._check_statuses(entry, HqeStatus.VERIFYING, HostStatus.VERIFYING)
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self._check_statuses(entry, HqeStatus.RUNNING, HostStatus.RUNNING)
+        # rest of job proceeds normally
+
+
+    def test_metahost_fail_verify(self):
+        self.hosts[1].labels.add(self.labels[0]) # put label1 also on host2
+        job = self._create_job(metahosts=[1])
+        self._run_dispatcher() # assigned to host1
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY,
+                                               exit_status=256)
+        self._run_dispatcher() # host1 failed, gets reassigned to host2
+        entry = job.hostqueueentry_set.all()[0]
+        self.assertEquals(entry.host.hostname, 'host2')
+        self._check_statuses(entry, HqeStatus.VERIFYING, HostStatus.VERIFYING)
+        self._check_host_status(self.hosts[0], HostStatus.REPAIRING)
+
+        self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
+        self._run_dispatcher()
+        self._check_statuses(entry, HqeStatus.RUNNING, HostStatus.RUNNING)
+
+
 if __name__ == '__main__':
     unittest.main()
