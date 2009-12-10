@@ -34,11 +34,16 @@ _the_null_stream = _NullStream()
 DEFAULT_STDOUT_LEVEL = logging.DEBUG
 DEFAULT_STDERR_LEVEL = logging.ERROR
 
-def get_stream_tee_file(stream, level):
+# prefixes for logging stdout/stderr of commands
+STDOUT_PREFIX = '[stdout] '
+STDERR_PREFIX = '[stderr] '
+
+
+def get_stream_tee_file(stream, level, prefix=''):
     if stream is None:
         return _the_null_stream
     if stream is TEE_TO_LOGS:
-        return logging_manager.LoggingFile(level=level)
+        return logging_manager.LoggingFile(level=level, prefix=prefix)
     return stream
 
 
@@ -46,8 +51,10 @@ class BgJob(object):
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
                  stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
         self.command = command
-        self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL)
-        self.stderr_tee = get_stream_tee_file(stderr_tee, stderr_level)
+        self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL,
+                                              prefix=STDOUT_PREFIX)
+        self.stderr_tee = get_stream_tee_file(stderr_tee, stderr_level,
+                                              prefix=STDERR_PREFIX)
         self.result = CmdResult(command)
 
         # allow for easy stdin input by string, we'll let subprocess create
