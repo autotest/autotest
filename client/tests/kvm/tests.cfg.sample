@@ -1,0 +1,69 @@
+# Copy this file to tests.cfg and edit it.
+#
+# This file contains the test set definitions. Define your test sets here.
+include tests_base.cfg
+include cdkeys.cfg
+
+# Modify/comment the following lines if you wish to modify
+# the paths of the image files, ISO files, step files or qemu binaries.
+# If you keep these lines commented, all mentioned paths are expected
+# to be found in the KVM test dir (tests/kvm/).
+# On the example below:
+# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
+#   /usr/bin/qemu-img respectively.
+# * All image files are expected under tests/kvm/images/
+# * All iso files are expected under tests/kvm/isos/
+# * All step files are expected under tests/kvm/steps_data/
+#qemu_binary = /usr/bin/qemu-kvm
+#qemu_img_binary = /usr/bin/qemu-img
+#image_name.* ?<= /tmp/kvm_autotest_root/images/
+#cdrom.* ?<= /tmp/kvm_autotest_root/isos/
+#steps ?<= /tmp/kvm_autotest_root/steps_data/
+
+variants:
+    - @full:
+    - @sample1:
+        only Fedora Windows
+    - @sample2:
+        only qcow2
+        only ide
+        only default
+        only up
+        only Fedora.9.* RHEL.5.* Windows
+        only rtl8139
+    - @sample3:
+        only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
+        only rtl8139
+    - @fc8_step:
+        only qcow2
+        only ide
+        only default
+        only up
+        only Fedora.8.32
+        only install setup boot shutdown
+        only rtl8139
+        only hugepages
+    - @winXP_32_unattended:
+        only qcow2
+        only ide
+        only default
+        only up
+        only WinXP.32
+        no install setup
+        no hugepages
+        only unattended_install setup boot shutdown
+        only rtl8139
+    - @fc11_kickstart:
+        only qcow2
+        only ide
+        only default
+        only up
+        only Fedora.11.64
+        no install setup
+        no hugepages
+        only unattended_install boot shutdown
+        only rtl8139
+
+# Choose your test list from the testsets defined
+only fc11_kickstart
+

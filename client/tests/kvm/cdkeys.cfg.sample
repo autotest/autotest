@@ -1,4 +1,5 @@
-# Rename this file to kvm_cdkeys.cfg.
+# Copy this file to cdkeys.cfg and edit it.
+#
 # Replace the 'CDKEY' strings with real cdkeys where necessary.
 # Guests that do not require cdkeys by default are commented out.
 # You may uncomment them if necessary.
