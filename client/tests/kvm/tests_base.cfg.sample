@@ -1,3 +1,5 @@
+# Copy this file to tests_base.cfg and edit it.
+#
 # Define the objects we'll be using
 vms = vm1
 images = image1
@@ -217,7 +219,7 @@ variants:
         image_size_stg = 1G
         remove_image_stg = yes
         force_create_image_stg = yes
-        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[hsv]d[a-z] doesn/ {print $2}'`"
+        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[sv]d[a-z] doesn/ {print $2}'`"
         wait_secs_for_hook_up = 3
         kill_vm_on_error = yes
         variants:
@@ -266,7 +268,6 @@ variants:
 
     - physical_resources_check: install setup unattended_install
         type = physical_resources_check
-        nic_mode = tap
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
 # NICs
@@ -883,60 +884,3 @@ variants:
         pre_command = "/usr/bin/python scripts/hugepage.py /mnt/kvm_hugepage"
         extra_params += " -mem-path /mnt/kvm_hugepage"
 
-
-variants:
-    - @basic:
-        only Fedora Windows
-    - @full:
-    - @fc8_quick:
-        only qcow2
-        only ide
-        only default
-        only up
-        only Fedora.8.32
-        only install setup boot shutdown
-        only rtl8139
-        only hugepages
-    - @sample1:
-        only qcow2
-        only ide
-        only default
-        only up
-        only Fedora.9.* RHEL.5.* Windows
-        only rtl8139
-    - @custom:
-        only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
-        only rtl8139
-    - @winXP_32_unattended:
-        only qcow2
-        only ide
-        only default
-        only up
-        only WinXP.32
-        no install setup
-        no hugepages
-        only unattended_install setup boot shutdown
-        only rtl8139
-    - @fc11_kickstart:
-        only qcow2
-        only ide
-        only default
-        only up
-        only Fedora.11.64
-        no install setup
-        no hugepages
-        only unattended_install boot shutdown
-        only rtl8139
-
-
-
-include kvm_cdkeys.cfg
-
-
-image_name.* ?<= images/
-cdrom.* ?<= isos/
-steps ?<= steps/
-
-
-# Choose your test list
-only fc11_kickstart
