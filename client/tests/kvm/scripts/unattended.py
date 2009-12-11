@@ -53,7 +53,7 @@ class UnattendedInstall(object):
         cdrom_iso = os.environ['KVM_TEST_cdrom']
         self.unattended_file = os.environ['KVM_TEST_unattended_file']
 
-        self.qemu_img_bin = os.path.join(kvm_test_dir, 'qemu-img')
+        self.qemu_img_bin = os.environ['KVM_TEST_qemu_img_binary']
         self.cdrom_iso = os.path.join(kvm_test_dir, cdrom_iso)
         self.floppy_mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
         self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
