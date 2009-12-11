@@ -1,0 +1,85 @@
+# Copy this file to build.cfg and edit it.
+#
+# This configuration file holds the KVM build test config parameters.
+# The default is noinstall (won't attempt to build KVM), so if you stick with it
+# please make sure:
+# 1) You have setup symbolic links to qemu and qemu-img binaries on the
+#    KVM test dir.
+# 2) The appropriate KVM modules are already loaded on your machine.
+
+variants:
+    - build:
+        type = build
+        # Load modules built/installed by the build test?
+        load_modules = no
+        variants:
+            - release:
+                mode = release
+                ## Install from a kvm release. You can optionally specify
+                ## a release tag. If you omit it, the build test will get
+                ## the latest release tag available at that moment.
+                # release_tag = 84
+                release_dir = http://downloads.sourceforge.net/project/kvm/
+                release_listing = http://sourceforge.net/projects/kvm/files/
+            - snapshot:
+                mode = snapshot
+                ## Install from a kvm snapshot location. You can optionally
+                ## specify a snapshot date. If you omit it, the test will get
+                ## yesterday's snapshot.
+                # snapshot_date = 20090712
+                snapshot_dir = http://foo.org/kvm-snapshots/
+            - localtar:
+                mode = localtar
+                ## Install from tarball located on the host's filesystem.
+                tarball = /tmp/kvm-84.tar.gz
+            - localsrc:
+                mode = localsrc
+                ## Install from tarball located on the host's filesystem.
+                srcdir = /tmp/kvm-84
+            - git:
+                mode = git
+                ## Install KVM from git repositories.
+                ## If you provide only "git_repo" and "user_git_repo", the
+                ## build test will assume it will perform all build from the
+                ## userspace dir, building modules trough 
+                ## make -C kernel LINUX=%s sync. As of today (07-13-2009)
+                ## upstream needs 3 git repos:
+                ## * git_repo (linux sources)
+                ## * user_git_repo (qemu sources)
+                ## * kmod_repo" to build KVM userspace + kernel modules.
+                git_repo = git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git
+                # kernel_branch = kernel_branch_name
+                # kernel_lbranch = kernel_lbranch_name
+                # kernel_tag = kernel_tag_name
+                user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
+                # user_branch = user_branch_name
+                # user_lbranch = user_lbranch_name
+                # user_tag = user_tag_name
+                kmod_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git
+                # kmod_branch = kmod_branch_name
+                # kmod_lbranch = kmod_lbranch_name
+                # kmod_tag = kmod_tag_name
+            - koji:
+                mode = koji
+                ## Install KVM from koji (Fedora build server)
+                ## It is possible to install packages right from Koji if you
+                ## provide a release tag or a build.
+                ## Tag (if available)
+                koji_tag = dist-f11
+                ## Build (if available, is going to override tag).
+                koji_build = qemu-0.10-16.fc11
+                ## Command to interact with the build server
+                koji_cmd = /usr/bin/koji
+                ## The name of the source package that will be built
+                src_pkg = qemu
+                ## Name of the rpms we need installed
+                pkg_list = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
+                ## Paths of the qemu relevant executables that should be checked
+                qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
+
+
+# Choose your install method here. The variant noinstall is not defined by
+# default, so therefore no attempt to build/install KVM will be made by
+# default
+only build.noinstall
+
