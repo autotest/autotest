@@ -64,7 +64,7 @@ class test(common_test.base_test):
             logging.error('Crash handling system disabled: %s' % e)
         else:
             self.crash_handling_enabled = True
-            logging.debug('Crash handling system enabled.')
+            logging.debug('Crash handling system enabled')
 
 
     def crash_handler_report(self):
