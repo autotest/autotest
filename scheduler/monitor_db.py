@@ -1722,7 +1722,7 @@ class TaskWithJobKeyvals(object):
                                     for key, value in keyval_dict.iteritems())
         # always end with a newline to allow additional keyvals to be written
         keyval_contents += '\n'
-        _drone_manager.attach_file_to_execution(self._working_directory,
+        _drone_manager.attach_file_to_execution(self._working_directory(),
                                                 keyval_contents,
                                                 file_path=keyval_path)
 

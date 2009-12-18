@@ -161,6 +161,16 @@ class MockDroneManager(NullMethodObject):
         return self._pidfile_index[(working_directory, pidfile_name)]
 
 
+    def attached_files(self, working_directory):
+        """
+        Return dict mapping path to contents for attached files with specified
+        paths.
+        """
+        return dict((path, contents) for path, contents
+                    in self._attached_files.get(working_directory, [])
+                    if path is not None)
+
+
     # DroneManager emulation APIs for use by monitor_db
 
     def get_orphaned_autoserv_processes(self):
@@ -979,6 +989,18 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.JOB)
         self._run_dispatcher()
         self._check_entry_status(entry, HqeStatus.COMPLETED)
+
+
+    def test_pre_job_keyvals(self):
+        self.test_simple_job()
+        attached_files = self.mock_drone_manager.attached_files(
+                '1-my_user/host1')
+        job_keyval_path = '1-my_user/host1/keyval'
+        self.assert_(job_keyval_path in attached_files, attached_files)
+        keyval_contents = attached_files[job_keyval_path]
+        keyval_dict = dict(line.strip().split('=', 1)
+                           for line in keyval_contents.splitlines())
+        self.assert_('job_queued' in keyval_dict, keyval_dict)
 
 
 if __name__ == '__main__':
