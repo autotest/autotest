@@ -220,6 +220,7 @@ class MockDroneManager(NullMethodObject):
     def execute_command(self, command, working_directory, pidfile_name,
                         num_processes, log_file=None, paired_with_pidfile=None,
                         username=None):
+        logging.debug('Executing %s in %s', command, working_directory)
         pidfile_id = self._DummyPidfileId(working_directory, pidfile_name)
         if pidfile_id.key() in self._pidfile_index:
             pidfile_id = self._pidfile_index[pidfile_id.key()]
@@ -235,7 +236,7 @@ class MockDroneManager(NullMethodObject):
 
     def get_pidfile_contents(self, pidfile_id, use_second_read=False):
         if pidfile_id not in self._pidfiles:
-            print 'Request for nonexistent pidfile %s' % pidfile_id
+            logging.debug('Request for nonexistent pidfile %s' % pidfile_id)
         return self._pidfiles.get(pidfile_id, drone_manager.PidfileContents())
 
 
@@ -359,16 +360,20 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def _check_statuses(self, queue_entry, queue_entry_status,
                         host_status=None):
+        self._check_entry_status(queue_entry, queue_entry_status)
+        if host_status:
+            self._check_host_status(queue_entry.host, host_status)
+
+
+    def _check_entry_status(self, queue_entry, status):
         # update from DB
         queue_entry = self._update_instance(queue_entry)
-        self.assertEquals(queue_entry.status, queue_entry_status)
-        if host_status:
-            self.assertEquals(queue_entry.host.status, host_status)
+        self.assertEquals(queue_entry.status, status)
 
 
     def _check_host_status(self, host, status):
         # update from DB
-        host = models.Host.objects.get(id=host.id)
+        host = self._update_instance(host)
         self.assertEquals(host.status, status)
 
 
@@ -962,6 +967,18 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
         self._run_dispatcher()
         self._check_statuses(entry, HqeStatus.RUNNING, HostStatus.RUNNING)
+
+
+    def test_hostless_job(self):
+        job = self._create_job(hostless=True)
+        entry = job.hostqueueentry_set.all()[0]
+
+        self._run_dispatcher()
+        self._check_entry_status(entry, HqeStatus.RUNNING)
+
+        self.mock_drone_manager.finish_process(_PidfileType.JOB)
+        self._run_dispatcher()
+        self._check_entry_status(entry, HqeStatus.COMPLETED)
 
 
 if __name__ == '__main__':
