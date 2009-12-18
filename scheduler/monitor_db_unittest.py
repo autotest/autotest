@@ -1648,13 +1648,15 @@ class TopLevelFunctionsTest(unittest.TestCase):
     def test_autoserv_command_line(self):
         machines = 'abcd12,efgh34'
         extra_args = ['-Z', 'hello']
-        expected_command_line = [monitor_db._autoserv_path, '-p',
-                                 '-m', machines, '-r',
-                                 drone_manager.WORKING_DIRECTORY]
+        expected_command_line_base = set((monitor_db._autoserv_path, '-p',
+                                          '-m', machines, '-r',
+                                          drone_manager.WORKING_DIRECTORY))
 
-        command_line = monitor_db._autoserv_command_line(machines, extra_args)
-        self.assertEqual(expected_command_line + ['--verbose'] + extra_args,
-                         command_line)
+        expected_command_line = expected_command_line_base.union(
+                ['--verbose']).union(extra_args)
+        command_line = set(
+                monitor_db._autoserv_command_line(machines, extra_args))
+        self.assertEqual(expected_command_line, command_line)
 
         class FakeJob(object):
             owner = 'Bob'
@@ -1664,11 +1666,11 @@ class TopLevelFunctionsTest(unittest.TestCase):
         class FakeHQE(object):
             job = FakeJob
 
-        command_line = monitor_db._autoserv_command_line(
-                machines, extra_args=[], queue_entry=FakeHQE, verbose=False)
-        self.assertEqual(expected_command_line +
-                         ['-u', FakeJob.owner, '-l', FakeJob.name],
-                         command_line)
+        expected_command_line = expected_command_line_base.union(
+                ['-u', FakeJob.owner, '-l', FakeJob.name])
+        command_line = set(monitor_db._autoserv_command_line(
+                machines, extra_args=[], queue_entry=FakeHQE, verbose=False))
+        self.assertEqual(expected_command_line, command_line)
 
 
 if __name__ == '__main__':
