@@ -7,7 +7,7 @@ Autotest scheduler
 
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
-import itertools, logging, weakref
+import itertools, logging, weakref, gc
 import common
 import MySQLdb
 from autotest_lib.scheduler import scheduler_logging_config
@@ -19,6 +19,7 @@ from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
 from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
+from autotest_lib.scheduler import gc_stats
 
 BABYSITTER_PID_FILE_PREFIX = 'monitor_db_babysitter'
 PID_FILE_PREFIX = 'monitor_db'
@@ -629,6 +630,12 @@ class Dispatcher(object):
         self._24hr_upkeep = monitor_db_cleanup.TwentyFourHourUpkeep(_db)
         self._host_agents = {}
         self._queue_entry_agents = {}
+        self._tick_count = 0
+        self._last_garbage_stats_time = time.time()
+        self._seconds_between_garbage_stats = 60 * (
+                global_config.global_config.get_config_value(
+                        scheduler_config.CONFIG_SECTION,
+                        'gc_stats_interval_mins', type=int, default=6*60))
 
 
     def initialize(self, recover_hosts=True):
@@ -643,6 +650,7 @@ class Dispatcher(object):
 
 
     def tick(self):
+        self._garbage_collection()
         _drone_manager.refresh()
         self._run_cleanup()
         self._find_aborting()
@@ -654,11 +662,27 @@ class Dispatcher(object):
         self._handle_agents()
         _drone_manager.execute_actions()
         email_manager.manager.send_queued_emails()
+        self._tick_count += 1
 
 
     def _run_cleanup(self):
         self._periodic_cleanup.run_cleanup_maybe()
         self._24hr_upkeep.run_cleanup_maybe()
+
+
+    def _garbage_collection(self):
+        threshold_time = time.time() - self._seconds_between_garbage_stats
+        if threshold_time < self._last_garbage_stats_time:
+            # Don't generate these reports very often.
+            return
+
+        self._last_garbage_stats_time = time.time()
+        # Force a full level 0 collection (because we can, it doesn't hurt
+        # at this interval).
+        gc.collect()
+        logging.info('Logging garbage collector stats on tick %d.',
+                     self._tick_count)
+        gc_stats._log_garbage_collector_stats()
 
 
     def _register_agent_for_ids(self, agent_dict, object_ids, agent):
