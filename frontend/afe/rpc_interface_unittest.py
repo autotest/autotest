@@ -168,6 +168,16 @@ class RpcInterfaceTest(unittest.TestCase,
                           hosts=[1, 1])
 
 
+    def test_create_hostless_job(self):
+        job_id = self._create_job_helper(hostless=True)
+        job = models.Job.objects.get(pk=job_id)
+        queue_entries = job.hostqueueentry_set.all()
+        self.assertEquals(len(queue_entries), 1)
+        self.assertEquals(queue_entries[0].host, None)
+        self.assertEquals(queue_entries[0].meta_host, None)
+        self.assertEquals(queue_entries[0].atomic_group, None)
+
+
     def _setup_special_tasks(self):
         host = self.hosts[0]
 

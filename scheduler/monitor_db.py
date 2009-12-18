@@ -236,8 +236,10 @@ def _autoserv_command_line(machines, extra_args, job=None, queue_entry=None,
     @param queue_entry - A HostQueueEntry object - If supplied and no Job
             object was supplied, this will be used to lookup the Job object.
     """
-    autoserv_argv = [_autoserv_path, '-p', '-m', machines,
+    autoserv_argv = [_autoserv_path, '-p',
                      '-r', drone_manager.WORKING_DIRECTORY]
+    if machines:
+        autoserv_argv += ['-m', machines]
     if job or queue_entry:
         if not job:
             job = queue_entry.job
@@ -771,6 +773,8 @@ class Dispatcher(object):
 
         if queue_entry.status in (models.HostQueueEntry.Status.STARTING,
                                   models.HostQueueEntry.Status.RUNNING):
+            if queue_entry.is_hostless():
+                return HostlessQueueTask(queue_entry=queue_entry)
             return QueueTask(queue_entries=task_entries)
         if queue_entry.status == models.HostQueueEntry.Status.GATHERING:
             return GatherLogsTask(queue_entries=task_entries)
@@ -782,8 +786,11 @@ class Dispatcher(object):
 
 
     def _check_for_duplicate_host_entries(self, task_entries):
+        parsing_status = models.HostQueueEntry.Status.PARSING
         for task_entry in task_entries:
-            if task_entry.status != models.HostQueueEntry.Status.PARSING:
+            using_host = (task_entry.host is not None
+                          and task_entry.status != parsing_status)
+            if using_host:
                 self._assert_host_has_no_agent(task_entry)
 
 
@@ -1009,6 +1016,10 @@ class Dispatcher(object):
             self._run_queue_entry(queue_entry, host)
 
 
+    def _schedule_hostless_job(self, queue_entry):
+        self.add_agent_task(HostlessQueueTask(queue_entry))
+
+
     def _schedule_new_jobs(self):
         queue_entries = self._refresh_pending_queue_entries()
         if not queue_entries:
@@ -1020,6 +1031,8 @@ class Dispatcher(object):
                     and queue_entry.host_id is None)
             if is_unassigned_atomic_group:
                 self._schedule_atomic_group(queue_entry)
+            elif queue_entry.is_hostless():
+                self._schedule_hostless_job(queue_entry)
             else:
                 assigned_host = self._host_scheduler.find_eligible_host(
                         queue_entry)
@@ -1507,6 +1520,9 @@ class AgentTask(object):
         To be overridden.
         """
         self.cleanup()
+        logging.info("%s finished with success=%s", type(self).__name__,
+                     self.success)
+
 
 
     def start(self):
@@ -1946,12 +1962,14 @@ class VerifyTask(PreJobTask):
                 self.host.set_status(models.Host.Status.READY)
 
 
-class QueueTask(AgentTask, TaskWithJobKeyvals):
-    def __init__(self, queue_entries, cmd=None):
-        super(QueueTask, self).__init__()
+class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
+    """
+    Common functionality for QueueTask and HostlessQueueTask
+    """
+    def __init__(self, queue_entries):
+        super(AbstractQueueTask, self).__init__()
         self.job = queue_entries[0].job
         self.queue_entries = queue_entries
-        self._set_ids(queue_entries=queue_entries)
 
 
     def _keyval_path(self):
@@ -1977,18 +1995,6 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
 
     def prolog(self):
-        for entry in self.queue_entries:
-            if entry.status not in (models.HostQueueEntry.Status.STARTING,
-                                    models.HostQueueEntry.Status.RUNNING):
-                raise SchedulerError('Queue task attempting to start '
-                                     'entry with invalid status %s: %s'
-                                     % (entry.status, entry))
-            if entry.host.status not in (models.Host.Status.PENDING,
-                                         models.Host.Status.RUNNING):
-                raise SchedulerError('Queue task attempting to start on queue '
-                                     'entry with invalid host status %s: %s'
-                                     % (entry.host.status, entry))
-
         queued_key, queued_time = self._job_queued_keyval(self.job)
         keyval_dict = {queued_key: queued_time}
         group_name = self.queue_entries[0].get_group_name()
@@ -1996,15 +2002,8 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
             keyval_dict['host_group_name'] = group_name
         self._write_keyvals_before_job(keyval_dict)
         for queue_entry in self.queue_entries:
-            self._write_host_keyvals(queue_entry.host)
             queue_entry.set_status(models.HostQueueEntry.Status.RUNNING)
-            queue_entry.update_field('started_on', datetime.datetime.now())
-            queue_entry.host.set_status(models.Host.Status.RUNNING)
-            queue_entry.host.update_field('dirty', 1)
-        if self.job.synch_count == 1 and len(self.queue_entries) == 1:
-            # TODO(gps): Remove this if nothing needs it anymore.
-            # A potential user is: tko/parser
-            self.job.write_to_machines_file(self.queue_entries[0])
+            queue_entry.set_started_on_now()
 
 
     def _write_lost_process_error_file(self):
@@ -2021,9 +2020,6 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
         if self.monitor.lost_process:
             self._write_lost_process_error_file()
-
-        for queue_entry in self.queue_entries:
-            queue_entry.set_status(models.HostQueueEntry.Status.GATHERING)
 
 
     def _write_status_comment(self, comment):
@@ -2064,15 +2060,52 @@ class QueueTask(AgentTask, TaskWithJobKeyvals):
 
 
     def abort(self):
-        super(QueueTask, self).abort()
+        super(AbstractQueueTask, self).abort()
         self._log_abort()
         self._finish_task()
 
 
     def epilog(self):
-        super(QueueTask, self).epilog()
+        super(AbstractQueueTask, self).epilog()
         self._finish_task()
-        logging.info("queue_task finished with success=%s", self.success)
+
+
+class QueueTask(AbstractQueueTask):
+    def __init__(self, queue_entries):
+        super(QueueTask, self).__init__(queue_entries)
+        self._set_ids(queue_entries=queue_entries)
+
+
+    def prolog(self):
+        for entry in self.queue_entries:
+            if entry.status not in (models.HostQueueEntry.Status.STARTING,
+                                    models.HostQueueEntry.Status.RUNNING):
+                raise SchedulerError('Queue task attempting to start '
+                                     'entry with invalid status %s: %s'
+                                     % (entry.status, entry))
+            if entry.host.status not in (models.Host.Status.PENDING,
+                                         models.Host.Status.RUNNING):
+                raise SchedulerError('Queue task attempting to start on queue '
+                                     'entry with invalid host status %s: %s'
+                                     % (entry.host.status, entry))
+
+        super(QueueTask, self).prolog()
+
+        for queue_entry in self.queue_entries:
+            self._write_host_keyvals(queue_entry.host)
+            queue_entry.host.set_status(models.Host.Status.RUNNING)
+            queue_entry.host.update_field('dirty', 1)
+        if self.job.synch_count == 1 and len(self.queue_entries) == 1:
+            # TODO(gps): Remove this if nothing needs it anymore.
+            # A potential user is: tko/parser
+            self.job.write_to_machines_file(self.queue_entries[0])
+
+
+    def _finish_task(self):
+        super(QueueTask, self)._finish_task()
+
+        for queue_entry in self.queue_entries:
+            queue_entry.set_status(models.HostQueueEntry.Status.GATHERING)
 
 
 class PostJobTask(AgentTask):
@@ -2368,6 +2401,30 @@ class FinalReparseTask(PostJobTask):
         super(FinalReparseTask, self).finished(success)
         if self._parse_started():
             self._decrement_running_parses()
+
+
+class HostlessQueueTask(AbstractQueueTask):
+    def __init__(self, queue_entry):
+        super(HostlessQueueTask, self).__init__([queue_entry])
+        self.queue_entry_ids = [queue_entry.id]
+
+
+    def prolog(self):
+        self.queue_entries[0].update_field('execution_subdir', 'hostless')
+        super(HostlessQueueTask, self).prolog()
+
+
+    def _final_status(self):
+        if self.queue_entries[0].aborted:
+            return models.HostQueueEntry.Status.ABORTED
+        if self.monitor.exit_code() == 0:
+            return models.HostQueueEntry.Status.COMPLETED
+        return models.HostQueueEntry.Status.FAILED
+
+
+    def _finish_task(self):
+        super(HostlessQueueTask, self)._finish_task()
+        self.queue_entries[0].set_status(self._final_status())
 
 
 class DBError(Exception):
@@ -2752,10 +2809,6 @@ class HostQueueEntry(DBObject):
         self.host = host
 
 
-    def get_host(self):
-        return self.host
-
-
     def queue_log_record(self, log_line):
         now = str(datetime.datetime.now())
         _drone_manager.write_lines_to_file(self.queue_log_path,
@@ -2779,8 +2832,8 @@ class HostQueueEntry(DBObject):
 
     def set_execution_subdir(self, subdir=None):
         if subdir is None:
-            assert self.get_host()
-            subdir = self.get_host().hostname
+            assert self.host
+            subdir = self.host.hostname
         self.update_field('execution_subdir', subdir)
 
 
@@ -3017,6 +3070,16 @@ class HostQueueEntry(DBObject):
         return self.execution_tag()
 
 
+    def set_started_on_now(self):
+        self.update_field('started_on', datetime.datetime.now())
+
+
+    def is_hostless(self):
+        return (self.host_id is None
+                and self.meta_host is None
+                and self.atomic_group_id is None)
+
+
 class Job(DBObject):
     _table_name = 'jobs'
     _fields = ('id', 'owner', 'name', 'priority', 'control_file',
@@ -3203,7 +3266,7 @@ class Job(DBObject):
 
 
     def write_to_machines_file(self, queue_entry):
-        hostname = queue_entry.get_host().hostname
+        hostname = queue_entry.host.hostname
         file_path = os.path.join(self.tag(), '.machines')
         _drone_manager.write_lines_to_file(file_path, [hostname])
 
@@ -3255,8 +3318,9 @@ class Job(DBObject):
         assert queue_entries
         execution_path = queue_entries[0].execution_path()
         control_path = self._write_control_file(execution_path)
-        hostnames = ','.join([entry.get_host().hostname
-                              for entry in queue_entries])
+        hostnames = ','.join(entry.host.hostname
+                             for entry in queue_entries
+                             if not entry.is_hostless())
 
         execution_tag = queue_entries[0].execution_tag()
         params = _autoserv_command_line(
@@ -3275,7 +3339,7 @@ class Job(DBObject):
         if self.reboot_before == models.RebootBefore.ALWAYS:
             return True
         elif self.reboot_before == models.RebootBefore.IF_DIRTY:
-            return queue_entry.get_host().dirty
+            return queue_entry.host.dirty
         return False
 
 
@@ -3313,7 +3377,7 @@ class Job(DBObject):
 
     def _assign_new_group(self, queue_entries, group_name=''):
         if len(queue_entries) == 1:
-            group_subdir_name = queue_entries[0].get_host().hostname
+            group_subdir_name = queue_entries[0].host.hostname
         else:
             group_subdir_name = self._next_group_name(group_name)
             logging.info('Running synchronous job %d hosts %s as %s',

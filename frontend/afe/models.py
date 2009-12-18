@@ -695,10 +695,17 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     def queue(self, hosts, atomic_group=None, is_template=False):
         """Enqueue a job on the given hosts."""
-        if atomic_group and not hosts:
-            # No hosts or labels are required to queue an atomic group
-            # Job.  However, if they are given, we respect them below.
-            atomic_group.enqueue_job(self, is_template=is_template)
+        if not hosts:
+            if atomic_group:
+                # No hosts or labels are required to queue an atomic group
+                # Job.  However, if they are given, we respect them below.
+                atomic_group.enqueue_job(self, is_template=is_template)
+            else:
+                # hostless job
+                entry = HostQueueEntry.create(job=self, is_template=is_template)
+                entry.save()
+            return
+
         for host in hosts:
             host.enqueue_job(self, atomic_group=atomic_group,
                              is_template=is_template)

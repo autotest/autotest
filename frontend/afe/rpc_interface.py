@@ -403,7 +403,7 @@ def create_job(name, priority, control_file, control_type,
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
-               reboot_after=None, parse_failed_repair=None):
+               reboot_after=None, parse_failed_repair=None, hostless=False):
     """\
     Create and enqueue a job.
 
@@ -424,6 +424,7 @@ def create_job(name, priority, control_file, control_type,
     @param reboot_after Never, If all tests passed, or Always
     @param parse_failed_repair if true, results of failed repairs launched by
     this job will be parsed as part of the job.
+    @param hostless if true, create a hostless job
 
     @param hosts List of hosts to run job on.
     @param meta_hosts List where each entry is a label name, and for each entry
@@ -437,12 +438,24 @@ def create_job(name, priority, control_file, control_type,
     user = thread_local.get_user()
     owner = user.login
     # input validation
-    if not (hosts or meta_hosts or one_time_hosts or atomic_group_name):
+    if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
+            or hostless):
         raise model_logic.ValidationError({
             'arguments' : "You must pass at least one of 'hosts', "
                           "'meta_hosts', 'one_time_hosts', "
-                          "or 'atomic_group_name'"
+                          "'atomic_group_name', or 'hostless'"
             })
+
+    if hostless:
+        if hosts or meta_hosts or one_time_hosts or atomic_group_name:
+            raise model_logic.ValidationError({
+                    'hostless': 'Hostless jobs cannot include any hosts!'})
+        server_type = models.Job.ControlType.get_string(
+                models.Job.ControlType.SERVER)
+        if control_type != server_type:
+            raise model_logic.ValidationError({
+                    'control_type': 'Hostless jobs cannot use client-side '
+                                    'control files'})
 
     labels_by_name = dict((label.name, label)
                           for label in models.Label.objects.all())

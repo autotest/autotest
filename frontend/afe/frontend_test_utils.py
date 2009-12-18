@@ -103,7 +103,7 @@ class FrontendTestMixin(object):
 
 
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=False,
-                    synchronous=False, atomic_group=None):
+                    synchronous=False, atomic_group=None, hostless=False):
         """
         Create a job row in the test database.
 
@@ -147,6 +147,10 @@ class FrontendTestMixin(object):
             models.HostQueueEntry.objects.create(job=job,
                                                  status=status,
                                                  atomic_group_id=atomic_group)
+
+        if hostless:
+            assert not (hosts or metahosts or atomic_group)
+            models.HostQueueEntry.objects.create(job=job, status=status)
         return job
 
 
