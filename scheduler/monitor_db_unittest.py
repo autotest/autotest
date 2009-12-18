@@ -1,18 +1,19 @@
 #!/usr/bin/python
 
-import unittest, time, subprocess, os, StringIO, tempfile, datetime, shutil
-import logging
+import time, subprocess, os, StringIO, tempfile, datetime, shutil
+import gc, logging
 import common
 import MySQLdb
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils
 from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
+from autotest_lib.client.common_lib.test_utils import unittest
 from autotest_lib.database import database_connection, migrate
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
-from autotest_lib.scheduler import scheduler_config
+from autotest_lib.scheduler import scheduler_config, gc_stats
 
 _DEBUG = False
 
@@ -767,6 +768,22 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE hosts SET status="Repair Failed"')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
+
+
+    def test_garbage_collection(self):
+        self.god.stub_with(self._dispatcher, '_seconds_between_garbage_stats',
+                           999999)
+        self.god.stub_function(gc, 'collect')
+        self.god.stub_function(gc_stats, '_log_garbage_collector_stats')
+        gc.collect.expect_call().and_return(0)
+        gc_stats._log_garbage_collector_stats.expect_call()
+        # Force a garbage collection run
+        self._dispatcher._last_garbage_stats_time = 0
+        self._dispatcher._garbage_collection()
+        # The previous call should have reset the time, it won't do anything
+        # the second time.  If it does, we'll get an unexpected call.
+        self._dispatcher._garbage_collection()
+
 
 
 class DispatcherThrottlingTest(BaseSchedulerTest):
