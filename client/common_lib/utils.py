@@ -373,6 +373,10 @@ def run(command, timeout=None, ignore_status=False,
 
     @raise CmdError: the exit code of the command execution was not 0
     """
+    if isinstance(args, basestring):
+        raise TypeError('Got a string for the "args" keyword argument, '
+                        'need a sequence.')
+
     for arg in args:
         command += ' "%s"' % sh_escape(arg)
     if stderr_is_expected is None:
