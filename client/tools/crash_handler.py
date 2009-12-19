@@ -58,14 +58,19 @@ def get_results_dir_list(pid, core_dir_basename):
         pid_dir_dict[a_pid] = os.path.join(results_dir, core_dir_basename)
 
     results_dir_list = []
-    while pid > 1:
-        if pid in pid_dir_dict:
-            results_dir_list.append(pid_dir_dict[pid])
-        pid = get_parent_pid(pid)
+    # If a bug occurs and we can't grab the PID for the process that died, just
+    # return all directories available and write to all of them.
+    if pid is not None:
+        while pid > 1:
+            if pid in pid_dir_dict:
+                results_dir_list.append(pid_dir_dict[pid])
+            pid = get_parent_pid(pid)
+    else:
+        results_dir_list = pid_dir_dict.values()
 
-    return (results_dir_list or
-           pid_dir_dict.values() or
-           [os.path.join("/tmp", core_dir_basename)])
+        return (results_dir_list or
+               pid_dir_dict.values() or
+               [os.path.join("/tmp", core_dir_basename)])
 
 
 def get_info_from_core(path):
@@ -90,49 +95,77 @@ def get_info_from_core(path):
 
 if __name__ == "__main__":
     syslog.openlog('AutotestCrashHandler', 0, syslog.LOG_DAEMON)
-    (crashed_pid, time, uid, signal, hostname, exe) = sys.argv[1:]
-    core_name = 'core'
-    report_name = 'report'
-    core_dir_name = 'crash.%s.%s' % (exe, crashed_pid)
-    core_tmp_dir = tempfile.mkdtemp(prefix='core_', dir='/tmp')
-    core_tmp_path = os.path.join(core_tmp_dir, core_name)
-    gdb_command_path = os.path.join(core_tmp_dir, 'gdb_command')
-
     try:
-        # Get the filtered results dir list
-        current_results_dir_list = get_results_dir_list(crashed_pid,
-                                                        core_dir_name)
+        try:
+            full_functionality = False
+            try:
+                (crashed_pid, time, uid, signal, hostname, exe) = sys.argv[1:]
+                full_functionality = True
+            except ValueError, e:
+                # Probably due a kernel bug, we can't exactly map the parameters
+                # passed to this script. So we have to reduce the functionality
+                # of the script (just write the core at a fixed place).
+                syslog.syslog("Unable to unpack parameters passed to the "
+                              "script. Operating with limited functionality.")
 
-        # Write the core file to the appropriate directory
-        # (we are piping it to this script)
-        core_file = sys.stdin.read()
-        write_to_file(core_tmp_path, core_file)
+            core_name = 'core'
+            report_name = 'report'
 
-        # Write a command file for GDB
-        gdb_command = 'bt full\n'
-        write_to_file(gdb_command_path, gdb_command)
+            core_tmp_dir = tempfile.mkdtemp(prefix='core_', dir='/tmp')
+            core_tmp_path = os.path.join(core_tmp_dir, core_name)
+            gdb_command_path = os.path.join(core_tmp_dir, 'gdb_command')
 
-        # Get full command path
-        exe_path = get_info_from_core(core_tmp_path)['full_exe_path']
+            if full_functionality:
+                core_dir_name = 'crash.%s.%s' % (exe, crashed_pid)
+            else:
+                crashed_pid = None
+                core_dir_name = os.path.basename(core_tmp_dir)
 
-        # Take a backtrace from the running program
-        gdb_cmd = 'gdb -e %s -c %s -x %s -n -batch -quiet' % (exe_path,
-                                                              core_tmp_path,
-                                                              gdb_command_path)
-        backtrace = commands.getoutput(gdb_cmd)
-        # Sanitize output before passing it to the report
-        backtrace = backtrace.decode('utf-8', 'ignore')
+            # Get the filtered results dir list
+            current_results_dir_list = get_results_dir_list(crashed_pid,
+                                                            core_dir_name)
 
-        # Composing the format_dict
-        format_dict = {}
-        format_dict['program'] = exe_path
-        format_dict['pid'] = crashed_pid
-        format_dict['signal'] = signal
-        format_dict['hostname'] = hostname
-        format_dict['time'] = time
-        format_dict['backtrace'] = backtrace
+            # Write the core file to the appropriate directory
+            # (we are piping it to this script)
+            core_file = sys.stdin.read()
+            # Write the core file to its temporary location
+            write_to_file(core_tmp_path, core_file)
 
-        report = """Autotest crash report
+            if not full_functionality:
+                syslog.syslog(syslog.LOG_INFO, "Writing core files to %s" %
+                              current_results_dir_list)
+                for result_dir in current_results_dir_list:
+                    if not os.path.isdir(result_dir):
+                        os.makedirs(result_dir)
+                    core_path = os.path.join(result_dir, 'core')
+                    write_to_file(core_path, core_file)
+                raise ValueError("Incorrect params passed to handler "
+                                 "script: %s." % sys.argv[1:])
+
+            # Write a command file for GDB
+            gdb_command = 'bt full\n'
+            write_to_file(gdb_command_path, gdb_command)
+
+            # Get full command path
+            exe_path = get_info_from_core(core_tmp_path)['full_exe_path']
+
+            # Take a backtrace from the running program
+            gdb_cmd = ('gdb -e %s -c %s -x %s -n -batch -quiet' %
+                       (exe_path, core_tmp_path, gdb_command_path))
+            backtrace = commands.getoutput(gdb_cmd)
+            # Sanitize output before passing it to the report
+            backtrace = backtrace.decode('utf-8', 'ignore')
+
+            # Composing the format_dict
+            format_dict = {}
+            format_dict['program'] = exe_path
+            format_dict['pid'] = crashed_pid
+            format_dict['signal'] = signal
+            format_dict['hostname'] = hostname
+            format_dict['time'] = time
+            format_dict['backtrace'] = backtrace
+
+            report = """Autotest crash report
 
 Program: %(program)s
 PID: %(pid)s
@@ -143,24 +176,26 @@ Program backtrace:
 %(backtrace)s
 """ % format_dict
 
-        syslog.syslog(syslog.LOG_INFO,
-                      "Application %s, PID %s crashed" %
-                      (exe_path, crashed_pid))
+            syslog.syslog(syslog.LOG_INFO,
+                          "Application %s, PID %s crashed" %
+                          (exe_path, crashed_pid))
 
-        # Now, for all results dir, let's create the directory if it doesn't
-        # exist, and write the core file and the report to it.
-        syslog.syslog(syslog.LOG_INFO,
-                      "Writing core files and reports to %s" %
-                      current_results_dir_list)
-        for result_dir in current_results_dir_list:
-            if not os.path.isdir(result_dir):
-                os.makedirs(result_dir)
-            core_path = os.path.join(result_dir, 'core')
-            write_to_file(core_path, core_file)
-            report_path = os.path.join(result_dir, 'report')
-            write_to_file(report_path, report)
+            # Now, for all results dir, let's create the directory if it doesn't
+            # exist, and write the core file and the report to it.
+            syslog.syslog(syslog.LOG_INFO,
+                          "Writing core files and reports to %s" %
+                          current_results_dir_list)
+            for result_dir in current_results_dir_list:
+                if not os.path.isdir(result_dir):
+                    os.makedirs(result_dir)
+                core_path = os.path.join(result_dir, 'core')
+                write_to_file(core_path, core_file)
+                report_path = os.path.join(result_dir, 'report')
+                write_to_file(report_path, report)
+
+        except Exception, e:
+            syslog.syslog("Crash handler had a problem: %s" % e)
 
     finally:
-        # Cleanup temporary directories
-        shutil.rmtree(core_tmp_dir)
-
+        if os.path.isdir(core_tmp_dir):
+            shutil.rmtree(core_tmp_dir)
