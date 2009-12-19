@@ -142,20 +142,41 @@ class AFE(RpcClient):
             return statuses
 
 
-    def get_hosts(self, **dargs):
-        hosts = self.run('get_hosts', **dargs)
-        return [Host(self, h) for h in hosts]
-
-
-    def reverify_hosts(self, hostnames=(), status=None, label=None):
-        query_args = dict(locked=False,
-                          aclgroup__users__login=self.user)
+    @staticmethod
+    def _dict_for_host_query(hostnames=(), status=None, label=None):
+        query_args = {}
         if hostnames:
             query_args['hostname__in'] = hostnames
         if status:
             query_args['status'] = status
         if label:
             query_args['labels__name'] = label
+        return query_args
+
+
+    def get_hosts(self, hostnames=(), status=None, label=None, **dargs):
+        query_args = dict(dargs)
+        query_args.update(self._dict_for_host_query(hostnames=hostnames,
+                                                    status=status,
+                                                    label=label))
+        hosts = self.run('get_hosts', **query_args)
+        return [Host(self, h) for h in hosts]
+
+
+    def get_hostnames(self, status=None, label=None, **dargs):
+        """Like get_hosts() but returns hostnames instead of Host objects."""
+        # This implementation can be replaced with a more efficient one
+        # that does not query for entire host objects in the future.
+        return [host_obj.hostname for host_obj in
+                self.get_hosts(status=status, label=label, **dargs)]
+
+
+    def reverify_hosts(self, hostnames=(), status=None, label=None):
+        query_args = dict(locked=False,
+                          aclgroup__users__login=self.user)
+        query_args.update(self._dict_for_host_query(hostnames=hostnames,
+                                                    status=status,
+                                                    label=label))
         return self.run('reverify_hosts', **query_args)
 
 
