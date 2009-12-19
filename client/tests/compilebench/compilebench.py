@@ -10,6 +10,8 @@ class compilebench(test.test):
     def setup(self, tarball = 'compilebench-0.6.tar.gz'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
+        os.chdir(self.srcdir)
+        utils.system('patch -p1 < ../compilebench.patch')
 
 
     def run_once(self, dir=None, num_kernel_trees=10, num_random_runs=30):
