@@ -28,3 +28,7 @@ class barriertest(test.test):
 
         profilers.stop(self)
         profilers.report(self)
+
+        b4 = self.job.barrier(hostid, "finish_profilers", timeout_stop,
+                              port=11920)
+        b4.rendezvous_servers(masterid, hostid)
