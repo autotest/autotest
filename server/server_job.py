@@ -111,8 +111,6 @@ class base_server_job(base_job.base_job):
         self._ssh_port = ssh_port
         self._ssh_pass = ssh_pass
         self.tag = tag
-        self.default_profile_only = False
-        self.run_test_cleanup = True
         self.last_boot_tag = None
         self.hosts = set()
         self.drop_caches = False
@@ -294,25 +292,6 @@ class base_server_job(base_job.base_job):
         Pause or stop external logging mechanism.
         """
         pass
-
-
-    def set_default_profile_only(self, val):
-        """ Set the default_profile_only mode. """
-        self.default_profile_only = val
-
-
-    def enable_test_cleanup(self):
-        """
-        By default tests run test.cleanup
-        """
-        self.run_test_cleanup = True
-
-
-    def disable_test_cleanup(self):
-        """
-        By default tests do not run test.cleanup
-        """
-        self.run_test_cleanup = False
 
 
     def use_external_logging(self):

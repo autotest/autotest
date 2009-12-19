@@ -1,4 +1,4 @@
-import errno, os
+import os, copy, logging, errno, tempfile, cPickle as pickle
 
 from autotest_lib.client.common_lib import autotemp, error
 
@@ -82,7 +82,7 @@ class job_directory(object):
             try:
                 os.makedirs(self.path)
             except OSError, e:
-                if e.errno != errno.EEXIST:
+                if e.errno != errno.EEXIST or not os.path.isdir(self.path):
                     raise self.UncreatableDirectoryException(self.path, e)
         elif not os.path.isdir(self.path):
             raise self.MissingDirectoryException(self.path)
@@ -111,6 +111,199 @@ class job_directory(object):
             else:
                 return underlying_attribute.path
         return dir_property
+
+
+class job_state(object):
+    """A class for managing explicit job and user state, optionally persistent.
+
+    The class allows you to save state by name (like a dictionary). Any state
+    stored in this class should be picklable and deep copyable. While this is
+    not enforced it is recommended that only valid python identifiers be used
+    as names. Additionally, the namespace 'stateful_property' is used for
+    storing the valued associated with properties constructed using the
+    property_factory method.
+    """
+
+    NO_DEFAULT = object()
+    PICKLE_PROTOCOL = 2  # highest protocol available in python 2.4
+
+
+    def __init__(self):
+        """Initialize the job state."""
+        self._state = {}
+        self._backing_file = None
+
+
+    def get(self, namespace, name, default=NO_DEFAULT):
+        """Returns the value associated with a particular name.
+
+        @param namespace The namespace that the property should be stored in.
+        @param name The name the value was saved with.
+        @param default A default value to return if no state is currently
+            associated with var.
+
+        @returns A deep copy of the value associated with name. Note that this
+            explicitly returns a deep copy to avoid problems with mutable
+            values; mutations are not persisted or shared.
+        @raises KeyError raised when no state is associated with var and a
+            default value is not provided.
+        """
+        if self.has(namespace, name):
+            return copy.deepcopy(self._state[namespace][name])
+        elif default is self.NO_DEFAULT:
+            raise KeyError('No key %s in namespace %s' % (name, namespace))
+        else:
+            return default
+
+
+    def read_from_file(self, file_path):
+        """Read in any state from the file at file_path.
+
+        Any state specified only in-memory will be preserved. Any state
+        specified on-disk will be set in-memory, even if an in-memory
+        setting already exists. In the special case that the file does
+        not exist it is treated as empty and not a failure.
+        """
+        # if the file exists, pull out its contents
+        if file_path:
+            try:
+                on_disk_state = pickle.load(open(file_path))
+            except IOError, e:
+                if e.errno == errno.ENOENT:
+                    logging.info('Persistent state file %s does not exist',
+                                 file_path)
+                    return
+                else:
+                    raise
+        else:
+            return
+
+        # merge the on-disk state with the in-memory state
+        for namespace, namespace_dict in on_disk_state.iteritems():
+            in_memory_namespace = self._state.setdefault(namespace, {})
+            for name, value in namespace_dict.iteritems():
+                if name in in_memory_namespace:
+                    if in_memory_namespace[name] != value:
+                        logging.info('Persistent value of %s.%s from %s '
+                                     'overridding existing in-memory value',
+                                     namespace, name, file_path)
+                        in_memory_namespace[name] = value
+                    else:
+                        logging.debug('Value of %s.%s is unchanged, skipping'
+                                      'import', namespace, name)
+                else:
+                    logging.debug('Importing %s.%s from state file %s',
+                                  namespace, name, file_path)
+                    in_memory_namespace[name] = value
+
+        # flush the merged state out to disk
+        self._write_to_backing_file()
+
+
+    def write_to_file(self, file_path):
+        """Write out the current state to the given path.
+
+        @param file_path The path where the state should be written out to.
+            Must be writable.
+        """
+        outfile = open(file_path, 'w')
+        try:
+            pickle.dump(self._state, outfile, self.PICKLE_PROTOCOL)
+        finally:
+            outfile.close()
+        logging.debug('Persistent state flushed to %s', file_path)
+
+
+    def _write_to_backing_file(self):
+        """Flush the current state to the backing file."""
+        if self._backing_file:
+            self.write_to_file(self._backing_file)
+
+
+    def set_backing_file(self, file_path):
+        """Change the path used as the backing file for the persistent state.
+
+        When a new backing file is specified if a file already exists then
+        its contents will be added into the current state, with conflicts
+        between the file and memory being resolved in favor of the file
+        contents. The file will then be kept in sync with the (combined)
+        in-memory state. The syncing can be disabled by setting this to None.
+
+        @param file_path A path on the filesystem that can be read from and
+            written to, or None to turn off the backing store.
+        """
+        self._backing_file = None
+        self.read_from_file(file_path)
+        self._backing_file = file_path
+        self._write_to_backing_file()
+
+
+    def set(self, namespace, name, value):
+        """Saves the value given with the provided name.
+
+        @param namespace The namespace that the property should be stored in.
+        @param name The name the value should be saved with.
+        @param value The value to save.
+        """
+        namespace_dict = self._state.setdefault(namespace, {})
+        namespace_dict[name] = copy.deepcopy(value)
+        self._write_to_backing_file()
+        logging.debug('Persistent state %s.%s now set to %r', namespace,
+                      name, value)
+
+
+    def has(self, namespace, name):
+        """Return a boolean indicating if namespace.name is defined.
+
+        @param namespace The namespace to check for a definition.
+        @param name The name to check for a definition.
+
+        @returns True if the given name is defined in the given namespace and
+            False otherwise.
+        """
+        return namespace in self._state and name in self._state[namespace]
+
+
+    def discard(self, namespace, name):
+        """If namespace.name is a defined value, deletes it.
+
+        @param namespace The namespace that the property is stored in.
+        @param name The name the value is saved with.
+        """
+        if self.has(namespace, name):
+            del self._state[namespace][name]
+            if len(self._state[namespace]) == 0:
+                del self._state[namespace]
+            self._write_to_backing_file()
+            logging.debug('Persistent state %s.%s deleted', namespace, name)
+        else:
+            logging.debug(
+                'Persistent state %s.%s not defined so nothing is discarded',
+                namespace, name)
+
+
+    @staticmethod
+    def property_factory(state_attribute, property_attribute, default):
+        """
+        Create a property object for an attribute using self.get and self.set.
+
+        @param state_attribute A string with the name of the attribute on
+            job that contains the job_state instance.
+        @param property_attribute A string with the name of the attribute
+            this property is exposed as.
+        @param default A default value that should be used for this property
+            if it is not set.
+
+        @returns A read-write property object that performs self.get calls
+            to read the value and self.set calls to set it.
+        """
+        def getter(job):
+            state = getattr(job, state_attribute)
+            return state.get('stateful_property', property_attribute, default)
+        def setter(job, value):
+            state = getattr(job, state_attribute)
+            state.set('stateful_property', property_attribute, value)
+        return property(getter, setter)
 
 
 class base_job(object):
@@ -161,16 +354,20 @@ class base_job(object):
             a name of the form NUMBER-USERNAME/HOSTNAME. [OPTIONAL]
 
         last_boot_tag
-            The label of the kernel from the last reboot. [OPTIONAL]
+            The label of the kernel from the last reboot. [OPTIONAL,PERSISTENT]
         default_profile_only
             A boolean indicating the default value of profile_only used
-            by test.execute.
+            by test.execute. [PERSISTENT]
         drop_caches
             A boolean indicating if caches should be dropped before each
             test is executed.
         drop_caches_between_iterations
             A boolean indicating if caches should be dropped before each
             test iteration is executed.
+        run_test_cleanup
+            A boolean indicating if test.cleanup should be run by default
+            after a test completes, if the run_cleanup argument is not
+            specified. [PERSISTENT]
 
         num_tests_run
             The number of tests run during the job. [OPTIONAL]
@@ -224,8 +421,17 @@ class base_job(object):
     conmuxdir = job_directory.property_factory('conmuxdir')
 
 
-    # capture the dependency of job_directory with a factory method
+    # all the persistent properties
+    default_profile_only = job_state.property_factory(
+        '_state', 'default_profile_only', False)
+    run_test_cleanup = job_state.property_factory(
+        '_state', 'run_test_cleanup', True)
+    last_boot_tag = job_state.property_factory('_state', 'last_boot_tag', None)
+
+
+    # capture the dependency on several helper classes with factories
     _job_directory = job_directory
+    _job_state = job_state
 
 
     def __init__(self, *args, **dargs):
@@ -243,6 +449,9 @@ class base_job(object):
         self._resultdir = self._job_directory(
             self._find_resultdir(*args, **dargs), True)
         self._execution_contexts = []
+
+        # initialize all the job state
+        self._state = self._job_state()
 
 
     @classmethod
@@ -315,3 +524,74 @@ class base_job(object):
         if not self._execution_contexts:
             raise IndexError('No old execution context to restore')
         self._resultdir = self._execution_contexts.pop()
+
+
+    def get_state(self, name, default=_job_state.NO_DEFAULT):
+        """Returns the value associated with a particular name.
+
+        @param name The name the value was saved with.
+        @param default A default value to return if no state is currently
+            associated with var.
+
+        @returns A deep copy of the value associated with name. Note that this
+            explicitly returns a deep copy to avoid problems with mutable
+            values; mutations are not persisted or shared.
+        @raises KeyError raised when no state is associated with var and a
+            default value is not provided.
+        """
+        try:
+            return self._state.get('public', name, default=default)
+        except KeyError:
+            raise KeyError(name)
+
+
+    def set_state(self, name, value):
+        """Saves the value given with the provided name.
+
+        @param name The name the value should be saved with.
+        @param value The value to save.
+        """
+        self._state.set('public', name, value)
+
+
+    def has_state(self, name):
+        """Returns a boolean indicating if the given name is defined.
+
+        @param name The name to check for a definition.
+
+        @returns True if state is associated with name, False otherwise.
+        """
+        return self._state.has('public', name)
+
+
+    def discard_state(self, name):
+        """Discards the state with the provided name.
+
+        @param name The name of the value that should be discarded.
+        """
+        self._state.discard('public', name)
+
+
+    def save_state(self, file_path=None):
+        """Saves the entire job state into a file.
+
+        @param file_path A writable file path that the job state can be written
+            into. If None a temporary file is created instead.
+
+        @returns The path of the file the state was written into. If file_path
+            is not None then this will always be file_path.
+        """
+        if file_path is None:
+            fd, file_path = tempfile.mkstemp(dir=self.tmpdir)
+            os.close(fd)
+        self._state.write_to_file(file_path)
+        return file_path
+
+
+    def load_state(self, file_path):
+        """Loads job state from a file, overriding any in-memory state.
+
+        @param file_path The path of a file that contains job state. Should
+            always be a file produced by a save_state call.
+        """
+        self._state.read_from_file(file_path)

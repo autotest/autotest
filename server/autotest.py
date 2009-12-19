@@ -358,12 +358,6 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # build up the initialization prologue for the control file
         prologue_lines = []
-        prologue_lines.append("job.set_default_profile_only(%r)\n"
-                              % host.job.default_profile_only)
-        prologue_lines.append("job.default_boot_tag(%r)\n"
-                              % host.job.last_boot_tag)
-        prologue_lines.append("job.default_test_cleanup(%r)\n"
-                              % host.job.run_test_cleanup)
         if job_tag:
             prologue_lines.append("job.default_tag(%r)\n" % job_tag)
 
@@ -399,9 +393,9 @@ class BaseAutotest(installable_object.InstallableObject):
         os.remove(client_config_file)
 
         # Create and copy state file to remote_control_file + '.state'
-        sysinfo_state = {"__sysinfo": host.job.sysinfo.serialize()}
-        state_file = self._create_state_file(host.job, sysinfo_state)
-        host.send_file(state_file, atrun.remote_control_file + '.state')
+        host.job.set_state("__sysinfo", host.job.sysinfo.serialize())
+        state_file = host.job.save_state()
+        host.send_file(state_file, atrun.remote_control_file + '.init.state')
         os.remove(state_file)
 
         # Copy control_file to remote_control_file on the host
@@ -412,18 +406,6 @@ class BaseAutotest(installable_object.InstallableObject):
         atrun.execute_control(
                 timeout=timeout,
                 client_disconnect_timeout=client_disconnect_timeout)
-
-
-    def _create_state_file(self, job, state_dict):
-        """
-        Create a temporary file with the state described by state_dict.
-
-        @param job: Autotest job.
-        @param state_dict: Dictionary containing the state we want to write to
-                the temporary file
-        @return: Path of the temporary file generated.
-        """
-        return self._create_aux_file(job, pickle.dump, state_dict)
 
 
     def _create_client_config_file(self, job):
@@ -716,12 +698,7 @@ class _Run(object):
     def _process_client_state_file(self):
         state_file = os.path.basename(self.remote_control_file) + ".state"
         state_path = os.path.join(self.results_dir, state_file)
-        try:
-            state_dict = pickle.load(open(state_path))
-        except Exception, e:
-            msg = "Ignoring error while loading client job state file: %s" % e
-            logging.warning(msg)
-            state_dict = {}
+        self.host.job.load_state(state_file)
 
         # clear out the state file
         # TODO: stash the file away somewhere useful instead
@@ -730,24 +707,11 @@ class _Run(object):
         except Exception:
             pass
 
-        logging.debug("Persistent state variables pulled back from %s: %s",
-                      self.host.hostname, state_dict)
+        if self.host.job.has_state("__sysinfo"):
+            self.host.job.sysinfo.deserialize(
+                self.host.job.get_state("__sysinfo"))
 
-        if "__default_profile_only" in state_dict:
-            self.host.job.default_profile_only = (
-                state_dict["__default_profile_only"])
-
-        if "__run_test_cleanup" in state_dict:
-            if state_dict["__run_test_cleanup"]:
-                self.host.job.enable_test_cleanup()
-            else:
-                self.host.job.disable_test_cleanup()
-
-        if "__last_boot_tag" in state_dict:
-            self.host.job.last_boot_tag = state_dict["__last_boot_tag"]
-
-        if "__sysinfo" in state_dict:
-            self.host.job.sysinfo.deserialize(state_dict["__sysinfo"])
+        self.host.job.discard_state("__steps")
 
 
     def execute_control(self, timeout=None, client_disconnect_timeout=None):

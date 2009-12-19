@@ -211,10 +211,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"
-        cfile_new = "job.set_default_profile_only(False)\n"
-        cfile_new += "job.default_boot_tag('Autotest')\n"
-        cfile_new += "job.default_test_cleanup(True)\n"
-        cfile_new += "job.add_repository(['repo'])\n"
+        cfile_new = "job.add_repository(['repo'])\n"
         cfile_new += cfile_orig
 
         autotest.open.expect_call("temp").and_return(cfile)
@@ -238,9 +235,11 @@ class TestBaseAutotest(unittest.TestCase):
 
         self.host.job.sysinfo.serialize.expect_call().and_return(
             {"key1": 1, "key2": 2})
-        _expect_create_aux_file('/job/tmp')
-        self.host.send_file.expect_call("/job/tmp/file1",
-                                        "autodir/control.None.autoserv.state")
+        self.host.job.set_state.expect_call('__sysinfo',
+                                            {'key1': 1, 'key2': 2})
+        self.host.job.save_state.expect_call().and_return('/job/tmp/file1')
+        self.host.send_file.expect_call(
+            "/job/tmp/file1", "autodir/control.None.autoserv.init.state")
         os.remove.expect_call("/job/tmp/file1")
 
         self.host.send_file.expect_call("temp", run_obj.remote_control_file)
