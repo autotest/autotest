@@ -558,11 +558,14 @@ def abort_host_queue_entries(**filter_data):
 def reverify_hosts(**filter_data):
     """\
     Schedules a set of hosts for verify.
+
+    @returns A list of hostnames that a verify task was created for.
     """
     hosts = models.Host.query_objects(filter_data)
     models.AclGroup.check_for_acl_violation_hosts(hosts)
     models.SpecialTask.schedule_special_task(hosts,
                                              models.SpecialTask.Task.VERIFY)
+    return list(sorted(host.hostname for host in hosts))
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):

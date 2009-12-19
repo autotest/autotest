@@ -147,6 +147,18 @@ class AFE(RpcClient):
         return [Host(self, h) for h in hosts]
 
 
+    def reverify_hosts(self, hostnames=(), status=None, label=None):
+        query_args = dict(locked=False,
+                          aclgroup__users=self.user)
+        if hostnames:
+            query_args['hostname__in'] = hostnames
+        if status:
+            query_args['status'] = status
+        if label:
+            query_args['labels__name'] = label
+        return self.run('reverify_hosts', **query_args)
+
+
     def create_host(self, hostname, **dargs):
         id = self.run('add_host', hostname=hostname, **dargs)
         return self.get_hosts(id=id)[0]
