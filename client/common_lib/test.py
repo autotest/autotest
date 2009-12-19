@@ -198,7 +198,9 @@ class base_test:
                                 'will be run')
             self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
         else:
+            self.before_run_once()
             self.run_once(*args, **dargs)
+            self.after_run_once()
 
         for hook in self.after_iteration_hooks:
             hook(self)
@@ -293,8 +295,12 @@ class base_test:
         # Do a profiling run if necessary
         if profilers.present():
             self.drop_caches_between_iterations()
+            profilers.before_start(self)
+
+            self.before_run_once()
             profilers.start(self)
             print 'Profilers present. Profiling run started'
+
             try:
                 self.run_once(*args, **dargs)
 
@@ -312,6 +318,8 @@ class base_test:
                 profilers.stop(self)
                 profilers.report(self)
 
+            self.after_run_once()
+
 
     def postprocess(self):
         pass
@@ -322,6 +330,23 @@ class base_test:
 
 
     def cleanup(self):
+        pass
+
+
+    def before_run_once(self):
+        """
+        Override in tests that need it, will be called before any run_once()
+        call including the profiling run (when it's called before starting
+        the profilers).
+        """
+        pass
+
+
+    def after_run_once(self):
+        """
+        Called after every run_once (including from a profiled run when it's
+        called after stopping the profilers).
+        """
         pass
 
 
