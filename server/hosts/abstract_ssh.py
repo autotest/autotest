@@ -284,11 +284,6 @@ class AbstractSSHHost(SiteHost):
                 except error.CmdError, e:
                     raise error.AutoservRunError(e.args[0], e.args[1])
 
-        self.run('find "%s" -type d -print0 | xargs -0r chmod o+rx' % dest)
-        self.run('find "%s" -type f -print0 | xargs -0r chmod o+r' % dest)
-        if self.target_file_owner:
-            self.run('chown -R %s %s' % (self.target_file_owner, dest))
-
 
     def ssh_ping(self, timeout=60):
         try:
