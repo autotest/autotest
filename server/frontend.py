@@ -149,7 +149,7 @@ class AFE(RpcClient):
 
     def reverify_hosts(self, hostnames=(), status=None, label=None):
         query_args = dict(locked=False,
-                          aclgroup__users=self.user)
+                          aclgroup__users__login=self.user)
         if hostnames:
             query_args['hostname__in'] = hostnames
         if status:
