@@ -200,15 +200,9 @@ class test_base_job(unittest.TestCase):
         pkgdir = os.path.join(self.autodir, 'packages')
 
         utils.drop_caches.expect_call()
-        self.job.get_state.expect_call("__default_profile_only",
-                                       default=False).and_return(False)
-        self.job.get_state.expect_call("__run_test_cleanup",
-                                       default=True).and_return(True)
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
         self.job.get_state.expect_call("__sysinfo",
                                        None).and_return(None)
-        self.job.get_state.expect_call("__last_boot_tag",
-                                       default=None).and_return(None)
         self.job.get_state.expect_call("__job_tag",
                                        default=None).and_return('1337-gps')
         if not cont:

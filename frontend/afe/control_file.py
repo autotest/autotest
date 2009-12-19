@@ -306,7 +306,7 @@ def indent_text(text, indent):
 def _get_profiler_commands(profilers, is_server, profile_only):
     prepend, append = [], []
     if profile_only is not None:
-        prepend.append("job.set_default_profile_only(%r)" % profile_only)
+        prepend.append("job.default_profile_only = %r" % profile_only)
     for profiler in profilers:
         prepend.append("job.profilers.add('%s')" % profiler.name)
         append.append("job.profilers.delete('%s')" % profiler.name)
