@@ -20,7 +20,7 @@ def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
         control_file.append("job.profilers.add(%s)"
                                 % str(profiler)[1:-1])  # Remove parens
 
-    control_file.append("job.run_test('barriertest',%d,%d,%d,'%s','%s',%s)"
+    control_file.append("job.run_test('barriertest',timeout_sync=%d,timeout_start=%d,timeout_stop=%d,hostid='%s',masterid='%s',all_ids=%s)"
                     % (timeout_sync, timeout_start, timeout_stop,
                             hostname, "PROF_MASTER", str(machines)))
 
