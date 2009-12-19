@@ -6,7 +6,7 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
-import logging, getpass
+import logging, getpass, errno
 import cPickle as pickle
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
@@ -20,7 +20,6 @@ from autotest_lib.client.common_lib import global_config
 
 
 LAST_BOOT_TAG = object()
-NO_DEFAULT = object()
 JOB_PREAMBLE = """
 from autotest_lib.client.common_lib.error import *
 from autotest_lib.client.bin.utils import *
@@ -64,6 +63,7 @@ class base_client_job(base_job.base_job):
 
     _DEFAULT_LOG_FILENAME = "status"
     _WARNING_DISABLE_DELAY = 5
+
 
     def __init__(self, control, options, drop_caches=True,
                  extra_copy_cmdline=None):
@@ -141,7 +141,6 @@ class base_client_job(base_job.base_job):
         # init_group_level needs the state
         self.control = os.path.realpath(control)
         self._is_continuation = options.cont
-        self._state_file = self.control + '.state'
         self._current_step_ancestry = []
         self._next_step_index = 0
         self._testtag = ''
@@ -161,15 +160,10 @@ class base_client_job(base_job.base_job):
         self._init_drop_caches(drop_caches)
 
         self._init_packages()
-        self.default_profile_only = self.get_state("__default_profile_only",
-                                                   default=False)
-        self.run_test_cleanup = self.get_state("__run_test_cleanup",
-                                                default=True)
 
         self.sysinfo = sysinfo.sysinfo(self.resultdir)
         self._load_sysinfo_state()
 
-        self.last_boot_tag = self.get_state("__last_boot_tag", default=None)
         self.tag = self.get_state("__job_tag", default=None)
 
         if not options.cont:
@@ -793,36 +787,6 @@ class base_client_job(base_job.base_job):
         pass
 
 
-    def set_default_profile_only(self, val):
-        """ Set the default_profile_only mode. """
-        self.set_state("__default_profile_only", val)
-        self.default_profile_only = val
-
-
-    def enable_test_cleanup(self):
-        """ By default tests run test.cleanup """
-        self.set_state("__run_test_cleanup", True)
-        self.run_test_cleanup = True
-
-
-    def disable_test_cleanup(self):
-        """ By default tests do not run test.cleanup """
-        self.set_state("__run_test_cleanup", False)
-        self.run_test_cleanup = False
-
-
-    def default_test_cleanup(self, val):
-        if not self._is_continuation:
-            self.set_state("__run_test_cleanup", val)
-            self.run_test_cleanup = val
-
-
-    def default_boot_tag(self, tag):
-        if not self._is_continuation:
-            self.set_state("__last_boot_tag", tag)
-            self.last_boot_tag = tag
-
-
     def default_tag(self, tag):
         """Allows the scheduler's job tag to be passed in from autoserv."""
         if not self._is_continuation:
@@ -843,7 +807,6 @@ class base_client_job(base_job.base_job):
         if tag == LAST_BOOT_TAG:
             tag = self.last_boot_tag
         else:
-            self.set_state("__last_boot_tag", tag)
             self.last_boot_tag = tag
 
         self.reboot_setup()
@@ -925,51 +888,27 @@ class base_client_job(base_job.base_job):
         sys.exit(status)
 
 
-    def set_state(self, var, val):
-        # Deep copies make sure that the state can't be altered
-        # without it being re-written.  Perf wise, deep copies
-        # are overshadowed by pickling/loading.
-        self.state[var] = copy.deepcopy(val)
-        outfile = open(self._state_file, 'wb')
-        try:
-            pickle.dump(self.state, outfile, pickle.HIGHEST_PROTOCOL)
-        finally:
-            outfile.close()
-        logging.debug("Persistent state variable %s now set to %r", var, val)
-
-
     def _load_state(self):
-        if hasattr(self, 'state'):
-            raise RuntimeError('state already exists')
-        infile = None
-        try:
-            try:
-                infile = open(self._state_file, 'rb')
-                self.state = pickle.load(infile)
-                logging.info('Loaded state from %s', self._state_file)
-            except IOError:
-                self.state = {}
-                initialize = True
-        finally:
-            if infile:
-                infile.close()
+        # grab any initial state and set up $CONTROL.state as the backing file
+        init_state_file = self.control + '.init.state'
+        self._state_file = self.control + '.state'
+        if os.path.exists(init_state_file):
+            shutil.move(init_state_file, self._state_file)
+        self._state.set_backing_file(self._state_file)
 
-        initialize = '__steps' not in self.state
+        # initialize the state engine, if necessary
+        try:
+            self.get_state('__steps')
+        except KeyError:
+            initialize = True
+        else:
+            initialize = False
         if not (self._is_continuation or initialize):
             raise RuntimeError('Loaded state must contain __steps or be a '
                                'continuation.')
-
         if initialize:
             logging.info('Initializing the state engine')
-            self.set_state('__steps', [])  # writes pickle file
-
-
-    def get_state(self, var, default=NO_DEFAULT):
-        if var in self.state or default == NO_DEFAULT:
-            val = self.state[var]
-        else:
-            val = default
-        return copy.deepcopy(val)
+            self.set_state('__steps', [])
 
 
     def __create_step_tuple(self, fn, args, dargs):

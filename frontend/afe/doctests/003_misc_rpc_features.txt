@@ -49,7 +49,7 @@ def step_init():
     job.next_step('step3')
 <BLANKLINE>
 def step0():
-    job.set_default_profile_only(False)
+    job.default_profile_only = False
 <BLANKLINE>
 def step1():
     job.profilers.add('oprofile')
@@ -73,7 +73,7 @@ def step_init():
     job.next_step('step3')
 <BLANKLINE>
 def step0():
-    job.set_default_profile_only(True)
+    job.default_profile_only = True
 <BLANKLINE>
 def step1():
     job.profilers.add('iostat')
