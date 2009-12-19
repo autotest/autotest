@@ -60,6 +60,15 @@ class profiler_manager(object):
         self.profile_run_only = value
 
 
+    def before_start(self, test):
+        """
+        Override to do any setup needed before actually starting the profilers
+        (this function is called before calling test.before_run_once() and
+        profilers.start() in a profiled run).
+        """
+        pass
+
+
     def start(self, test):
         """ Start all enabled profilers """
         for p in self.list:
