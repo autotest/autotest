@@ -705,5 +705,10 @@ class test_run(unittest.TestCase):
                 stdout='hello "world again\n')
 
 
+    def test_safe_args_given_string(self):
+        cmd = 'echo "hello \\"world" "again"'
+        self.assertRaises(TypeError, utils.run, 'echo', args='hello')
+
+
 if __name__ == "__main__":
     unittest.main()
