@@ -97,12 +97,13 @@ class barrier(object):
                     Hostname/IP address + optional tag of selected master
     """
 
-    def __init__(self, hostid, tag, timeout, port=11922):
+    def __init__(self, hostid, tag, timeout=None, port=11922):
         self.hostid = hostid
         self.tag = tag
         self.port = port
         self.timeout = timeout
-        logging.info("tag=%s port=%d timeout=%d",
+        self.start = None
+        logging.info("tag=%s port=%d timeout=%r",
                      self.tag, self.port, self.timeout)
 
         self.seen = 0
@@ -121,25 +122,24 @@ class barrier(object):
 
 
     def update_timeout(self, timeout):
-        try:
-            if getattr(self, 'start'):
-                self.timeout = (time() - self.start) + timeout
-        except AttributeError, a:
+        if timeout is not None and self.start is not None:
+            self.timeout = (time() - self.start) + timeout
+        else:
             self.timeout = timeout
 
 
     def remaining(self):
-        try:
-            if getattr(self, 'start'):
-                timeout = self.timeout - (time() - self.start)
-                if (timeout <= 0):
-                    errmsg = "timeout waiting for barrier: %s" % self.tag
-                    logging.error(error)
-                    raise error.BarrierError(errmsg)
-        except AttributeError, a:
+        if self.timeout is not None and self.start is not None:
+            timeout = self.timeout - (time() - self.start)
+            if timeout <= 0:
+                errmsg = "timeout waiting for barrier: %s" % self.tag
+                logging.error(error)
+                raise error.BarrierError(errmsg)
+        else:
             timeout = self.timeout
 
-        logging.info("seconds remaining: %d", timeout)
+        if self.timeout is not None:
+            logging.info("seconds remaining: %d", timeout)
         return timeout
 
 
@@ -346,7 +346,7 @@ class barrier(object):
 
 
     def run_client(self, is_master):
-        while self.remaining() > 0:
+        while self.remaining() is None or self.remaining() > 0:
             try:
                 remote = socket.socket(socket.AF_INET,
                         socket.SOCK_STREAM)
