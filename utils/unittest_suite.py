@@ -3,7 +3,7 @@
 import os, sys, unittest, optparse
 import common
 from autotest_lib.utils import parallel
-
+from autotest_lib.client.common_lib.test_utils import unittest as custom_unittest
 
 parser = optparse.OptionParser()
 parser.add_option("-r", action="store", type="string", dest="start",
@@ -45,14 +45,15 @@ def run_test(mod_names, options):
     print "Running %s" % '.'.join(mod_names)
     mod = common.setup_modules.import_module(mod_names[-1],
                                              '.'.join(mod_names[:-1]))
-    test = unittest.defaultTestLoader.loadTestsFromModule(mod)
-    suite = unittest.TestSuite(test)
-    runner = unittest.TextTestRunner(verbosity=2)
-    result = runner.run(suite)
-    if result.errors or result.failures:
-        raise TestFailure(
-                "%s had %d failures and %d errors." %
-                ('.'.join(mod_names), len(result.failures), len(result.errors)))
+    for ut_module in [unittest, custom_unittest]:
+        test = ut_module.defaultTestLoader.loadTestsFromModule(mod)
+        suite = ut_module.TestSuite(test)
+        runner = ut_module.TextTestRunner(verbosity=2)
+        result = runner.run(suite)
+        if result.errors or result.failures:
+            msg = '%s had %d failures and %d errors.'
+            msg %= '.'.join(mod_names), len(result.failures), len(result.errors)
+            raise TestFailure(msg)
 
 
 def find_and_run_tests(start, options):
