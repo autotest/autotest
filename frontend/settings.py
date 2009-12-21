@@ -43,6 +43,7 @@ else:
 # prefix applied to all URLs - useful if requests are coming through apache,
 # and you need this app to coexist with others
 URL_PREFIX = 'afe/server/'
+PLANNER_URL_PREFIX = 'planner/server/'
 
 # Local time zone for this installation. Choices can be found here:
 # http://www.postgresql.org/docs/8.1/static/datetime-keywords.html#DATETIME-TIMEZONE-SET-TABLE
@@ -105,6 +106,7 @@ TEMPLATE_DIRS = (
 
 INSTALLED_APPS = (
     'frontend.afe',
+    'frontend.planner',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

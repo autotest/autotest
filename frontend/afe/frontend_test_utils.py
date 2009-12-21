@@ -89,11 +89,12 @@ class FrontendTestMixin(object):
         thread_local.set_user(self.user)
 
 
-    def _frontend_common_setup(self):
+    def _frontend_common_setup(self, fill_data=True):
         self.god = mock.mock_god()
         self._open_test_db()
         self._setup_dummy_user()
-        self._fill_in_test_data()
+        if fill_data:
+            self._fill_in_test_data()
 
 
     def _frontend_common_teardown(self):

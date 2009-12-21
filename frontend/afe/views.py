@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
 from django.template import Context, loader
 from autotest_lib.client.common_lib import utils
+from autotest_lib.frontend import views_common
 from autotest_lib.frontend.afe import models, rpc_handler, rpc_interface
 from autotest_lib.frontend.afe import rpc_utils
 
@@ -26,13 +27,9 @@ def rpc_documentation(request):
 
 
 def model_documentation(request):
-    doc = '<h2>Models</h2>\n'
-    for model_name in ('Label', 'Host', 'Test', 'User', 'AclGroup', 'Job',
-                       'AtomicGroup'):
-        model_class = getattr(models, model_name)
-        doc += '<h3>%s</h3>\n' % model_name
-        doc += '<pre>\n%s</pre>\n' % model_class.__doc__
-    return HttpResponse(doc)
+    model_names = ('Label', 'Host', 'Test', 'User', 'AclGroup', 'Job',
+                   'AtomicGroup')
+    return views_common.model_documentation(models, model_names)
 
 
 def redirect_with_extra_data(request, url, **kwargs):
