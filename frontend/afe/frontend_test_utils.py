@@ -119,6 +119,8 @@ class FrontendTestMixin(object):
                 or None if atomic scheduling is not required.  Each metahost
                 becomes a request to schedule an entire atomic group.
                 This does not support creating an active atomic group job.
+        @param hostless - if True, this job is intended to be hostless (in that
+                case, hosts, metahosts, and atomic_group must all be empty)
 
         @returns A Django frontend.afe.models.Job instance.
         """
