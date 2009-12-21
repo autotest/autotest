@@ -1,30 +1,15 @@
 from django.conf.urls.defaults import *
-from django.conf import settings
-import os
+import common
+from autotest_lib.frontend import settings, urls_common
 
-pattern_list = [(r'^(?:|noauth/)rpc/', 'new_tko.tko.views.handle_rpc'),
-                (r'^(?:|noauth/)jsonp_rpc/',
-                 'new_tko.tko.views.handle_jsonp_rpc'),
-                (r'^(?:|noauth/)csv/', 'new_tko.tko.views.handle_csv'),
-                (r'^rpc_doc', 'new_tko.tko.views.rpc_documentation'),
-                (r'^(?:|noauth/)plot/', 'new_tko.tko.views.handle_plot')]
+pattern_list, debug_pattern_list = (
+        urls_common.generate_pattern_lists(django_name='new_tko.tko',
+                                           gwt_name='TkoClient'))
 
-debug_pattern_list = [
-    (r'^model_doc/', 'new_tko.tko.views.model_documentation'),
-
-    # for GWT hosted mode
-    (r'^(?P<forward_addr>autotest.*)',
-     'autotest_lib.frontend.afe.views.gwt_forward'),
-
-    # for GWT compiled files
-    (r'^client/(?P<path>.*)$', 'django.views.static.serve',
-     {'document_root': os.path.join(os.path.dirname(__file__), '..', '..',
-                                    'frontend', 'client', 'www')}),
-    # redirect / to compiled client
-    (r'^$', 'django.views.generic.simple.redirect_to',
-     {'url': 'client/autotest.TkoClient/TkoClient.html'}),
-
-]
+pattern_list += [(r'^(?:|noauth/)jsonp_rpc/',
+                  'new_tko.tko.views.handle_jsonp_rpc'),
+                 (r'^(?:|noauth/)csv/', 'new_tko.tko.views.handle_csv'),
+                 (r'^(?:|noauth/)plot/', 'new_tko.tko.views.handle_plot')]
 
 if settings.DEBUG:
     pattern_list += debug_pattern_list
