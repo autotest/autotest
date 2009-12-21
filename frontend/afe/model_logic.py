@@ -943,3 +943,50 @@ class ModelWithAttributes(object):
             self.delete_attribute(attribute)
         else:
             self.set_attribute(attribute, value)
+
+
+class ModelWithHashManager(dbmodels.Manager):
+    """Manager for use with the ModelWithHash abstract model class"""
+
+    def create(self, **kwargs):
+        raise Exception('ModelWithHash manager should use get_or_create() '
+                        'instead of create()')
+
+
+    def get_or_create(self, **kwargs):
+        kwargs['the_hash'] = self.model._compute_hash(**kwargs)
+        return super(ModelWithHashManager, self).get_or_create(**kwargs)
+
+
+class ModelWithHash(dbmodels.Model):
+    """Superclass with methods for dealing with a hash column"""
+
+    the_hash = dbmodels.CharField(max_length=40, unique=True)
+
+    objects = ModelWithHashManager()
+
+    class Meta:
+        abstract = True
+
+
+    @classmethod
+    def _compute_hash(cls, **kwargs):
+        raise NotImplementedError('Subclasses must override _compute_hash()')
+
+
+    def save(self, force_insert=False, **kwargs):
+        """Prevents saving the model in most cases
+
+        We want these models to be immutable, so the generic save() operation
+        will not work. These models should be instantiated through their the
+        model.objects.get_or_create() method instead.
+
+        The exception is that save(force_insert=True) will be allowed, since
+        that creates a new row. However, the preferred way to make instances of
+        these models is through the get_or_create() method.
+        """
+        if not force_insert:
+            # Allow a forced insert to happen; if it's a duplicate, the unique
+            # constraint will catch it later anyways
+            raise Exception('ModelWithHash is immutable')
+        super(ModelWithHash, self).save(force_insert=force_insert, **kwargs)

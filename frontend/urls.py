@@ -6,12 +6,14 @@ from django.contrib import admin
 admin.autodiscover()
 
 RE_PREFIX = '^' + settings.URL_PREFIX
+PLANNER_RE_PREFIX = '^' + settings.PLANNER_URL_PREFIX
 
 handler500 = 'frontend.afe.views.handler500'
 
 pattern_list = (
         (RE_PREFIX + r'admin/(.*)', admin.site.root),
         (RE_PREFIX, include('frontend.afe.urls')),
+        (PLANNER_RE_PREFIX, include('frontend.planner.urls')),
     )
 
 debug_pattern_list = (
