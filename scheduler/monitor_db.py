@@ -5,13 +5,18 @@ Autotest scheduler
 """
 
 
+import common
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
 import itertools, logging, weakref, gc
-import common
+
 import MySQLdb
+
 from autotest_lib.scheduler import scheduler_logging_config
 from autotest_lib.frontend import setup_django_environment
+
+import django.db
+
 from autotest_lib.client.common_lib import global_config, logging_manager
 from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
@@ -662,6 +667,7 @@ class Dispatcher(object):
         self._handle_agents()
         _drone_manager.execute_actions()
         email_manager.manager.send_queued_emails()
+        django.db.reset_queries()
         self._tick_count += 1
 
 
