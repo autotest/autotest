@@ -51,13 +51,14 @@ class MockGlobalConfig(object):
 # the SpecialTask names here must match the suffixes used on the SpecialTask
 # results directories
 _PidfileType = enum.Enum('verify', 'cleanup', 'repair', 'job', 'gather',
-                         'parse')
+                         'parse', 'archive')
 
 
 _PIDFILE_TO_PIDFILE_TYPE = {
         monitor_db._AUTOSERV_PID_FILE: _PidfileType.JOB,
         monitor_db._CRASHINFO_PID_FILE: _PidfileType.GATHER,
         monitor_db._PARSER_PID_FILE: _PidfileType.PARSE,
+        monitor_db._ARCHIVER_PID_FILE: _PidfileType.ARCHIVE,
         }
 
 
@@ -341,6 +342,8 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def _set_global_config_values(self):
         self.mock_config.set_config_value('SCHEDULER', 'pidfile_timeout_mins',
                                           1)
+        self.mock_config.set_config_value('SCHEDULER', 'gc_stats_interval_mins',
+                                          999999)
 
 
     def _initialize_test(self):
@@ -526,12 +529,16 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._check_statuses(queue_entry, HqeStatus.PARSING,
                              HostStatus.CLEANING)
         self._ensure_post_job_process_is_paired(queue_entry, _PidfileType.PARSE)
-        self._finish_parsing_and_cleanup()
+        self._finish_parsing_and_cleanup(queue_entry)
 
 
-    def _finish_parsing_and_cleanup(self):
+    def _finish_parsing_and_cleanup(self, queue_entry):
         self.mock_drone_manager.finish_process(_PidfileType.CLEANUP)
         self.mock_drone_manager.finish_process(_PidfileType.PARSE)
+        self._run_dispatcher()
+
+        self._check_statuses(queue_entry, HqeStatus.ARCHIVING, HostStatus.READY)
+        self.mock_drone_manager.finish_process(_PidfileType.ARCHIVE)
         self._run_dispatcher()
 
 
@@ -650,7 +657,8 @@ class SchedulerFunctionalTest(unittest.TestCase,
                 _PidfileType.JOB))
         self.mock_drone_manager.finish_process(_PidfileType.GATHER)
         self._run_dispatcher() # launches parsing + cleanup
-        self._finish_parsing_and_cleanup()
+        queue_entry = job.hostqueueentry_set.all()[0]
+        self._finish_parsing_and_cleanup(queue_entry)
 
 
     def test_no_pidfile_leaking(self):
@@ -830,7 +838,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._run_dispatcher() # gathering must start
         self.mock_drone_manager.finish_process(_PidfileType.GATHER)
         self._run_dispatcher() # parsing and cleanup
-        self._finish_parsing_and_cleanup()
+        self._finish_parsing_and_cleanup(queue_entry)
         self._run_dispatcher() # now reverify runs
         self._check_statuses(queue_entry, HqeStatus.FAILED,
                              HostStatus.VERIFYING)
@@ -928,6 +936,23 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._run_dispatcher() # parsing runs despite throttling
         _check_hqe_statuses(HqeStatus.PARSING, HqeStatus.PARSING,
                             HqeStatus.PARSING)
+
+
+    def test_abort_starting_while_throttling(self):
+        self._initialize_test()
+        job = self._create_job(hosts=[1,2], synchronous=True)
+        queue_entry = job.hostqueueentry_set.all()[0]
+        job.run_verify = False
+        job.reboot_after = models.RebootAfter.NEVER
+        job.save()
+
+        self.mock_drone_manager.process_capacity = 0
+        self._run_dispatcher() # go to starting, but don't start job
+        self._check_statuses(queue_entry, HqeStatus.STARTING,
+                             HostStatus.PENDING)
+
+        job.hostqueueentry_set.update(aborted=True)
+        self._run_dispatcher()
 
 
     def test_simple_atomic_group_job(self):
