@@ -1,7 +1,8 @@
 import os
+from django.conf.urls import defaults
 
 
-def generate_pattern_lists(django_name, gwt_name):
+def generate_patterns(django_name, gwt_name):
     """
     Generates the common URL patterns for the given names
 
@@ -11,12 +12,13 @@ def generate_pattern_lists(django_name, gwt_name):
     @return the common standard and the debug pattern lists, as a tuple
     """
 
-    pattern_list = [
-            (r'^(?:|noauth/)rpc/', '%s.views.handle_rpc' % django_name),
-            (r'^rpc_doc', '%s.views.rpc_documentation' % django_name)
-            ]
+    pattern_list = defaults.patterns(
+            django_name,
+            (r'^(?:|noauth/)rpc/', 'views.handle_rpc'),
+            (r'^rpc_doc', 'views.rpc_documentation'),
+        )
 
-    debug_pattern_list = [
+    debug_pattern_list = defaults.patterns('',
             (r'^model_doc/', '%s.views.model_documentation' % django_name),
 
             # for GWT hosted mode
@@ -31,6 +33,6 @@ def generate_pattern_lists(django_name, gwt_name):
             (r'^$', 'django.views.generic.simple.redirect_to',
              {'url':
               'client/autotest.%(name)s/%(name)s.html' % dict(name=gwt_name)}),
-            ]
+        )
 
     return (pattern_list, debug_pattern_list)

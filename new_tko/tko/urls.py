@@ -3,7 +3,7 @@ import common
 from autotest_lib.frontend import settings, urls_common
 
 pattern_list, debug_pattern_list = (
-        urls_common.generate_pattern_lists(django_name='new_tko.tko',
+        urls_common.generate_patterns(django_name='new_tko.tko',
                                            gwt_name='TkoClient'))
 
 pattern_list += [(r'^(?:|noauth/)jsonp_rpc/',
