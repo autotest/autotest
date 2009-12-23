@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import defaults
 from django.conf import settings
 
 # The next two lines enable the admin and load each admin.py file:
@@ -10,13 +10,15 @@ PLANNER_RE_PREFIX = '^' + settings.PLANNER_URL_PREFIX
 
 handler500 = 'frontend.afe.views.handler500'
 
-pattern_list = (
+urlpatterns = defaults.patterns(
+        '',
         (RE_PREFIX + r'admin/(.*)', admin.site.root),
-        (RE_PREFIX, include('frontend.afe.urls')),
-        (PLANNER_RE_PREFIX, include('frontend.planner.urls')),
+        (RE_PREFIX, defaults.include('frontend.afe.urls')),
+        (PLANNER_RE_PREFIX, defaults.include('frontend.planner.urls')),
     )
 
-debug_pattern_list = (
+debug_patterns = defaults.patterns(
+        '',
         # redirect /tko and /results to local apache server
         (r'^(?P<path>(tko|results)/.*)$',
          'frontend.afe.views.redirect_with_extra_data',
@@ -24,6 +26,4 @@ debug_pattern_list = (
     )
 
 if settings.DEBUG:
-    pattern_list += debug_pattern_list
-
-urlpatterns = patterns('', *pattern_list)
+    urlpatterns += debug_patterns
