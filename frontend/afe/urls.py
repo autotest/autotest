@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import defaults
 import common
 from autotest_lib.frontend import settings, urls_common
 from autotest_lib.frontend.afe.feeds import feed
@@ -7,15 +7,15 @@ feeds = {
     'jobs' : feed.JobFeed
 }
 
-pattern_list, debug_pattern_list = (
-        urls_common.generate_pattern_lists('frontend.afe', 'AfeClient'))
+urlpatterns, debug_patterns = (
+        urls_common.generate_patterns('frontend.afe', 'AfeClient'))
 
 # Job feeds
-debug_pattern_list.append((
-        r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
-        {'feed_dict': feeds}))
+debug_patterns += defaults.patterns(
+        '',
+        (r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
+         {'feed_dict': feeds})
+    )
 
 if settings.DEBUG:
-    pattern_list += debug_pattern_list
-
-urlpatterns = patterns('', *pattern_list)
+    urlpatterns += debug_patterns

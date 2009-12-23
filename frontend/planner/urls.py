@@ -1,12 +1,10 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import defaults
 import common
 from autotest_lib.frontend import settings, urls_common
 
-pattern_list, debug_pattern_list = (
-        urls_common.generate_pattern_lists('frontend.planner',
+urlpatterns, debug_patterns = (
+        urls_common.generate_patterns('frontend.planner',
                                            'TestPlannerClient'))
 
 if settings.DEBUG:
-    pattern_list += debug_pattern_list
-
-urlpatterns = patterns('', *pattern_list)
+    urlpatterns += debug_patterns
