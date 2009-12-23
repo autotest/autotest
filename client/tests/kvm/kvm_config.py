@@ -513,7 +513,7 @@ if __name__ == "__main__":
     debug = options.debug
 
     if not filename:
-        filename = os.path.join(os.path.dirname(sys.argv[0]), "kvm_tests.cfg")
+        filename = os.path.join(os.path.dirname(sys.argv[0]), "tests.cfg")
 
     # Here we configure the stand alone program to use the autotest
     # logging system.
