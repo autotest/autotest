@@ -1,6 +1,7 @@
 package autotest.common.table;
 
 
+import autotest.common.Utils;
 import autotest.common.ui.RightClickTable;
 
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -137,17 +138,6 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
      */
     protected void preprocessRow(JSONObject row) {}
     
-    protected String getTextForValue(JSONValue value) {
-        if (value == null || value.isNull() != null)
-            return "";
-        else if (value.isNumber() != null)
-            return Integer.toString((int) value.isNumber().doubleValue());
-        else if (value.isString() != null)
-            return  value.isString().stringValue();
-        else
-            throw new IllegalArgumentException(value.toString());
-    }
-    
     protected String[] getRowText(JSONObject row) {
         String[] rowText = new String[columns.length];
         for (int i = 0; i < columns.length; i++) {
@@ -156,7 +146,7 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
             
             String columnKey = columns[i][0];
             JSONValue columnValue = row.get(columnKey);
-            rowText[i] = getTextForValue(columnValue);
+            rowText[i] = Utils.jsonToString(columnValue);
         }
         return rowText;
     }

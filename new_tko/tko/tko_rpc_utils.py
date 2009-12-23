@@ -94,13 +94,6 @@ def _construct_machine_label_header_sql(machine_labels):
     return 'CONCAT_WS(",", %s)' % ', '.join(if_clauses)
 
 
-def add_machine_label_headers(machine_label_headers, query):
-    for field_name, machine_labels in machine_label_headers.iteritems():
-        field_sql = _construct_machine_label_header_sql(machine_labels)
-        query = query.extra(select={field_name: field_sql})
-    return query
-
-
 class GroupDataProcessor(object):
     _MAX_GROUP_RESULTS = 80000
 
@@ -222,11 +215,3 @@ class GroupDataProcessor(object):
     def get_info_dict(self):
         return {'groups' : self._group_dicts,
                 'header_values' : self._header_values}
-
-
-def get_iteration_view_query(result_keys, test_filter_data):
-    test_views = models.TestView.query_objects(test_filter_data,
-                                               apply_presentation=False)
-    iteration_views = models.TestView.objects.join_iterations(test_views,
-                                                              result_keys)
-    return iteration_views

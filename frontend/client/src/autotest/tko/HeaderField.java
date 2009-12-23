@@ -5,12 +5,19 @@ import autotest.common.ui.MultiListSelectPresenter.Item;
 
 import com.google.gwt.json.client.JSONObject;
 
-import java.util.Map;
-
 /**
- * A database field which the user may select for display or filter on.  HeaderFields may generate
- * arbitrary SQL to perform filtering, and they may add arbitrary query arguments to support display
- * and filtering.
+ * A field associated with test results.  The user may
+ * * view this field in table view,
+ * * sort by this field in table view,
+ * * group by this field in spreadsheet or table view, and
+ * * filter on this field in the SQL condition.
+ * It's assumed that the name returned by getSqlName() is a field returned by the server which may 
+ * also be used for grouping and sorting.  Filtering, however, is done separately (through 
+ * getSqlCondition()), so HeaderFields may generate arbitrary SQL to perform filtering.  
+ * HeaderFields may also add arbitrary query arguments to support themselves.
+ * 
+ * While the set of HeaderFields active in the application may change at runtime, HeaderField 
+ * objects themselves are immutable.
  */
 abstract class HeaderField implements Comparable<HeaderField> {
     protected String name;
@@ -58,19 +65,24 @@ abstract class HeaderField implements Comparable<HeaderField> {
     public String getSqlName() {
         return sqlName;
     }
-
+    
     /**
-     * Get the attribute name of this field on a result object.  This should always be the same as 
-     * sqlName, but due to some current flaws in the design, it's necessary as a separate item.
-     * TODO: Get rid of this and fix up the design.
+     * Get a quoted version of getSqlName() safe for use directly in SQL.
      */
-    public String getAttributeName() {
-        return getSqlName();
+    public String getQuotedSqlName() {
+        return "`" + getSqlName() + "`";
     }
 
     @Override
     public String toString() {
         return "HeaderField<" + getName() + ", " + getSqlName() + ">";
+    }
+
+    /**
+     * Should this field be provided as a choice for the user to select?
+     */
+    public boolean isUserSelectable() {
+        return true;
     }
     
     /**
@@ -85,16 +97,4 @@ abstract class HeaderField implements Comparable<HeaderField> {
      * @param parameters query parameters
      */
     public void addQueryParameters(JSONObject parameters) {}
-
-    /**
-     * Add necessary parameters to history state.  Does nothing by default.
-     * @param arguments history arguments
-     */
-    public void addHistoryArguments(Map<String, String> arguments) {}
-
-    /**
-     * Parse information as necessary from history state.
-     * @param arguments history arguments
-     */
-    public void handleHistoryArguments(Map<String, String> arguments) {} 
 }

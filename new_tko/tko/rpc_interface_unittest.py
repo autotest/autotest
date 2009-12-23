@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest
+import re, unittest
 import common
 from autotest_lib.new_tko import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
@@ -94,6 +94,13 @@ class RpcInterfaceTest(unittest.TestCase):
                             self._get_column_names_for_sqlite3)
         self._god.stub_with(models.TempManager, '_cursor_rowcount',
                             self._cursor_rowcount_for_sqlite3)
+
+        # add some functions to SQLite for MySQL compatibility
+        connection.cursor() # ensure connection is alive
+        connection.connection.create_function('if', 3, self._sqlite_if)
+        connection.connection.create_function('find_in_set', 2,
+                                              self._sqlite_find_in_set)
+
         setup_test_environment.set_up()
         fix_iteration_tables()
         setup_test_view()
@@ -102,6 +109,34 @@ class RpcInterfaceTest(unittest.TestCase):
 
     def _cursor_rowcount_for_sqlite3(self, cursor):
         return len(cursor.fetchall())
+
+
+    def _sqlite_find_in_set(self, needle, haystack):
+        return needle in haystack.split(',')
+
+
+    def _sqlite_if(self, condition, true_result, false_result):
+        if condition:
+            return true_result
+        return false_result
+
+
+    # sqlite takes any columns that don't have aliases and names them
+    # "table_name"."column_name".  we map these to just column_name.
+    _SQLITE_AUTO_COLUMN_ALIAS_RE = re.compile(r'".+"\."(.+)"')
+
+
+    def _get_column_names_for_sqlite3(self, cursor):
+        names = [column_info[0] for column_info in cursor.description]
+
+        # replace all "table_name"."column_name" constructs with just
+        # column_name
+        for i, name in enumerate(names):
+            match = self._SQLITE_AUTO_COLUMN_ALIAS_RE.match(name)
+            if match:
+                names[i] = match.group(1)
+
+        return names
 
 
     def tearDown(self):
@@ -135,6 +170,7 @@ class RpcInterfaceTest(unittest.TestCase):
                                                 kernel=kernel1,
                                                 status=good_status,
                                                 machine=machine)
+        self.first_test = job1_test1
         job1_test2 = models.Test.objects.create(job=job1, test='mytest2',
                                                 kernel=kernel1,
                                                 status=failed_status,
@@ -275,19 +311,6 @@ class RpcInterfaceTest(unittest.TestCase):
             job_name='myjob1', test_name='mytest1'), 1)
 
 
-    def _get_column_names_for_sqlite3(self, cursor):
-        names = [column_info[0] for column_info in cursor.description]
-
-        # replace all "table_name"."column_name" constructs with just
-        # column_name
-        for i, name in enumerate(names):
-            if '.' in name:
-                field_name = name.split('.', 1)[1]
-                names[i] = field_name.strip('"')
-
-        return names
-
-
     def test_get_group_counts(self):
         self.assertEquals(rpc_interface.get_num_groups(['job_name']), 2)
 
@@ -381,38 +404,9 @@ class RpcInterfaceTest(unittest.TestCase):
         self._check_for_get_test_labels(label2, 2)
 
 
-    def test_get_iteration_views(self):
-        iterations = rpc_interface.get_iteration_views(['iresult', 'iresult2'],
-                                                       job_name='myjob1',
-                                                       test_name='mytest1')
-        self.assertEquals(len(iterations), 2)
-        for index, iteration in enumerate(iterations):
-            self._check_for_get_test_views(iterations[index])
-            # iterations a one-indexed, not zero-indexed
-            self.assertEquals(iteration['iteration_index'], index + 1)
-
-        self.assertEquals(iterations[0]['iresult'], 1)
-        self.assertEquals(iterations[0]['iresult2'], 2)
-        self.assertEquals(iterations[1]['iresult'], 3)
-        self.assertEquals(iterations[1]['iresult2'], 4)
-
-        self.assertEquals(
-                [], rpc_interface.get_iteration_views(['iresult'],
-                                                      hostname='fakehost'))
-        self.assertEquals(
-                [], rpc_interface.get_iteration_views(['fake']))
-
-
-    def test_get_num_iteration_views(self):
-        self.assertEquals(
-                rpc_interface.get_num_iteration_views(['iresult', 'iresult2']),
-                2)
-        self.assertEquals(rpc_interface.get_num_iteration_views(['fake']), 0)
-
-
-    def test_get_test_attributes(self):
+    def test_get_test_attribute_fields(self):
         tests = rpc_interface.get_test_views(
-                tko_test_attributes=['myattr', 'myattr2'])
+                test_attribute_fields=['myattr', 'myattr2'])
         self.assertEquals(len(tests), 3)
 
         self.assertEquals(tests[0]['attribute_myattr'], 'myval')
@@ -423,19 +417,159 @@ class RpcInterfaceTest(unittest.TestCase):
             self.assertEquals(tests[index]['attribute_myattr2'], None)
 
 
-    def test_grouping_with_test_attributes(self):
-        num_groups = rpc_interface.get_num_groups(['attribute_myattr'],
-                                                tko_test_attributes=['myattr'])
+    def test_filtering_on_test_attribute_fields(self):
+        tests = rpc_interface.get_test_views(
+                extra_where='attribute_myattr.value = "myval"',
+                test_attribute_fields=['myattr'])
+        self.assertEquals(len(tests), 1)
+
+
+    def test_grouping_with_test_attribute_fields(self):
+        num_groups = rpc_interface.get_num_groups(
+                ['attribute_myattr'], test_attribute_fields=['myattr'])
         self.assertEquals(num_groups, 2)
 
-        counts = rpc_interface.get_group_counts(['attribute_myattr'],
-                                                tko_test_attributes=['myattr'])
+        counts = rpc_interface.get_group_counts(
+                ['attribute_myattr'], test_attribute_fields=['myattr'])
         groups = counts['groups']
         self.assertEquals(len(groups), num_groups)
         self.assertEquals(groups[0]['attribute_myattr'], None)
         self.assertEquals(groups[0]['group_count'], 2)
         self.assertEquals(groups[1]['attribute_myattr'], 'myval')
         self.assertEquals(groups[1]['group_count'], 1)
+
+
+    def test_get_test_label_fields(self):
+        tests = rpc_interface.get_test_views(
+                test_label_fields=['testlabel1', 'testlabel2'])
+        self.assertEquals(len(tests), 3)
+
+        self.assertEquals(tests[0]['label_testlabel1'], 'testlabel1')
+        self.assert_(tests[0]['label_testlabel2'], 'testlabel2')
+
+        for index in (1, 2):
+            self.assertEquals(tests[index]['label_testlabel1'], None)
+            self.assertEquals(tests[index]['label_testlabel2'], None)
+
+
+    def test_filtering_on_test_label_fields(self):
+        tests = rpc_interface.get_test_views(
+                extra_where='label_testlabel1 = "testlabel1"',
+                test_label_fields=['testlabel1'])
+        self.assertEquals(len(tests), 1)
+
+
+    def test_grouping_on_test_label_fields(self):
+        num_groups = rpc_interface.get_num_groups(
+                ['label_testlabel1'], test_label_fields=['testlabel1'])
+        self.assertEquals(num_groups, 2)
+
+        counts = rpc_interface.get_group_counts(
+                ['label_testlabel1'], test_label_fields=['testlabel1'])
+        groups = counts['groups']
+        self.assertEquals(len(groups), 2)
+        self.assertEquals(groups[0]['label_testlabel1'], None)
+        self.assertEquals(groups[0]['group_count'], 2)
+        self.assertEquals(groups[1]['label_testlabel1'], 'testlabel1')
+        self.assertEquals(groups[1]['group_count'], 1)
+
+
+    def test_get_iteration_fields(self):
+        num_iterations = rpc_interface.get_num_test_views(
+                iteration_fields=['iresult', 'iresult2'])
+        self.assertEquals(num_iterations, 2)
+
+        iterations = rpc_interface.get_test_views(
+                iteration_fields=['iresult', 'iresult2'])
+        self.assertEquals(len(iterations), 2)
+
+        for index in (0, 1):
+            self.assertEquals(iterations[index]['test_idx'], 1)
+
+        self.assertEquals(iterations[0]['iteration_index'], 1)
+        self.assertEquals(iterations[0]['iteration_iresult'], 1)
+        self.assertEquals(iterations[0]['iteration_iresult2'], 2)
+
+        self.assertEquals(iterations[1]['iteration_index'], 2)
+        self.assertEquals(iterations[1]['iteration_iresult'], 3)
+        self.assertEquals(iterations[1]['iteration_iresult2'], 4)
+
+
+    def test_filtering_on_iteration_fields(self):
+        iterations = rpc_interface.get_test_views(
+                extra_where='iteration_iresult.value = 1',
+                iteration_fields=['iresult'])
+        self.assertEquals(len(iterations), 1)
+
+
+    def test_grouping_with_iteration_fields(self):
+        num_groups = rpc_interface.get_num_groups(['iteration_iresult'],
+                                                  iteration_fields=['iresult'])
+        self.assertEquals(num_groups, 2)
+
+        counts = rpc_interface.get_group_counts(['iteration_iresult'],
+                                                iteration_fields=['iresult'])
+        groups = counts['groups']
+        self.assertEquals(len(groups), 2)
+        self.assertEquals(groups[0]['iteration_iresult'], 1)
+        self.assertEquals(groups[0]['group_count'], 1)
+        self.assertEquals(groups[1]['iteration_iresult'], 3)
+        self.assertEquals(groups[1]['group_count'], 1)
+
+
+    def _setup_machine_labels(self):
+        models.TestAttribute.objects.create(test=self.first_test,
+                                            attribute='host-labels',
+                                            value='label1,label2')
+
+
+    def test_get_machine_label_fields(self):
+        self._setup_machine_labels()
+
+        tests = rpc_interface.get_test_views(
+                machine_label_fields=['label1', 'otherlabel'])
+        self.assertEquals(len(tests), 3)
+
+        self.assertEquals(tests[0]['machine_label_label1'], 'label1')
+        self.assertEquals(tests[0]['machine_label_otherlabel'], None)
+
+        for index in (1, 2):
+            self.assertEquals(tests[index]['machine_label_label1'], None)
+            self.assertEquals(tests[index]['machine_label_otherlabel'], None)
+
+
+    def test_grouping_with_machine_label_fields(self):
+        self._setup_machine_labels()
+
+        counts = rpc_interface.get_group_counts(['machine_label_label1'],
+                                                machine_label_fields=['label1'])
+        groups = counts['groups']
+        self.assertEquals(len(groups), 2)
+        self.assertEquals(groups[0]['machine_label_label1'], None)
+        self.assertEquals(groups[0]['group_count'], 2)
+        self.assertEquals(groups[1]['machine_label_label1'], 'label1')
+        self.assertEquals(groups[1]['group_count'], 1)
+
+
+    def test_filtering_on_machine_label_fields(self):
+        self._setup_machine_labels()
+
+        tests = rpc_interface.get_test_views(
+                extra_where='machine_label_label1 = "label1"',
+                machine_label_fields=['label1'])
+        self.assertEquals(len(tests), 1)
+
+
+    def test_quoting_fields(self):
+        # ensure fields with special characters are properly quoted throughout
+        rpc_interface.add_test_label('hyphen-label')
+        rpc_interface.get_group_counts(
+                ['attribute_hyphen-attr', 'label_hyphen-label',
+                 'machine_label_hyphen-label', 'iteration_hyphen-result'],
+                test_attribute_fields=['hyphen-attr'],
+                test_label_fields=['hyphen-label'],
+                machine_label_fields=['hyphen-label'],
+                iteration_fields=['hyphen-result'])
 
 
 if __name__ == '__main__':

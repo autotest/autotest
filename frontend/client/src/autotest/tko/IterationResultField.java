@@ -1,13 +1,8 @@
 package autotest.tko;
 
-import autotest.common.Utils;
 
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
-
-public class IterationResultField extends StringParameterizedField {
-    public static final String BASE_NAME = "Iteration result";
+public class IterationResultField extends AttributeField {
+    public static final String TYPE_NAME = "Iteration result";
 
     @Override
     protected ParameterizedField freshInstance() {
@@ -15,31 +10,17 @@ public class IterationResultField extends StringParameterizedField {
     }
 
     @Override
-    protected String getBaseName() {
-        return BASE_NAME;
+    public String getTypeName() {
+        return TYPE_NAME;
+    }
+    
+    @Override
+    protected String getFieldParameterName() {
+        return "iteration_fields";
     }
 
     @Override
     public String getBaseSqlName() {
-        return "iteration_result_";
+        return "iteration_";
     }
-
-    @Override
-    public String getAttributeName() {
-        return getValue();
-    }
-
-    @Override
-    public void addQueryParameters(JSONObject parameters) {
-        JSONArray iterationKeys = 
-            Utils.setDefaultValue(parameters, "result_keys", new JSONArray()).isArray();
-        iterationKeys.set(iterationKeys.size(), new JSONString(getValue()));
-    }
-
-    @Override
-    public String getSqlCondition(String value) {
-        // TODO: when grouping on iteration results is added, this will be necessary
-        throw new UnsupportedOperationException();
-    }
-
 }

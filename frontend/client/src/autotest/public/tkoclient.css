@@ -62,3 +62,7 @@ div.spreadsheet-cell-nonclickable {
   font-weight: bold;
 }
 
+.fixed-headers-input {
+  width: 30em;
+  height: 10em;
+}

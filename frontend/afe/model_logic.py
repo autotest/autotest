@@ -9,6 +9,7 @@ from django.db.models.sql import query
 from django.utils import datastructures
 from autotest_lib.frontend.afe import readonly_connection
 
+_quote_name = connection.ops.quote_name
 
 class ValidationError(Exception):
     """\
@@ -115,7 +116,8 @@ class ExtendedManager(dbmodels.Manager):
             for join_alias, join in self._customSqlQ._joins.iteritems():
                 join_table, join_type, condition = join
                 join_clause += ' %s %s AS %s ON (%s)' % (
-                    join_type, join_table, join_alias, condition)
+                    join_type, _quote_name(join_table),
+                    _quote_name(join_alias), condition)
 
             if join_clause:
                 from_.append(join_clause)
@@ -158,24 +160,28 @@ class ExtendedManager(dbmodels.Manager):
         return query_set.filter(filter_object)
 
 
-    def add_join(self, query_set, join_table, join_key,
-                 join_condition='', suffix='', exclude=False,
-                 force_left_join=False):
+    def add_join(self, query_set, join_table, join_key, join_condition='',
+                 alias=None, suffix='', exclude=False, force_left_join=False):
         """
         Add a join to query_set.
         @param join_table table to join to
         @param join_key field referencing back to this model to use for the join
         @param join_condition extra condition for the ON clause of the join
-        @param suffix suffix to add to join_table for the join alias
+        @param alias alias to use for for join
+        @param suffix suffix to add to join_table for the join alias, if no
+                alias is provided
         @param exclude if true, exclude rows that match this join (will use a
         LEFT OUTER JOIN and an appropriate WHERE condition)
         @param force_left_join - if true, a LEFT OUTER JOIN will be used
         instead of an INNER JOIN regardless of other options
         """
-        join_from_table = self.model._meta.db_table
-        join_from_key = self.model._meta.pk.name
-        join_alias = join_table + suffix
-        full_join_key = join_alias + '.' + join_key
+        join_from_table = _quote_name(self.model._meta.db_table)
+        join_from_key = _quote_name(self.model._meta.pk.name)
+        if alias:
+            join_alias = alias
+        else:
+            join_alias = join_table + suffix
+        full_join_key = _quote_name(join_alias) + '.' + _quote_name(join_key)
         full_join_condition = '%s = %s.%s' % (full_join_key, join_from_table,
                                               join_from_key)
         if join_condition:
@@ -648,7 +654,7 @@ class ModelExtensions(object):
         sort_by = special_params.get('sort_by', None)
         if sort_by:
             assert isinstance(sort_by, list) or isinstance(sort_by, tuple)
-            query = query.order_by(*sort_by)
+            query = query.extra(order_by=sort_by)
 
         query_start = special_params.get('query_start', None)
         query_limit = special_params.get('query_limit', None)
