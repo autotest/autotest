@@ -65,7 +65,7 @@ class AbstractSSHHost(SiteHost):
         """ Given a list of source paths and a destination path, produces the
         appropriate scp command for encoding it. Remote paths must be
         pre-encoded. """
-        command = "scp -rpq -P %d %s '%s'"
+        command = "scp -rq -P %d %s '%s'"
         return command % (self.port, " ".join(sources), dest)
 
 
