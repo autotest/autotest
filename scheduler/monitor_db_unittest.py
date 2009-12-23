@@ -14,6 +14,7 @@ from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
 from autotest_lib.scheduler import scheduler_config, gc_stats
+from autotest_lib.scheduler import monitor_db_functional_test
 
 _DEBUG = False
 
@@ -91,14 +92,16 @@ class BaseSchedulerTest(unittest.TestCase,
         monitor_db.DBObject._clear_instance_cache()
 
         self._database = (
-            database_connection.DatabaseConnection.get_test_database(
-                self._test_db_file))
-        self._database.connect()
+            database_connection.TranslatingDatabase.get_test_database(
+                translators=monitor_db_functional_test._DB_TRANSLATORS))
+        self._database.connect(db_type='django')
         self._database.debug = _DEBUG
 
-        monitor_db._db = self._database
-        monitor_db._drone_manager._results_dir = '/test/path'
-        monitor_db._drone_manager._temporary_directory = '/test/path/tmp'
+        self.god.stub_with(monitor_db, '_db', self._database)
+        self.god.stub_with(monitor_db._drone_manager, '_results_dir',
+                           '/test/path')
+        self.god.stub_with(monitor_db._drone_manager, '_temporary_directory',
+                           '/test/path/tmp')
 
 
     def setUp(self):
