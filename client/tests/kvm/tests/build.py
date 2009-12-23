@@ -158,9 +158,11 @@ class KojiInstaller:
         """
         default_koji_cmd = '/usr/bin/koji'
         default_src_pkg = 'qemu'
-        default_pkg_list = ['qemu-kvm', 'qemu-kvm-tools']
-        default_qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
-        default_extra_modules = None
+        # Since the config file will provide strings, to save some
+        # comparisons, we're converting the values below to strings.
+        default_pkg_list = str(['qemu-kvm', 'qemu-kvm-tools'])
+        default_qemu_bin_paths = str(['/usr/bin/qemu-kvm', '/usr/bin/qemu-img'])
+        default_extra_modules = str(None)
 
         self.koji_cmd = params.get("koji_cmd", default_koji_cmd)
 
@@ -170,9 +172,9 @@ class KojiInstaller:
         os_dep.command(self.koji_cmd)
 
         self.src_pkg = params.get("src_pkg", default_src_pkg)
-        self.pkg_list = params.get("pkg_list", default_pkg_list)
-        self.qemu_bin_paths = params.get("qemu_bin_paths",
-                                         default_qemu_bin_paths)
+        self.pkg_list = eval(params.get("pkg_list", default_pkg_list))
+        self.qemu_bin_paths = eval(params.get("qemu_bin_paths",
+                                         default_qemu_bin_paths))
         self.tag = params.get("koji_tag", None)
         self.build = params.get("koji_build", None)
         if self.tag and self.build:
@@ -192,7 +194,8 @@ class KojiInstaller:
             self.load_modules = True
         elif load_modules == 'no':
             self.load_modules = False
-        self.extra_modules = params.get("extra_modules", default_extra_modules)
+        self.extra_modules = eval(params.get("extra_modules",
+                                             default_extra_modules))
 
         self.srcdir = test.srcdir
         self.test_bindir = test.bindir
